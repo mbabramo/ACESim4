@@ -83,7 +83,7 @@ namespace ACESim
 
         // For Vanilla algorithm:
         // From Solving Imperfect Information Games with Discounted Regret Minimization -- optimal values (for situations in which pruning may be used)
-        public bool UseContinuousRegretsDiscounting = true; // DEBUG // an alternative to discounting regrets with standard discounting approach
+        public bool UseContinuousRegretsDiscounting = false; // DEBUG // an alternative to discounting regrets with standard discounting approach
         public double ContinuousRegretsDiscountPerIteration => UseContinuousRegretsDiscounting ? 0.99 : 1.0; 
         public bool UseStandardDiscounting = false; // DEBUG // Note: This might be especially helpful sometimes for multiplicative weights
         public bool DiscountRegrets = false; // if true, Discounting_Alpha and Discounting_Beta are used -- note never currently used in MultiplicativeWeightsVanilla
@@ -120,6 +120,11 @@ namespace ACESim
         }
 
         public bool GeneralizedVanillaAddTremble = false;
+
+        public bool PlaceWeightOnOpponentsStrategy = true; // DEBUG SUPERDEBUG
+        public (double, double) MinMaxWeightOnOpponentsStrategy = (-0.25,0.25);
+        public int ChangeWeightOnOpponentsStrategyEveryNIterations = 100;
+        public bool ResetWeightOnOpponentsStrategyEveryOtherTime = true;
 
         public double MultiplicativeWeightsInitial = 0.5;
         public double MultiplicativeWeightsFinal = 0.5;
@@ -170,8 +175,8 @@ namespace ACESim
 
         }
 
-        public double PerturbationInitial = 0.00001; // DEBUG 0.001; // should use with regret matching
-        public double PerturbationFinal = 0.00001;
+        public double PerturbationInitial = 0.001; // DEBUG 0.001; // should use with regret matching
+        public double PerturbationFinal = 0; 
         public double PerturbationCurvature = 5.0;
         public double Perturbation_BasedOnCurve(int iteration, int maxIteration)
         {
@@ -189,7 +194,9 @@ namespace ACESim
         public int RecordPastValues_TargetNumberToRecord = 100;
         public int? RecordPastValues_AtIterationMultiples = 5_000; 
         public bool RecordPastValues_ResetAtIterationMultiples = false; 
-        public int EffectiveIteration(int iteration) => (RecordPastValues && RecordPastValues_AtIterationMultiples is int multiples && RecordPastValues_ResetAtIterationMultiples) ? iteration % multiples + 1 : iteration;
+        public int EffectiveIteration(int iteration) => PlaceWeightOnOpponentsStrategy && ResetWeightOnOpponentsStrategyEveryOtherTime ? (iteration % ChangeWeightOnOpponentsStrategyEveryNIterations + 1)
+            : (RecordPastValues && RecordPastValues_AtIterationMultiples is int multiples && RecordPastValues_ResetAtIterationMultiples) ? iteration % multiples + 1 
+                : iteration;
         public (int effectiveIteration, int effectiveMaxIteration) EffectiveIterationAndMaxIteration(int iteration, int maxIteration) => (RecordPastValues && RecordPastValues_AtIterationMultiples is int multiples && RecordPastValues_ResetAtIterationMultiples) ? (iteration % multiples + 1, multiples) : (iteration, maxIteration);
 
         public bool IsIterationResetPoint(int iteration) => RecordPastValues && RecordPastValues_AtIterationMultiples is int multiples && iteration % multiples == 0 && RecordPastValues_ResetAtIterationMultiples;

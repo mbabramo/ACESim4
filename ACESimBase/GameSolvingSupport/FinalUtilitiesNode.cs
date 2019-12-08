@@ -11,6 +11,7 @@ namespace ACESim
     public class FinalUtilitiesNode : IGameState
     {
         public int CurrentScenarioIndex = 0;
+        public double WeightOnOpponent = 0;
         public double[] Utilities => AllScenarioUtilities[CurrentScenarioIndex];
         public List<double[]> AllScenarioUtilities;
         public FloatSet CustomResult => AllScenarioCustomResult[CurrentScenarioIndex];

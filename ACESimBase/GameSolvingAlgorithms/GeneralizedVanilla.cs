@@ -30,8 +30,33 @@ namespace ACESim
             return created;
         }
 
+        double WeightOnOpponentsStrategy = 1;
+        bool ResetLastTime = false;
+
+        private void UpdateWeightOnOpponentsStrategy(int iteration)
+        {
+            if (EvolutionSettings.PlaceWeightOnOpponentsStrategy && iteration % EvolutionSettings.ChangeWeightOnOpponentsStrategyEveryNIterations == 0)
+            {
+                if (EvolutionSettings.ResetWeightOnOpponentsStrategyEveryOtherTime)
+                {
+                    ResetLastTime = !ResetLastTime;
+                    if (ResetLastTime)
+                    {
+                        WeightOnOpponentsStrategy = 0; 
+                        return;
+                    }
+                    else
+                        Parallel.For(0, InformationSets.Count(), n => InformationSets[n].ShrinkCumulativeRegrets());
+                }
+                double r = new ConsistentRandomSequenceProducer(GameNumber * 17 + iteration * 2029).GetDoubleAtIndex(1);
+                WeightOnOpponentsStrategy = EvolutionSettings.MinMaxWeightOnOpponentsStrategy.Item1 + (EvolutionSettings.MinMaxWeightOnOpponentsStrategy.Item2 - EvolutionSettings.MinMaxWeightOnOpponentsStrategy.Item1) * r;
+                Debug.WriteLine($"Weight on opponents strategy: {WeightOnOpponentsStrategy}"); // DEBUG
+            }
+        }
+
         public void UpdateInformationSets(int iteration)
         {
+            UpdateWeightOnOpponentsStrategy(iteration);
             int numInformationSets = InformationSets.Count;
             PostIterationUpdater.PrepareForUpdating(iteration, EvolutionSettings);
             double? pruneOpponentStrategyBelow = !EvolutionSettings.CFR_OpponentSampling && EvolutionSettings.PruneOnOpponentStrategy && !EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions ? EvolutionSettings.PruneOnOpponentStrategyThreshold : (double?)null;
@@ -104,7 +129,7 @@ namespace ACESim
                 StrategiesDeveloperStopwatch.Start();
                 if (EvolutionSettings.CFRBR)
                     CalculateBestResponse(false);
-                Unroll_ExecuteUnrolledCommands(array, iteration == 1); // DEBUG -- CHANGE BACK || iteration == EvolutionSettings.IterationsForWarmupScenario + 1);
+                Unroll_ExecuteUnrolledCommands(array, iteration == 1 || EvolutionSettings.PlaceWeightOnOpponentsStrategy || iteration == EvolutionSettings.IterationsForWarmupScenario + 1);
                 StrategiesDeveloperStopwatch.Stop();
                 UpdateInformationSets(iteration);
                 SimulatedAnnealing(iteration);
@@ -388,7 +413,10 @@ namespace ACESim
                     int initialIndex = Unroll_GetFinalUtilitiesNodesIndex(finalUtilitiesNode.FinalUtilitiesNodeNumber, 0);
                     for (byte p = 0; p < finalUtilitiesNode.Utilities.Length; p++)
                     {
-                        array[initialIndex++] = finalUtilitiesNode.Utilities[p];
+                        double utility = finalUtilitiesNode.Utilities[p];
+                        double opponentsUtility = finalUtilitiesNode.Utilities[1 - p];
+                        double weightedUtility = WeightOnOpponentsStrategy * opponentsUtility + (1.0 - WeightOnOpponentsStrategy) * utility;
+                        array[initialIndex++] = weightedUtility;
                     }
                 });
             }
@@ -923,9 +951,11 @@ namespace ACESim
             {
                 FinalUtilitiesNode finalUtilities = (FinalUtilitiesNode)gameStateForCurrentPlayer;
                 double util = finalUtilities.Utilities[playerBeingOptimized];
+                double opponentsUtility = finalUtilities.Utilities[1 - playerBeingOptimized];
+                double weightedUtility = WeightOnOpponentsStrategy * opponentsUtility + (1.0 - WeightOnOpponentsStrategy) * util;
                 if (double.IsNaN(util))
                     throw new Exception();
-                return new GeneralizedVanillaUtilities { AverageStrategyVsAverageStrategy = util, BestResponseToAverageStrategy = util, CurrentVsCurrent = util };
+                return new GeneralizedVanillaUtilities { AverageStrategyVsAverageStrategy = weightedUtility, BestResponseToAverageStrategy = weightedUtility, CurrentVsCurrent = weightedUtility };
             }
             else if (gameStateType == GameStateTypeEnum.Chance)
             {

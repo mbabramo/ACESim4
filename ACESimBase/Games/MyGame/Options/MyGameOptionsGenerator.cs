@@ -141,6 +141,7 @@ namespace ACESim
             options.NumDamagesSignals = 5;
             options.NumOffers = 5;
             options.NumDamagesStrengthPoints = 5;
+            options.CostsMultiplier = 0.5; // SUPERDEBUG
             options.SkipFileAndAnswerDecisions = true;
             options.AllowAbandonAndDefaults = false;
 
