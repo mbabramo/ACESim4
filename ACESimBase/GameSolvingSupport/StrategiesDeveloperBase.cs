@@ -33,9 +33,6 @@ namespace ACESim
         [NonSerialized]
         public Stopwatch StrategiesDeveloperStopwatch = new Stopwatch();
 
-        public int IterationNum;
-        public double IterationNumDouble;
-
         public int GameNumber;
 
 
@@ -131,11 +128,6 @@ namespace ACESim
 
         public bool BestBecomesResult = true; // NOTE: The argument against doing this is that exploitability is not the only consideration; we also want to be close to a sequential equilibrium.
         public bool RememberPastExploitability = true;
-        public double BestExploitability = int.MaxValue; // initialize to worst possible score (i.e., highest possible exploitability)
-        public int BestIteration = -1;
-
-        public double[] MinScore, MaxScore, ScoreRange;
-        public bool ScoreRangeExists => !(ScoreRange == null || ScoreRange.Any(x => x == 0));
 
         public ActionStrategies _ActionStrategy;
         public ActionStrategies ActionStrategy
@@ -276,11 +268,11 @@ namespace ACESim
                     if (playerIndex == null)
                     {
                         if (!isMax)
-                            MinScore = result;
+                            Status.MinScore = result;
                         else
                         {
-                            MaxScore = result;
-                            ScoreRange = MinScore.Zip(MaxScore, (min, max) => max - min).ToArray();
+                            Status.MaxScore = result;
+                            Status.ScoreRange = Status.MinScore.Zip(Status.MaxScore, (min, max) => max - min).ToArray();
                         }
                     }
                 }
@@ -587,7 +579,7 @@ namespace ACESim
         {
             if (iteration <= 1)
                 BestResponseImprovementAdjAvgOverTime = new List<double>();
-            double exploitability = BestResponseImprovementAdjAvg;
+            double exploitability = Status.BestResponseImprovementAdjAvg;
             if (EvolutionSettings.RememberBestResponseExploitability)
                 BestResponseImprovementAdjAvgOverTime.Add(exploitability);
             if (BestBecomesResult && iteration >= 3)
@@ -597,12 +589,12 @@ namespace ACESim
                     Parallel.ForEach(InformationSets, informationSet => informationSet.CreateBackup());
                     BestExploitability = exploitability;
                     BestIteration = iteration;
-                    LastBestResponseImprovement = BestResponseImprovement.ToArray();
+                    LastBestResponseImprovement = Status.BestResponseImprovement.ToArray();
                 }
                 if (iteration == EvolutionSettings.TotalIterations)
                 {
                     Parallel.ForEach(InformationSets, informationSet => informationSet.RestoreBackup());
-                    BestResponseImprovement = LastBestResponseImprovement.ToArray();
+                    Status.BestResponseImprovement = LastBestResponseImprovement.ToArray();
                     TabbedText.WriteLine($"Best iteration {BestIteration} best exploitability {BestExploitability}");
                 }
             }
@@ -722,7 +714,7 @@ namespace ACESim
         {
             ReportCollection reportCollection = new ReportCollection();
             bool doBestResponse = (EvolutionSettings.BestResponseEveryMIterations != null && iteration % EvolutionSettings.BestResponseEveryMIterations == 0 && EvolutionSettings.BestResponseEveryMIterations != EvolutionSettings.EffectivelyNever && iteration != 0);
-            bool doReports = EvolutionSettings.ReportEveryNIterations != null && (iteration % EvolutionSettings.ReportEveryNIterations == 0 || BestResponseTargetMet);
+            bool doReports = EvolutionSettings.ReportEveryNIterations != null && (iteration % EvolutionSettings.ReportEveryNIterations == 0 || Status.BestResponseTargetMet(EvolutionSettings));
             if (doReports || doBestResponse)
             {
                 if (EvolutionSettings.CreateInformationSetCharts)
@@ -734,9 +726,9 @@ namespace ACESim
                     CalculateBestResponse(false);
                     if (EvolutionSettings.CalculatePerturbedBestResponseRefinement)
                     {
-                        var utilities = BestResponseUtilities.ToArray();
-                        var improvement = BestResponseImprovement.ToArray();
-                        var br = BestResponseImprovementAdjAvg;
+                        var utilities = Status.BestResponseUtilities.ToArray();
+                        var improvement = Status.BestResponseImprovement.ToArray();
+                        var br = Status.BestResponseImprovementAdjAvg;
                         InformationSets.ForEach(x =>
                         {
                             x.CreateBackup();
@@ -744,11 +736,11 @@ namespace ACESim
                         });
                         CalculateBestResponse(false);
                         InformationSets.ForEach(x => x.RestoreBackup());
-                        double refinement = br / BestResponseImprovementAdjAvg; // i.e., the exploitability without a perturbation divided by the exploitability with a perturbation. if very refined, this should be close to 1. If the perturbation greatly increases exploitability, this will be closer to 0.
-                        TabbedText.WriteLine($"Avg BR: {br} With perturb: {BestResponseImprovementAdjAvg} Refinement: {refinement.ToSignificantFigures(3)} Custom: {CustomResult}");
-                        Refinement = refinement;
-                        BestResponseUtilities = utilities;
-                        BestResponseImprovement = improvement;
+                        double refinement = br / Status.BestResponseImprovementAdjAvg; // i.e., the exploitability without a perturbation divided by the exploitability with a perturbation. if very refined, this should be close to 1. If the perturbation greatly increases exploitability, this will be closer to 0.
+                        // restore previous values
+                        Status.BestResponseUtilities = utilities;
+                        Status.BestResponseImprovement = improvement;
+                        Status.Refinement = refinement;
                     }
                     RememberBestResponseExploitabilityValues(iteration);
                 }
@@ -814,21 +806,69 @@ namespace ACESim
             return reports;
         }
 
-        public double[] BestResponseUtilities;
-        public double[] UtilitiesOverall;
-        public double[] BestResponseImprovement;
         public double[] LastBestResponseImprovement;
-        public FloatSet CustomResult;
-        public double[] BestResponseImprovementAdj => ScoreRangeExists && BestResponseImprovement != null ? BestResponseImprovement.Zip(ScoreRange, (bri, sr) => bri / sr).ToArray() : BestResponseImprovement;
 
-        public bool BestResponseTargetMet => BestResponseImprovementAdj != null && BestResponseImprovementAdjAvg < EvolutionSettings.BestResponseTarget;
-        public double BestResponseImprovementAdjAvg => BestResponseImprovementAdj.Average();
+        public double BestExploitability = int.MaxValue; // initialize to worst possible score (i.e., highest possible exploitability)
+        public int BestIteration = -1;
         public List<double> BestResponseImprovementAdjAvgOverTime = new List<double>();
 
-        public double Refinement;
+        public class DevelopmentStatus
+        {
+            public int IterationNum;
+            public double IterationNumDouble;
 
-        long BestResponseCalculationTime;
-        string BestResponseOpponentString => EvolutionSettings.UseCurrentStrategyForAcceleratedBestResponse ? "currstrat" : "avgstrat";
+            public double[] BestResponseUtilities;
+            public double[] UtilitiesOverall;
+            public double[] BestResponseImprovement;
+            public FloatSet CustomResult;
+
+            public double[] MinScore, MaxScore, ScoreRange;
+
+            public double Refinement;
+
+            public long BestResponseCalculationTime;
+
+            public DevelopmentStatus DeepCopy()
+            {
+                return new DevelopmentStatus()
+                {
+                    IterationNum = IterationNum,
+                    IterationNumDouble = IterationNumDouble,
+                    BestResponseUtilities = BestResponseUtilities.ToArray(),
+                    UtilitiesOverall = BestResponseUtilities.ToArray(),
+                    BestResponseImprovement = BestResponseUtilities.ToArray(),
+                    CustomResult = CustomResult,
+                    MinScore = BestResponseUtilities.ToArray(),
+                    MaxScore = BestResponseUtilities.ToArray(),
+                    ScoreRange = BestResponseUtilities.ToArray(),
+                    Refinement = Refinement,
+                    BestResponseCalculationTime = BestResponseCalculationTime
+                };
+            }
+
+            public bool ScoreRangeExists => !(ScoreRange == null || ScoreRange.Any(x => x == 0));
+            public double[] BestResponseImprovementAdj => ScoreRangeExists && BestResponseImprovement != null ? BestResponseImprovement.Zip(ScoreRange, (bri, sr) => bri / sr).ToArray() : BestResponseImprovement;
+
+            public bool BestResponseTargetMet(EvolutionSettings evolutionSettings) => BestResponseImprovementAdj != null && BestResponseImprovementAdjAvg < evolutionSettings.BestResponseTarget;
+            public double BestResponseImprovementAdjAvg => BestResponseImprovementAdj.Average();
+            public string BestResponseOpponentString(EvolutionSettings evolutionSettings) => evolutionSettings.UseCurrentStrategyForAcceleratedBestResponse ? "currstrat" : "avgstrat";
+            public string StatusString(int numNonChancePlayers, EvolutionSettings evolutionSettings)
+            {
+                StringBuilder b = new StringBuilder();
+                string refinement = Refinement == 0 ? "" : $" Perturbed refinement: {Refinement.ToSignificantFigures(3)}";
+                b.AppendLine($"Avg BR: {BestResponseImprovementAdjAvg}{refinement} Custom: {CustomResult}");
+                for (byte playerBeingOptimized = 0; playerBeingOptimized < numNonChancePlayers; playerBeingOptimized++)
+                {
+                    b.AppendLine($"U(P{playerBeingOptimized}): {UtilitiesOverall[playerBeingOptimized]} BR vs. {BestResponseOpponentString(evolutionSettings)} {BestResponseUtilities[playerBeingOptimized]} BRimp: {BestResponseImprovementAdj?[playerBeingOptimized].ToSignificantFigures(3)}");
+                }
+                b.AppendLine($"Total best response calculation time: {BestResponseCalculationTime} milliseconds");
+                return b.ToString();
+            }
+        }
+
+        public DevelopmentStatus Status = new DevelopmentStatus();
+
+        
 
         List<List<InformationSetNode>> InformationSetsByDecisionIndex;
         List<NodeActionsMultipleHistories> AcceleratedBestResponsePrepResult;
@@ -861,7 +901,7 @@ namespace ACESim
         {
             // gets the best response for whichever population member's actions have been copied to information set
             CalculateBestResponse(false);
-            return (BestResponseImprovementAdj.Sum(), BestResponseUtilities.ToArray());
+            return (Status.BestResponseImprovementAdj.Sum(), Status.BestResponseUtilities.ToArray());
         }
 
         public void CalculateReachProbabilitiesAndPrunability(bool parallelize)
@@ -894,26 +934,26 @@ namespace ACESim
         private void CompleteAcceleratedBestResponse()
         {
             // Finally, we need to calculate the final values by looking at the first information sets for each player.
-            if (BestResponseUtilities == null || BestResponseImprovement == null || UtilitiesOverall == null)
+            if (Status.BestResponseUtilities == null || Status.BestResponseImprovement == null || Status.UtilitiesOverall == null)
             {
-                BestResponseUtilities = new double[NumNonChancePlayers];
-                BestResponseImprovement = new double[NumNonChancePlayers];
-                UtilitiesOverall = new double[NumNonChancePlayers];
+                Status.BestResponseUtilities = new double[NumNonChancePlayers];
+                Status.BestResponseImprovement = new double[NumNonChancePlayers];
+                Status.UtilitiesOverall = new double[NumNonChancePlayers];
             }
             for (byte playerIndex = 0; playerIndex < NumNonChancePlayers; playerIndex++)
             {
                 var resultForPlayer = AcceleratedBestResponsePrepResult[playerIndex];
                 (double bestResponseResult, double utilityResult, FloatSet customResult) = resultForPlayer.GetProbabilityAdjustedValueOfPaths(playerIndex, EvolutionSettings.UseCurrentStrategyForAcceleratedBestResponse);
-                BestResponseUtilities[playerIndex] = bestResponseResult;
-                UtilitiesOverall[playerIndex] = utilityResult;
-                BestResponseImprovement[playerIndex] = bestResponseResult - utilityResult;
-                CustomResult = customResult; // will be same for each player
+                Status.BestResponseUtilities[playerIndex] = bestResponseResult;
+                Status.UtilitiesOverall[playerIndex] = utilityResult;
+                Status.BestResponseImprovement[playerIndex] = bestResponseResult - utilityResult;
+                Status.CustomResult = customResult; // will be same for each player
             }
         }
 
         public void CalculateBestResponse(bool determineWhetherReachable)
         {
-            BestResponseUtilities = new double[NumNonChancePlayers];
+            Status.BestResponseUtilities = new double[NumNonChancePlayers];
             ActionStrategies actionStrategy = ActionStrategy;
             if (actionStrategy == ActionStrategies.CorrelatedEquilibrium)
                 actionStrategy = ActionStrategies.AverageStrategy; // best response against average strategy is same as against correlated equilibrium
@@ -933,41 +973,34 @@ namespace ACESim
                 if (EvolutionSettings.UseCurrentStrategyForAcceleratedBestResponse)
                     throw new NotSupportedException();
                 var calculator = new AverageStrategyCalculator(EvolutionSettings.DistributeChanceDecisions);
-                UtilitiesOverall = TreeWalk_Tree(calculator, true);
-                BestResponseImprovement = new double[NumNonChancePlayers];
+                Status.UtilitiesOverall = TreeWalk_Tree(calculator, true);
+                Status.BestResponseImprovement = new double[NumNonChancePlayers];
                 for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
                 {
                     double bestResponse = CalculateBestResponse(playerBeingOptimized, actionStrategy);
-                    BestResponseUtilities[playerBeingOptimized] = bestResponse;
-                    BestResponseImprovement[playerBeingOptimized] = bestResponse - UtilitiesOverall[playerBeingOptimized];
+                    Status.BestResponseUtilities[playerBeingOptimized] = bestResponse;
+                    Status.BestResponseImprovement[playerBeingOptimized] = bestResponse - Status.UtilitiesOverall[playerBeingOptimized];
                 }
             }
             s.Stop();
-            BestResponseCalculationTime = s.ElapsedMilliseconds;
+            Status.BestResponseCalculationTime = s.ElapsedMilliseconds;
         }
 
         private void CompareBestResponse()
         {
             // This is comparing (1) Best response vs. average strategy; to (2) most recently calculated average strategy
-            bool overallUtilitiesRecorded = UtilitiesOverall != null;
+            bool overallUtilitiesRecorded = Status.UtilitiesOverall != null;
             if (!overallUtilitiesRecorded)
             {
                 if (UtilityCalculationsArray == null)
                     return; // nothing to compare BR to
                 else
-                    UtilitiesOverall = UtilityCalculationsArray.StatCollectors.Select(x => x.Average()).ToArray();
+                    Status.UtilitiesOverall = UtilityCalculationsArray.StatCollectors.Select(x => x.Average()).ToArray();
             }
-            ActionStrategies actionStrategy = ActionStrategy;
-            if (actionStrategy == ActionStrategies.CorrelatedEquilibrium)
-                actionStrategy = ActionStrategies.AverageStrategy; // best response against average strategy is same as against correlated equilibrium
-            for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
-            {
-                TabbedText.WriteLine($"U(P{playerBeingOptimized}) {ActionStrategyLastReport}: {UtilitiesOverall[playerBeingOptimized]} BR vs. {BestResponseOpponentString} {BestResponseUtilities[playerBeingOptimized]} BRimp: {BestResponseImprovementAdj?[playerBeingOptimized].ToSignificantFigures(3)}");
-            }
-            if (!overallUtilitiesRecorded)
-                UtilitiesOverall = null; // we may be using approximations, so set to null to avoid confusion
-            TabbedText.WriteLine($"Total best response calculation time: {BestResponseCalculationTime} milliseconds");
+            TabbedText.WriteLine(Status.StatusString(NumNonChancePlayers, EvolutionSettings));
             TabbedText.WriteLine("");
+            if (!overallUtilitiesRecorded)
+                Status.UtilitiesOverall = null; // we may be using approximations, so set to null to avoid confusion
         }
 
         public IEnumerable<GameProgress> GetRandomCompleteGames(GamePlayer player, int numIterations, Func<Decision, GameProgress, byte> actionOverride)
@@ -1144,10 +1177,10 @@ namespace ACESim
                     d.StaticTextColumns.Add(("Scenario", GameDefinition.GetNameForScenario()));
                 if (GameDefinition.OptionSetName != null && GameDefinition.OptionSetName != "")
                     d.StaticTextColumns.Add(("OptionSet", GameDefinition.OptionSetName));
-                if (BestResponseImprovementAdj != null)
-                    d.StaticTextColumns.Add(("Exploit", BestResponseImprovementAdjAvg.ToSignificantFigures(4)));
-                if (Refinement != 0)
-                    d.StaticTextColumns.Add(("Refine", Refinement.ToSignificantFigures(4)));
+                if (Status.BestResponseImprovementAdj != null)
+                    d.StaticTextColumns.Add(("Exploit", Status.BestResponseImprovementAdjAvg.ToSignificantFigures(4)));
+                if (Status.Refinement != 0)
+                    d.StaticTextColumns.Add(("Refine", Status.Refinement.ToSignificantFigures(4)));
             }
             return simpleReportDefinitions;
         }

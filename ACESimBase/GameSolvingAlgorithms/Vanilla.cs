@@ -238,7 +238,7 @@ namespace ACESim
         double PositiveRegretsAdjustment, NegativeRegretsAdjustment, AverageStrategyAdjustment, AverageStrategyAdjustmentAsPctOfMax;
         private async Task<ReportCollection> VanillaCFRIteration(int iteration)
         {
-            IterationNumDouble = iteration;
+            Status.IterationNumDouble = iteration;
             SetDiscountingAdjustments();
 
             ReportCollection reportCollection = new ReportCollection();
@@ -257,12 +257,12 @@ namespace ACESim
 
         private void SetDiscountingAdjustments()
         {
-            double positivePower = Math.Pow(IterationNumDouble, EvolutionSettings.Discounting_Alpha);
-            double negativePower = Math.Pow(IterationNumDouble, EvolutionSettings.Discounting_Beta);
+            double positivePower = Math.Pow(Status.IterationNumDouble, EvolutionSettings.Discounting_Alpha);
+            double negativePower = Math.Pow(Status.IterationNumDouble, EvolutionSettings.Discounting_Beta);
             PositiveRegretsAdjustment = positivePower / (positivePower + 1.0);
             NegativeRegretsAdjustment = negativePower / (negativePower + 1.0);
-            AverageStrategyAdjustment = EvolutionSettings.Discounting_Gamma_ForIteration((int)IterationNumDouble);
-            AverageStrategyAdjustmentAsPctOfMax = EvolutionSettings.Discounting_Gamma_AsPctOfMax((int)IterationNumDouble);
+            AverageStrategyAdjustment = EvolutionSettings.Discounting_Gamma_ForIteration((int)Status.IterationNumDouble);
+            AverageStrategyAdjustmentAsPctOfMax = EvolutionSettings.Discounting_Gamma_AsPctOfMax((int)Status.IterationNumDouble);
             if (AverageStrategyAdjustment < 1E-100)
                 AverageStrategyAdjustment = 1E-100;
         }

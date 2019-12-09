@@ -32,21 +32,33 @@ namespace ACESim
 
         double WeightOnOpponentsStrategy = 1;
         bool ResetLastTime = false;
+        public List<DevelopmentStatus> DevelopmentStatusMemory = null;
 
+
+        private void ReportDevelopmentStatusMemory()
+        {
+            //if (DevelopmentStatusMemory != null)
+            //    foreach (var s in DevelopmentStatusMemory)
+            //        TabbedText.WriteLine(s.StatusString(NumNonChancePlayers, EvolutionSettings));
+        }
 
         private void UpdateWeightOnOpponentsStrategy(int iteration)
         {
             if (EvolutionSettings.PlaceWeightOnOpponentsStrategy)
             {
-                if (iteration % EvolutionSettings.ChangeWeightOnOpponentsStrategyEveryNIterations == 0)
+                if (DevelopmentStatusMemory == null)
+                    DevelopmentStatusMemory = new List<DevelopmentStatus>();
+                if (iteration % EvolutionSettings.ChangeWeightOnOpponentsStrategyCheckEveryNIterations == 0)
                 {
                     if (EvolutionSettings.ResetWeightOnOpponentsStrategyEveryOtherTime)
                     {
+                        if (iteration == EvolutionSettings.ChangeWeightOnOpponentsStrategyCheckEveryNIterations)
+                            ResetLastTime = true; // we began reset, so we won't reset again
                         ResetLastTime = !ResetLastTime;
                         if (ResetLastTime)
                         {
                             WeightOnOpponentsStrategy = 0;
-                            asdf;
+                            DevelopmentStatusMemory.Add(Status.DeepCopy());
                             return;
                         }
                         else
@@ -55,13 +67,9 @@ namespace ACESim
                             //Parallel.For(0, InformationSets.Count(), n => InformationSets[n].ShrinkCumulativeRegrets());
                         }
                     }
-                    double r = new ConsistentRandomSequenceProducer(GameNumber * 17 + iteration * 2029).GetDoubleAtIndex(1);
-                    bool GraduallyIncreaseToMinMax = true;
+                    //double r = new ConsistentRandomSequenceProducer(GameNumber * 17 + iteration * 2029).GetDoubleAtIndex(1);
                     double minMaxMultiplier = ((double)iteration) / ((double)EvolutionSettings.TotalIterations);
-                    if (!GraduallyIncreaseToMinMax)
-                        minMaxMultiplier = 1.0;
-                    (double lowRange, double highRange) = (minMaxMultiplier * EvolutionSettings.MinMaxWeightOnOpponentsStrategy.Item1, minMaxMultiplier * EvolutionSettings.MinMaxWeightOnOpponentsStrategy.Item2);
-                    WeightOnOpponentsStrategy = lowRange + (highRange - lowRange) * r;
+                    WeightOnOpponentsStrategy = EvolutionSettings.MinMaxWeightOnOpponentsStrategy.Item1 + (EvolutionSettings.MinMaxWeightOnOpponentsStrategy.Item2 - EvolutionSettings.MinMaxWeightOnOpponentsStrategy.Item1) * minMaxMultiplier;
                     Console.WriteLine($"Weight on opponents strategy {iteration}: {WeightOnOpponentsStrategy}");
                 }
             }
@@ -128,7 +136,7 @@ namespace ACESim
         {
             ReportCollection reportCollection = new ReportCollection();
             double[] array = new double[Unroll_SizeOfArray];
-            bool targetMet = false; 
+            bool targetMet = false;
             for (int iteration = 1; iteration <= EvolutionSettings.TotalIterations && !targetMet; iteration++)
             {
                 // uncomment to skip a player
@@ -136,8 +144,8 @@ namespace ACESim
                 //    Unroll_Commands.SetSkip("Optimizing player 0", true); 
                 if (iteration % 50 == 1 && EvolutionSettings.DynamicSetParallel)
                     DynamicallySetParallel();
-                IterationNumDouble = iteration;
-                IterationNum = iteration;
+                Status.IterationNumDouble = iteration;
+                Status.IterationNum = iteration;
                 StrategiesDeveloperStopwatch.Start();
                 if (EvolutionSettings.CFRBR)
                     CalculateBestResponse(false);
@@ -157,7 +165,7 @@ namespace ACESim
                         $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
                 reportCollection.Add(result);
                 UpdateWeightOnOpponentsStrategy(iteration);
-                targetMet = BestResponseTargetMet;
+                targetMet = Status.BestResponseTargetMet(EvolutionSettings);
                 if (TraceCFR)
                 { // only trace through iteration
                     // There are a number of advanced settings in ArrayCommandList that must be disabled for this feature to work properly. 
@@ -167,6 +175,7 @@ namespace ACESim
                     CalculateReachProbabilitiesAndPrunability(EvolutionSettings.ParallelOptimization);
                 ReinitializeInformationSetsIfNecessary(iteration);
             }
+            ReportDevelopmentStatusMemory();
             return reportCollection;
         }
 
@@ -844,18 +853,19 @@ namespace ACESim
                     CalculateBestResponse(false);
                 var result = await GeneralizedVanillaCFRIteration(iteration);
                 reportCollection.Add(result);
-                targetMet = BestResponseTargetMet;
+                targetMet = Status.BestResponseTargetMet(EvolutionSettings);
                 if (EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions)
                     CalculateReachProbabilitiesAndPrunability(EvolutionSettings.ParallelOptimization);
                 ReinitializeInformationSetsIfNecessary(iteration);
             }
+            ReportDevelopmentStatusMemory();
             return reportCollection;
         }
 
         private async Task<ReportCollection> GeneralizedVanillaCFRIteration(int iteration)
         {
-            IterationNumDouble = iteration;
-            IterationNum = iteration;
+            Status.IterationNumDouble = iteration;
+            Status.IterationNum = iteration;
             CalculateDiscountingAdjustments();
 
             ReportCollection reportCollection = new ReportCollection();
@@ -904,7 +914,7 @@ namespace ACESim
                 if (!EvolutionSettings.UseAcceleratedBestResponse)
                     throw new NotSupportedException(); // we need the average strategy result, which for now we only have with accelerated best response
                 CalculateBestResponse(false);
-                double sumBestResponseImprovements = BestResponseImprovement.Sum();
+                double sumBestResponseImprovements = Status.BestResponseImprovement.Sum();
                 if (LastBestResponseImprovement != null)
                 {
                     double lastSumBestResponseImprovements = LastBestResponseImprovement.Sum();
@@ -915,13 +925,13 @@ namespace ACESim
                         {
                             // Reject -- that is, revert to previous backup. We will then have a different epsilon value in the next set (since iterations keep marching forward), so we may have a different outcome, and even if we don't, we may accept.
                             Parallel.ForEach(InformationSets, informationSet => informationSet.RestoreBackup());
-                            BestResponseImprovement = LastBestResponseImprovement.ToArray();
+                            Status.BestResponseImprovement = LastBestResponseImprovement.ToArray();
                             return;
                         }
                     }
                 }
                 Parallel.ForEach(InformationSets, informationSet => informationSet.CreateBackup());
-                LastBestResponseImprovement = BestResponseImprovement.ToArray();
+                LastBestResponseImprovement = Status.BestResponseImprovement.ToArray();
             }
         }
 
@@ -941,10 +951,10 @@ namespace ACESim
         private void CalculateDiscountingAdjustments()
         {
             EvolutionSettings.CalculateGamma();
-            double positivePower = Math.Pow(IterationNumDouble, EvolutionSettings.Discounting_Alpha);
-            double negativePower = Math.Pow(IterationNumDouble, EvolutionSettings.Discounting_Beta);
-            AverageStrategyAdjustment = EvolutionSettings.Discounting_Gamma_ForIteration(IterationNum);
-            AverageStrategyAdjustmentAsPctOfMax = EvolutionSettings.Discounting_Gamma_AsPctOfMax(IterationNum);
+            double positivePower = Math.Pow(Status.IterationNumDouble, EvolutionSettings.Discounting_Alpha);
+            double negativePower = Math.Pow(Status.IterationNumDouble, EvolutionSettings.Discounting_Beta);
+            AverageStrategyAdjustment = EvolutionSettings.Discounting_Gamma_ForIteration(Status.IterationNum);
+            AverageStrategyAdjustmentAsPctOfMax = EvolutionSettings.Discounting_Gamma_AsPctOfMax(Status.IterationNum);
             if (AverageStrategyAdjustment < 1E-100)
                 AverageStrategyAdjustment = 1E-100;
         }

@@ -441,9 +441,9 @@ namespace ACESim
             ActionStrategy = ActionStrategies.RegretMatching;
             //GameDefinition.PrintOutOrderingInformation();
             // The code can run in parallel, but we break up our parallel calls for two reasons: (1) We would like to produce reports and need to do this while pausing the main algorithm; and (2) we would like to be able differentiate early from late iterations, in case we want to change epsilon over time for example. 
-            IterationNum = 0;
+            Status.IterationNum = 0;
             int iterationsThisPhase = EvolutionSettings.TotalProbingCFRIterations;
-            int startingIteration = IterationNum;
+            int startingIteration = Status.IterationNum;
             int stopPhaseBefore = startingIteration + iterationsThisPhase;
             while (startingIteration < stopPhaseBefore)
             {
@@ -452,7 +452,7 @@ namespace ACESim
                     stopBefore = stopPhaseBefore;
                 else
                 {
-                    int stopToReportBefore = ModifiedGibsonProbing_GetNextMultipleOf(IterationNum, (int)EvolutionSettings.ReportEveryNIterations);
+                    int stopToReportBefore = ModifiedGibsonProbing_GetNextMultipleOf(Status.IterationNum, (int)EvolutionSettings.ReportEveryNIterations);
                     stopBefore = Math.Min(stopPhaseBefore, stopToReportBefore);
                 }
                 s.Start();
@@ -466,10 +466,10 @@ namespace ACESim
                 }
                 );
                 s.Stop();
-                IterationNum = startingIteration = stopBefore; // this is the iteration to run next
-                var result = await GenerateReports(IterationNum,
+                Status.IterationNum = startingIteration = stopBefore; // this is the iteration to run next
+                var result = await GenerateReports(Status.IterationNum,
                     () =>
-                        $"{GameDefinition.OptionSetName} Iteration {IterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(IterationNum + 1))))}");
+                        $"{GameDefinition.OptionSetName} Iteration {Status.IterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(Status.IterationNum + 1))))}");
                 reportCollection.Add(result);
             }
             return reportCollection;

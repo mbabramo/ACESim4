@@ -70,7 +70,7 @@ namespace ACESim
                     // the following use of epsilon-on-policy for early iterations of opponent's strategy is a deviation from Gibson.
                     byte playerAtPoint = informationSet.PlayerIndex;
                     if (playerAtPoint != playerBeingOptimized && EvolutionSettings.UseEpsilonOnPolicyForOpponent &&
-                        IterationNum <= EvolutionSettings.LastOpponentEpsilonIteration)
+                        Status.IterationNum <= EvolutionSettings.LastOpponentEpsilonIteration)
                         informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(
                             sigma_regretMatchedActionProbabilities, CurrentEpsilonValue);
                     else
@@ -197,7 +197,7 @@ namespace ACESim
                 throw new Exception(
                     "Internal error. Must implement extra code from Gibson algorithm 2 for more than 2 players.");
             ActionStrategy = ActionStrategies.RegretMatching;
-            IterationNum = -1;
+            Status.IterationNum = -1;
             int reportingGroupSize = EvolutionSettings.ReportEveryNIterations ??
                                      EvolutionSettings.TotalAvgStrategySamplingCFRIterations;
             Stopwatch s = new Stopwatch();
@@ -213,8 +213,8 @@ namespace ACESim
                 Parallelizer.Go(EvolutionSettings.ParallelOptimization, iterationGrouper,
                     iterationGrouper + reportingGroupSize, i =>
                     {
-                        Interlocked.Increment(ref IterationNum);
-                        AvgStrategySamplingCFRIteration(IterationNum);
+                        Interlocked.Increment(ref Status.IterationNum);
+                        AvgStrategySamplingCFRIteration(Status.IterationNum);
                     });
                 s.Stop();
                 var result = await GenerateReports(iterationGrouper + reportingGroupSize,

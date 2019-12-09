@@ -42,7 +42,7 @@ namespace ACESim
             {
                 ReinitializeForScenario(GameDefinition.BaselineScenarioIndex, false);
             }
-            IterationNum = EvolutionSettings.ReportEveryNIterations ?? 0;
+            Status.IterationNum = EvolutionSettings.ReportEveryNIterations ?? 0;
             ReportCollection reportCollection = null;
             bool reportForEachPastValue = false;
             if (reportForEachPastValue)
@@ -52,7 +52,7 @@ namespace ACESim
                 {
                     foreach (var informationSet in InformationSets)
                         informationSet.SetAverageStrategyToPastValue(i);
-                    var result = await GenerateReports(IterationNum, () => "Replayed report");
+                    var result = await GenerateReports(Status.IterationNum, () => "Replayed report");
                     if (i == 0)
                         reportCollection = result;
                     else
@@ -62,7 +62,7 @@ namespace ACESim
                 }
             }
             else
-                reportCollection = await GenerateReports(IterationNum, () => "Replayed report");
+                reportCollection = await GenerateReports(Status.IterationNum, () => "Replayed report");
 
             return reportCollection;
         }

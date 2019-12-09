@@ -47,10 +47,10 @@ namespace ACESim
             {
                 if (iteration % 50 == 1 && EvolutionSettings.DynamicSetParallel)
                     DynamicallySetParallel();
-                IterationNum = iteration;
+                Status.IterationNum = iteration;
                 var result = await FictitiousPlayIteration(iteration);
                 reportCollection.Add(result);
-                targetMet = BestResponseTargetMet;
+                targetMet = Status.BestResponseTargetMet(EvolutionSettings);
                 if (iteration == iterationToReturnToBaselineScenario)
                 {
                     ReinitializeForScenario(GameDefinition.BaselineScenarioIndex, false);
@@ -63,8 +63,8 @@ namespace ACESim
         {
             StrategiesDeveloperStopwatch.Start();
 
-            IterationNumDouble = iteration;
-            IterationNum = iteration;
+            Status.IterationNumDouble = iteration;
+            Status.IterationNum = iteration;
 
             //double lambda2 = 1.0 / IterationNumDouble;
 

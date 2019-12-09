@@ -175,7 +175,7 @@ namespace ACESim
         public double CalculateBestResponseAndGetFitness()
         {
             CalculateBestResponse(false);
-            return BestResponseImprovementAdjAvg;
+            return Status.BestResponseImprovementAdjAvg;
         }
 
         public override Task<ReportCollection> RunAlgorithm(string optionSetName)
