@@ -644,6 +644,11 @@ namespace ACESim
             AverageStrategyAdjustmentsSum += averageStrategyAdjustment;
         }
 
+        public void ResetCumulativeRegrets()
+        {
+            UpdateCumulativeRegrets(0);
+        }
+
         public void ShrinkCumulativeRegrets()
         {
             UpdateCumulativeRegrets(0.0000001);

@@ -33,30 +33,42 @@ namespace ACESim
         double WeightOnOpponentsStrategy = 1;
         bool ResetLastTime = false;
 
+
         private void UpdateWeightOnOpponentsStrategy(int iteration)
         {
-            if (EvolutionSettings.PlaceWeightOnOpponentsStrategy && iteration % EvolutionSettings.ChangeWeightOnOpponentsStrategyEveryNIterations == 0)
+            if (EvolutionSettings.PlaceWeightOnOpponentsStrategy)
             {
-                if (EvolutionSettings.ResetWeightOnOpponentsStrategyEveryOtherTime)
+                if (iteration % EvolutionSettings.ChangeWeightOnOpponentsStrategyEveryNIterations == 0)
                 {
-                    ResetLastTime = !ResetLastTime;
-                    if (ResetLastTime)
+                    if (EvolutionSettings.ResetWeightOnOpponentsStrategyEveryOtherTime)
                     {
-                        WeightOnOpponentsStrategy = 0; 
-                        return;
+                        ResetLastTime = !ResetLastTime;
+                        if (ResetLastTime)
+                        {
+                            WeightOnOpponentsStrategy = 0;
+                            asdf;
+                            return;
+                        }
+                        else
+                        {
+                            Parallel.For(0, InformationSets.Count(), n => InformationSets[n].ResetCumulativeRegrets());
+                            //Parallel.For(0, InformationSets.Count(), n => InformationSets[n].ShrinkCumulativeRegrets());
+                        }
                     }
-                    else
-                        Parallel.For(0, InformationSets.Count(), n => InformationSets[n].ShrinkCumulativeRegrets());
+                    double r = new ConsistentRandomSequenceProducer(GameNumber * 17 + iteration * 2029).GetDoubleAtIndex(1);
+                    bool GraduallyIncreaseToMinMax = true;
+                    double minMaxMultiplier = ((double)iteration) / ((double)EvolutionSettings.TotalIterations);
+                    if (!GraduallyIncreaseToMinMax)
+                        minMaxMultiplier = 1.0;
+                    (double lowRange, double highRange) = (minMaxMultiplier * EvolutionSettings.MinMaxWeightOnOpponentsStrategy.Item1, minMaxMultiplier * EvolutionSettings.MinMaxWeightOnOpponentsStrategy.Item2);
+                    WeightOnOpponentsStrategy = lowRange + (highRange - lowRange) * r;
+                    Console.WriteLine($"Weight on opponents strategy {iteration}: {WeightOnOpponentsStrategy}");
                 }
-                double r = new ConsistentRandomSequenceProducer(GameNumber * 17 + iteration * 2029).GetDoubleAtIndex(1);
-                WeightOnOpponentsStrategy = EvolutionSettings.MinMaxWeightOnOpponentsStrategy.Item1 + (EvolutionSettings.MinMaxWeightOnOpponentsStrategy.Item2 - EvolutionSettings.MinMaxWeightOnOpponentsStrategy.Item1) * r;
-                Debug.WriteLine($"Weight on opponents strategy: {WeightOnOpponentsStrategy}"); // DEBUG
             }
         }
 
         public void UpdateInformationSets(int iteration)
         {
-            UpdateWeightOnOpponentsStrategy(iteration);
             int numInformationSets = InformationSets.Count;
             PostIterationUpdater.PrepareForUpdating(iteration, EvolutionSettings);
             double? pruneOpponentStrategyBelow = !EvolutionSettings.CFR_OpponentSampling && EvolutionSettings.PruneOnOpponentStrategy && !EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions ? EvolutionSettings.PruneOnOpponentStrategyThreshold : (double?)null;
@@ -144,6 +156,7 @@ namespace ACESim
                     () =>
                         $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
                 reportCollection.Add(result);
+                UpdateWeightOnOpponentsStrategy(iteration);
                 targetMet = BestResponseTargetMet;
                 if (TraceCFR)
                 { // only trace through iteration
@@ -863,6 +876,7 @@ namespace ACESim
                 () =>
                     $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
             reportCollection.Add(result);
+            UpdateWeightOnOpponentsStrategy(iteration);
 
             return reportCollection;
         }

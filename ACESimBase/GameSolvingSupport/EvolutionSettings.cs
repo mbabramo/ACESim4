@@ -121,8 +121,8 @@ namespace ACESim
 
         public bool GeneralizedVanillaAddTremble = false;
 
-        public bool PlaceWeightOnOpponentsStrategy = true; // DEBUG SUPERDEBUG
-        public (double, double) MinMaxWeightOnOpponentsStrategy = (-0.25,0.25);
+        public bool PlaceWeightOnOpponentsStrategy = true; // DEBUG
+        public (double, double) MinMaxWeightOnOpponentsStrategy = (1, 1); // weight will be relatively small early and then increase to random numbers in range 
         public int ChangeWeightOnOpponentsStrategyEveryNIterations = 100;
         public bool ResetWeightOnOpponentsStrategyEveryOtherTime = true;
 
