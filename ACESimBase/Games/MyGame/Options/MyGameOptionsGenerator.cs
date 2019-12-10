@@ -119,7 +119,7 @@ namespace ACESim
 
                 IncludeSignalsReport = true, 
                 IncludeCourtSuccessReport = false, 
-                FirstRowOnly = false,
+                FirstRowOnly = true, // DEBUG
 
                 WarmStartThroughIteration = null,
                 WarmStartOptions = MyGameWarmStartOptions.NoWarmStart

@@ -122,6 +122,10 @@ namespace ACESim
         /// Costs that the defendant must pay if the case goes to trial.
         /// </summary>
         public double DTrialCosts;
+        // The following show the original parameter values before changes during warmups / scenarios:
+        public double? CostsMultiplier_Original;
+        public double? PTrialCosts_Original;
+        public double? DTrialCosts_Original;
         /// <summary>
         /// Cost that the plaintiff must pay for filing
         /// </summary>

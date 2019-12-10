@@ -121,10 +121,6 @@ namespace ACESim
 
         public bool GeneralizedVanillaAddTremble = false;
 
-        public bool PlaceWeightOnOpponentsStrategy = true; // DEBUG
-        public (double, double) MinMaxWeightOnOpponentsStrategy = (-1, 1); // weight will be relatively small early and then increase to random numbers in range 
-        public int ChangeWeightOnOpponentsStrategyCheckEveryNIterations = 100;
-
         public double MultiplicativeWeightsInitial = 0.5;
         public double MultiplicativeWeightsFinal = 0.5;
         public double MultiplicativeWeightsCurvature = 1.0;
@@ -193,8 +189,7 @@ namespace ACESim
         public int RecordPastValues_TargetNumberToRecord = 100;
         public int? RecordPastValues_AtIterationMultiples = 5_000; 
         public bool RecordPastValues_ResetAtIterationMultiples = false; 
-        public int EffectiveIteration(int iteration) => PlaceWeightOnOpponentsStrategy && ResetWeightOnOpponentsStrategyEveryOtherTime ? (iteration % ChangeWeightOnOpponentsStrategyCheckEveryNIterations + 1)
-            : (RecordPastValues && RecordPastValues_AtIterationMultiples is int multiples && RecordPastValues_ResetAtIterationMultiples) ? iteration % multiples + 1 
+        public int EffectiveIteration(int iteration) => (RecordPastValues && RecordPastValues_AtIterationMultiples is int multiples && RecordPastValues_ResetAtIterationMultiples) ? iteration % multiples + 1 
                 : iteration;
         public (int effectiveIteration, int effectiveMaxIteration) EffectiveIterationAndMaxIteration(int iteration, int maxIteration) => (RecordPastValues && RecordPastValues_AtIterationMultiples is int multiples && RecordPastValues_ResetAtIterationMultiples) ? (iteration % multiples + 1, multiples) : (iteration, maxIteration);
 

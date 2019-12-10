@@ -10,11 +10,22 @@ namespace ACESim
     [Serializable]
     public class FinalUtilitiesNode : IGameState
     {
-        public int CurrentScenarioIndex = 0;
-        public double WeightOnOpponent = 0;
-        public double[] Utilities => AllScenarioUtilities[CurrentScenarioIndex];
+        public int CurrentInitializedScenarioIndex = 0;
+        public double WeightOnOpponentsUtility = 0;
+        public double[] Utilities => GetUtilities_ConsideringScenarioAndWeight();
+        private double[] GetUtilities_ConsideringScenarioAndWeight()
+        {
+            if (WeightOnOpponentsUtility == 0)
+                return AllScenarioUtilities[CurrentInitializedScenarioIndex];
+            double[] weightedUtilities = AllScenarioUtilities[CurrentInitializedScenarioIndex].ToArray();
+            if (weightedUtilities.Length != 2)
+                throw new Exception("Weighted utilities only supported for two-player games.");
+            weightedUtilities[0] = Utilities[0] + WeightOnOpponentsUtility * Utilities[1];
+            weightedUtilities[1] = Utilities[1] + WeightOnOpponentsUtility * Utilities[0];
+            return weightedUtilities;
+        }
         public List<double[]> AllScenarioUtilities;
-        public FloatSet CustomResult => AllScenarioCustomResult[CurrentScenarioIndex];
+        public FloatSet CustomResult => AllScenarioCustomResult[CurrentInitializedScenarioIndex];
         public List<FloatSet> AllScenarioCustomResult;
         public int FinalUtilitiesNodeNumber;
         public int GetNodeNumber() => FinalUtilitiesNodeNumber;

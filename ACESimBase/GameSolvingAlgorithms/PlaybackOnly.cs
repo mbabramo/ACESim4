@@ -30,17 +30,17 @@ namespace ACESim
         {
             StrategiesDeveloperStopwatch.Reset();
             string path = FolderFinder.GetFolderToWriteTo("Strategies").FullName;
-            string filename = GameDefinition.OptionSetName + "-" + EvolutionSettings.SerializeResultsPrefixPlus(GameDefinition.BaselineScenarioIndex, GameDefinition.NumScenariosToDevelop);
+            string filename = GameDefinition.OptionSetName + "-" + EvolutionSettings.SerializeResultsPrefixPlus(GameDefinition.CurrentOverallScenarioIndex, GameDefinition.NumScenarioPermutations);
             if (EvolutionSettings.SerializeInformationSetDataOnly)
             {
                 StrategySerialization.DeserializeInformationSets(InformationSets, path, filename, EvolutionSettings.AzureEnabled);
             }
             else
                 Strategies = StrategySerialization.DeserializeStrategies(path, filename, EvolutionSettings.AzureEnabled).ToList();
-            int correctCurrentScenarioIndex = GameDefinition.GetScenarioIndex(GameDefinition.BaselineScenarioIndex, false);
-            if (correctCurrentScenarioIndex != GameDefinition.CurrentScenarioIndex)
+            var correctScenarioInfo = GameDefinition.GetScenarioIndexAndWeightValues(GameDefinition.CurrentOverallScenarioIndex, false);
+            if (correctScenarioInfo.indexInPostWarmupScenarios != GameDefinition.CurrentOverallScenarioIndex)
             {
-                ReinitializeForScenario(GameDefinition.BaselineScenarioIndex, false);
+                ReinitializeForScenario(correctScenarioInfo.indexInPostWarmupScenarios, false);
             }
             Status.IterationNum = EvolutionSettings.ReportEveryNIterations ?? 0;
             ReportCollection reportCollection = null;

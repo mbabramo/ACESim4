@@ -59,21 +59,23 @@ namespace ACESim
         {
             await Initialize();
             ReportCollection reportCollection = new ReportCollection();
-            bool startWithBaselineScenario = false; 
-            for (int s = (startWithBaselineScenario || GameDefinition.NumScenariosToDevelop == 1) ? 0 : 1; s < GameDefinition.NumScenariosToDevelop; s++)
+            for (int overallScenarioIndex = 0; overallScenarioIndex < GameDefinition.NumScenarioPermutations; overallScenarioIndex++)
             {
+                bool useDifferentWarmup = IterationsForWarmupScenario() != null;
+                if (useDifferentWarmup != GameDefinition.UseDifferentWarmup)
+                    throw new Exception("Must set both warmup iterations in evolution settings and warmup in game definition");
+                ReinitializeForScenario(overallScenarioIndex, useDifferentWarmup);
                 string optionSetInfo = $@"Option set {optionSetName}";
-                if (GameDefinition.NumScenariosToDevelop > 1)
-                    optionSetInfo += $" (scenario {s} of {GameDefinition.NumScenariosToDevelop})";
+                if (GameDefinition.NumScenarioPermutations > 1)
+                    optionSetInfo += $" (scenario {overallScenarioIndex + 1} of {GameDefinition.NumScenarioPermutations} = {GameDefinition.GetNameForScenario()}";
                 TabbedText.WriteLineEvenIfDisabled(optionSetInfo);
-                ReinitializeForScenario(s, IterationsForWarmupScenario() != null);
                 var result = await RunAlgorithm(optionSetName);
                 if (EvolutionSettings.SerializeResults && !(this is PlaybackOnly))
                 {
                     try
                     {
                         string path = FolderFinder.GetFolderToWriteTo("Strategies").FullName;
-                        string filename = GameDefinition.OptionSetName + "-" + EvolutionSettings.SerializeResultsPrefixPlus(s, GameDefinition.NumScenariosToDevelop);
+                        string filename = GameDefinition.OptionSetName + "-" + EvolutionSettings.SerializeResultsPrefixPlus(overallScenarioIndex, GameDefinition.NumScenarioPermutations);
                         if (EvolutionSettings.SerializeInformationSetDataOnly)
                             StrategySerialization.SerializeInformationSets(InformationSets, path, filename, EvolutionSettings.AzureEnabled);
                         else
@@ -171,14 +173,17 @@ namespace ACESim
             Parallel.For(0, numInformationSets, n => InformationSets[n].Reinitialize());
         }
 
-        public virtual void ReinitializeForScenario(int baselineScenario, bool warmupVersion)
+        public virtual void ReinitializeForScenario(int overallScenarioIndex, bool warmupVersion)
         {
-            GameDefinition.SetScenario(baselineScenario, warmupVersion);
-            int currentScenarioIndex = GameDefinition.CurrentScenarioIndex; // Note: This may be different from scenario. E.g., when setting scenario to 1, game definition may keep scenario index at 0.
-            if (FinalUtilitiesNodes != null && currentScenarioIndex != FinalUtilitiesNodes.First().CurrentScenarioIndex)
+            GameDefinition.SetScenario(overallScenarioIndex, warmupVersion);
+            int currentPostWarmupScenarioIndex = GameDefinition.CurrentPostWarmupScenarioIndex; 
+            if (FinalUtilitiesNodes != null && currentPostWarmupScenarioIndex != FinalUtilitiesNodes.First().CurrentInitializedScenarioIndex)
             {
                 foreach (var node in FinalUtilitiesNodes)
-                    node.CurrentScenarioIndex = currentScenarioIndex;
+                {
+                    node.CurrentInitializedScenarioIndex = currentPostWarmupScenarioIndex;
+                    node.WeightOnOpponentsUtility = GameDefinition.CurrentWeightOnOpponent;
+                }
                 CalculateMinMax();
             }
         }
@@ -1173,7 +1178,7 @@ namespace ACESim
             {
                 if (d.StaticTextColumns == null)
                     d.StaticTextColumns = new List<(string textColumnName, string textColumnContent)>();
-                if (GameDefinition.NumScenariosToDevelop > 1)
+                if (GameDefinition.NumScenarioPermutations > 1)
                     d.StaticTextColumns.Add(("Scenario", GameDefinition.GetNameForScenario()));
                 if (GameDefinition.OptionSetName != null && GameDefinition.OptionSetName != "")
                     d.StaticTextColumns.Add(("OptionSet", GameDefinition.OptionSetName));

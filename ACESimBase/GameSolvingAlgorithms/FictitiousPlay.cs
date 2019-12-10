@@ -53,7 +53,7 @@ namespace ACESim
                 targetMet = Status.BestResponseTargetMet(EvolutionSettings);
                 if (iteration == iterationToReturnToBaselineScenario)
                 {
-                    ReinitializeForScenario(GameDefinition.BaselineScenarioIndex, false);
+                    ReinitializeForScenario(GameDefinition.CurrentOverallScenarioIndex, false);
                 }
             }
             return reportCollection;

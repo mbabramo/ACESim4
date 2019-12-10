@@ -309,16 +309,16 @@ namespace ACESim
         public virtual List<double[]> GetNonChancePlayerUtilities_IncludingAlternateScenarios(GameDefinition gameDefinition)
         {
             List<double[]> alternativeScenarios = new List<double[]>();
-            int numScenarios = gameDefinition.NumScenariosToInitialize;
-            for (int s = 0; s < numScenarios; s++)
+            int numInitializedScenarios = gameDefinition.NumScenariosToInitialize;
+            gameDefinition.RememberOriginalChangeableOptions();
+            for (int s = 0; s < numInitializedScenarios; s++)
             {
                 gameDefinition.ChangeOptionsBasedOnScenarioIndex(s, false);
                 if (s > 0)
                     RecalculateGameOutcome();
                 alternativeScenarios.Add(GetNonChancePlayerUtilities());
             }
-            if (numScenarios > 0)
-                gameDefinition.ChangeOptionsBasedOnScenarioIndex(0, false);
+            gameDefinition.RestoreOriginalChangeableOptions();
             return alternativeScenarios;
         }
 

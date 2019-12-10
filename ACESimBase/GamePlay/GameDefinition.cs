@@ -465,35 +465,95 @@ namespace ACESim
         }
 
 
-        // It may make sense to use "alternative scenarios" instead of multiple option sets (a) where there is a large cost to initialization and each scenario can share the same initialization; or (b) we want to use different settings during a "warmup phase".
+        // It may make sense to use play multiple scenarios (a) where there is a large cost to initialization and each scenario can share the same initialization (so that we don't have to, for example, calculate accelerated best response multiple times); or (b) we want to use different settings during a "warmup phase".
 
-        public virtual bool PlayMultipleScenarios => false; // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
+        // When playing multiple scenarios, we can define one or more concluding scenarios
 
-        public virtual bool UseDifferentWarmup => false;
+        public virtual bool PlayMultipleScenarios => false;
+        public virtual int NumPostWarmupOptionSets => 1;
+        public virtual int NumWarmupOptionSets => 0;
 
-        public virtual int NumScenariosDefined => 1;
 
-        public int NumScenariosToDevelop => PlayMultipleScenarios ? NumScenariosDefined : 1;
-        public int NumScenariosToInitialize => NumScenariosDefined;
+        public virtual bool MultiplyWarmupScenariosByAlteringWeightOnOpponentsStrategy => false;
+        public virtual int NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios => 25;
+        public int NumDifferentWeightsOnOpponentsStrategy => MultiplyWarmupScenariosByAlteringWeightOnOpponentsStrategy ? NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios : 1;
+        public virtual (double, double) MinMaxWeightOnOpponentsStrategyDuringWarmup => (-1, 1); // weight will be relatively small early and then increase to random numbers in range 
 
-        public int BaselineScenarioIndex = 0;
-        public int CurrentScenarioIndex = 0;
+        public static double GetParameterInRange(double min, double max, int permutationIndex, int numPermutations) => min + (max - min) * (((double)permutationIndex) / ((double)(numPermutations - 1)));
+        public double WeightOnOpponentsStrategyDuringWarmup(int weightsPermutationValue) =>  MultiplyWarmupScenariosByAlteringWeightOnOpponentsStrategy ? 
+            (GetParameterInRange(MinMaxWeightOnOpponentsStrategyDuringWarmup.Item1, MinMaxWeightOnOpponentsStrategyDuringWarmup.Item2, weightsPermutationValue, NumDifferentWeightsOnOpponentsStrategy))
+            : 0;
 
-        public virtual int GetScenarioIndex(int baselineScenario, bool warmupVersion)
+        public bool UseDifferentWarmup => NumWarmupOptionSets > 0;
+        public int NumScenariosToInitialize => NumPostWarmupOptionSets + NumWarmupOptionSets;
+        private int WarmupsContributionToPermutations => (NumWarmupOptionSets == 0 ? 1 : NumWarmupOptionSets);
+        public int NumScenarioPermutations => NumPostWarmupOptionSets * WarmupsContributionToPermutations * NumDifferentWeightsOnOpponentsStrategy;
+
+        public List<List<int>> AllScenarioPermutations;
+
+        public (int indexInPostWarmupScenarios, int? indexInWarmupScenarios, double weightOnOpponentsStrategy) GetScenarioIndexAndWeightValues(int overallScenarioIndex, bool warmupPhase)
         {
-            return baselineScenario;
+            // e.g., suppose we have two postwarmup scenarios and three warmup scenarios, multiplied by five weight options.
+            // Then there are a total of 17 initialized scenarios but 30 scenario indices, since each postwarmup scenario must
+            // be permuted with every warmup-weight permutation.
+            if (AllScenarioPermutations == null)
+            {
+                AllScenarioPermutations = PermutationMaker.GetPermutations(new List<int>() { NumPostWarmupOptionSets, WarmupsContributionToPermutations, NumDifferentWeightsOnOpponentsStrategy });
+                AllScenarioPermutations.OrderBy(x => Math.Abs(x[2])).ToList(); // place lowest absolute weight values first
+            }
+            List<int> permutation = AllScenarioPermutations[overallScenarioIndex];
+            int postWarmupPermutationValue = permutation[0];
+            if (!warmupPhase)
+                return (postWarmupPermutationValue, null, 0.0);
+            if (!UseDifferentWarmup) // i.e., NumWarmupOptionSets == 0
+                throw new Exception("Not using different warmup");
+            int warmupPermutationValue = permutation[1];
+            int weightsPermutationValue = permutation[2];
+            return (postWarmupPermutationValue, NumPostWarmupOptionSets + warmupPermutationValue,  WeightOnOpponentsStrategyDuringWarmup(weightsPermutationValue));
+
         }
 
-        public virtual void SetScenario(int baselineScenario, bool warmupVersion)
+        public int CurrentOverallScenarioIndex = 0;
+        public int CurrentPostWarmupScenarioIndex = 0; // we may be playing a warmup scenario, but we still need to know this scenario for purposes of setting the utilities in each individual node
+        public int? CurrentWarmupScenarioIndex = null;
+        public double CurrentWeightOnOpponent = 0;
+
+        public virtual void SetScenario(int overallScenarioIndex, bool warmupVersion)
         {
-            BaselineScenarioIndex = baselineScenario;
-            CurrentScenarioIndex = GetScenarioIndex(baselineScenario, warmupVersion);
-            ChangeOptionsBasedOnScenarioIndex(CurrentScenarioIndex, true);
+            int originalScenarioIndex = CurrentOverallScenarioIndex;
+            double originalWeightOnOpponent = 0;
+            CurrentOverallScenarioIndex = overallScenarioIndex;
+            (CurrentPostWarmupScenarioIndex, CurrentWarmupScenarioIndex, CurrentWeightOnOpponent) = GetScenarioIndexAndWeightValues(overallScenarioIndex, warmupVersion);
+            if (originalScenarioIndex != CurrentOverallScenarioIndex || originalWeightOnOpponent != CurrentWeightOnOpponent)
+                ChangeOptionsBasedOnScenarioIndex(CurrentOverallScenarioIndex, true);
         }
 
-        public virtual void ChangeOptionsBasedOnScenarioIndex(int scenarioIndex, bool printChange)
+        public virtual void RememberOriginalChangeableOptions()
         {
-            CurrentScenarioIndex = scenarioIndex;
+
+        }
+        public virtual void RestoreOriginalChangeableOptions()
+        {
+
+        }
+
+        public void ChangeOptionsBasedOnScenarioIndex(int overallScenarioIndex, bool warmupVersion)
+        {
+            var result = GetScenarioIndexAndWeightValues(overallScenarioIndex, warmupVersion);
+            if (warmupVersion)
+                ChangeOptionsBasedOnScenario_Warmup((int) result.indexInWarmupScenarios);
+            else
+                ChangeOptionsBasedOnScenario_PostWarmup(result.indexInPostWarmupScenarios);
+        }
+
+        public virtual void ChangeOptionsBasedOnScenario_Warmup(int warmupScenarioIndex)
+        {
+
+        }
+
+        public virtual void ChangeOptionsBasedOnScenario_PostWarmup(int postWarmupScenarioIndex)
+        {
+
         }
 
         public virtual string GetNameForScenario()
