@@ -383,6 +383,7 @@ namespace ACESim
 
         public void CalculateGameOutcome()
         {
+            // DEBUG -- allow costs to be changed here so that we can change trial costs and multipliers on the fly. 
             MyGameDefinition gameDefinition = (MyGameDefinition)GameDefinition;
             var outcome = MyGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, PInitialWealth, DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, SettlementValue, PWinsAtTrial, DamagesAwarded, BargainingRoundsComplete, PFinalWealthWithBestOffer, DFinalWealthWithBestOffer, POffers, PResponses, DOffers, DResponses);
             DisputeArises = gameDefinition.Options.MyGameDisputeGenerator.PotentialDisputeArises(gameDefinition, DisputeGeneratorActions);

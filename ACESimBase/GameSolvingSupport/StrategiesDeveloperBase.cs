@@ -172,11 +172,13 @@ namespace ACESim
 
         public virtual void ReinitializeForScenario(int overallScenarioIndex, bool warmupVersion)
         {
-            GameDefinition.SetScenario(overallScenarioIndex, warmupVersion);
             int currentPostWarmupScenarioIndex = GameDefinition.CurrentPostWarmupScenarioIndex;
+            int? currentWarmupScenarioIndex = GameDefinition.CurrentWarmupScenarioIndex;
+            int currentScenarioIndex = currentWarmupScenarioIndex ?? currentPostWarmupScenarioIndex;
             double currentWeightOnOpponent = GameDefinition.CurrentWeightOnOpponent;
+            GameDefinition.SetScenario(overallScenarioIndex, warmupVersion);
             FinalUtilitiesNode firstFinalUtilitiesNode = FinalUtilitiesNodes.First();
-            if (FinalUtilitiesNodes != null && (currentPostWarmupScenarioIndex != firstFinalUtilitiesNode.CurrentInitializedScenarioIndex || currentWeightOnOpponent != firstFinalUtilitiesNode.WeightOnOpponentsUtility))
+            if (FinalUtilitiesNodes != null && (currentScenarioIndex != firstFinalUtilitiesNode.CurrentInitializedScenarioIndex || currentWeightOnOpponent != firstFinalUtilitiesNode.WeightOnOpponentsUtility))
             {
                 foreach (var node in FinalUtilitiesNodes)
                 {
