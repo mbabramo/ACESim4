@@ -310,15 +310,14 @@ namespace ACESim
         {
             List<double[]> alternativeScenarios = new List<double[]>();
             int numInitializedScenarios = gameDefinition.NumScenariosToInitialize;
-            gameDefinition.RememberOriginalChangeableOptions();
             for (int s = 0; s < numInitializedScenarios; s++)
             {
-                gameDefinition.ChangeOptionsBasedOnScenarioIndex(s, false);
+                gameDefinition.ChangeOptionsToOverallScenarioIndex(s, false);
                 if (s > 0)
                     RecalculateGameOutcome();
                 alternativeScenarios.Add(GetNonChancePlayerUtilities());
             }
-            gameDefinition.RestoreOriginalChangeableOptions();
+            gameDefinition.ChangeOptionsToCurrentScenario();
             return alternativeScenarios;
         }
 
@@ -333,13 +332,12 @@ namespace ACESim
             int numScenarios = gameDefinition.NumScenariosToInitialize;
             for (int s = 0; s < numScenarios; s++)
             {
-                gameDefinition.ChangeOptionsBasedOnScenarioIndex(s, false);
+                gameDefinition.ChangeOptionsToOverallScenarioIndex(s, false);
                 if (s > 0)
                     RecalculateGameOutcome();
                 alternativeScenarios.Add(GetCustomResult());
             }
-            if (numScenarios > 0)
-                gameDefinition.ChangeOptionsBasedOnScenarioIndex(0, false);
+            gameDefinition.ChangeOptionsToCurrentScenario();
             return alternativeScenarios;
         }
 

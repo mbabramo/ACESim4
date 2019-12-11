@@ -116,7 +116,7 @@ namespace ACESim
                 StrategiesDeveloperStopwatch.Start();
                 if (EvolutionSettings.CFRBR)
                     CalculateBestResponse(false);
-                Unroll_ExecuteUnrolledCommands(array, iteration == 1 || iteration == EvolutionSettings.IterationsForWarmupScenario + 1);
+                Unroll_ExecuteUnrolledCommands(array, iteration == 1 || iteration == GameDefinition.IterationsForWarmupScenario + 1);
                 StrategiesDeveloperStopwatch.Stop();
                 UpdateInformationSets(iteration);
                 SimulatedAnnealing(iteration);
@@ -152,7 +152,7 @@ namespace ACESim
                 ReinitializeInformationSets();
             }
 
-            int iterationToReturnToBaselineScenario = EvolutionSettings.IterationsForWarmupScenario ?? -1;
+            int iterationToReturnToBaselineScenario = GameDefinition.IterationsForWarmupScenario ?? -1;
             if (iteration == iterationToReturnToBaselineScenario)
             {
                 ReinitializeForScenario(GameDefinition.CurrentOverallScenarioIndex, false);
@@ -785,11 +785,6 @@ namespace ACESim
             {
                 Unroll_CreateUnrolledCommandList();
             }
-        }
-
-        public override int? IterationsForWarmupScenario()
-        {
-            return EvolutionSettings.IterationsForWarmupScenario; // warmup is supported
         }
 
         public override async Task<ReportCollection> RunAlgorithm(string optionSetName)

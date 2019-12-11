@@ -71,8 +71,6 @@ namespace ACESim
         internal int NumRandomIterationsForUtilityCalculation = 10000;
         internal bool SuppressReportDisplayOnScreen;
 
-        public int? IterationsForWarmupScenario = null; // Set to null when inapplicable; otherwise, to number of iterations
-
         public static bool PruneOnOpponentStrategy = true; // NOTE: In general sum games, this seems to cause difficulties, because some of the player's own information sets may not be visited, as a result of pruning on opponents' sets. 
         public static double PruneOnOpponentStrategyThreshold = 1E-4; // NOTE: This is the probability for this action, not the cumulative probability. 
         public static bool PredeterminePrunabilityBasedOnRelativeContributions = false; // if True, then we prune if and only if the action contributes negligibly at any later information set

@@ -472,6 +472,10 @@ namespace ACESim
         public virtual bool PlayMultipleScenarios => false;
         public virtual int NumPostWarmupOptionSets => 1;
         public virtual int NumWarmupOptionSets => 0;
+        public virtual int WarmupIterations_IfWarmingUp => 200;
+        public bool UseDifferentWarmup => NumWarmupOptionSets > 0;
+        public int NumScenariosToInitialize => NumPostWarmupOptionSets + NumWarmupOptionSets;
+        public int? IterationsForWarmupScenario => UseDifferentWarmup ? (int?) WarmupIterations_IfWarmingUp : (int?) null;
 
 
         public virtual bool MultiplyWarmupScenariosByAlteringWeightOnOpponentsStrategy => false;
@@ -483,9 +487,6 @@ namespace ACESim
         public double WeightOnOpponentsStrategyDuringWarmup(int weightsPermutationValue) =>  MultiplyWarmupScenariosByAlteringWeightOnOpponentsStrategy ? 
             (GetParameterInRange(MinMaxWeightOnOpponentsStrategyDuringWarmup.Item1, MinMaxWeightOnOpponentsStrategyDuringWarmup.Item2, weightsPermutationValue, NumDifferentWeightsOnOpponentsStrategy))
             : 0;
-
-        public bool UseDifferentWarmup => NumWarmupOptionSets > 0;
-        public int NumScenariosToInitialize => NumPostWarmupOptionSets + NumWarmupOptionSets;
         private int WarmupsContributionToPermutations => (NumWarmupOptionSets == 0 ? 1 : NumWarmupOptionSets);
         public int NumScenarioPermutations => NumPostWarmupOptionSets * WarmupsContributionToPermutations * NumDifferentWeightsOnOpponentsStrategy;
 
@@ -498,8 +499,8 @@ namespace ACESim
             // be permuted with every warmup-weight permutation.
             if (AllScenarioPermutations == null)
             {
-                AllScenarioPermutations = PermutationMaker.GetPermutations(new List<int>() { NumPostWarmupOptionSets, WarmupsContributionToPermutations, NumDifferentWeightsOnOpponentsStrategy });
-                AllScenarioPermutations.OrderBy(x => Math.Abs(x[2])).ToList(); // place lowest absolute weight values first
+                AllScenarioPermutations = PermutationMaker.GetPermutations(new List<int>() { NumPostWarmupOptionSets, WarmupsContributionToPermutations, NumDifferentWeightsOnOpponentsStrategy }, true);
+                AllScenarioPermutations = AllScenarioPermutations.OrderBy(x => Math.Abs(WeightOnOpponentsStrategyDuringWarmup(x[2]))).ToList(); // place lowest absolute weight values first
             }
             List<int> permutation = AllScenarioPermutations[overallScenarioIndex];
             int postWarmupPermutationValue = permutation[0];
@@ -516,16 +517,29 @@ namespace ACESim
         public int CurrentOverallScenarioIndex = 0;
         public int CurrentPostWarmupScenarioIndex = 0; // we may be playing a warmup scenario, but we still need to know this scenario for purposes of setting the utilities in each individual node
         public int? CurrentWarmupScenarioIndex = null;
+        public bool CurrentlyWarmingUp => CurrentWarmupScenarioIndex != null;
         public double CurrentWeightOnOpponent = 0;
 
         public virtual void SetScenario(int overallScenarioIndex, bool warmupVersion)
         {
             int originalScenarioIndex = CurrentOverallScenarioIndex;
-            double originalWeightOnOpponent = 0;
+            double originalWeightOnOpponent = CurrentWeightOnOpponent;
+            int? originalWarmupScenarioIndex = CurrentWarmupScenarioIndex;
             CurrentOverallScenarioIndex = overallScenarioIndex;
             (CurrentPostWarmupScenarioIndex, CurrentWarmupScenarioIndex, CurrentWeightOnOpponent) = GetScenarioIndexAndWeightValues(overallScenarioIndex, warmupVersion);
-            if (originalScenarioIndex != CurrentOverallScenarioIndex || originalWeightOnOpponent != CurrentWeightOnOpponent)
-                ChangeOptionsBasedOnScenarioIndex(CurrentOverallScenarioIndex, true);
+            if (originalScenarioIndex != CurrentOverallScenarioIndex || originalWarmupScenarioIndex != CurrentWarmupScenarioIndex || originalWeightOnOpponent != CurrentWeightOnOpponent)
+            {
+                ChangeOptionsToCurrentScenario();
+                if (PlayMultipleScenarios && !CurrentlyWarmingUp)
+                {
+                    TabbedText.WriteLine("Scenario post-warmup:" + GetNameForScenario_WithOpponentWeight());
+                }
+            }
+        }
+
+        public string GetNameForScenario_WithOpponentWeight()
+        {
+            return $"{GetNameForScenario()}{(CurrentWeightOnOpponent == 0 ? "" : $"(Weight on opponent: {CurrentWeightOnOpponent})")}";
         }
 
         public virtual void RememberOriginalChangeableOptions()
@@ -537,24 +551,19 @@ namespace ACESim
 
         }
 
-        public void ChangeOptionsBasedOnScenarioIndex(int overallScenarioIndex, bool warmupVersion)
+        public void ChangeOptionsToOverallScenarioIndex(int overallScenarioIndex, bool warmupVersion)
         {
             var result = GetScenarioIndexAndWeightValues(overallScenarioIndex, warmupVersion);
-            if (warmupVersion)
-                ChangeOptionsBasedOnScenario_Warmup((int) result.indexInWarmupScenarios);
-            else
-                ChangeOptionsBasedOnScenario_PostWarmup(result.indexInPostWarmupScenarios);
+            ChangeOptionsBasedOnScenario(result.indexInPostWarmupScenarios, result.indexInWarmupScenarios - NumPostWarmupOptionSets);
         }
 
-        public virtual void ChangeOptionsBasedOnScenario_Warmup(int warmupScenarioIndex)
+        public void ChangeOptionsToCurrentScenario() => ChangeOptionsToOverallScenarioIndex(CurrentOverallScenarioIndex, CurrentlyWarmingUp);
+
+        public virtual void ChangeOptionsBasedOnScenario(int postWarmupScenarioIndex, int? warmupScenarioIndex)
         {
 
         }
 
-        public virtual void ChangeOptionsBasedOnScenario_PostWarmup(int postWarmupScenarioIndex)
-        {
-
-        }
 
         public virtual string GetNameForScenario()
         {

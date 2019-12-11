@@ -27,18 +27,12 @@ namespace ACESim
             return created;
         }
 
-
-        public override int? IterationsForWarmupScenario()
-        {
-            return EvolutionSettings.IterationsForWarmupScenario; // warmup is supported
-        }
-
         public override async Task<ReportCollection> RunAlgorithm(string optionSetName)
         {
             ReportCollection reportCollection = new ReportCollection();
             StrategiesDeveloperStopwatch.Reset();
             InitializeInformationSets();
-            int iterationToReturnToBaselineScenario = EvolutionSettings.IterationsForWarmupScenario ?? -1;
+            int iterationToReturnToBaselineScenario = GameDefinition.IterationsForWarmupScenario ?? -1;
             int startingIteration = 2;
             if (iterationToReturnToBaselineScenario < startingIteration)
                 iterationToReturnToBaselineScenario = startingIteration;

@@ -17,11 +17,12 @@ namespace ACESim
         {
             if (WeightOnOpponentsUtility == 0)
                 return AllScenarioUtilities[CurrentInitializedScenarioIndex];
-            double[] weightedUtilities = AllScenarioUtilities[CurrentInitializedScenarioIndex].ToArray();
+            double[] unweightedUtilities = AllScenarioUtilities[CurrentInitializedScenarioIndex];
+            double[] weightedUtilities = unweightedUtilities.ToArray();
             if (weightedUtilities.Length != 2)
                 throw new Exception("Weighted utilities only supported for two-player games.");
-            weightedUtilities[0] = Utilities[0] + WeightOnOpponentsUtility * Utilities[1];
-            weightedUtilities[1] = Utilities[1] + WeightOnOpponentsUtility * Utilities[0];
+            weightedUtilities[0] = unweightedUtilities[0] + WeightOnOpponentsUtility * unweightedUtilities[1];
+            weightedUtilities[1] = unweightedUtilities[1] + WeightOnOpponentsUtility * unweightedUtilities[0];
             return weightedUtilities;
         }
         public List<double[]> AllScenarioUtilities;

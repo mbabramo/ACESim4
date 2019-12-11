@@ -61,13 +61,10 @@ namespace ACESim
             ReportCollection reportCollection = new ReportCollection();
             for (int overallScenarioIndex = 0; overallScenarioIndex < GameDefinition.NumScenarioPermutations; overallScenarioIndex++)
             {
-                bool useDifferentWarmup = IterationsForWarmupScenario() != null;
-                if (useDifferentWarmup != GameDefinition.UseDifferentWarmup)
-                    throw new Exception("Must set both warmup iterations in evolution settings and warmup in game definition");
-                ReinitializeForScenario(overallScenarioIndex, useDifferentWarmup);
+                ReinitializeForScenario(overallScenarioIndex, GameDefinition.UseDifferentWarmup);
                 string optionSetInfo = $@"Option set {optionSetName}";
                 if (GameDefinition.NumScenarioPermutations > 1)
-                    optionSetInfo += $" (scenario {overallScenarioIndex + 1} of {GameDefinition.NumScenarioPermutations} = {GameDefinition.GetNameForScenario()}";
+                    optionSetInfo += $" (scenario {overallScenarioIndex + 1} of {GameDefinition.NumScenarioPermutations} = {GameDefinition.GetNameForScenario_WithOpponentWeight()})";
                 TabbedText.WriteLineEvenIfDisabled(optionSetInfo);
                 var result = await RunAlgorithm(optionSetName);
                 if (EvolutionSettings.SerializeResults && !(this is PlaybackOnly))
@@ -176,8 +173,10 @@ namespace ACESim
         public virtual void ReinitializeForScenario(int overallScenarioIndex, bool warmupVersion)
         {
             GameDefinition.SetScenario(overallScenarioIndex, warmupVersion);
-            int currentPostWarmupScenarioIndex = GameDefinition.CurrentPostWarmupScenarioIndex; 
-            if (FinalUtilitiesNodes != null && currentPostWarmupScenarioIndex != FinalUtilitiesNodes.First().CurrentInitializedScenarioIndex)
+            int currentPostWarmupScenarioIndex = GameDefinition.CurrentPostWarmupScenarioIndex;
+            double currentWeightOnOpponent = GameDefinition.CurrentWeightOnOpponent;
+            FinalUtilitiesNode firstFinalUtilitiesNode = FinalUtilitiesNodes.First();
+            if (FinalUtilitiesNodes != null && (currentPostWarmupScenarioIndex != firstFinalUtilitiesNode.CurrentInitializedScenarioIndex || currentWeightOnOpponent != firstFinalUtilitiesNode.WeightOnOpponentsUtility))
             {
                 foreach (var node in FinalUtilitiesNodes)
                 {
@@ -188,9 +187,26 @@ namespace ACESim
             }
         }
 
-        public virtual int? IterationsForWarmupScenario()
+        public void ResetWeightOnOpponentsUtilityToZero()
         {
-            return null; // not supported by default
+            if (FinalUtilitiesNodes != null)
+            {
+                foreach (var node in FinalUtilitiesNodes)
+                {
+                    node.WeightOnOpponentsUtility = 0;
+                }
+            }
+        }
+
+        public void ResetWeightOnOpponentsUtilityToCurrentWeight()
+        {
+            if (FinalUtilitiesNodes != null)
+            {
+                foreach (var node in FinalUtilitiesNodes)
+                {
+                    node.WeightOnOpponentsUtility = GameDefinition.CurrentWeightOnOpponent;
+                }
+            }
         }
 
         public void Reinitialize()
@@ -896,9 +912,11 @@ namespace ACESim
         {
             // index through information sets by decision (note that i is not the same as the actual decision index). First, calculate reach probabilities going forward. Second, calculate best response values going backward.
             bool parallelize = EvolutionSettings.ParallelOptimization;
+            ResetWeightOnOpponentsUtilityToZero();
             CalculateReachProbabilitiesAndPrunability(parallelize);
             CalculateBestResponseValuesAndReachability(determineWhetherReachable, parallelize);
             CompleteAcceleratedBestResponse();
+            ResetWeightOnOpponentsUtilityToCurrentWeight();
         }
 
 
