@@ -977,11 +977,11 @@ namespace ACESim
         // DEBUG
         public override bool PlayMultipleScenarios => true; // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
 
-        public override int NumPostWarmupOptionSets => 1; // DEBUG
-        public override int NumWarmupOptionSets => 3; // Note that this can be 0
-        public override int WarmupIterations_IfWarmingUp => 200;
+        public override int NumPostWarmupOptionSets => 1; 
+        public override int NumWarmupOptionSets => 6; // Note that this can be 0
+        public override int WarmupIterations_IfWarmingUp => 300;
         public override bool MultiplyWarmupScenariosByAlteringWeightOnOpponentsStrategy => true;
-        public override int NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios => 3; // should be odd if we want to include zero
+        public override int NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios => 8; // should be odd if we want to include zero
         public override (double, double) MinMaxWeightOnOpponentsStrategyDuringWarmup => (-0.5, 0.5);
 
         public enum ChangeInScenario

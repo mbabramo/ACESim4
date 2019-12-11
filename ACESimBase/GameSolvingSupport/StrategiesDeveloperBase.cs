@@ -183,8 +183,8 @@ namespace ACESim
             int currentScenarioIndex = currentWarmupScenarioIndex ?? currentPostWarmupScenarioIndex;
             double currentWeightOnOpponent = GameDefinition.CurrentWeightOnOpponent;
             GameDefinition.SetScenario(overallScenarioIndex, warmupVersion);
-            FinalUtilitiesNode firstFinalUtilitiesNode = FinalUtilitiesNodes.First();
-            if (FinalUtilitiesNodes != null && (currentScenarioIndex != firstFinalUtilitiesNode.CurrentInitializedScenarioIndex || currentWeightOnOpponent != firstFinalUtilitiesNode.WeightOnOpponentsUtility))
+            FinalUtilitiesNode firstFinalUtilitiesNode = FinalUtilitiesNodes?.FirstOrDefault();
+            if (FinalUtilitiesNodes != null && firstFinalUtilitiesNode != null && (currentScenarioIndex != firstFinalUtilitiesNode.CurrentInitializedScenarioIndex || currentWeightOnOpponent != firstFinalUtilitiesNode.WeightOnOpponentsUtility))
             {
                 foreach (var node in FinalUtilitiesNodes)
                 {

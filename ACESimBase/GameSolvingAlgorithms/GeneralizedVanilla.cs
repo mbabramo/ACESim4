@@ -156,6 +156,7 @@ namespace ACESim
             if (iteration == iterationToReturnToBaselineScenario)
             {
                 ReinitializeForScenario(GameDefinition.CurrentOverallScenarioIndex, false);
+                ResetBestExploitability();
             }
         }
 

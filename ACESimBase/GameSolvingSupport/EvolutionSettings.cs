@@ -36,8 +36,8 @@ namespace ACESim
         public int? MiniReportEveryPIterations = 1000;
         public bool MeasureRegretMatchingChanges = false;
         public bool UseRandomPathsForReporting = true;
-        public bool SerializeResults = false;
-        public bool SerializeInformationSetDataOnly = false;
+        public bool SerializeResults = false; // DEBUG
+        public bool SerializeInformationSetDataOnly = true;
         public string SerializeResultsPrefix = "serstrat";
         public bool ParallelOptimization = false; // will be overridden by launcher
         public bool DynamicSetParallel = false; // will be overridden by launcher
