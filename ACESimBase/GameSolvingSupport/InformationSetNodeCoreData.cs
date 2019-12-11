@@ -10,8 +10,8 @@ namespace ACESim
         public int InformationSetNodeNumber;
         public double[,] NodeInformation;
         public int LastPastValueIndexRecorded = -1;
-        public double[,] PastValues;
-        public double[] PastValuesCumulativeStrategyDiscounts;
+        public List<double[]> PastValues;
+        public List<double> PastValuesCumulativeStrategyDiscounts;
         public double[] MaxPossible, MinPossible;
         public double MaxPossibleThisPlayer, MinPossibleThisPlayer;
 

@@ -183,15 +183,17 @@ namespace ACESim
 
         public bool UseCFRPlusInRegretMatching = false; // if true, then cumulative regrets never fall below zero
 
-        public bool RecordPastValues = false; // NOTE: This is set by launcher
+        public bool RecordPastValues = true; // DEBUG
+        public bool RecordPastValues_AtEndOfScenarioOnly = true; // DEBUG
         public int RecordPastValues_TargetNumberToRecord = 100;
         public int? RecordPastValues_AtIterationMultiples = 5_000; 
         public bool RecordPastValues_ResetAtIterationMultiples = false; 
-        public int EffectiveIteration(int iteration) => (RecordPastValues && RecordPastValues_AtIterationMultiples is int multiples && RecordPastValues_ResetAtIterationMultiples) ? iteration % multiples + 1 
+        public int EffectiveIteration(int iteration) => (RecordPastValues && !RecordPastValues_AtEndOfScenarioOnly && RecordPastValues_AtIterationMultiples is int multiples && RecordPastValues_ResetAtIterationMultiples) ? iteration % multiples + 1 
                 : iteration;
-        public (int effectiveIteration, int effectiveMaxIteration) EffectiveIterationAndMaxIteration(int iteration, int maxIteration) => (RecordPastValues && RecordPastValues_AtIterationMultiples is int multiples && RecordPastValues_ResetAtIterationMultiples) ? (iteration % multiples + 1, multiples) : (iteration, maxIteration);
+        public (int effectiveIteration, int effectiveMaxIteration) EffectiveIterationAndMaxIteration(int iteration, int maxIteration) => (RecordPastValues && !RecordPastValues_AtEndOfScenarioOnly && RecordPastValues_AtIterationMultiples is int multiples && RecordPastValues_ResetAtIterationMultiples) ? (iteration % multiples + 1, multiples) : (iteration, maxIteration);
 
-        public bool IsIterationResetPoint(int iteration) => RecordPastValues && RecordPastValues_AtIterationMultiples is int multiples && iteration % multiples == 0 && RecordPastValues_ResetAtIterationMultiples;
+        public bool IsIterationResetPoint(int iteration) => RecordPastValues && !RecordPastValues_AtEndOfScenarioOnly && RecordPastValues_AtIterationMultiples is int multiples && iteration % multiples == 0 && RecordPastValues_ResetAtIterationMultiples;
+
         /// <summary>
         /// The proportion of iterations at which to start randomly selecting past values. This will be used only if RecordPastValues_AtIterationMultiples is null.
         /// </summary>
@@ -203,7 +205,7 @@ namespace ACESim
 
         public bool RecordPastValues_AtIteration(int iteration)
         {
-            if (!RecordPastValues)
+            if (!RecordPastValues || RecordPastValues_AtEndOfScenarioOnly)
                 return false;
             if (RecordPastValues_AtIterationMultiples is int multiples)
             {

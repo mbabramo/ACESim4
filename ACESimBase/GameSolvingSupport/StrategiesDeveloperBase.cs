@@ -68,13 +68,64 @@ namespace ACESim
                     optionSetInfo += $" (scenario {overallScenarioIndex + 1} of {GameDefinition.NumScenarioPermutations} = {GameDefinition.GetNameForScenario_WithOpponentWeight()})";
                 TabbedText.WriteLineEvenIfDisabled(optionSetInfo);
                 var result = await RunAlgorithm(optionSetName);
-                if (EvolutionSettings.SerializeResults && !(this is PlaybackOnly))
-                {
-                    SerializeScenario(overallScenarioIndex);
-                }
-                reportCollection.Add(result);
+                RememberScenarioResults(reportCollection, overallScenarioIndex, result);
             }
             return reportCollection;
+        }
+
+        public List<double[]> UtilitiesForPastValues = new List<double[]>();
+
+        private void RememberScenarioResults(ReportCollection reportCollection, int overallScenarioIndex, ReportCollection result)
+        {
+            if (EvolutionSettings.RecordPastValues_AtEndOfScenarioOnly)
+            {
+                if (!EvolutionSettings.RecordPastValues)
+                    throw new Exception("Must set RecordPastValues");
+                foreach (var informationSet in InformationSets)
+                {
+                    informationSet.PastValuesCumulativeStrategyDiscounts.Add(1.0);
+                    informationSet.RecordProbabilitiesAsPastValues();
+                }
+                UtilitiesForPastValues.Add(Status.UtilitiesOverall.ToArray());
+                bool disqualified = false;
+                int mostRecentIndex = InformationSets.First().LastPastValueIndexRecorded;
+                for (int i = 0; i < mostRecentIndex; i++) // each index before most recent
+                {
+                    double[] utilities_p0PlayingMostRecent_p1PlaysI = GetUtilitiesForPastValueCombination(mostRecentIndex, i);
+                    double[] utilities_p1PlayingMostRecent_p0PlaysI = GetUtilitiesForPastValueCombination(i, mostRecentIndex);
+                    double[] utilities_bothPlayI = UtilitiesForPastValues[i];
+
+                    double p0InMostRecent = UtilitiesForPastValues[mostRecentIndex][0];
+                    double p1InMostRecent = UtilitiesForPastValues[mostRecentIndex][1];
+                    double p0IfSwitchingStrategyFromMostRecent = utilities_p1PlayingMostRecent_p0PlaysI[0];
+                    double p0IfSwitchingStrategyToMostRecent = utilities_p0PlayingMostRecent_p1PlaysI[0];
+                    double p1IfSwitchingStrategyToMostRecent = utilities_p1PlayingMostRecent_p0PlaysI[1];
+                    double p1IfSwitchingStrategyFromMostRecent = utilities_p0PlayingMostRecent_p1PlaysI[1];
+                    if (p0IfSwitchingStrategyFromMostRecent > p0InMostRecent || p1IfSwitchingStrategyFromMostRecent > p1InMostRecent || p0IfSwitchingStrategyToMostRecent > utilities_bothPlayI[0] || p1IfSwitchingStrategyToMostRecent > utilities_bothPlayI[1])
+                    {
+                        disqualified = true;
+                        TabbedText.WriteLine($"Scenario {overallScenarioIndex} can't be added to correlated equilibrium, inconsistent with existing index {i}");
+                        break;
+                    }
+                }
+                if (disqualified)
+                {
+                    // Remove the past value
+                    InformationSets.ForEach(x =>
+                    {
+                        x.PastValues.RemoveAt(x.LastPastValueIndexRecorded);
+                        x.PastValuesCumulativeStrategyDiscounts.RemoveAt(x.LastPastValueIndexRecorded);
+                        x.LastPastValueIndexRecorded--;
+                    });
+                }
+                else
+                    TabbedText.WriteLine($"Scenario {overallScenarioIndex} added to correlated equilibrium at index {mostRecentIndex}");
+            }
+            if (EvolutionSettings.SerializeResults && !(this is PlaybackOnly))
+            {
+                SerializeScenario(overallScenarioIndex);
+            }
+            reportCollection.Add(result);
         }
 
         private void SerializeScenario(int overallScenarioIndex)
@@ -942,6 +993,28 @@ namespace ACESim
             // gets the best response for whichever population member's actions have been copied to information set
             CalculateBestResponse(false);
             return (Status.BestResponseImprovementAdj.Sum(), Status.BestResponseUtilities.ToArray());
+        }
+
+        public void RestorePastValuesToInformationSets(int indexForPlayer0, int indexForPlayer1)
+        {
+            InformationSets.ForEach(x =>
+            {
+                x.CreateBackup();
+                x.SetCurrentAndAverageStrategyToPastValue(indexForPlayer0, 0);
+                x.SetCurrentAndAverageStrategyToPastValue(indexForPlayer1, 1);
+            });
+        }
+
+        public double[] GetUtilitiesForPastValueCombination(int indexForPlayer0, int indexForPlayer1)
+        {
+            RestorePastValuesToInformationSets(indexForPlayer0, indexForPlayer1);
+            ExecuteAcceleratedBestResponse(false);
+            double[] utilities = Status.UtilitiesOverall.ToArray();
+            InformationSets.ForEach(x =>
+            {
+                x.RestoreBackup();
+            });
+            return utilities;
         }
 
         public void CalculateReachProbabilitiesAndPrunability(bool parallelize)

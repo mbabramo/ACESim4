@@ -38,8 +38,8 @@ namespace ACESim
         public double MaxPossibleThisPlayer, MinPossibleThisPlayer;
         
         public int LastPastValueIndexRecorded = -1;
-        public double[,] PastValues;
-        public double[] PastValuesCumulativeStrategyDiscounts;
+        public List<double[]> PastValues;
+        public List<double> PastValuesCumulativeStrategyDiscounts;
 
         public List<InformationSetNode> AncestorInformationSets;
         public List<InformationSetNode> DescendantInformationSets;
@@ -96,8 +96,8 @@ namespace ACESim
             if (EvolutionSettings.RecordPastValues)
             {
                 int totalValuesToRecord = EvolutionSettings.RecordPastValues_TargetNumberToRecord;
-                PastValues = new double[totalValuesToRecord, NumPossibleActions];
-                PastValuesCumulativeStrategyDiscounts = new double[totalValuesToRecord];
+                PastValues = new List<double[]>();
+                PastValuesCumulativeStrategyDiscounts = new List<double>();
                 LastPastValueIndexRecorded = -1;
             }
             Initialize();
@@ -219,8 +219,8 @@ namespace ACESim
             }
             if (EvolutionSettings.RecordPastValues && clearPastValues) 
             {
-                PastValues = new double[EvolutionSettings.RecordPastValues_TargetNumberToRecord, NumPossibleActions];
-                PastValuesCumulativeStrategyDiscounts = new double[EvolutionSettings.RecordPastValues_TargetNumberToRecord];
+                PastValues = new List<double[]>();
+                PastValuesCumulativeStrategyDiscounts = new List<double>();
             }
         }
 
@@ -632,7 +632,7 @@ namespace ACESim
         private void UpdateCumulativeAndAverageStrategies(int iteration, double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements, bool resetPreviousCumulativeStrategyIncrements, double continuousRegretsDiscountingAdjustment)
         {
 
-            RecordProbabilitiesAsPastValues(iteration, averageStrategyAdjustment); // these are the average strategies played, and thus shouldn't reflect the updates below
+            RecordProbabilitiesAsPastValues_BasedOnIteration(iteration, averageStrategyAdjustment); // these are the average strategies played, and thus shouldn't reflect the updates below
 
             UpdateCumulativeRegrets(continuousRegretsDiscountingAdjustment);
             if (resetPreviousCumulativeStrategyIncrements)
@@ -1051,28 +1051,28 @@ namespace ACESim
             }
         }
 
-        private void RecordProbabilitiesAsPastValues(int iteration, double averageStrategyAdjustment)
+        private void RecordProbabilitiesAsPastValues_BasedOnIteration(int iteration, double averageStrategyAdjustment)
         {
             if (EvolutionSettings.RecordPastValues_AtIteration(iteration))
             {
-                if (LastPastValueIndexRecorded + 1 < PastValuesCumulativeStrategyDiscounts.Length)
-                {
-                    LastPastValueIndexRecorded++;
-                    if (LastPastValueIndexRecorded == 0)
-                        PastValuesCumulativeStrategyDiscounts[0] = averageStrategyAdjustment;
-                    else
-                        PastValuesCumulativeStrategyDiscounts[LastPastValueIndexRecorded] = PastValuesCumulativeStrategyDiscounts[LastPastValueIndexRecorded] + averageStrategyAdjustment;
-                    for (byte a = 1; a <= NumPossibleActions; a++)
-                        PastValues[LastPastValueIndexRecorded, a - 1] = GetCurrentProbability(a, false);
-                }
+                PastValuesCumulativeStrategyDiscounts.Add(averageStrategyAdjustment);
+                RecordProbabilitiesAsPastValues();
             }
+        }
+
+        public void RecordProbabilitiesAsPastValues()
+        {
+            LastPastValueIndexRecorded++;
+            PastValues.Add(new double[NumPossibleActions]);
+            for (byte a = 1; a <= NumPossibleActions; a++)
+                PastValues[LastPastValueIndexRecorded][a - 1] = GetCurrentProbability(a, false);
         }
 
         public void SetAverageStrategyToPastValue(int pastValueIndex)
         {
             CreateBackup();
             for (byte a = 1; a <= NumPossibleActions; a++)
-                NodeInformation[averageStrategyProbabilityDimension, a - 1] = PastValues[pastValueIndex, a - 1];
+                NodeInformation[averageStrategyProbabilityDimension, a - 1] = PastValues[pastValueIndex][a - 1];
         }
 
         #endregion
@@ -1175,18 +1175,17 @@ namespace ACESim
             {
                 int index2 = (int)(randomNumberToChooseIteration * LastPastValueIndexRecorded);
                 for (int a = 0; a < NumPossibleActions; a++)
-                    probabilities[a] = PastValues[index2, a];
+                    probabilities[a] = PastValues[index2][a];
                 return;
             }
 
-            Span<double> pastValueDiscounts = new Span<double>(PastValuesCumulativeStrategyDiscounts, 0, pastValuesCount);
-            int index = pastValueDiscounts.BinarySearch(cumulativeDiscountLevelToSeek, Comparer<double>.Default);
+            int index = PastValuesCumulativeStrategyDiscounts.BinarySearch(cumulativeDiscountLevelToSeek, Comparer<double>.Default);
             if (index < 0)
                 index = ~index; // when negative, index is the bitwise complement of the first index larger than the value sought
             if (index == pastValuesCount)
                 index--; // should be very rare.
             for (int a = 0; a < NumPossibleActions; a++)
-                probabilities[a] = PastValues[index, a];
+                probabilities[a] = PastValues[index][a];
         }
 
         public void GetCurrentProbabilities(Span<double> probabilitiesToSet, bool opponentProbabilities)
@@ -1361,7 +1360,7 @@ namespace ACESim
         // past value product -- used in autogenerated correlated equilibrium code (referenced by string, so it appears to have zero references.
         public double PVP(int iteration, byte action, Func<double> multiplyByFn)
         {
-            double d = PastValues[iteration, action - 1];
+            double d = PastValues[iteration][action - 1];
             if (d < 1E-8)
                 return 0;
             return d * multiplyByFn();
@@ -1375,10 +1374,19 @@ namespace ACESim
                     double total = 0;
                     for (int p = 0; p <= LastPastValueIndexRecorded; p++)
                     {
-                        total += PastValues[p, a - 1];
+                        total += PastValues[p][a - 1];
                     }
                     NodeInformation[averageStrategyProbabilityDimension, a - 1] = (total / (double)(LastPastValueIndexRecorded + 1));
                 }
+        }
+        public void SetCurrentAndAverageStrategyToPastValue(int pastValueIndex, byte? playerMatchRequirement = null)
+        {
+            if (playerMatchRequirement is byte p && p != PlayerIndex)
+                return;
+            for (int a = 1; a <= NumPossibleActions; a++)
+            {
+                NodeInformation[currentProbabilityDimension, a - 1] = NodeInformation[currentProbabilityForOpponentDimension, a - 1] = PastValues[pastValueIndex][a - 1];
+            }
         }
 
         public void PastValuesAnalyze()
@@ -1398,7 +1406,7 @@ namespace ACESim
                     double sumSqDiffs = 0;
                     for (int k = 0; k < NumPossibleActions; k++)
                     {
-                        double diff = PastValues[j0, k] - PastValues[j1, k];
+                        double diff = PastValues[j0][k] - PastValues[j1][k];
                         sumSqDiffs += diff * diff;
                     }
                     double distance = Math.Sqrt(sumSqDiffs);
@@ -1416,7 +1424,7 @@ namespace ACESim
                     int significantActions = 0;
                     for (int k = 0; k < NumPossibleActions; k++)
                     {
-                        if (PastValues[i, k] >= 0.01)
+                        if (PastValues[i][k] >= 0.01)
                         {
                             significantActions |= (1 << k);
                         }
