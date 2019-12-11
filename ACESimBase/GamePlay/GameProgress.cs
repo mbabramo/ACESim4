@@ -312,7 +312,8 @@ namespace ACESim
             int numInitializedScenarios = gameDefinition.NumScenariosToInitialize;
             for (int s = 0; s < numInitializedScenarios; s++)
             {
-                gameDefinition.ChangeOptionsToOverallScenarioIndex(s, false);
+                bool warmupVersion = s >= gameDefinition.NumPostWarmupOptionSets;
+                gameDefinition.ChangeOptionsToOverallScenarioIndex(s, warmupVersion);
                 if (s > 0)
                     RecalculateGameOutcome();
                 alternativeScenarios.Add(GetNonChancePlayerUtilities());
@@ -332,7 +333,8 @@ namespace ACESim
             int numScenarios = gameDefinition.NumScenariosToInitialize;
             for (int s = 0; s < numScenarios; s++)
             {
-                gameDefinition.ChangeOptionsToOverallScenarioIndex(s, false);
+                bool warmupVersion = s >= gameDefinition.NumPostWarmupOptionSets;
+                gameDefinition.ChangeOptionsToOverallScenarioIndex(s, warmupVersion);
                 if (s > 0)
                     RecalculateGameOutcome();
                 alternativeScenarios.Add(GetCustomResult());
