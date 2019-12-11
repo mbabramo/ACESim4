@@ -473,7 +473,7 @@ namespace ACESim
         public virtual int NumPostWarmupOptionSets => 1;
         public virtual int NumWarmupOptionSets => 0;
         public virtual int WarmupIterations_IfWarmingUp => 200;
-        public bool UseDifferentWarmup => NumWarmupOptionSets > 0;
+        public bool UseDifferentWarmup => NumWarmupOptionSets > 0 || NumDifferentWeightsOnOpponentsStrategy > 0;
         public int NumScenariosToInitialize => NumPostWarmupOptionSets + NumWarmupOptionSets;
         public int? IterationsForWarmupScenario => UseDifferentWarmup ? (int?) WarmupIterations_IfWarmingUp : (int?) null;
 
@@ -509,6 +509,8 @@ namespace ACESim
             if (!UseDifferentWarmup) // i.e., NumWarmupOptionSets == 0
                 throw new Exception("Not using different warmup");
             int warmupPermutationValue = permutation[1];
+            if (NumWarmupOptionSets == 1)
+                warmupPermutationValue = -1; // there are no warmup sets, so we want to use the last postwarmup set as the warmup set
             int weightsPermutationValue = permutation[2];
             return (postWarmupPermutationValue, NumPostWarmupOptionSets + warmupPermutationValue,  WeightOnOpponentsStrategyDuringWarmup(weightsPermutationValue));
 

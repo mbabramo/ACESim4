@@ -977,11 +977,11 @@ namespace ACESim
         // DEBUG
         public override bool PlayMultipleScenarios => true; // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
 
-        public override int NumPostWarmupOptionSets => 2;
-        public override int NumWarmupOptionSets => 2;
+        public override int NumPostWarmupOptionSets => 1; // DEBUG
+        public override int NumWarmupOptionSets => 0; // DEBUG
         public override int WarmupIterations_IfWarmingUp => 200;
         public override bool MultiplyWarmupScenariosByAlteringWeightOnOpponentsStrategy => true;
-        public override int NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios => 3; // should be odd if we want to include zero
+        public override int NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios => 25; // should be odd if we want to include zero
         public override (double, double) MinMaxWeightOnOpponentsStrategyDuringWarmup => (-0.5, 0.5);
 
         public enum ChangeInScenario
@@ -990,8 +990,8 @@ namespace ACESim
             CostsMultiplier
         }
 
-        ChangeInScenario? WhatToChange_Warmup = ChangeInScenario.CostsMultiplier;
-        ChangeInScenario? WhatToChange_AllScenarios = ChangeInScenario.TrialCosts;
+        ChangeInScenario? WhatToChange_Warmup = null; // DEBUG ChangeInScenario.CostsMultiplier;
+        ChangeInScenario? WhatToChange_AllScenarios = null; // DEBUG ChangeInScenario.TrialCosts;
 
         public double TrialCostsScenarioPerPartyMin = 0; 
         public double TrialCostsScenarioPerPartyMax = 30_000; 
@@ -1041,6 +1041,18 @@ namespace ACESim
         {
             RememberOriginalChangeableOptions(); 
             RestoreOriginalChangeableOptions();
+            if (NumPostWarmupOptionSets > 1 && WhatToChange_AllScenarios == null)
+                throw new Exception("WhatToChange_AllScenarios is undefined");
+            if (NumWarmupOptionSets > 0 && WhatToChange_Warmup == null)
+                throw new Exception("WhatToChange_Warmup is undefined");
+            if (WhatToChange_AllScenarios == WhatToChange_Warmup)
+            {
+                if (WhatToChange_AllScenarios == null)
+                {
+                    return;
+                }
+                throw new Exception("Cannot change same variable in warmup and in all scenarios.");
+            }
             if (WhatToChange_AllScenarios == ChangeInScenario.TrialCosts)
             {
                 if (changeTrialCostsForPlaintiff)
@@ -1080,7 +1092,8 @@ namespace ACESim
                 warmupResult += $"TrialCosts{Options.PTrialCosts},{Options.DTrialCosts} ";
             if (WhatToChange_Warmup == ChangeInScenario.CostsMultiplier || WhatToChange_AllScenarios == ChangeInScenario.CostsMultiplier)
                 warmupResult += $"CostsMult{Options.CostsMultiplier}";
-
+            if (warmupResult.Trim() == "")
+                warmupResult = "Baseline";
             return warmupResult;
         }
 

@@ -20,8 +20,7 @@ namespace ACESim
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; 
 
-        debug;
-        public const int VanillaIterations = 400; // DEBUG
+        public const int VanillaIterations = 600; // DEBUG
         public const int VanillaReportEveryNIterations = VanillaIterations;
         public const int VanillaBestResponseEveryMIterations = 100; // DEBUG
         public const bool CalculatePerturbedBestResponseRefinement = true;

@@ -62,6 +62,7 @@ namespace ACESim
             for (int overallScenarioIndex = 0; overallScenarioIndex < GameDefinition.NumScenarioPermutations; overallScenarioIndex++)
             {
                 ReinitializeForScenario(overallScenarioIndex, GameDefinition.UseDifferentWarmup);
+                ResetBestExploitability();
                 string optionSetInfo = $@"Option set {optionSetName}";
                 if (GameDefinition.NumScenarioPermutations > 1)
                     optionSetInfo += $" (scenario {overallScenarioIndex + 1} of {GameDefinition.NumScenarioPermutations} = {GameDefinition.GetNameForScenario_WithOpponentWeight()})";
@@ -69,23 +70,28 @@ namespace ACESim
                 var result = await RunAlgorithm(optionSetName);
                 if (EvolutionSettings.SerializeResults && !(this is PlaybackOnly))
                 {
-                    try
-                    {
-                        string path = FolderFinder.GetFolderToWriteTo("Strategies").FullName;
-                        string filename = GameDefinition.OptionSetName + "-" + EvolutionSettings.SerializeResultsPrefixPlus(overallScenarioIndex, GameDefinition.NumScenarioPermutations);
-                        if (EvolutionSettings.SerializeInformationSetDataOnly)
-                            StrategySerialization.SerializeInformationSets(InformationSets, path, filename, EvolutionSettings.AzureEnabled);
-                        else
-                            StrategySerialization.SerializeStrategies(Strategies.ToArray(), path, filename, EvolutionSettings.AzureEnabled);
-                    }
-                    catch
-                    {
-                        // ignore failure to serialize strategies
-                    }
+                    SerializeScenario(overallScenarioIndex);
                 }
                 reportCollection.Add(result);
             }
             return reportCollection;
+        }
+
+        private void SerializeScenario(int overallScenarioIndex)
+        {
+            try
+            {
+                string path = FolderFinder.GetFolderToWriteTo("Strategies").FullName;
+                string filename = GameDefinition.OptionSetName + "-" + EvolutionSettings.SerializeResultsPrefixPlus(overallScenarioIndex, GameDefinition.NumScenarioPermutations);
+                if (EvolutionSettings.SerializeInformationSetDataOnly)
+                    StrategySerialization.SerializeInformationSets(InformationSets, path, filename, EvolutionSettings.AzureEnabled);
+                else
+                    StrategySerialization.SerializeStrategies(Strategies.ToArray(), path, filename, EvolutionSettings.AzureEnabled);
+            }
+            catch
+            {
+                // ignore failure to serialize strategies
+            }
         }
 
         public abstract IStrategiesDeveloper DeepCopy();
@@ -187,6 +193,8 @@ namespace ACESim
                 }
                 CalculateMinMax();
             }
+            if (GameDefinition.CurrentWeightOnOpponent > 0 && !EvolutionSettings.UseContinuousRegretsDiscounting)
+                throw new Exception("Using current weight on opponent for warmup has been shown to work only with continuous regrets discounting.");
         }
 
         public void ResetWeightOnOpponentsUtilityToZero()
@@ -834,6 +842,13 @@ namespace ACESim
         public double BestExploitability = int.MaxValue; // initialize to worst possible score (i.e., highest possible exploitability)
         public int BestIteration = -1;
         public List<double> BestResponseImprovementAdjAvgOverTime = new List<double>();
+
+        public void ResetBestExploitability()
+        {
+            BestExploitability = int.MaxValue; 
+            BestIteration = -1; 
+            BestResponseImprovementAdjAvgOverTime = new List<double>();
+        }
 
         public class DevelopmentStatus
         {

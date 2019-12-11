@@ -81,7 +81,7 @@ namespace ACESim
 
         // For Vanilla algorithm:
         // From Solving Imperfect Information Games with Discounted Regret Minimization -- optimal values (for situations in which pruning may be used)
-        public bool UseContinuousRegretsDiscounting = false; // DEBUG // an alternative to discounting regrets with standard discounting approach
+        public bool UseContinuousRegretsDiscounting = true; // DEBUG // an alternative to discounting regrets with standard discounting approach
         public double ContinuousRegretsDiscountPerIteration => UseContinuousRegretsDiscounting ? 0.99 : 1.0; 
         public bool UseStandardDiscounting = false; // DEBUG // Note: This might be especially helpful sometimes for multiplicative weights
         public bool DiscountRegrets = false; // if true, Discounting_Alpha and Discounting_Beta are used -- note never currently used in MultiplicativeWeightsVanilla
