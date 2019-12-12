@@ -74,6 +74,7 @@ namespace ACESim
         }
 
         public List<double[]> UtilitiesForPastValues = new List<double[]>();
+        public List<int> RememberedScenarioIndices = new List<int>();
 
         private void RememberScenarioResults(ReportCollection reportCollection, int overallScenarioIndex, ReportCollection result)
         {
@@ -87,45 +88,56 @@ namespace ACESim
                     informationSet.RecordProbabilitiesAsPastValues();
                 }
                 UtilitiesForPastValues.Add(Status.UtilitiesOverall.ToArray());
+                RememberedScenarioIndices.Add(overallScenarioIndex);
                 bool disqualified = false;
                 int mostRecentIndex = InformationSets.First().LastPastValueIndexRecorded;
+                List<double[]> utilities_p0PlayingMostRecent_p1PlaysI = new List<double[]>();
+                List<double[]> utilities_p1PlayingMostRecent_p0PlaysI = new List<double[]>();
                 for (int i = 0; i < mostRecentIndex; i++) // each index before most recent
                 {
-                    double[] utilities_p0PlayingMostRecent_p1PlaysI = GetUtilitiesForPastValueCombination(mostRecentIndex, i);
-                    double[] utilities_p1PlayingMostRecent_p0PlaysI = GetUtilitiesForPastValueCombination(i, mostRecentIndex);
+                    utilities_p0PlayingMostRecent_p1PlaysI.Add(GetUtilitiesForPastValueCombination(mostRecentIndex, i));
+                    utilities_p1PlayingMostRecent_p0PlaysI.Add(GetUtilitiesForPastValueCombination(i, mostRecentIndex));
                     double[] utilities_bothPlayI = UtilitiesForPastValues[i];
 
                     double p0InMostRecent = UtilitiesForPastValues[mostRecentIndex][0];
                     double p1InMostRecent = UtilitiesForPastValues[mostRecentIndex][1];
-                    double p0IfSwitchingStrategyFromMostRecent = utilities_p1PlayingMostRecent_p0PlaysI[0];
-                    double p0IfSwitchingStrategyToMostRecent = utilities_p0PlayingMostRecent_p1PlaysI[0];
-                    double p1IfSwitchingStrategyToMostRecent = utilities_p1PlayingMostRecent_p0PlaysI[1];
-                    double p1IfSwitchingStrategyFromMostRecent = utilities_p0PlayingMostRecent_p1PlaysI[1];
+                    double p0IfSwitchingStrategyFromMostRecent = utilities_p1PlayingMostRecent_p0PlaysI[i][0];
+                    double p0IfSwitchingStrategyToMostRecent = utilities_p0PlayingMostRecent_p1PlaysI[i][0];
+                    double p1IfSwitchingStrategyToMostRecent = utilities_p1PlayingMostRecent_p0PlaysI[i][1];
+                    double p1IfSwitchingStrategyFromMostRecent = utilities_p0PlayingMostRecent_p1PlaysI[i][1];
                     if (p0IfSwitchingStrategyFromMostRecent > p0InMostRecent || p1IfSwitchingStrategyFromMostRecent > p1InMostRecent || p0IfSwitchingStrategyToMostRecent > utilities_bothPlayI[0] || p1IfSwitchingStrategyToMostRecent > utilities_bothPlayI[1])
                     {
                         disqualified = true;
-                        TabbedText.WriteLine($"Scenario {overallScenarioIndex} can't be added to correlated equilibrium, inconsistent with existing index {i}");
+                        TabbedText.WriteLine($"Scenario {overallScenarioIndex + 1} can't be added to correlated equilibrium, inconsistent with scenario {RememberedScenarioIndices[i] + 1} at index {i}");
                         break;
                     }
                 }
                 if (disqualified)
                 {
                     // Remove the past value
-                    InformationSets.ForEach(x =>
-                    {
-                        x.PastValues.RemoveAt(x.LastPastValueIndexRecorded);
-                        x.PastValuesCumulativeStrategyDiscounts.RemoveAt(x.LastPastValueIndexRecorded);
-                        x.LastPastValueIndexRecorded--;
-                    });
+                    int removeAtIndex = InformationSets.First().LastPastValueIndexRecorded;
+                    RemovePastValueRecordedIndex(removeAtIndex);
+                    UtilitiesForPastValues.RemoveAt(removeAtIndex);
+                    RememberedScenarioIndices.RemoveAt(removeAtIndex);
                 }
                 else
-                    TabbedText.WriteLine($"Scenario {overallScenarioIndex} added to correlated equilibrium at index {mostRecentIndex}");
+                    TabbedText.WriteLine($"Scenario {overallScenarioIndex + 1} added to correlated equilibrium at index {mostRecentIndex}");
             }
             if (EvolutionSettings.SerializeResults && !(this is PlaybackOnly))
             {
                 SerializeScenario(overallScenarioIndex);
             }
             reportCollection.Add(result);
+        }
+
+        private void RemovePastValueRecordedIndex(int removeAtIndex)
+        {
+            InformationSets.ForEach(x =>
+            {
+                x.PastValues.RemoveAt(removeAtIndex);
+                x.PastValuesCumulativeStrategyDiscounts.RemoveAt(removeAtIndex);
+                x.LastPastValueIndexRecorded--;
+            });
         }
 
         private void SerializeScenario(int overallScenarioIndex)
