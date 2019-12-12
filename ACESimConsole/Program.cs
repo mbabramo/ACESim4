@@ -86,17 +86,26 @@ namespace ACESim
             s.Stop();
             TabbedText.WriteLineEvenIfDisabled($"Total runtime {s.Elapsed} ");
             TabbedText.WriteLineEvenIfDisabled("");
-            TabbedText.WriteLineEvenIfDisabled("Press Enter to end (copying standard report to clipboard).");
-            TabbedText.WriteLineEvenIfDisabled("Press c to end (copying comma-separated report to clipboard).");
+            TabbedText.WriteLineEvenIfDisabled("Press a to copy above text (including scrolled out) to clipboard.");
+            TabbedText.WriteLineEvenIfDisabled("Press s to copy standard report to clipboard.");
+            TabbedText.WriteLineEvenIfDisabled("Press c to copy comma-separated report to clipboard.");
+            TabbedText.WriteLineEvenIfDisabled("Press Enter to end.");
             ConsoleKey key = Console.ReadKey(true).Key;
             do
             {
                 while (!Console.KeyAvailable)
                 {
-                    // Do something
+                    // Keep waiting
                 }
-            } while (key != ConsoleKey.Enter && key != ConsoleKey.C);
-            TextCopy.Clipboard.SetText((key == ConsoleKey.C) ? String.Join("\r", launchResult.csvReports.SingleOrDefault() ?? "") : launchResult.standardReport);
+                TextCopy.Clipboard.SetText(key switch
+                {
+                    ConsoleKey.A => TabbedText.AccumulatedText.ToString(),
+                    ConsoleKey.S => launchResult.standardReport,
+                    ConsoleKey.Enter => launchResult.standardReport,
+                    ConsoleKey.C => String.Join("\r", launchResult.csvReports.SingleOrDefault() ?? ""),
+                    _ => ""
+                });
+            } while (key != ConsoleKey.Enter);
         }
     }
 }
