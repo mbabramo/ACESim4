@@ -125,10 +125,12 @@ namespace ACESim
                     double p0IfSwitchingStrategyToMostRecent = utilities_p0PlayingMostRecent_p1PlaysI[i][0];
                     double p1IfSwitchingStrategyToMostRecent = utilities_p1PlayingMostRecent_p0PlaysI[i][1];
                     double p1IfSwitchingStrategyFromMostRecent = utilities_p0PlayingMostRecent_p1PlaysI[i][1];
-                    bool isIncompatible = (p0IfSwitchingStrategyFromMostRecent > p0InMostRecent || p1IfSwitchingStrategyFromMostRecent > p1InMostRecent || p0IfSwitchingStrategyToMostRecent > utilities_bothPlayI[0] || p1IfSwitchingStrategyToMostRecent > utilities_bothPlayI[1]);
+                    bool someoneSwitchesToMostRecent = p0IfSwitchingStrategyToMostRecent > utilities_bothPlayI[0] || p1IfSwitchingStrategyToMostRecent > utilities_bothPlayI[1];
+                    bool someoneSwitchesFromMostRecent = p0IfSwitchingStrategyFromMostRecent > p0InMostRecent || p1IfSwitchingStrategyFromMostRecent > p1InMostRecent;
+                    bool isIncompatible = someoneSwitchesFromMostRecent || someoneSwitchesToMostRecent;
                     if (isIncompatible)
                     {
-                        Incompabilities.AddIncompability(earlierScenarioIndex, overallScenarioIndex);
+                        Incompabilities.AddIncompability(earlierScenarioIndex, overallScenarioIndex, iHatesJ: someoneSwitchesToMostRecent, jHatesI: someoneSwitchesFromMostRecent); // i.e., we're interpreting "hating" as "switching to"
                         incompatibilityCount++;
                     }
                 }
@@ -150,7 +152,7 @@ namespace ACESim
 
         private async Task<ReportCollection> FinalizeCorrelatedEquilibrium()
         {
-            int[] candidateScenarioIndices = Incompabilities.OrderBy(GameDefinition.NumScenarioPermutations, mostIncompatible: true);
+            int[] candidateScenarioIndices = Incompabilities.GetOrdered(GameDefinition.NumScenarioPermutations, mostIncompatible: true, includeHaters: true, includeHated: false); // start with the scenarios that the most other scenarios will want to switch TO.
             List<int> addedScenarioIndices = new List<int>();
             List<int> removedScenarioIndices = new List<int>();
             foreach (int candidate in candidateScenarioIndices)
