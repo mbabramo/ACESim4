@@ -480,39 +480,48 @@ namespace ACESim
 
         public virtual bool MultiplyWarmupScenariosByAlteringWeightOnOpponentsStrategy => false;
         public virtual int NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios => 25;
-        public int NumDifferentWeightsOnOpponentsStrategy => MultiplyWarmupScenariosByAlteringWeightOnOpponentsStrategy ? NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios : 1;
+        public virtual bool VaryWeightOnOpponentsStrategySeparatelyForEachPlayer => false;
+        public int NumDifferentWeightsOnOpponentsStrategyPerPlayer => MultiplyWarmupScenariosByAlteringWeightOnOpponentsStrategy ? NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios
+            : 1;
+        public int NumDifferentWeightsOnOpponentsStrategy => MultiplyWarmupScenariosByAlteringWeightOnOpponentsStrategy ? ( VaryWeightOnOpponentsStrategySeparatelyForEachPlayer
+             ? NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios * NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios : NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios) 
+            : 1;
         public virtual (double, double) MinMaxWeightOnOpponentsStrategyDuringWarmup => (-1, 1); // weight will be relatively small early and then increase to random numbers in range 
 
         public static double GetParameterInRange(double min, double max, int permutationIndex, int numPermutations) => min + (max - min) * (((double)permutationIndex) / ((double)(numPermutations - 1)));
         public double WeightOnOpponentsStrategyDuringWarmup(int weightsPermutationValue) =>  MultiplyWarmupScenariosByAlteringWeightOnOpponentsStrategy ? 
-            (GetParameterInRange(MinMaxWeightOnOpponentsStrategyDuringWarmup.Item1, MinMaxWeightOnOpponentsStrategyDuringWarmup.Item2, weightsPermutationValue, NumDifferentWeightsOnOpponentsStrategy))
+            (GetParameterInRange(MinMaxWeightOnOpponentsStrategyDuringWarmup.Item1, MinMaxWeightOnOpponentsStrategyDuringWarmup.Item2, weightsPermutationValue, NumDifferentWeightsOnOpponentsStrategyPerPlayer))
             : 0;
         private int WarmupsContributionToPermutations => (NumWarmupOptionSets == 0 ? 1 : NumWarmupOptionSets);
         public int NumScenarioPermutations => NumPostWarmupOptionSets * WarmupsContributionToPermutations * NumDifferentWeightsOnOpponentsStrategy;
 
         public List<List<int>> AllScenarioPermutations;
 
-        public (int indexInPostWarmupScenarios, int? indexInWarmupScenarios, double weightOnOpponentsStrategy) GetScenarioIndexAndWeightValues(int overallScenarioIndex, bool warmupPhase)
+        public (int indexInPostWarmupScenarios, int? indexInWarmupScenarios, double weightOnOpponentsStrategyP0, double weightOnOpponentsStrategyOtherPlayers) GetScenarioIndexAndWeightValues(int overallScenarioIndex, bool warmupPhase)
         {
             // e.g., suppose we have two postwarmup scenarios and three warmup scenarios, multiplied by five weight options.
             // Then there are a total of 17 initialized scenarios but 30 scenario indices, since each postwarmup scenario must
             // be permuted with every warmup-weight permutation.
             if (AllScenarioPermutations == null)
             {
-                AllScenarioPermutations = PermutationMaker.GetPermutations(new List<int>() { NumPostWarmupOptionSets, WarmupsContributionToPermutations, NumDifferentWeightsOnOpponentsStrategy }, true);
-                AllScenarioPermutations = AllScenarioPermutations.OrderBy(x => Math.Abs(WeightOnOpponentsStrategyDuringWarmup(x[2]))).ToList(); // place lowest absolute weight values first
+                AllScenarioPermutations = PermutationMaker.GetPermutations(new List<int>() { NumPostWarmupOptionSets, WarmupsContributionToPermutations, NumDifferentWeightsOnOpponentsStrategyPerPlayer, VaryWeightOnOpponentsStrategySeparatelyForEachPlayer ? NumDifferentWeightsOnOpponentsStrategyPerPlayer : 1 }, true);
+                AllScenarioPermutations = AllScenarioPermutations.OrderBy(x => Math.Abs(WeightOnOpponentsStrategyDuringWarmup(x[2]))).ThenBy(x => Math.Abs(WeightOnOpponentsStrategyDuringWarmup(x[3]))).ToList(); // place lowest absolute weight values first
+                if (!VaryWeightOnOpponentsStrategySeparatelyForEachPlayer)
+                    foreach (var p in AllScenarioPermutations)
+                        p[3] = p[2];
             }
             List<int> permutation = AllScenarioPermutations[overallScenarioIndex];
             int postWarmupPermutationValue = permutation[0];
             if (!warmupPhase)
-                return (postWarmupPermutationValue, null, 0.0);
+                return (postWarmupPermutationValue, null, 0.0, 0.0);
             if (!UseDifferentWarmup) // i.e., NumWarmupOptionSets == 0
                 throw new Exception("Not using different warmup");
             int warmupPermutationValue = permutation[1];
             if (NumWarmupOptionSets == 1)
                 warmupPermutationValue = -1; // there are no warmup sets, so we want to use the last postwarmup set as the warmup set
-            int weightsPermutationValue = permutation[2];
-            return (postWarmupPermutationValue, NumPostWarmupOptionSets + warmupPermutationValue,  WeightOnOpponentsStrategyDuringWarmup(weightsPermutationValue));
+            int weightsPermutationValueP0 = permutation[2];
+            int weightsPermutationValueOtherPlayers = permutation[3];
+            return (postWarmupPermutationValue, NumPostWarmupOptionSets + warmupPermutationValue,  WeightOnOpponentsStrategyDuringWarmup(weightsPermutationValueP0), WeightOnOpponentsStrategyDuringWarmup(weightsPermutationValueOtherPlayers));
 
         }
 
@@ -520,16 +529,18 @@ namespace ACESim
         public int CurrentPostWarmupScenarioIndex = 0; // we may be playing a warmup scenario, but we still need to know this scenario for purposes of setting the utilities in each individual node
         public int? CurrentWarmupScenarioIndex = null;
         public bool CurrentlyWarmingUp => CurrentWarmupScenarioIndex != null;
-        public double CurrentWeightOnOpponent = 0;
+        public double CurrentWeightOnOpponentP0 = 0;
+        public double CurrentWeightOnOpponentOtherPlayers = 0;
 
         public virtual void SetScenario(int overallScenarioIndex, bool warmupVersion)
         {
             int originalScenarioIndex = CurrentOverallScenarioIndex;
-            double originalWeightOnOpponent = CurrentWeightOnOpponent;
+            double originalWeightOnOpponentP0 = CurrentWeightOnOpponentP0;
+            double originalWeightOnOpponentOtherPlayers = CurrentWeightOnOpponentOtherPlayers;
             int? originalWarmupScenarioIndex = CurrentWarmupScenarioIndex;
             CurrentOverallScenarioIndex = overallScenarioIndex;
-            (CurrentPostWarmupScenarioIndex, CurrentWarmupScenarioIndex, CurrentWeightOnOpponent) = GetScenarioIndexAndWeightValues(overallScenarioIndex, warmupVersion);
-            if (originalScenarioIndex != CurrentOverallScenarioIndex || originalWarmupScenarioIndex != CurrentWarmupScenarioIndex || originalWeightOnOpponent != CurrentWeightOnOpponent)
+            (CurrentPostWarmupScenarioIndex, CurrentWarmupScenarioIndex, CurrentWeightOnOpponentP0, CurrentWeightOnOpponentOtherPlayers) = GetScenarioIndexAndWeightValues(overallScenarioIndex, warmupVersion);
+            if (originalScenarioIndex != CurrentOverallScenarioIndex || originalWarmupScenarioIndex != CurrentWarmupScenarioIndex || originalWeightOnOpponentP0 != CurrentWeightOnOpponentP0)
             {
                 ChangeOptionsToCurrentScenario();
                 if (PlayMultipleScenarios && !CurrentlyWarmingUp)
@@ -541,7 +552,7 @@ namespace ACESim
 
         public string GetNameForScenario_WithOpponentWeight()
         {
-            return $"{GetNameForScenario()}{(CurrentWeightOnOpponent == 0 ? "" : $"(Weight on opponent: {CurrentWeightOnOpponent})")}";
+            return $"{GetNameForScenario()}{(CurrentWeightOnOpponentP0 == 0 && CurrentWeightOnOpponentOtherPlayers == 0 ? "" : $"(Weight on opponent: {CurrentWeightOnOpponentP0},{CurrentWeightOnOpponentOtherPlayers})")}";
         }
 
         public virtual void RememberOriginalChangeableOptions()

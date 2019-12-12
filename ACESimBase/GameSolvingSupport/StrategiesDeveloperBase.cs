@@ -288,19 +288,21 @@ namespace ACESim
             int currentPostWarmupScenarioIndex = GameDefinition.CurrentPostWarmupScenarioIndex;
             int? currentWarmupScenarioIndex = GameDefinition.CurrentWarmupScenarioIndex;
             int currentScenarioIndex = currentWarmupScenarioIndex ?? currentPostWarmupScenarioIndex;
-            double currentWeightOnOpponent = GameDefinition.CurrentWeightOnOpponent;
+            double currentWeightOnOpponentP0 = GameDefinition.CurrentWeightOnOpponentP0;
+            double currentWeightOnOpponentOtherPlayers = GameDefinition.CurrentWeightOnOpponentOtherPlayers;
             GameDefinition.SetScenario(overallScenarioIndex, warmupVersion);
             FinalUtilitiesNode firstFinalUtilitiesNode = FinalUtilitiesNodes?.FirstOrDefault();
-            if (FinalUtilitiesNodes != null && firstFinalUtilitiesNode != null && (currentScenarioIndex != firstFinalUtilitiesNode.CurrentInitializedScenarioIndex || currentWeightOnOpponent != firstFinalUtilitiesNode.WeightOnOpponentsUtility))
+            if (FinalUtilitiesNodes != null && firstFinalUtilitiesNode != null && (currentScenarioIndex != firstFinalUtilitiesNode.CurrentInitializedScenarioIndex || currentWeightOnOpponentP0 != firstFinalUtilitiesNode.WeightOnOpponentsUtilityP0 || currentWeightOnOpponentOtherPlayers != firstFinalUtilitiesNode.WeightOnOpponentsUtilityOtherPlayers))
             {
                 foreach (var node in FinalUtilitiesNodes)
                 {
                     node.CurrentInitializedScenarioIndex = currentPostWarmupScenarioIndex;
-                    node.WeightOnOpponentsUtility = GameDefinition.CurrentWeightOnOpponent;
+                    node.WeightOnOpponentsUtilityP0 = GameDefinition.CurrentWeightOnOpponentP0;
+                    node.WeightOnOpponentsUtilityOtherPlayers = GameDefinition.CurrentWeightOnOpponentOtherPlayers;
                 }
                 CalculateMinMax();
             }
-            if (GameDefinition.CurrentWeightOnOpponent > 0 && !EvolutionSettings.UseContinuousRegretsDiscounting)
+            if (GameDefinition.CurrentWeightOnOpponentP0 > 0 && !EvolutionSettings.UseContinuousRegretsDiscounting)
                 throw new Exception("Using current weight on opponent for warmup has been shown to work only with continuous regrets discounting.");
         }
 
@@ -310,7 +312,8 @@ namespace ACESim
             {
                 foreach (var node in FinalUtilitiesNodes)
                 {
-                    node.WeightOnOpponentsUtility = 0;
+                    node.WeightOnOpponentsUtilityP0 = 0;
+                    node.WeightOnOpponentsUtilityOtherPlayers = 0;
                 }
             }
         }
@@ -321,7 +324,8 @@ namespace ACESim
             {
                 foreach (var node in FinalUtilitiesNodes)
                 {
-                    node.WeightOnOpponentsUtility = GameDefinition.CurrentWeightOnOpponent;
+                    node.WeightOnOpponentsUtilityP0 = GameDefinition.CurrentWeightOnOpponentP0;
+                    node.WeightOnOpponentsUtilityOtherPlayers = GameDefinition.CurrentWeightOnOpponentOtherPlayers;
                 }
             }
         }

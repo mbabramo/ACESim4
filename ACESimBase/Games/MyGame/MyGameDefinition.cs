@@ -982,6 +982,7 @@ namespace ACESim
         public override int WarmupIterations_IfWarmingUp => 300;
         public override bool MultiplyWarmupScenariosByAlteringWeightOnOpponentsStrategy => true;
         public override int NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios => 5; // should be odd if we want to include zero
+        public override bool VaryWeightOnOpponentsStrategySeparatelyForEachPlayer => true; // DEBUG
         public override (double, double) MinMaxWeightOnOpponentsStrategyDuringWarmup => (-1.0, 0);
 
         public enum ChangeInScenario

@@ -11,18 +11,19 @@ namespace ACESim
     public class FinalUtilitiesNode : IGameState
     {
         public int CurrentInitializedScenarioIndex = 0;
-        public double WeightOnOpponentsUtility = 0;
+        public double WeightOnOpponentsUtilityP0 = 0;
+        public double WeightOnOpponentsUtilityOtherPlayers = 0;
         public double[] Utilities => GetUtilities_ConsideringScenarioAndWeight();
         private double[] GetUtilities_ConsideringScenarioAndWeight()
         {
-            if (WeightOnOpponentsUtility == 0)
+            if (WeightOnOpponentsUtilityP0 == 0 && WeightOnOpponentsUtilityOtherPlayers == 0)
                 return AllScenarioUtilities[CurrentInitializedScenarioIndex];
             double[] unweightedUtilities = AllScenarioUtilities[CurrentInitializedScenarioIndex];
             double[] weightedUtilities = unweightedUtilities.ToArray();
             if (weightedUtilities.Length != 2)
                 throw new Exception("Weighted utilities only supported for two-player games.");
-            weightedUtilities[0] = unweightedUtilities[0] + WeightOnOpponentsUtility * unweightedUtilities[1];
-            weightedUtilities[1] = unweightedUtilities[1] + WeightOnOpponentsUtility * unweightedUtilities[0];
+            weightedUtilities[0] = unweightedUtilities[0] + WeightOnOpponentsUtilityP0 * unweightedUtilities[1];
+            weightedUtilities[1] = unweightedUtilities[1] + WeightOnOpponentsUtilityOtherPlayers * unweightedUtilities[0];
             return weightedUtilities;
         }
         public List<double[]> AllScenarioUtilities;
