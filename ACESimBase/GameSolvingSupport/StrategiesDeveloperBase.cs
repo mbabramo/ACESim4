@@ -77,7 +77,7 @@ namespace ACESim
                 TabbedText.WriteLineEvenIfDisabled(optionSetInfo);
                 ReportCollection reportToAddToCollection = await RunAlgorithm(optionSetName);
                 if (constructCorrelatedEquilibrium)
-                    RememberScenarioResults(overallScenarioIndex);
+                    RememberScenarioForCorrelatedEquilibrium(overallScenarioIndex);
                 else
                     reportCollection.Add(reportToAddToCollection); // if constructing correlated equilibrium, we ignore the interim reports
             }
@@ -96,7 +96,7 @@ namespace ACESim
                 TabbedText.WriteLine(r.ToString());
         }
 
-        private void RememberScenarioResults(int overallScenarioIndex)
+        private void RememberScenarioForCorrelatedEquilibrium(int overallScenarioIndex)
         {
             if (EvolutionSettings.RecordPastValues_AtEndOfScenarioOnly)
             {
@@ -104,7 +104,7 @@ namespace ACESim
                     throw new Exception("Must set RecordPastValues");
                 foreach (var informationSet in InformationSets)
                 {
-                    informationSet.PastValuesCumulativeStrategyDiscounts.Add(1.0);
+                    informationSet.PastValuesCumulativeStrategyDiscounts.Add(0);
                     informationSet.RecordProbabilitiesAsPastValues();
                 }
                 RememberedStatuses.Add(Status.DeepCopy());
@@ -150,7 +150,7 @@ namespace ACESim
 
         private async Task<ReportCollection> FinalizeCorrelatedEquilibrium()
         {
-            int[] candidateScenarioIndices = Incompabilities.OrderBy(GameDefinition.NumScenarioPermutations, mostIncompatible: false); // DEBUG
+            int[] candidateScenarioIndices = Incompabilities.OrderBy(GameDefinition.NumScenarioPermutations, mostIncompatible: true);
             List<int> addedScenarioIndices = new List<int>();
             List<int> removedScenarioIndices = new List<int>();
             foreach (int candidate in candidateScenarioIndices)

@@ -1169,11 +1169,11 @@ namespace ACESim
 
         public void GetCorrelatedEquilibriumProbabilities(double randomNumberToChooseIteration, Span<double> probabilities)
         {
-            int pastValuesCount = LastPastValueIndexRecorded;
+            int pastValuesCount = LastPastValueIndexRecorded + 1;
             double cumulativeDiscountLevelToSeek = pastValuesCount * randomNumberToChooseIteration;
             if (PastValuesCumulativeStrategyDiscounts == null || PastValuesCumulativeStrategyDiscounts.All(x => x == 0))
             {
-                int index2 = (int)(randomNumberToChooseIteration * LastPastValueIndexRecorded);
+                int index2 = (int)(randomNumberToChooseIteration * pastValuesCount);
                 for (int a = 0; a < NumPossibleActions; a++)
                     probabilities[a] = PastValues[index2][a];
                 return;
