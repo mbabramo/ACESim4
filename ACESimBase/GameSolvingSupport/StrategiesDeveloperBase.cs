@@ -59,6 +59,7 @@ namespace ACESim
         {
             await Initialize();
             ReportCollection reportCollection = new ReportCollection();
+            bool constructCorrelatedEquilibrium = GameDefinition.NumScenarioPermutations > 1 && EvolutionSettings.ConstructCorrelatedEquilibrium;
             for (int overallScenarioIndex = 0; overallScenarioIndex < GameDefinition.NumScenarioPermutations; overallScenarioIndex++)
             {
                 ReinitializeForScenario(overallScenarioIndex, GameDefinition.UseDifferentWarmup);
@@ -74,23 +75,28 @@ namespace ACESim
                 Status.ScenarioName = scenarioFullName;
 
                 TabbedText.WriteLineEvenIfDisabled(optionSetInfo);
-                var result = await RunAlgorithm(optionSetName);
-                if (GameDefinition.NumScenarioPermutations > 1)
-                    RememberScenarioResults(reportCollection, overallScenarioIndex, result);
+                ReportCollection reportToAddToCollection = await RunAlgorithm(optionSetName);
+                if (constructCorrelatedEquilibrium)
+                    RememberScenarioResults(overallScenarioIndex);
+                else
+                    reportCollection.Add(reportToAddToCollection); // if constructing correlated equilibrium, we ignore the interim reports
             }
-            if (GameDefinition.NumScenarioPermutations > 1)
-                ReportRememberedScenarios();
+            if (constructCorrelatedEquilibrium)
+                reportCollection = await FinalizeCorrelatedEquilibrium();
             return reportCollection;
         }
 
         public List<DevelopmentStatus> RememberedStatuses = new List<DevelopmentStatus>();
+        private int GetRememberedStatusesIndex(int overallScenarioIndex) => RememberedStatuses.TakeWhile(x => x.ScenarioIndex != overallScenarioIndex).Count();
+        IncompabilityTracker Incompabilities = new IncompabilityTracker();
+
         public void ReportRememberedScenarios()
         {
             foreach (var r in RememberedStatuses)
                 TabbedText.WriteLine(r.ToString());
         }
 
-        private void RememberScenarioResults(ReportCollection reportCollection, int overallScenarioIndex, ReportCollection result)
+        private void RememberScenarioResults(int overallScenarioIndex)
         {
             if (EvolutionSettings.RecordPastValues_AtEndOfScenarioOnly)
             {
@@ -102,7 +108,7 @@ namespace ACESim
                     informationSet.RecordProbabilitiesAsPastValues();
                 }
                 RememberedStatuses.Add(Status.DeepCopy());
-                bool disqualified = false;
+                int incompatibilityCount = 0;
                 int mostRecentIndex = InformationSets.First().LastPastValueIndexRecorded;
                 List<double[]> utilities_p0PlayingMostRecent_p1PlaysI = new List<double[]>();
                 List<double[]> utilities_p1PlayingMostRecent_p0PlaysI = new List<double[]>();
@@ -110,7 +116,7 @@ namespace ACESim
                 {
                     utilities_p0PlayingMostRecent_p1PlaysI.Add(GetUtilitiesForPastValueCombination(mostRecentIndex, i));
                     utilities_p1PlayingMostRecent_p0PlaysI.Add(GetUtilitiesForPastValueCombination(i, mostRecentIndex));
-                    int correspondingScenarioIndex = RememberedStatuses[i].ScenarioIndex;
+                    int earlierScenarioIndex = RememberedStatuses[i].ScenarioIndex;
                     double[] utilities_bothPlayI = RememberedStatuses[i].UtilitiesOverall;
 
                     double p0InMostRecent = RememberedStatuses[mostRecentIndex].UtilitiesOverall[0];
@@ -119,36 +125,61 @@ namespace ACESim
                     double p0IfSwitchingStrategyToMostRecent = utilities_p0PlayingMostRecent_p1PlaysI[i][0];
                     double p1IfSwitchingStrategyToMostRecent = utilities_p1PlayingMostRecent_p0PlaysI[i][1];
                     double p1IfSwitchingStrategyFromMostRecent = utilities_p0PlayingMostRecent_p1PlaysI[i][1];
-                    if (p0IfSwitchingStrategyFromMostRecent > p0InMostRecent || p1IfSwitchingStrategyFromMostRecent > p1InMostRecent || p0IfSwitchingStrategyToMostRecent > utilities_bothPlayI[0] || p1IfSwitchingStrategyToMostRecent > utilities_bothPlayI[1])
+                    bool isIncompatible = (p0IfSwitchingStrategyFromMostRecent > p0InMostRecent || p1IfSwitchingStrategyFromMostRecent > p1InMostRecent || p0IfSwitchingStrategyToMostRecent > utilities_bothPlayI[0] || p1IfSwitchingStrategyToMostRecent > utilities_bothPlayI[1]);
+                    if (isIncompatible)
                     {
-                        disqualified = true;
-                        TabbedText.WriteLine($"Scenario index {overallScenarioIndex} can't be added to correlated equilibrium, inconsistent with scenario index {correspondingScenarioIndex} at index {i}");
-                        break;
+                        Incompabilities.AddIncompability(earlierScenarioIndex, overallScenarioIndex);
+                        incompatibilityCount++;
                     }
                 }
-                if (disqualified)
-                {
-                    // Remove the past value
-                    int removeAtIndex = InformationSets.First().LastPastValueIndexRecorded;
-                    RemovePastValueRecordedIndex(removeAtIndex);
-                    RememberedStatuses.RemoveAt(removeAtIndex);
-                }
-                else
-                    TabbedText.WriteLine($"Scenario {overallScenarioIndex + 1} added to correlated equilibrium at index {mostRecentIndex}");
+                TabbedText.WriteLine($"Scenario index {overallScenarioIndex} incompabilities: {incompatibilityCount}");
+                //if (disqualified)
+                //{
+                //    // Remove the past value
+                //    int removeAtIndex = InformationSets.First().LastPastValueIndexRecorded;
+                //    RemovePastValueRecordedIndex(removeAtIndex);
+                //}
+                //else
+                //    TabbedText.WriteLine($"Scenario index {overallScenarioIndex} added to correlated equilibrium at index {mostRecentIndex}");
             }
             if (EvolutionSettings.SerializeResults && !(this is PlaybackOnly))
             {
                 SerializeScenario(overallScenarioIndex);
             }
-            reportCollection.Add(result);
         }
 
-        private void RemovePastValueRecordedIndex(int removeAtIndex)
+        private async Task<ReportCollection> FinalizeCorrelatedEquilibrium()
         {
+            int[] candidateScenarioIndices = Incompabilities.OrderBy(GameDefinition.NumScenarioPermutations, mostIncompatible: false); // DEBUG
+            List<int> addedScenarioIndices = new List<int>();
+            List<int> removedScenarioIndices = new List<int>();
+            foreach (int candidate in candidateScenarioIndices)
+            {
+                if (!Incompabilities.IsIncompatibleWithAny(candidate, addedScenarioIndices))
+                    addedScenarioIndices.Add(candidate);
+                else
+                    removedScenarioIndices.Add(candidate);
+            }
+            removedScenarioIndices = removedScenarioIndices.OrderByDescending(x => x).ToList();
+            foreach (var removingScenarioIndex in removedScenarioIndices)
+            {
+                Incompabilities.Remove(removingScenarioIndex);
+                RemovePastValueRecordedIndex(removingScenarioIndex);
+            }
+            ReportRememberedScenarios();
+            ReportCollection reportCollection = new ReportCollection();
+            await CompleteMainReports(reportCollection, new List<ActionStrategies>() { ActionStrategies.CorrelatedEquilibrium });
+            return reportCollection;
+        }
+
+        private void RemovePastValueRecordedIndex(int overallScenarioIndexToRemove)
+        {
+            int correspondingRememberedIndex = GetRememberedStatusesIndex(overallScenarioIndexToRemove);
+            RememberedStatuses.RemoveAt(correspondingRememberedIndex);
             InformationSets.ForEach(x =>
             {
-                x.PastValues.RemoveAt(removeAtIndex);
-                x.PastValuesCumulativeStrategyDiscounts.RemoveAt(removeAtIndex);
+                x.PastValues.RemoveAt(correspondingRememberedIndex);
+                x.PastValuesCumulativeStrategyDiscounts.RemoveAt(correspondingRememberedIndex);
                 x.LastPastValueIndexRecorded--;
             });
         }
@@ -854,24 +885,8 @@ namespace ACESim
                 if (doReports)
                 {
                     Br.eak.Add("Report");
-                    bool useRandomPaths = EvolutionSettings.UseRandomPathsForReporting
-                        //&& (SkipEveryPermutationInitialization ||
-                        //   NumInitializedGamePaths > EvolutionSettings.NumRandomIterationsForSummaryTable)
-                        ;
-                    ActionStrategies previous = ActionStrategy;
                     var actionStrategiesToUse = EvolutionSettings.ActionStrategiesToUseInReporting;
-                    if (actionStrategiesToUse != null)
-                        foreach (var actionStrategy in actionStrategiesToUse)
-                        {
-                            ActionStrategy = actionStrategy;
-                            ActionStrategyLastReport = ActionStrategy.ToString();
-                            if (EvolutionSettings.GenerateReportsByPlaying)
-                            {
-                                var result = await GenerateReportsByPlaying(useRandomPaths);
-                                reportCollection.Add(result);
-                            }
-                        }
-                    ActionStrategy = previous;
+                    await CompleteMainReports(reportCollection, actionStrategiesToUse);
                     RecallBestOverTime();
                     Br.eak.Remove("Report");
                 }
@@ -888,6 +903,27 @@ namespace ACESim
             }
 
             return reportCollection;
+        }
+
+        private async Task CompleteMainReports(ReportCollection reportCollection, List<ActionStrategies> actionStrategiesToUse)
+        {
+            ActionStrategies previous = ActionStrategy;
+            bool useRandomPaths = EvolutionSettings.UseRandomPathsForReporting
+                //&& (SkipEveryPermutationInitialization ||
+                //   NumInitializedGamePaths > EvolutionSettings.NumRandomIterationsForSummaryTable)
+                ;
+            if (actionStrategiesToUse != null)
+                foreach (var actionStrategy in actionStrategiesToUse)
+                {
+                    ActionStrategy = actionStrategy;
+                    ActionStrategyLastReport = ActionStrategy.ToString();
+                    if (EvolutionSettings.GenerateReportsByPlaying)
+                    {
+                        var result = await GenerateReportsByPlaying(useRandomPaths);
+                        reportCollection.Add(result);
+                    }
+                }
+            ActionStrategy = previous;
         }
 
         string ActionStrategyLastReport;
