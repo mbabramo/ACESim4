@@ -64,17 +64,31 @@ namespace ACESim
                 ReinitializeForScenario(overallScenarioIndex, GameDefinition.UseDifferentWarmup);
                 ResetBestExploitability();
                 string optionSetInfo = $@"Option set {optionSetName}";
+                string scenarioFullName = optionSetInfo; 
                 if (GameDefinition.NumScenarioPermutations > 1)
-                    optionSetInfo += $" (scenario {overallScenarioIndex + 1} of {GameDefinition.NumScenarioPermutations} = {GameDefinition.GetNameForScenario_WithOpponentWeight()})";
+                {
+                    scenarioFullName = GameDefinition.GetNameForScenario_WithOpponentWeight();
+                    optionSetInfo += $" (scenario index {overallScenarioIndex} (total scenarios: {GameDefinition.NumScenarioPermutations}) = {scenarioFullName})";
+                }
+                Status.ScenarioIndex = overallScenarioIndex;
+                Status.ScenarioName = scenarioFullName;
+
                 TabbedText.WriteLineEvenIfDisabled(optionSetInfo);
                 var result = await RunAlgorithm(optionSetName);
-                RememberScenarioResults(reportCollection, overallScenarioIndex, result);
+                if (GameDefinition.NumScenarioPermutations > 1)
+                    RememberScenarioResults(reportCollection, overallScenarioIndex, result);
             }
+            if (GameDefinition.NumScenarioPermutations > 1)
+                ReportRememberedScenarios();
             return reportCollection;
         }
 
-        public List<double[]> UtilitiesForPastValues = new List<double[]>();
-        public List<int> RememberedScenarioIndices = new List<int>();
+        public List<DevelopmentStatus> RememberedStatuses = new List<DevelopmentStatus>();
+        public void ReportRememberedScenarios()
+        {
+            foreach (var r in RememberedStatuses)
+                TabbedText.WriteLine(r.ToString());
+        }
 
         private void RememberScenarioResults(ReportCollection reportCollection, int overallScenarioIndex, ReportCollection result)
         {
@@ -87,8 +101,7 @@ namespace ACESim
                     informationSet.PastValuesCumulativeStrategyDiscounts.Add(1.0);
                     informationSet.RecordProbabilitiesAsPastValues();
                 }
-                UtilitiesForPastValues.Add(Status.UtilitiesOverall.ToArray());
-                RememberedScenarioIndices.Add(overallScenarioIndex);
+                RememberedStatuses.Add(Status.DeepCopy());
                 bool disqualified = false;
                 int mostRecentIndex = InformationSets.First().LastPastValueIndexRecorded;
                 List<double[]> utilities_p0PlayingMostRecent_p1PlaysI = new List<double[]>();
@@ -97,10 +110,11 @@ namespace ACESim
                 {
                     utilities_p0PlayingMostRecent_p1PlaysI.Add(GetUtilitiesForPastValueCombination(mostRecentIndex, i));
                     utilities_p1PlayingMostRecent_p0PlaysI.Add(GetUtilitiesForPastValueCombination(i, mostRecentIndex));
-                    double[] utilities_bothPlayI = UtilitiesForPastValues[i];
+                    int correspondingScenarioIndex = RememberedStatuses[i].ScenarioIndex;
+                    double[] utilities_bothPlayI = RememberedStatuses[i].UtilitiesOverall;
 
-                    double p0InMostRecent = UtilitiesForPastValues[mostRecentIndex][0];
-                    double p1InMostRecent = UtilitiesForPastValues[mostRecentIndex][1];
+                    double p0InMostRecent = RememberedStatuses[mostRecentIndex].UtilitiesOverall[0];
+                    double p1InMostRecent = RememberedStatuses[mostRecentIndex].UtilitiesOverall[1];
                     double p0IfSwitchingStrategyFromMostRecent = utilities_p1PlayingMostRecent_p0PlaysI[i][0];
                     double p0IfSwitchingStrategyToMostRecent = utilities_p0PlayingMostRecent_p1PlaysI[i][0];
                     double p1IfSwitchingStrategyToMostRecent = utilities_p1PlayingMostRecent_p0PlaysI[i][1];
@@ -108,7 +122,7 @@ namespace ACESim
                     if (p0IfSwitchingStrategyFromMostRecent > p0InMostRecent || p1IfSwitchingStrategyFromMostRecent > p1InMostRecent || p0IfSwitchingStrategyToMostRecent > utilities_bothPlayI[0] || p1IfSwitchingStrategyToMostRecent > utilities_bothPlayI[1])
                     {
                         disqualified = true;
-                        TabbedText.WriteLine($"Scenario {overallScenarioIndex + 1} can't be added to correlated equilibrium, inconsistent with scenario {RememberedScenarioIndices[i] + 1} at index {i}");
+                        TabbedText.WriteLine($"Scenario index {overallScenarioIndex} can't be added to correlated equilibrium, inconsistent with scenario index {correspondingScenarioIndex} at index {i}");
                         break;
                     }
                 }
@@ -117,8 +131,7 @@ namespace ACESim
                     // Remove the past value
                     int removeAtIndex = InformationSets.First().LastPastValueIndexRecorded;
                     RemovePastValueRecordedIndex(removeAtIndex);
-                    UtilitiesForPastValues.RemoveAt(removeAtIndex);
-                    RememberedScenarioIndices.RemoveAt(removeAtIndex);
+                    RememberedStatuses.RemoveAt(removeAtIndex);
                 }
                 else
                     TabbedText.WriteLine($"Scenario {overallScenarioIndex + 1} added to correlated equilibrium at index {mostRecentIndex}");
@@ -808,7 +821,7 @@ namespace ACESim
         {
             ReportCollection reportCollection = new ReportCollection();
             bool doBestResponse = (EvolutionSettings.BestResponseEveryMIterations != null && iteration % EvolutionSettings.BestResponseEveryMIterations == 0 && EvolutionSettings.BestResponseEveryMIterations != EvolutionSettings.EffectivelyNever && iteration != 0);
-            bool doReports = EvolutionSettings.ReportEveryNIterations != null && (iteration % EvolutionSettings.ReportEveryNIterations == 0 || Status.BestResponseTargetMet(EvolutionSettings));
+            bool doReports = EvolutionSettings.ReportEveryNIterations != null && (iteration % EvolutionSettings.ReportEveryNIterations == 0 || Status.BestResponseTargetMet(EvolutionSettings.BestResponseTarget));
             if (doReports || doBestResponse)
             {
                 if (EvolutionSettings.CreateInformationSetCharts)
@@ -915,6 +928,8 @@ namespace ACESim
 
         public class DevelopmentStatus
         {
+            public int ScenarioIndex;
+            public string ScenarioName;
             public int IterationNum;
             public double IterationNumDouble;
 
@@ -927,40 +942,46 @@ namespace ACESim
 
             public double Refinement;
 
+            public bool BestResponseReflectsCurrentStrategy;
             public long BestResponseCalculationTime;
 
             public DevelopmentStatus DeepCopy()
             {
                 return new DevelopmentStatus()
                 {
+                    ScenarioIndex = ScenarioIndex,
+                    ScenarioName = ScenarioName,
                     IterationNum = IterationNum,
                     IterationNumDouble = IterationNumDouble,
                     BestResponseUtilities = BestResponseUtilities.ToArray(),
-                    UtilitiesOverall = BestResponseUtilities.ToArray(),
-                    BestResponseImprovement = BestResponseUtilities.ToArray(),
+                    UtilitiesOverall = UtilitiesOverall.ToArray(),
+                    BestResponseImprovement = BestResponseImprovement.ToArray(),
                     CustomResult = CustomResult,
-                    MinScore = BestResponseUtilities.ToArray(),
-                    MaxScore = BestResponseUtilities.ToArray(),
-                    ScoreRange = BestResponseUtilities.ToArray(),
+                    MinScore = MinScore.ToArray(),
+                    MaxScore = MaxScore.ToArray(),
+                    ScoreRange = ScoreRange.ToArray(),
                     Refinement = Refinement,
+                    BestResponseReflectsCurrentStrategy = BestResponseReflectsCurrentStrategy,
                     BestResponseCalculationTime = BestResponseCalculationTime
                 };
             }
 
             public bool ScoreRangeExists => !(ScoreRange == null || ScoreRange.Any(x => x == 0));
             public double[] BestResponseImprovementAdj => ScoreRangeExists && BestResponseImprovement != null ? BestResponseImprovement.Zip(ScoreRange, (bri, sr) => bri / sr).ToArray() : BestResponseImprovement;
+            public int NumNonChancePlayers => BestResponseImprovement == null ? 2 : BestResponseImprovement.Length;
 
-            public bool BestResponseTargetMet(EvolutionSettings evolutionSettings) => BestResponseImprovementAdj != null && BestResponseImprovementAdjAvg < evolutionSettings.BestResponseTarget;
+            public bool BestResponseTargetMet(double target) => BestResponseImprovementAdj != null && BestResponseImprovementAdjAvg < target;
             public double BestResponseImprovementAdjAvg => BestResponseImprovementAdj.Average();
-            public string BestResponseOpponentString(EvolutionSettings evolutionSettings) => evolutionSettings.UseCurrentStrategyForAcceleratedBestResponse ? "currstrat" : "avgstrat";
-            public string StatusString(int numNonChancePlayers, EvolutionSettings evolutionSettings)
+            public string BestResponseOpponentString => BestResponseReflectsCurrentStrategy ? "currstrat" : "avgstrat";
+            public override string ToString()
             {
                 StringBuilder b = new StringBuilder();
+                b.AppendLine($"Scenario index {ScenarioIndex} Name: {ScenarioName}");
                 string refinement = Refinement == 0 ? "" : $" Perturbed refinement: {Refinement.ToSignificantFigures(3)}";
                 b.AppendLine($"Avg BR: {BestResponseImprovementAdjAvg}{refinement} Custom: {CustomResult}");
-                for (byte playerBeingOptimized = 0; playerBeingOptimized < numNonChancePlayers; playerBeingOptimized++)
+                for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
                 {
-                    b.AppendLine($"U(P{playerBeingOptimized}): {UtilitiesOverall[playerBeingOptimized]} BR vs. {BestResponseOpponentString(evolutionSettings)} {BestResponseUtilities[playerBeingOptimized]} BRimp: {BestResponseImprovementAdj?[playerBeingOptimized].ToSignificantFigures(3)}");
+                    b.AppendLine($"U(P{playerBeingOptimized}): {UtilitiesOverall[playerBeingOptimized]} BR vs. {BestResponseReflectsCurrentStrategy} {BestResponseUtilities[playerBeingOptimized]} BRimp: {BestResponseImprovementAdj?[playerBeingOptimized].ToSignificantFigures(3)}");
                 }
                 b.AppendLine($"Total best response calculation time: {BestResponseCalculationTime} milliseconds");
                 return b.ToString();
@@ -1069,6 +1090,7 @@ namespace ACESim
             {
                 var resultForPlayer = AcceleratedBestResponsePrepResult[playerIndex];
                 (double bestResponseResult, double utilityResult, FloatSet customResult) = resultForPlayer.GetProbabilityAdjustedValueOfPaths(playerIndex, EvolutionSettings.UseCurrentStrategyForAcceleratedBestResponse);
+                Status.BestResponseReflectsCurrentStrategy = EvolutionSettings.UseCurrentStrategyForAcceleratedBestResponse;
                 Status.BestResponseUtilities[playerIndex] = bestResponseResult;
                 Status.UtilitiesOverall[playerIndex] = utilityResult;
                 Status.BestResponseImprovement[playerIndex] = bestResponseResult - utilityResult;
@@ -1122,7 +1144,7 @@ namespace ACESim
                 else
                     Status.UtilitiesOverall = UtilityCalculationsArray.StatCollectors.Select(x => x.Average()).ToArray();
             }
-            TabbedText.WriteLine(Status.StatusString(NumNonChancePlayers, EvolutionSettings));
+            TabbedText.WriteLine(Status.ToString());
             TabbedText.WriteLine("");
             if (!overallUtilitiesRecorded)
                 Status.UtilitiesOverall = null; // we may be using approximations, so set to null to avoid confusion

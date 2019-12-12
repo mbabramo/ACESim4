@@ -30,18 +30,6 @@ namespace ACESim
             return created;
         }
 
-        public List<DevelopmentStatus> DevelopmentStatusMemory = null;
-
-
-        private void ReportDevelopmentStatusMemory()
-        {
-            //if (DevelopmentStatusMemory != null)
-            //    foreach (var s in DevelopmentStatusMemory)
-            //        TabbedText.WriteLine(s.StatusString(NumNonChancePlayers, EvolutionSettings));
-        }
-
-        
-
         public void UpdateInformationSets(int iteration)
         {
             int numInformationSets = InformationSets.Count;
@@ -131,7 +119,7 @@ namespace ACESim
                     () =>
                         $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
                 reportCollection.Add(result);
-                targetMet = Status.BestResponseTargetMet(EvolutionSettings);
+                targetMet = Status.BestResponseTargetMet(EvolutionSettings.BestResponseTarget);
                 if (TraceCFR)
                 { // only trace through iteration
                     // There are a number of advanced settings in ArrayCommandList that must be disabled for this feature to work properly. 
@@ -141,7 +129,6 @@ namespace ACESim
                     CalculateReachProbabilitiesAndPrunability(EvolutionSettings.ParallelOptimization);
                 ReinitializeInformationSetsIfNecessary(iteration);
             }
-            ReportDevelopmentStatusMemory();
             return reportCollection;
         }
 
@@ -808,12 +795,11 @@ namespace ACESim
                     CalculateBestResponse(false);
                 var result = await GeneralizedVanillaCFRIteration(iteration);
                 reportCollection.Add(result);
-                targetMet = Status.BestResponseTargetMet(EvolutionSettings);
+                targetMet = Status.BestResponseTargetMet(EvolutionSettings.BestResponseTarget);
                 if (EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions)
                     CalculateReachProbabilitiesAndPrunability(EvolutionSettings.ParallelOptimization);
                 ReinitializeInformationSetsIfNecessary(iteration);
             }
-            ReportDevelopmentStatusMemory();
             return reportCollection;
         }
 

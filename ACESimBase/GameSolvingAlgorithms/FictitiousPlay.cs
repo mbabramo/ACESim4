@@ -44,7 +44,7 @@ namespace ACESim
                 Status.IterationNum = iteration;
                 var result = await FictitiousPlayIteration(iteration);
                 reportCollection.Add(result);
-                targetMet = Status.BestResponseTargetMet(EvolutionSettings);
+                targetMet = Status.BestResponseTargetMet(EvolutionSettings.BestResponseTarget);
                 if (iteration == iterationToReturnToBaselineScenario)
                 {
                     ReinitializeForScenario(GameDefinition.CurrentOverallScenarioIndex, false);

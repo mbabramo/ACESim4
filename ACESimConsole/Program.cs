@@ -90,21 +90,25 @@ namespace ACESim
             TabbedText.WriteLineEvenIfDisabled("Press s to copy standard report to clipboard.");
             TabbedText.WriteLineEvenIfDisabled("Press c to copy comma-separated report to clipboard.");
             TabbedText.WriteLineEvenIfDisabled("Press Enter to end.");
-            ConsoleKey key = Console.ReadKey(true).Key;
+            ConsoleKey key;
+            string report = null;
             do
             {
                 while (!Console.KeyAvailable)
                 {
                     // Keep waiting
+                    await Task.Delay(100);
                 }
-                TextCopy.Clipboard.SetText(key switch
+                key = Console.ReadKey(true).Key;
+                report = key switch
                 {
                     ConsoleKey.A => TabbedText.AccumulatedText.ToString(),
                     ConsoleKey.S => launchResult.standardReport,
-                    ConsoleKey.Enter => launchResult.standardReport,
                     ConsoleKey.C => String.Join("\r", launchResult.csvReports.SingleOrDefault() ?? ""),
-                    _ => ""
-                });
+                    ConsoleKey.Enter => report ?? launchResult.standardReport, // copy standard report if no other report has been copied.
+                    _ => report
+                };
+                TextCopy.Clipboard.SetText(report);
             } while (key != ConsoleKey.Enter);
         }
     }
