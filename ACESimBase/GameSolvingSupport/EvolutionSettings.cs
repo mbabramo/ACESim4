@@ -23,7 +23,7 @@ namespace ACESim
             GameApproximationAlgorithm.BestResponseDynamics => 0, // 0.00001,
             _ => 0 // 0.005
         }; // will end early if this target is reached
-        public bool CreateInformationSetCharts = false; // DEBUG
+        public bool CreateInformationSetCharts = false; 
         public int? ReportEveryNIterations = 1000;
         public bool ConstructCorrelatedEquilibrium = true; // DEBUG
         public int ReduceCorrelatedEquilibriumEveryNScenarios = 100; // DEBUG
@@ -38,7 +38,7 @@ namespace ACESim
         public int? MiniReportEveryPIterations = 1000;
         public bool MeasureRegretMatchingChanges = false;
         public bool UseRandomPathsForReporting = true;
-        public bool SerializeResults = false; // DEBUG
+        public bool SerializeResults = false;
         public bool SerializeInformationSetDataOnly = true;
         public string SerializeResultsPrefix = "serstrat";
         public bool ParallelOptimization = false; // will be overridden by launcher
@@ -85,7 +85,7 @@ namespace ACESim
         // From Solving Imperfect Information Games with Discounted Regret Minimization -- optimal values (for situations in which pruning may be used)
         public bool UseContinuousRegretsDiscounting = true; // DEBUG // an alternative to discounting regrets with standard discounting approach
         public double ContinuousRegretsDiscountPerIteration => UseContinuousRegretsDiscounting ? 0.99 : 1.0; 
-        public bool UseStandardDiscounting = false; // DEBUG // Note: This might be especially helpful sometimes for multiplicative weights
+        public bool UseStandardDiscounting = false; // Note: This might be especially helpful sometimes for multiplicative weights
         public bool DiscountRegrets = false; // if true, Discounting_Alpha and Discounting_Beta are used -- note never currently used in MultiplicativeWeightsVanilla
         public const double Discounting_Alpha = 1.5; // multiply accumulated positive regrets by t^alpha / (t^alpha + 1)
         public const double Discounting_Beta = 0.5; // multiply accumulated negative regrets by t^alpha / (t^alpha + 1)
@@ -170,7 +170,7 @@ namespace ACESim
 
         }
 
-        public double PerturbationInitial = 0.001; // DEBUG 0.001; // should use with regret matching
+        public double PerturbationInitial = 0.001; // should use with regret matching
         public double PerturbationFinal = 0; 
         public double PerturbationCurvature = 5.0;
         public double Perturbation_BasedOnCurve(int iteration, int maxIteration)
@@ -185,8 +185,8 @@ namespace ACESim
 
         public bool UseCFRPlusInRegretMatching = false; // if true, then cumulative regrets never fall below zero
 
-        public bool RecordPastValues = true; // DEBUG
-        public bool RecordPastValues_AtEndOfScenarioOnly = true; // DEBUG
+        public bool RecordPastValues = true; // must specify true for constructing correlated equilibrium
+        public bool RecordPastValues_AtEndOfScenarioOnly = true;
         public int RecordPastValues_TargetNumberToRecord = 100;
         public int? RecordPastValues_AtIterationMultiples = 5_000; 
         public bool RecordPastValues_ResetAtIterationMultiples = false; 

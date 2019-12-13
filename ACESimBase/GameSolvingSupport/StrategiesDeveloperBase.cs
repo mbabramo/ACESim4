@@ -1157,6 +1157,8 @@ namespace ACESim
                 actionStrategy = ActionStrategies.AverageStrategy; // best response against average strategy is same as against correlated equilibrium
             if (EvolutionSettings.UseCurrentStrategyForAcceleratedBestResponse)
                 actionStrategy = ActionStrategies.CurrentProbability;
+            else if (EvolutionSettings.ConstructCorrelatedEquilibrium)
+                throw new Exception("When constructing correlated equilibrium, use current strategy.");
 
             Stopwatch s = new Stopwatch();
             s.Start();

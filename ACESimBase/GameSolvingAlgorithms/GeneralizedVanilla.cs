@@ -185,7 +185,6 @@ namespace ACESim
 
         private void Unroll_ExecuteUnrolledCommands(double[] array, bool copyChanceAndFinalUtilities)
         {
-            copyChanceAndFinalUtilities = true; // DEBUG SUPERDEBUG
             Unroll_CopyInformationSetsToArray(array, copyChanceAndFinalUtilities);
             Unroll_Commands.ExecuteAll(array, TraceCFR);
             Unroll_CopyArrayToInformationSets(array);

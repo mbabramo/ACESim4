@@ -14,7 +14,7 @@ namespace ACESimBase.Util
 
     public static class InformationSetCharts
     {
-        public static int BitmapMultiplier = 1; // DEBUG
+        public static int BitmapMultiplier = 1;
 
         #region Drawings
 
@@ -305,7 +305,7 @@ namespace ACESimBase.Util
             int pixels = fontSize;
             Rectangle[] horizontallySplit = DivideRectangle_WithSpaceForHeader(r, true, pixels);
             DrawText270(g, horizontallySplit[0], informationSet.InformationSetContentsSinceParentString, f, Brushes.Black);
-            BarFillSingle(g, horizontallySplit[1], true, informationSet.GetAverageStrategiesAsArray() /* DEBUG SUPERDEBUG */, informationSet.PlayerIndex == 0 ? Color.Blue : Color.Orange, true);
+            BarFillSingle(g, horizontallySplit[1], true, informationSet.GetCurrentProbabilitiesAsArray(), informationSet.PlayerIndex == 0 ? Color.Blue : Color.Orange, true);
         }
 
         public static void CreateInformationSetChartLayout(List<(InformationSetNode, Rectangle)> layout, List<InformationSetNode> startNodes, ref Rectangle r, out int totalSizeNeededVertically, out int totalSizeNeededHorizontally)
@@ -325,13 +325,13 @@ namespace ACESimBase.Util
             double[] horizontalProportions = new[] { 1.0 / (double)totalSizeNeededHorizontally, 1 - 1.0 / (double)totalSizeNeededHorizontally };
             Rectangle[] verticalSplit = DivideRectangle(r, false, startNodes.Count(), margin, verticalProportions);
             if (verticalSplit.Any(x => x.Width <= 0))
-                throw new Exception("DEBUG");
+                throw new Exception("Unexpected error on vertical split");
             for (int i = 0; i < startNodes.Count; i++)
             {
                 var node = startNodes[i];
                 Rectangle[] horizontalSplit = totalSizeNeededHorizontally == 1? new Rectangle[] { verticalSplit[i] } : DivideRectangle(verticalSplit[i], true, 2, margin, horizontalProportions);
                 if (horizontalSplit.Any(x => x.Width <= 0))
-                    throw new Exception("DEBUG");
+                    throw new Exception("Unexpected error on horizontal split");
                 //horizontalSplit[0].Offset(-inset, -inset);
                 layout.Add((node, horizontalSplit[0]));
                 if (node.ChildInformationSets.Any())
