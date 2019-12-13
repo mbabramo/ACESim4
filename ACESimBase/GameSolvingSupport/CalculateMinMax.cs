@@ -96,6 +96,8 @@ namespace ACESim
                 if (CalculatingForPlayer == null || CalculatingForPlayer == informationSet.PlayerIndex)
                 {
                     informationSet.MaxPossibleThisPlayer = informationSet.MaxPossible[informationSet.PlayerIndex];
+                    if (informationSet.MinPossibleThisPlayer == informationSet.MaxPossibleThisPlayer)
+                        throw new Exception("Utility is invariant at information set"); // could be a zero-sum game (e.g., if costs are 0 in litigation game) where player is full taking into account opponent's utility
                 }
                 return informationSet.MaxPossible;
             }

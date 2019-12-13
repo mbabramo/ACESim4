@@ -47,13 +47,14 @@ namespace ACESim
             NumChancePlayers = (byte)GameDefinition.Players.Count(x => x.PlayerIsChance);
         }
 
-
         #endregion
 
         #region Implementation of interface
 
 
         public abstract Task<ReportCollection> RunAlgorithm(string optionSetName);
+
+        public int OverallScenarioIndex;
 
         public async Task<ReportCollection> DevelopStrategies(string optionSetName)
         {
@@ -62,8 +63,8 @@ namespace ACESim
             bool constructCorrelatedEquilibrium = GameDefinition.NumScenarioPermutations > 1 && EvolutionSettings.ConstructCorrelatedEquilibrium;
             for (int overallScenarioIndex = 0; overallScenarioIndex < GameDefinition.NumScenarioPermutations; overallScenarioIndex++)
             {
+                OverallScenarioIndex = overallScenarioIndex;
                 ReinitializeForScenario(overallScenarioIndex, GameDefinition.UseDifferentWarmup);
-                ResetBestExploitability();
                 string optionSetInfo = $@"Option set {optionSetName}";
                 string scenarioFullName = optionSetInfo; 
                 if (GameDefinition.NumScenarioPermutations > 1)
@@ -79,7 +80,7 @@ namespace ACESim
                 if (constructCorrelatedEquilibrium)
                 {
                     RememberScenarioForCorrelatedEquilibrium(overallScenarioIndex);
-                    if (overallScenarioIndex + 1 % EvolutionSettings.ReduceCorrelatedEquilibriumEveryNScenarios == 0)
+                    if ((overallScenarioIndex + 1) % EvolutionSettings.ReduceCorrelatedEquilibriumEveryNScenarios == 0)
                         ReduceCorrelatedEquilibrium();
                 }
                 else
@@ -165,7 +166,7 @@ namespace ACESim
         private void ReduceCorrelatedEquilibrium()
         {
             TabbedText.WriteLine($"Reducing correlated equilibrium...");
-            int[] candidateScenarioIndices = Incompabilities.GetOrdered(GameDefinition.NumScenarioPermutations, mostIncompatible: false, includeHaters: false, includeHated: true); // consider last the scenarios that the most other scenarios will want to switch from.
+            int[] candidateScenarioIndices = Incompabilities.GetOrdered(GameDefinition.NumScenarioPermutations, mostIncompatible: false, includeHaters: true, includeHated: true); // consider last the scenarios that the most other scenarios will want to switch from.
             List<int> addedScenarioIndices = new List<int>();
             List<int> removedScenarioIndices = new List<int>();
             foreach (int candidate in candidateScenarioIndices)
@@ -298,18 +299,26 @@ namespace ACESim
 
         public virtual void ReinitializeForScenario(int overallScenarioIndex, bool warmupVersion)
         {
-            int currentPostWarmupScenarioIndex = GameDefinition.CurrentPostWarmupScenarioIndex;
-            int? currentWarmupScenarioIndex = GameDefinition.CurrentWarmupScenarioIndex;
-            int currentScenarioIndex = currentWarmupScenarioIndex ?? currentPostWarmupScenarioIndex;
-            double currentWeightOnOpponentP0 = GameDefinition.CurrentWeightOnOpponentP0;
-            double currentWeightOnOpponentOtherPlayers = GameDefinition.CurrentWeightOnOpponentOtherPlayers;
+            ResetBestExploitability();
+            int previousPostWarmupScenarioIndex = GameDefinition.CurrentPostWarmupScenarioIndex;
+            int? previousWarmupScenarioIndex = GameDefinition.CurrentWarmupScenarioIndex;
+            int previousScenarioIndex = previousWarmupScenarioIndex ?? previousPostWarmupScenarioIndex;
+            double previousWeightOnOpponentP0 = GameDefinition.CurrentWeightOnOpponentP0;
+            double previousWeightOnOpponentOtherPlayers = GameDefinition.CurrentWeightOnOpponentOtherPlayers;
             GameDefinition.SetScenario(overallScenarioIndex, warmupVersion);
-            FinalUtilitiesNode firstFinalUtilitiesNode = FinalUtilitiesNodes?.FirstOrDefault();
-            if (FinalUtilitiesNodes != null && firstFinalUtilitiesNode != null && (currentScenarioIndex != firstFinalUtilitiesNode.CurrentInitializedScenarioIndex || currentWeightOnOpponentP0 != firstFinalUtilitiesNode.WeightOnOpponentsUtilityP0 || currentWeightOnOpponentOtherPlayers != firstFinalUtilitiesNode.WeightOnOpponentsUtilityOtherPlayers))
+            int updatedPostWarmupScenarioIndex = GameDefinition.CurrentPostWarmupScenarioIndex;
+            int? updatedWarmupScenarioIndex = GameDefinition.CurrentWarmupScenarioIndex;
+            int updatedScenarioIndex = updatedWarmupScenarioIndex ?? updatedPostWarmupScenarioIndex;
+            if (warmupVersion || !GameDefinition.UseDifferentWarmup)
+            {
+                ReinitializeInformationSets();
+            }
+            var firstFinalUtilitiesNode = FinalUtilitiesNodes.FirstOrDefault();
+            if (FinalUtilitiesNodes != null && firstFinalUtilitiesNode != null && (previousScenarioIndex != updatedScenarioIndex || previousWeightOnOpponentP0 != GameDefinition.CurrentWeightOnOpponentP0 || previousWeightOnOpponentOtherPlayers != GameDefinition.CurrentWeightOnOpponentOtherPlayers))
             {
                 foreach (var node in FinalUtilitiesNodes)
                 {
-                    node.CurrentInitializedScenarioIndex = currentPostWarmupScenarioIndex;
+                    node.CurrentInitializedScenarioIndex = updatedScenarioIndex;
                     node.WeightOnOpponentsUtilityP0 = GameDefinition.CurrentWeightOnOpponentP0;
                     node.WeightOnOpponentsUtilityOtherPlayers = GameDefinition.CurrentWeightOnOpponentOtherPlayers;
                 }
@@ -739,7 +748,7 @@ namespace ACESim
                 BestResponseImprovementAdjAvgOverTime.Add(exploitability);
             if (BestBecomesResult && iteration >= 3)
             {
-                if (exploitability < BestExploitability || iteration == 3)
+                if (exploitability < BestExploitability && iteration > 2) // exclude first couple iterations
                 {
                     Parallel.ForEach(InformationSets, informationSet => informationSet.CreateBackup());
                     BestExploitability = exploitability;
@@ -974,7 +983,7 @@ namespace ACESim
 
         public void ResetBestExploitability()
         {
-            BestExploitability = int.MaxValue; 
+            BestExploitability = double.MaxValue; 
             BestIteration = -1; 
             BestResponseImprovementAdjAvgOverTime = new List<double>();
         }

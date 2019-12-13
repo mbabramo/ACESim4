@@ -22,7 +22,7 @@ namespace ACESim
 
         public const int VanillaIterations = 1000; 
         public const int VanillaReportEveryNIterations = EffectivelyNever;
-        public const int VanillaBestResponseEveryMIterations = 100; 
+        public const int VanillaBestResponseEveryMIterations = 200; 
         public const bool CalculatePerturbedBestResponseRefinement = true;
         public const int MiniReportEveryPIterations = EffectivelyNever;
         public const bool AlwaysSuppressDisplayReportOnScreen = true; 

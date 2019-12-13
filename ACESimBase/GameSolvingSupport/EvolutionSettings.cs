@@ -26,7 +26,7 @@ namespace ACESim
         public bool CreateInformationSetCharts = false; 
         public int? ReportEveryNIterations = 1000;
         public bool ConstructCorrelatedEquilibrium = true; // DEBUG
-        public int ReduceCorrelatedEquilibriumEveryNScenarios = 400; // DEBUG
+        public int ReduceCorrelatedEquilibriumEveryNScenarios = 100; // DEBUG
         public int CorrelatedEquilibriumCalculationsEveryNIterations = 100000;
         public const int EffectivelyNever = 999999999;
         public int? BestResponseEveryMIterations = 100; // For partial recall games, this is very costly, so consider using EffectivelyNever.
