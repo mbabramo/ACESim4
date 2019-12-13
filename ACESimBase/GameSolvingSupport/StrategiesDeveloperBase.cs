@@ -164,6 +164,7 @@ namespace ACESim
 
         private void ReduceCorrelatedEquilibrium()
         {
+            TabbedText.WriteLine($"Reducing correlated equilibrium...");
             int[] candidateScenarioIndices = Incompabilities.GetOrdered(GameDefinition.NumScenarioPermutations, mostIncompatible: false, includeHaters: false, includeHated: true); // consider last the scenarios that the most other scenarios will want to switch from.
             List<int> addedScenarioIndices = new List<int>();
             List<int> removedScenarioIndices = new List<int>();
@@ -181,6 +182,7 @@ namespace ACESim
                 RemovePastValueRecordedIndex(removingScenarioIndex);
             }
             ReportRememberedScenarios();
+            TabbedText.WriteLine($"...Completed reducing correlated equilibrium")
         }
 
         private void RemovePastValueRecordedIndex(int overallScenarioIndexToRemove)
