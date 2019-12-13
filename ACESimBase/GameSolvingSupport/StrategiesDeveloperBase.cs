@@ -77,7 +77,11 @@ namespace ACESim
                 TabbedText.WriteLineEvenIfDisabled(optionSetInfo);
                 ReportCollection reportToAddToCollection = await RunAlgorithm(optionSetName);
                 if (constructCorrelatedEquilibrium)
+                {
                     RememberScenarioForCorrelatedEquilibrium(overallScenarioIndex);
+                    if (overallScenarioIndex + 1 % EvolutionSettings.ReduceCorrelatedEquilibriumEveryNScenarios == 0)
+                        ReduceCorrelatedEquilibrium();
+                }
                 else
                     reportCollection.Add(reportToAddToCollection); // if constructing correlated equilibrium, we ignore the interim reports
             }
@@ -152,7 +156,15 @@ namespace ACESim
 
         private async Task<ReportCollection> FinalizeCorrelatedEquilibrium()
         {
-            int[] candidateScenarioIndices = Incompabilities.GetOrdered(GameDefinition.NumScenarioPermutations, mostIncompatible: true, includeHaters: true, includeHated: false); // start with the scenarios that the most other scenarios will want to switch TO.
+            ReduceCorrelatedEquilibrium();
+            ReportCollection reportCollection = new ReportCollection();
+            await CompleteMainReports(reportCollection, new List<ActionStrategies>() { ActionStrategies.CorrelatedEquilibrium });
+            return reportCollection;
+        }
+
+        private void ReduceCorrelatedEquilibrium()
+        {
+            int[] candidateScenarioIndices = Incompabilities.GetOrdered(GameDefinition.NumScenarioPermutations, mostIncompatible: false, includeHaters: false, includeHated: true); // consider last the scenarios that the most other scenarios will want to switch from.
             List<int> addedScenarioIndices = new List<int>();
             List<int> removedScenarioIndices = new List<int>();
             foreach (int candidate in candidateScenarioIndices)
@@ -169,9 +181,6 @@ namespace ACESim
                 RemovePastValueRecordedIndex(removingScenarioIndex);
             }
             ReportRememberedScenarios();
-            ReportCollection reportCollection = new ReportCollection();
-            await CompleteMainReports(reportCollection, new List<ActionStrategies>() { ActionStrategies.CorrelatedEquilibrium });
-            return reportCollection;
         }
 
         private void RemovePastValueRecordedIndex(int overallScenarioIndexToRemove)

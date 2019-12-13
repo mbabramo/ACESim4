@@ -264,6 +264,7 @@ namespace ACESim
             {
                 IStrategiesDeveloper developer = GetDeveloper(taskToDo.ID);
                 await GetSingleRepetitionReportAndSave(masterReportName, taskToDo.ID, taskToDo.Repetition, true, developer, logAction);
+                TabbedText.ResetAccumulated();
             }
             else if (taskToDo.Name == "CombineRepetitions")
             {
@@ -453,7 +454,6 @@ namespace ACESim
                 {
                     AzureBlob.WriteTextToBlob("results", masterReportNamePlusOptionSet + ".csv", true, result.csvReports.FirstOrDefault()); // we write to a blob in case this times out and also to allow individual report to be taken out
                     AzureBlob.WriteTextToBlob("results", masterReportNamePlusOptionSet + "log.txt", true, TabbedText.AccumulatedText.ToString());
-                    TabbedText.ResetAccumulated();
                 }
                 logAction("Report written to blob");
                 return result;
