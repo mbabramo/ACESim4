@@ -182,7 +182,7 @@ namespace ACESim
                 RemovePastValueRecordedIndex(removingScenarioIndex);
             }
             ReportRememberedScenarios();
-            TabbedText.WriteLine($"...Completed reducing correlated equilibrium")
+            TabbedText.WriteLine($"...Completed reducing correlated equilibrium");
         }
 
         private void RemovePastValueRecordedIndex(int overallScenarioIndexToRemove)
