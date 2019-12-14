@@ -568,12 +568,15 @@ namespace ACESim
         public void ChangeOptionsToOverallScenarioIndex(int overallScenarioIndex, bool warmupVersion)
         {
             var result = GetScenarioIndexAndWeightValues(overallScenarioIndex, warmupVersion);
-            ChangeOptionsBasedOnScenario(result.indexInPostWarmupScenarios, result.indexInWarmupScenarios - NumPostWarmupOptionSets);
+            if (warmupVersion)
+                ChangeOptionsBasedOnScenario(null, result.indexInWarmupScenarios - NumPostWarmupOptionSets);
+            else
+                ChangeOptionsBasedOnScenario(result.indexInPostWarmupScenarios, null);
         }
 
         public void ChangeOptionsToCurrentScenario() => ChangeOptionsToOverallScenarioIndex(CurrentOverallScenarioIndex, CurrentlyWarmingUp);
 
-        public virtual void ChangeOptionsBasedOnScenario(int postWarmupScenarioIndex, int? warmupScenarioIndex)
+        public virtual void ChangeOptionsBasedOnScenario(int? postWarmupScenarioIndex, int? warmupScenarioIndex)
         {
 
         }
