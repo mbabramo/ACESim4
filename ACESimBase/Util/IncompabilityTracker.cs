@@ -26,14 +26,22 @@ namespace ACESim
             return (Math.Min(i, j), Math.Max(i, j));
         }
 
-        public bool IsIncompatible(int i, int j)
+        public bool Tracked(int i, int j)
         {
             return Incompatibilities.ContainsKey(Ordered(i, j));
         }
 
-        public bool IsIncompatibleWithAny(int i, IEnumerable<int> js)
+        public bool IsKnownIncompatible(int i, int j)
         {
-            return js.Any(j => IsIncompatible(i, j));
+            if (!Tracked(i, j))
+                return false;
+            var status = Incompatibilities[Ordered(i, j)];
+            return status.iHatesJ || status.jHatesI;
+        }
+
+        public bool IsKnownIncompatibleWithAny(int i, IEnumerable<int> js)
+        {
+            return js.Any(j => IsKnownIncompatible(i, j));
         }
 
         public int[] CountIncompatibilities(int max, bool includeHaters, bool includeHated)

@@ -94,12 +94,18 @@ namespace ACESim
 
         public List<DevelopmentStatus> RememberedStatuses = new List<DevelopmentStatus>();
         private int GetRememberedStatusesIndex(int overallScenarioIndex) => RememberedStatuses.TakeWhile(x => x.ScenarioIndex != overallScenarioIndex).Count();
+        private DevelopmentStatus GetRememberedStatus(int overallScenarioIndex) => RememberedStatuses[GetRememberedStatusesIndex(overallScenarioIndex)];
         IncompabilityTracker Incompabilities = new IncompabilityTracker();
 
         public void ReportRememberedScenarios()
         {
             foreach (var r in RememberedStatuses)
                 TabbedText.WriteLine(r.ToString());
+        }
+        public void ReportRememberedScenarios(IEnumerable<int> scenarioIndices)
+        {
+            foreach (int i in scenarioIndices)
+                TabbedText.WriteLine(GetRememberedStatus(i).ToString());
         }
 
         private void RememberScenarioForCorrelatedEquilibrium(int overallScenarioIndex)
@@ -142,6 +148,19 @@ namespace ACESim
         {
             return js.All(j => AreCompatibleInCorrelatedEquilibrium(i, j));
         }
+        private bool IsCompatibleWithAllAlreadyInCorrelatedEquilibrium_CachedIfPossible(int i, IEnumerable<int> js)
+        {
+            return js.All(j => AreCompatibleInCorrelatedEquilibrium_CachedIfPossible(i, j));
+        }
+
+        private bool AreCompatibleInCorrelatedEquilibrium_CachedIfPossible(int i, int j)
+        {
+            if (Incompabilities.Tracked(i, j))
+                return Incompabilities.IsKnownIncompatible(i, j);
+            var result = AreCompatibleInCorrelatedEquilibrium(i, j);
+            Incompabilities.AddIncompability(i, j, result, result); // disregard basis of incompatibility here
+            return result;
+        }
 
         private bool AreCompatibleInCorrelatedEquilibrium(int i, int j)
         {
@@ -179,10 +198,11 @@ namespace ACESim
 
         public void ReduceToCorrelatedEquilibrium_DeterminingIncompatibilitiesNow()
         {
-            // DEBUG -- could we still find some way to take out a strategy admitted to the equilibrium because there is a better one? If a new strategy comes along that is inconsistent only with one strategy, then we should perhaps keep them both (or all) so that we can figure out later which one to dump.
-            // basic strategy is to take items one at a time, finding items that are furthest separated based on the utility scores
+            // Basic strategy is to take items one at a time, finding items that are furthest separated based on the utility scores. We can just start with the highest utility item or we can pick at random, and we can do it many times so that we can average results of different correlated equilibria.
+            // Could we still find some way to take out a strategy admitted to the equilibrium because there is a better one? If a new strategy comes along that is inconsistent only with one strategy, then we should perhaps keep them both (or all) so that we can figure out later which one to dump. But this would get very complicated quickly as we have multiple versions of each member of the equilibrium, and it's not clear that we get a much better equilibrium.
             int numCandidates = RememberedStatuses.Count;
-            bool[] consideredItems = new bool[numCandidates]; // initialized to false
+            bool[] consideredItems = null;
+            Incompabilities = new IncompabilityTracker();
             double p0AvgUtility = RememberedStatuses.Average(x => x.UtilitiesOverall[0]);
             double p0Stdev = SummaryStatistics.Stdev(RememberedStatuses.Select(x => x.UtilitiesOverall[0]));
             double p1AvgUtility = RememberedStatuses.Average(x => x.UtilitiesOverall[1]);
@@ -218,25 +238,25 @@ namespace ACESim
             }
 
             int highestUtilityItem = Enumerable.Range(0, numCandidates).Select((candidate, index) => (sumSqZ[candidate], index)).OrderByDescending(y => y.Item1).First().index; // item with highest sum of utilities, represented in z scores
-            int[] itemsToTryAsInitial = Enumerable.Range(0, numCandidates).ToArray(); // DEBUG new int[] {highestUtilityItem};
+            int[] itemsToTryAsInitial = EvolutionSettings.ConstructCorrelatedEquilibriumMultipleTimesExPost ? Enumerable.Range(0, numCandidates).Take(EvolutionSettings.MaxNumCorrelatedEquilibriaToConstruct).ToArray() : new int[] {highestUtilityItem};
+            int mostItemsInAnyCorrelatedEquilibrium = 0;
+            List<int> biggestCorrelatedEquilibrium = null;
             StatCollectorArray meta1 = new StatCollectorArray(), meta2 = new StatCollectorArray();
+            StatCollector meta3 = new StatCollector();
             foreach (int initialItem in itemsToTryAsInitial)
             {
                 TabbedText.WriteLine($"Building correlated equilibrium starting with {initialItem}");
                 includedItems = new List<int>();
-                rejectedItems = new List<int>();
                 includedItems.Add(initialItem);
+                consideredItems = new bool[numCandidates];
                 consideredItems[initialItem] = true;
                 while (consideredItems.Any(x => x == false))
                 {
                     int itemToConsider = GetItemToConsider();
-                    if (IsCompatibleWithAllAlreadyInCorrelatedEquilibrium(itemToConsider, includedItems))
+                    if (IsCompatibleWithAllAlreadyInCorrelatedEquilibrium_CachedIfPossible(itemToConsider, includedItems))
                         includedItems.Add(itemToConsider);
-                    else
-                        rejectedItems.Add(itemToConsider);
                     consideredItems[itemToConsider] = true;
                 }
-                TabbedText.WriteLine($"Number of items {initialItem}");
                 StatCollectorArray a = new StatCollectorArray();
                 foreach (var includedItem in includedItems.Select(x => RememberedStatuses[x].CustomResult.AsDoubleArray()))
                     a.Add(includedItem);
@@ -247,11 +267,27 @@ namespace ACESim
                     a.Add(includedItem);
                 meta2.Add(a.Average().ToArray());
                 TabbedText.WriteLine($"Average utilities among included: {String.Join(",", a.Average().Select(x => x.ToSignificantFigures(3)).ToArray())}");
+                int numberItemsIncluded = includedItems.Count();
+                TabbedText.WriteLine($"Number of items {numberItemsIncluded}");
+                meta3.Add(numberItemsIncluded);
+                if (numberItemsIncluded > mostItemsInAnyCorrelatedEquilibrium)
+                {
+                    mostItemsInAnyCorrelatedEquilibrium = numberItemsIncluded;
+                    biggestCorrelatedEquilibrium = includedItems.ToList();
+                }
             }
-            TabbedText.WriteLine($"Average custom values overall: {String.Join(",", meta1.Average().Select(x => x.ToSignificantFigures(3)).ToArray())}");
-            TabbedText.WriteLine($"Average utilities overall: {String.Join(",", meta1.Average().Select(x => x.ToSignificantFigures(3)).ToArray())}");
-            TabbedText.WriteLine($"Stdev custom values overall: {String.Join(",", meta1.StandardDeviation().Select(x => x.ToSignificantFigures(3)).ToArray())}");
-            TabbedText.WriteLine($"Stdev utilities overall: {String.Join(",", meta1.StandardDeviation().Select(x => x.ToSignificantFigures(3)).ToArray())}");
+            if (EvolutionSettings.ConstructCorrelatedEquilibriumMultipleTimesExPost)
+            {
+                TabbedText.WriteLine($"Average custom values overall: {String.Join(",", meta1.Average().Select(x => x.ToSignificantFigures(3)).ToArray())}");
+                TabbedText.WriteLine($"Average utilities overall: {String.Join(",", meta1.Average().Select(x => x.ToSignificantFigures(3)).ToArray())}");
+                TabbedText.WriteLine($"Stdev custom values overall: {String.Join(",", meta1.StandardDeviation().Select(x => x.ToSignificantFigures(3)).ToArray())}");
+                TabbedText.WriteLine($"Stdev utilities overall: {String.Join(",", meta1.StandardDeviation().Select(x => x.ToSignificantFigures(3)).ToArray())}");
+                TabbedText.WriteLine($"Number items included average {meta3.Average().ToSignificantFigures(3)} stdev {meta3.StandardDeviation().ToSignificantFigures(3)}");
+            }
+            includedItems = biggestCorrelatedEquilibrium.ToList();
+            TabbedText.WriteLine($"Chosen correlated equilibrium: {String.Join(",", includedItems.ToArray())}");
+
+            rejectedItems = Enumerable.Range(0, numCandidates).Where(x => !includedItems.Contains(x)).ToList();
             var rejectedItemsScenarioIndices = rejectedItems.Select(x => RememberedStatuses[x].ScenarioIndex).ToArray();
 
             //NOTE: The commented out code can be used to calculate compatibility of items with neighbors, and correlation of this with exploitability.
@@ -313,11 +349,11 @@ namespace ACESim
             //CheckNeighborCompatibility(7);
             //CheckNeighborCompatibility(20);
 
+            ReportRememberedScenarios(includedItems);
             foreach (var removingScenarioIndex in rejectedItemsScenarioIndices)
             {
                 RemovePastValueRecordedIndex(removingScenarioIndex);
             }
-            ReportRememberedScenarios();
         }
 
         private void ReduceToCorrelatedEquilibrium_BasedOnPredeterminedIncompatibilities()
@@ -329,7 +365,7 @@ namespace ACESim
             List<int> removedScenarioIndices = new List<int>();
             foreach (int candidate in candidateScenarioIndices)
             {
-                if (!Incompabilities.IsIncompatibleWithAny(candidate, addedScenarioIndices))
+                if (!Incompabilities.IsKnownIncompatibleWithAny(candidate, addedScenarioIndices))
                     addedScenarioIndices.Add(candidate);
                 else
                     removedScenarioIndices.Add(candidate);

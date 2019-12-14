@@ -26,7 +26,9 @@ namespace ACESim
         public bool CreateInformationSetCharts = false; 
         public int? ReportEveryNIterations = 1000;
         public bool ConstructCorrelatedEquilibrium = true; // DEBUG
-        public bool CheckCorrelatedEquilibriumIncompatibilitiesAlongWay = false; // DEBUG
+        public bool ConstructCorrelatedEquilibriumMultipleTimesExPost = true; // DEBUG
+        public int MaxNumCorrelatedEquilibriaToConstruct = 125;
+        public bool CheckCorrelatedEquilibriumIncompatibilitiesAlongWay = false;
         public int ReduceCorrelatedEquilibriumEveryNScenariosIfCheckingAlongWay = 100; // DEBUG 
         public int CorrelatedEquilibriumCalculationsEveryNIterations = 100000;
         public const int EffectivelyNever = 999999999;
