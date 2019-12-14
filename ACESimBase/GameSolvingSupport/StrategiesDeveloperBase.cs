@@ -81,7 +81,7 @@ namespace ACESim
                 if (constructCorrelatedEquilibrium)
                 {
                     RememberScenarioForCorrelatedEquilibrium(overallScenarioIndex);
-                    if ((overallScenarioIndex + 1) % EvolutionSettings.ReduceCorrelatedEquilibriumEveryNScenarios == 0 && EvolutionSettings.CheckCorrelatedEquilibriumIncompatibilitiesAlongWay)
+                    if ((overallScenarioIndex + 1) % EvolutionSettings.ReduceCorrelatedEquilibriumEveryNScenariosIfCheckingAlongWay == 0 && EvolutionSettings.CheckCorrelatedEquilibriumIncompatibilitiesAlongWay)
                         ReduceToCorrelatedEquilibrium_BasedOnPredeterminedIncompatibilities();
                 }
                 else
@@ -120,8 +120,7 @@ namespace ACESim
                     int mostRecentIndex = InformationSets.First().LastPastValueIndexRecorded;
                     for (int i = 0; i < mostRecentIndex; i++) // each index before most recent
                     {
-                        bool someoneSwitchesToMostRecent, someoneSwitchesFromMostRecent;
-                        CheckForCompatibilityInCorrelatedEquilibrium(i, mostRecentIndex, out someoneSwitchesToMostRecent, out someoneSwitchesFromMostRecent);
+                        (bool someoneSwitchesToMostRecent, bool someoneSwitchesFromMostRecent) = CheckForCompatibilityInCorrelatedEquilibrium(i, mostRecentIndex);
                         bool isIncompatible = someoneSwitchesFromMostRecent || someoneSwitchesToMostRecent;
                         if (isIncompatible)
                         {
@@ -146,11 +145,11 @@ namespace ACESim
 
         private bool AreCompatibleInCorrelatedEquilibrium(int i, int j)
         {
-            CheckForCompatibilityInCorrelatedEquilibrium(i, j, out bool someoneSwitchesFromIToJ, out bool someoneSwitchesFromJToI);
+            (bool someoneSwitchesFromIToJ, bool someoneSwitchesFromJToI) = CheckForCompatibilityInCorrelatedEquilibrium(i, j);
             return !someoneSwitchesFromIToJ && !someoneSwitchesFromJToI;
         }
 
-        private void CheckForCompatibilityInCorrelatedEquilibrium(int i, int j, out bool someoneSwitchesFromIToJ, out bool someoneSwitchesFromJToI)
+        private (bool someoneSwitchesFromIToJ, bool someoneSwitchesFromJToI) CheckForCompatibilityInCorrelatedEquilibrium(int i, int j)
         {
             double[] p0PlayingJ_p1PlaysI = GetUtilitiesForPastValueCombination(j, i);
             double[] p1PlayingJ_p0PlaysI = GetUtilitiesForPastValueCombination(i, j);
@@ -162,8 +161,9 @@ namespace ACESim
             double p1IfSwitchingStrategyFromIToJ = p1PlayingJ_p0PlaysI[1];
             double p0IfSwitchingStrategyFromJToI = p1PlayingJ_p0PlaysI[0];
             double p1IfSwitchingStrategyFromJToI = p0PlayingJ_p1PlaysI[1];
-            someoneSwitchesFromIToJ = p0IfSwitchingStrategyFromIToJ > p0InI || p1IfSwitchingStrategyFromIToJ > p1InI;
-            someoneSwitchesFromJToI = p0IfSwitchingStrategyFromJToI > p0InJ || p1IfSwitchingStrategyFromJToI > p1InJ;
+            bool someoneSwitchesFromIToJ = p0IfSwitchingStrategyFromIToJ > p0InI || p1IfSwitchingStrategyFromIToJ > p1InI;
+            bool someoneSwitchesFromJToI = p0IfSwitchingStrategyFromJToI > p0InJ || p1IfSwitchingStrategyFromJToI > p1InJ;
+            return (someoneSwitchesFromIToJ, someoneSwitchesFromJToI);
         }
 
         private async Task<ReportCollection> FinalizeCorrelatedEquilibrium()
@@ -179,6 +179,7 @@ namespace ACESim
 
         public void ReduceToCorrelatedEquilibrium_DeterminingIncompatibilitiesNow()
         {
+            // DEBUG -- could we still find some way to take out a strategy admitted to the equilibrium because there is a better one? If a new strategy comes along that is inconsistent only with one strategy, then we should perhaps keep them both (or all) so that we can figure out later which one to dump.
             // basic strategy is to take items one at a time, finding items that are furthest separated based on the utility scores
             List<int> includedItems = new List<int>();
             List<int> rejectedItems = new List<int>();
@@ -219,6 +220,44 @@ namespace ACESim
                 }
                 return indexWithHighestTotalSqDistance;
             }
+            int[] GetClosestItems(int i, int numClosestItems)
+            {
+                return Enumerable.Range(0, consideredItems.Length).Where(j => j != i).OrderBy(j => GetSqDistance(i, j)).Take(numClosestItems).ToArray();
+            }
+            (int iWouldSwitchToNeighbor, int neighborWouldSwitchToI) CompatibilityWithNeighbors(int i, int numClosestItems)
+            {
+                int[] neighbors = GetClosestItems(i, numClosestItems);
+                int iWouldSwitchToNeighbor = 0;
+                int neighborWouldSwitchToI = 0;
+                foreach (int neighbor in neighbors)
+                {
+                    var result = CheckForCompatibilityInCorrelatedEquilibrium(i, neighbor);
+                    if (result.someoneSwitchesFromIToJ)
+                        iWouldSwitchToNeighbor++;
+                    if (result.someoneSwitchesFromJToI)
+                        neighborWouldSwitchToI++;
+                }
+                return (iWouldSwitchToNeighbor, neighborWouldSwitchToI);
+            }
+            void CheckNeighborCompatibility(int numNeighbors)
+            {
+                TabbedText.WriteLine($"Checking compatibility with {numNeighbors} neighbors");
+                List<(double exploitability, int numSwitchesToNeighbor, int numSwitchesFromNeighbor)> results = new List<(double exploitability, int numSwitchesToNeighbor, int numSwitchesFromNeighbor)>();
+                for (int i = 0; i < consideredItems.Length; i++)
+                {
+                    double exploitability = RememberedStatuses[i].BestResponseImprovementAdjAvg;
+                    var compatibility = CompatibilityWithNeighbors(i, numNeighbors);
+                    results.Add((exploitability, compatibility.iWouldSwitchToNeighbor, compatibility.neighborWouldSwitchToI));
+                }
+                results = results.OrderBy(x => x.exploitability).ToList();
+                int k = 0;
+                foreach (var result in results)
+                    TabbedText.WriteLine($"{k++}: {result.exploitability} switch to neighbor: {result.numSwitchesToNeighbor} switch from neighbor: {result.numSwitchesFromNeighbor}");
+            }
+            CheckNeighborCompatibility(1);
+            CheckNeighborCompatibility(3);
+            CheckNeighborCompatibility(5);
+
             while (consideredItems.Any(x => x == false))
             {
                 int itemToConsider = GetItemToConsider();
