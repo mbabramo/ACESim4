@@ -553,7 +553,7 @@ namespace ACESim
 
         public string GetNameForScenario_WithOpponentWeight()
         {
-            return $"{GetNameForScenario()}{(CurrentWeightOnOpponentP0 == 0 && CurrentWeightOnOpponentOtherPlayers == 0 ? "" : $"(Weight on opponent: {CurrentWeightOnOpponentP0},{CurrentWeightOnOpponentOtherPlayers})")}";
+            return $"{GetNameForScenario()}{(CurrentWeightOnOpponentP0 == 0 && CurrentWeightOnOpponentOtherPlayers == 0 ? "" : $"(Weight on opponent: {CurrentWeightOnOpponentP0.ToSignificantFigures(3)},{CurrentWeightOnOpponentOtherPlayers.ToSignificantFigures(3)})")}";
         }
 
         public virtual void RememberOriginalChangeableOptions()

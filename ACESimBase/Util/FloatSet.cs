@@ -14,5 +14,7 @@ namespace ACESim
 
         public FloatSet Plus(FloatSet other) => new FloatSet(F1 + other.F1, F2 + other.F2, F3 + other.F3, F4 + other.F4);
         public FloatSet Times(float m) => new FloatSet(m * F1, m * F2, m * F3, m * F4);
+
+        public double[] AsDoubleArray() => new double[] { (double)F1, (double)F2, (double)F3, (double)F4 };
     }
 }

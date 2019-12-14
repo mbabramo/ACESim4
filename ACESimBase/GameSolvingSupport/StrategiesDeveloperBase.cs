@@ -181,8 +181,6 @@ namespace ACESim
         {
             // DEBUG -- could we still find some way to take out a strategy admitted to the equilibrium because there is a better one? If a new strategy comes along that is inconsistent only with one strategy, then we should perhaps keep them both (or all) so that we can figure out later which one to dump.
             // basic strategy is to take items one at a time, finding items that are furthest separated based on the utility scores
-            List<int> includedItems = new List<int>();
-            List<int> rejectedItems = new List<int>();
             int numCandidates = RememberedStatuses.Count;
             bool[] consideredItems = new bool[numCandidates]; // initialized to false
             double p0AvgUtility = RememberedStatuses.Average(x => x.UtilitiesOverall[0]);
@@ -193,9 +191,7 @@ namespace ACESim
             List<double> p1Z = RememberedStatuses.Select(x => (x.UtilitiesOverall[1] - p1AvgUtility) / p1Stdev).ToList();
             List<(double p0, double p1)> p0p1Z = p0Z.Zip(p1Z, (p0, p1) => (p0, p1)).ToList();
             List<double> sumSqZ = p0p1Z.Select(x => x.p0 + x.p1).ToList();
-            int initialItem = Enumerable.Range(0, numCandidates).Select((candidate, index) => (sumSqZ[candidate], index)).OrderByDescending(y => y.Item1).First().index; // item with highest sum of utilities, represented in z scores
-            includedItems.Add(initialItem);
-            consideredItems[initialItem] = true;
+            List<int> includedItems = null, rejectedItems = null;
             double GetSqDistance(int i, int j)
             {
                 return ((p0Z[i] - p0Z[j]) * (p0Z[i] - p0Z[j]) + (p1Z[i] - p1Z[j]) * (p1Z[i] - p1Z[j]));
@@ -220,54 +216,103 @@ namespace ACESim
                 }
                 return indexWithHighestTotalSqDistance;
             }
-            int[] GetClosestItems(int i, int numClosestItems)
-            {
-                return Enumerable.Range(0, consideredItems.Length).Where(j => j != i).OrderBy(j => GetSqDistance(i, j)).Take(numClosestItems).ToArray();
-            }
-            (int iWouldSwitchToNeighbor, int neighborWouldSwitchToI) CompatibilityWithNeighbors(int i, int numClosestItems)
-            {
-                int[] neighbors = GetClosestItems(i, numClosestItems);
-                int iWouldSwitchToNeighbor = 0;
-                int neighborWouldSwitchToI = 0;
-                foreach (int neighbor in neighbors)
-                {
-                    var result = CheckForCompatibilityInCorrelatedEquilibrium(i, neighbor);
-                    if (result.someoneSwitchesFromIToJ)
-                        iWouldSwitchToNeighbor++;
-                    if (result.someoneSwitchesFromJToI)
-                        neighborWouldSwitchToI++;
-                }
-                return (iWouldSwitchToNeighbor, neighborWouldSwitchToI);
-            }
-            void CheckNeighborCompatibility(int numNeighbors)
-            {
-                TabbedText.WriteLine($"Checking compatibility with {numNeighbors} neighbors");
-                List<(double exploitability, int numSwitchesToNeighbor, int numSwitchesFromNeighbor)> results = new List<(double exploitability, int numSwitchesToNeighbor, int numSwitchesFromNeighbor)>();
-                for (int i = 0; i < consideredItems.Length; i++)
-                {
-                    double exploitability = RememberedStatuses[i].BestResponseImprovementAdjAvg;
-                    var compatibility = CompatibilityWithNeighbors(i, numNeighbors);
-                    results.Add((exploitability, compatibility.iWouldSwitchToNeighbor, compatibility.neighborWouldSwitchToI));
-                }
-                results = results.OrderBy(x => x.exploitability).ToList();
-                int k = 0;
-                foreach (var result in results)
-                    TabbedText.WriteLine($"{k++}: {result.exploitability} switch to neighbor: {result.numSwitchesToNeighbor} switch from neighbor: {result.numSwitchesFromNeighbor}");
-            }
-            CheckNeighborCompatibility(1);
-            CheckNeighborCompatibility(3);
-            CheckNeighborCompatibility(5);
 
-            while (consideredItems.Any(x => x == false))
+            int highestUtilityItem = Enumerable.Range(0, numCandidates).Select((candidate, index) => (sumSqZ[candidate], index)).OrderByDescending(y => y.Item1).First().index; // item with highest sum of utilities, represented in z scores
+            int[] itemsToTryAsInitial = Enumerable.Range(0, numCandidates).ToArray(); // DEBUG new int[] {highestUtilityItem};
+            StatCollectorArray meta1 = new StatCollectorArray(), meta2 = new StatCollectorArray();
+            foreach (int initialItem in itemsToTryAsInitial)
             {
-                int itemToConsider = GetItemToConsider();
-                if (IsCompatibleWithAllAlreadyInCorrelatedEquilibrium(itemToConsider, includedItems))
-                    includedItems.Add(itemToConsider);
-                else
-                    rejectedItems.Add(itemToConsider);
-                consideredItems[itemToConsider] = true;
+                TabbedText.WriteLine($"Building correlated equilibrium starting with {initialItem}");
+                includedItems = new List<int>();
+                rejectedItems = new List<int>();
+                includedItems.Add(initialItem);
+                consideredItems[initialItem] = true;
+                while (consideredItems.Any(x => x == false))
+                {
+                    int itemToConsider = GetItemToConsider();
+                    if (IsCompatibleWithAllAlreadyInCorrelatedEquilibrium(itemToConsider, includedItems))
+                        includedItems.Add(itemToConsider);
+                    else
+                        rejectedItems.Add(itemToConsider);
+                    consideredItems[itemToConsider] = true;
+                }
+                TabbedText.WriteLine($"Number of items {initialItem}");
+                StatCollectorArray a = new StatCollectorArray();
+                foreach (var includedItem in includedItems.Select(x => RememberedStatuses[x].CustomResult.AsDoubleArray()))
+                    a.Add(includedItem);
+                TabbedText.WriteLine($"Average custom values among included: {String.Join(",", a.Average().Select(x => x.ToSignificantFigures(3)).ToArray())}");
+                meta1.Add(a.Average().ToArray());
+                a = new StatCollectorArray();
+                foreach (var includedItem in includedItems.Select(x => RememberedStatuses[x].UtilitiesOverall))
+                    a.Add(includedItem);
+                meta2.Add(a.Average().ToArray());
+                TabbedText.WriteLine($"Average utilities among included: {String.Join(",", a.Average().Select(x => x.ToSignificantFigures(3)).ToArray())}");
             }
+            TabbedText.WriteLine($"Average custom values overall: {String.Join(",", meta1.Average().Select(x => x.ToSignificantFigures(3)).ToArray())}");
+            TabbedText.WriteLine($"Average utilities overall: {String.Join(",", meta1.Average().Select(x => x.ToSignificantFigures(3)).ToArray())}");
+            TabbedText.WriteLine($"Stdev custom values overall: {String.Join(",", meta1.StandardDeviation().Select(x => x.ToSignificantFigures(3)).ToArray())}");
+            TabbedText.WriteLine($"Stdev utilities overall: {String.Join(",", meta1.StandardDeviation().Select(x => x.ToSignificantFigures(3)).ToArray())}");
             var rejectedItemsScenarioIndices = rejectedItems.Select(x => RememberedStatuses[x].ScenarioIndex).ToArray();
+
+            //NOTE: The commented out code can be used to calculate compatibility of items with neighbors, and correlation of this with exploitability.
+            //int[] GetClosestItems(int i, int numClosestItems)
+            //{
+            //    return Enumerable.Range(0, consideredItems.Length).Where(j => j != i).OrderBy(j => GetSqDistance(i, j)).Take(numClosestItems).ToArray();
+            //}
+            //(int iWouldSwitchToNeighbor, int neighborWouldSwitchToI) CompatibilityWithNeighbors(int i, int numClosestItems)
+            //{
+            //    int[] neighbors = GetClosestItems(i, numClosestItems);
+            //    int iWouldSwitchToNeighbor = 0;
+            //    int neighborWouldSwitchToI = 0;
+            //    foreach (int neighbor in neighbors)
+            //    {
+            //        var result = CheckForCompatibilityInCorrelatedEquilibrium(i, neighbor);
+            //        if (result.someoneSwitchesFromIToJ)
+            //            iWouldSwitchToNeighbor++;
+            //        if (result.someoneSwitchesFromJToI)
+            //            neighborWouldSwitchToI++;
+            //    }
+            //    return (iWouldSwitchToNeighbor, neighborWouldSwitchToI);
+            //}
+            //double ComputeCoeff(double[] values1, double[] values2)
+            //{
+            //    var avg1 = values1.Average();
+            //    var avg2 = values2.Average();
+
+            //    var sum1 = values1.Zip(values2, (x1, y1) => (x1 - avg1) * (y1 - avg2)).Sum();
+
+            //    var sumSqr1 = values1.Sum(x => Math.Pow((x - avg1), 2.0));
+            //    var sumSqr2 = values2.Sum(y => Math.Pow((y - avg2), 2.0));
+
+            //    var result = sum1 / Math.Sqrt(sumSqr1 * sumSqr2);
+
+            //    return result;
+            //}
+            //void CheckNeighborCompatibility(int numNeighbors)
+            //{
+            //    TabbedText.WriteLine($"Checking compatibility with {numNeighbors} neighbors");
+            //    List<(double exploitability, int numSwitchesToNeighbor, int numSwitchesFromNeighbor)> results = new List<(double exploitability, int numSwitchesToNeighbor, int numSwitchesFromNeighbor)>();
+            //    for (int i = 0; i < consideredItems.Length; i++)
+            //    {
+            //        double exploitability = RememberedStatuses[i].BestResponseImprovementAdjAvg;
+            //        var compatibility = CompatibilityWithNeighbors(i, numNeighbors);
+            //        results.Add((exploitability, compatibility.iWouldSwitchToNeighbor, compatibility.neighborWouldSwitchToI));
+            //    }
+            //    results = results.OrderBy(x => x.exploitability).ToList();
+            //    int k = 0;
+            //    foreach (var result in results)
+            //        TabbedText.WriteLine($"{k++}: {result.exploitability} switch to neighbor: {result.numSwitchesToNeighbor} switch from neighbor: {result.numSwitchesFromNeighbor}");
+            //    double correlationToNeighbor = ComputeCoeff(results.Select(x => x.exploitability).ToArray(), results.Select(x => (double)x.numSwitchesToNeighbor).ToArray());
+            //    double correlationFromNeighbor = ComputeCoeff(results.Select(x => x.exploitability).ToArray(), results.Select(x => (double)x.numSwitchesFromNeighbor).ToArray());
+            //    double correlationSum = ComputeCoeff(results.Select(x => x.exploitability).ToArray(), results.Select(x => (double)x.numSwitchesToNeighbor + (double)x.numSwitchesFromNeighbor).ToArray());
+            //    double correlationDifference = ComputeCoeff(results.Select(x => x.exploitability).ToArray(), results.Select(x => (double)x.numSwitchesToNeighbor - (double)x.numSwitchesFromNeighbor).ToArray());
+            //    TabbedText.WriteLine($"Correlation between exploitability and switches to {numNeighbors} neighbors: {correlationToNeighbor} switches from neighbor {correlationFromNeighbor} sum {correlationSum} difference {correlationDifference}\r\n");
+            //}
+            //CheckNeighborCompatibility(1);
+            //CheckNeighborCompatibility(3);
+            //CheckNeighborCompatibility(7);
+            //CheckNeighborCompatibility(20);
+
             foreach (var removingScenarioIndex in rejectedItemsScenarioIndices)
             {
                 RemovePastValueRecordedIndex(removingScenarioIndex);
