@@ -15,6 +15,7 @@ namespace ACESim
     [Serializable]
     public class InformationSetNode : IGameState
     {
+        
         #region Properties, members, and constants
 
         public const double SmallestProbabilityRepresented = 1E-16; // We make this considerably greater than Double.Epsilon (but still very small), because (1) otherwise when we multiply the value by anything < 1, we get 0, and this makes it impossible to climb out of being a zero-probability action, (2) we want to be able to represent 1 - probability.

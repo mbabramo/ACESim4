@@ -1037,6 +1037,7 @@ namespace ACESim
             }
         }
 
+        debug; // the problem is that we ideally need a separate warmup scenario for every post warmup scenario. But not necessarily. Suppose trial costs is changing post warmup -- we could still use the regular trial costs value Maybe we should just get rid of the idea of having multiple post warmup 
         public override void ChangeOptionsBasedOnScenario(int postWarmupScenarioIndex, int? warmupScenarioIndex)
         {
             RememberOriginalChangeableOptions(); 
