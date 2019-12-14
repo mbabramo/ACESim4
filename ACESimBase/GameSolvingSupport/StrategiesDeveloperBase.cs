@@ -181,6 +181,7 @@ namespace ACESim
         {
             // basic strategy is to take items one at a time, finding items that are furthest separated based on the utility scores
             List<int> includedItems = new List<int>();
+            List<int> rejectedItems = new List<int>();
             int numCandidates = RememberedStatuses.Count;
             bool[] consideredItems = new bool[numCandidates]; // initialized to false
             double p0AvgUtility = RememberedStatuses.Average(x => x.UtilitiesOverall[0]);
@@ -190,13 +191,13 @@ namespace ACESim
             List<double> p0Z = RememberedStatuses.Select(x => (x.UtilitiesOverall[0] - p0AvgUtility) / p0Stdev).ToList();
             List<double> p1Z = RememberedStatuses.Select(x => (x.UtilitiesOverall[1] - p1AvgUtility) / p1Stdev).ToList();
             List<(double p0, double p1)> p0p1Z = p0Z.Zip(p1Z, (p0, p1) => (p0, p1)).ToList();
-            List<double> sumZ = p0p1Z.Select(x => x.p0 + x.p1).ToList();
-            int initialItem = Enumerable.Range(0, numCandidates).Select((candidate, index) => (sumZ[candidate], index)).OrderBy(y => y.Item1).First().index; // item with highest sum of utilities -- note that utilities may be on different scales
+            List<double> sumSqZ = p0p1Z.Select(x => x.p0 + x.p1).ToList();
+            int initialItem = Enumerable.Range(0, numCandidates).Select((candidate, index) => (sumSqZ[candidate], index)).OrderByDescending(y => y.Item1).First().index; // item with highest sum of utilities, represented in z scores
             includedItems.Add(initialItem);
             consideredItems[initialItem] = true;
             double GetSqDistance(int i, int j)
             {
-                return ((p0Z[i] - p1Z[i]) * (p0Z[i] - p1Z[i]) + (p0Z[j] - p1Z[j]) * (p0Z[j] - p1Z[j]));
+                return ((p0Z[i] - p0Z[j]) * (p0Z[i] - p0Z[j]) + (p1Z[i] - p1Z[j]) * (p1Z[i] - p1Z[j]));
             }
             int GetItemToConsider()
             {
@@ -204,13 +205,16 @@ namespace ACESim
                 int indexWithHighestTotalSqDistance = -1;
                 for (int i = 0; i < consideredItems.Length; i++)
                 {
-                    double totalSqDistance = 0;
-                    foreach (int includedItem in includedItems)
-                        totalSqDistance += GetSqDistance(i, includedItem);
-                    if (totalSqDistance > highestTotalSqDistance)
+                    if (!consideredItems[i])
                     {
-                        highestTotalSqDistance = totalSqDistance;
-                        indexWithHighestTotalSqDistance = i;
+                        double totalSqDistance = 0;
+                        foreach (int includedItem in includedItems)
+                            totalSqDistance += GetSqDistance(i, includedItem);
+                        if (totalSqDistance > highestTotalSqDistance)
+                        {
+                            highestTotalSqDistance = totalSqDistance;
+                            indexWithHighestTotalSqDistance = i;
+                        }
                     }
                 }
                 return indexWithHighestTotalSqDistance;
@@ -220,8 +224,16 @@ namespace ACESim
                 int itemToConsider = GetItemToConsider();
                 if (IsCompatibleWithAllAlreadyInCorrelatedEquilibrium(itemToConsider, includedItems))
                     includedItems.Add(itemToConsider);
+                else
+                    rejectedItems.Add(itemToConsider);
                 consideredItems[itemToConsider] = true;
             }
+            var rejectedItemsScenarioIndices = rejectedItems.Select(x => RememberedStatuses[x].ScenarioIndex).ToArray();
+            foreach (var removingScenarioIndex in rejectedItemsScenarioIndices)
+            {
+                RemovePastValueRecordedIndex(removingScenarioIndex);
+            }
+            ReportRememberedScenarios();
         }
 
         private void ReduceToCorrelatedEquilibrium_BasedOnPredeterminedIncompatibilities()
