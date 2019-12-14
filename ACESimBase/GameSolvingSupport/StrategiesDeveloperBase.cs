@@ -115,27 +115,15 @@ namespace ACESim
                 RememberedStatuses.Add(Status.DeepCopy());
                 int incompatibilityCount = 0;
                 int mostRecentIndex = InformationSets.First().LastPastValueIndexRecorded;
-                List<double[]> utilities_p0PlayingMostRecent_p1PlaysI = new List<double[]>();
-                List<double[]> utilities_p1PlayingMostRecent_p0PlaysI = new List<double[]>();
                 for (int i = 0; i < mostRecentIndex; i++) // each index before most recent
                 {
-                    utilities_p0PlayingMostRecent_p1PlaysI.Add(GetUtilitiesForPastValueCombination(mostRecentIndex, i));
-                    utilities_p1PlayingMostRecent_p0PlaysI.Add(GetUtilitiesForPastValueCombination(i, mostRecentIndex));
-                    int earlierScenarioIndex = RememberedStatuses[i].ScenarioIndex;
-                    double[] utilities_bothPlayI = RememberedStatuses[i].UtilitiesOverall;
-
-                    double p0InMostRecent = RememberedStatuses[mostRecentIndex].UtilitiesOverall[0];
-                    double p1InMostRecent = RememberedStatuses[mostRecentIndex].UtilitiesOverall[1];
-                    double p0IfSwitchingStrategyFromMostRecent = utilities_p1PlayingMostRecent_p0PlaysI[i][0];
-                    double p0IfSwitchingStrategyToMostRecent = utilities_p0PlayingMostRecent_p1PlaysI[i][0];
-                    double p1IfSwitchingStrategyToMostRecent = utilities_p1PlayingMostRecent_p0PlaysI[i][1];
-                    double p1IfSwitchingStrategyFromMostRecent = utilities_p0PlayingMostRecent_p1PlaysI[i][1];
-                    bool someoneSwitchesToMostRecent = p0IfSwitchingStrategyToMostRecent > utilities_bothPlayI[0] || p1IfSwitchingStrategyToMostRecent > utilities_bothPlayI[1];
-                    bool someoneSwitchesFromMostRecent = p0IfSwitchingStrategyFromMostRecent > p0InMostRecent || p1IfSwitchingStrategyFromMostRecent > p1InMostRecent;
+                    bool someoneSwitchesToMostRecent, someoneSwitchesFromMostRecent;
+                    CheckForCompatibilityInCorrelatedEquilibrium(i, mostRecentIndex, out someoneSwitchesToMostRecent, out someoneSwitchesFromMostRecent);
                     bool isIncompatible = someoneSwitchesFromMostRecent || someoneSwitchesToMostRecent;
                     if (isIncompatible)
                     {
-                        Incompabilities.AddIncompability(earlierScenarioIndex, overallScenarioIndex, iHatesJ: someoneSwitchesToMostRecent, jHatesI: someoneSwitchesFromMostRecent); // i.e., we're interpreting "hating" as "switching to"
+                        int earlierScenarioIndex = RememberedStatuses[i].ScenarioIndex;
+                        Incompabilities.AddIncompability(earlierScenarioIndex, overallScenarioIndex, iHatesJ: someoneSwitchesToMostRecent, jHatesI: someoneSwitchesFromMostRecent); // i.e., we're interpreting the hated one as the one switched to
                         incompatibilityCount++;
                     }
                 }
@@ -155,6 +143,22 @@ namespace ACESim
             }
         }
 
+        private void CheckForCompatibilityInCorrelatedEquilibrium(int i, int j, out bool someoneSwitchesFromIToJ, out bool someoneSwitchesFromJToI)
+        {
+            double[] p0PlayingJ_p1PlaysI = GetUtilitiesForPastValueCombination(j, i);
+            double[] p1PlayingJ_p0PlaysI = GetUtilitiesForPastValueCombination(i, j);
+            double p0InI = RememberedStatuses[i].UtilitiesOverall[0];
+            double p1InI = RememberedStatuses[i].UtilitiesOverall[1];
+            double p0InJ = RememberedStatuses[j].UtilitiesOverall[0];
+            double p1InJ = RememberedStatuses[j].UtilitiesOverall[1];
+            double p0IfSwitchingStrategyFromIToJ = p0PlayingJ_p1PlaysI[0];
+            double p1IfSwitchingStrategyFromIToJ = p1PlayingJ_p0PlaysI[1];
+            double p0IfSwitchingStrategyFromJToI = p1PlayingJ_p0PlaysI[0];
+            double p1IfSwitchingStrategyFromJToI = p0PlayingJ_p1PlaysI[1];
+            someoneSwitchesFromIToJ = p0IfSwitchingStrategyFromIToJ > p0InI || p1IfSwitchingStrategyFromIToJ > p1InI;
+            someoneSwitchesFromJToI = p0IfSwitchingStrategyFromJToI > p0InJ || p1IfSwitchingStrategyFromJToI > p1InJ;
+        }
+
         private async Task<ReportCollection> FinalizeCorrelatedEquilibrium()
         {
             ReduceCorrelatedEquilibrium();
@@ -166,7 +170,8 @@ namespace ACESim
         private void ReduceCorrelatedEquilibrium()
         {
             TabbedText.WriteLine($"Reducing correlated equilibrium...");
-            int[] candidateScenarioIndices = Incompabilities.GetOrdered(GameDefinition.NumScenarioPermutations, mostIncompatible: false, includeHaters: true, includeHated: true); // consider last the scenarios that the most other scenarios will want to switch from.
+            //int[] candidateScenarioIndices = Incompabilities.GetOrdered(GameDefinition.NumScenarioPermutations, mostIncompatibleFirst: false, includeHaters: true, includeHated: false); // consider last the scenarios that the most other scenarios will want to switch from; remember that haters are the strategies we are switching from and hated are strategies we are switching to
+            int[] candidateScenarioIndices = Incompabilities.GetOrdered(GameDefinition.NumScenarioPermutations, mostIncompatibleFirst: true, includeHaters: false, includeHated: true); // consider first the scenarios that the most other scenarios will want to switch to; remember that haters are the strategies we are switching from and hated are strategies we are switching to
             List<int> addedScenarioIndices = new List<int>();
             List<int> removedScenarioIndices = new List<int>();
             foreach (int candidate in candidateScenarioIndices)

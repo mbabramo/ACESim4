@@ -49,11 +49,11 @@ namespace ACESim
             return results;
         }
 
-        public int[] GetOrdered(int max, bool mostIncompatible, bool includeHaters, bool includeHated)
+        public int[] GetOrdered(int max, bool mostIncompatibleFirst, bool includeHaters, bool includeHated)
         {
             int[] results = CountIncompatibilities(max, includeHaters, includeHated);
             var zipped = Enumerable.Range(0, results.Length).Zip(results, (index, incompatibilities) => new { Index = index, Incompatibilities = incompatibilities });
-            return mostIncompatible ? zipped.OrderByDescending(x => x.Incompatibilities).Select(x => x.Index).ToArray() : zipped.OrderBy(x => x.Incompatibilities).Select(x => x.Index).ToArray();
+            return mostIncompatibleFirst ? zipped.OrderByDescending(x => x.Incompatibilities).Select(x => x.Index).ToArray() : zipped.OrderBy(x => x.Incompatibilities).Select(x => x.Index).ToArray();
         }
     }
 }

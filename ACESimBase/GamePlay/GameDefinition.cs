@@ -505,7 +505,8 @@ namespace ACESim
             if (AllScenarioPermutations == null)
             {
                 AllScenarioPermutations = PermutationMaker.GetPermutations(new List<int>() { NumPostWarmupOptionSets, WarmupsContributionToPermutations, NumDifferentWeightsOnOpponentsStrategyPerPlayer, VaryWeightOnOpponentsStrategySeparatelyForEachPlayer ? NumDifferentWeightsOnOpponentsStrategyPerPlayer : 1 }, true);
-                AllScenarioPermutations = AllScenarioPermutations.OrderBy(x => Math.Abs(WeightOnOpponentsStrategyDuringWarmup(x[2]))).ThenBy(x => Math.Abs(WeightOnOpponentsStrategyDuringWarmup(x[3]))).ToList(); // place lowest absolute weight values first
+                RandomSubset.Shuffle(AllScenarioPermutations, 0); // note that we will use a fixed random seed to get consistent results (we won't be running this twice)
+                //AllScenarioPermutations = AllScenarioPermutations.OrderBy(x => Math.Abs(WeightOnOpponentsStrategyDuringWarmup(x[2]))).ThenBy(x => Math.Abs(WeightOnOpponentsStrategyDuringWarmup(x[3]))).ToList(); // place lowest absolute weight values first
                 if (!VaryWeightOnOpponentsStrategySeparatelyForEachPlayer)
                     foreach (var p in AllScenarioPermutations)
                         p[3] = p[2];
