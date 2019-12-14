@@ -1,5 +1,6 @@
 ﻿using ACESim;
 using ACESimBase.GameSolvingSupport;
+using static ACESim.SummaryStatistics;
 using ACESimBase.Util;
 using System;
 using System.Collections.Generic;
@@ -80,8 +81,8 @@ namespace ACESim
                 if (constructCorrelatedEquilibrium)
                 {
                     RememberScenarioForCorrelatedEquilibrium(overallScenarioIndex);
-                    if ((overallScenarioIndex + 1) % EvolutionSettings.ReduceCorrelatedEquilibriumEveryNScenarios == 0)
-                        ReduceCorrelatedEquilibrium();
+                    if ((overallScenarioIndex + 1) % EvolutionSettings.ReduceCorrelatedEquilibriumEveryNScenarios == 0 && EvolutionSettings.CheckCorrelatedEquilibriumIncompatibilitiesAlongWay)
+                        ReduceToCorrelatedEquilibrium_BasedOnPredeterminedIncompatibilities();
                 }
                 else
                     reportCollection.Add(reportToAddToCollection); // if constructing correlated equilibrium, we ignore the interim reports
@@ -109,38 +110,44 @@ namespace ACESim
                     throw new Exception("Must set RecordPastValues");
                 foreach (var informationSet in InformationSets)
                 {
-                    informationSet.PastValuesCumulativeStrategyDiscounts.Add(0);
+                    informationSet.PastValuesCumulativeStrategyDiscounts.Add(0); // all 0's indicates that each is equal
                     informationSet.RecordProbabilitiesAsPastValues();
                 }
                 RememberedStatuses.Add(Status.DeepCopy());
-                int incompatibilityCount = 0;
-                int mostRecentIndex = InformationSets.First().LastPastValueIndexRecorded;
-                for (int i = 0; i < mostRecentIndex; i++) // each index before most recent
+                if (EvolutionSettings.CheckCorrelatedEquilibriumIncompatibilitiesAlongWay)
                 {
-                    bool someoneSwitchesToMostRecent, someoneSwitchesFromMostRecent;
-                    CheckForCompatibilityInCorrelatedEquilibrium(i, mostRecentIndex, out someoneSwitchesToMostRecent, out someoneSwitchesFromMostRecent);
-                    bool isIncompatible = someoneSwitchesFromMostRecent || someoneSwitchesToMostRecent;
-                    if (isIncompatible)
+                    int incompatibilityCount = 0;
+                    int mostRecentIndex = InformationSets.First().LastPastValueIndexRecorded;
+                    for (int i = 0; i < mostRecentIndex; i++) // each index before most recent
                     {
-                        int earlierScenarioIndex = RememberedStatuses[i].ScenarioIndex;
-                        Incompabilities.AddIncompability(earlierScenarioIndex, overallScenarioIndex, iHatesJ: someoneSwitchesToMostRecent, jHatesI: someoneSwitchesFromMostRecent); // i.e., we're interpreting the hated one as the one switched to
-                        incompatibilityCount++;
+                        bool someoneSwitchesToMostRecent, someoneSwitchesFromMostRecent;
+                        CheckForCompatibilityInCorrelatedEquilibrium(i, mostRecentIndex, out someoneSwitchesToMostRecent, out someoneSwitchesFromMostRecent);
+                        bool isIncompatible = someoneSwitchesFromMostRecent || someoneSwitchesToMostRecent;
+                        if (isIncompatible)
+                        {
+                            int earlierScenarioIndex = RememberedStatuses[i].ScenarioIndex;
+                            Incompabilities.AddIncompability(earlierScenarioIndex, overallScenarioIndex, iHatesJ: someoneSwitchesToMostRecent, jHatesI: someoneSwitchesFromMostRecent); // i.e., we're interpreting the hated one as the one switched to
+                            incompatibilityCount++;
+                        }
                     }
+                    TabbedText.WriteLine($"Scenario index {overallScenarioIndex} incompabilities: {incompatibilityCount}");
                 }
-                TabbedText.WriteLine($"Scenario index {overallScenarioIndex} incompabilities: {incompatibilityCount}");
-                //if (disqualified)
-                //{
-                //    // Remove the past value
-                //    int removeAtIndex = InformationSets.First().LastPastValueIndexRecorded;
-                //    RemovePastValueRecordedIndex(removeAtIndex);
-                //}
-                //else
-                //    TabbedText.WriteLine($"Scenario index {overallScenarioIndex} added to correlated equilibrium at index {mostRecentIndex}");
             }
             if (EvolutionSettings.SerializeResults && !(this is PlaybackOnly))
             {
                 SerializeScenario(overallScenarioIndex);
             }
+        }
+
+        private bool IsCompatibleWithAllAlreadyInCorrelatedEquilibrium(int i, IEnumerable<int> js)
+        {
+            return js.All(j => AreCompatibleInCorrelatedEquilibrium(i, j));
+        }
+
+        private bool AreCompatibleInCorrelatedEquilibrium(int i, int j)
+        {
+            CheckForCompatibilityInCorrelatedEquilibrium(i, j, out bool someoneSwitchesFromIToJ, out bool someoneSwitchesFromJToI);
+            return !someoneSwitchesFromIToJ && !someoneSwitchesFromJToI;
         }
 
         private void CheckForCompatibilityInCorrelatedEquilibrium(int i, int j, out bool someoneSwitchesFromIToJ, out bool someoneSwitchesFromJToI)
@@ -161,13 +168,63 @@ namespace ACESim
 
         private async Task<ReportCollection> FinalizeCorrelatedEquilibrium()
         {
-            ReduceCorrelatedEquilibrium();
+            if (EvolutionSettings.CheckCorrelatedEquilibriumIncompatibilitiesAlongWay)
+                ReduceToCorrelatedEquilibrium_BasedOnPredeterminedIncompatibilities();
+            else
+                ReduceToCorrelatedEquilibrium_DeterminingIncompatibilitiesNow();
             ReportCollection reportCollection = new ReportCollection();
             await CompleteMainReports(reportCollection, new List<ActionStrategies>() { ActionStrategies.CorrelatedEquilibrium });
             return reportCollection;
         }
 
-        private void ReduceCorrelatedEquilibrium()
+        public void ReduceToCorrelatedEquilibrium_DeterminingIncompatibilitiesNow()
+        {
+            // basic strategy is to take items one at a time, finding items that are furthest separated based on the utility scores
+            List<int> includedItems = new List<int>();
+            int numCandidates = RememberedStatuses.Count;
+            bool[] consideredItems = new bool[numCandidates]; // initialized to false
+            double p0AvgUtility = RememberedStatuses.Average(x => x.UtilitiesOverall[0]);
+            double p0Stdev = SummaryStatistics.Stdev(RememberedStatuses.Select(x => x.UtilitiesOverall[0]));
+            double p1AvgUtility = RememberedStatuses.Average(x => x.UtilitiesOverall[1]);
+            double p1Stdev = SummaryStatistics.Stdev(RememberedStatuses.Select(x => x.UtilitiesOverall[1]));
+            List<double> p0Z = RememberedStatuses.Select(x => (x.UtilitiesOverall[0] - p0AvgUtility) / p0Stdev).ToList();
+            List<double> p1Z = RememberedStatuses.Select(x => (x.UtilitiesOverall[1] - p1AvgUtility) / p1Stdev).ToList();
+            List<(double p0, double p1)> p0p1Z = p0Z.Zip(p1Z, (p0, p1) => (p0, p1)).ToList();
+            List<double> sumZ = p0p1Z.Select(x => x.p0 + x.p1).ToList();
+            int initialItem = Enumerable.Range(0, numCandidates).Select((candidate, index) => (sumZ[candidate], index)).OrderBy(y => y.Item1).First().index; // item with highest sum of utilities -- note that utilities may be on different scales
+            includedItems.Add(initialItem);
+            consideredItems[initialItem] = true;
+            double GetSqDistance(int i, int j)
+            {
+                return ((p0Z[i] - p1Z[i]) * (p0Z[i] - p1Z[i]) + (p0Z[j] - p1Z[j]) * (p0Z[j] - p1Z[j]));
+            }
+            int GetItemToConsider()
+            {
+                double highestTotalSqDistance = 0;
+                int indexWithHighestTotalSqDistance = -1;
+                for (int i = 0; i < consideredItems.Length; i++)
+                {
+                    double totalSqDistance = 0;
+                    foreach (int includedItem in includedItems)
+                        totalSqDistance += GetSqDistance(i, includedItem);
+                    if (totalSqDistance > highestTotalSqDistance)
+                    {
+                        highestTotalSqDistance = totalSqDistance;
+                        indexWithHighestTotalSqDistance = i;
+                    }
+                }
+                return indexWithHighestTotalSqDistance;
+            }
+            while (consideredItems.Any(x => x == false))
+            {
+                int itemToConsider = GetItemToConsider();
+                if (IsCompatibleWithAllAlreadyInCorrelatedEquilibrium(itemToConsider, includedItems))
+                    includedItems.Add(itemToConsider);
+                consideredItems[itemToConsider] = true;
+            }
+        }
+
+        private void ReduceToCorrelatedEquilibrium_BasedOnPredeterminedIncompatibilities()
         {
             TabbedText.WriteLine($"Reducing correlated equilibrium...");
             //int[] candidateScenarioIndices = Incompabilities.GetOrdered(GameDefinition.NumScenarioPermutations, mostIncompatibleFirst: false, includeHaters: true, includeHated: false); // consider last the scenarios that the most other scenarios will want to switch from; remember that haters are the strategies we are switching from and hated are strategies we are switching to
