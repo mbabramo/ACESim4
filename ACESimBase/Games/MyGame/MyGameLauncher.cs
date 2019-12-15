@@ -139,7 +139,7 @@ namespace ACESim
             }
         }
 
-        private void AddShootoutMainPermutations(List<(string optionSetName, GameOptions options)> optionSets)
+        private void AddShootoutMainPermutatio(List<(string optionSetName, GameOptions options)> optionSets)
         {
             RiskAversion riskAverse = RiskAversion.RiskNeutral;
             foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("basecosts", 1.0), ("highcosts", 3.0) })
