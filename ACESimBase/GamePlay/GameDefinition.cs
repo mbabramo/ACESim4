@@ -474,8 +474,8 @@ namespace ACESim
         public virtual int NumPostWarmupOptionSets => 1;
         public virtual int NumWarmupOptionSets => 0;
         public virtual int WarmupIterations_IfWarmingUp => 200;
-        public bool UseDifferentWarmup => NumWarmupOptionSets > 0 || NumDifferentWeightsOnOpponentsStrategy > 0;
-        public int NumScenariosToInitialize => NumPostWarmupOptionSets + NumWarmupOptionSets;
+        public bool UseDifferentWarmup => PlayMultipleScenarios && (NumWarmupOptionSets > 0 || NumDifferentWeightsOnOpponentsStrategy > 0);
+        public int NumScenariosToInitialize => PlayMultipleScenarios ? NumPostWarmupOptionSets + NumWarmupOptionSets : 1;
         public int? IterationsForWarmupScenario => UseDifferentWarmup ? (int?) WarmupIterations_IfWarmingUp : (int?) null;
 
 
@@ -494,7 +494,7 @@ namespace ACESim
             (GetParameterInRange(MinMaxWeightOnOpponentsStrategyDuringWarmup.Item1, MinMaxWeightOnOpponentsStrategyDuringWarmup.Item2, weightsPermutationValue, NumDifferentWeightsOnOpponentsStrategyPerPlayer))
             : 0;
         private int WarmupsContributionToPermutations => (NumWarmupOptionSets == 0 ? 1 : NumWarmupOptionSets);
-        public int NumScenarioPermutations => NumPostWarmupOptionSets * WarmupsContributionToPermutations * NumDifferentWeightsOnOpponentsStrategy;
+        public int NumScenarioPermutations => PlayMultipleScenarios ? NumPostWarmupOptionSets * WarmupsContributionToPermutations * NumDifferentWeightsOnOpponentsStrategy : 1;
 
         public List<List<int>> AllScenarioPermutations;
 

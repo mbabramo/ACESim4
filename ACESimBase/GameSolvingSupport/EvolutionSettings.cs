@@ -25,12 +25,15 @@ namespace ACESim
         }; // will end early if this target is reached
         public bool CreateInformationSetCharts = false; 
         public int? ReportEveryNIterations = 1000;
-        public bool ConstructCorrelatedEquilibrium = true; // DEBUG
-        public bool ConstructCorrelatedEquilibriumMultipleTimesExPost = true; // DEBUG
+
+        // CORRELATED EQ SETTINGS
+        public bool ConstructCorrelatedEquilibrium = false; // DEBUG
+        public bool ConstructCorrelatedEquilibriumMultipleTimesExPost = true;
         public int MaxNumCorrelatedEquilibriaToConstruct = 125;
         public bool CheckCorrelatedEquilibriumIncompatibilitiesAlongWay = false;
-        public int ReduceCorrelatedEquilibriumEveryNScenariosIfCheckingAlongWay = 100; // DEBUG 
-        public int CorrelatedEquilibriumCalculationsEveryNIterations = 100000;
+        public int ReduceCorrelatedEquilibriumEveryNScenariosIfCheckingAlongWay = EffectivelyNever; 
+        public int CorrelatedEquilibriumCalculationsEveryNIterations = 100000; // Maybe obsolete -- old approach to CE
+
         public const int EffectivelyNever = 999999999;
         public int? BestResponseEveryMIterations = 100; // For partial recall games, this is very costly, so consider using EffectivelyNever.
         public bool RememberBestResponseExploitability = true;

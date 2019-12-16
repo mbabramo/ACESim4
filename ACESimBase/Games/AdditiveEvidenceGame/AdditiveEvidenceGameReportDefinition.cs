@@ -66,23 +66,23 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     new SimpleReportFilter("Trial", (GameProgress gp) => AEGP(gp).TrialOccurs),
                     new SimpleReportFilter("Shifting", (GameProgress gp) => AEGP(gp).ShiftingOccurs),
                 };
-                foreach ((string prefix, Func<GameProgress, int, bool> filter, int n) r in new (string prefix, Func<GameProgress, int, bool> filter, int n)[]
+                foreach ((string prefix, Func<GameProgress, byte, bool> filter, int n) r in new (string prefix, Func<GameProgress, byte, bool> filter, int n)[]
                 {
-                    ("PQuality", (GameProgress gp, int s) => AEGP(gp).Chance_Plaintiff_Quality == s, Options.NumQualityAndBiasLevels),
-                    ("DQuality", (GameProgress gp, int s) => AEGP(gp).Chance_Defendant_Quality == s, Options.NumQualityAndBiasLevels),
-                    ("NQuality", (GameProgress gp, int s) => AEGP(gp).Chance_Neither_Quality == s, Options.NumQualityAndBiasLevels),
-                    ("PBias", (GameProgress gp, int s) => AEGP(gp).Chance_Plaintiff_Bias == s, Options.NumQualityAndBiasLevels),
-                    ("DBias", (GameProgress gp, int s) => AEGP(gp).Chance_Defendant_Bias == s, Options.NumQualityAndBiasLevels),
-                    ("NBias", (GameProgress gp, int s) => AEGP(gp).Chance_Neither_Bias == s, Options.NumQualityAndBiasLevels),
-                    ("POffer", (GameProgress gp, int s) => AEGP(gp).Chance_Defendant_Bias == s, Options.NumOffers),
-                    ("DOffer", (GameProgress gp, int s) => AEGP(gp).Chance_Neither_Bias == s, Options.NumOffers),
+                    ("PQuality", (GameProgress gp, byte s) => AEGP(gp).Chance_Plaintiff_Quality == s, Options.NumQualityAndBiasLevels),
+                    ("DQuality", (GameProgress gp, byte s) => AEGP(gp).Chance_Defendant_Quality == s, Options.NumQualityAndBiasLevels),
+                    ("NQuality", (GameProgress gp, byte s) => AEGP(gp).Chance_Neither_Quality == s, Options.NumQualityAndBiasLevels),
+                    ("PBias", (GameProgress gp, byte s) => AEGP(gp).Chance_Plaintiff_Bias == s, Options.NumQualityAndBiasLevels),
+                    ("DBias", (GameProgress gp, byte s) => AEGP(gp).Chance_Defendant_Bias == s, Options.NumQualityAndBiasLevels),
+                    ("NBias", (GameProgress gp, byte s) => AEGP(gp).Chance_Neither_Bias == s, Options.NumQualityAndBiasLevels),
+                    ("POffer", (GameProgress gp, byte s) => AEGP(gp).Chance_Defendant_Bias == s, Options.NumOffers),
+                    ("DOffer", (GameProgress gp, byte s) => AEGP(gp).Chance_Neither_Bias == s, Options.NumOffers),
                 })
                 {
                     for (byte signal = 1; signal <= r.n; signal++)
                     {
-                        byte s = signal; // avoid closure
+                        byte s = signal; // important -- avoid closure
                         rows.Add(
-                            new SimpleReportFilter(r.prefix + s, p => r.filter(p, signal)));
+                            new SimpleReportFilter(r.prefix + s, p => r.filter(p, s)));
                     }
                 }
             }

@@ -186,7 +186,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public override int NumPostWarmupOptionSets => 1;
         public override int NumWarmupOptionSets => 0; // Note that this can be 0.
-        public override int WarmupIterations_IfWarmingUp => 200;
+        public override int WarmupIterations_IfWarmingUp => 50; // CORRELATED EQ SETTING
         public override bool MultiplyWarmupScenariosByAlteringWeightOnOpponentsStrategy => true;
         public override int NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios => 10; // should be odd if we want to include zero
         public override bool VaryWeightOnOpponentsStrategySeparatelyForEachPlayer => true;
