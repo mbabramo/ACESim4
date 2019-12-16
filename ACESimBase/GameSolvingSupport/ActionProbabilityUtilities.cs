@@ -15,6 +15,7 @@ namespace ACESim
             // We're not necessarily using the same navigation approach as is used during CFRDevelopment, because the game tree may not be set up at the time this is called.
             HistoryPoint historyPoint = new HistoryPoint(null, gameProgress.GameHistory, gameProgress);
             HistoryNavigationInfo navigateDuringActualGamePlay = navigation.WithLookupApproach(InformationSetLookupApproach.CachedGameHistoryOnly);
+            // Note: Error here in testing could indicate attempt to play a move of "0" -- remember that moves are one-based
             IGameState gameStateForCurrentPlayer = navigateDuringActualGamePlay.GetGameState(in historyPoint);
             if (gameStateForCurrentPlayer == null)
                 throw new Exception("Internal error. This action has not been initialized.");

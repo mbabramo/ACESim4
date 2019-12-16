@@ -59,20 +59,22 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 return 0.5;
             if (AdditiveEvidenceGameOptions.FeeShiftingIsBasedOnMarginOfVictory)
             {
-                if (TrialValueIfOccurs > AdditiveEvidenceGameOptions.FeeShiftingThreshold)
+                // Note that with a threshold above 0.5, we always get fee shifting. We could multiply by 2 to adjust for that, but then it would be different in other ways from the regular fee shifting. 
+                if (TrialValueIfOccurs > 0.5 && TrialValueIfOccurs > 1.0 - AdditiveEvidenceGameOptions.FeeShiftingThreshold)
                     return 1.0;
-                else if (TrialValueIfOccurs < 1.0 - AdditiveEvidenceGameOptions.FeeShiftingThreshold)
+                else if (TrialValueIfOccurs <= 0.5 && TrialValueIfOccurs < AdditiveEvidenceGameOptions.FeeShiftingThreshold) // note we use less than or equal since we may end up with a TrialValue exactly equal to 0.5, and so we count this as a defendant win
                     return 0;
                 return 0.5;
             }
             else
             {
-                // the regular fee shifting is more complicated, because it requires considering only the info available to the player
+                // the regular fee shifting depends only on information available to the player, and it comes into effect only if the player wins.
+                // Note that 0 is the American rule and 1 is the British rule. 
                 bool considerShiftingToDefendant = TrialValueIfOccurs > 0.5;
                 if (considerShiftingToDefendant)
-                    return AnticipatedTrialValue_PInfo > AdditiveEvidenceGameOptions.FeeShiftingThreshold ? 1.0 : 0.5;
+                    return AnticipatedTrialValue_PInfo > 1.0 - AdditiveEvidenceGameOptions.FeeShiftingThreshold ? 1.0 : 0.5;
                 else
-                    return AnticipatedTrialValue_DInfo < 1.0 - AdditiveEvidenceGameOptions.FeeShiftingThreshold ? 0.0 : 0.5;
+                    return AnticipatedTrialValue_DInfo < AdditiveEvidenceGameOptions.FeeShiftingThreshold ? 0.0 : 0.5;
             }
 
         }

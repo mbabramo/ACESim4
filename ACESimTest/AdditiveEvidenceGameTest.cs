@@ -56,27 +56,38 @@ namespace ACESimTest
                 gameProgress.SettlementValue.Should().BeApproximately(settlementValue, 1E-10);
                 gameProgress.SettlementOrJudgment.Should().BeApproximately(settlementValue, 1E-10);
                 gameProgress.DsProportionOfCost.Should().Be(0.5);
+                gameProgress.PWelfare.Should().BeApproximately(settlementValue, 1E-10);
+                gameProgress.DWelfare.Should().BeApproximately(0 - settlementValue, 1E-10);
             }
         }
 
         [TestMethod]
         public void AdditiveEvidence_TrialValue()
         {
-            var gameOptions = GetOptions();
-            byte chancePlaintiffQuality = 3;
-            byte chanceDefendantQuality = 1;
-            byte chanceNeitherQuality = 5;
-            byte chancePlaintiffBias = 3;
-            byte chanceDefendantBias = 1;
-            byte chanceNeitherBias = 2;
-            AdditiveEvidence_TrialValue_Helper(gameOptions, chancePlaintiffQuality, chanceDefendantQuality, chanceNeitherQuality, chancePlaintiffBias, chanceDefendantBias, chanceNeitherBias);
+            Random r = new Random(1);
+            for (int i = 0; i < 10_000; i++)
+            {
+                var gameOptions = GetOptions();
 
-            gameOptions = GetOptions_DariMattiacci_Saraceno(6.0);
-            AdditiveEvidence_TrialValue_Helper(gameOptions, chancePlaintiffQuality, chanceDefendantQuality, chanceNeitherQuality, chancePlaintiffBias, chanceDefendantBias, chanceNeitherBias);
+                gameOptions.FeeShifting = r.Next(0, 2) == 0;
+                gameOptions.FeeShiftingIsBasedOnMarginOfVictory = r.Next(0, 2) == 0;
+                gameOptions.FeeShiftingThreshold = r.NextDouble();
+
+                byte chancePlaintiffQuality = (byte) r.Next(1, 6);
+                byte chanceDefendantQuality = (byte)r.Next(1, 6);
+                byte chanceNeitherQuality = (byte)r.Next(1, 6);
+                byte chancePlaintiffBias = (byte)r.Next(1, 6);
+                byte chanceDefendantBias = (byte)r.Next(1, 6);
+                byte chanceNeitherBias = (byte)r.Next(1, 6);
+                AdditiveEvidence_TrialValue_Helper(gameOptions, chancePlaintiffQuality, chanceDefendantQuality, chanceNeitherQuality, chancePlaintiffBias, chanceDefendantBias, chanceNeitherBias, gameOptions.FeeShifting, gameOptions.FeeShiftingIsBasedOnMarginOfVictory, gameOptions.FeeShiftingThreshold);
+
+                gameOptions = GetOptions_DariMattiacci_Saraceno(6.0);
+                AdditiveEvidence_TrialValue_Helper(gameOptions, chancePlaintiffQuality, chanceDefendantQuality, chanceNeitherQuality, chancePlaintiffBias, chanceDefendantBias, chanceNeitherBias, gameOptions.FeeShifting, gameOptions.FeeShiftingIsBasedOnMarginOfVictory, gameOptions.FeeShiftingThreshold);
+            }
 
         }
 
-        private static void AdditiveEvidence_TrialValue_Helper(AdditiveEvidenceGameOptions gameOptions, byte chancePlaintiffQuality, byte chanceDefendantQuality, byte chanceNeitherQuality, byte chancePlaintiffBias, byte chanceDefendantBias, byte chanceNeitherBias)
+        private static void AdditiveEvidence_TrialValue_Helper(AdditiveEvidenceGameOptions gameOptions, byte chancePlaintiffQuality, byte chanceDefendantQuality, byte chanceNeitherQuality, byte chancePlaintiffBias, byte chanceDefendantBias, byte chanceNeitherBias, bool feeShifting, bool basedOnMarginOfVictory, double feeShiftingThreshold)
         {
             double chancePQualityDouble = (chancePlaintiffQuality) / (gameOptions.NumQualityAndBiasLevels + 1.0);
             double chanceDQualityDouble = (chanceDefendantQuality) / (gameOptions.NumQualityAndBiasLevels + 1.0);
@@ -97,7 +108,46 @@ namespace ACESimTest
             gameProgress.BiasSum_PInfoOnly.Should().BeApproximately((gameOptions.Alpha_Both_Bias * gameOptions.Evidence_Both_Bias + gameOptions.Alpha_Plaintiff_Bias * chancePBiasDouble) / (gameOptions.Alpha_Both_Bias + gameOptions.Alpha_Plaintiff_Bias), 1E-10);
             gameProgress.BiasSum_DInfoOnly.Should().BeApproximately((gameOptions.Alpha_Both_Bias * gameOptions.Evidence_Both_Bias + gameOptions.Alpha_Defendant_Bias * chanceDBiasDouble) / (gameOptions.Alpha_Both_Bias + gameOptions.Alpha_Defendant_Bias), 1E-10);
 
-            gameProgress.TrialValueIfOccurs.Should().BeApproximately((gameOptions.Alpha_Quality * gameProgress.QualitySum + gameOptions.Alpha_Bias * gameProgress.BiasSum), 1E-10);
+            double trialValue = (gameOptions.Alpha_Quality * gameProgress.QualitySum + gameOptions.Alpha_Bias * gameProgress.BiasSum);
+            gameProgress.TrialValueIfOccurs.Should().BeApproximately(trialValue, 1E-10);
+            gameProgress.SettlementOrJudgment.Should().BeApproximately(trialValue, 1E-10);
+
+            if (feeShifting)
+            {
+                bool pWins = trialValue > 0.5;
+                bool feeShiftingShouldOccur = false;
+                if (basedOnMarginOfVictory)
+                {
+                    if (pWins && trialValue > 1 - feeShiftingThreshold)
+                        feeShiftingShouldOccur = true;
+                    else if (!pWins && trialValue < feeShiftingThreshold)
+                        feeShiftingShouldOccur = true;
+                    if (feeShiftingThreshold > 0.5)
+                        feeShiftingShouldOccur.Should().BeTrue(); // only makes a difference between 0 and 0.5
+                }
+                else
+                {
+                    if (!pWins && gameProgress.AnticipatedTrialValue_DInfo < feeShiftingThreshold)
+                        feeShiftingShouldOccur = true;
+                    else if (pWins && gameProgress.AnticipatedTrialValue_PInfo > 1 - feeShiftingThreshold)
+                        feeShiftingShouldOccur = true;
+                }
+                gameProgress.ShiftingOccurs.Should().Be(feeShiftingShouldOccur);
+                if (feeShiftingShouldOccur)
+                    gameProgress.DsProportionOfCost.Should().Be(pWins ? 1.0 : 0.0);
+                else
+                    gameProgress.DsProportionOfCost.Should().Be(0.5);
+                gameProgress.PTrialEffect.Should().BeApproximately(gameProgress.TrialValueIfOccurs - (1.0 - gameProgress.DsProportionOfCost) * gameOptions.TrialCost, 1E-10);
+                gameProgress.DTrialEffect.Should().BeApproximately(0 - gameProgress.TrialValueIfOccurs - gameProgress.DsProportionOfCost * gameOptions.TrialCost, 1E-10);
+            }
+            else
+            {
+                gameProgress.ShiftingOccurs.Should().Be(false);
+                gameProgress.PTrialEffect.Should().BeApproximately(gameProgress.TrialValueIfOccurs - 0.5 * gameOptions.TrialCost, 1E-10);
+                gameProgress.DTrialEffect.Should().BeApproximately(0 - gameProgress.TrialValueIfOccurs - 0.5 * gameOptions.TrialCost, 1E-10);
+            }
+            gameProgress.PWelfare.Should().Be(gameProgress.PTrialEffect);
+            gameProgress.DWelfare.Should().Be(gameProgress.DTrialEffect);
         }
 
         [TestMethod]
