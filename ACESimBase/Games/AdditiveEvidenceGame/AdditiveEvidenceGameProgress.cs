@@ -46,8 +46,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public double AnticipatedTrialValue_PInfo => AdditiveEvidenceGameOptions.Alpha_Quality * QualitySum_PInfoOnly + AdditiveEvidenceGameOptions.Alpha_Bias * BiasSum_PInfoOnly;
         public double AnticipatedTrialValue_DInfo => AdditiveEvidenceGameOptions.Alpha_Quality * QualitySum_DInfoOnly + AdditiveEvidenceGameOptions.Alpha_Bias * BiasSum_DInfoOnly;
         public double? TrialValuePreShifting => TrialOccurs ? TrialValueIfOccurs : (double?)null;
-        public double? PTrialEffect => TrialOccurs ? TrialValueIfOccurs - (1.0 - DsProportionOfCost) * AdditiveEvidenceGameOptions.TrialCost : (double?) null;
-        public double? DTrialEffect => TrialOccurs ? 0 - TrialValueIfOccurs - (DsProportionOfCost) * AdditiveEvidenceGameOptions.TrialCost : (double?) null;
+        public double PTrialEffect_IfOccurs => TrialValueIfOccurs - (1.0 - DsProportionOfCost) * AdditiveEvidenceGameOptions.TrialCost;
+        public double DTrialEffect_IfOccurs => 0 - TrialValueIfOccurs - (DsProportionOfCost) * AdditiveEvidenceGameOptions.TrialCost;
+        public double? PTrialEffect => TrialOccurs ? PTrialEffect_IfOccurs : (double?) null;
+        public double? DTrialEffect => TrialOccurs ? DTrialEffect_IfOccurs : (double?) null;
 
         public double SettlementOrJudgment => TrialOccurs ? (double) TrialValueIfOccurs : (double) SettlementValue;
 
@@ -82,6 +84,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
 
         public double AccuracyIgnoringCosts => Math.Abs(PWelfare - SettlementOrJudgment);
+        public double AccuracyIgnoringCostsSquared => AccuracyIgnoringCosts * AccuracyIgnoringCosts;
         public double Accuracy_ForPlaintiff => Math.Abs(PWelfare - QualitySum);
         public double Accuracy_ForDefendant => Math.Abs(DWelfare + QualitySum);
 
@@ -125,7 +128,7 @@ AccuracyIgnoringCosts {AccuracyIgnoringCosts} Accuracy_ForPlaintiff {Accuracy_Fo
         {
             return new FloatSet(
                 TrialOccurs ? 1.0f : 0,
-                (float) AccuracyIgnoringCosts,
+                (float) AccuracyIgnoringCostsSquared,
                 (float) PWelfare,
                 (float) DWelfare
                 );

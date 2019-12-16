@@ -8,6 +8,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
     [Serializable]
     public class AdditiveEvidenceGameOptions : GameOptions
     {
+        public bool FirstRowOnly => false; // simplifies the reporting
+
         // The evidence shared by both parties is a parameter. The evidence that one or neither party has is determined by chance.
         public double Evidence_Both_Quality;
         public double Evidence_Both_Bias;
@@ -32,6 +34,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public double Alpha_Plaintiff_Bias;
         public double Alpha_Defendant_Bias;
         public double Alpha_Neither_Bias => Alpha_Neither_Bias_Helper();
+
         private double Alpha_Neither_Bias_Helper()
         {
             double calc = (1.0 - Alpha_Both_Bias - Alpha_Plaintiff_Bias - Alpha_Defendant_Bias);
