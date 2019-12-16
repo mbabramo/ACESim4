@@ -40,7 +40,7 @@ namespace ACESimTest
 
         public AdditiveEvidenceGameOptions GetOptions_DariMattiacci_Saraceno(double evidenceBothQuality)
         {
-            return GetOptions(evidenceBothQuality: evidenceBothQuality, alphaBothBias: 0, alphaPBias: evidenceBothQuality, alphaDBias: 1.0 - evidenceBothQuality, alphaQuality: 0); // P's strength of information about bias is the same as the strength of the case. 
+            return GetOptions(evidenceBothQuality: evidenceBothQuality, alphaBothBias: 0, alphaPBias: evidenceBothQuality, alphaDBias: 1.0 - evidenceBothQuality, alphaQuality: 0.5); // P's strength of information about bias is the same as the strength of the case. Half of weight is on quality
         }
 
         [TestMethod]

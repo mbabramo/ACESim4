@@ -74,8 +74,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     ("PBias", (GameProgress gp, byte s) => AEGP(gp).Chance_Plaintiff_Bias == s, Options.NumQualityAndBiasLevels),
                     ("DBias", (GameProgress gp, byte s) => AEGP(gp).Chance_Defendant_Bias == s, Options.NumQualityAndBiasLevels),
                     ("NBias", (GameProgress gp, byte s) => AEGP(gp).Chance_Neither_Bias == s, Options.NumQualityAndBiasLevels),
-                    ("POffer", (GameProgress gp, byte s) => AEGP(gp).Chance_Defendant_Bias == s, Options.NumOffers),
-                    ("DOffer", (GameProgress gp, byte s) => AEGP(gp).Chance_Neither_Bias == s, Options.NumOffers),
+                    ("POffer", (GameProgress gp, byte s) => AEGP(gp).POffer == s, Options.NumOffers),
+                    ("DOffer", (GameProgress gp, byte s) => AEGP(gp).DOffer == s, Options.NumOffers),
                 })
                 {
                     for (byte signal = 1; signal <= r.n; signal++)
