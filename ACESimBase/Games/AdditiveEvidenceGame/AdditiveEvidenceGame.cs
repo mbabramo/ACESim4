@@ -47,6 +47,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.DOffer:
                     MyProgress.DOffer = action;
+                    if (action >= MyProgress.POffer)
+                        MyProgress.GameComplete = true;
                     break;
 
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Neither_Quality:

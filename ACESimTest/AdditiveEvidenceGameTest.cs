@@ -65,7 +65,7 @@ namespace ACESimTest
         public void AdditiveEvidence_TrialValue()
         {
             Random r = new Random(1);
-            for (int i = 0; i < 10_000; i++)
+            for (int i = 0; i < 1_000; i++)
             {
                 var gameOptions = GetOptions();
 
@@ -73,7 +73,7 @@ namespace ACESimTest
                 gameOptions.FeeShiftingIsBasedOnMarginOfVictory = r.Next(0, 2) == 0;
                 gameOptions.FeeShiftingThreshold = r.NextDouble();
 
-                byte chancePlaintiffQuality = (byte) r.Next(1, 6);
+                byte chancePlaintiffQuality = (byte)r.Next(1, 6);
                 byte chanceDefendantQuality = (byte)r.Next(1, 6);
                 byte chanceNeitherQuality = (byte)r.Next(1, 6);
                 byte chancePlaintiffBias = (byte)r.Next(1, 6);
@@ -89,14 +89,7 @@ namespace ACESimTest
 
         private static void AdditiveEvidence_TrialValue_Helper(AdditiveEvidenceGameOptions gameOptions, byte chancePlaintiffQuality, byte chanceDefendantQuality, byte chanceNeitherQuality, byte chancePlaintiffBias, byte chanceDefendantBias, byte chanceNeitherBias, bool feeShifting, bool basedOnMarginOfVictory, double feeShiftingThreshold)
         {
-            double chancePQualityDouble = (chancePlaintiffQuality) / (gameOptions.NumQualityAndBiasLevels + 1.0);
-            double chanceDQualityDouble = (chanceDefendantQuality) / (gameOptions.NumQualityAndBiasLevels + 1.0);
-            double chanceNQualityDouble = (chanceNeitherQuality) / (gameOptions.NumQualityAndBiasLevels + 1.0);
-            double chancePBiasDouble = (chancePlaintiffBias) / (gameOptions.NumQualityAndBiasLevels + 1.0);
-            double chanceDBiasDouble = (chanceDefendantBias) / (gameOptions.NumQualityAndBiasLevels + 1.0);
-            double chanceNBiasDouble = (chanceNeitherBias) / (gameOptions.NumQualityAndBiasLevels + 1.0);
-            Func<Decision, GameProgress, byte> actionsToPlay = AdditiveActionsGameActionsGenerator.PlaySpecifiedDecisions(chancePlaintiffQuality: chancePlaintiffQuality, chanceDefendantQuality: chanceDefendantQuality, chanceNeitherQuality: chanceNeitherQuality, chancePlaintiffBias: chancePlaintiffBias, chanceDefendantBias: chanceDefendantBias, chanceNeitherBias: chanceNeitherBias, pOffer: 3, dOffer: 2);
-            var gameProgress = AdditiveEvidenceGameLauncher.PlayAdditiveEvidenceGameOnce(gameOptions, actionsToPlay);
+            GetOptionsAndProgress(gameOptions, chancePlaintiffQuality, chanceDefendantQuality, chanceNeitherQuality, chancePlaintiffBias, chanceDefendantBias, chanceNeitherBias, 3, 2, out double chancePQualityDouble, out double chanceDQualityDouble, out double chanceNQualityDouble, out double chancePBiasDouble, out double chanceDBiasDouble, out double chanceNBiasDouble, out AdditiveEvidenceGameProgress gameProgress);
             gameProgress.SettlementOccurs.Should().BeFalse();
             gameProgress.TrialOccurs.Should().BeTrue();
 
@@ -150,18 +143,89 @@ namespace ACESimTest
             gameProgress.DWelfare.Should().Be(gameProgress.DTrialEffect);
         }
 
+        private static void GetOptionsAndProgress(AdditiveEvidenceGameOptions gameOptions, byte chancePlaintiffQuality, byte chanceDefendantQuality, byte chanceNeitherQuality, byte chancePlaintiffBias, byte chanceDefendantBias, byte chanceNeitherBias, byte pOffer, byte dOffer, out double chancePQualityDouble, out double chanceDQualityDouble, out double chanceNQualityDouble, out double chancePBiasDouble, out double chanceDBiasDouble, out double chanceNBiasDouble, out AdditiveEvidenceGameProgress gameProgress)
+        {
+            chancePQualityDouble = (chancePlaintiffQuality) / (gameOptions.NumQualityAndBiasLevels + 1.0);
+            chanceDQualityDouble = (chanceDefendantQuality) / (gameOptions.NumQualityAndBiasLevels + 1.0);
+            chanceNQualityDouble = (chanceNeitherQuality) / (gameOptions.NumQualityAndBiasLevels + 1.0);
+            chancePBiasDouble = (chancePlaintiffBias) / (gameOptions.NumQualityAndBiasLevels + 1.0);
+            chanceDBiasDouble = (chanceDefendantBias) / (gameOptions.NumQualityAndBiasLevels + 1.0);
+            chanceNBiasDouble = (chanceNeitherBias) / (gameOptions.NumQualityAndBiasLevels + 1.0);
+            Func<Decision, GameProgress, byte> actionsToPlay = AdditiveActionsGameActionsGenerator.PlaySpecifiedDecisions(chancePlaintiffQuality: chancePlaintiffQuality, chanceDefendantQuality: chanceDefendantQuality, chanceNeitherQuality: chanceNeitherQuality, chancePlaintiffBias: chancePlaintiffBias, chanceDefendantBias: chanceDefendantBias, chanceNeitherBias: chanceNeitherBias, pOffer: pOffer, dOffer: dOffer);
+            gameProgress = AdditiveEvidenceGameLauncher.PlayAdditiveEvidenceGameOnce(gameOptions, actionsToPlay);
+        }
+
         [TestMethod]
         public void AdditiveEvidence_InformationSets()
         {
-            throw new NotImplementedException();
+            Random r = new Random(1);
+            for (int i = 0; i < 1_000; i++)
+            {
+                var gameOptions = r.NextDouble() > 0.5 ? GetOptions() : GetOptions_DariMattiacci_Saraceno(r.NextDouble());
 
-            ////var informationSetHistories = myGameProgress.GameHistory.GetInformationSetHistoryItems().ToList();
-            //GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet, out string resolutionSet);
-            //var expectedPartyInformationSets = ConstructExpectedPartyInformationSets(LiabilityStrength, PLiabilitySignal, DLiabilitySignal, allowDamagesVariation, PDamagesSignal, DDamagesSignal, true, true, simulatingBargainingFailure, runningSideBetChallenges, bargainingRoundMoves, bargainingRoundRecall, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, allowAbandonAndDefault);
-            //string expectedResolutionSet = ConstructExpectedResolutionSet_CaseSettles(LiabilityStrength, allowDamagesVariation, DamagesStrength, true, true, simulatingBargainingFailure, bargainingRoundMoves, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, allowAbandonAndDefault, SideBetChallenges.Irrelevant, runningSideBetChallenges);
-            //pInformationSet.Should().Be(expectedPartyInformationSets.pInformationSet);
-            //dInformationSet.Should().Be(expectedPartyInformationSets.dInformationSet);
-            //resolutionSet.Should().Be(expectedResolutionSet);
+                gameOptions.FeeShifting = r.Next(0, 2) == 0;
+                gameOptions.FeeShiftingIsBasedOnMarginOfVictory = r.Next(0, 2) == 0;
+                gameOptions.FeeShiftingThreshold = r.NextDouble();
+
+                byte chancePlaintiffQuality = (byte)r.Next(1, 6);
+                byte chanceDefendantQuality = (byte)r.Next(1, 6);
+                byte chanceNeitherQuality = (byte)r.Next(1, 6);
+                byte chancePlaintiffBias = (byte)r.Next(1, 6);
+                byte chanceDefendantBias = (byte)r.Next(1, 6);
+                byte chanceNeitherBias = (byte)r.Next(1, 6);
+
+                bool playToTrial = r.NextDouble() > 0.5;
+
+                AdditiveEvidence_InformationSets_Helper(gameOptions, chancePlaintiffQuality, chanceDefendantQuality, chanceNeitherQuality, chancePlaintiffBias, chanceDefendantBias, chanceNeitherBias, playToTrial);
+            }
         }
+
+        private static void AdditiveEvidence_InformationSets_Helper(AdditiveEvidenceGameOptions gameOptions, byte chancePlaintiffQuality, byte chanceDefendantQuality, byte chanceNeitherQuality, byte chancePlaintiffBias, byte chanceDefendantBias, byte chanceNeitherBias, bool playToTrial)
+        {
+            byte pOffer = 3;
+            byte dOffer = playToTrial ? (byte)2 : (byte)4;
+            GetOptionsAndProgress(gameOptions, chancePlaintiffQuality, chanceDefendantQuality, chanceNeitherQuality, chancePlaintiffBias, chanceDefendantBias, chanceNeitherBias, pOffer, dOffer, out double chancePQualityDouble, out double chanceDQualityDouble, out double chanceNQualityDouble, out double chancePBiasDouble, out double chanceDBiasDouble, out double chanceNBiasDouble, out AdditiveEvidenceGameProgress gameProgress);
+
+            List<byte> pInfo = new List<byte>(), dInfo = new List<byte>(), rInfo = new List<byte>();
+            pInfo.Add(chancePlaintiffQuality);
+            dInfo.Add(chanceDefendantQuality);
+            pInfo.Add(chancePlaintiffBias);
+            dInfo.Add(chanceDefendantBias);
+
+            rInfo.Add(chancePlaintiffQuality);
+            rInfo.Add(chanceDefendantQuality);
+            rInfo.Add(chancePlaintiffBias);
+            rInfo.Add(chanceDefendantBias);
+            rInfo.Add(pOffer);
+            rInfo.Add(dOffer);
+            if (playToTrial)
+            {
+                rInfo.Add(chanceNeitherQuality);
+                rInfo.Add(chanceNeitherBias);
+            }
+
+            string expectedPString = String.Join(",", pInfo.ToArray());
+            string expectedDString = String.Join(",", dInfo.ToArray());
+            string expectedRString = String.Join(",", rInfo.ToArray());
+            GetInformationSetStrings(gameProgress, out string pInformationSet, out string dInformationSet, out string resolutionSet);
+            pInformationSet.Should().Be(expectedPString);
+            dInformationSet.Should().Be(expectedDString);
+            resolutionSet.Should().Be(expectedRString);
+        }
+
+        private static void GetInformationSetStrings(AdditiveEvidenceGameProgress AdditiveEvidenceGameProgress, out string pInformationSet,
+            out string dInformationSet, out string resolutionSet)
+        {
+            pInformationSet = AdditiveEvidenceGameProgress.InformationSetLog.GetPlayerInformationAtPointString((byte)AdditiveEvidenceGamePlayers.Plaintiff, null);
+            dInformationSet = AdditiveEvidenceGameProgress.InformationSetLog.GetPlayerInformationAtPointString((byte)AdditiveEvidenceGamePlayers.Defendant, null);
+            resolutionSet = AdditiveEvidenceGameProgress.InformationSetLog.GetPlayerInformationAtPointString((byte)AdditiveEvidenceGamePlayers.Resolution, null);
+            string pInformationSet2 = AdditiveEvidenceGameProgress.GameHistory.GetCurrentPlayerInformationString((byte)AdditiveEvidenceGamePlayers.Plaintiff);
+            string dInformationSet2 = AdditiveEvidenceGameProgress.GameHistory.GetCurrentPlayerInformationString((byte)AdditiveEvidenceGamePlayers.Defendant);
+            string resolutionSet2 = AdditiveEvidenceGameProgress.GameHistory.GetCurrentPlayerInformationString((byte)AdditiveEvidenceGamePlayers.Resolution);
+            pInformationSet.Should().Be(pInformationSet2);
+            dInformationSet.Should().Be(dInformationSet2);
+            resolutionSet.Should().Be(resolutionSet2);
+        }
+
     }
 }

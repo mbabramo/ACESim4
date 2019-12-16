@@ -23,6 +23,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public byte POffer;
         public byte DOffer;
+
         public double POfferContinuous => EquallySpaced.GetLocationOfEquallySpacedPoint(POffer - 1 /* make it zero-based */, AdditiveEvidenceGameOptions.NumOffers, false);
         public double DOfferContinuous => EquallySpaced.GetLocationOfEquallySpacedPoint(DOffer - 1 /* make it zero-based */, AdditiveEvidenceGameOptions.NumOffers, false);
 
