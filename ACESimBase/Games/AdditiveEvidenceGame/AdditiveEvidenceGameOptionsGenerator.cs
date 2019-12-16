@@ -4,7 +4,7 @@ using System.Text;
 
 namespace ACESimBase.Games.AdditiveEvidenceGame
 {
-    class AdditiveEvidenceOptionsGenerator
+    public class AdditiveEvidenceGameOptionsGenerator
     {
         public enum AdditiveEvidenceOptionSetChoices
         {
@@ -15,14 +15,13 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         static AdditiveEvidenceOptionSetChoices AdditiveEvidenceChoice => AdditiveEvidenceOptionSetChoices.EvenStrength;
 
-        public static AdditiveEvidenceGameOptions GetAdditiveEvidenceOptions() => AdditiveEvidenceChoice switch
+        public static AdditiveEvidenceGameOptions GetAdditiveEvidenceGameOptions() => AdditiveEvidenceChoice switch
         {
             AdditiveEvidenceOptionSetChoices.EvenStrength => Usual(0.5),
             AdditiveEvidenceOptionSetChoices.PStrong => Usual(0.65), // note that these are between 1/3 and 2/3, as in the mathematical model
             AdditiveEvidenceOptionSetChoices.DStrong => Usual(0.35),
             _ => throw new Exception()
         };
-
 
         public static AdditiveEvidenceGameOptions Usual(double quality, bool overrideQualityLimits = false)
         {

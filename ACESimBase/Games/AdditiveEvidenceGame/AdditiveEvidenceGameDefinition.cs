@@ -31,7 +31,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             DecisionsExecutionOrder = GetDecisionsList();
             CalculateDistributorChanceInputDecisionMultipliers();
 
-            IGameFactory gameFactory = new MyGameFactory();
+            IGameFactory gameFactory = new AdditiveEvidenceGameFactory();
             Initialize(gameFactory);
         }
 
