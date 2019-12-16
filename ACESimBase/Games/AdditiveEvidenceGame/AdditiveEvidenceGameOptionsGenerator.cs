@@ -38,8 +38,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
             options.TrialCost = costs;
 
-            options.NumOffers = 5;
-            options.NumQualityAndBiasLevels = 5;
+            options.NumOffers = 20;
+            options.NumQualityAndBiasLevels = 20;
             return options;
         }
     }

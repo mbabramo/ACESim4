@@ -38,6 +38,34 @@ namespace ACESimTest
             return options;
         }
 
+        private AdditiveEvidenceGameOptions GetOptions(Random r, byte numQualityAndBiasLevels = 10, byte numOffers = 5, double trialCost = 0.1, bool feeShifting = false, bool feeShiftingBasedOnMarginOfVictory = false, double feeShiftingThreshold = 0.7)
+        {
+            double z() => r.NextDouble() < 0.3 ? 0 : r.NextDouble();
+            while (true)
+            {
+                var options = new AdditiveEvidenceGameOptions()
+                {
+                    Evidence_Both_Quality = z(),
+                    Evidence_Both_Bias = z(),
+                    Alpha_Quality = z(),
+                    Alpha_Both_Quality = z(),
+                    Alpha_Plaintiff_Quality = z(),
+                    Alpha_Defendant_Quality = z(),
+                    Alpha_Both_Bias = z(),
+                    Alpha_Plaintiff_Bias = z(),
+                    Alpha_Defendant_Bias = z(),
+                    NumQualityAndBiasLevels = numQualityAndBiasLevels,
+                    NumOffers = numOffers,
+                    TrialCost = trialCost,
+                    FeeShifting = feeShifting,
+                    FeeShiftingIsBasedOnMarginOfVictory = feeShiftingBasedOnMarginOfVictory,
+                    FeeShiftingThreshold = feeShiftingThreshold
+                };
+                if (options.Alpha_Both_Quality + options.Alpha_Plaintiff_Quality + options.Alpha_Defendant_Quality <= 1.0 && options.Alpha_Both_Bias + options.Alpha_Plaintiff_Bias + options.Alpha_Defendant_Bias <= 1.0)
+                    return options;
+            }
+        }
+
         public AdditiveEvidenceGameOptions GetOptions_DariMattiacci_Saraceno(double evidenceBothQuality)
         {
             return GetOptions(evidenceBothQuality: evidenceBothQuality, alphaBothBias: 0, alphaPBias: evidenceBothQuality, alphaDBias: 1.0 - evidenceBothQuality, alphaQuality: 0.5); // P's strength of information about bias is the same as the strength of the case. Half of weight is on quality
@@ -65,9 +93,9 @@ namespace ACESimTest
         public void AdditiveEvidence_TrialValue()
         {
             Random r = new Random(1);
-            for (int i = 0; i < 1_000; i++)
+            for (int i = 0; i < 2_000; i++)
             {
-                var gameOptions = GetOptions();
+                var gameOptions = GetOptions(r);
 
                 gameOptions.FeeShifting = r.Next(0, 2) == 0;
                 gameOptions.FeeShiftingIsBasedOnMarginOfVictory = r.Next(0, 2) == 0;
@@ -81,7 +109,7 @@ namespace ACESimTest
                 byte chanceNeitherBias = (byte)r.Next(1, 6);
                 AdditiveEvidence_TrialValue_Helper(gameOptions, chancePlaintiffQuality, chanceDefendantQuality, chanceNeitherQuality, chancePlaintiffBias, chanceDefendantBias, chanceNeitherBias, gameOptions.FeeShifting, gameOptions.FeeShiftingIsBasedOnMarginOfVictory, gameOptions.FeeShiftingThreshold);
 
-                gameOptions = GetOptions_DariMattiacci_Saraceno(6.0);
+                gameOptions = GetOptions_DariMattiacci_Saraceno(0.6);
                 AdditiveEvidence_TrialValue_Helper(gameOptions, chancePlaintiffQuality, chanceDefendantQuality, chanceNeitherQuality, chancePlaintiffBias, chanceDefendantBias, chanceNeitherBias, gameOptions.FeeShifting, gameOptions.FeeShiftingIsBasedOnMarginOfVictory, gameOptions.FeeShiftingThreshold);
             }
 
@@ -93,13 +121,21 @@ namespace ACESimTest
             gameProgress.SettlementOccurs.Should().BeFalse();
             gameProgress.TrialOccurs.Should().BeTrue();
 
-            gameProgress.QualitySum.Should().BeApproximately((gameOptions.Alpha_Both_Quality * gameOptions.Evidence_Both_Quality + gameOptions.Alpha_Plaintiff_Quality * chancePQualityDouble + gameOptions.Alpha_Defendant_Quality * chanceDQualityDouble + gameOptions.Alpha_Neither_Quality * chanceNQualityDouble) / (gameOptions.Alpha_Both_Quality + gameOptions.Alpha_Plaintiff_Quality + gameOptions.Alpha_Defendant_Quality + gameOptions.Alpha_Neither_Quality), 1E-10);
-            gameProgress.QualitySum_PInfoOnly.Should().BeApproximately((gameOptions.Alpha_Both_Quality * gameOptions.Evidence_Both_Quality + gameOptions.Alpha_Plaintiff_Quality * chancePQualityDouble) / (gameOptions.Alpha_Both_Quality + gameOptions.Alpha_Plaintiff_Quality), 1E-10);
-            gameProgress.QualitySum_DInfoOnly.Should().BeApproximately((gameOptions.Alpha_Both_Quality * gameOptions.Evidence_Both_Quality + gameOptions.Alpha_Defendant_Quality * chanceDQualityDouble) / (gameOptions.Alpha_Both_Quality + gameOptions.Alpha_Defendant_Quality), 1E-10);
+            static double dOr0(double n, double d) => d == 0 ? 0 : n / d; // avoid division by zero
 
-            gameProgress.BiasSum.Should().BeApproximately((gameOptions.Alpha_Both_Bias * gameOptions.Evidence_Both_Bias + gameOptions.Alpha_Plaintiff_Bias * chancePBiasDouble + gameOptions.Alpha_Defendant_Bias * chanceDBiasDouble + gameOptions.Alpha_Neither_Bias * chanceNBiasDouble) / (gameOptions.Alpha_Both_Bias + gameOptions.Alpha_Plaintiff_Bias + gameOptions.Alpha_Defendant_Bias + gameOptions.Alpha_Neither_Bias), 1E-10);
-            gameProgress.BiasSum_PInfoOnly.Should().BeApproximately((gameOptions.Alpha_Both_Bias * gameOptions.Evidence_Both_Bias + gameOptions.Alpha_Plaintiff_Bias * chancePBiasDouble) / (gameOptions.Alpha_Both_Bias + gameOptions.Alpha_Plaintiff_Bias), 1E-10);
-            gameProgress.BiasSum_DInfoOnly.Should().BeApproximately((gameOptions.Alpha_Both_Bias * gameOptions.Evidence_Both_Bias + gameOptions.Alpha_Defendant_Bias * chanceDBiasDouble) / (gameOptions.Alpha_Both_Bias + gameOptions.Alpha_Defendant_Bias), 1E-10);
+            if (gameOptions.Alpha_Quality > 0)
+            {
+                gameProgress.QualitySum.Should().BeApproximately(dOr0((gameOptions.Alpha_Both_Quality * gameOptions.Evidence_Both_Quality + gameOptions.Alpha_Plaintiff_Quality * chancePQualityDouble + gameOptions.Alpha_Defendant_Quality * chanceDQualityDouble + gameOptions.Alpha_Neither_Quality * chanceNQualityDouble), (gameOptions.Alpha_Both_Quality + gameOptions.Alpha_Plaintiff_Quality + gameOptions.Alpha_Defendant_Quality + gameOptions.Alpha_Neither_Quality)), 1E-10);
+                gameProgress.QualitySum_PInfoOnly.Should().BeApproximately(dOr0((gameOptions.Alpha_Both_Quality * gameOptions.Evidence_Both_Quality + gameOptions.Alpha_Plaintiff_Quality * chancePQualityDouble), (gameOptions.Alpha_Both_Quality + gameOptions.Alpha_Plaintiff_Quality)), 1E-10);
+                gameProgress.QualitySum_DInfoOnly.Should().BeApproximately(dOr0((gameOptions.Alpha_Both_Quality * gameOptions.Evidence_Both_Quality + gameOptions.Alpha_Defendant_Quality * chanceDQualityDouble), (gameOptions.Alpha_Both_Quality + gameOptions.Alpha_Defendant_Quality)), 1E-10);
+            }
+
+            if (gameOptions.Alpha_Bias > 0)
+            {
+                gameProgress.BiasSum.Should().BeApproximately(dOr0((gameOptions.Alpha_Both_Bias * gameOptions.Evidence_Both_Bias + gameOptions.Alpha_Plaintiff_Bias * chancePBiasDouble + gameOptions.Alpha_Defendant_Bias * chanceDBiasDouble + gameOptions.Alpha_Neither_Bias * chanceNBiasDouble), (gameOptions.Alpha_Both_Bias + gameOptions.Alpha_Plaintiff_Bias + gameOptions.Alpha_Defendant_Bias + gameOptions.Alpha_Neither_Bias)), 1E-10);
+                gameProgress.BiasSum_PInfoOnly.Should().BeApproximately(dOr0((gameOptions.Alpha_Both_Bias * gameOptions.Evidence_Both_Bias + gameOptions.Alpha_Plaintiff_Bias * chancePBiasDouble), (gameOptions.Alpha_Both_Bias + gameOptions.Alpha_Plaintiff_Bias)), 1E-10);
+                gameProgress.BiasSum_DInfoOnly.Should().BeApproximately(dOr0((gameOptions.Alpha_Both_Bias * gameOptions.Evidence_Both_Bias + gameOptions.Alpha_Defendant_Bias * chanceDBiasDouble), (gameOptions.Alpha_Both_Bias + gameOptions.Alpha_Defendant_Bias)), 1E-10);
+            }
 
             double trialValue = (gameOptions.Alpha_Quality * gameProgress.QualitySum + gameOptions.Alpha_Bias * gameProgress.BiasSum);
             gameProgress.TrialValueIfOccurs.Should().BeApproximately(trialValue, 1E-10);
@@ -159,9 +195,9 @@ namespace ACESimTest
         public void AdditiveEvidence_InformationSets()
         {
             Random r = new Random(1);
-            for (int i = 0; i < 1_000; i++)
+            for (int i = 0; i < 2_000; i++)
             {
-                var gameOptions = r.NextDouble() > 0.5 ? GetOptions() : GetOptions_DariMattiacci_Saraceno(r.NextDouble());
+                var gameOptions = r.NextDouble() > 0.5 ? GetOptions(r) : GetOptions_DariMattiacci_Saraceno(r.NextDouble());
 
                 gameOptions.FeeShifting = r.Next(0, 2) == 0;
                 gameOptions.FeeShiftingIsBasedOnMarginOfVictory = r.Next(0, 2) == 0;
@@ -187,21 +223,37 @@ namespace ACESimTest
             GetOptionsAndProgress(gameOptions, chancePlaintiffQuality, chanceDefendantQuality, chanceNeitherQuality, chancePlaintiffBias, chanceDefendantBias, chanceNeitherBias, pOffer, dOffer, out double chancePQualityDouble, out double chanceDQualityDouble, out double chanceNQualityDouble, out double chancePBiasDouble, out double chanceDBiasDouble, out double chanceNBiasDouble, out AdditiveEvidenceGameProgress gameProgress);
 
             List<byte> pInfo = new List<byte>(), dInfo = new List<byte>(), rInfo = new List<byte>();
-            pInfo.Add(chancePlaintiffQuality);
-            dInfo.Add(chanceDefendantQuality);
-            pInfo.Add(chancePlaintiffBias);
-            dInfo.Add(chanceDefendantBias);
+            if (gameOptions.Alpha_Quality > 0 && gameOptions.Alpha_Plaintiff_Quality > 0)
+            {
+                pInfo.Add(chancePlaintiffQuality);
+                rInfo.Add(chancePlaintiffQuality);
+            }
+            if (gameOptions.Alpha_Quality > 0 && gameOptions.Alpha_Defendant_Quality > 0)
+            {
+                dInfo.Add(chanceDefendantQuality);
+                rInfo.Add(chanceDefendantQuality);
+            }
 
-            rInfo.Add(chancePlaintiffQuality);
-            rInfo.Add(chanceDefendantQuality);
-            rInfo.Add(chancePlaintiffBias);
-            rInfo.Add(chanceDefendantBias);
+            if (gameOptions.Alpha_Bias > 0 && gameOptions.Alpha_Plaintiff_Bias > 0)
+            {
+                pInfo.Add(chancePlaintiffBias);
+                rInfo.Add(chancePlaintiffBias);
+            }
+            if (gameOptions.Alpha_Bias > 0 && gameOptions.Alpha_Defendant_Bias > 0)
+            {
+                dInfo.Add(chanceDefendantBias);
+                rInfo.Add(chanceDefendantBias);
+            }
+
             rInfo.Add(pOffer);
             rInfo.Add(dOffer);
+
             if (playToTrial)
             {
-                rInfo.Add(chanceNeitherQuality);
-                rInfo.Add(chanceNeitherBias);
+                if (gameOptions.Alpha_Quality > 0 && gameOptions.Alpha_Neither_Quality > 0)
+                    rInfo.Add(chanceNeitherQuality);
+                if (gameOptions.Alpha_Bias > 0 && gameOptions.Alpha_Neither_Bias > 0)
+                    rInfo.Add(chanceNeitherBias);
             }
 
             string expectedPString = String.Join(",", pInfo.ToArray());
