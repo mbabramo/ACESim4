@@ -12,7 +12,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             AdditiveEvidenceGameProgress p = (AdditiveEvidenceGameProgress)progress;
             if (decision.DecisionByteCode == (byte)AdditiveEvidenceGameDecisions.POffer || decision.DecisionByteCode == (byte)AdditiveEvidenceGameDecisions.DOffer)
                 return 3;
-            return 0;
+            return 1;
         }
         public static byte POffers4_DOffers3(Decision decision, GameProgress progress)
         {
