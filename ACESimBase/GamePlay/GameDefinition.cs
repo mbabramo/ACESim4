@@ -450,7 +450,8 @@ namespace ACESim
             do
             {
                 nextDecisionIndex++;
-                decision = DecisionsExecutionOrder[nextDecisionIndex]; // NOTE: If we get an argument out of range exception here, it can be caused by failure to properly note that game is complete in GameDefinition.ShouldMarkGameDefinitionComplete. 
+                decision = DecisionsExecutionOrder[nextDecisionIndex]; 
+                // NOTE: If we get an argument out of range exception here, it can be caused by failure to properly note that game is complete in GameDefinition.ShouldMarkGameDefinitionComplete or to specify CanTerminateGame = true for all decisions with that property, including the last one.
             } while (nextDecisionIndex < numDecisionsExecutionOrder - 1 && SkipDecision(decision, in gameHistory));
         }
 
@@ -518,7 +519,7 @@ namespace ACESim
             if (!UseDifferentWarmup) // i.e., NumWarmupOptionSets == 0
                 throw new Exception("Not using different warmup");
             int warmupPermutationValue = permutation[1];
-            if (NumWarmupOptionSets == 1)
+            if (NumWarmupOptionSets == 0 || NumWarmupOptionSets == 1)
                 warmupPermutationValue = -1; // there are no warmup sets, so we want to use the last postwarmup set as the warmup set
             int weightsPermutationValueP0 = permutation[2];
             int weightsPermutationValueOtherPlayers = permutation[3];

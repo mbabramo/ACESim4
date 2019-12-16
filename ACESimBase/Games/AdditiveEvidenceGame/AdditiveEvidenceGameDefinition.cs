@@ -140,17 +140,18 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         }
         void AddLaterChanceDecisions(List<Decision> decisions)
         {
-            decisions.Add(new Decision("Chance_Neither_Quality", "DQ", true, (byte)AdditiveEvidenceGamePlayers.Chance_Neither_Quality, new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.Chance_Neither_Quality)
+            decisions.Add(new Decision("Chance_Neither_Quality", "NQ", true, (byte)AdditiveEvidenceGamePlayers.Chance_Neither_Quality, new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.Chance_Neither_Quality)
             {
                 IsReversible = true,
                 Unroll_Parallelize = true,
                 Unroll_Parallelize_Identical = true,
             });
-            decisions.Add(new Decision("Chance_Neither_Bias", "PB", true, (byte)AdditiveEvidenceGamePlayers.Chance_Neither_Bias, new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.Chance_Neither_Bias)
+            decisions.Add(new Decision("Chance_Neither_Bias", "NB", true, (byte)AdditiveEvidenceGamePlayers.Chance_Neither_Bias, new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.Chance_Neither_Bias)
             {
                 IsReversible = true,
                 Unroll_Parallelize = true,
                 Unroll_Parallelize_Identical = true,
+                CanTerminateGame = true, // must note even though it's the last decision
             });
         }
         public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, in GameHistory gameHistory, byte actionChosen)
@@ -184,7 +185,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public override bool PlayMultipleScenarios => false; // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
 
         public override int NumPostWarmupOptionSets => 1;
-        public override int NumWarmupOptionSets => 0; // Note that this can be 0. 0
+        public override int NumWarmupOptionSets => 0; // Note that this can be 0.
         public override int WarmupIterations_IfWarmingUp => 200;
         public override bool MultiplyWarmupScenariosByAlteringWeightOnOpponentsStrategy => true;
         public override int NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios => 10; // should be odd if we want to include zero

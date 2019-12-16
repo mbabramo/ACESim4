@@ -37,6 +37,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             };
             options.Alpha_Plaintiff_Bias = options.Evidence_Both_Quality = quality; // this is the key (strange) assumption -- the proportion of the evidence about bias that is in the plaintiff's possession is equal to the strength of the case
             options.Alpha_Defendant_Bias = 1.0 - options.Alpha_Plaintiff_Bias;
+            options.NumOffers = 5;
+            options.NumQualityAndBiasLevels = 5;
             return options;
         }
     }

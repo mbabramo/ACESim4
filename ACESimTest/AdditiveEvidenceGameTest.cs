@@ -211,6 +211,9 @@ namespace ACESimTest
             pInformationSet.Should().Be(expectedPString);
             dInformationSet.Should().Be(expectedDString);
             resolutionSet.Should().Be(expectedRString);
+
+            if (playToTrial)
+                gameProgress.GameComplete.Should().BeTrue();
         }
 
         private static void GetInformationSetStrings(AdditiveEvidenceGameProgress AdditiveEvidenceGameProgress, out string pInformationSet,

@@ -56,6 +56,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Neither_Bias:
                     MyProgress.Chance_Neither_Bias = action;
+                    MyProgress.GameComplete = true;
                     break;
                 default:
                     throw new NotImplementedException();

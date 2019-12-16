@@ -12,6 +12,7 @@ using System.IO;
 using System.Runtime.Serialization;
 using System.Diagnostics;
 using ACESim.Util;
+using ACESimBase.Games.AdditiveEvidenceGame;
 
 namespace ACESim
 {
@@ -21,10 +22,11 @@ namespace ACESim
         {
             Leduc,
             MultiRoundCooperation,
-            MyGame
+            MyGame,
+            AdditiveEvidenceGame
         }
 
-        public static AvailableGames GameToPlay = AvailableGames.MyGame;
+        public static AvailableGames GameToPlay = AvailableGames.AdditiveEvidenceGame; // DEBUG
 
         [STAThread]
         public static async Task Main(string[] args)
@@ -78,6 +80,11 @@ namespace ACESim
                     baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\MyGame";
                     strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
                     launcher = new MyGameLauncher();
+                    break;
+                case AvailableGames.AdditiveEvidenceGame:
+                    baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\AdditiveEvidenceGame";
+                    strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
+                    launcher = new AdditiveEvidenceGameLauncher();
                     break;
             }
             launcher.LaunchSingleOptionsSetOnly = true;

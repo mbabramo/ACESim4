@@ -6,7 +6,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 {
     public enum AdditiveEvidenceGameDecisions : byte
     {
-
         Chance_Plaintiff_Quality,
         Chance_Defendant_Quality,
         Chance_Plaintiff_Bias,
