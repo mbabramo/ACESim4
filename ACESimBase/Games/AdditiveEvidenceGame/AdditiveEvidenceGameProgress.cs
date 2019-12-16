@@ -32,7 +32,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public double Chance_Neither_Bias_Continuous => EquallySpaced.GetLocationOfEquallySpacedPoint(Chance_Neither_Bias - 1 /* make it zero-based */, AdditiveEvidenceGameOptions.NumQualityAndBiasLevels, false);
 
         public double? SettlementValue => SettlementOccurs ? (POfferContinuous + DOfferContinuous) / 2.0 : (double?) null;
-        public bool SettlementOccurs => POffer >= DOffer;
+        public bool SettlementOccurs => POffer <= DOffer;
         public bool TrialOccurs => !SettlementOccurs;
         public double QualitySum => AdditiveEvidenceGameOptions.Alpha_Both_Quality * AdditiveEvidenceGameOptions.Evidence_Both_Quality + AdditiveEvidenceGameOptions.Alpha_Plaintiff_Quality * Chance_Plaintiff_Quality_Continuous + AdditiveEvidenceGameOptions.Alpha_Defendant_Quality * Chance_Defendant_Quality_Continuous + AdditiveEvidenceGameOptions.Alpha_Neither_Quality * Chance_Neither_Quality_Continuous;
         public double QualitySum_PInfoOnly => (AdditiveEvidenceGameOptions.Alpha_Both_Quality * AdditiveEvidenceGameOptions.Evidence_Both_Quality + AdditiveEvidenceGameOptions.Alpha_Plaintiff_Quality * Chance_Plaintiff_Quality_Continuous) / (AdditiveEvidenceGameOptions.Alpha_Both_Quality + AdditiveEvidenceGameOptions.Alpha_Plaintiff_Quality);
@@ -45,14 +45,15 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public double AnticipatedTrialValue_PInfo => AdditiveEvidenceGameOptions.Alpha_Quality * QualitySum_PInfoOnly + AdditiveEvidenceGameOptions.Alpha_Bias * BiasSum_PInfoOnly;
         public double AnticipatedTrialValue_DInfo => AdditiveEvidenceGameOptions.Alpha_Quality * QualitySum_DInfoOnly + AdditiveEvidenceGameOptions.Alpha_Bias * BiasSum_DInfoOnly;
         public double? TrialValuePreShifting => TrialOccurs ? TrialValueIfOccurs : (double?)null;
-        public double? PTrialEffect => TrialOccurs ? TrialValueIfOccurs - (1.0 - DsProportionOfCost()) * AdditiveEvidenceGameOptions.TrialCost : (double?) null;
-        public double? DTrialEffect => TrialOccurs ? 0 - TrialValueIfOccurs - (DsProportionOfCost()) * AdditiveEvidenceGameOptions.TrialCost : (double?) null;
+        public double? PTrialEffect => TrialOccurs ? TrialValueIfOccurs - (1.0 - DsProportionOfCost) * AdditiveEvidenceGameOptions.TrialCost : (double?) null;
+        public double? DTrialEffect => TrialOccurs ? 0 - TrialValueIfOccurs - (DsProportionOfCost) * AdditiveEvidenceGameOptions.TrialCost : (double?) null;
 
         public double SettlementOrJudgment => TrialOccurs ? (double) TrialValueIfOccurs : (double) SettlementValue;
 
-        public bool ShiftingOccurs => DsProportionOfCost() != 0.5;
+        public bool ShiftingOccurs => DsProportionOfCost != 0.5;
 
-        public double DsProportionOfCost()
+        public double DsProportionOfCost => DsProportionOfCost_Helper();
+        private double DsProportionOfCost_Helper()
         {
             if (AdditiveEvidenceGameOptions.FeeShifting == false || SettlementOccurs)
                 return 0.5;
@@ -89,7 +90,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             return
                 $@"Chance_Plaintiff_Quality {Chance_Plaintiff_Quality} Chance_Defendant_Quality {Chance_Defendant_Quality} Chance_Plaintiff_Bias {Chance_Plaintiff_Bias} Chance_Defendant_Bias {Chance_Defendant_Bias} POffer {POffer} DOffer {DOffer} Chance_Neither_Quality {Chance_Neither_Quality} Chance_Neither_Bias {Chance_Neither_Bias}
 QualitySum {QualitySum} QualitySum_PInfoOnly {QualitySum_PInfoOnly} QualitySum_DInfoOnly {QualitySum_DInfoOnly} BiasSum {BiasSum} BiasSum_PInfoOnly {BiasSum_PInfoOnly} BiasSum_DInfoOnly {BiasSum_DInfoOnly}
-SettlementValue {SettlementValue} SettlementOccurs {SettlementOccurs} TrialOccurs {TrialOccurs} TrialValuePreShifting {TrialValuePreShifting} SettlementOrJudgment {SettlementOrJudgment} DsProportionOfCost {DsProportionOfCost()}
+SettlementValue {SettlementValue} SettlementOccurs {SettlementOccurs} TrialOccurs {TrialOccurs} TrialValuePreShifting {TrialValuePreShifting} SettlementOrJudgment {SettlementOrJudgment} DsProportionOfCost {DsProportionOfCost}
 ShiftingOccurs {ShiftingOccurs}  PTrialEffect {PTrialEffect} DTrialEffect {DTrialEffect} PWelfare {PWelfare} DWelfare {DWelfare}
 AccuracyIgnoringCosts {AccuracyIgnoringCosts} Accuracy_ForPlaintiff {Accuracy_ForPlaintiff} Accuracy_ForDefendant {Accuracy_ForDefendant} PWelfare {PWelfare} DWelfare {DWelfare}";
         }

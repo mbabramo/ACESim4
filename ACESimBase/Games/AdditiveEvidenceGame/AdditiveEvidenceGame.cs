@@ -50,10 +50,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     break;
 
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Neither_Quality:
-                    MyProgress.Chance_Plaintiff_Quality = action;
+                    MyProgress.Chance_Neither_Quality = action;
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Neither_Bias:
-                    MyProgress.Chance_Plaintiff_Quality = action;
+                    MyProgress.Chance_Neither_Bias = action;
                     break;
                 default:
                     throw new NotImplementedException();
