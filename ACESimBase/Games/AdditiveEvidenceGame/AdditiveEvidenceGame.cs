@@ -28,6 +28,16 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         {
             switch (currentDecisionByteCode)
             {
+                case (byte)AdditiveEvidenceGameDecisions.PQuit:
+                    MyProgress.PQuits = action == 1;
+                    if (action == 1)
+                        MyProgress.GameComplete = true;
+                    break;
+                case (byte)AdditiveEvidenceGameDecisions.DQuit:
+                    MyProgress.DQuits = action == 1;
+                    if (action == 1)
+                        MyProgress.GameComplete = true;
+                    break;
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Quality:
                     MyProgress.Chance_Plaintiff_Quality = action;
                     break;

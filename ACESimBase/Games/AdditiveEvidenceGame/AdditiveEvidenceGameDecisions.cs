@@ -11,6 +11,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         Chance_Plaintiff_Bias,
         Chance_Defendant_Bias,
 
+        PQuit,
+        DQuit,
+
         POffer,
         DOffer,
 

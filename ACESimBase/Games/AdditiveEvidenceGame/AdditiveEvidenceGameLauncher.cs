@@ -25,13 +25,14 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
             OptionSetChoice optionSetChoice = OptionSetChoice.All;
+            bool withQuits = false;
             switch (optionSetChoice)
             {
                 case OptionSetChoice.All:
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.Original);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.Biasless);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.EvenStrength);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.EvenStrengthAndBiasless);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.Original, withQuits);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.Biasless, withQuits);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.EvenStrength, withQuits);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.EvenStrengthAndBiasless, withQuits);
                     break;
             }
 
@@ -53,9 +54,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             EvenStrengthAndBiasless
         }
 
-        private void AddDariMattiacci_Saraceno_Tests(List<(string optionSetName, GameOptions options)> optionSets, DMSVersion version)
+        private void AddDariMattiacci_Saraceno_Tests(List<(string optionSetName, GameOptions options)> optionSets, DMSVersion version, bool withQuits)
         {
-
             // now, liability and damages only
             foreach (double quality in new double[] { 0, 0.20, 0.40, 0.60, 0.80, 1.0 })
                 foreach (double costs in new double[] { 0, 0.15, 0.30, 0.45, 0.60 })
@@ -65,16 +65,16 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                         switch (version)
                         {
                             case DMSVersion.Original:
-                                optionSets.Add(GetAndTransform("orig", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno(quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0), x => { }));
+                                optionSets.Add(GetAndTransform("orig", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno(quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withQuits), x => { }));
                                 break;
                             case DMSVersion.Biasless:
-                                optionSets.Add(GetAndTransform("bl", settingsString, () => AdditiveEvidenceGameOptionsGenerator.Biasless(quality, quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0), x => { }));
+                                optionSets.Add(GetAndTransform("bl", settingsString, () => AdditiveEvidenceGameOptionsGenerator.Biasless(quality, quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withQuits), x => { }));
                                 break;
                             case DMSVersion.EvenStrength:
-                                optionSets.Add(GetAndTransform("es", settingsString, () => AdditiveEvidenceGameOptionsGenerator.EvenStrength(quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0), x => { }));
+                                optionSets.Add(GetAndTransform("es", settingsString, () => AdditiveEvidenceGameOptionsGenerator.EvenStrength(quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withQuits), x => { }));
                                 break;
                             case DMSVersion.EvenStrengthAndBiasless:
-                                optionSets.Add(GetAndTransform("bl_es", settingsString, () => AdditiveEvidenceGameOptionsGenerator.Biasless(quality, 0.5, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0), x => { }));
+                                optionSets.Add(GetAndTransform("bl_es", settingsString, () => AdditiveEvidenceGameOptionsGenerator.Biasless(quality, 0.5, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withQuits), x => { }));
                                 break;
                         }
                     }

@@ -82,11 +82,53 @@ namespace ACESimTest
                 gameProgress.SettlementOccurs.Should().Be(true);
                 gameProgress.TrialOccurs.Should().Be(false);
                 gameProgress.SettlementValue.Should().BeApproximately(settlementValue, 1E-10);
-                gameProgress.SettlementOrJudgment.Should().BeApproximately(settlementValue, 1E-10);
+                gameProgress.ResolutionValue.Should().BeApproximately(settlementValue, 1E-10);
                 gameProgress.DsProportionOfCost.Should().Be(0.5);
                 gameProgress.PWelfare.Should().BeApproximately(settlementValue, 1E-10);
                 gameProgress.DWelfare.Should().BeApproximately(0 - settlementValue, 1E-10);
             }
+        }
+
+        [TestMethod]
+        public void AdditiveEvidence_PQuits()
+        {
+            var gameOptions = GetOptions();
+            gameOptions.IncludePQuitDecision = true;
+            gameOptions.IncludeDQuitDecision = true;
+            Func<Decision, GameProgress, byte> actionsToPlay = AdditiveActionsGameActionsGenerator.PlaySpecifiedDecisions(pQuit: true, dQuit: false);
+            var gameProgress = AdditiveEvidenceGameLauncher.PlayAdditiveEvidenceGameOnce(gameOptions, actionsToPlay);
+            gameProgress.SomeoneQuits.Should().Be(true);
+            gameProgress.PQuits.Should().Be(true);
+            gameProgress.DQuits.Should().Be(false);
+            gameProgress.SettlementOccurs.Should().Be(false);
+            gameProgress.TrialOccurs.Should().Be(false);
+            gameProgress.SettlementValue.Should().BeNull();
+            gameProgress.ResolutionValue.Should().BeApproximately(0, 1E-10);
+            gameProgress.PWelfare.Should().BeApproximately(0, 1E-10);
+            gameProgress.DWelfare.Should().BeApproximately(0, 1E-10);
+            gameProgress.POfferContinuousOrNull.Should().BeNull();
+            gameProgress.DOfferContinuousOrNull.Should().BeNull();
+        }
+
+        [TestMethod]
+        public void AdditiveEvidence_DQuits()
+        {
+            var gameOptions = GetOptions();
+            gameOptions.IncludePQuitDecision = true;
+            gameOptions.IncludeDQuitDecision = true;
+            Func<Decision, GameProgress, byte> actionsToPlay = AdditiveActionsGameActionsGenerator.PlaySpecifiedDecisions(pQuit: false, dQuit: true);
+            var gameProgress = AdditiveEvidenceGameLauncher.PlayAdditiveEvidenceGameOnce(gameOptions, actionsToPlay);
+            gameProgress.SomeoneQuits.Should().Be(true);
+            gameProgress.PQuits.Should().Be(false);
+            gameProgress.DQuits.Should().Be(true);
+            gameProgress.SettlementOccurs.Should().Be(false);
+            gameProgress.TrialOccurs.Should().Be(false);
+            gameProgress.SettlementValue.Should().BeNull();
+            gameProgress.ResolutionValue.Should().BeApproximately(1.0, 1E-10);
+            gameProgress.PWelfare.Should().BeApproximately(1.0, 1E-10);
+            gameProgress.DWelfare.Should().BeApproximately(-1.0, 1E-10);
+            gameProgress.POfferContinuousOrNull.Should().BeNull();
+            gameProgress.DOfferContinuousOrNull.Should().BeNull();
         }
 
         [TestMethod]
@@ -138,8 +180,8 @@ namespace ACESimTest
             }
 
             double trialValue = (gameOptions.Alpha_Quality * gameProgress.QualitySum + gameOptions.Alpha_Bias * gameProgress.BiasSum);
-            gameProgress.TrialValueIfOccurs.Should().BeApproximately(trialValue, 1E-10);
-            gameProgress.SettlementOrJudgment.Should().BeApproximately(trialValue, 1E-10);
+            gameProgress.TrialValuePreShiftingIfOccurs.Should().BeApproximately(trialValue, 1E-10);
+            gameProgress.ResolutionValue.Should().BeApproximately(trialValue, 1E-10);
 
             if (feeShifting)
             {
@@ -166,14 +208,14 @@ namespace ACESimTest
                     gameProgress.DsProportionOfCost.Should().Be(pWins ? 1.0 : 0.0);
                 else
                     gameProgress.DsProportionOfCost.Should().Be(0.5);
-                gameProgress.PTrialEffect.Should().BeApproximately(gameProgress.TrialValueIfOccurs - (1.0 - gameProgress.DsProportionOfCost) * gameOptions.TrialCost, 1E-10);
-                gameProgress.DTrialEffect.Should().BeApproximately(0 - gameProgress.TrialValueIfOccurs - gameProgress.DsProportionOfCost * gameOptions.TrialCost, 1E-10);
+                gameProgress.PTrialEffect.Should().BeApproximately(gameProgress.TrialValuePreShiftingIfOccurs - (1.0 - gameProgress.DsProportionOfCost) * gameOptions.TrialCost, 1E-10);
+                gameProgress.DTrialEffect.Should().BeApproximately(0 - gameProgress.TrialValuePreShiftingIfOccurs - gameProgress.DsProportionOfCost * gameOptions.TrialCost, 1E-10);
             }
             else
             {
                 gameProgress.ShiftingOccurs.Should().Be(false);
-                gameProgress.PTrialEffect.Should().BeApproximately(gameProgress.TrialValueIfOccurs - 0.5 * gameOptions.TrialCost, 1E-10);
-                gameProgress.DTrialEffect.Should().BeApproximately(0 - gameProgress.TrialValueIfOccurs - 0.5 * gameOptions.TrialCost, 1E-10);
+                gameProgress.PTrialEffect.Should().BeApproximately(gameProgress.TrialValuePreShiftingIfOccurs - 0.5 * gameOptions.TrialCost, 1E-10);
+                gameProgress.DTrialEffect.Should().BeApproximately(0 - gameProgress.TrialValuePreShiftingIfOccurs - 0.5 * gameOptions.TrialCost, 1E-10);
             }
             gameProgress.PWelfare.Should().Be(gameProgress.PTrialEffect);
             gameProgress.DWelfare.Should().Be(gameProgress.DTrialEffect);

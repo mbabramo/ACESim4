@@ -72,6 +72,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         {
             var decisions = new List<Decision>();
             AddInitialChanceDecisions(decisions);
+            AddQuitDecisions(decisions);
             AddPlayerOffers(decisions);
             AddLaterChanceDecisions(decisions);
             return decisions;
@@ -120,6 +121,31 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 ProvidesPrivateInformationFor = (byte)AdditiveEvidenceGamePlayers.Defendant
             });
         }
+        void AddQuitDecisions(List<Decision> decisions)
+        {
+            if (Options.IncludePQuitDecision)
+            {
+                var pQuit =
+                        new Decision("PQuit", "PQT", false, (byte)AdditiveEvidenceGamePlayers.Plaintiff, new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution },
+                            2, (byte)AdditiveEvidenceGameDecisions.PQuit)
+                        {
+                            IsReversible = true,
+                            CanTerminateGame = true,
+                        };
+                decisions.Add(pQuit);
+            }
+            if (Options.IncludeDQuitDecision)
+            {
+                var dQuit =
+                        new Decision("DQuit", "DQT", false, (byte)AdditiveEvidenceGamePlayers.Defendant, new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution },
+                            2, (byte)AdditiveEvidenceGameDecisions.DQuit)
+                        {
+                            IsReversible = true,
+                            CanTerminateGame = true,
+                        };
+                decisions.Add(dQuit);
+            }
+        }
         void AddPlayerOffers(List<Decision> decisions)
         {
             var pOffer =
@@ -163,6 +189,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         }
         public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, in GameHistory gameHistory, byte actionChosen)
         {
+            // IMPORTANT: Any decision that can terminate the game should be listed as CanTerminateGame = true. 
+            // Second, the game should set Progress.GameComplete to true when this termination occurs. 
+            // Third, this function should return true when that occurs.
+
             if (!currentDecision.CanTerminateGame)
                 return false;
 
@@ -170,6 +200,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
             switch (decisionByteCode)
             {
+                case (byte)AdditiveEvidenceGameDecisions.PQuit:
+                    return (actionChosen == 1);
+                case (byte)AdditiveEvidenceGameDecisions.DQuit:
+                    return (actionChosen == 1);
                 case (byte)AdditiveEvidenceGameDecisions.DOffer:
                     if (!((Options.Alpha_Quality > 0 && Options.Alpha_Neither_Quality > 0) || (Options.Alpha_Bias > 0 && Options.Alpha_Neither_Bias > 0)))
                         return true; // if no more chance decisions, defendant offer certainly ends it

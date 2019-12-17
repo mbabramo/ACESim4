@@ -10,6 +10,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
     {
         public bool FirstRowOnly => false; // simplifies the reporting
 
+        public bool IncludePQuitDecision;
+        public bool IncludeDQuitDecision;
+
         // The evidence shared by both parties is a parameter. The evidence that one or neither party has is determined by chance.
         public double Evidence_Both_Quality;
         public double Evidence_Both_Bias;
@@ -61,7 +64,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 Alpha_Quality {Alpha_Quality}: Both {Alpha_Both_Quality} P {Alpha_Plaintiff_Quality} D {Alpha_Defendant_Quality} Neither {Alpha_Neither_Quality}
 Alpha_Bias {Alpha_Bias}: Both {Alpha_Both_Bias} P {Alpha_Plaintiff_Bias} D {Alpha_Defendant_Bias} Neither {Alpha_Neither_Bias}
 FeeShifting {FeeShifting} {(FeeShifting ? $"Margin {FeeShiftingIsBasedOnMarginOfVictory} Threshold {FeeShiftingThreshold}" : "")}
-NumOffers {NumOffers} NumQualityAndBiasLevels {NumQualityAndBiasLevels}";
+NumOffers {NumOffers} NumQualityAndBiasLevels {NumQualityAndBiasLevels}
+IncludePQuit {IncludePQuitDecision} IncludeDQuit {IncludeDQuitDecision}";
         }
     }
 }
