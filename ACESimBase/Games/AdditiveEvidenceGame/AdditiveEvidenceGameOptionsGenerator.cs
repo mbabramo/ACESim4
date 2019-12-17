@@ -19,9 +19,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         {
             AdditiveEvidenceOptionSetChoices.DMS => DariMattiacci_Saraceno(0.60, 0.15, false, false, 0.5),
             AdditiveEvidenceOptionSetChoices.Biasless_AsymmetryBasedOnQuality => Biasless(0.6, 0.6, 0.15, false, false, 0.5),
-            AdditiveEvidenceOptionSetChoices.Biasless_EqualPrivateInfo => Biasless(0.5, 0.5, 0.15, false, false, 0.5),
+            AdditiveEvidenceOptionSetChoices.Biasless_EqualPrivateInfo => Biasless(0.6, 0.5, 0.15, false, false, 0.5),
             _ => throw new Exception()
         };
+
+        public static byte numOffers = 25; // having a good number here allows for more precise strategies
+        public static byte numQualityAndBiasLevels = 25; // this is what will be across on each minigraph, so it's good to have a relatively high number
 
         public static AdditiveEvidenceGameOptions DariMattiacci_Saraceno(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool overrideQualityLimits = false)
         {
@@ -42,8 +45,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
             options.TrialCost = costs;
 
-            options.NumOffers = 25;
-            options.NumQualityAndBiasLevels = 10;
+            options.NumOffers = numOffers;
+            options.NumQualityAndBiasLevels = numQualityAndBiasLevels;
             return options;
         }
 
@@ -68,8 +71,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
             options.TrialCost = costs;
 
-            options.NumOffers = 25;
-            options.NumQualityAndBiasLevels = 10;
+            options.NumOffers = numOffers;
+            options.NumQualityAndBiasLevels = numQualityAndBiasLevels;
             return options;
         }
     }
