@@ -27,10 +27,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public static byte numOffers = 25; // having a good number here allows for more precise strategies
         public static byte numQualityAndBiasLevels = 25; // this is what will be across on each minigraph, so it's good to have a relatively high number
 
-        public static AdditiveEvidenceGameOptions DariMattiacci_Saraceno(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool overrideQualityLimits = false)
+        public static AdditiveEvidenceGameOptions DariMattiacci_Saraceno(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold)
         {
-            if (!overrideQualityLimits && (quality < 1.0 / 3.0 || quality > 2.0 / 3.0))
-                throw new Exception("Quality out of range");
             var options = new AdditiveEvidenceGameOptions()
             {
                 Alpha_Quality = 0.5,
@@ -51,10 +49,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             return options;
         }
 
-        public static AdditiveEvidenceGameOptions EvenStrength(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool overrideQualityLimits = false)
+        public static AdditiveEvidenceGameOptions EvenStrength(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold)
         {
-            if (!overrideQualityLimits && (quality < 1.0 / 3.0 || quality > 2.0 / 3.0))
-                throw new Exception("Quality out of range");
             var options = new AdditiveEvidenceGameOptions()
             {
                 Evidence_Both_Quality = quality,
@@ -76,10 +72,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             return options;
         }
 
-        public static AdditiveEvidenceGameOptions Biasless(double quality, double pPortionOfPrivateInfo /* set to quality to be like the original DMS model in this respect */, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool overrideQualityLimits = false)
+        public static AdditiveEvidenceGameOptions Biasless(double quality, double pPortionOfPrivateInfo /* set to quality to be like the original DMS model in this respect */, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold)
         {
-            if (!overrideQualityLimits && (quality < 1.0 / 3.0 || quality > 2.0 / 3.0))
-                throw new Exception("Quality out of range");
             var options = new AdditiveEvidenceGameOptions()
             {
                 Evidence_Both_Quality = quality,

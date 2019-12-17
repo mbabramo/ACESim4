@@ -985,6 +985,24 @@ namespace ACESim
             }
         }
 
+        public void RoundOffLowProbabilities(bool currentProbabilityDimension, double probabilityThreshold) => RoundOffLowProbabilities(currentProbabilityDimension ? InformationSetNode.currentProbabilityDimension : averageStrategyProbabilityDimension, probabilityThreshold);
+
+        public void RoundOffLowProbabilities(int probabilityDimension, double probabilityThreshold)
+        {
+            double total = 0;
+            for (byte a = 1; a <= NumPossibleActions; a++)
+            {
+                double v = NodeInformation[probabilityDimension, a - 1];
+                if (v < probabilityThreshold)
+                    NodeInformation[probabilityDimension, a - 1] = 0;
+                else
+                    total += v;
+            }
+
+            for (byte a = 1; a <= NumPossibleActions; a++)
+                NodeInformation[probabilityDimension, a - 1] /= total;
+        }
+
         public void SetProbabilitiesFromFunc(int probabilityDimension, double probabilityThreshold, bool setBelowThresholdToZero, bool usePrunabilityInsteadOfThreshold, Func<byte, double> initialProbabilityFunc)
         {
             double setBelowThresholdTo = setBelowThresholdToZero ? 0 : probabilityThreshold;

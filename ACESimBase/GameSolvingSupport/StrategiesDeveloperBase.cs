@@ -1128,6 +1128,9 @@ namespace ACESim
         private async Task CompleteMainReports(ReportCollection reportCollection, List<ActionStrategies> actionStrategiesToUse)
         {
             ActionStrategies previous = ActionStrategy;
+            if (EvolutionSettings.RoundOffLowProbabilitiesBeforeReporting)
+                foreach (var informationSet in InformationSets)
+                    informationSet.RoundOffLowProbabilities(previous == ActionStrategies.CurrentProbability, EvolutionSettings.RoundOffThreshold);
             bool useRandomPaths = EvolutionSettings.UseRandomPathsForReporting
                 //&& (SkipEveryPermutationInitialization ||
                 //   NumInitializedGamePaths > EvolutionSettings.NumRandomIterationsForSummaryTable)
@@ -1480,7 +1483,7 @@ namespace ACESim
             ActionProbabilityUtilities.GetActionProbabilitiesAtHistoryPoint(gameState, actionStrategy, 0 /* ignored */, probabilities, numPossibleActions, null, Navigation);
 
             bool includeZeroProbabilityActions = true; // may be relevant for counts
-            bool roundOffPlayerActionsNearZeroOrOne = false; 
+            bool roundOffPlayerActionsNearZeroOrOne = false; // This is not a good way to do it, because it won't necessarily add up correctly. Better to change it in the information set nodes directly, using the RoundOffProbabilities function.
 
             await Parallelizer.GoAsync(EvolutionSettings.ParallelOptimization, 1, (byte)(numPossibleActions + 1), async (action) =>
             {
@@ -1622,9 +1625,10 @@ namespace ACESim
             step2_buffer.Complete(); // tell consumer nothing more to be produced
             await step3_consumer; // wait until all have been processed
 
-            for (int p = 0; p < NumNonChancePlayers; p++)
-                if (Math.Abs(UtilityCalculationsArray.StatCollectors[p].sumOfWeights - 1.0) > 0.001)
-                    throw new Exception("Imperfect sampling.");
+            // The following is disabled because if we round off 99% strategies, we will have imperfect sampling.
+            //for (int p = 0; p < NumNonChancePlayers; p++)
+            //    if (Math.Abs(UtilityCalculationsArray.StatCollectors[p].sumOfWeights - 1.0) > 0.001)
+            //        throw new Exception("Imperfect sampling.");
         }
 
         async Task AddGameProgressToReports(ISourceBlock<Tuple<GameProgress, double>> source, List<SimpleReportDefinition> simpleReportDefinitions)

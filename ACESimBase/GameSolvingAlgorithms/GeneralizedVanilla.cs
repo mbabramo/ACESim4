@@ -75,7 +75,7 @@ namespace ACESim
             double averageStrategyAdjustment = EvolutionSettings.UseStandardDiscounting ? AverageStrategyAdjustment : 1.0;
             double continuousRegretsDiscountingAdjustment = EvolutionSettings.ContinuousRegretsDiscountPerIteration;
 
-            Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, PostIterationUpdater, averageStrategyAdjustment, normalizeCumulativeStrategyIncrements, resetPreviousCumulativeStrategyIncrements, continuousRegretsDiscountingAdjustment, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble, EvolutionSettings.Algorithm == GameApproximationAlgorithm.RegretMatching && EvolutionSettings.CFR_OpponentSampling, randomNumberToSelectSingleOpponentAction(n)));
+            Parallelizer.Go(EvolutionSettings.ParallelOptimization, 0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, PostIterationUpdater, averageStrategyAdjustment, normalizeCumulativeStrategyIncrements, resetPreviousCumulativeStrategyIncrements, continuousRegretsDiscountingAdjustment, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble, EvolutionSettings.Algorithm == GameApproximationAlgorithm.RegretMatching && EvolutionSettings.CFR_OpponentSampling, randomNumberToSelectSingleOpponentAction(n)));
         }
 
         #endregion
@@ -362,7 +362,7 @@ namespace ACESim
         {
             if (copyChanceAndFinalUtilitiesNodes)
             { // these only need to be copied once -- not every iteration
-                Parallel.For(0, ChanceNodes.Count, i =>
+                Parallelizer.Go(EvolutionSettings.ParallelOptimization, 0, ChanceNodes.Count, i =>
                 {
                     var chanceNode = ChanceNodes[i];
                     int initialIndex = Unroll_GetChanceNodeIndex(chanceNode.ChanceNodeNumber);
@@ -383,7 +383,7 @@ namespace ACESim
                         }
                     }
                 });
-                Parallel.For(0, FinalUtilitiesNodes.Count, x =>
+                Parallelizer.Go(EvolutionSettings.ParallelOptimization, 0, FinalUtilitiesNodes.Count, x =>
                 {
                     var finalUtilitiesNode = FinalUtilitiesNodes[x];
                     int initialIndex = Unroll_GetFinalUtilitiesNodesIndex(finalUtilitiesNode.FinalUtilitiesNodeNumber, 0);
@@ -394,7 +394,7 @@ namespace ACESim
                     }
                 });
             }
-            Parallel.For(0, InformationSets.Count, x =>
+            Parallelizer.Go(EvolutionSettings.ParallelOptimization, 0, InformationSets.Count, x =>
             {
                 var infoSet = InformationSets[x];
                 int initialIndex = Unroll_InformationSetsIndices[infoSet.InformationSetNodeNumber];
@@ -429,7 +429,7 @@ namespace ACESim
         {
             //for (int i = 0; i < array.Length; i++)
             //    System.Diagnostics.Debug.WriteLine($"{i}: {array[i]}");
-            Parallel.For(0, InformationSets.Count, x =>
+            Parallelizer.Go(EvolutionSettings.ParallelOptimization, 0, InformationSets.Count, x =>
             {
                 var infoSet = InformationSets[x];
                 for (byte action = 1; action <= infoSet.NumPossibleActions; action++)
