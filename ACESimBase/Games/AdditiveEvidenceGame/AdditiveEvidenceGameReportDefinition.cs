@@ -50,6 +50,14 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 new SimpleReportColumnVariable("BiasSum", (GameProgress gp) => AEGP(gp).BiasSum),
                 new SimpleReportColumnVariable("BiasSum_PInfo", (GameProgress gp) => AEGP(gp).BiasSum_PInfoOnly),
                 new SimpleReportColumnVariable("BiasSum_DInfo", (GameProgress gp) => AEGP(gp).BiasSum_DInfoOnly),
+                new SimpleReportColumnVariable("Quality", (GameProgress gp) => AEGP(gp).AdditiveEvidenceGameOptions.Evidence_Both_Quality),
+                new SimpleReportColumnVariable("Alpha_Quality", (GameProgress gp) => AEGP(gp).AdditiveEvidenceGameOptions.Alpha_Quality),
+                new SimpleReportColumnVariable("Alpha_Both_Quality", (GameProgress gp) => AEGP(gp).AdditiveEvidenceGameOptions.Alpha_Both_Quality),
+                new SimpleReportColumnVariable("Alpha_Plaintiff_Quality", (GameProgress gp) => AEGP(gp).AdditiveEvidenceGameOptions.Alpha_Plaintiff_Quality),
+                new SimpleReportColumnVariable("TrialCost", (GameProgress gp) => AEGP(gp).AdditiveEvidenceGameOptions.TrialCost),
+                new SimpleReportColumnVariable("FeeShifting", (GameProgress gp) => AEGP(gp).AdditiveEvidenceGameOptions.FeeShifting ? 1.0 : 0),
+                new SimpleReportColumnVariable("FSMargin", (GameProgress gp) => AEGP(gp).AdditiveEvidenceGameOptions.FeeShiftingIsBasedOnMarginOfVictory ? 1.0 : 0),
+                new SimpleReportColumnVariable("FeeShiftingThreshold", (GameProgress gp) => AEGP(gp).AdditiveEvidenceGameOptions.FeeShiftingThreshold),
             };
             List<SimpleReportFilter> rows;
             if (Options.FirstRowOnly)

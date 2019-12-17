@@ -1,5 +1,6 @@
 ﻿using ACESim;
 using ACESim.Util;
+using ACESimBase.Games.AdditiveEvidenceGame;
 using System;
 using System.Diagnostics;
 using System.Threading;
@@ -32,7 +33,8 @@ namespace ACESimDistributed
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    MyGameLauncher launcher = new MyGameLauncher();
+                    //MyGameLauncher launcher = new MyGameLauncher();
+                    AdditiveEvidenceGameLauncher launcher = new AdditiveEvidenceGameLauncher();
 
                     if (launcher.LaunchSingleOptionsSetOnly)
                         throw new Exception("LaunchSingleOptionsSetOnly should only be used with ACESimConsole.");

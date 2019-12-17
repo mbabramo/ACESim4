@@ -18,17 +18,20 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         private enum OptionSetChoice
         {
-            Basic
+            All
         }
 
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-            OptionSetChoice optionSetChoice = OptionSetChoice.Basic;
+            OptionSetChoice optionSetChoice = OptionSetChoice.All;
             switch (optionSetChoice)
             {
-                case OptionSetChoice.Basic:
-                    AddDariMattiacci_Saraceno_Tests(optionSets);
+                case OptionSetChoice.All:
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.Original);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.Biasless);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.EvenStrength);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.EvenStrengthAndBiasless);
                     break;
             }
 
@@ -42,17 +45,38 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             return optionSets;
         }
 
+        enum DMSVersion
+        {
+            Original,
+            Biasless,
+            EvenStrength,
+            EvenStrengthAndBiasless
+        }
 
-        private void AddDariMattiacci_Saraceno_Tests(List<(string optionSetName, GameOptions options)> optionSets)
+        private void AddDariMattiacci_Saraceno_Tests(List<(string optionSetName, GameOptions options)> optionSets, DMSVersion version)
         {
 
             // now, liability and damages only
-            foreach (double quality in new double[] { 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75 })
-                foreach (double costs in new double[] { 0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50 })
-                    foreach (double? feeShiftingThreshold in new double?[] { (double?) null, 0, 0.2, 0.4, 0.6, 0.8, 1.0 })
+            foreach (double quality in new double[] { 0, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 1.0 })
+                foreach (double costs in new double[] { 0, 0.15, 0.30, 0.45, 0.60 })
+                    foreach (double? feeShiftingThreshold in new double?[] { (double?) null, 0, 0.25, 0.50, 0.75, 1.0 })
                 {
-                    optionSets.Add(GetAndTransform("quality", quality.ToString(), () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno(quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0), x => { }));
-                }
+                        switch (version)
+                        {
+                            case DMSVersion.Original:
+                                optionSets.Add(GetAndTransform("orig", quality.ToString(), () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno(quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0), x => { }));
+                                break;
+                            case DMSVersion.Biasless:
+                                optionSets.Add(GetAndTransform("orig", quality.ToString(), () => AdditiveEvidenceGameOptionsGenerator.Biasless(quality, quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0), x => { }));
+                                break;
+                            case DMSVersion.EvenStrength:
+                                optionSets.Add(GetAndTransform("orig", quality.ToString(), () => AdditiveEvidenceGameOptionsGenerator.EvenStrength(quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0), x => { }));
+                                break;
+                            case DMSVersion.EvenStrengthAndBiasless:
+                                optionSets.Add(GetAndTransform("orig", quality.ToString(), () => AdditiveEvidenceGameOptionsGenerator.Biasless(quality, 0.5, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0), x => { }));
+                                break;
+                        }
+                    }
         }
 
         (string optionSetName, AdditiveEvidenceGameOptions options) GetAndTransform(string baseName, string suffix, Func<AdditiveEvidenceGameOptions> baseOptionsFn, Action<AdditiveEvidenceGameOptions> transform)
