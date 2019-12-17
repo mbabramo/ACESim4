@@ -26,8 +26,8 @@ namespace ACESim
         public bool CreateInformationSetCharts = false; 
         public int? ReportEveryNIterations = 1000;
 
-        // CORRELATED EQ SETTINGS
-        public bool ConstructCorrelatedEquilibrium = false; // DEBUG
+        // CORRELATED EQ SETTINGS -- MUST ALSO SET IN GAME DEFINITION
+        public bool ConstructCorrelatedEquilibrium = false;
         public bool ConstructCorrelatedEquilibriumMultipleTimesExPost = true;
         public int MaxNumCorrelatedEquilibriaToConstruct = 125;
         public bool CheckCorrelatedEquilibriumIncompatibilitiesAlongWay = false;

@@ -47,12 +47,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         {
 
             // now, liability and damages only
-            foreach (double quality in new double[] { 0.35, 0.40, 0.45, 0.50, 0.55, 0.60, 0.65 })
-                foreach (double costs in new double[] { 0.35, 0.40, 0.45, 0.50, 0.55, 0.60, 0.65 })
+            foreach (double quality in new double[] { 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75 })
+                foreach (double costs in new double[] { 0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50 })
                     foreach (double? feeShiftingThreshold in new double?[] { (double?) null, 0, 0.2, 0.4, 0.6, 0.8, 1.0 })
                 {
-                optionSets.Add(GetAndTransform("quality", quality.ToString(), () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno(quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0), x => { }));
-            }
+                    optionSets.Add(GetAndTransform("quality", quality.ToString(), () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno(quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0), x => { }));
+                }
         }
 
         (string optionSetName, AdditiveEvidenceGameOptions options) GetAndTransform(string baseName, string suffix, Func<AdditiveEvidenceGameOptions> baseOptionsFn, Action<AdditiveEvidenceGameOptions> transform)
