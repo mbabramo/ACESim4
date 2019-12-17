@@ -49,9 +49,13 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public byte NumQualityAndBiasLevels = 10;
         public byte NumOffers = 10;
 
+        public double MinOffer = -0.5;
+        public double OfferRange = 2.0; 
+
         public double TrialCost;
         public bool FeeShifting;
         public bool FeeShiftingIsBasedOnMarginOfVictory;
+
         /// <summary>
         /// When based on margin of victory, judgment must exceed this amount (which thus should be greater than 1/2).
         /// When not based on margin of victory, the judgment that would be entered based only on information accessible to the winner must exceed this amount.
@@ -64,7 +68,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 Alpha_Quality {Alpha_Quality}: Both {Alpha_Both_Quality} P {Alpha_Plaintiff_Quality} D {Alpha_Defendant_Quality} Neither {Alpha_Neither_Quality}
 Alpha_Bias {Alpha_Bias}: Both {Alpha_Both_Bias} P {Alpha_Plaintiff_Bias} D {Alpha_Defendant_Bias} Neither {Alpha_Neither_Bias}
 FeeShifting {FeeShifting} {(FeeShifting ? $"Margin {FeeShiftingIsBasedOnMarginOfVictory} Threshold {FeeShiftingThreshold}" : "")}
-NumOffers {NumOffers} NumQualityAndBiasLevels {NumQualityAndBiasLevels}
+NumOffers {NumOffers} MinOffer {MinOffer} OfferRange {OfferRange} NumQualityAndBiasLevels {NumQualityAndBiasLevels}
 IncludePQuit {IncludePQuitDecision} IncludeDQuit {IncludeDQuitDecision}";
         }
     }

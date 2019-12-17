@@ -28,8 +28,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public byte POffer;
         public byte DOffer;
 
-        public double POfferContinuousIfMade => EquallySpaced.GetLocationOfEquallySpacedPoint(POffer - 1 /* make it zero-based */, AdditiveEvidenceGameOptions.NumOffers, false);
-        public double DOfferContinuousIfMade => EquallySpaced.GetLocationOfEquallySpacedPoint(DOffer - 1 /* make it zero-based */, AdditiveEvidenceGameOptions.NumOffers, false);
+        public double POfferContinuousIfMade => AdditiveEvidenceGameOptions.MinOffer + AdditiveEvidenceGameOptions.OfferRange * EquallySpaced.GetLocationOfEquallySpacedPoint(POffer - 1 /* make it zero-based */, AdditiveEvidenceGameOptions.NumOffers, false);
+        public double DOfferContinuousIfMade => AdditiveEvidenceGameOptions.MinOffer + AdditiveEvidenceGameOptions.OfferRange * EquallySpaced.GetLocationOfEquallySpacedPoint(DOffer - 1 /* make it zero-based */, AdditiveEvidenceGameOptions.NumOffers, false);
 
         public double? POfferContinuousOrNull => SomeoneQuits ? (double?)null : POfferContinuousIfMade;
         public double? DOfferContinuousOrNull => SomeoneQuits ? (double?)null : DOfferContinuousIfMade;

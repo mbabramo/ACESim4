@@ -13,7 +13,7 @@ namespace ACESimTest
     [TestClass]
     public class AdditiveEvidenceGameTest
     {
-        private AdditiveEvidenceGameOptions GetOptions(double evidenceBothQuality = 0.6, double evidenceBothBias = 0.7, double alphaQuality = 0.6, double alphaBothQuality = 0.55, double alphaPQuality = 0.20, double alphaDQuality = 0.15, double alphaBothBias = 0.40, double alphaPBias = 0.10, double alphaDBias = 0.15, byte numQualityAndBiasLevels = 10, byte numOffers = 5, double trialCost = 0.1, bool feeShifting = false, bool feeShiftingBasedOnMarginOfVictory = false, double feeShiftingThreshold = 0.7)
+        private AdditiveEvidenceGameOptions GetOptions(double evidenceBothQuality = 0.6, double evidenceBothBias = 0.7, double alphaQuality = 0.6, double alphaBothQuality = 0.55, double alphaPQuality = 0.20, double alphaDQuality = 0.15, double alphaBothBias = 0.40, double alphaPBias = 0.10, double alphaDBias = 0.15, byte numQualityAndBiasLevels = 10, byte numOffers = 5, double trialCost = 0.1, bool feeShifting = false, bool feeShiftingBasedOnMarginOfVictory = false, double feeShiftingThreshold = 0.7, double minOffer = -0.5, double offerRange = 2.0)
         {
             var options = new AdditiveEvidenceGameOptions()
             {
@@ -31,7 +31,9 @@ namespace ACESimTest
                 TrialCost = trialCost,
                 FeeShifting = feeShifting,
                 FeeShiftingIsBasedOnMarginOfVictory = feeShiftingBasedOnMarginOfVictory,
-                FeeShiftingThreshold = feeShiftingThreshold
+                FeeShiftingThreshold = feeShiftingThreshold,
+                MinOffer = minOffer,
+                OfferRange = offerRange
             };
             (options.Alpha_Both_Quality + options.Alpha_Plaintiff_Quality + options.Alpha_Defendant_Quality + options.Alpha_Neither_Quality).Should().BeApproximately(1.0, 0.000001);
             (options.Alpha_Both_Bias + options.Alpha_Plaintiff_Bias + options.Alpha_Defendant_Bias + options.Alpha_Neither_Bias).Should().BeApproximately(1.0, 0.000001);
@@ -75,7 +77,7 @@ namespace ACESimTest
         public void AdditiveEvidence_SettlementValues()
         {
             var gameOptions = GetOptions();
-            foreach ((int pOffer, int dOffer, double settlementValue) in new[] { (3, 3, 0.5), (2, 4, 0.5), (1, 5, 0.5), (1, 3, 2.0 / 6.0), (1, 4, 2.5 / 6.0), (2, 5, 3.5 / 6.0), (3, 5, 4.0 / 6.0), (4, 5, 4.5 / 6.0) })
+            foreach ((int pOffer, int dOffer, double settlementValue) in new[] { (3, 3, 0.5), (2, 4, 0.5), (1, 5, 0.5), (1, 3, gameOptions.MinOffer + gameOptions.OfferRange * 2.0 / 6.0), (1, 4, gameOptions.MinOffer + gameOptions.OfferRange * 2.5 / 6.0), (2, 5, gameOptions.MinOffer + gameOptions.OfferRange * 3.5 / 6.0), (3, 5, gameOptions.MinOffer + gameOptions.OfferRange * 4.0 / 6.0), (4, 5, gameOptions.MinOffer + gameOptions.OfferRange * 4.5 / 6.0) }) 
             {
                 Func<Decision, GameProgress, byte> actionsToPlay = AdditiveActionsGameActionsGenerator.PlaySpecifiedDecisions(pOffer: (byte)pOffer, dOffer: (byte)dOffer);
                 var gameProgress = AdditiveEvidenceGameLauncher.PlayAdditiveEvidenceGameOnce(gameOptions, actionsToPlay);
