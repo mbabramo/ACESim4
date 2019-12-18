@@ -3,6 +3,8 @@ using ACESim.Util;
 using ACESimBase.Util;
 using System;
 using System.IO;
+using CsvHelper;
+using System.Linq;
 
 namespace LitigCharts
 {
@@ -10,11 +12,15 @@ namespace LitigCharts
     {
         static void Main(string[] args)
         {
-            RepeatedLineChart();
+            //CopyAzureFiles();
+            double[] qualityValues = new double[] { 0, 0.20, 0.40, 0.60, 0.80, 1.0 };
+            var trialRates = GetDataForQualities("R094", "orig", qualityValues, 0.30, 0.25, "All", "Trial");
             //InformationSetCharts();
         }
 
-        private static void CopyAzureFiles()
+        
+
+        private static void CopyAzureFiles(string prefix)
         {
             string path = @"H:\My Drive\Articles, books in progress\Machine learning model of litigation\DMS nonlinear results 1";
             string settingString(string set, double quality, double costs, double feeShiftingThreshold) => $"{set}q{(int)(quality * 100)}c{(int)(costs * 100)}t{(int)(feeShiftingThreshold * 100)}";
@@ -23,9 +29,36 @@ namespace LitigCharts
                 foreach (double costs in new double[] { 0, 0.15, 0.30, 0.45, 0.60 })
                     foreach (double feeShifting in new double?[] { 0, 0.25, 0.50, 0.75, 1.0 } )
                     {
-                            string filename = settingString(set, quality, costs, feeShifting);
-                            TextFileCreate.CopyFileFromAzure()
+                            string filename = prefix + " " + settingString(set, quality, costs, feeShifting) + ".csv";
+                            TextFileCreate.CopyFileFromAzure("results", filename, path);
                     }
+        }
+
+        private static double[] GetDataForQualities(string prefix, string set, double[] qualityValues, double costs, double feeShifting, string filterOfRowsToGet, string columnToGet) => qualityValues.Select(x => GetDataForSpecificSettings(prefix, set, x, costs, feeShifting, filterOfRowsToGet, columnToGet) ?? 0.0).ToArray();
+
+        private static double? GetDataForSpecificSettings(string prefix, string set, double quality, double costs, double feeShifting, string filterOfRowsToGet, string columnToGet)
+        {
+            var singleRowResults = GetDataForSpecificSettings(prefix, set, quality, costs, feeShifting, new string[] { filterOfRowsToGet }, new string[] { columnToGet });
+            return singleRowResults[0, 0];
+        }
+
+        private static double?[,] GetDataForSpecificSettings(string prefix, string set, double quality, double costs, double feeShifting, string[] filtersOfRowsToGet, string[] columnsToGet)
+        {
+            string settingString(string set, double quality, double costs, double feeShiftingThreshold) => $"{set}q{(int)(quality * 100)}c{(int)(costs * 100)}t{(int)(feeShiftingThreshold * 100)}";
+            string path = @"H:\My Drive\Articles, books in progress\Machine learning model of litigation\DMS nonlinear results 1";
+            string setting = settingString(set, quality, costs, feeShifting);
+            string filename = prefix + " " + setting + ".csv";
+            string combined = Path.Combine(path, filename);
+            (string columnName, string expectedText)[][] rowsToFind = new (string columnName, string expectedText)[filtersOfRowsToGet.Length][];
+            for (int f = 0; f < filtersOfRowsToGet.Length; f++)
+            {
+                rowsToFind[f] = new (string columnName, string expectedText)[2];
+                rowsToFind[f][0] = ("OptionSet", setting);
+                rowsToFind[f][1] = ("Filter", filtersOfRowsToGet[f]);
+            }
+            // string[] columnsToGet = new string[] { "Trial", "AccSq", "POffer", "DOffer" };
+            var results = CSVData.GetCSVData(combined, rowsToFind, columnsToGet);
+            return results;
         }
 
         private static void RepeatedLineChart()

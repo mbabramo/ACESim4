@@ -183,11 +183,12 @@ namespace ACESim
             }
         }
 
-        public static void CopyFileFromAzure(string containerName, string azureFilename, string targetPath,  string targetFilenameIfDifferent)
+        public static void CopyFileFromAzure(string containerName, string azureFilename, string targetPath,  string targetFilenameIfDifferent = null, bool copyEmpty = false)
         {
             string text = AzureBlob.GetBlobText("results", azureFilename);
 
-            TextFileCreate.CreateTextFile(Path.Combine(targetPath, targetFilenameIfDifferent ?? azureFilename), text);
+            if (copyEmpty || (text != null && text != ""))
+                TextFileCreate.CreateTextFile(Path.Combine(targetPath, targetFilenameIfDifferent ?? azureFilename), text);
         }
     }
 
