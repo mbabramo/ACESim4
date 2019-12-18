@@ -28,7 +28,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         {
             switch (currentDecisionByteCode)
             {
-                case (byte)AdditiveEvidenceGameDecisions.P_LinearBid_Min:
+                case (byte)AdditiveEvidenceGameDecisions.P_LinearBid:
                     AdditiveEvidenceProgress.P_LinearBid_Min = action;
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.P_LinearBid_Max:
@@ -37,7 +37,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 case (byte)AdditiveEvidenceGameDecisions.D_LinearBid_Min:
                     AdditiveEvidenceProgress.D_LinearBid_Min = action;
                     break;
-                case (byte)AdditiveEvidenceGameDecisions.D_LinearBid_Max:
+                case (byte)AdditiveEvidenceGameDecisions.D_LinearBid:
                     AdditiveEvidenceProgress.D_LinearBid_Max = action;
                     break;
 

@@ -13,6 +13,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public bool FirstRowOnly => false; // simplifies the reporting
 
         public bool LinearBids = true; // SUPERDEBUG
+        public (byte min, byte max) GetLinearBidExtremesFromBid(byte bid) => (bid / NumOffers, (byte) (bid % NumOffers)
+
         public bool IncludePQuitDecision;
         public bool IncludeDQuitDecision;
 
