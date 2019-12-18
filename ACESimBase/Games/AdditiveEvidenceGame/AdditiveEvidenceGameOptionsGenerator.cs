@@ -36,7 +36,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         };
 
         // SUPERDEBUG
-        public static byte NumOffers = 5; // having a good number here allows for more precise strategies
+        public static byte NumOffers = 15; // having a good number here allows for more precise strategies
         public static byte NumQualityAndBiasLevels = 5; // this also contributes to precision (note, though, that this doesn't affect the number of levels of "both quality"
 
         public static AdditiveEvidenceGameOptions DariMattiacci_Saraceno(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay)

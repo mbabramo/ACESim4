@@ -45,15 +45,23 @@ namespace ACESim
             GetUtilitiesForStrategyCombinations(player0InformationSets, player1InformationSets,
                 out int player0Permutations, out int player1Permutations, out double[,] player0Utilities,
                 out double[,] player1Utilities);
+            List<(int player0Strategy, int player1Strategy)> nashEquilibria = ComputeNashEquilibria(player0Utilities, player1Utilities);
+            await PrintAllEquilibriumStrategies(player0InformationSets, player1InformationSets, player0Permutations,
+                player1Permutations, nashEquilibria);
+        }
+
+        public static List<(int player0Strategy, int player1Strategy)> ComputeNashEquilibria(double[,] player0Utilities, double[,] player1Utilities)
+        {
+            int player0Permutations = player0Utilities.GetLength(0);
+            int player1Permutations = player0Utilities.GetLength(1);
             bool[] player0StrategyEliminated = new bool[player0Permutations];
             bool[] player1StrategyEliminated = new bool[player1Permutations];
-            EliminateDominatedStrategies(player0Permutations, player1Permutations, player0Utilities, player1Utilities,
+            EliminateDominatedStrategies(player0Utilities, player1Utilities,
                 player0StrategyEliminated, player1StrategyEliminated);
             List<(int player0Strategy, int player1Strategy)> nashEquilibria =
                 NarrowToNashEquilibria(player0Permutations, player1Permutations, player0Utilities, player1Utilities,
                     player0StrategyEliminated, player1StrategyEliminated, true);
-            await PrintAllEquilibriumStrategies(player0InformationSets, player1InformationSets, player0Permutations,
-                player1Permutations, nashEquilibria);
+            return nashEquilibria;
         }
 
         private void PrintMatrix(double[,] arr)
@@ -122,10 +130,12 @@ namespace ACESim
             }
         }
 
-        private static void EliminateDominatedStrategies(int player0Permutations, int player1Permutations,
+        public static void EliminateDominatedStrategies(
             double[,] player0Utilities, double[,] player1Utilities, bool[] player0StrategyEliminated,
             bool[] player1StrategyEliminated)
         {
+            int player0Permutations = player0Utilities.GetLength(0);
+            int player1Permutations = player0Utilities.GetLength(1);
             bool atLeastOneEliminated = true;
             while (atLeastOneEliminated)
             {
@@ -139,7 +149,7 @@ namespace ACESim
             }
         }
 
-        private static bool EliminateDominatedStrategies(int thisPlayerPermutations, int otherPlayerPermutations,
+        public static bool EliminateDominatedStrategies(int thisPlayerPermutations, int otherPlayerPermutations,
             Func<int, int, double> getUtilityFn, bool[] thisPlayerStrategyEliminated,
             bool[] otherPlayerStrategyEliminated)
         {
