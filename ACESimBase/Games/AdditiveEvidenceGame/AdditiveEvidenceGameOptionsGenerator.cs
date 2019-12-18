@@ -10,28 +10,34 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         {
             DMS,
             DMS_WithFeeShifting,
-            DMS_WithQuits,
+            DMS_WithOptionNotToPlay,
             EvenStrength,
             Biasless_AsymmetryBasedOnQuality,
-            Biasless_EvenStrength
+            Biasless_EvenStrength,
+            Biasless_PHasInfo
         }
 
-        static AdditiveEvidenceOptionSetChoices AdditiveEvidenceChoice => AdditiveEvidenceOptionSetChoices.DMS_WithFeeShifting;
+        static AdditiveEvidenceOptionSetChoices AdditiveEvidenceChoice => AdditiveEvidenceOptionSetChoices.DMS;
 
         public static AdditiveEvidenceGameOptions GetAdditiveEvidenceGameOptions() => AdditiveEvidenceChoice switch
         {
             AdditiveEvidenceOptionSetChoices.DMS => DariMattiacci_Saraceno(0.60, 0.15, false, false, 0.5, false),
-            AdditiveEvidenceOptionSetChoices.DMS_WithFeeShifting => DariMattiacci_Saraceno(0.60, 0.15, true, false, 0.5, false),
-            AdditiveEvidenceOptionSetChoices.DMS_WithQuits => DariMattiacci_Saraceno(0.0, 1.0, true, false, 1.0, true),
+            AdditiveEvidenceOptionSetChoices.DMS_WithFeeShifting => DariMattiacci_Saraceno(0.40, 0.15, true, false, 0.5, false),
+            AdditiveEvidenceOptionSetChoices.DMS_WithOptionNotToPlay => DariMattiacci_Saraceno(0.90, 0.6, true, false, 0.7, true),
+            //AdditiveEvidenceOptionSetChoices.DMS_WithOptionNotToPlay => DariMattiacci_Saraceno(0.05, 1.0, true, false, 0.5, false), // removing option not to play and including fee shifting  -- do we get negative settlements
+            //AdditiveEvidenceOptionSetChoices.DMS_WithOptionNotToPlay => DariMattiacci_Saraceno(0.90, 40, true, false, 1.0, true), // very expensive with fee shifting to give incentive not to play, and at this level cases settle --> each party can't be sure whether the other one thinks it has a good hand, and so both parties are eager to settle to avoid the catastrophe of trial. 
+            //AdditiveEvidenceOptionSetChoices.DMS_WithOptionNotToPlay => DariMattiacci_Saraceno(0.99, 37, true, false, 1.0, true), // very expensive with fee shifting to give incentive not to play, and at this level D plays a mixed strategy of dropping out about half the time (but since D has virtually no information, it doesn't correlate with D's info)
             AdditiveEvidenceOptionSetChoices.Biasless_AsymmetryBasedOnQuality => Biasless(0.6, 0.6, 0.15, false, false, 0.5, false),
-            AdditiveEvidenceOptionSetChoices.Biasless_EvenStrength => Biasless(0.6, 0.5, 0.15, false, false, 0.5, false),
+            AdditiveEvidenceOptionSetChoices.Biasless_EvenStrength => Biasless(0.05, 0.5, 1.0, true, false, 1.0, false), // very bad for plaintiff, and both parties know it -- settlements are slightly negative
+            //AdditiveEvidenceOptionSetChoices.Biasless_EvenStrength => Biasless(0.6, 0.5, 0.15, false, false, 0.5, false),
+            AdditiveEvidenceOptionSetChoices.Biasless_PHasInfo => Biasless(0.5, 1.0, 0.15, false, false, 0.5, false), // in this case, note that p's exact offer may be irrelevant, because D will always play same thing, so P will offer just lower than D's to settle or anywhere above D's to go to trial
             _ => throw new Exception()
         };
 
-        public static byte numOffers = 25; // having a good number here allows for more precise strategies
-        public static byte numQualityAndBiasLevels = 25; // this is what will be across on each minigraph, so it's good to have a relatively high number
+        public static byte numOffers = 10; // having a good number here allows for more precise strategies
+        public static byte numQualityAndBiasLevels = 15; // this is what will be across on each minigraph, so it's good to have a relatively high number
 
-        public static AdditiveEvidenceGameOptions DariMattiacci_Saraceno(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withQuits)
+        public static AdditiveEvidenceGameOptions DariMattiacci_Saraceno(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay)
         {
             var options = new AdditiveEvidenceGameOptions()
             {
@@ -50,7 +56,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
             options.NumOffers = numOffers;
             options.NumQualityAndBiasLevels = numQualityAndBiasLevels;
-            if (withQuits)
+            if (withOptionNotToPlay)
             {
                 options.IncludePQuitDecision = true;
                 options.IncludeDQuitDecision = true;
@@ -62,7 +68,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             return options;
         }
 
-        public static AdditiveEvidenceGameOptions EvenStrength(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withQuits)
+        public static AdditiveEvidenceGameOptions EvenStrength(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay)
         {
             var options = new AdditiveEvidenceGameOptions()
             {
@@ -82,7 +88,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
             options.NumOffers = numOffers;
             options.NumQualityAndBiasLevels = numQualityAndBiasLevels;
-            if (withQuits)
+            if (withOptionNotToPlay)
             {
                 options.IncludePQuitDecision = true;
                 options.IncludeDQuitDecision = true;
@@ -93,7 +99,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             return options;
         }
 
-        public static AdditiveEvidenceGameOptions Biasless(double quality, double pPortionOfPrivateInfo /* set to quality to be like the original DMS model in this respect */, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withQuits)
+        public static AdditiveEvidenceGameOptions Biasless(double quality, double pPortionOfPrivateInfo /* set to quality to be like the original DMS model in this respect */, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay)
         {
             var options = new AdditiveEvidenceGameOptions()
             {
@@ -114,7 +120,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
             options.NumOffers = numOffers;
             options.NumQualityAndBiasLevels = numQualityAndBiasLevels;
-            if (withQuits)
+            if (withOptionNotToPlay)
             {
                 options.IncludePQuitDecision = true;
                 options.IncludeDQuitDecision = true;

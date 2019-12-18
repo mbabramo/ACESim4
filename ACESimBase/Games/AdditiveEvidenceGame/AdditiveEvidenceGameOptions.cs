@@ -8,6 +8,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
     [Serializable]
     public class AdditiveEvidenceGameOptions : GameOptions
     {
+        // DEBUG TODO: Add linear game. One point we want to make is that the linear game is highly exploitable, i.e. that each party would want to change strategies if using the linear game strategies in the nonlinear game.
+
         public bool FirstRowOnly => false; // simplifies the reporting
 
         public bool IncludePQuitDecision;
@@ -46,11 +48,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             return calc;
         }
 
-        public byte NumQualityAndBiasLevels = 10;
-        public byte NumOffers = 10;
+        public byte NumQualityAndBiasLevels = 25;
+        public byte NumOffers = 25;
 
-        public double MinOffer = -0.5;
-        public double OfferRange = 2.0; 
+        public double MinOffer = -0.25; // settlements beyond the range of (-0.25, 1.25) have not been observed
+        public double OfferRange = 1.5; 
 
         public double TrialCost;
         public bool FeeShifting;

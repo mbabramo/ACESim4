@@ -232,12 +232,12 @@ namespace ACESim
                 // We are serializing the TaskCoordinator to synchronize information. Thus, we need to update the task coordinator to report that this job is complete. 
                 AzureBlob.TransformSharedBlobObject(blockBlob.blob, blockBlob.lease, o =>
                 {
-                    TaskCoordinator taskCoordinator = (TaskCoordinator)o;
+                    TaskCoordinator taskCoordinator = (TaskCoordinator)o; // because of TransformSharedBlobObject, changes to this will be persisted
                     if (taskCoordinator == null)
                         throw new Exception("Corrupted or nonexistent task coordinator blob");
                     logAction("Initial task coordinator state:");
                     logAction(taskCoordinator.ToString());
-                    taskCoordinator.Update(theCompletedTask, readyForAnotherTask, out taskToDo);
+                    taskCoordinator.Update(theCompletedTask, readyForAnotherTask, out taskToDo, out complete);
                     logAction("Updated task coordinator state:");
                     logAction(taskCoordinator.ToString());
                     TabbedText.WriteLineEvenIfDisabled($"Percentage Complete {100.0 * taskCoordinator.ProportionComplete}%");
@@ -245,15 +245,22 @@ namespace ACESim
                         TabbedText.WriteLineEvenIfDisabled($"Task to do: {taskToDo}");
                     return taskCoordinator;
                 });
-                complete = taskToDo == null;
                 if (!complete)
                 {
-                    await CompleteIndividualTask(masterReportName, taskToDo, logAction);
-                    logAction($"Completed task {taskToDo.Name} {taskToDo.ID}");
-                    taskCompleted = taskToDo;
-                    if (MaxOneReportPerDistributedProcess)
-                        return;
+                    if (taskToDo == null)
+                    {
+                        await Task.Delay(1000 * 60 * 1); // wait a minute for another task
+                        logAction("Waiting before trying to find a task");
+                    }
+                    else
+                    {
+                        await CompleteIndividualTask(masterReportName, taskToDo, logAction);
+                        logAction($"Completed task {taskToDo.Name} {taskToDo.ID}");
+                        taskCompleted = taskToDo;
+                    }
                 }
+                if (MaxOneReportPerDistributedProcess)
+                    return;
             }
         }
 
