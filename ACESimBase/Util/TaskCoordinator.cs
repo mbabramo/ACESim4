@@ -21,7 +21,7 @@ namespace ACESim.Util
         private IEnumerable<IndividualTask> IndividualTasks => RepeatedTasks.SelectMany(x => x.IndividualTasks);
         public int IndividualTaskCount => IndividualTasks.Count();
         public double ProportionComplete => (double) IndividualTasks.Count(x => x.Complete) / (double) IndividualTasks.Count();
-        public TimeSpan LongestDuration => IndividualTasks.Any() ? IndividualTasks.Max(x => x.Duration) : TimeSpan.FromSeconds(0);
+        public TimeSpan LongestDuration => IndividualTasks.Any() ? IndividualTasks.Max(x => x.DurationOfLongestComplete) : TimeSpan.FromSeconds(0);
 
         public void Update(IndividualTask taskCompleted, bool readyForAnotherTask, out IndividualTask taskToDo, out bool allComplete)
         {

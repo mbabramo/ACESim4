@@ -10,7 +10,7 @@ namespace ACESim.Util
         public int Repetition; 
         public DateTime? Started;
         public DateTime? Completed;
-        public TimeSpan Duration => ((Completed ?? DateTime.Now) - Started) ?? TimeSpan.FromSeconds(0);
+        public TimeSpan DurationOfLongestComplete => Completed == null ? TimeSpan.FromSeconds(0) : (TimeSpan) (Completed - Started); // we do not count incomplete tasks here
         public bool Complete;
 
         public IndividualTask(string name, int id, int repetition)
