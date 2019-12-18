@@ -67,15 +67,64 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         // must skip zero
         public byte GameHistoryCacheIndex_POffer = 1;
         public byte GameHistoryCacheIndex_DOffer = 2;
+        public byte GameHistoryCacheIndex_PMin = 3;
+        public byte GameHistoryCacheIndex_PSlope = 4;
+        public byte GameHistoryCacheIndex_DMin = 5;
+        public byte GameHistoryCacheIndex_DSlope = 6;
 
         private List<Decision> GetDecisionsList()
         {
             var decisions = new List<Decision>();
+            if (Options.LinearBids)
+                AddLinearBidDecisions(decisions);
             AddInitialChanceDecisions(decisions);
             AddQuitDecisions(decisions);
-            AddPlayerOffers(decisions);
+            if (!Options.LinearBids)
+                AddPlayerOffers(decisions);
             AddLaterChanceDecisions(decisions);
             return decisions;
+        }
+
+
+        void AddLinearBidDecisions(List<Decision> decisions)
+        {
+            var pMin =
+                    new Decision("PMin", "PM", false, (byte)AdditiveEvidenceGamePlayers.Plaintiff, new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution },
+                        Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.P_LinearBid_Min)
+                    {
+                        IsReversible = true,
+                        IsContinuousAction = true,
+                        StoreActionInGameCacheItem = GameHistoryCacheIndex_PMin,
+                    };
+            decisions.Add(pMin);
+            var pSlope =
+                    new Decision("PSlope", "PS", false, (byte)AdditiveEvidenceGamePlayers.Plaintiff, new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution },
+                        Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.P_LinearBid_Slope)
+                    {
+                        IsReversible = true,
+                        IsContinuousAction = true,
+                        StoreActionInGameCacheItem = GameHistoryCacheIndex_PSlope,
+                    };
+            decisions.Add(pSlope);
+
+            var dMin =
+                    new Decision("DMin", "DM", false, (byte)AdditiveEvidenceGamePlayers.Defendant, new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution },
+                        Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.D_LinearBid_Min)
+                    {
+                        IsReversible = true,
+                        IsContinuousAction = true,
+                        StoreActionInGameCacheItem = GameHistoryCacheIndex_DMin,
+                    };
+            decisions.Add(dMin);
+            var dSlope =
+                    new Decision("DSlope", "DS", false, (byte)AdditiveEvidenceGamePlayers.Defendant, new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution },
+                        Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.D_LinearBid_Slope)
+                    {
+                        IsReversible = true,
+                        IsContinuousAction = true,
+                        StoreActionInGameCacheItem = GameHistoryCacheIndex_DSlope,
+                    };
+            decisions.Add(dSlope);
         }
 
         void AddInitialChanceDecisions(List<Decision> decisions)
@@ -118,7 +167,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 Unroll_Parallelize_Identical = true,
                 //DistributorChanceInputDecision = true,
                 //DistributableDistributorChanceInput = true,
-                ProvidesPrivateInformationFor = (byte)AdditiveEvidenceGamePlayers.Defendant
+                ProvidesPrivateInformationFor = (byte)AdditiveEvidenceGamePlayers.Defendant,
+                CanTerminateGame = Options.LinearBids
             });
         }
         void AddQuitDecisions(List<Decision> decisions)
@@ -212,8 +262,16 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     if (defendantOffer >= plaintiffOffer)
                         return true;
                     break;
-                case (byte)AdditiveEvidenceGameDecisions.Chance_Neither_Quality:
-                    return !(Options.Alpha_Bias > 0 && Options.Alpha_Neither_Bias > 0); // if there is no bias decision to make, then we're done after the quality decision
+                case (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias:
+                    if (Options.LinearBids)
+                    {
+                        if (!(Options.Alpha_Bias > 0 && Options.Alpha_Neither_Bias > 0))
+                            return true;
+                        throw new NotImplementedException(); // if we start using the "neither bias" category, then we need to implement this, following the logic in the game class to determine whether the linear bids produce a settlement. Possibly, easiest thing to do will be to just create a progress object, pass the options to it, and then do the calculations from there. This defeats the purpose of using the game definition class, but that is likely not critical here.
+                    }
+                    return false;
+                    case (byte)AdditiveEvidenceGameDecisions.Chance_Neither_Quality:
+                        return !(Options.Alpha_Bias > 0 && Options.Alpha_Neither_Bias > 0); // if there is no bias decision to make, then we're done after the quality decision
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Neither_Bias:
                     return true;
             }

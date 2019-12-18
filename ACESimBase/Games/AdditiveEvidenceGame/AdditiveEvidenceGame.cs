@@ -12,8 +12,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
     /// </summary>
     public class AdditiveEvidenceGame : Game
     {
-        public AdditiveEvidenceGameDefinition MyDefinition => (AdditiveEvidenceGameDefinition)GameDefinition;
-        public AdditiveEvidenceGameProgress MyProgress => (AdditiveEvidenceGameProgress)Progress;
+        public AdditiveEvidenceGameDefinition AdditiveEvidenceDefinition => (AdditiveEvidenceGameDefinition)GameDefinition;
+        public AdditiveEvidenceGameProgress AdditiveEvidenceProgress => (AdditiveEvidenceGameProgress)Progress;
 
         public AdditiveEvidenceGame()
         {
@@ -28,45 +28,65 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         {
             switch (currentDecisionByteCode)
             {
+                case (byte)AdditiveEvidenceGameDecisions.P_LinearBid_Min:
+                    AdditiveEvidenceProgress.P_LinearBid_Min = action;
+                    break;
+                case (byte)AdditiveEvidenceGameDecisions.P_LinearBid_Slope:
+                    AdditiveEvidenceProgress.P_LinearBid_Slope = action;
+                    break;
+                case (byte)AdditiveEvidenceGameDecisions.D_LinearBid_Min:
+                    AdditiveEvidenceProgress.D_LinearBid_Min = action;
+                    break;
+                case (byte)AdditiveEvidenceGameDecisions.D_LinearBid_Slope:
+                    AdditiveEvidenceProgress.D_LinearBid_Slope = action;
+                    break;
+
                 case (byte)AdditiveEvidenceGameDecisions.PQuit:
-                    MyProgress.PQuits = action == 1;
+                    AdditiveEvidenceProgress.PQuits = action == 1;
                     if (action == 1)
-                        MyProgress.GameComplete = true;
+                        AdditiveEvidenceProgress.GameComplete = true;
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.DQuit:
-                    MyProgress.DQuits = action == 1;
+                    AdditiveEvidenceProgress.DQuits = action == 1;
                     if (action == 1)
-                        MyProgress.GameComplete = true;
+                        AdditiveEvidenceProgress.GameComplete = true;
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Quality:
-                    MyProgress.Chance_Plaintiff_Quality = action;
+                    AdditiveEvidenceProgress.Chance_Plaintiff_Quality = action;
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Quality:
-                    MyProgress.Chance_Defendant_Quality = action;
+                    AdditiveEvidenceProgress.Chance_Defendant_Quality = action;
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias:
-                    MyProgress.Chance_Plaintiff_Bias = action;
+                    AdditiveEvidenceProgress.Chance_Plaintiff_Bias = action;
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias:
-                    MyProgress.Chance_Defendant_Bias = action;
+                    AdditiveEvidenceProgress.Chance_Defendant_Bias = action;
+                    if (AdditiveEvidenceDefinition.Options.LinearBids)
+                    {
+                        if (!(AdditiveEvidenceDefinition.Options.Alpha_Bias > 0 && AdditiveEvidenceDefinition.Options.Alpha_Neither_Bias > 0))
+                            AdditiveEvidenceProgress.GameComplete = true; // b/c using linear bids, there are no more offers, and there are also no more chance decisions
+                        if (AdditiveEvidenceProgress.D_LinearBid_Continuous >= AdditiveEvidenceProgress.P_LinearBid_Continuous)
+                            AdditiveEvidenceProgress.GameComplete = true;
+                    }
                     break;
 
 
                 case (byte)AdditiveEvidenceGameDecisions.POffer:
-                    MyProgress.POffer = action;
+                    AdditiveEvidenceProgress.POffer = action;
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.DOffer:
-                    MyProgress.DOffer = action;
-                    if (action >= MyProgress.POffer)
-                        MyProgress.GameComplete = true;
+                    AdditiveEvidenceProgress.DOffer = action;
+                    if (action >= AdditiveEvidenceProgress.POffer)
+                        AdditiveEvidenceProgress.GameComplete = true;
                     break;
 
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Neither_Quality:
-                    MyProgress.Chance_Neither_Quality = action;
+                    AdditiveEvidenceProgress.Chance_Neither_Quality = action;
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Neither_Bias:
-                    MyProgress.Chance_Neither_Bias = action;
-                    MyProgress.GameComplete = true;
+                    AdditiveEvidenceProgress.Chance_Neither_Bias = action;
+                    AdditiveEvidenceProgress.GameComplete = true;
                     break;
                 default:
                     throw new NotImplementedException();
@@ -83,7 +103,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public override void FinalProcessing()
         {
-            MyProgress.CalculateGameOutcome();
+            AdditiveEvidenceProgress.CalculateGameOutcome();
 
             CalculateSocialWelfareOutcomes();
 

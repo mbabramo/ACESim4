@@ -17,11 +17,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             Biasless_PHasInfo
         }
 
-        static AdditiveEvidenceOptionSetChoices AdditiveEvidenceChoice => AdditiveEvidenceOptionSetChoices.Biasless_EvenStrength;
+        static AdditiveEvidenceOptionSetChoices AdditiveEvidenceChoice => AdditiveEvidenceOptionSetChoices.DMS;
 
         public static AdditiveEvidenceGameOptions GetAdditiveEvidenceGameOptions() => AdditiveEvidenceChoice switch
         {
-            AdditiveEvidenceOptionSetChoices.DMS => DariMattiacci_Saraceno(0.60, 0.15, false, false, 0.5, false),
+            AdditiveEvidenceOptionSetChoices.DMS => DariMattiacci_Saraceno(0.55, 0.35, false, false, 0.5, false),
             AdditiveEvidenceOptionSetChoices.DMS_WithFeeShifting => DariMattiacci_Saraceno(0.40, 0.15, true, false, 0.5, false),
             AdditiveEvidenceOptionSetChoices.DMS_WithOptionNotToPlay => DariMattiacci_Saraceno(0.90, 0.6, true, false, 0.7, true),
             //AdditiveEvidenceOptionSetChoices.DMS_WithOptionNotToPlay => DariMattiacci_Saraceno(0.05, 1.0, true, false, 0.5, false), // removing option not to play and including fee shifting  -- do we get negative settlements
@@ -34,8 +34,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             _ => throw new Exception()
         };
 
-        public static byte NumOffers = 25; // having a good number here allows for more precise strategies
-        public static byte NumQualityAndBiasLevels = 25; // this also contributes to precision (note, though, that this doesn't affect the number of levels of "both quality"
+        // SUPERDEBUG
+        public static byte NumOffers = 8; // having a good number here allows for more precise strategies
+        public static byte NumQualityAndBiasLevels = 8; // this also contributes to precision (note, though, that this doesn't affect the number of levels of "both quality"
 
         public static AdditiveEvidenceGameOptions DariMattiacci_Saraceno(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay)
         {

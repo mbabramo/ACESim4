@@ -12,6 +12,27 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public AdditiveEvidenceGameDefinition AdditiveEvidenceGameDefinition => (AdditiveEvidenceGameDefinition)GameDefinition;
         public AdditiveEvidenceGameOptions AdditiveEvidenceGameOptions => AdditiveEvidenceGameDefinition.Options;
 
+        // Linear bids
+        // Each player announces a minimum and a slope, so the player's offer equals the minimum + slope * (party's information - 1).
+        // Note that we're assuming here that the party has only one type of information. (Otherwise, we would need two slopes.)
+
+        public byte P_LinearBid_Min;
+        public byte P_LinearBid_Slope;
+        public byte D_LinearBid_Min;
+        public byte D_LinearBid_Slope;
+        public double MinForAction(byte action) => EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1, AdditiveEvidenceGameOptions.NumOffers, true /* including endpoints here */);
+        public double SlopeForProportion(double proportion) => MonotonicCurve.CalculateYGivenExtremesMiddle(0, 1.0, 0, AdditiveEvidenceGameOptions.OfferRange, AdditiveEvidenceGameOptions.OfferRange / ((double)AdditiveEvidenceGameOptions.NumOffers - 1.0), proportion); // thus, we'll have a lot have sublinear and half superlinear slopes, with subllinear slopes concentrated near zero
+        public double SlopeForAction(byte action) => SlopeForProportion(((double)(action - 1)) / ((double)(AdditiveEvidenceGameOptions.NumOffers - 1.0)));
+        public double P_LinearBid_Min_Continuous => MinForAction(P_LinearBid_Min);
+        public double D_LinearBid_Min_Continuous => MinForAction(D_LinearBid_Min);
+        public double P_LinearBid_Slope_Continuous => SlopeForAction(P_LinearBid_Slope);
+        public double D_LinearBid_Slope_Continuous => SlopeForAction(D_LinearBid_Slope);
+        public byte P_Slope_Input => AdditiveEvidenceGameOptions.Alpha_Bias > 0 && AdditiveEvidenceGameOptions.Alpha_Plaintiff_Bias > 0 ? Chance_Plaintiff_Bias : Chance_Plaintiff_Quality;
+        public byte D_Slope_Input => AdditiveEvidenceGameOptions.Alpha_Bias > 0 && AdditiveEvidenceGameOptions.Alpha_Plaintiff_Bias > 0 ? Chance_Defendant_Bias : Chance_Defendant_Quality;
+        public double P_LinearBid_Continuous => Math.Min(AdditiveEvidenceGameOptions.MinOffer + AdditiveEvidenceGameOptions.OfferRange, P_LinearBid_Min_Continuous + P_LinearBid_Slope_Continuous * (P_Slope_Input - 1));
+        public double D_LinearBid_Continuous => Math.Min(AdditiveEvidenceGameOptions.MinOffer + AdditiveEvidenceGameOptions.OfferRange, D_LinearBid_Min_Continuous + D_LinearBid_Slope_Continuous * (D_Slope_Input - 1));
+
+
         public byte Chance_Plaintiff_Quality;
         public byte Chance_Defendant_Quality;
         public byte Chance_Plaintiff_Bias;
@@ -28,8 +49,19 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public byte POffer;
         public byte DOffer;
 
-        public double POfferContinuousIfMade => AdditiveEvidenceGameOptions.MinOffer + AdditiveEvidenceGameOptions.OfferRange * EquallySpaced.GetLocationOfEquallySpacedPoint(POffer - 1 /* make it zero-based */, AdditiveEvidenceGameOptions.NumOffers, false);
-        public double DOfferContinuousIfMade => AdditiveEvidenceGameOptions.MinOffer + AdditiveEvidenceGameOptions.OfferRange * EquallySpaced.GetLocationOfEquallySpacedPoint(DOffer - 1 /* make it zero-based */, AdditiveEvidenceGameOptions.NumOffers, false);
+        public byte DiscreteOffer(bool plaintiff)
+        {
+            if (!AdditiveEvidenceGameOptions.LinearBids)
+                return plaintiff ? POffer : DOffer;
+            // When using linear bids, we want to find the discrete offer value nearest the continuous value -- this will allow for comparability between our linear bids and discrete models
+            double actualOffer = plaintiff ? P_LinearBid_Continuous : D_LinearBid_Continuous;
+            byte closest = Enumerable.Range(1, AdditiveEvidenceGameOptions.NumOffers).Select(a => (byte)a).Select(a => (a, Math.Abs(actualOffer - ContinuousOffer(a)))).OrderBy(x => x.Item2).First().Item1;
+            return closest;
+        }
+
+        private double ContinuousOffer(byte offerAction) => AdditiveEvidenceGameOptions.MinOffer + AdditiveEvidenceGameOptions.OfferRange * EquallySpaced.GetLocationOfEquallySpacedPoint(offerAction - 1 /* make it zero-based */, AdditiveEvidenceGameOptions.NumOffers, false);
+        public double POfferContinuousIfMade => AdditiveEvidenceGameOptions.LinearBids ? P_LinearBid_Continuous : ContinuousOffer(POffer);
+        public double DOfferContinuousIfMade => AdditiveEvidenceGameOptions.LinearBids ? D_LinearBid_Continuous : ContinuousOffer(DOffer);
 
         public double? POfferContinuousOrNull => SomeoneQuits ? (double?)null : POfferContinuousIfMade;
         public double? DOfferContinuousOrNull => SomeoneQuits ? (double?)null : DOfferContinuousIfMade;
@@ -43,7 +75,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public double? SettlementValue => SettlementOccurs ? (POfferContinuousIfMade + DOfferContinuousIfMade) / 2.0 : (double?) null;
         public bool SomeoneQuits => PQuits || DQuits;
-        public bool SettlementOccurs => !SomeoneQuits && POffer <= DOffer;
+        public bool SettlementOccurs => !SomeoneQuits && POfferContinuousIfMade <= DOfferContinuousIfMade;
         public bool TrialOccurs => !SomeoneQuits && !SettlementOccurs;
         static double dOr0(double n, double d) => d == 0 ? 0 : n / d; // avoid division by zero
         public double QualitySum => AdditiveEvidenceGameOptions.Alpha_Both_Quality * AdditiveEvidenceGameOptions.Evidence_Both_Quality + AdditiveEvidenceGameOptions.Alpha_Plaintiff_Quality * Chance_Plaintiff_Quality_Continuous + AdditiveEvidenceGameOptions.Alpha_Defendant_Quality * Chance_Defendant_Quality_Continuous + AdditiveEvidenceGameOptions.Alpha_Neither_Quality * Chance_Neither_Quality_Continuous_IfDetermined;
@@ -119,8 +151,14 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public override string ToString()
         {
+            string offers;
+            if (AdditiveEvidenceGameOptions.LinearBids)
+                offers = $"P_LinearBid_Min {P_LinearBid_Min} P_Linear_Slope {P_LinearBid_Slope} => {P_LinearBid_Slope_Continuous}; D_LinearBid_Min {D_LinearBid_Min} D_LinearBid_Slope {D_LinearBid_Slope} => {D_LinearBid_Slope_Continuous}";
+            else
+                offers = $"POffer {POffer} DOffer {DOffer}";
             return
-                $@"Chance_Plaintiff_Quality {Chance_Plaintiff_Quality} Chance_Defendant_Quality {Chance_Defendant_Quality} Chance_Plaintiff_Bias {Chance_Plaintiff_Bias} Chance_Defendant_Bias {Chance_Defendant_Bias} POffer {POffer} DOffer {DOffer} Chance_Neither_Quality {Chance_Neither_Quality} Chance_Neither_Bias {Chance_Neither_Bias}
+                $@"Chance_Plaintiff_Quality {Chance_Plaintiff_Quality} Chance_Defendant_Quality {Chance_Defendant_Quality} Chance_Plaintiff_Bias {Chance_Plaintiff_Bias} Chance_Defendant_Bias {Chance_Defendant_Bias}  Chance_Neither_Quality {Chance_Neither_Quality} Chance_Neither_Bias {Chance_Neither_Bias}
+{offers}
 QualitySum {QualitySum} QualitySum_PInfoOnly {QualitySum_PInfoOnly} QualitySum_DInfoOnly {QualitySum_DInfoOnly} BiasSum {BiasSum} BiasSum_PInfoOnly {BiasSum_PInfoOnly} BiasSum_DInfoOnly {BiasSum_DInfoOnly}
 PQuits {PQuits} DQuits {DQuits}
 SettlementValue {SettlementValue} SettlementOccurs {SettlementOccurs} TrialOccurs {TrialOccurs} TrialValuePreShifting {TrialValuePreShifting} SettlementOrJudgment {ResolutionValue} DsProportionOfCost {DsProportionOfCost}
@@ -134,6 +172,10 @@ AccuracyIgnoringCosts {Accuracy} Accuracy_ForPlaintiff {Accuracy_ForPlaintiff} A
 
             // copy.GameComplete = this.GameComplete;
             base.CopyFieldInfo(copy);
+            copy.P_LinearBid_Min = P_LinearBid_Min;
+            copy.P_LinearBid_Slope = P_LinearBid_Slope;
+            copy.D_LinearBid_Min = D_LinearBid_Min;
+            copy.D_LinearBid_Slope = D_LinearBid_Slope;
             copy.Chance_Plaintiff_Quality = Chance_Plaintiff_Quality;
             copy.Chance_Defendant_Quality = Chance_Defendant_Quality;
             copy.Chance_Plaintiff_Bias = Chance_Plaintiff_Bias;
