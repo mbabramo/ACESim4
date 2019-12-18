@@ -34,7 +34,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 new SimpleReportColumnVariable("POffer", (GameProgress gp) => AEGP(gp).POfferContinuousOrNull),
                 new SimpleReportColumnVariable("DOffer", (GameProgress gp) => AEGP(gp).DOfferContinuousOrNull),
                 new SimpleReportColumnVariable("AccSq", (GameProgress gp) => AEGP(gp).AccuracySquared),
-                new SimpleReportColumnVariable("Accuracy", (GameProgress gp) => AEGP(gp).Accuracy), // excludes self-borne costs
+                new SimpleReportColumnVariable("Accuracy", (GameProgress gp) => AEGP(gp).Accuracy),
                 new SimpleReportColumnVariable("Accuracy_ForPlaintiff", (GameProgress gp) => AEGP(gp).Accuracy_ForPlaintiff),
                 new SimpleReportColumnVariable("Accuracy_ForDefendant", (GameProgress gp) => AEGP(gp).Accuracy_ForDefendant),
                 new SimpleReportColumnVariable("SettlementOrJudgment", (GameProgress gp) => AEGP(gp).ResolutionValue),
@@ -44,6 +44,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 new SimpleReportColumnVariable("TrialValueWithShiftingIfOccurs", (GameProgress gp) => AEGP(gp).TrialValueWithShiftingIfOccurs),
                 new SimpleReportColumnVariable("PTrialEffect_IfOccurs", (GameProgress gp) => AEGP(gp).PTrialEffect_IfOccurs),
                 new SimpleReportColumnVariable("DTrialEffect_IfOccurs", (GameProgress gp) => AEGP(gp).DTrialEffect_IfOccurs),
+                new SimpleReportColumnVariable("ResolutionValueIncludingShiftedAmount", (GameProgress gp) => AEGP(gp).ResolutionValueIncludingShiftedAmount),
+                new SimpleReportColumnVariable("SettlementValue", (GameProgress gp) => AEGP(gp).SettlementValue),
                 new SimpleReportColumnVariable("PWelfare", (GameProgress gp) => AEGP(gp).PWelfare),
                 new SimpleReportColumnVariable("DWelfare", (GameProgress gp) => AEGP(gp).DWelfare),
                 new SimpleReportColumnVariable("PQuality", (GameProgress gp) => AEGP(gp).Chance_Plaintiff_Quality_Continuous),

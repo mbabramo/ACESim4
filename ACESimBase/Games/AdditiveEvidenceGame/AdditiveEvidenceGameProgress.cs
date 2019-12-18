@@ -109,7 +109,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             }
         }
 
-        public double Accuracy => Math.Abs(PWelfare - ResolutionValueIncludingShiftedAmount); // this EXCLUDES self-borne costs
+        public double Accuracy => Math.Abs(QualitySum - ResolutionValueIncludingShiftedAmount); // this EXCLUDES self-borne costs
         public double AccuracySquared => Accuracy * Accuracy;
         public double Accuracy_ForPlaintiff => Math.Abs(PWelfare - QualitySum);
         public double Accuracy_ForDefendant => Math.Abs(DWelfare + QualitySum);
