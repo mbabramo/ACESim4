@@ -19,16 +19,20 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         private enum OptionSetChoice
         {
             All,
-            Fast
+            Fast,
+            Original
         }
 
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-            OptionSetChoice optionSetChoice = OptionSetChoice.All;
+            OptionSetChoice optionSetChoice = OptionSetChoice.Original; // DEBUG
             bool withOptionNotToPlay = false;
             switch (optionSetChoice)
             {
+                case OptionSetChoice.Original:
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.Original, withOptionNotToPlay);
+                    break;
                 case OptionSetChoice.All:
                     AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.Original, withOptionNotToPlay);
                     AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.Biasless, withOptionNotToPlay);
