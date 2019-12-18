@@ -31,14 +31,14 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 case (byte)AdditiveEvidenceGameDecisions.P_LinearBid_Min:
                     AdditiveEvidenceProgress.P_LinearBid_Min = action;
                     break;
-                case (byte)AdditiveEvidenceGameDecisions.P_LinearBid_Slope:
-                    AdditiveEvidenceProgress.P_LinearBid_Slope = action;
+                case (byte)AdditiveEvidenceGameDecisions.P_LinearBid_Max:
+                    AdditiveEvidenceProgress.P_LinearBid_Max = action;
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.D_LinearBid_Min:
                     AdditiveEvidenceProgress.D_LinearBid_Min = action;
                     break;
-                case (byte)AdditiveEvidenceGameDecisions.D_LinearBid_Slope:
-                    AdditiveEvidenceProgress.D_LinearBid_Slope = action;
+                case (byte)AdditiveEvidenceGameDecisions.D_LinearBid_Max:
+                    AdditiveEvidenceProgress.D_LinearBid_Max = action;
                     break;
 
                 case (byte)AdditiveEvidenceGameDecisions.PQuit:
@@ -56,6 +56,13 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Quality:
                     AdditiveEvidenceProgress.Chance_Defendant_Quality = action;
+                    if (AdditiveEvidenceDefinition.Options.LinearBids)
+                    {
+                        if (!(AdditiveEvidenceDefinition.Options.Alpha_Bias > 0))
+                            AdditiveEvidenceProgress.GameComplete = true; // b/c using linear bids, there are no more offers, and there are also no more chance decisions
+                        if (AdditiveEvidenceProgress.D_LinearBid_Continuous >= AdditiveEvidenceProgress.P_LinearBid_Continuous)
+                            AdditiveEvidenceProgress.GameComplete = true;
+                    }
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias:
                     AdditiveEvidenceProgress.Chance_Plaintiff_Bias = action;

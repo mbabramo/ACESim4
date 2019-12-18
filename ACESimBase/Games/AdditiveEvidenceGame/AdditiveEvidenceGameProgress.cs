@@ -13,24 +13,19 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public AdditiveEvidenceGameOptions AdditiveEvidenceGameOptions => AdditiveEvidenceGameDefinition.Options;
 
         // Linear bids
-        // Each player announces a minimum and a slope, so the player's offer equals the minimum + slope * (party's information - 1).
-        // Note that we're assuming here that the party has only one type of information. (Otherwise, we would need two slopes.)
+        // Each player announces a minimum and a max, so the player's offer equals the minimum + (Max - min) * (party's information - 1).
+        // Note that we're assuming here that the party has only one type of information.
 
         public byte P_LinearBid_Min;
-        public byte P_LinearBid_Slope;
+        public byte P_LinearBid_Max;
         public byte D_LinearBid_Min;
-        public byte D_LinearBid_Slope;
-        public double MinForAction(byte action) => EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1, AdditiveEvidenceGameOptions.NumOffers, true /* including endpoints here */);
-        public double SlopeForProportion(double proportion) => MonotonicCurve.CalculateYGivenExtremesMiddle(0, 1.0, 0, AdditiveEvidenceGameOptions.OfferRange, AdditiveEvidenceGameOptions.OfferRange / ((double)AdditiveEvidenceGameOptions.NumOffers - 1.0), proportion); // thus, we'll have a lot have sublinear and half superlinear slopes, with subllinear slopes concentrated near zero
-        public double SlopeForAction(byte action) => SlopeForProportion(((double)(action - 1)) / ((double)(AdditiveEvidenceGameOptions.NumOffers - 1.0)));
-        public double P_LinearBid_Min_Continuous => MinForAction(P_LinearBid_Min);
-        public double D_LinearBid_Min_Continuous => MinForAction(D_LinearBid_Min);
-        public double P_LinearBid_Slope_Continuous => SlopeForAction(P_LinearBid_Slope);
-        public double D_LinearBid_Slope_Continuous => SlopeForAction(D_LinearBid_Slope);
-        public byte P_Slope_Input => AdditiveEvidenceGameOptions.Alpha_Bias > 0 && AdditiveEvidenceGameOptions.Alpha_Plaintiff_Bias > 0 ? Chance_Plaintiff_Bias : Chance_Plaintiff_Quality;
-        public byte D_Slope_Input => AdditiveEvidenceGameOptions.Alpha_Bias > 0 && AdditiveEvidenceGameOptions.Alpha_Plaintiff_Bias > 0 ? Chance_Defendant_Bias : Chance_Defendant_Quality;
-        public double P_LinearBid_Continuous => Math.Min(AdditiveEvidenceGameOptions.MinOffer + AdditiveEvidenceGameOptions.OfferRange, P_LinearBid_Min_Continuous + P_LinearBid_Slope_Continuous * (P_Slope_Input - 1));
-        public double D_LinearBid_Continuous => Math.Min(AdditiveEvidenceGameOptions.MinOffer + AdditiveEvidenceGameOptions.OfferRange, D_LinearBid_Min_Continuous + D_LinearBid_Slope_Continuous * (D_Slope_Input - 1));
+        public byte D_LinearBid_Max;
+        private double LinearBidProportion(byte action) => EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, AdditiveEvidenceGameOptions.NumOffers, false);
+        
+        public byte P_LinearBid_Input => AdditiveEvidenceGameOptions.Alpha_Bias > 0 && AdditiveEvidenceGameOptions.Alpha_Plaintiff_Bias > 0 ? Chance_Plaintiff_Bias : Chance_Plaintiff_Quality;
+        public byte D_LinearBid_Input => AdditiveEvidenceGameOptions.Alpha_Bias > 0 && AdditiveEvidenceGameOptions.Alpha_Plaintiff_Bias > 0 ? Chance_Defendant_Bias : Chance_Defendant_Quality;
+        public double P_LinearBid_Continuous => (1.0 - LinearBidProportion(P_LinearBid_Input)) * ContinuousOffer(P_LinearBid_Min) + LinearBidProportion(P_LinearBid_Input) * ContinuousOffer(P_LinearBid_Max);
+        public double D_LinearBid_Continuous => (1.0 - LinearBidProportion(D_LinearBid_Input)) * ContinuousOffer(D_LinearBid_Min) + LinearBidProportion(D_LinearBid_Input) * ContinuousOffer(D_LinearBid_Max);
 
 
         public byte Chance_Plaintiff_Quality;
@@ -49,7 +44,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public byte POffer;
         public byte DOffer;
 
-        public byte DiscreteOffer(bool plaintiff)
+        public byte GetDiscreteOffer(bool plaintiff)
         {
             if (!AdditiveEvidenceGameOptions.LinearBids)
                 return plaintiff ? POffer : DOffer;
@@ -153,7 +148,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         {
             string offers;
             if (AdditiveEvidenceGameOptions.LinearBids)
-                offers = $"P_LinearBid_Min {P_LinearBid_Min} P_Linear_Slope {P_LinearBid_Slope} => {P_LinearBid_Slope_Continuous}; D_LinearBid_Min {D_LinearBid_Min} D_LinearBid_Slope {D_LinearBid_Slope} => {D_LinearBid_Slope_Continuous}";
+                offers = $"P_LinearBid_Min {P_LinearBid_Min} P_LinearBid_Max {P_LinearBid_Max} => {P_LinearBid_Continuous}; D_LinearBid_Min {D_LinearBid_Min} D_LinearBid_Max {D_LinearBid_Max} => {D_LinearBid_Continuous}";
             else
                 offers = $"POffer {POffer} DOffer {DOffer}";
             return
@@ -173,9 +168,9 @@ AccuracyIgnoringCosts {Accuracy} Accuracy_ForPlaintiff {Accuracy_ForPlaintiff} A
             // copy.GameComplete = this.GameComplete;
             base.CopyFieldInfo(copy);
             copy.P_LinearBid_Min = P_LinearBid_Min;
-            copy.P_LinearBid_Slope = P_LinearBid_Slope;
+            copy.P_LinearBid_Max = P_LinearBid_Max;
             copy.D_LinearBid_Min = D_LinearBid_Min;
-            copy.D_LinearBid_Slope = D_LinearBid_Slope;
+            copy.D_LinearBid_Max = D_LinearBid_Max;
             copy.Chance_Plaintiff_Quality = Chance_Plaintiff_Quality;
             copy.Chance_Defendant_Quality = Chance_Defendant_Quality;
             copy.Chance_Plaintiff_Bias = Chance_Plaintiff_Bias;

@@ -68,9 +68,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public byte GameHistoryCacheIndex_POffer = 1;
         public byte GameHistoryCacheIndex_DOffer = 2;
         public byte GameHistoryCacheIndex_PMin = 3;
-        public byte GameHistoryCacheIndex_PSlope = 4;
+        public byte GameHistoryCacheIndex_PMax = 4;
         public byte GameHistoryCacheIndex_DMin = 5;
-        public byte GameHistoryCacheIndex_DSlope = 6;
+        public byte GameHistoryCacheIndex_DMax = 6;
 
         private List<Decision> GetDecisionsList()
         {
@@ -97,15 +97,15 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                         StoreActionInGameCacheItem = GameHistoryCacheIndex_PMin,
                     };
             decisions.Add(pMin);
-            var pSlope =
-                    new Decision("PSlope", "PS", false, (byte)AdditiveEvidenceGamePlayers.Plaintiff, new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution },
-                        Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.P_LinearBid_Slope)
+            var pMax =
+                    new Decision("PMax", "PS", false, (byte)AdditiveEvidenceGamePlayers.Plaintiff, new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution },
+                        Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.P_LinearBid_Max)
                     {
                         IsReversible = true,
                         IsContinuousAction = true,
-                        StoreActionInGameCacheItem = GameHistoryCacheIndex_PSlope,
+                        StoreActionInGameCacheItem = GameHistoryCacheIndex_PMax,
                     };
-            decisions.Add(pSlope);
+            decisions.Add(pMax);
 
             var dMin =
                     new Decision("DMin", "DM", false, (byte)AdditiveEvidenceGamePlayers.Defendant, new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution },
@@ -116,15 +116,15 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                         StoreActionInGameCacheItem = GameHistoryCacheIndex_DMin,
                     };
             decisions.Add(dMin);
-            var dSlope =
-                    new Decision("DSlope", "DS", false, (byte)AdditiveEvidenceGamePlayers.Defendant, new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution },
-                        Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.D_LinearBid_Slope)
+            var dMax =
+                    new Decision("DMax", "DS", false, (byte)AdditiveEvidenceGamePlayers.Defendant, new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution },
+                        Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.D_LinearBid_Max)
                     {
                         IsReversible = true,
                         IsContinuousAction = true,
-                        StoreActionInGameCacheItem = GameHistoryCacheIndex_DSlope,
+                        StoreActionInGameCacheItem = GameHistoryCacheIndex_DMax,
                     };
-            decisions.Add(dSlope);
+            decisions.Add(dMax);
         }
 
         void AddInitialChanceDecisions(List<Decision> decisions)
@@ -147,7 +147,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 Unroll_Parallelize_Identical = true,
                 //DistributorChanceInputDecision = true,
                 //DistributableDistributorChanceInput = true,
-                ProvidesPrivateInformationFor = (byte)AdditiveEvidenceGamePlayers.Defendant
+                ProvidesPrivateInformationFor = (byte)AdditiveEvidenceGamePlayers.Defendant,
+                CanTerminateGame = Options.LinearBids
             });
             if (Options.Alpha_Bias > 0 && Options.Alpha_Plaintiff_Bias > 0)
                 decisions.Add(new Decision("Chance_Plaintiff_Bias", "PB", true, (byte)AdditiveEvidenceGamePlayers.Chance_Plaintiff_Bias, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels, (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias)
@@ -262,6 +263,13 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     if (defendantOffer >= plaintiffOffer)
                         return true;
                     break;
+                case (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Quality:
+                    if (Options.LinearBids)
+                    {
+                        if (!(Options.Alpha_Bias > 0))
+                            return true;
+                    }
+                    return false;
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias:
                     if (Options.LinearBids)
                     {
