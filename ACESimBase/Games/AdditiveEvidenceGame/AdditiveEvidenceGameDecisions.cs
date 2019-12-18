@@ -6,8 +6,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 {
     public enum AdditiveEvidenceGameDecisions : byte
     {
-        P_LinearBid,
-        D_LinearBid,
+        P_LinearBid_Min,
+        P_LinearBid_Max,
+        D_LinearBid_Min,
+        D_LinearBid_Max,
 
         Chance_Plaintiff_Quality,
         Chance_Defendant_Quality,

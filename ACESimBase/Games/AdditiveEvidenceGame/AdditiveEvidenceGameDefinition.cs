@@ -90,7 +90,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         {
             var pMin =
                     new Decision("PMin", "PM", false, (byte)AdditiveEvidenceGamePlayers.Plaintiff, new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution },
-                        Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.P_LinearBid)
+                        Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.P_LinearBid_Min)
                     {
                         IsReversible = true,
                         IsContinuousAction = true,
@@ -118,7 +118,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             decisions.Add(dMin);
             var dMax =
                     new Decision("DMax", "DS", false, (byte)AdditiveEvidenceGamePlayers.Defendant, new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution },
-                        Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.D_LinearBid)
+                        Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.D_LinearBid_Max)
                     {
                         IsReversible = true,
                         IsContinuousAction = true,
