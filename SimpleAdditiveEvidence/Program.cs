@@ -1,6 +1,7 @@
 ﻿using ACESim;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace SimpleAdditiveEvidence
@@ -16,11 +17,18 @@ namespace SimpleAdditiveEvidence
             CalculateUtilities();
             List<(int pStrategy, int dStrategy)> nashStrategies = PureStrategiesFinder.ComputeNashEquilibria(PUtilities, DUtilities);
 
-            var alwaysTrialStrategies = nashStrategies.Where(nashStrategy => TrialRate[nashStrategy.pStrategy, nashStrategy.dStrategy] > 0.99999).ToHashSet(); // take into account rounding errors
-            if (alwaysTrialStrategies.Any())
+            var extremeStrategies = nashStrategies.Where(nashStrategy => TrialRate[nashStrategy.pStrategy, nashStrategy.dStrategy] > 0.99999).ToHashSet(); // take into account rounding errors
+            if (extremeStrategies.Any())
             {
                 TabbedText.WriteLine("Always trial");
-                nashStrategies = nashStrategies.Where(x => !alwaysTrialStrategies.Contains(x)).ToList();
+                nashStrategies = nashStrategies.Where(x => !extremeStrategies.Contains(x)).ToList();
+            }
+
+            extremeStrategies = nashStrategies.Where(nashStrategy => TrialRate[nashStrategy.pStrategy, nashStrategy.dStrategy] == 0).ToHashSet(); 
+            if (extremeStrategies.Any())
+            {
+                TabbedText.WriteLine("Always settle (somewhere in bargaining range)");
+                nashStrategies = nashStrategies.Where(x => !extremeStrategies.Contains(x)).ToList();
             }
 
             var grouped = nashStrategies.GroupBy(x => x.pStrategy);
@@ -40,8 +48,8 @@ namespace SimpleAdditiveEvidence
             }
         }
 
-        const int NumValuesEachSideOfLine = 10;
-        const int NumNormalizedSignalsPerPlayer = 50;
+        const int NumValuesEachSideOfLine = 15;
+        const int NumNormalizedSignalsPerPlayer = 25;
 
         const int NumStrategiesPerPlayer = NumValuesEachSideOfLine * NumValuesEachSideOfLine;
         static double ContributionEachSetOfSignals = 1.0 / ((double)(NumNormalizedSignalsPerPlayer * NumNormalizedSignalsPerPlayer));
@@ -79,13 +87,18 @@ namespace SimpleAdditiveEvidence
                         {
                             double pOffer = pOffers[zp];
                             double dOffer = dOffers[zd];
-                            if (dOffer >= pOffer || Math.Abs(pOffer - dOffer) < 1E-10 /* rounding error */)
+                            bool equality = Math.Abs(pOffer - dOffer) < 1E-10; /* rounding error */
+                            bool dGreater = dOffer > pOffer;
+                            if (dGreater || equality)
                             {
                                 double settlement = (pOffer + dOffer) / 2.0;
-                                PUtilities[p, d] = settlement;
-                                DUtilities[p, d] = 0 - settlement;
+                                double overallContribution = ContributionEachSetOfSignals * settlement;
+                                if (equality)
+                                    overallContribution *= 0.5; // with same bid, we assume 50% likelihood of each result -- this make sense as an approximation of a continuous equilibrium
+                                PUtilities[p, d] += overallContribution;
+                                DUtilities[p, d] += 0 - overallContribution;
                             }
-                            else
+                            if (!dGreater || equality)
                             {
                                 // trial
 
@@ -97,10 +110,12 @@ namespace SimpleAdditiveEvidence
                                 double theta_d = continuousSignals[zd] / (1 - q);
                                 double j = (theta_p + theta_d) / 2.0;
 
-                                PUtilities[p, d] += ContributionEachSetOfSignals * (j - pCosts);
-                                DUtilities[p, d] += ContributionEachSetOfSignals * (0 - j - dCosts);
+                                double pEffect = (j - pCosts);
+                                PUtilities[p, d] += (equality ? 0.5 : 1.0) * ContributionEachSetOfSignals * pEffect;
+                                double dEffect = (0 - j - dCosts);
+                                DUtilities[p, d] += (equality ? 0.5 : 1.0) * ContributionEachSetOfSignals * dEffect;
 
-                                TrialRate[p, d] += ContributionEachSetOfSignals;
+                                TrialRate[p, d] += (equality ? 0.5 : 1.0) * ContributionEachSetOfSignals;
                             }
                         }
                 }
@@ -113,7 +128,16 @@ namespace SimpleAdditiveEvidence
     {
         static void Main(string[] args)
         {
-            EqFinder e = new EqFinder(0.5, 0.5);
+            Stopwatch s = new Stopwatch();
+            s.Start();
+            foreach (double c in new double[] { 0, 0.2, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.8, 1.0 })
+                foreach (double q in new double[] { 0.35, 0.40, 0.45, 0.5, 0.55, 0.60, 0.65 })
+                {
+                    TabbedText.WriteLine($"Cost: {c} quality {q}");
+                    EqFinder e = new EqFinder(q, c);
+                    TabbedText.WriteLine();
+                }
+            TabbedText.WriteLine($"Time {s.ElapsedMilliseconds}");
         }
 
         
