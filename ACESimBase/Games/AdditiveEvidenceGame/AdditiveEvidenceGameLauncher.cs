@@ -18,7 +18,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         private enum OptionSetChoice
         {
-            All
+            All,
+            Fast
         }
 
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
@@ -33,6 +34,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.Biasless, withOptionNotToPlay);
                     AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.EvenStrength, withOptionNotToPlay);
                     AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.EvenStrengthAndBiasless, withOptionNotToPlay);
+                    break;
+                case OptionSetChoice.Fast:
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.Original, false, false);
                     break;
             }
 
@@ -54,12 +58,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             EvenStrengthAndBiasless
         }
 
-        private void AddDariMattiacci_Saraceno_Tests(List<(string optionSetName, GameOptions options)> optionSets, DMSVersion version, bool withOptionNotToPlay)
+        private void AddDariMattiacci_Saraceno_Tests(List<(string optionSetName, GameOptions options)> optionSets, DMSVersion version, bool withOptionNotToPlay, bool feeShifting = true)
         {
             // now, liability and damages only
             foreach (double quality in new double[] { 0, 0.20, 0.40, 0.60, 0.80, 1.0 })
                 foreach (double costs in new double[] { 0, 0.15, 0.30, 0.45, 0.60 })
-                    foreach (double? feeShiftingThreshold in new double?[] { 0, 0.25, 0.50, 0.75, 1.0 })
+                   foreach (double? feeShiftingThreshold in feeShifting ? new double?[] { 0, 0.25, 0.50, 0.75, 1.0 } : new double?[] { 0 })
                 {
                         string settingsString = $"q{(int) (quality*100)}c{(int) (costs*100)}t{(int)(feeShiftingThreshold*100)}";
                         switch (version)

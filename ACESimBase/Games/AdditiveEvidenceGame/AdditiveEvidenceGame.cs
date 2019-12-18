@@ -53,10 +53,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
 
                 case (byte)AdditiveEvidenceGameDecisions.POffer:
-                    if (action == 1)
-                    {
-                        var DEBUG = 0;
-                    }
                     MyProgress.POffer = action;
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.DOffer:

@@ -34,8 +34,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             _ => throw new Exception()
         };
 
-        public static byte numOffers = 10; // having a good number here allows for more precise strategies
-        public static byte numQualityAndBiasLevels = 15; // this is what will be across on each minigraph, so it's good to have a relatively high number
+        public static byte NumOffers = 25; // having a good number here allows for more precise strategies
+        public static byte NumQualityAndBiasLevels = 25; // this also contributes to precision (note, though, that this doesn't affect the number of levels of "both quality"
 
         public static AdditiveEvidenceGameOptions DariMattiacci_Saraceno(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay)
         {
@@ -54,8 +54,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
             options.TrialCost = costs;
 
-            options.NumOffers = numOffers;
-            options.NumQualityAndBiasLevels = numQualityAndBiasLevels;
+            options.NumOffers = NumOffers;
+            options.NumQualityAndBiasLevels = NumQualityAndBiasLevels;
             if (withOptionNotToPlay)
             {
                 options.IncludePQuitDecision = true;
@@ -86,8 +86,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
             options.TrialCost = costs;
 
-            options.NumOffers = numOffers;
-            options.NumQualityAndBiasLevels = numQualityAndBiasLevels;
+            options.NumOffers = NumOffers;
+            options.NumQualityAndBiasLevels = NumQualityAndBiasLevels;
             if (withOptionNotToPlay)
             {
                 options.IncludePQuitDecision = true;
@@ -118,8 +118,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
             options.TrialCost = costs;
 
-            options.NumOffers = numOffers;
-            options.NumQualityAndBiasLevels = numQualityAndBiasLevels;
+            options.NumOffers = NumOffers;
+            options.NumQualityAndBiasLevels = NumQualityAndBiasLevels;
             if (withOptionNotToPlay)
             {
                 options.IncludePQuitDecision = true;
