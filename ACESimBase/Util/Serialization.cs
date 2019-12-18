@@ -7,6 +7,7 @@ using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Runtime.Serialization;
 using System.Xml;
+using ACESim.Util;
 
 namespace ACESim
 {
@@ -180,6 +181,13 @@ namespace ACESim
             catch
             {
             }
+        }
+
+        public static void CopyFileFromAzure(string containerName, string azureFilename, string targetPath,  string targetFilenameIfDifferent)
+        {
+            string text = AzureBlob.GetBlobText("results", azureFilename);
+
+            TextFileCreate.CreateTextFile(Path.Combine(targetPath, targetFilenameIfDifferent ?? azureFilename), text);
         }
     }
 
