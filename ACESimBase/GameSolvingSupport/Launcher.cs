@@ -250,7 +250,7 @@ namespace ACESim
                     if (taskToDo == null)
                     {
                         await Task.Delay(1000 * 60 * 1); // wait a minute for another task
-                        logAction("Waiting before trying to find a task");
+                        TabbedText.WriteLine("Waiting before trying to find a task");
                     }
                     else
                     {
