@@ -61,8 +61,8 @@ namespace SimpleAdditiveEvidence
             return (ContinuousOffer(minMax.minSignalStrategy), ContinuousOffer(minMax.maxSignalStrategy));
         }
 
-        const double MinOffer = -0.25;
-        const double OfferRange = 1.5;
+        const double MinOffer = -2.0;
+        const double OfferRange = 4.0;
         const double MaxOffer = MinOffer + OfferRange;
         static double ContinuousSignal(int discreteSignal) => ((double)(discreteSignal + 1)) / ((double)(NumNormalizedSignalsPerPlayer + 1));
         static double ContinuousOffer(int discreteOffer) => MinOffer + OfferRange * (double)discreteOffer / ((double)(NumValuesEachSideOfLine - 1));
