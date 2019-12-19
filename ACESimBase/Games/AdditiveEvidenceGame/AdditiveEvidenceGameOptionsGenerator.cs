@@ -21,7 +21,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public static AdditiveEvidenceGameOptions GetAdditiveEvidenceGameOptions() => AdditiveEvidenceChoice switch
         {
-            AdditiveEvidenceOptionSetChoices.DMS => DariMattiacci_Saraceno(0.40, 0.18, false, false, 0.5, false),
+            AdditiveEvidenceOptionSetChoices.DMS => DariMattiacci_Saraceno(0.5, 0.1, false, false, 0.5, false),
             AdditiveEvidenceOptionSetChoices.DMS_WithFeeShifting => DariMattiacci_Saraceno(0.40, 0.15, true, false, 0.5, false),
             AdditiveEvidenceOptionSetChoices.DMS_WithOptionNotToPlay => DariMattiacci_Saraceno(0.90, 0.6, true, false, 0.7, true),
             //AdditiveEvidenceOptionSetChoices.DMS_WithOptionNotToPlay => DariMattiacci_Saraceno(0.05, 1.0, true, false, 0.5, false), // removing option not to play and including fee shifting  -- do we get negative settlements
@@ -36,7 +36,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         };
 
         // SUPERDEBUG
-        public static byte NumOffers = 15; // having a good number here allows for more precise strategies
+        public static byte NumOffers = 10; // having a good number here allows for more precise strategies
         public static byte NumQualityAndBiasLevels = 5; // this also contributes to precision (note, though, that this doesn't affect the number of levels of "both quality"
 
         public static AdditiveEvidenceGameOptions DariMattiacci_Saraceno(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay)
@@ -67,6 +67,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             options.FeeShifting = feeShifting;
             options.FeeShiftingIsBasedOnMarginOfVictory = feeShiftingMarginOfVictory;
             options.FeeShiftingThreshold = feeShiftingThreshold;
+            options.LinearBids = true; // SUPERDEBUG
             return options;
         }
 

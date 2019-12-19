@@ -11,7 +11,7 @@ namespace SimpleAdditiveEvidence
         double q, c;
 
         const int NumValuesEachSideOfLine = 15;
-        const int NumNormalizedSignalsPerPlayer = 25;
+        const int NumNormalizedSignalsPerPlayer = 30;
 
         public EqFinder(double q, double c)
         {
@@ -30,7 +30,7 @@ namespace SimpleAdditiveEvidence
             extremeStrategies = nashStrategies.Where(nashStrategy => TrialRate[nashStrategy.pStrategy, nashStrategy.dStrategy] == 0).ToHashSet();
             if (extremeStrategies.Count() > 1)
             {
-                TabbedText.WriteLine("Always settle (somewhere in bargaining range)");
+                TabbedText.WriteLine("Always settle (somewhere in bargaining range) [utility numbers not representative]");
                 nashStrategies = nashStrategies.Where(x => !extremeStrategies.Contains(x) || x == extremeStrategies.First()).ToList();
             }
 
