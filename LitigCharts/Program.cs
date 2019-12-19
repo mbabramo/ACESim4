@@ -13,15 +13,15 @@ namespace LitigCharts
     {
         static void Main(string[] args)
         {
-            string prefix = "R096";
-            // CopyAzureFiles(prefix);
+            string prefix = "R098";
+            //CopyAzureFiles(prefix);
             //InformationSetCharts();
             string variable = "Trial";
-            var results_Original = MakeString(GetDataForAllQualities(prefix, "orig", "All", variable));
-            var results_Biasless_EvenStrength = MakeString(GetDataForAllQualities(prefix, "orig", "All", variable));
+            var results_Original = MakeString(GetDataForCostsShiftingAndQualities(prefix, "orig", "All", variable));
+            var results_Biasless_EvenStrength = MakeString(GetDataForCostsShiftingAndQualities(prefix, "bl_es", "All", variable));
         }
 
-        static string[] allSets = new string[] { "orig",  /* DEBUG "bl", "es", */ "bl_es" };
+        static string[] allSets = new string[] { "orig", "bl_es"  /* DEBUG "bl", "es", */ };
         static double[] allQualities = new double[] { 0, 0.20, 0.40, 0.60, 0.80, 1.0 };
         static double[] allCosts = new double[] { 0, 0.15, 0.30, 0.45, 0.60 };
         static double[] allFeeShifting = new double[] { 0, 0.25, 0.50, 0.75, 1.0 };
@@ -56,7 +56,7 @@ namespace LitigCharts
             return b.ToString();
         }
 
-        private static double[][][] GetDataForAllQualities(string prefix, string set, string filterOfRowsToGet, string columnToGet)
+        private static double[][][] GetDataForCostsShiftingAndQualities(string prefix, string set, string filterOfRowsToGet, string columnToGet)
         {
             // This will give us the array of charts for our graph -- we go across (all costs, then all fee shifting)
             double[][][] results = new double[allCosts.Length][][];
