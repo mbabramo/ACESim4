@@ -8,6 +8,7 @@ namespace ACESim.Util
     {
         public string Name;
         public int ID;
+        public bool AvoidRedundantExecution; // use AvoidRedundantExecution for very long tasks at the end of a series of tasks, so other processes do not try to do them simultaneously when they see that it has been some time before the task was started
         public IndividualTask[] IndividualTasks;
 
         public RepeatedTask(string name, int id, int repetitions)

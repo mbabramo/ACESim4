@@ -62,7 +62,7 @@ namespace ACESim.Util
             }
             taskToDo = repeatedTask.FirstIncomplete();
             allComplete = false;
-            if (taskToDo.Started != null && taskToDo.Started + minSpanBeforeStartingAlreadyStartedJob > DateTime.Now)
+            if (taskToDo.Started != null && (taskToDo.Started + minSpanBeforeStartingAlreadyStartedJob > DateTime.Now || repeatedTask.AvoidRedundantExecution)) 
                 taskToDo = null;
             else
                 taskToDo.Started = DateTime.Now;

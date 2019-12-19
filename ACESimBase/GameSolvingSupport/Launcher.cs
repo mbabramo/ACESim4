@@ -298,7 +298,7 @@ namespace ACESim
             if (NumRepetitions > 1)
                 taskStages.Add(new TaskStage(Enumerable.Range(0, optionSetsCount).Select(x => new RepeatedTask("CombineRepetitions", x, 1)).ToList()));
             if (optionSetsCount > 1)
-                taskStages.Add(new TaskStage(Enumerable.Range(0, 1).Select(x => new RepeatedTask("CombineOptionSets", x, 1)).ToList()));
+                taskStages.Add(new TaskStage(Enumerable.Range(0, 1).Select(x => new RepeatedTask("CombineOptionSets", x, 1) { AvoidRedundantExecution = true }).ToList()));
             TaskCoordinator tasks = new TaskCoordinator(taskStages);
             var blockBlob = AzureBlob.GetLeasedBlockBlob("results", masterReportName + " Coordinator", true);
             var result = AzureBlob.TransformSharedBlobObject(blockBlob.blob, blockBlob.lease, o => o == null ? tasks : null); // return null if the task coordinator object is already created

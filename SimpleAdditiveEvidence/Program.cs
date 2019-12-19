@@ -3,20 +3,24 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 
 namespace SimpleAdditiveEvidence
 {
     public class EqFinder
     {
-        double q, c;
+        double q, c, t;
+        int optimalPStrategy = -1, optimalDStrategy = -1;
+        public Outcome TheOutcome;
 
         const int NumValuesEachSideOfLine = 15;
         const int NumNormalizedSignalsPerPlayer = 30;
 
-        public EqFinder(double q, double c)
+        public EqFinder(double q, double c, double t)
         {
             this.q = q;
             this.c = c;
+            this.t = c;
             CalculateUtilities();
             List<(int pStrategy, int dStrategy)> nashStrategies = PureStrategiesFinder.ComputeNashEquilibria(PUtilities, DUtilities);
 
@@ -34,6 +38,10 @@ namespace SimpleAdditiveEvidence
                 nashStrategies = nashStrategies.Where(x => !extremeStrategies.Contains(x) || x == extremeStrategies.First()).ToList();
             }
 
+            var f1 = nashStrategies.First();
+            optimalPStrategy = f1.pStrategy;
+            optimalDStrategy = f1.dStrategy;
+            TheOutcome = new Outcome(PUtilities[optimalPStrategy, optimalDStrategy], DUtilities[optimalPStrategy, optimalDStrategy], TrialRate[optimalPStrategy, optimalDStrategy], AccuracySq[optimalPStrategy, optimalDStrategy], AccuracyForP[optimalPStrategy, optimalDStrategy], AccuracyForD[optimalPStrategy, optimalDStrategy], ConvertStrategyToMinMaxContinuousOffers(optimalPStrategy), ConvertStrategyToMinMaxContinuousOffers(optimalDStrategy));
             var grouped = nashStrategies.GroupBy(x => x.pStrategy);
             foreach (var pStrategyGroup in grouped)
             {
@@ -48,6 +56,35 @@ namespace SimpleAdditiveEvidence
                     TabbedText.WriteLine($"--> Trial rate {TrialRate[nashStrategy.pStrategy, nashStrategy.dStrategy].ToSignificantFigures(3)}");
                 }
                 TabbedText.TabUnindent();
+            }
+        }
+
+        public readonly struct Outcome
+        {
+            public readonly double PUtility, DUtility, TrialRate, AccuracySq, AccuracyForP, AccuracyForD, MinPOffer, MaxPOffer, MinDOffer, MaxDOffer;
+
+            public Outcome(double PUtility, double DUtility, double TrialRate, double AccuracySq, double AccuracyForP, double AccuracyForD, (double, double) POffer, (double, double) DOffer)
+            {
+                this.PUtility = PUtility;
+                this.DUtility = DUtility;
+                this.TrialRate = TrialRate;
+                this.AccuracySq = AccuracySq;
+                this.AccuracyForP = AccuracyForP;
+                this.AccuracyForD = AccuracyForD;
+                this.MinPOffer = POffer.Item1;
+                this.MaxPOffer = POffer.Item2;
+                this.MinDOffer = DOffer.Item1;
+                this.MaxDOffer = DOffer.Item2;
+            }
+
+            public override string ToString()
+            {
+                return $"{PUtility},{DUtility},{TrialRate},{AccuracySq},{AccuracyForP},{AccuracyForD},{MinPOffer},{MaxPOffer},{MinDOffer},{MaxDOffer}";
+            }
+
+            public static string GetHeaderString()
+            {
+                return "PUtility,DUtility,TrialRate,AccuracySq,AccuracyForP,AccuracyForD,MinPOffer,MaxPOffer,MinDOffer,MaxDOffer";
             }
         }
 
@@ -74,9 +111,12 @@ namespace SimpleAdditiveEvidence
                 return 0.75 + 1.0 / (continuousZeroToOne - 0.75);
         }
 
-        double[,] PUtilities = new double[NumStrategiesPerPlayer, NumStrategiesPerPlayer];
-        double[,] DUtilities = new double[NumStrategiesPerPlayer, NumStrategiesPerPlayer];
-        double[,] TrialRate = new double[NumStrategiesPerPlayer, NumStrategiesPerPlayer];
+        public double[,] PUtilities = new double[NumStrategiesPerPlayer, NumStrategiesPerPlayer];
+        public double[,] DUtilities = new double[NumStrategiesPerPlayer, NumStrategiesPerPlayer];
+        public double[,] TrialRate = new double[NumStrategiesPerPlayer, NumStrategiesPerPlayer];
+        public double[,] AccuracySq = new double[NumStrategiesPerPlayer, NumStrategiesPerPlayer];
+        public double[,] AccuracyForP = new double[NumStrategiesPerPlayer, NumStrategiesPerPlayer];
+        public double[,] AccuracyForD = new double[NumStrategiesPerPlayer, NumStrategiesPerPlayer];
 
         void CalculateUtilities()
         {
@@ -90,7 +130,7 @@ namespace SimpleAdditiveEvidence
                     var dOfferRange = ConvertStrategyToMinMaxContinuousOffers(d);
                     double[] dOffers = Enumerable.Range(0, NumNormalizedSignalsPerPlayer).Select(x => dOfferRange.minSignalStrategy * (1.0 - continuousSignals[x]) + dOfferRange.maxSignalStrategy * continuousSignals[x]).ToArray();
 
-                    double pUtility = 0, dUtility = 0, trialRate = 0;
+                    double pUtility = 0, dUtility = 0, trialRate = 0, accuracySq = 0, accuracyForP = 0, accuracyForD = 0;
 
                     for (int zp = 0; zp < NumNormalizedSignalsPerPlayer; zp++)
                     {
@@ -98,6 +138,9 @@ namespace SimpleAdditiveEvidence
                         {
                             double pOffer = pOffers[zp];
                             double dOffer = dOffers[zd];
+                            double theta_p = continuousSignals[zp] * q;
+                            double theta_d = q + continuousSignals[zd] * (1 - q); // follows from zd = (theta_d - q) / (1 - q)
+                            double j = (theta_p + theta_d) / 2.0;
                             bool equality = Math.Abs(pOffer - dOffer) < 1E-10; /* rounding error */
                             bool treatEqualityAsEquallyLikelyToProduceSettlementOrTrial = true; // with same bid, we assume 50% likelihood of each result -- this make sense as an approximation of a continuous equilibrium
                             double equalityMultiplier = treatEqualityAsEquallyLikelyToProduceSettlementOrTrial && equality ? 0.5 : 1.0;
@@ -107,22 +150,28 @@ namespace SimpleAdditiveEvidence
                                 double settlement = (pOffer + dOffer) / 2.0;
                                 double pEffect = settlement;
                                 double dEffect = 1.0 - settlement;
-                                //Debug.WriteLine($"({p},{d}) settle ({zp},{zd}) => {pEffect}, {dEffect} "); // DEBUG
+                                //Debug.WriteLine($"({p},{d}) settle ({zp},{zd}) => {pEffect}, {dEffect} "); 
                                 pUtility += equalityMultiplier * pEffect;
                                 dUtility += equalityMultiplier * (1.0 - pEffect);
+                                accuracySq += equalityMultiplier * (pEffect - q) * (pEffect - q);
+                                accuracyForP += equalityMultiplier * Math.Abs(pEffect - j);
+                                accuracyForD += equalityMultiplier * Math.Abs(dEffect - (1 - j));
                             }
                             bool dLess = (dOffer < pOffer && !equality) || (equality && treatEqualityAsEquallyLikelyToProduceSettlementOrTrial);
                             if (dLess)
                             {
                                 // trial
 
-                                double dPortionOfCosts = 0.5; //TODO
+
+                                double oneMinusTheta_d = 1.0 - theta_d;
+                                double dPortionOfCosts = true switch
+                                {
+                                    _ when theta_p < oneMinusTheta_d && (theta_d < t) => 0,
+                                    _ when Math.Abs(theta_p - oneMinusTheta_d) < 1E-10 /* i.e., equality but for rounding */ || (theta_d >= t && theta_p <= t) => 0.5,
+                                    _ => 1.0
+                                };
                                 double dCosts = dPortionOfCosts * c;
                                 double pCosts = c - dCosts;
-
-                                double theta_p = continuousSignals[zp] * q;
-                                double theta_d = q + continuousSignals[zd] * (1 - q); // follows from zd = (theta_d - q) / (1 - q)
-                                double j = (theta_p + theta_d) / 2.0;
 
                                 double pEffect = (j - pCosts);
                                 double dEffect = ((1.0 - j) - dCosts);
@@ -130,13 +179,20 @@ namespace SimpleAdditiveEvidence
                                 dUtility += equalityMultiplier * dEffect;
 
                                 trialRate += equalityMultiplier;
-                                //Debug.WriteLine($"({p},{d}) trial ({zp},{zd}) => {pEffect}, {dEffect} [based on {theta_p}, {theta_d}"); // DEBUG
+                                double accuracyUnsquared = pEffect + 0.5 * c; // the idea here is that the party's own costs are considered relevant to accuracy. Because P paid 0.5 * c out of pocket and this was counted in pEffect, we add this back in. Note that if shifting to defendant has occurred, that means that we have that accuracyUnsquared == j + 0.5*C, with the latter part representing the fee shifting penalty imposed on the defendant.
+                                accuracySq += equalityMultiplier * accuracyUnsquared * accuracyUnsquared;
+                                accuracyForP += equalityMultiplier * Math.Abs(pEffect - j);
+                                accuracyForD += equalityMultiplier * Math.Abs(dEffect - (1 - j));
+                                //Debug.WriteLine($"({p},{d}) trial ({zp},{zd}) => {pEffect}, {dEffect} [based on {theta_p}, {theta_d}");
                             }
                         }
                     }
                     PUtilities[p, d] = pUtility / (double) EvaluationsPerStrategyCombination;
                     DUtilities[p, d] = dUtility / (double) EvaluationsPerStrategyCombination;
                     TrialRate[p, d] = trialRate / (double) EvaluationsPerStrategyCombination;
+                    AccuracySq[p, d] = accuracySq / (double)EvaluationsPerStrategyCombination;
+                    AccuracyForP[p, d] = accuracyForP / (double)EvaluationsPerStrategyCombination;
+                    AccuracyForD[p, d] = accuracyForD / (double)EvaluationsPerStrategyCombination;
 
                 }
             }
@@ -150,13 +206,27 @@ namespace SimpleAdditiveEvidence
         {
             Stopwatch s = new Stopwatch();
             s.Start();
+            StringBuilder b = new StringBuilder();
+            string headerRow = "Cost,Quality,Threshold," + EqFinder.Outcome.GetHeaderString();
+            b.AppendLine(headerRow);
             foreach (double c in new double[] { 0, 0.05, 0.1, 0.15, 0.2, 0.25 }) //, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.8, 1.0 })
+            {
                 foreach (double q in new double[] { 0.35, 0.40, 0.45, 0.5, 0.55, 0.60, 0.65 })
                 {
-                    TabbedText.WriteLine($"Cost: {c} quality {q}");
-                    EqFinder e = new EqFinder(q, c);
-                    TabbedText.WriteLine();
+                    foreach (double t in new double[] { 0, 0.2, 0.4, 0.6, 0.8, 1.0 })
+                    {
+                        TabbedText.WriteLine($"Cost: {c} quality {q} threshold {t}");
+                        EqFinder e = new EqFinder(q, c, t);
+                        string rowPrefix = $"{c},{q},{t},";
+                        string row = rowPrefix + e.TheOutcome.ToString();
+                        b.AppendLine(row);
+                        TabbedText.WriteLine(row);
+                        TabbedText.WriteLine();
+                    }
                 }
+            }
+
+            TabbedText.WriteLine(b.ToString());
             TabbedText.WriteLine($"Time {s.ElapsedMilliseconds}");
         }
 
