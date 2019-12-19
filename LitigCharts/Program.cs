@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using CsvHelper;
 using System.Linq;
+using System.Text;
 
 namespace LitigCharts
 {
@@ -12,26 +13,62 @@ namespace LitigCharts
     {
         static void Main(string[] args)
         {
-            //CopyAzureFiles();
-            double[] qualityValues = new double[] { 0, 0.20, 0.40, 0.60, 0.80, 1.0 };
-            var trialRates = GetDataForQualities("R094", "orig", qualityValues, 0.30, 0.25, "All", "Trial");
+            string prefix = "R096";
+            // CopyAzureFiles(prefix);
             //InformationSetCharts();
+            string variable = "Trial";
+            var results_Original = MakeString(GetDataForAllQualities(prefix, "orig", "All", variable));
+            var results_Biasless_EvenStrength = MakeString(GetDataForAllQualities(prefix, "orig", "All", variable));
         }
 
-        
+        static string[] allSets = new string[] { "orig",  /* DEBUG "bl", "es", */ "bl_es" };
+        static double[] allQualities = new double[] { 0, 0.20, 0.40, 0.60, 0.80, 1.0 };
+        static double[] allCosts = new double[] { 0, 0.15, 0.30, 0.45, 0.60 };
+        static double[] allFeeShifting = new double[] { 0, 0.25, 0.50, 0.75, 1.0 };
 
         private static void CopyAzureFiles(string prefix)
         {
             string path = @"H:\My Drive\Articles, books in progress\Machine learning model of litigation\DMS nonlinear results 1";
             string settingString(string set, double quality, double costs, double feeShiftingThreshold) => $"{set}q{(int)(quality * 100)}c{(int)(costs * 100)}t{(int)(feeShiftingThreshold * 100)}";
-            foreach (string set in new string[] { "orig", "bl", "es", "bl_es"})
-            foreach (double quality in new double[] { 0, 0.20, 0.40, 0.60, 0.80, 1.0 })
-                foreach (double costs in new double[] { 0, 0.15, 0.30, 0.45, 0.60 })
-                    foreach (double feeShifting in new double?[] { 0, 0.25, 0.50, 0.75, 1.0 } )
+            foreach (string set in allSets)
+            foreach (double quality in allQualities)
+                foreach (double costs in allCosts)
+                    foreach (double feeShifting in allFeeShifting)
                     {
                             string filename = prefix + " " + settingString(set, quality, costs, feeShifting) + ".csv";
                             TextFileCreate.CopyFileFromAzure("results", filename, path);
                     }
+        }
+
+        private static string MakeString(double[][][] values)
+        {
+            StringBuilder b = new StringBuilder();
+            for (int i = 0; i < values.GetLength(0); i++)
+                b.AppendLine(MakeString(values[i]));
+            return b.ToString();
+        }
+
+        private static string MakeString(double[][] values)
+        {
+            StringBuilder b = new StringBuilder();
+            for (int i = 0; i < values.GetLength(0); i++)
+                b.AppendLine(String.Join(",", values[i]));
+            return b.ToString();
+        }
+
+        private static double[][][] GetDataForAllQualities(string prefix, string set, string filterOfRowsToGet, string columnToGet)
+        {
+            // This will give us the array of charts for our graph -- we go across (all costs, then all fee shifting)
+            double[][][] results = new double[allCosts.Length][][];
+            for (int c = 0; c < allCosts.Length; c++)
+            {
+                results[c] = new double[allFeeShifting.Length][];
+                for (int f = 0; f < allFeeShifting.Length; f++)
+                {
+                    results[c][f] = GetDataForQualities(prefix, set, allQualities, allCosts[c], allFeeShifting[f], filterOfRowsToGet, columnToGet);
+                }
+            }
+            return results;
         }
 
         private static double[] GetDataForQualities(string prefix, string set, double[] qualityValues, double costs, double feeShifting, string filterOfRowsToGet, string columnToGet) => qualityValues.Select(x => GetDataForSpecificSettings(prefix, set, x, costs, feeShifting, filterOfRowsToGet, columnToGet) ?? 0.0).ToArray();
