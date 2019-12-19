@@ -14,15 +14,36 @@ namespace SimpleAdditiveEvidence
         int optimalPStrategy = -1, optimalDStrategy = -1;
         public Outcome TheOutcome;
 
-        const int NumValuesEachSideOfLine = 32;
-        const int NumNormalizedSignalsPerPlayer = 64;
+        // Each player's strategy is a line, represented by a minimum strategy value and a maximum strategy value. This class seeks to optimize that line
+        // by playing a range of strategies. To ensure that it considers very high slopes (positive or negative), as well as intermediate ones, it converts
+        // relatively high and low strategy values nonlinearly. 
+        // Zoom in feature: We can choose to what value the 25th percentile and the 75th of what each player's strategy corresponds to. Initially, we start at 0.25 and 0.75
+
+        const int NumValuesEachSideOfLine = 15;
+        const int NumNormalizedSignalsPerPlayer = 30;
 
         public EqFinder(double q, double c, double t)
         {
             this.q = q;
             this.c = c;
             this.t = c;
-            CalculateUtilities();
+            Execute();
+        }
+
+        private void Execute()
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                TabbedText.WriteLine($"Cycle {i}");
+                ResetUtilities();
+                CalculateUtilities();
+                EvaluateEquilibria();
+                AdjustLowerAndUpperCutoffsBasedOnPerformance();
+            }
+        }
+
+        private void EvaluateEquilibria()
+        {
             List<(int pStrategy, int dStrategy)> nashStrategies = PureStrategiesFinder.ComputeNashEquilibria(PUtilities, DUtilities);
 
             var extremeStrategies = nashStrategies.Where(nashStrategy => TrialRate[nashStrategy.pStrategy, nashStrategy.dStrategy] > 0.99999).ToHashSet(); // take into account rounding errors
@@ -42,17 +63,17 @@ namespace SimpleAdditiveEvidence
             var f1 = nashStrategies.First();
             optimalPStrategy = f1.pStrategy;
             optimalDStrategy = f1.dStrategy;
-            TheOutcome = new Outcome(PUtilities[optimalPStrategy, optimalDStrategy], DUtilities[optimalPStrategy, optimalDStrategy], TrialRate[optimalPStrategy, optimalDStrategy], AccuracySq[optimalPStrategy, optimalDStrategy], AccuracyHypoSq[optimalPStrategy, optimalDStrategy], AccuracyForP[optimalPStrategy, optimalDStrategy], AccuracyForD[optimalPStrategy, optimalDStrategy], ConvertStrategyToMinMaxContinuousOffers(optimalPStrategy), ConvertStrategyToMinMaxContinuousOffers(optimalDStrategy));
+            TheOutcome = new Outcome(PUtilities[optimalPStrategy, optimalDStrategy], DUtilities[optimalPStrategy, optimalDStrategy], TrialRate[optimalPStrategy, optimalDStrategy], AccuracySq[optimalPStrategy, optimalDStrategy], AccuracyHypoSq[optimalPStrategy, optimalDStrategy], AccuracyForP[optimalPStrategy, optimalDStrategy], AccuracyForD[optimalPStrategy, optimalDStrategy], ConvertStrategyToMinMaxContinuousOffers(optimalPStrategy, true), ConvertStrategyToMinMaxContinuousOffers(optimalDStrategy, false));
             var grouped = nashStrategies.GroupBy(x => x.pStrategy);
             foreach (var pStrategyGroup in grouped)
             {
                 var aNashStrategy = pStrategyGroup.First();
-                var pLine = ConvertStrategyToMinMaxContinuousOffers(aNashStrategy.pStrategy);
+                var pLine = ConvertStrategyToMinMaxContinuousOffers(aNashStrategy.pStrategy, true);
                 TabbedText.WriteLine($"P offers from {pLine.minSignalStrategy} to {pLine.maxSignalStrategy} (utility {PUtilities[aNashStrategy.pStrategy, aNashStrategy.dStrategy]})");
                 TabbedText.TabIndent();
                 foreach (var nashStrategy in pStrategyGroup)
                 {
-                    var dLine = ConvertStrategyToMinMaxContinuousOffers(nashStrategy.dStrategy);
+                    var dLine = ConvertStrategyToMinMaxContinuousOffers(nashStrategy.dStrategy, false);
                     TabbedText.WriteLine($"D offers from {dLine.minSignalStrategy} to {dLine.maxSignalStrategy} (utility {DUtilities[nashStrategy.pStrategy, nashStrategy.dStrategy]})");
                     TabbedText.WriteLine($"--> Trial rate {TrialRate[nashStrategy.pStrategy, nashStrategy.dStrategy].ToSignificantFigures(3)}");
                 }
@@ -95,42 +116,135 @@ namespace SimpleAdditiveEvidence
         const int NumStrategiesPerPlayer = NumValuesEachSideOfLine * NumValuesEachSideOfLine;
         static int ConvertMinMaxToStrategy(int minSignalStrategy, int maxSignalStrategy) => NumValuesEachSideOfLine * minSignalStrategy + maxSignalStrategy;
         static (int minSignalStrategy, int maxSignalStrategy) ConvertStrategyToMinMaxOffers(int strategy) => (strategy / NumValuesEachSideOfLine, strategy % NumValuesEachSideOfLine);
-        static (double minSignalStrategy, double maxSignalStrategy) ConvertStrategyToMinMaxContinuousOffers(int strategy)
+        (double minSignalStrategy, double maxSignalStrategy) ConvertStrategyToMinMaxContinuousOffers(int strategy, bool plaintiff)
         {
             var minMax = ConvertStrategyToMinMaxOffers(strategy);
-            return (ContinuousOffer(minMax.minSignalStrategy), ContinuousOffer(minMax.maxSignalStrategy));
+            return (GetMappedOfferValue(minMax.minSignalStrategy, plaintiff), GetMappedOfferValue(minMax.maxSignalStrategy, plaintiff));
         }
         static double ContinuousSignal(int discreteSignal) => ((double)(discreteSignal + 1)) / ((double)(NumNormalizedSignalsPerPlayer + 1));
-        static double ContinuousOffer(int discreteOffer)
+
+        // The min/max becomes nonlinear in the input strategy for extreme strategies (i.e., below first variable below or above second).
+        // For example, if minMaxNonlinearBelowThreshold = 0.25, then when the discrete signal is less than 25% of the maximum discrete signal,
+        // we use a nonlinear function to determine the continuous value.
+        // NOTE: Of course, we are still trying to find a strategy that represents a line. This just means that we are going to try some 
+        // very steep lines, since the optimal strategy may be an almost vertical line (with a very low minimum or a very high maximum). 
+        // Note that flat lines are easier -- because the min and max just have to be equal.
+        static double minMaxNonlinearBelowThreshold = 0.25;
+        static double minMaxNonlinearAboveThreshold = 0.75;
+        // The following specifies the mapping from a discrete representation of a min or max of a line and the continuous representation.
+        // Initially, we set this to 0.25 to 0.75 to capture the broad middle of the probability spectrum.
+        // But based on the outcome, one can zoom into the result by moving this near the initially successful strategy.
+        // For example, suppose the optimal min value for p's strategy corresponds to the 35th percentile discrete value (not necessarily
+        // a continuous value of 0.35, though it would be that after the first iteration). At that point, it looks like our strategy is in
+        // fact within the (25% to 75%) range, so we might zoom into the (0.30, 0.55) area. If we're outside the range, then we zoom out
+        // so that our value will be in the range. For example, if we're at the 20% discrete value, we then might make the range
+        // from the 10% value to the 30% value.
+        double pValueAtLowerNonlinearCutoff = 0.25;
+        double pValueAtUpperNonlinearCutoff = 0.75;
+        double dValueAtLowerNonlinearCutoff = 0.25;
+        double dValueAtUpperNonlinearCutoff = 0.75;
+
+        void AdjustLowerAndUpperCutoffsBasedOnPerformance()
         {
-            double continuousZeroToOne = (double)(discreteOffer + 0.5) / ((double)(NumValuesEachSideOfLine));
-            bool alwaysUseSimpleMinMaxRange = false;
-            if (alwaysUseSimpleMinMaxRange || (continuousZeroToOne > 0.25 && continuousZeroToOne < 0.75))
-                return continuousZeroToOne;
-            if (continuousZeroToOne < 0.25)
-                return 0.25 - 1.0 / (0.25 - continuousZeroToOne);
-            else
-                return 0.75 + 1.0 / (continuousZeroToOne - 0.75);
+            var pOptimum = ConvertStrategyToMinMaxContinuousOffers(optimalPStrategy, true);
+            (pValueAtLowerNonlinearCutoff, pValueAtUpperNonlinearCutoff) = AdjustLowerAndUpperCutoffsBasedOnPerformance_Helper(pOptimum, true);
+            double dOptimum = GetUnmappedOfferValue(optimalDStrategy);
+            (dValueAtLowerNonlinearCutoff, dValueAtUpperNonlinearCutoff) = AdjustLowerAndUpperCutoffsBasedOnPerformance_Helper(dOptimum, true);
+            TabbedText.WriteLine($"Adjusting 25% to 75% ranges: P {(pValueAtLowerNonlinearCutoff.ToSignificantFigures(3), pValueAtUpperNonlinearCutoff.ToSignificantFigures(3))} D {(dValueAtLowerNonlinearCutoff.ToSignificantFigures(3), dValueAtUpperNonlinearCutoff.ToSignificantFigures(3))}");
         }
 
-        public double[,] PUtilities = new double[NumStrategiesPerPlayer, NumStrategiesPerPlayer];
-        public double[,] DUtilities = new double[NumStrategiesPerPlayer, NumStrategiesPerPlayer];
-        public double[,] TrialRate = new double[NumStrategiesPerPlayer, NumStrategiesPerPlayer];
-        public double[,] AccuracyHypoSq = new double[NumStrategiesPerPlayer, NumStrategiesPerPlayer];
-        public double[,] AccuracySq = new double[NumStrategiesPerPlayer, NumStrategiesPerPlayer];
-        public double[,] AccuracyForP = new double[NumStrategiesPerPlayer, NumStrategiesPerPlayer];
-        public double[,] AccuracyForD = new double[NumStrategiesPerPlayer, NumStrategiesPerPlayer];
+        (double, double) AdjustLowerAndUpperCutoffsBasedOnPerformance_Helper(double percentileOfOptimum, bool plaintiff)
+        {
+            double revisedLowerPercentile, revisedUpperPercentile;
+            // comments assume that our below and above threshold values are 0.25 and 0.75
+            if (percentileOfOptimum < minMaxNonlinearBelowThreshold)
+            {
+                revisedLowerPercentile = 0 + percentileOfOptimum / 2.0; // e.g., 20% -> 10%
+                revisedUpperPercentile = minMaxNonlinearBelowThreshold + (minMaxNonlinearBelowThreshold - percentileOfOptimum); // e.g., 20% -> 30%
+            }
+            else if (percentileOfOptimum < (minMaxNonlinearBelowThreshold + minMaxNonlinearAboveThreshold) / 2.0)
+            {
+                revisedLowerPercentile = minMaxNonlinearBelowThreshold + (percentileOfOptimum - minMaxNonlinearBelowThreshold) / 2.0; // e.g, 35% -> 30%
+                revisedUpperPercentile = minMaxNonlinearAboveThreshold - (minMaxNonlinearAboveThreshold - percentileOfOptimum) / 2.0; // e.g., 35% -> 55%
+            }
+            else if (percentileOfOptimum < minMaxNonlinearAboveThreshold)
+            {
+                // same code
+                revisedLowerPercentile = minMaxNonlinearBelowThreshold + (percentileOfOptimum - minMaxNonlinearBelowThreshold) / 2.0; // e.g, 65% -> 45%
+                revisedUpperPercentile = minMaxNonlinearAboveThreshold - (minMaxNonlinearAboveThreshold - percentileOfOptimum) / 2.0; // e.g., 65% -> 70%
+            }
+            else
+            {
+                revisedLowerPercentile = minMaxNonlinearAboveThreshold - (percentileOfOptimum - minMaxNonlinearAboveThreshold); // e.g., 80% -> 70%
+                revisedUpperPercentile = 1.0 - (1.0 - percentileOfOptimum) / 2.0; // e.g., 80% -> 90%
+            }
+            return (MapFromZeroOneRangeToOffer(revisedLowerPercentile, plaintiff), MapFromZeroOneRangeToOffer(revisedUpperPercentile, plaintiff));
+        }
+
+        double GetMappedOfferValue(int discreteOffer, bool plaintiff)
+        {
+            double continuousOfferWithLinearSlopeUnadjusted = GetUnmappedOfferValue(discreteOffer);
+            return MapFromZeroOneRangeToOffer(continuousOfferWithLinearSlopeUnadjusted, plaintiff);
+        }
+
+        private static double GetUnmappedOfferValue(int discreteOffer)
+        {
+            return (double)(discreteOffer + 0.5) / ((double)(NumValuesEachSideOfLine));
+        }
+
+        private double MapFromZeroOneRangeToOffer(double continuousOfferWithLinearSlopeUnadjusted, bool plaintiff)
+        {
+            if ((continuousOfferWithLinearSlopeUnadjusted > minMaxNonlinearBelowThreshold && continuousOfferWithLinearSlopeUnadjusted < minMaxNonlinearAboveThreshold))
+            {
+                double proportionOfWayBetweenCutoffs = (continuousOfferWithLinearSlopeUnadjusted - minMaxNonlinearBelowThreshold) / (minMaxNonlinearAboveThreshold - minMaxNonlinearBelowThreshold);
+                double adjusted;
+                if (plaintiff)
+                    adjusted = pValueAtLowerNonlinearCutoff + proportionOfWayBetweenCutoffs * (pValueAtUpperNonlinearCutoff - pValueAtLowerNonlinearCutoff);
+                else
+                    adjusted = dValueAtLowerNonlinearCutoff + proportionOfWayBetweenCutoffs * (dValueAtUpperNonlinearCutoff - dValueAtLowerNonlinearCutoff);
+                return adjusted;
+            }
+            if (continuousOfferWithLinearSlopeUnadjusted < minMaxNonlinearBelowThreshold)
+            {
+                double cutoffValue = plaintiff ? pValueAtLowerNonlinearCutoff : dValueAtLowerNonlinearCutoff;
+                return cutoffValue - 1.0 / (minMaxNonlinearBelowThreshold - continuousOfferWithLinearSlopeUnadjusted);
+            }
+            else
+            {
+                double cutoffValue = plaintiff ? pValueAtUpperNonlinearCutoff : dValueAtUpperNonlinearCutoff;
+                return minMaxNonlinearAboveThreshold + 1.0 / (continuousOfferWithLinearSlopeUnadjusted - minMaxNonlinearAboveThreshold);
+            }
+        }
+
+        public double[,] PUtilities;
+        public double[,] DUtilities;
+        public double[,] TrialRate;
+        public double[,] AccuracyHypoSq;
+        public double[,] AccuracySq;
+        public double[,] AccuracyForP;
+        public double[,] AccuracyForD;
+
+        void ResetUtilities()
+        {
+            PUtilities = new double[NumStrategiesPerPlayer, NumStrategiesPerPlayer];
+            DUtilities = new double[NumStrategiesPerPlayer, NumStrategiesPerPlayer];
+            TrialRate = new double[NumStrategiesPerPlayer, NumStrategiesPerPlayer];
+            AccuracyHypoSq = new double[NumStrategiesPerPlayer, NumStrategiesPerPlayer];
+            AccuracySq = new double[NumStrategiesPerPlayer, NumStrategiesPerPlayer];
+            AccuracyForP = new double[NumStrategiesPerPlayer, NumStrategiesPerPlayer];
+            AccuracyForD = new double[NumStrategiesPerPlayer, NumStrategiesPerPlayer];
+        }
 
         void CalculateUtilities()
         {
             double[] continuousSignals = Enumerable.Range(0, NumNormalizedSignalsPerPlayer).Select(x => ContinuousSignal(x)).ToArray();
             for (int p = 0; p < NumStrategiesPerPlayer; p++)
             {
-                var pOfferRange = ConvertStrategyToMinMaxContinuousOffers(p);
+                var pOfferRange = ConvertStrategyToMinMaxContinuousOffers(p, true);
                 double[] pOffers = Enumerable.Range(0, NumNormalizedSignalsPerPlayer).Select(x => pOfferRange.minSignalStrategy * (1.0 - continuousSignals[x]) + pOfferRange.maxSignalStrategy * continuousSignals[x]).ToArray();
                 for (int d = 0; d < NumStrategiesPerPlayer; d++)
                 {
-                    var dOfferRange = ConvertStrategyToMinMaxContinuousOffers(d);
+                    var dOfferRange = ConvertStrategyToMinMaxContinuousOffers(d, false);
                     double[] dOffers = Enumerable.Range(0, NumNormalizedSignalsPerPlayer).Select(x => dOfferRange.minSignalStrategy * (1.0 - continuousSignals[x]) + dOfferRange.maxSignalStrategy * continuousSignals[x]).ToArray();
 
                     double pUtility = 0, dUtility = 0, trialRate = 0, accuracySq = 0, accuracyHypoSq = 0, accuracyForP = 0, accuracyForD = 0;
@@ -226,7 +340,7 @@ namespace SimpleAdditiveEvidence
             StringBuilder b = new StringBuilder();
             string headerRow = "Cost,Quality,Threshold," + EqFinder.Outcome.GetHeaderString();
             b.AppendLine(headerRow);
-            foreach (double c in new double[] { 0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4 }) // 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.8, 1.0 })
+            foreach (double c in new double[] { /* DEBUG 0, 0.05, 0.1, */ 0.15, 0.2, 0.25, 0.3, 0.35, 0.4 }) // 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.8, 1.0 })
             {
                 foreach (double q in new double[] { 0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0 })
                 {
