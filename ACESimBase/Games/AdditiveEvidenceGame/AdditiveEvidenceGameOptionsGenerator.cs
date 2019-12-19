@@ -33,12 +33,13 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             //AdditiveEvidenceOptionSetChoices.Biasless_EvenStrength => Biasless(0.05, 0.5, 1.0, true, false, 1.0, false), // very bad for plaintiff, and both parties know it -- settlements are slightly negative
             //AdditiveEvidenceOptionSetChoices.Biasless_EvenStrength => Biasless(0.6, 0.5, 0.15, false, false, 0.5, false),
             AdditiveEvidenceOptionSetChoices.Biasless_PHasInfo => Biasless(0.5, 1.0, 0.15, false, false, 0.5, 0.5, false), // in this case, note that p's exact offer may be irrelevant, because D will always play same thing, so P will offer just lower than D's to settle or anywhere above D's to go to trial
-            AdditiveEvidenceOptionSetChoices.Biasless_MoreInfoShared => Biasless(0.5, 0.5, 0.8, false, false, 0.5, 1.0, false), // in this case, note that p's exact offer may be irrelevant, because D will always play same thing, so P will offer just lower than D's to settle or anywhere above D's to go to trial
+            AdditiveEvidenceOptionSetChoices.Biasless_MoreInfoShared => Biasless(0.5, 0.5, 0.8, false, false, 0.5, 0.8, false), // in this case, note that p's exact offer may be irrelevant, because D will always play same thing, so P will offer just lower than D's to settle or anywhere above D's to go to trial
             _ => throw new Exception()
         };
 
-        public static byte NumOffers = 25; // having a good number here allows for more precise strategies
-        public static byte NumQualityAndBiasLevels = 25; // this also contributes to precision (note, though, that this doesn't affect the number of levels of "both quality"
+        // SUPERDEBUG
+        public static byte NumOffers = 4; // having a good number here allows for more precise strategies
+        public static byte NumQualityAndBiasLevels = 1; // this also contributes to precision (note, though, that this doesn't affect the number of levels of "both quality"
 
         public static AdditiveEvidenceGameOptions DariMattiacci_Saraceno(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay)
         {

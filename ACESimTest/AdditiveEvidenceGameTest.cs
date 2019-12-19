@@ -88,7 +88,7 @@ namespace ACESimTest
                 gameProgress.ResolutionValue.Should().BeApproximately(settlementValue, 1E-10);
                 gameProgress.DsProportionOfCost.Should().Be(0.5);
                 gameProgress.PWelfare.Should().BeApproximately(settlementValue, 1E-10);
-                gameProgress.DWelfare.Should().BeApproximately(0 - settlementValue, 1E-10);
+                gameProgress.DWelfare.Should().BeApproximately(settlementValue, 1E-10);
             }
         }
 

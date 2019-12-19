@@ -37,6 +37,8 @@ namespace ACESim
             AllScenarioUtilities = allScenarioUtilities;
             AllScenarioCustomResult = customResults;
             FinalUtilitiesNodeNumber = finalUtilitiesNodeNumber;
+            if (FinalUtilitiesNodeNumber == 5)
+                Br.eak.Add("DEBUG1");
         }
 
         public FinalUtilitiesNode(double[] utilities, FloatSet customResult, int finalUtilitiesNodeNumber)
@@ -44,6 +46,8 @@ namespace ACESim
             AllScenarioUtilities = new List<double[]>() { utilities };
             AllScenarioCustomResult = new List<FloatSet>() { customResult };
             FinalUtilitiesNodeNumber = finalUtilitiesNodeNumber;
+            if (FinalUtilitiesNodeNumber == 5)
+                Br.eak.Add("DEBUG1");
         }
 
         public override string ToString()

@@ -142,7 +142,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public double Accuracy_ForDefendant => Math.Abs(DWelfare + 1.0 - QualitySum);
 
         public double PWelfare => PResultFromQuitting ?? (SettlementOccurs ? (double)SettlementValue : PTrialEffect_IfOccurs);
-        public double DWelfare => DResultFromQuitting ?? (SettlementOccurs ? (double)-SettlementValue : DTrialEffect_IfOccurs);
+        public double DWelfare => DResultFromQuitting ?? (SettlementOccurs ? (double)SettlementValue : DTrialEffect_IfOccurs);
 
         public override string ToString()
         {
