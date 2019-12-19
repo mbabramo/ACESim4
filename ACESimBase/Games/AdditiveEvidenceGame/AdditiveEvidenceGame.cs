@@ -26,10 +26,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public override void UpdateGameProgressFollowingAction(byte currentDecisionByteCode, byte action)
         {
-            if (Br.eak.Contains("DEBUG1"))
-            {
-                var DEBUG2 = 0;
-            }
             switch (currentDecisionByteCode)
             {
                 case (byte)AdditiveEvidenceGameDecisions.P_LinearBid_Min:
