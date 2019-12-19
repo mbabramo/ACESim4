@@ -35,9 +35,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             _ => throw new Exception()
         };
 
-        // SUPERDEBUG
-        public static byte NumOffers = 10; // having a good number here allows for more precise strategies
-        public static byte NumQualityAndBiasLevels = 5; // this also contributes to precision (note, though, that this doesn't affect the number of levels of "both quality"
+        public static byte NumOffers = 25; // having a good number here allows for more precise strategies
+        public static byte NumQualityAndBiasLevels = 25; // this also contributes to precision (note, though, that this doesn't affect the number of levels of "both quality"
 
         public static AdditiveEvidenceGameOptions DariMattiacci_Saraceno(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay)
         {
@@ -67,7 +66,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             options.FeeShifting = feeShifting;
             options.FeeShiftingIsBasedOnMarginOfVictory = feeShiftingMarginOfVictory;
             options.FeeShiftingThreshold = feeShiftingThreshold;
-            options.LinearBids = true; // SUPERDEBUG
             return options;
         }
 

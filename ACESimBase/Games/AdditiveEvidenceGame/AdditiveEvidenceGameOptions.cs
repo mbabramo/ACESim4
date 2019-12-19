@@ -8,8 +8,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
     [Serializable]
     public class AdditiveEvidenceGameOptions : GameOptions
     {
-        // DEBUG TODO: Add linear game. One point we want to make is that the linear game is highly exploitable, i.e. that each party would want to change strategies if using the linear game strategies in the nonlinear game.
-
         public bool FirstRowOnly => false; // simplifies the reporting
 
         public bool LinearBids;

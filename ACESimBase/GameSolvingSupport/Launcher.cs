@@ -27,7 +27,7 @@ namespace ACESim
         public const int MiniReportEveryPIterations = EffectivelyNever;
         public const bool AlwaysSuppressDisplayReportOnScreen = true; 
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever; 
-        public const bool UseRandomPathsForReporting = false; // DEBUG SUPER_DEBUG
+        public const bool UseRandomPathsForReporting = false; // DEBUG 
         public const int SummaryTableRandomPathsIterations = 100_000; // DEBUG
         public const int ProbingIterations = 20_000_000;
 
@@ -37,7 +37,7 @@ namespace ACESim
         public bool AzureEnabled = true;
         public int MaxParallelDepth = 3;
 
-        public string MasterReportNameForDistributedProcessing = "R095"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
+        public string MasterReportNameForDistributedProcessing = "R096"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
         public bool UseDistributedProcessingForMultipleOptionsSets = true;
         public static bool MaxOneReportPerDistributedProcess = false;
         public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && UseDistributedProcessingForMultipleOptionsSets; // this should be true if running on the local service fabric or usign ACESimDistributed
