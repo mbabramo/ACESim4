@@ -61,7 +61,8 @@ namespace ACESimTest
                     TrialCost = trialCost,
                     FeeShifting = feeShifting,
                     FeeShiftingIsBasedOnMarginOfVictory = feeShiftingBasedOnMarginOfVictory,
-                    FeeShiftingThreshold = feeShiftingThreshold
+                    FeeShiftingThreshold = feeShiftingThreshold,
+                    LinearBids = false // not tested
                 };
                 if (options.Alpha_Both_Quality + options.Alpha_Plaintiff_Quality + options.Alpha_Defendant_Quality <= 1.0 && options.Alpha_Both_Bias + options.Alpha_Plaintiff_Bias + options.Alpha_Defendant_Bias <= 1.0)
                     return options;
@@ -107,7 +108,7 @@ namespace ACESimTest
             gameProgress.SettlementValue.Should().BeNull();
             gameProgress.ResolutionValue.Should().BeApproximately(0, 1E-10);
             gameProgress.PWelfare.Should().BeApproximately(0, 1E-10);
-            gameProgress.DWelfare.Should().BeApproximately(0, 1E-10);
+            gameProgress.DWelfare.Should().BeApproximately(1.0, 1E-10); // remember this is a game about splitting an asset
             gameProgress.POfferContinuousOrNull.Should().BeNull();
             gameProgress.DOfferContinuousOrNull.Should().BeNull();
         }
@@ -128,7 +129,7 @@ namespace ACESimTest
             gameProgress.SettlementValue.Should().BeNull();
             gameProgress.ResolutionValue.Should().BeApproximately(1.0, 1E-10);
             gameProgress.PWelfare.Should().BeApproximately(1.0, 1E-10);
-            gameProgress.DWelfare.Should().BeApproximately(-1.0, 1E-10);
+            gameProgress.DWelfare.Should().BeApproximately(0, 1E-10);
             gameProgress.POfferContinuousOrNull.Should().BeNull();
             gameProgress.DOfferContinuousOrNull.Should().BeNull();
         }
@@ -211,13 +212,13 @@ namespace ACESimTest
                 else
                     gameProgress.DsProportionOfCost.Should().Be(0.5);
                 gameProgress.PTrialEffect.Should().BeApproximately(gameProgress.TrialValuePreShiftingIfOccurs - (1.0 - gameProgress.DsProportionOfCost) * gameOptions.TrialCost, 1E-10);
-                gameProgress.DTrialEffect.Should().BeApproximately(0 - gameProgress.TrialValuePreShiftingIfOccurs - gameProgress.DsProportionOfCost * gameOptions.TrialCost, 1E-10);
+                gameProgress.DTrialEffect.Should().BeApproximately(1.0 - gameProgress.TrialValuePreShiftingIfOccurs - gameProgress.DsProportionOfCost * gameOptions.TrialCost, 1E-10);
             }
             else
             {
                 gameProgress.ShiftingOccurs.Should().Be(false);
                 gameProgress.PTrialEffect.Should().BeApproximately(gameProgress.TrialValuePreShiftingIfOccurs - 0.5 * gameOptions.TrialCost, 1E-10);
-                gameProgress.DTrialEffect.Should().BeApproximately(0 - gameProgress.TrialValuePreShiftingIfOccurs - 0.5 * gameOptions.TrialCost, 1E-10);
+                gameProgress.DTrialEffect.Should().BeApproximately(1.0 - gameProgress.TrialValuePreShiftingIfOccurs - 0.5 * gameOptions.TrialCost, 1E-10);
             }
             gameProgress.PWelfare.Should().Be(gameProgress.PTrialEffect);
             gameProgress.DWelfare.Should().Be(gameProgress.DTrialEffect);

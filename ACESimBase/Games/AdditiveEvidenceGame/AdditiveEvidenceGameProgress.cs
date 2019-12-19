@@ -85,20 +85,20 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public double AnticipatedTrialValue_DInfo => AdditiveEvidenceGameOptions.Alpha_Quality * QualitySum_DInfoOnly + AdditiveEvidenceGameOptions.Alpha_Bias * BiasSum_DInfoOnly;
         public double? TrialValuePreShifting => TrialOccurs ? TrialValuePreShiftingIfOccurs : (double?)null;
         public double PTrialEffect_IfOccurs => TrialValuePreShiftingIfOccurs - (1.0 - DsProportionOfCostIfTrial()) * AdditiveEvidenceGameOptions.TrialCost;
-        public double DTrialEffect_IfOccurs => 0 - TrialValuePreShiftingIfOccurs - (DsProportionOfCostIfTrial()) * AdditiveEvidenceGameOptions.TrialCost;
+        public double DTrialEffect_IfOccurs => 1.0 - TrialValuePreShiftingIfOccurs - (DsProportionOfCostIfTrial()) * AdditiveEvidenceGameOptions.TrialCost; // remember, this is a damages game, so defendant receives (1 - what is awarded to plaintiff)
         public double? PTrialEffect => TrialOccurs ? PTrialEffect_IfOccurs : (double?) null;
         public double? DTrialEffect => TrialOccurs ? DTrialEffect_IfOccurs : (double?) null;
 
         public double? PResultFromQuitting => PQuits ? 0 : (DQuits ? 1.0 : (double?) null);
-        public double? DResultFromQuitting => 0.0 - PResultFromQuitting;
+        public double? DResultFromQuitting => DQuits ? 0 : (PQuits ? 1.0 : (double?)null);
 
         public double ResolutionValue => PResultFromQuitting ?? (TrialOccurs ? (double) TrialValuePreShiftingIfOccurs : (double) SettlementValue);
 
         public bool ShiftingOccurs => TrialOccurs && DsProportionOfCost != 0.5;
         public bool ShiftingOccursIfTrial => DsProportionOfCostIfTrial() != 0.5;
         public double ShiftingValueIfTrial => (DsProportionOfCostIfTrial() - 0.5) * AdditiveEvidenceGameOptions.TrialCost; // e.g., with full shifting of the burden to defendant, defendant pays half of the trial cost (i.e., an amount equal to plaintiff's fees) to the plaintiff; if full shifting of the burden to the plaintiff, then we end up with a negative amount
-        public double TrialValueWithShiftingIfOccurs => TrialValuePreShiftingIfOccurs + ShiftingValueIfTrial;
-        public double AmountShiftedToPlaintiff => ShiftingOccurs ? ShiftingValueIfTrial : 0; 
+        public double TrialValueWithShiftingIfOccurs => TrialValuePreShiftingIfOccurs + ShiftingValueIfTrial; // e.g., suppose P wins 0.70, plus has own costs of 0.4 shifted. Then we count this as P receiving 1.1. In this case, D receives -0.1, since D gets 0.30 and pays 0.4. These figures omit each party's payment of own fees. 
+
         public double ResolutionValueIncludingShiftedAmount => PResultFromQuitting ?? (TrialOccurs ? (double)TrialValueWithShiftingIfOccurs : (double)SettlementValue);
 
 

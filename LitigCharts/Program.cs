@@ -61,16 +61,16 @@ namespace LitigCharts
             return results;
         }
 
-        private static void RepeatedLineChart()
-        {
-            string path = @"H:\My Drive\Articles, books in progress\Machine learning model of litigation\DMS nonlinear results 1";
-            string filename = "R094 AllCombined.csv";
+        //private static void RepeatedLineChart()
+        //{
+        //    string path = @"H:\My Drive\Articles, books in progress\Machine learning model of litigation\DMS nonlinear results 1";
+        //    string filename = "R094 AllCombined.csv";
 
-            var qualities = new double[] { 0, 0.20, 0.40, 0.60, 0.80, 1.0 };
-            var costs = new double[] { 0, 0.15, 0.30, 0.45, 0.60 };
-            var feeShiftingThresholds = new double?[] { 0, 0.25, 0.50, 0.75, 1.0 };
+        //    var qualities = new double[] { 0, 0.20, 0.40, 0.60, 0.80, 1.0 };
+        //    var costs = new double[] { 0, 0.15, 0.30, 0.45, 0.60 };
+        //    var feeShiftingThresholds = new double?[] { 0, 0.25, 0.50, 0.75, 1.0 };
 
-        }
+        //}
 
         private static void InformationSetCharts()
         {

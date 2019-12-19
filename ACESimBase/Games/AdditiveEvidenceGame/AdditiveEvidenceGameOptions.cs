@@ -12,7 +12,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public bool FirstRowOnly => false; // simplifies the reporting
 
-        public bool LinearBids = true; // SUPERDEBUG
+        public bool LinearBids;
         public bool IncludePQuitDecision;
         public bool IncludeDQuitDecision;
 
