@@ -33,7 +33,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             //AdditiveEvidenceOptionSetChoices.Biasless_EvenStrength => Biasless(0.05, 0.5, 1.0, true, false, 1.0, false), // very bad for plaintiff, and both parties know it -- settlements are slightly negative
             //AdditiveEvidenceOptionSetChoices.Biasless_EvenStrength => Biasless(0.6, 0.5, 0.15, false, false, 0.5, false),
             AdditiveEvidenceOptionSetChoices.Biasless_PHasInfo => Biasless(0.5, 1.0, 0.15, false, false, 0.5, 0.5, false), // in this case, note that p's exact offer may be irrelevant, because D will always play same thing, so P will offer just lower than D's to settle or anywhere above D's to go to trial
-            AdditiveEvidenceOptionSetChoices.Biasless_MoreInfoShared => Biasless(0.5, 0.5, 0.3, true, false, 0.5, 0.75, false), // in this case, note that p's exact offer may be irrelevant, because D will always play same thing, so P will offer just lower than D's to settle or anywhere above D's to go to trial
+            AdditiveEvidenceOptionSetChoices.Biasless_MoreInfoShared => Biasless(0.5, 0.5, 0.8, false, false, 0.5, 1.0, false), // in this case, note that p's exact offer may be irrelevant, because D will always play same thing, so P will offer just lower than D's to settle or anywhere above D's to go to trial
             _ => throw new Exception()
         };
 
