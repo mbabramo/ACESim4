@@ -8,32 +8,40 @@ namespace SimpleAdditiveEvidence
 {
     public class EqFinder
     {
+        bool logDetailedProgress = true;
+        bool printUtilitiesInDetailedLog = false;
+
         double q, c, t;
         int optimalPStrategy = -1, optimalDStrategy = -1;
         public Outcome TheOutcome;
 
         // Each player's strategy is a line, represented by a minimum strategy value and a maximum strategy value. This class seeks to optimize that line
         // by playing a range of strategies. To ensure that it considers very high slopes (positive or negative), as well as intermediate ones, it converts
-        // relatively high and low strategy values nonlinearly. The lowest plaintiff strategy is counted as a very high number that will always lead to trial,
-        // and the lowest defendant strategy is counted as a very negative number that will necessarily have the same result. Because both lines must have
+        // relatively high and low strategy values nonlinearly. Because both lines must have
         // non-negative slopes, we add the constraint that the maxSignalStrategy must be greater than or equal to the minSignalStrategy. 
         // So, if party has lowest signal strategy for the minimum value, there are n possibilities for the max. If party has highest signal strategy (n),
-        // then there is only one possibility for the max. 
-        const int NumStartOrEndPointsOfLine = 2; // this excludes the "extreme" strategy
-        const int NumNormalizedSignalsPerPlayer = 10;
+        // then there is only one possibility for the max. Note that below, we will also model an outside option where either party can force trial, but we don't
+        // include that in the matrix, both because it would take a lot of space and because the equilibrium where both refuse to give reasonable offers is
+        // always a Nash equilibrium, albeit a trivial one. 
+        const int NumStartOrEndPointsOfLine = 15; // this excludes the "extreme" strategy
+        const int NumNormalizedSignalsPerPlayer = 30;
 
-        const int NumStrategiesPerPlayer = NumStartOrEndPointsOfLine * (NumStartOrEndPointsOfLine + 1) / 2 + 1;
+        const int NumStrategiesPerPlayer = NumStartOrEndPointsOfLine * (NumStartOrEndPointsOfLine + 1) / 2;
         static int ConvertMinMaxToStrategy(int minSignalStrategy, int maxSignalStrategy)
         {
-            if (minSignalStrategy == NumStartOrEndPointsOfLine)
-                return 0; // i.e., extreme strategy
-            int numForLowerSignalStrategies = minSignalStrategy * NumStartOrEndPointsOfLine + (minSignalStrategy - 1) * minSignalStrategy / 2; // e.g., 0 => 0; 1 => NumStartOrEndPointsOfLine; 2 => 2N - 1; 3 => 3N - 3; etc. So general formula is M * N - (M - 1) * M / 2.
-            return numForLowerSignalStrategies + (maxSignalStrategy - minSignalStrategy) + 1;
+            int i = 0;
+            for (int minSignalStrategyCounter = 0; minSignalStrategyCounter < NumStartOrEndPointsOfLine; minSignalStrategyCounter++)
+                for (int maxSignalStrategyCounter = minSignalStrategyCounter; maxSignalStrategyCounter < NumStartOrEndPointsOfLine; maxSignalStrategyCounter++)
+                {
+                    if (minSignalStrategyCounter == minSignalStrategy && maxSignalStrategyCounter == maxSignalStrategy)
+                        return i;
+                    else
+                        i++;
+                }
+            throw new Exception(); // shouldn't happen.
         }
         static (int minSignalStrategy, int maxSignalStrategy) ConvertStrategyToMinMaxOffers(int strategy)
         {
-            if (strategy-- == 0)
-                return (NumStartOrEndPointsOfLine, NumStartOrEndPointsOfLine); // extreme strategy
             int i = 0;
             for (int minSignalStrategy = 0; minSignalStrategy < NumStartOrEndPointsOfLine; minSignalStrategy++)
                 for (int maxSignalStrategy = minSignalStrategy; maxSignalStrategy < NumStartOrEndPointsOfLine; maxSignalStrategy++)
@@ -49,21 +57,19 @@ namespace SimpleAdditiveEvidence
         // When the number we are targeting was within the 25%le to the 75%le range, we multiply the total distance by (1 - zoomSpeed). 
         // When the number is outside the range, we multiply by (1 + zoomSpeed).
         static double zoomAccuracy = 0.001;
-        static double zoomSpeed = 0.3;
-
-        bool logDetailedProgress = true;
-        bool printUtilitiesInDetailedLog = true;
+        static double zoomSpeed = 0.1;
 
         public EqFinder(double q, double c, double t)
         {
             this.q = q;
             this.c = c;
-            this.t = c;
+            this.t = t;
             Execute();
         }
 
         private void Execute()
         {
+            CalculateFromPaper();
             ConfirmConversions();
             bool done = false;
             int i = 0;
@@ -78,20 +84,33 @@ namespace SimpleAdditiveEvidence
                 var eqResult = EvaluateEquilibria();
                 if (logDetailedProgress && printUtilitiesInDetailedLog)
                     PrintUtilities();
-                if (OutsideOptionSelected)
-                    done = true;
-                else
-                {
-                    AdjustLowerAndUpperCutoffsBasedOnPerformance();
-                    done = AllCutoffDistancesAccurateEnough(zoomAccuracy);
-                }
+
+                AdjustLowerAndUpperCutoffsBasedOnPerformance();
+                done = AllCutoffDistancesAccurateEnough(zoomAccuracy);
+                if (done && OutsideOptionDominates)
+                    SelectOutsideOption();
                 if (done || logDetailedProgress)
                     TabbedText.WriteLine(eqResult);
             }
         }
 
+        private void CalculateFromPaper()
+        {
+            if (t == 0)
+            {
+                double correctPStart = 0.5 - 3.0 * (5.0 / 6.0 - q) * c;
+                double correctPEnd = correctPStart + 1.0 / 3.0;
+                double correctDStart = 1.0 / 6.0 + 3 * (q - 1.0 / 6.0) * c;
+                double correctDEnd = correctDStart + 1.0 / 3.0;
+                var r = CalculateUtilitiesForOfferRanges((correctPStart, correctPEnd), (correctDStart, correctDEnd));
+                TabbedText.WriteLine($"Anticipated answer P:{correctPStart.ToSignificantFigures(3)}, {correctPEnd.ToSignificantFigures(3)} D:{correctDStart.ToSignificantFigures(3)}, {correctDEnd.ToSignificantFigures(3)} ==> ({r.pUtility.ToSignificantFigures(3)}, {r.dUtility.ToSignificantFigures(3)})");
+            }
+        }
+
         private static void ConfirmConversions()
         {
+            var OneDirection = Enumerable.Range(0, NumStrategiesPerPlayer).Select(x => ConvertStrategyToMinMaxOffers(x)).ToArray();
+            var OppositeDirection = OneDirection.Select(x => ConvertMinMaxToStrategy(x.minSignalStrategy, x.maxSignalStrategy)).ToArray();
             for (int w = 0; w < NumStrategiesPerPlayer; w++)
             {
                 (int minSignalStrategy, int maxSignalStrategy) = ConvertStrategyToMinMaxOffers(w);
@@ -108,22 +127,22 @@ namespace SimpleAdditiveEvidence
             for (int p = -1; p < NumStrategiesPerPlayer; p++)
             {
                 if (p == -1)
-                    TabbedText.Write($"P| D->".PadRight(15));
+                    TabbedText.Write($"P| D->".PadRight(22));
                 else
-                    TabbedText.Write($"{p.ToString()}: ".PadRight(15));
+                    TabbedText.Write($"{p.ToString()} ({ConvertStrategyToMinMaxContinuousOffers(p, true).minSignalStrategy.ToSignificantFigures(3)}, {ConvertStrategyToMinMaxContinuousOffers(p, true).maxSignalStrategy.ToSignificantFigures(3)}): ".PadRight(22));
                 for (int d = 0; d < NumStrategiesPerPlayer; d++)
                 {
                     if (p == -1)
-                        TabbedText.Write(d.ToString().PadRight(15));
+                        TabbedText.Write($"{d} ({ConvertStrategyToMinMaxContinuousOffers(d, false).minSignalStrategy.ToSignificantFigures(3)}, {ConvertStrategyToMinMaxContinuousOffers(d, false).maxSignalStrategy.ToSignificantFigures(3)}): ".PadRight(22));
                     else
-                        TabbedText.Write($"{PUtilities[p, d].ToSignificantFigures(3)}, {DUtilities[p, d].ToSignificantFigures(3)}{(AllEquilibria.Contains((p, d)) ? "*" : "")}".PadRight(15));
+                        TabbedText.Write($"{PUtilities[p, d].ToSignificantFigures(3)}, {DUtilities[p, d].ToSignificantFigures(3)}{(AllEquilibria.Contains((p, d)) ? "*" : "")}".PadRight(22));
                 }
                 TabbedText.WriteLine();
             }
         }
 
         double OptimalPMin, OptimalPMax, OptimalDMin, OptimalDMax;
-        bool OutsideOptionSelected;
+        bool OutsideOptionDominates;
 
         private string EvaluateEquilibria()
         {
@@ -177,17 +196,14 @@ namespace SimpleAdditiveEvidence
             optimalDStrategy = f1.dStrategy;
             if (OutsideOption != null && PUtilities[optimalPStrategy, optimalDStrategy] < OutsideOption?.pOutsideOption || DUtilities[optimalPStrategy, optimalDStrategy] < OutsideOption?.dOutsideOption)
             {
-                (optimalPStrategy, optimalDStrategy) = PureStrategiesFinder.GetApproximateNashEquilibrium(PUtilities, DUtilities);
-                b.AppendLine($"Best approximate equilibrium {optimalPStrategy},{optimalDStrategy} => ({PUtilities[optimalPStrategy, optimalDStrategy]},{DUtilities[optimalPStrategy, optimalDStrategy]})");
-                b.AppendLine("Outside option of trial dominates => Trial rate = 1.");
-                optimalPStrategy = ConvertMinMaxToStrategy(NumStartOrEndPointsOfLine - 1, NumStartOrEndPointsOfLine - 1);
-                optimalDStrategy = ConvertMinMaxToStrategy(0, 0);
-                PUtilities[optimalPStrategy, optimalDStrategy] = OutsideOption.Value.pOutsideOption;
-                DUtilities[optimalPStrategy, optimalDStrategy] = OutsideOption.Value.dOutsideOption;
-                b.AppendLine($"Trial equilibrium {optimalPStrategy},{optimalDStrategy} => ({PUtilities[optimalPStrategy, optimalDStrategy]},{DUtilities[optimalPStrategy, optimalDStrategy]})");
-                OutsideOptionSelected = true;
-                return b.ToString();
+                //(optimalPStrategy, optimalDStrategy) = PureStrategiesFinder.GetApproximateNashEquilibrium(PUtilities, DUtilities);
+                //b.AppendLine($"Best approximate equilibrium {optimalPStrategy},{optimalDStrategy} => ({PUtilities[optimalPStrategy, optimalDStrategy]},{DUtilities[optimalPStrategy, optimalDStrategy]})");
+                //b.AppendLine("Outside option of trial dominates => Trial rate = 1.");
+                OutsideOptionDominates = true;
+                //return b.ToString();
             }
+            else
+                OutsideOptionDominates = false;
 
             TheOutcome = new Outcome(PUtilities[optimalPStrategy, optimalDStrategy], DUtilities[optimalPStrategy, optimalDStrategy], TrialRate[optimalPStrategy, optimalDStrategy], AccuracySq[optimalPStrategy, optimalDStrategy], AccuracyHypoSq[optimalPStrategy, optimalDStrategy], AccuracyForP[optimalPStrategy, optimalDStrategy], AccuracyForD[optimalPStrategy, optimalDStrategy], ConvertStrategyToMinMaxContinuousOffers(optimalPStrategy, true), ConvertStrategyToMinMaxContinuousOffers(optimalDStrategy, false));
             var grouped = nashStrategies.GroupBy(x => x.pStrategy);
@@ -195,15 +211,24 @@ namespace SimpleAdditiveEvidence
             {
                 var aNashStrategy = pStrategyGroup.First();
                 var pLine = ConvertStrategyToMinMaxContinuousOffers(aNashStrategy.pStrategy, true);
-                b.AppendLine($"P offers from {pLine.minSignalStrategy} to {pLine.maxSignalStrategy} (utility {PUtilities[aNashStrategy.pStrategy, aNashStrategy.dStrategy]})");
+                b.AppendLine($"P (strategy {aNashStrategy.pStrategy}) offers from {pLine.minSignalStrategy.ToSignificantFigures(3)} to {pLine.maxSignalStrategy.ToSignificantFigures(3)} (utility {PUtilities[aNashStrategy.pStrategy, aNashStrategy.dStrategy].ToSignificantFigures(3)})");
                 foreach (var nashStrategy in pStrategyGroup)
                 {
                     var dLine = ConvertStrategyToMinMaxContinuousOffers(nashStrategy.dStrategy, false);
-                    b.AppendLine($"D offers from {dLine.minSignalStrategy} to {dLine.maxSignalStrategy} (utility {DUtilities[nashStrategy.pStrategy, nashStrategy.dStrategy]})");
+                    b.AppendLine($"D (strategy {aNashStrategy.dStrategy}) offers from {dLine.minSignalStrategy.ToSignificantFigures(3)} to {dLine.maxSignalStrategy.ToSignificantFigures(3)} (utility {DUtilities[nashStrategy.pStrategy, nashStrategy.dStrategy].ToSignificantFigures(3)})");
                     b.AppendLine($"--> Trial rate {TrialRate[nashStrategy.pStrategy, nashStrategy.dStrategy].ToSignificantFigures(3)}");
                 }
             }
             return b.ToString();
+        }
+
+        private void SelectOutsideOption()
+        {
+            optimalPStrategy = ConvertMinMaxToStrategy(NumStartOrEndPointsOfLine - 1, NumStartOrEndPointsOfLine - 1);
+            optimalDStrategy = ConvertMinMaxToStrategy(0, 0);
+            PUtilities[optimalPStrategy, optimalDStrategy] = OutsideOption.Value.pOutsideOption;
+            DUtilities[optimalPStrategy, optimalDStrategy] = OutsideOption.Value.dOutsideOption;
+            TabbedText.WriteLine($"Trial equilibrium {optimalPStrategy},{optimalDStrategy} => ({PUtilities[optimalPStrategy, optimalDStrategy]},{DUtilities[optimalPStrategy, optimalDStrategy]})");
         }
 
         public readonly struct Outcome
@@ -292,26 +317,26 @@ namespace SimpleAdditiveEvidence
         {
             var pOptimum = ConvertStrategyToMinMaxContinuousOffers(optimalPStrategy, true);
             (pValueAtLowerNonlinearCutoff_MinSignal, pValueAtUpperNonlinearCutoff_MinSignal) = AdjustLowerAndUpperCutoffsBasedOnPerformance_Helper(pOptimum.minSignalStrategy, true, true);
-            if (pValueAtLowerNonlinearCutoff_MinSignal > OptimalPMin)
-                pValueAtLowerNonlinearCutoff_MinSignal = OptimalPMin - 1E-4;
-            if (pValueAtUpperNonlinearCutoff_MinSignal > OptimalPMin)
-                pValueAtUpperNonlinearCutoff_MinSignal = OptimalPMin + 1E-4;
+            //if (pValueAtLowerNonlinearCutoff_MinSignal > OptimalPMin)
+            //    pValueAtLowerNonlinearCutoff_MinSignal = OptimalPMin - 1E-4;
+            //if (pValueAtUpperNonlinearCutoff_MinSignal > OptimalPMin)
+            //    pValueAtUpperNonlinearCutoff_MinSignal = OptimalPMin + 1E-4;
             (pValueAtLowerNonlinearCutoff_MaxSignal, pValueAtUpperNonlinearCutoff_MaxSignal) = AdjustLowerAndUpperCutoffsBasedOnPerformance_Helper(pOptimum.maxSignalStrategy, true, false);
-            if (pValueAtLowerNonlinearCutoff_MaxSignal < OptimalPMax)
-                pValueAtLowerNonlinearCutoff_MaxSignal = OptimalPMax - 1E-4;
-            if (pValueAtUpperNonlinearCutoff_MaxSignal < OptimalPMax)
-                pValueAtUpperNonlinearCutoff_MaxSignal = OptimalPMax + 1E-4;
+            //if (pValueAtLowerNonlinearCutoff_MaxSignal < OptimalPMax)
+            //    pValueAtLowerNonlinearCutoff_MaxSignal = OptimalPMax - 1E-4;
+            //if (pValueAtUpperNonlinearCutoff_MaxSignal < OptimalPMax)
+            //    pValueAtUpperNonlinearCutoff_MaxSignal = OptimalPMax + 1E-4;
             var dOptimum = ConvertStrategyToMinMaxContinuousOffers(optimalDStrategy, false);
             (dValueAtLowerNonlinearCutoff_MinSignal, dValueAtUpperNonlinearCutoff_MinSignal) = AdjustLowerAndUpperCutoffsBasedOnPerformance_Helper(dOptimum.minSignalStrategy, false, true);
-            if (dValueAtLowerNonlinearCutoff_MinSignal > OptimalDMin)
-                dValueAtLowerNonlinearCutoff_MinSignal = OptimalDMin - 1E-4;
-            if (dValueAtUpperNonlinearCutoff_MinSignal > OptimalDMin)
-                dValueAtUpperNonlinearCutoff_MinSignal = OptimalDMin + 1E-4;
+            //if (dValueAtLowerNonlinearCutoff_MinSignal > OptimalDMin)
+            //    dValueAtLowerNonlinearCutoff_MinSignal = OptimalDMin - 1E-4;
+            //if (dValueAtUpperNonlinearCutoff_MinSignal > OptimalDMin)
+            //    dValueAtUpperNonlinearCutoff_MinSignal = OptimalDMin + 1E-4;
             (dValueAtLowerNonlinearCutoff_MaxSignal, dValueAtUpperNonlinearCutoff_MaxSignal) = AdjustLowerAndUpperCutoffsBasedOnPerformance_Helper(dOptimum.maxSignalStrategy, false, false);
-            if (dValueAtLowerNonlinearCutoff_MaxSignal < OptimalDMax)
-                dValueAtLowerNonlinearCutoff_MaxSignal = OptimalDMax - 1E-4;
-            if (dValueAtUpperNonlinearCutoff_MaxSignal < OptimalDMax)
-                dValueAtUpperNonlinearCutoff_MaxSignal = OptimalDMax + 1E-4;
+            //if (dValueAtLowerNonlinearCutoff_MaxSignal < OptimalDMax)
+            //    dValueAtLowerNonlinearCutoff_MaxSignal = OptimalDMax - 1E-4;
+            //if (dValueAtUpperNonlinearCutoff_MaxSignal < OptimalDMax)
+            //    dValueAtUpperNonlinearCutoff_MaxSignal = OptimalDMax + 1E-4;
         }
 
         (double, double) AdjustLowerAndUpperCutoffsBasedOnPerformance_Helper(double apparentOptimum, bool plaintiff, bool isMinSignal)
@@ -353,24 +378,34 @@ namespace SimpleAdditiveEvidence
             return (double)(discreteOffer + 0.5) / ((double)(NumStartOrEndPointsOfLine));
         }
 
-        private double MapFromZeroOneRangeToMinOrMaxOffer(double continuousOfferWithLinearSlopeUnadjusted, bool plaintiff, bool min)
+        private double MapFromZeroOneRangeToMinOrMaxOffer(double continuousOfferWithLinearSlopeUnadjusted, bool plaintiff, bool isMin)
         {
             if ((continuousOfferWithLinearSlopeUnadjusted >= minMaxNonlinearBelowThreshold && continuousOfferWithLinearSlopeUnadjusted <= minMaxNonlinearAboveThreshold))
             {
-                double proportionOfWayBetweenCutoffs = (continuousOfferWithLinearSlopeUnadjusted - minMaxNonlinearBelowThreshold) / (minMaxNonlinearAboveThreshold - minMaxNonlinearBelowThreshold);
-                double adjusted = NonlinearCutoff(plaintiff, true, min) + proportionOfWayBetweenCutoffs * (NonlinearCutoff(plaintiff, false, min) - NonlinearCutoff(plaintiff, true, min));
-                return adjusted;
+                return MapFromInnerRangeToMinOrMaxOffer(continuousOfferWithLinearSlopeUnadjusted, plaintiff, isMin);
             }
             if (continuousOfferWithLinearSlopeUnadjusted < minMaxNonlinearBelowThreshold)
             {
-                double cutoffValue = NonlinearCutoff(plaintiff, true, min);
-                return cutoffValue - 1.0 / (minMaxNonlinearBelowThreshold - continuousOfferWithLinearSlopeUnadjusted);
+                double kinkPoint = MapFromInnerRangeToMinOrMaxOffer(minMaxNonlinearBelowThreshold, plaintiff, isMin); 
+                // now calculate what we want to subtract from this
+                // at 0.25 => 0
+                // at 0 => inf.
+                double amountToSubtract = 1.0 / continuousOfferWithLinearSlopeUnadjusted - 1.0 / minMaxNonlinearAboveThreshold;
+                return kinkPoint - amountToSubtract;
             }
             else
             {
-                double cutoffValue = NonlinearCutoff(plaintiff, false, min);
-                return minMaxNonlinearAboveThreshold + 1.0 / (continuousOfferWithLinearSlopeUnadjusted - minMaxNonlinearAboveThreshold);
+                double kinkPoint = MapFromInnerRangeToMinOrMaxOffer(minMaxNonlinearAboveThreshold, plaintiff, isMin);
+                double amountToAdd = 1.0 / (1.0 - continuousOfferWithLinearSlopeUnadjusted) - 1.0 / minMaxNonlinearAboveThreshold;
+                return kinkPoint + amountToAdd;
             }
+        }
+
+        private double MapFromInnerRangeToMinOrMaxOffer(double continuousOfferWithLinearSlopeUnadjusted, bool plaintiff, bool isMin)
+        {
+            double proportionOfWayBetweenCutoffs = (continuousOfferWithLinearSlopeUnadjusted - minMaxNonlinearBelowThreshold) / (minMaxNonlinearAboveThreshold - minMaxNonlinearBelowThreshold);
+            double adjusted = NonlinearCutoff(plaintiff, true, isMin) + proportionOfWayBetweenCutoffs * (NonlinearCutoff(plaintiff, false, isMin) - NonlinearCutoff(plaintiff, true, isMin));
+            return adjusted;
         }
 
         public double[,] PUtilities;
@@ -395,49 +430,84 @@ namespace SimpleAdditiveEvidence
         // Outcomes where trial is inevitable is a strategy for both parties. We treat this case separately and compare the outside option at the end.
         (double pOutsideOption, double dOutsideOption)? OutsideOption;
 
+        double[] continuousSignals = Enumerable.Range(0, NumNormalizedSignalsPerPlayer).Select(x => ContinuousSignal(x)).ToArray();
+
         void CalculateUtilities()
         {
-            double[] continuousSignals = Enumerable.Range(0, NumNormalizedSignalsPerPlayer).Select(x => ContinuousSignal(x)).ToArray();
             OutsideOption = null;
             for (int p = 0; p < NumStrategiesPerPlayer; p++)
             {
-                var pOfferRange = ConvertStrategyToMinMaxContinuousOffers(p, true);
-                double[] pOffers = Enumerable.Range(0, NumNormalizedSignalsPerPlayer).Select(x => pOfferRange.minSignalStrategy * (1.0 - continuousSignals[x]) + pOfferRange.maxSignalStrategy * continuousSignals[x]).ToArray();
                 for (int d = 0; d < NumStrategiesPerPlayer; d++)
                 {
+                    var pOfferRange = ConvertStrategyToMinMaxContinuousOffers(p, true);
                     var dOfferRange = ConvertStrategyToMinMaxContinuousOffers(d, false);
-                    double[] dOffers = Enumerable.Range(0, NumNormalizedSignalsPerPlayer).Select(x => dOfferRange.minSignalStrategy * (1.0 - continuousSignals[x]) + dOfferRange.maxSignalStrategy * continuousSignals[x]).ToArray();
+                    bool atLeastOneSettlement;
+                    double pUtility, dUtility, trialRate, accuracySq, accuracyHypoSq, accuracyForP, accuracyForD;
+                    CalculateResultsForOfferRanges(pOfferRange, dOfferRange, out atLeastOneSettlement, out pUtility, out dUtility, out trialRate, out accuracySq, out accuracyHypoSq, out accuracyForP, out accuracyForD);
 
-                    bool atLeastOneSettlement = false;
-
-                    double pUtility = 0, dUtility = 0, trialRate = 0, accuracySq = 0, accuracyHypoSq = 0, accuracyForP = 0, accuracyForD = 0;
-
-                    for (int zp = 0; zp < NumNormalizedSignalsPerPlayer; zp++)
-                    {
-                        for (int zd = 0; zd < NumNormalizedSignalsPerPlayer; zd++)
-                        {
-                            ProcessCaseGivenParticularSignals(zp, zd, continuousSignals, pOffers, dOffers, ref atLeastOneSettlement, ref pUtility, ref dUtility, ref trialRate, ref accuracySq, ref accuracyHypoSq, ref accuracyForP, ref accuracyForD);
-                        }
-                    }
-
-                    PUtilities[p, d] = pUtility / (double)EvaluationsPerStrategyCombination;
-                    DUtilities[p, d] = dUtility / (double)EvaluationsPerStrategyCombination;
-                    if (!atLeastOneSettlement )
+                    PUtilities[p, d] = pUtility;
+                    DUtilities[p, d] = dUtility;
+                    if (!atLeastOneSettlement)
                     {
                         if (OutsideOption == null)
                             OutsideOption = (PUtilities[p, d], DUtilities[p, d]);
                         PUtilities[p, d] = DUtilities[p, d] = -1E+20; // very unattractive utility
                     }
-                    
 
-                    TrialRate[p, d] = trialRate / (double) EvaluationsPerStrategyCombination;
-                    AccuracySq[p, d] = accuracySq / (double)EvaluationsPerStrategyCombination;
-                    AccuracyHypoSq[p, d] = accuracyHypoSq / (double)EvaluationsPerStrategyCombination;
-                    AccuracyForP[p, d] = accuracyForP / (double)EvaluationsPerStrategyCombination;
-                    AccuracyForD[p, d] = accuracyForD / (double)EvaluationsPerStrategyCombination;
+
+                    TrialRate[p, d] = trialRate;
+                    AccuracySq[p, d] = accuracySq ;
+                    AccuracyHypoSq[p, d] = accuracyHypoSq ;
+                    AccuracyForP[p, d] = accuracyForP ;
+                    AccuracyForD[p, d] = accuracyForD;
 
                 }
             }
+        }
+        private (double pUtility, double dUtility) CalculateUtilitiesForOfferRanges((double minSignalStrategy, double maxSignalStrategy) pOfferRange, (double minSignalStrategy, double maxSignalStrategy) dOfferRange)
+        {
+            double pUtility, dUtility;
+            CalculateResultsForOfferRanges(pOfferRange, dOfferRange, out _, out pUtility, out dUtility, out _, out _, out _, out _, out _);
+            return (pUtility, dUtility);
+        }
+
+        private void CalculateResultsForOfferRanges((double minSignalStrategy, double maxSignalStrategy) pOfferRange, (double minSignalStrategy, double maxSignalStrategy) dOfferRange, out bool atLeastOneSettlement, out double pUtility, out double dUtility, out double trialRate, out double accuracySq, out double accuracyHypoSq, out double accuracyForP, out double accuracyForD)
+        {
+            double[] pOffers = Enumerable.Range(0, NumNormalizedSignalsPerPlayer).Select(x => pOfferRange.minSignalStrategy * (1.0 - continuousSignals[x]) + pOfferRange.maxSignalStrategy * continuousSignals[x]).ToArray();
+            double[] dOffers = Enumerable.Range(0, NumNormalizedSignalsPerPlayer).Select(x => dOfferRange.minSignalStrategy * (1.0 - continuousSignals[x]) + dOfferRange.maxSignalStrategy * continuousSignals[x]).ToArray();
+            // Truncations (as specified in paper)
+            // 1. Plaintiff never demands less than lowest offer by the defendant.
+            for (int i = 0; i < pOffers.Length; i++)
+                if (pOffers[i] < dOfferRange.minSignalStrategy)
+                    pOffers[i] = dOfferRange.minSignalStrategy;
+            // 2. Defendant never offers more than highest demand by the plaintiff. 
+            for (int i = 0; i < dOffers.Length; i++)
+                if (dOffers[i] > pOfferRange.maxSignalStrategy)
+                    dOffers[i] = pOfferRange.maxSignalStrategy;
+
+
+            atLeastOneSettlement = false;
+            pUtility = 0;
+            dUtility = 0;
+            trialRate = 0;
+            accuracySq = 0;
+            accuracyHypoSq = 0;
+            accuracyForP = 0;
+            accuracyForD = 0;
+            for (int zp = 0; zp < NumNormalizedSignalsPerPlayer; zp++)
+            {
+                for (int zd = 0; zd < NumNormalizedSignalsPerPlayer; zd++)
+                {
+                    ProcessCaseGivenParticularSignals(zp, zd, continuousSignals, pOffers, dOffers, ref atLeastOneSettlement, ref pUtility, ref dUtility, ref trialRate, ref accuracySq, ref accuracyHypoSq, ref accuracyForP, ref accuracyForD);
+                }
+            }
+            pUtility /= (double)EvaluationsPerStrategyCombination;
+            dUtility /= (double)EvaluationsPerStrategyCombination;
+            trialRate /= (double)EvaluationsPerStrategyCombination;
+            accuracySq /= (double)EvaluationsPerStrategyCombination;
+            accuracyHypoSq /= (double)EvaluationsPerStrategyCombination;
+            accuracyForP /= (double)EvaluationsPerStrategyCombination;
+            accuracyForD /= (double)EvaluationsPerStrategyCombination;
         }
 
         private void ProcessCaseGivenParticularSignals(int zp, int zd, double[] continuousSignals, double[] pOffers, double[] dOffers, ref bool atLeastOneSettlement, ref double pUtility, ref double dUtility, ref double trialRate, ref double accuracySq, ref double accuracyHypoSq, ref double accuracyForP, ref double accuracyForD)
@@ -446,6 +516,11 @@ namespace SimpleAdditiveEvidence
             double dOffer = dOffers[zd];
             double theta_p = continuousSignals[zp] * q;
             double theta_d = q + continuousSignals[zd] * (1 - q); // follows from zd = (theta_d - q) / (1 - q)
+            ProcessCaseGivenOfferValues(ref atLeastOneSettlement, ref pUtility, ref dUtility, ref trialRate, ref accuracySq, ref accuracyHypoSq, ref accuracyForP, ref accuracyForD, pOffer, dOffer, theta_p, theta_d);
+        }
+
+        private void ProcessCaseGivenOfferValues(ref bool atLeastOneSettlement, ref double pUtility, ref double dUtility, ref double trialRate, ref double accuracySq, ref double accuracyHypoSq, ref double accuracyForP, ref double accuracyForD, double pOffer, double dOffer, double theta_p, double theta_d)
+        {
             double hypo_theta_p = 0.5 * q; // the theta expected before parties collect information
             double hypo_theta_d = q + 0.5 * (1 - q); // the theta expected before parties collect information
             double j = (theta_p + theta_d) / 2.0;
