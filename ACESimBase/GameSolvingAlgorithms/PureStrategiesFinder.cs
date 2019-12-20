@@ -207,6 +207,38 @@ namespace ACESim
             return atLeastOneEliminated;
         }
 
+        public static (int player0Strategy, int player1Strategy) GetApproximateNashEquilibrium(double[,] player0Utilities, double[,] player1Utilities)
+        {
+            int numRows = player0Utilities.GetLength(0);
+            int numColumns = player0Utilities.GetLength(1);
+            double[] player0MaxValueInColumn = Enumerable.Range(0, numColumns).Select(c => Enumerable.Range(0, numRows).Select(r => player0Utilities[r, c]).Max()).ToArray();
+            double[] player1MaxValueInRow = Enumerable.Range(0, numRows).Select(r => Enumerable.Range(0, numColumns).Select(c => player1Utilities[r, c]).Max()).ToArray();
+            double distanceFromNash(int r, int c)
+            {
+                double total = 0;
+                if (player0Utilities[r, c] < player0MaxValueInColumn[c])
+                    total += Math.Pow(player0Utilities[r, c] - player0MaxValueInColumn[c], 2);
+                if (player1Utilities[r, c] < player1MaxValueInRow[r])
+                    total += Math.Pow(player1Utilities[r, c] - player1MaxValueInRow[r], 2);
+                return total;
+            }
+            int bestRow = -1;
+            int bestCol = -1;
+            double lowestTotal = double.MaxValue;
+            for (int r = 0; r < numRows; r++)
+                for (int c = 0; c < numColumns; c++)
+                {
+                    double distance = distanceFromNash(r, c);
+                    if (distance < lowestTotal)
+                    {
+                        bestRow = r;
+                        bestCol = c;
+                        lowestTotal = distance;
+                    }
+                }
+            return (bestRow, bestCol);
+        }
+
         private static List<(int player0Strategy, int player1Strategy)> NarrowToNashEquilibria(int player0Permutations,
             int player1Permutations, double[,] player0Utilities, double[,] player1Utilities,
             bool[] player0StrategyEliminated, bool[] player1StrategyEliminated, bool removePayoffDominatedEquilibria)

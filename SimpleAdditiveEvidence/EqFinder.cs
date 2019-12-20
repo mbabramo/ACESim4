@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace SimpleAdditiveEvidence
 {
@@ -13,11 +14,41 @@ namespace SimpleAdditiveEvidence
 
         // Each player's strategy is a line, represented by a minimum strategy value and a maximum strategy value. This class seeks to optimize that line
         // by playing a range of strategies. To ensure that it considers very high slopes (positive or negative), as well as intermediate ones, it converts
-        // relatively high and low strategy values nonlinearly. 
-        // Zoom in feature: We can choose to what value the 25th percentile and the 75th of what each player's strategy corresponds to. Initially, we start at 0.25 and 0.75
+        // relatively high and low strategy values nonlinearly. The lowest plaintiff strategy is counted as a very high number that will always lead to trial,
+        // and the lowest defendant strategy is counted as a very negative number that will necessarily have the same result. Because both lines must have
+        // non-negative slopes, we add the constraint that the maxSignalStrategy must be greater than or equal to the minSignalStrategy. 
+        // So, if party has lowest signal strategy for the minimum value, there are n possibilities for the max. If party has highest signal strategy (n),
+        // then there is only one possibility for the max. 
+        const int NumValuesEachSideOfLine = 3;
+        const int NumNormalizedSignalsPerPlayer = 100;
 
-        const int NumValuesEachSideOfLine = 10;
-        const int NumNormalizedSignalsPerPlayer = 30;
+        const int NumStrategiesPerPlayer = NumValuesEachSideOfLine * (NumValuesEachSideOfLine + 1) / 2;
+        static int ConvertMinMaxToStrategy(int minSignalStrategy, int maxSignalStrategy)
+        {
+            int numForLowerSignalStrategies = minSignalStrategy * (minSignalStrategy + 1) / 2; // e.g., if minSignalStrategy is zero, then there have been zero so far. If minSignalStrategy is one, then there has been one so far, etc.
+            return numForLowerSignalStrategies + (maxSignalStrategy - minSignalStrategy);
+        }
+        static (int minSignalStrategy, int maxSignalStrategy) ConvertStrategyToMinMaxOffers(int strategy)
+        {
+            int i = 0;
+            for (int minSignalStrategy = 0; minSignalStrategy < NumValuesEachSideOfLine; minSignalStrategy++)
+                for (int maxSignalStrategy = 0; maxSignalStrategy <= minSignalStrategy; maxSignalStrategy++)
+                    if (i++ == strategy)
+                        return (minSignalStrategy, minSignalStrategy + maxSignalStrategy);
+            throw new Exception(); // shouldn't happen.
+        }
+
+        // Zoom in feature: We can choose to what value the 25th percentile and the 75th of what each player's strategy corresponds to. Initially, we start at 0.25 and 0.75.
+        // Then we zoom in until we get to a required level of accuracy.
+        // For each number that we're trying to zoom into, we have a mean value and then a range that takes us from the 25%le to the 75%le
+        // (or whatever the percentiles are above). At each zoom in cycle, we center the cutoffs around what we now think is the optimal value.
+        // When the number we are targeting was within the 25%le to the 75%le range, we multiply the total distance by (1 - zoomSpeed). 
+        // When the number is outside the range, we multiply by (1 + zoomSpeed).
+        static double zoomAccuracy = 0.001;
+        static double zoomSpeed = 0.3;
+
+        bool logDetailedProgress = true;
+        bool printUtilitiesInDetailedLog = true;
 
         public EqFinder(double q, double c, double t)
         {
@@ -29,54 +60,147 @@ namespace SimpleAdditiveEvidence
 
         private void Execute()
         {
-            int numZoomInCycles = 1000;
-            for (int i = 0; i < numZoomInCycles; i++)
+            ConfirmConversions();
+            bool done = false;
+            int i = 0;
+            while (!done)
             {
-                TabbedText.WriteLine($"Cycle {i}");
+                if (logDetailedProgress)
+                    TabbedText.WriteLine($"Cycle {++i}");
+                if (logDetailedProgress)
+                    TabbedText.WriteLine($"25%le to 75%le ranges: P ({NonlinearCutoffString(true, true, true)} to {NonlinearCutoffString(true, false, true)},{NonlinearCutoffString(true, true, false)} to {NonlinearCutoffString(true, false, false)}) D ({NonlinearCutoffString(false, true, true)} to {NonlinearCutoffString(false, false, true)},{NonlinearCutoffString(false, true, false)} to {NonlinearCutoffString(false, false, false)}) ");
                 ResetUtilities();
                 CalculateUtilities();
-                EvaluateEquilibria();
-                AdjustLowerAndUpperCutoffsBasedOnPerformance();
+                var eqResult = EvaluateEquilibria();
+                if (logDetailedProgress && printUtilitiesInDetailedLog)
+                    PrintUtilities();
+                if (OutsideOptionSelected || NoPureStrategy)
+                    done = true;
+                else
+                {
+                    AdjustLowerAndUpperCutoffsBasedOnPerformance();
+                    done = AllCutoffDistancesAccurateEnough(zoomAccuracy);
+                }
+                if (done || logDetailedProgress)
+                    TabbedText.WriteLine(eqResult);
             }
         }
 
-        private void EvaluateEquilibria()
+        private static void ConfirmConversions()
         {
+            for (int w = 0; w < NumStrategiesPerPlayer; w++)
+            {
+                (int minSignalStrategy, int maxSignalStrategy) = ConvertStrategyToMinMaxOffers(w);
+                int w2 = ConvertMinMaxToStrategy(minSignalStrategy, maxSignalStrategy);
+                if (w != w2)
+                    throw new Exception();
+            }
+        }
+
+        HashSet<(int p, int d)> AllEquilibria;
+
+        private void PrintUtilities()
+        {
+            for (int p = -1; p < NumStrategiesPerPlayer; p++)
+            {
+                if (p == -1)
+                    TabbedText.Write($"P| D->".PadRight(15));
+                else
+                    TabbedText.Write($"{p.ToString()}: ".PadRight(15));
+                for (int d = 0; d < NumStrategiesPerPlayer; d++)
+                {
+                    if (p == -1)
+                        TabbedText.Write(d.ToString().PadRight(15));
+                    else
+                        TabbedText.Write($"{PUtilities[p, d].ToSignificantFigures(3)}, {DUtilities[p, d].ToSignificantFigures(3)}{(AllEquilibria.Contains((p, d)) ? "*" : "")}".PadRight(15));
+                }
+                TabbedText.WriteLine();
+            }
+        }
+
+        double OptimalPMin, OptimalPMax, OptimalDMin, OptimalDMax;
+        bool OutsideOptionSelected;
+        bool NoPureStrategy;
+
+        private string EvaluateEquilibria()
+        {
+            StringBuilder b = new StringBuilder();
             List<(int pStrategy, int dStrategy)> nashStrategies = PureStrategiesFinder.ComputeNashEquilibria(PUtilities, DUtilities);
+            AllEquilibria = nashStrategies.ToHashSet();
 
-            var extremeStrategies = nashStrategies.Where(nashStrategy => TrialRate[nashStrategy.pStrategy, nashStrategy.dStrategy] > 0.99999).ToHashSet(); // take into account rounding errors
-            if (extremeStrategies.Any())
+            if (!AllEquilibria.Any())
             {
-                TabbedText.WriteLine("Always trial");
-                nashStrategies = nashStrategies.Where(x => !extremeStrategies.Contains(x) || x == extremeStrategies.Last()).ToList();
+                (optimalPStrategy, optimalDStrategy) = PureStrategiesFinder.GetApproximateNashEquilibrium(PUtilities, DUtilities);
+                b.AppendLine($"Using approximate equilibrium {optimalPStrategy},{optimalDStrategy} => ({PUtilities[optimalPStrategy, optimalDStrategy]},{DUtilities[optimalPStrategy, optimalDStrategy]})");
+                return b.ToString();
+                //if (OutsideOption != null)
+                //{
+                //    b.AppendLine("Outside option of trial dominates => Trial rate = 1.");
+                //    optimalPStrategy = ConvertMinMaxToStrategy(NumValuesEachSideOfLine - 1, NumValuesEachSideOfLine - 1);
+                //    optimalDStrategy = ConvertMinMaxToStrategy(0, 0);
+                //    PUtilities[optimalPStrategy, optimalDStrategy] = OutsideOption.Value.pOutsideOption;
+                //    DUtilities[optimalPStrategy, optimalDStrategy] = OutsideOption.Value.dOutsideOption;
+                //    OutsideOptionSelected = true;
+                //    return b.ToString();
+                //}
+                //else
+                //{
+                //    NoPureStrategy = true;
+                //    return "No pure strategy found";
+                //}
             }
 
-            extremeStrategies = nashStrategies.Where(nashStrategy => TrialRate[nashStrategy.pStrategy, nashStrategy.dStrategy] == 0).ToHashSet();
-            if (extremeStrategies.Count() > 1)
-            {
-                TabbedText.WriteLine("Always settle (somewhere in bargaining range) [utility numbers not representative]");
-                nashStrategies = nashStrategies.Where(x => !extremeStrategies.Contains(x) || x == extremeStrategies.First()).ToList();
-            }
+            OptimalPMin = AllEquilibria.Min(x => ConvertStrategyToMinMaxContinuousOffers(x.p, true).minSignalStrategy);
+            OptimalPMax = AllEquilibria.Max(x => ConvertStrategyToMinMaxContinuousOffers(x.p, true).maxSignalStrategy);
+            OptimalDMin = AllEquilibria.Min(x => ConvertStrategyToMinMaxContinuousOffers(x.d, true).minSignalStrategy);
+            OptimalDMax = AllEquilibria.Max(x => ConvertStrategyToMinMaxContinuousOffers(x.d, true).maxSignalStrategy);
+
+            //var extremeStrategies = nashStrategies.Where(nashStrategy => TrialRate[nashStrategy.pStrategy, nashStrategy.dStrategy] > 0.99999).ToHashSet(); // take into account rounding errors
+            //if (extremeStrategies.Any())
+            //{
+            //    b.AppendLine("Always trial");
+            //    nashStrategies = nashStrategies.Where(x => !extremeStrategies.Contains(x) || x == extremeStrategies.Last()).ToList();
+            //}
+
+            //extremeStrategies = nashStrategies.Where(nashStrategy => TrialRate[nashStrategy.pStrategy, nashStrategy.dStrategy] == 0).ToHashSet();
+            //if (extremeStrategies.Count() > 1)
+            //{
+            //    b.AppendLine("Always settle (somewhere in bargaining range) [utility numbers not representative]");
+            //    nashStrategies = nashStrategies.Where(x => !extremeStrategies.Contains(x) || x == extremeStrategies.First()).ToList();
+            //}
 
             var f1 = nashStrategies.First();
             optimalPStrategy = f1.pStrategy;
             optimalDStrategy = f1.dStrategy;
+            if (OutsideOption != null && PUtilities[optimalPStrategy, optimalDStrategy] < OutsideOption?.pOutsideOption || DUtilities[optimalPStrategy, optimalDStrategy] < OutsideOption?.dOutsideOption)
+            {
+                (optimalPStrategy, optimalDStrategy) = PureStrategiesFinder.GetApproximateNashEquilibrium(PUtilities, DUtilities);
+                b.AppendLine($"Best approximate equilibrium {optimalPStrategy},{optimalDStrategy} => ({PUtilities[optimalPStrategy, optimalDStrategy]},{DUtilities[optimalPStrategy, optimalDStrategy]})");
+                b.AppendLine("Outside option of trial dominates => Trial rate = 1.");
+                optimalPStrategy = ConvertMinMaxToStrategy(NumValuesEachSideOfLine - 1, NumValuesEachSideOfLine - 1);
+                optimalDStrategy = ConvertMinMaxToStrategy(0, 0);
+                PUtilities[optimalPStrategy, optimalDStrategy] = OutsideOption.Value.pOutsideOption;
+                DUtilities[optimalPStrategy, optimalDStrategy] = OutsideOption.Value.dOutsideOption;
+                b.AppendLine($"Trial equilibrium {optimalPStrategy},{optimalDStrategy} => ({PUtilities[optimalPStrategy, optimalDStrategy]},{DUtilities[optimalPStrategy, optimalDStrategy]})");
+                OutsideOptionSelected = true;
+                return b.ToString();
+            }
+
             TheOutcome = new Outcome(PUtilities[optimalPStrategy, optimalDStrategy], DUtilities[optimalPStrategy, optimalDStrategy], TrialRate[optimalPStrategy, optimalDStrategy], AccuracySq[optimalPStrategy, optimalDStrategy], AccuracyHypoSq[optimalPStrategy, optimalDStrategy], AccuracyForP[optimalPStrategy, optimalDStrategy], AccuracyForD[optimalPStrategy, optimalDStrategy], ConvertStrategyToMinMaxContinuousOffers(optimalPStrategy, true), ConvertStrategyToMinMaxContinuousOffers(optimalDStrategy, false));
             var grouped = nashStrategies.GroupBy(x => x.pStrategy);
             foreach (var pStrategyGroup in grouped)
             {
                 var aNashStrategy = pStrategyGroup.First();
                 var pLine = ConvertStrategyToMinMaxContinuousOffers(aNashStrategy.pStrategy, true);
-                TabbedText.WriteLine($"P offers from {pLine.minSignalStrategy} to {pLine.maxSignalStrategy} (utility {PUtilities[aNashStrategy.pStrategy, aNashStrategy.dStrategy]})");
-                TabbedText.TabIndent();
+                b.AppendLine($"P offers from {pLine.minSignalStrategy} to {pLine.maxSignalStrategy} (utility {PUtilities[aNashStrategy.pStrategy, aNashStrategy.dStrategy]})");
                 foreach (var nashStrategy in pStrategyGroup)
                 {
                     var dLine = ConvertStrategyToMinMaxContinuousOffers(nashStrategy.dStrategy, false);
-                    TabbedText.WriteLine($"D offers from {dLine.minSignalStrategy} to {dLine.maxSignalStrategy} (utility {DUtilities[nashStrategy.pStrategy, nashStrategy.dStrategy]})");
-                    TabbedText.WriteLine($"--> Trial rate {TrialRate[nashStrategy.pStrategy, nashStrategy.dStrategy].ToSignificantFigures(3)}");
+                    b.AppendLine($"D offers from {dLine.minSignalStrategy} to {dLine.maxSignalStrategy} (utility {DUtilities[nashStrategy.pStrategy, nashStrategy.dStrategy]})");
+                    b.AppendLine($"--> Trial rate {TrialRate[nashStrategy.pStrategy, nashStrategy.dStrategy].ToSignificantFigures(3)}");
                 }
-                TabbedText.TabUnindent();
             }
+            return b.ToString();
         }
 
         public readonly struct Outcome
@@ -110,10 +234,6 @@ namespace SimpleAdditiveEvidence
         }
 
         const int EvaluationsPerStrategyCombination = NumNormalizedSignalsPerPlayer * NumNormalizedSignalsPerPlayer;
-
-        const int NumStrategiesPerPlayer = NumValuesEachSideOfLine * NumValuesEachSideOfLine;
-        static int ConvertMinMaxToStrategy(int minSignalStrategy, int maxSignalStrategy) => NumValuesEachSideOfLine * minSignalStrategy + maxSignalStrategy;
-        static (int minSignalStrategy, int maxSignalStrategy) ConvertStrategyToMinMaxOffers(int strategy) => (strategy / NumValuesEachSideOfLine, strategy % NumValuesEachSideOfLine);
         (double minSignalStrategy, double maxSignalStrategy) ConvertStrategyToMinMaxContinuousOffers(int strategy, bool plaintiff)
         {
             var minMax = ConvertStrategyToMinMaxOffers(strategy);
@@ -167,49 +287,60 @@ namespace SimpleAdditiveEvidence
 
         void AdjustLowerAndUpperCutoffsBasedOnPerformance()
         {
-            var pOptimum = ConvertStrategyToUnmappedMinMaxContinuousOffers(optimalPStrategy);
+            var pOptimum = ConvertStrategyToMinMaxContinuousOffers(optimalPStrategy, true);
             (pValueAtLowerNonlinearCutoff_MinSignal, pValueAtUpperNonlinearCutoff_MinSignal) = AdjustLowerAndUpperCutoffsBasedOnPerformance_Helper(pOptimum.minSignalStrategy, true, true);
+            if (pValueAtLowerNonlinearCutoff_MinSignal > OptimalPMin)
+                pValueAtLowerNonlinearCutoff_MinSignal = OptimalPMin - 1E-4;
+            if (pValueAtUpperNonlinearCutoff_MinSignal > OptimalPMin)
+                pValueAtUpperNonlinearCutoff_MinSignal = OptimalPMin + 1E-4;
             (pValueAtLowerNonlinearCutoff_MaxSignal, pValueAtUpperNonlinearCutoff_MaxSignal) = AdjustLowerAndUpperCutoffsBasedOnPerformance_Helper(pOptimum.maxSignalStrategy, true, false);
-            var dOptimum = ConvertStrategyToUnmappedMinMaxContinuousOffers(optimalDStrategy);
+            if (pValueAtLowerNonlinearCutoff_MaxSignal < OptimalPMax)
+                pValueAtLowerNonlinearCutoff_MaxSignal = OptimalPMax - 1E-4;
+            if (pValueAtUpperNonlinearCutoff_MaxSignal < OptimalPMax)
+                pValueAtUpperNonlinearCutoff_MaxSignal = OptimalPMax + 1E-4;
+            var dOptimum = ConvertStrategyToMinMaxContinuousOffers(optimalDStrategy, false);
             (dValueAtLowerNonlinearCutoff_MinSignal, dValueAtUpperNonlinearCutoff_MinSignal) = AdjustLowerAndUpperCutoffsBasedOnPerformance_Helper(dOptimum.minSignalStrategy, false, true);
+            if (dValueAtLowerNonlinearCutoff_MinSignal > OptimalDMin)
+                dValueAtLowerNonlinearCutoff_MinSignal = OptimalDMin - 1E-4;
+            if (dValueAtUpperNonlinearCutoff_MinSignal > OptimalDMin)
+                dValueAtUpperNonlinearCutoff_MinSignal = OptimalDMin + 1E-4;
             (dValueAtLowerNonlinearCutoff_MaxSignal, dValueAtUpperNonlinearCutoff_MaxSignal) = AdjustLowerAndUpperCutoffsBasedOnPerformance_Helper(dOptimum.maxSignalStrategy, false, false);
-            TabbedText.WriteLine($"Adjusting 25% to 75% ranges: P ({NonlinearCutoffString(true, true, true)} to {NonlinearCutoffString(true, false, true)},{NonlinearCutoffString(true, true, false)} to {NonlinearCutoffString(true, false, false)}) D ({NonlinearCutoffString(false, true, true)} to {NonlinearCutoffString(false, false, true)},{NonlinearCutoffString(false, true, false)} to {NonlinearCutoffString(false, false, false)}) ");
+            if (dValueAtLowerNonlinearCutoff_MaxSignal < OptimalDMax)
+                dValueAtLowerNonlinearCutoff_MaxSignal = OptimalDMax - 1E-4;
+            if (dValueAtUpperNonlinearCutoff_MaxSignal < OptimalDMax)
+                dValueAtUpperNonlinearCutoff_MaxSignal = OptimalDMax + 1E-4;
         }
 
-        (double, double) AdjustLowerAndUpperCutoffsBasedOnPerformance_Helper(double percentileOfOptimum, bool plaintiff, bool isMinSignal)
+        (double, double) AdjustLowerAndUpperCutoffsBasedOnPerformance_Helper(double apparentOptimum, bool plaintiff, bool isMinSignal)
         {
-            double revisedLowerPercentile, revisedUpperPercentile;
-            // comments assume that our below and above threshold values are 0.25 and 0.75
-            if (percentileOfOptimum < minMaxNonlinearBelowThreshold)
-            {
-                revisedLowerPercentile = 0 + percentileOfOptimum / 2.0; // e.g., 20% -> 10%
-                revisedUpperPercentile = minMaxNonlinearBelowThreshold + (minMaxNonlinearBelowThreshold - percentileOfOptimum); // e.g., 20% -> 30%
-            }
-            else if (percentileOfOptimum < (minMaxNonlinearBelowThreshold + minMaxNonlinearAboveThreshold) / 2.0)
-            {
-                revisedLowerPercentile = minMaxNonlinearBelowThreshold + (percentileOfOptimum - minMaxNonlinearBelowThreshold) / 2.0; // e.g, 35% -> 30%
-                if (revisedLowerPercentile > 0.20)
-                    revisedLowerPercentile = 0.20;
-                revisedUpperPercentile = minMaxNonlinearAboveThreshold; // DEBUG - (minMaxNonlinearAboveThreshold - percentileOfOptimum) / 2.0; // e.g., 35% -> 55%
-            }
-            else if (percentileOfOptimum < minMaxNonlinearAboveThreshold)
-            {
-                revisedLowerPercentile = minMaxNonlinearBelowThreshold; // DEBUG + (percentileOfOptimum - minMaxNonlinearBelowThreshold) / 2.0; // e.g, 65% -> 45%
-                revisedUpperPercentile = minMaxNonlinearAboveThreshold - (minMaxNonlinearAboveThreshold - percentileOfOptimum) / 2.0; // e.g., 65% -> 70%
-                if (revisedUpperPercentile < 0.80)
-                    revisedUpperPercentile = 0.8;
-            }
+            double lowerCutoff = NonlinearCutoff(plaintiff, true, isMinSignal);
+            double upperCutoff = NonlinearCutoff(plaintiff, false, isMinSignal);
+            double currentDistance = upperCutoff - lowerCutoff;
+            double revisedDistance;
+            if (lowerCutoff < apparentOptimum && apparentOptimum < upperCutoff)
+                revisedDistance = currentDistance * (1 - zoomSpeed);
             else
-            {
-                revisedLowerPercentile = minMaxNonlinearAboveThreshold - (percentileOfOptimum - minMaxNonlinearAboveThreshold); // e.g., 80% -> 70%
-                revisedUpperPercentile = 1.0 - (1.0 - percentileOfOptimum) / 2.0; // e.g., 80% -> 90%
-            }
-            var result = (MapFromZeroOneRangeToMinOrMaxOffer(revisedLowerPercentile, plaintiff, isMinSignal), MapFromZeroOneRangeToMinOrMaxOffer(revisedUpperPercentile, plaintiff, isMinSignal));
-            return result;
+                revisedDistance = currentDistance * (1 + zoomSpeed);
+            double halfDistance = revisedDistance / 2.0;
+            return (apparentOptimum - halfDistance, apparentOptimum + halfDistance);
         }
+
+        public bool CutoffDistanceAccurateEnough(double requiredAccuracy, bool plaintiff, bool isMinSignal)
+        {
+            double lowerCutoff = NonlinearCutoff(plaintiff, true, isMinSignal);
+            double upperCutoff = NonlinearCutoff(plaintiff, false, isMinSignal);
+            double currentDistance = upperCutoff - lowerCutoff;
+            return currentDistance < requiredAccuracy;
+        }
+
+        public bool AllCutoffDistancesAccurateEnough(double requiredAccuracy) => CutoffDistanceAccurateEnough(requiredAccuracy, true, true) && CutoffDistanceAccurateEnough(requiredAccuracy, true, false) && CutoffDistanceAccurateEnough(requiredAccuracy, false, true) && CutoffDistanceAccurateEnough(requiredAccuracy, false, false);
 
         double GetMappedMinOrMaxOffer(int discreteOffer, bool plaintiff, bool isMinSignal)
         {
+            if (plaintiff && discreteOffer == NumValuesEachSideOfLine - 1)
+                return 1E+10; // plaintiff's highest offer always forces trial
+            if (!plaintiff && discreteOffer == 0)
+                return -1E+10; // defendant's lowest offer always forces trial
             double continuousOfferWithLinearSlopeUnadjusted = GetUnmappedOfferValue(discreteOffer);
             return MapFromZeroOneRangeToMinOrMaxOffer(continuousOfferWithLinearSlopeUnadjusted, plaintiff, isMinSignal);
         }
@@ -258,9 +389,13 @@ namespace SimpleAdditiveEvidence
             AccuracyForD = new double[NumStrategiesPerPlayer, NumStrategiesPerPlayer];
         }
 
+        // Outcomes where trial is inevitable is a strategy for both parties. We treat this case separately and compare the outside option at the end.
+        (double pOutsideOption, double dOutsideOption)? OutsideOption;
+
         void CalculateUtilities()
         {
             double[] continuousSignals = Enumerable.Range(0, NumNormalizedSignalsPerPlayer).Select(x => ContinuousSignal(x)).ToArray();
+            OutsideOption = null;
             for (int p = 0; p < NumStrategiesPerPlayer; p++)
             {
                 var pOfferRange = ConvertStrategyToMinMaxContinuousOffers(p, true);
@@ -269,6 +404,8 @@ namespace SimpleAdditiveEvidence
                 {
                     var dOfferRange = ConvertStrategyToMinMaxContinuousOffers(d, false);
                     double[] dOffers = Enumerable.Range(0, NumNormalizedSignalsPerPlayer).Select(x => dOfferRange.minSignalStrategy * (1.0 - continuousSignals[x]) + dOfferRange.maxSignalStrategy * continuousSignals[x]).ToArray();
+
+                    bool atLeastOneSettlement = false;
 
                     double pUtility = 0, dUtility = 0, trialRate = 0, accuracySq = 0, accuracyHypoSq = 0, accuracyForP = 0, accuracyForD = 0;
 
@@ -290,6 +427,8 @@ namespace SimpleAdditiveEvidence
                             bool dGreater = dOffer > pOffer || equality; // always count equality with the settlement
                             if (dGreater || equality)
                             {
+                                if (equalityMultiplier != 0.5)
+                                    atLeastOneSettlement = true;
                                 double settlement = (pOffer + dOffer) / 2.0;
                                 double pEffect = settlement;
                                 double dEffect = 1.0 - settlement;
@@ -340,8 +479,17 @@ namespace SimpleAdditiveEvidence
                             }
                         }
                     }
-                    PUtilities[p, d] = pUtility / (double) EvaluationsPerStrategyCombination;
-                    DUtilities[p, d] = dUtility / (double) EvaluationsPerStrategyCombination;
+
+                    PUtilities[p, d] = pUtility / (double)EvaluationsPerStrategyCombination;
+                    DUtilities[p, d] = dUtility / (double)EvaluationsPerStrategyCombination;
+                    if (!atLeastOneSettlement )
+                    {
+                        if (OutsideOption == null)
+                            OutsideOption = (PUtilities[p, d], DUtilities[p, d]);
+                        PUtilities[p, d] = DUtilities[p, d] = -1E+20; // very unattractive utility
+                    }
+                    
+
                     TrialRate[p, d] = trialRate / (double) EvaluationsPerStrategyCombination;
                     AccuracySq[p, d] = accuracySq / (double)EvaluationsPerStrategyCombination;
                     AccuracyHypoSq[p, d] = accuracyHypoSq / (double)EvaluationsPerStrategyCombination;
