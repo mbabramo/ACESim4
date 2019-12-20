@@ -19,22 +19,26 @@ namespace SimpleAdditiveEvidence
         // non-negative slopes, we add the constraint that the maxSignalStrategy must be greater than or equal to the minSignalStrategy. 
         // So, if party has lowest signal strategy for the minimum value, there are n possibilities for the max. If party has highest signal strategy (n),
         // then there is only one possibility for the max. 
-        const int NumValuesEachSideOfLine = 3;
-        const int NumNormalizedSignalsPerPlayer = 100;
+        const int NumStartOrEndPointsOfLine = 2; // this excludes the "extreme" strategy
+        const int NumNormalizedSignalsPerPlayer = 10;
 
-        const int NumStrategiesPerPlayer = NumValuesEachSideOfLine * (NumValuesEachSideOfLine + 1) / 2;
+        const int NumStrategiesPerPlayer = NumStartOrEndPointsOfLine * (NumStartOrEndPointsOfLine + 1) / 2 + 1;
         static int ConvertMinMaxToStrategy(int minSignalStrategy, int maxSignalStrategy)
         {
-            int numForLowerSignalStrategies = minSignalStrategy * (minSignalStrategy + 1) / 2; // e.g., if minSignalStrategy is zero, then there have been zero so far. If minSignalStrategy is one, then there has been one so far, etc.
-            return numForLowerSignalStrategies + (maxSignalStrategy - minSignalStrategy);
+            if (minSignalStrategy == NumStartOrEndPointsOfLine)
+                return 0; // i.e., extreme strategy
+            int numForLowerSignalStrategies = minSignalStrategy * NumStartOrEndPointsOfLine + (minSignalStrategy - 1) * minSignalStrategy / 2; // e.g., 0 => 0; 1 => NumStartOrEndPointsOfLine; 2 => 2N - 1; 3 => 3N - 3; etc. So general formula is M * N - (M - 1) * M / 2.
+            return numForLowerSignalStrategies + (maxSignalStrategy - minSignalStrategy) + 1;
         }
         static (int minSignalStrategy, int maxSignalStrategy) ConvertStrategyToMinMaxOffers(int strategy)
         {
+            if (strategy-- == 0)
+                return (NumStartOrEndPointsOfLine, NumStartOrEndPointsOfLine); // extreme strategy
             int i = 0;
-            for (int minSignalStrategy = 0; minSignalStrategy < NumValuesEachSideOfLine; minSignalStrategy++)
-                for (int maxSignalStrategy = 0; maxSignalStrategy <= minSignalStrategy; maxSignalStrategy++)
+            for (int minSignalStrategy = 0; minSignalStrategy < NumStartOrEndPointsOfLine; minSignalStrategy++)
+                for (int maxSignalStrategy = minSignalStrategy; maxSignalStrategy < NumStartOrEndPointsOfLine; maxSignalStrategy++)
                     if (i++ == strategy)
-                        return (minSignalStrategy, minSignalStrategy + maxSignalStrategy);
+                        return (minSignalStrategy, maxSignalStrategy);
             throw new Exception(); // shouldn't happen.
         }
 
@@ -74,7 +78,7 @@ namespace SimpleAdditiveEvidence
                 var eqResult = EvaluateEquilibria();
                 if (logDetailedProgress && printUtilitiesInDetailedLog)
                     PrintUtilities();
-                if (OutsideOptionSelected || NoPureStrategy)
+                if (OutsideOptionSelected)
                     done = true;
                 else
                 {
@@ -120,7 +124,6 @@ namespace SimpleAdditiveEvidence
 
         double OptimalPMin, OptimalPMax, OptimalDMin, OptimalDMax;
         bool OutsideOptionSelected;
-        bool NoPureStrategy;
 
         private string EvaluateEquilibria()
         {
@@ -177,7 +180,7 @@ namespace SimpleAdditiveEvidence
                 (optimalPStrategy, optimalDStrategy) = PureStrategiesFinder.GetApproximateNashEquilibrium(PUtilities, DUtilities);
                 b.AppendLine($"Best approximate equilibrium {optimalPStrategy},{optimalDStrategy} => ({PUtilities[optimalPStrategy, optimalDStrategy]},{DUtilities[optimalPStrategy, optimalDStrategy]})");
                 b.AppendLine("Outside option of trial dominates => Trial rate = 1.");
-                optimalPStrategy = ConvertMinMaxToStrategy(NumValuesEachSideOfLine - 1, NumValuesEachSideOfLine - 1);
+                optimalPStrategy = ConvertMinMaxToStrategy(NumStartOrEndPointsOfLine - 1, NumStartOrEndPointsOfLine - 1);
                 optimalDStrategy = ConvertMinMaxToStrategy(0, 0);
                 PUtilities[optimalPStrategy, optimalDStrategy] = OutsideOption.Value.pOutsideOption;
                 DUtilities[optimalPStrategy, optimalDStrategy] = OutsideOption.Value.dOutsideOption;
@@ -337,9 +340,9 @@ namespace SimpleAdditiveEvidence
 
         double GetMappedMinOrMaxOffer(int discreteOffer, bool plaintiff, bool isMinSignal)
         {
-            if (plaintiff && discreteOffer == NumValuesEachSideOfLine - 1)
+            if (plaintiff && discreteOffer == NumStartOrEndPointsOfLine)
                 return 1E+10; // plaintiff's highest offer always forces trial
-            if (!plaintiff && discreteOffer == 0)
+            if (!plaintiff && discreteOffer == NumStartOrEndPointsOfLine)
                 return -1E+10; // defendant's lowest offer always forces trial
             double continuousOfferWithLinearSlopeUnadjusted = GetUnmappedOfferValue(discreteOffer);
             return MapFromZeroOneRangeToMinOrMaxOffer(continuousOfferWithLinearSlopeUnadjusted, plaintiff, isMinSignal);
@@ -347,7 +350,7 @@ namespace SimpleAdditiveEvidence
 
         private static double GetUnmappedOfferValue(int discreteOffer)
         {
-            return (double)(discreteOffer + 0.5) / ((double)(NumValuesEachSideOfLine));
+            return (double)(discreteOffer + 0.5) / ((double)(NumStartOrEndPointsOfLine));
         }
 
         private double MapFromZeroOneRangeToMinOrMaxOffer(double continuousOfferWithLinearSlopeUnadjusted, bool plaintiff, bool min)
@@ -413,70 +416,7 @@ namespace SimpleAdditiveEvidence
                     {
                         for (int zd = 0; zd < NumNormalizedSignalsPerPlayer; zd++)
                         {
-                            double pOffer = pOffers[zp];
-                            double dOffer = dOffers[zd];
-                            double theta_p = continuousSignals[zp] * q;
-                            double theta_d = q + continuousSignals[zd] * (1 - q); // follows from zd = (theta_d - q) / (1 - q)
-                            double hypo_theta_p = 0.5 * q; // the theta expected before parties collect information
-                            double hypo_theta_d = q + 0.5 * (1 - q); // the theta expected before parties collect information
-                            double j = (theta_p + theta_d) / 2.0;
-                            double hypo_j = (hypo_theta_p + hypo_theta_d) / 2.0;
-                            bool equality = Math.Abs(pOffer - dOffer) < 1E-10; /* rounding error */
-                            bool treatEqualityAsEquallyLikelyToProduceSettlementOrTrial = true; // with same bid, we assume 50% likelihood of each result -- this make sense as an approximation of a continuous equilibrium
-                            double equalityMultiplier = treatEqualityAsEquallyLikelyToProduceSettlementOrTrial && equality ? 0.5 : 1.0;
-                            bool dGreater = dOffer > pOffer || equality; // always count equality with the settlement
-                            if (dGreater || equality)
-                            {
-                                if (equalityMultiplier != 0.5)
-                                    atLeastOneSettlement = true;
-                                double settlement = (pOffer + dOffer) / 2.0;
-                                double pEffect = settlement;
-                                double dEffect = 1.0 - settlement;
-                                //Debug.WriteLine($"({p},{d}) settle ({zp},{zd}) => {pEffect}, {dEffect} "); 
-                                pUtility += equalityMultiplier * pEffect;
-                                dUtility += equalityMultiplier * (1.0 - pEffect);
-                                double v = equalityMultiplier * (pEffect - q) * (pEffect - q);
-                                accuracySq += v;
-                                accuracyHypoSq += v;
-                                accuracyForP += equalityMultiplier * Math.Abs(pEffect - j);
-                                accuracyForD += equalityMultiplier * Math.Abs(dEffect - (1 - j));
-                            }
-                            bool dLess = (dOffer < pOffer && !equality) || (equality && treatEqualityAsEquallyLikelyToProduceSettlementOrTrial);
-                            if (dLess)
-                            {
-                                // trial
-                                double oneMinusTheta_d = 1.0 - theta_d;
-                                double dPortionOfCosts = true switch
-                                {
-                                    _ when theta_p < oneMinusTheta_d && (theta_d < t) => 0,
-                                    _ when Math.Abs(theta_p - oneMinusTheta_d) < 1E-10 /* i.e., equality but for rounding */ || (theta_d >= t && theta_p <= t) => 0.5,
-                                    _ => 1.0
-                                };
-                                double hypo_oneMinusTheta_d = 1.0 - hypo_theta_d;
-                                double hypo_dPortionOfCosts = true switch
-                                {
-                                    _ when hypo_theta_p < hypo_oneMinusTheta_d && (hypo_theta_d < t) => 0,
-                                    _ when Math.Abs(hypo_theta_p - hypo_oneMinusTheta_d) < 1E-10 /* i.e., equality but for rounding */ || (hypo_theta_d >= t && hypo_theta_p <= t) => 0.5,
-                                    _ => 1.0
-                                };
-                                double dCosts = dPortionOfCosts * c;
-                                double pCosts = c - dCosts;
-
-                                double pEffect = (j - pCosts);
-                                double hypo_pEffect = (hypo_j - pCosts);
-                                double dEffect = ((1.0 - j) - dCosts);
-                                pUtility += equalityMultiplier * pEffect;
-                                dUtility += equalityMultiplier * dEffect;
-
-                                trialRate += equalityMultiplier;
-                                double accuracyUnsquared = pEffect + 0.5 * c; // the idea here is that the party's own costs are considered relevant to accuracy. Because P paid 0.5 * c out of pocket and this was counted in pEffect, we add this back in. Note that if shifting to defendant has occurred, that means that we have that accuracyUnsquared == j + 0.5*C, with the latter part representing the fee shifting penalty imposed on the defendant.
-                                double hypo_accuracyUnsquared = hypo_pEffect + 0.5 * c;
-                                accuracySq += equalityMultiplier * accuracyUnsquared * accuracyUnsquared;
-                                accuracyHypoSq += equalityMultiplier * hypo_accuracyUnsquared * hypo_accuracyUnsquared;
-                                accuracyForP += equalityMultiplier * Math.Abs(pEffect - j);
-                                accuracyForD += equalityMultiplier * Math.Abs(dEffect - (1 - j));
-                                //Debug.WriteLine($"({p},{d}) trial ({zp},{zd}) => {pEffect}, {dEffect} [based on {theta_p}, {theta_d}");
-                            }
+                            ProcessCaseGivenParticularSignals(zp, zd, continuousSignals, pOffers, dOffers, ref atLeastOneSettlement, ref pUtility, ref dUtility, ref trialRate, ref accuracySq, ref accuracyHypoSq, ref accuracyForP, ref accuracyForD);
                         }
                     }
 
@@ -497,6 +437,74 @@ namespace SimpleAdditiveEvidence
                     AccuracyForD[p, d] = accuracyForD / (double)EvaluationsPerStrategyCombination;
 
                 }
+            }
+        }
+
+        private void ProcessCaseGivenParticularSignals(int zp, int zd, double[] continuousSignals, double[] pOffers, double[] dOffers, ref bool atLeastOneSettlement, ref double pUtility, ref double dUtility, ref double trialRate, ref double accuracySq, ref double accuracyHypoSq, ref double accuracyForP, ref double accuracyForD)
+        {
+            double pOffer = pOffers[zp];
+            double dOffer = dOffers[zd];
+            double theta_p = continuousSignals[zp] * q;
+            double theta_d = q + continuousSignals[zd] * (1 - q); // follows from zd = (theta_d - q) / (1 - q)
+            double hypo_theta_p = 0.5 * q; // the theta expected before parties collect information
+            double hypo_theta_d = q + 0.5 * (1 - q); // the theta expected before parties collect information
+            double j = (theta_p + theta_d) / 2.0;
+            double hypo_j = (hypo_theta_p + hypo_theta_d) / 2.0;
+            bool equality = Math.Abs(pOffer - dOffer) < 1E-10; /* rounding error */
+            bool treatEqualityAsEquallyLikelyToProduceSettlementOrTrial = true; // with same bid, we assume 50% likelihood of each result -- this make sense as an approximation of a continuous equilibrium
+            double equalityMultiplier = treatEqualityAsEquallyLikelyToProduceSettlementOrTrial && equality ? 0.5 : 1.0;
+            bool dGreater = dOffer > pOffer || equality; // always count equality with the settlement
+            if (dGreater || equality)
+            {
+                if (equalityMultiplier != 0.5)
+                    atLeastOneSettlement = true;
+                double settlement = (pOffer + dOffer) / 2.0;
+                double pEffect = settlement;
+                double dEffect = 1.0 - settlement;
+                //Debug.WriteLine($"({p},{d}) settle ({zp},{zd}) => {pEffect}, {dEffect} "); 
+                pUtility += equalityMultiplier * pEffect;
+                dUtility += equalityMultiplier * (1.0 - pEffect);
+                double v = equalityMultiplier * (pEffect - q) * (pEffect - q);
+                accuracySq += v;
+                accuracyHypoSq += v;
+                accuracyForP += equalityMultiplier * Math.Abs(pEffect - j);
+                accuracyForD += equalityMultiplier * Math.Abs(dEffect - (1 - j));
+            }
+            bool dLess = (dOffer < pOffer && !equality) || (equality && treatEqualityAsEquallyLikelyToProduceSettlementOrTrial);
+            if (dLess)
+            {
+                // trial
+                double oneMinusTheta_d = 1.0 - theta_d;
+                double dPortionOfCosts = true switch
+                {
+                    _ when theta_p < oneMinusTheta_d && (theta_d < t) => 0,
+                    _ when Math.Abs(theta_p - oneMinusTheta_d) < 1E-10 /* i.e., equality but for rounding */ || (theta_d >= t && theta_p <= t) => 0.5,
+                    _ => 1.0
+                };
+                double hypo_oneMinusTheta_d = 1.0 - hypo_theta_d;
+                double hypo_dPortionOfCosts = true switch
+                {
+                    _ when hypo_theta_p < hypo_oneMinusTheta_d && (hypo_theta_d < t) => 0,
+                    _ when Math.Abs(hypo_theta_p - hypo_oneMinusTheta_d) < 1E-10 /* i.e., equality but for rounding */ || (hypo_theta_d >= t && hypo_theta_p <= t) => 0.5,
+                    _ => 1.0
+                };
+                double dCosts = dPortionOfCosts * c;
+                double pCosts = c - dCosts;
+
+                double pEffect = (j - pCosts);
+                double hypo_pEffect = (hypo_j - pCosts);
+                double dEffect = ((1.0 - j) - dCosts);
+                pUtility += equalityMultiplier * pEffect;
+                dUtility += equalityMultiplier * dEffect;
+
+                trialRate += equalityMultiplier;
+                double accuracyUnsquared = pEffect + 0.5 * c; // the idea here is that the party's own costs are considered relevant to accuracy. Because P paid 0.5 * c out of pocket and this was counted in pEffect, we add this back in. Note that if shifting to defendant has occurred, that means that we have that accuracyUnsquared == j + 0.5*C, with the latter part representing the fee shifting penalty imposed on the defendant.
+                double hypo_accuracyUnsquared = hypo_pEffect + 0.5 * c;
+                accuracySq += equalityMultiplier * accuracyUnsquared * accuracyUnsquared;
+                accuracyHypoSq += equalityMultiplier * hypo_accuracyUnsquared * hypo_accuracyUnsquared;
+                accuracyForP += equalityMultiplier * Math.Abs(pEffect - j);
+                accuracyForD += equalityMultiplier * Math.Abs(dEffect - (1 - j));
+                //Debug.WriteLine($"({p},{d}) trial ({zp},{zd}) => {pEffect}, {dEffect} [based on {theta_p}, {theta_d}");
             }
         }
     }
