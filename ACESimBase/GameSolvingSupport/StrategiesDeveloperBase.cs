@@ -1315,7 +1315,7 @@ namespace ACESim
             {
                 List<InformationSetNode> informationSetsForDecision = InformationSetsByDecisionIndex[i];
                 int c = informationSetsForDecision.Count();
-                Parallelizer.Go(parallelize, 0, c, i => informationSetsForDecision[i].AcceleratedBestResponse_CalculateReachProbabilities(EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions, EvolutionSettings.UseCurrentStrategyForAcceleratedBestResponse));
+                Parallelizer.Go(parallelize, 0, c, i => informationSetsForDecision[i].AcceleratedBestResponse_CalculateReachProbabilities(EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions, EvolutionSettings.UseCurrentStrategyForBestResponse));
             }
         }
 
@@ -1325,7 +1325,7 @@ namespace ACESim
             {
                 List<InformationSetNode> informationSetsForDecision = InformationSetsByDecisionIndex[i];
                 int c = informationSetsForDecision.Count();
-                Parallelizer.Go(parallelize, 0, c, i => informationSetsForDecision[i].AcceleratedBestResponse_CalculateBestResponseValues(NumNonChancePlayers, EvolutionSettings.UseCurrentStrategyForAcceleratedBestResponse));
+                Parallelizer.Go(parallelize, 0, c, i => informationSetsForDecision[i].AcceleratedBestResponse_CalculateBestResponseValues(NumNonChancePlayers, EvolutionSettings.UseCurrentStrategyForBestResponse));
             }
             if (determineWhetherReachable)
                 for (int i = 0; i < InformationSetsByDecisionIndex.Count; i++)
@@ -1348,8 +1348,8 @@ namespace ACESim
             for (byte playerIndex = 0; playerIndex < NumNonChancePlayers; playerIndex++)
             {
                 var resultForPlayer = AcceleratedBestResponsePrepResult[playerIndex];
-                (double bestResponseResult, double utilityResult, FloatSet customResult) = resultForPlayer.GetProbabilityAdjustedValueOfPaths(playerIndex, EvolutionSettings.UseCurrentStrategyForAcceleratedBestResponse);
-                Status.BestResponseReflectsCurrentStrategy = EvolutionSettings.UseCurrentStrategyForAcceleratedBestResponse;
+                (double bestResponseResult, double utilityResult, FloatSet customResult) = resultForPlayer.GetProbabilityAdjustedValueOfPaths(playerIndex, EvolutionSettings.UseCurrentStrategyForBestResponse);
+                Status.BestResponseReflectsCurrentStrategy = EvolutionSettings.UseCurrentStrategyForBestResponse;
                 Status.BestResponseUtilities[playerIndex] = bestResponseResult;
                 Status.UtilitiesOverall[playerIndex] = utilityResult;
                 Status.BestResponseImprovement[playerIndex] = bestResponseResult - utilityResult;
@@ -1363,7 +1363,7 @@ namespace ACESim
             ActionStrategies actionStrategy = ActionStrategy;
             if (actionStrategy == ActionStrategies.CorrelatedEquilibrium)
                 actionStrategy = ActionStrategies.AverageStrategy; // best response against average strategy is same as against correlated equilibrium
-            if (EvolutionSettings.UseCurrentStrategyForAcceleratedBestResponse)
+            if (EvolutionSettings.UseCurrentStrategyForBestResponse)
                 actionStrategy = ActionStrategies.CurrentProbability;
             else if (EvolutionSettings.ConstructCorrelatedEquilibrium)
                 throw new Exception("When constructing correlated equilibrium, use current strategy.");
@@ -1378,8 +1378,8 @@ namespace ACESim
             }
             else
             {
-                if (EvolutionSettings.UseCurrentStrategyForAcceleratedBestResponse)
-                    throw new NotSupportedException();
+                if (EvolutionSettings.UseCurrentStrategyForBestResponse)
+                    throw new NotSupportedException("Must use the accelerated best response to use current strategy.");
                 var calculator = new AverageStrategyCalculator(EvolutionSettings.DistributeChanceDecisions);
                 Status.UtilitiesOverall = TreeWalk_Tree(calculator, true);
                 Status.BestResponseImprovement = new double[NumNonChancePlayers];

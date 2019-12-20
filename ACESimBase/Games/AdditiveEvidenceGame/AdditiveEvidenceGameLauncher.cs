@@ -21,13 +21,14 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             All,
             Fast,
             Original,
-            TwoSets
+            TwoSets,
+            OtherTwoSets
         }
 
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-            OptionSetChoice optionSetChoice = OptionSetChoice.TwoSets;
+            OptionSetChoice optionSetChoice = OptionSetChoice.OtherTwoSets;
             bool withOptionNotToPlay = false;
             switch (optionSetChoice)
             {
@@ -37,6 +38,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 case OptionSetChoice.TwoSets:
                     AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.Original, withOptionNotToPlay);
                     AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.EvenStrengthAndBiasless, withOptionNotToPlay);
+                    break;
+                case OptionSetChoice.OtherTwoSets:
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.Biasless, withOptionNotToPlay);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.EvenStrength, withOptionNotToPlay);
                     break;
                 case OptionSetChoice.All:
                     AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.Original, withOptionNotToPlay);

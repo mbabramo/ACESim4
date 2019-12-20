@@ -15,10 +15,13 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             Biasless_AsymmetryBasedOnQuality,
             Biasless_EvenStrength,
             Biasless_PHasInfo,
-            Biasless_MoreInfoShared
+            Biasless_MoreInfoShared,
+            Biasless_LessInfoShared,
+            Biasless_MuchLessInfoShared,
+            Biasless_MuchLessInfoShared_WithFeeShift
         }
 
-        static AdditiveEvidenceOptionSetChoices AdditiveEvidenceChoice => AdditiveEvidenceOptionSetChoices.Biasless_MoreInfoShared;
+        static AdditiveEvidenceOptionSetChoices AdditiveEvidenceChoice => AdditiveEvidenceOptionSetChoices.DMS;
 
         public static AdditiveEvidenceGameOptions GetAdditiveEvidenceGameOptions() => AdditiveEvidenceChoice switch
         {
@@ -29,12 +32,15 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             //AdditiveEvidenceOptionSetChoices.DMS_WithOptionNotToPlay => DariMattiacci_Saraceno(0.90, 40, true, false, 1.0, true), // very expensive with fee shifting to give incentive not to play, and at this level cases settle --> each party can't be sure whether the other one thinks it has a good hand, and so both parties are eager to settle to avoid the catastrophe of trial. 
             //AdditiveEvidenceOptionSetChoices.DMS_WithOptionNotToPlay => DariMattiacci_Saraceno(0.99, 37, true, false, 1.0, true), // very expensive with fee shifting to give incentive not to play, and at this level D plays a mixed strategy of dropping out about half the time (but since D has virtually no information, it doesn't correlate with D's info)
             AdditiveEvidenceOptionSetChoices.Biasless_AsymmetryBasedOnQuality => Biasless(0.6, 0.6, 0.15, false, false, 0.5, 0.5, false),
-            AdditiveEvidenceOptionSetChoices.Biasless_EvenStrength => Biasless(0.30, 0.5, 0.15, false, false, 1.0, 0.5, false), // each party's information determines half of judgment, since no common quality info
+            AdditiveEvidenceOptionSetChoices.Biasless_EvenStrength => Biasless(0.5, 0.5, 0.15, false, false, 1.0, 0.5, false), // each party's information determines half of judgment, since no common quality info
             //AdditiveEvidenceOptionSetChoices.Biasless_EvenStrength => Biasless(0.05, 0.5, 1.0, true, false, 1.0, false), // very bad for plaintiff, and both parties know it -- settlements are slightly negative
             //AdditiveEvidenceOptionSetChoices.Biasless_EvenStrength => Biasless(0.6, 0.5, 0.15, false, false, 0.5, false),
             AdditiveEvidenceOptionSetChoices.Biasless_PHasInfo => Biasless(0.5, 1.0, 0.15, false, false, 0.5, 0.5, false), // in this case, note that p's exact offer may be irrelevant, because D will always play same thing, so P will offer just lower than D's to settle or anywhere above D's to go to trial
-            AdditiveEvidenceOptionSetChoices.Biasless_MoreInfoShared => Biasless(0.5, 0.5, 0.3, true, false, 0.5, 0.75, false), // in this case, note that p's exact offer may be irrelevant, because D will always play same thing, so P will offer just lower than D's to settle or anywhere above D's to go to trial
-            _ => throw new Exception()
+            AdditiveEvidenceOptionSetChoices.Biasless_MoreInfoShared => Biasless(0.5, 0.5, 0.3, false, false, 0.5, 0.75, false), 
+            AdditiveEvidenceOptionSetChoices.Biasless_LessInfoShared => Biasless(0.5, 0.5, 0.3, false, false, 0.5, 0.25, false), 
+            AdditiveEvidenceOptionSetChoices.Biasless_MuchLessInfoShared => Biasless(0.5, 0.5, 0.3, false, false, 0.5, 0.05, false), // settles around 50% of the time
+            AdditiveEvidenceOptionSetChoices.Biasless_MuchLessInfoShared_WithFeeShift => Biasless(0.5, 0.5, 0.3, true, false, 1.0, 0.05, false), // settles around 30% of the time
+            _ => throw new NotImplementedException()
         };
 
         public static byte NumOffers = 25; // having a good number here allows for more precise strategies
