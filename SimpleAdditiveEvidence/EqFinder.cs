@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace SimpleAdditiveEvidence
 {
@@ -23,8 +24,8 @@ namespace SimpleAdditiveEvidence
         // then there is only one possibility for the max. Note that below, we will also model an outside option where either party can force trial, but we don't
         // include that in the matrix, both because it would take a lot of space and because the equilibrium where both refuse to give reasonable offers is
         // always a Nash equilibrium, albeit a trivial one. 
-        const int NumStartOrEndPointsOfLine = 15; // this excludes the "extreme" strategy
-        const int NumNormalizedSignalsPerPlayer = 30;
+        const int NumStartOrEndPointsOfLine = 100;
+        const int NumNormalizedSignalsPerPlayer = 100;
 
         const int NumStrategiesPerPlayer = NumStartOrEndPointsOfLine * (NumStartOrEndPointsOfLine + 1) / 2;
         static int ConvertMinMaxToStrategy(int minSignalStrategy, int maxSignalStrategy)
@@ -67,16 +68,18 @@ namespace SimpleAdditiveEvidence
             Execute();
         }
 
+
+        int Cycle;
         private void Execute()
         {
             CalculateFromPaper();
             ConfirmConversions();
             bool done = false;
-            int i = 0;
+            Cycle = 0;
             while (!done)
             {
                 if (logDetailedProgress)
-                    TabbedText.WriteLine($"Cycle {++i}");
+                    TabbedText.WriteLine($"Cycle {++Cycle}");
                 if (logDetailedProgress)
                     TabbedText.WriteLine($"25%le to 75%le ranges: P ({NonlinearCutoffString(true, true, true)} to {NonlinearCutoffString(true, false, true)},{NonlinearCutoffString(true, true, false)} to {NonlinearCutoffString(true, false, false)}) D ({NonlinearCutoffString(false, true, true)} to {NonlinearCutoffString(false, false, true)},{NonlinearCutoffString(false, true, false)} to {NonlinearCutoffString(false, false, false)}) ");
                 ResetUtilities();
@@ -214,6 +217,10 @@ namespace SimpleAdditiveEvidence
                 b.AppendLine($"P (strategy {aNashStrategy.pStrategy}) offers from {pLine.minSignalStrategy.ToSignificantFigures(3)} to {pLine.maxSignalStrategy.ToSignificantFigures(3)} (utility {PUtilities[aNashStrategy.pStrategy, aNashStrategy.dStrategy].ToSignificantFigures(3)})");
                 foreach (var nashStrategy in pStrategyGroup)
                 {
+                    if (Cycle == 20)
+                    {
+                        var DEBUG = 0;
+                    }
                     var dLine = ConvertStrategyToMinMaxContinuousOffers(nashStrategy.dStrategy, false);
                     b.AppendLine($"D (strategy {aNashStrategy.dStrategy}) offers from {dLine.minSignalStrategy.ToSignificantFigures(3)} to {dLine.maxSignalStrategy.ToSignificantFigures(3)} (utility {DUtilities[nashStrategy.pStrategy, nashStrategy.dStrategy].ToSignificantFigures(3)})");
                     b.AppendLine($"--> Trial rate {TrialRate[nashStrategy.pStrategy, nashStrategy.dStrategy].ToSignificantFigures(3)}");
@@ -284,21 +291,21 @@ namespace SimpleAdditiveEvidence
         static double minMaxNonlinearAboveThreshold = 0.75;
 
         // The following specifies the mapping from a discrete representation of a min or max of a line and the continuous representation.
-        // Initially, we set this to 0.25 to 0.75 to capture the broad middle of the probability spectrum.
+        // Initially, we set this to 0 to 1 to capture the typical range of starting and ending points of lines.
         // But based on the outcome, one can zoom into the result by moving this near the initially successful strategy.
         // For example, suppose the optimal min value for p's strategy corresponds to the 35th percentile discrete value (not necessarily
         // a continuous value of 0.35, though it would be that after the first iteration). At that point, it looks like our strategy is in
         // fact within the (25% to 75%) range, so we might zoom into the (0.30, 0.55) area. If we're outside the range, then we zoom out
         // so that our value will be in the range. For example, if we're at the 20% discrete value, we then might make the range
         // from the 10% value to the 30% value.
-        double pValueAtLowerNonlinearCutoff_MinSignal = 0.25;
-        double pValueAtUpperNonlinearCutoff_MinSignal = 0.75;
-        double dValueAtLowerNonlinearCutoff_MinSignal = 0.25;
-        double dValueAtUpperNonlinearCutoff_MinSignal = 0.75;
-        double pValueAtLowerNonlinearCutoff_MaxSignal = 0.25;
-        double pValueAtUpperNonlinearCutoff_MaxSignal = 0.75;
-        double dValueAtLowerNonlinearCutoff_MaxSignal = 0.25;
-        double dValueAtUpperNonlinearCutoff_MaxSignal = 0.75;
+        double pValueAtLowerNonlinearCutoff_MinSignal = 0;
+        double pValueAtUpperNonlinearCutoff_MinSignal = 1.0;
+        double dValueAtLowerNonlinearCutoff_MinSignal = 0;
+        double dValueAtUpperNonlinearCutoff_MinSignal = 1.0;
+        double pValueAtLowerNonlinearCutoff_MaxSignal = 0;
+        double pValueAtUpperNonlinearCutoff_MaxSignal = 1.0;
+        double dValueAtLowerNonlinearCutoff_MaxSignal = 0;
+        double dValueAtUpperNonlinearCutoff_MaxSignal = 1.0;
         private double NonlinearCutoff(bool plaintiff, bool lowerCutoff, bool isMinSignal) => (plaintiff, lowerCutoff, isMinSignal) switch
         {
             (true, true, true) => pValueAtLowerNonlinearCutoff_MinSignal,
@@ -384,20 +391,21 @@ namespace SimpleAdditiveEvidence
             {
                 return MapFromInnerRangeToMinOrMaxOffer(continuousOfferWithLinearSlopeUnadjusted, plaintiff, isMin);
             }
+            double multiplier = 0.2; // arbitrary
             if (continuousOfferWithLinearSlopeUnadjusted < minMaxNonlinearBelowThreshold)
             {
                 double kinkPoint = MapFromInnerRangeToMinOrMaxOffer(minMaxNonlinearBelowThreshold, plaintiff, isMin); 
                 // now calculate what we want to subtract from this
                 // at 0.25 => 0
                 // at 0 => inf.
-                double amountToSubtract = 1.0 / continuousOfferWithLinearSlopeUnadjusted - 1.0 / minMaxNonlinearAboveThreshold;
-                return kinkPoint - amountToSubtract;
+                double amountToSubtract = 1.0 / continuousOfferWithLinearSlopeUnadjusted - 1.0 / minMaxNonlinearBelowThreshold;
+                return kinkPoint - multiplier*amountToSubtract;
             }
             else
             {
                 double kinkPoint = MapFromInnerRangeToMinOrMaxOffer(minMaxNonlinearAboveThreshold, plaintiff, isMin);
                 double amountToAdd = 1.0 / (1.0 - continuousOfferWithLinearSlopeUnadjusted) - 1.0 / minMaxNonlinearAboveThreshold;
-                return kinkPoint + amountToAdd;
+                return kinkPoint + multiplier*amountToAdd;
             }
         }
 
@@ -435,12 +443,13 @@ namespace SimpleAdditiveEvidence
         void CalculateUtilities()
         {
             OutsideOption = null;
+            var offerRanges = Enumerable.Range(0, NumStrategiesPerPlayer).Select(x => (ConvertStrategyToMinMaxContinuousOffers(x, true), ConvertStrategyToMinMaxContinuousOffers(x, false))).ToArray();
             for (int p = 0; p < NumStrategiesPerPlayer; p++)
             {
-                for (int d = 0; d < NumStrategiesPerPlayer; d++)
+                Parallel.For(0, NumStrategiesPerPlayer, d =>
                 {
-                    var pOfferRange = ConvertStrategyToMinMaxContinuousOffers(p, true);
-                    var dOfferRange = ConvertStrategyToMinMaxContinuousOffers(d, false);
+                    var pOfferRange = offerRanges[p].Item1;
+                    var dOfferRange = offerRanges[d].Item2;
                     bool atLeastOneSettlement;
                     double pUtility, dUtility, trialRate, accuracySq, accuracyHypoSq, accuracyForP, accuracyForD;
                     CalculateResultsForOfferRanges(pOfferRange, dOfferRange, out atLeastOneSettlement, out pUtility, out dUtility, out trialRate, out accuracySq, out accuracyHypoSq, out accuracyForP, out accuracyForD);
@@ -456,12 +465,12 @@ namespace SimpleAdditiveEvidence
 
 
                     TrialRate[p, d] = trialRate;
-                    AccuracySq[p, d] = accuracySq ;
-                    AccuracyHypoSq[p, d] = accuracyHypoSq ;
-                    AccuracyForP[p, d] = accuracyForP ;
+                    AccuracySq[p, d] = accuracySq;
+                    AccuracyHypoSq[p, d] = accuracyHypoSq;
+                    AccuracyForP[p, d] = accuracyForP;
                     AccuracyForD[p, d] = accuracyForD;
 
-                }
+                });
             }
         }
         private (double pUtility, double dUtility) CalculateUtilitiesForOfferRanges((double minSignalStrategy, double maxSignalStrategy) pOfferRange, (double minSignalStrategy, double maxSignalStrategy) dOfferRange)
