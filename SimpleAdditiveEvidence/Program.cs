@@ -14,7 +14,7 @@ namespace SimpleAdditiveEvidence
             Stopwatch s = new Stopwatch();
             s.Start();
             StringBuilder b = new StringBuilder();
-            string headerRow = "Cost,Quality,Threshold," + EqFinder.Outcome.GetHeaderString();
+            string headerRow = "Cost,Quality,Threshold," + Outcome.GetHeaderString();
             b.AppendLine(headerRow);
             foreach (double c in new double[] { /* DEBUG 0, 0.05, 0.1, */ 0.15, 0.2, 0.25, 0.3, 0.35, 0.4 }) // 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.8, 1.0 })
             {
