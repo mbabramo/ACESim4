@@ -239,6 +239,21 @@ namespace ACESim
             return (bestRow, bestCol);
         }
 
+        public static double DistanceFromNash_SingleStrategy(int r, int c, double[,] player0Utilities, double[,] player1Utilities)
+        {
+            // This calculates the max value in column and row for the specific row and column, respectively. We don't use it above because such calculations would be repetitive.
+            int numRows = player0Utilities.GetLength(0);
+            int numColumns = player0Utilities.GetLength(1);
+            double player0MaxValueInColumn = Enumerable.Range(0, numRows).Select(r => player0Utilities[r, c]).Max();
+            double player1MaxValueInRow = Enumerable.Range(0, numColumns).Select(c => player1Utilities[r, c]).Max();
+            double total = 0;
+            if (player0Utilities[r, c] < player0MaxValueInColumn)
+                total += Math.Pow(player0Utilities[r, c] - player0MaxValueInColumn, 2);
+            if (player1Utilities[r, c] < player1MaxValueInRow)
+                total += Math.Pow(player1Utilities[r, c] - player1MaxValueInRow, 2);
+            return total;
+        }
+
         private static List<(int player0Strategy, int player1Strategy)> NarrowToNashEquilibria(int player0Permutations,
             int player1Permutations, double[,] player0Utilities, double[,] player1Utilities,
             bool[] player0StrategyEliminated, bool[] player1StrategyEliminated, bool removePayoffDominatedEquilibria)
