@@ -8,11 +8,11 @@ using System.Threading.Tasks;
 
 namespace SimpleAdditiveEvidence
 {
-    public partial class EqFinder
+    public partial class DMSApproximator
     {
 
         double q, c, t;
-        public EqFinder(double q, double c, double t)
+        public DMSApproximator(double q, double c, double t)
         {
             this.q = q;
             this.c = c;
@@ -20,20 +20,7 @@ namespace SimpleAdditiveEvidence
             Execute();
         }
 
-        int OptimalPStrategy = -1, OptimalDStrategy = -1;
-
-        bool LogDetailedProgress = true;
-        bool PrintUtilitiesInDetailedLog = false;
-
-        // Zoom in feature: We can choose to what value the 25th percentile and the 75th of what each player's strategy corresponds to. Initially, we start at 0.25 and 0.75.
-        // Then we zoom in until we get to a required level of accuracy.
-        // For each number that we're trying to zoom into, we have a mean value and then a range that takes us from the 25%le to the 75%le
-        // (or whatever the percentiles are above). At each zoom in cycle, we center the cutoffs around what we now think is the optimal value.
-        // When the number we are targeting was within the 25%le to the 75%le range, we multiply the total distance by (1 - zoomSpeed). 
-        // When the number is outside the range, we multiply by (1 + zoomSpeed).
-        const double ZoomAccuracy = 0.001;
-        const double ZoomSpeed = 0.05;
-        const int MaxZoomCycles = 1;
+        #region Options
 
         // Each player's strategy is a line, represented by a minimum strategy value and a maximum strategy value. This class seeks to optimize that line
         // by playing a range of strategies. To ensure that it considers very high slopes (positive or negative), as well as intermediate ones, it converts
@@ -47,10 +34,18 @@ namespace SimpleAdditiveEvidence
         const int NumNormalizedSignalsPerPlayer = 50;
         const int NumStrategiesPerPlayer = NumStartOrEndPointsOfLine * (NumStartOrEndPointsOfLine + 1) / 2;
         long NumRequiredGamePlays => Pow(NumStartOrEndPointsOfLine, 4) * Pow(NumNormalizedSignalsPerPlayer, 2);
-        private static long Pow(int bas, int exp) => Enumerable.Repeat((long) bas,  exp).Aggregate((long) 1, (a, b) => a * b);
+        private static long Pow(int bas, int exp) => Enumerable.Repeat((long)bas, exp).Aggregate((long)1, (a, b) => a * b);
 
-        public Outcome TheOutcome => new Outcome(PUtilities[OptimalPStrategy, OptimalDStrategy], DUtilities[OptimalPStrategy, OptimalDStrategy], TrialRate[OptimalPStrategy, OptimalDStrategy], AccuracySq[OptimalPStrategy, OptimalDStrategy], AccuracyHypoSq[OptimalPStrategy, OptimalDStrategy], AccuracyForP[OptimalPStrategy, OptimalDStrategy], AccuracyForD[OptimalPStrategy, OptimalDStrategy], ConvertStrategyToMinMaxContinuousOffers(OptimalPStrategy, true), ConvertStrategyToMinMaxContinuousOffers(OptimalDStrategy, false));
+        bool LogDetailedProgress = true;
+        bool PrintUtilitiesInDetailedLog = false;
 
+        #endregion
+
+
+        #region Execution
+
+        int OptimalPStrategy = -1, OptimalDStrategy = -1;
+        public DMSApproximatorOutcome TheOutcome => new DMSApproximatorOutcome(PUtilities[OptimalPStrategy, OptimalDStrategy], DUtilities[OptimalPStrategy, OptimalDStrategy], TrialRate[OptimalPStrategy, OptimalDStrategy], AccuracySq[OptimalPStrategy, OptimalDStrategy], AccuracyHypoSq[OptimalPStrategy, OptimalDStrategy], AccuracyForP[OptimalPStrategy, OptimalDStrategy], AccuracyForD[OptimalPStrategy, OptimalDStrategy], ConvertStrategyToMinMaxContinuousOffers(OptimalPStrategy, true), ConvertStrategyToMinMaxContinuousOffers(OptimalDStrategy, false));
 
         bool OutsideOptionDominates;
 
@@ -58,8 +53,6 @@ namespace SimpleAdditiveEvidence
 
         private void Execute()
         {
-            //CalculateFromPaper();
-            //ConfirmConversions();
             Stopwatch s = new Stopwatch();
             s.Start();
             bool done = false;
@@ -86,6 +79,7 @@ namespace SimpleAdditiveEvidence
             s.Stop();
             TabbedText.WriteLine($"Execution time (s): {s.Elapsed.TotalSeconds} (Num required game plays: {NumRequiredGamePlays})");
         }
+
         HashSet<(int p, int d)> AllEquilibria;
 
         private string EvaluateEquilibria()
@@ -152,19 +146,36 @@ namespace SimpleAdditiveEvidence
             //TabbedText.WriteLine($"Trial equilibrium {OptimalPStrategy},{OptimalDStrategy} => ({PUtilities[OptimalPStrategy, OptimalDStrategy]},{DUtilities[OptimalPStrategy, OptimalDStrategy]})");
         }
 
+        #endregion
+
+        #region Strategy-offer conversions
+
         const double EvaluationsPerStrategyCombination = NumNormalizedSignalsPerPlayer * NumNormalizedSignalsPerPlayer;
         (double minSignalStrategy, double maxSignalStrategy) ConvertStrategyToMinMaxContinuousOffers(int strategy, bool plaintiff)
         {
             var minMax = ConvertStrategyToMinMaxOffers(strategy);
             return (GetMappedMinOrMaxOffer(minMax.minSignalStrategy, plaintiff, true), GetMappedMinOrMaxOffer(minMax.maxSignalStrategy, plaintiff, false));
         }
+
+        double GetMappedMinOrMaxOffer(int discreteOffer, bool plaintiff, bool isMinSignal)
+        {
+            if (plaintiff && discreteOffer == NumStartOrEndPointsOfLine)
+                return 1E+10; // plaintiff's highest offer always forces trial
+            if (!plaintiff && discreteOffer == NumStartOrEndPointsOfLine)
+                return -1E+10; // defendant's lowest offer always forces trial
+            double continuousOfferWithLinearSlopeUnadjusted = GetUnmappedOfferValue(discreteOffer);
+            return MapFromZeroOneRangeToMinOrMaxOffer(continuousOfferWithLinearSlopeUnadjusted, plaintiff, isMinSignal);
+        }
+
         (double minSignalStrategy, double maxSignalStrategy) ConvertStrategyToUnmappedMinMaxContinuousOffers(int strategy)
         {
             var minMax = ConvertStrategyToMinMaxOffers(strategy);
             return (GetUnmappedOfferValue(minMax.minSignalStrategy), GetUnmappedOfferValue(minMax.maxSignalStrategy));
         }
-
-
+        private static double GetUnmappedOfferValue(int discreteOffer)
+        {
+            return (double)(discreteOffer + 0.5) / ((double)(NumStartOrEndPointsOfLine));
+        }
 
         static int ConvertMinMaxToStrategy(int minSignalStrategy, int maxSignalStrategy)
         {
@@ -242,6 +253,52 @@ namespace SimpleAdditiveEvidence
 
         private string NonlinearCutoffString(bool plaintiff, bool lowerCutoff, bool isMinOfLine) => NonlinearCutoff(plaintiff, lowerCutoff, isMinOfLine).ToSignificantFigures(5);
 
+
+        private double MapFromZeroOneRangeToMinOrMaxOffer(double continuousOfferWithLinearSlopeUnadjusted, bool plaintiff, bool isMin)
+        {
+            if ((continuousOfferWithLinearSlopeUnadjusted >= minMaxNonlinearBelowThreshold && continuousOfferWithLinearSlopeUnadjusted <= minMaxNonlinearAboveThreshold))
+            {
+                return MapFromInnerRangeToMinOrMaxOffer(continuousOfferWithLinearSlopeUnadjusted, plaintiff, isMin);
+            }
+            double multiplier = 0.2; // arbitrary
+            if (continuousOfferWithLinearSlopeUnadjusted < minMaxNonlinearBelowThreshold)
+            {
+                double kinkPoint = MapFromInnerRangeToMinOrMaxOffer(minMaxNonlinearBelowThreshold, plaintiff, isMin);
+                // now calculate what we want to subtract from this
+                // at 0.25 => 0
+                // at 0 => inf.
+                double amountToSubtract = 1.0 / continuousOfferWithLinearSlopeUnadjusted - 1.0 / minMaxNonlinearBelowThreshold;
+                return kinkPoint - multiplier * amountToSubtract;
+            }
+            else
+            {
+                double kinkPoint = MapFromInnerRangeToMinOrMaxOffer(minMaxNonlinearAboveThreshold, plaintiff, isMin);
+                double amountToAdd = 1.0 / (1.0 - continuousOfferWithLinearSlopeUnadjusted) - 1.0 / minMaxNonlinearAboveThreshold;
+                return kinkPoint + multiplier * amountToAdd;
+            }
+        }
+
+        private double MapFromInnerRangeToMinOrMaxOffer(double continuousOfferWithLinearSlopeUnadjusted, bool plaintiff, bool isMin)
+        {
+            double proportionOfWayBetweenCutoffs = (continuousOfferWithLinearSlopeUnadjusted - minMaxNonlinearBelowThreshold) / (minMaxNonlinearAboveThreshold - minMaxNonlinearBelowThreshold);
+            double adjusted = NonlinearCutoff(plaintiff, true, isMin) + proportionOfWayBetweenCutoffs * (NonlinearCutoff(plaintiff, false, isMin) - NonlinearCutoff(plaintiff, true, isMin));
+            return adjusted;
+        }
+
+        #endregion
+
+        #region Zoom
+
+        // Zoom in feature: We can choose to what value the 25th percentile and the 75th of what each player's strategy corresponds to. Initially, we start at 0.25 and 0.75.
+        // Then we zoom in until we get to a required level of accuracy.
+        // For each number that we're trying to zoom into, we have a mean value and then a range that takes us from the 25%le to the 75%le
+        // (or whatever the percentiles are above). At each zoom in cycle, we center the cutoffs around what we now think is the optimal value.
+        // When the number we are targeting was within the 25%le to the 75%le range, we multiply the total distance by (1 - zoomSpeed). 
+        // When the number is outside the range, we multiply by (1 + zoomSpeed).
+        const double ZoomAccuracy = 0.001;
+        const double ZoomSpeed = 0.05;
+        const int MaxZoomCycles = 1;
+
         void AdjustLowerAndUpperCutoffsBasedOnPerformance()
         {
             var pOptimum = ConvertStrategyToMinMaxContinuousOffers(OptimalPStrategy, true);
@@ -276,51 +333,9 @@ namespace SimpleAdditiveEvidence
 
         public bool AllCutoffDistancesAccurateEnough(double requiredAccuracy) => CutoffDistanceAccurateEnough(requiredAccuracy, true, true) && CutoffDistanceAccurateEnough(requiredAccuracy, true, false) && CutoffDistanceAccurateEnough(requiredAccuracy, false, true) && CutoffDistanceAccurateEnough(requiredAccuracy, false, false);
 
-        double GetMappedMinOrMaxOffer(int discreteOffer, bool plaintiff, bool isMinSignal)
-        {
-            if (plaintiff && discreteOffer == NumStartOrEndPointsOfLine)
-                return 1E+10; // plaintiff's highest offer always forces trial
-            if (!plaintiff && discreteOffer == NumStartOrEndPointsOfLine)
-                return -1E+10; // defendant's lowest offer always forces trial
-            double continuousOfferWithLinearSlopeUnadjusted = GetUnmappedOfferValue(discreteOffer);
-            return MapFromZeroOneRangeToMinOrMaxOffer(continuousOfferWithLinearSlopeUnadjusted, plaintiff, isMinSignal);
-        }
+        #endregion
 
-        private static double GetUnmappedOfferValue(int discreteOffer)
-        {
-            return (double)(discreteOffer + 0.5) / ((double)(NumStartOrEndPointsOfLine));
-        }
-
-        private double MapFromZeroOneRangeToMinOrMaxOffer(double continuousOfferWithLinearSlopeUnadjusted, bool plaintiff, bool isMin)
-        {
-            if ((continuousOfferWithLinearSlopeUnadjusted >= minMaxNonlinearBelowThreshold && continuousOfferWithLinearSlopeUnadjusted <= minMaxNonlinearAboveThreshold))
-            {
-                return MapFromInnerRangeToMinOrMaxOffer(continuousOfferWithLinearSlopeUnadjusted, plaintiff, isMin);
-            }
-            double multiplier = 0.2; // arbitrary
-            if (continuousOfferWithLinearSlopeUnadjusted < minMaxNonlinearBelowThreshold)
-            {
-                double kinkPoint = MapFromInnerRangeToMinOrMaxOffer(minMaxNonlinearBelowThreshold, plaintiff, isMin); 
-                // now calculate what we want to subtract from this
-                // at 0.25 => 0
-                // at 0 => inf.
-                double amountToSubtract = 1.0 / continuousOfferWithLinearSlopeUnadjusted - 1.0 / minMaxNonlinearBelowThreshold;
-                return kinkPoint - multiplier*amountToSubtract;
-            }
-            else
-            {
-                double kinkPoint = MapFromInnerRangeToMinOrMaxOffer(minMaxNonlinearAboveThreshold, plaintiff, isMin);
-                double amountToAdd = 1.0 / (1.0 - continuousOfferWithLinearSlopeUnadjusted) - 1.0 / minMaxNonlinearAboveThreshold;
-                return kinkPoint + multiplier*amountToAdd;
-            }
-        }
-
-        private double MapFromInnerRangeToMinOrMaxOffer(double continuousOfferWithLinearSlopeUnadjusted, bool plaintiff, bool isMin)
-        {
-            double proportionOfWayBetweenCutoffs = (continuousOfferWithLinearSlopeUnadjusted - minMaxNonlinearBelowThreshold) / (minMaxNonlinearAboveThreshold - minMaxNonlinearBelowThreshold);
-            double adjusted = NonlinearCutoff(plaintiff, true, isMin) + proportionOfWayBetweenCutoffs * (NonlinearCutoff(plaintiff, false, isMin) - NonlinearCutoff(plaintiff, true, isMin));
-            return adjusted;
-        }
+        #region Utilities and outcomes
 
         public double[,] PUtilities;
         public double[,] DUtilities;
@@ -392,13 +407,6 @@ namespace SimpleAdditiveEvidence
             PUtilities[p, d] = DUtilities[p, d] = VeryBadUtility; // very unattractive utility
         }
 
-        private (double pUtility, double dUtility) CalculateUtilitiesForOfferRanges((double minSignalStrategy, double maxSignalStrategy) pOfferRange, (double minSignalStrategy, double maxSignalStrategy) dOfferRange)
-        {
-            double pUtility, dUtility;
-            CalculateResultsForOfferRanges(pOfferRange, dOfferRange, out _, out pUtility, out dUtility, out _, out _, out _, out _, out _);
-            return (pUtility, dUtility);
-        }
-
         private void PrintUtilities()
         {
             for (int p = -1; p < NumStrategiesPerPlayer; p++)
@@ -416,6 +424,17 @@ namespace SimpleAdditiveEvidence
                 }
                 TabbedText.WriteLine();
             }
+        }
+
+        #endregion
+
+        #region Calculate with pair of P and D strategies
+
+        private (double pUtility, double dUtility) CalculateUtilitiesForOfferRanges((double minSignalStrategy, double maxSignalStrategy) pOfferRange, (double minSignalStrategy, double maxSignalStrategy) dOfferRange)
+        {
+            double pUtility, dUtility;
+            CalculateResultsForOfferRanges(pOfferRange, dOfferRange, out _, out pUtility, out dUtility, out _, out _, out _, out _, out _);
+            return (pUtility, dUtility);
         }
 
         private void CalculateResultsForOfferRanges((double minSignalStrategy, double maxSignalStrategy) pOfferRange, (double minSignalStrategy, double maxSignalStrategy) dOfferRange, out bool atLeastOneSettlement, out double pUtility, out double dUtility, out double trialRate, out double accuracySq, out double accuracyHypoSq, out double accuracyForP, out double accuracyForD)
@@ -470,67 +489,10 @@ namespace SimpleAdditiveEvidence
             accuracyForP /= (double)EvaluationsPerStrategyCombination;
             accuracyForD /= (double)EvaluationsPerStrategyCombination;
         }
-        private void CalculateFromPaper()
-        {
-            // TODO: Add calculations for correct answer
-            if (t == 0)
-            {
-                double correctPStart = 0.5 - 3.0 * ((5.0 / 6.0) - q) * c;
-                double correctPEnd = correctPStart + 1.0 / 3.0;
-                double correctDStart = 1.0 / 6.0 + 3 * (q - 1.0 / 6.0) * c;
-                double correctDEnd = correctDStart + 1.0 / 3.0;
-                var r = CalculateUtilitiesForOfferRanges((correctPStart, correctPEnd), (correctDStart, correctDEnd));
-                TabbedText.WriteLine($"Anticipated answer P:{correctPStart.ToSignificantFigures(3)}, {correctPEnd.ToSignificantFigures(3)} D:{correctDStart.ToSignificantFigures(3)}, {correctDEnd.ToSignificantFigures(3)} ==> ({r.pUtility.ToSignificantFigures(3)}, {r.dUtility.ToSignificantFigures(3)})");
-                //for (double d = -0.1; d <= 0.1; d += 0.01)
-                //{
-                //    var result = CalculateUtilitiesForOfferRanges((correctPStart + d, correctPEnd), (correctDStart, correctDEnd));
-                //    TabbedText.WriteLine($"{correctPStart + d}: {result}");
-                //}
-                //SimpleMonteCarlo();
-            }
-        }
 
-        private void SimpleMonteCarlo()
-        {
-            // this confirms that the formula in DMS provides the optimal strategy
-            // but it also shows that with 10,000 uniform draws from a distribution to estimate the value of the
-            // strategy, we need the deviation from the recommendation to be at least 0.010 before the optimal
-            // point will look better than the deviation. So, this suggests that we need at least 10,000 
-            // measurements per matrix entry to avoid errors.
-            const int n_per_party = 100;
-            const int n = n_per_party * n_per_party;
-            double distribute(int discreteSignal) => ((double)(discreteSignal + 1)) / ((double)(n_per_party + 1));
-            double[] evenlyDistributed = Enumerable.Range(0, n_per_party).Select(x => distribute(x)).ToArray();
-            bool useRandom = false;
-            Random r = new Random();
-            double p(double signal) => 0.5 - 3.0 * ((5.0 / 6.0) - q) * c + (1.0 / 3.0) * signal;
-            double d(double signal) => 1.0 / 6.0 + 3 * (q - 1.0 / 6.0) * c + (1.0 / 3.0) * signal;
-            double pTotalUtil_Formula = 0, pTotalUtil_Higher = 0, pTotalUtil_Lower = 0;
-            for (int i = 0; i < n; i++)
-            {
-                double pSignal = useRandom ? r.NextDouble() : evenlyDistributed[i / n_per_party];
-                double pRecommended = p(pSignal);
-                double dSignal = useRandom ? r.NextDouble() : evenlyDistributed[i % n_per_party];
-                double dRecommended = d(dSignal);
-                double increment = 0.01;
-                pTotalUtil_Formula += SimpleMonteCarlo_Helper(n, pSignal, pRecommended, dSignal, dRecommended);
-                pTotalUtil_Higher += SimpleMonteCarlo_Helper(n, pSignal, pRecommended + increment, dSignal, dRecommended);
-                pTotalUtil_Lower += SimpleMonteCarlo_Helper(n, pSignal, pRecommended - increment, dSignal, dRecommended);
-            }
-            TabbedText.WriteLine($"{pTotalUtil_Formula} {pTotalUtil_Higher} {pTotalUtil_Lower} {(pTotalUtil_Higher < pTotalUtil_Formula && pTotalUtil_Lower < pTotalUtil_Formula ? "Good" : "Bad")}");
-        }
+        #endregion
 
-        private double SimpleMonteCarlo_Helper(int n, double pSignal, double pRecommended, double dSignal, double dRecommended)
-        {
-            double pResult = 0;
-            double theta_p = pSignal * q;
-            double theta_d = q + dSignal * (1 - q);
-            if (dRecommended >= pRecommended)
-                pResult = (pRecommended + dRecommended) / 2.0;
-            else
-                pResult = (theta_p + theta_d) / 2.0 - 0.5 * c;
-            return pResult;
-        }
+        #region Game play with pair of P and D strategies and signals
 
         private void ProcessCaseGivenParticularSignals(int zp, int zd, double[] continuousSignals, double[] pOffers, double[] dOffers, ref bool atLeastOneSettlement, ref double pUtility, ref double dUtility, ref double trialRate, ref double accuracySq, ref double accuracyHypoSq, ref double accuracyForP, ref double accuracyForD)
         {
@@ -603,6 +565,9 @@ namespace SimpleAdditiveEvidence
                 accuracyForD = equalityMultiplier * Math.Abs(dEffect - (1 - j));
                 //Debug.WriteLine($"({p},{d}) trial ({zp},{zd}) => {pEffect}, {dEffect} [based on {theta_p}, {theta_d}");
             }
+
+            #endregion
+
         }
     }
 }
