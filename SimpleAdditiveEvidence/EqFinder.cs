@@ -97,19 +97,36 @@ namespace SimpleAdditiveEvidence
             if (!AllEquilibria.Any())
             {
                 (OptimalPStrategy, OptimalDStrategy) = PureStrategiesFinder.GetApproximateNashEquilibrium(PUtilities, DUtilities);
-                b.AppendLine($"Using approximate equilibrium {OptimalPStrategy},{OptimalDStrategy} => ({PUtilities[OptimalPStrategy, OptimalDStrategy]},{DUtilities[OptimalPStrategy, OptimalDStrategy]})");
+                b.AppendLine($"No pure equilibria; using approximate equilibrium {OptimalPStrategy},{OptimalDStrategy} => ({PUtilities[OptimalPStrategy, OptimalDStrategy]},{DUtilities[OptimalPStrategy, OptimalDStrategy]})");
             }
             else if (AllEquilibria.Count() > 1)
             {
                 if (AllEquilibria.All(x => PUtilities[x.p, x.d] == VeryBadUtility && DUtilities[x.p, x.d] == VeryBadUtility))
                     AllEquilibria = AllEquilibria.Take(2).ToHashSet(); // don't need to list all
+                // list remaining equilibria
+                var grouped = AllEquilibria.GroupBy(x => x.p);
+                foreach (var pStrategyGroup in grouped)
+                {
+                    var aNashStrategy = pStrategyGroup.First();
+                    var pLine = ConvertStrategyToMinMaxContinuousOffers(aNashStrategy.p, true);
+                    b.AppendLine($"P (strategy {aNashStrategy.p}) offers from {pLine.minSignalStrategy.ToSignificantFigures(3)} to {pLine.maxSignalStrategy.ToSignificantFigures(3)} (utility {PUtilities[aNashStrategy.p, aNashStrategy.d].ToSignificantFigures(3)})");
+                    foreach (var nashStrategy in pStrategyGroup)
+                    {
+                        var dLine = ConvertStrategyToMinMaxContinuousOffers(nashStrategy.d, false);
+                        b.AppendLine($"D (strategy {aNashStrategy.d}) offers from {dLine.minSignalStrategy.ToSignificantFigures(3)} to {dLine.maxSignalStrategy.ToSignificantFigures(3)} (utility {DUtilities[nashStrategy.p, nashStrategy.d].ToSignificantFigures(3)})");
+                        b.AppendLine($"--> Trial rate {TrialRate[nashStrategy.p, nashStrategy.d].ToSignificantFigures(3)}");
+                    }
+                }
                 // pick the one with the best approximate equilibrium score
                 var allList = AllEquilibria.ToList();
-                var orderedByDistance = allList.Select(x => PureStrategiesFinder.DistanceFromNash_SingleStrategy(x.p, x.d, PUtilities, DUtilities)).Select((distance, index) => (distance, index)).OrderBy(x => x.distance).ToArray();
+                var distances = allList.Select(x => PureStrategiesFinder.DistanceFromNash_SingleStrategy(x.p, x.d, PUtilities, DUtilities));
+                TabbedText.WriteLine($"Distances from equilibrium: {String.Join(",", distances)}");
+                var orderedByDistance = distances.Select((distance, index) => (distance, index)).OrderBy(x => x.distance).ToArray();
+
                 var bestEquilibrium = allList[orderedByDistance.First().index];
                 OptimalPStrategy = bestEquilibrium.p;
                 OptimalDStrategy = bestEquilibrium.d;
-                b.AppendLine($"Choosing strategy with lowest approximate equilibrium distance: {OptimalPStrategy},{OptimalDStrategy} => ({PUtilities[OptimalPStrategy, OptimalDStrategy]},{DUtilities[OptimalPStrategy, OptimalDStrategy]})");
+                b.AppendLine($"Strategy with lowest approximate equilibrium distance: {OptimalPStrategy},{OptimalDStrategy} => ({PUtilities[OptimalPStrategy, OptimalDStrategy]},{DUtilities[OptimalPStrategy, OptimalDStrategy]})");
             }
             else
             {
@@ -121,21 +138,8 @@ namespace SimpleAdditiveEvidence
 
             OutsideOptionDominates = (OutsideOption != null && PUtilities[OptimalPStrategy, OptimalDStrategy] < OutsideOption?.pOutsideOption || DUtilities[OptimalPStrategy, OptimalDStrategy] < OutsideOption?.dOutsideOption);
             if (OutsideOptionDominates)
-                TabbedText.WriteLine("Choosing outside option of trial");
-
-            var grouped = AllEquilibria.GroupBy(x => x.p);
-            foreach (var pStrategyGroup in grouped)
-            {
-                var aNashStrategy = pStrategyGroup.First();
-                var pLine = ConvertStrategyToMinMaxContinuousOffers(aNashStrategy.p, true);
-                b.AppendLine($"P (strategy {aNashStrategy.p}) offers from {pLine.minSignalStrategy.ToSignificantFigures(3)} to {pLine.maxSignalStrategy.ToSignificantFigures(3)} (utility {PUtilities[aNashStrategy.p, aNashStrategy.d].ToSignificantFigures(3)})");
-                foreach (var nashStrategy in pStrategyGroup)
-                {
-                    var dLine = ConvertStrategyToMinMaxContinuousOffers(nashStrategy.d, false);
-                    b.AppendLine($"D (strategy {aNashStrategy.d}) offers from {dLine.minSignalStrategy.ToSignificantFigures(3)} to {dLine.maxSignalStrategy.ToSignificantFigures(3)} (utility {DUtilities[nashStrategy.p, nashStrategy.d].ToSignificantFigures(3)})");
-                    b.AppendLine($"--> Trial rate {TrialRate[nashStrategy.p, nashStrategy.d].ToSignificantFigures(3)}");
-                }
-            }
+                b.AppendLine($"Choosing outside option of trial => ({OutsideOption.Value.pOutsideOption.ToSignificantFigures(3)}, {OutsideOption.Value.dOutsideOption.ToSignificantFigures(3)})");
+            
             return b.ToString();
         }
 
@@ -145,10 +149,10 @@ namespace SimpleAdditiveEvidence
             OptimalDStrategy = ConvertMinMaxToStrategy(0, 0);
             PUtilities[OptimalPStrategy, OptimalDStrategy] = OutsideOption.Value.pOutsideOption;
             DUtilities[OptimalPStrategy, OptimalDStrategy] = OutsideOption.Value.dOutsideOption;
-            TabbedText.WriteLine($"Trial equilibrium {OptimalPStrategy},{OptimalDStrategy} => ({PUtilities[OptimalPStrategy, OptimalDStrategy]},{DUtilities[OptimalPStrategy, OptimalDStrategy]})");
+            //TabbedText.WriteLine($"Trial equilibrium {OptimalPStrategy},{OptimalDStrategy} => ({PUtilities[OptimalPStrategy, OptimalDStrategy]},{DUtilities[OptimalPStrategy, OptimalDStrategy]})");
         }
 
-        const int EvaluationsPerStrategyCombination = NumNormalizedSignalsPerPlayer * NumNormalizedSignalsPerPlayer;
+        const double EvaluationsPerStrategyCombination = NumNormalizedSignalsPerPlayer * NumNormalizedSignalsPerPlayer;
         (double minSignalStrategy, double maxSignalStrategy) ConvertStrategyToMinMaxContinuousOffers(int strategy, bool plaintiff)
         {
             var minMax = ConvertStrategyToMinMaxOffers(strategy);
@@ -350,7 +354,8 @@ namespace SimpleAdditiveEvidence
             var offerRanges = Enumerable.Range(0, NumStrategiesPerPlayer).Select(x => (ConvertStrategyToMinMaxContinuousOffers(x, true), ConvertStrategyToMinMaxContinuousOffers(x, false))).ToArray();
             for (int p = 0; p < NumStrategiesPerPlayer; p++)
             {
-                Parallel.For(0, NumStrategiesPerPlayer, d =>
+                bool doParallel = true;
+                Parallelizer.Go(doParallel, 0, NumStrategiesPerPlayer, d =>
                 {
                     var pOfferRange = offerRanges[p].Item1;
                     var dOfferRange = offerRanges[d].Item2;
@@ -361,12 +366,7 @@ namespace SimpleAdditiveEvidence
                     PUtilities[p, d] = pUtility;
                     DUtilities[p, d] = dUtility;
                     if (!atLeastOneSettlement)
-                    {
-                        if (OutsideOption == null)
-                            OutsideOption = (PUtilities[p, d], DUtilities[p, d]);
-                        PUtilities[p, d] = DUtilities[p, d] = VeryBadUtility; // very unattractive utility
-                    }
-
+                        SetOutsideOption(p, d);
 
                     TrialRate[p, d] = trialRate;
                     AccuracySq[p, d] = accuracySq;
@@ -377,6 +377,21 @@ namespace SimpleAdditiveEvidence
                 });
             }
         }
+
+        static object outsideOptionObj = new object();
+        private void SetOutsideOption(int p, int d)
+        {
+            if (OutsideOption == null)
+            {
+                lock (outsideOptionObj)
+                {
+                    if (OutsideOption == null)
+                        OutsideOption = (PUtilities[p, d], DUtilities[p, d]);
+                }
+            }
+            PUtilities[p, d] = DUtilities[p, d] = VeryBadUtility; // very unattractive utility
+        }
+
         private (double pUtility, double dUtility) CalculateUtilitiesForOfferRanges((double minSignalStrategy, double maxSignalStrategy) pOfferRange, (double minSignalStrategy, double maxSignalStrategy) dOfferRange)
         {
             double pUtility, dUtility;
@@ -430,7 +445,21 @@ namespace SimpleAdditiveEvidence
             {
                 for (int zd = 0; zd < NumNormalizedSignalsPerPlayer; zd++)
                 {
-                    ProcessCaseGivenParticularSignals(zp, zd, continuousSignals, pOffers, dOffers, ref atLeastOneSettlement, ref pUtility, ref dUtility, ref trialRate, ref accuracySq, ref accuracyHypoSq, ref accuracyForP, ref accuracyForD);
+                    double pUtilitySingleCase = 0;
+                    double dUtilitySingleCase = 0;
+                    double trialRateSingleCase = 0;
+                    double accuracySqSingleCase = 0;
+                    double accuracyHypoSqSingleCase = 0;
+                    double accuracyForPSingleCase = 0;
+                    double accuracyForDSingleCase = 0;
+                    ProcessCaseGivenParticularSignals(zp, zd, continuousSignals, pOffers, dOffers, ref atLeastOneSettlement, ref pUtilitySingleCase, ref dUtilitySingleCase, ref trialRateSingleCase, ref accuracySqSingleCase, ref accuracyHypoSqSingleCase, ref accuracyForPSingleCase, ref accuracyForDSingleCase);
+                    pUtility += pUtilitySingleCase;
+                    dUtility += dUtilitySingleCase;
+                    trialRate += trialRateSingleCase;
+                    accuracySq += accuracySqSingleCase;
+                    accuracyHypoSq += accuracyHypoSqSingleCase;
+                    accuracyForP += accuracyForPSingleCase;
+                    accuracyForD += accuracyForDSingleCase;
                 }
             }
             pUtility /= (double)EvaluationsPerStrategyCombination;
@@ -530,13 +559,13 @@ namespace SimpleAdditiveEvidence
                 double pEffect = settlement;
                 double dEffect = 1.0 - settlement;
                 //Debug.WriteLine($"({p},{d}) settle ({zp},{zd}) => {pEffect}, {dEffect} "); 
-                pUtility += equalityMultiplier * pEffect;
-                dUtility += equalityMultiplier * (1.0 - pEffect);
+                pUtility = equalityMultiplier * pEffect;
+                dUtility = equalityMultiplier * (1.0 - pEffect);
                 double v = equalityMultiplier * (pEffect - q) * (pEffect - q);
-                accuracySq += v;
-                accuracyHypoSq += v;
-                accuracyForP += equalityMultiplier * Math.Abs(pEffect - j);
-                accuracyForD += equalityMultiplier * Math.Abs(dEffect - (1 - j));
+                accuracySq = v;
+                accuracyHypoSq = v;
+                accuracyForP = equalityMultiplier * Math.Abs(pEffect - j);
+                accuracyForD = equalityMultiplier * Math.Abs(dEffect - (1 - j));
             }
             bool dLess = (dOffer < pOffer && !equality) || (equality && treatEqualityAsEquallyLikelyToProduceSettlementOrTrial);
             if (dLess)
@@ -562,16 +591,16 @@ namespace SimpleAdditiveEvidence
                 double pEffect = (j - pCosts);
                 double hypo_pEffect = (hypo_j - pCosts);
                 double dEffect = ((1.0 - j) - dCosts);
-                pUtility += equalityMultiplier * pEffect;
-                dUtility += equalityMultiplier * dEffect;
+                pUtility = equalityMultiplier * pEffect;
+                dUtility = equalityMultiplier * dEffect;
 
-                trialRate += equalityMultiplier;
+                trialRate = equalityMultiplier;
                 double accuracyUnsquared = pEffect + 0.5 * c; // the idea here is that the party's own costs are considered relevant to accuracy. Because P paid 0.5 * c out of pocket and this was counted in pEffect, we add this back in. Note that if shifting to defendant has occurred, that means that we have that accuracyUnsquared == j + 0.5*C, with the latter part representing the fee shifting penalty imposed on the defendant.
                 double hypo_accuracyUnsquared = hypo_pEffect + 0.5 * c;
-                accuracySq += equalityMultiplier * accuracyUnsquared * accuracyUnsquared;
-                accuracyHypoSq += equalityMultiplier * hypo_accuracyUnsquared * hypo_accuracyUnsquared;
-                accuracyForP += equalityMultiplier * Math.Abs(pEffect - j);
-                accuracyForD += equalityMultiplier * Math.Abs(dEffect - (1 - j));
+                accuracySq = equalityMultiplier * accuracyUnsquared * accuracyUnsquared;
+                accuracyHypoSq = equalityMultiplier * hypo_accuracyUnsquared * hypo_accuracyUnsquared;
+                accuracyForP = equalityMultiplier * Math.Abs(pEffect - j);
+                accuracyForD = equalityMultiplier * Math.Abs(dEffect - (1 - j));
                 //Debug.WriteLine($"({p},{d}) trial ({zp},{zd}) => {pEffect}, {dEffect} [based on {theta_p}, {theta_d}");
             }
         }
