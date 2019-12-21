@@ -17,6 +17,8 @@ namespace SimpleAdditiveEvidence
             this.q = q;
             this.c = c;
             this.t = t;
+            TabbedText.WriteLine($"Cost: {c} quality {q} threshold {t}");
+            TabbedText.WriteLine(OptionsString);
             Execute();
         }
 
@@ -30,10 +32,11 @@ namespace SimpleAdditiveEvidence
         // then there is only one possibility for the max. Note that below, we will also model an outside option where either party can force trial, but we don't
         // include that in the matrix, both because it would take a lot of space and because the equilibrium where both refuse to give reasonable offers is
         // always a Nash equilibrium, albeit a trivial one. 
-        const int NumStartOrEndPointsOfLine = 35;
-        const int NumNormalizedSignalsPerPlayer = 50;
-        const int NumStrategiesPerPlayer = NumStartOrEndPointsOfLine * (NumStartOrEndPointsOfLine + 1) / 2;
-        long NumRequiredGamePlays => Pow(NumStartOrEndPointsOfLine, 4) * Pow(NumNormalizedSignalsPerPlayer, 2);
+        public const int NumEndpointOptions = 100;
+        public const int NumSignalsPerPlayer = 100;
+        public const int NumStrategiesPerPlayer = NumEndpointOptions * (NumEndpointOptions + 1) / 2;
+        public long NumRequiredGamePlays => Pow(NumEndpointOptions, 4) * Pow(NumSignalsPerPlayer, 2);
+        public string OptionsString => $"Signals per player: {NumSignalsPerPlayer} Endpoint options: {50} => Required game plays {NumRequiredGamePlays:n0}";
         private static long Pow(int bas, int exp) => Enumerable.Repeat((long)bas, exp).Aggregate((long)1, (a, b) => a * b);
 
         bool LogDetailedProgress = true;
@@ -139,7 +142,7 @@ namespace SimpleAdditiveEvidence
 
         private void SelectOutsideOption()
         {
-            OptimalPStrategy = ConvertMinMaxToStrategy(NumStartOrEndPointsOfLine - 1, NumStartOrEndPointsOfLine - 1);
+            OptimalPStrategy = ConvertMinMaxToStrategy(NumEndpointOptions - 1, NumEndpointOptions - 1);
             OptimalDStrategy = ConvertMinMaxToStrategy(0, 0);
             PUtilities[OptimalPStrategy, OptimalDStrategy] = OutsideOption.Value.pOutsideOption;
             DUtilities[OptimalPStrategy, OptimalDStrategy] = OutsideOption.Value.dOutsideOption;
@@ -150,7 +153,7 @@ namespace SimpleAdditiveEvidence
 
         #region Strategy-offer conversions
 
-        const double EvaluationsPerStrategyCombination = NumNormalizedSignalsPerPlayer * NumNormalizedSignalsPerPlayer;
+        const double EvaluationsPerStrategyCombination = NumSignalsPerPlayer * NumSignalsPerPlayer;
         (double minSignalStrategy, double maxSignalStrategy) ConvertStrategyToMinMaxContinuousOffers(int strategy, bool plaintiff)
         {
             var minMax = ConvertStrategyToMinMaxOffers(strategy);
@@ -159,9 +162,9 @@ namespace SimpleAdditiveEvidence
 
         double GetMappedMinOrMaxOffer(int discreteOffer, bool plaintiff, bool isMinSignal)
         {
-            if (plaintiff && discreteOffer == NumStartOrEndPointsOfLine)
+            if (plaintiff && discreteOffer == NumEndpointOptions)
                 return 1E+10; // plaintiff's highest offer always forces trial
-            if (!plaintiff && discreteOffer == NumStartOrEndPointsOfLine)
+            if (!plaintiff && discreteOffer == NumEndpointOptions)
                 return -1E+10; // defendant's lowest offer always forces trial
             double continuousOfferWithLinearSlopeUnadjusted = GetUnmappedOfferValue(discreteOffer);
             return MapFromZeroOneRangeToMinOrMaxOffer(continuousOfferWithLinearSlopeUnadjusted, plaintiff, isMinSignal);
@@ -174,14 +177,14 @@ namespace SimpleAdditiveEvidence
         }
         private static double GetUnmappedOfferValue(int discreteOffer)
         {
-            return (double)(discreteOffer + 0.5) / ((double)(NumStartOrEndPointsOfLine));
+            return (double)(discreteOffer + 0.5) / ((double)(NumEndpointOptions));
         }
 
         static int ConvertMinMaxToStrategy(int minSignalStrategy, int maxSignalStrategy)
         {
             int i = 0;
-            for (int minSignalStrategyCounter = 0; minSignalStrategyCounter < NumStartOrEndPointsOfLine; minSignalStrategyCounter++)
-                for (int maxSignalStrategyCounter = minSignalStrategyCounter; maxSignalStrategyCounter < NumStartOrEndPointsOfLine; maxSignalStrategyCounter++)
+            for (int minSignalStrategyCounter = 0; minSignalStrategyCounter < NumEndpointOptions; minSignalStrategyCounter++)
+                for (int maxSignalStrategyCounter = minSignalStrategyCounter; maxSignalStrategyCounter < NumEndpointOptions; maxSignalStrategyCounter++)
                 {
                     if (minSignalStrategyCounter == minSignalStrategy && maxSignalStrategyCounter == maxSignalStrategy)
                         return i;
@@ -193,8 +196,8 @@ namespace SimpleAdditiveEvidence
         static (int minSignalStrategy, int maxSignalStrategy) ConvertStrategyToMinMaxOffers(int strategy)
         {
             int i = 0;
-            for (int minSignalStrategy = 0; minSignalStrategy < NumStartOrEndPointsOfLine; minSignalStrategy++)
-                for (int maxSignalStrategy = minSignalStrategy; maxSignalStrategy < NumStartOrEndPointsOfLine; maxSignalStrategy++)
+            for (int minSignalStrategy = 0; minSignalStrategy < NumEndpointOptions; minSignalStrategy++)
+                for (int maxSignalStrategy = minSignalStrategy; maxSignalStrategy < NumEndpointOptions; maxSignalStrategy++)
                     if (i++ == strategy)
                         return (minSignalStrategy, maxSignalStrategy);
             throw new Exception(); // shouldn't happen.
@@ -212,7 +215,7 @@ namespace SimpleAdditiveEvidence
             }
         }
 
-        static double ContinuousSignal(int discreteSignal) => ((double)(discreteSignal + 1)) / ((double)(NumNormalizedSignalsPerPlayer + 1));
+        static double ContinuousSignal(int discreteSignal) => ((double)(discreteSignal + 1)) / ((double)(NumSignalsPerPlayer + 1));
 
         // The min/max becomes nonlinear in the input strategy for extreme strategies (i.e., below first variable below or above second).
         // For example, if minMaxNonlinearBelowThreshold = 0.25, then when the discrete signal is less than 25% of the maximum discrete signal,
@@ -359,7 +362,7 @@ namespace SimpleAdditiveEvidence
         // Outcomes where trial is inevitable is a strategy for both parties. We treat this case separately and compare the outside option at the end.
         (double pOutsideOption, double dOutsideOption)? OutsideOption;
 
-        double[] continuousSignals = Enumerable.Range(0, NumNormalizedSignalsPerPlayer).Select(x => ContinuousSignal(x)).ToArray();
+        double[] continuousSignals = Enumerable.Range(0, NumSignalsPerPlayer).Select(x => ContinuousSignal(x)).ToArray();
 
         const double VeryBadUtility = -1E+20;
 
@@ -439,8 +442,8 @@ namespace SimpleAdditiveEvidence
 
         private void CalculateResultsForOfferRanges((double minSignalStrategy, double maxSignalStrategy) pOfferRange, (double minSignalStrategy, double maxSignalStrategy) dOfferRange, out bool atLeastOneSettlement, out double pUtility, out double dUtility, out double trialRate, out double accuracySq, out double accuracyHypoSq, out double accuracyForP, out double accuracyForD)
         {
-            double[] pOffers = Enumerable.Range(0, NumNormalizedSignalsPerPlayer).Select(x => pOfferRange.minSignalStrategy * (1.0 - continuousSignals[x]) + pOfferRange.maxSignalStrategy * continuousSignals[x]).ToArray();
-            double[] dOffers = Enumerable.Range(0, NumNormalizedSignalsPerPlayer).Select(x => dOfferRange.minSignalStrategy * (1.0 - continuousSignals[x]) + dOfferRange.maxSignalStrategy * continuousSignals[x]).ToArray();
+            double[] pOffers = Enumerable.Range(0, NumSignalsPerPlayer).Select(x => pOfferRange.minSignalStrategy * (1.0 - continuousSignals[x]) + pOfferRange.maxSignalStrategy * continuousSignals[x]).ToArray();
+            double[] dOffers = Enumerable.Range(0, NumSignalsPerPlayer).Select(x => dOfferRange.minSignalStrategy * (1.0 - continuousSignals[x]) + dOfferRange.maxSignalStrategy * continuousSignals[x]).ToArray();
             // Truncations (as specified in paper)
             // 1. Plaintiff never demands less than lowest offer by the defendant.
             for (int i = 0; i < pOffers.Length; i++)
@@ -460,9 +463,9 @@ namespace SimpleAdditiveEvidence
             accuracyHypoSq = 0;
             accuracyForP = 0;
             accuracyForD = 0;
-            for (int zp = 0; zp < NumNormalizedSignalsPerPlayer; zp++)
+            for (int zp = 0; zp < NumSignalsPerPlayer; zp++)
             {
-                for (int zd = 0; zd < NumNormalizedSignalsPerPlayer; zd++)
+                for (int zd = 0; zd < NumSignalsPerPlayer; zd++)
                 {
                     double pUtilitySingleCase = 0;
                     double dUtilitySingleCase = 0;
