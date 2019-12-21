@@ -133,7 +133,7 @@ namespace SimpleAdditiveEvidence
                 OptimalDStrategy = f1.d;
             }
 
-            OutsideOptionDominates = (OutsideOption != null && PUtilities[OptimalPStrategy, OptimalDStrategy] < OutsideOption?.pOutsideOption || DUtilities[OptimalPStrategy, OptimalDStrategy] < OutsideOption?.dOutsideOption);
+            OutsideOptionDominates = OutsideOption != null && (PUtilities[OptimalPStrategy, OptimalDStrategy] < OutsideOption?.pOutsideOption || DUtilities[OptimalPStrategy, OptimalDStrategy] < OutsideOption?.dOutsideOption);
             if (OutsideOptionDominates)
                 b.AppendLine($"Choosing outside option of trial => ({OutsideOption.Value.pOutsideOption.ToSignificantFigures(3)}, {OutsideOption.Value.dOutsideOption.ToSignificantFigures(3)})");
             
@@ -170,12 +170,12 @@ namespace SimpleAdditiveEvidence
             return MapFromZeroOneRangeToMinOrMaxOffer(continuousOfferWithLinearSlopeUnadjusted, plaintiff, isMinSignal);
         }
 
-        (double minSignalStrategy, double maxSignalStrategy) ConvertStrategyToUnmappedMinMaxContinuousOffers(int strategy)
+        static (double minSignalStrategy, double maxSignalStrategy) ConvertStrategyToUnmappedMinMaxContinuousOffers(int strategy)
         {
             var minMax = ConvertStrategyToMinMaxOffers(strategy);
             return (GetUnmappedOfferValue(minMax.minSignalStrategy), GetUnmappedOfferValue(minMax.maxSignalStrategy));
         }
-        private static double GetUnmappedOfferValue(int discreteOffer)
+        static double GetUnmappedOfferValue(int discreteOffer)
         {
             return (double)(discreteOffer + 0.5) / ((double)(NumEndpointOptions));
         }
@@ -202,7 +202,7 @@ namespace SimpleAdditiveEvidence
                         return (minSignalStrategy, maxSignalStrategy);
             throw new Exception(); // shouldn't happen.
         }
-        private static void ConfirmConversions()
+        static void ConfirmConversions()
         {
             var OneDirection = Enumerable.Range(0, NumStrategiesPerPlayer).Select(x => ConvertStrategyToMinMaxOffers(x)).ToArray();
             var OppositeDirection = OneDirection.Select(x => ConvertMinMaxToStrategy(x.minSignalStrategy, x.maxSignalStrategy)).ToArray();
@@ -223,8 +223,8 @@ namespace SimpleAdditiveEvidence
         // NOTE: Of course, we are still trying to find a strategy that represents a line. This just means that we are going to try some 
         // very steep lines, since the optimal strategy may be an almost vertical line (with a very low minimum or a very high maximum). 
         // Note that flat lines are easier -- because the min and max just have to be equal.
-        static double minMaxNonlinearBelowThreshold = 0.25;
-        static double minMaxNonlinearAboveThreshold = 0.75;
+        double minMaxNonlinearBelowThreshold = 0.25;
+        double minMaxNonlinearAboveThreshold = 0.75;
 
         // The following specifies the mapping from a discrete representation of a min or max of a line and the continuous representation.
         // Initially, we set this to 0 to 1 to capture the typical range of starting and ending points of lines.
@@ -372,7 +372,7 @@ namespace SimpleAdditiveEvidence
             var offerRanges = Enumerable.Range(0, NumStrategiesPerPlayer).Select(x => (ConvertStrategyToMinMaxContinuousOffers(x, true), ConvertStrategyToMinMaxContinuousOffers(x, false))).ToArray();
             for (int p = 0; p < NumStrategiesPerPlayer; p++)
             {
-                bool doParallel = true;
+                bool doParallel = true; 
                 Parallelizer.Go(doParallel, 0, NumStrategiesPerPlayer, d =>
                 {
                     var pOfferRange = offerRanges[p].Item1;
@@ -383,7 +383,7 @@ namespace SimpleAdditiveEvidence
 
                     PUtilities[p, d] = pUtility;
                     DUtilities[p, d] = dUtility;
-                    if (!atLeastOneSettlement)
+                    if (!atLeastOneSettlement && Math.Abs(1.0 - trialRate) < 0.00001) // we might have no pure settlements but trials only half of time
                         SetOutsideOption(p, d);
 
                     TrialRate[p, d] = trialRate;
@@ -396,7 +396,7 @@ namespace SimpleAdditiveEvidence
             }
         }
 
-        static object outsideOptionObj = new object();
+        object outsideOptionObj = new object();
         private void SetOutsideOption(int p, int d)
         {
             if (OutsideOption == null)
