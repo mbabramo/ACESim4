@@ -33,7 +33,7 @@ namespace SimpleAdditiveEvidence
         // then there is only one possibility for the max. Note that below, we will also model an outside option where either party can force trial, but we don't
         // include that in the matrix, both because it would take a lot of space and because the equilibrium where both refuse to give reasonable offers is
         // always a Nash equilibrium, albeit a trivial one. 
-        public const int NumEndpointOptions = 100; 
+        public const int NumEndpointOptions = 50; 
         public const int NumSignalsPerPlayer = 100;
         public const int NumStrategiesPerPlayer = NumEndpointOptions * (NumEndpointOptions + 1) / 2;
         public long NumRequiredGamePlays => Pow(NumEndpointOptions, 4) * Pow(NumSignalsPerPlayer, 2);
@@ -89,7 +89,7 @@ namespace SimpleAdditiveEvidence
         private string EvaluateEquilibria()
         {
             StringBuilder b = new StringBuilder();
-            List<(int pStrategy, int dStrategy)> nashStrategies = PureStrategiesFinder.ComputeNashEquilibria(PUtilities, DUtilities);
+            List<(int pStrategy, int dStrategy)> nashStrategies = PureStrategiesFinder.ComputeNashEquilibria(PUtilities, DUtilities, false);
             AllEquilibria = nashStrategies.ToHashSet();
 
             if (!AllEquilibria.Any())
@@ -114,7 +114,7 @@ namespace SimpleAdditiveEvidence
                         var dLine = ConvertStrategyToMinMaxContinuousOffers(nashStrategy.d, false);
                         b.AppendLine($"D (strategy {aNashStrategy.d}) offers from {dLine.minSignalStrategy.ToSignificantFigures(3)} to {dLine.maxSignalStrategy.ToSignificantFigures(3)} (utility {DUtilities[nashStrategy.p, nashStrategy.d].ToSignificantFigures(3)})");
 
-                        RecordUtilities(true, nashStrategy.p, nashStrategy.d); // calculate more advanced stats
+                        RecordUtilities(true, false, nashStrategy.p, nashStrategy.d); // calculate more advanced stats
                         b.AppendLine($"--> Trial rate {TrialRate[nashStrategy.p, nashStrategy.d].ToSignificantFigures(3)}");
                         if (numPrinted++ > 25)
                         {
@@ -142,7 +142,7 @@ namespace SimpleAdditiveEvidence
                 var bestEquilibrium = allList[orderedByDistance.First().index];
                 OptimalPStrategy = bestEquilibrium.p;
                 OptimalDStrategy = bestEquilibrium.d;
-                RecordUtilities(true, OptimalPStrategy, OptimalDStrategy); // calculate more advanced stats
+                RecordUtilities(true, false, OptimalPStrategy, OptimalDStrategy); // calculate more advanced stats
                 b.AppendLine($"Strategy with lowest approximate equilibrium distance: {OptimalPStrategy},{OptimalDStrategy} => ({PUtilities[OptimalPStrategy, OptimalDStrategy]},{DUtilities[OptimalPStrategy, OptimalDStrategy]})");
             }
             else
@@ -151,23 +151,26 @@ namespace SimpleAdditiveEvidence
                 var f1 = AllEquilibria.First();
                 OptimalPStrategy = f1.p;
                 OptimalDStrategy = f1.d;
-                RecordUtilities(true, OptimalPStrategy, OptimalDStrategy); // calculate more advanced stats
+                RecordUtilities(true, false, OptimalPStrategy, OptimalDStrategy); // calculate more advanced stats
             }
 
             OutsideOptionDominates = OutsideOption != null && (PUtilities[OptimalPStrategy, OptimalDStrategy] < OutsideOption?.pOutsideOption || DUtilities[OptimalPStrategy, OptimalDStrategy] < OutsideOption?.dOutsideOption);
             if (OutsideOptionDominates)
+            {
+                RecordUtilities(true, false, OutsideOptionExampleIndex.Value.p, OutsideOptionExampleIndex.Value.d);
                 b.AppendLine($"Choosing outside option of trial => ({OutsideOption.Value.pOutsideOption.ToSignificantFigures(3)}, {OutsideOption.Value.dOutsideOption.ToSignificantFigures(3)})");
+            }
 
             return b.ToString();
         }
 
         private void SelectOutsideOption()
         {
-            OptimalPStrategy = ConvertMinMaxToStrategy(NumEndpointOptions - 1, NumEndpointOptions - 1);
-            OptimalDStrategy = ConvertMinMaxToStrategy(0, 0);
+            OptimalPStrategy = OutsideOptionExampleIndex.Value.p;
+            OptimalDStrategy = OutsideOptionExampleIndex.Value.d;
             PUtilities[OptimalPStrategy, OptimalDStrategy] = OutsideOption.Value.pOutsideOption;
             DUtilities[OptimalPStrategy, OptimalDStrategy] = OutsideOption.Value.dOutsideOption;
-            RecordUtilities(true, OptimalPStrategy, OptimalDStrategy);
+            RecordUtilities(true, false, OptimalPStrategy, OptimalDStrategy);
             //TabbedText.WriteLine($"Trial equilibrium {OptimalPStrategy},{OptimalDStrategy} => ({PUtilities[OptimalPStrategy, OptimalDStrategy]},{DUtilities[OptimalPStrategy, OptimalDStrategy]})");
         }
 
@@ -383,6 +386,7 @@ namespace SimpleAdditiveEvidence
 
         // Outcomes where trial is inevitable is a strategy for both parties. We treat this case separately and compare the outside option at the end.
         (double pOutsideOption, double dOutsideOption)? OutsideOption;
+        (int p, int d)? OutsideOptionExampleIndex;
 
         double[] continuousSignals = Enumerable.Range(0, NumSignalsPerPlayer).Select(x => ContinuousSignal(x)).ToArray();
 
@@ -392,6 +396,7 @@ namespace SimpleAdditiveEvidence
         void RecordUtilities()
         {
             OutsideOption = null;
+            OutsideOptionExampleIndex = null;
 
             offerRanges = Enumerable.Range(0, NumStrategiesPerPlayer).Select(x => (ConvertStrategyToMinMaxContinuousOffers(x, true), ConvertStrategyToMinMaxContinuousOffers(x, false))).ToArray();
             for (int p = 0; p < NumStrategiesPerPlayer; p++)
@@ -399,13 +404,13 @@ namespace SimpleAdditiveEvidence
                 bool doParallel = true;
                 Parallelizer.Go(doParallel, 0, NumStrategiesPerPlayer, d =>
                 {
-                    RecordUtilities(false, p, d);
+                    RecordUtilities(false, true, p, d);
 
                 });
             }
         }
 
-        private void RecordUtilities(bool calculatePerformanceStats, int p, int d)
+        private void RecordUtilities(bool calculatePerformanceStats, bool setOutsideOptionUtilityToVeryBadValue, int p, int d)
         {
             var pOfferRange = offerRanges[p].Item1;
             var dOfferRange = offerRanges[d].Item2;
@@ -419,7 +424,7 @@ namespace SimpleAdditiveEvidence
             PUtilities[p, d] = pUtility;
             DUtilities[p, d] = dUtility;
             if (!atLeastOneSettlement && Math.Abs(1.0 - trialRate) < 0.00001) // we might have no pure settlements but trials only half of time
-                SetOutsideOption(p, d);
+                SetOutsideOption(p, d, setOutsideOptionUtilityToVeryBadValue);
             if (calculatePerformanceStats)
             {
                 TrialRate[p, d] = trialRate;
@@ -431,17 +436,21 @@ namespace SimpleAdditiveEvidence
         }
 
         object outsideOptionObj = new object();
-        private void SetOutsideOption(int p, int d)
+        private void SetOutsideOption(int p, int d, bool setUtilityToVeryBadOption)
         {
             if (OutsideOption == null)
             {
                 lock (outsideOptionObj)
                 {
                     if (OutsideOption == null)
+                    {
                         OutsideOption = (PUtilities[p, d], DUtilities[p, d]);
+                        OutsideOptionExampleIndex = (p, d);
+                    }
                 }
             }
-            PUtilities[p, d] = DUtilities[p, d] = VeryBadUtility; // very unattractive utility
+            if (setUtilityToVeryBadOption)
+                PUtilities[p, d] = DUtilities[p, d] = VeryBadUtility; // very unattractive utility
         }
 
         private void PrintUtilities()
