@@ -307,9 +307,8 @@ namespace ACESim
             ;
             var nashEquilibria = candidates.Where(x => !Player0WillChangeStrategy(x) && !Player1WillChangeStrategy(x))
                 .ToList();
-            // DEBUG
             if (removePayoffDominatedEquilibria)
-                nashEquilibria = nashEquilibria.Where(x => !nashEquilibria.Any(y => IsPayoffDominant(y, x))).ToList();
+                nashEquilibria = nashEquilibria.Where(x => !nashEquilibria.Any(y => IsPayoffDominant(y, x))).ToList(); // TODO: Very slow if there are a very large number of equilibria.
             return nashEquilibria;
         }
 
