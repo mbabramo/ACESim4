@@ -269,20 +269,16 @@ namespace ACESim
                 .SelectMany(x => player1Strategies.Select(y => (x, y))).ToList();
 
             //double[] Payoff(int player0Strategy, int player1Strategy) => new double[] {player0Utilities[player0Strategy, player1Strategy], player1Utilities[player0Strategy, player1Strategy] };
-            bool IsPayoffDominant
-            ((int player0Strategy, int player1Strategy) firstPayoffs,
-                (int player0Strategy, int player1Strategy) secondPayoffs)
+            //bool IsPayoffDominant
+            //((int player0Strategy, int player1Strategy) firstPayoffs,
+            //    (int player0Strategy, int player1Strategy) secondPayoffs) => UtilitiesArePayoffDominant((player0Utilities[firstPayoffs.player0Strategy, firstPayoffs.player1Strategy], player1Utilities[firstPayoffs.player0Strategy, firstPayoffs.player1Strategy]), (player0Utilities[secondPayoffs.player0Strategy, secondPayoffs.player1Strategy], player1Utilities[secondPayoffs.player0Strategy, secondPayoffs.player1Strategy]));
+
+            bool UtilitiesArePayoffDominant
+            ((double player0Utils, double player1Utils) firstPayoffs,
+                (double player0Utils, double player1Utils) secondPayoffs)
             {
-                bool atLeastOneBetter =
-                    player0Utilities[firstPayoffs.player0Strategy, firstPayoffs.player1Strategy] >
-                    player0Utilities[secondPayoffs.player0Strategy, secondPayoffs.player1Strategy] ||
-                    player1Utilities[firstPayoffs.player0Strategy, firstPayoffs.player1Strategy] >
-                    player1Utilities[secondPayoffs.player0Strategy, secondPayoffs.player1Strategy];
-                bool neitherWorse =
-                    player0Utilities[firstPayoffs.player0Strategy, firstPayoffs.player1Strategy] >=
-                    player0Utilities[secondPayoffs.player0Strategy, secondPayoffs.player1Strategy] &&
-                    player1Utilities[firstPayoffs.player0Strategy, firstPayoffs.player1Strategy] >=
-                    player1Utilities[secondPayoffs.player0Strategy, secondPayoffs.player1Strategy];
+                bool atLeastOneBetter = firstPayoffs.player0Utils > secondPayoffs.player0Utils || firstPayoffs.player1Utils > secondPayoffs.player1Utils;
+                bool neitherWorse = firstPayoffs.player0Utils >= secondPayoffs.player0Utils && firstPayoffs.player1Utils >= secondPayoffs.player1Utils;
                 return atLeastOneBetter && neitherWorse;
             }
 
@@ -307,8 +303,19 @@ namespace ACESim
             ;
             var nashEquilibria = candidates.Where(x => !Player0WillChangeStrategy(x) && !Player1WillChangeStrategy(x))
                 .ToList();
+            var nashEquilibriaUtils = nashEquilibria.Select((item, index) => ((player0Utilities[item.player0Strategy, item.player1Strategy], player1Utilities[item.player0Strategy, item.player1Strategy]), index)).ToArray(); // convert from int indices to utilities, along with index into original list. That way, we can work with utilities for a bit and then recover the original nash equilibria.
             if (removePayoffDominatedEquilibria)
-                nashEquilibria = nashEquilibria.Where(x => !nashEquilibria.Any(y => IsPayoffDominant(y, x))).ToList(); // TODO: Very slow if there are a very large number of equilibria.
+            {
+                // narrow to a set that aren't dominated by anything else
+                var dominantSet = new HashSet<(double p0Util, double p1Util)>();
+                foreach (var utils in nashEquilibriaUtils)
+                {
+                    if (!dominantSet.Contains(utils.Item1) && !dominantSet.Any(x => UtilitiesArePayoffDominant(x, utils.Item1)))
+                        dominantSet.Add(utils.Item1);
+                }
+                // now look at the original equilibria. find all that are not dominated by anything in the set (and therefore are not dominated by any). 
+                nashEquilibria = nashEquilibriaUtils.Where(x => !dominantSet.Any(y => UtilitiesArePayoffDominant(y, x.Item1))).Select(x => nashEquilibria[x.index]).ToList();
+            }
             return nashEquilibria;
         }
 
