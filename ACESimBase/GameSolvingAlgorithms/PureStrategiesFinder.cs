@@ -50,7 +50,7 @@ namespace ACESim
                 player1Permutations, nashEquilibria);
         }
 
-        public static List<(int player0Strategy, int player1Strategy)> ComputeNashEquilibria(double[,] player0Utilities, double[,] player1Utilities)
+        public static List<(int player0Strategy, int player1Strategy)> ComputeNashEquilibria(double[,] player0Utilities, double[,] player1Utilities, bool removePayoffDominatedEquilibria=true)
         {
             int player0Permutations = player0Utilities.GetLength(0);
             int player1Permutations = player0Utilities.GetLength(1);
@@ -60,7 +60,7 @@ namespace ACESim
                 player0StrategyEliminated, player1StrategyEliminated);
             List<(int player0Strategy, int player1Strategy)> nashEquilibria =
                 NarrowToNashEquilibria(player0Permutations, player1Permutations, player0Utilities, player1Utilities,
-                    player0StrategyEliminated, player1StrategyEliminated, true);
+                    player0StrategyEliminated, player1StrategyEliminated, removePayoffDominatedEquilibria);
             return nashEquilibria;
         }
 
@@ -308,7 +308,7 @@ namespace ACESim
             var nashEquilibria = candidates.Where(x => !Player0WillChangeStrategy(x) && !Player1WillChangeStrategy(x))
                 .ToList();
             if (removePayoffDominatedEquilibria)
-                nashEquilibria = nashEquilibria.Where(x => !nashEquilibria.Any(y => IsPayoffDominant(y, x))).ToList();
+                nashEquilibria = nashEquilibria.Where(x => !nashEquilibria.Any(y => IsPayoffDominant(y, x))).ToList(); // TODO: Very slow if there are a very large number of equilibria.
             return nashEquilibria;
         }
 
