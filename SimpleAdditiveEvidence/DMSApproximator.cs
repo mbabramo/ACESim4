@@ -523,26 +523,32 @@ namespace SimpleAdditiveEvidence
             accuracyForD = 0;
             for (int zp = 0; zp < NumSignalsPerPlayer; zp++)
             {
+                double pOffer = pOffers[zp];
+                double theta_p = continuousSignals[zp] * q;
                 for (int zd = 0; zd < NumSignalsPerPlayer; zd++)
                 {
+                    double dOffer = dOffers[zd];
+                    double theta_d = q + continuousSignals[zd] * (1 - q); // follows from zd = (theta_d - q) / (1 - q)
                     double pUtilitySingleCase = 0;
                     double dUtilitySingleCase = 0;
                     double trialRateSingleCase = 0;
-                    double accuracySqSingleCase = 0;
-                    double accuracyHypoSqSingleCase = 0;
-                    double accuracyForPSingleCase = 0;
-                    double accuracyForDSingleCase = 0;
                     if (calculatePerformanceStats)
                     {
-                        ProcessCaseGivenParticularSignals(zp, zd, continuousSignals, pOffers, dOffers, ref atLeastOneSettlement, ref pUtilitySingleCase, ref dUtilitySingleCase, ref trialRateSingleCase, ref accuracySqSingleCase, ref accuracyHypoSqSingleCase, ref accuracyForPSingleCase, ref accuracyForDSingleCase);
-                        trialRate += trialRateSingleCase;
+                        double accuracySqSingleCase = 0;
+                        double accuracyHypoSqSingleCase = 0;
+                        double accuracyForPSingleCase = 0;
+                        double accuracyForDSingleCase = 0;
+                        ProcessCaseGivenParticularSignals(zp, zd, pOffer, dOffer, theta_p, theta_d, ref atLeastOneSettlement, ref pUtilitySingleCase, ref dUtilitySingleCase, ref trialRateSingleCase, ref accuracySqSingleCase, ref accuracyHypoSqSingleCase, ref accuracyForPSingleCase, ref accuracyForDSingleCase);
                         accuracySq += accuracySqSingleCase;
                         accuracyHypoSq += accuracyHypoSqSingleCase;
                         accuracyForP += accuracyForPSingleCase;
                         accuracyForD += accuracyForDSingleCase;
                     }
                     else
-                        ProcessCaseGivenParticularSignals(zp, zd, continuousSignals, pOffers, dOffers, ref atLeastOneSettlement, ref pUtilitySingleCase, ref dUtilitySingleCase, ref trialRate); // faster version
+                    {
+                        ProcessCaseGivenParticularSignals(zp, zd, pOffer, dOffer, theta_p, theta_d, ref atLeastOneSettlement, ref pUtilitySingleCase, ref dUtilitySingleCase, ref trialRateSingleCase); // faster version
+                    }
+                    trialRate += trialRateSingleCase;
                     pUtility += pUtilitySingleCase;
                     dUtility += dUtilitySingleCase;
                 }
@@ -564,12 +570,8 @@ namespace SimpleAdditiveEvidence
         #region Game play with pair of P and D strategies and signals
 
         // first, a method that only gets the essential items when finding equilibria
-        private void ProcessCaseGivenParticularSignals(int zp, int zd, double[] continuousSignals, double[] pOffers, double[] dOffers, ref bool atLeastOneSettlement, ref double pUtility, ref double dUtility, ref double trialRate)
-        {
-            double pOffer = pOffers[zp];
-            double dOffer = dOffers[zd];
-            double theta_p = continuousSignals[zp] * q;
-            double theta_d = q + continuousSignals[zd] * (1 - q); // follows from zd = (theta_d - q) / (1 - q)
+        private void ProcessCaseGivenParticularSignals(int zp, int zd, double pOffer, double dOffer, double theta_p, double theta_d, ref bool atLeastOneSettlement, ref double pUtility, ref double dUtility, ref double trialRate)
+        { // follows from zd = (theta_d - q) / (1 - q)
 
             /* The following code should reach the same results as the called code with thetas */
             //double oneMinusQOverQ = (1.0 - q) / q;
@@ -588,12 +590,8 @@ namespace SimpleAdditiveEvidence
             ProcessCaseGivenOfferValues(ref atLeastOneSettlement, ref pUtility, ref dUtility, ref trialRate, pOffer, dOffer, theta_p, theta_d);
         }
 
-        private void ProcessCaseGivenParticularSignals(int zp, int zd, double[] continuousSignals, double[] pOffers, double[] dOffers, ref bool atLeastOneSettlement, ref double pUtility, ref double dUtility, ref double trialRate, ref double accuracySq, ref double accuracyHypoSq, ref double accuracyForP, ref double accuracyForD)
+        private void ProcessCaseGivenParticularSignals(int zp, int zd, double pOffer, double dOffer, double theta_p, double theta_d, ref bool atLeastOneSettlement, ref double pUtility, ref double dUtility, ref double trialRate, ref double accuracySq, ref double accuracyHypoSq, ref double accuracyForP, ref double accuracyForD)
         {
-            double pOffer = pOffers[zp];
-            double dOffer = dOffers[zd];
-            double theta_p = continuousSignals[zp] * q;
-            double theta_d = q + continuousSignals[zd] * (1 - q); // follows from zd = (theta_d - q) / (1 - q)
 
             /* The following code should reach the same results as the called code with thetas */
             //double oneMinusQOverQ = (1.0 - q) / q;
