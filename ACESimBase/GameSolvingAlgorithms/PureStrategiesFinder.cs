@@ -156,54 +156,55 @@ namespace ACESim
             const bool requireStrictDominance = true;
             bool atLeastOneEliminated = false;
             // compare pairs of strategies by this player to see if one dominates the other
-            for (int thisPlayerStrategyIndex1 = 0;
-                thisPlayerStrategyIndex1 < thisPlayerPermutations;
-                thisPlayerStrategyIndex1++)
-            for (int thisPlayerStrategyIndex2 = 0;
-                thisPlayerStrategyIndex2 < thisPlayerPermutations;
-                thisPlayerStrategyIndex2++)
+            bool doParallel = true;
+            Parallelizer.Go(doParallel, 0, thisPlayerPermutations, thisPlayerStrategyIndex1 =>
             {
-                if (thisPlayerStrategyIndex1 == thisPlayerStrategyIndex2 ||
-                    thisPlayerStrategyEliminated[thisPlayerStrategyIndex1] ||
-                    thisPlayerStrategyEliminated[thisPlayerStrategyIndex2])
-                    continue; // go to next pair to compare
-                bool index1SometimesBetter = false, index2SometimesBetter = false, sometimesEqual = false;
-                for (int opponentStrategyIndex = 0;
-                    opponentStrategyIndex < otherPlayerPermutations;
-                    opponentStrategyIndex++)
+                for (int thisPlayerStrategyIndex2 = 0;
+                    thisPlayerStrategyIndex2 < thisPlayerPermutations;
+                    thisPlayerStrategyIndex2++)
                 {
-                    if (otherPlayerStrategyEliminated[opponentStrategyIndex])
-                        continue;
-                    double thisPlayerStrategyIndex1Utility =
-                        getUtilityFn(thisPlayerStrategyIndex1, opponentStrategyIndex);
-                    double thisPlayerStrategyIndex2Utility =
-                        getUtilityFn(thisPlayerStrategyIndex2, opponentStrategyIndex);
-                    if (thisPlayerStrategyIndex1Utility == thisPlayerStrategyIndex2Utility)
+                    if (thisPlayerStrategyIndex1 == thisPlayerStrategyIndex2 ||
+                        thisPlayerStrategyEliminated[thisPlayerStrategyIndex1] ||
+                        thisPlayerStrategyEliminated[thisPlayerStrategyIndex2])
+                        continue; // go to next pair to compare
+                    bool index1SometimesBetter = false, index2SometimesBetter = false, sometimesEqual = false;
+                    for (int opponentStrategyIndex = 0;
+                        opponentStrategyIndex < otherPlayerPermutations;
+                        opponentStrategyIndex++)
                     {
-                        sometimesEqual = true;
-                        if (requireStrictDominance)
+                        if (otherPlayerStrategyEliminated[opponentStrategyIndex])
+                            continue;
+                        double thisPlayerStrategyIndex1Utility =
+                            getUtilityFn(thisPlayerStrategyIndex1, opponentStrategyIndex);
+                        double thisPlayerStrategyIndex2Utility =
+                            getUtilityFn(thisPlayerStrategyIndex2, opponentStrategyIndex);
+                        if (thisPlayerStrategyIndex1Utility == thisPlayerStrategyIndex2Utility)
+                        {
+                            sometimesEqual = true;
+                            if (requireStrictDominance)
+                                break;
+                        }
+                        if (thisPlayerStrategyIndex1Utility > thisPlayerStrategyIndex2Utility)
+                            index1SometimesBetter = true;
+                        else
+                            index2SometimesBetter = true;
+                        if (index1SometimesBetter && index2SometimesBetter)
                             break;
                     }
-                    if (thisPlayerStrategyIndex1Utility > thisPlayerStrategyIndex2Utility)
-                        index1SometimesBetter = true;
-                    else
-                        index2SometimesBetter = true;
-                    if (index1SometimesBetter && index2SometimesBetter)
-                        break;
+                    if (requireStrictDominance && sometimesEqual)
+                        continue; // we are not eliminating weakly dominant strategies
+                    if (index1SometimesBetter && !index2SometimesBetter)
+                    {
+                        thisPlayerStrategyEliminated[thisPlayerStrategyIndex2] = true;
+                        atLeastOneEliminated = true;
+                    }
+                    else if (!index1SometimesBetter && index2SometimesBetter)
+                    {
+                        atLeastOneEliminated = true;
+                        thisPlayerStrategyEliminated[thisPlayerStrategyIndex1] = true;
+                    }
                 }
-                if (requireStrictDominance && sometimesEqual)
-                    continue; // we are not eliminating weakly dominant strategies
-                if (index1SometimesBetter && !index2SometimesBetter)
-                {
-                    thisPlayerStrategyEliminated[thisPlayerStrategyIndex2] = true;
-                    atLeastOneEliminated = true;
-                }
-                else if (!index1SometimesBetter && index2SometimesBetter)
-                {
-                    atLeastOneEliminated = true;
-                    thisPlayerStrategyEliminated[thisPlayerStrategyIndex1] = true;
-                }
-            }
+            });
             return atLeastOneEliminated;
         }
 
@@ -262,9 +263,23 @@ namespace ACESim
             List<int> player0Strategies = player0StrategyEliminated
                 .Select((eliminated, index) => new {eliminated, index}).Where(x => !x.eliminated).Select(x => x.index)
                 .ToList();
+            int player0StrategiesMaxIndex = player0Strategies.Max();
             List<int> player1Strategies = player1StrategyEliminated
                 .Select((eliminated, index) => new {eliminated, index}).Where(x => !x.eliminated).Select(x => x.index)
                 .ToList();
+            int player1StrategiesMaxIndex = player1Strategies.Max();
+
+            double[] player1MaxUtilityGivenPlayer0Strategy = new double[player0StrategiesMaxIndex + 1];
+            foreach (int player0Strategy in player0Strategies)
+            {
+                player1MaxUtilityGivenPlayer0Strategy[player0Strategy] = player1Strategies.Select(x => player1Utilities[player0Strategy, x]).Max();
+            }
+            double[] player0MaxUtilityGivenPlayer1Strategy = new double[player1StrategiesMaxIndex + 1];
+            foreach (int player1Strategy in player1Strategies)
+            {
+                player0MaxUtilityGivenPlayer1Strategy[player1Strategy] = player0Strategies.Select(x => player0Utilities[x, player1Strategy]).Max();
+            }
+
             List<(int player0Strategy, int player1Strategy)> candidates = player0Strategies
                 .SelectMany(x => player1Strategies.Select(y => (x, y))).ToList();
 
@@ -282,22 +297,20 @@ namespace ACESim
                 return atLeastOneBetter && neitherWorse;
             }
 
+
+
             bool Player0WillChangeStrategy((int player0Strategy, int player1Strategy) candidate)
             {
-                return player0Strategies.Any(p0 => p0 != candidate.player0Strategy &&
-                                                   player0Utilities[p0, candidate.player1Strategy] >
-                                                   player0Utilities[candidate.player0Strategy,
-                                                       candidate.player1Strategy]);
+                double p0CurrentUtility = player0Utilities[candidate.player0Strategy, candidate.player1Strategy];
+                double bestAchievableUtility = player0MaxUtilityGivenPlayer1Strategy[candidate.player1Strategy];
+                return bestAchievableUtility > p0CurrentUtility;
             }
-
-            ;
 
             bool Player1WillChangeStrategy((int player0Strategy, int player1Strategy) candidate)
             {
-                return player1Strategies.Any(p1 => p1 != candidate.player1Strategy &&
-                                                   player1Utilities[candidate.player0Strategy, p1] >
-                                                   player1Utilities[candidate.player0Strategy,
-                                                       candidate.player1Strategy]);
+                double p1CurrentUtility = player1Utilities[candidate.player0Strategy, candidate.player1Strategy];
+                double bestAchievableUtility = player1MaxUtilityGivenPlayer0Strategy[candidate.player0Strategy];
+                return bestAchievableUtility > p1CurrentUtility;
             }
 
             ;
