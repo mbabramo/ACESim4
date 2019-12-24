@@ -33,7 +33,7 @@ namespace SimpleAdditiveEvidence
         // then there is only one possibility for the max. Note that below, we will also model an outside option where either party can force trial, but we don't
         // include that in the matrix, both because it would take a lot of space and because the equilibrium where both refuse to give reasonable offers is
         // always a Nash equilibrium, albeit a trivial one. 
-        public const int NumEndpointOptions = 100; 
+        public const int NumEndpointOptions = 30; 
         public const int NumSignalsPerPlayer = 100;
         public const int NumStrategiesPerPlayer = NumEndpointOptions * (NumEndpointOptions + 1) / 2;
         public long NumRequiredGamePlays => Pow(NumEndpointOptions, 4) * Pow(NumSignalsPerPlayer, 2);
@@ -167,6 +167,7 @@ namespace SimpleAdditiveEvidence
             OptimalDStrategy = ConvertMinMaxToStrategy(0, 0);
             PUtilities[OptimalPStrategy, OptimalDStrategy] = OutsideOption.Value.pOutsideOption;
             DUtilities[OptimalPStrategy, OptimalDStrategy] = OutsideOption.Value.dOutsideOption;
+            RecordUtilities(true, OptimalPStrategy, OptimalDStrategy);
             //TabbedText.WriteLine($"Trial equilibrium {OptimalPStrategy},{OptimalDStrategy} => ({PUtilities[OptimalPStrategy, OptimalDStrategy]},{DUtilities[OptimalPStrategy, OptimalDStrategy]})");
         }
 
