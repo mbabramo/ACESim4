@@ -15,16 +15,19 @@ namespace SimpleAdditiveEvidence
 
         static void Main(string[] args)
         {
+            //DMSMonteCarlo mc = new DMSMonteCarlo() { c = 0.2, q = 0.5 };
+            //mc.SimpleMonteCarlo();
+
             Stopwatch s = new Stopwatch();
             s.Start();
             StringBuilder b = new StringBuilder();
             string headerRow = "Cost,Quality,Threshold," + DMSApproximatorOutcome.GetHeaderString();
             b.AppendLine(headerRow);
-            foreach (double c in allCosts) 
+            foreach (double c in new double[] { 0.6 }) // DEBUG  allCosts) 
             {
-                foreach (double q in allQualities)
+                foreach (double q in new double[] { 0.5 })  // DEBUG allQualities)
                 {
-                    foreach (double t in allFeeShifting)
+                    foreach (double t in new double[] { 0 })  // DEBUG allFeeShifting)
                     {
                         DMSApproximator e = new DMSApproximator(q, c, t);
                         string rowPrefix = $"{c},{q},{t},";

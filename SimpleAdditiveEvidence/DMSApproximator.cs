@@ -32,11 +32,11 @@ namespace SimpleAdditiveEvidence
         // then there is only one possibility for the max. Note that below, we will also model an outside option where either party can force trial, but we don't
         // include that in the matrix, both because it would take a lot of space and because the equilibrium where both refuse to give reasonable offers is
         // always a Nash equilibrium, albeit a trivial one. 
-        public const int NumEndpointOptions = 100;
+        public const int NumEndpointOptions = 50; // DEBUG
         public const int NumSignalsPerPlayer = 100;
         public const int NumStrategiesPerPlayer = NumEndpointOptions * (NumEndpointOptions + 1) / 2;
         public long NumRequiredGamePlays => Pow(NumEndpointOptions, 4) * Pow(NumSignalsPerPlayer, 2);
-        public string OptionsString => $"Signals per player: {NumSignalsPerPlayer} Endpoint options: {50} => Required game plays {NumRequiredGamePlays:n0}";
+        public string OptionsString => $"Signals per player: {NumSignalsPerPlayer} Endpoint options: {NumEndpointOptions} => Required game plays {NumRequiredGamePlays:n0}";
         private static long Pow(int bas, int exp) => Enumerable.Repeat((long)bas, exp).Aggregate((long)1, (a, b) => a * b);
 
         bool LogDetailedProgress = true;
@@ -102,6 +102,7 @@ namespace SimpleAdditiveEvidence
                     AllEquilibria = AllEquilibria.Take(2).ToHashSet(); // don't need to list all
                 // list remaining equilibria
                 var grouped = AllEquilibria.GroupBy(x => x.p);
+                int numPrinted = 0;
                 foreach (var pStrategyGroup in grouped)
                 {
                     var aNashStrategy = pStrategyGroup.First();
@@ -112,13 +113,28 @@ namespace SimpleAdditiveEvidence
                         var dLine = ConvertStrategyToMinMaxContinuousOffers(nashStrategy.d, false);
                         b.AppendLine($"D (strategy {aNashStrategy.d}) offers from {dLine.minSignalStrategy.ToSignificantFigures(3)} to {dLine.maxSignalStrategy.ToSignificantFigures(3)} (utility {DUtilities[nashStrategy.p, nashStrategy.d].ToSignificantFigures(3)})");
                         b.AppendLine($"--> Trial rate {TrialRate[nashStrategy.p, nashStrategy.d].ToSignificantFigures(3)}");
+                        if (numPrinted++ > 25)
+                        {
+                            b.AppendLine($"Additional equilibria omitted. TOtal number of equilibria = {AllEquilibria.Count()}");
+                            goto abortedPrinting; // acceptable use of goto to break out of two for loops.
+                        }
                     }
                 }
+                abortedPrinting:
                 // pick the one with the best approximate equilibrium score
                 var allList = AllEquilibria.ToList();
-                var distances = allList.Select(x => PureStrategiesFinder.DistanceFromNash_SingleStrategy(x.p, x.d, PUtilities, DUtilities));
+                var distances = allList.Select(x => PureStrategiesFinder.DistanceFromNash_SingleStrategy(x.p, x.d, PUtilities, DUtilities)).ToList();
                 TabbedText.WriteLine($"Distances from equilibrium: {String.Join(",", distances)}");
                 var orderedByDistance = distances.Select((distance, index) => (distance, index)).OrderBy(x => x.distance).ToArray();
+                var lowestDistance = orderedByDistance.First().distance;
+                var distanceMatches = orderedByDistance.Count(x => x.distance == lowestDistance);
+                if (distanceMatches > 1)
+                {
+                    // still too many (probably zero distance, i.e. perfect equilibria).
+                    // pick the one with the lowest distance between parties' utilities (arbitrary)
+                    var utilityDistances = allList.Select(x => Math.Pow(PUtilities[x.p, x.d] - DUtilities[x.p, x.d], 2.0)).ToList(); 
+                    orderedByDistance = utilityDistances.Select((distance, index) => (distance, index)).OrderBy(x => x.distance).ToArray();
+                }
 
                 var bestEquilibrium = allList[orderedByDistance.First().index];
                 OptimalPStrategy = bestEquilibrium.p;
@@ -444,15 +460,28 @@ namespace SimpleAdditiveEvidence
         {
             double[] pOffers = Enumerable.Range(0, NumSignalsPerPlayer).Select(x => pOfferRange.minSignalStrategy * (1.0 - continuousSignals[x]) + pOfferRange.maxSignalStrategy * continuousSignals[x]).ToArray();
             double[] dOffers = Enumerable.Range(0, NumSignalsPerPlayer).Select(x => dOfferRange.minSignalStrategy * (1.0 - continuousSignals[x]) + dOfferRange.maxSignalStrategy * continuousSignals[x]).ToArray();
-            // Truncations (as specified in paper)
-            // 1. Plaintiff never demands less than lowest offer by the defendant.
-            for (int i = 0; i < pOffers.Length; i++)
-                if (pOffers[i] < dOfferRange.minSignalStrategy)
-                    pOffers[i] = dOfferRange.minSignalStrategy;
-            // 2. Defendant never offers more than highest demand by the plaintiff. 
-            for (int i = 0; i < dOffers.Length; i++)
-                if (dOffers[i] > pOfferRange.maxSignalStrategy)
-                    dOffers[i] = pOfferRange.maxSignalStrategy;
+            // Truncations (as specified in paper). 
+
+            // 1. IMPORTANT NOTE: The paper doesn't explain what to do if the plaintiff's highest offer is lower than the defendant's lowest offer, as would be the case when costs are very high and both parties are eager to avoid litigation at all costs. In Fig. A.2 (right panel), it is implicitly assumed that c < 1/3, because otherwise, the bottom horizontal line would be on top of the top horizontal line. That is, the relative positioning of the two truncation lines implies that c < 1/3. But we might have a different cutoff with fee shifting. We will resolve this by truncating all offers to the same midpoint (meaning that every case will settle). 
+            if (dOfferRange.minSignalStrategy > pOfferRange.maxSignalStrategy)
+            {
+                double midpoint = (dOfferRange.minSignalStrategy + pOfferRange.maxSignalStrategy) / 2.0;
+                for (int i = 0; i < pOffers.Length; i++)
+                {
+                    pOffers[i] = dOffers[i] = midpoint;
+                }
+            }
+            else
+            {
+                // 2. Plaintiff never demands less than lowest offer by the defendant.
+                for (int i = 0; i < pOffers.Length; i++)
+                    if (pOffers[i] < dOfferRange.minSignalStrategy)
+                        pOffers[i] = dOfferRange.minSignalStrategy;
+                // 3. Defendant never offers more than highest demand by the plaintiff. 
+                for (int i = 0; i < dOffers.Length; i++)
+                    if (dOffers[i] > pOfferRange.maxSignalStrategy)
+                        dOffers[i] = pOfferRange.maxSignalStrategy;
+            }
 
 
             atLeastOneSettlement = false;
@@ -503,6 +532,21 @@ namespace SimpleAdditiveEvidence
             double dOffer = dOffers[zd];
             double theta_p = continuousSignals[zp] * q;
             double theta_d = q + continuousSignals[zd] * (1 - q); // follows from zd = (theta_d - q) / (1 - q)
+
+            /* The following code should reach the same results as the called code with thetas */
+            //double oneMinusQOverQ = (1.0 - q) / q;
+            //double tMinusQOver1MinusQ = (t - q) / (1 - q);
+            //double oneMinusTOverQ = (1.0 - t) / q;
+            //double oneMinusQOverQTimes1MinusZD = oneMinusQOverQ * (1.0 - zd);
+            //double dPortionOfCosts = true switch
+            //{
+            //    _ when zd < oneMinusQOverQTimes1MinusZD && zd < tMinusQOver1MinusQ => 0,
+            //    _ when zd == oneMinusQOverQTimes1MinusZD || (zd >= tMinusQOver1MinusQ && zp <= oneMinusTOverQ) => 0.5,
+            //    _ when zp > oneMinusQOverQTimes1MinusZD && zp > oneMinusTOverQ => 1.0,
+            //    _ => throw new Exception()
+            //};
+
+
             ProcessCaseGivenOfferValues(ref atLeastOneSettlement, ref pUtility, ref dUtility, ref trialRate, ref accuracySq, ref accuracyHypoSq, ref accuracyForP, ref accuracyForD, pOffer, dOffer, theta_p, theta_d);
         }
 
@@ -513,7 +557,7 @@ namespace SimpleAdditiveEvidence
             double j = (theta_p + theta_d) / 2.0;
             double hypo_j = (hypo_theta_p + hypo_theta_d) / 2.0;
             bool equality = Math.Abs(pOffer - dOffer) < 1E-10; /* rounding error */
-            bool treatEqualityAsEquallyLikelyToProduceSettlementOrTrial = true; // with same bid, we assume 50% likelihood of each result -- this make sense as an approximation of a continuous equilibrium
+            bool treatEqualityAsEquallyLikelyToProduceSettlementOrTrial = false; // with same bid, we assume 50% likelihood of each result -- this make sense as an approximation of a continuous equilibrium
             double equalityMultiplier = treatEqualityAsEquallyLikelyToProduceSettlementOrTrial && equality ? 0.5 : 1.0;
             bool dGreater = dOffer > pOffer || equality; // always count equality with the settlement
             if (dGreater || equality)
@@ -524,13 +568,13 @@ namespace SimpleAdditiveEvidence
                 double pEffect = settlement;
                 double dEffect = 1.0 - settlement;
                 //Debug.WriteLine($"({p},{d}) settle ({zp},{zd}) => {pEffect}, {dEffect} "); 
-                pUtility = equalityMultiplier * pEffect;
-                dUtility = equalityMultiplier * (1.0 - pEffect);
+                pUtility += equalityMultiplier * pEffect;
+                dUtility += equalityMultiplier * (1.0 - pEffect);
                 double v = equalityMultiplier * (pEffect - q) * (pEffect - q);
-                accuracySq = v;
-                accuracyHypoSq = v;
-                accuracyForP = equalityMultiplier * Math.Abs(pEffect - j);
-                accuracyForD = equalityMultiplier * Math.Abs(dEffect - (1 - j));
+                accuracySq += v;
+                accuracyHypoSq += v;
+                accuracyForP += equalityMultiplier * Math.Abs(pEffect - j);
+                accuracyForD += equalityMultiplier * Math.Abs(dEffect - (1 - j));
             }
             bool dLess = (dOffer < pOffer && !equality) || (equality && treatEqualityAsEquallyLikelyToProduceSettlementOrTrial);
             if (dLess)
@@ -540,7 +584,7 @@ namespace SimpleAdditiveEvidence
                 double dPortionOfCosts = true switch
                 {
                     _ when theta_p < oneMinusTheta_d && (theta_d < t) => 0,
-                    _ when Math.Abs(theta_p - oneMinusTheta_d) < 1E-10 /* i.e., equality but for rounding */ || (theta_d >= t && theta_p <= t) => 0.5,
+                    _ when Math.Abs(theta_p - oneMinusTheta_d) < 1E-10 /* i.e., equality but for rounding */ || (theta_d >= t && theta_p <= 1 - t) => 0.5,
                     _ => 1.0
                 };
                 double hypo_oneMinusTheta_d = 1.0 - hypo_theta_d;
@@ -556,16 +600,16 @@ namespace SimpleAdditiveEvidence
                 double pEffect = (j - pCosts);
                 double hypo_pEffect = (hypo_j - pCosts);
                 double dEffect = ((1.0 - j) - dCosts);
-                pUtility = equalityMultiplier * pEffect;
-                dUtility = equalityMultiplier * dEffect;
+                pUtility += equalityMultiplier * pEffect;
+                dUtility += equalityMultiplier * dEffect;
 
-                trialRate = equalityMultiplier;
+                trialRate += equalityMultiplier;
                 double accuracyUnsquared = pEffect + 0.5 * c; // the idea here is that the party's own costs are considered relevant to accuracy. Because P paid 0.5 * c out of pocket and this was counted in pEffect, we add this back in. Note that if shifting to defendant has occurred, that means that we have that accuracyUnsquared == j + 0.5*C, with the latter part representing the fee shifting penalty imposed on the defendant.
                 double hypo_accuracyUnsquared = hypo_pEffect + 0.5 * c;
-                accuracySq = equalityMultiplier * accuracyUnsquared * accuracyUnsquared;
-                accuracyHypoSq = equalityMultiplier * hypo_accuracyUnsquared * hypo_accuracyUnsquared;
-                accuracyForP = equalityMultiplier * Math.Abs(pEffect - j);
-                accuracyForD = equalityMultiplier * Math.Abs(dEffect - (1 - j));
+                accuracySq += equalityMultiplier * accuracyUnsquared * accuracyUnsquared;
+                accuracyHypoSq += equalityMultiplier * hypo_accuracyUnsquared * hypo_accuracyUnsquared;
+                accuracyForP += equalityMultiplier * Math.Abs(pEffect - j);
+                accuracyForD += equalityMultiplier * Math.Abs(dEffect - (1 - j));
                 //Debug.WriteLine($"({p},{d}) trial ({zp},{zd}) => {pEffect}, {dEffect} [based on {theta_p}, {theta_d}");
             }
 
