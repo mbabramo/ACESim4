@@ -128,7 +128,8 @@ namespace SimpleAdditiveEvidence
                 var orderedByDistance = distances.Select((distance, index) => (distance, index)).OrderBy(x => x.distance).ToArray();
                 var lowestDistance = orderedByDistance.First().distance;
                 var distanceMatches = orderedByDistance.Count(x => x.distance == lowestDistance);
-                if (distanceMatches > 1)
+                bool alwaysChooseBasedOnUtilityDistance = true; // DEBUG
+                if (distanceMatches > 1 || alwaysChooseBasedOnUtilityDistance)
                 {
                     // still too many (probably zero distance, i.e. perfect equilibria).
                     // pick the one with the lowest distance between parties' utilities (arbitrary)
@@ -292,7 +293,7 @@ namespace SimpleAdditiveEvidence
             else
             {
                 double kinkPoint = MapFromInnerRangeToMinOrMaxOffer(minMaxNonlinearAboveThreshold, plaintiff, isMin);
-                double amountToAdd = 1.0 / (1.0 - continuousOfferWithLinearSlopeUnadjusted) - 1.0 / minMaxNonlinearAboveThreshold;
+                double amountToAdd = 1.0 / (1.0 - continuousOfferWithLinearSlopeUnadjusted) - 1.0 / (1.0 - minMaxNonlinearAboveThreshold);
                 return kinkPoint + multiplier * amountToAdd;
             }
         }
@@ -385,6 +386,15 @@ namespace SimpleAdditiveEvidence
         void CalculateUtilities()
         {
             OutsideOption = null;
+            var DEBUG1 = MapFromZeroOneRangeToMinOrMaxOffer(0.15, true, true);
+            var DEBUG2 = MapFromZeroOneRangeToMinOrMaxOffer(0.15, true, false);
+            var DEBUG3 = MapFromZeroOneRangeToMinOrMaxOffer(0.15, false, true);
+            var DEBUG4 = MapFromZeroOneRangeToMinOrMaxOffer(0.15, false, false);
+            var DEBUG5 = MapFromZeroOneRangeToMinOrMaxOffer(0.85, true, true);
+            var DEBUG6 = MapFromZeroOneRangeToMinOrMaxOffer(0.85, true, false);
+            var DEBUG7 = MapFromZeroOneRangeToMinOrMaxOffer(0.85, false, true);
+            var DEBUG8 = MapFromZeroOneRangeToMinOrMaxOffer(0.85, false, false);
+
             var offerRanges = Enumerable.Range(0, NumStrategiesPerPlayer).Select(x => (ConvertStrategyToMinMaxContinuousOffers(x, true), ConvertStrategyToMinMaxContinuousOffers(x, false))).ToArray();
             for (int p = 0; p < NumStrategiesPerPlayer; p++)
             {

@@ -23,7 +23,13 @@ namespace SimpleAdditiveEvidence
             StringBuilder b = new StringBuilder();
             string headerRow = "Cost,Quality,Threshold," + DMSApproximatorOutcome.GetHeaderString();
             b.AppendLine(headerRow);
-            foreach (double c in  allCosts) 
+
+            // Uncomment to play specific value(s)
+            //allCosts = new double[] { 0.15 };
+            //allQualities = new double[] { 0.4, 0.6 };
+            //allFeeShifting = new double[] { 0 };
+
+            foreach (double c in allCosts) 
             {
                 foreach (double q in allQualities)
                 {
@@ -44,6 +50,9 @@ namespace SimpleAdditiveEvidence
             TabbedText.WriteLine($"Overall results");
             TabbedText.WriteLine(b.ToString());
             TabbedText.WriteLine($"Time {s.ElapsedMilliseconds}");
+
+
+            TextCopy.Clipboard.SetText(TabbedText.AccumulatedText.ToString());
         }
 
         
