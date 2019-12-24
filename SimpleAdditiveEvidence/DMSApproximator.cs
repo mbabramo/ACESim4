@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -32,7 +33,7 @@ namespace SimpleAdditiveEvidence
         // then there is only one possibility for the max. Note that below, we will also model an outside option where either party can force trial, but we don't
         // include that in the matrix, both because it would take a lot of space and because the equilibrium where both refuse to give reasonable offers is
         // always a Nash equilibrium, albeit a trivial one. 
-        public const int NumEndpointOptions = 30; // DEBUG
+        public const int NumEndpointOptions = 100; 
         public const int NumSignalsPerPlayer = 100;
         public const int NumStrategiesPerPlayer = NumEndpointOptions * (NumEndpointOptions + 1) / 2;
         public long NumRequiredGamePlays => Pow(NumEndpointOptions, 4) * Pow(NumSignalsPerPlayer, 2);
@@ -67,7 +68,7 @@ namespace SimpleAdditiveEvidence
                 if (LogDetailedProgress)
                     TabbedText.WriteLine($"25%le to 75%le ranges: P ({NonlinearCutoffString(true, true, true)} to {NonlinearCutoffString(true, false, true)},{NonlinearCutoffString(true, true, false)} to {NonlinearCutoffString(true, false, false)}) D ({NonlinearCutoffString(false, true, true)} to {NonlinearCutoffString(false, false, true)},{NonlinearCutoffString(false, true, false)} to {NonlinearCutoffString(false, false, false)}) ");
                 ResetUtilities();
-                CalculateUtilities();
+                RecordUtilities();
                 var eqResult = EvaluateEquilibria();
                 if (LogDetailedProgress && PrintUtilitiesInDetailedLog)
                     PrintUtilities();
@@ -112,34 +113,36 @@ namespace SimpleAdditiveEvidence
                     {
                         var dLine = ConvertStrategyToMinMaxContinuousOffers(nashStrategy.d, false);
                         b.AppendLine($"D (strategy {aNashStrategy.d}) offers from {dLine.minSignalStrategy.ToSignificantFigures(3)} to {dLine.maxSignalStrategy.ToSignificantFigures(3)} (utility {DUtilities[nashStrategy.p, nashStrategy.d].ToSignificantFigures(3)})");
+
+                        RecordUtilities(true, nashStrategy.p, nashStrategy.d); // calculate more advanced stats
                         b.AppendLine($"--> Trial rate {TrialRate[nashStrategy.p, nashStrategy.d].ToSignificantFigures(3)}");
                         if (numPrinted++ > 25)
                         {
-                            b.AppendLine($"Additional equilibria omitted. TOtal number of equilibria = {AllEquilibria.Count()}");
+                            b.AppendLine($"Additional equilibria omitted. Total number of equilibria = {AllEquilibria.Count()}");
                             goto abortedPrinting; // acceptable use of goto to break out of two for loops.
                         }
                     }
                 }
-                abortedPrinting:
+            abortedPrinting:
                 // pick the one with the best approximate equilibrium score
                 var allList = AllEquilibria.ToList();
-                var distances = allList.Select(x => PureStrategiesFinder.DistanceFromNash_SingleStrategy(x.p, x.d, PUtilities, DUtilities)).ToList();
-                TabbedText.WriteLine($"Distances from equilibrium: {String.Join(",", distances)}");
-                var orderedByDistance = distances.Select((distance, index) => (distance, index)).OrderBy(x => x.distance).ToArray();
-                var lowestDistance = orderedByDistance.First().distance;
-                var distanceMatches = orderedByDistance.Count(x => x.distance == lowestDistance);
-                bool alwaysChooseBasedOnUtilityDistance = true; // DEBUG
-                if (distanceMatches > 1 || alwaysChooseBasedOnUtilityDistance)
-                {
-                    // still too many (probably zero distance, i.e. perfect equilibria).
-                    // pick the one with the lowest distance between parties' utilities (arbitrary)
-                    var utilityDistances = allList.Select(x => Math.Pow(PUtilities[x.p, x.d] - DUtilities[x.p, x.d], 2.0)).ToList(); 
-                    orderedByDistance = utilityDistances.Select((distance, index) => (distance, index)).OrderBy(x => x.distance).ToArray();
-                }
+                //var distances = allList.Select(x => PureStrategiesFinder.DistanceFromNash_SingleStrategy(x.p, x.d, PUtilities, DUtilities)).ToList();
+                //TabbedText.WriteLine($"Distances from equilibrium: {String.Join(",", distances)}");
+                //var orderedByDistance = distances.Select((distance, index) => (distance, index)).OrderBy(x => x.distance).ToArray();
+                //var lowestDistance = orderedByDistance.First().distance;
+                //var distanceMatches = orderedByDistance.Count(x => x.distance == lowestDistance);
+                //bool alwaysChooseBasedOnUtilityDistance = true; 
+                //if (distanceMatches > 1 || alwaysChooseBasedOnUtilityDistance)
+
+                // still too many (probably zero distance, i.e. perfect equilibria).
+                // pick the one with the lowest distance between parties' utilities (arbitrary)
+                var utilityDistances = allList.Select(x => Math.Pow(PUtilities[x.p, x.d] - DUtilities[x.p, x.d], 2.0)).ToList();
+                var orderedByDistance = utilityDistances.Select((distance, index) => (distance, index)).OrderBy(x => x.distance).ToArray();
 
                 var bestEquilibrium = allList[orderedByDistance.First().index];
                 OptimalPStrategy = bestEquilibrium.p;
                 OptimalDStrategy = bestEquilibrium.d;
+                RecordUtilities(true, OptimalPStrategy, OptimalDStrategy); // calculate more advanced stats
                 b.AppendLine($"Strategy with lowest approximate equilibrium distance: {OptimalPStrategy},{OptimalDStrategy} => ({PUtilities[OptimalPStrategy, OptimalDStrategy]},{DUtilities[OptimalPStrategy, OptimalDStrategy]})");
             }
             else
@@ -148,12 +151,13 @@ namespace SimpleAdditiveEvidence
                 var f1 = AllEquilibria.First();
                 OptimalPStrategy = f1.p;
                 OptimalDStrategy = f1.d;
+                RecordUtilities(true, OptimalPStrategy, OptimalDStrategy); // calculate more advanced stats
             }
 
             OutsideOptionDominates = OutsideOption != null && (PUtilities[OptimalPStrategy, OptimalDStrategy] < OutsideOption?.pOutsideOption || DUtilities[OptimalPStrategy, OptimalDStrategy] < OutsideOption?.dOutsideOption);
             if (OutsideOptionDominates)
                 b.AppendLine($"Choosing outside option of trial => ({OutsideOption.Value.pOutsideOption.ToSignificantFigures(3)}, {OutsideOption.Value.dOutsideOption.ToSignificantFigures(3)})");
-            
+
             return b.ToString();
         }
 
@@ -383,42 +387,45 @@ namespace SimpleAdditiveEvidence
 
         const double VeryBadUtility = -1E+20;
 
-        void CalculateUtilities()
+        ((double minSignalStrategy, double maxSignalStrategy), (double minSignalStrategy, double maxSignalStrategy))[] offerRanges;
+        void RecordUtilities()
         {
             OutsideOption = null;
-            var DEBUG1 = MapFromZeroOneRangeToMinOrMaxOffer(0.15, true, true);
-            var DEBUG2 = MapFromZeroOneRangeToMinOrMaxOffer(0.15, true, false);
-            var DEBUG3 = MapFromZeroOneRangeToMinOrMaxOffer(0.15, false, true);
-            var DEBUG4 = MapFromZeroOneRangeToMinOrMaxOffer(0.15, false, false);
-            var DEBUG5 = MapFromZeroOneRangeToMinOrMaxOffer(0.85, true, true);
-            var DEBUG6 = MapFromZeroOneRangeToMinOrMaxOffer(0.85, true, false);
-            var DEBUG7 = MapFromZeroOneRangeToMinOrMaxOffer(0.85, false, true);
-            var DEBUG8 = MapFromZeroOneRangeToMinOrMaxOffer(0.85, false, false);
 
-            var offerRanges = Enumerable.Range(0, NumStrategiesPerPlayer).Select(x => (ConvertStrategyToMinMaxContinuousOffers(x, true), ConvertStrategyToMinMaxContinuousOffers(x, false))).ToArray();
+            offerRanges = Enumerable.Range(0, NumStrategiesPerPlayer).Select(x => (ConvertStrategyToMinMaxContinuousOffers(x, true), ConvertStrategyToMinMaxContinuousOffers(x, false))).ToArray();
             for (int p = 0; p < NumStrategiesPerPlayer; p++)
             {
-                bool doParallel = true; 
+                bool doParallel = true;
                 Parallelizer.Go(doParallel, 0, NumStrategiesPerPlayer, d =>
                 {
-                    var pOfferRange = offerRanges[p].Item1;
-                    var dOfferRange = offerRanges[d].Item2;
-                    bool atLeastOneSettlement;
-                    double pUtility, dUtility, trialRate, accuracySq, accuracyHypoSq, accuracyForP, accuracyForD;
-                    CalculateResultsForOfferRanges(pOfferRange, dOfferRange, out atLeastOneSettlement, out pUtility, out dUtility, out trialRate, out accuracySq, out accuracyHypoSq, out accuracyForP, out accuracyForD);
-
-                    PUtilities[p, d] = pUtility;
-                    DUtilities[p, d] = dUtility;
-                    if (!atLeastOneSettlement && Math.Abs(1.0 - trialRate) < 0.00001) // we might have no pure settlements but trials only half of time
-                        SetOutsideOption(p, d);
-
-                    TrialRate[p, d] = trialRate;
-                    AccuracySq[p, d] = accuracySq;
-                    AccuracyHypoSq[p, d] = accuracyHypoSq;
-                    AccuracyForP[p, d] = accuracyForP;
-                    AccuracyForD[p, d] = accuracyForD;
+                    RecordUtilities(false, p, d);
 
                 });
+            }
+        }
+
+        private void RecordUtilities(bool calculatePerformanceStats, int p, int d)
+        {
+            var pOfferRange = offerRanges[p].Item1;
+            var dOfferRange = offerRanges[d].Item2;
+            bool atLeastOneSettlement;
+            double pUtility, dUtility, trialRate = 0, accuracySq = 0, accuracyHypoSq = 0, accuracyForP = 0, accuracyForD = 0;
+            if (calculatePerformanceStats)
+                CalculateResultsForOfferRanges(true, pOfferRange, dOfferRange, out atLeastOneSettlement, out pUtility, out dUtility, out trialRate, out accuracySq, out accuracyHypoSq, out accuracyForP, out accuracyForD);
+            else
+                CalculateResultsForOfferRanges(pOfferRange, dOfferRange, out atLeastOneSettlement, out pUtility, out dUtility);
+
+            PUtilities[p, d] = pUtility;
+            DUtilities[p, d] = dUtility;
+            if (!atLeastOneSettlement && Math.Abs(1.0 - trialRate) < 0.00001) // we might have no pure settlements but trials only half of time
+                SetOutsideOption(p, d);
+            if (calculatePerformanceStats)
+            {
+                TrialRate[p, d] = trialRate;
+                AccuracySq[p, d] = accuracySq;
+                AccuracyHypoSq[p, d] = accuracyHypoSq;
+                AccuracyForP[p, d] = accuracyForP;
+                AccuracyForD[p, d] = accuracyForD;
             }
         }
 
@@ -462,11 +469,13 @@ namespace SimpleAdditiveEvidence
         private (double pUtility, double dUtility) CalculateUtilitiesForOfferRanges((double minSignalStrategy, double maxSignalStrategy) pOfferRange, (double minSignalStrategy, double maxSignalStrategy) dOfferRange)
         {
             double pUtility, dUtility;
-            CalculateResultsForOfferRanges(pOfferRange, dOfferRange, out _, out pUtility, out dUtility, out _, out _, out _, out _, out _);
+            CalculateResultsForOfferRanges(false, pOfferRange, dOfferRange, out _, out pUtility, out dUtility, out _, out _, out _, out _, out _);
             return (pUtility, dUtility);
         }
 
-        private void CalculateResultsForOfferRanges((double minSignalStrategy, double maxSignalStrategy) pOfferRange, (double minSignalStrategy, double maxSignalStrategy) dOfferRange, out bool atLeastOneSettlement, out double pUtility, out double dUtility, out double trialRate, out double accuracySq, out double accuracyHypoSq, out double accuracyForP, out double accuracyForD)
+        private void CalculateResultsForOfferRanges((double minSignalStrategy, double maxSignalStrategy) pOfferRange, (double minSignalStrategy, double maxSignalStrategy) dOfferRange, out bool atLeastOneSettlement, out double pUtility, out double dUtility) => CalculateResultsForOfferRanges(false, pOfferRange, dOfferRange, out atLeastOneSettlement, out pUtility, out dUtility, out _, out _, out _, out _, out _);
+
+        private void CalculateResultsForOfferRanges(bool calculatePerformanceStats, (double minSignalStrategy, double maxSignalStrategy) pOfferRange, (double minSignalStrategy, double maxSignalStrategy) dOfferRange, out bool atLeastOneSettlement, out double pUtility, out double dUtility, out double trialRate, out double accuracySq, out double accuracyHypoSq, out double accuracyForP, out double accuracyForD)
         {
             double[] pOffers = Enumerable.Range(0, NumSignalsPerPlayer).Select(x => pOfferRange.minSignalStrategy * (1.0 - continuousSignals[x]) + pOfferRange.maxSignalStrategy * continuousSignals[x]).ToArray();
             double[] dOffers = Enumerable.Range(0, NumSignalsPerPlayer).Select(x => dOfferRange.minSignalStrategy * (1.0 - continuousSignals[x]) + dOfferRange.maxSignalStrategy * continuousSignals[x]).ToArray();
@@ -513,28 +522,61 @@ namespace SimpleAdditiveEvidence
                     double accuracyHypoSqSingleCase = 0;
                     double accuracyForPSingleCase = 0;
                     double accuracyForDSingleCase = 0;
-                    ProcessCaseGivenParticularSignals(zp, zd, continuousSignals, pOffers, dOffers, ref atLeastOneSettlement, ref pUtilitySingleCase, ref dUtilitySingleCase, ref trialRateSingleCase, ref accuracySqSingleCase, ref accuracyHypoSqSingleCase, ref accuracyForPSingleCase, ref accuracyForDSingleCase);
+                    if (calculatePerformanceStats)
+                    {
+                        ProcessCaseGivenParticularSignals(zp, zd, continuousSignals, pOffers, dOffers, ref atLeastOneSettlement, ref pUtilitySingleCase, ref dUtilitySingleCase, ref trialRateSingleCase, ref accuracySqSingleCase, ref accuracyHypoSqSingleCase, ref accuracyForPSingleCase, ref accuracyForDSingleCase);
+                        trialRate += trialRateSingleCase;
+                        accuracySq += accuracySqSingleCase;
+                        accuracyHypoSq += accuracyHypoSqSingleCase;
+                        accuracyForP += accuracyForPSingleCase;
+                        accuracyForD += accuracyForDSingleCase;
+                    }
+                    else
+                        ProcessCaseGivenParticularSignals(zp, zd, continuousSignals, pOffers, dOffers, ref atLeastOneSettlement, ref pUtilitySingleCase, ref dUtilitySingleCase); // faster version
                     pUtility += pUtilitySingleCase;
                     dUtility += dUtilitySingleCase;
-                    trialRate += trialRateSingleCase;
-                    accuracySq += accuracySqSingleCase;
-                    accuracyHypoSq += accuracyHypoSqSingleCase;
-                    accuracyForP += accuracyForPSingleCase;
-                    accuracyForD += accuracyForDSingleCase;
                 }
             }
             pUtility /= (double)EvaluationsPerStrategyCombination;
             dUtility /= (double)EvaluationsPerStrategyCombination;
-            trialRate /= (double)EvaluationsPerStrategyCombination;
-            accuracySq /= (double)EvaluationsPerStrategyCombination;
-            accuracyHypoSq /= (double)EvaluationsPerStrategyCombination;
-            accuracyForP /= (double)EvaluationsPerStrategyCombination;
-            accuracyForD /= (double)EvaluationsPerStrategyCombination;
+            if (calculatePerformanceStats)
+            {
+                trialRate /= (double)EvaluationsPerStrategyCombination;
+                accuracySq /= (double)EvaluationsPerStrategyCombination;
+                accuracyHypoSq /= (double)EvaluationsPerStrategyCombination;
+                accuracyForP /= (double)EvaluationsPerStrategyCombination;
+                accuracyForD /= (double)EvaluationsPerStrategyCombination;
+            }
         }
 
         #endregion
 
         #region Game play with pair of P and D strategies and signals
+
+        // first, a method that only gets the essential items when finding equilibria
+        private void ProcessCaseGivenParticularSignals(int zp, int zd, double[] continuousSignals, double[] pOffers, double[] dOffers, ref bool atLeastOneSettlement, ref double pUtility, ref double dUtility)
+        {
+            double pOffer = pOffers[zp];
+            double dOffer = dOffers[zd];
+            double theta_p = continuousSignals[zp] * q;
+            double theta_d = q + continuousSignals[zd] * (1 - q); // follows from zd = (theta_d - q) / (1 - q)
+
+            /* The following code should reach the same results as the called code with thetas */
+            //double oneMinusQOverQ = (1.0 - q) / q;
+            //double tMinusQOver1MinusQ = (t - q) / (1 - q);
+            //double oneMinusTOverQ = (1.0 - t) / q;
+            //double oneMinusQOverQTimes1MinusZD = oneMinusQOverQ * (1.0 - zd);
+            //double dPortionOfCosts = true switch
+            //{
+            //    _ when zd < oneMinusQOverQTimes1MinusZD && zd < tMinusQOver1MinusQ => 0,
+            //    _ when zd == oneMinusQOverQTimes1MinusZD || (zd >= tMinusQOver1MinusQ && zp <= oneMinusTOverQ) => 0.5,
+            //    _ when zp > oneMinusQOverQTimes1MinusZD && zp > oneMinusTOverQ => 1.0,
+            //    _ => throw new Exception()
+            //};
+
+
+            ProcessCaseGivenOfferValues(ref atLeastOneSettlement, ref pUtility, ref dUtility, pOffer, dOffer, theta_p, theta_d);
+        }
 
         private void ProcessCaseGivenParticularSignals(int zp, int zd, double[] continuousSignals, double[] pOffers, double[] dOffers, ref bool atLeastOneSettlement, ref double pUtility, ref double dUtility, ref double trialRate, ref double accuracySq, ref double accuracyHypoSq, ref double accuracyForP, ref double accuracyForD)
         {
@@ -558,6 +600,46 @@ namespace SimpleAdditiveEvidence
 
 
             ProcessCaseGivenOfferValues(ref atLeastOneSettlement, ref pUtility, ref dUtility, ref trialRate, ref accuracySq, ref accuracyHypoSq, ref accuracyForP, ref accuracyForD, pOffer, dOffer, theta_p, theta_d);
+        }
+
+
+        private void ProcessCaseGivenOfferValues(ref bool atLeastOneSettlement, ref double pUtility, ref double dUtility, double pOffer, double dOffer, double theta_p, double theta_d)
+        {
+            double j = (theta_p + theta_d) / 2.0;
+            bool equality = Math.Abs(pOffer - dOffer) < 1E-10; /* rounding error */
+            bool treatEqualityAsEquallyLikelyToProduceSettlementOrTrial = false; // with same bid, we assume 50% likelihood of each result -- this make sense as an approximation of a continuous equilibrium
+            double equalityMultiplier = treatEqualityAsEquallyLikelyToProduceSettlementOrTrial && equality ? 0.5 : 1.0;
+            bool dGreater = dOffer > pOffer || equality; // always count equality with the settlement
+            if (dGreater || equality)
+            {
+                if (equalityMultiplier != 0.5)
+                    atLeastOneSettlement = true;
+                double settlement = (pOffer + dOffer) / 2.0;
+                double pEffect = settlement;
+                double dEffect = 1.0 - settlement;
+                //Debug.WriteLine($"({p},{d}) settle ({zp},{zd}) => {pEffect}, {dEffect} "); 
+                pUtility += equalityMultiplier * pEffect;
+                dUtility += equalityMultiplier * (1.0 - pEffect);
+            }
+            bool dLess = (dOffer < pOffer && !equality) || (equality && treatEqualityAsEquallyLikelyToProduceSettlementOrTrial);
+            if (dLess)
+            {
+                // trial
+                double oneMinusTheta_d = 1.0 - theta_d;
+                double dPortionOfCosts = true switch
+                {
+                    _ when theta_p < oneMinusTheta_d && (theta_d < t) => 0,
+                    _ when Math.Abs(theta_p - oneMinusTheta_d) < 1E-10 /* i.e., equality but for rounding */ || (theta_d >= t && theta_p <= 1 - t) => 0.5,
+                    _ => 1.0
+                };
+                double dCosts = dPortionOfCosts * c;
+                double pCosts = c - dCosts;
+
+                double pEffect = (j - pCosts);
+                double dEffect = ((1.0 - j) - dCosts);
+                pUtility += equalityMultiplier * pEffect;
+                dUtility += equalityMultiplier * dEffect;
+            }
         }
 
         private void ProcessCaseGivenOfferValues(ref bool atLeastOneSettlement, ref double pUtility, ref double dUtility, ref double trialRate, ref double accuracySq, ref double accuracyHypoSq, ref double accuracyForP, ref double accuracyForD, double pOffer, double dOffer, double theta_p, double theta_d)
