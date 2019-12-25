@@ -89,12 +89,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 };
                 foreach ((string prefix, Func<GameProgress, byte, bool> filter, int n) r in new (string prefix, Func<GameProgress, byte, bool> filter, int n)[]
                 {
-                    ("PQuality", (GameProgress gp, byte s) => AEGP(gp).Chance_Plaintiff_Quality == s, Options.NumQualityAndBiasLevels),
-                    ("DQuality", (GameProgress gp, byte s) => AEGP(gp).Chance_Defendant_Quality == s, Options.NumQualityAndBiasLevels),
-                    ("NQuality", (GameProgress gp, byte s) => AEGP(gp).Chance_Neither_Quality == s, Options.NumQualityAndBiasLevels),
-                    ("PBias", (GameProgress gp, byte s) => AEGP(gp).Chance_Plaintiff_Bias == s, Options.NumQualityAndBiasLevels),
-                    ("DBias", (GameProgress gp, byte s) => AEGP(gp).Chance_Defendant_Bias == s, Options.NumQualityAndBiasLevels),
-                    ("NBias", (GameProgress gp, byte s) => AEGP(gp).Chance_Neither_Bias == s, Options.NumQualityAndBiasLevels),
+                    ("PQuality", (GameProgress gp, byte s) => AEGP(gp).Chance_Plaintiff_Quality == s, Options.NumQualityAndBiasLevels_PrivateInfo),
+                    ("DQuality", (GameProgress gp, byte s) => AEGP(gp).Chance_Defendant_Quality == s, Options.NumQualityAndBiasLevels_PrivateInfo),
+                    ("NQuality", (GameProgress gp, byte s) => AEGP(gp).Chance_Neither_Quality == s, Options.NumQualityAndBiasLevels_PrivateInfo),
+                    ("PBias", (GameProgress gp, byte s) => AEGP(gp).Chance_Plaintiff_Bias == s, Options.NumQualityAndBiasLevels_PrivateInfo),
+                    ("DBias", (GameProgress gp, byte s) => AEGP(gp).Chance_Defendant_Bias == s, Options.NumQualityAndBiasLevels_PrivateInfo),
+                    ("NBias", (GameProgress gp, byte s) => AEGP(gp).Chance_Neither_Bias == s, Options.NumQualityAndBiasLevels_PrivateInfo),
                     ("POffer", (GameProgress gp, byte s) => AEGP(gp).GetDiscreteOffer(true) == s, Options.NumOffers),
                     ("DOffer", (GameProgress gp, byte s) => AEGP(gp).GetDiscreteOffer(false) == s, Options.NumOffers),
                 })

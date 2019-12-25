@@ -26,7 +26,7 @@ namespace ACESimTest
                 Alpha_Both_Bias = alphaBothBias,
                 Alpha_Plaintiff_Bias = alphaPBias,
                 Alpha_Defendant_Bias = alphaDBias,
-                NumQualityAndBiasLevels = numQualityAndBiasLevels,
+                NumQualityAndBiasLevels_PrivateInfo = numQualityAndBiasLevels,
                 NumOffers = numOffers,
                 TrialCost = trialCost,
                 FeeShifting = feeShifting,
@@ -56,7 +56,7 @@ namespace ACESimTest
                     Alpha_Both_Bias = z(),
                     Alpha_Plaintiff_Bias = z(),
                     Alpha_Defendant_Bias = z(),
-                    NumQualityAndBiasLevels = numQualityAndBiasLevels,
+                    NumQualityAndBiasLevels_PrivateInfo = numQualityAndBiasLevels,
                     NumOffers = numOffers,
                     TrialCost = trialCost,
                     FeeShifting = feeShifting,
@@ -226,12 +226,12 @@ namespace ACESimTest
 
         private static void GetOptionsAndProgress(AdditiveEvidenceGameOptions gameOptions, byte chancePlaintiffQuality, byte chanceDefendantQuality, byte chanceNeitherQuality, byte chancePlaintiffBias, byte chanceDefendantBias, byte chanceNeitherBias, byte pOffer, byte dOffer, out double chancePQualityDouble, out double chanceDQualityDouble, out double chanceNQualityDouble, out double chancePBiasDouble, out double chanceDBiasDouble, out double chanceNBiasDouble, out AdditiveEvidenceGameProgress gameProgress)
         {
-            chancePQualityDouble = (chancePlaintiffQuality) / (gameOptions.NumQualityAndBiasLevels + 1.0);
-            chanceDQualityDouble = (chanceDefendantQuality) / (gameOptions.NumQualityAndBiasLevels + 1.0);
-            chanceNQualityDouble = (chanceNeitherQuality) / (gameOptions.NumQualityAndBiasLevels + 1.0);
-            chancePBiasDouble = (chancePlaintiffBias) / (gameOptions.NumQualityAndBiasLevels + 1.0);
-            chanceDBiasDouble = (chanceDefendantBias) / (gameOptions.NumQualityAndBiasLevels + 1.0);
-            chanceNBiasDouble = (chanceNeitherBias) / (gameOptions.NumQualityAndBiasLevels + 1.0);
+            chancePQualityDouble = (chancePlaintiffQuality) / (gameOptions.NumQualityAndBiasLevels_PrivateInfo + 1.0);
+            chanceDQualityDouble = (chanceDefendantQuality) / (gameOptions.NumQualityAndBiasLevels_PrivateInfo + 1.0);
+            chanceNQualityDouble = (chanceNeitherQuality) / (gameOptions.NumQualityAndBiasLevels_PrivateInfo + 1.0);
+            chancePBiasDouble = (chancePlaintiffBias) / (gameOptions.NumQualityAndBiasLevels_PrivateInfo + 1.0);
+            chanceDBiasDouble = (chanceDefendantBias) / (gameOptions.NumQualityAndBiasLevels_PrivateInfo + 1.0);
+            chanceNBiasDouble = (chanceNeitherBias) / (gameOptions.NumQualityAndBiasLevels_PrivateInfo + 1.0);
             Func<Decision, GameProgress, byte> actionsToPlay = AdditiveActionsGameActionsGenerator.PlaySpecifiedDecisions(chancePlaintiffQuality: chancePlaintiffQuality, chanceDefendantQuality: chanceDefendantQuality, chanceNeitherQuality: chanceNeitherQuality, chancePlaintiffBias: chancePlaintiffBias, chanceDefendantBias: chanceDefendantBias, chanceNeitherBias: chanceNeitherBias, pOffer: pOffer, dOffer: dOffer);
             gameProgress = AdditiveEvidenceGameLauncher.PlayAdditiveEvidenceGameOnce(gameOptions, actionsToPlay);
         }

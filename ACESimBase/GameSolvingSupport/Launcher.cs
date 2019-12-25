@@ -22,7 +22,7 @@ namespace ACESim
 
         public const int VanillaIterations = 1000; // DEBUG
         public const int VanillaReportEveryNIterations = VanillaIterations; // DEBUG EffectivelyNever;
-        public const int VanillaBestResponseEveryMIterations = EffectivelyNever; // DEBUG 
+        public const int VanillaBestResponseEveryMIterations = 10; // EffectivelyNever; // DEBUG 
         public const bool CalculatePerturbedBestResponseRefinement = true;
         public const int MiniReportEveryPIterations = EffectivelyNever;
         public const bool AlwaysSuppressDisplayReportOnScreen = true; 
