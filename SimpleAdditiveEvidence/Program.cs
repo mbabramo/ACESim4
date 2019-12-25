@@ -1,4 +1,5 @@
 ﻿using ACESim;
+using System;
 using System.Diagnostics;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,6 +19,9 @@ namespace SimpleAdditiveEvidence
             //DMSMonteCarlo mc = new DMSMonteCarlo() { c = 0.2, q = 0.5 };
             //mc.SimpleMonteCarlo();
 
+
+            ExperimentWithDifferentSignals();
+
             Stopwatch s = new Stopwatch();
             s.Start();
             StringBuilder b = new StringBuilder();
@@ -25,11 +29,12 @@ namespace SimpleAdditiveEvidence
             b.AppendLine(headerRow);
 
             // Uncomment to play specific value(s)
-            //allCosts = new double[] { 0.0 };
-            //allQualities = new double[] { 1 };
-            //allFeeShifting = new double[] { 0.0 };
+            //DEBUG
+            allCosts = new double[] { 0.45 };
+            allQualities = new double[] { 0.4 };
+            allFeeShifting = new double[] { 1.0 };
 
-            foreach (double c in allCosts) 
+            foreach (double c in allCosts)
             {
                 foreach (double q in allQualities)
                 {
@@ -55,7 +60,46 @@ namespace SimpleAdditiveEvidence
             TextCopy.Clipboard.SetText(TabbedText.AccumulatedText.ToString());
         }
 
-        
+        private static void ExperimentWithDifferentSignals()
+        {
+            double t = 1;
+            foreach (double c in new double[] { 0.45 })
+            {
+                foreach (double q in new double[] { 0.4 })
+                {
+                    double pUtilityCum = 0, dUtilityCum = 0;
+                    DMSApproximator tester = new DMSApproximator(q, c, t, execute: false);
+                    double stepSize = 0.20;
+                    double numCases = 0;
+                    for (double zp = stepSize; zp < 1; zp += stepSize)
+                    {
+                        for (double zd = stepSize; zd < 1; zd += stepSize)
+                        {
+                            numCases += 1.0;
+                            double theta_p = zp * q;
+                            double theta_d = q + zd * (1 - q); // follows from zd = (theta_d - q) / (1 - q)
+                            bool atLeastOneSettlement = false;
+                            double pUtility = 0;
+                            double dUtility = 0;
+                            double trialRate = 0;
+                            double accuracySq = 0;
+                            double accuracyHypoSq = 0;
+                            double accuracyForP = 0;
+                            double accuracyForD = 0;
+                            tester.ProcessCaseGivenParticularSignals_NormalizedSignals(1.0, 0, q, zp, zd, ref atLeastOneSettlement, ref pUtility, ref dUtility, ref trialRate, ref accuracySq, ref accuracyHypoSq, ref accuracyForP, ref accuracyForD);
+                            TabbedText.WriteLine($"zp {zp.ToSignificantFigures(3)} (thetap {theta_p.ToSignificantFigures(3)}) zd {zd.ToSignificantFigures(3)} (thetad {theta_d.ToSignificantFigures(3)}) ==> j { (0.5 * (theta_p + theta_d)).ToSignificantFigures(3) } pUtility {pUtility.ToSignificantFigures(3)} dUtility {dUtility.ToSignificantFigures(3)} trialRate {trialRate.ToSignificantFigures(3)} absAccuracy {Math.Sqrt(accuracySq).ToSignificantFigures(3)} accuracySq {accuracySq.ToSignificantFigures(3)} accuracyHypoSq {accuracyHypoSq.ToSignificantFigures(3)} accuracyForP {accuracyForP.ToSignificantFigures(3)} accuracyForD {accuracyForD.ToSignificantFigures(3)}");
+                            pUtilityCum += pUtility;
+                            dUtilityCum += dUtility;
+                        };
+                    }
+                    pUtilityCum /= numCases;
+                    dUtilityCum /= numCases;
+                    double utilityTotal = pUtilityCum + dUtilityCum;
+                    TabbedText.WriteLine($"Average utility ({pUtilityCum}, {dUtilityCum})");
+                }
+            }
+        }
+
 
     }
 }

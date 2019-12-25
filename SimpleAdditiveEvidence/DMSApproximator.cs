@@ -13,14 +13,15 @@ namespace SimpleAdditiveEvidence
     {
 
         double q, c, t;
-        public DMSApproximator(double q, double c, double t)
+        public DMSApproximator(double q, double c, double t, bool execute = true)
         {
             this.q = q;
             this.c = c;
             this.t = t;
             TabbedText.WriteLine($"Cost: {c} quality {q} threshold {t}");
             TabbedText.WriteLine(OptionsString);
-            Execute();
+            if (execute)    
+                Execute();
         }
 
         #region Options
@@ -33,7 +34,7 @@ namespace SimpleAdditiveEvidence
         // then there is only one possibility for the max. Note that below, we will also model an outside option where either party can force trial, but we don't
         // include that in the matrix, both because it would take a lot of space and because the equilibrium where both refuse to give reasonable offers is
         // always a Nash equilibrium, albeit a trivial one. 
-        public const int NumEndpointOptions = 100; 
+        public const int NumEndpointOptions = 30;  // DEBUG
         public const int NumSignalsPerPlayer = 100;
         public const int NumStrategiesPerPlayer = NumEndpointOptions * (NumEndpointOptions + 1) / 2;
         public long NumRequiredGamePlays => Pow(NumEndpointOptions, 4) * Pow(NumSignalsPerPlayer, 2);
@@ -485,7 +486,7 @@ namespace SimpleAdditiveEvidence
 
         private void CalculateResultsForOfferRanges((double minSignalStrategy, double maxSignalStrategy) pOfferRange, (double minSignalStrategy, double maxSignalStrategy) dOfferRange, out bool atLeastOneSettlement, out double pUtility, out double dUtility, out double trialRate) => CalculateResultsForOfferRanges(false, pOfferRange, dOfferRange, out atLeastOneSettlement, out pUtility, out dUtility, out trialRate, out _, out _, out _, out _);
 
-        private void CalculateResultsForOfferRanges(bool calculatePerformanceStats, (double minSignalStrategy, double maxSignalStrategy) pOfferRange, (double minSignalStrategy, double maxSignalStrategy) dOfferRange, out bool atLeastOneSettlement, out double pUtility, out double dUtility, out double trialRate, out double accuracySq, out double accuracyHypoSq, out double accuracyForP, out double accuracyForD)
+        public void CalculateResultsForOfferRanges(bool calculatePerformanceStats, (double minSignalStrategy, double maxSignalStrategy) pOfferRange, (double minSignalStrategy, double maxSignalStrategy) dOfferRange, out bool atLeastOneSettlement, out double pUtility, out double dUtility, out double trialRate, out double accuracySq, out double accuracyHypoSq, out double accuracyForP, out double accuracyForD)
         {
             double[] pOffers = Enumerable.Range(0, NumSignalsPerPlayer).Select(x => pOfferRange.minSignalStrategy * (1.0 - continuousSignals[x]) + pOfferRange.maxSignalStrategy * continuousSignals[x]).ToArray();
             double[] dOffers = Enumerable.Range(0, NumSignalsPerPlayer).Select(x => dOfferRange.minSignalStrategy * (1.0 - continuousSignals[x]) + dOfferRange.maxSignalStrategy * continuousSignals[x]).ToArray();
@@ -538,7 +539,7 @@ namespace SimpleAdditiveEvidence
                         double accuracyHypoSqSingleCase = 0;
                         double accuracyForPSingleCase = 0;
                         double accuracyForDSingleCase = 0;
-                        ProcessCaseGivenParticularSignals(zp, zd, pOffer, dOffer, theta_p, theta_d, ref atLeastOneSettlement, ref pUtilitySingleCase, ref dUtilitySingleCase, ref trialRateSingleCase, ref accuracySqSingleCase, ref accuracyHypoSqSingleCase, ref accuracyForPSingleCase, ref accuracyForDSingleCase);
+                        ProcessCaseGivenParticularSignals(pOffer, dOffer, theta_p, theta_d, ref atLeastOneSettlement, ref pUtilitySingleCase, ref dUtilitySingleCase, ref trialRateSingleCase, ref accuracySqSingleCase, ref accuracyHypoSqSingleCase, ref accuracyForPSingleCase, ref accuracyForDSingleCase);
                         accuracySq += accuracySqSingleCase;
                         accuracyHypoSq += accuracyHypoSqSingleCase;
                         accuracyForP += accuracyForPSingleCase;
@@ -546,7 +547,7 @@ namespace SimpleAdditiveEvidence
                     }
                     else
                     {
-                        ProcessCaseGivenParticularSignals(zp, zd, pOffer, dOffer, theta_p, theta_d, ref atLeastOneSettlement, ref pUtilitySingleCase, ref dUtilitySingleCase, ref trialRateSingleCase); // faster version
+                        ProcessCaseGivenParticularSignals(pOffer, dOffer, theta_p, theta_d, ref atLeastOneSettlement, ref pUtilitySingleCase, ref dUtilitySingleCase, ref trialRateSingleCase); // faster version
                     }
                     trialRate += trialRateSingleCase;
                     pUtility += pUtilitySingleCase;
@@ -569,9 +570,12 @@ namespace SimpleAdditiveEvidence
 
         #region Game play with pair of P and D strategies and signals
 
-        // first, a method that only gets the essential items when finding equilibria
-        private void ProcessCaseGivenParticularSignals(int zp, int zd, double pOffer, double dOffer, double theta_p, double theta_d, ref bool atLeastOneSettlement, ref double pUtility, ref double dUtility, ref double trialRate)
-        { // follows from zd = (theta_d - q) / (1 - q)
+        // If thetas are not yet calculated, use this. This is not used internally but can be used externally to assess why a particular equilibrium leads to particular results.
+        public void ProcessCaseGivenParticularSignals_NormalizedSignals(double pOffer, double dOffer, double q, double zp, double zd, ref bool atLeastOneSettlement, ref double pUtility, ref double dUtility, ref double trialRate, ref double accuracySq, ref double accuracyHypoSq, ref double accuracyForP, ref double accuracyForD)
+        {
+            double theta_p = zp * q;
+            double theta_d = q + zd * (1 - q); // follows from zd = (theta_d - q) / (1 - q)
+            ProcessCaseGivenOfferValues(ref atLeastOneSettlement, ref pUtility, ref dUtility, ref trialRate, ref accuracySq, ref accuracyHypoSq, ref accuracyForP, ref accuracyForD, pOffer, dOffer, theta_p, theta_d);
 
             /* The following code should reach the same results as the called code with thetas */
             //double oneMinusQOverQ = (1.0 - q) / q;
@@ -585,12 +589,17 @@ namespace SimpleAdditiveEvidence
             //    _ when zp > oneMinusQOverQTimes1MinusZD && zp > oneMinusTOverQ => 1.0,
             //    _ => throw new Exception()
             //};
+        }
+
+        // first, a method that only gets the essential items when finding equilibria
+        private void ProcessCaseGivenParticularSignals(double pOffer, double dOffer, double theta_p, double theta_d, ref bool atLeastOneSettlement, ref double pUtility, ref double dUtility, ref double trialRate)
+        {
 
 
             ProcessCaseGivenOfferValues(ref atLeastOneSettlement, ref pUtility, ref dUtility, ref trialRate, pOffer, dOffer, theta_p, theta_d);
         }
 
-        private void ProcessCaseGivenParticularSignals(int zp, int zd, double pOffer, double dOffer, double theta_p, double theta_d, ref bool atLeastOneSettlement, ref double pUtility, ref double dUtility, ref double trialRate, ref double accuracySq, ref double accuracyHypoSq, ref double accuracyForP, ref double accuracyForD)
+        private void ProcessCaseGivenParticularSignals(double pOffer, double dOffer, double theta_p, double theta_d, ref bool atLeastOneSettlement, ref double pUtility, ref double dUtility, ref double trialRate, ref double accuracySq, ref double accuracyHypoSq, ref double accuracyForP, ref double accuracyForD)
         {
 
             /* The following code should reach the same results as the called code with thetas */
@@ -697,6 +706,7 @@ namespace SimpleAdditiveEvidence
                 };
                 double dCosts = dPortionOfCosts * c;
                 double pCosts = c - dCosts;
+                double shiftedCosts = (dPortionOfCosts - 0.5) * c;
 
                 double pEffect = (j - pCosts);
                 double hypo_pEffect = (hypo_j - pCosts);
@@ -705,9 +715,9 @@ namespace SimpleAdditiveEvidence
                 dUtility += equalityMultiplier * dEffect;
 
                 trialRate += equalityMultiplier;
-                double accuracyUnsquared = pEffect - q + 0.5 * c; // the idea here is that we are trying to assess the accuracy of the judgment ignoring costs as irrelevant, but counting shifted costs as part of the judgment. The party's own costs are considered irrelevant to accuracy. Because P paid 0.5 * c out of pocket and this was deducted in pEffect, we add this back in. Note that if shifting to defendant has occurred, that means that we have that accuracyUnsquared == j + 0.5*C, with the latter part representing the fee shifting penalty imposed on the defendant, so the mechanism is more inaccurate because of what p receives.
-                double hypo_accuracyUnsquared = hypo_pEffect - q + 0.5 * c;
-                accuracySq += equalityMultiplier * accuracyUnsquared * accuracyUnsquared;
+                double accuracyNotSquared = j + shiftedCosts - q; // == pEffect - q + 0.5 * c // the idea here is that we are trying to assess the accuracy of the judgment ignoring costs as irrelevant, but counting shifted costs as part of the judgment. The party's own costs are considered irrelevant to accuracy. Because P paid 0.5 * c out of pocket and this was deducted in pEffect, we add this back in. Note that if shifting to defendant has occurred, that means that we have that accuracyUnsquared == j + 0.5*C, with the latter part representing the fee shifting penalty imposed on the defendant, so the mechanism is more inaccurate because of what p receives.
+                double hypo_accuracyUnsquared = hypo_pEffect + shiftedCosts - q;
+                accuracySq += equalityMultiplier * accuracyNotSquared * accuracyNotSquared;
                 accuracyHypoSq += equalityMultiplier * hypo_accuracyUnsquared * hypo_accuracyUnsquared;
                 accuracyForP += equalityMultiplier * Math.Abs(pEffect - j);
                 accuracyForD += equalityMultiplier * Math.Abs(dEffect - (1 - j));

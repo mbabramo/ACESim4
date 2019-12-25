@@ -22,13 +22,14 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             Fast,
             Original,
             TwoSets,
-            OtherTwoSets
+            OtherTwoSets,
+            VaryingNoise,
         }
 
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-            OptionSetChoice optionSetChoice = OptionSetChoice.OtherTwoSets;
+            OptionSetChoice optionSetChoice = OptionSetChoice.VaryingNoise;
             bool withOptionNotToPlay = false;
             switch (optionSetChoice)
             {
@@ -52,6 +53,21 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 case OptionSetChoice.Fast:
                     AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.Original, false, false);
                     break;
+                case OptionSetChoice.VaryingNoise:
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryNoise_00, false, false);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryNoise_25, false, false);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryNoise_50, false, false);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryShared_00, false, false);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryShared_25, false, false);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryShared_50, false, false);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryShared_75, false, false);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryShared_100, false, false);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryPStrength_00, false, false);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryPStrength_25, false, false);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryPStrength_50, false, false);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryPStrength_75, false, false);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryPStrength_100, false, false);
+                    break;
             }
 
             optionSets = optionSets.OrderBy(x => x.optionSetName).ToList();
@@ -70,16 +86,29 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             Biasless,
             EvenStrength,
             EvenStrengthAndBiasless,
-            EvenStrengthAndBiasless_MoreInfoShared
+            EvenStrengthAndBiasless_MoreInfoShared,
+            VaryNoise_00, // no noise; 50% of judgment depends on shared evaluation of quality; p, d private estimates evenly determine rest of judgment
+            VaryNoise_25, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p, d private estimates evenly determine rest of judgment
+            VaryNoise_50, // 50% noise; 50% of rest of judgment depends on shared evaluation of quality; p, d private estimates evenly determine rest of judgment
+            VaryShared_00, // 25% noise; no shared info on case quality; p, d private estimates evenly determine rest of judgment
+            VaryShared_25, // 25% noise; 25% of rest of judgment depends on shared evaluation of quality; p, d private estimates evenly determine rest of judgment
+            VaryShared_50, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p, d private estimates evenly determine rest of judgment
+            VaryShared_75, // 25% noise; 75% of rest of judgment depends on shared evaluation of quality; p, d private estimates evenly determine rest of judgment
+            VaryShared_100, // 25% noise; 100% of judgment depends on shared evaluation of quality; p, d private estimates are actually irrelevant
+            VaryPStrength_00, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p private estimate determines 0% of rest of judgment
+            VaryPStrength_25, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p private estimate determines 25% of rest of judgment
+            VaryPStrength_50, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p private estimate determines 50% of rest of judgment
+            VaryPStrength_75, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p private estimate determines 75% of rest of judgment
+            VaryPStrength_100, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p private estimate determines 100% of rest of judgment
         }
 
         private void AddDariMattiacci_Saraceno_Tests(List<(string optionSetName, GameOptions options)> optionSets, DMSVersion version, bool withOptionNotToPlay, bool feeShifting = true)
         {
             // now, liability and damages only
-            foreach (double quality in new double[] { 0, 0.20, 0.40, 0.60, 0.80, 1.0 })
-                foreach (double costs in new double[] { 0, 0.15, 0.30, 0.45, 0.60 })
-                   foreach (double? feeShiftingThreshold in feeShifting ? new double?[] { 0, 0.25, 0.50, 0.75, 1.0 } : new double?[] { 0 })
-                {
+                foreach (double? feeShiftingThreshold in feeShifting ? new double?[] { 0, 0.25, 0.50, 0.75, 1.0 } : new double?[] { 0 })
+                    foreach (double costs in new double[] { 0, 0.15, 0.30, 0.45, 0.60 })
+                    foreach (double quality in new double[] { 0, 0.20, 0.40, 0.60, 0.80, 1.0 })
+                    {
                         string settingsString = $"q{(int) (quality*100)}c{(int) (costs*100)}t{(int)(feeShiftingThreshold*100)}";
                         switch (version)
                         {
@@ -97,6 +126,46 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                                 break;
                             case DMSVersion.EvenStrengthAndBiasless_MoreInfoShared:
                                 optionSets.Add(GetAndTransform("mis", settingsString, () => AdditiveEvidenceGameOptionsGenerator.Biasless(quality, 0.5, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, 0.75, withOptionNotToPlay), x => { }));
+                                break;
+
+                            case DMSVersion.VaryNoise_00:
+                                optionSets.Add(GetAndTransform("noise00", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0, 0.5, 0.5, quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
+                                break;
+                            case DMSVersion.VaryNoise_25:
+                                optionSets.Add(GetAndTransform("noise25", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.25, 0.5, 0.5, quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
+                                break;
+                            case DMSVersion.VaryNoise_50:
+                                optionSets.Add(GetAndTransform("noise50", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.50, 0.5, 0.5, quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
+                                break;
+                            case DMSVersion.VaryShared_00:
+                                optionSets.Add(GetAndTransform("shared00", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.25, 0.0, 0.5, quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
+                                break;
+                            case DMSVersion.VaryShared_25:
+                                optionSets.Add(GetAndTransform("shared25", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.25, 0.25, 0.5, quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
+                                break;
+                            case DMSVersion.VaryShared_50:
+                                optionSets.Add(GetAndTransform("shared50", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.25, 0.50, 0.5, quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
+                                break;
+                            case DMSVersion.VaryShared_75:
+                                optionSets.Add(GetAndTransform("shared75", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.25, 0.75, 0.5, quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
+                                break;
+                            case DMSVersion.VaryShared_100:
+                                optionSets.Add(GetAndTransform("shared100", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.25, 1.0, 0.5, quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
+                                break;
+                            case DMSVersion.VaryPStrength_00:
+                                optionSets.Add(GetAndTransform("pstrength00", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.25, 0.5, 0, quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
+                                break;
+                            case DMSVersion.VaryPStrength_25:
+                                optionSets.Add(GetAndTransform("pstrength25", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.25, 0.5, 0.25, quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
+                                break;
+                            case DMSVersion.VaryPStrength_50:
+                                optionSets.Add(GetAndTransform("pstrength50", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.25, 0.5, 0.5, quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
+                                break;
+                            case DMSVersion.VaryPStrength_75:
+                                optionSets.Add(GetAndTransform("pstrength75", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.25, 0.5, 0.75, quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
+                                break;
+                            case DMSVersion.VaryPStrength_100:
+                                optionSets.Add(GetAndTransform("pstrength100", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.25, 0.5, 1.0, quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
                                 break;
                         }
                     }

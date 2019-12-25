@@ -18,10 +18,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             Biasless_MoreInfoShared,
             Biasless_LessInfoShared,
             Biasless_MuchLessInfoShared,
-            Biasless_MuchLessInfoShared_WithFeeShift
+            Biasless_MuchLessInfoShared_WithFeeShift,
+            Noisy025PInfo075
         }
 
-        static AdditiveEvidenceOptionSetChoices AdditiveEvidenceChoice => AdditiveEvidenceOptionSetChoices.DMS;
+        static AdditiveEvidenceOptionSetChoices AdditiveEvidenceChoice => AdditiveEvidenceOptionSetChoices.Noisy025PInfo075;
 
         public static AdditiveEvidenceGameOptions GetAdditiveEvidenceGameOptions() => AdditiveEvidenceChoice switch
         {
@@ -40,6 +41,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             AdditiveEvidenceOptionSetChoices.Biasless_LessInfoShared => Biasless(0.5, 0.5, 0.3, false, false, 0.5, 0.25, false), 
             AdditiveEvidenceOptionSetChoices.Biasless_MuchLessInfoShared => Biasless(0.5, 0.5, 0.3, false, false, 0.5, 0.05, false), // settles around 50% of the time
             AdditiveEvidenceOptionSetChoices.Biasless_MuchLessInfoShared_WithFeeShift => Biasless(0.5, 0.5, 0.3, true, false, 1.0, 0.05, false), // settles around 30% of the time
+            AdditiveEvidenceOptionSetChoices.Noisy025PInfo075 => SomeNoise(0.25, 0.50, 0.75, 0.5, 0.15, false, false, 0, false),
             _ => throw new NotImplementedException()
         };
 
@@ -122,6 +124,38 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 Alpha_Both_Bias = 0.0,
                 Alpha_Plaintiff_Bias = 0.0,
                 Alpha_Defendant_Bias = 0.0,
+            };
+            // nothing to neither or both with respect to bias
+
+            options.TrialCost = costs;
+
+            options.NumOffers = NumOffers;
+            options.NumQualityAndBiasLevels = NumQualityAndBiasLevels;
+            if (withOptionNotToPlay)
+            {
+                options.IncludePQuitDecision = true;
+                options.IncludeDQuitDecision = true;
+            }
+            options.FeeShifting = feeShifting;
+            options.FeeShiftingIsBasedOnMarginOfVictory = feeShiftingMarginOfVictory;
+            options.FeeShiftingThreshold = feeShiftingThreshold;
+            return options;
+        }
+
+        public static AdditiveEvidenceGameOptions SomeNoise(double noisiness, double alphaBothQuality, double pPortionOfPrivateInfo, double sharedQualityInfo, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay)
+        {
+            var options = new AdditiveEvidenceGameOptions()
+            {
+                Evidence_Both_Quality = sharedQualityInfo,
+                Alpha_Quality = 1.0 - noisiness,
+                Alpha_Both_Quality = alphaBothQuality, 
+                Alpha_Plaintiff_Quality = (1 - alphaBothQuality) * pPortionOfPrivateInfo,
+                Alpha_Defendant_Quality = (1 - alphaBothQuality) * (1.0 - pPortionOfPrivateInfo),
+                // so Neither_Quality is set automatically to 0
+                Alpha_Both_Bias = 0.0,
+                Alpha_Plaintiff_Bias = 0.0,
+                Alpha_Defendant_Bias = 0.0,
+                // so, all bias is unknown to both parties
             };
             // nothing to neither or both with respect to bias
 
