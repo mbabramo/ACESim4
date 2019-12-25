@@ -106,6 +106,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                             new SimpleReportFilter(r.prefix + s, p => r.filter(p, s)));
                     }
                 }
+                int i = 1;
+                for (double bottomRange = 0; bottomRange < 0.999; bottomRange += 0.05)
+                {
+                    double topRange = bottomRange + 0.5;
+                    rows.Add(new SimpleReportFilter("QualitySum" + i++, gp => AEGP(gp).QualitySum >= bottomRange && AEGP(gp).QualitySum < topRange));
+                }
             }
 
             return new SimpleReportDefinition(
