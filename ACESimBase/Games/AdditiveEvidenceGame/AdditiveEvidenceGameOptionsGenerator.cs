@@ -19,10 +19,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             Biasless_LessInfoShared,
             Biasless_MuchLessInfoShared,
             Biasless_MuchLessInfoShared_WithFeeShift,
-            Noisy025PInfo075
+            SomeNoiseHalfSharedQuarterPAndD
         }
 
-        static AdditiveEvidenceOptionSetChoices AdditiveEvidenceChoice => AdditiveEvidenceOptionSetChoices.Noisy025PInfo075;
+        static AdditiveEvidenceOptionSetChoices AdditiveEvidenceChoice => AdditiveEvidenceOptionSetChoices.SomeNoiseHalfSharedQuarterPAndD;
 
         public static AdditiveEvidenceGameOptions GetAdditiveEvidenceGameOptions() => AdditiveEvidenceChoice switch
         {
@@ -41,7 +41,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             AdditiveEvidenceOptionSetChoices.Biasless_LessInfoShared => Biasless(0.5, 0.5, 0.3, false, false, 0.5, 0.25, false), 
             AdditiveEvidenceOptionSetChoices.Biasless_MuchLessInfoShared => Biasless(0.5, 0.5, 0.3, false, false, 0.5, 0.05, false), // settles around 50% of the time
             AdditiveEvidenceOptionSetChoices.Biasless_MuchLessInfoShared_WithFeeShift => Biasless(0.5, 0.5, 0.3, true, false, 1.0, 0.05, false), // settles around 30% of the time
-            AdditiveEvidenceOptionSetChoices.Noisy025PInfo075 => SomeNoise(0.25, 0.50, 0.75, 0.5, 0.15, false, false, 0, false),
+            AdditiveEvidenceOptionSetChoices.SomeNoiseHalfSharedQuarterPAndD => SomeNoise(0.25, 0.50, 0.50, 0.5, 0.15, false, false, 0, false),
             _ => throw new NotImplementedException()
         };
 

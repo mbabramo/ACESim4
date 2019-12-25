@@ -107,10 +107,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     }
                 }
                 int i = 1;
-                for (double bottomRange = 0; bottomRange < 0.999; bottomRange += 0.05)
+                double stepSize = 0.05;
+                for (double bottomRange = 0; bottomRange < 0.999; bottomRange += stepSize)
                 {
-                    double topRange = bottomRange + 0.5;
-                    rows.Add(new SimpleReportFilter("QualitySum" + i++, gp => AEGP(gp).QualitySum >= bottomRange && AEGP(gp).QualitySum < topRange));
+                    double bottomRangeAvoidClosure = bottomRange;
+                    double topRange = bottomRangeAvoidClosure + stepSize;
+                    rows.Add(new SimpleReportFilter("QualitySum" + i++, gp => AEGP(gp).QualitySum >= bottomRangeAvoidClosure && AEGP(gp).QualitySum < topRange));
                 }
             }
 

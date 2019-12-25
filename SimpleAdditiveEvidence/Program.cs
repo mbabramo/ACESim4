@@ -29,10 +29,9 @@ namespace SimpleAdditiveEvidence
             b.AppendLine(headerRow);
 
             // Uncomment to play specific value(s)
-            //DEBUG
-            allCosts = new double[] { 0.45 };
-            allQualities = new double[] { 0.4 };
-            allFeeShifting = new double[] { 1.0 };
+            //allCosts = new double[] { 0.45 };
+            //allQualities = new double[] { 0.4 };
+            //allFeeShifting = new double[] { 1.0 };
 
             foreach (double c in allCosts)
             {

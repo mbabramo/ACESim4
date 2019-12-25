@@ -20,9 +20,9 @@ namespace ACESim
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; 
 
-        public const int VanillaIterations = 1000; // DEBUG
-        public const int VanillaReportEveryNIterations = VanillaIterations; // DEBUG EffectivelyNever;
-        public const int VanillaBestResponseEveryMIterations = 10; // EffectivelyNever; // DEBUG 
+        public const int VanillaIterations = 1000; 
+        public const int VanillaReportEveryNIterations = VanillaIterations; 
+        public const int VanillaBestResponseEveryMIterations = EffectivelyNever; 
         public const bool CalculatePerturbedBestResponseRefinement = true;
         public const int MiniReportEveryPIterations = EffectivelyNever;
         public const bool AlwaysSuppressDisplayReportOnScreen = true; 
@@ -37,7 +37,7 @@ namespace ACESim
         public bool AzureEnabled = true;
         public int MaxParallelDepth = 3;
 
-        public string MasterReportNameForDistributedProcessing = "R101"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
+        public string MasterReportNameForDistributedProcessing = "R102"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
         public bool UseDistributedProcessingForMultipleOptionsSets = true;
         public static bool MaxOneReportPerDistributedProcess = false;
         public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && UseDistributedProcessingForMultipleOptionsSets; // this should be true if running on the local service fabric or usign ACESimDistributed
@@ -46,6 +46,7 @@ namespace ACESim
         public bool DynamicSetParallelIfPossible = false; 
         public bool DynamicSetParallel => DistributedProcessing && DynamicSetParallelIfPossible;
         public bool ParallelizeIndividualExecutionsAlways = false; // Note -- maybe not really working // will always take precedence
+        public bool CombineResultsOfAllOptionSetsAfterExecution = false; // DEBUG
 
         const int EffectivelyNever = EvolutionSettings.EffectivelyNever;
 
@@ -281,7 +282,8 @@ namespace ACESim
             }
             else if (taskToDo.Name == "CombineOptionSets")
             {
-                CombineResultsOfAllOptionSets(masterReportName);
+                if (CombineResultsOfAllOptionSetsAfterExecution)
+                    CombineResultsOfAllOptionSets(masterReportName);
             }
             else
                 throw new NotImplementedException();
