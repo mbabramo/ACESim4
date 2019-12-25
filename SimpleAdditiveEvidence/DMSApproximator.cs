@@ -705,7 +705,7 @@ namespace SimpleAdditiveEvidence
                 dUtility += equalityMultiplier * dEffect;
 
                 trialRate += equalityMultiplier;
-                double accuracyUnsquared = pEffect - q + 0.5 * c; // the idea here is that the party's own costs are considered relevant to accuracy. Because P paid 0.5 * c out of pocket and this was counted in pEffect, we add this back in. Note that if shifting to defendant has occurred, that means that we have that accuracyUnsquared == j + 0.5*C, with the latter part representing the fee shifting penalty imposed on the defendant.
+                double accuracyUnsquared = pEffect - q + 0.5 * c; // the idea here is that we are trying to assess the accuracy of the judgment ignoring costs as irrelevant, but counting shifted costs as part of the judgment. The party's own costs are considered irrelevant to accuracy. Because P paid 0.5 * c out of pocket and this was deducted in pEffect, we add this back in. Note that if shifting to defendant has occurred, that means that we have that accuracyUnsquared == j + 0.5*C, with the latter part representing the fee shifting penalty imposed on the defendant, so the mechanism is more inaccurate because of what p receives.
                 double hypo_accuracyUnsquared = hypo_pEffect - q + 0.5 * c;
                 accuracySq += equalityMultiplier * accuracyUnsquared * accuracyUnsquared;
                 accuracyHypoSq += equalityMultiplier * hypo_accuracyUnsquared * hypo_accuracyUnsquared;
