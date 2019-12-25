@@ -861,10 +861,12 @@ bool condition = true;
                         break;
                     case ArrayCommandType.EndIf:
                         // here is where we adjust for the fast that source and destination increments were incremented in the if block. We need to advance to the same index as if the code had executed.
-                        int sourceIncrements = sourceIncrementsInIfBlock.Last();
-                        int destinationIncrements = destinationIncrementsInIfBlock.Last();
-                        sourceIncrementsInIfBlock.RemoveAt(sourceIncrementsInIfBlock.Count() - 1);
-                        destinationIncrementsInIfBlock.RemoveAt(destinationIncrementsInIfBlock.Count() - 1);
+                        int sourceIncrements = sourceIncrementsInIfBlock.Any() ? sourceIncrementsInIfBlock.Last() : 0;
+                        int destinationIncrements = destinationIncrementsInIfBlock.Any() ? destinationIncrementsInIfBlock.Last() : 0;
+                        if (sourceIncrementsInIfBlock.Any())
+                            sourceIncrementsInIfBlock.RemoveAt(sourceIncrementsInIfBlock.Count() - 1);
+                        if (destinationIncrementsInIfBlock.Any())
+                            destinationIncrementsInIfBlock.RemoveAt(destinationIncrementsInIfBlock.Count() - 1);
                         if (sourceIncrements == 0 && destinationIncrements == 0)
                             b.AppendLine("}");
                         else

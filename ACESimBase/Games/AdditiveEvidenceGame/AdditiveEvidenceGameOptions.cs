@@ -47,7 +47,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             return calc;
         }
 
-        public byte NumQualityAndBiasLevels = 25;
+        public byte NumQualityAndBiasLevels_PrivateInfo = 25;
+        public byte NumQualityAndBiasLevels_NeitherInfo = 5;
         public byte NumOffers = 25;
 
         public double MinOffer = -0.25; // settlements beyond the range of (-0.25, 1.25) have not been observed
@@ -69,7 +70,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 Alpha_Quality {Alpha_Quality}: Both {Alpha_Both_Quality} P {Alpha_Plaintiff_Quality} D {Alpha_Defendant_Quality} Neither {Alpha_Neither_Quality}
 Alpha_Bias {Alpha_Bias}: Both {Alpha_Both_Bias} P {Alpha_Plaintiff_Bias} D {Alpha_Defendant_Bias} Neither {Alpha_Neither_Bias}
 FeeShifting {FeeShifting} {(FeeShifting ? $"Margin {FeeShiftingIsBasedOnMarginOfVictory} Threshold {FeeShiftingThreshold}" : "")}
-NumOffers {NumOffers} MinOffer {MinOffer} OfferRange {OfferRange} NumQualityAndBiasLevels {NumQualityAndBiasLevels}
+NumOffers {NumOffers} MinOffer {MinOffer} OfferRange {OfferRange} NumQualityAndBiasLevels {NumQualityAndBiasLevels_PrivateInfo}
 LinearBids {LinearBids} IncludePQuit {IncludePQuitDecision} IncludeDQuit {IncludeDQuitDecision}";
         }
     }

@@ -45,8 +45,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             _ => throw new NotImplementedException()
         };
 
-        public static byte NumOffers = 25; // having a good number here allows for more precise strategies
-        public static byte NumQualityAndBiasLevels = 25; // this also contributes to precision (note, though, that this doesn't affect the number of levels of "both quality"
+        public static byte NumOffers = 10; // having a good number here allows for more precise strategies
+        public static byte NumQualityAndBiasLevels_PrivateInfo = 10; // this also contributes to precision (note, though, that this doesn't affect the number of levels of "both quality"
+        public static byte NumQualityAndBiasLevels_NeitherInfo = 5;
 
         public static AdditiveEvidenceGameOptions DariMattiacci_Saraceno(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay)
         {
@@ -66,7 +67,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             options.TrialCost = costs;
 
             options.NumOffers = NumOffers;
-            options.NumQualityAndBiasLevels = NumQualityAndBiasLevels;
+            options.NumQualityAndBiasLevels_PrivateInfo = NumQualityAndBiasLevels_PrivateInfo;
+            options.NumQualityAndBiasLevels_NeitherInfo = NumQualityAndBiasLevels_NeitherInfo;
             if (withOptionNotToPlay)
             {
                 options.IncludePQuitDecision = true;
@@ -98,7 +100,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             options.TrialCost = costs;
 
             options.NumOffers = NumOffers;
-            options.NumQualityAndBiasLevels = NumQualityAndBiasLevels;
+            options.NumQualityAndBiasLevels_PrivateInfo = NumQualityAndBiasLevels_PrivateInfo;
+            options.NumQualityAndBiasLevels_NeitherInfo = NumQualityAndBiasLevels_NeitherInfo;
             if (withOptionNotToPlay)
             {
                 options.IncludePQuitDecision = true;
@@ -130,7 +133,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             options.TrialCost = costs;
 
             options.NumOffers = NumOffers;
-            options.NumQualityAndBiasLevels = NumQualityAndBiasLevels;
+            options.NumQualityAndBiasLevels_PrivateInfo = NumQualityAndBiasLevels_PrivateInfo;
+            options.NumQualityAndBiasLevels_NeitherInfo = NumQualityAndBiasLevels_NeitherInfo;
             if (withOptionNotToPlay)
             {
                 options.IncludePQuitDecision = true;
@@ -162,7 +166,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             options.TrialCost = costs;
 
             options.NumOffers = NumOffers;
-            options.NumQualityAndBiasLevels = NumQualityAndBiasLevels;
+            options.NumQualityAndBiasLevels_PrivateInfo = NumQualityAndBiasLevels_PrivateInfo;
+            options.NumQualityAndBiasLevels_NeitherInfo = NumQualityAndBiasLevels_NeitherInfo;
             if (withOptionNotToPlay)
             {
                 options.IncludePQuitDecision = true;
