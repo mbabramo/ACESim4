@@ -13,7 +13,7 @@ namespace LitigCharts
     {
         static void Main(string[] args)
         {
-            string prefix = "R100";
+            string prefix = "R104";
             foreach (var set in allSets)
                 CopyAzureFiles(prefix);
             //InformationSetCharts();
@@ -22,7 +22,7 @@ namespace LitigCharts
             var results_Biasless_EvenStrength = MakeString(GetDataForCostsShiftingAndQualities(prefix, "bl_es", "All", variable));
         }
 
-        static string[] allSets = new string[] { "orig", "bl_es",  "bl", "es" };
+        static string[] allSets = new string[] { "noise00", "noise25", "noise50", "shared00", "shared25", "shared50", "shared75", "shared100", "pstrength00", "pstrength25", "pstrength50", "pstrength75", "pstrength100" }; // { "orig", "bl_es",  "bl", "es" };
         static double[] allQualities = new double[] { 0, 0.20, 0.40, 0.60, 0.80, 1.0 };
         static double[] allCosts = new double[] { 0, 0.15, 0.30, 0.45, 0.60 };
         static double[] allFeeShifting = new double[] { 0, 0.25, 0.50, 0.75, 1.0 };
