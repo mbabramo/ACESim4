@@ -241,7 +241,7 @@ namespace ACESim
                     taskCoordinator.Update(theCompletedTask, readyForAnotherTask, out taskToDo, out complete);
                     logAction("Updated task coordinator state:");
                     logAction(taskCoordinator.ToString());
-                    TabbedText.WriteLineEvenIfDisabled($"Percentage Complete {100.0 * taskCoordinator.ProportionComplete}%");
+                    TabbedText.WriteLineEvenIfDisabled($"Percentage Complete {100.0 * taskCoordinator.ProportionComplete}% of {taskCoordinator.IndividualTaskCount}");
                     if (taskToDo != null)
                         TabbedText.WriteLineEvenIfDisabled($"Task to do: {taskToDo}");
                     return taskCoordinator;
