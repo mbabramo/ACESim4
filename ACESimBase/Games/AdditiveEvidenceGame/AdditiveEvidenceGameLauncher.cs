@@ -54,19 +54,19 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.Original, false, false);
                     break;
                 case OptionSetChoice.VaryingNoise:
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryNoise_00, false, false);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryNoise_25, false, false);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryNoise_50, false, false);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryShared_00, false, false);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryShared_25, false, false);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryShared_50, false, false);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryShared_75, false, false);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryShared_100, false, false);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryPStrength_00, false, false);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryPStrength_25, false, false);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryPStrength_50, false, false);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryPStrength_75, false, false);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryPStrength_100, false, false);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryNoise_00, false, true);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryNoise_25, false, true);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryNoise_50, false, true);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryShared_00, false, true);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryShared_25, false, true);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryShared_50, false, true);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryShared_75, false, true);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryShared_100, false, true);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryPStrength_00, false, true);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryPStrength_25, false, true);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryPStrength_50, false, true);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryPStrength_75, false, true);
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryPStrength_100, false, true);
                     break;
             }
 
