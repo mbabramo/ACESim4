@@ -13,12 +13,12 @@ namespace LitigCharts
     {
         static void Main(string[] args)
         {
-            string prefix = "R104";
-            foreach (var set in allSets)
-                CopyAzureFiles(prefix);
+            string prefix = "R107";
+            //foreach (var set in allSets)
+            //    CopyAzureFiles(prefix);
             //InformationSetCharts();
             string variable = "Trial";
-            var results_Original = MakeString(GetDataForCostsShiftingAndQualities(prefix, "orig", "All", variable));
+            var results_Original = MakeString(GetDataForCostsShiftingAndQualities(prefix, "noise00", "All", variable));
             var results_Biasless_EvenStrength = MakeString(GetDataForCostsShiftingAndQualities(prefix, "bl_es", "All", variable));
         }
 
