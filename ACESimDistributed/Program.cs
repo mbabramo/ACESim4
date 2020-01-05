@@ -12,6 +12,15 @@ namespace ACESimDistributed
     {
         public async static Task Main(string[] args)
         {
+            // set processor affinity via argument
+            if (args != null && args.Length > 0)
+            {
+                string arg = args[0];
+                int processorNumber = Convert.ToInt32(arg);
+                Process.GetCurrentProcess().ProcessorAffinity = (IntPtr)(1L << processorNumber);
+                Console.WriteLine($"Process ID {Process.GetCurrentProcess().Id} set to processor {processorNumber}");
+            }
+
             long iterations = 0;
             string dateTimeString = DateTime.Now.ToString("yyyy-mm-dd-hh-mm");
             string processID = "p" + Process.GetCurrentProcess().Id;
