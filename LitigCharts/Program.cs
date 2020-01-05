@@ -6,6 +6,7 @@ using System.IO;
 using CsvHelper;
 using System.Linq;
 using System.Text;
+using System.Collections.Generic;
 
 namespace LitigCharts
 {
@@ -14,12 +15,11 @@ namespace LitigCharts
         static void Main(string[] args)
         {
             string prefix = "R109";
-            foreach (var set in allSets)
-                CopyAzureFiles(prefix);
+            //foreach (var set in allSets)
+            //    CopyAzureFiles(prefix);
             //InformationSetCharts();
             string variable = "Trial";
-            var results_Original = MakeString(GetDataForCostsShiftingAndQualities(prefix, "noise00", "All", variable));
-            var results_Biasless_EvenStrength = MakeString(GetDataForCostsShiftingAndQualities(prefix, "bl_es", "All", variable));
+            var results_Original = MakeString(GetDataForCostsShiftingAndQualities(prefix, "noise25", "All", variable, aggregateToGetQualitySum: true));
         }
 
         static string[] allSets = new string[] { "noise00", "noise25", "noise50", "shared00", "shared25", "shared50", "shared75", "shared100", "pstrength00", "pstrength25", "pstrength50", "pstrength75", "pstrength100" }; // { "orig", "bl_es",  "bl", "es" };
@@ -57,7 +57,7 @@ namespace LitigCharts
             return b.ToString();
         }
 
-        private static double[][][] GetDataForCostsShiftingAndQualities(string prefix, string set, string filterOfRowsToGet, string columnToGet)
+        private static double[][][] GetDataForCostsShiftingAndQualities(string prefix, string set, string filterOfRowsToGet, string columnToGet, bool aggregateToGetQualitySum)
         {
             // This will give us the array of charts for our graph -- we go across (all costs, then all fee shifting)
             double[][][] results = new double[allCosts.Length][][];
@@ -66,10 +66,20 @@ namespace LitigCharts
                 results[c] = new double[allFeeShifting.Length][];
                 for (int f = 0; f < allFeeShifting.Length; f++)
                 {
-                    results[c][f] = GetDataForQualities(prefix, set, allQualities, allCosts[c], allFeeShifting[f], filterOfRowsToGet, columnToGet);
+                    var resultForAllQualities = aggregateToGetQualitySum ? GetDataForQualities_Aggregating(prefix, set, allQualities, allCosts[c], allFeeShifting[f], columnToGet) : GetDataForQualities(prefix, set, allQualities, allCosts[c], allFeeShifting[f], filterOfRowsToGet, columnToGet);
+                    results[c][f] = resultForAllQualities;
                 }
             }
             return results;
+        }
+
+        private static double[] GetDataForQualities_Aggregating(string prefix, string set, double[] originalQualityValues, double costs, double feeShifting,  string columnToGet)
+        {
+            string[] filterOfRowsToGet = Enumerable.Range(1, 20).Select(x => $"QualitySum{x}").ToArray();
+            var results = GetDataForSpecificSettings_AggregatedAcrossQualityValues(prefix, set, originalQualityValues, costs, feeShifting, filterOfRowsToGet, new string[] { columnToGet });
+            int length = results.GetLength(0);
+            var oneColumnOnly = Enumerable.Range(0, length).Select(i => results[i, 0] ?? 0).ToArray();
+            return oneColumnOnly;
         }
 
         private static double[] GetDataForQualities(string prefix, string set, double[] qualityValues, double costs, double feeShifting, string filterOfRowsToGet, string columnToGet) => qualityValues.Select(x => GetDataForSpecificSettings(prefix, set, x, costs, feeShifting, filterOfRowsToGet, columnToGet) ?? 0.0).ToArray();
@@ -78,6 +88,38 @@ namespace LitigCharts
         {
             var singleRowResults = GetDataForSpecificSettings(prefix, set, quality, costs, feeShifting, new string[] { filterOfRowsToGet }, new string[] { columnToGet });
             return singleRowResults[0, 0];
+        }
+
+        private static double?[,] GetDataForSpecificSettings_AggregatedAcrossQualityValues(string prefix, string set, double[] originalQualityValues, double costs, double feeShifting, string[] filtersOfRowsToGet, string[] columnsToGet)
+        {
+            // Here, we have multiple files with original quality values, but we care about QualitySum. So we need to aggregate the QualitySum values, weighted by the All column. 
+            List<string> columnsToGetRevisedList = new List<string>() { "All" };
+            columnsToGetRevisedList.AddRange(columnsToGet);
+            string[] columnsToGetRevisedArray = columnsToGetRevisedList.ToArray();
+            double?[,] numerators = new double?[filtersOfRowsToGet.Length, columnsToGet.Length];
+            double[] denominators = new double[filtersOfRowsToGet.Length];
+            for (int f = 0; f < filtersOfRowsToGet.Length; f++)
+            {
+                denominators[f] = 0;
+                for (int c = 0; c < columnsToGet.Length; c++)
+                {
+                    numerators[f, c] = 0;
+                }
+            }
+            foreach (double originalQualityValue in originalQualityValues)
+            {
+                double?[,] results = GetDataForSpecificSettings(prefix, set, originalQualityValue, costs, feeShifting, filtersOfRowsToGet, columnsToGetRevisedArray);
+                for (int f = 0; f < filtersOfRowsToGet.Length; f++)
+                {
+                    for (int c = 0; c < columnsToGet.Length; c++)
+                        numerators[f, c] += (results[f, 0] ?? 0) * (results[f, 1 + c] ?? 0);
+                    denominators[f] += results[f, 0] ?? 0;
+                }
+            }
+            for (int f = 0; f < filtersOfRowsToGet.Length; f++)
+                for (int c = 0; c < columnsToGet.Length; c++)
+                    numerators[f, c] /= denominators[f];
+            return numerators;
         }
 
         private static double?[,] GetDataForSpecificSettings(string prefix, string set, double quality, double costs, double feeShifting, string[] filtersOfRowsToGet, string[] columnsToGet)
