@@ -20,7 +20,7 @@ namespace ACESim
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; 
 
-        public const int VanillaIterations = 1_000;
+        public const int VanillaIterations = 1000; // DEBUG
         public const int VanillaReportEveryNIterations = VanillaIterations; 
         public const int VanillaBestResponseEveryMIterations = EffectivelyNever; 
         public const bool CalculatePerturbedBestResponseRefinement = true;
@@ -37,7 +37,7 @@ namespace ACESim
         public bool AzureEnabled = true;
         public int MaxParallelDepth = 3;
 
-        public string MasterReportNameForDistributedProcessing = "R113"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
+        public string MasterReportNameForDistributedProcessing = "R119"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
         public bool UseDistributedProcessingForMultipleOptionsSets = true;
         public static bool MaxOneReportPerDistributedProcess = false;
         public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && UseDistributedProcessingForMultipleOptionsSets; // this should be true if running on the local service fabric or usign ACESimDistributed
@@ -258,7 +258,8 @@ namespace ACESim
                     }
                     else
                     {
-                        await CompleteIndividualTask(masterReportName, taskToDo, logAction);
+                        if (!DEBUG_UseDummyTasks)
+                            await CompleteIndividualTask(masterReportName, taskToDo, logAction);
                         logAction($"Completed task {taskToDo.Name} {taskToDo.ID}");
                         taskCompleted = taskToDo;
                     }
@@ -267,6 +268,8 @@ namespace ACESim
                     return;
             }
         }
+
+        static bool DEBUG_UseDummyTasks = false;
 
         private async Task CompleteIndividualTask(string masterReportName, IndividualTask taskToDo, Action<string> logAction = null)
         {
