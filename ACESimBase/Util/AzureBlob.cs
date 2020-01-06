@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
@@ -101,7 +102,10 @@ namespace ACESim.Util
         {
             object result;
             var serializedObject = GetSerializedObject(blockBlob);
+            Stopwatch s = new Stopwatch();
+            s.Start();
             result = transformFunction(serializedObject);
+            TabbedText.WriteLine($"Transform time {s.ElapsedMilliseconds}"); // DEBUG
             if (result != null)
                 SerializeObject(result, blockBlob, leaseID);
             else
