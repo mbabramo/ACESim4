@@ -74,15 +74,41 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public bool TrialOccurs => !SomeoneQuits && !SettlementOccurs;
         static double dOr0(double n, double d) => d == 0 ? 0 : n / d; // avoid division by zero
         public double QualitySum => AdditiveEvidenceGameOptions.Alpha_Both_Quality * AdditiveEvidenceGameOptions.Evidence_Both_Quality + AdditiveEvidenceGameOptions.Alpha_Plaintiff_Quality * Chance_Plaintiff_Quality_Continuous + AdditiveEvidenceGameOptions.Alpha_Defendant_Quality * Chance_Defendant_Quality_Continuous + AdditiveEvidenceGameOptions.Alpha_Neither_Quality * Chance_Neither_Quality_Continuous_IfDetermined;
-        public double QualitySum_PInfoOnly => dOr0((AdditiveEvidenceGameOptions.Alpha_Both_Quality * AdditiveEvidenceGameOptions.Evidence_Both_Quality + AdditiveEvidenceGameOptions.Alpha_Plaintiff_Quality * Chance_Plaintiff_Quality_Continuous), (AdditiveEvidenceGameOptions.Alpha_Both_Quality + AdditiveEvidenceGameOptions.Alpha_Plaintiff_Quality));
-        public double QualitySum_DInfoOnly => dOr0((AdditiveEvidenceGameOptions.Alpha_Both_Quality * AdditiveEvidenceGameOptions.Evidence_Both_Quality + AdditiveEvidenceGameOptions.Alpha_Defendant_Quality * Chance_Defendant_Quality_Continuous), (AdditiveEvidenceGameOptions.Alpha_Both_Quality + AdditiveEvidenceGameOptions.Alpha_Defendant_Quality));
+        public double QualitySum_PInfoOnly => dOr0((AdditiveEvidenceGameOptions.Alpha_Both_Quality * AdditiveEvidenceGameOptions.Evidence_Both_Quality + AdditiveEvidenceGameOptions.Alpha_Plaintiff_Quality * Chance_Plaintiff_Quality_Continuous), QualitySum_PInfoOnly_Denominator);
+        public double QualitySum_PInfoOnly_Denominator => (AdditiveEvidenceGameOptions.Alpha_Both_Quality + AdditiveEvidenceGameOptions.Alpha_Plaintiff_Quality);
+        public double QualitySum_DInfoOnly => dOr0((AdditiveEvidenceGameOptions.Alpha_Both_Quality * AdditiveEvidenceGameOptions.Evidence_Both_Quality + AdditiveEvidenceGameOptions.Alpha_Defendant_Quality * Chance_Defendant_Quality_Continuous), QualitySum_DInfoOnly_Denominator);
+        public double QualitySum_DInfoOnly_Denominator => (AdditiveEvidenceGameOptions.Alpha_Both_Quality + AdditiveEvidenceGameOptions.Alpha_Defendant_Quality);
         public double BiasSum => AdditiveEvidenceGameOptions.Alpha_Both_Bias * AdditiveEvidenceGameOptions.Evidence_Both_Bias + AdditiveEvidenceGameOptions.Alpha_Plaintiff_Bias * Chance_Plaintiff_Bias_Continuous + AdditiveEvidenceGameOptions.Alpha_Defendant_Bias * Chance_Defendant_Bias_Continuous + AdditiveEvidenceGameOptions.Alpha_Neither_Bias * Chance_Neither_Bias_Continuous_IfDetermined;
-        public double BiasSum_PInfoOnly => dOr0((AdditiveEvidenceGameOptions.Alpha_Both_Bias * AdditiveEvidenceGameOptions.Evidence_Both_Bias + AdditiveEvidenceGameOptions.Alpha_Plaintiff_Bias * Chance_Plaintiff_Bias_Continuous), (AdditiveEvidenceGameOptions.Alpha_Both_Bias + AdditiveEvidenceGameOptions.Alpha_Plaintiff_Bias));
-        public double BiasSum_DInfoOnly => dOr0((AdditiveEvidenceGameOptions.Alpha_Both_Bias * AdditiveEvidenceGameOptions.Evidence_Both_Bias + AdditiveEvidenceGameOptions.Alpha_Defendant_Bias * Chance_Defendant_Bias_Continuous), (AdditiveEvidenceGameOptions.Alpha_Both_Bias + AdditiveEvidenceGameOptions.Alpha_Defendant_Bias));
+        public double BiasSum_PInfoOnly => dOr0((AdditiveEvidenceGameOptions.Alpha_Both_Bias * AdditiveEvidenceGameOptions.Evidence_Both_Bias + AdditiveEvidenceGameOptions.Alpha_Plaintiff_Bias * Chance_Plaintiff_Bias_Continuous), BiasSum_PInfoOnly_Denominator);
+        public double BiasSum_PInfoOnly_Denominator => (AdditiveEvidenceGameOptions.Alpha_Both_Bias + AdditiveEvidenceGameOptions.Alpha_Plaintiff_Bias);
+        public double BiasSum_DInfoOnly => dOr0((AdditiveEvidenceGameOptions.Alpha_Both_Bias * AdditiveEvidenceGameOptions.Evidence_Both_Bias + AdditiveEvidenceGameOptions.Alpha_Defendant_Bias * Chance_Defendant_Bias_Continuous), BiasSum_DInfoOnly_Denominator);
+        public double BiasSum_DInfoOnly_Denominator => (AdditiveEvidenceGameOptions.Alpha_Both_Bias + AdditiveEvidenceGameOptions.Alpha_Defendant_Bias);
 
         public double TrialValuePreShiftingIfOccurs => AdditiveEvidenceGameOptions.Alpha_Quality * QualitySum + AdditiveEvidenceGameOptions.Alpha_Bias * BiasSum;
-        public double AnticipatedTrialValue_PInfo => AdditiveEvidenceGameOptions.Alpha_Quality * QualitySum_PInfoOnly + AdditiveEvidenceGameOptions.Alpha_Bias * BiasSum_PInfoOnly;
-        public double AnticipatedTrialValue_DInfo => AdditiveEvidenceGameOptions.Alpha_Quality * QualitySum_DInfoOnly + AdditiveEvidenceGameOptions.Alpha_Bias * BiasSum_DInfoOnly;
+        public double AnticipatedTrialValue_PInfo
+        {
+            get
+            {
+                if (BiasSum_PInfoOnly_Denominator == 0)
+                    return QualitySum_PInfoOnly;
+                if (QualitySum_PInfoOnly_Denominator == 0)
+                    return BiasSum_PInfoOnly;
+                return AdditiveEvidenceGameOptions.Alpha_Quality* QualitySum_PInfoOnly + AdditiveEvidenceGameOptions.Alpha_Bias * BiasSum_PInfoOnly;
+            }
+        }
+
+        public double AnticipatedTrialValue_DInfo
+        {
+            get
+            {
+                if (BiasSum_DInfoOnly_Denominator == 0)
+                    return QualitySum_DInfoOnly;
+                if (QualitySum_DInfoOnly_Denominator == 0)
+                    return BiasSum_DInfoOnly;
+                return AdditiveEvidenceGameOptions.Alpha_Quality* QualitySum_DInfoOnly + AdditiveEvidenceGameOptions.Alpha_Bias * BiasSum_DInfoOnly;
+            }
+        }
+
         public double? TrialValuePreShifting => TrialOccurs ? TrialValuePreShiftingIfOccurs : (double?)null;
         public double PTrialEffect_IfOccurs => TrialValuePreShiftingIfOccurs - (1.0 - DsProportionOfCostIfTrial()) * AdditiveEvidenceGameOptions.TrialCost;
         public double DTrialEffect_IfOccurs => 1.0 - TrialValuePreShiftingIfOccurs - (DsProportionOfCostIfTrial()) * AdditiveEvidenceGameOptions.TrialCost; // remember, this is a damages game, so defendant receives (1 - what is awarded to plaintiff)

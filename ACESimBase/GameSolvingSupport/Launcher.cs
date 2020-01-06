@@ -20,7 +20,7 @@ namespace ACESim
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; 
 
-        public const int VanillaIterations = 1_000;
+        public const int VanillaIterations = 1; // SUPERDEBUG
         public const int VanillaReportEveryNIterations = VanillaIterations; 
         public const int VanillaBestResponseEveryMIterations = EffectivelyNever; 
         public const bool CalculatePerturbedBestResponseRefinement = true;
@@ -169,7 +169,7 @@ namespace ACESim
                 GenerateReportsByPlaying = true,
                 PrintInformationSets = false,
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
-                PrintGameTree = false, 
+                PrintGameTree = true, // DEBUG
                 ActionStrategiesToUseInReporting =
                  new List<ActionStrategies>() {
                      //ActionStrategies.CorrelatedEquilibrium,

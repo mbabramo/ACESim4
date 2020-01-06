@@ -802,6 +802,9 @@ namespace ACESim
             return reportCollection;
         }
 
+
+        bool DEBUG_SkipAllIterations = true;
+
         private async Task<ReportCollection> GeneralizedVanillaCFRIteration(int iteration)
         {
             Status.IterationNumDouble = iteration;
@@ -816,6 +819,7 @@ namespace ACESim
             GeneralizedVanillaUtilities[] results = new GeneralizedVanillaUtilities[NumNonChancePlayers];
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
+                if (!DEBUG_SkipAllIterations)
                 GeneralizedVanillaCFRIteration_OptimizePlayer(iteration, results, playerBeingOptimized);
             }
             UpdateInformationSets(iteration);

@@ -135,6 +135,25 @@ namespace ACESimTest
         }
 
         [TestMethod]
+        public void AdditiveEvidence_SpecificCase()
+        {
+            var gameOptions = AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.50, 0.5, 0.5, 0.2, 0.15, false, false, 0.25, false);
+
+            gameOptions.FeeShifting = true;
+            gameOptions.FeeShiftingIsBasedOnMarginOfVictory = false;
+            gameOptions.FeeShiftingThreshold = 0.25;
+
+            byte chancePlaintiffQuality = (byte)2;
+            byte chanceDefendantQuality = (byte)2;
+            byte chanceNeitherQuality = (byte)1;
+            byte chancePlaintiffBias = (byte)1;
+            byte chanceDefendantBias = (byte)1;
+            byte chanceNeitherBias = (byte)2;
+            AdditiveEvidence_TrialValue_Helper(gameOptions, chancePlaintiffQuality, chanceDefendantQuality, chanceNeitherQuality, chancePlaintiffBias, chanceDefendantBias, chanceNeitherBias, gameOptions.FeeShifting, gameOptions.FeeShiftingIsBasedOnMarginOfVictory, gameOptions.FeeShiftingThreshold);
+
+        }
+
+        [TestMethod]
         public void AdditiveEvidence_TrialValue()
         {
             Random r = new Random(1);
