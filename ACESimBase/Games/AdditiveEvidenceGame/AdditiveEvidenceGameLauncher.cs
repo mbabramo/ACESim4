@@ -29,7 +29,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-            OptionSetChoice optionSetChoice = OptionSetChoice.Fast;
+            OptionSetChoice optionSetChoice = OptionSetChoice.VaryingNoise;
             bool withOptionNotToPlay = false;
             switch (optionSetChoice)
             {
