@@ -1638,10 +1638,15 @@ namespace ACESim
             {
                 Tuple<GameProgress, double> toProcess = source.Receive();
                 if (toProcess.Item2 > 0) // probability
-                    for (int i = 0; i < simpleReportDefinitionsCount; i++)
+                {
+                    foreach ((GameProgress theProgress, double weight) in toProcess.Item1.GetGameProgressIncludingAnySplits())
                     {
-                        ReportsBeingGenerated[i]?.ProcessGameProgress(toProcess.Item1, toProcess.Item2);
+                        for (int i = 0; i < simpleReportDefinitionsCount; i++)
+                        {
+                            ReportsBeingGenerated[i]?.ProcessGameProgress(theProgress, toProcess.Item2 * weight);
+                        }
                     }
+                }
             }
         }
 

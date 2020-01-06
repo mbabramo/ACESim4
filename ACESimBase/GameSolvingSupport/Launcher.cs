@@ -20,7 +20,7 @@ namespace ACESim
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; 
 
-        public const int VanillaIterations = 1000;
+        public const int VanillaIterations = 1_000;
         public const int VanillaReportEveryNIterations = VanillaIterations; 
         public const int VanillaBestResponseEveryMIterations = EffectivelyNever; 
         public const bool CalculatePerturbedBestResponseRefinement = true;
@@ -37,7 +37,7 @@ namespace ACESim
         public bool AzureEnabled = true;
         public int MaxParallelDepth = 3;
 
-        public string MasterReportNameForDistributedProcessing = "R109"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
+        public string MasterReportNameForDistributedProcessing = "R112"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
         public bool UseDistributedProcessingForMultipleOptionsSets = true;
         public static bool MaxOneReportPerDistributedProcess = false;
         public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && UseDistributedProcessingForMultipleOptionsSets; // this should be true if running on the local service fabric or usign ACESimDistributed
@@ -46,7 +46,7 @@ namespace ACESim
         public bool DynamicSetParallelIfPossible = false; 
         public bool DynamicSetParallel => DistributedProcessing && DynamicSetParallelIfPossible;
         public bool ParallelizeIndividualExecutionsAlways = false; // Note -- maybe not really working // will always take precedence
-        public bool CombineResultsOfAllOptionSetsAfterExecution = false; // DEBUG
+        public bool CombineResultsOfAllOptionSetsAfterExecution = false;
 
         const int EffectivelyNever = EvolutionSettings.EffectivelyNever;
 

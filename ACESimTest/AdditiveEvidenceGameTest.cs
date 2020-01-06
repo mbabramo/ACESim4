@@ -228,10 +228,10 @@ namespace ACESimTest
         {
             chancePQualityDouble = (chancePlaintiffQuality) / (gameOptions.NumQualityAndBiasLevels_PrivateInfo + 1.0);
             chanceDQualityDouble = (chanceDefendantQuality) / (gameOptions.NumQualityAndBiasLevels_PrivateInfo + 1.0);
-            chanceNQualityDouble = (chanceNeitherQuality) / (gameOptions.NumQualityAndBiasLevels_PrivateInfo + 1.0);
+            chanceNQualityDouble = (chanceNeitherQuality) / (gameOptions.NumQualityAndBiasLevels_NeitherInfo + 1.0);
             chancePBiasDouble = (chancePlaintiffBias) / (gameOptions.NumQualityAndBiasLevels_PrivateInfo + 1.0);
             chanceDBiasDouble = (chanceDefendantBias) / (gameOptions.NumQualityAndBiasLevels_PrivateInfo + 1.0);
-            chanceNBiasDouble = (chanceNeitherBias) / (gameOptions.NumQualityAndBiasLevels_PrivateInfo + 1.0);
+            chanceNBiasDouble = (chanceNeitherBias) / (gameOptions.NumQualityAndBiasLevels_NeitherInfo + 1.0);
             Func<Decision, GameProgress, byte> actionsToPlay = AdditiveActionsGameActionsGenerator.PlaySpecifiedDecisions(chancePlaintiffQuality: chancePlaintiffQuality, chanceDefendantQuality: chanceDefendantQuality, chanceNeitherQuality: chanceNeitherQuality, chancePlaintiffBias: chancePlaintiffBias, chanceDefendantBias: chanceDefendantBias, chanceNeitherBias: chanceNeitherBias, pOffer: pOffer, dOffer: dOffer);
             gameProgress = AdditiveEvidenceGameLauncher.PlayAdditiveEvidenceGameOnce(gameOptions, actionsToPlay);
         }

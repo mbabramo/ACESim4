@@ -214,6 +214,30 @@ namespace ACESim
             }
         }
 
+        // We can split a GameProgress ex post for reporting if there are variables where multiple values are possible AFTER the game is complete.
+        // For example, in a litigation game, we may never need to determine what would have occurred at trial if the case settles, but we might
+        // still want to report on what would occur. If so, we can override this and implement a split.
+
+        public virtual bool SplitExPostForReporting => false;
+
+        public virtual List<GameProgress> CompleteSplitExPostForReporting()
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<(GameProgress progress, double weight)> GetGameProgressIncludingAnySplits()
+        {
+            if (!SplitExPostForReporting)
+            {
+                yield return (this, 1.0);
+                yield break;
+            }
+            var results = CompleteSplitExPostForReporting();
+            double weight = 1.0 / ((double)results.Count());
+            foreach (var result in results)
+                yield return (result, weight);
+        }
+
         /// <summary>
         /// Returns a deep copy
         /// </summary>

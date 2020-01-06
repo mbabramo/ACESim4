@@ -41,13 +41,13 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             AdditiveEvidenceOptionSetChoices.Biasless_LessInfoShared => Biasless(0.5, 0.5, 0.3, false, false, 0.5, 0.25, false), 
             AdditiveEvidenceOptionSetChoices.Biasless_MuchLessInfoShared => Biasless(0.5, 0.5, 0.3, false, false, 0.5, 0.05, false), // settles around 50% of the time
             AdditiveEvidenceOptionSetChoices.Biasless_MuchLessInfoShared_WithFeeShift => Biasless(0.5, 0.5, 0.3, true, false, 1.0, 0.05, false), // settles around 30% of the time
-            AdditiveEvidenceOptionSetChoices.SomeNoiseHalfSharedQuarterPAndD => SomeNoise(0.25, 0.50, 0.50, 0.5, 0.15, false, false, 0, false),
+            AdditiveEvidenceOptionSetChoices.SomeNoiseHalfSharedQuarterPAndD => SomeNoise(0.50, 0.50, 0.50, 1.0, 0.15, true, false, 0.25, false),
             _ => throw new NotImplementedException()
         };
 
-        public static byte NumOffers = 25; // having a good number here allows for more precise strategies
-        public static byte NumQualityAndBiasLevels_PrivateInfo = 20; // we don't need quite as much here, since it's information that doesn't intersect between players
-        public static byte NumQualityAndBiasLevels_NeitherInfo = 20;
+        public static byte NumOffers = 10; // having a good number here allows for more precise strategies
+        public static byte NumQualityAndBiasLevels_PrivateInfo = 10; // we don't need quite as much here, since it's information that doesn't intersect between players
+        public static byte NumQualityAndBiasLevels_NeitherInfo = 10; // still less needed here
 
         public static AdditiveEvidenceGameOptions DariMattiacci_Saraceno(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay)
         {

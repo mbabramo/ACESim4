@@ -63,8 +63,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public byte Chance_Neither_Quality;
         public byte Chance_Neither_Bias;
-        public double Chance_Neither_Quality_Continuous_IfDetermined => EquallySpaced.GetLocationOfEquallySpacedPoint(Chance_Neither_Quality - 1 /* make it zero-based */, AdditiveEvidenceGameOptions.NumQualityAndBiasLevels_PrivateInfo, false);
-        public double Chance_Neither_Bias_Continuous_IfDetermined => EquallySpaced.GetLocationOfEquallySpacedPoint(Chance_Neither_Bias - 1 /* make it zero-based */, AdditiveEvidenceGameOptions.NumQualityAndBiasLevels_PrivateInfo, false);
+        public double Chance_Neither_Quality_Continuous_IfDetermined => EquallySpaced.GetLocationOfEquallySpacedPoint(Chance_Neither_Quality - 1 /* make it zero-based */, AdditiveEvidenceGameOptions.NumQualityAndBiasLevels_NeitherInfo, false);
+        public double Chance_Neither_Bias_Continuous_IfDetermined => EquallySpaced.GetLocationOfEquallySpacedPoint(Chance_Neither_Bias - 1 /* make it zero-based */, AdditiveEvidenceGameOptions.NumQualityAndBiasLevels_NeitherInfo, false);
         public double? Chance_Neither_Quality_Continuous_OrNull => (TrialOccurs ? Chance_Neither_Quality_Continuous_IfDetermined : (double?)null);
         public double? Chance_Neither_Bias_Continuous_OrNull => (TrialOccurs ? Chance_Neither_Bias_Continuous_IfDetermined : (double?)null);
 
@@ -183,6 +183,20 @@ AccuracyIgnoringCosts {Accuracy} Accuracy_ForPlaintiff {Accuracy_ForPlaintiff} A
             copy.Chance_Neither_Bias = Chance_Neither_Bias;
 
             return copy;
+        }
+
+        public override bool SplitExPostForReporting => Chance_Neither_Bias == 0; // haven't determined it, but we still want to report on it
+
+        public override List<GameProgress> CompleteSplitExPostForReporting()
+        {
+            List<GameProgress> results = new List<GameProgress>();
+            for (byte i = 1; i <= AdditiveEvidenceGameOptions.NumQualityAndBiasLevels_NeitherInfo; i++)
+            {
+                var copy = DeepCopy();
+                ((AdditiveEvidenceGameProgress)copy).Chance_Neither_Bias = i;
+                results.Add(copy);
+            }
+            return results;
         }
 
         public override double[] GetNonChancePlayerUtilities()
