@@ -18,8 +18,32 @@ namespace LitigCharts
             //foreach (var set in allSets)
             //    CopyAzureFiles(prefix);
             //InformationSetCharts();
-            string variable = "Trial";
-            var results_Original = MakeString(GetDataForCostsShiftingAndQualities(prefix, "noise25", "All", variable, aggregateToGetQualitySum: true));
+            AggregateDMSModel(prefix);
+            //var results_Original = MakeString(GetDataForCostsShiftingAndQualities(prefix, "noise25", "All", variable, aggregateToGetQualitySum: true));
+        }
+
+        private static void AggregateDMSModel(string prefix)
+        {
+            string[] inputColumnsOriginal = new string[] { "Settles", "Trial", "Shifting", "ShiftingOccursIfTrial", "ShiftingValueIfTrial", "POffer", "DOffer", "AccSq", "Accuracy", "Accuracy_ForPlaintiff", "Accuracy_ForDefendant", "SettlementOrJudgment", "TrialValuePreShiftingIfOccurs", "TrialValueWithShiftingIfOccurs", "ResolutionValueIncludingShiftedAmount", "SettlementValue", "PWelfare", "DWelfare" };
+            string[] outputColumnsOriginal = new string[] { "Settles", "Trial", "Shifting", "ShiftingOccursIfTrial", "ShiftingValueIfTrial", "POffer", "DOffer", "AccuracySq", "Accuracy", "AccuracyForP", "AccuracyForD", "SettlementOrJudgment", "TrialValuePreShiftingIfOccurs", "TrialValueWithShiftingIfOccurs", "ResolutionValueIncludingShiftedAmount", "SettlementValue", "PWelfare", "DWelfare" };
+            string[] noiseSets = allSets.Take(3).ToArray();
+            string[] sharedSets = allSets.Skip(3).Take(5).ToArray();
+            string[] pstrengthSets = allSets.Skip(8).ToArray();
+            (string set, string column)[] inputColumnsWithSets = (
+                from x in noiseSets
+                from y in inputColumnsOriginal
+                select (x, y)
+                ).ToArray();
+            string[] outputColumnsRevised = (
+                from x in noiseSets
+                from y in outputColumnsOriginal
+                select x + "-" + y
+                ).ToArray();
+
+
+            noiseSets.Zip(inputColumnsOriginal, (s, c) => (s, c)).ToArray();
+            string result = GetStringWithSeparateLineForEachCostThresholdAndQuality(prefix, "All", inputColumnsWithSets, outputColumnsRevised, true);
+            Console.WriteLine(result);
         }
 
         static string[] allSets = new string[] { "noise00", "noise25", "noise50", "shared00", "shared25", "shared50", "shared75", "shared100", "pstrength00", "pstrength25", "pstrength50", "pstrength75", "pstrength100" }; // { "orig", "bl_es",  "bl", "es" };
@@ -54,6 +78,37 @@ namespace LitigCharts
             StringBuilder b = new StringBuilder();
             for (int i = 0; i < values.GetLength(0); i++)
                 b.AppendLine(String.Join(",", values[i]));
+            return b.ToString();
+        }
+
+        private static string GetStringWithSeparateLineForEachCostThresholdAndQuality(string prefix, string filterOfRowsToGet, (string set, string column)[] inputColumns, string[] outputColumns, bool aggregateToGetQualitySum)
+        {
+            int numQualities = aggregateToGetQualitySum ? 20 : allQualities.Length;
+            double[] qualityValues = aggregateToGetQualitySum ? Enumerable.Range(0, 20).Select(x => 0.025 + x * 0.05).ToArray() : allQualities;
+
+            StringBuilder b = new StringBuilder();
+            double[][][][] results = inputColumns.Select(c => GetDataForCostsShiftingAndQualities(prefix, c.set, filterOfRowsToGet, c.column, aggregateToGetQualitySum)).ToArray();
+            b.Append("CostCat,ThreshCat,QualCat,Cost,Threshold,Quality");
+            foreach (string outputColumn in outputColumns)
+                b.Append("," + outputColumn);
+            b.AppendLine("");
+            for (int c = 0; c < allCosts.Length; c++)
+            {
+                for (int f = 0; f < allFeeShifting.Length; f++)
+                {
+                    for (int q = 0; q < numQualities; q++)
+                    {
+                        b.Append($"{c + 1},{f + 1},{q + 1},{allCosts[c]},{allFeeShifting[f]},{qualityValues[q]}"); // the categorical variables start at 1
+                        for (int columnToGet = 0; columnToGet < inputColumns.Length; columnToGet++)
+                        {
+                            b.Append(",");
+                            b.Append(results[columnToGet][c][f][q].ToString());
+                        }
+                        b.AppendLine("");
+                    }
+                }
+            }
+
             return b.ToString();
         }
 

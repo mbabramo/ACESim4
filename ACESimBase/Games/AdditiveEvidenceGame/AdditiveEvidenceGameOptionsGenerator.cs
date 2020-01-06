@@ -156,10 +156,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 Alpha_Plaintiff_Quality = (1 - alphaBothQuality) * pPortionOfPrivateInfo,
                 Alpha_Defendant_Quality = (1 - alphaBothQuality) * (1.0 - pPortionOfPrivateInfo),
                 // so Neither_Quality is set automatically to 0
+                // So Alpha_Bias is set to noisiness
                 Alpha_Both_Bias = 0.0,
                 Alpha_Plaintiff_Bias = 0.0,
                 Alpha_Defendant_Bias = 0.0,
-                // so, all bias is unknown to both parties
+                // so, we are assuming that all bias is unknown to both parties. In other words, there is some information that is irrelevant to the merits, that affects the judgment, and no one knows -- essentially, judicial uncertainty.
             };
             // nothing to neither or both with respect to bias
 
