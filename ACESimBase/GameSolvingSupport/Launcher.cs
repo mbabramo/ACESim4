@@ -20,7 +20,7 @@ namespace ACESim
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; 
 
-        public const int VanillaIterations = 1; // SUPERDEBUG
+        public const int VanillaIterations = 1_000;
         public const int VanillaReportEveryNIterations = VanillaIterations; 
         public const int VanillaBestResponseEveryMIterations = EffectivelyNever; 
         public const bool CalculatePerturbedBestResponseRefinement = true;
@@ -37,7 +37,7 @@ namespace ACESim
         public bool AzureEnabled = true;
         public int MaxParallelDepth = 3;
 
-        public string MasterReportNameForDistributedProcessing = "R120"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
+        public string MasterReportNameForDistributedProcessing = "R121"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
         public bool UseDistributedProcessingForMultipleOptionsSets = true;
         public static bool MaxOneReportPerDistributedProcess = false;
         public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && UseDistributedProcessingForMultipleOptionsSets; // this should be true if running on the local service fabric or usign ACESimDistributed
@@ -169,7 +169,7 @@ namespace ACESim
                 GenerateReportsByPlaying = true,
                 PrintInformationSets = false,
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
-                PrintGameTree = true, // DEBUG
+                PrintGameTree = false, 
                 ActionStrategiesToUseInReporting =
                  new List<ActionStrategies>() {
                      //ActionStrategies.CorrelatedEquilibrium,

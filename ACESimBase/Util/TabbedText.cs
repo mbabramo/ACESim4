@@ -34,6 +34,8 @@ namespace ACESim
 
         public static void DisableOutput()
         {
+            HideConsoleProgressString();
+            ConsoleProgressString = null;
             lock (AccumulatedText)
                 OutputEnabled = false;
         }
@@ -87,7 +89,11 @@ namespace ACESim
             if (OutputEnabled)
             {
                 if (WriteToConsole)
+                {
+                    HideConsoleProgressString();
                     Console.Write(localString);
+                    ShowConsoleProgressString();
+                }
                 else
                     Debug.Write(localString);
             }
@@ -104,6 +110,43 @@ namespace ACESim
             TextFileCreate.CreateTextFile(Path.Combine(baseDirectory, subDirectory, fileName), AccumulatedText.ToString());
             if (reset)
                 ResetAccumulated();
+        }
+
+
+
+        private static string ConsoleProgressString = null;
+        private static bool ConsoleProgressStringVisible;
+
+        public static void HideConsoleProgressString()
+        {
+            if (OutputEnabled && WriteToConsole)
+                if (ConsoleProgressStringVisible)
+                    if (ConsoleProgressString != null)
+                    {
+                        for (int i = 0; i < ConsoleProgressString.Length; i++)
+                        {
+                            Console.Write("\b \b");
+                        }
+                        ConsoleProgressStringVisible = false;
+                    }
+        }
+
+        public static void ShowConsoleProgressString()
+        {
+            if (OutputEnabled && WriteToConsole)
+                if (!ConsoleProgressStringVisible)
+                    if (ConsoleProgressString != null)
+                    {
+                        Console.Write(ConsoleProgressString);
+                        ConsoleProgressStringVisible = true;
+                    }
+        }
+
+        public static void SetConsoleProgressString(string consoleProgressString)
+        {
+            HideConsoleProgressString();
+            ConsoleProgressString = consoleProgressString;
+            ShowConsoleProgressString();
         }
     }
 }

@@ -92,8 +92,15 @@ namespace ACESim
             ReportCollection reportCollection = new ReportCollection();
             double[] array = new double[Unroll_SizeOfArray];
             bool targetMet = false;
+            Stopwatch s = new Stopwatch();
+            s.Start();
+            long lastElapsedSeconds = -1;
             for (int iteration = 1; iteration <= EvolutionSettings.TotalIterations && !targetMet; iteration++)
             {
+                long elapsedSeconds = s.ElapsedMilliseconds / 1000;
+                if (elapsedSeconds != lastElapsedSeconds)
+                    TabbedText.SetConsoleProgressString($"Iteration {iteration} (elapsed seconds: {s.ElapsedMilliseconds / 1000})");
+                lastElapsedSeconds = elapsedSeconds;
                 // uncomment to skip a player
                 //if (iteration == 5001)
                 //    Unroll_Commands.SetSkip("Optimizing player 0", true); 
@@ -129,6 +136,7 @@ namespace ACESim
                     CalculateReachProbabilitiesAndPrunability(EvolutionSettings.ParallelOptimization);
                 ReinitializeInformationSetsIfNecessary(iteration);
             }
+            TabbedText.SetConsoleProgressString(null);
             return reportCollection;
         }
 
@@ -786,8 +794,15 @@ namespace ACESim
         {
             ReportCollection reportCollection = new ReportCollection();
             bool targetMet = false;
+            Stopwatch s = new Stopwatch();
+            s.Start();
+            long lastElapsedSeconds = -1;
             for (int iteration = 1; iteration <= EvolutionSettings.TotalIterations && !targetMet; iteration++)
             {
+                long elapsedSeconds = s.ElapsedMilliseconds / 1000;
+                if (elapsedSeconds != lastElapsedSeconds)
+                    TabbedText.SetConsoleProgressString($"Iteration {iteration} (elapsed seconds: {s.ElapsedMilliseconds / 1000})");
+                lastElapsedSeconds = elapsedSeconds;
                 if (iteration % 50 == 1 && EvolutionSettings.DynamicSetParallel)
                     DynamicallySetParallel();
                 if (EvolutionSettings.CFRBR)
@@ -799,11 +814,9 @@ namespace ACESim
                     CalculateReachProbabilitiesAndPrunability(EvolutionSettings.ParallelOptimization);
                 ReinitializeInformationSetsIfNecessary(iteration);
             }
+            TabbedText.SetConsoleProgressString(null);
             return reportCollection;
         }
-
-
-        bool DEBUG_SkipAllIterations = true;
 
         private async Task<ReportCollection> GeneralizedVanillaCFRIteration(int iteration)
         {
@@ -819,7 +832,6 @@ namespace ACESim
             GeneralizedVanillaUtilities[] results = new GeneralizedVanillaUtilities[NumNonChancePlayers];
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
-                if (!DEBUG_SkipAllIterations)
                 GeneralizedVanillaCFRIteration_OptimizePlayer(iteration, results, playerBeingOptimized);
             }
             UpdateInformationSets(iteration);
