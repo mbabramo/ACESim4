@@ -23,13 +23,13 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             Original,
             TwoSets,
             OtherTwoSets,
-            VaryingNoise,
+            VaryingNoiseEtc,
         }
 
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-            OptionSetChoice optionSetChoice = OptionSetChoice.VaryingNoise;
+            OptionSetChoice optionSetChoice = OptionSetChoice.VaryingNoiseEtc;
             bool withOptionNotToPlay = false;
             switch (optionSetChoice)
             {
@@ -53,7 +53,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 case OptionSetChoice.Fast:
                     AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.Original, false, false);
                     break;
-                case OptionSetChoice.VaryingNoise:
+                case OptionSetChoice.VaryingNoiseEtc:
                     AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryNoise_00, false, true);
                     AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryNoise_25, false, true);
                     AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryNoise_50, false, true);

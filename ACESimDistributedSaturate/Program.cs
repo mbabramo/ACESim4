@@ -8,13 +8,13 @@ namespace ACESimDistributedSaturate
     {
         static void Main(string[] args)
         {
-            // NOTE: Make sure to build before running and confirm that ACESimDistributed is built recently.
+            // IMPORTANT NOTE: Make sure to build before running and confirm that ACESimDistributed is built recently.
             string currentPath = Process.GetCurrentProcess().MainModule.FileName;
             if (currentPath.Contains("Debug"))
                 throw new Exception("Set to release mode before saturating.");
             string targetPath = currentPath.Replace("ACESimDistributedSaturate", "ACESimDistributed");
             Console.WriteLine(targetPath);
-            const int maxNumProcessors = 128; 
+            const int maxNumProcessors = 3128; 
             int numProcessors = Environment.ProcessorCount;
             if (numProcessors > maxNumProcessors)
                 numProcessors = maxNumProcessors;
