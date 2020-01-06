@@ -20,7 +20,7 @@ namespace ACESim
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; 
 
-        public const int VanillaIterations = 1000; 
+        public const int VanillaIterations = 1000;
         public const int VanillaReportEveryNIterations = VanillaIterations; 
         public const int VanillaBestResponseEveryMIterations = EffectivelyNever; 
         public const bool CalculatePerturbedBestResponseRefinement = true;
@@ -308,6 +308,7 @@ namespace ACESim
             //    Debug.WriteLine(result);
         }
 
+        private bool SaveLastDeveloperOnThread = false; // NOTE: If true, we get memory leaks
         private Dictionary<int, (int optionSetIndex, IStrategiesDeveloper developer)> LastDeveloperOnThread = new Dictionary<int, (int optionSetIndex, IStrategiesDeveloper developer)>();
         private object LockObj = new object();
 
@@ -322,7 +323,10 @@ namespace ACESim
                 var optionSet = GetOptionsSets()[optionSetIndex];
                 var options = optionSet.options;
                 LastDeveloperOnThread[currentThreadID] = (optionSetIndex, GetInitializedDeveloper(options, optionSet.optionSetName));
-                return LastDeveloperOnThread[currentThreadID].developer;
+                var result = LastDeveloperOnThread[currentThreadID].developer;
+                if (!SaveLastDeveloperOnThread)
+                    LastDeveloperOnThread = new Dictionary<int, (int optionSetIndex, IStrategiesDeveloper developer)>();
+                return result;
             }
         }
 
