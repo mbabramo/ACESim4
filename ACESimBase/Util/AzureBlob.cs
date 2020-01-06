@@ -111,6 +111,7 @@ namespace ACESim.Util
 
         public static (string lease, CloudBlockBlob blob) GetLeasedBlockBlob(string containerName, string fileName, bool publicAccess)
         {
+            int retryInterval = 10;
             retry:
             try
             {
@@ -127,6 +128,9 @@ namespace ACESim.Util
             }
             catch (Microsoft.Azure.Storage.StorageException)
             { // failed to acquire lease
+                Task.Delay(retryInterval);
+                if (retryInterval < 10_000)
+                    retryInterval = (int) (retryInterval * 1.5); // use exponential backoff -- requesting lease too much causes very long delays
                 goto retry;
             }
         }

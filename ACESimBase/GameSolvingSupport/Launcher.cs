@@ -231,6 +231,7 @@ namespace ACESim
                 Stopwatch s = new Stopwatch();
                 s.Start();
                 var blockBlob = AzureBlob.GetLeasedBlockBlob("results", masterReportName + " Coordinator", true);
+                TabbedText.WriteLine($"Received block blob lease ({s.ElapsedMilliseconds} milliseconds)");
                 bool readyForAnotherTask = !cancellationToken.IsCancellationRequested;
                 // We are serializing the TaskCoordinator to synchronize information. Thus, we need to update the task coordinator to report that this job is complete. 
                 AzureBlob.TransformSharedBlobObject(blockBlob.blob, blockBlob.lease, o =>
@@ -248,7 +249,7 @@ namespace ACESim
                         TabbedText.WriteLineEvenIfDisabled($"Task to do: {taskToDo}");
                     return taskCoordinator;
                 });
-                TabbedText.WriteLine($"Updated status ({s.ElapsedMilliseconds} milliseconds)");
+                TabbedText.WriteLine($"Updated status (total {s.ElapsedMilliseconds} milliseconds)");
                 if (!complete)
                 {
                     if (taskToDo == null)
