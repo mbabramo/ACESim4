@@ -25,7 +25,7 @@ namespace ACESim.Util
 
         public void Update(IndividualTask taskCompleted, bool readyForAnotherTask, out IndividualTask taskToDo, out bool allComplete)
         {
-            TimeSpan minSpanBeforeStartingAlreadyStartedJob = LongestDuration;
+            TimeSpan minSpanBeforeStartingAlreadyStartedJob = TimeSpan.FromSeconds(0); // ALTERNATIVE: LongestDuration;
             RepeatedTask repeatedTask = null;
             if (taskCompleted != null)
             {
