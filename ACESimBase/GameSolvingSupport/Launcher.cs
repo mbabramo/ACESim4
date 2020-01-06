@@ -228,6 +228,8 @@ namespace ACESim
             {
                 logAction?.Invoke("Starting participation in distributed processing");
                 IndividualTask theCompletedTask = taskCompleted; // avoid problem with closure
+                Stopwatch s = new Stopwatch();
+                s.Start();
                 var blockBlob = AzureBlob.GetLeasedBlockBlob("results", masterReportName + " Coordinator", true);
                 bool readyForAnotherTask = !cancellationToken.IsCancellationRequested;
                 // We are serializing the TaskCoordinator to synchronize information. Thus, we need to update the task coordinator to report that this job is complete. 
@@ -246,6 +248,7 @@ namespace ACESim
                         TabbedText.WriteLineEvenIfDisabled($"Task to do: {taskToDo}");
                     return taskCoordinator;
                 });
+                TabbedText.WriteLine($"Updated status ({s.ElapsedMilliseconds} milliseconds)");
                 if (!complete)
                 {
                     if (taskToDo == null)
