@@ -224,14 +224,14 @@ namespace ACESim
             bool complete = false;
             if (logAction == null)
                 logAction = s => Debug.WriteLine(s);
+            logAction?.Invoke("Starting participation in distributed processing");
             while (!complete)
             {
-                logAction?.Invoke("Starting participation in distributed processing");
                 IndividualTask theCompletedTask = taskCompleted; // avoid problem with closure
                 Stopwatch s = new Stopwatch();
                 s.Start();
                 var blockBlob = AzureBlob.GetLeasedBlockBlob("results", masterReportName + " Coordinator", true);
-                TabbedText.WriteLine($"Received block blob lease ({s.ElapsedMilliseconds} milliseconds)");
+               // TabbedText.WriteLine($"Received block blob lease ({s.ElapsedMilliseconds} milliseconds)");
                 bool readyForAnotherTask = !cancellationToken.IsCancellationRequested;
                 // We are serializing the TaskCoordinator to synchronize information. Thus, we need to update the task coordinator to report that this job is complete. 
                 AzureBlob.TransformSharedBlobObject(blockBlob.blob, blockBlob.lease, o =>
@@ -239,11 +239,7 @@ namespace ACESim
                     TaskCoordinator taskCoordinator = (TaskCoordinator)o; // because of TransformSharedBlobObject, changes to this will be persisted
                     if (taskCoordinator == null)
                         throw new Exception("Corrupted or nonexistent task coordinator blob");
-                    logAction("Initial task coordinator state:");
-                    logAction(taskCoordinator.ToString());
                     taskCoordinator.Update(theCompletedTask, readyForAnotherTask, out taskToDo, out complete);
-                    logAction("Updated task coordinator state:");
-                    logAction(taskCoordinator.ToString());
                     TabbedText.WriteLineEvenIfDisabled($"Percentage Complete {100.0 * taskCoordinator.ProportionComplete}% of {taskCoordinator.IndividualTaskCount}");
                     if (taskToDo != null)
                         TabbedText.WriteLineEvenIfDisabled($"Task to do: {taskToDo}");
@@ -259,8 +255,9 @@ namespace ACESim
                     }
                     else
                     {
+                        logAction($"Beginning task {taskToDo.Name} (ID {taskToDo.ID})");
                         await CompleteIndividualTask(masterReportName, taskToDo, logAction);
-                        logAction($"Completed task {taskToDo.Name} {taskToDo.ID}");
+                        logAction($"Completed task {taskToDo.Name} (ID {taskToDo.ID})");
                         taskCompleted = taskToDo;
                     }
                 }

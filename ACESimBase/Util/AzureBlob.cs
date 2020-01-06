@@ -105,7 +105,6 @@ namespace ACESim.Util
             Stopwatch s = new Stopwatch();
             s.Start();
             result = transformFunction(serializedObject);
-            TabbedText.WriteLine($"Transform time {s.ElapsedMilliseconds}"); // DEBUG
             if (result != null)
                 SerializeObject(result, blockBlob, leaseID);
             else
