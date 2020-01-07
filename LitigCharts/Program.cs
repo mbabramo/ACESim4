@@ -41,7 +41,8 @@ namespace LitigCharts
 
 
             noiseSets.Zip(inputColumnsOriginal, (s, c) => (s, c)).ToArray();
-            string result = GetStringWithSeparateLineForEachCostThresholdAndQuality(prefix, "All", inputColumnsWithSets, outputColumnsRevised, true);
+            string categoricalVariable = "QualitySum";
+            string result = GetStringWithSeparateLineForEachCostThresholdAndQualityOrCategoricalVariable(prefix, "All", inputColumnsWithSets, outputColumnsRevised, categoricalVariable);
             Console.WriteLine(result);
         }
 
@@ -80,13 +81,13 @@ namespace LitigCharts
             return b.ToString();
         }
 
-        private static string GetStringWithSeparateLineForEachCostThresholdAndQuality(string prefix, string filterOfRowsToGet, (string set, string column)[] inputColumns, string[] outputColumns, bool aggregateToGetQualitySum)
+        private static string GetStringWithSeparateLineForEachCostThresholdAndQualityOrCategoricalVariable(string prefix, string filterOfRowsToGet, (string set, string column)[] inputColumns, string[] outputColumns, string categoricalVarPrefix)
         {
-            int numQualities = aggregateToGetQualitySum ? 20 : allQualities.Length;
-            double[] qualityValues = aggregateToGetQualitySum ? Enumerable.Range(0, 20).Select(x => 0.025 + x * 0.05).ToArray() : allQualities;
+            int numQualities = categoricalVarPrefix != null ? 20 : allQualities.Length;
+            double[] qualityValues = categoricalVarPrefix != null ? Enumerable.Range(0, 20).Select(x => 0.025 + x * 0.05).ToArray() : allQualities;
 
             StringBuilder b = new StringBuilder();
-            double[][][][] results = inputColumns.Select(c => GetDataForCostsShiftingAndQualities(prefix, c.set, filterOfRowsToGet, c.column, aggregateToGetQualitySum)).ToArray();
+            double[][][][] results = inputColumns.Select(c => GetDataForCostsShiftingAndQualitiesOrCategoricalVariable(prefix, c.set, filterOfRowsToGet, c.column, categoricalVarPrefix)).ToArray();
             b.Append("CostCat,ThreshCat,QualCat,Cost,Threshold,Quality");
             foreach (string outputColumn in outputColumns)
                 b.Append("," + outputColumn);
@@ -101,7 +102,8 @@ namespace LitigCharts
                         for (int columnToGet = 0; columnToGet < inputColumns.Length; columnToGet++)
                         {
                             b.Append(",");
-                            b.Append(results[columnToGet][c][f][q].ToString());
+                            double v = results[columnToGet][c][f][q];
+                            b.Append(v == double.MinValue /* null substitute */ ? "" : v.ToString());
                         }
                         b.AppendLine("");
                     }
@@ -111,7 +113,7 @@ namespace LitigCharts
             return b.ToString();
         }
 
-        private static double[][][] GetDataForCostsShiftingAndQualities(string prefix, string set, string filterOfRowsToGet, string columnToGet, bool aggregateToGetQualitySum)
+        private static double[][][] GetDataForCostsShiftingAndQualitiesOrCategoricalVariable(string prefix, string set, string filterOfRowsToGet, string columnToGet, string categoricalVarPrefix)
         {
             // This will give us the array of charts for our graph -- we go across (all costs, then all fee shifting)
             double[][][] results = new double[allCosts.Length][][];
@@ -120,19 +122,19 @@ namespace LitigCharts
                 results[c] = new double[allFeeShifting.Length][];
                 for (int f = 0; f < allFeeShifting.Length; f++)
                 {
-                    var resultForAllQualities = aggregateToGetQualitySum ? GetDataForQualities_Aggregating(prefix, set, allQualities, allCosts[c], allFeeShifting[f], columnToGet) : GetDataForQualities(prefix, set, allQualities, allCosts[c], allFeeShifting[f], filterOfRowsToGet, columnToGet);
+                    var resultForAllQualities = categoricalVarPrefix != null ? GetDataAggregatingCategoricalVariableRanges(prefix, set, categoricalVarPrefix, allQualities, allCosts[c], allFeeShifting[f], columnToGet) : GetDataForQualities(prefix, set, allQualities, allCosts[c], allFeeShifting[f], filterOfRowsToGet, columnToGet);
                     results[c][f] = resultForAllQualities;
                 }
             }
             return results;
         }
 
-        private static double[] GetDataForQualities_Aggregating(string prefix, string set, double[] originalQualityValues, double costs, double feeShifting,  string columnToGet)
+        private static double[] GetDataAggregatingCategoricalVariableRanges(string prefix, string set, string categoricalVarPrefix, double[] originalQualityValues, double costs, double feeShifting,  string columnToGet)
         {
-            string[] filterOfRowsToGet = Enumerable.Range(1, 20).Select(x => $"QualitySum{x}").ToArray();
+            string[] filterOfRowsToGet = Enumerable.Range(1, 20).Select(x => $"{categoricalVarPrefix}{x}").ToArray();
             var results = GetDataForSpecificSettings_AggregatedAcrossQualityValues(prefix, set, originalQualityValues, costs, feeShifting, filterOfRowsToGet, new string[] { columnToGet });
             int length = results.GetLength(0);
-            var oneColumnOnly = Enumerable.Range(0, length).Select(i => results[i, 0] ?? 0).ToArray();
+            var oneColumnOnly = Enumerable.Range(0, length).Select(i => results[i, 0] ?? double.MinValue).ToArray(); // use double.MinValue as a null substitute
             return oneColumnOnly;
         }
 
@@ -172,7 +174,12 @@ namespace LitigCharts
             }
             for (int f = 0; f < filtersOfRowsToGet.Length; f++)
                 for (int c = 0; c < columnsToGet.Length; c++)
-                    numerators[f, c] /= denominators[f];
+                {
+                    if (denominators[f] == 0)
+                        numerators[f, c] = null;
+                    else
+                        numerators[f, c] /= denominators[f];
+                }
             return numerators;
         }
 
