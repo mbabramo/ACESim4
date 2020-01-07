@@ -52,6 +52,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 new SimpleReportColumnVariable("DQuality", (GameProgress gp) => AEGP(gp).Chance_Defendant_Quality_Continuous),
                 new SimpleReportColumnVariable("NQuality", (GameProgress gp) => AEGP(gp).Chance_Neither_Quality_Continuous_IfDetermined),
                 new SimpleReportColumnVariable("QualitySum", (GameProgress gp) => AEGP(gp).QualitySum),
+                new SimpleReportColumnVariable("PBestGuess", (GameProgress gp) => AEGP(gp).PBestGuess),
+                new SimpleReportColumnVariable("DBestGuess", (GameProgress gp) => AEGP(gp).DBestGuess),
                 new SimpleReportColumnVariable("QualitySum_PInfo", (GameProgress gp) => AEGP(gp).QualitySum_PInfoOnly),
                 new SimpleReportColumnVariable("QualitySum_DInfo", (GameProgress gp) => AEGP(gp).QualitySum_DInfoOnly),
                 new SimpleReportColumnVariable("PBias", (GameProgress gp) => AEGP(gp).Chance_Plaintiff_Bias_Continuous),
@@ -113,6 +115,13 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     double bottomRangeAvoidClosure = bottomRange;
                     double topRange = bottomRangeAvoidClosure + stepSize;
                     rows.Add(new SimpleReportFilter("QualitySum" + i++, gp => AEGP(gp).QualitySum >= bottomRangeAvoidClosure && AEGP(gp).QualitySum < topRange));
+                }
+                for (double bottomRange = 0; bottomRange < 0.999; bottomRange += stepSize)
+                {
+                    double bottomRangeAvoidClosure = bottomRange;
+                    double topRange = bottomRangeAvoidClosure + stepSize;
+                    rows.Add(new SimpleReportFilter("PBestGuess" + i++, gp => AEGP(gp).PBestGuess >= bottomRangeAvoidClosure && AEGP(gp).QualitySum < topRange));
+                    rows.Add(new SimpleReportFilter("DBestGuess" + i++, gp => AEGP(gp).DBestGuess >= bottomRangeAvoidClosure && AEGP(gp).QualitySum < topRange));
                 }
             }
 
