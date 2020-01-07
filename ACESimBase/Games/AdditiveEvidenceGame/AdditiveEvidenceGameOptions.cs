@@ -10,6 +10,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
     {
         public bool FirstRowOnly => false; // simplifies the reporting
 
+        public bool TrialGuaranteed;
+
         public bool LinearBids;
         public bool IncludePQuitDecision;
         public bool IncludeDQuitDecision;
@@ -72,7 +74,7 @@ Alpha_Bias {Alpha_Bias}: Both {Alpha_Both_Bias} P {Alpha_Plaintiff_Bias} D {Alph
 FeeShifting {FeeShifting} {(FeeShifting ? $"Margin {FeeShiftingIsBasedOnMarginOfVictory} Threshold {FeeShiftingThreshold}" : "")}
 NumOffers {NumOffers} MinOffer {MinOffer} OfferRange {OfferRange} 
 NumQualityAndBiasLevels {NumQualityAndBiasLevels_PrivateInfo} (private) {NumQualityAndBiasLevels_NeitherInfo} (neither info)
-LinearBids {LinearBids} IncludePQuit {IncludePQuitDecision} IncludeDQuit {IncludeDQuitDecision}";
+LinearBids {LinearBids} TrialGuaranteed {TrialGuaranteed} IncludePQuit {IncludePQuitDecision} IncludeDQuit {IncludeDQuitDecision}";
         }
     }
 }

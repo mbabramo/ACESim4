@@ -41,9 +41,11 @@ namespace LitigCharts
 
 
             noiseSets.Zip(inputColumnsOriginal, (s, c) => (s, c)).ToArray();
-            string varyingQualitySum = GetStringWithSeparateLineForEachCostThresholdAndQualityOrCategoricalVariable(prefix, inputColumnsWithSets, outputColumnsRevised, null, new string[] { "QualitySum" });
+            //string varyingQualitySum = GetStringWithSeparateLineForEachCostThresholdAndQualityOrCategoricalVariable(prefix, inputColumnsWithSets, outputColumnsRevised, null, new string[] { "QualitySum" }, null);
 
-            string varyingBestGuess = GetStringWithSeparateLineForEachCostThresholdAndQualityOrCategoricalVariable(prefix, inputColumnsWithSets, outputColumnsRevised, null, new string[] { "PBestGuess", "DBestGuess" });
+            string varyingBestGuess_FixedUnderlyingQ = GetStringWithSeparateLineForEachCostThresholdAndQualityOrCategoricalVariable(prefix, inputColumnsWithSets, outputColumnsRevised, null, new string[] { "PBestGuess", "DBestGuess" }, 0.2);
+
+            //string varyingBestGuess = GetStringWithSeparateLineForEachCostThresholdAndQualityOrCategoricalVariable(prefix, inputColumnsWithSets, outputColumnsRevised, null, new string[] { "PBestGuess", "DBestGuess" }, null);
         }
 
         static string[] allSets = new string[] { "noise00", "noise25", "noise50", "shared00", "shared25", "shared50", "shared75", "shared100", "pstrength00", "pstrength25", "pstrength50", "pstrength75", "pstrength100" }; // { "orig", "bl_es",  "bl", "es" };
@@ -81,7 +83,7 @@ namespace LitigCharts
             return b.ToString();
         }
 
-        private static string GetStringWithSeparateLineForEachCostThresholdAndQualityOrCategoricalVariable(string prefix, (string set, string column)[] inputColumns, string[] outputColumns, string filterOfRowAbsentCategoricalVar, string[] categoricalVarPrefixes)
+        private static string GetStringWithSeparateLineForEachCostThresholdAndQualityOrCategoricalVariable(string prefix, (string set, string column)[] inputColumns, string[] outputColumns, string filterOfRowAbsentCategoricalVar, string[] categoricalVarPrefixes, double? fixedQualityValue)
         {
             // note that we are assuming that all categorical variables have the same corresponding values (e.g., pbestguess and dbestguess)
             double[] variableValues = categoricalVarPrefixes != null ? Enumerable.Range(0, 20).Select(x => 0.025 + x * 0.05).ToArray() : allQualities;
@@ -91,7 +93,7 @@ namespace LitigCharts
             string[] categoricalVarPrefixesOrNull = categoricalVarPrefixes == null ? new string[] { null } : categoricalVarPrefixes;
             double[][][][][] resultsForAllCategoricalVars = new double[numCategoricalVarsOr1][][][][];
             for (int i = 0; i < numCategoricalVarsOr1; i++)
-                resultsForAllCategoricalVars[i] = inputColumns.Select(c => GetDataForCostsShiftingAndQualitiesOrCategoricalVariable(prefix, c.set, c.column, filterOfRowAbsentCategoricalVar, categoricalVarPrefixesOrNull[i])).ToArray();
+                resultsForAllCategoricalVars[i] = inputColumns.Select(c => GetDataForCostsShiftingAndQualitiesOrCategoricalVariable(prefix, c.set, c.column, filterOfRowAbsentCategoricalVar, categoricalVarPrefixesOrNull[i], fixedQualityValue)).ToArray();
             if (categoricalVarPrefixes == null)
                 b.Append("CostCat,ThreshCat,QualCat,Cost,Threshold,Quality");
             else
@@ -135,16 +137,17 @@ namespace LitigCharts
             return b.ToString();
         }
 
-        private static double[][][] GetDataForCostsShiftingAndQualitiesOrCategoricalVariable(string prefix, string set, string columnToGet, string filterOfRowAbsentCategoricalVar, string categoricalVarPrefix)
+        private static double[][][] GetDataForCostsShiftingAndQualitiesOrCategoricalVariable(string prefix, string set, string columnToGet, string filterOfRowAbsentCategoricalVar, string categoricalVarPrefix, double? fixedQualityValue)
         {
             // This will give us the array of charts for our graph -- we go across (all costs, then all fee shifting)
+            double[] qualities = fixedQualityValue == null ? allQualities : new double[] { (double) fixedQualityValue };
             double[][][] results = new double[allCosts.Length][][];
             for (int c = 0; c < allCosts.Length; c++)
             {
                 results[c] = new double[allFeeShifting.Length][];
                 for (int f = 0; f < allFeeShifting.Length; f++)
                 {
-                    var resultForAllQualities = categoricalVarPrefix != null ? GetDataAggregatingCategoricalVariableRanges(prefix, set, categoricalVarPrefix, allQualities, allCosts[c], allFeeShifting[f], columnToGet) : GetDataForQualities(prefix, set, allQualities, allCosts[c], allFeeShifting[f], filterOfRowAbsentCategoricalVar, columnToGet);
+                    var resultForAllQualities = categoricalVarPrefix != null ? GetDataAggregatingCategoricalVariableRanges(prefix, set, categoricalVarPrefix, qualities, allCosts[c], allFeeShifting[f], columnToGet) : GetDataForQualities(prefix, set, allQualities, allCosts[c], allFeeShifting[f], filterOfRowAbsentCategoricalVar, columnToGet);
                     results[c][f] = resultForAllQualities;
                 }
             }

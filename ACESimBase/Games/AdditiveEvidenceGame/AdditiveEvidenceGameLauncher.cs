@@ -23,13 +23,14 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             Original,
             TwoSets,
             OtherTwoSets,
+            TrialGuaranteed,
             VaryingNoiseEtc,
         }
 
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-            OptionSetChoice optionSetChoice = OptionSetChoice.VaryingNoiseEtc;
+            OptionSetChoice optionSetChoice = OptionSetChoice.TrialGuaranteed;
             bool withOptionNotToPlay = false;
             switch (optionSetChoice)
             {
@@ -52,6 +53,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     break;
                 case OptionSetChoice.Fast:
                     AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.Original, false, false);
+                    break;
+                case OptionSetChoice.TrialGuaranteed:
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.Baseline_WithTrialGuaranteed, false, true);
                     break;
                 case OptionSetChoice.VaryingNoiseEtc:
                     AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryNoise_00, false, true);
@@ -87,6 +91,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             EvenStrength,
             EvenStrengthAndBiasless,
             EvenStrengthAndBiasless_MoreInfoShared,
+            Baseline_WithTrialGuaranteed, // same as VaryNoise_25 with trial guaranteed
             VaryNoise_00, // no noise; 50% of judgment depends on shared evaluation of quality; p, d private estimates evenly determine rest of judgment
             VaryNoise_25, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p, d private estimates evenly determine rest of judgment
             VaryNoise_50, // 50% noise; 50% of rest of judgment depends on shared evaluation of quality; p, d private estimates evenly determine rest of judgment
@@ -127,12 +132,14 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                             case DMSVersion.EvenStrengthAndBiasless_MoreInfoShared:
                                 optionSets.Add(GetAndTransform("mis", settingsString, () => AdditiveEvidenceGameOptionsGenerator.Biasless(quality, 0.5, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, 0.75, withOptionNotToPlay), x => { }));
                                 break;
-
+                            case DMSVersion.Baseline_WithTrialGuaranteed:
+                                optionSets.Add(GetAndTransform("trialg", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.25, 0.5, 0.5, quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.TrialGuaranteed = true; }));
+                                break;
                             case DMSVersion.VaryNoise_00:
                                 optionSets.Add(GetAndTransform("noise00", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0, 0.5, 0.5, quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
                                 break;
                             case DMSVersion.VaryNoise_25:
-                                optionSets.Add(GetAndTransform("noise25", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.25, 0.5, 0.5, quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
+                                optionSets.Add(GetAndTransform("noise25", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.25, 0.5, 0.5, quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { })); // NOTE: This is the baseline
                                 break;
                             case DMSVersion.VaryNoise_50:
                                 optionSets.Add(GetAndTransform("noise50", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.50, 0.5, 0.5, quality, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));

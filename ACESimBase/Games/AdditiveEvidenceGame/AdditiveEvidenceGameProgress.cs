@@ -69,8 +69,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public double? Chance_Neither_Bias_Continuous_OrNull => (TrialOccurs ? Chance_Neither_Bias_Continuous_IfDetermined : (double?)null);
 
         public double? SettlementValue => SettlementOccurs ? (POfferContinuousIfMade + DOfferContinuousIfMade) / 2.0 : (double?) null;
-        public bool SomeoneQuits => PQuits || DQuits;
-        public bool SettlementOccurs => !SomeoneQuits && POfferContinuousIfMade <= DOfferContinuousIfMade;
+        public bool SomeoneQuits => !AdditiveEvidenceGameOptions.TrialGuaranteed && (PQuits || DQuits);
+        public bool SettlementOccurs => !SomeoneQuits && !AdditiveEvidenceGameOptions.TrialGuaranteed && POfferContinuousIfMade <= DOfferContinuousIfMade;
         public bool TrialOccurs => !SomeoneQuits && !SettlementOccurs;
         static double dOr0(double n, double d) => d == 0 ? 0 : n / d; // avoid division by zero
         public double QualitySum => AdditiveEvidenceGameOptions.Alpha_Both_Quality * AdditiveEvidenceGameOptions.Evidence_Both_Quality + AdditiveEvidenceGameOptions.Alpha_Plaintiff_Quality * Chance_Plaintiff_Quality_Continuous + AdditiveEvidenceGameOptions.Alpha_Defendant_Quality * Chance_Defendant_Quality_Continuous + AdditiveEvidenceGameOptions.Alpha_Neither_Quality * Chance_Neither_Quality_Continuous_IfDetermined;
