@@ -14,8 +14,8 @@ namespace LitigCharts
     {
         static void Main(string[] args)
         {
-            string prefix = "R113";
-            //CopyAzureFiles(prefix);
+            string prefix = "R125";
+            CopyAzureFiles(prefix);
             //InformationSetCharts();
             AggregateDMSModel(prefix);
             //var results_Original = MakeString(GetDataForCostsShiftingAndQualities(prefix, "noise25", "All", variable, aggregateToGetQualitySum: true));

@@ -112,7 +112,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 {
                     double bottomRangeAvoidClosure = bottomRange;
                     double topRange = bottomRangeAvoidClosure + stepSize;
-                    rows.Add(new SimpleReportFilter("QualitySum" + i++, gp => AEGP(gp).QualitySum >= bottomRangeAvoidClosure && AEGP(gp).QualitySum < topRange));
+                    double roundingAdjustment = 1E-10; // the rounding adjustment ensures that something that should be exactly at the boundary is counted consistently (before this, we had slight asymmetries in the graphs for symmetrical games)
+                    rows.Add(new SimpleReportFilter("QualitySum" + i++, gp => AEGP(gp).QualitySum >= bottomRangeAvoidClosure - roundingAdjustment && AEGP(gp).QualitySum < topRange - roundingAdjustment));
                 }
             }
 
