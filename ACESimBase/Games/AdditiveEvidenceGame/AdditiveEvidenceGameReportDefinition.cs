@@ -117,12 +117,19 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     double roundingAdjustment = 1E-10; // the rounding adjustment ensures that something that should be exactly at the boundary is counted consistently (before this, we had slight asymmetries in the graphs for symmetrical games)
                     rows.Add(new SimpleReportFilter("QualitySum" + i++, gp => AEGP(gp).QualitySum >= bottomRangeAvoidClosure - roundingAdjustment && AEGP(gp).QualitySum < topRange - roundingAdjustment));
                 }
+                i = 1;
                 for (double bottomRange = 0; bottomRange < 0.999; bottomRange += stepSize)
                 {
                     double bottomRangeAvoidClosure = bottomRange;
                     double topRange = bottomRangeAvoidClosure + stepSize;
-                    rows.Add(new SimpleReportFilter("PBestGuess" + i++, gp => AEGP(gp).PBestGuess >= bottomRangeAvoidClosure && AEGP(gp).QualitySum < topRange));
-                    rows.Add(new SimpleReportFilter("DBestGuess" + i++, gp => AEGP(gp).DBestGuess >= bottomRangeAvoidClosure && AEGP(gp).QualitySum < topRange));
+                    rows.Add(new SimpleReportFilter("PBestGuess" + i++, gp => AEGP(gp).PBestGuess >= bottomRangeAvoidClosure && AEGP(gp).PBestGuess < topRange));
+                }
+                i = 1;
+                for (double bottomRange = 0; bottomRange < 0.999; bottomRange += stepSize)
+                {
+                    double bottomRangeAvoidClosure = bottomRange;
+                    double topRange = bottomRangeAvoidClosure + stepSize;
+                    rows.Add(new SimpleReportFilter("DBestGuess" + i++, gp => AEGP(gp).DBestGuess >= bottomRangeAvoidClosure && AEGP(gp).DBestGuess < topRange));
                 }
             }
 
