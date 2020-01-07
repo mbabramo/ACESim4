@@ -225,6 +225,7 @@ namespace ACESim
             if (logAction == null)
                 logAction = s => Debug.WriteLine(s);
             logAction?.Invoke("Starting participation in distributed processing");
+            TabbedText.WriteLine($"Starting participation in {MasterReportNameForDistributedProcessing}");
             while (!complete)
             {
                 IndividualTask theCompletedTask = taskCompleted; // avoid problem with closure
