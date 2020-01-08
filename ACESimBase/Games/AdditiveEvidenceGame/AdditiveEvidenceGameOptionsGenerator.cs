@@ -47,7 +47,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             _ => throw new NotImplementedException()
         };
 
-        public static byte NumOffers = 10; // having a good number here allows for more precise strategies
+        public static byte NumOffers = 25; // having a good number here allows for more precise strategies
         public static byte NumQualityAndBiasLevels_PrivateInfo = 10; // we don't need quite as much here, since it's information that doesn't intersect between players
         public static byte NumQualityAndBiasLevels_NeitherInfo = 10; // still less needed here
 
