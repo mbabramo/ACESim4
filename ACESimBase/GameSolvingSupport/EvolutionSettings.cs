@@ -45,6 +45,7 @@ namespace ACESim
         public bool MeasureRegretMatchingChanges = false;
         public bool UseRandomPathsForReporting = true;
         public bool RoundOffLowProbabilitiesBeforeReporting = true;
+        public bool RoundOffLowProbabilitiesBeforeAcceleratedBestResponse = true; // DEBUG
         public double RoundOffThreshold = 0.005;
         public bool SerializeResults = false;
         public bool SerializeInformationSetDataOnly = true;

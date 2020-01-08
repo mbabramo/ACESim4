@@ -1368,6 +1368,13 @@ namespace ACESim
             else if (EvolutionSettings.ConstructCorrelatedEquilibrium)
                 throw new Exception("When constructing correlated equilibrium, use current strategy.");
 
+            if (EvolutionSettings.RoundOffLowProbabilitiesBeforeAcceleratedBestResponse)
+                foreach (var informationSet in InformationSets)
+                {
+                    informationSet.CreateBackup();
+                    informationSet.RoundOffLowProbabilities(actionStrategy == ActionStrategies.CurrentProbability, EvolutionSettings.RoundOffThreshold);
+                }
+
             Stopwatch s = new Stopwatch();
             s.Start();
             if (EvolutionSettings.UseAcceleratedBestResponse)
@@ -1391,6 +1398,13 @@ namespace ACESim
                 }
             }
             s.Stop();
+
+            if (EvolutionSettings.RoundOffLowProbabilitiesBeforeAcceleratedBestResponse)
+                foreach (var informationSet in InformationSets)
+                {
+                    informationSet.RestoreBackup();
+                }
+
             Status.BestResponseCalculationTime = s.ElapsedMilliseconds;
         }
 
