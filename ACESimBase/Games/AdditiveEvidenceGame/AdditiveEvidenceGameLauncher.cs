@@ -25,12 +25,13 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             OtherTwoSets,
             TrialGuaranteed,
             VaryingNoiseEtc,
+            Temporary,
         }
 
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-            OptionSetChoice optionSetChoice = OptionSetChoice.TrialGuaranteed;
+            OptionSetChoice optionSetChoice = OptionSetChoice.Temporary;
             bool withOptionNotToPlay = false;
             switch (optionSetChoice)
             {
@@ -71,6 +72,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryPStrength_50, false, true);
                     AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryPStrength_75, false, true);
                     AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryPStrength_100, false, true);
+                    break;
+                case OptionSetChoice.Temporary:
+                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryShared_100, false, true);
                     break;
             }
 
