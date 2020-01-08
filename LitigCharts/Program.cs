@@ -32,7 +32,9 @@ namespace LitigCharts
 
             //AggregateDMSModel("R127", "noise25", SetsToUse.Baseline);
             //AggregateDMSModel("R128", "trialg", SetsToUse.TrialGuaranteed);
-            AggregateDMSModel("R127", "shared", SetsToUse.SharedSets);
+            //AggregateDMSModel("R127", "noise", SetsToUse.NoiseSets);
+            //AggregateDMSModel("R127", "shared", SetsToUse.SharedSets);
+            AggregateDMSModel("R127", "pstrength", SetsToUse.PStrengthSets);
             //var results_Original = MakeString(GetDataForCostsShiftingAndQualities(prefix, "noise25", "All", variable, aggregateToGetQualitySum: true));
         }
 

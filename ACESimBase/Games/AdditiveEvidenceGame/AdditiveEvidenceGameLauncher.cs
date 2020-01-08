@@ -99,7 +99,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             VaryShared_25, // 25% noise; 25% of rest of judgment depends on shared evaluation of quality; p, d private estimates evenly determine rest of judgment
             VaryShared_50, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p, d private estimates evenly determine rest of judgment
             VaryShared_75, // 25% noise; 75% of rest of judgment depends on shared evaluation of quality; p, d private estimates evenly determine rest of judgment
-            VaryShared_100, // 25% noise; 100% of judgment depends on shared evaluation of quality; p, d private estimates are actually irrelevant
+            VaryShared_100, // 25% noise; 100% of rest of judgment depends on shared evaluation of quality; p, d private estimates are actually irrelevant
             VaryPStrength_00, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p private estimate determines 0% of rest of judgment
             VaryPStrength_25, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p private estimate determines 25% of rest of judgment
             VaryPStrength_50, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p private estimate determines 50% of rest of judgment
