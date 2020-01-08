@@ -12,50 +12,85 @@ namespace LitigCharts
 {
     class Program
     {
+
+        static string[] allSets = new string[] { "noise00", "noise25", "noise50", "shared00", "shared25", "shared50", "shared75", "shared100", "pstrength00", "pstrength25", "pstrength50", "pstrength75", "pstrength100" }; // { "orig", "bl_es",  "bl", "es" };
+        static string[] trialGuaranteedSet = new string[] { "trialg" };
+        static string[] baselineSet = new string[] { "noise25" };
+        static double[] allQualities = new double[] { 0, 0.20, 0.40, 0.60, 0.80, 1.0 };
+        static double?[] allQualitiesPlusNull = new double?[] { 0, 0.20, 0.40, 0.60, 0.80, 1.0, null };
+        static double[] allCosts = new double[] { 0, 0.15, 0.30, 0.45, 0.60 };
+        static double[] allFeeShifting = new double[] { 0, 0.25, 0.50, 0.75, 1.0 };
+        static int NumValuesCategoricalVar = 10; // IMPORTANT: ALSO CHANGE THIS BELOW, SINCE WE MAY HAVE DIFFERENT VALUES IN DIFFERENT SITUATIONSS
+        static string sourcePath = @"H:\My Drive\Articles, books in progress\Machine learning model of litigation\DMS nonlinear results 1";
+        static string destinationPath = @"H:\My Drive\Articles, books in progress\Machine learning model of litigation\Line Graphs";
+
         static void Main(string[] args)
         {
-            string prefix = "R127";
+            string prefix = "R128";
             //CopyAzureFiles(prefix);
             //InformationSetCharts();
-            AggregateDMSModel(prefix);
+
+            //AggregateDMSModel("R127", "noise25", SetsToUse.Baseline);
+            //AggregateDMSModel("R128", "trialg", SetsToUse.TrialGuaranteed);
+            AggregateDMSModel("R127", "shared", SetsToUse.SharedSets);
             //var results_Original = MakeString(GetDataForCostsShiftingAndQualities(prefix, "noise25", "All", variable, aggregateToGetQualitySum: true));
         }
 
-        private static void AggregateDMSModel(string prefix)
+        public enum SetsToUse
         {
-            string[] inputColumnsOriginal = new string[] { "Settles", "Trial", "Shifting", "ShiftingOccursIfTrial", "ShiftingValueIfTrial", "POffer", "DOffer", "AccSq", "Accuracy", "Accuracy_ForPlaintiff", "Accuracy_ForDefendant", "SettlementOrJudgment", "TrialValuePreShiftingIfOccurs", "TrialValueWithShiftingIfOccurs", "ResolutionValueIncludingShiftedAmount", "SettlementValue", "PWelfare", "DWelfare" };
-            string[] outputColumnsOriginal = new string[] { "Settles", "Trial", "Shifting", "ShiftingOccursIfTrial", "ShiftingValueIfTrial", "POffer", "DOffer", "AccuracySq", "Accuracy", "AccuracyForP", "AccuracyForD", "SettlementOrJudgment", "TrialValuePreShiftingIfOccurs", "TrialValueWithShiftingIfOccurs", "ResolutionValueIncludingShiftedAmount", "SettlementValue", "PWelfare", "DWelfare" };
-            string[] noiseSets = allSets.Take(3).ToArray();
-            string[] sharedSets = allSets.Skip(3).Take(5).ToArray();
-            string[] pstrengthSets = allSets.Skip(8).ToArray();
+            TrialGuaranteed,
+            Baseline,
+            NoiseSets,
+            SharedSets,
+            PStrengthSets
+        }
+
+        private static void AggregateDMSModel(string prefix, string explanation, SetsToUse sets)
+        {
+            string[] inputColumnsOriginal = new string[] { "Settles", "Trial", "Shifting", "ShiftingOccursIfTrial", "ShiftingValueIfTrial", "POffer", "DOffer", "AccSq", "Accuracy", "Accuracy_ForPlaintiff", "Accuracy_ForDefendant", "SettlementOrJudgment", "TrialValuePreShiftingIfOccurs", "TrialValueWithShiftingIfOccurs", "ResolutionValueIncludingShiftedAmount", "SettlementValue", "PWelfare", "DWelfare", "PBestGuess", "DBestGuess" };
+            string[] outputColumnsOriginal = new string[] { "Settles", "Trial", "Shifting", "ShiftingOccursIfTrial", "ShiftingValueIfTrial", "POffer", "DOffer", "AccuracySq", "Accuracy", "AccuracyForP", "AccuracyForD", "SettlementOrJudgment", "TrialValuePreShiftingIfOccurs", "TrialValueWithShiftingIfOccurs", "ResolutionValueIncludingShiftedAmount", "SettlementValue", "PWelfare", "DWelfare", "PBestGuess", "DBestGuess" };
+
+            string[] setsToUse = sets switch
+            {
+                SetsToUse.TrialGuaranteed => trialGuaranteedSet,
+                SetsToUse.Baseline => baselineSet,
+                SetsToUse.NoiseSets => allSets.Take(3).ToArray(),
+                SetsToUse.SharedSets => allSets.Skip(3).Take(5).ToArray(),
+                SetsToUse.PStrengthSets => allSets.Skip(8).ToArray(),
+                _ => throw new Exception()
+            };
+
             (string set, string column)[] inputColumnsWithSets = (
-                from x in noiseSets
+                from x in setsToUse
                 from y in inputColumnsOriginal
                 select (x, y)
                 ).ToArray();
             string[] outputColumnsRevised = (
-                from x in noiseSets
+                from x in setsToUse
                 from y in outputColumnsOriginal
                 select x + "-" + y
                 ).ToArray();
 
+            foreach (double? quality in allQualitiesPlusNull)
+            {
+                string qString = quality == null ? "all" : ((quality * 100).ToString());
 
-            noiseSets.Zip(inputColumnsOriginal, (s, c) => (s, c)).ToArray();
-            //string varyingQualitySum = GetStringWithSeparateLineForEachCostThresholdAndQualityOrCategoricalVariable(prefix, inputColumnsWithSets, outputColumnsRevised, null, new string[] { "QualitySum" }, null);
+                NumValuesCategoricalVar = 10;
+                string varyingQualitySignal = GetStringWithSeparateLineForEachCostThresholdAndQualityOrCategoricalVariable(prefix, inputColumnsWithSets, outputColumnsRevised, null, new string[] { "PQuality", "DQuality" }, quality);
+                TextFileCreate.CreateTextFile(destinationPath + "\\" + explanation + "_signal_q" + qString + ".csv", varyingQualitySignal);
 
-            string varyingBestGuess_FixedUnderlyingQ = GetStringWithSeparateLineForEachCostThresholdAndQualityOrCategoricalVariable(prefix, inputColumnsWithSets, outputColumnsRevised, null, new string[] { "PBestGuess", "DBestGuess" }, 0.2);
+                NumValuesCategoricalVar = 20;
+                string varyingBestGuess = GetStringWithSeparateLineForEachCostThresholdAndQualityOrCategoricalVariable(prefix, inputColumnsWithSets, outputColumnsRevised, null, new string[] { "PBestGuess", "DBestGuess" }, quality);
+                TextFileCreate.CreateTextFile(destinationPath + "\\" + explanation + "_expectation_q" + qString + ".csv", varyingBestGuess);
 
-            //string varyingBestGuess = GetStringWithSeparateLineForEachCostThresholdAndQualityOrCategoricalVariable(prefix, inputColumnsWithSets, outputColumnsRevised, null, new string[] { "PBestGuess", "DBestGuess" }, null);
+                NumValuesCategoricalVar = 20;
+                string varyingQuality = GetStringWithSeparateLineForEachCostThresholdAndQualityOrCategoricalVariable(prefix, inputColumnsWithSets, outputColumnsRevised, null, new string[] { "QualitySum" }, quality);
+                TextFileCreate.CreateTextFile(destinationPath + "\\" + explanation + "_quality_q" + qString + ".csv", varyingQuality);
+            }
         }
-
-        static string[] allSets = new string[] { "noise00", "noise25", "noise50", "shared00", "shared25", "shared50", "shared75", "shared100", "pstrength00", "pstrength25", "pstrength50", "pstrength75", "pstrength100" }; // { "orig", "bl_es",  "bl", "es" };
-        static double[] allQualities = new double[] { 0, 0.20, 0.40, 0.60, 0.80, 1.0 };
-        static double[] allCosts = new double[] { 0, 0.15, 0.30, 0.45, 0.60 };
-        static double[] allFeeShifting = new double[] { 0, 0.25, 0.50, 0.75, 1.0 };
 
         private static void CopyAzureFiles(string prefix)
         {
-            string path = @"H:\My Drive\Articles, books in progress\Machine learning model of litigation\DMS nonlinear results 1";
             string settingString(string set, double quality, double costs, double feeShiftingThreshold) => $"{set}q{(int)(quality * 100)}c{(int)(costs * 100)}t{(int)(feeShiftingThreshold * 100)}";
             foreach (string set in allSets)
             foreach (double quality in allQualities)
@@ -63,7 +98,7 @@ namespace LitigCharts
                     foreach (double feeShifting in allFeeShifting)
                     {
                             string filename = prefix + " " + settingString(set, quality, costs, feeShifting) + ".csv";
-                            TextFileCreate.CopyFileFromAzure("results", filename, path);
+                            TextFileCreate.CopyFileFromAzure("results", filename, sourcePath);
                     }
         }
 
@@ -86,7 +121,8 @@ namespace LitigCharts
         private static string GetStringWithSeparateLineForEachCostThresholdAndQualityOrCategoricalVariable(string prefix, (string set, string column)[] inputColumns, string[] outputColumns, string filterOfRowAbsentCategoricalVar, string[] categoricalVarPrefixes, double? fixedQualityValue)
         {
             // note that we are assuming that all categorical variables have the same corresponding values (e.g., pbestguess and dbestguess)
-            double[] variableValues = categoricalVarPrefixes != null ? Enumerable.Range(0, 20).Select(x => 0.025 + x * 0.05).ToArray() : allQualities;
+            double stepSize = 1.0 / ((double)NumValuesCategoricalVar);
+            double[] variableValues = categoricalVarPrefixes != null ? Enumerable.Range(0, NumValuesCategoricalVar).Select(x => 0.5 * stepSize + x * stepSize).ToArray() : allQualities;
 
             StringBuilder b = new StringBuilder();
             int numCategoricalVarsOr1 = categoricalVarPrefixes == null ? 1 : categoricalVarPrefixes.Length;
@@ -156,7 +192,7 @@ namespace LitigCharts
 
         private static double[] GetDataAggregatingCategoricalVariableRanges(string prefix, string set, string categoricalVarPrefix, double[] originalQualityValues, double costs, double feeShifting,  string columnToGet)
         {
-            string[] filterOfRowsToGet = Enumerable.Range(1, 20).Select(x => $"{categoricalVarPrefix}{x}").ToArray();
+            string[] filterOfRowsToGet = Enumerable.Range(1, NumValuesCategoricalVar).Select(x => $"{categoricalVarPrefix}{x}").ToArray();
             var results = GetDataForSpecificSettings_AggregatedAcrossQualityValues(prefix, set, originalQualityValues, costs, feeShifting, filterOfRowsToGet, new string[] { columnToGet });
             int length = results.GetLength(0);
             var oneColumnOnly = Enumerable.Range(0, length).Select(i => results[i, 0] ?? double.MinValue).ToArray(); // use double.MinValue as a null substitute
