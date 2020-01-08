@@ -31,7 +31,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-            OptionSetChoice optionSetChoice = OptionSetChoice.Temporary;
+            OptionSetChoice optionSetChoice = OptionSetChoice.Original;
             bool withOptionNotToPlay = false;
             switch (optionSetChoice)
             {
