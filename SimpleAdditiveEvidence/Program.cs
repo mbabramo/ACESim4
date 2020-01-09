@@ -99,7 +99,7 @@ namespace SimpleAdditiveEvidence
                 foreach (double q in new double[] { 0.4 })
                 {
                     double pUtilityCum = 0, dUtilityCum = 0;
-                    DMSApproximator tester = new DMSApproximator(q, c, t, execute: false);
+                    DMSApproximator tester = new DMSApproximator(q, c, t, null, null, execute: false);
                     double stepSize = 0.20;
                     double numCases = 0;
                     for (double zp = stepSize; zp < 1; zp += stepSize)
