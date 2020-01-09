@@ -16,6 +16,7 @@ namespace LitigCharts
         static string[] allSets = new string[] { "noise00", "noise25", "noise50", "shared00", "shared25", "shared50", "shared75", "shared100", "pstrength00", "pstrength25", "pstrength50", "pstrength75", "pstrength100" }; // { "orig", "bl_es",  "bl", "es" };
         static string[] trialGuaranteedSet = new string[] { "trialg" };
         static string[] baselineSet = new string[] { "noise25" };
+        static string[] originalSet = new string[] { "orig" };
         static double[] allQualities = new double[] { 0, 0.20, 0.40, 0.60, 0.80, 1.0 };
         static double?[] allQualitiesPlusNull = new double?[] { 0, 0.20, 0.40, 0.60, 0.80, 1.0, null };
         static double[] allCosts = new double[] { 0, 0.15, 0.30, 0.45, 0.60 };
@@ -26,15 +27,16 @@ namespace LitigCharts
 
         static void Main(string[] args)
         {
-            string prefix = "R128";
-            //CopyAzureFiles(prefix);
+            //CopyAzureFilesSelectiveReplacement();
+            //CopyAzureFiles("R131", originalSet);
             //InformationSetCharts();
 
+            AggregateDMSModel("R131", "orig", SetsToUse.Original);
             //AggregateDMSModel("R127", "noise25", SetsToUse.Baseline);
             //AggregateDMSModel("R128", "trialg", SetsToUse.TrialGuaranteed);
             //AggregateDMSModel("R127", "noise", SetsToUse.NoiseSets);
             //AggregateDMSModel("R127", "shared", SetsToUse.SharedSets);
-            AggregateDMSModel("R127", "pstrength", SetsToUse.PStrengthSets);
+            //AggregateDMSModel("R127", "pstrength", SetsToUse.PStrengthSets);
             //var results_Original = MakeString(GetDataForCostsShiftingAndQualities(prefix, "noise25", "All", variable, aggregateToGetQualitySum: true));
         }
 
@@ -44,7 +46,8 @@ namespace LitigCharts
             Baseline,
             NoiseSets,
             SharedSets,
-            PStrengthSets
+            PStrengthSets,
+            Original
         }
 
         private static void AggregateDMSModel(string prefix, string explanation, SetsToUse sets)
@@ -56,6 +59,7 @@ namespace LitigCharts
             {
                 SetsToUse.TrialGuaranteed => trialGuaranteedSet,
                 SetsToUse.Baseline => baselineSet,
+                SetsToUse.Original => originalSet,
                 SetsToUse.NoiseSets => allSets.Take(3).ToArray(),
                 SetsToUse.SharedSets => allSets.Skip(3).Take(5).ToArray(),
                 SetsToUse.PStrengthSets => allSets.Skip(8).ToArray(),
@@ -78,7 +82,9 @@ namespace LitigCharts
                 string qString = quality == null ? "all" : ((quality * 100).ToString());
 
                 NumValuesCategoricalVar = 10;
-                string varyingQualitySignal = GetStringWithSeparateLineForEachCostThresholdAndQualityOrCategoricalVariable(prefix, inputColumnsWithSets, outputColumnsRevised, null, new string[] { "PQuality", "DQuality" }, quality);
+
+                var signals = sets == SetsToUse.Original ? new string[] { "PBias", "DBias" } : new string[] { "PQuality", "DQuality" }; // in the original model, the parties' signals count as "bias" because they are the z's and not part of the merits
+                string varyingQualitySignal = GetStringWithSeparateLineForEachCostThresholdAndQualityOrCategoricalVariable(prefix, inputColumnsWithSets, outputColumnsRevised, null, signals, quality);
                 TextFileCreate.CreateTextFile(destinationPath + "\\" + explanation + "_signal_q" + qString + ".csv", varyingQualitySignal);
 
                 NumValuesCategoricalVar = 20;
@@ -91,10 +97,10 @@ namespace LitigCharts
             }
         }
 
-        private static void CopyAzureFiles(string prefix)
+        private static void CopyAzureFiles(string prefix, string[] sets)
         {
             string settingString(string set, double quality, double costs, double feeShiftingThreshold) => $"{set}q{(int)(quality * 100)}c{(int)(costs * 100)}t{(int)(feeShiftingThreshold * 100)}";
-            foreach (string set in allSets)
+            foreach (string set in sets)
             foreach (double quality in allQualities)
                 foreach (double costs in allCosts)
                     foreach (double feeShifting in allFeeShifting)
@@ -102,6 +108,22 @@ namespace LitigCharts
                             string filename = prefix + " " + settingString(set, quality, costs, feeShifting) + ".csv";
                             TextFileCreate.CopyFileFromAzure("results", filename, sourcePath);
                     }
+        }
+
+        private static void CopyAzureFilesSelectiveReplacement()
+        {
+            string sourcePrefix = "R130";
+            string destinationPrefix = "R127";
+            string settingString(string set, double quality, double costs, double feeShiftingThreshold) => $"{set}q{(int)(quality * 100)}c{(int)(costs * 100)}t{(int)(feeShiftingThreshold * 100)}";
+            foreach (string set in new string[] { "shared100" })
+                foreach (double quality in allQualities)
+                    foreach (double costs in allCosts)
+                        foreach (double feeShifting in allFeeShifting)
+                        {
+                            string sourceFilename = sourcePrefix + " " + settingString(set, quality, costs, feeShifting) + ".csv";
+                            string destinationFilename = destinationPrefix + " " + settingString(set, quality, costs, feeShifting) + ".csv";
+                            TextFileCreate.CopyFileFromAzure("results", sourceFilename, sourcePath, destinationFilename);
+                        }
         }
 
         private static string MakeString(double[][][] values)
@@ -261,7 +283,7 @@ namespace LitigCharts
                 rowsToFind[f][1] = ("Filter", filtersOfRowsToGet[f]);
             }
             // string[] columnsToGet = new string[] { "Trial", "AccSq", "POffer", "DOffer" };
-            var results = CSVData.GetCSVData(combined, rowsToFind, columnsToGet);
+            var results = CSVData.GetCSVData(combined, rowsToFind, columnsToGet, true);
             return results;
         }
 
