@@ -13,11 +13,14 @@ namespace SimpleAdditiveEvidence
     {
 
         double q, c, t;
-        public DMSApproximator(double q, double c, double t, bool execute = true)
+        double? riskAverseP, riskAverseD;
+        public DMSApproximator(double q, double c, double t, double? riskAverseP, double? riskAverseD, bool execute = true)
         {
             this.q = q;
             this.c = c;
             this.t = t;
+            this.riskAverseP = riskAverseP;
+            this.riskAverseD = riskAverseD;
             TabbedText.WriteLine($"Cost: {c} quality {q} threshold {t}");
             TabbedText.WriteLine(OptionsString);
             if (execute)    
@@ -678,8 +681,14 @@ namespace SimpleAdditiveEvidence
                 double pEffect = settlement;
                 double dEffect = 1.0 - settlement;
                 //Debug.WriteLine($"({p},{d}) settle ({zp},{zd}) => {pEffect}, {dEffect} "); 
-                pUtility += equalityMultiplier * pEffect;
-                dUtility += equalityMultiplier * (1.0 - pEffect);
+
+                // We now calculate the unweighted utility effect of this case, depending on risk aversion
+                double pUtilityThisCase = riskAverseP == null ? pEffect : Math.Log((double)riskAverseP + pEffect);
+                double dUtilityThisCase = riskAverseD == null ? dEffect : Math.Log((double)riskAverseD + dEffect);
+                // We're aggregating across cases, so we increment the total pUtility measure, adjusting for the equality multiplier.
+                pUtility += equalityMultiplier * pUtilityThisCase;
+                dUtility += equalityMultiplier * dUtilityThisCase;
+
                 double v = equalityMultiplier * (pEffect - q) * (pEffect - q);
                 accuracySq += v;
                 accuracyHypoSq += v;
@@ -711,8 +720,13 @@ namespace SimpleAdditiveEvidence
                 double pEffect = (j - pCosts);
                 double hypo_pEffect = (hypo_j - pCosts);
                 double dEffect = ((1.0 - j) - dCosts);
-                pUtility += equalityMultiplier * pEffect;
-                dUtility += equalityMultiplier * dEffect;
+
+                // We now calculate the unweighted utility effect of this case, depending on risk aversion
+                double pUtilityThisCase = riskAverseP == null ? pEffect : Math.Log((double)riskAverseP + pEffect);
+                double dUtilityThisCase = riskAverseD == null ? dEffect : Math.Log((double)riskAverseD + dEffect);
+                // We're aggregating across cases, so we increment the total pUtility measure, adjusting for the equality multiplier.
+                pUtility += equalityMultiplier * pUtilityThisCase;
+                dUtility += equalityMultiplier * dUtilityThisCase;
 
                 trialRate += equalityMultiplier;
                 double accuracyNotSquared = j + shiftedCosts - q; // == pEffect - q + 0.5 * c // the idea here is that we are trying to assess the accuracy of the judgment ignoring costs as irrelevant, but counting shifted costs as part of the judgment. The party's own costs are considered irrelevant to accuracy. Because P paid 0.5 * c out of pocket and this was deducted in pEffect, we add this back in. Note that if shifting to defendant has occurred, that means that we have that accuracyUnsquared == j + 0.5*C, with the latter part representing the fee shifting penalty imposed on the defendant, so the mechanism is more inaccurate because of what p receives.

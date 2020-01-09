@@ -9,12 +9,35 @@ namespace ACESim
 {
     public static class CSVData
     {
-        public static double? GetCSVData(string fullFilename, (string columnName, string expectedText)[] rowToFind, string columnToGet) => GetCSVData(fullFilename, new (string columnName, string expectedText)[][] { rowToFind }, new string[] { columnToGet })[0, 0];
+        public static double? GetCSVData(string fullFilename, (string columnName, string expectedText)[] rowToFind, string columnToGet, bool cacheFile=false) => GetCSVData(fullFilename, new (string columnName, string expectedText)[][] { rowToFind }, new string[] { columnToGet }, cacheFile)[0, 0];
 
-        public static double?[,] GetCSVData(string fullFilename, (string columnName, string expectedText)[][] rowsToFind, string[] columnsToGet)
+        private static Dictionary<string, byte[]> CachedFilesDictionary = new Dictionary<string, byte[]>();
+
+        public static double?[,] GetCSVData(string fullFilename, (string columnName, string expectedText)[][] rowsToFind, string[] columnsToGet, bool cacheFile=false)
+        {
+            byte[] bytes = null;
+            if (cacheFile)
+            {
+                if (CachedFilesDictionary.ContainsKey(fullFilename))
+                {
+                    bytes = CachedFilesDictionary[fullFilename];
+                }
+                else
+                {
+                    bytes = File.ReadAllBytes(fullFilename);
+                    CachedFilesDictionary[fullFilename] = bytes;
+                }
+            }
+            else
+                bytes = File.ReadAllBytes(fullFilename);
+            MemoryStream m = new MemoryStream(bytes);
+            using (var reader = new StreamReader(m))
+                return GetCSVData(rowsToFind, columnsToGet, reader);
+        }
+
+        public static double?[,] GetCSVData((string columnName, string expectedText)[][] rowsToFind, string[] columnsToGet, StreamReader reader)
         {
             double?[,] results = new double?[rowsToFind.Length, columnsToGet.Length];
-            using (var reader = new StreamReader(fullFilename))
             using (var csv = new CsvReader(reader))
             {
                 csv.Read();
