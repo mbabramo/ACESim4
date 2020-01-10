@@ -79,6 +79,9 @@ namespace SimpleAdditiveEvidence
 
         private static void VaryRiskAversionTogether_FriedmanWittman(StringBuilder b)
         {
+            FWCheck DEBUG2 = new FWCheck() { c = 0.3 };
+            DEBUG2.Run();
+
             double stepSize = (1.0 / ((double)DMSApproximator.NumSignalsPerPlayer)); // must use same number of signals for calculations to work
             double[] signalsToInclude = Enumerable.Range(0, DMSApproximator.NumSignalsPerPlayer).Select(x => 0.5 * stepSize + x * stepSize).ToArray();
             Dictionary<(int, int, bool, bool), List<(double, double)>> coordinates = new Dictionary<(int, int, bool, bool), List<(double, double)>>();
@@ -89,6 +92,10 @@ namespace SimpleAdditiveEvidence
                 {
                     double? riskAverse = allRiskAversions[riskAverseCat];
                     DMSApproximator e = new DMSApproximator(0.5, c, 0, riskAverse, riskAverse, true);
+                    var DEBUG = e.GetOptimalOfferRanges();
+                    //e.CalculateResultsForOfferRanges(true, DEBUG.Item1, DEBUG.Item2, out bool atLeastOneSettlement, out double pUtility, out double dUtility, out double trialRate, out double accuracySq, out double accuracyHypoSq, out double accuracyForP, out double accuracyForD);
+                    e.CalculateResultsForOfferRanges(true, (-.1, .566666), (0.43333, 1.1), out bool atLeastOneSettlement, out double pUtility, out double dUtility, out double trialRate, out double accuracySq, out double accuracyHypoSq, out double accuracyForP, out double accuracyForD);
+                    e.CalculateResultsForOfferRanges(true, (-.1, .566666), (0, 12.706), out atLeastOneSettlement, out pUtility, out dUtility, out trialRate, out accuracySq, out accuracyHypoSq, out accuracyForP, out accuracyForD);
                     for (int signalCat = 0; signalCat < signalsToInclude.Length; signalCat++)
                     {
                         if (signalCat % 5 == 3)

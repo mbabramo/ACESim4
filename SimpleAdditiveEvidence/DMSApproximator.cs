@@ -27,21 +27,85 @@ namespace SimpleAdditiveEvidence
             TabbedText.WriteLine(OptionsString);
             if (execute)    
                 Execute();
+            var untruncP = (GetPOfferFWUntruncated(0), GetPOfferFWUntruncated(1));
+            var untruncD = (GetDOfferFWUntruncated(0), GetDOfferFWUntruncated(1));
+            var result1 = FWCheck(true);
+            var result2 = FWCheck(false);
+        }
+
+        public (double, double) FWCheck(bool useFWForD)
+        {
+            double pUtility = 0, dUtility = 0;
+            foreach (double pSignal in continuousSignals)
+            {
+                double pOffer, dOffer;
+                pOffer = GetPOfferFW(pSignal);
+                Debug.WriteLine(pOffer);
+                foreach (double dSignal in continuousSignals)
+                {
+                    if (useFWForD)
+                    {
+                        dOffer = GetDOfferFW(dSignal);
+                    }
+                    else
+                    {
+                        dOffer = 12.706 * dSignal;
+                        if (dOffer > (2.0 / 3.0) * 1.0 - 2.0 * c + 0.5)
+                            dOffer = (2.0 / 3.0) * 1.0 - 2.0 * c + 0.5;
+                    }
+                    if (pOffer > dOffer)
+                    {
+                        double resolution = (pSignal + dSignal) / 2.0;
+                        pUtility += resolution - c * 0.5;
+                        dUtility += (1.0 - resolution) - c * 0.5;
+                    }
+                    else
+                    {
+                        double resolution = (pOffer + dOffer) / 2.0;
+                        pUtility += resolution;
+                        dUtility += (1.0 - resolution);
+                    }
+                }
+            }
+            return (pUtility, dUtility);
+        }
+
+        private double GetDOfferFW(double dSignal)
+        {
+            double dOffer = GetDOfferFWUntruncated(dSignal);
+            if (dOffer > Math.Min(1, (7.0 / 6.0) - 2.0 * c))
+                dOffer = (7.0 / 6.0) - 2.0 * c;
+            else if (dOffer < Math.Max(0, 0.5 - 2.0 * c))
+                dOffer = 2.0 * 0.5 - 2.0 * c;
+            return dOffer;
+        }
+
+        private double GetDOfferFWUntruncated(double dSignal)
+        {
+            return (2.0 / 3.0) * dSignal + 2.0 * c - (1.0 / 6.0);
+        }
+
+        private double GetPOfferFW(double pSignal)
+        {
+            double pOffer = GetPOfferFWUntruncated(pSignal);
+            if (pOffer > Math.Min(1, 2.0 * c + 0.5))
+                pOffer = 2.0 * c + 0.5;
+            else if (pOffer < Math.Max(0, 2.0 * c - (1.0 / 6.0)))
+                pOffer = 2.0 * c - (1.0 / 6.0);
+            return pOffer;
+        }
+
+        private double GetPOfferFWUntruncated(double pSignal)
+        {
+            return (2.0 / 3.0) * pSignal - 2.0 * c + 0.5;
         }
 
         #region Options
 
-        // Each player's strategy is a line, represented by a minimum strategy value and a maximum strategy value. This class seeks to optimize that line
-        // by playing a range of strategies. To ensure that it considers very high slopes (positive or negative), as well as intermediate ones, it converts
-        // relatively high and low strategy values nonlinearly. Because both lines must have
-        // non-negative slopes, we add the constraint that the maxSignalStrategy must be greater than or equal to the minSignalStrategy. 
-        // So, if party has lowest signal strategy for the minimum value, there are n possibilities for the max. If party has highest signal strategy (n),
-        // then there is only one possibility for the max. Note that below, we will also model an outside option where either party can force trial, but we don't
-        // include that in the matrix, both because it would take a lot of space and because the equilibrium where both refuse to give reasonable offers is
-        // always a Nash equilibrium, albeit a trivial one. 
-        public const int NumEndpointOptions = 75; // DEBUG 100
+        // Each player's strategy is a line, represented by a minimum strategy value and a maximum strategy value. 
+        public const int NumEndpointOptions = 20; // DEBUG 100
         public const int NumSignalsPerPlayer = 100;
-        public const int NumStrategiesPerPlayer = NumEndpointOptions * (NumEndpointOptions + 1) / 2;
+        public const int NumStrategiesPerPlayer = NumEndpointOptions * NumEndpointOptions;
         public long NumRequiredGamePlays => Pow(NumEndpointOptions, 4) * Pow(NumSignalsPerPlayer, 2);
         public string OptionsString => $"Signals per player: {NumSignalsPerPlayer} Endpoint options: {NumEndpointOptions} => Required game plays {NumRequiredGamePlays:n0}";
         private static long Pow(int bas, int exp) => Enumerable.Repeat((long)bas, exp).Aggregate((long)1, (a, b) => a * b);
@@ -63,6 +127,7 @@ namespace SimpleAdditiveEvidence
 
         private void Execute()
         {
+            InitializeStrategyConversions();
             Stopwatch s = new Stopwatch();
             s.Start();
             bool done = false;
@@ -149,7 +214,7 @@ namespace SimpleAdditiveEvidence
                 OptimalPStrategy = bestEquilibrium.p;
                 OptimalDStrategy = bestEquilibrium.d;
                 RecordUtilities(true, false, OptimalPStrategy, OptimalDStrategy); // calculate more advanced stats
-                b.AppendLine($"Strategy with lowest approximate equilibrium distance: {OptimalPStrategy},{OptimalDStrategy} => ({PUtilities[OptimalPStrategy, OptimalDStrategy]},{DUtilities[OptimalPStrategy, OptimalDStrategy]}) offer ranges: P: {offerRanges[0].Item1} to {offerRanges[0].Item2}; D: {offerRanges[1].Item1} to {offerRanges[1].Item2} trial rate: {TrialRate[OptimalPStrategy, OptimalDStrategy]}");
+                b.AppendLine($"Strategy with lowest approximate equilibrium distance: {OptimalPStrategy},{OptimalDStrategy} => ({PUtilities[OptimalPStrategy, OptimalDStrategy]},{DUtilities[OptimalPStrategy, OptimalDStrategy]}) offer ranges: P: {offerRanges[OptimalPStrategy].Item1}; D: {offerRanges[OptimalDStrategy].Item2} trial rate: {TrialRate[OptimalPStrategy, OptimalDStrategy]}");
             }
             else
             {
@@ -157,6 +222,7 @@ namespace SimpleAdditiveEvidence
                 var f1 = AllEquilibria.First();
                 OptimalPStrategy = f1.p;
                 OptimalDStrategy = f1.d;
+                b.AppendLine($"Exactly one equilibrium: {OptimalPStrategy},{OptimalDStrategy} => ({PUtilities[OptimalPStrategy, OptimalDStrategy]},{DUtilities[OptimalPStrategy, OptimalDStrategy]}) offer ranges: P: {offerRanges[OptimalPStrategy].Item1}; D: {offerRanges[OptimalDStrategy].Item2} trial rate: {TrialRate[OptimalPStrategy, OptimalDStrategy]}");
                 RecordUtilities(true, false, OptimalPStrategy, OptimalDStrategy); // calculate more advanced stats
             }
 
@@ -185,66 +251,78 @@ namespace SimpleAdditiveEvidence
         #region Strategy-offer conversions
 
         const double EvaluationsPerStrategyCombination = NumSignalsPerPlayer * NumSignalsPerPlayer;
+
+        (double minSignalStrategy, double maxSignalStrategy)[] strategyLines;
+
+        void InitializeStrategyConversions()
+        {
+            if (NumEndpointOptions % 2 != 0)
+                throw new Exception();
+            strategyLines = new (double minSignalStrategy, double maxSignalStrategy)[NumStrategiesPerPlayer];
+            for (int i = 0; i < NumStrategiesPerPlayer; i++)
+                strategyLines[i] = ConvertStrategyToMinMaxContinuousOffers_Compute(i);
+        }
+
         (double minSignalStrategy, double maxSignalStrategy) ConvertStrategyToMinMaxContinuousOffers(int strategy, bool plaintiff)
         {
-            var minMax = ConvertStrategyToMinMaxOffers(strategy);
-            return (GetMappedMinOrMaxOffer(minMax.minSignalStrategy, plaintiff, true), GetMappedMinOrMaxOffer(minMax.maxSignalStrategy, plaintiff, false));
+            // note: Plaintiff parameter currently ignored (we have same line options for both players)
+            return strategyLines[strategy];
         }
 
-        double GetMappedMinOrMaxOffer(int discreteOffer, bool plaintiff, bool isMinSignal)
+        (double minSignalStrategy, double maxSignalStrategy) ConvertStrategyToMinMaxContinuousOffers_Compute(int strategy)
         {
-            if (plaintiff && discreteOffer == NumEndpointOptions)
-                return 1E+10; // plaintiff's highest offer always forces trial
-            if (!plaintiff && discreteOffer == NumEndpointOptions)
-                return -1E+10; // defendant's lowest offer always forces trial
-            double continuousOfferWithLinearSlopeUnadjusted = GetUnmappedOfferValue(discreteOffer);
-            return MapFromZeroOneRangeToMinOrMaxOffer(continuousOfferWithLinearSlopeUnadjusted, plaintiff, isMinSignal);
+            // DEBUG
+            if (strategy == 0)
+            {
+                return (0.433, 0.553);
+            }
+            else if (strategy == 1)
+            {
+                return (0.553, 0.566);
+            }
+            int numEndpointOptionsEachAxis = NumEndpointOptions / 2;
+            int startingPositionIndex = strategy / NumEndpointOptions;
+            bool startingPositionOnXAxis = startingPositionIndex < numEndpointOptionsEachAxis;
+            double startingPointValue;
+            if (startingPositionOnXAxis)
+            {
+                startingPointValue = ((double) startingPositionIndex) / ((double) (numEndpointOptionsEachAxis - 1));
+            }
+            else
+            {
+                startingPositionIndex -= numEndpointOptionsEachAxis;
+                startingPositionIndex++; // eliminate 0 value, b/c that's already covered on x axis
+                startingPointValue = ((double)startingPositionIndex) / ((double)(numEndpointOptionsEachAxis));
+            }
+
+            int angleIndex = strategy % NumEndpointOptions;
+            double angleIndexAdjusted = angleIndex;
+            if (startingPositionOnXAxis && angleIndex == 0 && startingPointValue != 0)
+                angleIndexAdjusted = 0.5; // we already have line containing x-axis covered, so this will give us a slightly angled line
+            double angle = angleIndexAdjusted * (Math.PI / (2 * NumEndpointOptions)); // highest value is just under pi / 2 (note that we can't have perfectly vertical lines)
+            double tangent = Math.Tan(angle);
+
+            double leftAxisIntercept, rightAxisIntercept;
+            if (startingPositionOnXAxis)
+            {
+                leftAxisIntercept = 0 - startingPointValue * tangent;
+                rightAxisIntercept = (1.0 - startingPointValue) * tangent;
+            }
+            else
+            {
+                leftAxisIntercept = startingPointValue;
+                rightAxisIntercept = startingPointValue + tangent;
+            }
+
+            return (leftAxisIntercept, rightAxisIntercept);
         }
 
-        static (double minSignalStrategy, double maxSignalStrategy) ConvertStrategyToUnmappedMinMaxContinuousOffers(int strategy)
-        {
-            var minMax = ConvertStrategyToMinMaxOffers(strategy);
-            return (GetUnmappedOfferValue(minMax.minSignalStrategy), GetUnmappedOfferValue(minMax.maxSignalStrategy));
-        }
         static double GetUnmappedOfferValue(int discreteOffer)
         {
             return (double)(discreteOffer + 0.5) / ((double)(NumEndpointOptions));
         }
 
-        static int ConvertMinMaxToStrategy(int minSignalStrategy, int maxSignalStrategy)
-        {
-            int i = 0;
-            for (int minSignalStrategyCounter = 0; minSignalStrategyCounter < NumEndpointOptions; minSignalStrategyCounter++)
-                for (int maxSignalStrategyCounter = minSignalStrategyCounter; maxSignalStrategyCounter < NumEndpointOptions; maxSignalStrategyCounter++)
-                {
-                    if (minSignalStrategyCounter == minSignalStrategy && maxSignalStrategyCounter == maxSignalStrategy)
-                        return i;
-                    else
-                        i++;
-                }
-            throw new Exception(); // shouldn't happen.
-        }
-        static (int minSignalStrategy, int maxSignalStrategy) ConvertStrategyToMinMaxOffers(int strategy)
-        {
-            int i = 0;
-            for (int minSignalStrategy = 0; minSignalStrategy < NumEndpointOptions; minSignalStrategy++)
-                for (int maxSignalStrategy = minSignalStrategy; maxSignalStrategy < NumEndpointOptions; maxSignalStrategy++)
-                    if (i++ == strategy)
-                        return (minSignalStrategy, maxSignalStrategy);
-            throw new Exception(); // shouldn't happen.
-        }
-        static void ConfirmConversions()
-        {
-            var OneDirection = Enumerable.Range(0, NumStrategiesPerPlayer).Select(x => ConvertStrategyToMinMaxOffers(x)).ToArray();
-            var OppositeDirection = OneDirection.Select(x => ConvertMinMaxToStrategy(x.minSignalStrategy, x.maxSignalStrategy)).ToArray();
-            for (int w = 0; w < NumStrategiesPerPlayer; w++)
-            {
-                (int minSignalStrategy, int maxSignalStrategy) = ConvertStrategyToMinMaxOffers(w);
-                int w2 = ConvertMinMaxToStrategy(minSignalStrategy, maxSignalStrategy);
-                if (w != w2)
-                    throw new Exception();
-            }
-        }
+        
 
         static double ContinuousSignal(int discreteSignal) => ((double)(discreteSignal + 1)) / ((double)(NumSignalsPerPlayer + 1));
 
@@ -286,38 +364,6 @@ namespace SimpleAdditiveEvidence
         };
 
         private string NonlinearCutoffString(bool plaintiff, bool lowerCutoff, bool isMinOfLine) => NonlinearCutoff(plaintiff, lowerCutoff, isMinOfLine).ToSignificantFigures(5);
-
-
-        private double MapFromZeroOneRangeToMinOrMaxOffer(double continuousOfferWithLinearSlopeUnadjusted, bool plaintiff, bool isMin)
-        {
-            if ((continuousOfferWithLinearSlopeUnadjusted >= minMaxNonlinearBelowThreshold && continuousOfferWithLinearSlopeUnadjusted <= minMaxNonlinearAboveThreshold))
-            {
-                return MapFromInnerRangeToMinOrMaxOffer(continuousOfferWithLinearSlopeUnadjusted, plaintiff, isMin);
-            }
-            double multiplier = 0.2; // arbitrary
-            if (continuousOfferWithLinearSlopeUnadjusted < minMaxNonlinearBelowThreshold)
-            {
-                double kinkPoint = MapFromInnerRangeToMinOrMaxOffer(minMaxNonlinearBelowThreshold, plaintiff, isMin);
-                // now calculate what we want to subtract from this
-                // at 0.25 => 0
-                // at 0 => inf.
-                double amountToSubtract = 1.0 / continuousOfferWithLinearSlopeUnadjusted - 1.0 / minMaxNonlinearBelowThreshold;
-                return kinkPoint - multiplier * amountToSubtract;
-            }
-            else
-            {
-                double kinkPoint = MapFromInnerRangeToMinOrMaxOffer(minMaxNonlinearAboveThreshold, plaintiff, isMin);
-                double amountToAdd = 1.0 / (1.0 - continuousOfferWithLinearSlopeUnadjusted) - 1.0 / (1.0 - minMaxNonlinearAboveThreshold);
-                return kinkPoint + multiplier * amountToAdd;
-            }
-        }
-
-        private double MapFromInnerRangeToMinOrMaxOffer(double continuousOfferWithLinearSlopeUnadjusted, bool plaintiff, bool isMin)
-        {
-            double proportionOfWayBetweenCutoffs = (continuousOfferWithLinearSlopeUnadjusted - minMaxNonlinearBelowThreshold) / (minMaxNonlinearAboveThreshold - minMaxNonlinearBelowThreshold);
-            double adjusted = NonlinearCutoff(plaintiff, true, isMin) + proportionOfWayBetweenCutoffs * (NonlinearCutoff(plaintiff, false, isMin) - NonlinearCutoff(plaintiff, true, isMin));
-            return adjusted;
-        }
 
         #endregion
 
@@ -552,6 +598,8 @@ namespace SimpleAdditiveEvidence
         {
             CalculateOffers(offerRanges[OptimalPStrategy].Item1, offerRanges[OptimalDStrategy].Item2, out pOffers, out dOffers);
         }
+
+        public ((double, double), (double, double)) GetOptimalOfferRanges() => (offerRanges[OptimalPStrategy].Item1, offerRanges[OptimalDStrategy].Item2);
 
         public (double pOffer, double dOffer) GetOffersForSignalWithOptimalStrategies(int signalIndex)
         {
