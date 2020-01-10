@@ -24,9 +24,19 @@
             return $"{PUtility},{DUtility},{TrialRate},{AccuracySq},{AccuracyHypoSq},{AccuracyForP},{AccuracyForD},{MinPOffer},{MaxPOffer},{MinDOffer},{MaxDOffer}";
         }
 
+        public string ToStringForSpecificSignal(double signal, string pOffer, string dOffer, string pOfferStringCorrect, string dOfferStringCorrect)
+        {
+            return $"{signal},{PUtility},{DUtility},{TrialRate},{AccuracySq},{AccuracyHypoSq},{AccuracyForP},{AccuracyForD},{pOffer},{dOffer},{pOfferStringCorrect},{dOfferStringCorrect}";
+        }
+
         public static string GetHeaderString()
         {
             return "PUtility,DUtility,TrialRate,AccuracySq,AccuracyHypoSq,AccuracyForP,AccuracyForD,MinPOffer,MaxPOffer,MinDOffer,MaxDOffer";
+        }
+
+        public static string GetHeaderStringForSpecificSignal()
+        {
+            return "Signal,PUtility,DUtility,TrialRate,AccuracySq,AccuracyHypoSq,AccuracyForP,AccuracyForD,POffer,DOffer,POfferCorrect,DOfferCorrect";
         }
     }
 }

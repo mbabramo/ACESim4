@@ -11,17 +11,19 @@ namespace SimpleAdditiveEvidence
 {
     public partial class DMSApproximator
     {
-
+           
         double q, c, t;
         double? riskAverseP, riskAverseD;
-        public DMSApproximator(double q, double c, double t, double? riskAverseP, double? riskAverseD, bool execute = true)
+        bool useFriedmanWittman;
+        public DMSApproximator(double q, double c, double t, double? riskAverseP, double? riskAverseD, bool useFriedmanWittman, bool execute = true)
         {
-            this.q = q;
+            this.q = q; // irrelevant with friedman wittman
             this.c = c;
             this.t = t;
             this.riskAverseP = riskAverseP;
             this.riskAverseD = riskAverseD;
-            TabbedText.WriteLine($"Cost: {c} quality {q} threshold {t}");
+            this.useFriedmanWittman = useFriedmanWittman;
+            TabbedText.WriteLine($"Cost {c} threshold {(useFriedmanWittman ? "N/A" : t.ToString())} riskAverseP {riskAverseP} riskAverseD {riskAverseD} quality {(useFriedmanWittman ? "N/A" : q.ToString())}");
             TabbedText.WriteLine(OptionsString);
             if (execute)    
                 Execute();
@@ -37,7 +39,7 @@ namespace SimpleAdditiveEvidence
         // then there is only one possibility for the max. Note that below, we will also model an outside option where either party can force trial, but we don't
         // include that in the matrix, both because it would take a lot of space and because the equilibrium where both refuse to give reasonable offers is
         // always a Nash equilibrium, albeit a trivial one. 
-        public const int NumEndpointOptions = 100;
+        public const int NumEndpointOptions = 75; // DEBUG 100
         public const int NumSignalsPerPlayer = 100;
         public const int NumStrategiesPerPlayer = NumEndpointOptions * (NumEndpointOptions + 1) / 2;
         public long NumRequiredGamePlays => Pow(NumEndpointOptions, 4) * Pow(NumSignalsPerPlayer, 2);
@@ -147,7 +149,7 @@ namespace SimpleAdditiveEvidence
                 OptimalPStrategy = bestEquilibrium.p;
                 OptimalDStrategy = bestEquilibrium.d;
                 RecordUtilities(true, false, OptimalPStrategy, OptimalDStrategy); // calculate more advanced stats
-                b.AppendLine($"Strategy with lowest approximate equilibrium distance: {OptimalPStrategy},{OptimalDStrategy} => ({PUtilities[OptimalPStrategy, OptimalDStrategy]},{DUtilities[OptimalPStrategy, OptimalDStrategy]}) trial rate: {TrialRate[OptimalPStrategy, OptimalDStrategy]}");
+                b.AppendLine($"Strategy with lowest approximate equilibrium distance: {OptimalPStrategy},{OptimalDStrategy} => ({PUtilities[OptimalPStrategy, OptimalDStrategy]},{DUtilities[OptimalPStrategy, OptimalDStrategy]}) offer ranges: P: {offerRanges[0].Item1} to {offerRanges[0].Item2}; D: {offerRanges[1].Item1} to {offerRanges[1].Item2} trial rate: {TrialRate[OptimalPStrategy, OptimalDStrategy]}");
             }
             else
             {
@@ -491,31 +493,8 @@ namespace SimpleAdditiveEvidence
 
         public void CalculateResultsForOfferRanges(bool calculatePerformanceStats, (double minSignalStrategy, double maxSignalStrategy) pOfferRange, (double minSignalStrategy, double maxSignalStrategy) dOfferRange, out bool atLeastOneSettlement, out double pUtility, out double dUtility, out double trialRate, out double accuracySq, out double accuracyHypoSq, out double accuracyForP, out double accuracyForD)
         {
-            double[] pOffers = Enumerable.Range(0, NumSignalsPerPlayer).Select(x => pOfferRange.minSignalStrategy * (1.0 - continuousSignals[x]) + pOfferRange.maxSignalStrategy * continuousSignals[x]).ToArray();
-            double[] dOffers = Enumerable.Range(0, NumSignalsPerPlayer).Select(x => dOfferRange.minSignalStrategy * (1.0 - continuousSignals[x]) + dOfferRange.maxSignalStrategy * continuousSignals[x]).ToArray();
-            // Truncations (as specified in paper). 
-
-            // 1. IMPORTANT NOTE: The paper doesn't explain what to do if the plaintiff's highest offer is lower than the defendant's lowest offer, as would be the case when costs are very high and both parties are eager to avoid litigation at all costs. In Fig. A.2 (right panel), it is implicitly assumed that c < 1/3, because otherwise, the bottom horizontal line would be on top of the top horizontal line. That is, the relative positioning of the two truncation lines implies that c < 1/3. But we might have a different cutoff with fee shifting. We will resolve this by truncating all offers to the same midpoint (meaning that every case will settle). 
-            if (dOfferRange.minSignalStrategy > pOfferRange.maxSignalStrategy)
-            {
-                double midpoint = (dOfferRange.minSignalStrategy + pOfferRange.maxSignalStrategy) / 2.0;
-                for (int i = 0; i < pOffers.Length; i++)
-                {
-                    pOffers[i] = dOffers[i] = midpoint;
-                }
-            }
-            else
-            {
-                // 2. Plaintiff never demands less than lowest offer by the defendant.
-                for (int i = 0; i < pOffers.Length; i++)
-                    if (pOffers[i] < dOfferRange.minSignalStrategy)
-                        pOffers[i] = dOfferRange.minSignalStrategy;
-                // 3. Defendant never offers more than highest demand by the plaintiff. 
-                for (int i = 0; i < dOffers.Length; i++)
-                    if (dOffers[i] > pOfferRange.maxSignalStrategy)
-                        dOffers[i] = pOfferRange.maxSignalStrategy;
-            }
-
+            double[] pOffers, dOffers;
+            CalculateOffers(pOfferRange, dOfferRange, out pOffers, out dOffers);
 
             atLeastOneSettlement = false;
             pUtility = 0;
@@ -528,11 +507,11 @@ namespace SimpleAdditiveEvidence
             for (int zp = 0; zp < NumSignalsPerPlayer; zp++)
             {
                 double pOffer = pOffers[zp];
-                double theta_p = continuousSignals[zp] * q;
+                double theta_p = useFriedmanWittman ? continuousSignals[zp] : continuousSignals[zp] * q;
                 for (int zd = 0; zd < NumSignalsPerPlayer; zd++)
                 {
                     double dOffer = dOffers[zd];
-                    double theta_d = q + continuousSignals[zd] * (1 - q); // follows from zd = (theta_d - q) / (1 - q)
+                    double theta_d = useFriedmanWittman ? continuousSignals[zd] : q + continuousSignals[zd] * (1 - q); // follows from zd = (theta_d - q) / (1 - q)
                     double pUtilitySingleCase = 0;
                     double dUtilitySingleCase = 0;
                     double trialRateSingleCase = 0;
@@ -569,6 +548,55 @@ namespace SimpleAdditiveEvidence
             }
         }
 
+        public void GetOffersForOptimalStrategies(out double[] pOffers, out double[] dOffers)
+        {
+            CalculateOffers(offerRanges[OptimalPStrategy].Item1, offerRanges[OptimalDStrategy].Item2, out pOffers, out dOffers);
+        }
+
+        public (double pOffer, double dOffer) GetOffersForSignalWithOptimalStrategies(int signalIndex)
+        {
+            GetOffersForOptimalStrategies(out double[] pOffers, out double[] dOffers);
+            return (pOffers[signalIndex], dOffers[signalIndex]);
+        }
+
+        public (double pOffer, double dOffer) GetOffersForSignalWithFriedmanWittmanStrategies(int signalIndex)
+        {
+            double pMin = -2.0 * c + 0.5;
+            double pMax = pMin + (2.0 / 3.0);
+            double dMin = 2.0 * c - 1.0 / 6.0;
+            double dMax = dMin + (2.0 / 3.0);
+            CalculateOffers((pMin, pMax), (dMin, dMax), out double[] pOffers, out double[] dOffers);
+            return (pOffers[signalIndex], dOffers[signalIndex]);
+        }
+
+        public void CalculateOffers((double minSignalStrategy, double maxSignalStrategy) pOfferRange, (double minSignalStrategy, double maxSignalStrategy) dOfferRange, out double[] pOffers, out double[] dOffers)
+        {
+            pOffers = Enumerable.Range(0, NumSignalsPerPlayer).Select(x => pOfferRange.minSignalStrategy * (1.0 - continuousSignals[x]) + pOfferRange.maxSignalStrategy * continuousSignals[x]).ToArray();
+            dOffers = Enumerable.Range(0, NumSignalsPerPlayer).Select(x => dOfferRange.minSignalStrategy * (1.0 - continuousSignals[x]) + dOfferRange.maxSignalStrategy * continuousSignals[x]).ToArray();
+            // Truncations (as specified in paper). 
+
+            // 1. IMPORTANT NOTE: The paper doesn't explain what to do if the plaintiff's highest offer is lower than the defendant's lowest offer, as would be the case when costs are very high and both parties are eager to avoid litigation at all costs. In Fig. A.2 (right panel), it is implicitly assumed that c < 1/3, because otherwise, the bottom horizontal line would be on top of the top horizontal line. That is, the relative positioning of the two truncation lines implies that c < 1/3. But we might have a different cutoff with fee shifting. We will resolve this by truncating all offers to the same midpoint (meaning that every case will settle). 
+            if (dOfferRange.minSignalStrategy > pOfferRange.maxSignalStrategy)
+            {
+                double midpoint = (dOfferRange.minSignalStrategy + pOfferRange.maxSignalStrategy) / 2.0;
+                for (int i = 0; i < pOffers.Length; i++)
+                {
+                    pOffers[i] = dOffers[i] = midpoint;
+                }
+            }
+            else
+            {
+                // 2. Plaintiff never demands less than lowest offer by the defendant.
+                for (int i = 0; i < pOffers.Length; i++)
+                    if (pOffers[i] < dOfferRange.minSignalStrategy)
+                        pOffers[i] = dOfferRange.minSignalStrategy;
+                // 3. Defendant never offers more than highest demand by the plaintiff. 
+                for (int i = 0; i < dOffers.Length; i++)
+                    if (dOffers[i] > pOfferRange.maxSignalStrategy)
+                        dOffers[i] = pOfferRange.maxSignalStrategy;
+            }
+        }
+
         #endregion
 
         #region Game play with pair of P and D strategies and signals
@@ -576,8 +604,18 @@ namespace SimpleAdditiveEvidence
         // If thetas are not yet calculated, use this. This is not used internally but can be used externally to assess why a particular equilibrium leads to particular results.
         public void ProcessCaseGivenParticularSignals_NormalizedSignals(double pOffer, double dOffer, double q, double zp, double zd, ref bool atLeastOneSettlement, ref double pUtility, ref double dUtility, ref double trialRate, ref double accuracySq, ref double accuracyHypoSq, ref double accuracyForP, ref double accuracyForD)
         {
-            double theta_p = zp * q;
-            double theta_d = q + zd * (1 - q); // follows from zd = (theta_d - q) / (1 - q)
+            double theta_p;
+            double theta_d;
+            if (useFriedmanWittman)
+            {
+                theta_p = zp;
+                theta_d = zd;
+            }
+            else
+            {
+                theta_p = zp * q;
+                theta_d = q + zd * (1 - q); // follows from zd = (theta_d - q) / (1 - q)
+            }
             ProcessCaseGivenOfferValues(ref atLeastOneSettlement, ref pUtility, ref dUtility, ref trialRate, ref accuracySq, ref accuracyHypoSq, ref accuracyForP, ref accuracyForD, pOffer, dOffer, theta_p, theta_d);
 
             /* The following code should reach the same results as the called code with thetas */
@@ -622,6 +660,17 @@ namespace SimpleAdditiveEvidence
             ProcessCaseGivenOfferValues(ref atLeastOneSettlement, ref pUtility, ref dUtility, ref trialRate, ref accuracySq, ref accuracyHypoSq, ref accuracyForP, ref accuracyForD, pOffer, dOffer, theta_p, theta_d);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private double GetRiskAverseUtility(double? riskAversion, double effect)
+        {
+            if (riskAversion == null)
+                return effect;
+            double sum = ((double)riskAversion) + effect;
+            if (sum <= 0)
+                return double.MinValue; // most negative possible value
+            else
+                return Math.Log(sum);
+        }
 
         private void ProcessCaseGivenOfferValues(ref bool atLeastOneSettlement, ref double pUtility, ref double dUtility, ref double trialRate, double pOffer, double dOffer, double theta_p, double theta_d)
         {
@@ -638,8 +687,11 @@ namespace SimpleAdditiveEvidence
                 double pEffect = settlement;
                 double dEffect = 1.0 - settlement;
                 //Debug.WriteLine($"({p},{d}) settle ({zp},{zd}) => {pEffect}, {dEffect} "); 
-                pUtility += equalityMultiplier * pEffect;
-                dUtility += equalityMultiplier * (1.0 - pEffect);
+
+                double pUtilityThisCase = GetRiskAverseUtility(riskAverseP, pEffect); 
+                double dUtilityThisCase = GetRiskAverseUtility(riskAverseD, dEffect);
+                pUtility += equalityMultiplier * pUtilityThisCase;
+                dUtility += equalityMultiplier * dUtilityThisCase;
             }
             bool dLess = (dOffer < pOffer && !equality) || (equality && treatEqualityAsEquallyLikelyToProduceSettlementOrTrial);
             if (dLess)
@@ -657,8 +709,10 @@ namespace SimpleAdditiveEvidence
 
                 double pEffect = (j - pCosts);
                 double dEffect = ((1.0 - j) - dCosts);
-                pUtility += equalityMultiplier * pEffect;
-                dUtility += equalityMultiplier * dEffect;
+                double pUtilityThisCase = GetRiskAverseUtility(riskAverseP, pEffect);
+                double dUtilityThisCase = GetRiskAverseUtility(riskAverseD, dEffect);
+                pUtility += equalityMultiplier * pUtilityThisCase;
+                dUtility += equalityMultiplier * dUtilityThisCase;
                 trialRate += equalityMultiplier;
             }
         }
@@ -683,8 +737,8 @@ namespace SimpleAdditiveEvidence
                 //Debug.WriteLine($"({p},{d}) settle ({zp},{zd}) => {pEffect}, {dEffect} "); 
 
                 // We now calculate the unweighted utility effect of this case, depending on risk aversion
-                double pUtilityThisCase = riskAverseP == null ? pEffect : Math.Log((double)riskAverseP + pEffect);
-                double dUtilityThisCase = riskAverseD == null ? dEffect : Math.Log((double)riskAverseD + dEffect);
+                double pUtilityThisCase = GetRiskAverseUtility(riskAverseP, pEffect);
+                double dUtilityThisCase = GetRiskAverseUtility(riskAverseD, dEffect);
                 // We're aggregating across cases, so we increment the total pUtility measure, adjusting for the equality multiplier.
                 pUtility += equalityMultiplier * pUtilityThisCase;
                 dUtility += equalityMultiplier * dUtilityThisCase;
@@ -722,8 +776,8 @@ namespace SimpleAdditiveEvidence
                 double dEffect = ((1.0 - j) - dCosts);
 
                 // We now calculate the unweighted utility effect of this case, depending on risk aversion
-                double pUtilityThisCase = riskAverseP == null ? pEffect : Math.Log((double)riskAverseP + pEffect);
-                double dUtilityThisCase = riskAverseD == null ? dEffect : Math.Log((double)riskAverseD + dEffect);
+                double pUtilityThisCase = GetRiskAverseUtility(riskAverseP, pEffect);
+                double dUtilityThisCase = GetRiskAverseUtility(riskAverseD, dEffect);
                 // We're aggregating across cases, so we increment the total pUtility measure, adjusting for the equality multiplier.
                 pUtility += equalityMultiplier * pUtilityThisCase;
                 dUtility += equalityMultiplier * dUtilityThisCase;
