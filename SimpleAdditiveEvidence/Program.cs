@@ -21,7 +21,7 @@ namespace SimpleAdditiveEvidence
             //mc.SimpleMonteCarlo();
 
 
-            ExperimentWithDifferentSignals();
+            //ExperimentWithDifferentSignals();
 
             Stopwatch s = new Stopwatch();
             s.Start();
@@ -76,7 +76,7 @@ namespace SimpleAdditiveEvidence
             {
                 foreach (double q in allQualities)
                 {
-                    foreach (double r in allRiskAversions)
+                    foreach (double? r in allRiskAversions)
                     {
                         DMSApproximator e = new DMSApproximator(q, c, 0, r, r);
                         string rowPrefix = $"{c},{q},{r},";
