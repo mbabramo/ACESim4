@@ -17,7 +17,8 @@ namespace SimpleAdditiveEvidence
         bool useRegretAversion;
         double finalOfferRule; // if not null, then the judgment is compared to the offers. We calculate (POffer - J) (i.e., plaintiff's aggressiveness) and (J - DOffer) (defendant's aggressiveness). Then, we multiply this parameter by the difference. So P pays to D an amount equal to finalOfferRule * ((POffer - J) - (J - DOffer)) = finalOfferRule * (POffer + DOffer - 2J). E.g., if POffer = 50, J = 45, and DOffer = 30, then P was less aggressive, and plaintiff pays -10*finalOfferRule to D, i.e. receives 10 from D. Note that the more plaintiff insists on, the more plaintiff will have to pay to defendant, and the less defendant insists on, the less plaintiff will have to pay to defendant, so this provides each party incentives to modify its behavior.
         bool useFriedmanWittman; // instead of using the full DMS model, we use the original Friedman Wittman model, in which the judgment is the sum of the signals. In effect, we just set theta to the signal, instead of to a function of the signal and q. Note that fee shifting is still possible.
-        public DMSApproximator(double q, double c, double t, double? riskOrRegretAverseP, double? riskOrRegretAverseD, bool useRegretAversion, double? finalOfferRule, bool useFriedmanWittman, bool execute = true)
+        bool useTruncations = false; // DEBUG
+        public DMSApproximator(double q, double c, double t, double? riskOrRegretAverseP, double? riskOrRegretAverseD, bool useRegretAversion, double? finalOfferRule, bool useFriedmanWittman, bool useTruncations, bool execute)
         {
             this.q = q; // irrelevant with friedman wittman
             this.c = c;
@@ -27,6 +28,7 @@ namespace SimpleAdditiveEvidence
             this.useRegretAversion = useRegretAversion;
             this.finalOfferRule = finalOfferRule ?? 0;
             this.useFriedmanWittman = useFriedmanWittman;
+            this.useTruncations = useTruncations;
             TabbedText.WriteLine($"Cost {c} threshold {(useFriedmanWittman ? "N/A" : t.ToString())} riskAverseP {riskOrRegretAverseP} riskAverseD {riskOrRegretAverseD} quality {(useFriedmanWittman ? "N/A" : q.ToString())} finalOfferRule {finalOfferRule}");
             TabbedText.WriteLine(OptionsString);
             if (execute)    
@@ -38,9 +40,9 @@ namespace SimpleAdditiveEvidence
         public bool OutsideOptionIsPossible => finalOfferRule == 0; // with the final offer rule, every strategy leaving always to trial leads to different utilities.
 
         // Each player's strategy is a line, represented by an initial point on either the x or y axis and by an angle in [0, pi/2). 
-        public const int NumEndpointOptions = 25; // DEBUG 100
-        public const int NumAngleOptions = 25;
-        public const int NumSignalsPerPlayer = 100;
+        public const int NumEndpointOptions = 50; 
+        public const int NumAngleOptions = 50;
+        public const int NumSignalsPerPlayer = 100; 
         public const int NumStrategiesPerPlayer = NumEndpointOptions * NumAngleOptions;
         public long NumRequiredGamePlays => Pow(NumEndpointOptions, 4) * Pow(NumSignalsPerPlayer, 2);
         public string OptionsString => $"Signals per player: {NumSignalsPerPlayer} Endpoint options: {NumEndpointOptions} Angle options: {NumAngleOptions} => Required game plays {NumRequiredGamePlays:n0}";
@@ -188,19 +190,24 @@ namespace SimpleAdditiveEvidence
 
         const double EvaluationsPerStrategyCombination = NumSignalsPerPlayer * NumSignalsPerPlayer;
 
-        (double minSignalStrategy, double maxSignalStrategy)[] strategyLines;
+        (double minSignalStrategy, double maxSignalStrategy)[] pStrategyLines;
+        (double minSignalStrategy, double maxSignalStrategy)[] dStrategyLines;
 
         void InitializeStrategyConversions()
         {
-            strategyLines = new (double minSignalStrategy, double maxSignalStrategy)[NumStrategiesPerPlayer];
+            pStrategyLines = new (double minSignalStrategy, double maxSignalStrategy)[NumStrategiesPerPlayer];
             for (int i = 0; i < NumStrategiesPerPlayer; i++)
-                strategyLines[i] = ConvertStrategyToMinMaxContinuousOffers_Compute(i);
+                pStrategyLines[i] = ConvertStrategyToMinMaxContinuousOffers_Compute(i);
+            // This will produce a very similar set. But this allows us to make the game entirely symmetrical.
+            dStrategyLines = new (double minSignalStrategy, double maxSignalStrategy)[NumStrategiesPerPlayer];
+            for (int i = 0; i < NumStrategiesPerPlayer; i++)
+                dStrategyLines[i] = (1.0 - pStrategyLines[i].maxSignalStrategy, 1.0 - pStrategyLines[i].minSignalStrategy);
         }
 
         (double minSignalStrategy, double maxSignalStrategy) ConvertStrategyToMinMaxContinuousOffers(int strategy, bool plaintiff)
         {
             // note: Plaintiff parameter currently ignored (we have same line options for both players)
-            return strategyLines[strategy];
+            return plaintiff ? pStrategyLines[strategy] : dStrategyLines[strategy];
         }
 
         (double minSignalStrategy, double maxSignalStrategy) ConvertStrategyToMinMaxContinuousOffers_Compute(int strategy)
@@ -219,12 +226,12 @@ namespace SimpleAdditiveEvidence
                 startingPointValue = initialValue * 2;
             }
 
-            double angleIndex = (double) (strategy / NumEndpointOptions); // will range from 0 to NumAngleOptions - 1.
+            double angleIndex = (double) (strategy - startingPositionIndex * NumEndpointOptions); // will range from 0 to NumAngleOptions - 1.
             double angle;
             if (startingPositionOnXAxis)
                 angle = (Math.PI / 2) * (angleIndex + 1) / (NumAngleOptions + 1); // avoid angle of 0, since that will be redundant with origin (considered on y axis). Also, avoid pi / 2. So, if there are 10 points on the x axis and 15 angle options, we will go from 1/16 to 15/16, all multiplied by pi/2. 
             else
-                angle = (Math.PI / 2) * (angleIndex) / (numEndpointOptionsXAxis); // here, we want to include an angle of 0, so we would go from 0/15 of pi/2 to 14/15 of pi/2. with 15 angle options.
+                angle = (Math.PI / 2) * (angleIndex) / (NumAngleOptions); // here, we want to include an angle of 0, so we would go from 0/15 of pi/2 to 14/15 of pi/2. with 15 angle options.
             double tangent = Math.Tan(angle);
 
             double leftAxisIntercept, rightAxisIntercept;
@@ -370,7 +377,7 @@ namespace SimpleAdditiveEvidence
             offerRanges = Enumerable.Range(0, NumStrategiesPerPlayer).Select(x => (ConvertStrategyToMinMaxContinuousOffers(x, true), ConvertStrategyToMinMaxContinuousOffers(x, false))).ToArray();
             for (int p = 0; p < NumStrategiesPerPlayer; p++)
             {
-                bool doParallel = true; 
+                bool doParallel = true;
                 Parallelizer.Go(doParallel, 0, NumStrategiesPerPlayer, d =>
                 {
                     RecordUtilities(false, true, p, d);
@@ -543,7 +550,6 @@ namespace SimpleAdditiveEvidence
             dOffers = Enumerable.Range(0, NumSignalsPerPlayer).Select(x => dOfferRange.minSignalStrategy * (1.0 - continuousSignals[x]) + dOfferRange.maxSignalStrategy * continuousSignals[x]).ToArray();
             // Truncations (as specified in paper). 
 
-            bool useTruncations = false; // DEBUG
             if (!useTruncations)
                 return;
 
@@ -698,8 +704,8 @@ namespace SimpleAdditiveEvidence
                 double dCosts = dPortionOfCosts * c;
                 double pCosts = c - dCosts;
                 double finalOfferRuleAdjustment = finalOfferRule == 0 ? 0 : finalOfferRule * (pOffer + dOffer - 2 * j);
-                double pEffect = (j - pCosts) - finalOfferRule;
-                double dEffect = ((1.0 - j) - dCosts) + finalOfferRule;
+                double pEffect = (j - pCosts) - finalOfferRuleAdjustment;
+                double dEffect = ((1.0 - j) - dCosts) + finalOfferRuleAdjustment;
                 double pUtilityThisCase = GetRiskOrRegretAverseUtility(riskOrRegretAverseP, pEffect, dOffer);
                 double dUtilityThisCase = GetRiskOrRegretAverseUtility(riskOrRegretAverseD, dEffect, 1.0 - pOffer);
                 pUtility += equalityMultiplier * pUtilityThisCase;

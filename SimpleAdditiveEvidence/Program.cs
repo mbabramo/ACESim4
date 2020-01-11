@@ -71,7 +71,7 @@ namespace SimpleAdditiveEvidence
                 {
                     foreach (double t in allFeeShifting)
                     {
-                        DMSApproximator e = new DMSApproximator(q, c, t, null, null, false, null, false);
+                        DMSApproximator e = new DMSApproximator(q, c, t, null, null, false, null, false, false, true);
                         string rowPrefix = $"{c},{q},{t},";
                         string row = rowPrefix + e.TheOutcome.ToString();
                         b.AppendLine(row);
@@ -97,7 +97,7 @@ namespace SimpleAdditiveEvidence
                 for (int rAverseCat = 0; rAverseCat < rAversions.Length; rAverseCat++)
                 {
                     double? rAverse = rAversions[rAverseCat];
-                    DMSApproximator e = new DMSApproximator(0.5, c, 0, rAverse, rAverse, useRegretAversion, null, true);
+                    DMSApproximator e = new DMSApproximator(0.5, c, 0, rAverse, rAverse, useRegretAversion, null, true, false, true);
                     //e.CalculateResultsForOfferRanges(true, (-.1, .566666), (0.43333, 1.1), out bool atLeastOneSettlement, out double pUtility, out double dUtility, out double trialRate, out double accuracySq, out double accuracyHypoSq, out double accuracyForP, out double accuracyForD);
                     //e.CalculateResultsForOfferRanges(true, (-.1, .566666), (0, 12.706), out atLeastOneSettlement, out pUtility, out dUtility, out trialRate, out accuracySq, out accuracyHypoSq, out accuracyForP, out accuracyForD);
                     for (int signalCat = 0; signalCat < signalsToInclude.Length; signalCat++)
@@ -135,7 +135,7 @@ namespace SimpleAdditiveEvidence
                     for (int dRiskAversionCat = 0; dRiskAversionCat < rAversions.Length; dRiskAversionCat++)
                     {
                         double? dRiskAverse = rAversions[dRiskAversionCat];
-                        DMSApproximator e = new DMSApproximator(0.5, c, 0, pRiskAverse, dRiskAverse, useRegretAversion, null, true);
+                        DMSApproximator e = new DMSApproximator(0.5, c, 0, pRiskAverse, dRiskAverse, useRegretAversion, null, true, false, true);
                         string rowPrefix = $"{cCat + 1},{pRiskAversionCat + 1},{dRiskAversionCat + 1},{c},{pRiskAverse},{dRiskAverse},";
                         string row = rowPrefix + e.TheOutcome.ToString();
                         b.AppendLine(row);
@@ -156,11 +156,11 @@ namespace SimpleAdditiveEvidence
             for (int cCat = 0; cCat < lowCosts.Length; cCat++)
             {
                 double c = lowCosts[cCat];
-                double[] fOfferValues = new double[] { 0, 0.025, 0.05, 0.1, 0.15 }; // DEBUG 0.5, 1.0, 1.5 };
+                double[] fOfferValues = new double[] { 0, 0.25, 0.5, 0.75, 1.0 };
                 for (int finalOfferCat = 0; finalOfferCat < fOfferValues.Length; finalOfferCat++)
                 {
                     double? finalOfferValue = fOfferValues[finalOfferCat];
-                    DMSApproximator e = new DMSApproximator(0.5, c, 0, null, null, false, finalOfferValue, true);
+                    DMSApproximator e = new DMSApproximator(0.5, c, 0, null, null, false, finalOfferValue, true, false, true);
                     for (int signalCat = 0; signalCat < signalsToInclude.Length; signalCat++)
                     {
                         if (signalCat % 5 == 2)
@@ -191,7 +191,7 @@ namespace SimpleAdditiveEvidence
                 foreach (double q in new double[] { 0.4 })
                 {
                     double pUtilityCum = 0, dUtilityCum = 0;
-                    DMSApproximator tester = new DMSApproximator(q, c, t, null, null, false, null, false, execute: false);
+                    DMSApproximator tester = new DMSApproximator(q, c, t, null, null, false, null, false, false, true);
                     double stepSize = 0.20;
                     double numCases = 0;
                     for (double zp = stepSize; zp < 1; zp += stepSize)
