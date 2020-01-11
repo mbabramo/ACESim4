@@ -13,9 +13,10 @@ namespace SimpleAdditiveEvidence
     class Program
     {
         static double[] allQualities = new double[] { 0, 0.20, 0.40, 0.60, 0.80, 1.0 };
+        static double[] lowCosts = new double[] { 0, 0.10, 0.20, 0.30, 0.40 };
         static double[] allCosts = new double[] { 0, 0.15, 0.30, 0.45, 0.60 };
         static double[] allFeeShifting = new double[] { 0, 0.25, 0.50, 0.75, 1.0 };
-        static double?[] allRiskAversions = new double?[] { null, 16, 8, 4, 2, 1 };
+        static double?[] allRiskAversions = new double?[] { null, 16 }; // , 8, 4, 2, 1 };
 
         static void Main(string[] args)
         {
@@ -79,26 +80,21 @@ namespace SimpleAdditiveEvidence
 
         private static void VaryRiskAversionTogether_FriedmanWittman(StringBuilder b)
         {
-            FWCheck DEBUG2 = new FWCheck() { c = 0.3 };
-            DEBUG2.Run();
-
             double stepSize = (1.0 / ((double)DMSApproximator.NumSignalsPerPlayer)); // must use same number of signals for calculations to work
             double[] signalsToInclude = Enumerable.Range(0, DMSApproximator.NumSignalsPerPlayer).Select(x => 0.5 * stepSize + x * stepSize).ToArray();
             Dictionary<(int, int, bool, bool), List<(double, double)>> coordinates = new Dictionary<(int, int, bool, bool), List<(double, double)>>();
-            for (int cCat = 2 /* DEBUG */; cCat < 3 /* DEBUG allCosts.Length */; cCat++)
+            for (int cCat = 1; cCat < lowCosts.Length; cCat++)
             {
-                double c = allCosts[cCat];
-                for (int riskAverseCat = 0; riskAverseCat < 1 /* DEBUG allRiskAversions.Length */; riskAverseCat++)
+                double c = lowCosts[cCat];
+                for (int riskAverseCat = 0; riskAverseCat < 1; riskAverseCat++)
                 {
                     double? riskAverse = allRiskAversions[riskAverseCat];
                     DMSApproximator e = new DMSApproximator(0.5, c, 0, riskAverse, riskAverse, true);
-                    var DEBUG = e.GetOptimalOfferRanges();
-                    //e.CalculateResultsForOfferRanges(true, DEBUG.Item1, DEBUG.Item2, out bool atLeastOneSettlement, out double pUtility, out double dUtility, out double trialRate, out double accuracySq, out double accuracyHypoSq, out double accuracyForP, out double accuracyForD);
-                    e.CalculateResultsForOfferRanges(true, (-.1, .566666), (0.43333, 1.1), out bool atLeastOneSettlement, out double pUtility, out double dUtility, out double trialRate, out double accuracySq, out double accuracyHypoSq, out double accuracyForP, out double accuracyForD);
-                    e.CalculateResultsForOfferRanges(true, (-.1, .566666), (0, 12.706), out atLeastOneSettlement, out pUtility, out dUtility, out trialRate, out accuracySq, out accuracyHypoSq, out accuracyForP, out accuracyForD);
+                    //e.CalculateResultsForOfferRanges(true, (-.1, .566666), (0.43333, 1.1), out bool atLeastOneSettlement, out double pUtility, out double dUtility, out double trialRate, out double accuracySq, out double accuracyHypoSq, out double accuracyForP, out double accuracyForD);
+                    //e.CalculateResultsForOfferRanges(true, (-.1, .566666), (0, 12.706), out atLeastOneSettlement, out pUtility, out dUtility, out trialRate, out accuracySq, out accuracyHypoSq, out accuracyForP, out accuracyForD);
                     for (int signalCat = 0; signalCat < signalsToInclude.Length; signalCat++)
                     {
-                        if (signalCat % 5 == 3)
+                        if (signalCat % 5 == 2)
                         { // we don't need all 100 signals (and it seems to cause tex to take an inordinate amount of time to process)
                             double signal = (double)signalsToInclude[signalCat];
                             string rowPrefix = $"{cCat + 1},{riskAverseCat + 1},{signalCat + 1},{c},{riskAverse},";
@@ -120,9 +116,9 @@ namespace SimpleAdditiveEvidence
 
         private static void VaryRiskAversionBoth_FriedmanWittman(StringBuilder b)
         {
-            for (int cCat = 0; cCat < allCosts.Length; cCat++)
+            for (int cCat = 0; cCat < lowCosts.Length; cCat++)
             {
-                double c = allCosts[cCat];
+                double c = lowCosts[cCat];
                 for (int pRiskAversionCat = 0; pRiskAversionCat < allRiskAversions.Length; pRiskAversionCat++)
                 {
                     double? pRiskAverse = allRiskAversions[pRiskAversionCat];

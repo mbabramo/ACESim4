@@ -27,83 +27,12 @@ namespace SimpleAdditiveEvidence
             TabbedText.WriteLine(OptionsString);
             if (execute)    
                 Execute();
-            var untruncP = (GetPOfferFWUntruncated(0), GetPOfferFWUntruncated(1));
-            var untruncD = (GetDOfferFWUntruncated(0), GetDOfferFWUntruncated(1));
-            var result1 = FWCheck(true);
-            var result2 = FWCheck(false);
-        }
-
-        public (double, double) FWCheck(bool useFWForD)
-        {
-            double pUtility = 0, dUtility = 0;
-            foreach (double pSignal in continuousSignals)
-            {
-                double pOffer, dOffer;
-                pOffer = GetPOfferFW(pSignal);
-                Debug.WriteLine(pOffer);
-                foreach (double dSignal in continuousSignals)
-                {
-                    if (useFWForD)
-                    {
-                        dOffer = GetDOfferFW(dSignal);
-                    }
-                    else
-                    {
-                        dOffer = 12.706 * dSignal;
-                        if (dOffer > (2.0 / 3.0) * 1.0 - 2.0 * c + 0.5)
-                            dOffer = (2.0 / 3.0) * 1.0 - 2.0 * c + 0.5;
-                    }
-                    if (pOffer > dOffer)
-                    {
-                        double resolution = (pSignal + dSignal) / 2.0;
-                        pUtility += resolution - c * 0.5;
-                        dUtility += (1.0 - resolution) - c * 0.5;
-                    }
-                    else
-                    {
-                        double resolution = (pOffer + dOffer) / 2.0;
-                        pUtility += resolution;
-                        dUtility += (1.0 - resolution);
-                    }
-                }
-            }
-            return (pUtility, dUtility);
-        }
-
-        private double GetDOfferFW(double dSignal)
-        {
-            double dOffer = GetDOfferFWUntruncated(dSignal);
-            if (dOffer > Math.Min(1, (7.0 / 6.0) - 2.0 * c))
-                dOffer = (7.0 / 6.0) - 2.0 * c;
-            else if (dOffer < Math.Max(0, 0.5 - 2.0 * c))
-                dOffer = 2.0 * 0.5 - 2.0 * c;
-            return dOffer;
-        }
-
-        private double GetDOfferFWUntruncated(double dSignal)
-        {
-            return (2.0 / 3.0) * dSignal + 2.0 * c - (1.0 / 6.0);
-        }
-
-        private double GetPOfferFW(double pSignal)
-        {
-            double pOffer = GetPOfferFWUntruncated(pSignal);
-            if (pOffer > Math.Min(1, 2.0 * c + 0.5))
-                pOffer = 2.0 * c + 0.5;
-            else if (pOffer < Math.Max(0, 2.0 * c - (1.0 / 6.0)))
-                pOffer = 2.0 * c - (1.0 / 6.0);
-            return pOffer;
-        }
-
-        private double GetPOfferFWUntruncated(double pSignal)
-        {
-            return (2.0 / 3.0) * pSignal - 2.0 * c + 0.5;
         }
 
         #region Options
 
         // Each player's strategy is a line, represented by a minimum strategy value and a maximum strategy value. 
-        public const int NumEndpointOptions = 20; // DEBUG 100
+        public const int NumEndpointOptions = 50; // DEBUG 100
         public const int NumSignalsPerPlayer = 100;
         public const int NumStrategiesPerPlayer = NumEndpointOptions * NumEndpointOptions;
         public long NumRequiredGamePlays => Pow(NumEndpointOptions, 4) * Pow(NumSignalsPerPlayer, 2);
@@ -623,7 +552,11 @@ namespace SimpleAdditiveEvidence
             dOffers = Enumerable.Range(0, NumSignalsPerPlayer).Select(x => dOfferRange.minSignalStrategy * (1.0 - continuousSignals[x]) + dOfferRange.maxSignalStrategy * continuousSignals[x]).ToArray();
             // Truncations (as specified in paper). 
 
-            // 1. IMPORTANT NOTE: The paper doesn't explain what to do if the plaintiff's highest offer is lower than the defendant's lowest offer, as would be the case when costs are very high and both parties are eager to avoid litigation at all costs. In Fig. A.2 (right panel), it is implicitly assumed that c < 1/3, because otherwise, the bottom horizontal line would be on top of the top horizontal line. That is, the relative positioning of the two truncation lines implies that c < 1/3. But we might have a different cutoff with fee shifting. We will resolve this by truncating all offers to the same midpoint (meaning that every case will settle). 
+            bool useTruncations = true; // DEBUG
+            if (!useTruncations)
+                return;
+
+            // 1. IMPORTANT NOTE: The DMS paper doesn't explain what to do if the plaintiff's highest offer is lower than the defendant's lowest offer, as would be the case when costs are very high and both parties are eager to avoid litigation at all costs. In Fig. A.2 (right panel), it is implicitly assumed that c < 1/3, because otherwise, the bottom horizontal line would be on top of the top horizontal line. That is, the relative positioning of the two truncation lines implies that c < 1/3. But we might have a different cutoff with fee shifting. We will resolve this by truncating all offers to the same midpoint (meaning that every case will settle). 
             if (dOfferRange.minSignalStrategy > pOfferRange.maxSignalStrategy)
             {
                 double midpoint = (dOfferRange.minSignalStrategy + pOfferRange.maxSignalStrategy) / 2.0;
@@ -637,11 +570,19 @@ namespace SimpleAdditiveEvidence
                 // 2. Plaintiff never demands less than lowest offer by the defendant.
                 for (int i = 0; i < pOffers.Length; i++)
                     if (pOffers[i] < dOfferRange.minSignalStrategy)
-                        pOffers[i] = dOfferRange.minSignalStrategy;
+                        pOffers[i] = Math.Min(1, dOfferRange.minSignalStrategy);
+                //// 2b. Plaintiff never demands more than the highest offer by the defendant (doesn't affect outcome)
+                //for (int i = 0; i < pOffers.Length; i++)
+                //    if (pOffers[i] > dOfferRange.maxSignalStrategy)
+                //        pOffers[i] = Math.Max(0, dOfferRange.maxSignalStrategy);
                 // 3. Defendant never offers more than highest demand by the plaintiff. 
                 for (int i = 0; i < dOffers.Length; i++)
                     if (dOffers[i] > pOfferRange.maxSignalStrategy)
-                        dOffers[i] = pOfferRange.maxSignalStrategy;
+                        dOffers[i] = Math.Max(0, pOfferRange.maxSignalStrategy);
+                //// 3b. Defendant never offers less than lowest demand by the plaintiff (doesn't affect outcome)
+                //for (int i = 0; i < dOffers.Length; i++)
+                //    if (dOffers[i] < pOfferRange.minSignalStrategy)
+                //        dOffers[i] = Math.Min(1, pOfferRange.minSignalStrategy);
             }
         }
 
