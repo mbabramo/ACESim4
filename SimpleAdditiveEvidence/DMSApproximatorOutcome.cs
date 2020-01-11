@@ -13,6 +13,11 @@
             this.AccuracyHypoSq = AccuracyHypoSq;
             this.AccuracyForP = AccuracyForP;
             this.AccuracyForD = AccuracyForD;
+            if (POfferLine.Item1 >= DOfferLine.Item2) // if P's most generous offer is less than D's most generous offer, then we never settle -- so denote this outside option of always trial in a common way
+            {
+                this.MinPOffer = this.MaxPOffer = 1.0;
+                this.MinDOffer = this.MaxDOffer = 1.0;
+            }
             this.MinPOffer = POfferLine.Item1;
             this.MaxPOffer = POfferLine.Item2;
             this.MinDOffer = DOfferLine.Item1;

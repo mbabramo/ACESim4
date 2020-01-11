@@ -16,7 +16,8 @@ namespace SimpleAdditiveEvidence
         static double[] lowCosts = new double[] { 0, 0.10, 0.20, 0.30, 0.40 };
         static double[] allCosts = new double[] { 0, 0.15, 0.30, 0.45, 0.60 };
         static double[] allFeeShifting = new double[] { 0, 0.25, 0.50, 0.75, 1.0 };
-        static double?[] allRiskAversions = new double?[] { null, 16 }; // , 8, 4, 2, 1 };
+        static double?[] allRegretAversions = new double?[] { 0, 0.25, 0.5 }; // DEBUG , 8, 4, 2, 1 };
+        static double?[] allRiskAversions = new double?[] { null, 1 }; // DEBUG , 8, 4, 2, 1 };
 
         static void Main(string[] args)
         {
@@ -40,9 +41,14 @@ namespace SimpleAdditiveEvidence
             //b.AppendLine(headerRow);
             //VaryFeeShifting(b);
 
-            string headerRow = "CostCat,RiskAverseCat,SignalCat,Cost,RiskAverse," + DMSApproximatorOutcome.GetHeaderStringForSpecificSignal();
+            //string headerRow = "CostCat,RiskAverseCat,SignalCat,Cost,RiskAverse," + DMSApproximatorOutcome.GetHeaderStringForSpecificSignal();
+            //b.AppendLine(headerRow);
+            //VaryRiskAversionTogether_FriedmanWittman(b);
+
+
+            string headerRow = "CostCat,FinalOfferRuleCat,SignalCat,Cost,FinalOfferRule," + DMSApproximatorOutcome.GetHeaderStringForSpecificSignal();
             b.AppendLine(headerRow);
-            VaryRiskAversionTogether_FriedmanWittman(b);
+            VaryFinalOfferRule_FriedmanWittman(b);
 
 
             //string headerRow = "CostCat,PRiskAverseCat,DRiskAverseCat,Cost,PRiskAverse,DRiskAverse," + DMSApproximatorOutcome.GetHeaderString();
@@ -65,7 +71,7 @@ namespace SimpleAdditiveEvidence
                 {
                     foreach (double t in allFeeShifting)
                     {
-                        DMSApproximator e = new DMSApproximator(q, c, t, null, null, false);
+                        DMSApproximator e = new DMSApproximator(q, c, t, null, null, false, null, false);
                         string rowPrefix = $"{c},{q},{t},";
                         string row = rowPrefix + e.TheOutcome.ToString();
                         b.AppendLine(row);
@@ -80,16 +86,18 @@ namespace SimpleAdditiveEvidence
 
         private static void VaryRiskAversionTogether_FriedmanWittman(StringBuilder b)
         {
+            bool useRegretAversion = true;
             double stepSize = (1.0 / ((double)DMSApproximator.NumSignalsPerPlayer)); // must use same number of signals for calculations to work
             double[] signalsToInclude = Enumerable.Range(0, DMSApproximator.NumSignalsPerPlayer).Select(x => 0.5 * stepSize + x * stepSize).ToArray();
             Dictionary<(int, int, bool, bool), List<(double, double)>> coordinates = new Dictionary<(int, int, bool, bool), List<(double, double)>>();
-            for (int cCat = 1; cCat < lowCosts.Length; cCat++)
+            for (int cCat = 0; cCat < lowCosts.Length; cCat++)
             {
                 double c = lowCosts[cCat];
-                for (int riskAverseCat = 0; riskAverseCat < 1; riskAverseCat++)
+                double?[] rAversions = useRegretAversion ? allRegretAversions : allRiskAversions;
+                for (int rAverseCat = 0; rAverseCat < rAversions.Length; rAverseCat++)
                 {
-                    double? riskAverse = allRiskAversions[riskAverseCat];
-                    DMSApproximator e = new DMSApproximator(0.5, c, 0, riskAverse, riskAverse, true);
+                    double? rAverse = rAversions[rAverseCat];
+                    DMSApproximator e = new DMSApproximator(0.5, c, 0, rAverse, rAverse, useRegretAversion, null, true);
                     //e.CalculateResultsForOfferRanges(true, (-.1, .566666), (0.43333, 1.1), out bool atLeastOneSettlement, out double pUtility, out double dUtility, out double trialRate, out double accuracySq, out double accuracyHypoSq, out double accuracyForP, out double accuracyForD);
                     //e.CalculateResultsForOfferRanges(true, (-.1, .566666), (0, 12.706), out atLeastOneSettlement, out pUtility, out dUtility, out trialRate, out accuracySq, out accuracyHypoSq, out accuracyForP, out accuracyForD);
                     for (int signalCat = 0; signalCat < signalsToInclude.Length; signalCat++)
@@ -97,7 +105,7 @@ namespace SimpleAdditiveEvidence
                         if (signalCat % 5 == 2)
                         { // we don't need all 100 signals (and it seems to cause tex to take an inordinate amount of time to process)
                             double signal = (double)signalsToInclude[signalCat];
-                            string rowPrefix = $"{cCat + 1},{riskAverseCat + 1},{signalCat + 1},{c},{riskAverse},";
+                            string rowPrefix = $"{cCat + 1},{rAverseCat + 1},{signalCat + 1},{c},{rAverse},";
                             var offers = e.GetOffersForSignalWithOptimalStrategies(signalCat);
                             string pOfferString = offers.pOffer >= 0 && offers.pOffer <= 1 ? offers.pOffer.ToString() : "";
                             string dOfferString = offers.dOffer >= 0 && offers.dOffer <= 1 ? offers.dOffer.ToString() : "";
@@ -116,21 +124,58 @@ namespace SimpleAdditiveEvidence
 
         private static void VaryRiskAversionBoth_FriedmanWittman(StringBuilder b)
         {
+            bool useRegretAversion = true; // DEBUG
+            double?[] rAversions = useRegretAversion ? allRegretAversions : allRiskAversions;
             for (int cCat = 0; cCat < lowCosts.Length; cCat++)
             {
                 double c = lowCosts[cCat];
-                for (int pRiskAversionCat = 0; pRiskAversionCat < allRiskAversions.Length; pRiskAversionCat++)
+                for (int pRiskAversionCat = 0; pRiskAversionCat < rAversions.Length; pRiskAversionCat++)
                 {
-                    double? pRiskAverse = allRiskAversions[pRiskAversionCat];
-                    for (int dRiskAversionCat = 0; dRiskAversionCat < allRiskAversions.Length; dRiskAversionCat++)
+                    double? pRiskAverse = rAversions[pRiskAversionCat];
+                    for (int dRiskAversionCat = 0; dRiskAversionCat < rAversions.Length; dRiskAversionCat++)
                     {
-                        double? dRiskAverse = allRiskAversions[dRiskAversionCat];
-                        DMSApproximator e = new DMSApproximator(0.5, c, 0, pRiskAverse, dRiskAverse, true);
+                        double? dRiskAverse = rAversions[dRiskAversionCat];
+                        DMSApproximator e = new DMSApproximator(0.5, c, 0, pRiskAverse, dRiskAverse, useRegretAversion, null, true);
                         string rowPrefix = $"{cCat + 1},{pRiskAversionCat + 1},{dRiskAversionCat + 1},{c},{pRiskAverse},{dRiskAverse},";
                         string row = rowPrefix + e.TheOutcome.ToString();
                         b.AppendLine(row);
                         TabbedText.WriteLine("Output: " + row);
                         TabbedText.WriteLine();
+                    }
+                }
+                TabbedText.WriteLine($"Results for costs {c}");
+                TabbedText.WriteLine(b.ToString());
+            }
+        }
+
+
+        private static void VaryFinalOfferRule_FriedmanWittman(StringBuilder b)
+        {
+            double stepSize = (1.0 / ((double)DMSApproximator.NumSignalsPerPlayer)); // must use same number of signals for calculations to work
+            double[] signalsToInclude = Enumerable.Range(0, DMSApproximator.NumSignalsPerPlayer).Select(x => 0.5 * stepSize + x * stepSize).ToArray();
+            for (int cCat = 0; cCat < lowCosts.Length; cCat++)
+            {
+                double c = lowCosts[cCat];
+                double[] fOfferValues = new double[] { 0, 0.25, 0.75, 1.0, 1.25 };
+                for (int finalOfferCat = 0; finalOfferCat < fOfferValues.Length; finalOfferCat++)
+                {
+                    double? finalOfferValue = fOfferValues[finalOfferCat];
+                    DMSApproximator e = new DMSApproximator(0.5, c, 0, null, null, false, finalOfferValue, true);
+                    for (int signalCat = 0; signalCat < signalsToInclude.Length; signalCat++)
+                    {
+                        if (signalCat % 5 == 2)
+                        { // we don't need all 100 signals (and it seems to cause tex to take an inordinate amount of time to process)
+                            double signal = (double)signalsToInclude[signalCat];
+                            string rowPrefix = $"{cCat + 1},{finalOfferCat + 1},{signalCat + 1},{c},{finalOfferValue},";
+                            var offers = e.GetOffersForSignalWithOptimalStrategies(signalCat);
+                            string pOfferString = offers.pOffer >= 0 && offers.pOffer <= 1 ? offers.pOffer.ToString() : "";
+                            string dOfferString = offers.dOffer >= 0 && offers.dOffer <= 1 ? offers.dOffer.ToString() : "";
+                            var offers2 = e.GetOffersForSignalWithFriedmanWittmanStrategies(signalCat);
+                            string pOfferStringCorrect = offers2.pOffer >= 0 && offers2.pOffer <= 1 ? offers2.pOffer.ToString() : "";
+                            string dOfferStringCorrect = offers2.dOffer >= 0 && offers2.dOffer <= 1 ? offers2.dOffer.ToString() : "";
+                            string row = rowPrefix + e.TheOutcome.ToStringForSpecificSignal(signal, pOfferString, dOfferString, pOfferStringCorrect, dOfferStringCorrect);
+                            b.AppendLine(row);
+                        }
                     }
                 }
                 TabbedText.WriteLine($"Results for costs {c}");
@@ -146,7 +191,7 @@ namespace SimpleAdditiveEvidence
                 foreach (double q in new double[] { 0.4 })
                 {
                     double pUtilityCum = 0, dUtilityCum = 0;
-                    DMSApproximator tester = new DMSApproximator(q, c, t, null, null, false, execute: false);
+                    DMSApproximator tester = new DMSApproximator(q, c, t, null, null, false, null, false, execute: false);
                     double stepSize = 0.20;
                     double numCases = 0;
                     for (double zp = stepSize; zp < 1; zp += stepSize)

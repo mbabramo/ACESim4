@@ -13,17 +13,21 @@ namespace SimpleAdditiveEvidence
     {
            
         double q, c, t;
-        double? riskAverseP, riskAverseD;
-        bool useFriedmanWittman;
-        public DMSApproximator(double q, double c, double t, double? riskAverseP, double? riskAverseD, bool useFriedmanWittman, bool execute = true)
+        double? riskOrRegretAverseP, riskOrRegretAverseD;
+        bool useRegretAversion;
+        double finalOfferRule; // if not null, then the judgment is compared to the offers. We calculate (POffer - J) (i.e., plaintiff's aggressiveness) and (J - DOffer) (defendant's aggressiveness). Then, we multiply this parameter by the difference. So P pays to D an amount equal to finalOfferRule * ((POffer - J) - (J - DOffer)) = finalOfferRule * (POffer + DOffer - 2J). E.g., if POffer = 50, J = 45, and DOffer = 30, then plaintiff pays -10*finalOfferRule to D, i.e. receives 10 from D. Note that the more plaintiff insists on, the more plaintiff will have to pay to defendant, and the less defendant insists on, the less plaintiff will have to pay to defendant, so this provides each party incentives to modify its behavior.
+        bool useFriedmanWittman; // instead of using the full DMS model, we use the original Friedman Wittman model, in which the judgment is the sum of the signals. In effect, we just set theta to the signal, instead of to a function of the signal and q. Note that fee shifting is still possible.
+        public DMSApproximator(double q, double c, double t, double? riskOrRegretAverseP, double? riskOrRegretAverseD, bool useRegretAversion, double? finalOfferRule, bool useFriedmanWittman, bool execute = true)
         {
             this.q = q; // irrelevant with friedman wittman
             this.c = c;
             this.t = t;
-            this.riskAverseP = riskAverseP;
-            this.riskAverseD = riskAverseD;
+            this.riskOrRegretAverseP = riskOrRegretAverseP;
+            this.riskOrRegretAverseD = riskOrRegretAverseD;
+            this.useRegretAversion = useRegretAversion;
+            this.finalOfferRule = finalOfferRule ?? 0;
             this.useFriedmanWittman = useFriedmanWittman;
-            TabbedText.WriteLine($"Cost {c} threshold {(useFriedmanWittman ? "N/A" : t.ToString())} riskAverseP {riskAverseP} riskAverseD {riskAverseD} quality {(useFriedmanWittman ? "N/A" : q.ToString())}");
+            TabbedText.WriteLine($"Cost {c} threshold {(useFriedmanWittman ? "N/A" : t.ToString())} riskAverseP {riskOrRegretAverseP} riskAverseD {riskOrRegretAverseD} quality {(useFriedmanWittman ? "N/A" : q.ToString())} finalOfferRule {finalOfferRule}");
             TabbedText.WriteLine(OptionsString);
             if (execute)    
                 Execute();
@@ -255,15 +259,7 @@ namespace SimpleAdditiveEvidence
 
         static double ContinuousSignal(int discreteSignal) => ((double)(discreteSignal + 1)) / ((double)(NumSignalsPerPlayer + 1));
 
-        // The min/max becomes nonlinear in the input strategy for extreme strategies (i.e., below first variable below or above second).
-        // For example, if minMaxNonlinearBelowThreshold = 0.25, then when the discrete signal is less than 25% of the maximum discrete signal,
-        // we use a nonlinear function to determine the continuous value.
-        // NOTE: Of course, we are still trying to find a strategy that represents a line. This just means that we are going to try some 
-        // very steep lines, since the optimal strategy may be an almost vertical line (with a very low minimum or a very high maximum). 
-        // Note that flat lines are easier -- because the min and max just have to be equal.
-        double minMaxNonlinearBelowThreshold = 0.25;
-        double minMaxNonlinearAboveThreshold = 0.75;
-
+        // NOTE: The following may require updating if we reimplement zooming in.
         // The following specifies the mapping from a discrete representation of a min or max of a line and the continuous representation.
         // Initially, we set this to 0 to 1 to capture the typical range of starting and ending points of lines.
         // But based on the outcome, one can zoom into the result by moving this near the initially successful strategy.
@@ -552,7 +548,7 @@ namespace SimpleAdditiveEvidence
             dOffers = Enumerable.Range(0, NumSignalsPerPlayer).Select(x => dOfferRange.minSignalStrategy * (1.0 - continuousSignals[x]) + dOfferRange.maxSignalStrategy * continuousSignals[x]).ToArray();
             // Truncations (as specified in paper). 
 
-            bool useTruncations = true; // DEBUG
+            bool useTruncations = false; // DEBUG
             if (!useTruncations)
                 return;
 
@@ -650,11 +646,22 @@ namespace SimpleAdditiveEvidence
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private double GetRiskAverseUtility(double? riskAversion, double effect)
+        private double GetRiskOrRegretAverseUtility(double? riskOrRegretAversion, double effect, double? rejectedOffer = null)
         {
-            if (riskAversion == null)
+            if (riskOrRegretAversion == null)
                 return effect;
-            double sum = ((double)riskAversion) + effect;
+            if (useRegretAversion)
+            {
+                if (rejectedOffer == null)
+                    return effect;
+                double regret = (double)rejectedOffer - effect;
+                if (regret > 0)
+                {
+                    effect -= (double)riskOrRegretAversion * regret;
+                }
+                return effect;
+            }
+            double sum = ((double)riskOrRegretAversion) + effect;
             if (sum <= 0)
                 return double.MinValue; // most negative possible value
             else
@@ -677,8 +684,8 @@ namespace SimpleAdditiveEvidence
                 double dEffect = 1.0 - settlement;
                 //Debug.WriteLine($"({p},{d}) settle ({zp},{zd}) => {pEffect}, {dEffect} "); 
 
-                double pUtilityThisCase = GetRiskAverseUtility(riskAverseP, pEffect); 
-                double dUtilityThisCase = GetRiskAverseUtility(riskAverseD, dEffect);
+                double pUtilityThisCase = GetRiskOrRegretAverseUtility(riskOrRegretAverseP, pEffect); 
+                double dUtilityThisCase = GetRiskOrRegretAverseUtility(riskOrRegretAverseD, dEffect);
                 pUtility += equalityMultiplier * pUtilityThisCase;
                 dUtility += equalityMultiplier * dUtilityThisCase;
             }
@@ -695,11 +702,11 @@ namespace SimpleAdditiveEvidence
                 };
                 double dCosts = dPortionOfCosts * c;
                 double pCosts = c - dCosts;
-
-                double pEffect = (j - pCosts);
-                double dEffect = ((1.0 - j) - dCosts);
-                double pUtilityThisCase = GetRiskAverseUtility(riskAverseP, pEffect);
-                double dUtilityThisCase = GetRiskAverseUtility(riskAverseD, dEffect);
+                double finalOfferRuleAdjustment = finalOfferRule == 0 ? 0 : finalOfferRule * (pOffer + dOffer - 2 * j);
+                double pEffect = (j - pCosts) - finalOfferRule;
+                double dEffect = ((1.0 - j) - dCosts) + finalOfferRule;
+                double pUtilityThisCase = GetRiskOrRegretAverseUtility(riskOrRegretAverseP, pEffect, dOffer);
+                double dUtilityThisCase = GetRiskOrRegretAverseUtility(riskOrRegretAverseD, dEffect, 1.0 - pOffer);
                 pUtility += equalityMultiplier * pUtilityThisCase;
                 dUtility += equalityMultiplier * dUtilityThisCase;
                 trialRate += equalityMultiplier;
@@ -726,8 +733,8 @@ namespace SimpleAdditiveEvidence
                 //Debug.WriteLine($"({p},{d}) settle ({zp},{zd}) => {pEffect}, {dEffect} "); 
 
                 // We now calculate the unweighted utility effect of this case, depending on risk aversion
-                double pUtilityThisCase = GetRiskAverseUtility(riskAverseP, pEffect);
-                double dUtilityThisCase = GetRiskAverseUtility(riskAverseD, dEffect);
+                double pUtilityThisCase = GetRiskOrRegretAverseUtility(riskOrRegretAverseP, pEffect);
+                double dUtilityThisCase = GetRiskOrRegretAverseUtility(riskOrRegretAverseD, dEffect);
                 // We're aggregating across cases, so we increment the total pUtility measure, adjusting for the equality multiplier.
                 pUtility += equalityMultiplier * pUtilityThisCase;
                 dUtility += equalityMultiplier * dUtilityThisCase;
@@ -760,13 +767,14 @@ namespace SimpleAdditiveEvidence
                 double pCosts = c - dCosts;
                 double shiftedCosts = (dPortionOfCosts - 0.5) * c;
 
-                double pEffect = (j - pCosts);
+                double finalOfferRuleAdjustment = finalOfferRule == 0 ? 0 : finalOfferRule * (pOffer + dOffer - 2 * j);
+                double pEffect = (j - pCosts) - finalOfferRuleAdjustment;
                 double hypo_pEffect = (hypo_j - pCosts);
-                double dEffect = ((1.0 - j) - dCosts);
+                double dEffect = ((1.0 - j) - dCosts) + finalOfferRuleAdjustment;
 
                 // We now calculate the unweighted utility effect of this case, depending on risk aversion
-                double pUtilityThisCase = GetRiskAverseUtility(riskAverseP, pEffect);
-                double dUtilityThisCase = GetRiskAverseUtility(riskAverseD, dEffect);
+                double pUtilityThisCase = GetRiskOrRegretAverseUtility(riskOrRegretAverseP, pEffect, dOffer);
+                double dUtilityThisCase = GetRiskOrRegretAverseUtility(riskOrRegretAverseD, dEffect, 1.0 - pOffer);
                 // We're aggregating across cases, so we increment the total pUtility measure, adjusting for the equality multiplier.
                 pUtility += equalityMultiplier * pUtilityThisCase;
                 dUtility += equalityMultiplier * dUtilityThisCase;
