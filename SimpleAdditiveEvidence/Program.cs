@@ -156,7 +156,7 @@ namespace SimpleAdditiveEvidence
             for (int cCat = 0; cCat < lowCosts.Length; cCat++)
             {
                 double c = lowCosts[cCat];
-                double[] fOfferValues = new double[] { 0, 0.25, 0.75, 1.0, 1.25 };
+                double[] fOfferValues = new double[] { 0, 0.025, 0.05, 0.1, 0.15 }; // DEBUG 0.5, 1.0, 1.5 };
                 for (int finalOfferCat = 0; finalOfferCat < fOfferValues.Length; finalOfferCat++)
                 {
                     double? finalOfferValue = fOfferValues[finalOfferCat];

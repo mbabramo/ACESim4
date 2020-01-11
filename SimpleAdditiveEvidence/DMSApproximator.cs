@@ -15,7 +15,7 @@ namespace SimpleAdditiveEvidence
         double q, c, t;
         double? riskOrRegretAverseP, riskOrRegretAverseD;
         bool useRegretAversion;
-        double finalOfferRule; // if not null, then the judgment is compared to the offers. We calculate (POffer - J) (i.e., plaintiff's aggressiveness) and (J - DOffer) (defendant's aggressiveness). Then, we multiply this parameter by the difference. So P pays to D an amount equal to finalOfferRule * ((POffer - J) - (J - DOffer)) = finalOfferRule * (POffer + DOffer - 2J). E.g., if POffer = 50, J = 45, and DOffer = 30, then plaintiff pays -10*finalOfferRule to D, i.e. receives 10 from D. Note that the more plaintiff insists on, the more plaintiff will have to pay to defendant, and the less defendant insists on, the less plaintiff will have to pay to defendant, so this provides each party incentives to modify its behavior.
+        double finalOfferRule; // if not null, then the judgment is compared to the offers. We calculate (POffer - J) (i.e., plaintiff's aggressiveness) and (J - DOffer) (defendant's aggressiveness). Then, we multiply this parameter by the difference. So P pays to D an amount equal to finalOfferRule * ((POffer - J) - (J - DOffer)) = finalOfferRule * (POffer + DOffer - 2J). E.g., if POffer = 50, J = 45, and DOffer = 30, then P was less aggressive, and plaintiff pays -10*finalOfferRule to D, i.e. receives 10 from D. Note that the more plaintiff insists on, the more plaintiff will have to pay to defendant, and the less defendant insists on, the less plaintiff will have to pay to defendant, so this provides each party incentives to modify its behavior.
         bool useFriedmanWittman; // instead of using the full DMS model, we use the original Friedman Wittman model, in which the judgment is the sum of the signals. In effect, we just set theta to the signal, instead of to a function of the signal and q. Note that fee shifting is still possible.
         public DMSApproximator(double q, double c, double t, double? riskOrRegretAverseP, double? riskOrRegretAverseD, bool useRegretAversion, double? finalOfferRule, bool useFriedmanWittman, bool execute = true)
         {
@@ -35,12 +35,15 @@ namespace SimpleAdditiveEvidence
 
         #region Options
 
-        // Each player's strategy is a line, represented by a minimum strategy value and a maximum strategy value. 
-        public const int NumEndpointOptions = 50; // DEBUG 100
+        public bool OutsideOptionIsPossible => finalOfferRule == 0; // with the final offer rule, every strategy leaving always to trial leads to different utilities.
+
+        // Each player's strategy is a line, represented by an initial point on either the x or y axis and by an angle in [0, pi/2). 
+        public const int NumEndpointOptions = 25; // DEBUG 100
+        public const int NumAngleOptions = 25;
         public const int NumSignalsPerPlayer = 100;
-        public const int NumStrategiesPerPlayer = NumEndpointOptions * NumEndpointOptions;
+        public const int NumStrategiesPerPlayer = NumEndpointOptions * NumAngleOptions;
         public long NumRequiredGamePlays => Pow(NumEndpointOptions, 4) * Pow(NumSignalsPerPlayer, 2);
-        public string OptionsString => $"Signals per player: {NumSignalsPerPlayer} Endpoint options: {NumEndpointOptions} => Required game plays {NumRequiredGamePlays:n0}";
+        public string OptionsString => $"Signals per player: {NumSignalsPerPlayer} Endpoint options: {NumEndpointOptions} Angle options: {NumAngleOptions} => Required game plays {NumRequiredGamePlays:n0}";
         private static long Pow(int bas, int exp) => Enumerable.Repeat((long)bas, exp).Aggregate((long)1, (a, b) => a * b);
 
         bool LogDetailedProgress = true;
@@ -52,7 +55,7 @@ namespace SimpleAdditiveEvidence
         #region Execution
 
         int OptimalPStrategy = -1, OptimalDStrategy = -1;
-        public DMSApproximatorOutcome TheOutcome => new DMSApproximatorOutcome(PUtilities[OptimalPStrategy, OptimalDStrategy], DUtilities[OptimalPStrategy, OptimalDStrategy], TrialRate[OptimalPStrategy, OptimalDStrategy], AccuracySq[OptimalPStrategy, OptimalDStrategy], AccuracyHypoSq[OptimalPStrategy, OptimalDStrategy], AccuracyForP[OptimalPStrategy, OptimalDStrategy], AccuracyForD[OptimalPStrategy, OptimalDStrategy], ConvertStrategyToMinMaxContinuousOffers(OptimalPStrategy, true), ConvertStrategyToMinMaxContinuousOffers(OptimalDStrategy, false));
+        public DMSApproximatorOutcome TheOutcome => new DMSApproximatorOutcome(PUtilities[OptimalPStrategy, OptimalDStrategy], DUtilities[OptimalPStrategy, OptimalDStrategy], TrialRate[OptimalPStrategy, OptimalDStrategy], AccuracySq[OptimalPStrategy, OptimalDStrategy], AccuracyHypoSq[OptimalPStrategy, OptimalDStrategy], AccuracyForP[OptimalPStrategy, OptimalDStrategy], AccuracyForD[OptimalPStrategy, OptimalDStrategy], ConvertStrategyToMinMaxContinuousOffers(OptimalPStrategy, true), ConvertStrategyToMinMaxContinuousOffers(OptimalDStrategy, false), finalOfferRule != 0);
 
         bool OutsideOptionDominates;
 
@@ -189,8 +192,6 @@ namespace SimpleAdditiveEvidence
 
         void InitializeStrategyConversions()
         {
-            if (NumEndpointOptions % 2 != 0)
-                throw new Exception();
             strategyLines = new (double minSignalStrategy, double maxSignalStrategy)[NumStrategiesPerPlayer];
             for (int i = 0; i < NumStrategiesPerPlayer; i++)
                 strategyLines[i] = ConvertStrategyToMinMaxContinuousOffers_Compute(i);
@@ -204,35 +205,26 @@ namespace SimpleAdditiveEvidence
 
         (double minSignalStrategy, double maxSignalStrategy) ConvertStrategyToMinMaxContinuousOffers_Compute(int strategy)
         {
-            // DEBUG
-            if (strategy == 0)
-            {
-                return (0.433, 0.553);
-            }
-            else if (strategy == 1)
-            {
-                return (0.553, 0.566);
-            }
-            int numEndpointOptionsEachAxis = NumEndpointOptions / 2;
+            int numEndpointOptionsXAxis = NumEndpointOptions / 2; // if there are an odd number, the extra one will go on the y axis
             int startingPositionIndex = strategy / NumEndpointOptions;
-            bool startingPositionOnXAxis = startingPositionIndex < numEndpointOptionsEachAxis;
+            double initialValue = ((double)startingPositionIndex) / ((double)(NumEndpointOptions - 1));
+            bool startingPositionOnXAxis = initialValue > 0.5; // note that this means that the origin will be considered a y axis point, and that the x axis will not also have an origin
             double startingPointValue;
             if (startingPositionOnXAxis)
             {
-                startingPointValue = ((double) startingPositionIndex) / ((double) (numEndpointOptionsEachAxis - 1));
+                startingPointValue = initialValue * 2 - 1;
             }
             else
             {
-                startingPositionIndex -= numEndpointOptionsEachAxis;
-                startingPositionIndex++; // eliminate 0 value, b/c that's already covered on x axis
-                startingPointValue = ((double)startingPositionIndex) / ((double)(numEndpointOptionsEachAxis));
+                startingPointValue = initialValue * 2;
             }
 
-            int angleIndex = strategy % NumEndpointOptions;
-            double angleIndexAdjusted = angleIndex;
-            if (startingPositionOnXAxis && angleIndex == 0 && startingPointValue != 0)
-                angleIndexAdjusted = 0.5; // we already have line containing x-axis covered, so this will give us a slightly angled line
-            double angle = angleIndexAdjusted * (Math.PI / (2 * NumEndpointOptions)); // highest value is just under pi / 2 (note that we can't have perfectly vertical lines)
+            double angleIndex = (double) (strategy / NumEndpointOptions); // will range from 0 to NumAngleOptions - 1.
+            double angle;
+            if (startingPositionOnXAxis)
+                angle = (Math.PI / 2) * (angleIndex + 1) / (NumAngleOptions + 1); // avoid angle of 0, since that will be redundant with origin (considered on y axis). Also, avoid pi / 2. So, if there are 10 points on the x axis and 15 angle options, we will go from 1/16 to 15/16, all multiplied by pi/2. 
+            else
+                angle = (Math.PI / 2) * (angleIndex) / (numEndpointOptionsXAxis); // here, we want to include an angle of 0, so we would go from 0/15 of pi/2 to 14/15 of pi/2. with 15 angle options.
             double tangent = Math.Tan(angle);
 
             double leftAxisIntercept, rightAxisIntercept;
@@ -400,7 +392,7 @@ namespace SimpleAdditiveEvidence
 
             PUtilities[p, d] = pUtility;
             DUtilities[p, d] = dUtility;
-            if (!atLeastOneSettlement && Math.Abs(1.0 - trialRate) < 0.00001) // we might have no pure settlements but trials only half of time
+            if (!atLeastOneSettlement && OutsideOptionIsPossible && Math.Abs(1.0 - trialRate) < 0.00001) // we might have no pure settlements but trials only half of time
                 SetOutsideOption(p, d, setOutsideOptionUtilityToVeryBadValue);
             if (calculatePerformanceStats)
             {
@@ -521,7 +513,10 @@ namespace SimpleAdditiveEvidence
 
         public void GetOffersForOptimalStrategies(out double[] pOffers, out double[] dOffers)
         {
-            CalculateOffers(offerRanges[OptimalPStrategy].Item1, offerRanges[OptimalDStrategy].Item2, out pOffers, out dOffers);
+            if (OutsideOptionDominates && finalOfferRule == 0)
+                CalculateOffers((1.0, 1.0), (0.0, 0.0), out pOffers, out dOffers);
+            else
+                CalculateOffers(offerRanges[OptimalPStrategy].Item1, offerRanges[OptimalDStrategy].Item2, out pOffers, out dOffers);
         }
 
         public ((double, double), (double, double)) GetOptimalOfferRanges() => (offerRanges[OptimalPStrategy].Item1, offerRanges[OptimalDStrategy].Item2);
