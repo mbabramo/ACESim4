@@ -185,7 +185,7 @@ namespace ACESim.Util
                     numValuesAtEachLiabilitySignal[band]++;
                     totalNumberForUniformDistributionPoint++;
                 }
-                bool calculateExactValues = true; // we've calculated the signal bands using an approximation, but we may wish to use exact values so that we can represent small probabilities
+                bool calculateExactValues = false; // we've calculated the signal bands using an approximation, but we may wish to use exact values so that we can represent small probabilities (NOTE: Was working at one point, but doesn't seem to work when we don't bucket liability values evenly)
                 if (calculateExactValues)
                 {
                     double sumCumNormal = 0;
@@ -195,7 +195,7 @@ namespace ACESim.Util
                         double lowerCutoff = (s == 0) ? double.NegativeInfinity : signalValueCutoffs[s - 1];
                         double upperCutoff = (s == nsParams.NumSignals - 1) ? double.PositiveInfinity : signalValueCutoffs[s];
                         if (lowerCutoff < uniformDistributionPoint && uniformDistributionPoint <= upperCutoff)
-                            indexOfSignalWithinCutoff = s;
+                            indexOfSignalWithinCutoff = s; // below, we'll set this by subtracting all of the others from 1.
                         else
                         {
                             double distance = Math.Min(Math.Abs(lowerCutoff - uniformDistributionPoint), Math.Abs(upperCutoff - uniformDistributionPoint));
@@ -205,6 +205,8 @@ namespace ACESim.Util
                             probabilitiesOfLiabilitySignalGivenSourceLiabilityStrength[u][s] = cumNormal;
                         }
                     }
+                    if (sumCumNormal > 1)
+                        throw new Exception("Can't use exact values here");
                     probabilitiesOfLiabilitySignalGivenSourceLiabilityStrength[u][indexOfSignalWithinCutoff] = 1.0 - sumCumNormal;
                 }
                 else
