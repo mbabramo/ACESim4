@@ -19,9 +19,9 @@ namespace ACESim
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousPlay; // also will be overridden
         public double BestResponseTarget => Algorithm switch
         {
-            GameApproximationAlgorithm.FictitiousPlay => 0, // 0.00001,
-            GameApproximationAlgorithm.BestResponseDynamics => 0, // 0.00001,
-            _ => 0 // 0.005
+            GameApproximationAlgorithm.FictitiousPlay => -1, // 0.00001,
+            GameApproximationAlgorithm.BestResponseDynamics => -1, // 0.00001,
+            _ => -1 // 0.005
         }; // will end early if this target is reached
         public bool CreateInformationSetCharts = false; 
         public int? ReportEveryNIterations = 1000;

@@ -612,7 +612,7 @@ namespace ACESim
                 byte i2 = (byte)(i); // necessary to prevent access to modified closure
                 if (Options.NumDamagesStrengthPoints <= 1)
                     rowFilters.Add(new SimpleReportFilter(
-                        $"LitQual {i2}",
+                        $"LiabQual {i2}",
                         (GameProgress gp) => MyGP(gp).LiabilityStrengthDiscrete == i2));
                 else
                 {

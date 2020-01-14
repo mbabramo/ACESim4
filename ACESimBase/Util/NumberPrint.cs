@@ -17,6 +17,12 @@ namespace ACESim
             }
             else
             {
+                bool negative = d < 0;
+                double negMultiplier = negative ? -1 : 1;
+                if (negative)
+                {
+                    d = -d;
+                }
                 double leftSideNumbers = Math.Floor(Math.Log10(Math.Abs(d))) + 1;
                 double scale = Math.Pow(10, leftSideNumbers);
                 double result = scale * Math.Round(d / scale, digits, MidpointRounding.AwayFromZero);
@@ -24,13 +30,13 @@ namespace ACESim
                 // Clean possible precision error.
                 if ((int)leftSideNumbers >= digits)
                 {
-                    return Math.Round(result, 0, MidpointRounding.AwayFromZero);
+                    return negMultiplier * Math.Round(result, 0, MidpointRounding.AwayFromZero);
                 }
                 else
                 {
                     if (digits - (int)leftSideNumbers > 15) // can't round more than 15 digits
-                        return RoundToSignificantFigures(result / scale, digits) * scale;
-                    return Math.Round(result, digits - (int)leftSideNumbers, MidpointRounding.AwayFromZero);
+                        return negMultiplier * RoundToSignificantFigures(result / scale, digits) * scale;
+                    return negMultiplier * Math.Round(result, digits - (int)leftSideNumbers, MidpointRounding.AwayFromZero);
                 }
             }
         }

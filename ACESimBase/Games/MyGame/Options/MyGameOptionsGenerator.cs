@@ -36,7 +36,7 @@ namespace ACESim
             PerfectInfo,
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Usual;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom;
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
@@ -136,13 +136,27 @@ namespace ACESim
 
         public static MyGameOptions Custom()
         {
-            var options = DamagesUncertainty_2BR(); 
-            options.SimultaneousOffersUltimatelyRevealed = true;
-            options.NumDamagesSignals = 5;
-            options.NumOffers = 5;
-            options.NumDamagesStrengthPoints = 5;
+            var options = LiabilityUncertainty_1BR();
+            options.PInitialWealth = 0;
+            options.DInitialWealth = 1;
+            options.DamagesMin = options.DamagesMax = 1.0;
+            options.PFilingCost = options.DAnswerCost = 0;
+            options.PTrialCosts = options.DTrialCosts = 0.15;
+            options.PerPartyCostsLeadingUpToBargainingRound = 0;
+            options.CostsMultiplier = 1;
             options.SkipFileAndAnswerDecisions = true;
             options.AllowAbandonAndDefaults = false;
+            options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
+            {
+                ExogenousProbabilityTrulyLiable = 0.1,
+                StdevNoiseToProduceLiabilityStrength = 0.01
+            };
+            options.PLiabilityNoiseStdev = options.DLiabilityNoiseStdev = 0.3;
+            options.NumLiabilitySignals = 6;
+            options.NumLiabilityStrengthPoints = 6;
+            options.CourtLiabilityNoiseStdev = 0.001;
+            options.IncludeCourtSuccessReport = true;
+            options.IncludeSignalsReport = true;
 
             return options;
         }

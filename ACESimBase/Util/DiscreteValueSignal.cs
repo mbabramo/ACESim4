@@ -72,7 +72,7 @@ namespace ACESim.Util
 
         // We will calculate a number of discrete points in the inverse normal distribution
 
-        const int NumInInverseNormalDistribution = 10_000;
+        const int NumInInverseNormalDistribution = 100; // DEBUG 10_000;
         private static double[] _PointsInInverseNormalDistribution;
         private static double[] PointsInInverseNormalDistribution
         {
@@ -151,16 +151,36 @@ namespace ACESim.Util
         private static void CalculateCutoffs(DiscreteValueSignalParameters nsParams)
         {
             // Midpoints from uniform distribution: 
-            double[] sourcePoints = 
-                EquallySpaced.GetEquallySpacedPoints(nsParams.NumPointsInSourceUniformDistribution, nsParams.UseEndpoints);
+            var equallySpacedPoints = EquallySpaced.GetEquallySpacedPoints(nsParams.NumPointsInSourceUniformDistribution, nsParams.UseEndpoints);
+            double[] sourcePoints = equallySpacedPoints;
+
             double stdev = nsParams.StdevOfNormalDistribution;
             if (stdev == 0)
                 stdev = 1E-10;
             double[] drawsFromNormalDistribution = PointsInInverseNormalDistribution.Select(x => x * stdev).ToArray();
             // Now, we make every combination of uniform and normal distribution draws, and add them together
-            var crossProduct = sourcePoints
-                .SelectMany(x => drawsFromNormalDistribution, (x, y) => new { uniformDistPoint = x, normDistValue = y }).ToArray();
-            var distinctPointsOrdered = crossProduct.Select(x => x.uniformDistPoint + x.normDistValue).OrderBy(x => x).ToArray();
+            (double uniformDistPoint, double normDistValue)[] uniformAndNormDistPointsToCombine;
+            if (nsParams.NonUniformWeightingOfPoints != null)
+            {
+                List<(double uniformDistPoint, double normDistValue)> accumulated = new List<(double uniformDistPoint, double normDistValue)>();
+                for (int i = 0; i < sourcePoints.Length; i++)
+                {
+                    double sourcePoint = sourcePoints[i];
+                    double w = nsParams.NonUniformWeightingOfPoints[i];
+                    double includeEveryN = 1.0 / w;
+                    for (double dIndex = includeEveryN * 0.5; dIndex < drawsFromNormalDistribution.Length; dIndex += includeEveryN)
+                    {
+                        double normDraw = drawsFromNormalDistribution[(int)dIndex];
+                        accumulated.Add((sourcePoint, normDraw));
+                    }
+                }
+                uniformAndNormDistPointsToCombine = accumulated.ToArray();
+
+            }
+            else
+                 uniformAndNormDistPointsToCombine = sourcePoints
+                    .SelectMany(x => drawsFromNormalDistribution, (x, y) => (x, y)).ToArray();
+            var distinctPointsOrdered = uniformAndNormDistPointsToCombine.Select(x => x.uniformDistPoint + x.normDistValue).OrderBy(x => x).ToArray();
             // Now we want the cutoffs for the signals, making each signal equally likely. Note that if we want 2 signals, then we want 1 cutoff at 0.5 (i.e., 50th percentiles); if there are 10 signals, we want cutoffs at percentiles corresponding to .1, .2, ..., .9. 
             // (More generally, n signals -> n - 1 percentile cutoffs). After we have the percentile cutoffs, we can divide the signals into 
             // corresponding, equally sized groups.
@@ -173,7 +193,7 @@ namespace ACESim.Util
             {
                 int[] numValuesAtEachLiabilitySignal = new int[nsParams.NumSignals];
                 double uniformDistributionPoint = sourcePoints[u];
-                var crossProductFromThisUniformDistributionPoint = crossProduct.Where(x => x.uniformDistPoint == uniformDistributionPoint).ToArray();
+                var crossProductFromThisUniformDistributionPoint = uniformAndNormDistPointsToCombine.Where(x => x.uniformDistPoint == uniformDistributionPoint).ToArray();
                 int totalNumberForUniformDistributionPoint = 0;
                 foreach (var point in crossProductFromThisUniformDistributionPoint)
                 {

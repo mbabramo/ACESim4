@@ -20,17 +20,17 @@ namespace ACESim
         /// </summary>
         public double StdevNoiseToProduceLiabilityStrength;
 
-        private double[] ProbabilityOfTrulyLiabilityValues, ProbabilitiesLiabilityStrength_TrulyNotLiable, ProbabilitiesLiabilityStrength_TrulyLiable;
+        private double[] ProbabilityOfTrulyLiableValues, ProbabilitiesLiabilityStrength_TrulyNotLiable, ProbabilitiesLiabilityStrength_TrulyLiable;
         private double[] ProbabilityOfDamagesStrengthValues;
 
         public void Setup(MyGameDefinition myGameDefinition)
         {
-            ProbabilityOfTrulyLiabilityValues = new double[] { 1.0 - ExogenousProbabilityTrulyLiable, ExogenousProbabilityTrulyLiable };
+            ProbabilityOfTrulyLiableValues = new double[] { 1.0 - ExogenousProbabilityTrulyLiable, ExogenousProbabilityTrulyLiable };
             // A case is assigned a "true" value of 1 (should not be liable) or 2 (should be liable).
             // Based on the litigation quality noise parameter, we then collect a distribution of possible realized values, on the assumption
             // that the true values are equally likely. We then break this distribution into evenly sized buckets to get cutoff points.
             // Given this approach, the exogenous probability has no effect on ProbabilitiesLiabilityStrength_TrulyNotLiable and ProbabilitiesLiabilityStrength_TrulyLiable; both of these are conditional on whether a case is liable or not.
-            DiscreteValueSignalParameters liabilityParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = 2, NumSignals = myGameDefinition.Options.NumLiabilityStrengthPoints, StdevOfNormalDistribution = StdevNoiseToProduceLiabilityStrength, UseEndpoints = true };
+           DiscreteValueSignalParameters liabilityParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = 2, NonUniformWeightingOfPoints = ProbabilityOfTrulyLiableValues, NumSignals = myGameDefinition.Options.NumLiabilityStrengthPoints, StdevOfNormalDistribution = StdevNoiseToProduceLiabilityStrength, UseEndpoints = true };
             ProbabilitiesLiabilityStrength_TrulyNotLiable = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(1, liabilityParams);
             ProbabilitiesLiabilityStrength_TrulyLiable = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(2, liabilityParams);
 
@@ -109,7 +109,7 @@ namespace ACESim
 
         public double[] GetPostPrimaryChanceProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
         {
-            return ProbabilityOfTrulyLiabilityValues;
+            return ProbabilityOfTrulyLiableValues;
         }
 
         public (bool unrollParallelize, bool unrollIdentical) GetPrePrimaryUnrollSettings()
