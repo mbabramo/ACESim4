@@ -519,6 +519,7 @@ namespace ACESim
                 new SimpleReportColumnVariable("PWelfare", (GameProgress gp) => MyGP(gp).PWelfare),
                 new SimpleReportColumnVariable("DWelfare", (GameProgress gp) => MyGP(gp).DWelfare),
             };
+            AddColumnFiltersTrulyLiable(columnItems);
             AddColumnFiltersLiabilityStrength(columnItems);
             AddColumnFiltersDamagesStrength(columnItems);
             AddColumnFiltersPLiabilitySignal(columnItems);
@@ -635,6 +636,25 @@ namespace ACESim
             //        $"LitQual 1 Noise {j}",
             //        (GameProgress gp) => MyGP(gp).LiabilityStrengthDiscrete == 1 && MyGP(gp).PNoiseDiscrete == j));
             //}
+        }
+        private void AddColumnFiltersTrulyLiable(List<SimpleReportColumnItem> columnFilters)
+        {
+            columnFilters.Add(new SimpleReportColumnFilter(
+                       $"NotTrulyLiable",
+                       (GameProgress gp) => !MyGP(gp).IsTrulyLiable,
+                       SimpleReportColumnFilterOptions.ProportionOfRow));
+            columnFilters.Add(new SimpleReportColumnFilter(
+                $"NotTrulyLiablePct",
+                (GameProgress gp) => !MyGP(gp).IsTrulyLiable,
+                SimpleReportColumnFilterOptions.ProportionOfFirstRowOfColumn));
+            columnFilters.Add(new SimpleReportColumnFilter(
+                    $"TrulyLiable",
+                    (GameProgress gp) => MyGP(gp).IsTrulyLiable,
+                    SimpleReportColumnFilterOptions.ProportionOfRow));
+            columnFilters.Add(new SimpleReportColumnFilter(
+                $"TrulyLiablePct",
+                (GameProgress gp) => MyGP(gp).IsTrulyLiable,
+                SimpleReportColumnFilterOptions.ProportionOfFirstRowOfColumn));
         }
         private void AddColumnFiltersLiabilityStrength(List<SimpleReportColumnItem> columnFilters)
         {

@@ -185,7 +185,7 @@ namespace ACESim.Util
                     numValuesAtEachLiabilitySignal[band]++;
                     totalNumberForUniformDistributionPoint++;
                 }
-                bool calculateExactValues = false; // DEBUG nsParams.NonUniformWeightingOfPoints != null; // we've calculated the signal bands using an approximation, but we may wish to use exact values so that we can represent small probabilities
+                bool calculateExactValues = true; // we've calculated the signal bands using an approximation, but we may wish to use exact values so that we can represent small probabilities
                 if (calculateExactValues)
                 {
                     double sumCumNormal = 0;
