@@ -43,13 +43,13 @@ namespace SimpleAdditiveEvidence
             //b.AppendLine(headerRow);
             //VaryRiskAversionTogether_FriedmanWittman(b, useRegretAversion, true, TruncationOptions.None, true); // no truncations, but include correct values in case useful
 
-            headerRow = "CostCat,RiskAverseCat,SignalCat,Cost,RiskAverse," + DMSApproximatorOutcome.GetHeaderStringForSpecificSignal();
-            b.AppendLine(headerRow);
-            VaryRiskAversionTogether_FriedmanWittman(b, useRegretAversion, false, TruncationOptions.Automatic_EssentialOnly, true); // just 0 risk aversion, with truncations
-
-            //headerRow = "CostCat,PRiskAverseCat,DRiskAverseCat,Cost,PRiskAverse,DRiskAverse," + DMSApproximatorOutcome.GetHeaderString();
+            //headerRow = "CostCat,RiskAverseCat,SignalCat,Cost,RiskAverse," + DMSApproximatorOutcome.GetHeaderStringForSpecificSignal();
             //b.AppendLine(headerRow);
-            //VaryRiskAversionBoth_FriedmanWittman(b);
+            //VaryRiskAversionTogether_FriedmanWittman(b, useRegretAversion, false, TruncationOptions.Automatic_EssentialOnly, true); // just 0 risk aversion, with truncations
+
+            headerRow = "CostCat,PRiskAverseCat,DRiskAverseCat,Cost,PRiskAverse,DRiskAverse," + DMSApproximatorOutcome.GetHeaderString();
+            b.AppendLine(headerRow);
+            VaryRiskAversionBoth_FriedmanWittman(b, false);
 
             //headerRow = "CostCat,FinalOfferRuleCat,SignalCat,Cost,FinalOfferRule," + DMSApproximatorOutcome.GetHeaderStringForSpecificSignal();
             //b.AppendLine(headerRow);

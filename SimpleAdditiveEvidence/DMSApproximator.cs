@@ -41,8 +41,8 @@ namespace SimpleAdditiveEvidence
         public bool OutsideOptionIsPossible => finalOfferRule == 0; // with the final offer rule, every strategy leaving always to trial leads to different utilities.
 
         // Each player's strategy is a line, represented by an initial point on either the x or y axis and by an angle in [0, pi/2). 
-        public const int NumEndpointOptions = 50; // DEBUG -- 50
-        public const int NumAngleOptions = 50;
+        public const int NumEndpointOptions = 10; // DEBUG -- 50
+        public const int NumAngleOptions = 10;
         public const int NumSignalsPerPlayer = 100; 
         public const int NumStrategiesPerPlayer = NumEndpointOptions * NumAngleOptions;
         public long NumRequiredGamePlays => Pow(NumEndpointOptions, 4) * Pow(NumSignalsPerPlayer, 2);
@@ -130,11 +130,11 @@ namespace SimpleAdditiveEvidence
                         if (numPrinted++ > 25)
                         {
                             b.AppendLine($"Additional equilibria omitted. Total number of equilibria = {AllEquilibria.Count()}");
-                            goto abortedPrinting; // acceptable use of goto to break out of two for loops.
+                            goto afterPrintingOrNotPrinting; // acceptable use of goto to break out of two for loops.
                         }
                     }
                 }
-            abortedPrinting:
+            afterPrintingOrNotPrinting:
                 // pick the one with the best approximate equilibrium score
                 var allList = AllEquilibria.ToList();
                 //var distances = allList.Select(x => PureStrategiesFinder.DistanceFromNash_SingleStrategy(x.p, x.d, PUtilities, DUtilities)).ToList();
@@ -200,6 +200,12 @@ namespace SimpleAdditiveEvidence
             pStrategyLines = new (double minSignalStrategy, double maxSignalStrategy)[NumStrategiesPerPlayer];
             for (int i = 0; i < NumStrategiesPerPlayer; i++)
                 pStrategyLines[i] = ConvertStrategyToMinMaxContinuousOffers_Compute(i);
+
+            // the following is to allow creation of a figure with the strategy lines
+            StringBuilder b = new StringBuilder();
+            for (int i = 0; i < NumStrategiesPerPlayer; i++)
+                b.AppendLine($"\\addplot [blue, thin, mark=none*]{{ {pStrategyLines[i].minSignalStrategy} + {pStrategyLines[i].maxSignalStrategy - pStrategyLines[i].minSignalStrategy}*x}};");
+
             // This will produce a very similar set. But this allows us to make the game entirely symmetrical.
             dStrategyLines = new (double minSignalStrategy, double maxSignalStrategy)[NumStrategiesPerPlayer];
             for (int i = 0; i < NumStrategiesPerPlayer; i++)
@@ -240,6 +246,7 @@ namespace SimpleAdditiveEvidence
             {
                 leftAxisIntercept = 0 - startingPointValue * tangent;
                 rightAxisIntercept = (1.0 - startingPointValue) * tangent;
+                Debug.WriteLine($"{startingPointValue} => {leftAxisIntercept},{rightAxisIntercept}"); // DEBUG
             }
             else
             {
