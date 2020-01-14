@@ -1075,6 +1075,7 @@ namespace ACESim
             bool doReports = EvolutionSettings.ReportEveryNIterations != null && (iteration % EvolutionSettings.ReportEveryNIterations == 0 || Status.BestResponseTargetMet(EvolutionSettings.BestResponseTarget));
             if (doReports || doBestResponse)
             {
+                TabbedText.HideConsoleProgressString();
                 if (EvolutionSettings.CreateInformationSetCharts)
                     InformationSetCharts.CreateInformationSetChart(InformationSets, @"H:\My Drive\Articles, books in progress\Machine learning model of litigation\bluffing results\images\image" + iteration.ToString("D8") + ".png");
                 TabbedText.WriteLine("");
@@ -1120,6 +1121,7 @@ namespace ACESim
                     PrintInformationSets();
                 if (EvolutionSettings.AnalyzeInformationSets)
                     AnalyzeInformationSets();
+                TabbedText.ShowConsoleProgressString();
             }
 
             return reportCollection;

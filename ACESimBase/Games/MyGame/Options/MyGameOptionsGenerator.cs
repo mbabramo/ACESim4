@@ -149,11 +149,21 @@ namespace ACESim
             options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
             {
                 ExogenousProbabilityTrulyLiable = 0.5,
-                StdevNoiseToProduceLiabilityStrength = 0.3
+                StdevNoiseToProduceLiabilityStrength = 0.4
             };
             options.PLiabilityNoiseStdev = options.DLiabilityNoiseStdev = 0.3;
-            options.NumLiabilitySignals = 6;
-            options.NumLiabilityStrengthPoints = 6;
+            options.NumLiabilitySignals = 100;
+            options.NumLiabilityStrengthPoints = 25;
+            bool useOnlyTwoLiabilityStrengthPoints = true;
+            if (useOnlyTwoLiabilityStrengthPoints)
+            {
+                options.NumLiabilityStrengthPoints = 2;
+                options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
+                {
+                    ExogenousProbabilityTrulyLiable = 0.4,
+                    StdevNoiseToProduceLiabilityStrength = 0.001
+                };
+            }
             options.CourtLiabilityNoiseStdev = 0.001;
             options.IncludeCourtSuccessReport = true;
             options.IncludeSignalsReport = true;

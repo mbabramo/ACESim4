@@ -185,29 +185,44 @@ namespace ACESim.Util
                     numValuesAtEachLiabilitySignal[band]++;
                     totalNumberForUniformDistributionPoint++;
                 }
-                bool calculateExactValues = false; // we've calculated the signal bands using an approximation, but we may wish to use exact values so that we can represent small probabilities (NOTE: Was working at one point, but doesn't seem to work when we don't bucket liability values evenly)
+                bool calculateExactValues = true; // we've calculated the signal bands using an approximation, but we may wish to use exact values so that we can represent small probabilities (NOTE: Was working at one point, but doesn't seem to work when we don't bucket liability values evenly)
                 if (calculateExactValues)
                 {
                     double sumCumNormal = 0;
                     int indexOfSignalWithinCutoff = -1;
+                    bool subtractOneResultFromOthers = false; // can't use now that we're not bucketing liability values evenly
                     for (int s = 0; s < nsParams.NumSignals; s++)
                     {
                         double lowerCutoff = (s == 0) ? double.NegativeInfinity : signalValueCutoffs[s - 1];
                         double upperCutoff = (s == nsParams.NumSignals - 1) ? double.PositiveInfinity : signalValueCutoffs[s];
-                        if (lowerCutoff < uniformDistributionPoint && uniformDistributionPoint <= upperCutoff)
-                            indexOfSignalWithinCutoff = s; // below, we'll set this by subtracting all of the others from 1.
+                        bool signalWithinCutoffs = (lowerCutoff < uniformDistributionPoint && uniformDistributionPoint <= upperCutoff);
+                        if (signalWithinCutoffs)
+                            indexOfSignalWithinCutoff = s;
+                        double distance = Math.Min(Math.Abs(lowerCutoff - uniformDistributionPoint), Math.Abs(upperCutoff - uniformDistributionPoint));
+                        double numStdDeviations = distance / nsParams.StdevOfNormalDistribution;
+                        double cumNormal = NormalDistributionCalculation.CumulativeNormalDistribution(0 - numStdDeviations);
+                        sumCumNormal += cumNormal;
+                        if (!signalWithinCutoffs || !subtractOneResultFromOthers)
+                            probabilitiesOfLiabilitySignalGivenSourceLiabilityStrength[u][s] = cumNormal;
+                    }
+                    if (subtractOneResultFromOthers)
+                        probabilitiesOfLiabilitySignalGivenSourceLiabilityStrength[u][indexOfSignalWithinCutoff] = 1.0 - sumCumNormal;
+                    else
+                    {
+                        if (sumCumNormal == 0)
+                        {
+                            // standard deviation size is so low that even using double precision, all cumulative normal distribution values
+                            // round off to 0. So, let's just set the closest one to 1.
+                            probabilitiesOfLiabilitySignalGivenSourceLiabilityStrength[u][indexOfSignalWithinCutoff] = 1.0;
+                        }
                         else
                         {
-                            double distance = Math.Min(Math.Abs(lowerCutoff - uniformDistributionPoint), Math.Abs(upperCutoff - uniformDistributionPoint));
-                            double numStdDeviations = distance / nsParams.StdevOfNormalDistribution;
-                            double cumNormal = NormalDistributionCalculation.CumulativeNormalDistribution(0 - numStdDeviations);
-                            sumCumNormal += cumNormal;
-                            probabilitiesOfLiabilitySignalGivenSourceLiabilityStrength[u][s] = cumNormal;
+                            if (sumCumNormal != 1)
+                                for (int s = 0; s < nsParams.NumSignals; s++)
+                                    probabilitiesOfLiabilitySignalGivenSourceLiabilityStrength[u][s] /= sumCumNormal;
                         }
                     }
-                    if (sumCumNormal > 1)
-                        throw new Exception("Can't use exact values here");
-                    probabilitiesOfLiabilitySignalGivenSourceLiabilityStrength[u][indexOfSignalWithinCutoff] = 1.0 - sumCumNormal;
+
                 }
                 else
                 {
