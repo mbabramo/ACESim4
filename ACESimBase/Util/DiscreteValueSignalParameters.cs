@@ -10,8 +10,8 @@ namespace ACESim.Util
     public struct DiscreteValueSignalParameters
     {
         public int NumPointsInSourceUniformDistribution;
-        public double[] NonUniformWeightingOfPoints; // can be null if it's really a uniform distribution, but if it's non-uniform then we need to know what proportion for each
         public double StdevOfNormalDistribution;
+        public double? StdevOfNormalDistributionForCutoffPoints;
         public int NumSignals;
         public bool UseEndpoints;
 
@@ -22,12 +22,10 @@ namespace ACESim.Util
                 int hash = 13;
                 hash = (hash * 7) + NumPointsInSourceUniformDistribution.GetHashCode();
                 hash = (hash * 11) + StdevOfNormalDistribution.GetHashCode();
+                if (StdevOfNormalDistributionForCutoffPoints != null)
+                    hash = (hash * 29) + StdevOfNormalDistributionForCutoffPoints.GetHashCode();
                 hash = (hash * 17) + NumSignals.GetHashCode();
                 hash = (hash * 23) + UseEndpoints.GetHashCode();
-                if (NonUniformWeightingOfPoints != null)
-                {
-                    hash = (hash * 29) + String.Join(",", NonUniformWeightingOfPoints).GetHashCode();
-                }
                 return hash;
             }
         }
@@ -35,7 +33,17 @@ namespace ACESim.Util
         public override bool Equals(object obj)
         {
             DiscreteValueSignalParameters other = (DiscreteValueSignalParameters)obj;
-            return NumPointsInSourceUniformDistribution == other.NumPointsInSourceUniformDistribution && StdevOfNormalDistribution == other.StdevOfNormalDistribution && NumSignals == other.NumSignals && UseEndpoints == other.UseEndpoints && ((NonUniformWeightingOfPoints == null && other.NonUniformWeightingOfPoints == null) || NonUniformWeightingOfPoints.SequenceEqual(other.NonUniformWeightingOfPoints));
+            return NumPointsInSourceUniformDistribution == other.NumPointsInSourceUniformDistribution && StdevOfNormalDistribution == other.StdevOfNormalDistribution && NumSignals == other.NumSignals && UseEndpoints == other.UseEndpoints && StdevOfNormalDistributionForCutoffPoints == other.StdevOfNormalDistributionForCutoffPoints;
+        }
+
+        public static bool operator ==(DiscreteValueSignalParameters left, DiscreteValueSignalParameters right)
+        {
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(DiscreteValueSignalParameters left, DiscreteValueSignalParameters right)
+        {
+            return !(left == right);
         }
     }
 }

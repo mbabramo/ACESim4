@@ -157,38 +157,22 @@ namespace ACESim.Util
             double stdev = nsParams.StdevOfNormalDistribution;
             if (stdev == 0)
                 stdev = 1E-10;
-            double[] drawsFromNormalDistribution = PointsInInverseNormalDistribution.Select(x => x * stdev).ToArray();
-            // Now, we make every combination of uniform and normal distribution draws, and add them together
-            (double uniformDistPoint, double normDistValue)[] uniformAndNormDistPointsToCombine;
-            if (nsParams.NonUniformWeightingOfPoints != null)
-            {
-                List<(double uniformDistPoint, double normDistValue)> accumulated = new List<(double uniformDistPoint, double normDistValue)>();
-                for (int i = 0; i < sourcePoints.Length; i++)
-                {
-                    double sourcePoint = sourcePoints[i];
-                    double w = nsParams.NonUniformWeightingOfPoints[i];
-                    double includeEveryN = 1.0 / w;
-                    for (double dIndex = includeEveryN * 0.5; dIndex < drawsFromNormalDistribution.Length; dIndex += includeEveryN)
-                    {
-                        double normDraw = drawsFromNormalDistribution[(int)dIndex];
-                        accumulated.Add((sourcePoint, normDraw));
-                    }
-                }
-                uniformAndNormDistPointsToCombine = accumulated.ToArray();
-
-            }
-            else
-                 uniformAndNormDistPointsToCombine = sourcePoints
-                    .SelectMany(x => drawsFromNormalDistribution, (x, y) => (x, y)).ToArray();
-            var distinctPointsOrdered = uniformAndNormDistPointsToCombine.Select(x => x.uniformDistPoint + x.normDistValue).OrderBy(x => x).ToArray();
+            GetCombinedPoints(sourcePoints, stdev, out (double uniformDistPoint, double normDistValue)[] uniformAndNormDistPointsToCombine, out double[] distinctPointsOrdered);
             // Now we want the cutoffs for the signals, making each signal equally likely. Note that if we want 2 signals, then we want 1 cutoff at 0.5 (i.e., 50th percentiles); if there are 10 signals, we want cutoffs at percentiles corresponding to .1, .2, ..., .9. 
             // (More generally, n signals -> n - 1 percentile cutoffs). After we have the percentile cutoffs, we can divide the signals into 
             // corresponding, equally sized groups.
             double[] percentileCutoffs = EquallySpaced.GetCutoffsBetweenRegions(nsParams.NumSignals);
-            double[] signalValueCutoffs = percentileCutoffs.Select(ple => ValueAtPercentile(distinctPointsOrdered, ple)).ToArray();
+            double[] signalValueCutoffs;
+            if (nsParams.StdevOfNormalDistributionForCutoffPoints == null)
+                signalValueCutoffs = percentileCutoffs.Select(ple => ValueAtPercentile(distinctPointsOrdered, ple)).ToArray();
+            else
+            {
+                GetCombinedPoints(sourcePoints, (double)nsParams.StdevOfNormalDistributionForCutoffPoints, out (double uniformDistPoint, double normDistValue)[] uniformAndNormDistPointsToCombine2, out double[] distinctPointsOrdered2);
+                signalValueCutoffs = percentileCutoffs.Select(ple => ValueAtPercentile(distinctPointsOrdered2, ple)).ToArray();
+            }
             // Now, for each of the signal ranges, we must determine the probability that we would end up in this signal range given
             // any actual litigation quality value. 
-            double[][] probabilitiesOfLiabilitySignalGivenSourceLiabilityStrength = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(nsParams.NumPointsInSourceUniformDistribution,nsParams.NumSignals);
+            double[][] probabilitiesOfLiabilitySignalGivenSourceLiabilityStrength = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(nsParams.NumPointsInSourceUniformDistribution, nsParams.NumSignals);
             for (int u = 0; u < nsParams.NumPointsInSourceUniformDistribution; u++)
             {
                 int[] numValuesAtEachLiabilitySignal = new int[nsParams.NumSignals];
@@ -201,15 +185,15 @@ namespace ACESim.Util
                     numValuesAtEachLiabilitySignal[band]++;
                     totalNumberForUniformDistributionPoint++;
                 }
-                bool calculateExactValues = true; // we've calculated the signal bands using an approximation, but we may wish to use exact values so that we can represent small probabilities
+                bool calculateExactValues = false; // DEBUG nsParams.NonUniformWeightingOfPoints != null; // we've calculated the signal bands using an approximation, but we may wish to use exact values so that we can represent small probabilities
                 if (calculateExactValues)
                 {
                     double sumCumNormal = 0;
                     int indexOfSignalWithinCutoff = -1;
                     for (int s = 0; s < nsParams.NumSignals; s++)
                     {
-                            double lowerCutoff = (s == 0) ? double.NegativeInfinity : signalValueCutoffs[s - 1];
-                            double upperCutoff = (s == nsParams.NumSignals - 1) ? double.PositiveInfinity : signalValueCutoffs[s];
+                        double lowerCutoff = (s == 0) ? double.NegativeInfinity : signalValueCutoffs[s - 1];
+                        double upperCutoff = (s == nsParams.NumSignals - 1) ? double.PositiveInfinity : signalValueCutoffs[s];
                         if (lowerCutoff < uniformDistributionPoint && uniformDistributionPoint <= upperCutoff)
                             indexOfSignalWithinCutoff = s;
                         else
@@ -234,6 +218,14 @@ namespace ACESim.Util
             // Assign to dictionary.
             CutoffsForStandardDeviation[nsParams] = signalValueCutoffs;
             ProbabilitiesOfLiabilitySignalGivenSourceLiabilityStrengthForStandardDeviation[nsParams] = probabilitiesOfLiabilitySignalGivenSourceLiabilityStrength;
+        }
+
+        private static void GetCombinedPoints(double[] sourcePoints, double stdev, out (double uniformDistPoint, double normDistValue)[] uniformAndNormDistPointsToCombine, out double[] distinctPointsOrdered)
+        {
+            double[] drawsFromNormalDistribution = PointsInInverseNormalDistribution.Select(x => x * stdev).ToArray();
+            uniformAndNormDistPointsToCombine = sourcePoints
+                    .SelectMany(x => drawsFromNormalDistribution, (x, y) => (x, y)).ToArray();
+            distinctPointsOrdered = uniformAndNormDistPointsToCombine.Select(x => x.uniformDistPoint + x.normDistValue).OrderBy(x => x).ToArray();
         }
 
         private static int GetBandForLiabilitySignalValue(double signalValue, double[] signalValueCutoffs)
