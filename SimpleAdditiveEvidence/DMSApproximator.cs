@@ -17,8 +17,9 @@ namespace SimpleAdditiveEvidence
         bool useRegretAversion;
         double finalOfferRule; // if not null, then the judgment is compared to the offers. We calculate (POffer - J) (i.e., plaintiff's aggressiveness) and (J - DOffer) (defendant's aggressiveness). Then, we multiply this parameter by the difference. So P pays to D an amount equal to finalOfferRule * ((POffer - J) - (J - DOffer)) = finalOfferRule * (POffer + DOffer - 2J). E.g., if POffer = 50, J = 45, and DOffer = 30, then P was less aggressive, and plaintiff pays -10*finalOfferRule to D, i.e. receives 10 from D. Note that the more plaintiff insists on, the more plaintiff will have to pay to defendant, and the less defendant insists on, the less plaintiff will have to pay to defendant, so this provides each party incentives to modify its behavior.
         bool useFriedmanWittman; // instead of using the full DMS model, we use the original Friedman Wittman model, in which the judgment is the sum of the signals. In effect, we just set theta to the signal, instead of to a function of the signal and q. Note that fee shifting is still possible.
-        bool useTruncations = false; // DEBUG
-        public DMSApproximator(double q, double c, double t, double? riskOrRegretAverseP, double? riskOrRegretAverseD, bool useRegretAversion, double? finalOfferRule, bool useFriedmanWittman, bool useTruncations, bool execute)
+        TruncationOptions truncationOptions;
+
+        public DMSApproximator(double q, double c, double t, double? riskOrRegretAverseP, double? riskOrRegretAverseD, bool useRegretAversion, double? finalOfferRule, bool useFriedmanWittman, TruncationOptions truncationOptions, bool execute)
         {
             this.q = q; // irrelevant with friedman wittman
             this.c = c;
@@ -28,7 +29,7 @@ namespace SimpleAdditiveEvidence
             this.useRegretAversion = useRegretAversion;
             this.finalOfferRule = finalOfferRule ?? 0;
             this.useFriedmanWittman = useFriedmanWittman;
-            this.useTruncations = useTruncations;
+            this.truncationOptions = truncationOptions;
             TabbedText.WriteLine($"Cost {c} threshold {(useFriedmanWittman ? "N/A" : t.ToString())} riskAverseP {riskOrRegretAverseP} riskAverseD {riskOrRegretAverseD} quality {(useFriedmanWittman ? "N/A" : q.ToString())} finalOfferRule {finalOfferRule}");
             TabbedText.WriteLine(OptionsString);
             if (execute)    
@@ -40,7 +41,7 @@ namespace SimpleAdditiveEvidence
         public bool OutsideOptionIsPossible => finalOfferRule == 0; // with the final offer rule, every strategy leaving always to trial leads to different utilities.
 
         // Each player's strategy is a line, represented by an initial point on either the x or y axis and by an angle in [0, pi/2). 
-        public const int NumEndpointOptions = 50; 
+        public const int NumEndpointOptions = 50; // DEBUG -- 50
         public const int NumAngleOptions = 50;
         public const int NumSignalsPerPlayer = 100; 
         public const int NumStrategiesPerPlayer = NumEndpointOptions * NumAngleOptions;
@@ -213,7 +214,6 @@ namespace SimpleAdditiveEvidence
 
         (double minSignalStrategy, double maxSignalStrategy) ConvertStrategyToMinMaxContinuousOffers_Compute(int strategy)
         {
-            int numEndpointOptionsXAxis = NumEndpointOptions / 2; // if there are an odd number, the extra one will go on the y axis
             int startingPositionIndex = strategy / NumEndpointOptions;
             double initialValue = ((double)startingPositionIndex) / ((double)(NumEndpointOptions - 1));
             bool startingPositionOnXAxis = initialValue > 0.5; // note that this means that the origin will be considered a y axis point, and that the x axis will not also have an origin
@@ -551,8 +551,11 @@ namespace SimpleAdditiveEvidence
             dOffers = Enumerable.Range(0, NumSignalsPerPlayer).Select(x => dOfferRange.minSignalStrategy * (1.0 - continuousSignals[x]) + dOfferRange.maxSignalStrategy * continuousSignals[x]).ToArray();
             // Truncations (as specified in paper). 
 
-            if (!useTruncations)
+            if (truncationOptions == TruncationOptions.None)
                 return;
+
+            if (truncationOptions == TruncationOptions.Endogenous)
+                throw new NotImplementedException(); // replace with endogenous
 
             // 1. IMPORTANT NOTE: The DMS paper doesn't explain what to do if the plaintiff's highest offer is lower than the defendant's lowest offer, as would be the case when costs are very high and both parties are eager to avoid litigation at all costs. In Fig. A.2 (right panel), it is implicitly assumed that c < 1/3, because otherwise, the bottom horizontal line would be on top of the top horizontal line. That is, the relative positioning of the two truncation lines implies that c < 1/3. But we might have a different cutoff with fee shifting. We will resolve this by truncating all offers to the same midpoint (meaning that every case will settle). 
             if (dOfferRange.minSignalStrategy > pOfferRange.maxSignalStrategy)
@@ -563,6 +566,20 @@ namespace SimpleAdditiveEvidence
                     pOffers[i] = dOffers[i] = midpoint;
                 }
             }
+            // 1b. Next, we have the problem of trivial equilibria, where P wants more than D is willing to give,
+            // no matter what the signal. In this case, we trunate each to the least aggressive strategy, if 
+            // truncating on both sides
+            else if (pOfferRange.minSignalStrategy > dOfferRange.maxSignalStrategy)
+            {
+                if (truncationOptions == TruncationOptions.Automatic_BothSides)
+                {
+                    for (int i = 0; i < pOffers.Length; i++)
+                    {
+                        pOffers[i] = pOfferRange.minSignalStrategy;
+                        dOffers[i] = dOfferRange.maxSignalStrategy;
+                    }
+                }
+            }
             else
             {
                 // 2. Plaintiff never demands less than lowest offer by the defendant.
@@ -570,17 +587,19 @@ namespace SimpleAdditiveEvidence
                     if (pOffers[i] < dOfferRange.minSignalStrategy)
                         pOffers[i] = Math.Min(1, dOfferRange.minSignalStrategy);
                 //// 2b. Plaintiff never demands more than the highest offer by the defendant (doesn't affect outcome)
-                //for (int i = 0; i < pOffers.Length; i++)
-                //    if (pOffers[i] > dOfferRange.maxSignalStrategy)
-                //        pOffers[i] = Math.Max(0, dOfferRange.maxSignalStrategy);
+                if (truncationOptions == TruncationOptions.Automatic_BothSides)
+                    for (int i = 0; i < pOffers.Length; i++)
+                        if (pOffers[i] > dOfferRange.maxSignalStrategy)
+                            pOffers[i] = Math.Max(0, dOfferRange.maxSignalStrategy);
                 // 3. Defendant never offers more than highest demand by the plaintiff. 
                 for (int i = 0; i < dOffers.Length; i++)
                     if (dOffers[i] > pOfferRange.maxSignalStrategy)
                         dOffers[i] = Math.Max(0, pOfferRange.maxSignalStrategy);
-                //// 3b. Defendant never offers less than lowest demand by the plaintiff (doesn't affect outcome)
-                //for (int i = 0; i < dOffers.Length; i++)
-                //    if (dOffers[i] < pOfferRange.minSignalStrategy)
-                //        dOffers[i] = Math.Min(1, pOfferRange.minSignalStrategy);
+                // 3b. Defendant never offers less than lowest demand by the plaintiff (doesn't affect outcome)
+                if (truncationOptions == TruncationOptions.Automatic_BothSides)
+                    for (int i = 0; i < dOffers.Length; i++)
+                        if (dOffers[i] < pOfferRange.minSignalStrategy)
+                            dOffers[i] = Math.Min(1, pOfferRange.minSignalStrategy);
             }
         }
 

@@ -36,29 +36,26 @@ namespace SimpleAdditiveEvidence
             //allQualities = new double[] { 0.4 };
             //allFeeShifting = new double[] { 1.0 };
 
-            //bool useRegretAversion = false;
-            //string headerRow = "CostCat,RiskAverseCat,SignalCat,Cost,RiskAverse," + DMSApproximatorOutcome.GetHeaderStringForSpecificSignal();
-            //b.AppendLine(headerRow);
-            //VaryRiskAversionTogether_FriedmanWittman(b, useRegretAversion, true, false, true); // no truncations, but include correct values in case useful
-
             bool useRegretAversion = false;
-            string headerRow = "CostCat,RiskAverseCat,SignalCat,Cost,RiskAverse," + DMSApproximatorOutcome.GetHeaderStringForSpecificSignal();
-            b.AppendLine(headerRow);
-            VaryRiskAversionTogether_FriedmanWittman(b, useRegretAversion, false, true, true); // just 0 risk aversion, with truncations
+            string headerRow = null;
 
-            //string headerRow = "CostCat,PRiskAverseCat,DRiskAverseCat,Cost,PRiskAverse,DRiskAverse," + DMSApproximatorOutcome.GetHeaderString();
+            //headerRow = "CostCat,RiskAverseCat,SignalCat,Cost,RiskAverse," + DMSApproximatorOutcome.GetHeaderStringForSpecificSignal();
+            //b.AppendLine(headerRow);
+            //VaryRiskAversionTogether_FriedmanWittman(b, useRegretAversion, true, TruncationOptions.None, true); // no truncations, but include correct values in case useful
+
+            headerRow = "CostCat,RiskAverseCat,SignalCat,Cost,RiskAverse," + DMSApproximatorOutcome.GetHeaderStringForSpecificSignal();
+            b.AppendLine(headerRow);
+            VaryRiskAversionTogether_FriedmanWittman(b, useRegretAversion, false, TruncationOptions.Automatic_EssentialOnly, true); // just 0 risk aversion, with truncations
+
+            //headerRow = "CostCat,PRiskAverseCat,DRiskAverseCat,Cost,PRiskAverse,DRiskAverse," + DMSApproximatorOutcome.GetHeaderString();
             //b.AppendLine(headerRow);
             //VaryRiskAversionBoth_FriedmanWittman(b);
 
-            //string headerRow = "CostCat,FinalOfferRuleCat,SignalCat,Cost,FinalOfferRule," + DMSApproximatorOutcome.GetHeaderStringForSpecificSignal();
+            //headerRow = "CostCat,FinalOfferRuleCat,SignalCat,Cost,FinalOfferRule," + DMSApproximatorOutcome.GetHeaderStringForSpecificSignal();
             //b.AppendLine(headerRow);
             //VaryFinalOfferRule_FriedmanWittman(b);
 
-
-
-
-
-            //string headerRow = "Cost,Quality,Threshold," + DMSApproximatorOutcome.GetHeaderString();
+            //headerRow = "Cost,Quality,Threshold," + DMSApproximatorOutcome.GetHeaderString();
             //b.AppendLine(headerRow);
             //VaryFeeShifting(b);
 
@@ -78,7 +75,7 @@ namespace SimpleAdditiveEvidence
                 {
                     foreach (double t in allFeeShifting)
                     {
-                        DMSApproximator e = new DMSApproximator(q, c, t, null, null, false, null, false, false, true);
+                        DMSApproximator e = new DMSApproximator(q, c, t, null, null, false, null, false, TruncationOptions.None, true);
                         string rowPrefix = $"{c},{q},{t},";
                         string row = rowPrefix + e.TheOutcome.ToString();
                         b.AppendLine(row);
@@ -91,11 +88,10 @@ namespace SimpleAdditiveEvidence
             }
         }
 
-        private static void VaryRiskAversionTogether_FriedmanWittman(StringBuilder b, bool useRegretAversion, bool allLevels, bool useTruncations, bool includeCorrectValues)
+        private static void VaryRiskAversionTogether_FriedmanWittman(StringBuilder b, bool useRegretAversion, bool allLevels, TruncationOptions truncationOptions, bool includeCorrectValues)
         {
             double stepSize = (1.0 / ((double)DMSApproximator.NumSignalsPerPlayer)); // must use same number of signals for calculations to work
             double[] signalsToInclude = Enumerable.Range(0, DMSApproximator.NumSignalsPerPlayer).Select(x => 0.5 * stepSize + x * stepSize).ToArray();
-            Dictionary<(int, int, bool, bool), List<(double, double)>> coordinates = new Dictionary<(int, int, bool, bool), List<(double, double)>>();
             for (int cCat = 0; cCat < lowCosts.Length; cCat++)
             {
                 double c = lowCosts[cCat];
@@ -103,7 +99,9 @@ namespace SimpleAdditiveEvidence
                 for (int rAverseCat = 0; rAverseCat < (allLevels ? rAversions.Length : 1); rAverseCat++)
                 {
                     double? rAverse = rAversions[rAverseCat];
-                    DMSApproximator e = new DMSApproximator(0.5, c, 0, rAverse, rAverse, useRegretAversion, null, true, useTruncations, true);
+                    DMSApproximator DEBUG = new DMSApproximator(0.5, c, 0, rAverse, rAverse, useRegretAversion, null, true, truncationOptions, false);
+                    DEBUG.CalculateOffers((0.97, 0.97), (0.02, 0.02), out double[] PDEBUG, out double[] DDEBUG);
+                    DMSApproximator e = new DMSApproximator(0.5, c, 0, rAverse, rAverse, useRegretAversion, null, true, truncationOptions, true);
                     //e.CalculateResultsForOfferRanges(true, (-.1, .566666), (0.43333, 1.1), out bool atLeastOneSettlement, out double pUtility, out double dUtility, out double trialRate, out double accuracySq, out double accuracyHypoSq, out double accuracyForP, out double accuracyForD);
                     //e.CalculateResultsForOfferRanges(true, (-.1, .566666), (0, 12.706), out atLeastOneSettlement, out pUtility, out dUtility, out trialRate, out accuracySq, out accuracyHypoSq, out accuracyForP, out accuracyForD);
                     for (int signalCat = 0; signalCat < signalsToInclude.Length; signalCat++)
@@ -128,9 +126,8 @@ namespace SimpleAdditiveEvidence
             }
         }
 
-        private static void VaryRiskAversionBoth_FriedmanWittman(StringBuilder b)
+        private static void VaryRiskAversionBoth_FriedmanWittman(StringBuilder b, bool useRegretAversion)
         {
-            bool useRegretAversion = true; // DEBUG
             double?[] rAversions = useRegretAversion ? allRegretAversions : allRiskAversions;
             for (int cCat = 0; cCat < lowCosts.Length; cCat++)
             {
@@ -141,7 +138,7 @@ namespace SimpleAdditiveEvidence
                     for (int dRiskAversionCat = 0; dRiskAversionCat < rAversions.Length; dRiskAversionCat++)
                     {
                         double? dRiskAverse = rAversions[dRiskAversionCat];
-                        DMSApproximator e = new DMSApproximator(0.5, c, 0, pRiskAverse, dRiskAverse, useRegretAversion, null, true, false, true);
+                        DMSApproximator e = new DMSApproximator(0.5, c, 0, pRiskAverse, dRiskAverse, useRegretAversion, null, true, TruncationOptions.None, true);
                         string rowPrefix = $"{cCat + 1},{pRiskAversionCat + 1},{dRiskAversionCat + 1},{c},{pRiskAverse},{dRiskAverse},";
                         string row = rowPrefix + e.TheOutcome.ToString();
                         b.AppendLine(row);
@@ -166,7 +163,7 @@ namespace SimpleAdditiveEvidence
                 for (int finalOfferCat = 0; finalOfferCat < fOfferValues.Length; finalOfferCat++)
                 {
                     double? finalOfferValue = fOfferValues[finalOfferCat];
-                    DMSApproximator e = new DMSApproximator(0.5, c, 0, null, null, false, finalOfferValue, true, false, true);
+                    DMSApproximator e = new DMSApproximator(0.5, c, 0, null, null, false, finalOfferValue, true, TruncationOptions.None, true);
                     for (int signalCat = 0; signalCat < signalsToInclude.Length; signalCat++)
                     {
                         if (signalCat % 5 == 2)
@@ -197,7 +194,7 @@ namespace SimpleAdditiveEvidence
                 foreach (double q in new double[] { 0.4 })
                 {
                     double pUtilityCum = 0, dUtilityCum = 0;
-                    DMSApproximator tester = new DMSApproximator(q, c, t, null, null, false, null, false, false, true);
+                    DMSApproximator tester = new DMSApproximator(q, c, t, null, null, false, null, false, TruncationOptions.None, true);
                     double stepSize = 0.20;
                     double numCases = 0;
                     for (double zp = stepSize; zp < 1; zp += stepSize)
