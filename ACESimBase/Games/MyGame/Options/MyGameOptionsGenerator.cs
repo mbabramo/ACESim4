@@ -148,7 +148,7 @@ namespace ACESim
             options.AllowAbandonAndDefaults = false;
             options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
             {
-                ExogenousProbabilityTrulyLiable = 0.5,
+                ExogenousProbabilityTrulyLiable = 0.4,
                 StdevNoiseToProduceLiabilityStrength = 0.4
             };
             options.PLiabilityNoiseStdev = options.DLiabilityNoiseStdev = 0.3;
@@ -160,7 +160,7 @@ namespace ACESim
                 options.NumLiabilityStrengthPoints = 2;
                 options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
                 {
-                    ExogenousProbabilityTrulyLiable = 0.4,
+                    ExogenousProbabilityTrulyLiable = 0.3,
                     StdevNoiseToProduceLiabilityStrength = 0.001
                 };
             }
