@@ -90,9 +90,12 @@ namespace ACESim
             {
                 if (WriteToConsole)
                 {
-                    HideConsoleProgressString();
+                    bool isHiddenInitially = !ConsoleProgressStringVisible;
+                    if (!isHiddenInitially)
+                        HideConsoleProgressString();
                     Console.Write(localString);
-                    ShowConsoleProgressString();
+                    if (!isHiddenInitially)
+                        ShowConsoleProgressString();
                 }
                 else
                     Debug.Write(localString);

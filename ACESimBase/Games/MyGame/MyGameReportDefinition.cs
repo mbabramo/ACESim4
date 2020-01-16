@@ -220,6 +220,8 @@ namespace ACESim
                     new SimpleReportFilter("All", (GameProgress gp) => true),
                     new SimpleReportFilter("NoDispute", (GameProgress gp) => !MyGP(gp).DisputeArises),
                     new SimpleReportFilter("DisputeArises", (GameProgress gp) => MyGP(gp).DisputeArises),
+                    new SimpleReportFilter("PFiles", (GameProgress gp) => MyGP(gp).PFiles),
+                    new SimpleReportFilter("DAnswers", (GameProgress gp) => MyGP(gp).DAnswers),
                     new SimpleReportFilter("Litigated", (GameProgress gp) => MyGP(gp).PFiles && MyGP(gp).DAnswers),
                     new SimpleReportFilter("Settles", (GameProgress gp) => MyGP(gp).CaseSettles),
                     new SimpleReportFilter("Tried", (GameProgress gp) => MyGP(gp).TrialOccurs),

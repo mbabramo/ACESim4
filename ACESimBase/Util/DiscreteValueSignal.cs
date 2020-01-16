@@ -72,7 +72,7 @@ namespace ACESim.Util
 
         // We will calculate a number of discrete points in the inverse normal distribution
 
-        const int NumInInverseNormalDistribution = 100; // DEBUG 10_000;
+        const int NumInInverseNormalDistribution = 10_000;
         private static double[] _PointsInInverseNormalDistribution;
         private static double[] PointsInInverseNormalDistribution
         {

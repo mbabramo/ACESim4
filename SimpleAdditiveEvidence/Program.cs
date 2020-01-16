@@ -99,8 +99,6 @@ namespace SimpleAdditiveEvidence
                 for (int rAverseCat = 0; rAverseCat < (allLevels ? rAversions.Length : 1); rAverseCat++)
                 {
                     double? rAverse = rAversions[rAverseCat];
-                    DMSApproximator DEBUG = new DMSApproximator(0.5, c, 0, rAverse, rAverse, useRegretAversion, null, true, truncationOptions, false);
-                    DEBUG.CalculateOffers((0.97, 0.97), (0.02, 0.02), out double[] PDEBUG, out double[] DDEBUG);
                     DMSApproximator e = new DMSApproximator(0.5, c, 0, rAverse, rAverse, useRegretAversion, null, true, truncationOptions, true);
                     //e.CalculateResultsForOfferRanges(true, (-.1, .566666), (0.43333, 1.1), out bool atLeastOneSettlement, out double pUtility, out double dUtility, out double trialRate, out double accuracySq, out double accuracyHypoSq, out double accuracyForP, out double accuracyForD);
                     //e.CalculateResultsForOfferRanges(true, (-.1, .566666), (0, 12.706), out atLeastOneSettlement, out pUtility, out dUtility, out trialRate, out accuracySq, out accuracyHypoSq, out accuracyForP, out accuracyForD);

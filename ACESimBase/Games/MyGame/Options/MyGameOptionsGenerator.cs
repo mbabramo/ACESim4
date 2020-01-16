@@ -134,38 +134,38 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions Custom() => KlermanEtAl();
+        public static MyGameOptions Custom() => KlermanEtAl_WithOptions();
 
         public static MyGameOptions KlermanEtAl()
         {
-            return GetKlermanEtAlOptions(0.5, true, 100, false, false);
+            return GetKlermanEtAlOptions(0.5, true, false, false);
         }
 
         public static MyGameOptions KlermanEtAl_MultipleStrengthPoints()
         {
-            return GetKlermanEtAlOptions(0.5, false, 100, false, false);
+            return GetKlermanEtAlOptions(0.5, false, false, false);
         }
 
 
         public static MyGameOptions KlermanEtAl_WithOptions()
         {
-            return GetKlermanEtAlOptions(0.5, false, 100, true, false);
+            return GetKlermanEtAlOptions(0.5, false, true, false);
         }
 
         public static MyGameOptions KlermanEtAl_WithDamagesUncertainty()
         {
-            return GetKlermanEtAlOptions(0.5, false, 100, true, true);
+            return GetKlermanEtAlOptions(0.5, false, true, true);
         }
 
-        public static MyGameOptions GetKlermanEtAlOptions(double exogenousProbabilityTrulyLiable, bool useOnlyTwoLiabilityStrengthPoints, int numSignals, bool includeOptions, bool includeDamagesStrengths)
+        public static MyGameOptions GetKlermanEtAlOptions(double exogenousProbabilityTrulyLiable, bool useOnlyTwoLiabilityStrengthPoints, bool includeOptions, bool includeDamagesStrengths)
         {
 
             var options = LiabilityUncertainty_1BR();
             options.PInitialWealth = 0;
             options.DInitialWealth = 1;
             options.DamagesMin = options.DamagesMax = 1.0;
-            options.PFilingCost = options.DAnswerCost = 0.05;
-            options.PTrialCosts = options.DTrialCosts = 0.15;
+            options.PFilingCost = options.DAnswerCost = 0.05; // but see below for when we're using options
+            options.PTrialCosts = options.DTrialCosts = 0.15; 
             options.PerPartyCostsLeadingUpToBargainingRound = 0;
             options.CostsMultiplier = 1;
             options.SkipFileAndAnswerDecisions = true;
@@ -174,6 +174,7 @@ namespace ACESim
             {
                 options.SkipFileAndAnswerDecisions = false;
                 options.AllowAbandonAndDefaults = true;
+                options.PFilingCost = options.DAnswerCost = 0.30; // higher values so we can see effect of dropping out
             }
             options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
             {
@@ -181,8 +182,8 @@ namespace ACESim
                 StdevNoiseToProduceLiabilityStrength = 0.4
             };
             options.PLiabilityNoiseStdev = options.DLiabilityNoiseStdev = 0.1;
-            options.NumLiabilitySignals = (byte) numSignals;
-            options.NumLiabilityStrengthPoints = 25;
+            options.NumLiabilitySignals = 50;
+            options.NumLiabilityStrengthPoints = 100;
             if (includeDamagesStrengths)
             {
                 options.NumDamagesSignals = 5;

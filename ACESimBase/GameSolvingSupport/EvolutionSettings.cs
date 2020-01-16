@@ -10,7 +10,7 @@ namespace ACESim
     public class EvolutionSettings
     {
         public bool DistributeChanceDecisions = true; // NOTE: This is currently very slow when using full game tree.
-        public bool UnrollAlgorithm = false; // DEBUG; TODO: Fix so this works with additive evidence game.
+        public bool UnrollAlgorithm = true; // DEBUG; TODO: Fix so this works with additive evidence game.
         public bool AzureEnabled = false;
         // Note: Many of the below are overridden by launcher.
         public int TotalAvgStrategySamplingCFRIterations = 100000;
