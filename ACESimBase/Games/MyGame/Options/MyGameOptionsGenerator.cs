@@ -138,12 +138,12 @@ namespace ACESim
 
         public static MyGameOptions KlermanEtAl()
         {
-            return GetKlermanEtAlOptions(0.5, true, false, false);
+            return GetKlermanEtAlOptions(0.4, true, false, false);
         }
 
         public static MyGameOptions KlermanEtAl_MultipleStrengthPoints()
         {
-            return GetKlermanEtAlOptions(0.5, false, false, false);
+            return GetKlermanEtAlOptions(0.4, false, false, false);
         }
 
 
@@ -182,8 +182,8 @@ namespace ACESim
                 StdevNoiseToProduceLiabilityStrength = 0.4
             };
             options.PLiabilityNoiseStdev = options.DLiabilityNoiseStdev = 0.1;
-            options.NumLiabilitySignals = 50;
-            options.NumLiabilityStrengthPoints = 100;
+            options.NumLiabilitySignals = 20;
+            options.NumLiabilityStrengthPoints = 20;
             if (includeDamagesStrengths)
             {
                 options.NumDamagesSignals = 5;
