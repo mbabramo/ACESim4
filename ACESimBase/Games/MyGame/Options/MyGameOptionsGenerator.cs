@@ -180,7 +180,7 @@ namespace ACESim
                 ExogenousProbabilityTrulyLiable = exogenousProbabilityTrulyLiable,
                 StdevNoiseToProduceLiabilityStrength = 0.4
             };
-            options.PLiabilityNoiseStdev = options.DLiabilityNoiseStdev = 0.3;
+            options.PLiabilityNoiseStdev = options.DLiabilityNoiseStdev = 0.1;
             options.NumLiabilitySignals = (byte) numSignals;
             options.NumLiabilityStrengthPoints = 25;
             if (includeDamagesStrengths)
