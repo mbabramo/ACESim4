@@ -134,7 +134,7 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions Custom() => KlermanEtAl_WithOptions();
+        public static MyGameOptions Custom() => KlermanEtAl_WithDamagesUncertainty();
 
         public static MyGameOptions KlermanEtAl()
         {
@@ -154,7 +154,7 @@ namespace ACESim
 
         public static MyGameOptions KlermanEtAl_WithDamagesUncertainty()
         {
-            return GetKlermanEtAlOptions(0.5, false, true, true);
+            return GetKlermanEtAlOptions(0.5, false, false, true);
         }
 
         public static MyGameOptions GetKlermanEtAlOptions(double exogenousProbabilityTrulyLiable, bool useOnlyTwoLiabilityStrengthPoints, bool includeOptions, bool includeDamagesStrengths)
@@ -186,8 +186,10 @@ namespace ACESim
             options.NumLiabilityStrengthPoints = 20;
             if (includeDamagesStrengths)
             {
-                options.NumDamagesSignals = 5;
-                options.NumDamagesStrengthPoints = 5;
+                options.NumDamagesSignals = 6;
+                options.NumDamagesStrengthPoints = 6;
+                options.NumLiabilitySignals = 6; // change this too
+                options.NumLiabilityStrengthPoints = 6;
             }
             if (useOnlyTwoLiabilityStrengthPoints)
             {
