@@ -44,7 +44,7 @@ namespace ACESim
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-            OptionSetChoice optionSetChoice = OptionSetChoice.KlermanEtAl_MultipleStrengthPoints;
+            OptionSetChoice optionSetChoice = OptionSetChoice.KlermanEtAl;
             switch (optionSetChoice)
             {
                 case OptionSetChoice.Fast:
@@ -190,6 +190,7 @@ namespace ACESim
             {
                 optionSets.Add(GetAndTransform("klerman", exogProb.ToString(), myGameOptionsFunc, x =>
                 {
+                    x.PLiabilityNoiseStdev = x.DLiabilityNoiseStdev = 0.1; // DEBUG
                     x.IncludeCourtSuccessReport = false;
                     x.IncludeSignalsReport = false;
                     x.FirstRowOnly = true;
