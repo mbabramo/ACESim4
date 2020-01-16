@@ -143,18 +143,18 @@ namespace ACESim
 
         public static MyGameOptions KlermanEtAl_MultipleStrengthPoints()
         {
-            return GetKlermanEtAlOptions(0.5, false, 25, false, false);
+            return GetKlermanEtAlOptions(0.5, false, 100, false, false);
         }
 
 
         public static MyGameOptions KlermanEtAl_WithOptions()
         {
-            return GetKlermanEtAlOptions(0.5, false, 25, true, false);
+            return GetKlermanEtAlOptions(0.5, false, 100, true, false);
         }
 
         public static MyGameOptions KlermanEtAl_WithDamagesUncertainty()
         {
-            return GetKlermanEtAlOptions(0.5, false, 25, true, true);
+            return GetKlermanEtAlOptions(0.5, false, 100, true, true);
         }
 
         public static MyGameOptions GetKlermanEtAlOptions(double exogenousProbabilityTrulyLiable, bool useOnlyTwoLiabilityStrengthPoints, int numSignals, bool includeOptions, bool includeDamagesStrengths)
