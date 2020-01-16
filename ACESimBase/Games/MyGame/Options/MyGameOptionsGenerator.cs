@@ -186,10 +186,10 @@ namespace ACESim
             options.NumLiabilityStrengthPoints = 20;
             if (includeDamagesStrengths)
             {
-                options.NumDamagesSignals = 6;
-                options.NumDamagesStrengthPoints = 6;
-                options.NumLiabilitySignals = 6; // change this too
-                options.NumLiabilityStrengthPoints = 6;
+                options.NumDamagesSignals = 10;
+                options.NumDamagesStrengthPoints = 10;
+                options.NumLiabilitySignals = 10; // change this too
+                options.NumLiabilityStrengthPoints = 10;
             }
             if (useOnlyTwoLiabilityStrengthPoints)
             {
