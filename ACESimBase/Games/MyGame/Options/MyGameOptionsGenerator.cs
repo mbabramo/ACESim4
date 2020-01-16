@@ -188,6 +188,7 @@ namespace ACESim
             {
                 options.IncludeSignalsReport = true;
                 options.IncludeCourtSuccessReport = true;
+                options.FirstRowOnly = false;
                 options.NumDamagesSignals = 6;
                 options.NumDamagesStrengthPoints = 6;
                 options.NumLiabilitySignals = 6; // change this too

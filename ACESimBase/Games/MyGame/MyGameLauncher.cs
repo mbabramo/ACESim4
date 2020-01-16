@@ -190,9 +190,9 @@ namespace ACESim
             {
                 optionSets.Add(GetAndTransform("klerman", exogProb.ToString(), myGameOptionsFunc, x =>
                 {
-                    x.IncludeCourtSuccessReport = false;
-                    x.IncludeSignalsReport = false;
-                    x.FirstRowOnly = true;
+                    //x.IncludeCourtSuccessReport = false;
+                    //x.IncludeSignalsReport = false;
+                    //x.FirstRowOnly = true;
                     ((MyGameExogenousDisputeGenerator)x.MyGameDisputeGenerator).ExogenousProbabilityTrulyLiable = exogProb;
                 }, RiskAversion.RiskNeutral));
             }
