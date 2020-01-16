@@ -34,13 +34,17 @@ namespace ACESim
             VariedAlgorithms,
             Custom2,
             ShootoutGameVariations,
-            BluffingVariations
+            BluffingVariations,
+            KlermanEtAl,
+            KlermanEtAl_MultipleStrengthPoints,
+            KlermanEtAl_Options,
+            KlermanEtAl_DamagesUncertainty
         }
 
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-            OptionSetChoice optionSetChoice = OptionSetChoice.BluffingVariations;
+            OptionSetChoice optionSetChoice = OptionSetChoice.KlermanEtAl;
             switch (optionSetChoice)
             {
                 case OptionSetChoice.Fast:
@@ -63,6 +67,18 @@ namespace ACESim
                     break;
                 case OptionSetChoice.BluffingVariations:
                     AddBluffingOptionsSets(optionSets);
+                    break;
+                case OptionSetChoice.KlermanEtAl:
+                    AddKlermanEtAlPermutations(optionSets, MyGameOptionsGenerator.KlermanEtAl);
+                    break;
+                case OptionSetChoice.KlermanEtAl_MultipleStrengthPoints:
+                    AddKlermanEtAlPermutations(optionSets, MyGameOptionsGenerator.KlermanEtAl_MultipleStrengthPoints);
+                    break;
+                case OptionSetChoice.KlermanEtAl_Options:
+                    AddKlermanEtAlPermutations(optionSets, MyGameOptionsGenerator.KlermanEtAl_WithOptions);
+                    break;
+                case OptionSetChoice.KlermanEtAl_DamagesUncertainty:
+                    AddKlermanEtAlPermutations(optionSets, MyGameOptionsGenerator.KlermanEtAl_WithDamagesUncertainty);
                     break;
             }
 
@@ -165,6 +181,17 @@ namespace ACESim
                     optionSets.Add(GetAndTransform("soallraban", name, MyGameOptionsGenerator.Shootout_AllRoundsIncludingAbandoment, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
                     optionSets.Add(GetAndTransform("sotrip", name, MyGameOptionsGenerator.Shootout_Triple, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
                 }
+            }
+        }
+
+        private void AddKlermanEtAlPermutations(List<(string optionSetName, GameOptions options)> optionSets, Func<MyGameOptions> myGameOptionsFunc)
+        {
+            foreach (double exogProb in new double[] { 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95 })
+            {
+                optionSets.Add(GetAndTransform("klerman", exogProb.ToString(), myGameOptionsFunc, x =>
+                {
+                    ((MyGameExogenousDisputeGenerator)x.MyGameDisputeGenerator).ExogenousProbabilityTrulyLiable = exogProb;
+                }, RiskAversion.RiskNeutral));
             }
         }
 
