@@ -30,8 +30,8 @@ namespace LitigCharts
             //CopyAzureFilesSelectiveReplacement();
             //CopyAzureFiles("R131", originalSet);
             //InformationSetCharts();
-
-            AggregateDMSModel("R131", "orig", SetsToUse.Original);
+            GetKlermanData();
+            //AggregateDMSModel("R131", "orig", SetsToUse.Original);
             //AggregateDMSModel("R127", "noise25", SetsToUse.Baseline);
             //AggregateDMSModel("R128", "trialg", SetsToUse.TrialGuaranteed);
             //AggregateDMSModel("R127", "noise", SetsToUse.NoiseSets);
@@ -297,6 +297,37 @@ namespace LitigCharts
         //    var feeShiftingThresholds = new double?[] { 0, 0.25, 0.50, 0.75, 1.0 };
 
         //}
+
+        private static void GetKlermanData()
+        {
+
+            string path = @"H:\My Drive\Articles, books in progress\Machine learning model of litigation\klerman results";
+            string prefix = "R159";
+            double[] probs = new double[] { 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95 };
+            double[] loses = new double[probs.Length];
+            double[] wins = new double[probs.Length];
+            double[] trialRate = new double[probs.Length];
+            double[] pwinrate = new double[probs.Length];
+            StringBuilder coordinates_winRates = new StringBuilder();
+            StringBuilder coordinates_trialRates = new StringBuilder();
+            int i = 0;
+            foreach (double exogProb in probs)
+            {
+                string filename = prefix + " " + "klerman" + exogProb.ToString() + ".csv";
+                string logfilename = prefix + " " + "klerman" + exogProb.ToString() + "log.txt";
+                string fullFilename = path + "\\" +  filename;
+                TextFileCreate.CopyFileFromAzure("results", filename, path);
+                TextFileCreate.CopyFileFromAzure("results", logfilename, path);
+                var results = CSVData.GetCSVData(fullFilename, new (string columnName, string expectedText)[] { ("Filter", "All") }, new string[] { "P Loses", "P Wins" }, false);
+                loses[i] = (double)results[0];
+                wins[i] = (double)results[1];
+                trialRate[i] = loses[i] + wins[i];
+                pwinrate[i] = wins[i] / (loses[i] + wins[i]);
+                coordinates_winRates.Append($"({probs[i]},{pwinrate[i]}) ");
+                coordinates_trialRates.Append($"({probs[i]},{trialRate[i]}) ");
+                i++;
+            }
+        }
 
         private static void InformationSetCharts()
         {

@@ -11,6 +11,18 @@ namespace ACESim
     {
         public static double? GetCSVData(string fullFilename, (string columnName, string expectedText)[] rowToFind, string columnToGet, bool cacheFile=false) => GetCSVData(fullFilename, new (string columnName, string expectedText)[][] { rowToFind }, new string[] { columnToGet }, cacheFile)[0, 0];
 
+        public static double?[] GetCSVData(string fullFilename, (string columnName, string expectedText)[] rowToFind, string[] columnsToGet, bool cacheFile = false)
+        {
+            var results = GetCSVData(fullFilename, new (string columnName, string expectedText)[][] { rowToFind }, columnsToGet, cacheFile);
+            int length = results.GetLength(1);
+            double?[] result = new double?[length];
+            for (int i = 0; i < length; i++)
+            {
+                result[i] = results[0, i];
+            }
+            return result;
+        }
+
         private static Dictionary<string, byte[]> CachedFilesDictionary = new Dictionary<string, byte[]>();
 
         public static double?[,] GetCSVData(string fullFilename, (string columnName, string expectedText)[][] rowsToFind, string[] columnsToGet, bool cacheFile=false)
