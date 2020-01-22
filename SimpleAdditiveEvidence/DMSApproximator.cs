@@ -41,8 +41,8 @@ namespace SimpleAdditiveEvidence
         public bool OutsideOptionIsPossible => finalOfferRule == 0; // with the final offer rule, every strategy leaving always to trial leads to different utilities.
 
         // Each player's strategy is a line, represented by an initial point on either the x or y axis and by an angle in [0, pi/2). 
-        public const int NumEndpointOptions = 10; // DEBUG -- 50
-        public const int NumAngleOptions = 10;
+        public const int NumEndpointOptions = 50; 
+        public const int NumAngleOptions = 50;
         public const int NumSignalsPerPlayer = 100; 
         public const int NumStrategiesPerPlayer = NumEndpointOptions * NumAngleOptions;
         public long NumRequiredGamePlays => Pow(NumEndpointOptions, 4) * Pow(NumSignalsPerPlayer, 2);

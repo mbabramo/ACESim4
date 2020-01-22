@@ -134,33 +134,67 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions Custom()
+        public static MyGameOptions Custom() => KlermanEtAl_WithOptions();
+
+        public static MyGameOptions KlermanEtAl()
         {
+            return GetKlermanEtAlOptions(0.5, true, false, false);
+        }
+
+        public static MyGameOptions KlermanEtAl_MultipleStrengthPoints()
+        {
+            return GetKlermanEtAlOptions(0.5, false, false, false);
+        }
+
+
+        public static MyGameOptions KlermanEtAl_WithOptions()
+        {
+            return GetKlermanEtAlOptions(0.5, false, true, false);
+        }
+
+        public static MyGameOptions KlermanEtAl_WithDamagesUncertainty()
+        {
+            return GetKlermanEtAlOptions(0.5, false, true, true);
+        }
+
+        public static MyGameOptions GetKlermanEtAlOptions(double exogenousProbabilityTrulyLiable, bool useOnlyTwoLiabilityStrengthPoints, bool includeOptions, bool includeDamagesStrengths)
+        {
+
             var options = LiabilityUncertainty_1BR();
             options.PInitialWealth = 0;
             options.DInitialWealth = 1;
             options.DamagesMin = options.DamagesMax = 1.0;
-            options.PFilingCost = options.DAnswerCost = 0;
-            options.PTrialCosts = options.DTrialCosts = 0.15;
+            options.PFilingCost = options.DAnswerCost = 0.05; // but see below for when we're using options
+            options.PTrialCosts = options.DTrialCosts = 0.15; 
             options.PerPartyCostsLeadingUpToBargainingRound = 0;
             options.CostsMultiplier = 1;
             options.SkipFileAndAnswerDecisions = true;
             options.AllowAbandonAndDefaults = false;
+            if (includeOptions)
+            {
+                options.SkipFileAndAnswerDecisions = false;
+                options.AllowAbandonAndDefaults = true;
+                options.PFilingCost = options.DAnswerCost = 0.30; // higher values so we can see effect of dropping out
+            }
             options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
             {
-                ExogenousProbabilityTrulyLiable = 0.5,
+                ExogenousProbabilityTrulyLiable = exogenousProbabilityTrulyLiable,
                 StdevNoiseToProduceLiabilityStrength = 0.4
             };
-            options.PLiabilityNoiseStdev = options.DLiabilityNoiseStdev = 0.3;
-            options.NumLiabilitySignals = 100;
-            options.NumLiabilityStrengthPoints = 25;
-            bool useOnlyTwoLiabilityStrengthPoints = true;
+            options.PLiabilityNoiseStdev = options.DLiabilityNoiseStdev = 0.1;
+            options.NumLiabilitySignals = 50;
+            options.NumLiabilityStrengthPoints = 100;
+            if (includeDamagesStrengths)
+            {
+                options.NumDamagesSignals = 5;
+                options.NumDamagesStrengthPoints = 5;
+            }
             if (useOnlyTwoLiabilityStrengthPoints)
             {
                 options.NumLiabilityStrengthPoints = 2;
                 options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
                 {
-                    ExogenousProbabilityTrulyLiable = 0.4,
+                    ExogenousProbabilityTrulyLiable = exogenousProbabilityTrulyLiable,
                     StdevNoiseToProduceLiabilityStrength = 0.001
                 };
             }
