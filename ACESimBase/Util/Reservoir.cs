@@ -13,10 +13,10 @@ namespace ACESimBase.Util
         public int RemainingCapacity => Capacity - CurrentSize;
         public T[] Items;
 
-        public Reservoir(int currentSize, int capacity, long seed)
+        public Reservoir(int capacity, long seed)
         {
             RandomProducer = new ConsistentRandomSequenceProducer(seed);
-            CurrentSize = currentSize;
+            CurrentSize = 0;
             Capacity = capacity;
             Items = new T[Capacity];
         }
