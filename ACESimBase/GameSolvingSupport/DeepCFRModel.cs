@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using static alglib;
 
 namespace ACESimBase.GameSolvingSupport
@@ -25,7 +26,15 @@ namespace ACESimBase.GameSolvingSupport
         /// <summary>
         /// Observations to be added to the model at the end of the current iteration.
         /// </summary>
-        public List<DeepCFRObservation> PendingObservations; 
+        public List<DeepCFRObservation> PendingObservations;
+        /// <summary>
+        /// The trained neural network.
+        /// </summary>
+        NeuralNetworkController Regression;
+        // The following explain how we format our independent variables.
+        bool PlayerSameForAll;
+        bool DecisionByteCodeSameForAll;
+        int MaxInformationSetLength;
 
         public DeepCFRModel(int reservoirCapacity, long reservoirSeed, double discountRate)
         {
@@ -34,23 +43,34 @@ namespace ACESimBase.GameSolvingSupport
             PendingObservations = new List<DeepCFRObservation>();
         }
 
-        public void CompleteIteration()
+
+        public async Task CompleteIteration()
         {
             IterationsProcessed++;
             Observations.AddPotentialReplacementsAtIteration(PendingObservations, DiscountRate, IterationsProcessed);
             PendingObservations = new List<DeepCFRObservation>();
-            BuildModel();
+            await BuildModel();
         }
 
-        public void BuildModel()
+        public async Task BuildModel()
         {
-            asdf;
+            if (!Observations.Any())
+                throw new Exception("No observations available to build model.");
+            byte firstPlayer = Observations.First().IndependentVariables.Player;
+            PlayerSameForAll = Observations.All(x => firstPlayer == x.IndependentVariables.Player);
+            byte firstDecisionByteCode = Observations.First().IndependentVariables.DecisionByteCode;
+            DecisionByteCodeSameForAll = Observations.All(x => firstDecisionByteCode == x.IndependentVariables.DecisionByteCode);
+            int maxInformationSetLength = Observations.Max(x => x.IndependentVariables.InformationSet?.Count() ?? 0);
+            var data = Observations.Select(x => (x.IndependentVariables.AsArray(!PlayerSameForAll, !DecisionByteCodeSameForAll, maxInformationSetLength), (float) x.SampledRegret)).ToArray();
+            Regression = new NeuralNetworkController();
+            await Regression.TrainNeuralNetwork(data, NeuralNetworkNET.Networks.Cost.CostFunctionType.CrossEntropy, 1_000, 2);
         }
 
         public double GetPredictedRegretForAction(DeepCFRIndependentVariables independentVariables, byte action)
         {
             if (IterationsProcessed == 0)
                 throw new Exception();
+            return Regression.GetResult(independentVariables.AsArray(!PlayerSameForAll, !DecisionByteCodeSameForAll, MaxInformationSetLength));
         }
 
         public byte ChooseAction(int randomSeed, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample)
@@ -60,7 +80,7 @@ namespace ACESimBase.GameSolvingSupport
                 // no model yet, choose action at random
                 byte actionToChoose = ChooseActionAtRandom(randomSeed, maxActionValue);
                 return actionToChoose;
-`            }
+            }
             spline1dinterpolant spline_interpolant = null;
             if (maxActionValue != numActionsToSample)
             {

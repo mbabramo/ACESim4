@@ -1,12 +1,13 @@
 ﻿using ACESim;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
 namespace ACESimBase.Util
 {
-    public class Reservoir<T>
+    public class Reservoir<T> : IEnumerable<T>
     {
         ConsistentRandomSequenceProducer RandomProducer;
         public int CurrentSize, Capacity;
@@ -19,6 +20,18 @@ namespace ACESimBase.Util
             CurrentSize = 0;
             Capacity = capacity;
             Items = new T[Capacity];
+        }
+
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return this.GetEnumerator();
+        }
+
+        public IEnumerator<T> GetEnumerator()
+        {
+            for (int i = 0; i < CurrentSize; i++)
+                yield return Items[i];
         }
 
         public bool AtCapacity()

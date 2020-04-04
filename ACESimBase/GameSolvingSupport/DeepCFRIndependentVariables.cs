@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace ACESimBase.GameSolvingSupport
 {
@@ -19,6 +20,25 @@ namespace ACESimBase.GameSolvingSupport
         /// <summary>
         /// If we change game parameters in each observation, then the game parameters for this observation can be specified here. If different game parameters are used for early iterations than for late iterations, then both sets can be included here. Game parameters may also include some indication of the extent to which each player takes other players' utilities into account.
         /// </summary>
-        public List<double> GameParameters;
+        public List<float> GameParameters;
+
+        public float[] AsArray(bool includePlayer, bool includeDecision, int maxInformationSetSize)
+        {
+            int informationSetSize = InformationSet?.Count() ?? 0;
+            int numGameParameters = GameParameters?.Count() ?? 0;
+            int arraySize = (includePlayer ? 1 : 0) + (includeDecision ? 1 : 0) + maxInformationSetSize + numGameParameters;
+            float[] result = new float[arraySize];
+            int index = 0;
+            if (includePlayer)
+                result[index++] = Player;
+            if (includeDecision)
+                result[index++] = DecisionByteCode;
+            for (int i = 0; i < informationSetSize; i++)
+                result[index + i] = InformationSet[i];
+            index += maxInformationSetSize;
+            for (int i = 0; i < numGameParameters; i++)
+                result[index + i] = GameParameters[i];
+            return result;
+        }
     }
 }
