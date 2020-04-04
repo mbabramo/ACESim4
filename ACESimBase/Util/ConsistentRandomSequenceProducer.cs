@@ -30,6 +30,11 @@ namespace ACESim
             return r;
         }
 
+        public bool NextBool()
+        {
+            return NextInt(2) == 1;
+        }
+
         bool AlwaysUseNewRandomObject = true;
 
         public double GetDoubleAtIndex(int index)
