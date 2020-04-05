@@ -29,13 +29,6 @@ namespace ACESim
             //return GetRandomDoubleFromRandomSeed(seed);
         }
 
-        private static double GetRandomDoubleFromRandomSeed(int seed)
-        {
-            Random r = new Random(seed); // use a large prime so that we don't repeat
-            double rand = r.NextDouble();
-            return rand;
-        }
-
         public virtual long GetIterationNumber()
         {
             return IterationNumber;

@@ -1,6 +1,7 @@
 ﻿using ACESim;
 using ACESimBase.Util;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -26,7 +27,7 @@ namespace ACESimBase.GameSolvingSupport
         /// <summary>
         /// Observations to be added to the model at the end of the current iteration.
         /// </summary>
-        public List<DeepCFRObservation> PendingObservations;
+        public ConcurrentBag<DeepCFRObservation> PendingObservations;
         /// <summary>
         /// The trained neural network.
         /// </summary>
@@ -40,19 +41,23 @@ namespace ACESimBase.GameSolvingSupport
         {
             DiscountRate = discountRate;
             Observations = new Reservoir<DeepCFRObservation>(reservoirCapacity, reservoirSeed);
-            PendingObservations = new List<DeepCFRObservation>();
+            PendingObservations = new ConcurrentBag<DeepCFRObservation>();
         }
 
+        public void AddPendingObservation(DeepCFRObservation observation)
+        {
+            PendingObservations.Add(observation);
+        }
 
         public async Task CompleteIteration()
         {
             IterationsProcessed++;
-            Observations.AddPotentialReplacementsAtIteration(PendingObservations, DiscountRate, IterationsProcessed);
-            PendingObservations = new List<DeepCFRObservation>();
+            Observations.AddPotentialReplacementsAtIteration(PendingObservations.ToList(), DiscountRate, IterationsProcessed);
+            PendingObservations = new ConcurrentBag<DeepCFRObservation>();
             await BuildModel();
         }
 
-        public async Task BuildModel()
+        private async Task BuildModel()
         {
             if (!Observations.Any())
                 throw new Exception("No observations available to build model.");
@@ -60,8 +65,8 @@ namespace ACESimBase.GameSolvingSupport
             PlayerSameForAll = Observations.All(x => firstPlayer == x.IndependentVariables.Player);
             byte firstDecisionByteCode = Observations.First().IndependentVariables.DecisionByteCode;
             DecisionByteCodeSameForAll = Observations.All(x => firstDecisionByteCode == x.IndependentVariables.DecisionByteCode);
-            int maxInformationSetLength = Observations.Max(x => x.IndependentVariables.InformationSet?.Count() ?? 0);
-            var data = Observations.Select(x => (x.IndependentVariables.AsArray(!PlayerSameForAll, !DecisionByteCodeSameForAll, maxInformationSetLength), (float) x.SampledRegret)).ToArray();
+            MaxInformationSetLength = Observations.Max(x => x.IndependentVariables.InformationSet?.Count() ?? 0);
+            var data = Observations.Select(x => (x.IndependentVariables.AsArray(!PlayerSameForAll, !DecisionByteCodeSameForAll, MaxInformationSetLength), (float) x.SampledRegret)).ToArray();
             Regression = new NeuralNetworkController();
             await Regression.TrainNeuralNetwork(data, NeuralNetworkNET.Networks.Cost.CostFunctionType.CrossEntropy, 1_000, 2);
         }
@@ -73,12 +78,12 @@ namespace ACESimBase.GameSolvingSupport
             return Regression.GetResult(independentVariables.AsArray(!PlayerSameForAll, !DecisionByteCodeSameForAll, MaxInformationSetLength));
         }
 
-        public byte ChooseAction(int randomSeed, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample)
+        public byte ChooseAction(double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample)
         {
             if (IterationsProcessed == 0)
             {
                 // no model yet, choose action at random
-                byte actionToChoose = ChooseActionAtRandom(randomSeed, maxActionValue);
+                byte actionToChoose = ChooseActionAtRandom(randomValue, maxActionValue);
                 return actionToChoose;
             }
             spline1dinterpolant spline_interpolant = null;
@@ -98,23 +103,23 @@ namespace ACESimBase.GameSolvingSupport
                 regrets[a] = positiveRegretForAction;
                 sumPositiveRegrets += positiveRegretForAction;
             }
-            return ChooseActionFromPositiveRegrets(regrets, sumPositiveRegrets, randomSeed);
+            return ChooseActionFromPositiveRegrets(regrets, sumPositiveRegrets, randomValue);
         }
 
-        private static byte ChooseActionAtRandom(int randomSeed, byte maxActionValue)
+        private static byte ChooseActionAtRandom(double randomValue, byte maxActionValue)
         {
-            byte actionToChoose = (byte)(((double)randomSeed / (double)int.MaxValue) * maxActionValue);
+            byte actionToChoose = (byte)(randomValue * maxActionValue);
             actionToChoose++; // one-base the actions
             if (actionToChoose > maxActionValue)
                 actionToChoose = maxActionValue;
             return actionToChoose;
         }
 
-        private byte ChooseActionFromPositiveRegrets(double[] positiveRegrets, double sumPositiveRegrets, int randomSeed)
+        private byte ChooseActionFromPositiveRegrets(double[] positiveRegrets, double sumPositiveRegrets, double randomValue)
         {
             if (sumPositiveRegrets == 0)
-                return ChooseActionAtRandom(randomSeed, (byte) positiveRegrets.Length);
-            double targetCumPosRegret = ((double) randomSeed / (double) int.MaxValue) * sumPositiveRegrets;
+                return ChooseActionAtRandom(randomValue, (byte) positiveRegrets.Length);
+            double targetCumPosRegret = randomValue * sumPositiveRegrets;
             double towardTarget = 0;
             for (byte a = 1; a < positiveRegrets.Length; a++)
             {

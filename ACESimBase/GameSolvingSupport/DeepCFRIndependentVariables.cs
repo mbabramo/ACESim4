@@ -22,6 +22,16 @@ namespace ACESimBase.GameSolvingSupport
         /// </summary>
         public List<float> GameParameters;
 
+        public DeepCFRIndependentVariables()
+        {
+
+        }
+
+        public DeepCFRIndependentVariables(byte player, byte decisionByteCode, List<byte> informationSet, List<float> gameParameters)
+        {
+
+        }
+
         public float[] AsArray(bool includePlayer, bool includeDecision, int maxInformationSetSize)
         {
             int informationSetSize = InformationSet?.Count() ?? 0;

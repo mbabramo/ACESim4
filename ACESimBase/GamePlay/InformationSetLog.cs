@@ -197,6 +197,13 @@ namespace ACESim
             return String.Join(",", informationSetList);
         }
 
+        public List<byte> GetPlayerInformationUpToNow(byte playerIndex)
+        {
+            Span<byte> playerInfoBuffer = stackalloc byte[MaxInformationSetLoggingLengthPerFullPlayer];
+            GetPlayerInformationAtPoint(playerIndex, null, playerInfoBuffer);
+            return ListExtensions.GetSpan255TerminatedAsList(playerInfoBuffer);
+        }
+
         public byte CountItemsInInformationSet(byte playerIndex)
         {
 #if (SAFETYCHECKS)

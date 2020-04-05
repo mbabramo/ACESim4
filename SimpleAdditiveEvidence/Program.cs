@@ -36,7 +36,7 @@ namespace SimpleAdditiveEvidence
             //allQualities = new double[] { 0.4 };
             //allFeeShifting = new double[] { 1.0 };
 
-            bool useRegretAversion = false;
+            //bool useRegretAversion = false;
             string headerRow = null;
 
             //headerRow = "CostCat,RiskAverseCat,SignalCat,Cost,RiskAverse," + DMSApproximatorOutcome.GetHeaderStringForSpecificSignal();

@@ -37,6 +37,8 @@ namespace ACESim
 
         bool AlwaysUseNewRandomObject = true;
 
+        public int GetIntAtIndex(int index, int minValue, int exclusiveMaxValue) => minValue + (int)(exclusiveMaxValue * GetDoubleAtIndex(index));
+
         public double GetDoubleAtIndex(int index)
         {
             // Combine multiple random numbers into 1. But averaging them won't work. Note that if one averaged a billion random numbers, we would converge to 0.5. This is a simple approach; we could probably do something more sophisticated (like bit interleaving).

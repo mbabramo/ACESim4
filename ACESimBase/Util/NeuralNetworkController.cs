@@ -21,7 +21,6 @@ namespace ACESimBase.Util
 
         public async Task TrainNeuralNetwork((float[] X, float Y)[] data, CostFunctionType costFunctionType, int epochs, int numHiddenLayers)
         {
-            debug; // make it a List of X, then eliminate duplicates and expand shorter ones
             var data2 = data.Select(d => (d.X, new float[] { d.Y })).ToArray();
             await TrainNeuralNetwork(data2, costFunctionType, epochs, numHiddenLayers);
         }

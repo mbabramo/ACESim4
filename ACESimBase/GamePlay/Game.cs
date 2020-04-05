@@ -13,6 +13,25 @@ namespace ACESim
     /// </summary>
     public class Game
     {
+        public Game DeepCopy(GameProgress progress)
+        {
+            return new Game()
+            {
+                Progress = progress ?? Progress,
+                Strategies = Strategies,
+                GameDefinition = GameDefinition,
+                GameModules = GameModules,
+                CurrentActionPoint = CurrentActionPoint,
+                MostRecentDecisionIndex = MostRecentDecisionIndex,
+                CurrentDecisionIndex = CurrentDecisionIndex,
+                PreparationPhase = PreparationPhase,
+                DecisionNeeded = DecisionNeeded,
+                TriggerReplay = TriggerReplay,
+                RecordReportInfo = RecordReportInfo,
+                ChooseDefaultActionIfNoneChosen = ChooseDefaultActionIfNoneChosen
+            };
+        }
+
         public GameProgress Progress;
 
         internal List<Strategy> Strategies;
