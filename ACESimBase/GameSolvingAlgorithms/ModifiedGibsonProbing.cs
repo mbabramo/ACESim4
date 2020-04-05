@@ -43,7 +43,7 @@ namespace ACESim
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
             if (gameStateType == GameStateTypeEnum.FinalUtilities)
             {
-                if (TraceCFR && Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
+                if (TraceCFR && Navigation.LookupApproach == InformationSetLookupApproach.PlayGameDirectly)
                     TabbedText.WriteLine($"{historyPoint.GameProgress}");
                 FinalUtilitiesNode finalUtilities = (FinalUtilitiesNode)gameStateForCurrentPlayer;
                 var utility = finalUtilities.Utilities;
@@ -81,7 +81,7 @@ namespace ACESim
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNode.DecisionIndex);
             if (chanceNode.CriticalNode)
             { // Must sample every action at this node.
-                if (Navigation.LookupApproach != InformationSetLookupApproach.PlayUnderlyingGame && historyPoint.BranchingIsReversible(Navigation, chanceNode.Decision))
+                if (Navigation.LookupApproach != InformationSetLookupApproach.PlayGameDirectly && historyPoint.BranchingIsReversible(Navigation, chanceNode.Decision))
                 {
                     double[] combined = new double[NumNonChancePlayers]; // TODO -- can we use an array pool? Or use a pointer?
                     for (byte a = 1; a <= numPossibleActions; a++)
@@ -196,7 +196,7 @@ namespace ACESim
             double summation = 0;
             for (byte action = 1; action <= numPossibleActions; action++)
             {
-                if (Navigation.LookupApproach != InformationSetLookupApproach.PlayUnderlyingGame && historyPoint.BranchingIsReversible(Navigation, informationSet.Decision))
+                if (Navigation.LookupApproach != InformationSetLookupApproach.PlayGameDirectly && historyPoint.BranchingIsReversible(Navigation, informationSet.Decision))
                 {
                     IGameState gameStateOriginal = historyPoint.GameState; // TODO -- move out of loop?
                     var nextHistoryPoint = historyPoint.SwitchToBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
@@ -298,7 +298,7 @@ namespace ACESim
             if (TraceCFR)
                 TabbedText.WriteLine(
                     $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {playerAtPoint} decision {informationSet.DecisionIndex} with regret-matched prob {sigmaRegretMatchedActionProbabilities[sampledAction - 1]}");
-            if (Navigation.LookupApproach != InformationSetLookupApproach.PlayUnderlyingGame && historyPoint.BranchingIsReversible(Navigation, informationSet.Decision))
+            if (Navigation.LookupApproach != InformationSetLookupApproach.PlayGameDirectly && historyPoint.BranchingIsReversible(Navigation, informationSet.Decision))
                 return ModifiedGibsonProbe_WalkTree_DecisionNode_OtherPlayer_Reversible(in historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, informationSet, sampledAction);
             return ModifiedGibsonProbe_WalkTree_DecisionNode_OtherPlayer_NotReversible(in historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, informationSet, sampledAction);
         }
@@ -344,7 +344,7 @@ namespace ACESim
             else
                 sampledAction = chanceNode.SampleAction(numPossibleActions, randomProducer.GetDoubleAtIndex(chanceNode.DecisionIndex));
             // TODO: Take into account critical node status. Right now, our critical node matters only for our probes, i.e. for later decisions. But we might have an early chance node that should be critical.
-            if (Navigation.LookupApproach != InformationSetLookupApproach.PlayUnderlyingGame && historyPoint.BranchingIsReversible(Navigation, chanceNode.Decision))
+            if (Navigation.LookupApproach != InformationSetLookupApproach.PlayGameDirectly && historyPoint.BranchingIsReversible(Navigation, chanceNode.Decision))
             {
                 return ModifiedGibsonProbe_WalkTree_ChanceNode_Reversible(in historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, chanceNode, sampledAction, numPossibleActions);
             }

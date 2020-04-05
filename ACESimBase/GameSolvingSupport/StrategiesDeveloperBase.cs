@@ -713,10 +713,10 @@ namespace ACESim
             IGameState gameState = historyPoint.GetGameStatePrerecorded(navigationSettings);
             if (gameState != null)
                 return gameState;
-            return GetGameStateByPlayingUnderlyingGame(in historyPoint, navigationSettings);
+            return GetGameStateByPlayingGameDirectly(in historyPoint, navigationSettings);
         }
 
-        private IGameState GetGameStateByPlayingUnderlyingGame(in HistoryPoint historyPoint, HistoryNavigationInfo navigationSettings)
+        private IGameState GetGameStateByPlayingGameDirectly(in HistoryPoint historyPoint, HistoryNavigationInfo navigationSettings)
         {
             IGameState gameState;
             List<byte> actionsSoFar = historyPoint.GetActionsToHere(navigationSettings);
@@ -979,7 +979,7 @@ namespace ACESim
         {
             switch (Navigation.LookupApproach)
             {
-                case InformationSetLookupApproach.PlayUnderlyingGame:
+                case InformationSetLookupApproach.PlayGameDirectly:
                     GameProgress startingProgress = GameFactory.CreateNewGameProgress(new IterationID(1));
                     return new HistoryPoint(null, startingProgress.GameHistory, startingProgress);
                 case InformationSetLookupApproach.CachedGameTreeOnly:

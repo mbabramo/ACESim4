@@ -191,7 +191,7 @@ namespace ACESim
 
         public override async Task<ReportCollection> RunAlgorithm(string optionSetName)
         {
-            if (Navigation.LookupApproach != InformationSetLookupApproach.PlayUnderlyingGame)
+            if (Navigation.LookupApproach != InformationSetLookupApproach.PlayGameDirectly)
                 throw new Exception("Only play underlying game is supported.");
 
             ReportCollection reportCollection = new ReportCollection();
