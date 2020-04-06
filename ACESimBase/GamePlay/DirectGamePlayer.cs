@@ -1,16 +1,15 @@
 ﻿using ACESim;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 
 namespace ACESimBase
 {
     public class DirectGamePlayer
     {
-        public GameDefinition GameDefinition;
-        public GameProgress GameProgress;
-        public Game Game;
+        GameDefinition GameDefinition;
+        GameProgress GameProgress;
+        Game Game;
 
         public DirectGamePlayer(GameDefinition gameDefinition, GameProgress startingProgress, Game game = null)
         {
@@ -59,18 +58,6 @@ namespace ACESimBase
             if (!GameComplete || CurrentPlayer.PlayerIsChance)
                 throw new Exception();
             return GameProgress.GetNonChancePlayerUtilities()[CurrentDecision.PlayerNumber];
-        }
-
-        public double[] GetChanceProbabilities()
-        {
-            Decision currentDecision = CurrentDecision;
-            if (currentDecision.UnevenChanceActions)
-            {
-                double[] unequalProbabilities = GameDefinition.GetUnevenChanceActionProbabilities(currentDecision.DecisionByteCode, GameProgress);
-                return unequalProbabilities;
-            }
-            double probabilityEachAction = 1.0 / currentDecision.NumPossibleActions;
-            return Enumerable.Range(1, CurrentDecision.NumPossibleActions).Select(x => probabilityEachAction).ToArray();
         }
 
         public byte ChooseChanceAction(double randomValue)

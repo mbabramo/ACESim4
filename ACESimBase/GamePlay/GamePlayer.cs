@@ -41,7 +41,7 @@ namespace ACESim
             GameDefinition = gameDefinition;
             StartingProgress = GameDefinition.GameFactory.CreateNewGameProgress(new IterationID(1));
         }
-
+        
 
         public void PlaySinglePathAndKeepGoing(string path)
         {
@@ -58,13 +58,13 @@ namespace ACESim
         {
             Stopwatch s = new Stopwatch();
             s.Start();
-            Action<Action<GameProgress>> playPathsFn = DoParallelIfNotDisabled && !DisableParallelForPlayAllPaths ? (Action<Action<GameProgress>>)PlayAllPaths_Parallel : PlayAllPaths_Serial;
+            Action<Action<GameProgress>> playPathsFn = DoParallelIfNotDisabled && !DisableParallelForPlayAllPaths ? (Action<Action<GameProgress>>) PlayAllPaths_Parallel : PlayAllPaths_Serial;
             int numPathsPlayed = 0;
-            playPathsFn(gp =>
+            playPathsFn(gp => 
             {
                 actionToTake(gp);
                 System.Threading.Interlocked.Increment(ref numPathsPlayed);
-            });
+            }) ;
             s.Stop();
             TabbedText.WriteLine("PlayAllPathsTime " + s.ElapsedMilliseconds);
             return numPathsPlayed;
@@ -97,7 +97,7 @@ namespace ACESim
                 LastPathAlreadyExpanded = lastPathAlreadyExpanded ?? -1;
             }
         }
-
+        
         public void PlayAllPaths_Parallel(Action<GameProgress> processor)
         {
 
@@ -294,7 +294,7 @@ namespace ACESim
             var p2 = progress.DeepCopy();
             return PlayGameFromSpecifiedPoint(p2);
         }
-
+        
 
         public void CheckConsistencyForSetOfIterations(long totalNumIterations, List<IterationID> iterationsToGet)
         {
@@ -339,15 +339,84 @@ namespace ACESim
                 if (atLeastOneFound)
                     break;
             }
-            bool doHeisenbugTracking = atLeastOneFound;
+            bool doHeisenbugTracking = atLeastOneFound; 
             if (doHeisenbugTracking)
             {
                 HeisenbugTracker.KeepTryingRandomSchedulesUntilProblemIsFound_ThenRunScheduleRepeatedly(
                     x => (object)PlaySpecificIterationStartToFinish(iterationsToGet[(int)x]),
                     (int)heisenbugTrackingIterNum,
-                    (int)heisenbugTrackingIterNum,
+                    (int)heisenbugTrackingIterNum, 
                     (x, y) => !FieldwiseObjectComparison.AreEqual((GameProgress)x, (GameProgress)y, false, false));
             }
+        }
+
+        static int MinIterationID = 0;
+        static bool AlwaysPlaySameIterations = false;
+
+        public async Task PlayMultipleIterationsAndProcess(
+            int numIterations,
+            Func<Decision, GameProgress, byte> actionOverride,
+            BufferBlock<Tuple<GameProgress, double>> bufferBlock)
+        {
+
+            List<Strategy> strategiesToPlayWith = Strategies.ToList();
+            IterationID[] iterationIDArray = new IterationID[numIterations];
+            for (long i = 0; i < numIterations; i++)
+            {
+                iterationIDArray[i] = new IterationID(i + MinIterationID);
+            }
+            if (!AlwaysPlaySameIterations)
+                MinIterationID += numIterations;
+            int numSubmitted = 0;
+
+            await Parallelizer.GoAsync(DoParallelIfNotDisabled, 0, numIterations, async i =>
+            {
+                // Remove comments from the following to log specific items
+                GameProgressLogger.LoggingOn = false;
+                GameProgressLogger.OutputLogMessages = false;
+                var gameProgress = PlayHelper((int) i, strategiesToPlayWith, true, iterationIDArray, null, actionOverride);
+                bool result = false;
+                while (!result)
+                    result = await bufferBlock.SendAsync<Tuple<GameProgress, double>>(new Tuple<GameProgress, double>(gameProgress, 1.0));
+                numSubmitted++;
+            }
+           );
+        }
+
+        public IEnumerable<GameProgress> PlayMultipleIterations(
+            List<GameProgress> preplayedGameProgressInfos,
+            int numIterations,
+            IterationID[] iterationIDArray,
+            Func<Decision, GameProgress, byte> actionOverride)
+        {
+            CompletedGameProgresses = new ConcurrentBag<GameProgress>();
+
+            if (iterationIDArray == null)
+            {
+                iterationIDArray = new IterationID[numIterations];
+                for (long i = 0; i < numIterations; i++)
+                {
+                    iterationIDArray[i] = new IterationID(i + MinIterationID);
+                }
+                if (!AlwaysPlaySameIterations)
+                    MinIterationID += numIterations;
+            }
+
+            // Copy bestStrategies to play with
+            List<Strategy> strategiesToPlayWith = Strategies.ToList();
+
+            // Note: we're now doing this serially, instead of producing all games -- note that bottleneck is processing gameprogress, not producing it 
+            Parallelizer.Go(DoParallelIfNotDisabled, 0, numIterations, i =>
+            {
+                // Remove comments from the following to log specific items
+                GameProgressLogger.LoggingOn = false;
+                GameProgressLogger.OutputLogMessages = false;
+                PlayHelper(i, strategiesToPlayWith, true, iterationIDArray, preplayedGameProgressInfos, actionOverride);
+
+            }
+           );
+
+            return CompletedGameProgresses;
         }
 
         /// <summary>
@@ -359,7 +428,7 @@ namespace ACESim
         /// resulting for each iteration should be added to completedGames; that way, after evolution is complete, 
         /// the GameProgressInfo objects can be called to generate reports.
         /// </summary>
-        public GameProgress PlayHelper(int iteration, List<Strategy> strategies, bool saveCompletedGameProgressInfos, IterationID[] iterationIDArray, List<GameProgress> preplayedGameProgressInfos, Func<Decision, GameProgress, byte> actionOverride)
+        GameProgress PlayHelper(int iteration, List<Strategy> strategies, bool saveCompletedGameProgressInfos, IterationID[] iterationIDArray, List<GameProgress> preplayedGameProgressInfos, Func<Decision, GameProgress, byte> actionOverride)
         {
             GameProgress gameProgress;
             if (preplayedGameProgressInfos != null)

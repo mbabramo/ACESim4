@@ -1068,7 +1068,7 @@ namespace ACESim
 
         #region Game play and reporting
 
-        public virtual async Task<ReportCollection> GenerateReports(int iteration, Func<string> prefaceFn)
+        public async Task<ReportCollection> GenerateReports(int iteration, Func<string> prefaceFn)
         {
             ReportCollection reportCollection = new ReportCollection();
             bool doBestResponse = (EvolutionSettings.BestResponseEveryMIterations != null && iteration % EvolutionSettings.BestResponseEveryMIterations == 0 && EvolutionSettings.BestResponseEveryMIterations != EvolutionSettings.EffectivelyNever && iteration != 0);
@@ -1152,7 +1152,7 @@ namespace ACESim
         }
 
         string ActionStrategyLastReport;
-        public async Task<ReportCollection> GenerateReportsByPlaying(bool useRandomPaths)
+        private async Task<ReportCollection> GenerateReportsByPlaying(bool useRandomPaths)
         {
             Func<GamePlayer, Func<Decision, GameProgress, byte>, List<SimpleReportDefinition>, Task> reportGenerator;
             if (useRandomPaths)
@@ -1429,7 +1429,7 @@ namespace ACESim
 
         public IEnumerable<GameProgress> GetRandomCompleteGames(GamePlayer player, int numIterations, Func<Decision, GameProgress, byte> actionOverride)
         {
-            return PlayMultipleIterationsAndProcess(null, numIterations, null, actionOverride);
+            return player.PlayMultipleIterations(null, numIterations, null, actionOverride);
         }
 
         private async Task GenerateReports_RandomPaths(GamePlayer player, Func<Decision, GameProgress, byte> actionOverride, List<SimpleReportDefinition> simpleReportDefinitions)
@@ -1440,52 +1440,9 @@ namespace ACESim
             // we'll set up step1, step2, and step3 (but not in that order, since step 1 triggers step 2)
             var step2_buffer = new BufferBlock<Tuple<GameProgress, double>>(new DataflowBlockOptions { BoundedCapacity = 10000 });
             var step3_consumer = AddGameProgressToReports(step2_buffer, simpleReportDefinitions);
-            await PlayMultipleIterationsAndProcess(player, EvolutionSettings.NumRandomIterationsForSummaryTable, actionOverride, step2_buffer);
+            await player.PlayMultipleIterationsAndProcess(EvolutionSettings.NumRandomIterationsForSummaryTable, actionOverride, step2_buffer);
             step2_buffer.Complete(); // tell consumer nothing more to be produced
             await step3_consumer; // wait until all have been processed
-        }
-
-
-        public async virtual Task PlayMultipleIterationsAndProcess(
-            GamePlayer player,
-            int numIterations,
-            Func<Decision, GameProgress, byte> actionOverride,
-            BufferBlock<Tuple<GameProgress, double>> bufferBlock) => await PlayMultipleIterationsAndProcess(numIterations, actionOverride, bufferBlock, Strategies, player.DoParallelIfNotDisabled, player.PlayHelper);
-
-        static int MinIterationID = 0;
-        static bool AlwaysPlaySameIterations = false;
-
-        public async static Task PlayMultipleIterationsAndProcess(
-            int numIterations,
-            Func<Decision, GameProgress, byte> actionOverride,
-            BufferBlock<Tuple<GameProgress, double>> bufferBlock,
-            List<Strategy> strategies,
-            bool doParallelIfNotDisabled,
-            Func<int, List<Strategy>, bool, IterationID[], List<GameProgress>, Func<Decision, GameProgress, byte>, GameProgress> playHelper)
-        {
-
-            List<Strategy> strategiesToPlayWith = strategies.ToList();
-            IterationID[] iterationIDArray = new IterationID[numIterations];
-            for (long i = 0; i < numIterations; i++)
-            {
-                iterationIDArray[i] = new IterationID(i + MinIterationID);
-            }
-            if (!AlwaysPlaySameIterations)
-                MinIterationID += numIterations;
-            int numSubmitted = 0;
-
-            await Parallelizer.GoAsync(doParallelIfNotDisabled, 0, numIterations, async i =>
-            {
-                // Remove comments from the following to log specific items
-                GameProgressLogger.LoggingOn = false;
-                GameProgressLogger.OutputLogMessages = false;
-                var gameProgress = playHelper((int)i, strategiesToPlayWith, true, iterationIDArray, null, actionOverride);
-                bool result = false;
-                while (!result)
-                    result = await bufferBlock.SendAsync<Tuple<GameProgress, double>>(new Tuple<GameProgress, double>(gameProgress, 1.0));
-                numSubmitted++;
-            }
-           );
         }
 
         private void CountPaths(List<GameProgress> gameProgresses)
@@ -1610,25 +1567,15 @@ namespace ACESim
             }
         }
 
-        internal SimpleReport[] ReportsBeingGenerated = null;
+        SimpleReport[] ReportsBeingGenerated = null;
 
-        public async virtual Task<ReportCollection> GenerateReportsByPlaying(Func<GamePlayer, Func<Decision, GameProgress, byte>, List<SimpleReportDefinition>, Task> generator)
+        public async Task<ReportCollection> GenerateReportsByPlaying(Func<GamePlayer, Func<Decision, GameProgress, byte>, List<SimpleReportDefinition>, Task> generator)
         {
             Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, InformationSets, ChanceNodes, FinalUtilitiesNodes, GetGameState, EvolutionSettings);
-            if (GamePlayer != null)
-                GamePlayer.ReportingMode = true;
-            ReportCollection reportCollection = await CompleteGenerateReportsByPlaying(generator);
-            if (GamePlayer != null)
-                GamePlayer.ReportingMode = false;
-            ReportsBeingGenerated = null;
-            return reportCollection;
-        }
-
-        public async Task<ReportCollection> CompleteGenerateReportsByPlaying(Func<GamePlayer, Func<Decision, GameProgress, byte>, List<SimpleReportDefinition>, Task> generator)
-        {
             var simpleReportDefinitions = GetSimpleReportDefinitions();
             int simpleReportDefinitionsCount = simpleReportDefinitions.Count();
             ReportsBeingGenerated = new SimpleReport[simpleReportDefinitionsCount];
+            GamePlayer.ReportingMode = true;
             ReportCollection reportCollection = new ReportCollection();
             for (int i = 0; i < simpleReportDefinitionsCount; i++)
             {
@@ -1638,11 +1585,12 @@ namespace ACESim
                 reportCollection.Add(result);
                 ReportsBeingGenerated[i] = null; // so we don't keep adding GameProgress to this report
             }
-
+            GamePlayer.ReportingMode = false;
+            ReportsBeingGenerated = null;
             return reportCollection;
         }
 
-        public List<SimpleReportDefinition> GetSimpleReportDefinitions()
+        private List<SimpleReportDefinition> GetSimpleReportDefinitions()
         {
             var simpleReportDefinitions = GameDefinition.GetSimpleReportDefinitions();
             foreach (var d in simpleReportDefinitions)
