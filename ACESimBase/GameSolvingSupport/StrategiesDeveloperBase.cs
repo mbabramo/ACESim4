@@ -1429,7 +1429,7 @@ namespace ACESim
 
         public IEnumerable<GameProgress> GetRandomCompleteGames(GamePlayer player, int numIterations, Func<Decision, GameProgress, byte> actionOverride)
         {
-            return PlayMultipleIterationsAndProcess(null, numIterations, null, actionOverride);
+            return player.PlayMultipleIterations(null, numIterations, null, actionOverride);
         }
 
         private async Task GenerateReports_RandomPaths(GamePlayer player, Func<Decision, GameProgress, byte> actionOverride, List<SimpleReportDefinition> simpleReportDefinitions)
@@ -1445,15 +1445,11 @@ namespace ACESim
             await step3_consumer; // wait until all have been processed
         }
 
-
         public async virtual Task PlayMultipleIterationsAndProcess(
             GamePlayer player,
             int numIterations,
             Func<Decision, GameProgress, byte> actionOverride,
             BufferBlock<Tuple<GameProgress, double>> bufferBlock) => await PlayMultipleIterationsAndProcess(numIterations, actionOverride, bufferBlock, Strategies, player.DoParallelIfNotDisabled, player.PlayHelper);
-
-        static int MinIterationID = 0;
-        static bool AlwaysPlaySameIterations = false;
 
         public async static Task PlayMultipleIterationsAndProcess(
             int numIterations,
@@ -1463,15 +1459,14 @@ namespace ACESim
             bool doParallelIfNotDisabled,
             Func<int, List<Strategy>, bool, IterationID[], List<GameProgress>, Func<Decision, GameProgress, byte>, GameProgress> playHelper)
         {
-
             List<Strategy> strategiesToPlayWith = strategies.ToList();
             IterationID[] iterationIDArray = new IterationID[numIterations];
             for (long i = 0; i < numIterations; i++)
             {
-                iterationIDArray[i] = new IterationID(i + MinIterationID);
+                iterationIDArray[i] = new IterationID(i + GamePlayer.MinIterationID);
             }
-            if (!AlwaysPlaySameIterations)
-                MinIterationID += numIterations;
+            if (!GamePlayer.AlwaysPlaySameIterations)
+                GamePlayer.MinIterationID += numIterations;
             int numSubmitted = 0;
 
             await Parallelizer.GoAsync(doParallelIfNotDisabled, 0, numIterations, async i =>

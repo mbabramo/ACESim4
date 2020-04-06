@@ -350,6 +350,47 @@ namespace ACESim
             }
         }
 
+
+
+        public static int MinIterationID = 0;
+        public static bool AlwaysPlaySameIterations = false;
+
+        public IEnumerable<GameProgress> PlayMultipleIterations(
+            List<GameProgress> preplayedGameProgressInfos,
+            int numIterations,
+            IterationID[] iterationIDArray,
+            Func<Decision, GameProgress, byte> actionOverride)
+        {
+            CompletedGameProgresses = new ConcurrentBag<GameProgress>();
+
+            if (iterationIDArray == null)
+            {
+                iterationIDArray = new IterationID[numIterations];
+                for (long i = 0; i < numIterations; i++)
+                {
+                    iterationIDArray[i] = new IterationID(i + MinIterationID);
+                }
+                if (!AlwaysPlaySameIterations)
+                    MinIterationID += numIterations;
+            }
+
+            // Copy bestStrategies to play with
+            List<Strategy> strategiesToPlayWith = Strategies.ToList();
+
+            // Note: we're now doing this serially, instead of producing all games -- note that bottleneck is processing gameprogress, not producing it 
+            Parallelizer.Go(DoParallelIfNotDisabled, 0, numIterations, i =>
+            {
+                // Remove comments from the following to log specific items
+                GameProgressLogger.LoggingOn = false;
+                GameProgressLogger.OutputLogMessages = false;
+                PlayHelper(i, strategiesToPlayWith, true, iterationIDArray, preplayedGameProgressInfos, actionOverride);
+
+            }
+           );
+
+            return CompletedGameProgresses;
+        }
+
         /// <summary>
         /// For each of the iterations referenced in playChunkInfo, call PlaySetup and then PlayUntilComplete 
         /// method. Note that in calling PlaySetup, the simulationSettings should be set from the 
