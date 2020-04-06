@@ -33,9 +33,9 @@ namespace ACESim
         /// Traverses the game tree for DeepCFR. It performs this either in 
         /// </summary>
         /// <param name="gamePlayer">The game being played</param>
-        /// <param name="iteration">The iteration being played</param>
+        /// <param name="observationNum">The iteration being played</param>
         /// <returns></returns>
-        public double[] DeepCFRTraversal(DirectGamePlayer gamePlayer, DeepCFRIterationNum iteration, DeepCFRTraversalMode traversalMode)
+        public double[] DeepCFRTraversal(DirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, DeepCFRTraversalMode traversalMode)
         {
             GameStateTypeEnum gameStateType = gamePlayer.GetGameStateType();
             if (gameStateType == GameStateTypeEnum.FinalUtilities)
@@ -44,51 +44,51 @@ namespace ACESim
             }
             else if (gameStateType == GameStateTypeEnum.Chance)
             {
-                return DeepCFR_ChanceNode(gamePlayer, iteration, traversalMode);
+                return DeepCFR_ChanceNode(gamePlayer, observationNum, traversalMode);
             }
             else
-                return DeepCFR_DecisionNode(gamePlayer, iteration, traversalMode);
+                return DeepCFR_DecisionNode(gamePlayer, observationNum, traversalMode);
         }
 
-        private double[] DeepCFR_DecisionNode(DirectGamePlayer gamePlayer, DeepCFRIterationNum iteration, DeepCFRTraversalMode traversalMode)
+        private double[] DeepCFR_DecisionNode(DirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, DeepCFRTraversalMode traversalMode)
         {
-            byte decisionByteCode = gamePlayer.CurrentDecision.DecisionByteCode;
+            byte decisionIndex = (byte) gamePlayer.CurrentDecisionIndex;
             byte playerMakingDecision = gamePlayer.CurrentPlayer.PlayerIndex;
-            byte numPossibleActions = NumPossibleActionsAtDecision(decisionByteCode);
+            byte numPossibleActions = NumPossibleActionsAtDecision(decisionIndex);
             DeepCFRIndependentVariables independentVariables = null;
             List<byte> informationSet = null;
-            byte mainAction = GameDefinition.DecisionsExecutionOrder[decisionByteCode].AlwaysDoAction ?? 0;
+            byte mainAction = GameDefinition.DecisionsExecutionOrder[decisionIndex].AlwaysDoAction ?? 0;
             if (mainAction == 0)
             {
                 informationSet = gamePlayer.GetInformationSet();
-                independentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionByteCode, informationSet, null /* DEBUG */);
-                mainAction = Model.ChooseAction(iteration.GetRandomDouble(decisionByteCode), independentVariables, numPossibleActions, numPossibleActions /* DEBUG */);
+                independentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, null /* DEBUG */);
+                mainAction = Model.ChooseAction(observationNum.GetRandomDouble(decisionIndex), independentVariables, numPossibleActions, numPossibleActions /* DEBUG */);
             }
             else if (traversalMode == DeepCFRTraversalMode.AddRegretObservations)
                 throw new Exception("When adding regret observations, should not prespecify action");
             DirectGamePlayer mainActionPlayer = gamePlayer.DeepCopy();
             mainActionPlayer.PlayAction(mainAction);
-            double[] mainValues = DeepCFRTraversal(mainActionPlayer, iteration, traversalMode);
+            double[] mainValues = DeepCFRTraversal(mainActionPlayer, observationNum, traversalMode);
             if (traversalMode == DeepCFRTraversalMode.AddRegretObservations)
             {
                 // We do a single probe. This allows us to compare the result from the main action.
-                DeepCFRIterationNum probeIteration = iteration.NextVariation();
+                DeepCFRObservationNum probeIteration = observationNum.NextVariation();
                 DirectGamePlayer probeGamePlayer = gamePlayer.DeepCopy();
-                byte probeAction = Model.ChooseAction(probeIteration.GetRandomDouble(decisionByteCode), independentVariables, numPossibleActions, numPossibleActions /* DEBUG */);
+                byte probeAction = Model.ChooseAction(probeIteration.GetRandomDouble(decisionIndex), independentVariables, numPossibleActions, numPossibleActions /* DEBUG */);
                 probeGamePlayer.PlayAction(probeAction);
-                double[] probeValues = DeepCFRTraversal(probeGamePlayer, iteration, DeepCFRTraversalMode.ProbeForUtilities);
+                double[] probeValues = DeepCFRTraversal(probeGamePlayer, observationNum, DeepCFRTraversalMode.ProbeForUtilities);
                 double sampledRegret = probeValues[playerMakingDecision] - mainValues[playerMakingDecision];
                 DeepCFRObservation observation = new DeepCFRObservation()
                 {
                     SampledRegret = sampledRegret,
-                    IndependentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionByteCode, informationSet, null /* DEBUG */)
+                    IndependentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, null /* DEBUG */)
                 };
                 Model.AddPendingObservation(observation);
             }
             return mainValues;
         }
 
-        private double[] DeepCFR_ChanceNode(DirectGamePlayer gamePlayer, DeepCFRIterationNum iteration, DeepCFRTraversalMode traversalMode)
+        private double[] DeepCFR_ChanceNode(DirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, DeepCFRTraversalMode traversalMode)
         {
             Decision currentDecision = gamePlayer.CurrentDecision;
             if (currentDecision.CriticalNode && traversalMode != DeepCFRTraversalMode.PlaybackSinglePath)
@@ -100,7 +100,7 @@ namespace ACESim
                 {
                     DirectGamePlayer copyPlayer = gamePlayer.DeepCopy();
                     copyPlayer.PlayAction(a);
-                    double[] utilities = DeepCFRTraversal(copyPlayer, iteration, traversalMode);
+                    double[] utilities = DeepCFRTraversal(copyPlayer, observationNum, traversalMode);
                     for (int i = 0; i < NumNonChancePlayers; i++)
                         weightedResults[i] = probabilitiesForActions[a - 1] * utilities[i];
                 }
@@ -108,36 +108,41 @@ namespace ACESim
             }
             else
             {
-                byte actionToChoose = gamePlayer.ChooseChanceAction(iteration.GetRandomDouble(gamePlayer.CurrentDecision.DecisionByteCode));
+                byte actionToChoose = gamePlayer.ChooseChanceAction(observationNum.GetRandomDouble((byte) gamePlayer.CurrentDecisionIndex));
                 gamePlayer.PlayAction(actionToChoose);
-                return DeepCFRTraversal(gamePlayer, iteration, traversalMode);
+                return DeepCFRTraversal(gamePlayer, observationNum, traversalMode);
             }
         }
 
         public override async Task<ReportCollection> RunAlgorithm(string optionSetName)
         {
             ReportCollection reportCollection = new ReportCollection();
-            for (int iteration = 0; iteration < EvolutionSettings.TotalIterations; iteration++)
+            for (int iteration = 1; iteration <= EvolutionSettings.TotalIterations; iteration++)
             {
-                var result = await PerformDeepCFRIteration(new DeepCFRIterationNum(iteration, 0));
+                var result = await PerformDeepCFRIteration(iteration);
                 reportCollection.Add(result);
             }
             return reportCollection;
         }
-        private async Task<ReportCollection> PerformDeepCFRIteration(DeepCFRIterationNum iteration)
+        private async Task<ReportCollection> PerformDeepCFRIteration(int iteration)
         {
-            Status.IterationNumDouble = iteration.IterationNum;
+            Status.IterationNumDouble = iteration;
 
             double[] finalUtilities = new double[NumNonChancePlayers];
 
             StrategiesDeveloperStopwatch.Start();
-            finalUtilities = DeepCFRTraversal(iteration, DeepCFRTraversalMode.AddRegretObservations).utilities;
+
+            for (int i = 0; i < EvolutionSettings.DeepCFR_TraversalsPerIteration; i++)
+            {
+                DeepCFRObservationNum observationNum = new DeepCFRObservationNum(i, 0);
+                finalUtilities = DeepCFRTraversal(observationNum, DeepCFRTraversalMode.AddRegretObservations).utilities;
+            }
             StrategiesDeveloperStopwatch.Stop();
 
             ReportCollection reportCollection = new ReportCollection();
-            var result = await GenerateReports(iteration.IterationNum,
+            var result = await GenerateReports(iteration,
                 () =>
-                    $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration.IterationNum + 1.0)))}");
+                    $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
             reportCollection.Add(result);
 
             await Model.CompleteIteration();
@@ -145,13 +150,13 @@ namespace ACESim
             return reportCollection;
         }
 
-        public GameProgress DeepCFR_GetGameProgressByPlaying(DeepCFRIterationNum iteration) => DeepCFRTraversal(iteration, DeepCFRTraversalMode.PlaybackSinglePath).completedProgress;
+        public GameProgress DeepCFR_GetGameProgressByPlaying(DeepCFRObservationNum observationNum) => DeepCFRTraversal(observationNum, DeepCFRTraversalMode.PlaybackSinglePath).completedProgress;
 
-        public (double[] utilities, GameProgress completedProgress) DeepCFRTraversal(DeepCFRIterationNum iteration, DeepCFRTraversalMode traversalMode)
+        public (double[] utilities, GameProgress completedProgress) DeepCFRTraversal(DeepCFRObservationNum observationNum, DeepCFRTraversalMode traversalMode)
         {
             double[] finalUtilities;
-            DirectGamePlayer gamePlayer = new DirectGamePlayer(GameDefinition, GameFactory.CreateNewGameProgress(new IterationID(iteration.IterationNum)));
-            finalUtilities = DeepCFRTraversal(gamePlayer, iteration, traversalMode);
+            DirectGamePlayer gamePlayer = new DirectGamePlayer(GameDefinition, GameFactory.CreateNewGameProgress(new IterationID(observationNum.ObservationNum)));
+            finalUtilities = DeepCFRTraversal(gamePlayer, observationNum, traversalMode);
             return (finalUtilities, gamePlayer.GameProgress);
         }
 
@@ -186,7 +191,7 @@ namespace ACESim
 
         public GameProgress DeepCFRPlayHelper(int iteration, List<Strategy> strategies, bool saveCompletedGameProgressInfos, IterationID[] iterationIDArray, List<GameProgress> preplayedGameProgressInfos, Func<Decision, GameProgress, byte> actionOverride)
         {
-            GameProgress progress = DeepCFR_GetGameProgressByPlaying(new DeepCFRIterationNum(iteration, 1_000_000));
+            GameProgress progress = DeepCFR_GetGameProgressByPlaying(new DeepCFRObservationNum(iteration, 1_000_000));
 
             return progress;
         }

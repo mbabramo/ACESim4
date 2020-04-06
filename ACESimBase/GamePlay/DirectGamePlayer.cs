@@ -37,6 +37,8 @@ namespace ACESimBase
 
         public Decision CurrentDecision => Game.CurrentDecision;
 
+        public byte? CurrentDecisionIndex => Game.CurrentDecisionIndex;
+
         public PlayerInfo CurrentPlayer => GameDefinition.Players[CurrentDecision.PlayerNumber];
 
         public GameStateTypeEnum GetGameStateType()
@@ -50,7 +52,7 @@ namespace ACESimBase
 
         public double[] GetFinalUtilities()
         {
-            if (!GameComplete || CurrentPlayer.PlayerIsChance)
+            if (!GameComplete)
                 throw new Exception();
             return GameProgress.GetNonChancePlayerUtilities();
         }

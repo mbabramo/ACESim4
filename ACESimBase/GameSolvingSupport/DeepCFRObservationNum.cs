@@ -1,24 +1,24 @@
 ﻿namespace ACESim
 {
-    public readonly struct DeepCFRIterationNum
+    public readonly struct DeepCFRObservationNum
     {
-        public readonly int IterationNum;
+        public readonly int ObservationNum;
         public readonly int VariationNum;
 
-        public DeepCFRIterationNum(int iterationNum, int variationNum)
+        public DeepCFRObservationNum(int iterationNum, int variationNum)
         {
-            IterationNum = iterationNum;
+            ObservationNum = iterationNum;
             VariationNum = variationNum;
         }
 
-        public DeepCFRIterationNum NextIteration()
+        public DeepCFRObservationNum NextObservation()
         {
-            return new DeepCFRIterationNum(IterationNum + 1, 0);
+            return new DeepCFRObservationNum(ObservationNum + 1, 0);
         }
 
-        public DeepCFRIterationNum NextVariation()
+        public DeepCFRObservationNum NextVariation()
         {
-            return new DeepCFRIterationNum(IterationNum, VariationNum + 1);
+            return new DeepCFRObservationNum(ObservationNum, VariationNum + 1);
         }
 
         public double GetRandomDouble(byte decisionNum)
@@ -33,7 +33,7 @@
 
         long AsLong()
         {
-            return doubleInt2long(IterationNum, VariationNum);
+            return doubleInt2long(ObservationNum, VariationNum);
         }
         static long doubleInt2long(int a1, int a2)
         {
