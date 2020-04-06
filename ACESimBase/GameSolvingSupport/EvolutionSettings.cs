@@ -16,7 +16,7 @@ namespace ACESim
         public int TotalAvgStrategySamplingCFRIterations = 100000;
         public int TotalProbingCFRIterations = 100000;
         public int TotalIterations = 100000;
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousPlay; // also will be overridden
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.DeepCFR; // also will be overridden by Launcher
         public double BestResponseTarget => Algorithm switch
         {
             GameApproximationAlgorithm.FictitiousPlay => -1, // 0.00001,

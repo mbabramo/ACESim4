@@ -14,5 +14,6 @@ namespace ACESim
         ModifiedGibsonProbing,
         AverageStrategySampling,
         PlaybackOnly,
+        DeepCFR,
     }
 }

@@ -18,7 +18,7 @@ namespace ACESim
 
         #region Settings
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; 
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.DeepCFR; 
 
         public const int VanillaIterations = 10_000; // DEBUG
         public const int VanillaReportEveryNIterations = VanillaIterations;
@@ -42,7 +42,7 @@ namespace ACESim
         public static bool MaxOneReportPerDistributedProcess = false;
         public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && UseDistributedProcessingForMultipleOptionsSets; // this should be true if running on the local service fabric or usign ACESimDistributed
         public bool ParallelizeOptionSets = false; // run multiple option sets at same time on computer (in which case each individually will be run not in parallel)
-        public bool ParallelizeIndividualExecutions = true; // only if !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing)
+        public bool ParallelizeIndividualExecutions = false; // DEBUG // only if !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing)
         public bool DynamicSetParallelIfPossible = false; 
         public bool DynamicSetParallel => DistributedProcessing && DynamicSetParallelIfPossible;
         public bool ParallelizeIndividualExecutionsAlways = false; // Note -- maybe not really working // will always take precedence
@@ -135,6 +135,8 @@ namespace ACESim
                     return new GreedyFictitiousPlay(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.GeneticAlgorithm:
                     return new GeneticAlgorithm(existingStrategyState, evolutionSettings, gameDefinition);
+                case GameApproximationAlgorithm.DeepCFR:
+                    return new DeepCFR(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.PlaybackOnly:
                     return new PlaybackOnly(existingStrategyState, evolutionSettings, gameDefinition);
                 default:

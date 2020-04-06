@@ -66,13 +66,16 @@ namespace ACESim
             }
             else if (traversalMode == DeepCFRTraversalMode.AddRegretObservations)
                 throw new Exception("When adding regret observations, should not prespecify action");
-            double[] mainValues = DeepCFRTraversal(gamePlayer, iteration, traversalMode);
+            DirectGamePlayer mainActionPlayer = gamePlayer.DeepCopy();
+            mainActionPlayer.PlayAction(mainAction);
+            double[] mainValues = DeepCFRTraversal(mainActionPlayer, iteration, traversalMode);
             if (traversalMode == DeepCFRTraversalMode.AddRegretObservations)
             {
                 // We do a single probe. This allows us to compare the result from the main action.
                 DeepCFRIterationNum probeIteration = iteration.NextVariation();
                 DirectGamePlayer probeGamePlayer = gamePlayer.DeepCopy();
                 byte probeAction = Model.ChooseAction(probeIteration.GetRandomDouble(decisionByteCode), independentVariables, numPossibleActions, numPossibleActions /* DEBUG */);
+                probeGamePlayer.PlayAction(probeAction);
                 double[] probeValues = DeepCFRTraversal(probeGamePlayer, iteration, DeepCFRTraversalMode.ProbeForUtilities);
                 double sampledRegret = probeValues[playerMakingDecision] - mainValues[playerMakingDecision];
                 DeepCFRObservation observation = new DeepCFRObservation()
@@ -82,7 +85,6 @@ namespace ACESim
                 };
                 Model.AddPendingObservation(observation);
             }
-            gamePlayer.PlayAction(mainAction);
             return mainValues;
         }
 
@@ -114,9 +116,6 @@ namespace ACESim
 
         public override async Task<ReportCollection> RunAlgorithm(string optionSetName)
         {
-            if (Navigation.LookupApproach != InformationSetLookupApproach.PlayGameDirectly)
-                throw new Exception("Only play underlying game is supported.");
-
             ReportCollection reportCollection = new ReportCollection();
             for (int iteration = 0; iteration < EvolutionSettings.TotalIterations; iteration++)
             {

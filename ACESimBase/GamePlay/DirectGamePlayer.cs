@@ -20,6 +20,7 @@ namespace ACESimBase
             {
                 Game = GameDefinition.GameFactory.CreateNewGame();
                 Game.PlaySetup(null, GameProgress, GameDefinition, false, true);
+                Game.AdvanceToOrCompleteNextStep();
             }
             else
                 Game = game.DeepCopy(GameProgress);
@@ -95,7 +96,7 @@ namespace ACESimBase
 
         public List<byte> GetInformationSet()
         {
-            if (!GameComplete || CurrentPlayer.PlayerIsChance)
+            if (GameComplete || CurrentPlayer.PlayerIsChance)
                 throw new Exception();
             return GameProgress.InformationSetLog.GetPlayerInformationUpToNow(CurrentDecision.PlayerNumber);
         }
