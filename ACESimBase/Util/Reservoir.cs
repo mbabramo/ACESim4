@@ -46,13 +46,13 @@ namespace ACESimBase.Util
             Items[CurrentSize++] = item;
         }
 
-        public void AddPotentialReplacementsAtIteration(List<T> replacement, double discountRate, int iteration)
+        public void AddPotentialReplacementsAtIteration(List<T> replacements, double discountRate, int iteration)
         {
             int numToDrop = CountNumToDropAtIteration(discountRate, iteration);
             if (numToDrop > 0)
                 DropItems(numToDrop);
-            replacement = replacement.Take(RemainingCapacity).ToList();
-
+            replacements = replacements.Take(RemainingCapacity).ToList();
+            AddReplacements(replacements);
         }
 
         public void AddReplacements(List<T> replacement)
@@ -86,6 +86,11 @@ namespace ACESimBase.Util
             return numToDrop;
         }
 
+        public int CountTotalNumberToAddAtIteration(double discountRate, int iteration)
+        {
+            return RemainingCapacity + CountNumToDropAtIteration(discountRate, iteration);
+        }
+
         public void DropItemsIfNecessary(int numToAdd)
         {
             if (numToAdd > RemainingCapacity)
@@ -102,9 +107,9 @@ namespace ACESimBase.Util
             int numDroppedSoFar = 0;
             for (int i = 0; i < CurrentSize; i++)
             {
-                int numRemaining = CurrentSize - numDroppedSoFar;
+                int numRemainingOpportunities = CurrentSize - i;
                 int numRemainingToDrop = numToDrop - numDroppedSoFar;
-                double dropProbability = ((double)numRemainingToDrop) / ((double)numRemaining);
+                double dropProbability = ((double)numRemainingToDrop) / ((double)numRemainingOpportunities);
                 bool drop = RandomProducer.NextDouble() < dropProbability;
                 if (drop)
                 {

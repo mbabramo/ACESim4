@@ -13,23 +13,52 @@ namespace ACESim
     /// </summary>
     public class Game
     {
-        public Game DeepCopy(GameProgress progress)
+
+        public byte? CurrentDecisionIndex
         {
-            return new Game()
-            {
-                Progress = progress ?? Progress,
-                Strategies = Strategies,
-                GameDefinition = GameDefinition,
-                GameModules = GameModules,
-                CurrentActionPoint = CurrentActionPoint,
-                MostRecentDecisionIndex = MostRecentDecisionIndex,
-                CurrentDecisionIndex = CurrentDecisionIndex,
-                PreparationPhase = PreparationPhase,
-                DecisionNeeded = DecisionNeeded,
-                TriggerReplay = TriggerReplay,
-                RecordReportInfo = RecordReportInfo,
-                ChooseDefaultActionIfNoneChosen = ChooseDefaultActionIfNoneChosen
-            };
+            get => Progress.CurrentDecisionIndex;
+            set => Progress.CurrentDecisionIndex = value;
+        }
+        public bool PreparationPhase
+        {
+            get => Progress.PreparationPhase;
+            set => Progress.PreparationPhase = value;
+        }
+
+        public bool DecisionNeeded
+        {
+            get => Progress.DecisionNeeded;
+            set => Progress.DecisionNeeded = value;
+        }
+
+        public bool TriggerReplay
+        {
+            get => Progress.TriggerReplay;
+            set => Progress.TriggerReplay = value;
+        }
+
+        public bool RecordReportInfo
+        {
+            get => Progress.RecordReportInfo;
+            set => Progress.RecordReportInfo = value;
+        }
+
+        public bool ChooseDefaultActionIfNoneChosen
+        {
+            get => Progress.ChooseDefaultActionIfNoneChosen;
+            set => Progress.ChooseDefaultActionIfNoneChosen = value;
+        }
+
+        public long LastIterationNumberReceivingRandomNumber
+        {
+            get => Progress.LastIterationNumberReceivingRandomNumber;
+            set => Progress.LastIterationNumberReceivingRandomNumber = value;
+        }
+
+        public double RandomNumberForIteration
+        {
+            get => Progress.RandomNumberForIteration;
+            set => Progress.RandomNumberForIteration = value;
         }
 
         public GameProgress Progress;
@@ -38,10 +67,11 @@ namespace ACESim
         internal GameDefinition GameDefinition;
         internal List<GameModule> GameModules;
         internal ActionPoint CurrentActionPoint;
+
         internal int? MostRecentDecisionIndex;
         public ActionGroup CurrentActionGroup => CurrentActionPoint.ActionGroup;
 
-        public byte? CurrentDecisionIndex;
+
         public Decision CurrentDecision
         {
             get
@@ -58,15 +88,6 @@ namespace ACESim
         public string CurrentActionPointName { get { if (CurrentActionPoint == null) return null; return CurrentActionPoint.Name; } }
         
 
-        internal bool PreparationPhase;
-
-        internal bool DecisionNeeded;
-
-        public bool TriggerReplay; // useful to try to find bugs
-
-        public bool RecordReportInfo;
-
-        public bool ChooseDefaultActionIfNoneChosen;
 
         public int? DecisionNumberWithinActionGroupForDecisionNumber(int decisionNumber)
         {
@@ -238,9 +259,6 @@ namespace ACESim
         {
             Progress.ActionsToPlay = new List<byte>();
         }
-
-        long LastIterationNumberReceivingRandomNumber = -1;
-        double RandomNumberForIteration = -1;
 
         public virtual void UpdateGameProgressFollowingAction(byte currentDecisionByteCode, byte action)
         {

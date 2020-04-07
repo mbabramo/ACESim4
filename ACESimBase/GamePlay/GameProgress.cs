@@ -10,6 +10,21 @@ namespace ACESim
     [Serializable]
     public class GameProgress : GameProgressReportable, IDisposable
     {
+
+        public byte? CurrentDecisionIndex;
+        public bool PreparationPhase;
+
+        public bool DecisionNeeded;
+
+        public bool TriggerReplay; // useful to try to find bugs
+
+        public bool RecordReportInfo;
+
+        public bool ChooseDefaultActionIfNoneChosen;
+
+        public long LastIterationNumberReceivingRandomNumber = -1;
+        public double RandomNumberForIteration = -1;
+
         public double DummyVariable = 1.0; // used by reporting module
         public IterationID IterationID;
         [FieldwiseComparisonSkip]
@@ -261,6 +276,15 @@ namespace ACESim
 
         internal virtual void CopyFieldInfo(GameProgress copy)
         {
+            copy.CurrentDecisionIndex = CurrentDecisionIndex;
+            copy.PreparationPhase = PreparationPhase;
+            copy.DecisionNeeded = DecisionNeeded;
+            copy.TriggerReplay = TriggerReplay;
+            copy.RecordReportInfo = RecordReportInfo;
+            copy.ChooseDefaultActionIfNoneChosen = ChooseDefaultActionIfNoneChosen;
+            copy.LastIterationNumberReceivingRandomNumber = LastIterationNumberReceivingRandomNumber;
+            copy.RandomNumberForIteration = RandomNumberForIteration;
+
             copy.InformationSetLog = new InformationSetLog() { LogStorage = InformationSetLog.LogStorage.ToArray(), Initialized = InformationSetLog.Initialized }; // NOTE: We can't just copy the array because then the starting game progress will be shared among all copies.
             copy.IterationID = IterationID;
             copy.GameDefinition = GameDefinition;

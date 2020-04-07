@@ -49,6 +49,8 @@ namespace ACESimBase.GameSolvingSupport
             PendingObservations.Add(observation);
         }
 
+        public int CountPendingObservationsTarget(int iteration) => Observations.CountTotalNumberToAddAtIteration(DiscountRate, iteration);
+
         public async Task CompleteIteration()
         {
             IterationsProcessed++;
@@ -68,7 +70,7 @@ namespace ACESimBase.GameSolvingSupport
             MaxInformationSetLength = Observations.Max(x => x.IndependentVariables.InformationSet?.Count() ?? 0);
             var data = Observations.Select(x => (x.IndependentVariables.AsArray(!PlayerSameForAll, !DecisionByteCodeSameForAll, MaxInformationSetLength), (float) x.SampledRegret)).ToArray();
             Regression = new NeuralNetworkController();
-            await Regression.TrainNeuralNetwork(data, NeuralNetworkNET.Networks.Cost.CostFunctionType.CrossEntropy, 1_000, 2);
+            await Regression.TrainNeuralNetwork(data, NeuralNetworkNET.Networks.Cost.CostFunctionType.Quadratic, 1_000, 2);
         }
 
         public double GetPredictedRegretForAction(DeepCFRIndependentVariables independentVariables, byte action)

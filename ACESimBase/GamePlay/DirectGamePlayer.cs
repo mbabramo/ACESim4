@@ -23,7 +23,10 @@ namespace ACESimBase
                 Game.AdvanceToOrCompleteNextStep();
             }
             else
-                Game = game.DeepCopy(GameProgress);
+            {
+                Game = game;
+                Game.Progress = GameProgress;
+            }
         }
 
         public DirectGamePlayer DeepCopy()

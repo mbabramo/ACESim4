@@ -138,11 +138,15 @@ namespace ACESim
 
             StrategiesDeveloperStopwatch.Start();
 
-            for (int i = 0; i < EvolutionSettings.DeepCFR_TraversalsPerIteration; i++)
+            int numObservationsToAdd = Model.CountPendingObservationsTarget(iteration);
+            int obsNum = 0;
+            do
             {
-                DeepCFRObservationNum observationNum = new DeepCFRObservationNum(i, 0);
+                DeepCFRObservationNum observationNum = new DeepCFRObservationNum(obsNum, 0);
                 finalUtilities = DeepCFRTraversal(observationNum, DeepCFRTraversalMode.AddRegretObservations).utilities;
+                obsNum++;
             }
+            while (Model.PendingObservations.Count < numObservationsToAdd);
             StrategiesDeveloperStopwatch.Stop();
 
             ReportCollection reportCollection = new ReportCollection();
@@ -150,7 +154,8 @@ namespace ACESim
                 () =>
                     $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
             reportCollection.Add(result);
-
+            var DEBUG = Model.PendingObservations.Count(x => x.SampledRegret == 0);
+            var DEBUG2 = Model.PendingObservations.Count(x => x.IndependentVariables.InformationSet[0] == 1);
             await Model.CompleteIteration();
 
             return reportCollection;

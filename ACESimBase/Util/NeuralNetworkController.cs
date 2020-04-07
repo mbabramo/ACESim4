@@ -18,10 +18,80 @@ namespace ACESimBase.Util
     public class NeuralNetworkController
     {
         INeuralNetwork StoredNetwork;
+        bool Normalize = true;
+        (float MinX, float MaxX)[] Ranges;
+        float?[] IndependentVariableConstant;
+        int NumConstantIndependentVariables;
+        float MinY, MaxY;
+
+        public float[] NormalizeIndependentVars(float[] x)
+        {
+            float[] result = new float[x.Length - NumConstantIndependentVariables];
+            int constantsSoFar = 0;
+            for (int i = 0; i < x.Length; i++)
+            {
+                if (IndependentVariableConstant[i] != null)
+                    constantsSoFar++;
+                else
+                {
+                    float item = x[i];
+                    // TODO: Allow for extrapolation by allowing to exceed min-max range
+                    if (item < Ranges[i].MinX)
+                        item = Ranges[i].MinX;
+                    if (item > Ranges[i].MaxX)
+                        item = Ranges[i].MaxX;
+                    result[i - constantsSoFar] = (item - Ranges[i].MinX) / (Ranges[i].MaxX - Ranges[i].MinX);
+                }
+            }
+            return result;
+        }
+        public float NormalizeDependentVar(float y) => (y - MinY) / (MaxY - MinY);
+        public float[] DenormalizeIndependentVars(float[] x)
+        {
+            float[] result = new float[x.Length + NumConstantIndependentVariables];
+            int constantsSoFar = 0;
+            for (int i = 0; i < result.Length; i++)
+            {
+                if (IndependentVariableConstant[i] is float constantValue)
+                {
+                    constantsSoFar++;
+                    result[i] = constantValue;
+                }
+                else
+                {
+                    float item = x[i - constantsSoFar];
+                    result[i] = Ranges[i].MinX + item * (Ranges[i].MaxX - Ranges[i].MinX);
+                }
+            }
+            return result;
+        }
+        public float DenormalizeDependentVar(float y) => MinY + y * (MaxY - MinY);
 
         public async Task TrainNeuralNetwork((float[] X, float Y)[] data, CostFunctionType costFunctionType, int epochs, int numHiddenLayers)
         {
-            var data2 = data.Select(d => (d.X, new float[] { d.Y })).ToArray();
+            (float[] X, float[] Y)[] data2 = data.Select(d => (d.X, new float[] { d.Y })).ToArray();
+            if (Normalize)
+            {
+                int numItems = data2.Count();
+                int lengthX = data2.First().Item1.Length;
+                Ranges = new (float MinX, float MaxX)[lengthX];
+                IndependentVariableConstant = new float?[lengthX];
+                for (int xIndex = 0; xIndex < lengthX; xIndex++)
+                {
+                    Ranges[xIndex].MinX = data2.Min(d => d.X[xIndex]);
+                    Ranges[xIndex].MaxX = data2.Max(d => d.X[xIndex]);
+                    if (Ranges[xIndex].MinX == Ranges[xIndex].MaxX)
+                        IndependentVariableConstant[xIndex] = Ranges[xIndex].MinX;
+                }
+                NumConstantIndependentVariables = IndependentVariableConstant.Where(x => x != null).Count();
+                MinY = data2.Min(d => d.Y[0]);
+                MaxY = data2.Max(d => d.Y[0]);
+                for (int i = 0; i < numItems; i++)
+                {
+                    data2[i].X = NormalizeIndependentVars(data2[i].X);
+                    data2[i].Y[0] = NormalizeDependentVar(data2[i].Y[0]);
+                }
+            }
             await TrainNeuralNetwork(data2, costFunctionType, epochs, numHiddenLayers);
         }
 
@@ -58,6 +128,14 @@ namespace ACESimBase.Util
             //var examples = data.Skip(numSamplesForTraining + numSamplesForValidation).Take(15).Select(d => $"{string.Join(",", d.X)} => {StoredNetwork.Forward(d.X).Single()} (correct: {d.Y.Single()})");
         }
 
-        public float GetResult(float[] x) => StoredNetwork.Forward(x)[0];
+        public float GetResult(float[] x)
+        {
+            if (Normalize)
+                x = NormalizeIndependentVars(x);
+            float result = StoredNetwork.Forward(x)[0];
+            if (Normalize)
+                result = DenormalizeDependentVar(result);
+            return result;
+        }
     }
 }

@@ -91,8 +91,7 @@ namespace ACESim
         public bool CFR_OpponentSampling = false; // if true, then we sample only 1 action at each opponent information set (but this does not apply to chance actions, as currently implemented)
 
         public int DeepCFR_Iterations = 100;
-        public int DeepCFR_TraversalsPerIteration = 100_000;
-        public int DeepCFR_ReservoirCapacity = 100_000;
+        public int DeepCFR_ReservoirCapacity = 1_000;
         public double DeepCFR_DiscountRate = 0.98;
 
         // For Vanilla algorithm:
