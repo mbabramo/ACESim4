@@ -28,6 +28,11 @@ namespace ACESim
             return created;
         }
 
+        public override Task Initialize()
+        {
+            return Task.CompletedTask;
+        }
+
 
         /// <summary>
         /// Traverses the game tree for DeepCFR. It performs this either in 
@@ -52,6 +57,7 @@ namespace ACESim
 
         private double[] DeepCFR_DecisionNode(DirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, DeepCFRTraversalMode traversalMode)
         {
+            Decision currentDecision = gamePlayer.CurrentDecision;
             byte decisionIndex = (byte) gamePlayer.CurrentDecisionIndex;
             byte playerMakingDecision = gamePlayer.CurrentPlayer.PlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionIndex);

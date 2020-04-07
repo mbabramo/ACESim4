@@ -12,7 +12,7 @@ namespace ACESimBase.GameSolvingSupport
         /// <summary>
         /// A code identifying the decision type. A single regression may include observations with different byte codes, for example representing different stages in a game. Binary variables will be used to represent the different possible decision byte codes (except for one).
         /// </summary>
-        public byte DecisionByteCode;
+        public byte DecisionIndex;
         /// <summary>
         /// The information set will consist of actions of players that the player knows about, including but not limited to all of the player's own actions. Each of these will be an independent variable.
         /// </summary>
@@ -27,9 +27,12 @@ namespace ACESimBase.GameSolvingSupport
 
         }
 
-        public DeepCFRIndependentVariables(byte player, byte decisionByteCode, List<byte> informationSet, List<float> gameParameters)
+        public DeepCFRIndependentVariables(byte player, byte decisionIndex, List<byte> informationSet, List<float> gameParameters)
         {
-
+            Player = player;
+            DecisionIndex = decisionIndex;
+            InformationSet = informationSet;
+            GameParameters = gameParameters;
         }
 
         public float[] AsArray(bool includePlayer, bool includeDecision, int maxInformationSetSize)
@@ -42,7 +45,7 @@ namespace ACESimBase.GameSolvingSupport
             if (includePlayer)
                 result[index++] = Player;
             if (includeDecision)
-                result[index++] = DecisionByteCode;
+                result[index++] = DecisionIndex;
             for (int i = 0; i < informationSetSize; i++)
                 result[index + i] = InformationSet[i];
             index += maxInformationSetSize;

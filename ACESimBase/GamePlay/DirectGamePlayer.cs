@@ -31,7 +31,11 @@ namespace ACESimBase
             return new DirectGamePlayer(GameDefinition, GameProgress, Game);
         }
 
-        public void PlayAction(byte actionToPlay) => Game.ContinuePathWithAction(actionToPlay);
+        public void PlayAction(byte actionToPlay)
+        {
+            Game.ContinuePathWithAction(actionToPlay);
+            Game.AdvanceToOrCompleteNextStep();
+        }
 
         public bool GameComplete => GameProgress.GameComplete;
 
@@ -54,6 +58,7 @@ namespace ACESimBase
         {
             if (!GameComplete)
                 throw new Exception();
+            Game.FinalProcessing();
             return GameProgress.GetNonChancePlayerUtilities();
         }
 

@@ -63,8 +63,8 @@ namespace ACESimBase.GameSolvingSupport
                 throw new Exception("No observations available to build model.");
             byte firstPlayer = Observations.First().IndependentVariables.Player;
             PlayerSameForAll = Observations.All(x => firstPlayer == x.IndependentVariables.Player);
-            byte firstDecisionByteCode = Observations.First().IndependentVariables.DecisionByteCode;
-            DecisionByteCodeSameForAll = Observations.All(x => firstDecisionByteCode == x.IndependentVariables.DecisionByteCode);
+            byte firstDecisionByteCode = Observations.First().IndependentVariables.DecisionIndex;
+            DecisionByteCodeSameForAll = Observations.All(x => firstDecisionByteCode == x.IndependentVariables.DecisionIndex);
             MaxInformationSetLength = Observations.Max(x => x.IndependentVariables.InformationSet?.Count() ?? 0);
             var data = Observations.Select(x => (x.IndependentVariables.AsArray(!PlayerSameForAll, !DecisionByteCodeSameForAll, MaxInformationSetLength), (float) x.SampledRegret)).ToArray();
             Regression = new NeuralNetworkController();

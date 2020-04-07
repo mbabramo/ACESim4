@@ -26,7 +26,16 @@ namespace ACESim
         /// A function that will choose an action to take for a particular decision, overriding other mechanisms. If it returns 0, the standard mechanisms will be used.
         /// </summary>
         public Func<Decision, GameProgress, byte> ActionOverrider = null;
-        public bool GameComplete;
+        private bool _GameComplete;
+        public bool GameComplete
+        {
+            get => _GameComplete;
+            set
+            {
+                _GameComplete = value;
+            }
+
+        }
         public bool HaveAdvancedToFirstStep;
         public int? CurrentActionGroupNumber;
         public int? CurrentActionPointNumberWithinActionGroup;

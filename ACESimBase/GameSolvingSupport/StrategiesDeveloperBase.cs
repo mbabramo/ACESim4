@@ -487,6 +487,8 @@ namespace ACESim
 
         public void ReinitializeInformationSets()
         {
+            if (InformationSets == null)
+                return;
             int numInformationSets = InformationSets.Count;
             Parallel.For(0, numInformationSets, n => InformationSets[n].Reinitialize());
         }
@@ -507,7 +509,7 @@ namespace ACESim
             {
                 ReinitializeInformationSets();
             }
-            var firstFinalUtilitiesNode = FinalUtilitiesNodes.FirstOrDefault();
+            var firstFinalUtilitiesNode = FinalUtilitiesNodes?.FirstOrDefault();
             if (FinalUtilitiesNodes != null && firstFinalUtilitiesNode != null && (previousScenarioIndex != updatedScenarioIndex || previousWeightOnOpponentP0 != GameDefinition.CurrentWeightOnOpponentP0 || previousWeightOnOpponentOtherPlayers != GameDefinition.CurrentWeightOnOpponentOtherPlayers))
             {
                 foreach (var node in FinalUtilitiesNodes)
