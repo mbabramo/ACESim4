@@ -179,16 +179,16 @@ namespace ACESim
             // Note: We need to update the game history, but in Progress it's not stored as a ref struct. So we convert it to a ref struct and then convert it back.
             // NOTE: this only works if we can be sure that Progress is not shared across threads
             var history = Progress.GameHistory;
-            UpdateGameHistory(ref history, GameDefinition, currentDecision, decisionIndex, action, Progress);
+            UpdateGameHistory(ref history, GameDefinition, currentDecision, decisionIndex, null, action, Progress);
             Progress.GameHistoryStorable.UpdateFromShallowCopy(history);
 
             // We update game progress now (note that this will not be called when traversing the tree -- that's why we don't do this within UpdateGameHistory)
             UpdateGameProgressFollowingAction(currentDecision.DecisionByteCode, action);
         }
 
-        public static void UpdateGameHistory(ref GameHistory gameHistory, GameDefinition gameDefinition, Decision decision, byte decisionIndex, byte action, GameProgress gameProgress)
+        public static void UpdateGameHistory(ref GameHistory gameHistory, GameDefinition gameDefinition, Decision decision, byte decisionIndex, byte? deferredDecisionIndex, byte action, GameProgress gameProgress)
         {
-            gameHistory.AddToHistory(decision.DecisionByteCode, decisionIndex, decision.PlayerNumber, action, decision.NumPossibleActions, decision.PlayersToInform, decision.PlayersToInformOfOccurrenceOnly, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, gameProgress, false, decision.DeferNotificationOfPlayers, false);
+            gameHistory.AddToHistory(decision.DecisionByteCode, decisionIndex, deferredDecisionIndex, decision.PlayerNumber, action, decision.NumPossibleActions, decision.PlayersToInform, decision.PlayersToInformOfOccurrenceOnly, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, gameProgress, false, decision.DeferNotificationOfPlayers, false);
             if (decision.RequiresCustomInformationSetManipulation)
                 gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, action, ref gameHistory, gameProgress);
         }
