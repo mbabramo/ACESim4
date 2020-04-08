@@ -20,15 +20,15 @@ namespace ACESim
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.DeepCFR; 
 
-        public const int VanillaIterations = 100; // DEBUG
-        public const int VanillaReportEveryNIterations = VanillaIterations;
-        public const int VanillaBestResponseEveryMIterations = VanillaIterations; // DEBUG EffectivelyNever; 
+        public const int TotalIterationsToRun = 100; // DEBUG
+        public const int VanillaReportEveryNIterations = TotalIterationsToRun;
+        public const int VanillaBestResponseEveryMIterations = TotalIterationsToRun; // DEBUG EffectivelyNever; 
         public const bool CalculatePerturbedBestResponseRefinement = true;
         public const int MiniReportEveryPIterations = EffectivelyNever;
         public const bool AlwaysSuppressDisplayReportOnScreen = true; 
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever;
         public const bool UseRandomPathsForReporting = true; 
-        public const int SummaryTableRandomPathsIterations = 100_000; 
+        public const int SummaryTableRandomPathsIterations = 1_000; // DEBUG
         public const int ProbingIterations = 20_000_000;
 
         public const int StartGameNumber = 1;
@@ -187,7 +187,7 @@ namespace ACESim
                 TriggerIncreaseOverTime = 0,
 
                 TotalAvgStrategySamplingCFRIterations = ProbingIterations,
-                TotalIterations = VanillaIterations,
+                TotalIterations = TotalIterationsToRun,
             };
             return evolutionSettings;
         }

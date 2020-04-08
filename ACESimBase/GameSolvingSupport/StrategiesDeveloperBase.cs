@@ -1442,12 +1442,12 @@ namespace ACESim
             // we'll set up step1, step2, and step3 (but not in that order, since step 1 triggers step 2)
             var step2_buffer = new BufferBlock<Tuple<GameProgress, double>>(new DataflowBlockOptions { BoundedCapacity = 10000 });
             var step3_consumer = AddGameProgressToReports(step2_buffer, simpleReportDefinitions);
-            await PlayMultipleIterationsAndProcess(player, EvolutionSettings.NumRandomIterationsForSummaryTable, actionOverride, step2_buffer);
+            await DeepCFRReportingPlayMultipleIterations(player, EvolutionSettings.NumRandomIterationsForSummaryTable, actionOverride, step2_buffer);
             step2_buffer.Complete(); // tell consumer nothing more to be produced
             await step3_consumer; // wait until all have been processed
         }
 
-        public async virtual Task PlayMultipleIterationsAndProcess(
+        public async virtual Task DeepCFRReportingPlayMultipleIterations(
             GamePlayer player,
             int numIterations,
             Func<Decision, GameProgress, byte> actionOverride,

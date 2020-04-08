@@ -51,15 +51,15 @@ namespace ACESimBase.GameSolvingSupport
 
         public int CountPendingObservationsTarget(int iteration) => Observations.CountTotalNumberToAddAtIteration(DiscountRate, iteration);
 
-        public async Task CompleteIteration()
+        public async Task CompleteIteration(int deepCFREpochs)
         {
             IterationsProcessed++;
             Observations.AddPotentialReplacementsAtIteration(PendingObservations.ToList(), DiscountRate, IterationsProcessed);
             PendingObservations = new ConcurrentBag<DeepCFRObservation>();
-            await BuildModel();
+            await BuildModel(deepCFREpochs);
         }
 
-        private async Task BuildModel()
+        private async Task BuildModel(int deepCFREpochs)
         {
             if (!Observations.Any())
                 throw new Exception("No observations available to build model.");
@@ -70,7 +70,7 @@ namespace ACESimBase.GameSolvingSupport
             MaxInformationSetLength = Observations.Max(x => x.IndependentVariables.InformationSet?.Count() ?? 0);
             var data = Observations.Select(x => (x.IndependentVariables.AsArray(!PlayerSameForAll, !DecisionByteCodeSameForAll, MaxInformationSetLength), (float) x.SampledRegret)).ToArray();
             Regression = new NeuralNetworkController();
-            await Regression.TrainNeuralNetwork(data, NeuralNetworkNET.Networks.Cost.CostFunctionType.Quadratic, 1_000, 2);
+            await Regression.TrainNeuralNetwork(data, NeuralNetworkNET.Networks.Cost.CostFunctionType.Quadratic, deepCFREpochs, 2);
         }
 
         public double GetPredictedRegretForAction(DeepCFRIndependentVariables independentVariables, byte action)

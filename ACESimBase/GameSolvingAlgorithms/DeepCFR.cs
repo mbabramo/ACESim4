@@ -136,7 +136,10 @@ namespace ACESim
 
             double[] finalUtilities = new double[NumNonChancePlayers];
 
+            Stopwatch localStopwatch = new Stopwatch();
+            localStopwatch.Start();
             StrategiesDeveloperStopwatch.Start();
+
 
             int numObservationsToAdd = Model.CountPendingObservationsTarget(iteration);
             int obsNum = 0;
@@ -147,6 +150,8 @@ namespace ACESim
                 obsNum++;
             }
             while (Model.PendingObservations.Count < numObservationsToAdd);
+
+            localStopwatch.Stop();
             StrategiesDeveloperStopwatch.Stop();
 
             ReportCollection reportCollection = new ReportCollection();
@@ -154,9 +159,12 @@ namespace ACESim
                 () =>
                     $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
             reportCollection.Add(result);
-            var DEBUG = Model.PendingObservations.Count(x => x.SampledRegret == 0);
-            var DEBUG2 = Model.PendingObservations.Count(x => x.IndependentVariables.InformationSet[0] == 1);
-            await Model.CompleteIteration();
+            TabbedText.Write($"Iteration {iteration} of {EvolutionSettings.TotalIterations}: generating {Model.PendingObservations.Count} observations {localStopwatch.ElapsedMilliseconds} ms ");
+
+            localStopwatch = new Stopwatch();
+            localStopwatch.Start();
+            await Model.CompleteIteration(EvolutionSettings.DeepCFR_Epochs);
+            TabbedText.WriteLine($"generating model over {EvolutionSettings.DeepCFR_Epochs} epochs {localStopwatch.ElapsedMilliseconds} ms");
 
             return reportCollection;
         }
@@ -170,6 +178,8 @@ namespace ACESim
             finalUtilities = DeepCFRTraversal(gamePlayer, observationNum, traversalMode);
             return (finalUtilities, gamePlayer.GameProgress);
         }
+
+        #region Reporting
 
         public override async Task<ReportCollection> GenerateReports(int iteration, Func<string> prefaceFn)
         {
@@ -194,17 +204,19 @@ namespace ACESim
             return reportCollection;
         }
 
-        public async override Task PlayMultipleIterationsAndProcess(
+        public async override Task DeepCFRReportingPlayMultipleIterations(
             GamePlayer player,
             int numIterations,
             Func<Decision, GameProgress, byte> actionOverride,
-            BufferBlock<Tuple<GameProgress, double>> bufferBlock) => await PlayMultipleIterationsAndProcess(numIterations, actionOverride, bufferBlock, Strategies, player.DoParallelIfNotDisabled, DeepCFRPlayHelper);
+            BufferBlock<Tuple<GameProgress, double>> bufferBlock) => await PlayMultipleIterationsAndProcess(numIterations, actionOverride, bufferBlock, Strategies, EvolutionSettings.ParallelOptimization, DeepCFRReportingPlayHelper);
 
-        public GameProgress DeepCFRPlayHelper(int iteration, List<Strategy> strategies, bool saveCompletedGameProgressInfos, IterationID[] iterationIDArray, List<GameProgress> preplayedGameProgressInfos, Func<Decision, GameProgress, byte> actionOverride)
+        public GameProgress DeepCFRReportingPlayHelper(int iteration, List<Strategy> strategies, bool saveCompletedGameProgressInfos, IterationID[] iterationIDArray, List<GameProgress> preplayedGameProgressInfos, Func<Decision, GameProgress, byte> actionOverride)
         {
             GameProgress progress = DeepCFR_GetGameProgressByPlaying(new DeepCFRObservationNum(iteration, 1_000_000));
 
             return progress;
         }
+
+        #endregion
     }
 }
