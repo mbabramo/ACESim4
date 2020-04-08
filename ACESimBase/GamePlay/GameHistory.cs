@@ -1,6 +1,5 @@
 ﻿#define SAFETYCHECKS
 
-using ACESim;
 using ACESim.Util;
 using ACESimBase.Util;
 using System;
@@ -36,8 +35,7 @@ namespace ACESim
         public const int NumFullPlayers = 3; // includes main players and resolution player and any chance players that need full size information set
         public const int MaxNumPlayers = 13; // includes chance players that need a very limited information set
         public const int NumPartialPlayers = MaxNumPlayers - NumFullPlayers;
-        public const int MaxDeferredDecisionIndicesLength = 4;
-        public const int TotalSpanLength = GameFullHistory.MaxHistoryLength + CacheLength + MaxInformationSetLength + MaxDeferredDecisionIndicesLength;
+        public const int TotalSpanLength = GameFullHistory.MaxHistoryLength + CacheLength + MaxInformationSetLength;
 
         public bool Initialized;
         public bool Complete;
@@ -46,7 +44,6 @@ namespace ACESim
 
         // The following are used to defer adding information to a player information set.
         public bool PreviousNotificationDeferred;
-        public byte? DeferredDecisionIndex;
         public byte DeferredAction;
         public byte DeferredPlayerNumber;
         public byte[] DeferredPlayersToInform; // NOTE: We can leave this as an array because it is set in game definition and not changed.
@@ -54,7 +51,6 @@ namespace ACESim
         public Span<byte> ActionsHistory; // length GameFullHistory.MaxHistoryLength
         public Span<byte> Cache; // length CacheLength
         public Span<byte> InformationSets; // length MaxInformationSetLength
-        public Span<byte> DeferredDecisionIndices; // length MaxDeferredDecisionIndicesLength
 #if SAFETYCHECKS
         public int CreatingThreadID;
 #endif
@@ -67,7 +63,7 @@ namespace ACESim
 
         public bool Matches(GameHistory other)
         {
-            var basics = Initialized == other.Initialized && Complete == other.Complete && NextIndexInHistoryActionsOnly == other.NextIndexInHistoryActionsOnly && LastDecisionIndexAdded == other.LastDecisionIndexAdded && PreviousNotificationDeferred == other.PreviousNotificationDeferred && DeferredDecisionIndex == other.DeferredDecisionIndex && DeferredAction == other.DeferredAction && DeferredPlayerNumber == other.DeferredPlayerNumber && ((DeferredPlayersToInform == null && other.DeferredPlayersToInform == null) || DeferredPlayersToInform.SequenceEqual(other.DeferredPlayersToInform));
+            var basics = Initialized == other.Initialized && Complete == other.Complete && NextIndexInHistoryActionsOnly == other.NextIndexInHistoryActionsOnly && LastDecisionIndexAdded == other.LastDecisionIndexAdded && PreviousNotificationDeferred == other.PreviousNotificationDeferred && DeferredAction == other.DeferredAction && DeferredPlayerNumber == other.DeferredPlayerNumber && ((DeferredPlayersToInform == null && other.DeferredPlayersToInform == null) || DeferredPlayersToInform.SequenceEqual(other.DeferredPlayersToInform));
             if (!basics)
                 return false;
             if (!GetActionsAsList().SequenceEqual(other.GetActionsAsList())) // will ignore info after items in span
@@ -119,7 +115,6 @@ namespace ACESim
                 NextIndexInHistoryActionsOnly = NextIndexInHistoryActionsOnly,
                 Initialized = Initialized,
                 PreviousNotificationDeferred = PreviousNotificationDeferred,
-                DeferredDecisionIndex = DeferredDecisionIndex,
                 DeferredAction = DeferredAction,
                 DeferredPlayerNumber = DeferredPlayerNumber,
                 DeferredPlayersToInform = DeferredPlayersToInform,
@@ -152,7 +147,6 @@ namespace ACESim
             ActionsHistory = new byte[GameFullHistory.MaxHistoryLength];
             Cache = new byte[GameHistory.CacheLength];
             InformationSets = new byte[GameHistory.MaxInformationSetLength];
-            DeferredDecisionIndices = new byte[GameHistory.MaxDeferredDecisionIndicesLength];
 #if SAFETYCHECKS
             CreatingThreadID = System.Threading.Thread.CurrentThread.ManagedThreadId;
 #endif
@@ -169,7 +163,6 @@ namespace ACESim
                 NextIndexInHistoryActionsOnly = NextIndexInHistoryActionsOnly,
                 Initialized = Initialized,
                 PreviousNotificationDeferred = PreviousNotificationDeferred,
-                DeferredDecisionIndex = DeferredDecisionIndex,
                 DeferredAction = DeferredAction,
                 DeferredPlayerNumber = DeferredPlayerNumber,
                 DeferredPlayersToInform = DeferredPlayersToInform, // this does not need to be duplicated because it is set in gamedefinition and not changed
@@ -195,7 +188,7 @@ namespace ACESim
 
         public override string ToString()
         {
-            return $"Actions {String.Join(",", GetActionsAsList())} cache {CacheString()} {GetInformationSetsString()} PreviousNotificationDeferred {PreviousNotificationDeferred} DeferredDecisionIndex {DeferredDecisionIndex} DeferredAction {DeferredAction} DeferredPlayerNumber {DeferredPlayerNumber}";
+            return $"Actions {String.Join(",", GetActionsAsList())} cache {CacheString()} {GetInformationSetsString()} PreviousNotificationDeferred {PreviousNotificationDeferred} DeferredAction {DeferredAction} DeferredPlayerNumber {DeferredPlayerNumber}";
         }
 
         public string CacheString()
@@ -251,11 +244,9 @@ namespace ACESim
             Complete = false;
 
             PreviousNotificationDeferred = false;
-    DeferredDecisionIndex = null;
             DeferredAction = 0;
             DeferredPlayerNumber = 0;
             DeferredPlayersToInform = null;
-            DeferredDecisionIndices = null;
         }
 
 
@@ -300,58 +291,39 @@ namespace ACESim
 #region History
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte? deferredDecisionIndex, byte playerIndex, byte action, byte numPossibleActions, byte[] playersToInform, byte[] playersToInformOfOccurrenceOnly, byte[] cacheIndicesToIncrement, byte? storeActionInCacheIndex, GameProgress gameProgress, bool skipAddToHistory, bool deferNotification, bool delayPreviousDeferredNotification)
+        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, byte[] playersToInform, byte[] playersToInformOfOccurrenceOnly, byte[] cacheIndicesToIncrement, byte? storeActionInCacheIndex, GameProgress gameProgress, bool skipAddToHistory, bool deferNotification, bool delayPreviousDeferredNotification)
         {
             // Debug.WriteLine($"Add to history {decisionByteCode} for player {playerIndex} action {action} of {numPossibleActions}");
             if (!skipAddToHistory)
                 AddToSimpleActionsList(action);
             if (gameProgress != null)
                 gameProgress.GameFullHistoryStorable = gameProgress.GameFullHistoryStorable.AddToHistory(decisionByteCode, decisionIndex, playerIndex, action, numPossibleActions, skipAddToHistory);
-            RememberDeferredDecisionIndex(deferredDecisionIndex);
             LastDecisionIndexAdded = decisionIndex;
             if (!delayPreviousDeferredNotification)
             {
                 if (PreviousNotificationDeferred && DeferredPlayersToInform != null)
-                    AddToInformationSetAndLog(DeferredAction, decisionIndex, DeferredDecisionIndex, DeferredPlayerNumber, DeferredPlayersToInform, gameProgress); /* we use the current decision index, not the decision from which it was deferred -- this is important in setting the information set correctly */
+                    AddToInformationSetAndLog(DeferredAction, decisionIndex, DeferredPlayerNumber, DeferredPlayersToInform, gameProgress); /* we use the current decision index, not the decision from which it was deferred -- this is important in setting the information set correctly */
                 PreviousNotificationDeferred = deferNotification;
             }
             if (deferNotification)
             {
                 DeferredAction = action;
-                DeferredDecisionIndex = decisionIndex;
                 DeferredPlayerNumber = playerIndex;
-                DeferredPlayersToInform = playersToInform;
+                DeferredPlayersToInform = playersToInform; 
             }
             else if (playersToInform != null && playersToInform.Length > 0)
             {
-                AddToInformationSetAndLog(action, decisionIndex, null, playerIndex, playersToInform, gameProgress);
+                AddToInformationSetAndLog(action, decisionIndex, playerIndex, playersToInform, gameProgress); 
             }
             if (playersToInformOfOccurrenceOnly != null && playersToInformOfOccurrenceOnly.Length > 0)
-                AddToInformationSetAndLog(DecisionHasOccurred, decisionIndex, null, playerIndex, playersToInformOfOccurrenceOnly, gameProgress);
+                AddToInformationSetAndLog(DecisionHasOccurred, decisionIndex, playerIndex, playersToInformOfOccurrenceOnly, gameProgress);
             if (cacheIndicesToIncrement != null && cacheIndicesToIncrement.Length > 0)
                 foreach (byte cacheIndex in cacheIndicesToIncrement)
                     IncrementItemAtCacheIndex(cacheIndex);
             if (storeActionInCacheIndex != null)
-                SetCacheItemAtIndex((byte)storeActionInCacheIndex, action);
+                SetCacheItemAtIndex((byte) storeActionInCacheIndex, action);
         }
 
-        private readonly void RememberDeferredDecisionIndex(byte? deferredDecisionIndex)
-        {
-            if (deferredDecisionIndex is byte ddi)
-            {
-                bool found = false;
-                for (int i = 0; i < MaxDeferredDecisionIndicesLength && !found; i++)
-                {
-                    if (DeferredDecisionIndices[i] == 0)
-                    {
-                        DeferredDecisionIndices[i] = ddi;
-                        found = true;
-                    }
-                }
-                if (!found)
-                    throw new Exception("Must increase MaxDeferredDecisionIndicesLength");
-            }
-        }
 
         private void AddToSimpleActionsList(byte action)
         {
@@ -396,11 +368,10 @@ namespace ACESim
 
 #region Player information sets
 
-        private void AddToInformationSetAndLog(byte information, byte followingDecisionIndex, byte? deferredDecisionIndex, byte playerIndex, byte[] playersToInform, GameProgress gameProgress)
+        private void AddToInformationSetAndLog(byte information, byte followingDecisionIndex, byte playerIndex, byte[] playersToInform, GameProgress gameProgress)
         {
             if (playersToInform == null)
                 return;
-            RememberDeferredDecisionIndex(deferredDecisionIndex);
             foreach (byte playerToInformIndex in playersToInform)
             {
                 AddToInformationSet(information, playerToInformIndex);

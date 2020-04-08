@@ -212,7 +212,7 @@ namespace ACESim
         private HistoryPoint GetBranch_CachedGameHistory(HistoryNavigationInfo navigation, byte actionChosen, Decision nextDecision, byte nextDecisionIndex)
         {
             GameHistory historyToPointCopy = HistoryToPoint.DeepCopy(); // struct is copied, along with enclosed arrays. 
-            Game.UpdateGameHistory(ref historyToPointCopy, navigation.GameDefinition, nextDecision, nextDecisionIndex, null, actionChosen, GameProgress);
+            Game.UpdateGameHistory(ref historyToPointCopy, navigation.GameDefinition, nextDecision, nextDecisionIndex, actionChosen, GameProgress);
             HistoryPoint next = new HistoryPoint(historyToPointCopy);
             if (nextDecision.CanTerminateGame && navigation.GameDefinition.ShouldMarkGameHistoryComplete(nextDecision, in next.HistoryToPoint, actionChosen))
             {
@@ -229,7 +229,7 @@ namespace ACESim
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
                 GameHistory historyToPointCopy = HistoryToPoint;
-                Game.UpdateGameHistory(ref historyToPointCopy, navigation.GameDefinition, nextDecision, nextDecisionIndex, null, actionChosen, GameProgress);
+                Game.UpdateGameHistory(ref historyToPointCopy, navigation.GameDefinition, nextDecision, nextDecisionIndex, actionChosen, GameProgress);
                 if (nextDecision.CanTerminateGame && navigation.GameDefinition.ShouldMarkGameHistoryComplete(nextDecision, in historyToPointCopy, actionChosen))
                 {
                     historyToPointCopy.MarkComplete();

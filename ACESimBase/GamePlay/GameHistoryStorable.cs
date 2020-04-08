@@ -16,7 +16,6 @@ namespace ACESim
         public bool Initialized;
         public byte[] InformationSets;
         public bool PreviousNotificationDeferred;
-        public byte? DeferredDecisionIndex; debug;
         public byte DeferredAction;
         public byte DeferredPlayerNumber;
         public byte[] DeferredPlayersToInform;
@@ -57,7 +56,6 @@ namespace ACESim
                 NextIndexInHistoryActionsOnly = NextIndexInHistoryActionsOnly,
                 Initialized = Initialized,
                 PreviousNotificationDeferred = PreviousNotificationDeferred,
-                DeferredDecisionIndex = DeferredDecisionIndex,
                 DeferredAction = DeferredAction,
                 DeferredPlayerNumber = DeferredPlayerNumber,
                 DeferredPlayersToInform = DeferredPlayersToInform,  // this does not need to be duplicated because it is set in gamedefinition and not changed
@@ -79,8 +77,6 @@ namespace ACESim
             Initialized = mutationOfShallowCopy.Initialized;
             PreviousNotificationDeferred = mutationOfShallowCopy.PreviousNotificationDeferred;
             DeferredAction = mutationOfShallowCopy.DeferredAction;
-            DeferredDecisionIndex = mutationOfShallowCopy.DeferredDecisionIndex;
-            DeferredDecisionIndices = mutationOfShallowCopyt
             DeferredPlayerNumber = mutationOfShallowCopy.DeferredPlayerNumber;
             DeferredPlayersToInform = mutationOfShallowCopy.DeferredPlayersToInform;
             LastDecisionIndexAdded = mutationOfShallowCopy.LastDecisionIndexAdded;
