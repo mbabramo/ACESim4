@@ -36,7 +36,7 @@ namespace ACESim
             PerfectInfo,
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.DamagesUncertainty_1BR;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom;
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
@@ -134,7 +134,13 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions Custom() => KlermanEtAl_WithOptions();
+        public static MyGameOptions Custom()
+        {
+            var options = DamagesUncertainty_1BR();
+            options.PFilingCost = 0; // DEBUG
+            options.PTrialCosts = 0;
+            return options;
+        }
 
         public static MyGameOptions KlermanEtAl()
         {

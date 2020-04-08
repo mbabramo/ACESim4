@@ -91,6 +91,15 @@ namespace ACESimBase.Util
                     data2[i].X = NormalizeIndependentVars(data2[i].X);
                     data2[i].Y[0] = NormalizeDependentVar(data2[i].Y[0]);
                 }
+                bool createString = false;
+                if (createString)
+                {
+                    StringBuilder s = new StringBuilder();
+                    for (int i = 0; i < numItems; i++)
+                    {
+                        s.AppendLine(data2[i].Y[0] + "," + String.Join(",", data2[i].X));
+                    }
+                }
             }
             await TrainNeuralNetwork(data2, costFunctionType, epochs, numHiddenLayers);
         }
@@ -98,7 +107,7 @@ namespace ACESimBase.Util
         private async Task TrainNeuralNetwork((float[] X, float[] Y)[] data, CostFunctionType costFunctionType, int epochs, int numHiddenLayers)
         {
             int neuronsCount = (int)(0.67 * data.First().X.Length); // heuristic -- 2/3 of number of inputs
-            int minNeuronsCount = 10;
+            int minNeuronsCount = 30;
             if (neuronsCount < minNeuronsCount)
                 neuronsCount = minNeuronsCount;
             LayerFactory[] layerFactories = new LayerFactory[numHiddenLayers + 1];
