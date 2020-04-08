@@ -72,6 +72,21 @@ namespace ACESimTest
         public double DamagesMultipleForChallengedToPay = 0.75;
         public double DamagesMultipleForChallengerToPay = 1.25;
 
+        [TestMethod]
+        public void DiscreteValueSignals()
+        {
+            double stdevOfNormalDistribution_TrulyLiable = 0.4;
+            int numLiabilityStrengthPoints = 100;
+            int numLiabilitySignals = 50;
+            double stdevOfNormalDistribution_LiabilityNoise = 0.1;
+            DiscreteValueSignalParameters liabilityParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = 2, NumSignals = numLiabilityStrengthPoints, StdevOfNormalDistribution = stdevOfNormalDistribution_TrulyLiable, StdevOfNormalDistributionForCutoffPoints = 0.5, UseEndpoints = true };
+            double[] probabilitiesLiabilityStrength_TrulyLiable = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(2, liabilityParams);
+            double[] probabilitiesLiabilityStrength_TrulyNotLiable = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(1, liabilityParams);
+            double[] probabilityTrulyLiable_LiabilityStrength = probabilitiesLiabilityStrength_TrulyLiable.Zip(probabilitiesLiabilityStrength_TrulyNotLiable, (tl, tnl) => tl / (tl + tnl)).ToArray();
+            DiscreteValueSignalParameters pParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = numLiabilityStrengthPoints, NumSignals = numLiabilitySignals, StdevOfNormalDistribution = stdevOfNormalDistribution_LiabilityNoise, UseEndpoints = false };
+
+        }
+
         private static void GetInformationSetStrings(MyGameProgress myGameProgress, out string pInformationSet,
             out string dInformationSet, out string resolutionSet)
         {

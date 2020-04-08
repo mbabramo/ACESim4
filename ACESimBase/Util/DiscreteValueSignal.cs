@@ -158,20 +158,23 @@ namespace ACESim.Util
             if (stdev == 0)
                 stdev = 1E-10;
             GetCombinedPoints(sourcePoints, stdev, out (double uniformDistPoint, double normDistValue)[] uniformAndNormDistPointsToCombine, out double[] distinctPointsOrdered);
-            // Now we want the cutoffs for the signals, making each signal equally likely. Note that if we want 2 signals, then we want 1 cutoff at 0.5 (i.e., 50th percentiles); if there are 10 signals, we want cutoffs at percentiles corresponding to .1, .2, ..., .9. 
-            // (More generally, n signals -> n - 1 percentile cutoffs). After we have the percentile cutoffs, we can divide the signals into 
-            // corresponding, equally sized groups.
+            // Now we want the cutoffs for the signals 
             double[] percentileCutoffs = EquallySpaced.GetCutoffsBetweenRegions(nsParams.NumSignals);
             double[] signalValueCutoffs;
             if (nsParams.StdevOfNormalDistributionForCutoffPoints == null)
-                signalValueCutoffs = percentileCutoffs.Select(ple => ValueAtPercentile(distinctPointsOrdered, ple)).ToArray();
+            { 
+                // Make each signal equally likely. Note that if we want 2 signals, then we want 1 cutoff at 0.5(i.e., 50th percentiles); if there are 10 signals, we want cutoffs at percentiles corresponding to .1, .2, ..., .9.
+               // (More generally, n signals -> n - 1 percentile cutoffs).
+               signalValueCutoffs = percentileCutoffs.Select(ple => ValueAtPercentile(distinctPointsOrdered, ple)).ToArray();
+            }
             else
             {
+                // Some signals may be more likely than others. Get the cross product of the normal distribution for cutoff points and the source points, then take an ordered list of these sums. Thus, the higher the standard deviation we're using for this, the further apart the signal value cutoffs will be (and, if the normal distribution that we are using is lower, the less likely it will be that we hit extreme values). If the number of signals is even, then the number of cutoffs will be odd, and the middle cutoff will be 0.5, assuming that the source points are 0.0 and 1.0
                 GetCombinedPoints(sourcePoints, (double)nsParams.StdevOfNormalDistributionForCutoffPoints, out (double uniformDistPoint, double normDistValue)[] uniformAndNormDistPointsToCombine2, out double[] distinctPointsOrdered2);
                 signalValueCutoffs = percentileCutoffs.Select(ple => ValueAtPercentile(distinctPointsOrdered2, ple)).ToArray();
             }
             // Now, for each of the signal ranges, we must determine the probability that we would end up in this signal range given
-            // any actual litigation quality value. 
+            // any actual litigation quality value. We're now using the basic standard deviation of normal distribution -- not the one for cutoff points. 
             double[][] probabilitiesOfLiabilitySignalGivenSourceLiabilityStrength = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(nsParams.NumPointsInSourceUniformDistribution, nsParams.NumSignals);
             for (int u = 0; u < nsParams.NumPointsInSourceUniformDistribution; u++)
             {
@@ -185,7 +188,7 @@ namespace ACESim.Util
                     numValuesAtEachLiabilitySignal[band]++;
                     totalNumberForUniformDistributionPoint++;
                 }
-                bool calculateExactValues = true; // we've calculated the signal bands using an approximation, but we may wish to use exact values so that we can represent small probabilities (NOTE: Was working at one point, but doesn't seem to work when we don't bucket liability values evenly)
+                bool calculateExactValues = true; // if false, we use an approximation
                 if (calculateExactValues)
                 {
                     double sumCumNormal = 0;
@@ -203,7 +206,7 @@ namespace ACESim.Util
                         double cumNormal = NormalDistributionCalculation.CumulativeNormalDistribution(0 - numStdDeviations);
                         sumCumNormal += cumNormal;
                         if (!signalWithinCutoffs || !subtractOneResultFromOthers)
-                            probabilitiesOfLiabilitySignalGivenSourceLiabilityStrength[u][s] = cumNormal;
+                            probabilitiesOfLiabilitySignalGivenSourceLiabilityStrength[u][s] = cumNormal; // the s values won't add up to 1.0 yet (we have to divide below)
                     }
                     if (subtractOneResultFromOthers)
                         probabilitiesOfLiabilitySignalGivenSourceLiabilityStrength[u][indexOfSignalWithinCutoff] = 1.0 - sumCumNormal;

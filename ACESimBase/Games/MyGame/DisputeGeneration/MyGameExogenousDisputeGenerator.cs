@@ -28,7 +28,8 @@ namespace ACESim
             ProbabilityOfTrulyLiableValues = new double[] { 1.0 - ExogenousProbabilityTrulyLiable, ExogenousProbabilityTrulyLiable };
             // A case is assigned a "true" value of 1 (should not be liable) or 2 (should be liable).
             // Based on the litigation quality noise parameter, we then collect a distribution of possible realized values, on the assumption
-            // that the true values are equally likely. We then break this distribution into evenly sized buckets to get cutoff points.
+            // that the true values are equally likely. We then break this distribution into evenly sized buckets (based on a separate standard
+            // deviation value) to get cutoff points.
             // Given this approach, the exogenous probability has no effect on ProbabilitiesLiabilityStrength_TrulyNotLiable and ProbabilitiesLiabilityStrength_TrulyLiable; both of these are conditional on whether a case is liable or not.
            DiscreteValueSignalParameters liabilityParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = 2, NumSignals = myGameDefinition.Options.NumLiabilityStrengthPoints, StdevOfNormalDistribution = StdevNoiseToProduceLiabilityStrength, StdevOfNormalDistributionForCutoffPoints = 0.5, UseEndpoints = true };
             ProbabilitiesLiabilityStrength_TrulyNotLiable = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(1, liabilityParams);
