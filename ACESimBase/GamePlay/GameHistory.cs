@@ -35,7 +35,8 @@ namespace ACESim
         public const int NumFullPlayers = 3; // includes main players and resolution player and any chance players that need full size information set
         public const int MaxNumPlayers = 13; // includes chance players that need a very limited information set
         public const int NumPartialPlayers = MaxNumPlayers - NumFullPlayers;
-        public const int TotalSpanLength = GameFullHistory.MaxHistoryLength + CacheLength + MaxInformationSetLength;
+        public const int MaxDeferredDecisionIndicesLength = 4;
+        public const int TotalSpanLength = GameFullHistory.MaxHistoryLength + CacheLength + MaxInformationSetLength + MaxDeferredDecisionIndicesLength;
 
         public bool Initialized;
         public bool Complete;
@@ -51,6 +52,7 @@ namespace ACESim
         public Span<byte> ActionsHistory; // length GameFullHistory.MaxHistoryLength
         public Span<byte> Cache; // length CacheLength
         public Span<byte> InformationSets; // length MaxInformationSetLength
+        public Span<byte> DeferredDecisionIndices; // length MaxDeferredDecisionIndicesLength
 #if SAFETYCHECKS
         public int CreatingThreadID;
 #endif
@@ -122,6 +124,7 @@ namespace ACESim
                 ActionsHistory = ActionsHistory.Length > 0 ? new byte[GameFullHistory.MaxHistoryLength] : null,
                 Cache = Cache.Length > 0 ? new byte[GameHistory.CacheLength] : null,
                 InformationSets = InformationSets.Length > 0 ? new byte[GameHistory.MaxInformationSetLength] : null,
+                DeferredDecisionIndices = DeferredDecisionIndices.Length > 0 ? new byte[GameHistory.MaxDeferredDecisionIndicesLength] : null
             };
             if (ActionsHistory.Length > 0)
                 for (int i = 0; i < GameFullHistory.MaxHistoryLength && i < NextIndexInHistoryActionsOnly; i++)
@@ -137,6 +140,11 @@ namespace ACESim
                 for (int i = 0; i < GameHistory.MaxInformationSetLength; i++)
                     result.InformationSets[i] = InformationSets[i];
             }
+            if (DeferredDecisionIndices.Length > 0)
+            {
+                for (int i = 0; i < GameHistory.MaxDeferredDecisionIndicesLength; i++)
+                    result.DeferredDecisionIndices[i] = DeferredDecisionIndices[i];
+            }
             return result;
         }
 
@@ -147,6 +155,7 @@ namespace ACESim
             ActionsHistory = new byte[GameFullHistory.MaxHistoryLength];
             Cache = new byte[GameHistory.CacheLength];
             InformationSets = new byte[GameHistory.MaxInformationSetLength];
+            DeferredDecisionIndices = new byte[GameHistory.MaxDeferredDecisionIndicesLength];
 #if SAFETYCHECKS
             CreatingThreadID = System.Threading.Thread.CurrentThread.ManagedThreadId;
 #endif
@@ -229,6 +238,7 @@ namespace ACESim
             ActionsHistory = new byte[GameFullHistory.MaxHistoryLength];
             Cache = new byte[GameHistory.CacheLength];
             InformationSets = new byte[GameHistory.MaxInformationSetLength];
+            DeferredDecisionIndices = new byte[GameHistory.MaxDeferredDecisionIndicesLength];
 #if SAFETYCHECKS
             CreatingThreadID = System.Threading.Thread.CurrentThread.ManagedThreadId;
 #endif
@@ -247,6 +257,7 @@ namespace ACESim
             DeferredAction = 0;
             DeferredPlayerNumber = 0;
             DeferredPlayersToInform = null;
+            DeferredDecisionIndices = null;
         }
 
 
@@ -309,7 +320,9 @@ namespace ACESim
             {
                 DeferredAction = action;
                 DeferredPlayerNumber = playerIndex;
-                DeferredPlayersToInform = playersToInform; 
+                DeferredPlayersToInform = playersToInform;
+                RememberDeferredDecisionIndex(decisionIndex);
+                
             }
             else if (playersToInform != null && playersToInform.Length > 0)
             {
@@ -324,6 +337,20 @@ namespace ACESim
                 SetCacheItemAtIndex((byte) storeActionInCacheIndex, action);
         }
 
+        private readonly void RememberDeferredDecisionIndex(byte deferredDecisionIndex)
+        {
+            bool found = false;
+            for (int i = 0; i < MaxDeferredDecisionIndicesLength && !found; i++)
+            {
+                if (DeferredDecisionIndices[i] == 0)
+                {
+                    DeferredDecisionIndices[i] = deferredDecisionIndex;
+                    found = true;
+                }
+            }
+            if (!found)
+                throw new Exception("Must increase MaxDeferredDecisionIndicesLength");
+        }
 
         private void AddToSimpleActionsList(byte action)
         {

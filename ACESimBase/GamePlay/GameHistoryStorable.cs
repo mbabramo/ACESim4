@@ -19,6 +19,7 @@ namespace ACESim
         public byte DeferredAction;
         public byte DeferredPlayerNumber;
         public byte[] DeferredPlayersToInform;
+        public byte[] DeferredDecisionIndices;
         public byte LastDecisionIndexAdded;
 #if SAFETYCHECKS
         public int CreatingThreadID;
@@ -44,6 +45,8 @@ namespace ACESim
                 result.VerifyThread();
                 for (int i = 0; i < GameHistory.MaxInformationSetLength; i++)
                     result.InformationSets[i] = InformationSets[i];
+                for (int i = 0; i < GameHistory.MaxDeferredDecisionIndicesLength; i++)
+                    result.DeferredDecisionIndices[i] = DeferredDecisionIndices[i];
             }
             return result;
         }
@@ -62,6 +65,7 @@ namespace ACESim
                 LastDecisionIndexAdded = LastDecisionIndexAdded,
                 ActionsHistory = ActionsHistory,
                 Cache = Cache,
+                DeferredDecisionIndices = DeferredDecisionIndices,
                 InformationSets = InformationSets,
 #if SAFETYCHECKS
                 CreatingThreadID = CreatingThreadID
