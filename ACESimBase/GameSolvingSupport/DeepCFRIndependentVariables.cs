@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace ACESimBase.GameSolvingSupport
@@ -37,18 +38,21 @@ namespace ACESimBase.GameSolvingSupport
             Player = player;
             DecisionIndex = decisionIndex;
             InformationSet = informationSet;
+            if (informationSet.Count() != informationSet.Select(x => x.decisionIndex).Distinct().Count())
+                throw new Exception("DEBUG");
             ActionChosen = actionChosen;
             GameParameters = gameParameters;
         }
 
-        public static List<(byte decisionIndex, bool includedForAll)> GetIncludedDecisionIndices(IEnumerable<DeepCFRIndependentVariables> independentVariables)
+        public static List<(byte decisionIndex, bool includedForAll)> GetIncludedDecisionIndices(IEnumerable<DeepCFRIndependentVariables> independentVariablesSets)
         {
             HashSet<byte> includedDecisionIndices = new HashSet<byte>();
-            foreach (var independentVariable in independentVariables)
-                includedDecisionIndices.Add(independentVariable.DecisionIndex);
+            foreach (var independentVariables in independentVariablesSets)
+                foreach (var decisionIndex in independentVariables.InformationSet.Select(x => x.decisionIndex))
+                    includedDecisionIndices.Add(decisionIndex);
             List<(byte decisionIndex, bool includedForAll)> result = 
                 includedDecisionIndices
-                .Select(decisionIndex => (decisionIndex, independentVariables.All(
+                .Select(decisionIndex => (decisionIndex, independentVariablesSets.All(
                     iv => iv.InformationSet.Any(
                         item => item.decisionIndex == decisionIndex)
                     )
@@ -85,7 +89,9 @@ namespace ACESimBase.GameSolvingSupport
                     {
                         result[resultIndex++] = 1.0f;
                     }
-                    result[resultIndex++] = InformationSet[(int) nextInformationSetDecisionIndex].information;
+                    if (resultIndex == result.Length)
+                        throw new Exception("DEBUG");
+                    result[resultIndex++] = InformationSet[informationSetIndex++].information;
                 }
             }
             // Finally, add the game parameters

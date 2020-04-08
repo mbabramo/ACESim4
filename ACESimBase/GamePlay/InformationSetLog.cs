@@ -84,6 +84,10 @@ namespace ACESim
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AddToLog(byte information, byte followingDecisionIndex, byte playerIndex, string[] playerNames, List<ActionPoint> actionPoints)
         {
+            if (followingDecisionIndex == 11 && (information == 5 || information == 4) && playerIndex == 0)
+            {
+                var DEBUG = 0;
+            }
 #if (SAFETYCHECKS)
             if (playerIndex >= MaxNumPlayers)
                 ThrowHelper.Throw();
