@@ -72,7 +72,7 @@ namespace ACESim
             }
             else if (traversalMode == DeepCFRTraversalMode.AddRegretObservations)
                 throw new Exception("When adding regret observations, should not prespecify action");
-            DirectGamePlayer mainActionPlayer = gamePlayer.DeepCopy();
+            DirectGamePlayer mainActionPlayer = traversalMode == DeepCFRTraversalMode.PlaybackSinglePath ? gamePlayer : gamePlayer.DeepCopy();
             mainActionPlayer.PlayAction(mainAction);
             double[] mainValues = DeepCFRTraversal(mainActionPlayer, observationNum, traversalMode);
             if (traversalMode == DeepCFRTraversalMode.AddRegretObservations)
