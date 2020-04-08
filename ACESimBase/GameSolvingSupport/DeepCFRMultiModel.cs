@@ -63,7 +63,9 @@ namespace ACESimBase.GameSolvingSupport
 
         public async Task CompleteIteration(int deepCFR_Epochs)
         {
-            await Parallelizer.ForEachAsync(EnumerateModels(), m => m.CompleteIteration(deepCFR_Epochs));
+            //await Parallelizer.ForEachAsync(EnumerateModels(), m => m.CompleteIteration(deepCFR_Epochs));
+            foreach (var model in EnumerateModels())
+                await model.CompleteIteration(deepCFR_Epochs);
         }
     }
 }

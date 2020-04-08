@@ -92,7 +92,7 @@ namespace ACESim
 
         // Note: DeepCFR iterations are set in Launcher, same as vanilla iterations.
         public int DeepCFR_Epochs = 1000;
-        public int DeepCFR_ReservoirCapacity = 10_000;
+        public int DeepCFR_ReservoirCapacity = 1_000;
         public double DeepCFR_DiscountRate = 0.98;
 
         // For Vanilla algorithm:
