@@ -189,6 +189,32 @@ namespace ACESim
             playerInfoBuffer[playerInfoBufferIndex] = InformationSetTerminator;
         }
 
+        public IEnumerable<(byte decisionIndex, byte information)> GetPlayerDecisionAndInformationAtPoint(byte playerIndex, byte? upToDecision)
+        {
+            int playerInfoBufferIndex = 0;
+            if (playerIndex >= MaxNumPlayers)
+            {
+                // player has no information
+                yield break;
+            }
+            int playerArrayIndex = InformationSetLoggingIndex(playerIndex);
+            while (LogStorage[playerArrayIndex] != InformationSetTerminator)
+            {
+                byte decision = LogStorage[playerArrayIndex];
+                if (decision >= upToDecision)
+                    break;
+                playerArrayIndex++;
+                if (LogStorage[playerArrayIndex] == RemoveItemFromInformationSet)
+                    playerInfoBufferIndex--; // delete an item
+                else
+                {
+                    yield return (decision, LogStorage[playerArrayIndex]);
+                    playerInfoBufferIndex++;
+                }
+                playerArrayIndex++;
+            }
+        }
+
         public string GetPlayerInformationAtPointString(byte playerIndex, byte? upToDecision)
         {
             Span<byte> playerInfoBuffer = stackalloc byte[MaxInformationSetLoggingLengthPerFullPlayer];

@@ -443,10 +443,6 @@ namespace ACESim
         {
             PreparationPhase = !Progress.PreparationForCurrentStepComplete;
             this.CurrentActionPoint = Progress.CurrentActionGroupNumber == null ? null : GameDefinition.ExecutionOrder[(int)Progress.CurrentActionGroupNumber].ActionPoints[(int)Progress.CurrentActionPointNumberWithinActionGroup];
-            if (CurrentActionPoint?.DecisionNumber == 7)
-            {
-                var DEBUG = 0;
-            }
             this.CurrentDecisionIndex =  CurrentActionPoint?.DecisionNumber;
             if (this.CurrentDecisionIndex != null)
                 this.MostRecentDecisionIndex = this.CurrentDecisionIndex;

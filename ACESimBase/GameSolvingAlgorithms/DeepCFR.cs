@@ -62,13 +62,14 @@ namespace ACESim
             byte playerMakingDecision = gamePlayer.CurrentPlayer.PlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionIndex);
             DeepCFRIndependentVariables independentVariables = null;
-            List<byte> informationSet = null;
+            List<(byte decisionIndex, byte information)> informationSet = null;
             byte mainAction = GameDefinition.DecisionsExecutionOrder[decisionIndex].AlwaysDoAction ?? 0;
             if (mainAction == 0)
             {
                 informationSet = gamePlayer.GetInformationSet();
-                independentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, null /* DEBUG */);
+                independentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, 0 /* placeholder */, null /* DEBUG */);
                 mainAction = Models.ChooseAction(playerMakingDecision, observationNum.GetRandomDouble(decisionIndex), independentVariables, numPossibleActions, numPossibleActions /* DEBUG */);
+                independentVariables.ActionChosen = mainAction;
             }
             else if (traversalMode == DeepCFRTraversalMode.AddRegretObservations)
                 throw new Exception("When adding regret observations, should not prespecify action");
@@ -80,14 +81,16 @@ namespace ACESim
                 // We do a single probe. This allows us to compare the result from the main action.
                 DeepCFRObservationNum probeIteration = observationNum.NextVariation();
                 DirectGamePlayer probeGamePlayer = gamePlayer.DeepCopy();
+                independentVariables.ActionChosen = 0; // not essential -- clarifies that no action has been chosen yet
                 byte probeAction = Models.ChooseAction(playerMakingDecision, probeIteration.GetRandomDouble(decisionIndex), independentVariables, numPossibleActions, numPossibleActions /* DEBUG */);
+                independentVariables.ActionChosen = mainAction;
                 probeGamePlayer.PlayAction(probeAction);
                 double[] probeValues = DeepCFRTraversal(probeGamePlayer, observationNum, DeepCFRTraversalMode.ProbeForUtilities);
                 double sampledRegret = probeValues[playerMakingDecision] - mainValues[playerMakingDecision];
                 DeepCFRObservation observation = new DeepCFRObservation()
                 {
                     SampledRegret = sampledRegret,
-                    IndependentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, null /* DEBUG */)
+                    IndependentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, probeAction, null /* DEBUG */)
                 };
                 Models.AddPendingObservation(playerMakingDecision, observation);
             }

@@ -104,11 +104,11 @@ namespace ACESimBase
                 return (byte)(1 + randomValue * currentDecision.NumPossibleActions);
         }
 
-        public List<byte> GetInformationSet()
+        public List<(byte decisionIndex, byte information)> GetInformationSet()
         {
             if (GameComplete || CurrentPlayer.PlayerIsChance)
                 throw new Exception();
-            return GameProgress.InformationSetLog.GetPlayerInformationUpToNow(CurrentDecision.PlayerNumber);
+            return GameProgress.InformationSetLog.GetPlayerDecisionAndInformationAtPoint(CurrentDecision.PlayerNumber, null).ToList();
         }
     }
 }
