@@ -42,11 +42,15 @@ namespace ACESimBase.GameSolvingSupport
             }
         }
 
-        public byte ChooseAction(T identifier, double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample)
+        public byte ChooseAction(T identifier, double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample, double probabilityUniformRandom)
         {
-            // DEBUG -- allow epsilon random selection
+            // turn one random draw into two independent random draws
+            double rand1 = Math.Floor(randomValue * 10_000) / 10_000;
+            double rand2 = (randomValue - rand1) * 10_000;
+            if (rand1 < probabilityUniformRandom)
+                return DeepCFRModel.ChooseActionAtRandom(rand2, maxActionValue);
             AddModelIfNecessary(identifier);
-            var result = Models[identifier].ChooseAction(randomValue, independentVariables, maxActionValue, numActionsToSample);
+            var result = Models[identifier].ChooseAction(rand2, independentVariables, maxActionValue, numActionsToSample);
             if (result > numActionsToSample)
                 throw new Exception("Internal error. Invalid action choice.");
             return result;

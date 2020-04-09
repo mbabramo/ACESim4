@@ -94,6 +94,7 @@ namespace ACESim
         public int DeepCFR_Epochs = 1_000; // DEBUG
         public int DeepCFR_ReservoirCapacity = 15_000; // DEBUG
         public int DeepCFR_HiddenLayers = 12;
+        public double DeepCFR_Epsilon_OffPolicyProbabilityForProbe = 0.05;
         public double DeepCFR_DiscountRate = 0.98;
 
         // For Vanilla algorithm:

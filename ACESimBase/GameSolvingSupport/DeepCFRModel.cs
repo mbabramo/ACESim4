@@ -115,7 +115,7 @@ namespace ACESimBase.GameSolvingSupport
             return ChooseActionFromPositiveRegrets(regrets, sumPositiveRegrets, randomValue);
         }
 
-        private static byte ChooseActionAtRandom(double randomValue, byte maxActionValue)
+        public static byte ChooseActionAtRandom(double randomValue, byte maxActionValue)
         {
             byte actionToChoose = (byte)(randomValue * maxActionValue);
             actionToChoose++; // one-base the actions
