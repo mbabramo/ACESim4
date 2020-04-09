@@ -89,7 +89,8 @@ namespace ACESimBase.Util
                 for (int i = 0; i < numItems; i++)
                 {
                     data2[i].X = NormalizeIndependentVars(data2[i].X);
-                    data2[i].Y[0] = NormalizeDependentVar(data2[i].Y[0]);
+                    float yUnnormalized = data2[i].Y[0];
+                    data2[i].Y[0] = NormalizeDependentVar(yUnnormalized);
                 }
                 bool createString = false;
                 if (createString)

@@ -69,6 +69,10 @@ namespace ACESim
                 informationSet = gamePlayer.GetInformationSet(true);
                 independentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, 0 /* placeholder */, null /* DEBUG */);
                 mainAction = Models.ChooseAction(playerMakingDecision, observationNum.GetRandomDouble(decisionIndex), independentVariables, numPossibleActions, numPossibleActions /* DEBUG */);
+                if (decisionIndex == 7 && traversalMode == DeepCFRTraversalMode.PlaybackSinglePath)
+                {
+                    var DEBUG = 1;
+                }
                 independentVariables.ActionChosen = mainAction;
             }
             else if (traversalMode == DeepCFRTraversalMode.AddRegretObservations)
@@ -87,9 +91,9 @@ namespace ACESim
                 probeGamePlayer.PlayAction(probeAction);
                 double[] probeValues = DeepCFRTraversal(probeGamePlayer, observationNum, DeepCFRTraversalMode.ProbeForUtilities);
                 double sampledRegret = probeValues[playerMakingDecision] - mainValues[playerMakingDecision];
-                if (decisionIndex == 7 && false) // DEBUG
+                if (decisionIndex == 7 && probeAction != mainAction) // DEBUG
                 {
-                    Debug.WriteLine($"Probe: {probeAction} main: {mainAction} probe value: {probeValues[playerMakingDecision]} regret: {sampledRegret}"); // DEBUG
+                    //Debug.WriteLine($"Probe: {probeAction} main: {mainAction} probe value: {probeValues[playerMakingDecision]} regret: {sampledRegret}"); // DEBUG
                 }
                 DeepCFRObservation observation = new DeepCFRObservation()
                 {
@@ -163,17 +167,19 @@ namespace ACESim
             localStopwatch.Stop();
             StrategiesDeveloperStopwatch.Stop();
 
-            ReportCollection reportCollection = new ReportCollection();
-            var result = await GenerateReports(iteration,
-                () =>
-                    $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
-            reportCollection.Add(result);
             TabbedText.Write($"Iteration {iteration} of {EvolutionSettings.TotalIterations}: generating {numObservationsToAdd?.Sum() ?? EvolutionSettings.DeepCFR_ReservoirCapacity * NumNonChancePlayers} observations {localStopwatch.ElapsedMilliseconds} ms ");
 
             localStopwatch = new Stopwatch();
             localStopwatch.Start();
             await Models.CompleteIteration(EvolutionSettings.DeepCFR_Epochs);
             TabbedText.WriteLine($"generating model over {EvolutionSettings.DeepCFR_Epochs} epochs {localStopwatch.ElapsedMilliseconds} ms");
+
+
+            ReportCollection reportCollection = new ReportCollection();
+            var result = await GenerateReports(iteration,
+                () =>
+                    $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
+            reportCollection.Add(result);
 
             return reportCollection;
         }

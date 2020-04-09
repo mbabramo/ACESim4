@@ -78,10 +78,11 @@ namespace ACESimBase.GameSolvingSupport
                 result[resultIndex++] = Player;
             if (includeDecision)
                 result[resultIndex++] = DecisionIndex;
-            int informationSetIndex = 0;
+            int informationSetPlusActionIndex = 0;
+            var informationSetPlusAction = InformationSetPlusActionChosen().ToArray();
             foreach ((byte decisionIndex, bool includedForAll) in includedDecisionIndices)
             {
-                int? nextInformationSetDecisionIndex = informationSetIndex >= InformationSet.Count() ? null : (int?) InformationSet[informationSetIndex].decisionIndex;
+                int? nextInformationSetDecisionIndex = informationSetPlusActionIndex >= informationSetPlusAction.Count() ? null : (int?)informationSetPlusAction[informationSetPlusActionIndex].decisionIndex;
                 if (nextInformationSetDecisionIndex == null || nextInformationSetDecisionIndex > decisionIndex)
                 { 
                     // the decisionIndex is not included in the information set.
@@ -99,7 +100,7 @@ namespace ACESimBase.GameSolvingSupport
                     }
                     if (resultIndex == result.Length)
                         throw new Exception("DEBUG");
-                    result[resultIndex++] = InformationSet[informationSetIndex++].information;
+                    result[resultIndex++] = informationSetPlusAction[informationSetPlusActionIndex++].information;
                 }
             }
             // Finally, add the game parameters

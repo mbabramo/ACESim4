@@ -96,7 +96,6 @@ namespace ACESimBase.GameSolvingSupport
                 double[] x = EquallySpaced.GetEquallySpacedPoints(numActionsToSample, false, 1, maxActionValue).Select(a => Math.Floor(a)).ToArray();
                 double[] y = x.Select(a => GetPredictedRegretForAction(independentVariables, (byte) a)).ToArray();
                 spline1dbuildcatmullrom(x, y, out spline_interpolant);
-                throw new NotImplementedException();
             }
             double[] regrets = new double[maxActionValue];
             double sumPositiveRegrets = 0;
