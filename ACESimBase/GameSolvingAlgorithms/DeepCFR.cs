@@ -17,7 +17,7 @@ namespace ACESim
 
         public DeepCFR(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
         {
-            Models = new DeepCFRMultiModel<byte>(EvolutionSettings.DeepCFR_ReservoirCapacity, 0, EvolutionSettings.DeepCFR_DiscountRate);
+            Models = new DeepCFRMultiModel<byte>(EvolutionSettings.DeepCFR_ReservoirCapacity, 0, EvolutionSettings.DeepCFR_DiscountRate, EvolutionSettings.DeepCFR_Epochs, EvolutionSettings.DeepCFR_HiddenLayers);
         }
 
         public override IStrategiesDeveloper DeepCopy()

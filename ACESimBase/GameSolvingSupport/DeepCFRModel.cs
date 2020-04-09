@@ -25,6 +25,14 @@ namespace ACESimBase.GameSolvingSupport
         /// </summary>
         public double DiscountRate;
         /// <summary>
+        /// The number of hidden layers in the regression
+        /// </summary>
+        public int HiddenLayers;
+        /// <summary>
+        /// The number of epochs in neural network optimization.
+        /// </summary>
+        public int Epochs;
+        /// <summary>
         /// Observations to be added to the model at the end of the current iteration.
         /// </summary>
         public ConcurrentBag<DeepCFRObservation> PendingObservations;
@@ -37,9 +45,11 @@ namespace ACESimBase.GameSolvingSupport
         /// </summary>
         List<byte> IncludedDecisionIndices;
 
-        public DeepCFRModel(int reservoirCapacity, long reservoirSeed, double discountRate)
+        public DeepCFRModel(int reservoirCapacity, long reservoirSeed, double discountRate, int hiddenLayers, int epochs)
         {
             DiscountRate = discountRate;
+            HiddenLayers = hiddenLayers;
+            Epochs = epochs;
             Observations = new Reservoir<DeepCFRObservation>(reservoirCapacity, reservoirSeed);
             PendingObservations = new ConcurrentBag<DeepCFRObservation>();
         }
@@ -51,22 +61,22 @@ namespace ACESimBase.GameSolvingSupport
 
         public int CountPendingObservationsTarget(int iteration) => Observations.CountTotalNumberToAddAtIteration(DiscountRate, iteration);
 
-        public async Task CompleteIteration(int deepCFREpochs)
+        public async Task CompleteIteration()
         {
             IterationsProcessed++;
             Observations.AddPotentialReplacementsAtIteration(PendingObservations.ToList(), DiscountRate, IterationsProcessed);
             PendingObservations = new ConcurrentBag<DeepCFRObservation>();
-            await BuildModel(deepCFREpochs);
+            await BuildModel();
         }
 
-        private async Task BuildModel(int deepCFREpochs)
+        private async Task BuildModel()
         {
             if (!Observations.Any())
                 throw new Exception("No observations available to build model.");
             IncludedDecisionIndices = DeepCFRIndependentVariables.GetIncludedDecisionIndices(Observations.Select(x => x.IndependentVariables));
             var data = Observations.Select(x => (x.IndependentVariables.AsArray(IncludedDecisionIndices), (float) x.SampledRegret)).ToArray();
             Regression = new NeuralNetworkController();
-            await Regression.TrainNeuralNetwork(data, NeuralNetworkNET.Networks.Cost.CostFunctionType.Quadratic, deepCFREpochs, 6);
+            await Regression.TrainNeuralNetwork(data, NeuralNetworkNET.Networks.Cost.CostFunctionType.Quadratic, Epochs, HiddenLayers);
         }
 
         public double GetPredictedRegretForAction(DeepCFRIndependentVariables independentVariables, byte action)

@@ -14,13 +14,16 @@ namespace ACESimBase.GameSolvingSupport
         int ReservoirCapacity;
         long ReservoirSeed;
         double DiscountRate;
+        int Epochs, HiddenLayers;
         object LockObj = new object();
 
-        public DeepCFRMultiModel(int reservoirCapacity, long reservoirSeed, double discountRate)
+        public DeepCFRMultiModel(int reservoirCapacity, long reservoirSeed, double discountRate, int epochs, int hiddenLayers)
         {
             ReservoirCapacity = reservoirCapacity;
             ReservoirSeed = reservoirSeed;
             DiscountRate = discountRate;
+            Epochs = epochs;
+            HiddenLayers = hiddenLayers;
         }
 
         public IEnumerable<DeepCFRModel> EnumerateModels() => Models.OrderBy(x => x.Key).Select(x => x.Value);
@@ -33,7 +36,7 @@ namespace ACESimBase.GameSolvingSupport
                 {
                     if (!Models.ContainsKey(identifier))
                     {
-                        Models[identifier] = new DeepCFRModel(ReservoirCapacity, ReservoirSeed, DiscountRate);
+                        Models[identifier] = new DeepCFRModel(ReservoirCapacity, ReservoirSeed, DiscountRate, HiddenLayers, Epochs);
                     }
                 }
             }
@@ -69,7 +72,7 @@ namespace ACESimBase.GameSolvingSupport
         {
             //await Parallelizer.ForEachAsync(EnumerateModels(), m => m.CompleteIteration(deepCFR_Epochs));
             foreach (var model in EnumerateModels())
-                await model.CompleteIteration(deepCFR_Epochs);
+                await model.CompleteIteration();
         }
     }
 }
