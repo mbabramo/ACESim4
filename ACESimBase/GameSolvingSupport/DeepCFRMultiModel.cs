@@ -41,8 +41,12 @@ namespace ACESimBase.GameSolvingSupport
 
         public byte ChooseAction(T identifier, double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample)
         {
+            // DEBUG -- allow epsilon random selection
             AddModelIfNecessary(identifier);
-            return Models[identifier].ChooseAction(randomValue, independentVariables, maxActionValue, numActionsToSample);
+            var result = Models[identifier].ChooseAction(randomValue, independentVariables, maxActionValue, numActionsToSample);
+            if (result > numActionsToSample)
+                throw new Exception("Internal error. Invalid action choice.");
+            return result;
         }
 
         public void AddPendingObservation(T identifier, DeepCFRObservation observation)

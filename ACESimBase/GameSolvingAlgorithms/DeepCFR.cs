@@ -87,6 +87,10 @@ namespace ACESim
                 probeGamePlayer.PlayAction(probeAction);
                 double[] probeValues = DeepCFRTraversal(probeGamePlayer, observationNum, DeepCFRTraversalMode.ProbeForUtilities);
                 double sampledRegret = probeValues[playerMakingDecision] - mainValues[playerMakingDecision];
+                if (decisionIndex == 7 && false) // DEBUG
+                {
+                    Debug.WriteLine($"Probe: {probeAction} main: {mainAction} probe value: {probeValues[playerMakingDecision]} regret: {sampledRegret}"); // DEBUG
+                }
                 DeepCFRObservation observation = new DeepCFRObservation()
                 {
                     SampledRegret = sampledRegret,

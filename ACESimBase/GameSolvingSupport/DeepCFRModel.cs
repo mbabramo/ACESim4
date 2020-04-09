@@ -96,14 +96,15 @@ namespace ACESimBase.GameSolvingSupport
                 double[] x = EquallySpaced.GetEquallySpacedPoints(numActionsToSample, false, 1, maxActionValue).Select(a => Math.Floor(a)).ToArray();
                 double[] y = x.Select(a => GetPredictedRegretForAction(independentVariables, (byte) a)).ToArray();
                 spline1dbuildcatmullrom(x, y, out spline_interpolant);
+                throw new NotImplementedException();
             }
-            double[] regrets = new double[maxActionValue + 1]; // no action 0
+            double[] regrets = new double[maxActionValue];
             double sumPositiveRegrets = 0;
             for (byte a = 1; a <= maxActionValue; a++)
             {
                 double predictedRegret = maxActionValue == numActionsToSample ? GetPredictedRegretForAction(independentVariables, a) : spline1dcalc(spline_interpolant, (double) a);
                 double positiveRegretForAction = Math.Max(0, predictedRegret);
-                regrets[a] = positiveRegretForAction;
+                regrets[a - 1] = positiveRegretForAction;
                 sumPositiveRegrets += positiveRegretForAction;
             }
             return ChooseActionFromPositiveRegrets(regrets, sumPositiveRegrets, randomValue);
@@ -126,11 +127,11 @@ namespace ACESimBase.GameSolvingSupport
             double towardTarget = 0;
             for (byte a = 1; a < positiveRegrets.Length; a++)
             {
-                towardTarget += positiveRegrets[a];
+                towardTarget += positiveRegrets[a - 1];
                 if (towardTarget > targetCumPosRegret)
                     return a;
             }
-            return (byte) (positiveRegrets.Length - 1);
+            return (byte) (positiveRegrets.Length);
         }
     }
 }
