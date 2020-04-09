@@ -91,7 +91,7 @@ namespace ACESim
         public bool CFR_OpponentSampling = false; // if true, then we sample only 1 action at each opponent information set (but this does not apply to chance actions, as currently implemented)
 
         // Note: DeepCFR iterations are set in Launcher, same as vanilla iterations.
-        public int DeepCFR_Epochs = 10_000; // DEBUG
+        public int DeepCFR_Epochs = 1_000; // DEBUG
         public int DeepCFR_ReservoirCapacity = 10_000; // DEBUG
         public double DeepCFR_DiscountRate = 0.98;
 

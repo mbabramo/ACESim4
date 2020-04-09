@@ -51,53 +51,39 @@ namespace ACESimBase.GameSolvingSupport
             yield return (DecisionIndex, ActionChosen);
         }
 
-        public static List<(byte decisionIndex, bool includedForAll)> GetIncludedDecisionIndices(IEnumerable<DeepCFRIndependentVariables> independentVariablesSets)
+        public static List<byte> GetIncludedDecisionIndices(IEnumerable<DeepCFRIndependentVariables> independentVariablesSets)
         {
             HashSet<byte> includedDecisionIndices = new HashSet<byte>();
             foreach (var independentVariables in independentVariablesSets)
                 foreach (var decisionIndex in independentVariables.InformationSetPlusActionChosen().Select(x => x.decisionIndex))
                     includedDecisionIndices.Add(decisionIndex);
-            List<(byte decisionIndex, bool includedForAll)> result = 
-                includedDecisionIndices
-                .Select(decisionIndex => (decisionIndex, independentVariablesSets.All(
-                    iv => iv.InformationSetPlusActionChosen().Any(
-                        item => item.decisionIndex == decisionIndex)
-                    )
-                )).ToList();
+            var result = includedDecisionIndices.OrderBy(x => x).ToList();
             return result;
         }
 
-        public float[] AsArray(bool includePlayer, bool includeDecision, List<(byte decisionIndex, bool includedForAll)> includedDecisionIndices)
+        public float[] AsArray(List<byte> includedDecisionIndices)
         {
             int informationSetSize = InformationSetPlusActionChosen()?.Count() ?? 0;
             int numGameParameters = GameParameters?.Count() ?? 0;
-            int arraySize = (includePlayer ? 1 : 0) + (includeDecision ? 1 : 0) + includedDecisionIndices.Count() + includedDecisionIndices.Where(x => x.includedForAll == false).Count() + numGameParameters;
+            int arraySize = 2 + includedDecisionIndices.Count() * 2 + numGameParameters;
             float[] result = new float[arraySize];
             int resultIndex = 0;
-            if (includePlayer)
-                result[resultIndex++] = Player;
-            if (includeDecision)
-                result[resultIndex++] = DecisionIndex;
+            result[resultIndex++] = Player;
+            result[resultIndex++] = DecisionIndex;
             int informationSetPlusActionIndex = 0;
             var informationSetPlusAction = InformationSetPlusActionChosen().ToArray();
-            foreach ((byte decisionIndex, bool includedForAll) in includedDecisionIndices)
+            foreach (byte decisionIndex in includedDecisionIndices)
             {
                 int? nextInformationSetDecisionIndex = informationSetPlusActionIndex >= informationSetPlusAction.Count() ? null : (int?)informationSetPlusAction[informationSetPlusActionIndex].decisionIndex;
                 if (nextInformationSetDecisionIndex == null || nextInformationSetDecisionIndex > decisionIndex)
                 { 
                     // the decisionIndex is not included in the information set.
-                    if (!includedForAll)
-                    {
-                        result[resultIndex++] = 0; // i.e., this information is unavailable
-                    }
+                    result[resultIndex++] = 0; // i.e., this information is unavailable
                     result[resultIndex++] = 0; // this is where information would have gone if available
                 }
                 else
                 {// the decisionIndex is included in the information set. Note this if necessary. Then, record the information itself in the result.
-                    if (!includedForAll)
-                    {
-                        result[resultIndex++] = 1.0f; // i.e., information is available
-                    }
+                    result[resultIndex++] = 1.0f; // i.e., information is available
                     if (resultIndex == result.Length)
                         throw new Exception("DEBUG");
                     result[resultIndex++] = informationSetPlusAction[informationSetPlusActionIndex++].information;

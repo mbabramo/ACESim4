@@ -32,10 +32,10 @@ namespace ACESimBase.GameSolvingSupport
         /// The trained neural network.
         /// </summary>
         NeuralNetworkController Regression;
-        // The following explain how we format our independent variables.
-        bool PlayerSameForAll;
-        bool DecisionByteCodeSameForAll;
-        List<(byte decisionIndex, bool includedForAll)> IncludedDecisionIndices;
+        /// <summary>
+        /// The decision indices that are included in the independent variables of the regression
+        /// </summary>
+        List<byte> IncludedDecisionIndices;
 
         public DeepCFRModel(int reservoirCapacity, long reservoirSeed, double discountRate)
         {
@@ -63,12 +63,8 @@ namespace ACESimBase.GameSolvingSupport
         {
             if (!Observations.Any())
                 throw new Exception("No observations available to build model.");
-            byte firstPlayer = Observations.First().IndependentVariables.Player;
-            PlayerSameForAll = Observations.All(x => firstPlayer == x.IndependentVariables.Player);
-            byte firstDecisionByteCode = Observations.First().IndependentVariables.DecisionIndex;
-            DecisionByteCodeSameForAll = Observations.All(x => firstDecisionByteCode == x.IndependentVariables.DecisionIndex);
             IncludedDecisionIndices = DeepCFRIndependentVariables.GetIncludedDecisionIndices(Observations.Select(x => x.IndependentVariables));
-            var data = Observations.Select(x => (x.IndependentVariables.AsArray(!PlayerSameForAll, !DecisionByteCodeSameForAll, IncludedDecisionIndices), (float) x.SampledRegret)).ToArray();
+            var data = Observations.Select(x => (x.IndependentVariables.AsArray(IncludedDecisionIndices), (float) x.SampledRegret)).ToArray();
             Regression = new NeuralNetworkController();
             await Regression.TrainNeuralNetwork(data, NeuralNetworkNET.Networks.Cost.CostFunctionType.Quadratic, deepCFREpochs, 3);
         }
@@ -78,7 +74,7 @@ namespace ACESimBase.GameSolvingSupport
             if (IterationsProcessed == 0)
                 throw new Exception();
             independentVariables.ActionChosen = action;
-            return Regression.GetResult(independentVariables.AsArray(!PlayerSameForAll, !DecisionByteCodeSameForAll, IncludedDecisionIndices));
+            return Regression.GetResult(independentVariables.AsArray(IncludedDecisionIndices));
         }
 
         public byte ChooseAction(double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample)
