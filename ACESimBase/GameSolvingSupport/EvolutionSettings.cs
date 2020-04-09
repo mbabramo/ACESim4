@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ACESimBase.GameSolvingSupport;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -91,8 +92,9 @@ namespace ACESim
         public bool CFR_OpponentSampling = false; // if true, then we sample only 1 action at each opponent information set (but this does not apply to chance actions, as currently implemented)
 
         // Note: DeepCFR iterations are set in Launcher, same as vanilla iterations.
+        public DeepCFRMultiModelMode DeepCFRMultiModelMode = DeepCFRMultiModelMode.DecisionSpecific;
         public int DeepCFR_Epochs = 1_000; // DEBUG
-        public int DeepCFR_ReservoirCapacity = 15_000; // DEBUG
+        public int DeepCFR_ReservoirCapacity = 5_000; // DEBUG
         public int DeepCFR_HiddenLayers = 12;
         public double DeepCFR_Epsilon_OffPolicyProbabilityForProbe = 0.05;
         public double DeepCFR_DiscountRate = 0.98;

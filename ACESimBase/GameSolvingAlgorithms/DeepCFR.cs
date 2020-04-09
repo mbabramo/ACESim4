@@ -13,11 +13,11 @@ namespace ACESim
     [Serializable]
     public partial class DeepCFR : CounterfactualRegretMinimization
     {
-        DeepCFRMultiModel<byte> Models;
+        DeepCFRMultiModel Models;
 
         public DeepCFR(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
         {
-            Models = new DeepCFRMultiModel<byte>(EvolutionSettings.DeepCFR_ReservoirCapacity, 0, EvolutionSettings.DeepCFR_DiscountRate, EvolutionSettings.DeepCFR_Epochs, EvolutionSettings.DeepCFR_HiddenLayers);
+            Models = new DeepCFRMultiModel(EvolutionSettings.DeepCFRMultiModelMode, EvolutionSettings.DeepCFR_ReservoirCapacity, 0, EvolutionSettings.DeepCFR_DiscountRate, EvolutionSettings.DeepCFR_Epochs, EvolutionSettings.DeepCFR_HiddenLayers);
         }
 
         public override IStrategiesDeveloper DeepCopy()
@@ -68,11 +68,7 @@ namespace ACESim
             {
                 informationSet = gamePlayer.GetInformationSet(true);
                 independentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, 0 /* placeholder */, null /* DEBUG */);
-                mainAction = Models.ChooseAction(playerMakingDecision, observationNum.GetRandomDouble(decisionIndex), independentVariables, numPossibleActions, numPossibleActions /* DEBUG */, 0 /* main action is always on policy */);
-                if (decisionIndex == 7 && traversalMode == DeepCFRTraversalMode.PlaybackSinglePath)
-                {
-                    var DEBUG = 1;
-                }
+                mainAction = Models.ChooseAction(playerMakingDecision, currentDecision.DecisionByteCode, observationNum.GetRandomDouble(decisionIndex), independentVariables, numPossibleActions, numPossibleActions /* DEBUG */, 0 /* main action is always on policy */);
                 independentVariables.ActionChosen = mainAction;
             }
             else if (traversalMode == DeepCFRTraversalMode.AddRegretObservations)
@@ -86,7 +82,7 @@ namespace ACESim
                 DeepCFRObservationNum probeIteration = observationNum.NextVariation();
                 DirectGamePlayer probeGamePlayer = gamePlayer.DeepCopy();
                 independentVariables.ActionChosen = 0; // not essential -- clarifies that no action has been chosen yet
-                byte probeAction = Models.ChooseAction(playerMakingDecision, probeIteration.GetRandomDouble(decisionIndex), independentVariables, numPossibleActions, numPossibleActions /* DEBUG */, EvolutionSettings.DeepCFR_Epsilon_OffPolicyProbabilityForProbe);
+                byte probeAction = Models.ChooseAction(playerMakingDecision, currentDecision.DecisionByteCode, probeIteration.GetRandomDouble(decisionIndex), independentVariables, numPossibleActions, numPossibleActions /* DEBUG */, EvolutionSettings.DeepCFR_Epsilon_OffPolicyProbabilityForProbe);
                 independentVariables.ActionChosen = mainAction;
                 probeGamePlayer.PlayAction(probeAction);
                 double[] probeValues = DeepCFRTraversal(probeGamePlayer, observationNum, DeepCFRTraversalMode.ProbeForUtilities);
@@ -100,7 +96,7 @@ namespace ACESim
                     SampledRegret = sampledRegret,
                     IndependentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, probeAction, null /* DEBUG */)
                 };
-                Models.AddPendingObservation(playerMakingDecision, observation);
+                Models.AddPendingObservation(playerMakingDecision, currentDecision.DecisionByteCode, observation);
             }
             return mainValues;
         }

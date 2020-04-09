@@ -117,7 +117,7 @@ namespace ACESimBase.Util
                 layerFactories[i] = NetworkLayers.FullyConnected(neuronsCount, ActivationType.ReLU);
             layerFactories[numHiddenLayers] = NetworkLayers.FullyConnected(1, ActivationType.Tanh, costFunctionType);
             StoredNetwork = NetworkManager.NewSequential(TensorInfo.Linear(data.First().X.Length), layerFactories);
-            int numForTesting = 10_000;
+            int numForTesting = 1_000;
             if (data.Length < numForTesting + 100) // DEBUG
                 throw new Exception();
             const float validationProportion = 0.1f; // applies to items not for testing

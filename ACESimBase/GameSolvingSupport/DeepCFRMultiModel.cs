@@ -7,7 +7,114 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.GameSolvingSupport
 {
-    public class DeepCFRMultiModel<T>
+    public enum DeepCFRMultiModelMode
+    {
+        Unified,
+        PlayerSpecific,
+        DecisionSpecific
+    }
+
+    public class DeepCFRMultiModel
+    {
+        DeepCFRMultiModelMode Mode;
+        int ReservoirCapacity;
+        long ReservoirSeed;
+        double DiscountRate;
+        int Epochs, HiddenLayers;
+        object LockObj = new object();
+
+        public DeepCFRModel UnifiedModel;
+        public DeepCFRMultiModelContainer<byte> PlayerSpecificModels = null;
+        public DeepCFRMultiModelContainer<(byte playerIndex, byte decisionByteCode)> DecisionSpecificModels = null;
+
+        public DeepCFRMultiModel(DeepCFRMultiModelMode mode, int reservoirCapacity, long reservoirSeed, double discountRate, int epochs, int hiddenLayers)
+        {
+            Mode = mode;
+            ReservoirCapacity = reservoirCapacity;
+            ReservoirSeed = reservoirSeed;
+            DiscountRate = discountRate;
+            Epochs = epochs;
+            HiddenLayers = hiddenLayers;
+            switch (Mode)
+            {
+                case DeepCFRMultiModelMode.Unified:
+                    UnifiedModel = new DeepCFRModel(ReservoirCapacity, ReservoirSeed, DiscountRate, HiddenLayers, Epochs);
+                    break;
+                case DeepCFRMultiModelMode.PlayerSpecific:
+                    PlayerSpecificModels = new DeepCFRMultiModelContainer<byte>(ReservoirCapacity, ReservoirSeed, DiscountRate, HiddenLayers, Epochs);
+                    break;
+                case DeepCFRMultiModelMode.DecisionSpecific:
+                    DecisionSpecificModels = new DeepCFRMultiModelContainer<(byte playerIndex, byte decisionByteCode)>(ReservoirCapacity, ReservoirSeed, DiscountRate, HiddenLayers, Epochs);
+                    break;
+            }
+        }
+
+        public DeepCFRModel GetModel(byte playerIndex, byte decisionByteCode) => Mode switch
+        {
+            DeepCFRMultiModelMode.Unified => UnifiedModel,
+            DeepCFRMultiModelMode.PlayerSpecific => PlayerSpecificModels.GetModel(playerIndex),
+            DeepCFRMultiModelMode.DecisionSpecific => DecisionSpecificModels.GetModel((playerIndex, decisionByteCode)),
+            _ => throw new NotImplementedException(),
+        };
+
+        public IEnumerable<DeepCFRModel> EnumerateModels() => Mode switch
+        {
+            DeepCFRMultiModelMode.Unified => new DeepCFRModel[] { UnifiedModel },
+            DeepCFRMultiModelMode.PlayerSpecific => PlayerSpecificModels.EnumerateModels(),
+            DeepCFRMultiModelMode.DecisionSpecific => DecisionSpecificModels.EnumerateModels(),
+            _ => throw new NotImplementedException(),
+        };
+
+
+        public byte ChooseAction(byte playerIndex, byte decisionByteCode, double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample, double probabilityUniformRandom)
+        {
+            var model = GetModel(playerIndex, decisionByteCode);
+            return ChooseAction(model, randomValue, independentVariables, maxActionValue, numActionsToSample, probabilityUniformRandom);
+        }
+
+        public static byte ChooseAction(DeepCFRModel model, double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample, double probabilityUniformRandom)
+        {
+            // turn one random draw into two independent random draws
+            double rand1 = Math.Floor(randomValue * 10_000) / 10_000;
+            double rand2 = (randomValue - rand1) * 10_000;
+            if (rand1 < probabilityUniformRandom)
+                return DeepCFRModel.ChooseActionAtRandom(rand2, maxActionValue);
+            var result = model.ChooseAction(rand2, independentVariables, maxActionValue, numActionsToSample);
+            if (result > numActionsToSample)
+                throw new Exception("Internal error. Invalid action choice.");
+            return result;
+        }
+
+        public void AddPendingObservation(byte playerIndex, byte decisionByteCode, DeepCFRObservation observation)
+        {
+            var model = GetModel(playerIndex, decisionByteCode);
+            AddPendingObservation(model, observation);
+        }
+
+        public static void AddPendingObservation(DeepCFRModel model, DeepCFRObservation observation)
+        {
+            model.AddPendingObservation(observation);
+        }
+
+        public int[] CountPendingObservationsTarget(int iteration) => EnumerateModels().Select(x => x.CountPendingObservationsTarget(iteration)).ToArray();
+
+        public bool AllMeetPendingObservationsTarget(int[] target)
+        {
+            if (target == null || target.Length == 0)
+                return EnumerateModels().Any() && EnumerateModels().All(x => x.PendingObservations.Count() > ReservoirCapacity);
+            bool result = EnumerateModels().Select(x => x.PendingObservations.Count()).Zip(target, (poc, t) => poc > t).All(x => x == true);
+            return result;
+        }
+
+        public async Task CompleteIteration(int deepCFR_Epochs)
+        {
+            //await Parallelizer.ForEachAsync(EnumerateModels(), m => m.CompleteIteration(deepCFR_Epochs));
+            foreach (var model in EnumerateModels())
+                await model.CompleteIteration();
+        }
+    }
+
+    public class DeepCFRMultiModelContainer<T>
     {
         public Dictionary<T, DeepCFRModel> Models = new Dictionary<T, DeepCFRModel>();
 
@@ -17,13 +124,13 @@ namespace ACESimBase.GameSolvingSupport
         int Epochs, HiddenLayers;
         object LockObj = new object();
 
-        public DeepCFRMultiModel(int reservoirCapacity, long reservoirSeed, double discountRate, int epochs, int hiddenLayers)
+        public DeepCFRMultiModelContainer(int reservoirCapacity, long reservoirSeed, double discountRate, int hiddenLayers, int epochs)
         {
             ReservoirCapacity = reservoirCapacity;
             ReservoirSeed = reservoirSeed;
             DiscountRate = discountRate;
-            Epochs = epochs;
             HiddenLayers = hiddenLayers;
+            Epochs = epochs;
         }
 
         public IEnumerable<DeepCFRModel> EnumerateModels() => Models.OrderBy(x => x.Key).Select(x => x.Value);
@@ -42,41 +149,10 @@ namespace ACESimBase.GameSolvingSupport
             }
         }
 
-        public byte ChooseAction(T identifier, double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample, double probabilityUniformRandom)
-        {
-            // turn one random draw into two independent random draws
-            double rand1 = Math.Floor(randomValue * 10_000) / 10_000;
-            double rand2 = (randomValue - rand1) * 10_000;
-            if (rand1 < probabilityUniformRandom)
-                return DeepCFRModel.ChooseActionAtRandom(rand2, maxActionValue);
-            AddModelIfNecessary(identifier);
-            var result = Models[identifier].ChooseAction(rand2, independentVariables, maxActionValue, numActionsToSample);
-            if (result > numActionsToSample)
-                throw new Exception("Internal error. Invalid action choice.");
-            return result;
-        }
-
-        public void AddPendingObservation(T identifier, DeepCFRObservation observation)
+        public DeepCFRModel GetModel(T identifier)
         {
             AddModelIfNecessary(identifier);
-            Models[identifier].AddPendingObservation(observation);
-        }
-
-        public int[] CountPendingObservationsTarget(int iteration) => EnumerateModels().Select(x => x.CountPendingObservationsTarget(iteration)).ToArray();
-
-        public bool AllMeetPendingObservationsTarget(int[] target)
-        {
-            if (target == null || target.Length == 0)
-                return Models.Any() && Models.All(x => x.Value.PendingObservations.Count() > ReservoirCapacity);
-            bool result = EnumerateModels().Select(x => x.PendingObservations.Count()).Zip(target, (poc, t) => poc > t).All(x => x == true);
-            return result;
-        }
-
-        public async Task CompleteIteration(int deepCFR_Epochs)
-        {
-            //await Parallelizer.ForEachAsync(EnumerateModels(), m => m.CompleteIteration(deepCFR_Epochs));
-            foreach (var model in EnumerateModels())
-                await model.CompleteIteration();
+            return Models[identifier];
         }
     }
 }
