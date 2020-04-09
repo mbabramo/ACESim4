@@ -1,4 +1,5 @@
-﻿using NeuralNetworkNET.APIs;
+﻿using ACESim;
+using NeuralNetworkNET.APIs;
 using NeuralNetworkNET.APIs.Delegates;
 using NeuralNetworkNET.APIs.Enums;
 using NeuralNetworkNET.APIs.Interfaces;
@@ -117,8 +118,10 @@ namespace ACESimBase.Util
             layerFactories[numHiddenLayers] = NetworkLayers.FullyConnected(1, ActivationType.Tanh, costFunctionType);
             StoredNetwork = NetworkManager.NewSequential(TensorInfo.Linear(data.First().X.Length), layerFactories);
             const float proportionForTraining = 0.8f;
+            const float proportionForValidation = 0.1f;
             int numSamplesForTraining = (int)(data.Length * proportionForTraining);
-            int numSamplesForValidation = data.Length - numSamplesForTraining;
+            int numSamplesForValidation = (int)(data.Length * proportionForValidation);
+            int numSamplesForTesting = data.Length - numSamplesForTraining - numSamplesForValidation;
             const int batchSize = 1_000;
             ITrainingDataset trainingData = DatasetLoader.Training(data.Take(numSamplesForTraining), batchSize);
             var validationData = DatasetLoader.Validation(data.Skip(numSamplesForTraining).Take(numSamplesForValidation), 0.005f, 10);
@@ -133,9 +136,10 @@ namespace ACESimBase.Util
                 0,
                 TrackBatchProgress,
                 testDataset: testData);
-            //var lastTrainingReport = trainingResult.TestReports.Last();
-            //var testDataResults = data.Skip(numSamplesForTraining + numSamplesForValidation).Select(d => (StoredNetwork.Forward(d.X).First(), d.Y.First())).ToList();
-            //var examples = data.Skip(numSamplesForTraining + numSamplesForValidation).Take(15).Select(d => $"{string.Join(",", d.X)} => {StoredNetwork.Forward(d.X).Single()} (correct: {d.Y.Single()})");
+            var lastTrainingReport = trainingResult.TestReports.Last();
+            TabbedText.Write($"Avgcost {lastTrainingReport.Cost/ (double) numSamplesForTesting} ");
+            var testDataResults = data.Skip(numSamplesForTraining + numSamplesForValidation).Select(d => (StoredNetwork.Forward(d.X).First(), d.Y.First())).ToList();
+            var examples = data.Skip(numSamplesForTraining + numSamplesForValidation).Take(15).Select(d => $"{string.Join(",", d.X)} => {StoredNetwork.Forward(d.X).Single()} (correct: {d.Y.Single()})");
         }
 
         public float GetResult(float[] x)
