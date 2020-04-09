@@ -104,11 +104,29 @@ namespace ACESimBase
                 return (byte)(1 + randomValue * currentDecision.NumPossibleActions);
         }
 
-        public List<(byte decisionIndex, byte information)> GetInformationSet()
+        
+        public List<(byte decisionIndex, byte information)> GetInformationSet(bool useDeferredDecisionIndices)
         {
             if (GameComplete || CurrentPlayer.PlayerIsChance)
                 throw new Exception();
-            return GameProgress.InformationSetLog.GetPlayerDecisionAndInformationAtPoint(CurrentDecision.PlayerNumber, null).ToList();
+            var result = GameProgress.InformationSetLog.GetPlayerDecisionAndInformationAtPoint(CurrentDecision.PlayerNumber, null).ToList();
+            if (useDeferredDecisionIndices)
+            {
+                int deferredIndex = 0;
+                int resultLength = result.Count();
+                for (int i = 0; i < resultLength; i++)
+                {
+                    for (int j = i + 1; j < resultLength; j++)
+                    {
+                        if (result[i].decisionIndex == result[j].decisionIndex)
+                        { // we've found a duplicate decision index, so the first one must be a deferred decision index -- replace it.
+                            result[i] = (GameProgress.GameHistory.DeferredDecisionIndices[deferredIndex++], result[i].information);
+                            break;
+                        }
+                    }
+                }
+            }
+            return result;
         }
     }
 }

@@ -64,7 +64,7 @@ namespace ACESimBase.GameSolvingSupport
         {
             int informationSetSize = InformationSet?.Count() ?? 0;
             int numGameParameters = GameParameters?.Count() ?? 0;
-            int arraySize = (includePlayer ? 1 : 0) + (includeDecision ? 1 : 0) + includedDecisionIndices.Count() + includedDecisionIndices.Where(x => x.includedForAll == false).Count() + numGameParameters;
+            int arraySize = (includePlayer ? 1 : 0) + (includeDecision ? 1 : 0) + 1 /* for action */ + includedDecisionIndices.Count() + includedDecisionIndices.Where(x => x.includedForAll == false).Count() + numGameParameters;
             float[] result = new float[arraySize];
             int resultIndex = 0;
             if (includePlayer)

@@ -66,7 +66,7 @@ namespace ACESim
             byte mainAction = GameDefinition.DecisionsExecutionOrder[decisionIndex].AlwaysDoAction ?? 0;
             if (mainAction == 0)
             {
-                informationSet = gamePlayer.GetInformationSet();
+                informationSet = gamePlayer.GetInformationSet(true);
                 independentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, 0 /* placeholder */, null /* DEBUG */);
                 mainAction = Models.ChooseAction(playerMakingDecision, observationNum.GetRandomDouble(decisionIndex), independentVariables, numPossibleActions, numPossibleActions /* DEBUG */);
                 independentVariables.ActionChosen = mainAction;
@@ -145,6 +145,8 @@ namespace ACESim
 
 
             int[] numObservationsToAdd = Models.CountPendingObservationsTarget(iteration);
+            if (numObservationsToAdd.Length == 0)
+                numObservationsToAdd = null;
             int obsNum = 0;
             do
             {
