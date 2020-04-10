@@ -13,6 +13,10 @@ namespace ACESimBase.GameSolvingSupport
     public class DeepCFRModel
     {
         /// <summary>
+        /// A name for the model.
+        /// </summary>
+        public string ModelName;
+        /// <summary>
         /// Observations used to create the most recent version of the model.
         /// </summary>
         public Reservoir<DeepCFRObservation> Observations;
@@ -44,29 +48,43 @@ namespace ACESimBase.GameSolvingSupport
         /// The decision indices that are included in the independent variables of the regression
         /// </summary>
         List<byte> IncludedDecisionIndices;
+        /// <summary>
+        /// The number of additional observations that we would like to target in an iteration.
+        /// </summary>
+        int TargetToAdd;
 
-        public DeepCFRModel(int reservoirCapacity, long reservoirSeed, double discountRate, int hiddenLayers, int epochs)
+        public DeepCFRModel(string modelName, int reservoirCapacity, long reservoirSeed, double discountRate, int hiddenLayers, int epochs)
         {
+            ModelName = modelName;
             DiscountRate = discountRate;
             HiddenLayers = hiddenLayers;
             Epochs = epochs;
             Observations = new Reservoir<DeepCFRObservation>(reservoirCapacity, reservoirSeed);
             PendingObservations = new ConcurrentBag<DeepCFRObservation>();
+            TargetToAdd = reservoirCapacity;
         }
 
         public void AddPendingObservation(DeepCFRObservation observation)
         {
-            PendingObservations.Add(observation);
+            if (PendingObservations.Count() < TargetToAdd)
+                PendingObservations.Add(observation);
         }
 
-        public int CountPendingObservationsTarget(int iteration) => Observations.CountTotalNumberToAddAtIteration(DiscountRate, iteration);
+        public int CountPendingObservationsTarget(int iteration)
+        {
+            TargetToAdd = Observations.CountTotalNumberToAddAtIteration(DiscountRate, iteration);
+            return TargetToAdd;
+        }
 
         public async Task CompleteIteration()
         {
             IterationsProcessed++;
+            TabbedText.Write($"Pending observations: {PendingObservations.Count()} ");
             Observations.AddPotentialReplacementsAtIteration(PendingObservations.ToList(), DiscountRate, IterationsProcessed);
             PendingObservations = new ConcurrentBag<DeepCFRObservation>();
             await BuildModel();
+            double avgCost = Regression.LastTrainingReport.Cost / (double)Regression.NumSamplesForTesting;
+            TabbedText.WriteLine($"Avgcost: {avgCost} ({ModelName})");
         }
 
         private async Task BuildModel()
@@ -75,6 +93,9 @@ namespace ACESimBase.GameSolvingSupport
                 throw new Exception("No observations available to build model.");
             IncludedDecisionIndices = DeepCFRIndependentVariables.GetIncludedDecisionIndices(Observations.Select(x => x.IndependentVariables));
             var data = Observations.Select(x => (x.IndependentVariables.AsArray(IncludedDecisionIndices), (float) x.SampledRegret)).ToArray();
+            byte[] actionsChosen = Observations.Select(x => x.IndependentVariables.ActionChosen).Distinct().OrderBy(x => x).ToArray();
+            var regrets = actionsChosen.Select(a => Observations.Where(x => x.IndependentVariables.ActionChosen == a).Average(x => x.SampledRegret)).ToArray();
+            TabbedText.Write($"AvgRegrets {String.Join(", ", regrets)} ");
             Regression = new NeuralNetworkController();
             await Regression.TrainNeuralNetwork(data, NeuralNetworkNET.Networks.Cost.CostFunctionType.Quadratic, Epochs, HiddenLayers);
         }

@@ -33,6 +33,7 @@ namespace ACESim
             return Task.CompletedTask;
         }
 
+        int DEBUGCount_PFile = 0, DEBUGCount_DAnswer = 0;
 
         /// <summary>
         /// Traverses the game tree for DeepCFR. It performs this either in 
@@ -55,6 +56,8 @@ namespace ACESim
                 return DeepCFR_DecisionNode(gamePlayer, observationNum, traversalMode);
         }
 
+        int DEBUGX = 0;
+
         private double[] DeepCFR_DecisionNode(DirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, DeepCFRTraversalMode traversalMode)
         {
             Decision currentDecision = gamePlayer.CurrentDecision;
@@ -68,12 +71,17 @@ namespace ACESim
             {
                 informationSet = gamePlayer.GetInformationSet(true);
                 independentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, 0 /* placeholder */, null /* DEBUG */);
-                mainAction = Models.ChooseAction(playerMakingDecision, currentDecision.DecisionByteCode, observationNum.GetRandomDouble(decisionIndex), independentVariables, numPossibleActions, numPossibleActions /* DEBUG */, 0 /* main action is always on policy */);
+                mainAction = Models.ChooseAction(currentDecision, observationNum.GetRandomDouble(decisionIndex), independentVariables, numPossibleActions, numPossibleActions /* DEBUG */, 0 /* main action is always on policy */);
                 independentVariables.ActionChosen = mainAction;
             }
             else if (traversalMode == DeepCFRTraversalMode.AddRegretObservations)
                 throw new Exception("When adding regret observations, should not prespecify action");
+            DEBUGX++;
             DirectGamePlayer mainActionPlayer = traversalMode == DeepCFRTraversalMode.PlaybackSinglePath ? gamePlayer : gamePlayer.DeepCopy();
+            if (DEBUGX == 169)
+            {
+                var DEBUGx2 = 0;
+            }
             mainActionPlayer.PlayAction(mainAction);
             double[] mainValues = DeepCFRTraversal(mainActionPlayer, observationNum, traversalMode);
             if (traversalMode == DeepCFRTraversalMode.AddRegretObservations)
@@ -82,13 +90,15 @@ namespace ACESim
                 DeepCFRObservationNum probeIteration = observationNum.NextVariation();
                 DirectGamePlayer probeGamePlayer = gamePlayer.DeepCopy();
                 independentVariables.ActionChosen = 0; // not essential -- clarifies that no action has been chosen yet
-                byte probeAction = Models.ChooseAction(playerMakingDecision, currentDecision.DecisionByteCode, probeIteration.GetRandomDouble(decisionIndex), independentVariables, numPossibleActions, numPossibleActions /* DEBUG */, EvolutionSettings.DeepCFR_Epsilon_OffPolicyProbabilityForProbe);
+                byte probeAction = Models.ChooseAction(currentDecision, probeIteration.GetRandomDouble(decisionIndex), independentVariables, numPossibleActions, numPossibleActions /* DEBUG */, EvolutionSettings.DeepCFR_Epsilon_OffPolicyProbabilityForProbe);
+                // Note: probe action might be same as main action. That's OK, because this helps us estimate expected regret, which is probabilistic
                 independentVariables.ActionChosen = mainAction;
                 probeGamePlayer.PlayAction(probeAction);
                 double[] probeValues = DeepCFRTraversal(probeGamePlayer, observationNum, DeepCFRTraversalMode.ProbeForUtilities);
                 double sampledRegret = probeValues[playerMakingDecision] - mainValues[playerMakingDecision];
-                if (decisionIndex == 7 && probeAction != mainAction) // DEBUG
+                if (currentDecision.Name == "PFile" && probeAction == 1 && sampledRegret < 0) // DEBUG
                 {
+                    throw new Exception("DEBUG2");
                     //Debug.WriteLine($"Probe: {probeAction} main: {mainAction} probe value: {probeValues[playerMakingDecision]} regret: {sampledRegret}"); // DEBUG
                 }
                 DeepCFRObservation observation = new DeepCFRObservation()
@@ -96,7 +106,11 @@ namespace ACESim
                     SampledRegret = sampledRegret,
                     IndependentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, probeAction, null /* DEBUG */)
                 };
-                Models.AddPendingObservation(playerMakingDecision, currentDecision.DecisionByteCode, observation);
+                if (currentDecision.Name == "PFile")
+                    DEBUGCount_PFile++;
+                else if (currentDecision.Name == "DAnswer")
+                    DEBUGCount_DAnswer++;
+                Models.AddPendingObservation(currentDecision, observation);
             }
             return mainValues;
         }
@@ -106,6 +120,10 @@ namespace ACESim
             Decision currentDecision = gamePlayer.CurrentDecision;
             if (currentDecision.CriticalNode && traversalMode != DeepCFRTraversalMode.PlaybackSinglePath)
             {
+                if (DEBUGX == 169)
+                {
+                    var DEBUG1324 = 0;
+                }
                 // At a critical node, we take all paths and weight them by probability.
                 double[] weightedResults = new double[NumNonChancePlayers];
                 double[] probabilitiesForActions = gamePlayer.GetChanceProbabilities();
@@ -115,7 +133,7 @@ namespace ACESim
                     copyPlayer.PlayAction(a);
                     double[] utilities = DeepCFRTraversal(copyPlayer, observationNum, traversalMode);
                     for (int i = 0; i < NumNonChancePlayers; i++)
-                        weightedResults[i] = probabilitiesForActions[a - 1] * utilities[i];
+                        weightedResults[i] += probabilitiesForActions[a - 1] * utilities[i];
                 }
                 return weightedResults;
             }
@@ -148,27 +166,37 @@ namespace ACESim
             StrategiesDeveloperStopwatch.Start();
 
 
-            int[] numObservationsToAdd = Models.CountPendingObservationsTarget(iteration);
-            if (numObservationsToAdd.Length == 0)
-                numObservationsToAdd = null;
+            TabbedText.Write($"Iteration {iteration} of {EvolutionSettings.TotalIterations} ");
+
+            DEBUGCount_DAnswer = DEBUGCount_PFile = 0;
+
             int obsNum = 0;
+            bool targetMet = false;
+            int[] numObservationsToAdd = Models.CountPendingObservationsTarget(iteration);
             do
             {
                 DeepCFRObservationNum observationNum = new DeepCFRObservationNum(obsNum, 0);
                 finalUtilities = DeepCFRTraversal(observationNum, DeepCFRTraversalMode.AddRegretObservations).utilities;
                 obsNum++;
+                if (iteration == 1)
+                    targetMet = Models.AllMeetInitialPendingObservationsTarget(EvolutionSettings.DeepCFR_ReservoirCapacity); // must fill all reservoirs in first iteration
+                else if (obsNum >= EvolutionSettings.DeepCFR_MaximumTotalObservationsPerIteration)
+                    targetMet = true;
+                else
+                    targetMet = Models.AllMeetPendingObservationsTarget(numObservationsToAdd);
             }
-            while (!Models.AllMeetPendingObservationsTarget(numObservationsToAdd));
+            while (!targetMet);
 
             localStopwatch.Stop();
             StrategiesDeveloperStopwatch.Stop();
+            TabbedText.WriteLine($" time {localStopwatch.ElapsedMilliseconds} ms");
 
-            TabbedText.Write($"Iteration {iteration} of {EvolutionSettings.TotalIterations}: generating {numObservationsToAdd?.Sum() ?? EvolutionSettings.DeepCFR_ReservoirCapacity * NumNonChancePlayers} observations {localStopwatch.ElapsedMilliseconds} ms ");
-
+            TabbedText.TabIndent();
             localStopwatch = new Stopwatch();
             localStopwatch.Start();
             await Models.CompleteIteration(EvolutionSettings.DeepCFR_Epochs);
-            TabbedText.WriteLine($"generating model over {EvolutionSettings.DeepCFR_Epochs} epochs {localStopwatch.ElapsedMilliseconds} ms");
+            TabbedText.TabUnindent();
+            TabbedText.WriteLine($"All models completed over {EvolutionSettings.DeepCFR_Epochs} epochs, total time {localStopwatch.ElapsedMilliseconds} ms");
 
 
             ReportCollection reportCollection = new ReportCollection();

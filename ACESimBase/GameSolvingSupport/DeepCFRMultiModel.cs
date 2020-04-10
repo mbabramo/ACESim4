@@ -38,7 +38,7 @@ namespace ACESimBase.GameSolvingSupport
             switch (Mode)
             {
                 case DeepCFRMultiModelMode.Unified:
-                    UnifiedModel = new DeepCFRModel(ReservoirCapacity, ReservoirSeed, DiscountRate, HiddenLayers, Epochs);
+                    UnifiedModel = new DeepCFRModel("Unified", ReservoirCapacity, ReservoirSeed, DiscountRate, HiddenLayers, Epochs);
                     break;
                 case DeepCFRMultiModelMode.PlayerSpecific:
                     PlayerSpecificModels = new DeepCFRMultiModelContainer<byte>(ReservoirCapacity, ReservoirSeed, DiscountRate, HiddenLayers, Epochs);
@@ -49,11 +49,11 @@ namespace ACESimBase.GameSolvingSupport
             }
         }
 
-        public DeepCFRModel GetModel(byte playerIndex, byte decisionByteCode) => Mode switch
+        public DeepCFRModel GetModel(Decision decision) => Mode switch
         {
             DeepCFRMultiModelMode.Unified => UnifiedModel,
-            DeepCFRMultiModelMode.PlayerSpecific => PlayerSpecificModels.GetModel(playerIndex),
-            DeepCFRMultiModelMode.DecisionSpecific => DecisionSpecificModels.GetModel((playerIndex, decisionByteCode)),
+            DeepCFRMultiModelMode.PlayerSpecific => PlayerSpecificModels.GetModel(decision.PlayerNumber, () => $"Player {decision.PlayerNumber}"),
+            DeepCFRMultiModelMode.DecisionSpecific => DecisionSpecificModels.GetModel((decision.PlayerNumber, decision.DecisionByteCode), () => $"Decision {decision.Name}"),
             _ => throw new NotImplementedException(),
         };
 
@@ -66,9 +66,9 @@ namespace ACESimBase.GameSolvingSupport
         };
 
 
-        public byte ChooseAction(byte playerIndex, byte decisionByteCode, double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample, double probabilityUniformRandom)
+        public byte ChooseAction(Decision decision, double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample, double probabilityUniformRandom)
         {
-            var model = GetModel(playerIndex, decisionByteCode);
+            var model = GetModel(decision);
             return ChooseAction(model, randomValue, independentVariables, maxActionValue, numActionsToSample, probabilityUniformRandom);
         }
 
@@ -85,9 +85,9 @@ namespace ACESimBase.GameSolvingSupport
             return result;
         }
 
-        public void AddPendingObservation(byte playerIndex, byte decisionByteCode, DeepCFRObservation observation)
+        public void AddPendingObservation(Decision decision, DeepCFRObservation observation)
         {
-            var model = GetModel(playerIndex, decisionByteCode);
+            var model = GetModel(decision);
             AddPendingObservation(model, observation);
         }
 
@@ -98,11 +98,15 @@ namespace ACESimBase.GameSolvingSupport
 
         public int[] CountPendingObservationsTarget(int iteration) => EnumerateModels().Select(x => x.CountPendingObservationsTarget(iteration)).ToArray();
 
+        public bool AllMeetInitialPendingObservationsTarget(int initialTarget)
+        {
+            bool result = EnumerateModels().All(x => x.PendingObservations.Count() >= initialTarget);
+            return result;
+        }
+
         public bool AllMeetPendingObservationsTarget(int[] target)
         {
-            if (target == null || target.Length == 0)
-                return EnumerateModels().Any() && EnumerateModels().All(x => x.PendingObservations.Count() > ReservoirCapacity);
-            bool result = EnumerateModels().Select(x => x.PendingObservations.Count()).Zip(target, (poc, t) => poc > t).All(x => x == true);
+            bool result = EnumerateModels().Select(x => x.PendingObservations.Count()).Zip(target, (poc, t) => poc >= t).All(x => x == true);
             return result;
         }
 
@@ -135,7 +139,7 @@ namespace ACESimBase.GameSolvingSupport
 
         public IEnumerable<DeepCFRModel> EnumerateModels() => Models.OrderBy(x => x.Key).Select(x => x.Value);
 
-        private void AddModelIfNecessary(T identifier)
+        private void AddModelIfNecessary(T identifier, Func<string> modelName)
         {
             if (!Models.ContainsKey(identifier))
             {
@@ -143,15 +147,15 @@ namespace ACESimBase.GameSolvingSupport
                 {
                     if (!Models.ContainsKey(identifier))
                     {
-                        Models[identifier] = new DeepCFRModel(ReservoirCapacity, ReservoirSeed, DiscountRate, HiddenLayers, Epochs);
+                        Models[identifier] = new DeepCFRModel(modelName(), ReservoirCapacity, ReservoirSeed, DiscountRate, HiddenLayers, Epochs);
                     }
                 }
             }
         }
 
-        public DeepCFRModel GetModel(T identifier)
+        public DeepCFRModel GetModel(T identifier, Func<string> modelName)
         {
-            AddModelIfNecessary(identifier);
+            AddModelIfNecessary(identifier, modelName);
             return Models[identifier];
         }
     }

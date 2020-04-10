@@ -24,6 +24,8 @@ namespace ACESimBase.Util
         float?[] IndependentVariableConstant;
         int NumConstantIndependentVariables;
         float MinY, MaxY;
+        public int NumSamplesForTesting;
+        public DatasetEvaluationResult LastTrainingReport;
 
         public float[] NormalizeIndependentVars(float[] x)
         {
@@ -117,13 +119,13 @@ namespace ACESimBase.Util
                 layerFactories[i] = NetworkLayers.FullyConnected(neuronsCount, ActivationType.ReLU);
             layerFactories[numHiddenLayers] = NetworkLayers.FullyConnected(1, ActivationType.Tanh, costFunctionType);
             StoredNetwork = NetworkManager.NewSequential(TensorInfo.Linear(data.First().X.Length), layerFactories);
-            int numForTesting = 1_000;
-            if (data.Length < numForTesting + 100) // DEBUG
+            int numForTesting = 300; // DEBUG
+            if (data.Length < numForTesting * 2) // DEBUG
                 throw new Exception();
             const float validationProportion = 0.1f; // applies to items not for testing
             int numSamplesForTraining = (int)((1.0 - validationProportion) * (data.Length - numForTesting));
             int numSamplesForValidation = data.Length - numForTesting - numSamplesForTraining;
-            int numSamplesForTesting = data.Length - numSamplesForTraining - numSamplesForValidation;
+            NumSamplesForTesting = data.Length - numSamplesForTraining - numSamplesForValidation;
             const int batchSize = 1_000;
             ITrainingDataset trainingData = DatasetLoader.Training(data.Take(numSamplesForTraining), batchSize);
             var validationData = DatasetLoader.Validation(data.Skip(numSamplesForTraining).Take(numSamplesForValidation), 0.005f, 10);
@@ -138,10 +140,9 @@ namespace ACESimBase.Util
                 0,
                 TrackBatchProgress,
                 testDataset: testData);
-            var lastTrainingReport = trainingResult.TestReports.Last();
-            TabbedText.Write($"Cost {lastTrainingReport.Cost}"); // / (double) numSamplesForTesting} ");
-            var testDataResults = data.Skip(numSamplesForTraining + numSamplesForValidation).Select(d => (StoredNetwork.Forward(d.X).First(), d.Y.First())).ToList();
-            var examples = data.Skip(numSamplesForTraining + numSamplesForValidation).Take(15).Select(d => $"{string.Join(",", d.X)} => {StoredNetwork.Forward(d.X).Single()} (correct: {d.Y.Single()})");
+            LastTrainingReport = trainingResult.TestReports.Last();
+            //var testDataResults = data.Skip(numSamplesForTraining + numSamplesForValidation).Select(d => (StoredNetwork.Forward(d.X).First(), d.Y.First())).ToList();
+            //var examples = data.Skip(numSamplesForTraining + numSamplesForValidation).Take(15).Select(d => $"{string.Join(",", d.X)} => {StoredNetwork.Forward(d.X).Single()} (correct: {d.Y.Single()})");
         }
 
         public float GetResult(float[] x)
