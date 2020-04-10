@@ -33,6 +33,10 @@ namespace ACESimBase.GameSolvingSupport
         /// </summary>
         public int HiddenLayers;
         /// <summary>
+        /// The number of neurons in each hidden layer.
+        /// </summary>
+        public int NeuronsPerHiddenLayer;
+        /// <summary>
         /// The number of epochs in neural network optimization.
         /// </summary>
         public int Epochs;
@@ -53,11 +57,12 @@ namespace ACESimBase.GameSolvingSupport
         /// </summary>
         int TargetToAdd;
 
-        public DeepCFRModel(string modelName, int reservoirCapacity, long reservoirSeed, double discountRate, int hiddenLayers, int epochs)
+        public DeepCFRModel(string modelName, int reservoirCapacity, long reservoirSeed, double discountRate, int hiddenLayers, int neuronsPerHiddenLayer, int epochs)
         {
             ModelName = modelName;
             DiscountRate = discountRate;
             HiddenLayers = hiddenLayers;
+            NeuronsPerHiddenLayer = neuronsPerHiddenLayer;
             Epochs = epochs;
             Observations = new Reservoir<DeepCFRObservation>(reservoirCapacity, reservoirSeed);
             PendingObservations = new ConcurrentBag<DeepCFRObservation>();
@@ -97,7 +102,7 @@ namespace ACESimBase.GameSolvingSupport
             var regrets = actionsChosen.Select(a => Observations.Where(x => x.IndependentVariables.ActionChosen == a).Average(x => x.SampledRegret)).ToArray();
             TabbedText.Write($"AvgRegrets {String.Join(", ", regrets)} ");
             Regression = new NeuralNetworkController();
-            await Regression.TrainNeuralNetwork(data, NeuralNetworkNET.Networks.Cost.CostFunctionType.Quadratic, Epochs, HiddenLayers);
+            await Regression.TrainNeuralNetwork(data, NeuralNetworkNET.Networks.Cost.CostFunctionType.Quadratic, Epochs, HiddenLayers, NeuronsPerHiddenLayer);
         }
 
         public double GetPredictedRegretForAction(DeepCFRIndependentVariables independentVariables, byte action)

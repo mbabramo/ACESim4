@@ -94,9 +94,10 @@ namespace ACESim
         // Note: DeepCFR iterations are set in Launcher, same as vanilla iterations.
         public DeepCFRMultiModelMode DeepCFRMultiModelMode = DeepCFRMultiModelMode.DecisionSpecific;
         public int DeepCFR_Epochs = 1_000; // DEBUG
-        public int DeepCFR_ReservoirCapacity = 3_000; // DEBUG
+        public int DeepCFR_ReservoirCapacity = 5_000; // DEBUG
         public int DeepCFR_MaximumTotalObservationsPerIteration = 25_000; // after this number of observations, we stop looking for more observations, even if we haven't gotten enough to fill as many iterations as desired in one or more reservoirs (in which case, we rely more on earlier observations)
-        public int DeepCFR_HiddenLayers = 12;
+        public int DeepCFR_HiddenLayers = 3;
+        public int DeepCFR_NeuronsPerHiddenLayer = 150;
         public double DeepCFR_Epsilon_OffPolicyProbabilityForProbe = 0.05;
         public double DeepCFR_DiscountRate = 0.98;
 

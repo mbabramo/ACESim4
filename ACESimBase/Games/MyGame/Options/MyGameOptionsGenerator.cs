@@ -138,11 +138,11 @@ namespace ACESim
         {
             var options = DamagesUncertainty_1BR();
             options.AllowAbandonAndDefaults = false;
-            options.PFilingCost = 0;
-            options.DAnswerCost = 0;
-            options.PerPartyCostsLeadingUpToBargainingRound = 0;
-            options.PTrialCosts = 0;
-            options.DTrialCosts = 0;
+            //options.PFilingCost = 0;
+            //options.DAnswerCost = 0;
+            //options.PerPartyCostsLeadingUpToBargainingRound = 0;
+            //options.PTrialCosts = 0;
+            //options.DTrialCosts = 0;
             return options;
         }
 

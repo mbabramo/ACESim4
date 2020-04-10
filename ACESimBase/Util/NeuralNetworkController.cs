@@ -70,7 +70,7 @@ namespace ACESimBase.Util
         }
         public float DenormalizeDependentVar(float y) => MinY + y * (MaxY - MinY);
 
-        public async Task TrainNeuralNetwork((float[] X, float Y)[] data, CostFunctionType costFunctionType, int epochs, int numHiddenLayers)
+        public async Task TrainNeuralNetwork((float[] X, float Y)[] data, CostFunctionType costFunctionType, int epochs, int numHiddenLayers, int neuronsPerHiddenLayer)
         {
             (float[] X, float[] Y)[] data2 = data.Select(d => (d.X, new float[] { d.Y })).ToArray();
             if (Normalize)
@@ -105,21 +105,17 @@ namespace ACESimBase.Util
                     }
                 }
             }
-            await TrainNeuralNetwork(data2, costFunctionType, epochs, numHiddenLayers);
+            await TrainNeuralNetwork(data2, costFunctionType, epochs, numHiddenLayers, neuronsPerHiddenLayer);
         }
 
-        private async Task TrainNeuralNetwork((float[] X, float[] Y)[] data, CostFunctionType costFunctionType, int epochs, int numHiddenLayers)
+        private async Task TrainNeuralNetwork((float[] X, float[] Y)[] data, CostFunctionType costFunctionType, int epochs, int numHiddenLayers, int neuronsPerHiddenLayer)
         {
-            int neuronsCount = (int)(0.67 * data.First().X.Length); // heuristic -- 2/3 of number of inputs
-            int minNeuronsCount = 30;
-            if (neuronsCount < minNeuronsCount)
-                neuronsCount = minNeuronsCount;
             LayerFactory[] layerFactories = new LayerFactory[numHiddenLayers + 1];
             for (int i = 0; i < numHiddenLayers; i++)
-                layerFactories[i] = NetworkLayers.FullyConnected(neuronsCount, ActivationType.ReLU);
+                layerFactories[i] = NetworkLayers.FullyConnected(neuronsPerHiddenLayer, ActivationType.ReLU);
             layerFactories[numHiddenLayers] = NetworkLayers.FullyConnected(1, ActivationType.Tanh, costFunctionType);
             StoredNetwork = NetworkManager.NewSequential(TensorInfo.Linear(data.First().X.Length), layerFactories);
-            int numForTesting = 300; // DEBUG
+            int numForTesting = 1000; // DEBUG
             if (data.Length < numForTesting * 2) // DEBUG
                 throw new Exception();
             const float validationProportion = 0.1f; // applies to items not for testing
