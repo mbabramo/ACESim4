@@ -1,13 +1,4 @@
 ﻿using ACESim;
-using NeuralNetworkNET.APIs;
-using NeuralNetworkNET.APIs.Delegates;
-using NeuralNetworkNET.APIs.Enums;
-using NeuralNetworkNET.APIs.Interfaces;
-using NeuralNetworkNET.APIs.Interfaces.Data;
-using NeuralNetworkNET.APIs.Results;
-using NeuralNetworkNET.APIs.Structs;
-using NeuralNetworkNET.Networks.Cost;
-using NeuralNetworkNET.SupervisedLearning.Progress;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,14 +9,65 @@ namespace ACESimBase.Util
 {
     public class NeuralNetworkController
     {
-        INeuralNetwork StoredNetwork;
+        IRegression Regression;
         bool Normalize = true;
         (float MinX, float MaxX)[] Ranges;
         float?[] IndependentVariableConstant;
         int NumConstantIndependentVariables;
         float MinY, MaxY;
-        public int NumSamplesForTesting;
-        public DatasetEvaluationResult LastTrainingReport;
+
+        public NeuralNetworkController()
+        {
+            Regression = new NeuralNetworkNetRegression();
+        }
+
+        public void SpecifySettings(int epochs, int numHiddenLayers, int neuronsPerHiddenLayer)
+        {
+            if (Regression is NeuralNetworkNetRegression r)
+            {
+                r.Epochs = epochs;
+                r.NumHiddenLayers = numHiddenLayers;
+                r.NeuronsPerHiddenLayer = neuronsPerHiddenLayer;
+            }
+        }
+
+        public async Task Regress((float[] X, float Y)[] data)
+        {
+            (float[] X, float[] Y)[] data2 = data.Select(d => (d.X, new float[] { d.Y })).ToArray();
+            if (Normalize)
+            {
+                int numItems = data2.Count();
+                int lengthX = data2.First().Item1.Length;
+                Ranges = new (float MinX, float MaxX)[lengthX];
+                IndependentVariableConstant = new float?[lengthX];
+                for (int xIndex = 0; xIndex < lengthX; xIndex++)
+                {
+                    Ranges[xIndex].MinX = data2.Min(d => d.X[xIndex]);
+                    Ranges[xIndex].MaxX = data2.Max(d => d.X[xIndex]);
+                    if (Ranges[xIndex].MinX == Ranges[xIndex].MaxX)
+                        IndependentVariableConstant[xIndex] = Ranges[xIndex].MinX;
+                }
+                NumConstantIndependentVariables = IndependentVariableConstant.Where(x => x != null).Count();
+                MinY = data2.Min(d => d.Y[0]);
+                MaxY = data2.Max(d => d.Y[0]);
+                for (int i = 0; i < numItems; i++)
+                {
+                    data2[i].X = NormalizeIndependentVars(data2[i].X);
+                    float yUnnormalized = data2[i].Y[0];
+                    data2[i].Y[0] = NormalizeDependentVar(yUnnormalized);
+                }
+                bool createString = false;
+                if (createString)
+                {
+                    StringBuilder s = new StringBuilder();
+                    for (int i = 0; i < numItems; i++)
+                    {
+                        s.AppendLine(data2[i].Y[0] + "," + String.Join(",", data2[i].X));
+                    }
+                }
+            }
+            await Regression.Regress(data2);
+        }
 
         public float[] NormalizeIndependentVars(float[] x)
         {
@@ -70,82 +112,13 @@ namespace ACESimBase.Util
         }
         public float DenormalizeDependentVar(float y) => MinY + y * (MaxY - MinY);
 
-        public async Task TrainNeuralNetwork((float[] X, float Y)[] data, CostFunctionType costFunctionType, int epochs, int numHiddenLayers, int neuronsPerHiddenLayer)
-        {
-            (float[] X, float[] Y)[] data2 = data.Select(d => (d.X, new float[] { d.Y })).ToArray();
-            if (Normalize)
-            {
-                int numItems = data2.Count();
-                int lengthX = data2.First().Item1.Length;
-                Ranges = new (float MinX, float MaxX)[lengthX];
-                IndependentVariableConstant = new float?[lengthX];
-                for (int xIndex = 0; xIndex < lengthX; xIndex++)
-                {
-                    Ranges[xIndex].MinX = data2.Min(d => d.X[xIndex]);
-                    Ranges[xIndex].MaxX = data2.Max(d => d.X[xIndex]);
-                    if (Ranges[xIndex].MinX == Ranges[xIndex].MaxX)
-                        IndependentVariableConstant[xIndex] = Ranges[xIndex].MinX;
-                }
-                NumConstantIndependentVariables = IndependentVariableConstant.Where(x => x != null).Count();
-                MinY = data2.Min(d => d.Y[0]);
-                MaxY = data2.Max(d => d.Y[0]);
-                for (int i = 0; i < numItems; i++)
-                {
-                    data2[i].X = NormalizeIndependentVars(data2[i].X);
-                    float yUnnormalized = data2[i].Y[0];
-                    data2[i].Y[0] = NormalizeDependentVar(yUnnormalized);
-                }
-                bool createString = false;
-                if (createString)
-                {
-                    StringBuilder s = new StringBuilder();
-                    for (int i = 0; i < numItems; i++)
-                    {
-                        s.AppendLine(data2[i].Y[0] + "," + String.Join(",", data2[i].X));
-                    }
-                }
-            }
-            await TrainNeuralNetwork(data2, costFunctionType, epochs, numHiddenLayers, neuronsPerHiddenLayer);
-        }
-
-        private async Task TrainNeuralNetwork((float[] X, float[] Y)[] data, CostFunctionType costFunctionType, int epochs, int numHiddenLayers, int neuronsPerHiddenLayer)
-        {
-            LayerFactory[] layerFactories = new LayerFactory[numHiddenLayers + 1];
-            for (int i = 0; i < numHiddenLayers; i++)
-                layerFactories[i] = NetworkLayers.FullyConnected(neuronsPerHiddenLayer, ActivationType.ReLU);
-            layerFactories[numHiddenLayers] = NetworkLayers.FullyConnected(1, ActivationType.Tanh, costFunctionType);
-            StoredNetwork = NetworkManager.NewSequential(TensorInfo.Linear(data.First().X.Length), layerFactories);
-            int numForTesting = 1000; // DEBUG
-            if (data.Length < numForTesting * 2) // DEBUG
-                throw new Exception();
-            const float validationProportion = 0.1f; // applies to items not for testing
-            int numSamplesForTraining = (int)((1.0 - validationProportion) * (data.Length - numForTesting));
-            int numSamplesForValidation = data.Length - numForTesting - numSamplesForTraining;
-            NumSamplesForTesting = data.Length - numSamplesForTraining - numSamplesForValidation;
-            const int batchSize = 1_000;
-            ITrainingDataset trainingData = DatasetLoader.Training(data.Take(numSamplesForTraining), batchSize);
-            var validationData = DatasetLoader.Validation(data.Skip(numSamplesForTraining).Take(numSamplesForValidation), 0.005f, 10);
-            ITestDataset testData = numSamplesForTraining + numSamplesForValidation == data.Length ? null : DatasetLoader.Test(data.Skip(numSamplesForTraining + numSamplesForValidation));
-            void TrackBatchProgress(BatchProgress progress)
-            {
-            }
-            TrainingSessionResult trainingResult = await NetworkManager.TrainNetworkAsync(StoredNetwork,
-                trainingData,
-                TrainingAlgorithms.RMSProp(),
-                epochs,
-                0,
-                TrackBatchProgress,
-                testDataset: testData);
-            LastTrainingReport = trainingResult.TestReports.Last();
-            //var testDataResults = data.Skip(numSamplesForTraining + numSamplesForValidation).Select(d => (StoredNetwork.Forward(d.X).First(), d.Y.First())).ToList();
-            //var examples = data.Skip(numSamplesForTraining + numSamplesForValidation).Take(15).Select(d => $"{string.Join(",", d.X)} => {StoredNetwork.Forward(d.X).Single()} (correct: {d.Y.Single()})");
-        }
+        public string GetTrainingResultString() => Regression.GetTrainingResultString();
 
         public float GetResult(float[] x)
         {
             if (Normalize)
                 x = NormalizeIndependentVars(x);
-            float result = StoredNetwork.Forward(x)[0];
+            float result = Regression.GetResults(x)[0];
             if (Normalize)
                 result = DenormalizeDependentVar(result);
             return result;

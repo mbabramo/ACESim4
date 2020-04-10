@@ -88,8 +88,8 @@ namespace ACESimBase.GameSolvingSupport
             Observations.AddPotentialReplacementsAtIteration(PendingObservations.ToList(), DiscountRate, IterationsProcessed);
             PendingObservations = new ConcurrentBag<DeepCFRObservation>();
             await BuildModel();
-            double avgCost = Regression.LastTrainingReport.Cost / (double)Regression.NumSamplesForTesting;
-            TabbedText.WriteLine($"Avgcost: {avgCost} ({ModelName})");
+            string trainingResultString = Regression.GetTrainingResultString();
+            TabbedText.WriteLine(trainingResultString + $" ({ModelName})");
         }
 
         private async Task BuildModel()
@@ -102,7 +102,8 @@ namespace ACESimBase.GameSolvingSupport
             var regrets = actionsChosen.Select(a => Observations.Where(x => x.IndependentVariables.ActionChosen == a).Average(x => x.SampledRegret)).ToArray();
             TabbedText.Write($"AvgRegrets {String.Join(", ", regrets)} ");
             Regression = new NeuralNetworkController();
-            await Regression.TrainNeuralNetwork(data, NeuralNetworkNET.Networks.Cost.CostFunctionType.Quadratic, Epochs, HiddenLayers, NeuronsPerHiddenLayer);
+            Regression.SpecifySettings(Epochs, HiddenLayers, NeuronsPerHiddenLayer);
+            await Regression.Regress(data);
         }
 
         public double GetPredictedRegretForAction(DeepCFRIndependentVariables independentVariables, byte action)

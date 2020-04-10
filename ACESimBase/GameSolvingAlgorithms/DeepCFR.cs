@@ -78,10 +78,6 @@ namespace ACESim
                 throw new Exception("When adding regret observations, should not prespecify action");
             DEBUGX++;
             DirectGamePlayer mainActionPlayer = traversalMode == DeepCFRTraversalMode.PlaybackSinglePath ? gamePlayer : gamePlayer.DeepCopy();
-            if (DEBUGX == 169)
-            {
-                var DEBUGx2 = 0;
-            }
             mainActionPlayer.PlayAction(mainAction);
             double[] mainValues = DeepCFRTraversal(mainActionPlayer, observationNum, traversalMode);
             if (traversalMode == DeepCFRTraversalMode.AddRegretObservations)
@@ -120,10 +116,6 @@ namespace ACESim
             Decision currentDecision = gamePlayer.CurrentDecision;
             if (currentDecision.CriticalNode && traversalMode != DeepCFRTraversalMode.PlaybackSinglePath)
             {
-                if (DEBUGX == 169)
-                {
-                    var DEBUG1324 = 0;
-                }
                 // At a critical node, we take all paths and weight them by probability.
                 double[] weightedResults = new double[NumNonChancePlayers];
                 double[] probabilitiesForActions = gamePlayer.GetChanceProbabilities();
