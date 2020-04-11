@@ -66,7 +66,20 @@ namespace ACESimBase.Util
                     }
                 }
             }
+            string dataString = GetDataString(data2);
             await Regression.Regress(data2);
+        }
+
+        private string GetDataString((float[] X, float[] Y)[] data)
+        {
+            StringBuilder s = new StringBuilder();
+            s.AppendLine(String.Join(",", Enumerable.Range(1, data.First().Y.Length).Select(a => $"Y{a}")) + "," + String.Join(",", Enumerable.Range(1, data.First().X.Length).Select(a => $"X{a}")));
+            foreach (var datum in data)
+            {
+                string toAdd = String.Join(",", datum.Y) + "," + String.Join(",", datum.X);
+                s.AppendLine(toAdd);
+            }
+            return s.ToString();
         }
 
         public float[] NormalizeIndependentVars(float[] x)

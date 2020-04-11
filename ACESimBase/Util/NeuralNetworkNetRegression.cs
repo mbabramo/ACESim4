@@ -32,6 +32,7 @@ namespace ACESimBase.Util
             return result;
         }
 
+
         public async Task Regress((float[] X, float[] Y)[] data)
         {
             LayerFactory[] layerFactories = new LayerFactory[NumHiddenLayers + 1];
