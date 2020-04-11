@@ -20,9 +20,9 @@ namespace ACESimBase.Util
         public class MLNetDatum
         {
             /// <summary>
-            /// The dependent variables (Y)
+            /// The dependent variable (Y)
             /// </summary>
-            public float[] DependentVariables { get; set; }
+            public float Label { get; set; }
             /// <summary>
             /// The independent variables (X)
             /// </summary>
@@ -31,7 +31,7 @@ namespace ACESimBase.Util
 
         public class MLNetPrediction
         {
-            public float[] DependentVariables { get; set; }
+            public float Label { get; set; }
             // Score produced from the trainer.
             public float Score { get; set; }
         }
@@ -41,7 +41,9 @@ namespace ACESimBase.Util
             if (Schema != null)
                 return;
             Schema = SchemaDefinition.Create(typeof(MLNetDatum));
-            Schema[nameof(MLNetDatum.DependentVariables)].ColumnType = new VectorDataViewType(NumberDataViewType.Single, Y.Length);
+            if (Y.Length != 1)
+                throw new Exception();
+            Schema[nameof(MLNetDatum.Label)].ColumnType = NumberDataViewType.Single;
             Schema[nameof(MLNetDatum.Features)].ColumnType = new VectorDataViewType(NumberDataViewType.Single, X.Length);
         }
 
@@ -51,7 +53,7 @@ namespace ACESimBase.Util
         {
             var datum = data.First();
             InitializeSchemaDefinitionIfNecessary(datum.X, datum.Y);
-            var myData = data.Select(d => new MLNetDatum() { DependentVariables = d.Y, Features = d.X }).ToArray();
+            var myData = data.Select(d => new MLNetDatum() { Label = d.Y[0], Features = d.X }).ToArray();
             return mlContext.Data.LoadFromEnumerable(myData, Schema);
         }
 
@@ -60,10 +62,10 @@ namespace ACESimBase.Util
             Context = new MLContext();
             IDataView trainDataView = ArrayToDataView(Context, data);
             IEstimator<ITransformer> estimator = null;
-            estimator = Context.Regression.Trainers.FastForest(nameof(MLNetDatum.DependentVariables), nameof(MLNetDatum.Features));
+            estimator = Context.Regression.Trainers.FastForest(nameof(MLNetDatum.Label), nameof(MLNetDatum.Features));
             // estimator = ChooseEstimatorExperimentally(mlContext, trainDataView);
             Transformer = estimator.Fit(trainDataView);
-            PredictionEngine = Context.Model.CreatePredictionEngine<MLNetDatum, MLNetPrediction>(Transformer);
+            PredictionEngine = Context.Model.CreatePredictionEngine<MLNetDatum, MLNetPrediction>(Transformer, false, Schema, null);
             return Task.CompletedTask;
         }
 
@@ -86,7 +88,7 @@ namespace ACESimBase.Util
         {
             MLNetPrediction prediction = new MLNetPrediction();
             PredictionEngine.Predict(new MLNetDatum() { Features = x }, ref prediction);
-            return prediction.DependentVariables;
+            return new float[] { prediction.Label };
             //IDataView transformed = Transformer.Transform(DatumToDataView(x));
             //var result = Context.Data.CreateEnumerable<MLNetPrediction>(transformed, reuseRowObject: false).First();
             //return result.DependentVariables;
