@@ -38,17 +38,24 @@ namespace ACESim
 
             var action = new Action<object[]>((values) =>
             {
-                var item = Activator.CreateInstance(itemType);
-
-                for (var i = 0; i < values.Length; i++)
-                {
-                    itemProperties[i].SetValue(item, values[i]);
-                }
+                object item = CreateDynamicItem(values, itemType, itemProperties);
 
                 addMethod.Invoke(list, new[] { item });
             });
 
             return action;
+        }
+
+        public static object CreateDynamicItem(object[] values, Type itemType, PropertyInfo[] itemProperties)
+        {
+            var item = Activator.CreateInstance(itemType);
+
+            for (var i = 0; i < values.Length; i++)
+            {
+                itemProperties[i].SetValue(item, values[i]);
+            }
+
+            return item;
         }
 
         /// <summary>

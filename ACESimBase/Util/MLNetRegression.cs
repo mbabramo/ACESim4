@@ -13,19 +13,35 @@ namespace ACESimBase.Util
 {
     public class MLNetRegression : IRegression
     {
-        public static IDataView ArrayToDataView((float[] X, float[] Y)[] data)
-        {
-            var properties = new List<DynamicTypeProperty>();
-            for (int y = 0; y < data.First().Y.Length)
-                properties.Add(new DynamicTypeProperty($"Y{y}", typeof(float)));
-            for (int y = 0; y < data.First().X.Length)
-                properties.Add(new DynamicTypeProperty($"X{y}", typeof(float)));
+        Type dynamicType;
+        SchemaDefinition Schema;
 
-            var dynamicType = DynamicType.CreateDynamicType(properties);
-            var schema = SchemaDefinition.Create(dynamicType);
+        public class MyData
+        {
+            public float[] Dependent { get; set; }
+            public float[] Independent { get; set; }
+        }
+
+        public void InitializeSchemaDefinition((float[] X, float[] Y)[] data)
+        {
+            var exampleDatum = data.First();
+            Schema = SchemaDefinition.Create(typeof(MyData));
+            Schema["Dependent"].ColumnType = new VectorDataViewType(NumberDataViewType.Single, exampleDatum.Y.Length);
+            Schema["Independent"].ColumnType = new VectorDataViewType(NumberDataViewType.Single, exampleDatum.X.Length);
+        }
+
+        public IDataView ArrayToDataView(MLContext mlContext, (float[] X, float[] Y)[] data)
+        {
+            var myData = data.Select(d => new MyData() { Dependent = d.Y, Independent = d.X }).ToArray();
+            mlContext.Data.LoadFromEnumerable(myData, Schema);
+        }
+
+        public IDataView ArrayToDataView2((float[] X, float[] Y)[] data)
+        {
+            InitializeSchemaDefinitionIfNecessary(data);
 
             // create dynamic list
-            var dynamicList = DynamicType.CreateDynamicList(dynamicType);
+            IEnumerable<object> dynamicList = DynamicType.CreateDynamicList(dynamicType);
 
             // get an action that will add to the list
             var addAction = DynamicType.GetAddAction(dynamicList);
@@ -44,15 +60,29 @@ namespace ACESimBase.Util
             var dataType = mlContext.Data.GetType();
             var loadMethodGeneric = dataType.GetMethods().First(method => method.Name == "LoadFromEnumerable" && method.IsGenericMethod);
             var loadMethod = loadMethodGeneric.MakeGenericMethod(dynamicType);
-            var dataView = (IDataView)loadMethod.Invoke(mlContext.Data, new[] { dynamicList, schema });
+            var dataView = (IDataView)loadMethod.Invoke(mlContext.Data, new[] { dynamicList, Schema });
 
             return dataView;
         }
 
+        private void InitializeSchemaDefinitionIfNecessary((float[] X, float[] Y)[] data)
+        {
+            if (dynamicType != null)
+                return;
+            List<DynamicTypeProperty> properties = new List<DynamicTypeProperty>();
+            for (int y = 0; y < data.First().Y.Length; y++)
+                properties.Add(new DynamicTypeProperty($"Y{y}", typeof(float)));
+            for (int x = 0; x < data.First().X.Length; x++)
+                properties.Add(new DynamicTypeProperty($"X{x}", typeof(float)));
+
+            dynamicType = DynamicType.CreateDynamicType(properties);
+            Schema = SchemaDefinition.Create(dynamicType);
+        }
 
         public Task Regress((float[] X, float[] Y)[] data)
         {
             MLContext mlContext = new MLContext();
+            mlContext.Data.CreateTextLoader();
             IDataView trainDataView = ArrayToDataView(data);
             var experimentSettings = new RegressionExperimentSettings();
             experimentSettings.MaxExperimentTimeInSeconds = 10;
@@ -63,7 +93,9 @@ namespace ACESimBase.Util
             ExperimentResult<RegressionMetrics> experimentResult = experiment.Execute(trainDataView); 
             RegressionMetrics metrics = experimentResult.BestRun.ValidationMetrics;
             var model = experimentResult.BestRun.Model;
-            experimentResult.BestRun.
+            var DEBUG = experimentResult.BestRun.Estimator;
+            model.Transform()
+            model.Transform()
         }
 
         public float[] GetResults(float[] x)
