@@ -18,7 +18,7 @@ namespace ACESimBase.Util
 
         public NeuralNetworkController()
         {
-            Regression = new NeuralNetworkNetRegression();
+            Regression = new MLNetRegression(); // DEBUG NeuralNetworkNetRegression();
         }
 
         public void SpecifySettings(int epochs, int numHiddenLayers, int neuronsPerHiddenLayer)
