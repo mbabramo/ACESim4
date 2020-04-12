@@ -39,13 +39,13 @@ namespace ACESimBase.GameSolvingSupport
             switch (Mode)
             {
                 case DeepCFRMultiModelMode.Unified:
-                    UnifiedModel = new DeepCFRModel("Unified", ReservoirCapacity, ReservoirSeed, DiscountRate, HiddenLayers, NeuronsPerHiddenLayer, Epochs);
+                    UnifiedModel = new DeepCFRModel("Unified", ReservoirCapacity, ReservoirSeed, DiscountRate);
                     break;
                 case DeepCFRMultiModelMode.PlayerSpecific:
-                    PlayerSpecificModels = new DeepCFRMultiModelContainer<byte>(ReservoirCapacity, ReservoirSeed, DiscountRate, HiddenLayers, NeuronsPerHiddenLayer, Epochs);
+                    PlayerSpecificModels = new DeepCFRMultiModelContainer<byte>(ReservoirCapacity, ReservoirSeed, DiscountRate);
                     break;
                 case DeepCFRMultiModelMode.DecisionSpecific:
-                    DecisionSpecificModels = new DeepCFRMultiModelContainer<(byte playerIndex, byte decisionByteCode)>(ReservoirCapacity, ReservoirSeed, DiscountRate, HiddenLayers, NeuronsPerHiddenLayer, Epochs);
+                    DecisionSpecificModels = new DeepCFRMultiModelContainer<(byte playerIndex, byte decisionByteCode)>(ReservoirCapacity, ReservoirSeed, DiscountRate);
                     break;
             }
         }
@@ -126,17 +126,13 @@ namespace ACESimBase.GameSolvingSupport
         int ReservoirCapacity;
         long ReservoirSeed;
         double DiscountRate;
-        int Epochs, HiddenLayers, NeuronsPerHiddenLayer;
         object LockObj = new object();
 
-        public DeepCFRMultiModelContainer(int reservoirCapacity, long reservoirSeed, double discountRate, int hiddenLayers, int neuronsPerHiddenLayer, int epochs)
+        public DeepCFRMultiModelContainer(int reservoirCapacity, long reservoirSeed, double discountRate)
         {
             ReservoirCapacity = reservoirCapacity;
             ReservoirSeed = reservoirSeed;
             DiscountRate = discountRate;
-            HiddenLayers = hiddenLayers;
-            NeuronsPerHiddenLayer = neuronsPerHiddenLayer;
-            Epochs = epochs;
         }
 
         public IEnumerable<DeepCFRModel> EnumerateModels() => Models.OrderBy(x => x.Key).Select(x => x.Value);
@@ -149,7 +145,7 @@ namespace ACESimBase.GameSolvingSupport
                 {
                     if (!Models.ContainsKey(identifier))
                     {
-                        Models[identifier] = new DeepCFRModel(modelName(), ReservoirCapacity, ReservoirSeed, DiscountRate, HiddenLayers, NeuronsPerHiddenLayer, Epochs);
+                        Models[identifier] = new DeepCFRModel(modelName(), ReservoirCapacity, ReservoirSeed, DiscountRate);
                     }
                 }
             }

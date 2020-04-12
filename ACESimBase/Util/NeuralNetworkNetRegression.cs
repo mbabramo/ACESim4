@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ACESim;
 using NeuralNetworkNET.APIs;
 using NeuralNetworkNET.APIs.Delegates;
 using NeuralNetworkNET.APIs.Enums;
@@ -22,9 +23,9 @@ namespace ACESimBase.Util
         INeuralNetwork StoredNetwork;
         public DatasetEvaluationResult LastTrainingReport;
 
-        public int Epochs;
-        public int NumHiddenLayers;
-        public int NeuronsPerHiddenLayer;
+        public int Epochs => EvolutionSettings.DeepCFR_Epochs;
+        public int NumHiddenLayers => EvolutionSettings.DeepCFR_HiddenLayers;
+        public int NeuronsPerHiddenLayer => EvolutionSettings.DeepCFR_NeuronsPerHiddenLayer;
 
         public float[] GetResults(float[] x)
         {

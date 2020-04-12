@@ -29,18 +29,6 @@ namespace ACESimBase.GameSolvingSupport
         /// </summary>
         public double DiscountRate;
         /// <summary>
-        /// The number of hidden layers in the regression
-        /// </summary>
-        public int HiddenLayers;
-        /// <summary>
-        /// The number of neurons in each hidden layer.
-        /// </summary>
-        public int NeuronsPerHiddenLayer;
-        /// <summary>
-        /// The number of epochs in neural network optimization.
-        /// </summary>
-        public int Epochs;
-        /// <summary>
         /// Observations to be added to the model at the end of the current iteration.
         /// </summary>
         public ConcurrentBag<DeepCFRObservation> PendingObservations;
@@ -57,13 +45,10 @@ namespace ACESimBase.GameSolvingSupport
         /// </summary>
         int TargetToAdd;
 
-        public DeepCFRModel(string modelName, int reservoirCapacity, long reservoirSeed, double discountRate, int hiddenLayers, int neuronsPerHiddenLayer, int epochs)
+        public DeepCFRModel(string modelName, int reservoirCapacity, long reservoirSeed, double discountRate)
         {
             ModelName = modelName;
             DiscountRate = discountRate;
-            HiddenLayers = hiddenLayers;
-            NeuronsPerHiddenLayer = neuronsPerHiddenLayer;
-            Epochs = epochs;
             Observations = new Reservoir<DeepCFRObservation>(reservoirCapacity, reservoirSeed);
             PendingObservations = new ConcurrentBag<DeepCFRObservation>();
             TargetToAdd = reservoirCapacity;
@@ -102,7 +87,6 @@ namespace ACESimBase.GameSolvingSupport
             var regrets = actionsChosen.Select(a => Observations.Where(x => x.IndependentVariables.ActionChosen == a).Average(x => x.SampledRegret)).ToArray();
             TabbedText.Write($"AvgRegrets {String.Join(", ", regrets)} ");
             Regression = new NeuralNetworkController();
-            Regression.SpecifySettings(Epochs, HiddenLayers, NeuronsPerHiddenLayer);
             await Regression.Regress(data);
             PrintData(data);
         }

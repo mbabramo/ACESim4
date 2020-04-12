@@ -22,17 +22,6 @@ namespace ACESimBase.Util
             //Regression = new NeuralNetworkNetRegression();
         }
 
-        public void SpecifySettings(int epochs, int numHiddenLayers, int neuronsPerHiddenLayer)
-        {
-            // DEBUG -- todo make these local variables (or static EvolutionSettings settings)
-            if (Regression is NeuralNetworkNetRegression r)
-            {
-                r.Epochs = epochs;
-                r.NumHiddenLayers = numHiddenLayers;
-                r.NeuronsPerHiddenLayer = neuronsPerHiddenLayer;
-            }
-        }
-
         public async Task Regress((float[] X, float Y)[] data)
         {
             (float[] X, float[] Y)[] data2 = data.Select(d => (d.X, new float[] { d.Y })).ToArray();

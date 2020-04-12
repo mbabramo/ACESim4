@@ -19,7 +19,6 @@ namespace ACESimBase.Util
         PredictionEngine<MLNetDatum, MLNetPrediction> PredictionEngine;
         MLNetRegressionTechniques Technique = MLNetRegressionTechniques.FastTreeTweedie;
 
-
         public IEstimator<ITransformer> GetEstimator(IDataView trainDataView) => Technique switch
         {
             MLNetRegressionTechniques.OLS => Context.Regression.Trainers.Ols(nameof(MLNetDatum.Label), nameof(MLNetDatum.Features)),
