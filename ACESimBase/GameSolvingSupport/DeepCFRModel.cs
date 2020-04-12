@@ -35,7 +35,7 @@ namespace ACESimBase.GameSolvingSupport
         /// <summary>
         /// The trained neural network.
         /// </summary>
-        NeuralNetworkController Regression;
+        RegressionController Regression;
         /// <summary>
         /// The decision indices that are included in the independent variables of the regression
         /// </summary>
@@ -44,14 +44,19 @@ namespace ACESimBase.GameSolvingSupport
         /// The number of additional observations that we would like to target in an iteration.
         /// </summary>
         int TargetToAdd;
+        /// <summary>
+        /// Factory to create a regression processor
+        /// </summary>
+        Func<IRegression> RegressionFactory;
 
-        public DeepCFRModel(string modelName, int reservoirCapacity, long reservoirSeed, double discountRate)
+        public DeepCFRModel(string modelName, int reservoirCapacity, long reservoirSeed, double discountRate, Func<IRegression> regressionFactory)
         {
             ModelName = modelName;
             DiscountRate = discountRate;
             Observations = new Reservoir<DeepCFRObservation>(reservoirCapacity, reservoirSeed);
             PendingObservations = new ConcurrentBag<DeepCFRObservation>();
             TargetToAdd = reservoirCapacity;
+            RegressionFactory = regressionFactory;
         }
 
         public void AddPendingObservation(DeepCFRObservation observation)
@@ -86,7 +91,7 @@ namespace ACESimBase.GameSolvingSupport
             byte[] actionsChosen = Observations.Select(x => x.IndependentVariables.ActionChosen).Distinct().OrderBy(x => x).ToArray();
             var regrets = actionsChosen.Select(a => Observations.Where(x => x.IndependentVariables.ActionChosen == a).Average(x => x.SampledRegret)).ToArray();
             TabbedText.Write($"AvgRegrets {String.Join(", ", regrets)} ");
-            Regression = new NeuralNetworkController();
+            Regression = new RegressionController(RegressionFactory);
             await Regression.Regress(data);
             PrintData(data);
         }

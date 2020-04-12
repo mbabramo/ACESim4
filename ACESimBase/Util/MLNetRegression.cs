@@ -17,20 +17,25 @@ namespace ACESimBase.Util
         MLContext Context;
         ITransformer Transformer; 
         PredictionEngine<MLNetDatum, MLNetPrediction> PredictionEngine;
-        MLNetRegressionTechniques Technique = MLNetRegressionTechniques.FastTreeTweedie;
+        RegressionTechniques Technique;
+
+        public MLNetRegression(RegressionTechniques technique)
+        {
+            Technique = technique;
+        }
 
         public IEstimator<ITransformer> GetEstimator(IDataView trainDataView) => Technique switch
         {
-            MLNetRegressionTechniques.OLS => Context.Regression.Trainers.Ols(nameof(MLNetDatum.Label), nameof(MLNetDatum.Features)),
-            MLNetRegressionTechniques.FastForest => Context.Regression.Trainers.FastForest(nameof(MLNetDatum.Label), nameof(MLNetDatum.Features)),
-            MLNetRegressionTechniques.FastTree => Context.Regression.Trainers.FastTree(nameof(MLNetDatum.Label), nameof(MLNetDatum.Features)),
-            MLNetRegressionTechniques.FastTreeTweedie => Context.Regression.Trainers.FastTreeTweedie(nameof(MLNetDatum.Label), nameof(MLNetDatum.Features)),
-            MLNetRegressionTechniques.OnlineGradientDescent => Context.Regression.Trainers.OnlineGradientDescent(nameof(MLNetDatum.Label), nameof(MLNetDatum.Features)),
-            MLNetRegressionTechniques.LightGbm => Context.Regression.Trainers.LightGbm(nameof(MLNetDatum.Label), nameof(MLNetDatum.Features)),
-            MLNetRegressionTechniques.LbfgsPoissonRegression => Context.Regression.Trainers.LbfgsPoissonRegression(nameof(MLNetDatum.Label), nameof(MLNetDatum.Features)),
-            MLNetRegressionTechniques.Gam => Context.Regression.Trainers.Gam(nameof(MLNetDatum.Label), nameof(MLNetDatum.Features)),
-            MLNetRegressionTechniques.SDCA => Context.Regression.Trainers.Sdca(new SdcaRegressionTrainer.Options() { LabelColumnName = nameof(MLNetDatum.Label), FeatureColumnName = nameof(MLNetDatum.Features) }),
-            MLNetRegressionTechniques.Experimental => ChooseEstimatorExperimentally(Context, trainDataView),
+            RegressionTechniques.OLS => Context.Regression.Trainers.Ols(nameof(MLNetDatum.Label), nameof(MLNetDatum.Features)),
+            RegressionTechniques.FastForest => Context.Regression.Trainers.FastForest(nameof(MLNetDatum.Label), nameof(MLNetDatum.Features)),
+            RegressionTechniques.FastTree => Context.Regression.Trainers.FastTree(nameof(MLNetDatum.Label), nameof(MLNetDatum.Features)),
+            RegressionTechniques.FastTreeTweedie => Context.Regression.Trainers.FastTreeTweedie(nameof(MLNetDatum.Label), nameof(MLNetDatum.Features)),
+            RegressionTechniques.OnlineGradientDescent => Context.Regression.Trainers.OnlineGradientDescent(nameof(MLNetDatum.Label), nameof(MLNetDatum.Features)),
+            RegressionTechniques.LightGbm => Context.Regression.Trainers.LightGbm(nameof(MLNetDatum.Label), nameof(MLNetDatum.Features)),
+            RegressionTechniques.LbfgsPoissonRegression => Context.Regression.Trainers.LbfgsPoissonRegression(nameof(MLNetDatum.Label), nameof(MLNetDatum.Features)),
+            RegressionTechniques.Gam => Context.Regression.Trainers.Gam(nameof(MLNetDatum.Label), nameof(MLNetDatum.Features)),
+            RegressionTechniques.SDCA => Context.Regression.Trainers.Sdca(new SdcaRegressionTrainer.Options() { LabelColumnName = nameof(MLNetDatum.Label), FeatureColumnName = nameof(MLNetDatum.Features) }),
+            RegressionTechniques.Experimental => ChooseEstimatorExperimentally(Context, trainDataView),
             _ => throw new NotImplementedException(),
         };
 

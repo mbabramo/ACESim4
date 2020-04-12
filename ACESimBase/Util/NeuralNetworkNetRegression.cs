@@ -22,17 +22,22 @@ namespace ACESimBase.Util
         public int NumSamplesForTesting;
         INeuralNetwork StoredNetwork;
         public DatasetEvaluationResult LastTrainingReport;
+        public int Epochs; 
+        public int NumHiddenLayers;
+        public int NeuronsPerHiddenLayer;
 
-        public int Epochs => EvolutionSettings.DeepCFR_Epochs;
-        public int NumHiddenLayers => EvolutionSettings.DeepCFR_HiddenLayers;
-        public int NeuronsPerHiddenLayer => EvolutionSettings.DeepCFR_NeuronsPerHiddenLayer;
+        public NeuralNetworkNetRegression(int epochs, int numHiddenLayers, int neuronsPerHiddenLayer)
+        {
+            Epochs = epochs;
+            NumHiddenLayers = numHiddenLayers;
+            NeuronsPerHiddenLayer = neuronsPerHiddenLayer;
+        }
 
         public float[] GetResults(float[] x)
         {
             float[] result = StoredNetwork.Forward(x);
             return result;
         }
-
 
         public async Task Regress((float[] X, float[] Y)[] data)
         {
@@ -41,9 +46,7 @@ namespace ACESimBase.Util
                 layerFactories[i] = NetworkLayers.FullyConnected(NeuronsPerHiddenLayer, ActivationType.ReLU);
             layerFactories[NumHiddenLayers] = NetworkLayers.FullyConnected(1, ActivationType.Tanh, CostFunctionType.Quadratic);
             StoredNetwork = NetworkManager.NewSequential(TensorInfo.Linear(data.First().X.Length), layerFactories);
-            int numForTesting = 1000; // DEBUG
-            if (data.Length < numForTesting * 2) // DEBUG
-                throw new Exception();
+            int numForTesting = 0; // change to add testing
             const float validationProportion = 0.1f; // applies to items not for testing
             int numSamplesForTraining = (int)((1.0 - validationProportion) * (data.Length - numForTesting));
             int numSamplesForValidation = data.Length - numForTesting - numSamplesForTraining;
@@ -51,7 +54,7 @@ namespace ACESimBase.Util
             const int batchSize = 1_000;
             ITrainingDataset trainingData = DatasetLoader.Training(data.Take(numSamplesForTraining), batchSize);
             var validationData = DatasetLoader.Validation(data.Skip(numSamplesForTraining).Take(numSamplesForValidation), 0.005f, 10);
-            ITestDataset testData = numSamplesForTraining + numSamplesForValidation == data.Length ? null : DatasetLoader.Test(data.Skip(numSamplesForTraining + numSamplesForValidation));
+            ITestDataset testData = numForTesting == 0 ? null : numSamplesForTraining + numSamplesForValidation == data.Length ? null : DatasetLoader.Test(data.Skip(numSamplesForTraining + numSamplesForValidation));
             void TrackBatchProgress(BatchProgress progress)
             {
             }

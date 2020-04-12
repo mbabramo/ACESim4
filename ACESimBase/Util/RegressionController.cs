@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.Util
 {
-    public class NeuralNetworkController
+    public class RegressionController
     {
         IRegression Regression;
         bool Normalize = true;
@@ -16,10 +16,9 @@ namespace ACESimBase.Util
         int NumConstantIndependentVariables;
         float MinY, MaxY;
 
-        public NeuralNetworkController()
+        public RegressionController(Func<IRegression> regressionFactory)
         {
-            Regression = new MLNetRegression(); 
-            //Regression = new NeuralNetworkNetRegression();
+            Regression = regressionFactory();
         }
 
         public async Task Regress((float[] X, float Y)[] data)

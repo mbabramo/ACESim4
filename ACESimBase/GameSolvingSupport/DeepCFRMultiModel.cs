@@ -20,32 +20,33 @@ namespace ACESimBase.GameSolvingSupport
         int ReservoirCapacity;
         long ReservoirSeed;
         double DiscountRate;
-        int Epochs, HiddenLayers, NeuronsPerHiddenLayer;
         object LockObj = new object();
 
         public DeepCFRModel UnifiedModel;
         public DeepCFRMultiModelContainer<byte> PlayerSpecificModels = null;
         public DeepCFRMultiModelContainer<(byte playerIndex, byte decisionByteCode)> DecisionSpecificModels = null;
+        /// <summary>
+        /// Factory to create a regression processor
+        /// </summary>
+        Func<IRegression> RegressionFactory;
 
-        public DeepCFRMultiModel(DeepCFRMultiModelMode mode, int reservoirCapacity, long reservoirSeed, double discountRate, int epochs, int hiddenLayers, int neuronsPerHiddenLayer)
+        public DeepCFRMultiModel(DeepCFRMultiModelMode mode, int reservoirCapacity, long reservoirSeed, double discountRate, Func<IRegression> regressionFactory)
         {
             Mode = mode;
             ReservoirCapacity = reservoirCapacity;
             ReservoirSeed = reservoirSeed;
             DiscountRate = discountRate;
-            Epochs = epochs;
-            HiddenLayers = hiddenLayers;
-            NeuronsPerHiddenLayer = neuronsPerHiddenLayer;
+            RegressionFactory = regressionFactory;
             switch (Mode)
             {
                 case DeepCFRMultiModelMode.Unified:
-                    UnifiedModel = new DeepCFRModel("Unified", ReservoirCapacity, ReservoirSeed, DiscountRate);
+                    UnifiedModel = new DeepCFRModel("Unified", ReservoirCapacity, ReservoirSeed, DiscountRate, RegressionFactory);
                     break;
                 case DeepCFRMultiModelMode.PlayerSpecific:
-                    PlayerSpecificModels = new DeepCFRMultiModelContainer<byte>(ReservoirCapacity, ReservoirSeed, DiscountRate);
+                    PlayerSpecificModels = new DeepCFRMultiModelContainer<byte>(ReservoirCapacity, ReservoirSeed, DiscountRate, RegressionFactory);
                     break;
                 case DeepCFRMultiModelMode.DecisionSpecific:
-                    DecisionSpecificModels = new DeepCFRMultiModelContainer<(byte playerIndex, byte decisionByteCode)>(ReservoirCapacity, ReservoirSeed, DiscountRate);
+                    DecisionSpecificModels = new DeepCFRMultiModelContainer<(byte playerIndex, byte decisionByteCode)>(ReservoirCapacity, ReservoirSeed, DiscountRate, RegressionFactory);
                     break;
             }
         }
@@ -126,13 +127,15 @@ namespace ACESimBase.GameSolvingSupport
         int ReservoirCapacity;
         long ReservoirSeed;
         double DiscountRate;
-        object LockObj = new object();
+        object LockObj = new object(); 
+        Func<IRegression> RegressionFactory;
 
-        public DeepCFRMultiModelContainer(int reservoirCapacity, long reservoirSeed, double discountRate)
+        public DeepCFRMultiModelContainer(int reservoirCapacity, long reservoirSeed, double discountRate, Func<IRegression> regressionFactory)
         {
             ReservoirCapacity = reservoirCapacity;
             ReservoirSeed = reservoirSeed;
             DiscountRate = discountRate;
+            RegressionFactory = regressionFactory;
         }
 
         public IEnumerable<DeepCFRModel> EnumerateModels() => Models.OrderBy(x => x.Key).Select(x => x.Value);
@@ -145,7 +148,7 @@ namespace ACESimBase.GameSolvingSupport
                 {
                     if (!Models.ContainsKey(identifier))
                     {
-                        Models[identifier] = new DeepCFRModel(modelName(), ReservoirCapacity, ReservoirSeed, DiscountRate);
+                        Models[identifier] = new DeepCFRModel(modelName(), ReservoirCapacity, ReservoirSeed, DiscountRate, RegressionFactory);
                     }
                 }
             }

@@ -137,7 +137,7 @@ namespace ACESim
         public static MyGameOptions Custom()
         {
             var options = DamagesUncertainty_1BR();
-            options.AllowAbandonAndDefaults = false;
+            //options.AllowAbandonAndDefaults = false;
             //options.PFilingCost = 0;
             //options.DAnswerCost = 0;
             //options.PerPartyCostsLeadingUpToBargainingRound = 0;
