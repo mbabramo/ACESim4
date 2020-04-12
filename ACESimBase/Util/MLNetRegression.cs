@@ -10,12 +10,13 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.Util
 {
-    public class MLNetRegression : IRegression
+    public partial class MLNetRegression : IRegression
     {
         SchemaDefinition Schema;
         MLContext Context;
         ITransformer Transformer; 
         PredictionEngine<MLNetDatum, MLNetPrediction> PredictionEngine;
+        MLNetRegressionTechniques Technique = MLNetRegressionTechniques.FastForest;
 
         public class MLNetDatum
         {
@@ -31,8 +32,6 @@ namespace ACESimBase.Util
 
         public class MLNetPrediction
         {
-            public float Label { get; set; }
-            // Score produced from the trainer.
             public float Score { get; set; }
         }
 
@@ -61,13 +60,19 @@ namespace ACESimBase.Util
         {
             Context = new MLContext();
             IDataView trainDataView = ArrayToDataView(Context, data);
-            IEstimator<ITransformer> estimator = null;
-            estimator = Context.Regression.Trainers.FastForest(nameof(MLNetDatum.Label), nameof(MLNetDatum.Features));
-            // estimator = ChooseEstimatorExperimentally(mlContext, trainDataView);
+            IEstimator<ITransformer> estimator = GetEstimator(trainDataView);
             Transformer = estimator.Fit(trainDataView);
             PredictionEngine = Context.Model.CreatePredictionEngine<MLNetDatum, MLNetPrediction>(Transformer, false, Schema, null);
             return Task.CompletedTask;
         }
+
+        public IEstimator<ITransformer> GetEstimator(IDataView trainDataView) => Technique switch
+        {
+            MLNetRegressionTechniques.OLS => Context.Regression.Trainers.Ols(nameof(MLNetDatum.Label), nameof(MLNetDatum.Features)),
+            MLNetRegressionTechniques.FastForest => Context.Regression.Trainers.FastForest(nameof(MLNetDatum.Label), nameof(MLNetDatum.Features), null, 2000, 10000, 1000),
+            MLNetRegressionTechniques.Experimental => ChooseEstimatorExperimentally(Context, trainDataView),
+            _ => throw new NotImplementedException(),
+        };
 
         private IEstimator<ITransformer> ChooseEstimatorExperimentally(MLContext mlContext, IDataView trainDataView)
         {
@@ -88,7 +93,7 @@ namespace ACESimBase.Util
         {
             MLNetPrediction prediction = new MLNetPrediction();
             PredictionEngine.Predict(new MLNetDatum() { Features = x }, ref prediction);
-            return new float[] { prediction.Label };
+            return new float[] { prediction.Score };
             //IDataView transformed = Transformer.Transform(DatumToDataView(x));
             //var result = Context.Data.CreateEnumerable<MLNetPrediction>(transformed, reuseRowObject: false).First();
             //return result.DependentVariables;

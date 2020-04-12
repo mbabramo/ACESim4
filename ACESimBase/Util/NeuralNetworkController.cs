@@ -18,11 +18,13 @@ namespace ACESimBase.Util
 
         public NeuralNetworkController()
         {
-            Regression = new MLNetRegression(); // DEBUG NeuralNetworkNetRegression();
+            Regression = new MLNetRegression(); 
+            //Regression = new NeuralNetworkNetRegression();
         }
 
         public void SpecifySettings(int epochs, int numHiddenLayers, int neuronsPerHiddenLayer)
         {
+            // DEBUG -- todo make these local variables (or static EvolutionSettings settings)
             if (Regression is NeuralNetworkNetRegression r)
             {
                 r.Epochs = epochs;

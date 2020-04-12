@@ -97,13 +97,31 @@ namespace ACESimBase.GameSolvingSupport
             if (!Observations.Any())
                 throw new Exception("No observations available to build model.");
             IncludedDecisionIndices = DeepCFRIndependentVariables.GetIncludedDecisionIndices(Observations.Select(x => x.IndependentVariables));
-            var data = Observations.Select(x => (x.IndependentVariables.AsArray(IncludedDecisionIndices), (float) x.SampledRegret)).ToArray();
+            (float[], float)[] data = Observations.Select(x => (x.IndependentVariables.AsArray(IncludedDecisionIndices), (float) x.SampledRegret)).ToArray();
             byte[] actionsChosen = Observations.Select(x => x.IndependentVariables.ActionChosen).Distinct().OrderBy(x => x).ToArray();
             var regrets = actionsChosen.Select(a => Observations.Where(x => x.IndependentVariables.ActionChosen == a).Average(x => x.SampledRegret)).ToArray();
             TabbedText.Write($"AvgRegrets {String.Join(", ", regrets)} ");
             Regression = new NeuralNetworkController();
             Regression.SpecifySettings(Epochs, HiddenLayers, NeuronsPerHiddenLayer);
             await Regression.Regress(data);
+            PrintData(data);
+        }
+
+        private void PrintData((float[], float)[] data)
+        {
+            // DEBUG
+            TabbedText.WriteLine("");
+            var grouped = data.Select(x => (x, String.Join(",", x.Item1)))
+                        .GroupBy(x => x.Item2)
+                        .OrderBy(x => x.Key)
+                        .ToList();
+            foreach (var group in grouped)
+            {
+                (float[], float)[] items = group.Select(x => x.Item1).ToArray();
+                float averageInData = items.Average(x => x.Item2);
+                float prediction = Regression.GetResult(items.First().Item1);
+                TabbedText.WriteLine($"{group.Key} => {averageInData} (in data) {prediction} (predicted)");
+            }
         }
 
         public double GetPredictedRegretForAction(DeepCFRIndependentVariables independentVariables, byte action)
