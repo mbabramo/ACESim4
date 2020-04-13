@@ -100,12 +100,12 @@ namespace ACESim
         public RegressionTechniques RegressionTechnique = RegressionTechniques.FastTreeTweedie;
         public Func<IRegression> RegressionFactory() => RegressionTechnique switch
         {
-            RegressionTechniques.NeuralNetworkNetRegression => () => new NeuralNetworkNetRegression(DeepCFR_Epochs, DeepCFR_HiddenLayers, DeepCFR_NeuronsPerHiddenLayer),
+            RegressionTechniques.NeuralNetworkNetRegression => () => new NeuralNetworkNetRegression(DeepCFR_NeuralNetwork_Epochs, DeepCFR_NeuralNetwork_HiddenLayers, DeepCFR_NeuralNetwork_NeuronsPerHiddenLayer),
             _ => () => new MLNetRegression(RegressionTechnique)
         };
-        public int DeepCFR_Epochs = 1_000; // DEBUG
-        public int DeepCFR_HiddenLayers = 3;
-        public int DeepCFR_NeuronsPerHiddenLayer = 150;
+        public int DeepCFR_NeuralNetwork_Epochs = 1_000;
+        public int DeepCFR_NeuralNetwork_HiddenLayers = 3;
+        public int DeepCFR_NeuralNetwork_NeuronsPerHiddenLayer = 150;
         public double DeepCFR_Epsilon_OffPolicyProbabilityForProbe = 0.05;
         public double DeepCFR_DiscountRate = 0.98;
 

@@ -98,7 +98,9 @@ namespace ACESimBase.GameSolvingSupport
 
         private void PrintData((float[], float)[] data)
         {
-            // DEBUG
+            bool print = false;
+            if (!print)
+                return;
             TabbedText.WriteLine("");
             var grouped = data.Select(x => (x, String.Join(",", x.Item1)))
                         .GroupBy(x => x.Item2)

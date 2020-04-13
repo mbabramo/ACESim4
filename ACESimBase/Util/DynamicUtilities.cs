@@ -126,6 +126,8 @@ namespace ACESimBase.Util
             using (var writer = new StringWriter())
             using (var csv_w = new CsvWriter(writer))
             {
+                csv_r1.Configuration.MissingFieldFound = null;
+                csv_r2.Configuration.MissingFieldFound = null;
                 var records1 = csv_r1.GetRecords<dynamic>().ToList();
                 var records2 = csv_r2.GetRecords<dynamic>().ToList();
                 MergeDynamic(records1, records2, IDColumnNames, out Dictionary<string, int> columnOrder);
