@@ -30,7 +30,7 @@ namespace ACESim
         public int? ReportEveryNIterations = 1000;
 
         // CORRELATED EQ SETTINGS -- MUST ALSO SET IN GAME DEFINITION
-        public bool ConstructCorrelatedEquilibrium = false;
+        public bool ConstructCorrelatedEquilibrium = true; // DEBUG
         public bool ConstructCorrelatedEquilibriumMultipleTimesExPost = true;
         public int MaxNumCorrelatedEquilibriaToConstruct = 125;
         public bool CheckCorrelatedEquilibriumIncompatibilitiesAlongWay = false;
@@ -95,8 +95,8 @@ namespace ACESim
 
         // Note: DeepCFR iterations are set in Launcher, same as vanilla iterations.
         public DeepCFRMultiModelMode DeepCFRMultiModelMode = DeepCFRMultiModelMode.DecisionSpecific;
-        public int DeepCFR_ReservoirCapacity = 25_000; // DEBUG
-        public int DeepCFR_MaximumTotalObservationsPerIteration = 100_000; // after this number of observations, we stop looking for more observations, even if we haven't gotten enough to fill as many iterations as desired in one or more reservoirs (in which case, we rely more on earlier observations)
+        public int DeepCFR_ReservoirCapacity = 3_000; // DEBUG
+        public int DeepCFR_MaximumTotalObservationsPerIteration = 10_000; // after this number of observations, we stop looking for more observations, even if we haven't gotten enough to fill as many iterations as desired in one or more reservoirs (in which case, we rely more on earlier observations)
         public RegressionTechniques RegressionTechnique = RegressionTechniques.FastTree;
         public Func<IRegression> RegressionFactory() => RegressionTechnique switch
         {
