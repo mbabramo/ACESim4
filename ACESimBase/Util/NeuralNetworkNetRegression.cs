@@ -48,7 +48,7 @@ namespace ACESimBase.Util
             StoredNetwork = NetworkManager.NewSequential(TensorInfo.Linear(data.First().X.Length), layerFactories);
             int numForTesting = 0; // change to add testing
             const float validationProportion = 0.1f; // applies to items not for testing
-            int numSamplesForTraining = (int)((1.0 - validationProportion) * (data.Length - numForTesting));
+            int numSamplesForTraining = (int)Math.Round((1.0 - validationProportion) * (data.Length - numForTesting));
             int numSamplesForValidation = data.Length - numForTesting - numSamplesForTraining;
             NumSamplesForTesting = data.Length - numSamplesForTraining - numSamplesForValidation;
             const int batchSize = 1_000;
@@ -65,7 +65,7 @@ namespace ACESimBase.Util
                 0,
                 TrackBatchProgress,
                 testDataset: testData);
-            LastTrainingReport = trainingResult.TestReports.Last();
+            LastTrainingReport = trainingResult.TestReports.LastOrDefault();
             //var testDataResults = data.Skip(numSamplesForTraining + numSamplesForValidation).Select(d => (StoredNetwork.Forward(d.X).First(), d.Y.First())).ToList();
             //var examples = data.Skip(numSamplesForTraining + numSamplesForValidation).Take(15).Select(d => $"{string.Join(",", d.X)} => {StoredNetwork.Forward(d.X).Single()} (correct: {d.Y.Single()})");
         }

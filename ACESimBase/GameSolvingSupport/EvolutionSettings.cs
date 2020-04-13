@@ -95,9 +95,9 @@ namespace ACESim
 
         // Note: DeepCFR iterations are set in Launcher, same as vanilla iterations.
         public DeepCFRMultiModelMode DeepCFRMultiModelMode = DeepCFRMultiModelMode.DecisionSpecific;
-        public int DeepCFR_ReservoirCapacity = 5_000; // DEBUG
-        public int DeepCFR_MaximumTotalObservationsPerIteration = 25_000; // after this number of observations, we stop looking for more observations, even if we haven't gotten enough to fill as many iterations as desired in one or more reservoirs (in which case, we rely more on earlier observations)
-        public RegressionTechniques RegressionTechnique = RegressionTechniques.FastTreeTweedie;
+        public int DeepCFR_ReservoirCapacity = 25_000; // DEBUG
+        public int DeepCFR_MaximumTotalObservationsPerIteration = 100_000; // after this number of observations, we stop looking for more observations, even if we haven't gotten enough to fill as many iterations as desired in one or more reservoirs (in which case, we rely more on earlier observations)
+        public RegressionTechniques RegressionTechnique = RegressionTechniques.FastTree;
         public Func<IRegression> RegressionFactory() => RegressionTechnique switch
         {
             RegressionTechniques.NeuralNetworkNetRegression => () => new NeuralNetworkNetRegression(DeepCFR_NeuralNetwork_Epochs, DeepCFR_NeuralNetwork_HiddenLayers, DeepCFR_NeuralNetwork_NeuronsPerHiddenLayer),

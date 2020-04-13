@@ -79,7 +79,7 @@ namespace ACESimBase.Util
 
         public Task Regress((float[] X, float[] Y)[] data)
         {
-            Context = new MLContext();
+            Context = new MLContext(0); // specify random seed for reproducibility
             IDataView trainDataView = ArrayToDataView(Context, data);
             IEstimator<ITransformer> estimator = GetEstimator(trainDataView);
             Transformer = estimator.Fit(trainDataView);

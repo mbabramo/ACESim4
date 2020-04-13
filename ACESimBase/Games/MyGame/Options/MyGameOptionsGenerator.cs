@@ -67,6 +67,20 @@ namespace ACESim
         };
 
 
+        public static void NormalizeToDamages(MyGameOptions o)
+        {
+            double divideBy = o.DamagesMax;
+            o.PInitialWealth /= divideBy;
+            o.DInitialWealth /= divideBy;
+            o.DamagesMin /= divideBy;
+            o.DamagesMax /= divideBy;
+            o.PFilingCost /= divideBy;
+            o.DAnswerCost /= divideBy;
+            o.PTrialCosts /= divideBy;
+            o.DTrialCosts /= divideBy;
+            o.PerPartyCostsLeadingUpToBargainingRound /= divideBy;
+        }
+
         public static MyGameOptions BaseOptions()
         {
             var options = new MyGameOptions()
@@ -137,6 +151,7 @@ namespace ACESim
         public static MyGameOptions Custom()
         {
             var options = DamagesUncertainty_1BR();
+            NormalizeToDamages(options);
             //options.AllowAbandonAndDefaults = false;
             //options.PFilingCost = 0;
             //options.DAnswerCost = 0;

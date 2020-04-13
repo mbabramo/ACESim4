@@ -14,6 +14,27 @@ namespace ACESim
             return theList.Take(count).ToList();
         }
 
+        public static IEnumerable<bool> SampleExactly(int numToSample, int totalNumber, Func<double> randGenerator)
+        {
+            if (numToSample < 0 || numToSample > totalNumber)
+                throw new ArgumentException();
+            double needed = numToSample;
+            double available = totalNumber;
+            int selected = 0;
+            for (int i = 0; i < totalNumber; i++)
+            {
+                if (randGenerator() < needed / available)
+                {
+                    yield return true;
+                    needed--;
+                    selected++;
+                }
+                else
+                    yield return false;
+                available--;
+            }
+        }
+
         public static void Shuffle<T>(IList<T> list, int seed = 0)
         {
             Random rng = seed == 0 ? new Random() : new Random(seed);

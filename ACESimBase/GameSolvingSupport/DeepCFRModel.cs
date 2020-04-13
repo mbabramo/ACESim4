@@ -48,6 +48,10 @@ namespace ACESimBase.GameSolvingSupport
         /// Factory to create a regression processor
         /// </summary>
         Func<IRegression> RegressionFactory;
+        /// <summary>
+        /// The proportion of the data to be reserved for test data
+        /// </summary>
+        double TestDataProportion = 0.05;
 
         public DeepCFRModel(string modelName, int reservoirCapacity, long reservoirSeed, double discountRate, Func<IRegression> regressionFactory)
         {
@@ -88,19 +92,63 @@ namespace ACESimBase.GameSolvingSupport
                 throw new Exception("No observations available to build model.");
             IncludedDecisionIndices = DeepCFRIndependentVariables.GetIncludedDecisionIndices(Observations.Select(x => x.IndependentVariables));
             (float[], float)[] data = Observations.Select(x => (x.IndependentVariables.AsArray(IncludedDecisionIndices), (float) x.SampledRegret)).ToArray();
-            byte[] actionsChosen = Observations.Select(x => x.IndependentVariables.ActionChosen).Distinct().OrderBy(x => x).ToArray();
-            var regrets = actionsChosen.Select(a => Observations.Where(x => x.IndependentVariables.ActionChosen == a).Average(x => x.SampledRegret)).ToArray();
-            TabbedText.Write($"AvgRegrets {String.Join(", ", regrets)} ");
+            (float[], float)[] testData = null;
+            if (TestDataProportion != 0)
+            {
+                int numToSplitAway = (int)(TestDataProportion * data.Length);
+                SplitData(data, numToSplitAway, out (float[], float)[] keep, out testData);
+                data = keep;
+            }
             Regression = new RegressionController(RegressionFactory);
             await Regression.Regress(data);
-            PrintData(data);
+
+
+            bool printAverageRegrets = true;
+            if (printAverageRegrets)
+                PrintAverageRegrets();
+            bool printAllData = false;
+            if (printAllData)
+                PrintData(data);
+            if (TestDataProportion != 0)
+                PrintTestDataResults(testData);
+        }
+
+        private void PrintAverageRegrets()
+        {
+            byte[] actionsChosen = Observations.Select(x => x.IndependentVariables.ActionChosen).Distinct().OrderBy(x => x).ToArray();
+            var regrets = actionsChosen.Select(a => Observations.Where(x => x.IndependentVariables.ActionChosen == a).Average(x => x.SampledRegret)).ToArray();
+            var positiveRegrets = regrets.Select(x => Math.Max(x, 0)).ToArray();
+            var positiveRegretsSum = positiveRegrets.Sum();
+            var relativePositiveRegrets = positiveRegrets.Select(x => x / positiveRegretsSum).ToArray();
+            TabbedText.Write($"AvgRegrets {String.Join(", ", regrets.Select(x => x.ToSignificantFigures(4)))} RegretMatch {String.Join(", ", relativePositiveRegrets.Select(x => x.ToSignificantFigures(4)))}");
+        }
+
+        private void SplitData((float[], float)[] data, int numToSplitAway, out (float[], float)[] keep, out (float[], float)[] split)
+        {
+            ConsistentRandomSequenceProducer r = new ConsistentRandomSequenceProducer(0);
+            int numToKeep = data.Length - numToSplitAway;
+            keep = new (float[], float)[numToKeep];
+            split = new (float[], float)[numToSplitAway];
+            int overallIndex = 0, keepIndex = 0, splitIndex = 0;
+            foreach (bool keepThisOne in RandomSubset.SampleExactly(numToKeep, data.Length, () => r.NextDouble()))
+            {
+                if (keepThisOne)
+                    keep[keepIndex++] = data[overallIndex++];
+                else
+                    split[splitIndex++] = data[overallIndex++];
+            }
+            if (overallIndex != data.Length)
+                throw new Exception();
+        }
+
+        private void PrintTestDataResults((float[], float)[] testData)
+        {
+            double loss = testData.Select(d => (Regression.GetResult(d.Item1), d.Item2)).Select(d => Math.Pow(d.Item1 - d.Item2, 2.0)).Average();
+            TabbedText.WriteLine($"AvgLoss: {loss.ToSignificantFigures(4)} ");
         }
 
         private void PrintData((float[], float)[] data)
         {
-            bool print = false;
-            if (!print)
-                return;
             TabbedText.WriteLine("");
             var grouped = data.Select(x => (x, String.Join(",", x.Item1)))
                         .GroupBy(x => x.Item2)

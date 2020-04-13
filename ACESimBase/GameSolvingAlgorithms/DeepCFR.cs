@@ -162,7 +162,8 @@ namespace ACESim
             int[] numObservationsToAdd = Models.CountPendingObservationsTarget(iteration);
             do
             {
-                DeepCFRObservationNum observationNum = new DeepCFRObservationNum(obsNum, 0);
+                bool separateDataEveryObservation = true;
+                DeepCFRObservationNum observationNum = new DeepCFRObservationNum(obsNum, separateDataEveryObservation ? iteration * 1000 : 0);
                 finalUtilities = DeepCFRTraversal(observationNum, DeepCFRTraversalMode.AddRegretObservations).utilities;
                 obsNum++;
                 if (iteration == 1)

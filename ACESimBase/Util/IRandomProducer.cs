@@ -10,5 +10,6 @@ namespace ACESim
     {
         double NextDouble();
         double GetDoubleAtIndex(int index);
+
     }
 }
