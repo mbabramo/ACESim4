@@ -18,9 +18,9 @@ namespace ACESim
 
         #region Settings
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; // use RegretMatching etc. for GeneralizedVanilla
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.DeepCFR; // use RegretMatching etc. for GeneralizedVanilla
 
-        public const int VanillaIterations = 2000; // DEBUG // Note: Also used for GeneralizedVanilla, DeepCFR
+        public const int VanillaIterations = 2_000; // DEBUG // Note: Also used for GeneralizedVanilla, DeepCFR
         public const int VanillaReportEveryNIterations = VanillaIterations;
         public const int VanillaBestResponseEveryMIterations = VanillaIterations; // DEBUG EffectivelyNever; 
         public const bool CalculatePerturbedBestResponseRefinement = true;

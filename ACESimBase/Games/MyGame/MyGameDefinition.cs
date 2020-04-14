@@ -974,11 +974,11 @@ namespace ACESim
 
         #region Alternative scenarios
 
-        public override bool PlayMultipleScenarios => true; // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
+        public override bool PlayMultipleScenarios => false; // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
 
         public override int NumPostWarmupOptionSets => 1; 
         public override int NumWarmupOptionSets => 2; // Note that this can be 0. This indicates the variations on the costs multiplier; variations on weight to opponent are below. 
-        public override int WarmupIterations_IfWarmingUp => 3; // DEBUG
+        public override int WarmupIterations_IfWarmingUp => 30;
         public override bool MultiplyWarmupScenariosByAlteringWeightOnOpponentsStrategy => true;
         public override int NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios => 2; // should be odd if we want to include zero
         public override bool VaryWeightOnOpponentsStrategySeparatelyForEachPlayer => true; 
