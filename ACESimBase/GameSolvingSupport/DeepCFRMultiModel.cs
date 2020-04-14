@@ -7,13 +7,6 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.GameSolvingSupport
 {
-    public enum DeepCFRMultiModelMode
-    {
-        Unified,
-        PlayerSpecific,
-        DecisionSpecific
-    }
-
     public class DeepCFRMultiModel
     {
         DeepCFRMultiModelMode Mode;
@@ -29,6 +22,8 @@ namespace ACESimBase.GameSolvingSupport
         /// Factory to create a regression processor
         /// </summary>
         Func<IRegression> RegressionFactory;
+
+        byte? StateFrozenForPlayer;
 
         public DeepCFRMultiModel(DeepCFRMultiModelMode mode, int reservoirCapacity, long reservoirSeed, double discountRate, Func<IRegression> regressionFactory)
         {
@@ -59,6 +54,22 @@ namespace ACESimBase.GameSolvingSupport
             _ => throw new NotImplementedException(),
         };
 
+        public void SetModel(Decision decision, DeepCFRModel model)
+        {
+            switch (Mode)
+            {
+                case DeepCFRMultiModelMode.Unified:
+                    UnifiedModel = model;
+                    break;
+                case DeepCFRMultiModelMode.PlayerSpecific:
+                    PlayerSpecificModels.SetModel(decision.PlayerNumber, () => $"Player {decision.PlayerNumber}", model);
+                    break;
+                case DeepCFRMultiModelMode.DecisionSpecific:
+                    DecisionSpecificModels.SetModel((decision.PlayerNumber, decision.DecisionByteCode), () => $"Decision {decision.Name}", model);
+                    break;
+            }
+        }
+
         public IEnumerable<DeepCFRModel> EnumerateModels() => Mode switch
         {
             DeepCFRMultiModelMode.Unified => new DeepCFRModel[] { UnifiedModel },
@@ -67,6 +78,41 @@ namespace ACESimBase.GameSolvingSupport
             _ => throw new NotImplementedException(),
         };
 
+        public IEnumerable<DeepCFRModel> EnumerateModelsForPlayer(byte playerIndex) => Mode switch
+        {
+            DeepCFRMultiModelMode.Unified => throw new NotSupportedException("Cannot enumerate per-player model when using unified models"), // thus, we would need to do switch to player-specific to do best response approximation with this
+            DeepCFRMultiModelMode.PlayerSpecific => PlayerSpecificModels.EnumerateModelsWithKey().Where(x => x.key == playerIndex).Select(x => x.model),
+            DeepCFRMultiModelMode.DecisionSpecific => DecisionSpecificModels.EnumerateModelsWithKey().Where(x => x.key.playerIndex == playerIndex).Select(x => x.model),
+            _ => throw new NotImplementedException(),
+        };
+
+        public IEnumerable<(byte playerIndex, DeepCFRModel model)> EnumerateModelsWithPlayerInfo() => Mode switch
+        {
+            DeepCFRMultiModelMode.Unified => throw new NotSupportedException("Cannot enumerate per-player model when using unified models"), // thus, we would need to do switch to player-specific to do best response approximation with this
+            DeepCFRMultiModelMode.PlayerSpecific => PlayerSpecificModels.EnumerateModelsWithKey().Select(x => (x.key, x.model)),
+            DeepCFRMultiModelMode.DecisionSpecific => DecisionSpecificModels.EnumerateModelsWithKey().Select(x => (x.key.playerIndex, x.model)),
+            _ => throw new NotImplementedException(),
+        };
+
+        public void RememberStateForPlayer(byte playerIndex)
+        {
+            if (StateFrozenForPlayer != null)
+                throw new NotImplementedException("Cannot freeze state for both players.");
+            StateFrozenForPlayer = playerIndex;
+            foreach (DeepCFRModel model in EnumerateModelsForPlayer(playerIndex))
+            {
+                model.RememberObservations();
+            }
+        }
+
+        public async Task RecallRememberedStateForPlayer(byte playerIndex)
+        {
+            foreach (DeepCFRModel model in EnumerateModelsForPlayer(playerIndex))
+            {
+                model.RecallRememberedObservations();
+                await model.BuildModel(); // must rebuild the model -- alternative would be to duplicate the model, but this would require more work
+            }
+        }
 
         public byte ChooseAction(Decision decision, double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample, double probabilityUniformRandom)
         {
@@ -98,7 +144,13 @@ namespace ACESimBase.GameSolvingSupport
             model.AddPendingObservation(observation);
         }
 
-        public int[] CountPendingObservationsTarget(int iteration) => EnumerateModels().Select(x => x.CountPendingObservationsTarget(iteration)).ToArray();
+        public int[] CountPendingObservationsTarget(int iteration) => StateFrozenForPlayer == null ? CountPendingObservationsTarget_Ordinary(iteration) : CountPendingObservationsTarget_OnePlayerFrozen();
+
+        private int[] CountPendingObservationsTarget_Ordinary(int iteration) => EnumerateModels().Select(x => x.CountPendingObservationsTarget(iteration)).ToArray();
+
+        // if one player is frozen, then we want to replace NONE of that player's observations, but we want to replace ALL of the other player's observations.
+        debug; // we actually need to check whether to add the observation
+        public int[] CountPendingObservationsTarget_OnePlayerFrozen() => EnumerateModelsWithPlayerInfo().Select(x => x.playerIndex == StateFrozenForPlayer ? 0 : x.model.Observations.Capacity).ToArray();
 
         public bool AllMeetInitialPendingObservationsTarget(int initialTarget)
         {
@@ -117,47 +169,6 @@ namespace ACESimBase.GameSolvingSupport
             //await Parallelizer.ForEachAsync(EnumerateModels(), m => m.CompleteIteration(deepCFR_Epochs));
             foreach (var model in EnumerateModels())
                 await model.CompleteIteration();
-        }
-    }
-
-    public class DeepCFRMultiModelContainer<T>
-    {
-        public Dictionary<T, DeepCFRModel> Models = new Dictionary<T, DeepCFRModel>();
-
-        int ReservoirCapacity;
-        long ReservoirSeed;
-        double DiscountRate;
-        object LockObj = new object(); 
-        Func<IRegression> RegressionFactory;
-
-        public DeepCFRMultiModelContainer(int reservoirCapacity, long reservoirSeed, double discountRate, Func<IRegression> regressionFactory)
-        {
-            ReservoirCapacity = reservoirCapacity;
-            ReservoirSeed = reservoirSeed;
-            DiscountRate = discountRate;
-            RegressionFactory = regressionFactory;
-        }
-
-        public IEnumerable<DeepCFRModel> EnumerateModels() => Models.OrderBy(x => x.Key).Select(x => x.Value);
-
-        private void AddModelIfNecessary(T identifier, Func<string> modelName)
-        {
-            if (!Models.ContainsKey(identifier))
-            {
-                lock (LockObj)
-                {
-                    if (!Models.ContainsKey(identifier))
-                    {
-                        Models[identifier] = new DeepCFRModel(modelName(), ReservoirCapacity, ReservoirSeed, DiscountRate, RegressionFactory);
-                    }
-                }
-            }
-        }
-
-        public DeepCFRModel GetModel(T identifier, Func<string> modelName)
-        {
-            AddModelIfNecessary(identifier, modelName);
-            return Models[identifier];
         }
     }
 }

@@ -108,6 +108,8 @@ namespace ACESim
         public int DeepCFR_NeuralNetwork_NeuronsPerHiddenLayer = 150;
         public double DeepCFR_Epsilon_OffPolicyProbabilityForProbe = 0.05;
         public double DeepCFR_DiscountRate = 0.98;
+        public bool DeepCFR_ApproximateBestResponse = true;
+        public int DeepCFR_BestResponseIterationsPerPlayer = 10;
 
         // For Vanilla algorithm:
         // From Solving Imperfect Information Games with Discounted Regret Minimization -- optimal values (for situations in which pruning may be used)

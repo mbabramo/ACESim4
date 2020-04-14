@@ -13,5 +13,7 @@ namespace ACESimBase.GameSolvingSupport
         /// The independent variables in the regression.
         /// </summary>
         public DeepCFRIndependentVariables IndependentVariables;
+
+        public DeepCFRObservation DeepCopy() => new DeepCFRObservation() { SampledRegret = SampledRegret, IndependentVariables = IndependentVariables.DeepCopy() };
     }
 }

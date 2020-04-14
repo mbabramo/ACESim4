@@ -142,6 +142,7 @@ namespace ACESim
             }
             return reportCollection;
         }
+
         private async Task<ReportCollection> PerformDeepCFRIteration(int iteration)
         {
             Status.IterationNumDouble = iteration;
@@ -154,8 +155,6 @@ namespace ACESim
 
 
             TabbedText.Write($"Iteration {iteration} of {EvolutionSettings.TotalIterations} ");
-
-            DEBUGCount_DAnswer = DEBUGCount_PFile = 0;
 
             int obsNum = 0;
             bool targetMet = false;
@@ -177,6 +176,7 @@ namespace ACESim
 
             localStopwatch.Stop();
             StrategiesDeveloperStopwatch.Stop();
+            TabbedText.Write($" utilities {String.Join(",", finalUtilities.Select(x => x.ToSignificantFigures(4)))}");
             TabbedText.WriteLine($" time {localStopwatch.ElapsedMilliseconds} ms");
 
             TabbedText.TabIndent();

@@ -44,6 +44,13 @@ namespace ACESimBase.GameSolvingSupport
             GameParameters = gameParameters;
         }
 
+
+
+        public DeepCFRIndependentVariables DeepCopy()
+        {
+            return new DeepCFRIndependentVariables(Player, DecisionIndex, InformationSet.ToList(), ActionChosen, GameParameters.ToList());
+        }
+
         public IEnumerable<(byte decisionIndex, byte information)> InformationSetPlusActionChosen()
         {
             foreach (var item in InformationSet)

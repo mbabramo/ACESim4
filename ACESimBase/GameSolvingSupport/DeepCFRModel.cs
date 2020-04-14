@@ -21,6 +21,10 @@ namespace ACESimBase.GameSolvingSupport
         /// </summary>
         public Reservoir<DeepCFRObservation> Observations;
         /// <summary>
+        /// A copy of the observations at some point in time.
+        /// </summary>
+        public Reservoir<DeepCFRObservation> RememberedObservations;
+        /// <summary>
         /// The number of iterations already processed.
         /// </summary>
         public int IterationsProcessed;
@@ -86,7 +90,7 @@ namespace ACESimBase.GameSolvingSupport
             TabbedText.WriteLine(trainingResultString + $" ({ModelName})");
         }
 
-        private async Task BuildModel()
+        public async Task BuildModel()
         {
             if (!Observations.Any())
                 throw new Exception("No observations available to build model.");
@@ -221,6 +225,17 @@ namespace ACESimBase.GameSolvingSupport
                     return a;
             }
             return (byte) (positiveRegrets.Length);
+        }
+
+        public void RememberObservations()
+        {
+            RememberedObservations = Observations.DeepCopy(o => o.DeepCopy());
+        }
+
+        public void RecallRememberedObservations()
+        {
+            Observations = RememberedObservations;
+            RememberedObservations = null;
         }
     }
 }

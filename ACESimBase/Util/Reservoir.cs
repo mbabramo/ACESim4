@@ -10,16 +10,25 @@ namespace ACESimBase.Util
     public class Reservoir<T> : IEnumerable<T>
     {
         ConsistentRandomSequenceProducer RandomProducer;
-        public int CurrentSize, Capacity;
+        public int CurrentSize, Capacity, Seed;
         public int RemainingCapacity => Capacity - CurrentSize;
         public T[] Items;
 
         public Reservoir(int capacity, long seed)
         {
+            Seed = seed;
             RandomProducer = new ConsistentRandomSequenceProducer(seed);
             CurrentSize = 0;
             Capacity = capacity;
             Items = new T[Capacity];
+        }
+
+        public Reservoir<T> DeepCopy(Func<T, T> deepCopyItem)
+        {
+            var result = new Reservoir<T>(Capacity, Seed);
+            foreach (T item in this)
+                result.AddItem(deepCopyItem(item));
+            return result;
         }
 
 
