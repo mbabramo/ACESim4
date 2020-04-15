@@ -23,7 +23,9 @@ namespace ACESimBase.GameSolvingSupport
         /// </summary>
         Func<IRegression> RegressionFactory;
 
-        byte? StateFrozenForPlayer;
+        byte? DeterminingBestResponseOfPlayer;
+
+        #region Model initialization and access
 
         public DeepCFRMultiModel(DeepCFRMultiModelMode mode, int reservoirCapacity, long reservoirSeed, double discountRate, Func<IRegression> regressionFactory)
         {
@@ -32,6 +34,11 @@ namespace ACESimBase.GameSolvingSupport
             ReservoirSeed = reservoirSeed;
             DiscountRate = discountRate;
             RegressionFactory = regressionFactory;
+            InitializeModels();
+        }
+
+        private void InitializeModels()
+        {
             switch (Mode)
             {
                 case DeepCFRMultiModelMode.Unified:
@@ -86,6 +93,14 @@ namespace ACESimBase.GameSolvingSupport
             _ => throw new NotImplementedException(),
         };
 
+        public IEnumerable<DeepCFRModel> EnumerateModelsForPlayersBesides(byte playerIndex) => Mode switch
+        {
+            DeepCFRMultiModelMode.Unified => throw new NotSupportedException("Cannot enumerate per-player model when using unified models"), // thus, we would need to do switch to player-specific to do best response approximation with this
+            DeepCFRMultiModelMode.PlayerSpecific => PlayerSpecificModels.EnumerateModelsWithKey().Where(x => x.key != playerIndex).Select(x => x.model),
+            DeepCFRMultiModelMode.DecisionSpecific => DecisionSpecificModels.EnumerateModelsWithKey().Where(x => x.key.playerIndex != playerIndex).Select(x => x.model),
+            _ => throw new NotImplementedException(),
+        };
+
         public IEnumerable<(byte playerIndex, DeepCFRModel model)> EnumerateModelsWithPlayerInfo() => Mode switch
         {
             DeepCFRMultiModelMode.Unified => throw new NotSupportedException("Cannot enumerate per-player model when using unified models"), // thus, we would need to do switch to player-specific to do best response approximation with this
@@ -94,25 +109,9 @@ namespace ACESimBase.GameSolvingSupport
             _ => throw new NotImplementedException(),
         };
 
-        public void RememberStateForPlayer(byte playerIndex)
-        {
-            if (StateFrozenForPlayer != null)
-                throw new NotImplementedException("Cannot freeze state for both players.");
-            StateFrozenForPlayer = playerIndex;
-            foreach (DeepCFRModel model in EnumerateModelsForPlayer(playerIndex))
-            {
-                model.RememberObservations();
-            }
-        }
+        #endregion
 
-        public async Task RecallRememberedStateForPlayer(byte playerIndex)
-        {
-            foreach (DeepCFRModel model in EnumerateModelsForPlayer(playerIndex))
-            {
-                model.RecallRememberedObservations();
-                await model.BuildModel(); // must rebuild the model -- alternative would be to duplicate the model, but this would require more work
-            }
-        }
+        #region Choosing actions
 
         public byte ChooseAction(Decision decision, double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample, double probabilityUniformRandom)
         {
@@ -133,6 +132,10 @@ namespace ACESimBase.GameSolvingSupport
             return result;
         }
 
+        #endregion
+
+        #region Pending observations
+
         public void AddPendingObservation(Decision decision, DeepCFRObservation observation)
         {
             var model = GetModel(decision);
@@ -144,13 +147,8 @@ namespace ACESimBase.GameSolvingSupport
             model.AddPendingObservation(observation);
         }
 
-        public int[] CountPendingObservationsTarget(int iteration) => StateFrozenForPlayer == null ? CountPendingObservationsTarget_Ordinary(iteration) : CountPendingObservationsTarget_OnePlayerFrozen();
+        public int[] CountPendingObservationsTarget(int iteration) => EnumerateModels().Select(x => x.UpdateAndCountPendingObservationsTarget(iteration)).ToArray();
 
-        private int[] CountPendingObservationsTarget_Ordinary(int iteration) => EnumerateModels().Select(x => x.CountPendingObservationsTarget(iteration)).ToArray();
-
-        // if one player is frozen, then we want to replace NONE of that player's observations, but we want to replace ALL of the other player's observations.
-        debug; // we actually need to check whether to add the observation
-        public int[] CountPendingObservationsTarget_OnePlayerFrozen() => EnumerateModelsWithPlayerInfo().Select(x => x.playerIndex == StateFrozenForPlayer ? 0 : x.model.Observations.Capacity).ToArray();
 
         public bool AllMeetInitialPendingObservationsTarget(int initialTarget)
         {
@@ -164,11 +162,45 @@ namespace ACESimBase.GameSolvingSupport
             return result;
         }
 
+        #endregion
+
         public async Task CompleteIteration(int deepCFR_Epochs)
         {
             //await Parallelizer.ForEachAsync(EnumerateModels(), m => m.CompleteIteration(deepCFR_Epochs));
             foreach (var model in EnumerateModels())
                 await model.CompleteIteration();
         }
+
+        #region Best response
+
+        public void BeginDeterminingBestResponse(byte playerIndex)
+        {
+            if (DeterminingBestResponseOfPlayer != null)
+                throw new NotImplementedException("Already determining best response.");
+            DeterminingBestResponseOfPlayer = playerIndex;
+            foreach (DeepCFRModel model in EnumerateModelsForPlayer(playerIndex))
+            {
+                model.StartDeterminingBestResponse();
+            }
+            foreach (DeepCFRModel model in EnumerateModelsForPlayersBesides(playerIndex))
+            {
+                model.FreezeState();
+            }
+        }
+
+        public async Task EndDeterminingBestResponse(byte playerIndex)
+        {
+            foreach (DeepCFRModel model in EnumerateModelsForPlayer(playerIndex))
+            {
+                await model.EndDeterminingBestResponse();
+            }
+            foreach (DeepCFRModel model in EnumerateModelsForPlayersBesides(playerIndex))
+            {
+                model.UnfreezeState();
+            }
+            DeterminingBestResponseOfPlayer = null;
+        }
+
+        #endregion
     }
 }

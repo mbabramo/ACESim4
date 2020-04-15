@@ -49,6 +49,14 @@ namespace ACESimBase.GameSolvingSupport
         /// </summary>
         int TargetToAdd;
         /// <summary>
+        /// When the state is frozen, we adjust the target so that we will add no observations
+        /// </summary>
+        bool StateFrozen;
+        /// <summary>
+        /// Always seek to replace as many observations as possible in each iteration. This is useful 
+        /// </summary>
+        bool FullReservoirReplacement;
+        /// <summary>
         /// Factory to create a regression processor
         /// </summary>
         Func<IRegression> RegressionFactory;
@@ -69,12 +77,14 @@ namespace ACESimBase.GameSolvingSupport
 
         public void AddPendingObservation(DeepCFRObservation observation)
         {
-            if (PendingObservations.Count() < TargetToAdd)
+            if (!StateFrozen && PendingObservations.Count() < TargetToAdd)
                 PendingObservations.Add(observation);
         }
 
-        public int CountPendingObservationsTarget(int iteration)
+        public int UpdateAndCountPendingObservationsTarget(int iteration)
         {
+            if (StateFrozen)
+                return 0;
             TargetToAdd = Observations.CountTotalNumberToAddAtIteration(DiscountRate, iteration);
             return TargetToAdd;
         }
@@ -227,15 +237,48 @@ namespace ACESimBase.GameSolvingSupport
             return (byte) (positiveRegrets.Length);
         }
 
-        public void RememberObservations()
+        #region Freezing/remembering state (for approximate best response determination)
+
+        /// <summary>
+        /// Freeze the state (for players for whom the best response is not being determined)
+        /// </summary>
+        public void FreezeState()
         {
-            RememberedObservations = Observations.DeepCopy(o => o.DeepCopy());
+            StateFrozen = true;
         }
 
-        public void RecallRememberedObservations()
+        /// <summary>
+        /// Unfreeze the state (for players for whom the best response was not being determined)
+        /// </summary>
+        public void UnfreezeState()
+        {
+            if (!StateFrozen)
+                throw new NotSupportedException();
+            StateFrozen = false;
+        }
+
+        /// <summary>
+        /// Prepare to start determining the best response, by remembering the current state and targeting full
+        /// replacement of the reservoir.
+        /// </summary>
+        public void StartDeterminingBestResponse()
+        {
+            RememberedObservations = Observations.DeepCopy(o => o.DeepCopy());
+            FullReservoirReplacement = true;
+        }
+
+        /// <summary>
+        /// Conclude determining the best response, recalling the previous state.
+        /// </summary>
+        /// <returns></returns>
+        public async Task EndDeterminingBestResponse()
         {
             Observations = RememberedObservations;
             RememberedObservations = null;
+            FullReservoirReplacement = false;
+            await BuildModel(); // must rebuild model (alternative would be to have a deep copy of the model)
         }
+
+        #endregion
     }
 }

@@ -10,7 +10,8 @@ namespace ACESimBase.Util
     public class Reservoir<T> : IEnumerable<T>
     {
         ConsistentRandomSequenceProducer RandomProducer;
-        public int CurrentSize, Capacity, Seed;
+        public int CurrentSize, Capacity;
+        public long Seed;
         public int RemainingCapacity => Capacity - CurrentSize;
         public T[] Items;
 

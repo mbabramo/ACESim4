@@ -33,8 +33,6 @@ namespace ACESim
             return Task.CompletedTask;
         }
 
-        int DEBUGCount_PFile = 0, DEBUGCount_DAnswer = 0;
-
         /// <summary>
         /// Traverses the game tree for DeepCFR. It performs this either in 
         /// </summary>
@@ -76,7 +74,6 @@ namespace ACESim
             }
             else if (traversalMode == DeepCFRTraversalMode.AddRegretObservations)
                 throw new Exception("When adding regret observations, should not prespecify action");
-            DEBUGX++;
             DirectGamePlayer mainActionPlayer = traversalMode == DeepCFRTraversalMode.PlaybackSinglePath ? gamePlayer : gamePlayer.DeepCopy();
             mainActionPlayer.PlayAction(mainAction);
             double[] mainValues = DeepCFRTraversal(mainActionPlayer, observationNum, traversalMode);
@@ -97,10 +94,6 @@ namespace ACESim
                     SampledRegret = sampledRegret,
                     IndependentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, probeAction, null /* DEBUG */)
                 };
-                if (currentDecision.Name == "PFile")
-                    DEBUGCount_PFile++;
-                else if (currentDecision.Name == "DAnswer")
-                    DEBUGCount_DAnswer++;
                 Models.AddPendingObservation(currentDecision, observation);
             }
             return mainValues;
