@@ -173,7 +173,7 @@ namespace ACESimBase.GameSolvingSupport
 
         #region Best response
 
-        public void BeginDeterminingBestResponse(byte playerIndex)
+        public void StartDeterminingBestResponse(byte playerIndex)
         {
             if (DeterminingBestResponseOfPlayer != null)
                 throw new NotImplementedException("Already determining best response.");
