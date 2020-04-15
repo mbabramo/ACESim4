@@ -41,6 +41,25 @@ namespace ACESim
 
         public GameProgress DeepCFR_GetGameProgressByPlaying(DeepCFRObservationNum observationNum) => DeepCFRTraversal(observationNum, DeepCFRTraversalMode.PlaybackSinglePath).completedProgress;
 
+        public double[] DeepCFR_UtilitiesAverage(int totalNumberObservations)
+        {
+            double[][] utilities = new double[totalNumberObservations][];
+            Parallelizer.Go(EvolutionSettings.ParallelOptimization, 0, totalNumberObservations, o =>
+            {
+                DeepCFRObservationNum observationNum = new DeepCFRObservationNum(o, 10_000_000);
+                utilities[o] = DeepCFR_UtilitiesFromSinglePlayback(observationNum);
+            });
+            double[] averageUtilities = new double[NumNonChancePlayers];
+            for (int i = 0; i < NumNonChancePlayers; i++)
+                averageUtilities[i] = utilities.Average(x => x[i]);
+            return averageUtilities;
+        }
+
+        public double[] DeepCFR_UtilitiesFromSinglePlayback(DeepCFRObservationNum observationNum)
+        {
+            return DeepCFRTraversal(observationNum, DeepCFRTraversalMode.PlaybackSinglePath).utilities;
+        }
+
         public (double[] utilities, GameProgress completedProgress) DeepCFRTraversal(DeepCFRObservationNum observationNum, DeepCFRTraversalMode traversalMode)
         {
             double[] finalUtilities;
@@ -153,21 +172,26 @@ namespace ACESim
             }
             if (EvolutionSettings.DeepCFR_ApproximateBestResponse)
             {
+                double[] baselineUtilities = DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
                 for (byte p = 0; p < NumNonChancePlayers; p++)
                 {
                     TabbedText.WriteLine($"Determining best response for player {p}");
                     TabbedText.TabIndent();
                     Models.StartDeterminingBestResponse(p);
-                    for (int iteration = 1; iteration <= EvolutionSettings.DeepCFR_BestResponseIterations; iteration++)
+                    for (int iteration = 1; iteration <= EvolutionSettings.DeepCFR_ApproximateBestResponseIterations; iteration++)
                     {
-                        var result = await PerformDeepCFRIteration(iteration, false);
+                        var result = await PerformDeepCFRIteration(iteration, true);
                     }
+                    double[] bestResponseUtilities = DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
                     TabbedText.TabUnindent();
 
                     TabbedText.WriteLine($"Concluding determining best response for player {p} (recreating earlier models)");
                     TabbedText.TabIndent();
                     await Models.EndDeterminingBestResponse(p);
                     TabbedText.TabUnindent();
+                    TabbedText.WriteLine($"Utilities with best response for player {p}: {String.Join(",", bestResponseUtilities.Select(x => x.ToSignificantFigures(4)))}");
+                    double bestResponseImprovement = bestResponseUtilities[p] - baselineUtilities[p];
+                    TabbedText.WriteLine($"Best response improvement for player {p}: {bestResponseImprovement.ToSignificantFigures(4)}");
                 }
             }
             return reportCollection;
@@ -184,9 +208,9 @@ namespace ACESim
             StrategiesDeveloperStopwatch.Start();
 
             if (isBestResponseIteration)
-                TabbedText.Write($"Iteration {iteration} of {EvolutionSettings.TotalIterations} ");
+                TabbedText.Write($"Best response iteration {iteration} of {EvolutionSettings.DeepCFR_ApproximateBestResponseIterations} ");
             else
-                TabbedText.Write($"Best response iteration {iteration} of {EvolutionSettings.DeepCFR_BestResponseIterations} ");
+                TabbedText.Write($"Iteration {iteration} of {EvolutionSettings.TotalIterations} ");
 
             int obsNum = 0;
             bool targetMet = false;
@@ -197,12 +221,7 @@ namespace ACESim
                 DeepCFRObservationNum observationNum = new DeepCFRObservationNum(obsNum, separateDataEveryObservation ? iteration * 1000 : 0);
                 finalUtilities = DeepCFRTraversal(observationNum, DeepCFRTraversalMode.AddRegretObservations).utilities;
                 obsNum++;
-                if (iteration == 1)
-                    targetMet = Models.AllMeetInitialPendingObservationsTarget(EvolutionSettings.DeepCFR_ReservoirCapacity); // must fill all reservoirs in first iteration
-                else if (obsNum >= EvolutionSettings.DeepCFR_MaximumTotalObservationsPerIteration)
-                    targetMet = true;
-                else
-                    targetMet = Models.AllMeetPendingObservationsTarget(numObservationsToAdd);
+                targetMet = TargetMet(iteration, isBestResponseIteration, obsNum, numObservationsToAdd);
             }
             while (!targetMet);
 
@@ -229,6 +248,18 @@ namespace ACESim
             }
 
             return (reportCollection, finalUtilities);
+
+            bool TargetMet(int iteration, bool isBestResponseIteration, int obsNum, int[] numObservationsToAdd)
+            {
+                bool targetMet;
+                if (iteration == 1 && !isBestResponseIteration)
+                    targetMet = Models.AllMeetInitialPendingObservationsTarget(EvolutionSettings.DeepCFR_ReservoirCapacity); // must fill all reservoirs in first iteration
+                else if (obsNum >= EvolutionSettings.DeepCFR_MaximumTotalObservationsPerIteration)
+                    targetMet = true;
+                else
+                    targetMet = Models.AllMeetPendingObservationsTarget(numObservationsToAdd);
+                return targetMet;
+            }
         }
 
         #endregion
@@ -249,7 +280,8 @@ namespace ACESim
                 {
                     Br.eak.Add("Report");
                     reportCollection = await GenerateReportsByPlaying(true);
-                    RecallBestOverTime();
+                    CalculateUtilitiesOverall();
+                    TabbedText.WriteLine($"Utilities: {String.Join(",", Status.UtilitiesOverall.Select(x => x.ToSignificantFigures(4)))}");
                     Br.eak.Remove("Report");
                 }
                 TabbedText.ShowConsoleProgressString();

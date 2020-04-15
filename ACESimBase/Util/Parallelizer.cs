@@ -23,11 +23,11 @@ namespace ACESim
         public static bool DisableParallel;
 
         public static bool EnsureConsistentIterationNumbers = true; // if true, then when we use GoForSpecifiedNumberOfSuccesses (int or long version), we make sure that we complete this with the minimum iteration numbers. As long as nothing within the parallel loop depends on order of execution other than iteration numbers, we should then have consistent results.
-        public static bool VerifyConsistentResults = false; 
-
-        public static void Go(bool doParallel, int start, int stopBeforeThis, Action<int> action)
+        public static bool VerifyConsistentResults = false;
+        public static void Go(bool doParallel, int start, int stopBeforeThis, Action<int> action) => Go(doParallel, start, stopBeforeThis, action, new CancellationTokenSource().Token);
+        public static void Go(bool doParallel, int start, int stopBeforeThis, Action<int> action, CancellationToken cancellationToken)
         {
-            Go(doParallel, (long)start, (long)stopBeforeThis, x => { action((int)x); });
+            Go(doParallel, (long)start, (long)stopBeforeThis, x => { action((int)x); }, cancellationToken);
             //if (ParallelDepth >= 1 || DisableParallel)
             //    doParallel = false;
             //if (doParallel)
@@ -138,7 +138,9 @@ namespace ACESim
             }
         }
 
-        public static void Go(bool doParallel, long start, long stopBeforeThis, Action<long> action)
+        public static void Go(bool doParallel, long start, long stopBeforeThis, Action<long> action) => Go(doParallel, start, stopBeforeThis, action, new CancellationTokenSource().Token);
+
+        public static void Go(bool doParallel, long start, long stopBeforeThis, Action<long> action, CancellationToken token)
         {
             if (ParallelDepth > 0 || DisableParallel)
                 doParallel = false;
@@ -152,6 +154,8 @@ namespace ACESim
                         ParallelDepth = initialParallelDepth + 1;
                         for (long i = range.Item1; i < range.Item2; i++)
                         {
+                            if (token.IsCancellationRequested)
+                                break;
                             action(i);
                         }
                     });

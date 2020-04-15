@@ -85,7 +85,7 @@ namespace ACESimBase.GameSolvingSupport
         {
             if (StateFrozen)
                 return 0;
-            TargetToAdd = Observations.CountTotalNumberToAddAtIteration(DiscountRate, iteration);
+            TargetToAdd = FullReservoirReplacement ? Observations.Capacity : Observations.CountTotalNumberToAddAtIteration(DiscountRate, iteration);
             return TargetToAdd;
         }
 

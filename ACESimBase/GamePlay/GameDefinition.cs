@@ -588,6 +588,24 @@ namespace ACESim
             return null;
         }
 
+        public SimpleReportDefinition GetMinimalistReport()
+        {
+            var colItems = new List<SimpleReportColumnItem>()
+            {
+                new SimpleReportColumnFilter("All", (GameProgress gp) => true, SimpleReportColumnFilterOptions.ProportionOfAll),
+            };
+            List<SimpleReportFilter> rows = new List<SimpleReportFilter>()
+            {
+                new SimpleReportFilter("All", (GameProgress gp) => true),
+            };
+
+            return new SimpleReportDefinition(
+                "MinimalistReport",
+                null,
+                rows,
+                colItems
+            );
+        }
 
     }
 }

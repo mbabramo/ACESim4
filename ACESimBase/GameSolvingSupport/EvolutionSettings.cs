@@ -93,10 +93,11 @@ namespace ACESim
         public bool CFR_OpponentPlaysAverageStrategy = false; // typically, the opponent plays the current strategy in CFR. With this variant, the opponent plays the average strategy. This sometimes gives mildly better results, but not consistent performance improvements.
         public bool CFR_OpponentSampling = false; // if true, then we sample only 1 action at each opponent information set (but this does not apply to chance actions, as currently implemented)
 
+        // DEEPCFR SETTINGS
         // Note: DeepCFR iterations are set in Launcher, same as vanilla iterations.
         public DeepCFRMultiModelMode DeepCFRMultiModelMode = DeepCFRMultiModelMode.DecisionSpecific;
-        public int DeepCFR_ReservoirCapacity = 50_000; 
-        public int DeepCFR_MaximumTotalObservationsPerIteration = 200_000; // after this number of observations, we stop looking for more observations, even if we haven't gotten enough to fill as many iterations as desired in one or more reservoirs (in which case, we rely more on earlier observations)
+        public int DeepCFR_ReservoirCapacity = 5_000; 
+        public int DeepCFR_MaximumTotalObservationsPerIteration = 25_000; // after this number of observations, we stop looking for more observations, even if we haven't gotten enough to fill as many iterations as desired in one or more reservoirs (in which case, we rely more on earlier observations)
         public RegressionTechniques RegressionTechnique = RegressionTechniques.FastTree;
         public Func<IRegression> RegressionFactory() => RegressionTechnique switch
         {
@@ -109,7 +110,8 @@ namespace ACESim
         public double DeepCFR_Epsilon_OffPolicyProbabilityForProbe = 0.05;
         public double DeepCFR_DiscountRate = 0.98;
         public bool DeepCFR_ApproximateBestResponse = true;
-        public int DeepCFR_BestResponseIterations = 10;
+        public int DeepCFR_ApproximateBestResponseIterations = 3;
+        public int DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation = 200_000;
 
         // For Vanilla algorithm:
         // From Solving Imperfect Information Games with Discounted Regret Minimization -- optimal values (for situations in which pruning may be used)

@@ -19,6 +19,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             return reports;
         }
 
+
         private SimpleReportDefinition GetOverallReport()
         {
             var colItems = new List<SimpleReportColumnItem>()

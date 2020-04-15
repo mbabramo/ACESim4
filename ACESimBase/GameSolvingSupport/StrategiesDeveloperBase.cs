@@ -31,6 +31,8 @@ namespace ACESim
             AllowSkipEveryPermutationInitialization  
             && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder;
 
+        bool TemporarilyDisableFullReports; 
+
         [NonSerialized]
         public Stopwatch StrategiesDeveloperStopwatch = new Stopwatch();
 
@@ -1114,7 +1116,7 @@ namespace ACESim
                     Br.eak.Remove("Report");
                 }
                 if (doBestResponse)
-                    CompareBestResponse();
+                    BestResponseComparison();
                 if (iteration % EvolutionSettings.CorrelatedEquilibriumCalculationsEveryNIterations == 0)
                     DoCorrelatedEquilibriumCalculations(iteration);
                 if (EvolutionSettings.PrintGameTree)
@@ -1174,6 +1176,15 @@ namespace ACESim
                 TabbedText.WriteLine($"{reports.standardReport}");
             }
             return reports;
+        }
+
+        public async Task GenerateUtilitiesByPlayingRandomPaths()
+        {
+            TemporarilyDisableFullReports = true;
+            Func<GamePlayer, Func<Decision, GameProgress, byte>, List<SimpleReportDefinition>, Task> reportGenerator = GenerateReports_RandomPaths;
+            await GenerateReportsByPlaying(reportGenerator);
+            CalculateUtilitiesOverall();
+            TemporarilyDisableFullReports = false;
         }
 
         public double[] LastBestResponseImprovement;
@@ -1241,12 +1252,14 @@ namespace ACESim
                 StringBuilder b = new StringBuilder();
                 b.AppendLine($"Scenario index {ScenarioIndex} Name: {ScenarioName}");
                 string refinement = Refinement == 0 ? "" : $" Perturbed refinement: {Refinement.ToSignificantFigures(3)}";
-                b.AppendLine($"Avg BR: {BestResponseImprovementAdjAvg}{refinement} Custom: {CustomResult}");
+                if (BestResponseImprovementAdj != null)
+                    b.AppendLine($"Avg BR: {BestResponseImprovementAdjAvg}{refinement} Custom: {CustomResult}");
                 for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
                 {
-                    b.AppendLine($"U(P{playerBeingOptimized}): {UtilitiesOverall[playerBeingOptimized]} BR vs. {BestResponseReflectsCurrentStrategy} {BestResponseUtilities[playerBeingOptimized]} BRimp: {BestResponseImprovementAdj?[playerBeingOptimized].ToSignificantFigures(3)}");
+                    b.AppendLine($"U(P{playerBeingOptimized}): {UtilitiesOverall[playerBeingOptimized]} BR vs. {BestResponseReflectsCurrentStrategy} {BestResponseUtilities?[playerBeingOptimized]} BRimp: {BestResponseImprovementAdj?[playerBeingOptimized].ToSignificantFigures(3)}");
                 }
-                b.AppendLine($"Total best response calculation time: {BestResponseCalculationTime} milliseconds");
+                if (BestResponseImprovementAdj != null)
+                    b.AppendLine($"Total best response calculation time: {BestResponseCalculationTime} milliseconds");
                 return b.ToString();
             }
         }
@@ -1412,7 +1425,7 @@ namespace ACESim
             Status.BestResponseCalculationTime = s.ElapsedMilliseconds;
         }
 
-        private void CompareBestResponse()
+        internal void BestResponseComparison()
         {
             // This is comparing (1) Best response vs. average strategy; to (2) most recently calculated average strategy
             bool overallUtilitiesRecorded = Status.UtilitiesOverall != null;
@@ -1421,12 +1434,17 @@ namespace ACESim
                 if (UtilityCalculationsArray == null)
                     return; // nothing to compare BR to
                 else
-                    Status.UtilitiesOverall = UtilityCalculationsArray.StatCollectors.Select(x => x.Average()).ToArray();
+                    CalculateUtilitiesOverall();
             }
             TabbedText.WriteLine(Status.ToString());
             TabbedText.WriteLine("");
             if (!overallUtilitiesRecorded)
                 Status.UtilitiesOverall = null; // we may be using approximations, so set to null to avoid confusion
+        }
+
+        internal void CalculateUtilitiesOverall()
+        {
+            Status.UtilitiesOverall = UtilityCalculationsArray.StatCollectors.Select(x => x.Average()).ToArray();
         }
 
         public IEnumerable<GameProgress> GetRandomCompleteGames(GamePlayer player, int numIterations, Func<Decision, GameProgress, byte> actionOverride)
@@ -1641,6 +1659,8 @@ namespace ACESim
 
         public List<SimpleReportDefinition> GetSimpleReportDefinitions()
         {
+            if (TemporarilyDisableFullReports)
+                return new List<SimpleReportDefinition>() { GameDefinition.GetMinimalistReport() };
             var simpleReportDefinitions = GameDefinition.GetSimpleReportDefinitions();
             foreach (var d in simpleReportDefinitions)
             {
@@ -1723,11 +1743,13 @@ namespace ACESim
 
         private async Task<double[]> CalculateUtility_RandomPaths(GamePlayer player, Func<Decision, GameProgress, byte> actionOverride)
         {
+            UtilityCalculationsArray = new StatCollectorArray();
+            UtilityCalculationsArray.Initialize(NumNonChancePlayers);
             var gameProgresses = GetRandomCompleteGames(player, EvolutionSettings.NumRandomIterationsForUtilityCalculation, actionOverride);
             // start Task Parallel Library consumer/producer pattern
             // we'll set up step1, step2, and step3 (but not in that order, since step 1 triggers step 2)
             var step2_buffer = new BufferBlock<Tuple<GameProgress, double>>(new DataflowBlockOptions { BoundedCapacity = 10000 });
-            var step3_consumer = ProcessUtilities(step2_buffer);
+            var step3_consumer = ProcessUtilitiesFromRandomPath(step2_buffer);
             foreach (var gameProgress in gameProgresses)
             {
                 bool result = false;
@@ -1739,10 +1761,8 @@ namespace ACESim
             return UtilityCalculationsArray.Average().ToArray();
         }
 
-        async Task ProcessUtilities(ISourceBlock<Tuple<GameProgress, double>> source)
+        async Task ProcessUtilitiesFromRandomPath(ISourceBlock<Tuple<GameProgress, double>> source)
         {
-            UtilityCalculationsArray = new StatCollectorArray();
-            UtilityCalculationsArray.Initialize(NumNonChancePlayers);
             while (await source.OutputAvailableAsync())
             {
                 Tuple<GameProgress, double> toProcess = source.Receive();
