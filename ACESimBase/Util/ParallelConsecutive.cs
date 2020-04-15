@@ -19,15 +19,16 @@ namespace ACESimBase.Util
         int NextItemToStartProducing = -1;
         int NextItemToConsume = 0;
         bool Complete = false;
-        Func<bool> IsCompleteFunc;
+        Func<int, bool> IsCompleteFunc;
         Func<int, T> ProducerAction;
         Action<T> ConsumerAction;
 
-        public ParallelConsecutive(bool parallel, Func<bool> isCompleteFunc, Func<int, T> producerAction, Action<T> consumerAction)
+        public ParallelConsecutive(bool parallel, Func<int, bool> isCompleteFunc, Func<int, T> producerAction, Action<T> consumerAction)
         {
             IsCompleteFunc = isCompleteFunc;
             ProducerAction = producerAction;
             ConsumerAction = consumerAction;
+            Go(parallel);
         }
 
         public int GetNextItemToStart()
@@ -57,7 +58,7 @@ namespace ACESimBase.Util
                     {
                         ConsumerAction(nextItem.Value);
                         SortedItems.Remove(NextItemToConsume);
-                        if (IsCompleteFunc())
+                        if (IsCompleteFunc(NextItemToConsume + 1))
                             Complete = true;
                         NextItemToConsume++;
                         itemProcessed = true;

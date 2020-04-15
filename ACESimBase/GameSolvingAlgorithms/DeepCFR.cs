@@ -1,6 +1,7 @@
 ﻿using ACESim.Util;
 using ACESimBase;
 using ACESimBase.GameSolvingSupport;
+using ACESimBase.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -39,7 +40,7 @@ namespace ACESim
 
         #region Traversal
 
-        public GameProgress DeepCFR_GetGameProgressByPlaying(DeepCFRObservationNum observationNum) => DeepCFRTraversal(observationNum, DeepCFRTraversalMode.PlaybackSinglePath).completedProgress;
+        public GameProgress DeepCFR_GetGameProgressByPlaying(DeepCFRObservationNum observationNum) => DeepCFRTraversal(observationNum, DeepCFRTraversalMode.PlaybackSinglePath, null).completedProgress;
 
         public double[] DeepCFR_UtilitiesAverage(int totalNumberObservations)
         {
@@ -60,11 +61,23 @@ namespace ACESim
             return DeepCFRTraversal(observationNum, DeepCFRTraversalMode.PlaybackSinglePath).utilities;
         }
 
-        public (double[] utilities, GameProgress completedProgress) DeepCFRTraversal(DeepCFRObservationNum observationNum, DeepCFRTraversalMode traversalMode)
+        public List<(Decision decision, DeepCFRObservation observation)> DeepCFR_AddingRegretObservations(DeepCFRObservationNum observationNum)
+        {
+            var result = DeepCFRTraversal(observationNum, DeepCFRTraversalMode.AddRegretObservations).observations;
+            return result;
+        }
+
+        public (double[] utilities, List<(Decision decision, DeepCFRObservation observation)> observations) DeepCFRTraversal(DeepCFRObservationNum observationNum, DeepCFRTraversalMode traversalMode)
+        {
+            List<(Decision decision, DeepCFRObservation observation)> observations = new List<(Decision decision, DeepCFRObservation observation)>();
+            return (DeepCFRTraversal(observationNum, traversalMode, observations).utilities, observations);
+        }
+
+        private (double[] utilities, GameProgress completedProgress) DeepCFRTraversal(DeepCFRObservationNum observationNum, DeepCFRTraversalMode traversalMode, List<(Decision decision, DeepCFRObservation observation)> observations)
         {
             double[] finalUtilities;
             DirectGamePlayer gamePlayer = new DirectGamePlayer(GameDefinition, GameFactory.CreateNewGameProgress(new IterationID(observationNum.ObservationNum)));
-            finalUtilities = DeepCFRTraversal(gamePlayer, observationNum, traversalMode);
+            finalUtilities = DeepCFRTraversal(gamePlayer, observationNum, observations, traversalMode);
             return (finalUtilities, gamePlayer.GameProgress);
         }
 
@@ -74,7 +87,7 @@ namespace ACESim
         /// <param name="gamePlayer">The game being played</param>
         /// <param name="observationNum">The iteration being played</param>
         /// <returns></returns>
-        public double[] DeepCFRTraversal(DirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, DeepCFRTraversalMode traversalMode)
+        public double[] DeepCFRTraversal(DirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, List<(Decision decision, DeepCFRObservation observation)> observations, DeepCFRTraversalMode traversalMode)
         {
             GameStateTypeEnum gameStateType = gamePlayer.GetGameStateType();
             if (gameStateType == GameStateTypeEnum.FinalUtilities)
@@ -83,13 +96,13 @@ namespace ACESim
             }
             else if (gameStateType == GameStateTypeEnum.Chance)
             {
-                return DeepCFR_ChanceNode(gamePlayer, observationNum, traversalMode);
+                return DeepCFR_ChanceNode(gamePlayer, observationNum, observations, traversalMode);
             }
             else
-                return DeepCFR_DecisionNode(gamePlayer, observationNum, traversalMode);
+                return DeepCFR_DecisionNode(gamePlayer, observationNum, observations, traversalMode);
         }
 
-        private double[] DeepCFR_DecisionNode(DirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, DeepCFRTraversalMode traversalMode)
+        private double[] DeepCFR_DecisionNode(DirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, List<(Decision decision, DeepCFRObservation observation)> observations, DeepCFRTraversalMode traversalMode)
         {
             Decision currentDecision = gamePlayer.CurrentDecision;
             byte decisionIndex = (byte) gamePlayer.CurrentDecisionIndex;
@@ -109,7 +122,7 @@ namespace ACESim
                 throw new Exception("When adding regret observations, should not prespecify action");
             DirectGamePlayer mainActionPlayer = traversalMode == DeepCFRTraversalMode.PlaybackSinglePath ? gamePlayer : gamePlayer.DeepCopy();
             mainActionPlayer.PlayAction(mainAction);
-            double[] mainValues = DeepCFRTraversal(mainActionPlayer, observationNum, traversalMode);
+            double[] mainValues = DeepCFRTraversal(mainActionPlayer, observationNum, observations, traversalMode);
             if (traversalMode == DeepCFRTraversalMode.AddRegretObservations)
             {
                 // We do a single probe. This allows us to compare the result from the main action.
@@ -120,7 +133,7 @@ namespace ACESim
                 // Note: probe action might be same as main action. That's OK, because this helps us estimate expected regret, which is probabilistic
                 independentVariables.ActionChosen = mainAction;
                 probeGamePlayer.PlayAction(probeAction);
-                double[] probeValues = DeepCFRTraversal(probeGamePlayer, observationNum, DeepCFRTraversalMode.ProbeForUtilities);
+                double[] probeValues = DeepCFRTraversal(probeGamePlayer, observationNum, observations, DeepCFRTraversalMode.ProbeForUtilities);
                 double sampledRegret = probeValues[playerMakingDecision] - mainValues[playerMakingDecision];
                 DeepCFRObservation observation = new DeepCFRObservation()
                 {
@@ -132,7 +145,7 @@ namespace ACESim
             return mainValues;
         }
 
-        private double[] DeepCFR_ChanceNode(DirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, DeepCFRTraversalMode traversalMode)
+        private double[] DeepCFR_ChanceNode(DirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, List<(Decision decision, DeepCFRObservation observation)> observations, DeepCFRTraversalMode traversalMode)
         {
             Decision currentDecision = gamePlayer.CurrentDecision;
             if (currentDecision.CriticalNode && traversalMode != DeepCFRTraversalMode.PlaybackSinglePath)
@@ -144,7 +157,7 @@ namespace ACESim
                 {
                     DirectGamePlayer copyPlayer = gamePlayer.DeepCopy();
                     copyPlayer.PlayAction(a);
-                    double[] utilities = DeepCFRTraversal(copyPlayer, observationNum, traversalMode);
+                    double[] utilities = DeepCFRTraversal(copyPlayer, observationNum, observations, traversalMode);
                     for (int i = 0; i < NumNonChancePlayers; i++)
                         weightedResults[i] += probabilitiesForActions[a - 1] * utilities[i];
                 }
@@ -154,7 +167,7 @@ namespace ACESim
             {
                 byte actionToChoose = gamePlayer.ChooseChanceAction(observationNum.GetRandomDouble((byte) gamePlayer.CurrentDecisionIndex));
                 gamePlayer.PlayAction(actionToChoose);
-                return DeepCFRTraversal(gamePlayer, observationNum, traversalMode);
+                return DeepCFRTraversal(gamePlayer, observationNum, observations, traversalMode);
             }
         }
 
@@ -212,18 +225,18 @@ namespace ACESim
             else
                 TabbedText.Write($"Iteration {iteration} of {EvolutionSettings.TotalIterations} ");
 
-            int obsNum = 0;
-            bool targetMet = false;
             int[] numObservationsToAdd = Models.CountPendingObservationsTarget(iteration);
-            do
-            {
-                bool separateDataEveryObservation = true;
-                DeepCFRObservationNum observationNum = new DeepCFRObservationNum(obsNum, separateDataEveryObservation ? iteration * 1000 : 0);
-                finalUtilities = DeepCFRTraversal(observationNum, DeepCFRTraversalMode.AddRegretObservations).utilities;
-                obsNum++;
-                targetMet = TargetMet(iteration, isBestResponseIteration, obsNum, numObservationsToAdd);
-            }
-            while (!targetMet);
+            bool separateDataEveryObservation = true;
+            ParallelConsecutive<List<(Decision decision, DeepCFRObservation observation)>> runner = new ACESimBase.Util.ParallelConsecutive<List<(Decision decision, DeepCFRObservation observation)>>(
+                EvolutionSettings.ParallelOptimization,
+                (int numCompleted) => TargetMet(iteration, isBestResponseIteration, numCompleted, numObservationsToAdd),
+                i => DeepCFR_AddingRegretObservations(new DeepCFRObservationNum(i, separateDataEveryObservation ? iteration * 1000 : 0)),
+                results =>
+                {
+                    foreach (var result in results)
+                        Models.AddPendingObservation(result.decision, result.observation);
+                }
+                );
 
             localStopwatch.Stop();
             StrategiesDeveloperStopwatch.Stop();
@@ -249,12 +262,12 @@ namespace ACESim
 
             return (reportCollection, finalUtilities);
 
-            bool TargetMet(int iteration, bool isBestResponseIteration, int obsNum, int[] numObservationsToAdd)
+            bool TargetMet(int iteration, bool isBestResponseIteration, int numberCompleted, int[] numObservationsToAdd)
             {
                 bool targetMet;
                 if (iteration == 1 && !isBestResponseIteration)
                     targetMet = Models.AllMeetInitialPendingObservationsTarget(EvolutionSettings.DeepCFR_ReservoirCapacity); // must fill all reservoirs in first iteration
-                else if (obsNum >= EvolutionSettings.DeepCFR_MaximumTotalObservationsPerIteration)
+                else if (numberCompleted >= EvolutionSettings.DeepCFR_MaximumTotalObservationsPerIteration)
                     targetMet = true;
                 else
                     targetMet = Models.AllMeetPendingObservationsTarget(numObservationsToAdd);
