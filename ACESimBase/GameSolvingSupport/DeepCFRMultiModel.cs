@@ -164,11 +164,15 @@ namespace ACESimBase.GameSolvingSupport
 
         #endregion
 
-        public async Task CompleteIteration(int deepCFR_Epochs)
+        public async Task CompleteIteration(bool parallel)
         {
-            //await Parallelizer.ForEachAsync(EnumerateModels(), m => m.CompleteIteration(deepCFR_Epochs));
-            foreach (var model in EnumerateModels())
-                await model.CompleteIteration();
+            if (parallel)
+                await Parallelizer.ForEachAsync(EnumerateModels(), m => m.CompleteIteration());
+            else
+            {
+                foreach (var model in EnumerateModels())
+                    await model.CompleteIteration();
+            }
         }
 
         #region Best response

@@ -228,7 +228,6 @@ namespace ACESim
             int[] numObservationsToAdd = Models.CountPendingObservationsTarget(iteration);
             bool separateDataEveryObservation = true;
             ParallelConsecutive<List<(Decision decision, DeepCFRObservation observation)>> runner = new ACESimBase.Util.ParallelConsecutive<List<(Decision decision, DeepCFRObservation observation)>>(
-                EvolutionSettings.ParallelOptimization,
                 (int numCompleted) => TargetMet(iteration, isBestResponseIteration, numCompleted, numObservationsToAdd),
                 i => DeepCFR_AddingRegretObservations(new DeepCFRObservationNum(i, separateDataEveryObservation ? iteration * 1000 : 0)),
                 results =>
@@ -237,6 +236,8 @@ namespace ACESim
                         Models.AddPendingObservation(result.decision, result.observation);
                 }
                 );
+            await runner.Run(
+                EvolutionSettings.ParallelOptimization);
 
             localStopwatch.Stop();
             StrategiesDeveloperStopwatch.Stop();

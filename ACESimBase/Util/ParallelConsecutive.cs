@@ -23,54 +23,53 @@ namespace ACESimBase.Util
         Func<int, T> ProducerAction;
         Action<T> ConsumerAction;
 
-        public ParallelConsecutive(bool parallel, Func<int, bool> isCompleteFunc, Func<int, T> producerAction, Action<T> consumerAction)
+        public ParallelConsecutive(Func<int, bool> isCompleteFunc, Func<int, T> producerAction, Action<T> consumerAction)
         {
             IsCompleteFunc = isCompleteFunc;
             ProducerAction = producerAction;
             ConsumerAction = consumerAction;
-            Produce(parallel);
         }
 
-        public int GetNextItemToStart()
+        public async Task Run(bool parallel)
         {
-            int result = Interlocked.Increment(ref NextItemToStartProducing);
-            return result;
-        }
-
-        public void ProduceAndInitiateConsumption(int i)
-        {
-            T t = ProducerAction(i);
-            StartConsumption(i, t);
-        }
-
-        public void StartConsumption(int i, T item)
-        {
-            if (Complete)
-                return;
-            if (i == NextItemToConsume)
+            if (parallel)
             {
-                ConsumerAction(item);
-                i++;
-                bool moreConsumed = false;
-                int consecutiveFailures = 0;
-                do
-                {
-                    int j = TryToConsumeMore(i);
-                    moreConsumed = j > i;
-                    if (moreConsumed)
-                        consecutiveFailures = 0;
-                    else
-                        consecutiveFailures++;
-                    NextItemToConsume = j;
-                }
-                while (consecutiveFailures < 2); // we need to have consecutive failures in case item was added (and could not be processed)  
+                Task production = Task.Factory.StartNew(() => ProduceInParallel());
+                Task consumption = Task.Factory.StartNew(() => Consume());
+                Task[] tasks = new Task[] { production, consumption };
+                await Task.WhenAll(tasks);
             }
             else
             {
-                bool success = PendingConsumption.TryAdd(i, item);
-                if (!success)
-                    throw new Exception();
+                ProduceSerially();
             }
+        }
+
+        public void ProduceSerially()
+        {
+            while (!Complete)
+            {
+                int itemToStart = GetNextItemToStart();
+                T result = ProducerAction(itemToStart);
+                ConsumerAction(result);
+                NextItemToConsume = itemToStart + 1;
+                Complete = IsCompleteFunc(NextItemToConsume);
+            }
+        }
+
+        public void ProduceInParallel()
+        {
+            ParallelOptions parallelOptions = new ParallelOptions();
+            Parallel.ForEach(new InfinitePartitioner(), parallelOptions,
+                (ignored, loopState) =>
+                {
+                    if (!Complete)
+                    {
+                        int itemToStart = GetNextItemToStart();
+                        StoreProductionResult(itemToStart);
+                    }
+                    else loopState.Stop();
+                });
         }
 
         public void Consume()
@@ -83,6 +82,18 @@ namespace ACESimBase.Util
                 else
                     NextItemToConsume = j;
             }
+        }
+
+        public int GetNextItemToStart()
+        {
+            int result = Interlocked.Increment(ref NextItemToStartProducing);
+            return result;
+        }
+
+        public void StoreProductionResult(int i)
+        {
+            T t = ProducerAction(i);
+            PendingConsumption[i] = t;
         }
 
         private int TryToConsumeMore(int i)
@@ -98,32 +109,6 @@ namespace ACESimBase.Util
             }
 
             return i;
-        }
-
-        public void Produce(bool parallel)
-        {
-            if (parallel)
-            {
-                ParallelOptions parallelOptions = new ParallelOptions();
-                Parallel.ForEach(new InfinitePartitioner(), parallelOptions,
-                    (ignored, loopState) =>
-                    {
-                        if (!Complete)
-                        {
-                            int itemToStart = GetNextItemToStart();
-                            ProduceAndInitiateConsumption(itemToStart);
-                        }
-                        else loopState.Stop();
-                    });
-            }
-            else
-            {
-                while (!Complete)
-                {
-                    int itemToStart = GetNextItemToStart();
-                    ProduceAndInitiateConsumption(itemToStart);
-                }
-            }
         }
 
         private static void While(

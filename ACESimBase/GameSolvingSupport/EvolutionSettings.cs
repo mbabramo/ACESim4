@@ -53,7 +53,7 @@ namespace ACESim
         public bool SerializeResults = false;
         public bool SerializeInformationSetDataOnly = true;
         public string SerializeResultsPrefix = "serstrat";
-        public bool ParallelOptimization = false; // will be overridden by launcher
+        public bool ParallelOptimization = true; // will be overridden by launcher
         public bool DynamicSetParallel = false; // will be overridden by launcher
         public int MaxParallelDepth = 3; // will be overridden by launcher
         public string SerializeResultsPrefixPlus(int scenario, int totalScenarios) => SerializeResultsPrefix + (totalScenarios > 0 ? scenario.ToString() : "");
