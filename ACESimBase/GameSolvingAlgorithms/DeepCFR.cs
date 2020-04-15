@@ -247,7 +247,7 @@ namespace ACESim
             TabbedText.TabIndent();
             localStopwatch = new Stopwatch();
             localStopwatch.Start();
-            await Models.CompleteIteration(EvolutionSettings.DeepCFR_NeuralNetwork_Epochs);
+            await Models.CompleteIteration(EvolutionSettings.ParallelOptimization);
             TabbedText.TabUnindent();
             TabbedText.WriteLine($"All models completed over {EvolutionSettings.DeepCFR_NeuralNetwork_Epochs} epochs, total time {localStopwatch.ElapsedMilliseconds} ms");
             localStopwatch.Stop();
