@@ -15,7 +15,7 @@ namespace ACESimBase.Util
     /// <typeparam name="T"></typeparam>
     public class ParallelConsecutive<T>
     {
-        SortedList<int, T> SortedItems = new SortedList<int, T>();
+        ConcurrentDictionary<int, T> PendingConsumption = new ConcurrentDictionary<int, T>();
         int NextItemToStartProducing = -1;
         int NextItemToConsume = 0;
         bool Complete = false;
@@ -28,7 +28,7 @@ namespace ACESimBase.Util
             IsCompleteFunc = isCompleteFunc;
             ProducerAction = producerAction;
             ConsumerAction = consumerAction;
-            Go(parallel);
+            Produce(parallel);
         }
 
         public int GetNextItemToStart()
@@ -45,32 +45,62 @@ namespace ACESimBase.Util
 
         public void StartConsumption(int i, T item)
         {
-            lock(SortedItems)
+            if (Complete)
+                return;
+            if (i == NextItemToConsume)
             {
-                if (Complete)
-                    return;
-                SortedItems.Add(i, item);
-                bool itemProcessed;
+                ConsumerAction(item);
+                i++;
+                bool moreConsumed = false;
+                int consecutiveFailures = 0;
                 do
                 {
-                    var nextItem = SortedItems.FirstOrDefault();
-                    if (nextItem.Key == NextItemToConsume)
-                    {
-                        ConsumerAction(nextItem.Value);
-                        SortedItems.Remove(NextItemToConsume);
-                        if (IsCompleteFunc(NextItemToConsume + 1))
-                            Complete = true;
-                        NextItemToConsume++;
-                        itemProcessed = true;
-                    }
+                    int j = TryToConsumeMore(i);
+                    moreConsumed = j > i;
+                    if (moreConsumed)
+                        consecutiveFailures = 0;
                     else
-                        itemProcessed = false;
+                        consecutiveFailures++;
+                    NextItemToConsume = j;
                 }
-                while (itemProcessed && !Complete);
+                while (consecutiveFailures < 2); // we need to have consecutive failures in case item was added (and could not be processed)  
+            }
+            else
+            {
+                bool success = PendingConsumption.TryAdd(i, item);
+                if (!success)
+                    throw new Exception();
             }
         }
 
-        public void Go(bool parallel)
+        public void Consume()
+        {
+            while (!Complete)
+            {
+                int j = TryToConsumeMore(NextItemToConsume);
+                if (j == NextItemToConsume)
+                    Thread.Sleep(20);
+                else
+                    NextItemToConsume = j;
+            }
+        }
+
+        private int TryToConsumeMore(int i)
+        {
+            while (!Complete && PendingConsumption.ContainsKey(i))
+            {
+                var consumable = PendingConsumption[i];
+                ConsumerAction(consumable);
+                i++;
+                PendingConsumption.Remove(NextItemToConsume, out _);
+                if (IsCompleteFunc(i))
+                    Complete = true;
+            }
+
+            return i;
+        }
+
+        public void Produce(bool parallel)
         {
             if (parallel)
             {
