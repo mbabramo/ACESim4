@@ -151,6 +151,8 @@ namespace ACESim
         public static MyGameOptions Custom()
         {
             var options = DamagesUncertainty_1BR();
+            options.NumDamagesSignals = 2;
+            options.NumOffers = 2;
             NormalizeToDamages(options);
             //options.AllowAbandonAndDefaults = false;
             //options.PFilingCost = 0;

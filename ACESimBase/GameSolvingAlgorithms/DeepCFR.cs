@@ -116,6 +116,10 @@ namespace ACESim
                 informationSet = gamePlayer.GetInformationSet(true);
                 independentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, 0 /* placeholder */, null /* DEBUG */);
                 mainAction = Models.ChooseAction(currentDecision, observationNum.GetRandomDouble(decisionIndex), independentVariables, numPossibleActions, numPossibleActions /* DEBUG */, 0 /* main action is always on policy */);
+                if (currentDecision.Name == "PFile" && traversalMode == DeepCFRTraversalMode.PlaybackSinglePath && mainAction == 2)
+                {
+                    var DEBUG = 0;
+                }
                 independentVariables.ActionChosen = mainAction;
             }
             else if (traversalMode == DeepCFRTraversalMode.AddRegretObservations)
@@ -241,7 +245,7 @@ namespace ACESim
 
             localStopwatch.Stop();
             StrategiesDeveloperStopwatch.Stop();
-            TabbedText.Write($" utilities {String.Join(",", finalUtilities.Select(x => x.ToSignificantFigures(4)))}");
+            //TabbedText.Write($" utilities {String.Join(",", finalUtilities.Select(x => x.ToSignificantFigures(4)))}");
             TabbedText.WriteLine($" time {localStopwatch.ElapsedMilliseconds} ms");
 
             TabbedText.TabIndent();

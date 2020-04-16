@@ -12,8 +12,8 @@ namespace ACESim
     [Serializable]
     public class EvolutionSettings
     {
-        public bool DistributeChanceDecisions = true; // NOTE: This is currently very slow when using full game tree.
-        public bool UnrollAlgorithm = true; // DEBUG; TODO: Fix so this works with additive evidence game.
+        public bool DistributeChanceDecisions = false; // DEBUG // NOTE: This is currently very slow when using full game tree.
+        public bool UnrollAlgorithm = false; // DEBUG; TODO: Fix so this works with additive evidence game.
         public bool AzureEnabled = false;
         // Note: Many of the below are overridden by launcher.
         public int TotalAvgStrategySamplingCFRIterations = 100000;
@@ -75,8 +75,8 @@ namespace ACESim
 
         public bool GenerateReportsByPlaying;
         public int NumRandomIterationsForSummaryTable = 10000;
-        public bool PrintGameTree = false;  
-        public bool PrintInformationSets = false;
+        public bool PrintGameTree = true; // DEBUG // Note: Overridden in launcher
+        public bool PrintInformationSets = true; //DEBUG // Note: Overridden in launcher
         public bool AnalyzeInformationSets = false; 
         public List<int> RestrictToTheseInformationSets = null;
         public bool PrintNonChanceInformationSetsOnly = true;
@@ -96,8 +96,8 @@ namespace ACESim
         // DEEPCFR SETTINGS
         // Note: DeepCFR iterations are set in Launcher, same as vanilla iterations.
         public DeepCFRMultiModelMode DeepCFRMultiModelMode = DeepCFRMultiModelMode.DecisionSpecific;
-        public int DeepCFR_ReservoirCapacity = 5_000; 
-        public int DeepCFR_MaximumTotalObservationsPerIteration = 25_000; // after this number of observations, we stop looking for more observations, even if we haven't gotten enough to fill as many iterations as desired in one or more reservoirs (in which case, we rely more on earlier observations)
+        public int DeepCFR_ReservoirCapacity = 100_000; 
+        public int DeepCFR_MaximumTotalObservationsPerIteration = 225_000; // after this number of observations, we stop looking for more observations, even if we haven't gotten enough to fill as many iterations as desired in one or more reservoirs (in which case, we rely more on earlier observations)
         public RegressionTechniques RegressionTechnique = RegressionTechniques.FastTree;
         public Func<IRegression> RegressionFactory() => RegressionTechnique switch
         {
@@ -109,7 +109,7 @@ namespace ACESim
         public int DeepCFR_NeuralNetwork_NeuronsPerHiddenLayer = 150;
         public double DeepCFR_Epsilon_OffPolicyProbabilityForProbe = 0.05;
         public double DeepCFR_DiscountRate = 0.98;
-        public bool DeepCFR_ApproximateBestResponse = true;
+        public bool DeepCFR_ApproximateBestResponse = false;
         public int DeepCFR_ApproximateBestResponseIterations = 3;
         public int DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation = 200_000;
 

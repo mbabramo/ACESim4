@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace ACESimBase.GameSolvingSupport
@@ -166,12 +167,24 @@ namespace ACESimBase.GameSolvingSupport
 
         public async Task CompleteIteration(bool parallel)
         {
+            var models = EnumerateModels().Select((item, index) => (item, index)).ToArray();
+            string[] text = new string[models.Length];
             if (parallel)
-                await Parallelizer.ForEachAsync(EnumerateModels(), m => m.CompleteIteration());
+                await Parallelizer.ForEachAsync(models, async m =>
+                {
+                    text[m.Item2] = await m.Item1.CompleteIteration();
+                });
             else
             {
-                foreach (var model in EnumerateModels())
-                    await model.CompleteIteration();
+                foreach (var (model, index) in models)
+                    text[index] = await model.CompleteIteration();
+            }
+            foreach (string s in text)
+            {
+                var result = Regex.Split(s, "\r\n|\r|\n");
+                foreach (string r in result)
+                    if (s.Trim() != "")
+                        TabbedText.WriteLine(r);
             }
         }
 

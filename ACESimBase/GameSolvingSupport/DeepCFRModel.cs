@@ -89,18 +89,20 @@ namespace ACESimBase.GameSolvingSupport
             return TargetToAdd;
         }
 
-        public async Task CompleteIteration()
+        public async Task<string> CompleteIteration()
         {
             IterationsProcessed++;
-            TabbedText.Write($"Pending observations: {PendingObservations.Count()} ");
+            StringBuilder s = new StringBuilder();
+            s.Append($"Pending observations: {PendingObservations.Count()} ");
             Observations.AddPotentialReplacementsAtIteration(PendingObservations.ToList(), DiscountRate, IterationsProcessed);
             PendingObservations = new ConcurrentBag<DeepCFRObservation>();
-            await BuildModel();
+            await BuildModel(s);
             string trainingResultString = Regression.GetTrainingResultString();
-            TabbedText.WriteLine(trainingResultString + $" ({ModelName})");
+            s.AppendLine(trainingResultString + $" ({ModelName})");
+            return s.ToString();
         }
 
-        public async Task BuildModel()
+        public async Task BuildModel(StringBuilder s)
         {
             if (!Observations.Any())
                 throw new Exception("No observations available to build model.");
@@ -116,25 +118,24 @@ namespace ACESimBase.GameSolvingSupport
             Regression = new RegressionController(RegressionFactory);
             await Regression.Regress(data);
 
-
             bool printAverageRegrets = true;
             if (printAverageRegrets)
-                PrintAverageRegrets();
-            bool printAllData = false;
+                PrintAverageRegrets(s);
+            bool printAllData = true;
             if (printAllData)
-                PrintData(data);
+                PrintData(data, s);
             if (TestDataProportion != 0)
-                PrintTestDataResults(testData);
+                PrintTestDataResults(testData, s);
         }
 
-        private void PrintAverageRegrets()
+        private void PrintAverageRegrets(StringBuilder s)
         {
             byte[] actionsChosen = Observations.Select(x => x.IndependentVariables.ActionChosen).Distinct().OrderBy(x => x).ToArray();
             var regrets = actionsChosen.Select(a => Observations.Where(x => x.IndependentVariables.ActionChosen == a).Average(x => x.SampledRegret)).ToArray();
             var positiveRegrets = regrets.Select(x => Math.Max(x, 0)).ToArray();
             var positiveRegretsSum = positiveRegrets.Sum();
             var relativePositiveRegrets = positiveRegrets.Select(x => x / positiveRegretsSum).ToArray();
-            TabbedText.Write($"AvgRegrets {String.Join(", ", regrets.Select(x => x.ToSignificantFigures(4)))} RegretMatch {String.Join(", ", relativePositiveRegrets.Select(x => x.ToSignificantFigures(4)))}");
+            s.Append($"AvgRegrets {String.Join(", ", regrets.Select(x => x.ToSignificantFigures(4)))} RegretMatch {String.Join(", ", relativePositiveRegrets.Select(x => x.ToSignificantFigures(4)))}");
         }
 
         private void SplitData((float[], float)[] data, int numToSplitAway, out (float[], float)[] keep, out (float[], float)[] split)
@@ -155,15 +156,15 @@ namespace ACESimBase.GameSolvingSupport
                 throw new Exception();
         }
 
-        private void PrintTestDataResults((float[], float)[] testData)
+        private void PrintTestDataResults((float[], float)[] testData, StringBuilder s)
         {
             double loss = testData.Select(d => (Regression.GetResult(d.Item1), d.Item2)).Select(d => Math.Pow(d.Item1 - d.Item2, 2.0)).Average();
-            TabbedText.WriteLine($"AvgLoss: {loss.ToSignificantFigures(4)} ");
+            s.AppendLine($"AvgLoss: {loss.ToSignificantFigures(4)} ");
         }
 
-        private void PrintData((float[], float)[] data)
+        private void PrintData((float[], float)[] data, StringBuilder s)
         {
-            TabbedText.WriteLine("");
+            s.AppendLine("");
             var grouped = data.Select(x => (x, String.Join(",", x.Item1)))
                         .GroupBy(x => x.Item2)
                         .OrderBy(x => x.Key)
@@ -173,7 +174,7 @@ namespace ACESimBase.GameSolvingSupport
                 (float[], float)[] items = group.Select(x => x.Item1).ToArray();
                 float averageInData = items.Average(x => x.Item2);
                 float prediction = Regression.GetResult(items.First().Item1);
-                TabbedText.WriteLine($"{group.Key} => {averageInData} (in data) {prediction} (predicted)");
+                s.AppendLine($"{group.Key} => {averageInData} (in data) {prediction} (predicted)");
             }
         }
 
@@ -276,7 +277,7 @@ namespace ACESimBase.GameSolvingSupport
             Observations = RememberedObservations;
             RememberedObservations = null;
             FullReservoirReplacement = false;
-            await BuildModel(); // must rebuild model (alternative would be to have a deep copy of the model)
+            await BuildModel(new StringBuilder()); // must rebuild model (alternative would be to have a deep copy of the model) -- won't print results of that
         }
 
         #endregion
