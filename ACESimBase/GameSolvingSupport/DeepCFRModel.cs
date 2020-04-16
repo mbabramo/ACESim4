@@ -33,9 +33,10 @@ namespace ACESimBase.GameSolvingSupport
         /// </summary>
         public double DiscountRate;
         /// <summary>
-        /// Observations to be added to the model at the end of the current iteration.
+        /// Observations to be added to the model at the end of the current iteration. Note that this is not thread-safe, so if using parallelism, we add in a consumer
+        /// thread.
         /// </summary>
-        public ConcurrentBag<DeepCFRObservation> PendingObservations;
+        public List<DeepCFRObservation> PendingObservations;
         /// <summary>
         /// The trained neural network.
         /// </summary>
@@ -70,7 +71,7 @@ namespace ACESimBase.GameSolvingSupport
             ModelName = modelName;
             DiscountRate = discountRate;
             Observations = new Reservoir<DeepCFRObservation>(reservoirCapacity, reservoirSeed);
-            PendingObservations = new ConcurrentBag<DeepCFRObservation>();
+            PendingObservations = new List<DeepCFRObservation>();
             TargetToAdd = reservoirCapacity;
             RegressionFactory = regressionFactory;
         }
@@ -95,7 +96,7 @@ namespace ACESimBase.GameSolvingSupport
             StringBuilder s = new StringBuilder();
             s.Append($"Pending observations: {PendingObservations.Count()} ");
             Observations.AddPotentialReplacementsAtIteration(PendingObservations.ToList(), DiscountRate, IterationsProcessed);
-            PendingObservations = new ConcurrentBag<DeepCFRObservation>();
+            PendingObservations = new List<DeepCFRObservation>();
             await BuildModel(s);
             string trainingResultString = Regression.GetTrainingResultString();
             s.AppendLine(trainingResultString + $" ({ModelName})");

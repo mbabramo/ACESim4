@@ -144,7 +144,7 @@ namespace ACESim
                     SampledRegret = sampledRegret,
                     IndependentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, probeAction, null /* DEBUG */)
                 };
-                Models.AddPendingObservation(currentDecision, observation);
+                observations.Add((currentDecision, observation));
             }
             return mainValues;
         }
@@ -308,7 +308,7 @@ namespace ACESim
             return reportCollection;
         }
 
-        public async override Task DeepCFRReportingPlayMultipleIterations(
+        public async override Task PlayMultipleIterationsForReporting(
             GamePlayer player,
             int numIterations,
             Func<Decision, GameProgress, byte> actionOverride,
@@ -317,6 +317,7 @@ namespace ACESim
         public GameProgress DeepCFRReportingPlayHelper(int iteration, List<Strategy> strategies, bool saveCompletedGameProgressInfos, IterationID[] iterationIDArray, List<GameProgress> preplayedGameProgressInfos, Func<Decision, GameProgress, byte> actionOverride)
         {
             GameProgress progress = DeepCFR_GetGameProgressByPlaying(new DeepCFRObservationNum(iteration, 1_000_000));
+            progress.IterationID = new IterationID(iteration);
 
             return progress;
         }
