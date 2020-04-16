@@ -8,6 +8,7 @@ using System.Linq;
 using Microsoft.ML.Data;
 using System.Threading.Tasks;
 using Microsoft.ML.Trainers;
+using Microsoft.Extensions.ObjectPool;
 
 namespace ACESimBase.Util
 {
@@ -15,8 +16,8 @@ namespace ACESimBase.Util
     {
         SchemaDefinition Schema;
         MLContext Context;
-        ITransformer Transformer; 
-        PredictionEngine<MLNetDatum, MLNetPrediction> PredictionEngine;
+        ITransformer Transformer;
+        FactoryCreatableObjectPool<PredictionEngine<MLNetDatum, MLNetPrediction>> PredictionEnginePool;
         RegressionTechniques Technique;
 
         public MLNetRegression(RegressionTechniques technique)
@@ -63,7 +64,8 @@ namespace ACESimBase.Util
             Schema = SchemaDefinition.Create(typeof(MLNetDatum));
             if (Y.Length != 1)
                 throw new Exception();
-            Schema[nameof(MLNetDatum.Label)].ColumnType = NumberDataViewType.Single;
+            Schema[nameof(MLNetDatum.Label)].ColumnType =
+                NumberDataViewType.Single;
             Schema[nameof(MLNetDatum.Features)].ColumnType = new VectorDataViewType(NumberDataViewType.Single, X.Length);
         }
 
@@ -83,7 +85,7 @@ namespace ACESimBase.Util
             IDataView trainDataView = ArrayToDataView(Context, data);
             IEstimator<ITransformer> estimator = GetEstimator(trainDataView);
             Transformer = estimator.Fit(trainDataView);
-            PredictionEngine = Context.Model.CreatePredictionEngine<MLNetDatum, MLNetPrediction>(Transformer, false, Schema, null);
+            PredictionEnginePool = new FactoryCreatableObjectPool<PredictionEngine<MLNetDatum, MLNetPrediction>>(() => GetNewPredictionEngine());
             return Task.CompletedTask;
         }
 
@@ -102,10 +104,27 @@ namespace ACESimBase.Util
             return estimator;
         }
 
+        private PredictionEngine<MLNetDatum, MLNetPrediction> GetNewPredictionEngine()
+        {
+            return Context.Model.CreatePredictionEngine<MLNetDatum, MLNetPrediction>(Transformer, false, Schema, null);
+        }
+
+        public PredictionEngine<MLNetDatum, MLNetPrediction> GetPredictionEngine()
+        {
+            var result = PredictionEnginePool.GetObject();
+            return result;
+        }
+        public void ReturnPredictionEngineToPool(PredictionEngine<MLNetDatum, MLNetPrediction> predictionEngine)
+        {
+            PredictionEnginePool.Return(predictionEngine);
+        }
+
         public float[] GetResults(float[] x)
         {
             MLNetPrediction prediction = new MLNetPrediction();
-            PredictionEngine.Predict(new MLNetDatum() { Features = x }, ref prediction);
+            var predictionEngine = GetPredictionEngine();
+            predictionEngine.Predict(new MLNetDatum() { Features = x }, ref prediction);
+            ReturnPredictionEngineToPool(predictionEngine);
             return new float[] { prediction.Score };
             //IDataView transformed = Transformer.Transform(DatumToDataView(x));
             //var result = Context.Data.CreateEnumerable<MLNetPrediction>(transformed, reuseRowObject: false).First();
