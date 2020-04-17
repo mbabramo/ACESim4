@@ -76,6 +76,9 @@ namespace ACESimBase.GameSolvingSupport
             RegressionFactory = regressionFactory;
         }
 
+        public IRegressionMachine GetRegressionMachine() => Regression.GetRegressionMachine();
+        public void ReturnRegressionMachine(IRegressionMachine regressionMachine) => Regression.ReturnRegressionMachine(regressionMachine);
+
         public void AddPendingObservation(DeepCFRObservation observation)
         {
             if (!StateFrozen && PendingObservations.Count() < TargetToAdd)
@@ -159,7 +162,7 @@ namespace ACESimBase.GameSolvingSupport
 
         private void PrintTestDataResults((float[], float)[] testData, StringBuilder s)
         {
-            double loss = testData.Select(d => (Regression.GetResult(d.Item1), d.Item2)).Select(d => Math.Pow(d.Item1 - d.Item2, 2.0)).Average();
+            double loss = testData.Select(d => (Regression.GetResult(d.Item1, null), d.Item2)).Select(d => Math.Pow(d.Item1 - d.Item2, 2.0)).Average();
             s.AppendLine($"AvgLoss: {loss.ToSignificantFigures(4)} ");
         }
 
@@ -174,20 +177,20 @@ namespace ACESimBase.GameSolvingSupport
             {
                 (float[], float)[] items = group.Select(x => x.Item1).ToArray();
                 float averageInData = items.Average(x => x.Item2);
-                float prediction = Regression.GetResult(items.First().Item1);
+                float prediction = Regression.GetResult(items.First().Item1, null);
                 s.AppendLine($"{group.Key} => {averageInData} (in data) {prediction} (predicted)");
             }
         }
 
-        public double GetPredictedRegretForAction(DeepCFRIndependentVariables independentVariables, byte action)
+        public double GetPredictedRegretForAction(DeepCFRIndependentVariables independentVariables, byte action, IRegressionMachine regressionMachine)
         {
             if (IterationsProcessed == 0)
                 throw new Exception();
             independentVariables.ActionChosen = action;
-            return Regression.GetResult(independentVariables.AsArray(IncludedDecisionIndices));
+            return Regression.GetResult(independentVariables.AsArray(IncludedDecisionIndices), regressionMachine);
         }
 
-        public byte ChooseAction(double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample)
+        public byte ChooseAction(double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample, IRegressionMachine regressionMachine)
         {
             if (IterationsProcessed == 0)
             {
@@ -200,14 +203,14 @@ namespace ACESimBase.GameSolvingSupport
             {
                 spline_interpolant = new spline1dinterpolant();
                 double[] x = EquallySpaced.GetEquallySpacedPoints(numActionsToSample, false, 1, maxActionValue).Select(a => Math.Floor(a)).ToArray();
-                double[] y = x.Select(a => GetPredictedRegretForAction(independentVariables, (byte) a)).ToArray();
+                double[] y = x.Select(a => GetPredictedRegretForAction(independentVariables, (byte) a, regressionMachine)).ToArray();
                 spline1dbuildcatmullrom(x, y, out spline_interpolant);
             }
             double[] regrets = new double[maxActionValue];
             double sumPositiveRegrets = 0;
             for (byte a = 1; a <= maxActionValue; a++)
             {
-                double predictedRegret = maxActionValue == numActionsToSample ? GetPredictedRegretForAction(independentVariables, a) : spline1dcalc(spline_interpolant, (double) a);
+                double predictedRegret = maxActionValue == numActionsToSample ? GetPredictedRegretForAction(independentVariables, a, regressionMachine) : spline1dcalc(spline_interpolant, (double) a);
                 double positiveRegretForAction = Math.Max(0, predictedRegret);
                 regrets[a - 1] = positiveRegretForAction;
                 sumPositiveRegrets += positiveRegretForAction;

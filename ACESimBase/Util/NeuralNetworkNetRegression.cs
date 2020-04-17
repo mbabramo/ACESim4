@@ -33,8 +33,9 @@ namespace ACESimBase.Util
             NeuronsPerHiddenLayer = neuronsPerHiddenLayer;
         }
 
-        public float[] GetResults(float[] x)
+        public float[] GetResults(float[] x, IRegressionMachine regressionMachine)
         {
+            // NOTE: We ignore the regression machine mechanism used by MLNetRegression here, because (I think) StoredNetwork is thread safe.
             float[] result = StoredNetwork.Forward(x);
             return result;
         }

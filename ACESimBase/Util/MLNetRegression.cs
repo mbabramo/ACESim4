@@ -17,7 +17,7 @@ namespace ACESimBase.Util
         SchemaDefinition Schema;
         MLContext Context;
         ITransformer Transformer;
-        FactoryCreatableObjectPool<PredictionEngine<MLNetDatum, MLNetPrediction>> PredictionEnginePool;
+        FactoryCreatableObjectPool<PredictionEngine<MLNetDatum, MLNetPrediction>> PredictionEnginePool; // we need to have a separate prediction engine for each thread, so we put the prediction engines in a pool. even then, repeated access of the pool can be slow, so we can create an IRegressionMachine that locally caches a prediction engine taken from a pool
         RegressionTechniques Technique;
 
         public MLNetRegression(RegressionTechniques technique)
@@ -119,16 +119,47 @@ namespace ACESimBase.Util
             PredictionEnginePool.Return(predictionEngine);
         }
 
-        public float[] GetResults(float[] x)
+        public class MLNetRegressionMachine : IRegressionMachine
         {
-            MLNetPrediction prediction = new MLNetPrediction();
-            var predictionEngine = GetPredictionEngine();
-            predictionEngine.Predict(new MLNetDatum() { Features = x }, ref prediction);
-            ReturnPredictionEngineToPool(predictionEngine);
-            return new float[] { prediction.Score };
-            //IDataView transformed = Transformer.Transform(DatumToDataView(x));
-            //var result = Context.Data.CreateEnumerable<MLNetPrediction>(transformed, reuseRowObject: false).First();
-            //return result.DependentVariables;
+            public PredictionEngine<MLNetDatum, MLNetPrediction> PredictionEngine;
+
+            public MLNetRegressionMachine(PredictionEngine<MLNetDatum, MLNetPrediction> predictionEngine)
+            {
+                PredictionEngine = predictionEngine;
+            }
+
+            public float[] GetResults(float[] x)
+            {
+                MLNetPrediction prediction = new MLNetPrediction();
+                PredictionEngine.Predict(new MLNetDatum() { Features = x }, ref prediction);
+                return new float[] { prediction.Score };
+            }
+        }
+
+        // The following is the local caching mechanism. The idea is that we don't have to keep using the pool (which may be slow).
+
+        public IRegressionMachine GetRegressionMachine()
+        {
+            PredictionEngine<MLNetDatum, MLNetPrediction> predictionEngine = GetPredictionEngine();
+            MLNetRegressionMachine regressionMachine = new MLNetRegressionMachine(predictionEngine);
+            return regressionMachine;
+        }
+
+        public void ReturnRegressionMachine(IRegressionMachine regressionMachine)
+        {
+            MLNetRegressionMachine machine = (MLNetRegressionMachine)regressionMachine;
+            ReturnPredictionEngineToPool(machine.PredictionEngine);
+        }
+
+        public float[] GetResults(float[] x, IRegressionMachine regressionMachine = null)
+        {
+            bool createRegressionMachine = regressionMachine == null;
+            if (createRegressionMachine)
+                regressionMachine = GetRegressionMachine();
+            var results = regressionMachine.GetResults(x);
+            if (createRegressionMachine)
+                ReturnRegressionMachine(regressionMachine);
+            return results;
         }
 
         public string GetTrainingResultString()

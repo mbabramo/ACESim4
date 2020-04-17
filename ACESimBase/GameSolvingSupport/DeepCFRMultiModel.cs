@@ -54,11 +54,13 @@ namespace ACESimBase.GameSolvingSupport
             }
         }
 
-        public DeepCFRModel GetModel(Decision decision) => Mode switch
-        {
+        public DeepCFRModel GetModel(Decision decision) => GetModel(decision.PlayerNumber, decision.DecisionByteCode, decision.Name);
+
+        public DeepCFRModel GetModel(byte playerNumber, byte decisionByteCode, string name) => Mode switch
+        { 
             DeepCFRMultiModelMode.Unified => UnifiedModel,
-            DeepCFRMultiModelMode.PlayerSpecific => PlayerSpecificModels.GetModel(decision.PlayerNumber, () => $"Player {decision.PlayerNumber}"),
-            DeepCFRMultiModelMode.DecisionSpecific => DecisionSpecificModels.GetModel((decision.PlayerNumber, decision.DecisionByteCode), () => $"Decision {decision.Name}"),
+            DeepCFRMultiModelMode.PlayerSpecific => PlayerSpecificModels.GetModel(playerNumber, () => $"Player {playerNumber}"),
+            DeepCFRMultiModelMode.DecisionSpecific => DecisionSpecificModels.GetModel((playerNumber, decisionByteCode), () => $"Decision {name}"),
             _ => throw new NotImplementedException(),
         };
 
@@ -112,22 +114,57 @@ namespace ACESimBase.GameSolvingSupport
 
         #endregion
 
-        #region Choosing actions
+        #region Cached regression machine
 
-        public byte ChooseAction(Decision decision, double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample, double probabilityUniformRandom)
+        // helper method
+        IEnumerable<TSource> DistinctBy<TSource, TKey>
+(IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
         {
-            var model = GetModel(decision);
-            return ChooseAction(model, randomValue, independentVariables, maxActionValue, numActionsToSample, probabilityUniformRandom);
+            HashSet<TKey> seenKeys = new HashSet<TKey>();
+            foreach (TSource element in source)
+            {
+                if (seenKeys.Add(keySelector(element)))
+                {
+                    yield return element;
+                }
+            }
         }
 
-        public static byte ChooseAction(DeepCFRModel model, double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample, double probabilityUniformRandom)
+        public Dictionary<byte, IRegressionMachine> GetRegressionMachinesForLocalUse(List<Decision> decisions)
+        {
+
+            var distinctDecisions = DistinctBy<Decision, byte>(decisions, d => d.DecisionByteCode);
+            Dictionary<byte, IRegressionMachine> result = distinctDecisions.Select(d => (d, GetModel(d))).ToDictionary(dm => dm.d.DecisionByteCode, dm => dm.Item2.GetRegressionMachine());
+            return result;
+        }
+
+        public void ReturnRegressionMachines(List<Decision> decisions, Dictionary<byte, IRegressionMachine> machines)
+        {
+            var distinctDecisions = DistinctBy<Decision, byte>(decisions, d => d.DecisionByteCode);
+            foreach (Decision d in distinctDecisions)
+            {
+                GetModel(d).ReturnRegressionMachine(machines[d.DecisionByteCode]);
+            }
+        }
+
+        #endregion
+
+        #region Choosing actions
+
+        public byte ChooseAction(Decision decision, IRegressionMachine regressionMachineForDecision, double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample, double probabilityUniformRandom)
+        {
+            var model = GetModel(decision);
+            return ChooseAction(model, regressionMachineForDecision, randomValue, independentVariables, maxActionValue, numActionsToSample, probabilityUniformRandom);
+        }
+
+        private static byte ChooseAction(DeepCFRModel model, IRegressionMachine regressionMachine, double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample, double probabilityUniformRandom)
         {
             // turn one random draw into two independent random draws
             double rand1 = Math.Floor(randomValue * 10_000) / 10_000;
             double rand2 = (randomValue - rand1) * 10_000;
             if (rand1 < probabilityUniformRandom)
                 return DeepCFRModel.ChooseActionAtRandom(rand2, maxActionValue);
-            var result = model.ChooseAction(rand2, independentVariables, maxActionValue, numActionsToSample);
+            var result = model.ChooseAction(rand2, independentVariables, maxActionValue, numActionsToSample, regressionMachine);
             if (result > numActionsToSample)
                 throw new Exception("Internal error. Invalid action choice.");
             return result;

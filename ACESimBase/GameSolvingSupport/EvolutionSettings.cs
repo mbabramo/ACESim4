@@ -98,6 +98,7 @@ namespace ACESim
         public DeepCFRMultiModelMode DeepCFRMultiModelMode = DeepCFRMultiModelMode.DecisionSpecific;
         public int DeepCFR_ReservoirCapacity = 5_000; 
         public int DeepCFR_MaximumTotalObservationsPerIteration = 25_000; // after this number of observations, we stop looking for more observations, even if we haven't gotten enough to fill as many iterations as desired in one or more reservoirs (in which case, we rely more on earlier observations)
+        public int DeepCFR_NumObservationsToDoTogether = 25; // by grouping observations, we save time on creating the prediction context
         public RegressionTechniques RegressionTechnique = RegressionTechniques.FastTree;
         public Func<IRegression> RegressionFactory() => RegressionTechnique switch
         {
