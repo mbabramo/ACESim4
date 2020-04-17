@@ -12,8 +12,8 @@ namespace ACESim
     [Serializable]
     public class EvolutionSettings
     {
-        public bool DistributeChanceDecisions = false; // DEBUG // NOTE: This is currently very slow when using full game tree.
-        public bool UnrollAlgorithm = false; // DEBUG; TODO: Fix so this works with additive evidence game.
+        public bool DistributeChanceDecisions = true; // DEBUG: Some problem now under GeneralizedVanilla when not doing this // NOTE: This is currently very slow when using full game tree.
+        public bool UnrollAlgorithm = true; // DEBUG: Fix so this works with additive evidence game.
         public bool AzureEnabled = false;
         // Note: Many of the below are overridden by launcher.
         public int TotalAvgStrategySamplingCFRIterations = 100000;
@@ -116,7 +116,7 @@ namespace ACESim
 
         // For Vanilla algorithm:
         // From Solving Imperfect Information Games with Discounted Regret Minimization -- optimal values (for situations in which pruning may be used)
-        public bool UseContinuousRegretsDiscounting = true; // DEBUG // an alternative to discounting regrets with standard discounting approach
+        public bool UseContinuousRegretsDiscounting = false; // DEBUG // an alternative to discounting regrets with standard discounting approach
         public double ContinuousRegretsDiscountPerIteration => UseContinuousRegretsDiscounting ? 0.99 : 1.0; 
         public bool UseStandardDiscounting = false; // Note: This might be especially helpful sometimes for multiplicative weights
         public bool DiscountRegrets = false; // if true, Discounting_Alpha and Discounting_Beta are used -- note never currently used in MultiplicativeWeightsVanilla

@@ -138,8 +138,8 @@ namespace ACESim
             if (mainAction == 0)
             {
                 informationSet = gamePlayer.GetInformationSet(true);
-                independentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, 0 /* placeholder */, null /* DEBUG */);
-                mainAction = Models.ChooseAction(currentDecision, regressionMachineForCurrentDecision, observationNum.GetRandomDouble(decisionIndex), independentVariables, numPossibleActions, numPossibleActions /* DEBUG */, 0 /* main action is always on policy */);
+                independentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, 0 /* placeholder */, null /* TODO */);
+                mainAction = Models.ChooseAction(currentDecision, regressionMachineForCurrentDecision, observationNum.GetRandomDouble(decisionIndex), independentVariables, numPossibleActions, numPossibleActions /* TODO */, 0 /* main action is always on policy */);
                 independentVariables.ActionChosen = mainAction;
             }
             else if (traversalMode == DeepCFRTraversalMode.AddRegretObservations)
@@ -153,7 +153,7 @@ namespace ACESim
                 DeepCFRObservationNum probeIteration = observationNum.NextVariation();
                 DirectGamePlayer probeGamePlayer = gamePlayer.DeepCopy();
                 independentVariables.ActionChosen = 0; // not essential -- clarifies that no action has been chosen yet
-                byte probeAction = Models.ChooseAction(currentDecision, regressionMachineForCurrentDecision, probeIteration.GetRandomDouble(decisionIndex), independentVariables, numPossibleActions, numPossibleActions /* DEBUG */, EvolutionSettings.DeepCFR_Epsilon_OffPolicyProbabilityForProbe);
+                byte probeAction = Models.ChooseAction(currentDecision, regressionMachineForCurrentDecision, probeIteration.GetRandomDouble(decisionIndex), independentVariables, numPossibleActions, numPossibleActions /* TODO */, EvolutionSettings.DeepCFR_Epsilon_OffPolicyProbabilityForProbe);
                 // Note: probe action might be same as main action. That's OK, because this helps us estimate expected regret, which is probabilistic
                 independentVariables.ActionChosen = mainAction;
                 probeGamePlayer.PlayAction(probeAction);
@@ -162,7 +162,7 @@ namespace ACESim
                 DeepCFRObservation observation = new DeepCFRObservation()
                 {
                     SampledRegret = sampledRegret,
-                    IndependentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, probeAction, null /* DEBUG */)
+                    IndependentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, probeAction, null /* TODO */)
                 };
                 observations.Add((currentDecision, observation));
             }
@@ -267,11 +267,9 @@ namespace ACESim
                         Models.AddPendingObservation(result.decision, result.observation);
                 }
                 );
-            TabbedText.WriteLine($"Depth iteration {iteration}: {Parallelizer.ParallelDepth}"); // DEBUG
             await runner.Run(
                 EvolutionSettings.ParallelOptimization);
 
-            TabbedText.WriteLine($"Depth iteration {iteration}: {Parallelizer.ParallelDepth}"); // DEBUG
             localStopwatch.Stop();
             StrategiesDeveloperStopwatch.Stop();
             //TabbedText.Write($" utilities {String.Join(",", finalUtilities.Select(x => x.ToSignificantFigures(4)))}");
@@ -285,7 +283,6 @@ namespace ACESim
             TabbedText.WriteLine($"All models completed over {EvolutionSettings.DeepCFR_NeuralNetwork_Epochs} epochs, total time {localStopwatch.ElapsedMilliseconds} ms");
             localStopwatch.Stop();
 
-            TabbedText.WriteLine($"Depth iteration {iteration}: {Parallelizer.ParallelDepth}"); // DEBUG
             ReportCollection reportCollection = new ReportCollection();
             if (!isBestResponseIteration)
             {

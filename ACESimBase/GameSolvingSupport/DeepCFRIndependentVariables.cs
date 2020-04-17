@@ -38,8 +38,6 @@ namespace ACESimBase.GameSolvingSupport
             Player = player;
             DecisionIndex = decisionIndex;
             InformationSet = informationSet;
-            if (informationSet.Count() != informationSet.Select(x => x.decisionIndex).Distinct().Count())
-                throw new Exception("DEBUG");
             ActionChosen = actionChosen;
             GameParameters = gameParameters;
         }
@@ -91,8 +89,6 @@ namespace ACESimBase.GameSolvingSupport
                 else
                 {// the decisionIndex is included in the information set. Note this if necessary. Then, record the information itself in the result.
                     result[resultIndex++] = 1.0f; // i.e., information is available
-                    if (resultIndex == result.Length)
-                        throw new Exception("DEBUG");
                     result[resultIndex++] = informationSetPlusAction[informationSetPlusActionIndex++].information;
                 }
             }
