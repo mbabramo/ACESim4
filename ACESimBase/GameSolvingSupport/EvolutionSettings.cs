@@ -111,7 +111,7 @@ namespace ACESim
         public double DeepCFR_DiscountRate = 0.98;
         public bool DeepCFR_ApproximateBestResponse = true;
         public int DeepCFR_ApproximateBestResponseIterations = 5;
-        public int DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation = 100_000;
+        public int DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation = 1_000_000;
 
         // For Vanilla algorithm:
         // From Solving Imperfect Information Games with Discounted Regret Minimization -- optimal values (for situations in which pruning may be used)

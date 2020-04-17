@@ -116,10 +116,6 @@ namespace ACESim
                 informationSet = gamePlayer.GetInformationSet(true);
                 independentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, 0 /* placeholder */, null /* DEBUG */);
                 mainAction = Models.ChooseAction(currentDecision, observationNum.GetRandomDouble(decisionIndex), independentVariables, numPossibleActions, numPossibleActions /* DEBUG */, 0 /* main action is always on policy */);
-                if (currentDecision.Name == "PFile" && traversalMode == DeepCFRTraversalMode.PlaybackSinglePath && mainAction == 2)
-                {
-                    var DEBUG = 0;
-                }
                 independentVariables.ActionChosen = mainAction;
             }
             else if (traversalMode == DeepCFRTraversalMode.AddRegretObservations)
@@ -190,6 +186,7 @@ namespace ACESim
             if (EvolutionSettings.DeepCFR_ApproximateBestResponse)
             {
                 double[] baselineUtilities = DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
+                TabbedText.WriteLine($"Baseline utilities {String.Join(",", baselineUtilities.Select(x => x.ToSignificantFigures(4)))}");
                 for (byte p = 0; p < NumNonChancePlayers; p++)
                 {
                     TabbedText.WriteLine($"Determining best response for player {p}");
@@ -230,10 +227,10 @@ namespace ACESim
                 TabbedText.Write($"Iteration {iteration} of {EvolutionSettings.TotalIterations} ");
 
             int[] numObservationsToAdd = Models.CountPendingObservationsTarget(iteration);
-            bool separateDataEveryObservation = true;
+            bool separteDataEveryIteration = true;
             ParallelConsecutive<List<(Decision decision, DeepCFRObservation observation)>> runner = new ACESimBase.Util.ParallelConsecutive<List<(Decision decision, DeepCFRObservation observation)>>(
                 (int numCompleted) => TargetMet(iteration, isBestResponseIteration, numCompleted, numObservationsToAdd),
-                i => DeepCFR_AddingRegretObservations(new DeepCFRObservationNum(i, separateDataEveryObservation ? iteration * 1000 : 0)),
+                i => DeepCFR_AddingRegretObservations(new DeepCFRObservationNum(i, separteDataEveryIteration ? iteration * 1000 : 0)),
                 results =>
                 {
                     foreach (var result in results)
