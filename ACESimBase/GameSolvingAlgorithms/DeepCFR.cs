@@ -44,18 +44,18 @@ namespace ACESim
 
         public double[] DeepCFR_UtilitiesAverage(int totalNumberObservations)
         {
-            double[][] utilities = new double[totalNumberObservations][];
+            TabbedText.WriteLine($"Calculating utilities from {totalNumberObservations}");
+            StatCollectorArray s = new StatCollectorArray();
             int numPlaybacks = totalNumberObservations / EvolutionSettings.DeepCFR_NumObservationsToDoTogether;
-            int extxraObservationsDueToRounding = (numPlaybacks * EvolutionSettings.DeepCFR_NumObservationsToDoTogether - totalNumberObservations);
-            int numPlaybacksLastIteration = numPlaybacks - extxraObservationsDueToRounding;
-            Parallelizer.Go(EvolutionSettings.ParallelOptimization, 0, totalNumberObservations, o =>
+            int extraObservationsDueToRounding = (numPlaybacks * EvolutionSettings.DeepCFR_NumObservationsToDoTogether - totalNumberObservations);
+            int numPlaybacksLastIteration = numPlaybacks - extraObservationsDueToRounding;
+            Parallelizer.Go(EvolutionSettings.ParallelOptimization, 0, numPlaybacks, o =>
             {
-                int numToPlaybackTogetherThisIteration = o == totalNumberObservations - 1 ? numPlaybacksLastIteration : numPlaybacks;
-                utilities[o] = DeepCFR_UtilitiesFromMultiplePlaybacks(o, numToPlaybackTogetherThisIteration);
+                int numToPlaybackTogetherThisIteration = o == totalNumberObservations - 1 ? numPlaybacksLastIteration : EvolutionSettings.DeepCFR_NumObservationsToDoTogether;
+                var utilities = DeepCFR_UtilitiesFromMultiplePlaybacks(o, numToPlaybackTogetherThisIteration).ToArray();
+                s.Add(utilities, numToPlaybackTogetherThisIteration);
             });
-            double[] averageUtilities = new double[NumNonChancePlayers];
-            for (int i = 0; i < NumNonChancePlayers; i++)
-                averageUtilities[i] = utilities.Average(x => x[i]);
+            double[] averageUtilities = s.Average().ToArray();
             return averageUtilities;
         }
 
@@ -267,9 +267,11 @@ namespace ACESim
                         Models.AddPendingObservation(result.decision, result.observation);
                 }
                 );
+            TabbedText.WriteLine($"Depth iteration {iteration}: {Parallelizer.ParallelDepth}"); // DEBUG
             await runner.Run(
                 EvolutionSettings.ParallelOptimization);
 
+            TabbedText.WriteLine($"Depth iteration {iteration}: {Parallelizer.ParallelDepth}"); // DEBUG
             localStopwatch.Stop();
             StrategiesDeveloperStopwatch.Stop();
             //TabbedText.Write($" utilities {String.Join(",", finalUtilities.Select(x => x.ToSignificantFigures(4)))}");
@@ -283,6 +285,7 @@ namespace ACESim
             TabbedText.WriteLine($"All models completed over {EvolutionSettings.DeepCFR_NeuralNetwork_Epochs} epochs, total time {localStopwatch.ElapsedMilliseconds} ms");
             localStopwatch.Stop();
 
+            TabbedText.WriteLine($"Depth iteration {iteration}: {Parallelizer.ParallelDepth}"); // DEBUG
             ReportCollection reportCollection = new ReportCollection();
             if (!isBestResponseIteration)
             {
@@ -334,8 +337,8 @@ namespace ACESim
                 {
                     Br.eak.Add("Report");
                     reportCollection = await GenerateReportsByPlaying(true);
-                    CalculateUtilitiesOverall();
-                    TabbedText.WriteLine($"Utilities: {String.Join(",", Status.UtilitiesOverall.Select(x => x.ToSignificantFigures(4)))}");
+                    //CalculateUtilitiesOverall();
+                    //TabbedText.WriteLine($"Utilities: {String.Join(",", Status.UtilitiesOverall.Select(x => x.ToSignificantFigures(4)))}");
                     Br.eak.Remove("Report");
                 }
                 TabbedText.ShowConsoleProgressString();

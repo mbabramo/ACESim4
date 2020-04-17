@@ -68,6 +68,10 @@ namespace ACESimBase.GameSolvingSupport
 
         public DeepCFRModel(string modelName, int reservoirCapacity, long reservoirSeed, double discountRate, Func<IRegression> regressionFactory)
         {
+            if (modelName.Contains("Signal"))
+            {
+                var DEBUG = 0;
+            }
             ModelName = modelName;
             DiscountRate = discountRate;
             Observations = new Reservoir<DeepCFRObservation>(reservoirCapacity, reservoirSeed);
@@ -76,8 +80,8 @@ namespace ACESimBase.GameSolvingSupport
             RegressionFactory = regressionFactory;
         }
 
-        public IRegressionMachine GetRegressionMachine() => Regression.GetRegressionMachine();
-        public void ReturnRegressionMachine(IRegressionMachine regressionMachine) => Regression.ReturnRegressionMachine(regressionMachine);
+        public IRegressionMachine GetRegressionMachine() => Regression?.GetRegressionMachine();
+        public void ReturnRegressionMachine(IRegressionMachine regressionMachine) => Regression?.ReturnRegressionMachine(regressionMachine);
 
         public void AddPendingObservation(DeepCFRObservation observation)
         {

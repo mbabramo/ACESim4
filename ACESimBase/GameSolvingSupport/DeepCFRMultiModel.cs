@@ -54,7 +54,12 @@ namespace ACESimBase.GameSolvingSupport
             }
         }
 
-        public DeepCFRModel GetModel(Decision decision) => GetModel(decision.PlayerNumber, decision.DecisionByteCode, decision.Name);
+        public DeepCFRModel GetModel(Decision decision)
+        {
+            if (decision.IsChance)
+                throw new Exception("Should only model non-chance decisions");
+            return GetModel(decision.PlayerNumber, decision.DecisionByteCode, decision.Name);
+        }
 
         public DeepCFRModel GetModel(byte playerNumber, byte decisionByteCode, string name) => Mode switch
         { 
@@ -133,14 +138,14 @@ namespace ACESimBase.GameSolvingSupport
         public Dictionary<byte, IRegressionMachine> GetRegressionMachinesForLocalUse(List<Decision> decisions)
         {
 
-            var distinctDecisions = DistinctBy<Decision, byte>(decisions, d => d.DecisionByteCode);
+            var distinctDecisions = DistinctBy<Decision, byte>(decisions.Where(x => !x.IsChance), d => d.DecisionByteCode);
             Dictionary<byte, IRegressionMachine> result = distinctDecisions.Select(d => (d, GetModel(d))).ToDictionary(dm => dm.d.DecisionByteCode, dm => dm.Item2.GetRegressionMachine());
             return result;
         }
 
         public void ReturnRegressionMachines(List<Decision> decisions, Dictionary<byte, IRegressionMachine> machines)
         {
-            var distinctDecisions = DistinctBy<Decision, byte>(decisions, d => d.DecisionByteCode);
+            var distinctDecisions = DistinctBy<Decision, byte>(decisions.Where(x => !x.IsChance), d => d.DecisionByteCode);
             foreach (Decision d in distinctDecisions)
             {
                 GetModel(d).ReturnRegressionMachine(machines[d.DecisionByteCode]);

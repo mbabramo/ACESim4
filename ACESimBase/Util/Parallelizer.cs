@@ -189,10 +189,10 @@ namespace ACESim
             }
         }
 
-        public static Task ForAsync(long start, long stopBeforeThis, Func<long, Task> body)
+        public static async Task ForAsync(long start, long stopBeforeThis, Func<long, Task> body)
         {
             int initialParallelDepth = ParallelDepth;
-            return Task.WhenAll(
+            await Task.WhenAll(
                 from partition in Partitioner.Create(start, stopBeforeThis).GetPartitions(MaxDegreeOfParallelism ?? Environment.ProcessorCount)
                 select Task.Run(async delegate {
                     using (partition)
@@ -205,6 +205,7 @@ namespace ACESim
                             }
                         }
                 }));
+            ParallelDepth = initialParallelDepth;
         }
 
         public static Task ForEachAsync<T>(this IEnumerable<T> source, Func<T, Task> body)

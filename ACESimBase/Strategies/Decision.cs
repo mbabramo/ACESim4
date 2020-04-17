@@ -217,6 +217,7 @@ namespace ACESim
             AlwaysDoAction = alwaysDoAction;
             UnevenChanceActions = unevenChanceActions;
             CriticalNode = criticalNode;
+            IsChance = isChance;
         }
 
         public Decision Clone()

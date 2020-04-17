@@ -1647,11 +1647,13 @@ namespace ACESim
             ReportCollection reportCollection = new ReportCollection();
             for (int i = 0; i < simpleReportDefinitionsCount; i++)
             {
+                int initialParallelDepth = Parallelizer.ParallelDepth;
                 ReportsBeingGenerated[i] = new SimpleReport(simpleReportDefinitions[i], simpleReportDefinitions[i].DivideColumnFiltersByImmediatelyEarlierReport ? ReportsBeingGenerated[i - 1] : null);
                 await generator(GamePlayer, simpleReportDefinitions[i].ActionsOverride, simpleReportDefinitions);
                 ReportCollection result = ReportsBeingGenerated[i].BuildReport();
                 reportCollection.Add(result);
                 ReportsBeingGenerated[i] = null; // so we don't keep adding GameProgress to this report
+                Parallelizer.ParallelDepth = initialParallelDepth; // note: this is to compensate for a complication with our awaiting the consumer -- not fully understood at this point
             }
 
             return reportCollection;

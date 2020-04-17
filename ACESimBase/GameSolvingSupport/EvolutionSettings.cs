@@ -98,7 +98,7 @@ namespace ACESim
         public DeepCFRMultiModelMode DeepCFRMultiModelMode = DeepCFRMultiModelMode.DecisionSpecific;
         public int DeepCFR_ReservoirCapacity = 5_000; 
         public int DeepCFR_MaximumTotalObservationsPerIteration = 25_000; // after this number of observations, we stop looking for more observations, even if we haven't gotten enough to fill as many iterations as desired in one or more reservoirs (in which case, we rely more on earlier observations)
-        public int DeepCFR_NumObservationsToDoTogether = 25; // by grouping observations, we save time on creating the prediction context
+        public int DeepCFR_NumObservationsToDoTogether = 25; // by grouping observations on a thread, we save time on creating the prediction context
         public RegressionTechniques RegressionTechnique = RegressionTechniques.FastTree;
         public Func<IRegression> RegressionFactory() => RegressionTechnique switch
         {
@@ -111,8 +111,8 @@ namespace ACESim
         public double DeepCFR_Epsilon_OffPolicyProbabilityForProbe = 0.05;
         public double DeepCFR_DiscountRate = 0.98;
         public bool DeepCFR_ApproximateBestResponse = true;
-        public int DeepCFR_ApproximateBestResponseIterations = 5;
-        public int DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation = 1_000_000;
+        public int DeepCFR_ApproximateBestResponseIterations = 3;
+        public int DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation = 10_000;
 
         // For Vanilla algorithm:
         // From Solving Imperfect Information Games with Discounted Regret Minimization -- optimal values (for situations in which pruning may be used)
