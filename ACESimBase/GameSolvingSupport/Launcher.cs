@@ -18,9 +18,9 @@ namespace ACESim
 
         #region Settings
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; // use RegretMatching etc. for GeneralizedVanilla
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.DeepCFR; // use RegretMatching etc. for GeneralizedVanilla
 
-        public const int VanillaIterations = 2; // Note: Also used for GeneralizedVanilla, DeepCFR
+        public const int VanillaIterations = 1; // Note: Also used for GeneralizedVanilla, DeepCFR
         public const int VanillaReportEveryNIterations = VanillaIterations;
         public const int VanillaBestResponseEveryMIterations = VanillaIterations; // DEBUG EffectivelyNever; 
         public const bool CalculatePerturbedBestResponseRefinement = true;
@@ -28,7 +28,7 @@ namespace ACESim
         public const bool AlwaysSuppressDisplayReportOnScreen = true; 
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever;
         public const bool UseRandomPathsForReporting = true; 
-        public const int SummaryTableRandomPathsIterations = 1_000; // DEBUG
+        public const int SummaryTableRandomPathsIterations = 10_000; // DEBUG
         public const int ProbingIterations = 20_000_000;
 
         public const int StartGameNumber = 1;
@@ -42,7 +42,7 @@ namespace ACESim
         public static bool MaxOneReportPerDistributedProcess = false;
         public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && UseDistributedProcessingForMultipleOptionsSets; // this should be true if running on the local service fabric or usign ACESimDistributed
         public bool ParallelizeOptionSets = false; // run multiple option sets at same time on computer (in which case each individually will be run not in parallel)
-        public bool ParallelizeIndividualExecutions = true; // only if !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing)
+        public bool ParallelizeIndividualExecutions = false; // only if !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing)
         public bool DynamicSetParallelIfPossible = false; 
         public bool DynamicSetParallel => DistributedProcessing && DynamicSetParallelIfPossible;
         public bool ParallelizeIndividualExecutionsAlways = false; // Note -- maybe not really working // will always take precedence
@@ -169,7 +169,7 @@ namespace ACESim
 
                 NumRandomIterationsForSummaryTable = SummaryTableRandomPathsIterations,
                 GenerateReportsByPlaying = true,
-                PrintInformationSets = false, // DEBUG
+                PrintInformationSets = true, // DEBUG
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
                 PrintGameTree = false,  // DEBUG
                 ActionStrategiesToUseInReporting =

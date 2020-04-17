@@ -126,10 +126,10 @@ namespace ACESimBase.GameSolvingSupport
             Regression = new RegressionController(RegressionFactory);
             await Regression.Regress(data);
 
-            bool printAverageRegrets = true;
+            bool printAverageRegrets = false;
             if (printAverageRegrets)
                 PrintAverageRegrets(s);
-            bool printAllData = false;
+            bool printAllData = true;
             if (printAllData)
                 PrintData(data, s);
             if (TestDataProportion != 0)
