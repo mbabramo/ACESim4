@@ -109,14 +109,14 @@ namespace ACESim
         public int DeepCFR_NeuralNetwork_HiddenLayers = 3;
         public int DeepCFR_NeuralNetwork_NeuronsPerHiddenLayer = 150;
         public double DeepCFR_Epsilon_OffPolicyProbabilityForProbe = 0.05;
-        public double DeepCFR_DiscountRate = 0.98;
+        public double DeepCFR_DiscountRate = 1.0; // DEBUG0.98;
         public bool DeepCFR_ApproximateBestResponse = true;
         public int DeepCFR_ApproximateBestResponseIterations = 3;
-        public int DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation = 10_000;
+        public int DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation = 1_000;
 
         // For Vanilla algorithm:
         // From Solving Imperfect Information Games with Discounted Regret Minimization -- optimal values (for situations in which pruning may be used)
-        public bool UseContinuousRegretsDiscounting = true; // DEBUG // an alternative to discounting regrets with standard discounting approach
+        public bool UseContinuousRegretsDiscounting = false; // DEBUG // an alternative to discounting regrets with standard discounting approach
         public double ContinuousRegretsDiscountPerIteration => UseContinuousRegretsDiscounting ? 0.99 : 1.0; 
         public bool UseStandardDiscounting = false; // Note: This might be especially helpful sometimes for multiplicative weights
         public bool DiscountRegrets = false; // if true, Discounting_Alpha and Discounting_Beta are used -- note never currently used in MultiplicativeWeightsVanilla
