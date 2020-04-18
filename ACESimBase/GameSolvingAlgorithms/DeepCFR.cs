@@ -14,13 +14,13 @@ namespace ACESim
     [Serializable]
     public partial class DeepCFR : CounterfactualRegretMinimization
     {
-        DeepCFRMultiModel Models;
+        DeepCFRMultiModel MultiModel;
 
         #region Initialization
 
         public DeepCFR(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
         {
-            Models = new DeepCFRMultiModel(EvolutionSettings.DeepCFRMultiModelMode, EvolutionSettings.DeepCFR_ReservoirCapacity, 0, EvolutionSettings.DeepCFR_DiscountRate, EvolutionSettings.RegressionFactory());
+            MultiModel = new DeepCFRMultiModel(EvolutionSettings.DeepCFRMultiModelMode, EvolutionSettings.DeepCFR_ReservoirCapacity, 0, EvolutionSettings.DeepCFR_DiscountRate, EvolutionSettings.RegressionFactory());
         }
 
         public override IStrategiesDeveloper DeepCopy()
@@ -139,7 +139,7 @@ namespace ACESim
             {
                 informationSet = gamePlayer.GetInformationSet(true);
                 independentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, 0 /* placeholder */, null /* TODO */);
-                mainAction = Models.ChooseAction(currentDecision, regressionMachineForCurrentDecision, observationNum.GetRandomDouble(decisionIndex), independentVariables, numPossibleActions, numPossibleActions /* TODO */, 0 /* main action is always on policy */);
+                mainAction = MultiModel.ChooseAction(currentDecision, regressionMachineForCurrentDecision, observationNum.GetRandomDouble(decisionIndex), independentVariables, numPossibleActions, numPossibleActions /* TODO */, 0 /* main action is always on policy */);
                 independentVariables.ActionChosen = mainAction;
             }
             else if (traversalMode == DeepCFRTraversalMode.AddRegretObservations)
@@ -149,24 +149,50 @@ namespace ACESim
             double[] mainValues = DeepCFRTraversal(regressionMachines, mainActionPlayer, observationNum, observations, traversalMode);
             if (traversalMode == DeepCFRTraversalMode.AddRegretObservations)
             {
-                // We do a single probe. This allows us to compare the result from the main action.
-                DeepCFRObservationNum probeIteration = observationNum.NextVariation();
-                DirectGamePlayer probeGamePlayer = gamePlayer.DeepCopy();
-                independentVariables.ActionChosen = 0; // not essential -- clarifies that no action has been chosen yet
-                byte probeAction = Models.ChooseAction(currentDecision, regressionMachineForCurrentDecision, probeIteration.GetRandomDouble(decisionIndex), independentVariables, numPossibleActions, numPossibleActions /* TODO */, EvolutionSettings.DeepCFR_Epsilon_OffPolicyProbabilityForProbe);
-                // Note: probe action might be same as main action. That's OK, because this helps us estimate expected regret, which is probabilistic
-                independentVariables.ActionChosen = mainAction;
-                probeGamePlayer.PlayAction(probeAction);
-                double[] probeValues = DeepCFRTraversal(regressionMachines, probeGamePlayer, observationNum, observations, DeepCFRTraversalMode.ProbeForUtilities);
-                double sampledRegret = probeValues[playerMakingDecision] - mainValues[playerMakingDecision];
-                DeepCFRObservation observation = new DeepCFRObservation()
+                if (MultiModel.ObservationsNeeded(currentDecision))
                 {
-                    SampledRegret = sampledRegret,
-                    IndependentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, probeAction, null /* TODO */)
-                };
-                observations.Add((currentDecision, observation));
+                    // We do a single probe. This allows us to compare this result either to the result from the main action (fast, but high variance) or to the result from all of the other actions (slow, but low variance).
+                    DeepCFRObservationNum probeIteration = observationNum.NextVariation();
+                    byte probeAction = MultiModel.ChooseAction(currentDecision, regressionMachineForCurrentDecision, probeIteration.GetRandomDouble(decisionIndex), independentVariables /* note that action in this is ignored */, numPossibleActions, numPossibleActions /* TODO */, EvolutionSettings.DeepCFR_Epsilon_OffPolicyProbabilityForProbe);
+                    // Note: probe action might be same as main action. That's OK, because this helps us estimate expected regret, which is probabilistic
+                    double sampledRegret;
+                    if (EvolutionSettings.DeepCFR_ProbeAllActions)
+                    {
+                        double[] currentProbabilities = MultiModel.;
+                        double[][] utilitiesForAllActions = new double[currentDecision.NumPossibleActions][];
+                        for (byte a = 1; a < currentDecision.NumPossibleActions; a++)
+                        {
+                            double[] utilitiesForAction = null;
+                            if (a == mainAction)
+                                utilitiesForAction = mainValues;
+                            else
+                                utilitiesForAction = DeepCFR_ProbeAction(regressionMachines, gamePlayer, observationNum, observations, a);
+                            utilitiesForAllActions[a - 1] = utilitiesForAction;
+                        }
+
+                    }
+                    else
+                    {
+                        double[] probeValues = DeepCFR_ProbeAction(regressionMachines, gamePlayer, observationNum, observations, probeAction);
+                        sampledRegret = probeValues[playerMakingDecision] - mainValues[playerMakingDecision];
+                    }
+                    DeepCFRObservation observation = new DeepCFRObservation()
+                    {
+                        SampledRegret = sampledRegret,
+                        IndependentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, probeAction, null /* TODO */)
+                    };
+                    observations.Add((currentDecision, observation));
+                }
             }
             return mainValues;
+        }
+
+        private double[] DeepCFR_ProbeAction(Dictionary<byte, IRegressionMachine> regressionMachines, DirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, List<(Decision decision, DeepCFRObservation observation)> observations, byte probeAction)
+        {
+            DirectGamePlayer probeGamePlayer = gamePlayer.DeepCopy();
+            probeGamePlayer.PlayAction(probeAction);
+            double[] probeValues = DeepCFRTraversal(regressionMachines, probeGamePlayer, observationNum, observations, DeepCFRTraversalMode.ProbeForUtilities);
+            return probeValues;
         }
 
         private double[] DeepCFR_ChanceNode(Dictionary<byte, IRegressionMachine> regressionMachines, DirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, List<(Decision decision, DeepCFRObservation observation)> observations, DeepCFRTraversalMode traversalMode)
@@ -215,7 +241,7 @@ namespace ACESim
                 {
                     TabbedText.WriteLine($"Determining best response for player {p}");
                     TabbedText.TabIndent();
-                    Models.StartDeterminingBestResponse(p);
+                    MultiModel.StartDeterminingBestResponse(p);
                     for (int iteration = 1; iteration <= EvolutionSettings.DeepCFR_ApproximateBestResponseIterations; iteration++)
                     {
                         var result = await PerformDeepCFRIteration(iteration, true);
@@ -225,7 +251,7 @@ namespace ACESim
 
                     TabbedText.WriteLine($"Concluding determining best response for player {p} (recreating earlier models)");
                     TabbedText.TabIndent();
-                    await Models.EndDeterminingBestResponse(p);
+                    await MultiModel.EndDeterminingBestResponse(p);
                     TabbedText.TabUnindent();
                     TabbedText.WriteLine($"Utilities with best response for player {p}: {String.Join(",", bestResponseUtilities.Select(x => x.ToSignificantFigures(4)))}");
                     double bestResponseImprovement = bestResponseUtilities[p] - baselineUtilities[p];
@@ -250,7 +276,7 @@ namespace ACESim
             else
                 TabbedText.Write($"Iteration {iteration} of {EvolutionSettings.TotalIterations} ");
 
-            int[] numObservationsToAdd = Models.CountPendingObservationsTarget(iteration);
+            int[] numObservationsToAdd = MultiModel.CountPendingObservationsTarget(iteration);
             bool separateDataEveryIteration = true;
             ParallelConsecutive<List<(Decision decision, DeepCFRObservation observation)>> runner = new ACESimBase.Util.ParallelConsecutive<List<(Decision decision, DeepCFRObservation observation)>>(
                 (int numCompleted) => TargetMet(iteration, isBestResponseIteration, numCompleted, numObservationsToAdd),
@@ -264,7 +290,7 @@ namespace ACESim
                 results =>
                 {
                     foreach (var result in results)
-                        Models.AddPendingObservation(result.decision, result.observation);
+                        MultiModel.AddPendingObservation(result.decision, result.observation);
                 }
                 );
             await runner.Run(
@@ -278,7 +304,7 @@ namespace ACESim
             TabbedText.TabIndent();
             localStopwatch = new Stopwatch();
             localStopwatch.Start();
-            await Models.CompleteIteration(EvolutionSettings.ParallelOptimization);
+            await MultiModel.CompleteIteration(EvolutionSettings.ParallelOptimization);
             TabbedText.TabUnindent();
             TabbedText.WriteLine($"All models completed over {EvolutionSettings.DeepCFR_NeuralNetwork_Epochs} epochs, total time {localStopwatch.ElapsedMilliseconds} ms");
             localStopwatch.Stop();
@@ -298,23 +324,23 @@ namespace ACESim
             {
                 bool targetMet;
                 if (iteration == 1 && !isBestResponseIteration)
-                    targetMet = Models.AllMeetInitialPendingObservationsTarget(EvolutionSettings.DeepCFR_ReservoirCapacity); // must fill all reservoirs in first iteration
+                    targetMet = MultiModel.AllMeetInitialPendingObservationsTarget(EvolutionSettings.DeepCFR_ReservoirCapacity); // must fill all reservoirs in first iteration
                 else if (numberCompleted >= EvolutionSettings.DeepCFR_MaximumTotalObservationsPerIteration)
                     targetMet = true;
                 else
-                    targetMet = Models.AllMeetPendingObservationsTarget(numObservationsToAdd);
+                    targetMet = MultiModel.AllMeetPendingObservationsTarget(numObservationsToAdd);
                 return targetMet;
             }
         }
 
         private void ReturnRegressionMachines(Dictionary<byte, IRegressionMachine> regressionMachines)
         {
-            Models.ReturnRegressionMachines(GameDefinition.DecisionsExecutionOrder, regressionMachines);
+            MultiModel.ReturnRegressionMachines(GameDefinition.DecisionsExecutionOrder, regressionMachines);
         }
 
         private Dictionary<byte, IRegressionMachine> GetRegressionMachinesForLocalUse()
         {
-            return Models.GetRegressionMachinesForLocalUse(GameDefinition.DecisionsExecutionOrder);
+            return MultiModel.GetRegressionMachinesForLocalUse(GameDefinition.DecisionsExecutionOrder);
         }
 
         #endregion

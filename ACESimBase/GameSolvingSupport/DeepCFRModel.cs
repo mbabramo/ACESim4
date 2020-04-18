@@ -81,8 +81,13 @@ namespace ACESimBase.GameSolvingSupport
 
         public void AddPendingObservation(DeepCFRObservation observation)
         {
-            if (!StateFrozen && PendingObservations.Count() < TargetToAdd)
+            if (ObservationsNeeded())
                 PendingObservations.Add(observation);
+        }
+
+        public bool ObservationsNeeded()
+        {
+            return !StateFrozen && PendingObservations.Count() < TargetToAdd;
         }
 
         public int UpdateAndCountPendingObservationsTarget(int iteration)
@@ -186,8 +191,11 @@ namespace ACESimBase.GameSolvingSupport
         {
             if (IterationsProcessed == 0)
                 throw new Exception();
+            byte originalValue = independentVariables.ActionChosen;
             independentVariables.ActionChosen = action;
-            return Regression.GetResult(independentVariables.AsArray(IncludedDecisionIndices), regressionMachine);
+            double result = Regression.GetResult(independentVariables.AsArray(IncludedDecisionIndices), regressionMachine);
+            independentVariables.ActionChosen = originalValue;
+            return result;
         }
 
         public byte ChooseAction(double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample, IRegressionMachine regressionMachine)

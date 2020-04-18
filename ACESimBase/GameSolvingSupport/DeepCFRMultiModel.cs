@@ -190,6 +190,12 @@ namespace ACESimBase.GameSolvingSupport
             model.AddPendingObservation(observation);
         }
 
+        public bool ObservationsNeeded(Decision decision)
+        {
+            var model = GetModel(decision);
+            return model.ObservationsNeeded();
+        }
+
         public int[] CountPendingObservationsTarget(int iteration) => EnumerateModels().Select(x => x.UpdateAndCountPendingObservationsTarget(iteration)).ToArray();
 
 
