@@ -158,8 +158,8 @@ namespace ACESim
                     double sampledRegret;
                     if (EvolutionSettings.DeepCFR_ProbeAllActions)
                     {
-                        double[] currentProbabilities = MultiModel.;
-                        double[][] utilitiesForAllActions = new double[currentDecision.NumPossibleActions][];
+                        double[] currentProbabilities = MultiModel.GetActionProbabilities(independentVariables, currentDecision, regressionMachineForCurrentDecision);
+                        double utilityForProbeAction = 0, expectedUtility = 0;
                         for (byte a = 1; a < currentDecision.NumPossibleActions; a++)
                         {
                             double[] utilitiesForAction = null;
@@ -167,9 +167,12 @@ namespace ACESim
                                 utilitiesForAction = mainValues;
                             else
                                 utilitiesForAction = DeepCFR_ProbeAction(regressionMachines, gamePlayer, observationNum, observations, a);
-                            utilitiesForAllActions[a - 1] = utilitiesForAction;
+                            double utilityForAction = utilitiesForAction[playerMakingDecision];
+                            if (a == probeAction)
+                                utilityForProbeAction = utilityForAction;
+                            expectedUtility += currentProbabilities[a - 1] * utilityForAction;
                         }
-
+                        sampledRegret = expectedUtility - utilityForProbeAction;
                     }
                     else
                     {

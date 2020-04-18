@@ -175,6 +175,43 @@ namespace ACESimBase.GameSolvingSupport
             return result;
         }
 
+        public double[] GetActionProbabilities(DeepCFRIndependentVariables independentVariables, Decision decision, IRegressionMachine regressionMachineForDecision)
+        {
+            double[] regrets = GetExpectedRegretsForAllActions(independentVariables, decision, regressionMachineForDecision);
+            double positiveRegretsSum = 0;
+            for (byte a = 1; a <= decision.NumPossibleActions; a++)
+                if (regrets[a - 1] > 0)
+                    positiveRegretsSum += regrets[a - 1];
+            double[] probabilities = new double[decision.NumPossibleActions];
+            if (positiveRegretsSum == 0)
+            {
+                double constantProbability = 1.0 / (double)decision.NumPossibleActions;
+                for (byte a = 1; a <= decision.NumPossibleActions; a++)
+                    probabilities[a - 1] = constantProbability;
+            }
+            else
+            {
+                for (byte a = 1; a <= decision.NumPossibleActions; a++)
+                {
+                    double regret = regrets[a - 1];
+                    if (regret <= 0)
+                        probabilities[a - 1] = 0;
+                    else
+                        probabilities[a - 1] = regret / positiveRegretsSum;
+                }
+            }
+            return probabilities;
+        }
+
+        public double[] GetExpectedRegretsForAllActions(DeepCFRIndependentVariables independentVariables, Decision decision, IRegressionMachine regressionMachineForDecision)
+        {
+            var model = GetModel(decision);
+            double[] results = new double[decision.NumPossibleActions];
+            for (byte a = 1; a <= decision.NumPossibleActions; a++)
+                results[a] = model.GetPredictedRegretForAction(independentVariables, a, regressionMachineForDecision);
+            return results;
+        }
+
         #endregion
 
         #region Pending observations
