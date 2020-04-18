@@ -198,7 +198,7 @@ namespace ACESimBase.GameSolvingSupport
             return result;
         }
 
-        public byte ChooseAction(double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample, IRegressionMachine regressionMachine)
+        public byte ChooseAction(double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample, IRegressionMachine regressionMachine, ref double[] probabilities)
         {
             if (IterationsProcessed == 0)
             {
@@ -206,24 +206,30 @@ namespace ACESimBase.GameSolvingSupport
                 byte actionToChoose = ChooseActionAtRandom(randomValue, maxActionValue);
                 return actionToChoose;
             }
-            spline1dinterpolant spline_interpolant = null;
-            if (maxActionValue != numActionsToSample)
+            if (probabilities == null)
             {
-                spline_interpolant = new spline1dinterpolant();
-                double[] x = EquallySpaced.GetEquallySpacedPoints(numActionsToSample, false, 1, maxActionValue).Select(a => Math.Floor(a)).ToArray();
-                double[] y = x.Select(a => GetPredictedRegretForAction(independentVariables, (byte) a, regressionMachine)).ToArray();
-                spline1dbuildcatmullrom(x, y, out spline_interpolant);
+                spline1dinterpolant spline_interpolant = null;
+                if (maxActionValue != numActionsToSample)
+                {
+                    spline_interpolant = new spline1dinterpolant();
+                    double[] x = EquallySpaced.GetEquallySpacedPoints(numActionsToSample, false, 1, maxActionValue).Select(a => Math.Floor(a)).ToArray();
+                    double[] y = x.Select(a => GetPredictedRegretForAction(independentVariables, (byte)a, regressionMachine)).ToArray();
+                    spline1dbuildcatmullrom(x, y, out spline_interpolant);
+                }
+                double[] positiveRegrets = new double[maxActionValue];
+                double sumPositiveRegrets = 0;
+                for (byte a = 1; a <= maxActionValue; a++)
+                {
+                    double predictedRegret = maxActionValue == numActionsToSample ? GetPredictedRegretForAction(independentVariables, a, regressionMachine) : spline1dcalc(spline_interpolant, (double)a);
+                    double positiveRegretForAction = Math.Max(0, predictedRegret);
+                    positiveRegrets[a - 1] = positiveRegretForAction;
+                    sumPositiveRegrets += positiveRegretForAction;
+                }
+                if (sumPositiveRegrets == 0)
+                    return ChooseActionAtRandom(randomValue, (byte)positiveRegrets.Length);
+                probabilities = positiveRegrets.Select(x => x / sumPositiveRegrets).ToArray();
             }
-            double[] regrets = new double[maxActionValue];
-            double sumPositiveRegrets = 0;
-            for (byte a = 1; a <= maxActionValue; a++)
-            {
-                double predictedRegret = maxActionValue == numActionsToSample ? GetPredictedRegretForAction(independentVariables, a, regressionMachine) : spline1dcalc(spline_interpolant, (double) a);
-                double positiveRegretForAction = Math.Max(0, predictedRegret);
-                regrets[a - 1] = positiveRegretForAction;
-                sumPositiveRegrets += positiveRegretForAction;
-            }
-            return ChooseActionFromPositiveRegrets(regrets, sumPositiveRegrets, randomValue);
+            return ChooseActionFromProbabilities(probabilities, randomValue);
         }
 
         public static byte ChooseActionAtRandom(double randomValue, byte maxActionValue)
@@ -233,6 +239,18 @@ namespace ACESimBase.GameSolvingSupport
             if (actionToChoose > maxActionValue)
                 actionToChoose = maxActionValue;
             return actionToChoose;
+        }
+
+        private byte ChooseActionFromProbabilities(double[] probabilities, double randomValue)
+        {
+            double towardTarget = 0;
+            for (byte a = 1; a < probabilities.Length; a++)
+            {
+                towardTarget += probabilities[a - 1];
+                if (towardTarget > randomValue)
+                    return a;
+            }
+            return (byte)(probabilities.Length);
         }
 
         private byte ChooseActionFromPositiveRegrets(double[] positiveRegrets, double sumPositiveRegrets, double randomValue)

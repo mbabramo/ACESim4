@@ -156,26 +156,26 @@ namespace ACESimBase.GameSolvingSupport
 
         #region Choosing actions
 
-        public byte ChooseAction(Decision decision, IRegressionMachine regressionMachineForDecision, double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample, double probabilityUniformRandom)
+        public byte ChooseAction(Decision decision, IRegressionMachine regressionMachineForDecision, double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample, double probabilityUniformRandom, ref double[] probabilities)
         {
             var model = GetModel(decision);
-            return ChooseAction(model, regressionMachineForDecision, randomValue, independentVariables, maxActionValue, numActionsToSample, probabilityUniformRandom);
+            return ChooseAction(model, regressionMachineForDecision, randomValue, independentVariables, maxActionValue, numActionsToSample, probabilityUniformRandom, ref probabilities);
         }
 
-        private static byte ChooseAction(DeepCFRModel model, IRegressionMachine regressionMachine, double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample, double probabilityUniformRandom)
+        private static byte ChooseAction(DeepCFRModel model, IRegressionMachine regressionMachine, double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample, double probabilityUniformRandom, ref double[] probabilities)
         {
             // turn one random draw into two independent random draws
             double rand1 = Math.Floor(randomValue * 10_000) / 10_000;
             double rand2 = (randomValue - rand1) * 10_000;
             if (rand1 < probabilityUniformRandom)
                 return DeepCFRModel.ChooseActionAtRandom(rand2, maxActionValue);
-            var result = model.ChooseAction(rand2, independentVariables, maxActionValue, numActionsToSample, regressionMachine);
+            var result = model.ChooseAction(rand2, independentVariables, maxActionValue, numActionsToSample, regressionMachine, ref probabilities);
             if (result > numActionsToSample)
                 throw new Exception("Internal error. Invalid action choice.");
             return result;
         }
 
-        public double[] GetActionProbabilities(DeepCFRIndependentVariables independentVariables, Decision decision, IRegressionMachine regressionMachineForDecision)
+        public double[] GetRegretMatchingProbabilities(DeepCFRIndependentVariables independentVariables, Decision decision, IRegressionMachine regressionMachineForDecision)
         {
             double[] regrets = GetExpectedRegretsForAllActions(independentVariables, decision, regressionMachineForDecision);
             double positiveRegretsSum = 0;

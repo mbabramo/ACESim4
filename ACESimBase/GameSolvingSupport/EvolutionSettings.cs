@@ -100,11 +100,7 @@ namespace ACESim
         public int DeepCFR_MaximumTotalObservationsPerIteration = 2_500_000; // DEBUG // after this number of observations, we stop looking for more observations, even if we haven't gotten enough to fill as many iterations as desired in one or more reservoirs (in which case, we rely more on earlier observations)
         public int DeepCFR_NumObservationsToDoTogether = 25; // by grouping observations on a thread, we save time on creating the prediction context
         public RegressionTechniques RegressionTechnique = RegressionTechniques.FastTree;
-        public Func<IRegression> RegressionFactory() => RegressionTechnique switch
-        {
-            RegressionTechniques.NeuralNetworkNetRegression => () => new NeuralNetworkNetRegression(DeepCFR_NeuralNetwork_Epochs, DeepCFR_NeuralNetwork_HiddenLayers, DeepCFR_NeuralNetwork_NeuronsPerHiddenLayer),
-            _ => () => new MLNetRegression(RegressionTechnique)
-        };
+        public bool DeepCFR_ProbeAllActions = true;
         public int DeepCFR_NeuralNetwork_Epochs = 1_000;
         public int DeepCFR_NeuralNetwork_HiddenLayers = 3;
         public int DeepCFR_NeuralNetwork_NeuronsPerHiddenLayer = 150;
@@ -113,6 +109,11 @@ namespace ACESim
         public bool DeepCFR_ApproximateBestResponse = true;
         public int DeepCFR_ApproximateBestResponseIterations = 3;
         public int DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation = 1_000_000;
+        public Func<IRegression> RegressionFactory() => RegressionTechnique switch
+        {
+            RegressionTechniques.NeuralNetworkNetRegression => () => new NeuralNetworkNetRegression(DeepCFR_NeuralNetwork_Epochs, DeepCFR_NeuralNetwork_HiddenLayers, DeepCFR_NeuralNetwork_NeuronsPerHiddenLayer),
+            _ => () => new MLNetRegression(RegressionTechnique)
+        };
 
         // For Vanilla algorithm:
         // From Solving Imperfect Information Games with Discounted Regret Minimization -- optimal values (for situations in which pruning may be used)

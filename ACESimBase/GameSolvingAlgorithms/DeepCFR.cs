@@ -135,11 +135,12 @@ namespace ACESim
             DeepCFRIndependentVariables independentVariables = null;
             List<(byte decisionIndex, byte information)> informationSet = null;
             byte mainAction = GameDefinition.DecisionsExecutionOrder[decisionIndex].AlwaysDoAction ?? 0;
+            double[] probabilities = null;
             if (mainAction == 0)
             {
                 informationSet = gamePlayer.GetInformationSet(true);
                 independentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, 0 /* placeholder */, null /* TODO */);
-                mainAction = MultiModel.ChooseAction(currentDecision, regressionMachineForCurrentDecision, observationNum.GetRandomDouble(decisionIndex), independentVariables, numPossibleActions, numPossibleActions /* TODO */, 0 /* main action is always on policy */);
+                mainAction = MultiModel.ChooseAction(currentDecision, regressionMachineForCurrentDecision, observationNum.GetRandomDouble(decisionIndex), independentVariables, numPossibleActions, numPossibleActions /* TODO */, 0 /* main action is always on policy */, ref probabilities);
                 independentVariables.ActionChosen = mainAction;
             }
             else if (traversalMode == DeepCFRTraversalMode.AddRegretObservations)
@@ -153,12 +154,11 @@ namespace ACESim
                 {
                     // We do a single probe. This allows us to compare this result either to the result from the main action (fast, but high variance) or to the result from all of the other actions (slow, but low variance).
                     DeepCFRObservationNum probeIteration = observationNum.NextVariation();
-                    byte probeAction = MultiModel.ChooseAction(currentDecision, regressionMachineForCurrentDecision, probeIteration.GetRandomDouble(decisionIndex), independentVariables /* note that action in this is ignored */, numPossibleActions, numPossibleActions /* TODO */, EvolutionSettings.DeepCFR_Epsilon_OffPolicyProbabilityForProbe);
+                    byte probeAction = MultiModel.ChooseAction(currentDecision, regressionMachineForCurrentDecision, probeIteration.GetRandomDouble(decisionIndex), independentVariables /* note that action in this is ignored */, numPossibleActions, numPossibleActions /* TODO */, EvolutionSettings.DeepCFR_Epsilon_OffPolicyProbabilityForProbe, ref probabilities);
                     // Note: probe action might be same as main action. That's OK, because this helps us estimate expected regret, which is probabilistic
                     double sampledRegret;
                     if (EvolutionSettings.DeepCFR_ProbeAllActions)
                     {
-                        double[] currentProbabilities = MultiModel.GetActionProbabilities(independentVariables, currentDecision, regressionMachineForCurrentDecision);
                         double utilityForProbeAction = 0, expectedUtility = 0;
                         for (byte a = 1; a < currentDecision.NumPossibleActions; a++)
                         {
@@ -170,7 +170,7 @@ namespace ACESim
                             double utilityForAction = utilitiesForAction[playerMakingDecision];
                             if (a == probeAction)
                                 utilityForProbeAction = utilityForAction;
-                            expectedUtility += currentProbabilities[a - 1] * utilityForAction;
+                            expectedUtility += probabilities[a - 1] * utilityForAction;
                         }
                         sampledRegret = expectedUtility - utilityForProbeAction;
                     }
