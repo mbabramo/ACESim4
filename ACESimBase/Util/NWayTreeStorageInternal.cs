@@ -214,6 +214,16 @@ namespace ACESim
             executionCounter.Decrement();
         }
 
+        public async Task CreateBranchesParallel(Func<NWayTreeStorageInternal<T>, (byte, NWayTreeStorage<T>)[]> subbranchesCreator)
+        {
+            var newBranches = subbranchesCreator(this);
+            var expandableBranches = newBranches.Where(x => x.Item2 != null && x.Item2 is NWayTreeStorageInternal<T>).ToList();
+            await Parallelizer.ForEachAsync(expandableBranches, async b =>
+            {
+                await ((NWayTreeStorageInternal<T>)b.Item2).CreateBranchesParallel(subbranchesCreator);
+            });
+        }
+
         private void WalkTreeParallel(Action<NWayTreeStorage<T>> beforeDescending, Action<NWayTreeStorage<T>> afterAscending, ExecutionCounter executionCounter, Func<NWayTreeStorage<T>, bool> parallel)
         {
             List<int> branches = Enumerable.Range(1, Branches.Length).ToList();

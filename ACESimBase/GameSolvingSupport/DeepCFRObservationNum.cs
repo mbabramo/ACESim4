@@ -23,24 +23,12 @@
 
         public double GetRandomDouble(byte decisionNum)
         {
-            return new ConsistentRandomSequenceProducer(AsLong()).GetDoubleAtIndex(decisionNum);
+            return new ConsistentRandomSequenceProducer(ObservationNum, VariationNum).GetDoubleAtIndex(decisionNum);
         }
 
         public int GetRandomInt(byte decisionNum, int minValue, int exclusiveMaxValue)
         {
-            return new ConsistentRandomSequenceProducer(AsLong()).GetIntAtIndex(decisionNum, minValue, exclusiveMaxValue);
-        }
-
-        long AsLong()
-        {
-            return doubleInt2long(ObservationNum, VariationNum);
-        }
-        static long doubleInt2long(int a1, int a2)
-        {
-            long b = a2;
-            b = b << 32;
-            b = b | (uint)a1;
-            return b;
+            return new ConsistentRandomSequenceProducer(ObservationNum, VariationNum).GetIntAtIndex(decisionNum, minValue, exclusiveMaxValue);
         }
     }
 }

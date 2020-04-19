@@ -16,6 +16,19 @@ namespace ACESim
             Seed = seed;
         }
 
+        public ConsistentRandomSequenceProducer(int intSeed1, int intSeed2)
+        {
+            static long doubleInt2long(int a1, int a2)
+            {
+                long b = a2;
+                b = b << 32;
+                b = b | (uint)a1;
+                return b;
+            }
+
+            Seed = doubleInt2long(intSeed1, intSeed2);
+        }
+
         public double NextDouble()
         {
             double v = GetDoubleAtIndex(CurrentIndex++);

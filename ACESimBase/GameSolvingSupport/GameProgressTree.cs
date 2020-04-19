@@ -3,30 +3,59 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace ACESimBase.GameSolvingSupport
 {
-
-    public class GameProgressTreeNode
-    {
-        public GameProgress GameProgress;
-        public (int, int) IterationNumRange;
-        public double[] Probabilities;
-    }
-
     public class GameProgressTree
     {
-        NWayTreeStorageInternal<GameProgressTreeNode> Tree = new NWayTreeStorageInternal<GameProgressTreeNode>(null);
+        public class GameProgressTreeNode
+        {
+            public GameProgress GameProgress;
+            public (int, int) ObservationRange;
+            public double[] Probabilities;
+        }
+
+        NWayTreeStorageInternal<GameProgressTreeNode> Tree;
 
         Func<GameProgress, double[]> GetChildProbabilities;
         Func<GameProgress, byte, GameProgress> GetChild;
-        Func<double> Randomizer;
+        int InitialRandSeed;
 
-        public void Subbranch(NWayTreeStorageInternal<GameProgressTreeNode> branch)
+        public GameProgressTree(int randSeed, int totalObservations, GameProgress initialGameProgress, Func<GameProgress, double[]> getChildProbabilities, Func<GameProgress, byte, GameProgress> getChild)
         {
-            GameProgress startingGameProgress = branch.StoredValue.GameProgress;
+            Tree = new NWayTreeStorageInternal<GameProgressTreeNode>(new NWayTreeStorageInternal<GameProgressTreeNode>(null)
+            {
+                StoredValue = new GameProgressTreeNode()
+                {
+                    GameProgress = initialGameProgress,
+                    ObservationRange = (1, totalObservations),
+                }
+            });
+            InitialRandSeed = randSeed;
+            GetChildProbabilities = getChildProbabilities;
+            GetChild = getChild;
+        }
+
+        public async Task CompleteTree()
+        {
+            await Tree.CreateBranchesParallel(node =>
+            {
+                CreateSubbranches(node);
+            })
+        }
+
+        public void CreateSubbranches(NWayTreeStorageInternal<GameProgressTreeNode> sourceBranch)
+        {
+            GameProgress startingGameProgress = sourceBranch.StoredValue.GameProgress;
             double[] probabilities = GetChildProbabilities(startingGameProgress);
-            (int, int)?[] subranges = DivideRangeIntoSubranges(branch.StoredValue.IterationNumRange, probabilities);
+            sourceBranch.StoredValue.Probabilities = probabilities;
+            int randSeed = 0;
+            unchecked
+            {
+                randSeed = InitialRandSeed * 37 + sourceBranch.StoredValue.ObservationRange.Item1 * 23 + sourceBranch.StoredValue.ObservationRange.Item2 * 19;
+            }
+            (int, int)?[] subranges = DivideRangeIntoSubranges(sourceBranch.StoredValue.ObservationRange, probabilities, randSeed);
             GameProgress[] children = Enumerable.Range(1, probabilities.Length).Select(a => subranges[a - 1] == null ? null : GetChild(startingGameProgress, (byte) a)).ToArray();
             for (byte a = 1; a <= probabilities.Length; a++)
             {
@@ -34,21 +63,21 @@ namespace ACESimBase.GameSolvingSupport
                 GameProgress gameProgress = children[a - 1];
                 if (gameProgress != null)
                 {
-                    branch.SetBranch((byte) (a - 1), numInSubrange switch
+                    sourceBranch.SetBranch((byte) (a - 1), numInSubrange switch
                     {
-                        1 => new NWayTreeStorage<GameProgressTreeNode>(branch) { StoredValue = new GameProgressTreeNode() { GameProgress = gameProgress, IterationNumRange = subranges[a - 1].Value } },
-                        _ => new NWayTreeStorageInternal<GameProgressTreeNode>(branch) { StoredValue = new GameProgressTreeNode() { GameProgress = gameProgress, IterationNumRange = subranges[a - 1].Value } }
+                        1 => new NWayTreeStorage<GameProgressTreeNode>(sourceBranch) { StoredValue = new GameProgressTreeNode() { GameProgress = gameProgress, ObservationRange = subranges[a - 1].Value } },
+                        _ => new NWayTreeStorageInternal<GameProgressTreeNode>(sourceBranch) { StoredValue = new GameProgressTreeNode() { GameProgress = gameProgress, ObservationRange = subranges[a - 1].Value } }
                     });
                 }
             }
         }
 
-        public (int, int)?[] DivideRangeIntoSubranges((int, int) range, double[] proportion)
+        public (int, int)?[] DivideRangeIntoSubranges((int, int) range, double[] proportion, int randSeed)
         {
             int numSubranges = proportion.Length;
             (int, int)?[] subranges = new (int, int)?[numSubranges];
             int numInRange = range.Item2 - range.Item1 + 1;
-            int[] numInEachSubrange = DivideItems(numInRange, proportion);
+            int[] numInEachSubrange = DivideItems(numInRange, proportion, randSeed);
             int startingValue = range.Item1 - 1;
             for (int i = 0; i < numSubranges; i++)
             {
@@ -61,7 +90,7 @@ namespace ACESimBase.GameSolvingSupport
             return subranges;
         }
 
-        public int[] DivideItems(int numItems, double[] proportion)
+        public int[] DivideItems(int numItems, double[] proportion, int randSeed)
         {
             int[] integerProportions = proportion.Select(x => (int)(numItems * x)).ToArray();
             int initialSum = integerProportions.Sum();
@@ -71,7 +100,8 @@ namespace ACESimBase.GameSolvingSupport
                 double[] remainders = proportion.Select(x => (double)(numItems * x) - (int)(numItems * x)).ToArray();
                 for (int i = 0; i < numItems; i++)
                 {
-                    byte index = GetRandomIndex(remainders, Randomizer());
+                    ConsistentRandomSequenceProducer r = new ConsistentRandomSequenceProducer(randSeed, 2_000_000 + i);
+                    byte index = GetRandomIndex(remainders, r.NextDouble());
                     integerProportions[index]++;
                 }
             }
