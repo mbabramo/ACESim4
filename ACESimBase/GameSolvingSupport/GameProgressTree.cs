@@ -38,9 +38,9 @@ namespace ACESimBase.GameSolvingSupport
             GetChildGameProgress = getChild;
         }
 
-        public async Task CompleteTree()
+        public async Task CompleteTree(bool doParallel)
         {
-            await Tree.CreateBranchesParallel(CreateSubbranches);
+            await Tree.CreateBranchesParallel(doParallel, CreateSubbranches);
         }
 
         public (byte branchID, GameProgressTreeNode childBranch, bool isLeaf)[] CreateSubbranches(GameProgressTreeNode sourceNode)
