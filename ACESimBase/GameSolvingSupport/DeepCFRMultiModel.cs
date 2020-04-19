@@ -14,7 +14,6 @@ namespace ACESimBase.GameSolvingSupport
         int ReservoirCapacity;
         long ReservoirSeed;
         double DiscountRate;
-        object LockObj = new object();
 
         public DeepCFRModel UnifiedModel;
         public DeepCFRMultiModelContainer<byte> PlayerSpecificModels = null;
@@ -28,6 +27,11 @@ namespace ACESimBase.GameSolvingSupport
 
         #region Model initialization and access
 
+        public DeepCFRMultiModel()
+        {
+
+        }
+
         public DeepCFRMultiModel(DeepCFRMultiModelMode mode, int reservoirCapacity, long reservoirSeed, double discountRate, Func<IRegression> regressionFactory)
         {
             Mode = mode;
@@ -36,6 +40,21 @@ namespace ACESimBase.GameSolvingSupport
             DiscountRate = discountRate;
             RegressionFactory = regressionFactory;
             InitializeModels();
+        }
+
+        public DeepCFRMultiModel DeepCopy()
+        {
+            return new DeepCFRMultiModel()
+            {
+                Mode = Mode,
+                ReservoirCapacity = ReservoirCapacity,
+                ReservoirSeed = ReservoirSeed,
+                DiscountRate = DiscountRate,
+                UnifiedModel = UnifiedModel,
+                PlayerSpecificModels = PlayerSpecificModels?.DeepCopy(),
+                DecisionSpecificModels = DecisionSpecificModels?.DeepCopy(),
+                DeterminingBestResponseOfPlayer = DeterminingBestResponseOfPlayer
+            };
         }
 
         private void InitializeModels()
@@ -156,20 +175,23 @@ namespace ACESimBase.GameSolvingSupport
 
         #region Choosing actions
 
-        public byte ChooseAction(Decision decision, IRegressionMachine regressionMachineForDecision, double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample, double probabilityUniformRandom, ref double[] probabilities)
+        public byte ChooseAction(Decision decision, IRegressionMachine regressionMachineForDecision, double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample, double probabilityUniformRandom, ref double[] onPolicyProbabilities)
         {
             var model = GetModel(decision);
-            return ChooseAction(model, regressionMachineForDecision, randomValue, independentVariables, maxActionValue, numActionsToSample, probabilityUniformRandom, ref probabilities);
+            byte action = ChooseAction(model, regressionMachineForDecision, randomValue, independentVariables, maxActionValue, numActionsToSample, probabilityUniformRandom, ref onPolicyProbabilities);
+            if (onPolicyProbabilities == null) // i.e., if we make decision off-policy, then we still want to return the probabilities
+                onPolicyProbabilities = GetRegretMatchingProbabilities(independentVariables, decision, regressionMachineForDecision);
+            return action;
         }
 
-        private static byte ChooseAction(DeepCFRModel model, IRegressionMachine regressionMachine, double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample, double probabilityUniformRandom, ref double[] probabilities)
+        private static byte ChooseAction(DeepCFRModel model, IRegressionMachine regressionMachine, double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample, double probabilityUniformRandom, ref double[] onPolicyProbabilities)
         {
             // turn one random draw into two independent random draws
             double rand1 = Math.Floor(randomValue * 10_000) / 10_000;
             double rand2 = (randomValue - rand1) * 10_000;
             if (rand1 < probabilityUniformRandom)
                 return DeepCFRModel.ChooseActionAtRandom(rand2, maxActionValue);
-            var result = model.ChooseAction(rand2, independentVariables, maxActionValue, numActionsToSample, regressionMachine, ref probabilities);
+            var result = model.ChooseAction(rand2, independentVariables, maxActionValue, numActionsToSample, regressionMachine, ref onPolicyProbabilities);
             if (result > numActionsToSample)
                 throw new Exception("Internal error. Invalid action choice.");
             return result;
@@ -211,7 +233,7 @@ namespace ACESimBase.GameSolvingSupport
                 return null;
             double[] results = new double[decision.NumPossibleActions];
             for (byte a = 1; a <= decision.NumPossibleActions; a++)
-                results[a] = model.GetPredictedRegretForAction(independentVariables, a, regressionMachineForDecision);
+                results[a - 1] = model.GetPredictedRegretForAction(independentVariables, a, regressionMachineForDecision);
             return results;
         }
 

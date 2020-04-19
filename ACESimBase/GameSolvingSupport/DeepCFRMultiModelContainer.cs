@@ -22,6 +22,13 @@ namespace ACESimBase.GameSolvingSupport
             RegressionFactory = regressionFactory;
         }
 
+        public DeepCFRMultiModelContainer<T> DeepCopy()
+        {
+            var models = EnumerateModelsWithKey().ToDictionary(x => x.key, x => x.model);
+            var result = new DeepCFRMultiModelContainer<T>(ReservoirCapacity, ReservoirSeed, DiscountRate, RegressionFactory) { Models = models };
+            return result;
+        }
+
         public IEnumerable<DeepCFRModel> EnumerateModels() => Models.OrderBy(x => x.Key).Select(x => x.Value);
         public IEnumerable<(T key, DeepCFRModel model)> EnumerateModelsWithKey() => Models.OrderBy(x => x.Key).Select(x => (x.Key, x.Value));
 

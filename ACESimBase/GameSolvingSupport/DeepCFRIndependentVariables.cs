@@ -68,7 +68,7 @@ namespace ACESimBase.GameSolvingSupport
 
         public float[] AsArray(List<byte> includedDecisionIndices)
         {
-            int informationSetSize = InformationSetPlusActionChosen()?.Count() ?? 0;
+            var informationSetPlusAction = InformationSetPlusActionChosen()?.ToArray();
             int numGameParameters = GameParameters?.Count() ?? 0;
             int arraySize = 2 + includedDecisionIndices.Count() * 2 + numGameParameters;
             float[] result = new float[arraySize];
@@ -76,7 +76,6 @@ namespace ACESimBase.GameSolvingSupport
             result[resultIndex++] = Player;
             result[resultIndex++] = DecisionIndex;
             int informationSetPlusActionIndex = 0;
-            var informationSetPlusAction = InformationSetPlusActionChosen().ToArray();
             foreach (byte decisionIndex in includedDecisionIndices)
             {
                 int? nextInformationSetDecisionIndex = informationSetPlusActionIndex >= informationSetPlusAction.Count() ? null : (int?)informationSetPlusAction[informationSetPlusActionIndex].decisionIndex;

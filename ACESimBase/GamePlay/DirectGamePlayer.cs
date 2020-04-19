@@ -105,6 +105,11 @@ namespace ACESimBase
         }
 
         
+        public string GetInformationSetString(bool useDeferredDecisionIndices)
+        {
+            return String.Join(";", GetInformationSet(useDeferredDecisionIndices).Select(x => $"{x.decisionIndex},{x.information}"));
+        }
+
         public List<(byte decisionIndex, byte information)> GetInformationSet(bool useDeferredDecisionIndices)
         {
             if (GameComplete || CurrentPlayer.PlayerIsChance)
