@@ -110,6 +110,9 @@ namespace ACESim
                 Test_Random(r);
             }
         }
+
+        public byte GetRandomIndex(double[] probabilities) => GetRandomIndex(probabilities, NextDouble());
+
         public static byte GetRandomIndex(double[] probabilities, double randSeed)
         {
             double target = probabilities.Sum() * randSeed;

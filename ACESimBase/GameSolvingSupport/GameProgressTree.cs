@@ -65,7 +65,7 @@ namespace ACESimBase.GameSolvingSupport
                     // This is a leaf of the tree -- so we must play until the game is complete.
                     double[] childProbabilities = GetChildProbabilities(childGameProgress);
                     ConsistentRandomSequenceProducer r = new ConsistentRandomSequenceProducer(++randSeed, 3_000_000);
-                    byte childAction = GetRandomIndex(childProbabilities, r.NextDouble());
+                    byte childAction = r.GetRandomIndex(childProbabilities);
                     childGameProgress = GetChildGameProgress(childGameProgress, childAction);
                 };
                 return childGameProgress;
@@ -113,7 +113,7 @@ namespace ACESimBase.GameSolvingSupport
                 for (int i = 0; i < numItems; i++)
                 {
                     ConsistentRandomSequenceProducer r = new ConsistentRandomSequenceProducer(randSeed, 2_000_000 + i);
-                    byte index = GetRandomIndex(remainders, r.NextDouble());
+                    byte index = r.GetRandomIndex(remainders);
                     integerProportions[index]++;
                 }
             }
