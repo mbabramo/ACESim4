@@ -1,5 +1,6 @@
 ﻿using ACESim;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.GameSolvingSupport
 {
-    public class GameProgressTree
+    public class GameProgressTree : IEnumerable<GameProgress>
     {
         public class GameProgressTreeNode
         {
@@ -19,7 +20,7 @@ namespace ACESimBase.GameSolvingSupport
         NWayTreeStorageInternal<GameProgressTreeNode> Tree;
 
         Func<GameProgress, double[]> GetChildProbabilities;
-        Func<GameProgress, byte, GameProgress> GetChild;
+        Func<GameProgress, byte, GameProgress> GetChildGameProgress;
         int InitialRandSeed;
 
         public GameProgressTree(int randSeed, int totalObservations, GameProgress initialGameProgress, Func<GameProgress, double[]> getChildProbabilities, Func<GameProgress, byte, GameProgress> getChild)
@@ -34,42 +35,53 @@ namespace ACESimBase.GameSolvingSupport
             });
             InitialRandSeed = randSeed;
             GetChildProbabilities = getChildProbabilities;
-            GetChild = getChild;
+            GetChildGameProgress = getChild;
         }
 
         public async Task CompleteTree()
         {
-            await Tree.CreateBranchesParallel(node =>
-            {
-                CreateSubbranches(node);
-            })
+            await Tree.CreateBranchesParallel(CreateSubbranches);
         }
 
-        public void CreateSubbranches(NWayTreeStorageInternal<GameProgressTreeNode> sourceBranch)
+        public (byte branchID, GameProgressTreeNode childBranch, bool isLeaf)[] CreateSubbranches(GameProgressTreeNode sourceNode)
         {
-            GameProgress startingGameProgress = sourceBranch.StoredValue.GameProgress;
+            GameProgress startingGameProgress = sourceNode.GameProgress;
             double[] probabilities = GetChildProbabilities(startingGameProgress);
-            sourceBranch.StoredValue.Probabilities = probabilities;
+            sourceNode.Probabilities = probabilities;
             int randSeed = 0;
             unchecked
             {
-                randSeed = InitialRandSeed * 37 + sourceBranch.StoredValue.ObservationRange.Item1 * 23 + sourceBranch.StoredValue.ObservationRange.Item2 * 19;
+                randSeed = InitialRandSeed * 37 + sourceNode.ObservationRange.Item1 * 23 + sourceNode.ObservationRange.Item2 * 19;
             }
-            (int, int)?[] subranges = DivideRangeIntoSubranges(sourceBranch.StoredValue.ObservationRange, probabilities, randSeed);
-            GameProgress[] children = Enumerable.Range(1, probabilities.Length).Select(a => subranges[a - 1] == null ? null : GetChild(startingGameProgress, (byte) a)).ToArray();
+            (int, int)?[] subranges = DivideRangeIntoSubranges(sourceNode.ObservationRange, probabilities, randSeed);
+            GameProgress[] children = Enumerable.Range(1, probabilities.Length).Select(a =>
+            {
+                (int, int)? subrange = subranges[a - 1];
+                if (subrange == null)
+                    return null;
+                GameProgress childGameProgress = GetChildGameProgress(startingGameProgress, (byte)a);
+                if (!childGameProgress.GameComplete && subrange.Value.Item1 == subrange.Value.Item2)
+                {
+                    // This is a leaf of the tree -- so we must play until the game is complete.
+                    double[] childProbabilities = GetChildProbabilities(childGameProgress);
+                    ConsistentRandomSequenceProducer r = new ConsistentRandomSequenceProducer(++randSeed, 3_000_000);
+                    byte childAction = GetRandomIndex(childProbabilities, r.NextDouble());
+                    childGameProgress = GetChildGameProgress(childGameProgress, childAction);
+                };
+                return childGameProgress;
+            }).ToArray();
+            List<(byte branchID, GameProgressTreeNode childBranch, bool isLeaf)> subbranches = new List<(byte branchID, GameProgressTreeNode childBranch, bool isLeaf)>();
             for (byte a = 1; a <= probabilities.Length; a++)
             {
                 int numInSubrange = subranges[a - 1] == null ? 0 : subranges[a - 1].Value.Item2 - subranges[a - 1].Value.Item1 + 1;
                 GameProgress gameProgress = children[a - 1];
                 if (gameProgress != null)
                 {
-                    sourceBranch.SetBranch((byte) (a - 1), numInSubrange switch
-                    {
-                        1 => new NWayTreeStorage<GameProgressTreeNode>(sourceBranch) { StoredValue = new GameProgressTreeNode() { GameProgress = gameProgress, ObservationRange = subranges[a - 1].Value } },
-                        _ => new NWayTreeStorageInternal<GameProgressTreeNode>(sourceBranch) { StoredValue = new GameProgressTreeNode() { GameProgress = gameProgress, ObservationRange = subranges[a - 1].Value } }
-                    });
+                    var childBranchItem = new GameProgressTreeNode() { GameProgress = gameProgress, ObservationRange = subranges[a - 1].Value };
+                    subbranches.Add((a, childBranchItem, numInSubrange == 1 || gameProgress.GameComplete));
                 }
             }
+            return subbranches.ToArray();
         }
 
         public (int, int)?[] DivideRangeIntoSubranges((int, int) range, double[] proportion, int randSeed)
@@ -120,5 +132,21 @@ namespace ACESimBase.GameSolvingSupport
             }
             return (byte)(probabilities.Length - 1);
         }
+
+        public IEnumerator<GameProgress> GetEnumerator()
+        {
+            foreach (var treeNode in Tree.GetAllTreeNodes())
+            {
+                GameProgress gameProgress = treeNode.storedValue.GameProgress;
+                if (gameProgress.GameComplete)
+                {
+                    int observations = treeNode.storedValue.ObservationRange.Item2 - treeNode.storedValue.ObservationRange.Item1 + 1;
+                    for (int o = 0; o < observations; o++)
+                        yield return gameProgress;
+                }
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }
