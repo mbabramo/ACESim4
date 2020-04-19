@@ -42,7 +42,7 @@ namespace ACESimBase.GameSolvingSupport
             InitializeModels();
         }
 
-        public DeepCFRMultiModel DeepCopy()
+        public DeepCFRMultiModel DeepCopyForPlaybackOnly()
         {
             return new DeepCFRMultiModel()
             {
@@ -51,8 +51,8 @@ namespace ACESimBase.GameSolvingSupport
                 ReservoirSeed = ReservoirSeed,
                 DiscountRate = DiscountRate,
                 UnifiedModel = UnifiedModel,
-                PlayerSpecificModels = PlayerSpecificModels?.DeepCopy(),
-                DecisionSpecificModels = DecisionSpecificModels?.DeepCopy(),
+                PlayerSpecificModels = PlayerSpecificModels?.DeepCopyForPlaybackOnly(),
+                DecisionSpecificModels = DecisionSpecificModels?.DeepCopyForPlaybackOnly(),
                 DeterminingBestResponseOfPlayer = DeterminingBestResponseOfPlayer
             };
         }

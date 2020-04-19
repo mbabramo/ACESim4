@@ -22,9 +22,9 @@ namespace ACESimBase.GameSolvingSupport
             RegressionFactory = regressionFactory;
         }
 
-        public DeepCFRMultiModelContainer<T> DeepCopy()
+        public DeepCFRMultiModelContainer<T> DeepCopyForPlaybackOnly()
         {
-            var models = EnumerateModelsWithKey().ToDictionary(x => x.key, x => x.model);
+            var models = EnumerateModelsWithKey().ToDictionary(x => x.key, x => x.model.DeepCopyForPlaybackOnly());
             var result = new DeepCFRMultiModelContainer<T>(ReservoirCapacity, ReservoirSeed, DiscountRate, RegressionFactory) { Models = models };
             return result;
         }

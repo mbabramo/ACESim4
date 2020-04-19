@@ -16,9 +16,33 @@ namespace ACESimBase.Util
         int NumConstantIndependentVariables;
         float MinY, MaxY;
 
+        public RegressionController()
+        {
+
+        }
+
         public RegressionController(Func<IRegression> regressionFactory)
         {
             Regression = regressionFactory();
+        }
+
+        /// <summary>
+        /// Returns a regression controller without the accompanying regression. This can be useful as a lightweight object to get results, 
+        /// if the regression machine is passed in separately.
+        /// </summary>
+        /// <returns></returns>
+        public RegressionController DeepCopyExceptRegressionItself()
+        {
+            return new RegressionController()
+            {
+                Regression = null,
+                Normalize = Normalize,
+                Ranges = Ranges.ToArray(),
+                IndependentVariableConstant = IndependentVariableConstant?.ToArray(),
+                NumConstantIndependentVariables = NumConstantIndependentVariables,
+                MinY = MinY,
+                MaxY = MaxY
+            };
         }
 
         public async Task Regress((float[] X, float Y)[] data)
@@ -124,7 +148,7 @@ namespace ACESimBase.Util
         {
             if (Normalize)
                 x = NormalizeIndependentVars(x);
-            float result = Regression.GetResults(x, regressionMachine)[0];
+            float result = regressionMachine == null ? Regression.GetResults(x, null)[0] : regressionMachine.GetResults(x)[0];
             if (Normalize)
                 result = DenormalizeDependentVar(result);
             return result;

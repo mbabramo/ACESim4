@@ -76,6 +76,20 @@ namespace ACESimBase.GameSolvingSupport
             RegressionFactory = regressionFactory;
         }
 
+        public DeepCFRModel DeepCopyForPlaybackOnly()
+        {
+            return new DeepCFRModel(ModelName, Observations.Capacity, Observations.Seed, DiscountRate, null)
+            {
+                Regression = Regression.DeepCopyExceptRegressionItself(),
+                IterationsProcessed = IterationsProcessed,
+                IncludedDecisionIndices = IncludedDecisionIndices,
+                TargetToAdd = TargetToAdd,
+                StateFrozen = StateFrozen,
+                FullReservoirReplacement = FullReservoirReplacement,
+                TestDataProportion = TestDataProportion
+            };
+        }
+
         public IRegressionMachine GetRegressionMachine() => Regression?.GetRegressionMachine();
         public void ReturnRegressionMachine(IRegressionMachine regressionMachine) => Regression?.ReturnRegressionMachine(regressionMachine);
 

@@ -4,13 +4,15 @@ namespace ACESimBase.GameSolvingSupport
 {
     public readonly struct DeepCFRPlaybackHelper
     {
-        public readonly Dictionary<byte, IRegressionMachine> regressionMachines;
-        public readonly DeepCFRProbabilitiesCache probabilitiesCache;
+        public readonly DeepCFRMultiModel MultiModel;
+        public readonly Dictionary<byte, IRegressionMachine> RegressionMachines;
+        public readonly DeepCFRProbabilitiesCache ProbabilitiesCache;
 
-        public DeepCFRPlaybackHelper(Dictionary<byte, IRegressionMachine> regressionMachines, DeepCFRProbabilitiesCache probabilitiesCache)
+        public DeepCFRPlaybackHelper(DeepCFRMultiModel multiModel, Dictionary<byte, IRegressionMachine> regressionMachines, DeepCFRProbabilitiesCache probabilitiesCache)
         {
-            this.regressionMachines = regressionMachines;
-            this.probabilitiesCache = probabilitiesCache;
+            MultiModel = multiModel;
+            RegressionMachines = regressionMachines;
+            ProbabilitiesCache = probabilitiesCache;
         }
     }
 }

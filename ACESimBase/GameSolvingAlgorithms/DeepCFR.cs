@@ -55,9 +55,9 @@ namespace ACESim
             int extraObservationsDueToRounding = numPlaybacks * numObservationsToDoTogether - totalNumberObservations;
             int numPlaybacksLastIteration = numPlaybacks - extraObservationsDueToRounding;
             DeepCFRProbabilitiesCache probabilitiesCache = new DeepCFRProbabilitiesCache(); // shared across threads
-            DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(null, probabilitiesCache);
             Parallelizer.Go(EvolutionSettings.ParallelOptimization, 0, numPlaybacks, o =>
             {
+                DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel.DeepCopyForPlaybackOnly(), GetRegressionMachinesForLocalUse(), probabilitiesCache);
                 int numToPlaybackTogetherThisIteration = o == totalNumberObservations - 1 ? numPlaybacksLastIteration : numObservationsToDoTogether;
                 var utilities = DeepCFR_UtilitiesFromMultiplePlaybacks(o, numToPlaybackTogetherThisIteration, playbackHelper).ToArray();
                 stats.Add(utilities, numToPlaybackTogetherThisIteration);
@@ -75,9 +75,8 @@ namespace ACESim
         public double[] DeepCFR_UtilitiesFromMultiplePlaybacks(int observation, int numToPlaybackTogether, DeepCFRPlaybackHelper playbackHelper)
         {
             int initialObservation = observation * numToPlaybackTogether;
-            Dictionary<byte, IRegressionMachine> regressionMachines = GetRegressionMachinesForLocalUse(); // regression machines will be used locally
             double[][] results = Enumerable.Range(initialObservation, initialObservation + numToPlaybackTogether).Select(x => DeepCFR_UtilitiesFromSinglePlayback(playbackHelper, new DeepCFRObservationNum(x, 10_000_000))).ToArray();
-            ReturnRegressionMachines(regressionMachines);
+            ReturnRegressionMachines(playbackHelper.RegressionMachines);
             StatCollectorArray s = new StatCollectorArray();
             foreach (double[] result in results)
                 s.Add(result);
@@ -141,7 +140,7 @@ namespace ACESim
         private double[] DeepCFR_DecisionNode(DeepCFRPlaybackHelper playbackHelper, DirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, List<(Decision decision, DeepCFRObservation observation)> observations, DeepCFRTraversalMode traversalMode)
         {
             Decision currentDecision = gamePlayer.CurrentDecision;
-            IRegressionMachine regressionMachineForCurrentDecision = playbackHelper.regressionMachines?.GetValueOrDefault(currentDecision.DecisionByteCode);
+            IRegressionMachine regressionMachineForCurrentDecision = playbackHelper.RegressionMachines?.GetValueOrDefault(currentDecision.DecisionByteCode);
             byte decisionIndex = (byte)gamePlayer.CurrentDecisionIndex;
             byte playerMakingDecision = gamePlayer.CurrentPlayer.PlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionIndex);
@@ -153,7 +152,7 @@ namespace ACESim
             {
                 informationSet = gamePlayer.GetInformationSet(true);
                 independentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, 0 /* placeholder */, null /* TODO */);
-                playbackHelper.probabilitiesCache?.GetValue(gamePlayer, () => MultiModel.GetRegretMatchingProbabilities(independentVariables, currentDecision, regressionMachineForCurrentDecision));
+                playbackHelper.ProbabilitiesCache?.GetValue(gamePlayer, () => MultiModel.GetRegretMatchingProbabilities(independentVariables, currentDecision, regressionMachineForCurrentDecision));
                 mainAction = MultiModel.ChooseAction(currentDecision, regressionMachineForCurrentDecision, observationNum.GetRandomDouble(decisionIndex), independentVariables, numPossibleActions, numPossibleActions /* TODO */, 0 /* main action is always on policy */, ref onPolicyProbabilities);
                 independentVariables.ActionChosen = mainAction;
             }
@@ -305,7 +304,7 @@ namespace ACESim
                 i =>
                 {
                     var regressionMachines = GetRegressionMachinesForLocalUse(); // note that everything within this block will be on same thread
-                    DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(regressionMachines, probabilitiesCache);
+                    DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel, regressionMachines, probabilitiesCache);
                     var additionalRegretObservations = DeepCFR_AddingRegretObservations(playbackHelper, i, separateDataEveryIteration ? iteration * 1000 : 0, numObservationsToDoTogether);
                     ReturnRegressionMachines(regressionMachines);
                     return additionalRegretObservations;
@@ -401,7 +400,7 @@ namespace ACESim
 
         public GameProgress DeepCFRReportingPlayHelper(int iteration, List<Strategy> strategies, bool saveCompletedGameProgressInfos, IterationID[] iterationIDArray, List<GameProgress> preplayedGameProgressInfos, Func<Decision, GameProgress, byte> actionOverride)
         {
-            DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(null, null); // DEBUG -- no help, so this will be slow
+            DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel, null, null); // DEBUG -- no help, so this will be slow
             GameProgress progress = DeepCFR_GetGameProgressByPlaying(playbackHelper, new DeepCFRObservationNum(iteration, 1_000_000));
             progress.IterationID = new IterationID(iteration);
 
