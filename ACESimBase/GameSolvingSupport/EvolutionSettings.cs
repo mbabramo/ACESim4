@@ -105,7 +105,7 @@ namespace ACESim
         public int DeepCFR_NeuralNetwork_HiddenLayers = 3;
         public int DeepCFR_NeuralNetwork_NeuronsPerHiddenLayer = 150;
         public double DeepCFR_Epsilon_OffPolicyProbabilityForProbe = 0.05;
-        public double DeepCFR_DiscountRate = 1.0; // DEBUG0.98;
+        public double DeepCFR_DiscountRate = 1.0; // DEBUG 0.98;
         public bool DeepCFR_ApproximateBestResponse = true;
         public int DeepCFR_ApproximateBestResponseIterations = 3;
         public int DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation = 10_000;

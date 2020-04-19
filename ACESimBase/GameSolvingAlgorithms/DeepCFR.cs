@@ -174,7 +174,7 @@ namespace ACESim
                                 utilityForProbeAction = utilityForAction;
                             expectedUtility += probabilities[a - 1] * utilityForAction;
                         }
-                        sampledRegret = expectedUtility - utilityForProbeAction;
+                        sampledRegret = utilityForProbeAction - expectedUtility;
                     }
                     else
                     {

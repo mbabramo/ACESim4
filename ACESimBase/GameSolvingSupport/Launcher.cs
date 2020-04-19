@@ -28,7 +28,7 @@ namespace ACESim
         public const bool AlwaysSuppressDisplayReportOnScreen = true; 
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever;
         public const bool UseRandomPathsForReporting = true; 
-        public const int SummaryTableRandomPathsIterations = 10_000; // DEBUG
+        public const int SummaryTableRandomPathsIterations = 1000; // DEBUG
         public const int ProbingIterations = 20_000_000;
 
         public const int StartGameNumber = 1;
@@ -169,7 +169,7 @@ namespace ACESim
 
                 NumRandomIterationsForSummaryTable = SummaryTableRandomPathsIterations,
                 GenerateReportsByPlaying = true,
-                PrintInformationSets = true, // DEBUG
+                PrintInformationSets = false, // DEBUG
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
                 PrintGameTree = false,  // DEBUG
                 ActionStrategiesToUseInReporting =
