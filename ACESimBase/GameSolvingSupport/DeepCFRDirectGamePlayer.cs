@@ -7,7 +7,7 @@ namespace ACESimBase.GameSolvingSupport
 {
     public class DeepCFRDirectGamePlayer : DirectGamePlayer
     {
-        DeepCFRPlaybackHelper PlaybackHelper;
+        public DeepCFRPlaybackHelper PlaybackHelper;
 
         public DeepCFRDirectGamePlayer(GameDefinition gameDefinition, GameProgress startingProgress, Game game, DeepCFRPlaybackHelper playbackHelper) : base(gameDefinition, startingProgress, game)
         {
