@@ -177,10 +177,11 @@ namespace ACESimBase.GameSolvingSupport
 
         public double[] GetRegretMatchingProbabilities(DeepCFRIndependentVariables independentVariables, Decision decision, IRegressionMachine regressionMachineForDecision)
         {
+            
             double[] regrets = GetExpectedRegretsForAllActions(independentVariables, decision, regressionMachineForDecision);
             double positiveRegretsSum = 0;
             for (byte a = 1; a <= decision.NumPossibleActions; a++)
-                if (regrets[a - 1] > 0)
+                if (regrets?[a - 1] > 0)
                     positiveRegretsSum += regrets[a - 1];
             double[] probabilities = new double[decision.NumPossibleActions];
             if (positiveRegretsSum == 0)
@@ -206,6 +207,8 @@ namespace ACESimBase.GameSolvingSupport
         public double[] GetExpectedRegretsForAllActions(DeepCFRIndependentVariables independentVariables, Decision decision, IRegressionMachine regressionMachineForDecision)
         {
             var model = GetModel(decision);
+            if (model.IterationsProcessed == 0)
+                return null;
             double[] results = new double[decision.NumPossibleActions];
             for (byte a = 1; a <= decision.NumPossibleActions; a++)
                 results[a] = model.GetPredictedRegretForAction(independentVariables, a, regressionMachineForDecision);

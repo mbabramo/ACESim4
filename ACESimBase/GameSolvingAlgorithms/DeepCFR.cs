@@ -159,8 +159,10 @@ namespace ACESim
                     double sampledRegret;
                     if (EvolutionSettings.DeepCFR_ProbeAllActions)
                     {
+                        if (probabilities == null)
+                            probabilities = MultiModel.GetRegretMatchingProbabilities(independentVariables, currentDecision, regressionMachineForCurrentDecision);
                         double utilityForProbeAction = 0, expectedUtility = 0;
-                        for (byte a = 1; a < currentDecision.NumPossibleActions; a++)
+                        for (byte a = 1; a <= currentDecision.NumPossibleActions; a++)
                         {
                             double[] utilitiesForAction = null;
                             if (a == mainAction)
