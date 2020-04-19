@@ -26,7 +26,11 @@ namespace ACESimBase.GameSolvingSupport
             var informationSet = GetInformationSet(true);
             var independentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, 0 /* placeholder */, null /* TODO */);
             IRegressionMachine regressionMachineForCurrentDecision = PlaybackHelper.RegressionMachines?.GetValueOrDefault(CurrentDecision.DecisionByteCode);
-            double[] onPolicyProbabilities = PlaybackHelper.ProbabilitiesCache?.GetValue(this, () => PlaybackHelper.MultiModel.GetRegretMatchingProbabilities(independentVariables, CurrentDecision, regressionMachineForCurrentDecision));
+            double[] onPolicyProbabilities;
+            if (PlaybackHelper.ProbabilitiesCache == null)
+                onPolicyProbabilities = PlaybackHelper.MultiModel.GetRegretMatchingProbabilities(independentVariables, CurrentDecision, regressionMachineForCurrentDecision);
+            else
+                onPolicyProbabilities = PlaybackHelper.ProbabilitiesCache?.GetValue(this, () => PlaybackHelper.MultiModel.GetRegretMatchingProbabilities(independentVariables, CurrentDecision, regressionMachineForCurrentDecision));
             byte actionChosen = ChooseAction(observationNum, decisionIndex, onPolicyProbabilities);
             independentVariables.ActionChosen = actionChosen;
             return (independentVariables, onPolicyProbabilities);
