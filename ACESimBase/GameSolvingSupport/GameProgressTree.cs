@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.GameSolvingSupport
 {
-    public class GameProgressTree : IEnumerable<GameProgress>
+    public class GameProgressTree<T> : IEnumerable<GameProgress> where T : IDirectGamePlayer
     {
         public class GameProgressTreeNode
         {
@@ -120,18 +120,7 @@ namespace ACESimBase.GameSolvingSupport
             return integerProportions;
         }
 
-        private byte GetRandomIndex(double[] probabilities, double randSeed)
-        {
-            double target = probabilities.Sum() * randSeed;
-            double towardTarget = 0;
-            for (byte a = 0; a < probabilities.Length - 1; a++)
-            {
-                towardTarget += probabilities[a];
-                if (towardTarget > target)
-                    return a;
-            }
-            return (byte)(probabilities.Length - 1);
-        }
+        
 
         public IEnumerator<GameProgress> GetEnumerator()
         {

@@ -1,4 +1,5 @@
 ﻿using ACESim;
+using ACESimBase.GameSolvingSupport;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,13 +7,13 @@ using System.Text;
 
 namespace ACESimBase
 {
-    public class DirectGamePlayer
+    public abstract class DirectGamePlayer : IDirectGamePlayer
     {
         public GameDefinition GameDefinition;
-        public GameProgress GameProgress;
+        public GameProgress GameProgress { get; set; }
         public Game Game;
 
-        public DirectGamePlayer(GameDefinition gameDefinition, GameProgress startingProgress, Game game = null)
+        public DirectGamePlayer(GameDefinition gameDefinition, GameProgress startingProgress, Game game)
         {
             GameDefinition = gameDefinition;
             GameProgress = startingProgress.DeepCopy();
@@ -29,10 +30,15 @@ namespace ACESimBase
             }
         }
 
-        public DirectGamePlayer DeepCopy()
+        public abstract DirectGamePlayer DeepCopy();
+
+        public IDirectGamePlayer CopyAndPlayAction(byte action)
         {
-            return new DirectGamePlayer(GameDefinition, GameProgress, Game);
+            var copy = DeepCopy();
+            copy.PlayAction(action);
+            return copy;
         }
+
 
         public void PlayAction(byte actionToPlay)
         {
@@ -71,6 +77,15 @@ namespace ACESimBase
                 throw new Exception();
             return GameProgress.GetNonChancePlayerUtilities()[CurrentDecision.PlayerNumber];
         }
+
+        public double[] GetActionProbabilities()
+        {
+            if (CurrentDecision.IsChance)
+                return GetChanceProbabilities();
+            return GetPlayerProbabilities();
+        }
+
+        public abstract double[] GetPlayerProbabilities();
 
         public double[] GetChanceProbabilities()
         {

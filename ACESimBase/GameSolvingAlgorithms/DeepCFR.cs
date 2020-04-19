@@ -42,53 +42,6 @@ namespace ACESim
 
         #region Traversal
 
-        public GameProgress DeepCFR_GetGameProgressByPlaying(DeepCFRPlaybackHelper playbackHelper, DeepCFRObservationNum observationNum) => DeepCFRTraversal(playbackHelper, observationNum, DeepCFRTraversalMode.PlaybackSinglePath, null).completedProgress;
-
-        public double[] DeepCFR_UtilitiesAverage(int totalNumberObservations)
-        {
-            Stopwatch s = new Stopwatch();
-            s.Start();
-            TabbedText.Write($"Calculating utilities from {totalNumberObservations}");
-            StatCollectorArray stats = new StatCollectorArray();
-            int numObservationsToDoTogether = GetNumObservationsToDoTogether(totalNumberObservations);
-            int numPlaybacks = totalNumberObservations / numObservationsToDoTogether;
-            int extraObservationsDueToRounding = numPlaybacks * numObservationsToDoTogether - totalNumberObservations;
-            int numPlaybacksLastIteration = numPlaybacks - extraObservationsDueToRounding;
-            DeepCFRProbabilitiesCache probabilitiesCache = new DeepCFRProbabilitiesCache(); // shared across threads
-            Parallelizer.Go(EvolutionSettings.ParallelOptimization, 0, numPlaybacks, o =>
-            {
-                DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel.DeepCopyForPlaybackOnly(), GetRegressionMachinesForLocalUse(), probabilitiesCache);
-                int numToPlaybackTogetherThisIteration = o == totalNumberObservations - 1 ? numPlaybacksLastIteration : numObservationsToDoTogether;
-                var utilities = DeepCFR_UtilitiesFromMultiplePlaybacks(o, numToPlaybackTogetherThisIteration, playbackHelper).ToArray();
-                stats.Add(utilities, numToPlaybackTogetherThisIteration);
-            });
-            double[] averageUtilities = stats.Average().ToArray();
-            TabbedText.WriteLine($" time {s.ElapsedMilliseconds} ms");
-            return averageUtilities;
-        }
-
-        private int GetNumObservationsToDoTogether(int totalNumberObservations)
-        {
-            return EvolutionSettings.ParallelOptimization ? 1 + totalNumberObservations / (Environment.ProcessorCount * 5) : totalNumberObservations;
-        }
-
-        public double[] DeepCFR_UtilitiesFromMultiplePlaybacks(int observation, int numToPlaybackTogether, DeepCFRPlaybackHelper playbackHelper)
-        {
-            int initialObservation = observation * numToPlaybackTogether;
-            double[][] results = Enumerable.Range(initialObservation, initialObservation + numToPlaybackTogether).Select(x => DeepCFR_UtilitiesFromSinglePlayback(playbackHelper, new DeepCFRObservationNum(x, 10_000_000))).ToArray();
-            ReturnRegressionMachines(playbackHelper.RegressionMachines);
-            StatCollectorArray s = new StatCollectorArray();
-            foreach (double[] result in results)
-                s.Add(result);
-            double[] averageResults = s.Average().ToArray();
-            return averageResults;
-        }
-
-        public double[] DeepCFR_UtilitiesFromSinglePlayback(DeepCFRPlaybackHelper playbackHelper, DeepCFRObservationNum observationNum)
-        {
-            return DeepCFRTraversal(playbackHelper, observationNum, DeepCFRTraversalMode.PlaybackSinglePath).utilities;
-        }
-
         public List<(Decision decision, DeepCFRObservation observation)> DeepCFR_AddingRegretObservations(DeepCFRPlaybackHelper playbackHelper, int observationIndex, int variationNum, int numToDoTogether)
         {
             int initialObservationNum = observationIndex * numToDoTogether;
@@ -111,7 +64,7 @@ namespace ACESim
         private (double[] utilities, GameProgress completedProgress) DeepCFRTraversal(DeepCFRPlaybackHelper playbackHelper, DeepCFRObservationNum observationNum, DeepCFRTraversalMode traversalMode, List<(Decision decision, DeepCFRObservation observation)> observations)
         {
             double[] finalUtilities;
-            DirectGamePlayer gamePlayer = new DirectGamePlayer(GameDefinition, GameFactory.CreateNewGameProgress(new IterationID(observationNum.ObservationNum)));
+            DeepCFRDirectGamePlayer gamePlayer = new DeepCFRDirectGamePlayer(GameDefinition, GameFactory.CreateNewGameProgress(new IterationID(observationNum.ObservationNum)), null, playbackHelper);
             finalUtilities = DeepCFRTraversal(playbackHelper, gamePlayer, observationNum, observations, traversalMode);
             return (finalUtilities, gamePlayer.GameProgress);
         }
@@ -122,7 +75,7 @@ namespace ACESim
         /// <param name="gamePlayer">The game being played</param>
         /// <param name="observationNum">The iteration being played</param>
         /// <returns></returns>
-        public double[] DeepCFRTraversal(DeepCFRPlaybackHelper playbackHelper, DirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, List<(Decision decision, DeepCFRObservation observation)> observations, DeepCFRTraversalMode traversalMode)
+        public double[] DeepCFRTraversal(DeepCFRPlaybackHelper playbackHelper, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, List<(Decision decision, DeepCFRObservation observation)> observations, DeepCFRTraversalMode traversalMode)
         {
             GameStateTypeEnum gameStateType = gamePlayer.GetGameStateType();
             if (gameStateType == GameStateTypeEnum.FinalUtilities)
@@ -137,7 +90,7 @@ namespace ACESim
                 return DeepCFR_DecisionNode(playbackHelper, gamePlayer, observationNum, observations, traversalMode);
         }
 
-        private double[] DeepCFR_DecisionNode(DeepCFRPlaybackHelper playbackHelper, DirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, List<(Decision decision, DeepCFRObservation observation)> observations, DeepCFRTraversalMode traversalMode)
+        private double[] DeepCFR_DecisionNode(DeepCFRPlaybackHelper playbackHelper, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, List<(Decision decision, DeepCFRObservation observation)> observations, DeepCFRTraversalMode traversalMode)
         {
             Decision currentDecision = gamePlayer.CurrentDecision;
             IRegressionMachine regressionMachineForCurrentDecision = playbackHelper.RegressionMachines?.GetValueOrDefault(currentDecision.DecisionByteCode);
@@ -145,20 +98,10 @@ namespace ACESim
             byte playerMakingDecision = gamePlayer.CurrentPlayer.PlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionIndex);
             DeepCFRIndependentVariables independentVariables = null;
-            List<(byte decisionIndex, byte information)> informationSet = null;
-            byte mainAction = GameDefinition.DecisionsExecutionOrder[decisionIndex].AlwaysDoAction ?? 0;
             double[] onPolicyProbabilities = null;
-            if (mainAction == 0)
-            {
-                informationSet = gamePlayer.GetInformationSet(true);
-                independentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, 0 /* placeholder */, null /* TODO */);
-                playbackHelper.ProbabilitiesCache?.GetValue(gamePlayer, () => MultiModel.GetRegretMatchingProbabilities(independentVariables, currentDecision, regressionMachineForCurrentDecision));
-                mainAction = MultiModel.ChooseAction(currentDecision, regressionMachineForCurrentDecision, observationNum.GetRandomDouble(decisionIndex), independentVariables, numPossibleActions, numPossibleActions /* TODO */, 0 /* main action is always on policy */, ref onPolicyProbabilities);
-                independentVariables.ActionChosen = mainAction;
-            }
-            else if (traversalMode == DeepCFRTraversalMode.AddRegretObservations)
-                throw new Exception("When adding regret observations, should not prespecify action");
-            DirectGamePlayer mainActionPlayer = traversalMode == DeepCFRTraversalMode.PlaybackSinglePath ? gamePlayer : gamePlayer.DeepCopy();
+            (independentVariables, onPolicyProbabilities) = gamePlayer.GetIndependentVariablesAndPlayerProbabilities(observationNum);
+            byte mainAction = GameDefinition.DecisionsExecutionOrder[decisionIndex].AlwaysDoAction ?? gamePlayer.ChooseAction(observationNum, decisionIndex, onPolicyProbabilities);
+            DeepCFRDirectGamePlayer mainActionPlayer = traversalMode == DeepCFRTraversalMode.PlaybackSinglePath ? gamePlayer : (DeepCFRDirectGamePlayer) gamePlayer.DeepCopy();
             mainActionPlayer.PlayAction(mainAction);
             double[] mainValues = DeepCFRTraversal(playbackHelper, mainActionPlayer, observationNum, observations, traversalMode);
             if (traversalMode == DeepCFRTraversalMode.AddRegretObservations)
@@ -167,13 +110,13 @@ namespace ACESim
                 {
                     // We do a single probe. This allows us to compare this result either to the result from the main action (fast, but high variance) or to the result from all of the other actions (slow, but low variance).
                     DeepCFRObservationNum probeIteration = observationNum.NextVariation();
-                    byte probeAction = MultiModel.ChooseAction(currentDecision, regressionMachineForCurrentDecision, probeIteration.GetRandomDouble(decisionIndex), independentVariables /* note that action in this is ignored */, numPossibleActions, numPossibleActions /* TODO */, EvolutionSettings.DeepCFR_Epsilon_OffPolicyProbabilityForProbe, ref onPolicyProbabilities);
+                    byte probeAction = playbackHelper.MultiModel.ChooseAction(currentDecision, regressionMachineForCurrentDecision, probeIteration.GetRandomDouble(decisionIndex), independentVariables /* note that action in this is ignored */, numPossibleActions, numPossibleActions /* TODO */, EvolutionSettings.DeepCFR_Epsilon_OffPolicyProbabilityForProbe, ref onPolicyProbabilities);
                     // Note: probe action might be same as main action. That's OK, because this helps us estimate expected regret, which is probabilistic
                     double sampledRegret;
                     if (EvolutionSettings.DeepCFR_ProbeAllActions)
                     {
                         if (onPolicyProbabilities == null)
-                            onPolicyProbabilities = MultiModel.GetRegretMatchingProbabilities(independentVariables, currentDecision, regressionMachineForCurrentDecision);
+                            onPolicyProbabilities = playbackHelper.MultiModel.GetRegretMatchingProbabilities(independentVariables, currentDecision, regressionMachineForCurrentDecision);
                         double utilityForProbeAction = 0, expectedUtility = 0;
                         for (byte a = 1; a <= currentDecision.NumPossibleActions; a++)
                         {
@@ -197,7 +140,7 @@ namespace ACESim
                     DeepCFRObservation observation = new DeepCFRObservation()
                     {
                         SampledRegret = sampledRegret,
-                        IndependentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, probeAction, null /* TODO */)
+                        IndependentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, independentVariables.InformationSet, probeAction, null /* TODO */)
                     };
                     observations.Add((currentDecision, observation));
                 }
@@ -205,15 +148,15 @@ namespace ACESim
             return mainValues;
         }
 
-        private double[] DeepCFR_ProbeAction(DeepCFRPlaybackHelper playbackHelper, DirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, List<(Decision decision, DeepCFRObservation observation)> observations, byte probeAction)
+        private double[] DeepCFR_ProbeAction(DeepCFRPlaybackHelper playbackHelper, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, List<(Decision decision, DeepCFRObservation observation)> observations, byte probeAction)
         {
-            DirectGamePlayer probeGamePlayer = gamePlayer.DeepCopy();
+            DeepCFRDirectGamePlayer probeGamePlayer = (DeepCFRDirectGamePlayer) gamePlayer.DeepCopy();
             probeGamePlayer.PlayAction(probeAction);
             double[] probeValues = DeepCFRTraversal(playbackHelper, probeGamePlayer, observationNum, observations, DeepCFRTraversalMode.ProbeForUtilities);
             return probeValues;
         }
 
-        private double[] DeepCFR_ChanceNode(DeepCFRPlaybackHelper playbackHelper, DirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, List<(Decision decision, DeepCFRObservation observation)> observations, DeepCFRTraversalMode traversalMode)
+        private double[] DeepCFR_ChanceNode(DeepCFRPlaybackHelper playbackHelper, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, List<(Decision decision, DeepCFRObservation observation)> observations, DeepCFRTraversalMode traversalMode)
         {
             Decision currentDecision = gamePlayer.CurrentDecision;
             if (currentDecision.CriticalNode && traversalMode != DeepCFRTraversalMode.PlaybackSinglePath)
@@ -223,7 +166,7 @@ namespace ACESim
                 double[] probabilitiesForActions = gamePlayer.GetChanceProbabilities();
                 for (byte a = 1; a <= currentDecision.NumPossibleActions; a++)
                 {
-                    DirectGamePlayer copyPlayer = gamePlayer.DeepCopy();
+                    DeepCFRDirectGamePlayer copyPlayer = (DeepCFRDirectGamePlayer)gamePlayer.DeepCopy();
                     copyPlayer.PlayAction(a);
                     double[] utilities = DeepCFRTraversal(playbackHelper, copyPlayer, observationNum, observations, traversalMode);
                     for (int i = 0; i < NumNonChancePlayers; i++)
@@ -365,6 +308,77 @@ namespace ACESim
             return MultiModel.GetRegressionMachinesForLocalUse(GameDefinition.DecisionsExecutionOrder);
         }
 
+        #endregion
+
+        #region Utilities calculation
+
+        public void BuildGameProgressTree(int totalNumberObservations)
+        {
+            GameProgress initialGameProgress = GameFactory.CreateNewGameProgress(new IterationID(1));
+            Game initialGame = GameDefinition.GameFactory.CreateNewGame();
+            //DeepCFRDirectGamePlayer gamePlayer = new DeepCFRDirectGamePlayer(GameDefinition, initialGameProgress, initialGame);
+            //GameProgressTree gameProgressTree = new GameProgressTree(
+            //    0, // rand seed
+            //    totalNumberObservations,
+            //    initialGameProgress,
+            //    progress =>
+            //    {
+
+            //    },
+            //    (progress, action) =>
+            //    {
+
+            //    }
+            //    );
+
+        }
+
+        public GameProgress DeepCFR_GetGameProgressByPlaying(DeepCFRPlaybackHelper playbackHelper, DeepCFRObservationNum observationNum) => DeepCFRTraversal(playbackHelper, observationNum, DeepCFRTraversalMode.PlaybackSinglePath, null).completedProgress;
+
+        public double[] DeepCFR_UtilitiesAverage(int totalNumberObservations)
+        {
+            Stopwatch s = new Stopwatch();
+            s.Start();
+            TabbedText.Write($"Calculating utilities from {totalNumberObservations}");
+            StatCollectorArray stats = new StatCollectorArray();
+            int numObservationsToDoTogether = GetNumObservationsToDoTogether(totalNumberObservations);
+            int numPlaybacks = totalNumberObservations / numObservationsToDoTogether;
+            int extraObservationsDueToRounding = numPlaybacks * numObservationsToDoTogether - totalNumberObservations;
+            int numPlaybacksLastIteration = numPlaybacks - extraObservationsDueToRounding;
+            DeepCFRProbabilitiesCache probabilitiesCache = new DeepCFRProbabilitiesCache(); // shared across threads
+            Parallelizer.Go(EvolutionSettings.ParallelOptimization, 0, numPlaybacks, o =>
+            {
+                DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel.DeepCopyForPlaybackOnly(), GetRegressionMachinesForLocalUse(), probabilitiesCache);
+                int numToPlaybackTogetherThisIteration = o == totalNumberObservations - 1 ? numPlaybacksLastIteration : numObservationsToDoTogether;
+                var utilities = DeepCFR_UtilitiesFromMultiplePlaybacks(o, numToPlaybackTogetherThisIteration, playbackHelper).ToArray();
+                stats.Add(utilities, numToPlaybackTogetherThisIteration);
+            });
+            double[] averageUtilities = stats.Average().ToArray();
+            TabbedText.WriteLine($" time {s.ElapsedMilliseconds} ms");
+            return averageUtilities;
+        }
+
+        private int GetNumObservationsToDoTogether(int totalNumberObservations)
+        {
+            return EvolutionSettings.ParallelOptimization ? 1 + totalNumberObservations / (Environment.ProcessorCount * 5) : totalNumberObservations;
+        }
+
+        public double[] DeepCFR_UtilitiesFromMultiplePlaybacks(int observation, int numToPlaybackTogether, DeepCFRPlaybackHelper playbackHelper)
+        {
+            int initialObservation = observation * numToPlaybackTogether;
+            double[][] results = Enumerable.Range(initialObservation, initialObservation + numToPlaybackTogether).Select(x => DeepCFR_UtilitiesFromSinglePlayback(playbackHelper, new DeepCFRObservationNum(x, 10_000_000))).ToArray();
+            ReturnRegressionMachines(playbackHelper.RegressionMachines);
+            StatCollectorArray s = new StatCollectorArray();
+            foreach (double[] result in results)
+                s.Add(result);
+            double[] averageResults = s.Average().ToArray();
+            return averageResults;
+        }
+
+        public double[] DeepCFR_UtilitiesFromSinglePlayback(DeepCFRPlaybackHelper playbackHelper, DeepCFRObservationNum observationNum)
+        {
+            return DeepCFRTraversal(playbackHelper, observationNum, DeepCFRTraversalMode.PlaybackSinglePath).utilities;
+        }
         #endregion
 
         #region Reporting

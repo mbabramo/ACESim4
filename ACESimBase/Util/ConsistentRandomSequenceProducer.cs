@@ -110,6 +110,18 @@ namespace ACESim
                 Test_Random(r);
             }
         }
+        public static byte GetRandomIndex(double[] probabilities, double randSeed)
+        {
+            double target = probabilities.Sum() * randSeed;
+            double towardTarget = 0;
+            for (byte a = 0; a < probabilities.Length - 1; a++)
+            {
+                towardTarget += probabilities[a];
+                if (towardTarget > target)
+                    return a;
+            }
+            return (byte)(probabilities.Length - 1);
+        }
 
         private static void Test_Random(IRandomProducer r)
         {
