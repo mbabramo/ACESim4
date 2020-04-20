@@ -32,9 +32,14 @@ namespace ACESim
             return gameHistory.DeepCopyToStorable();
         }
 
+        /// <summary>
+        /// Copies to a temporary game history object. The result can be used in a different thread from the thread used to store the GameHistoryStorable.
+        /// </summary>
+        /// <returns></returns>
         public GameHistory DeepCopyToRefStruct()
         {
             GameHistory result = ShallowCopyToRefStruct();
+            result.CreatingThreadID = System.Threading.Thread.CurrentThread.ManagedThreadId; // we can specify a new thread, since we're copying all of the information.
             if (ActionsHistory != null)
             {
                 result.CreateArraysForSpans(false);
@@ -51,6 +56,10 @@ namespace ACESim
             return result;
         }
 
+        /// <summary>
+        /// Creates a shallow copy, which should be used only on the creating thread.
+        /// </summary>
+        /// <returns></returns>
         public GameHistory ShallowCopyToRefStruct()
         {
             var result = new GameHistory()

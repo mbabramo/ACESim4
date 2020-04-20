@@ -197,6 +197,7 @@ namespace ACESim
             }
             if (EvolutionSettings.DeepCFR_ApproximateBestResponse)
             {
+                await BuildGameProgressTree(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation); // DEBUG
                 double[] baselineUtilities = DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
                 TabbedText.WriteLine($"Baseline utilities {string.Join(",", baselineUtilities.Select(x => x.ToSignificantFigures(4)))}");
                 for (byte p = 0; p < NumNonChancePlayers; p++)
@@ -313,24 +314,17 @@ namespace ACESim
 
         #region Utilities calculation
 
-        public void BuildGameProgressTree(int totalNumberObservations)
+        public async Task BuildGameProgressTree(int totalNumberObservations)
         {
+            DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel, null, null); // DEBUG -- must figure out a way to create a separate object for each thread, but problem is we don't break it down by thread.
             GameProgress initialGameProgress = GameFactory.CreateNewGameProgress(new IterationID(1));
-            Game initialGame = GameDefinition.GameFactory.CreateNewGame();
-            //DeepCFRDirectGamePlayer gamePlayer = new DeepCFRDirectGamePlayer(GameDefinition, initialGameProgress, initialGame);
-            //GameProgressTree gameProgressTree = new GameProgressTree(
-            //    0, // rand seed
-            //    totalNumberObservations,
-            //    initialGameProgress,
-            //    progress =>
-            //    {
-
-            //    },
-            //    (progress, action) =>
-            //    {
-
-            //    }
-            //    );
+            DeepCFRDirectGamePlayer directGamePlayer = new DeepCFRDirectGamePlayer(GameDefinition, initialGameProgress, null, playbackHelper);
+            GameProgressTree gameProgressTree = new GameProgressTree(
+                0, // rand seed
+                totalNumberObservations,
+                directGamePlayer
+                );
+            await gameProgressTree.CompleteTree(false);
 
         }
 

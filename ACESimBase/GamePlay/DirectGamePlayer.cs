@@ -13,11 +13,11 @@ namespace ACESimBase
         public GameProgress GameProgress { get; set; }
         public Game Game;
 
-        public DirectGamePlayer(GameDefinition gameDefinition, GameProgress startingProgress, Game game)
+        public DirectGamePlayer(GameDefinition gameDefinition, GameProgress startingProgress, Game alreadyStartedGame)
         {
             GameDefinition = gameDefinition;
             GameProgress = startingProgress.DeepCopy();
-            if (game == null)
+            if (alreadyStartedGame == null)
             {
                 Game = GameDefinition.GameFactory.CreateNewGame();
                 Game.PlaySetup(null, GameProgress, GameDefinition, false, true);
@@ -25,7 +25,7 @@ namespace ACESimBase
             }
             else
             {
-                Game = game;
+                Game = alreadyStartedGame;
                 Game.Progress = GameProgress;
             }
         }
@@ -35,6 +35,7 @@ namespace ACESimBase
         public IDirectGamePlayer CopyAndPlayAction(byte action)
         {
             var copy = DeepCopy();
+            debug; // must also copy the Game object
             copy.PlayAction(action);
             return copy;
         }

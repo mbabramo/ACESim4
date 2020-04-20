@@ -9,7 +9,7 @@ namespace ACESimBase.GameSolvingSupport
     {
         public DeepCFRPlaybackHelper PlaybackHelper;
 
-        public DeepCFRDirectGamePlayer(GameDefinition gameDefinition, GameProgress startingProgress, Game game, DeepCFRPlaybackHelper playbackHelper) : base(gameDefinition, startingProgress, game)
+        public DeepCFRDirectGamePlayer(GameDefinition gameDefinition, GameProgress startingProgress, Game alreadyStartedGame, DeepCFRPlaybackHelper playbackHelper) : base(gameDefinition, startingProgress, alreadyStartedGame)
         {
             PlaybackHelper = playbackHelper;
         }

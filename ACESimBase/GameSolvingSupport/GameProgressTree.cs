@@ -25,14 +25,14 @@ namespace ACESimBase.GameSolvingSupport
 
         public GameProgressTree(int randSeed, int totalObservations, IDirectGamePlayer directGamePlayer)
         {
-            Tree = new NWayTreeStorageInternal<GameProgressTreeNode>(new NWayTreeStorageInternal<GameProgressTreeNode>(null)
+            Tree = new NWayTreeStorageInternal<GameProgressTreeNode>(new NWayTreeStorageInternal<GameProgressTreeNode>(null))
             {
                 StoredValue = new GameProgressTreeNode()
                 {
                     DirectGamePlayer = directGamePlayer,
                     ObservationRange = (1, totalObservations),
                 }
-            }); ;
+            };
             InitialRandSeed = randSeed;
         }
 

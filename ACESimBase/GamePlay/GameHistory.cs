@@ -19,7 +19,7 @@ namespace ACESim
     {
         #region Construction
 
-        // We use a struct here because this makes a big difference in performance, allowing GameHistory to be allocated on the stack. Currently, we fix the number of players, maximum size of different players' information sets, etc. in the GameHistory (which means that we need to change the code whenever we change games). We distinguish between full and partial players because this also produces a significant performance boost. 
+        // We use a ref struct here because this makes a big difference in performance, allowing GameHistory to be allocated on the stack. Currently, we fix the number of players, maximum size of different players' information sets, etc. in the GameHistory (which means that we need to change the code whenever we change games). We distinguish between full and partial players because this also produces a significant performance boost. 
 
         // TODO: Make it so that the size can be specified by the game. Also, make it so that we can have a large space for history, most of which is blank space for the next history. Then, we could make it so that we don't have to keep copying all the earlier steps, but include the index of the previous and current steps. 
 
@@ -88,6 +88,7 @@ namespace ACESim
         public void VerifyThread()
         {
 #if SAFETYCHECKS
+            // DEBUG -- maybe this isn't necessary to check anymore. After all, GameHistory is now stack-only, so it will never cross threads. GameHistoryStorable can cross threads. 
             if (!IsEmpty && CreatingThreadID != System.Threading.Thread.CurrentThread.ManagedThreadId)
                 throw new Exception();
 #endif
@@ -109,6 +110,10 @@ namespace ACESim
                 Cache[i] = 0;
         }
 
+        /// <summary>
+        /// Copies the temporary GameHistory object to a GameHistoryStorable. The result can thus be used in a different thread.
+        /// </summary>
+        /// <returns></returns>
         public GameHistoryStorable DeepCopyToStorable()
         {
             var result = new GameHistoryStorable()
@@ -135,6 +140,9 @@ namespace ACESim
             if (InformationSets.Length > 0)
             {
 #if SAFETYCHECKS
+                // it doesn't matter what the CreatingThreadID is on this GameHistory; now that we've 
+                // duplicated the entire object, this can be used on whatever the current thread is
+                // (and then on some other thread if there is another deep copy).
                 result.CreatingThreadID = System.Threading.Thread.CurrentThread.ManagedThreadId;
 #endif
                 for (int i = 0; i < GameHistory.MaxInformationSetLength; i++)

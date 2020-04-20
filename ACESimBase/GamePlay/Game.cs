@@ -13,6 +13,16 @@ namespace ACESim
     /// </summary>
     public class Game
     {
+        public GameProgress Progress;
+
+        public List<Strategy> Strategies;
+        public GameDefinition GameDefinition;
+        public List<GameModule> GameModules;
+        public ActionPoint CurrentActionPoint;
+
+        public int? MostRecentDecisionIndex;
+
+        public bool CurrentlyPlayingUpToADecisionInsteadOfCompletingGame = false;
 
         public byte? CurrentDecisionIndex
         {
@@ -60,15 +70,6 @@ namespace ACESim
             get => Progress.RandomNumberForIteration;
             set => Progress.RandomNumberForIteration = value;
         }
-
-        public GameProgress Progress;
-
-        internal List<Strategy> Strategies;
-        internal GameDefinition GameDefinition;
-        internal List<GameModule> GameModules;
-        internal ActionPoint CurrentActionPoint;
-
-        internal int? MostRecentDecisionIndex;
         public ActionGroup CurrentActionGroup => CurrentActionPoint.ActionGroup;
 
 
@@ -177,7 +178,7 @@ namespace ACESim
             byte playerNumber = CurrentPlayerNumber;
 
             // Note: We need to update the game history, but in Progress it's not stored as a ref struct. So we convert it to a ref struct and then convert it back.
-            // NOTE: this only works if we can be sure that Progress is not shared across threads
+            // NOTE: this only works if we can be sure that Progress is not shared across threads (otherwise, we get an error when GameHistory is used on different threads)
             var history = Progress.GameHistory;
             UpdateGameHistory(ref history, GameDefinition, currentDecision, decisionIndex, action, Progress);
             Progress.GameHistoryStorable.UpdateFromShallowCopy(history);
@@ -379,7 +380,6 @@ namespace ACESim
             }
         }
 
-        public bool CurrentlyPlayingUpToADecisionInsteadOfCompletingGame = false;
         /// <summary>
         /// Repeatedly play the game up to the decision number, calling the Game subclass to prepare for or play each decision.
         /// </summary>
