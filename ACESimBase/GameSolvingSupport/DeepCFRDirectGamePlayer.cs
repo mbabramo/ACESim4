@@ -16,7 +16,7 @@ namespace ACESimBase.GameSolvingSupport
 
         public override DirectGamePlayer DeepCopy()
         {
-            return new DeepCFRDirectGamePlayer(GameDefinition, GameProgress, Game, PlaybackHelper);
+            return new DeepCFRDirectGamePlayer(GameDefinition, GameProgress.DeepCopy(), Game, PlaybackHelper);
         }
 
         public (DeepCFRIndependentVariables, double[]) GetIndependentVariablesAndPlayerProbabilities(DeepCFRObservationNum observationNum)

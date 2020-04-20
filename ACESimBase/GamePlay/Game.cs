@@ -14,15 +14,16 @@ namespace ACESim
     public class Game
     {
         public GameProgress Progress;
-
         public List<Strategy> Strategies;
         public GameDefinition GameDefinition;
         public List<GameModule> GameModules;
+
         public ActionPoint CurrentActionPoint
         {
             get => Progress.CurrentActionPoint;
             set => Progress.CurrentActionPoint = value;
         }
+        public ActionGroup CurrentActionGroup => CurrentActionPoint.ActionGroup;
 
         public int? MostRecentDecisionIndex
         {
@@ -82,8 +83,6 @@ namespace ACESim
             get => Progress.RandomNumberForIteration;
             set => Progress.RandomNumberForIteration = value;
         }
-        public ActionGroup CurrentActionGroup => CurrentActionPoint.ActionGroup;
-
 
         public Decision CurrentDecision
         {

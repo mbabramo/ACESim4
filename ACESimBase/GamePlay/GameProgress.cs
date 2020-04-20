@@ -282,7 +282,7 @@ namespace ACESim
 
         internal virtual void CopyFieldInfo(GameProgress copy)
         {
-            copy.CurrentActionPoint = CurrentActionPoint.DeepCopy();
+            copy.CurrentActionPoint = CurrentActionPoint?.DeepCopy();
             copy.MostRecentDecisionIndex = MostRecentDecisionIndex;
             copy.CurrentlyPlayingUpToADecisionInsteadOfCompletingGame = CurrentlyPlayingUpToADecisionInsteadOfCompletingGame;
             copy.CurrentDecisionIndex = CurrentDecisionIndex;
