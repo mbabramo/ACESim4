@@ -197,6 +197,7 @@ namespace ACESim
             }
             if (EvolutionSettings.DeepCFR_ApproximateBestResponse)
             {
+                // DEBUG -- we should change this so that the best response just picks the single best answer rather than using regret matching -- maybe we could even go from late decisions to early decisions. 
                 double[] baselineUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
                 TabbedText.WriteLine($"Baseline utilities {string.Join(",", baselineUtilities.Select(x => x.ToSignificantFigures(4)))}");
                 for (byte p = 0; p < NumNonChancePlayers; p++)
