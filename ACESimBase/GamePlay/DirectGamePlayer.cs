@@ -32,6 +32,11 @@ namespace ACESimBase
 
         public abstract DirectGamePlayer DeepCopy();
 
+        public virtual void SynchronizeForSameThread(IEnumerable<IDirectGamePlayer> othersOnSameThread)
+        {
+
+        }
+
         public IDirectGamePlayer CopyAndPlayAction(byte action)
         {
             var copy = DeepCopy();
@@ -39,11 +44,21 @@ namespace ACESimBase
             return copy;
         }
 
-
         public void PlayAction(byte actionToPlay)
         {
             Game.ContinuePathWithAction(actionToPlay);
             Game.AdvanceToOrCompleteNextStep();
+        }
+
+        public void PlayUntilComplete(int randomSeed)
+        {
+            ConsistentRandomSequenceProducer r = new ConsistentRandomSequenceProducer(randomSeed, 3_000_000);
+            while (!GameComplete)
+            {
+                double[] actionProbabilities = GetActionProbabilities();
+                byte index = r.GetRandomIndex(actionProbabilities);
+                PlayAction((byte)(index + 1));
+            }
         }
 
         public GameStateTypeEnum GetGameStateType()

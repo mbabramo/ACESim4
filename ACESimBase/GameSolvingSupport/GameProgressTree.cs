@@ -10,14 +10,13 @@ namespace ACESimBase.GameSolvingSupport
 {
     public class GameProgressTree : IEnumerable<GameProgress> 
     {
-        // DEBUG TODO: Make it so that we initially expand the tree only up to a certain level using parallelism, and then we stop using parallelism, and when we stop, we have a mechanism for creating a new play helper for the direct game player. 
-
         public class GameProgressTreeNodeInfo
         {
             public IDirectGamePlayer DirectGamePlayer;
             public GameProgress GameProgress => DirectGamePlayer.GameProgress;
             public (int, int) ObservationRange;
             public double[] Probabilities;
+            public bool IsLeaf => Probabilities == null;
 
             public override string ToString()
             {
@@ -49,6 +48,7 @@ namespace ACESimBase.GameSolvingSupport
         public async Task CompleteTree(bool doParallel)
         {
             await Tree.CreateBranchesParallel(doParallel, CreateSubbranches);
+            CompleteIncompletePlayers(doParallel);
         }
 
         public (byte branchID, GameProgressTreeNodeInfo childBranch, bool isLeaf)[] CreateSubbranches(GameProgressTreeNodeInfo sourceNode)
@@ -84,12 +84,8 @@ namespace ACESimBase.GameSolvingSupport
                 IDirectGamePlayer gamePlayer = children[a - 1];
                 if (gamePlayer != null)
                 {
-                    if (subranges[a - 1].Value.Item2 == 202)
-                    {
-                        var DEBUG = 0;
-                    }
                     var childBranchItem = new GameProgressTreeNodeInfo() { DirectGamePlayer = gamePlayer, ObservationRange = subranges[a - 1].Value };
-                    subbranches.Add((a, childBranchItem, numInSubrange == 1 || gamePlayer.GameProgress.GameComplete));
+                    subbranches.Add((a, childBranchItem, numInSubrange == 1 || gamePlayer.GameProgress.GameComplete)); // If there is only 1 in subrange, we go no further, BUT we will need to complete those games later.
                 }
             }
             return subbranches.ToArray();
@@ -141,8 +137,61 @@ namespace ACESimBase.GameSolvingSupport
             return integerProportions;
         }
 
+        private IEnumerable<IDirectGamePlayer> GetIncompletePlayers()
+        {
+            foreach (var treeNode in Tree.GetAllTreeNodes())
+            {
+                GameProgressTreeNodeInfo treeNodeInfo = treeNode.storedValue;
+                GameProgress gameProgress = treeNodeInfo.GameProgress;
+                if (treeNodeInfo.IsLeaf && !gameProgress.GameComplete)
+                {
+                    yield return treeNodeInfo.DirectGamePlayer;
+                }
+            }
+        }
 
-        static int DEBUG = 0;
+        public void CompleteIncompletePlayers(bool doParallel)
+        {
+            // Wherever there is just one game, we have left it incomplete above. We now strive to complete those efficiently, by doing a bunch on the same thread.
+
+            var incompletes = GetIncompletePlayers().ToList();
+
+            if (!incompletes.Any())
+                return;
+            int totalNumberIncompletes = incompletes.Count();
+
+
+            int randSeed = 0;
+            unchecked
+            {
+                randSeed = InitialRandSeed * 3917;
+            }
+
+            int GetNumObservationsToDoTogether(int totalNumberObservations)
+            {
+                return doParallel ? 1 + totalNumberObservations / (Environment.ProcessorCount * 5) : totalNumberObservations;
+            }
+            int numObservationsToDoTogether = GetNumObservationsToDoTogether(totalNumberIncompletes);
+            int numPlaybacks = totalNumberIncompletes / numObservationsToDoTogether;
+            int extraObservationsDueToRounding = numPlaybacks * numObservationsToDoTogether - totalNumberIncompletes;
+            int numObservationsToDoTogetherLastSet = numPlaybacks - extraObservationsDueToRounding;
+            DeepCFRProbabilitiesCache probabilitiesCache = new DeepCFRProbabilitiesCache(); // shared across threads
+            Parallelizer.Go(doParallel, 0, numPlaybacks, o =>
+            {
+                int firstObservation = numObservationsToDoTogether * o;
+                int numObservationsToDoTogetherLastSetThisTime = o == totalNumberIncompletes - 1 ? numObservationsToDoTogetherLastSet : numObservationsToDoTogether;
+                var toDoTogether = incompletes.Skip(firstObservation).ToList();
+                toDoTogether.First().SynchronizeForSameThread(toDoTogether.Skip(1));
+                int randSeed2;
+                unchecked
+                {
+                    randSeed2 = randSeed * o;
+                }
+                foreach (var toDo in toDoTogether)
+                    toDo.PlayUntilComplete(randSeed2++);
+            });
+        }
+
         public IEnumerator<GameProgress> GetEnumerator()
         {
             foreach (var treeNode in Tree.GetAllTreeNodes())
@@ -155,10 +204,6 @@ namespace ACESimBase.GameSolvingSupport
                     int observations = observationRange.Item2 - observationRange.Item1 + 1;
                     for (int o = 0; o < observations; o++)
                     {
-                        if (observationRange.Item1 + o != DEBUG + 1)
-                            throw new Exception();
-                        DEBUG++;
-                        TabbedText.WriteLine($"YIELD: {observationRange.Item1 + o}");
                         yield return gameProgress;
                     }
                 }

@@ -1,22 +1,39 @@
 ﻿using ACESim;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace ACESimBase.GameSolvingSupport
 {
     public class DeepCFRDirectGamePlayer : DirectGamePlayer
     {
-        public DeepCFRPlaybackHelper PlaybackHelper;
 
-        public DeepCFRDirectGamePlayer(GameDefinition gameDefinition, GameProgress progress, bool advanceToFirstStep, DeepCFRPlaybackHelper playbackHelper) : base(gameDefinition, progress, advanceToFirstStep)
+        public DeepCFRPlaybackHelper InitialPlaybackHelper;
+        /// <summary>
+        /// This is used if we want a number of DeepCFRDirectGamePlayers to share a thread while continuing playback from some point. It allows expensive work to be done before continuing playback.
+        /// </summary>
+        public Func<DeepCFRPlaybackHelper> PlaybackHelperGenerator;
+
+        public DeepCFRDirectGamePlayer(GameDefinition gameDefinition, GameProgress progress, bool advanceToFirstStep, DeepCFRPlaybackHelper initialPlaybackHelper, Func<DeepCFRPlaybackHelper> playbackHelperGenerator) : base(gameDefinition, progress, advanceToFirstStep)
         {
-            PlaybackHelper = playbackHelper;
+            InitialPlaybackHelper = initialPlaybackHelper;
+            PlaybackHelperGenerator = playbackHelperGenerator;
+        }
+
+        public override void SynchronizeForSameThread(IEnumerable<IDirectGamePlayer> othersOnSameThread)
+        {
+            // Note: This will be called only for first on the thread.
+            InitialPlaybackHelper = PlaybackHelperGenerator();
+            foreach (DeepCFRDirectGamePlayer other in othersOnSameThread.Cast<DeepCFRDirectGamePlayer>())
+            {
+                other.InitialPlaybackHelper = InitialPlaybackHelper;
+            }
         }
 
         public override DirectGamePlayer DeepCopy()
         {
-            return new DeepCFRDirectGamePlayer(GameDefinition, GameProgress.DeepCopy(), false, PlaybackHelper);
+            return new DeepCFRDirectGamePlayer(GameDefinition, GameProgress.DeepCopy(), false, InitialPlaybackHelper, PlaybackHelperGenerator);
         }
 
         public (DeepCFRIndependentVariables, double[]) GetIndependentVariablesAndPlayerProbabilities(DeepCFRObservationNum observationNum)
@@ -25,12 +42,12 @@ namespace ACESimBase.GameSolvingSupport
             byte playerMakingDecision = CurrentPlayer.PlayerIndex;
             var informationSet = GetInformationSet(true);
             var independentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, 0 /* placeholder */, null /* TODO */);
-            IRegressionMachine regressionMachineForCurrentDecision = PlaybackHelper.RegressionMachines?.GetValueOrDefault(CurrentDecision.DecisionByteCode);
+            IRegressionMachine regressionMachineForCurrentDecision = InitialPlaybackHelper.RegressionMachines?.GetValueOrDefault(CurrentDecision.DecisionByteCode);
             double[] onPolicyProbabilities;
-            if (PlaybackHelper.ProbabilitiesCache == null)
-                onPolicyProbabilities = PlaybackHelper.MultiModel.GetRegretMatchingProbabilities(independentVariables, CurrentDecision, regressionMachineForCurrentDecision);
+            if (InitialPlaybackHelper.ProbabilitiesCache == null)
+                onPolicyProbabilities = InitialPlaybackHelper.MultiModel.GetRegretMatchingProbabilities(independentVariables, CurrentDecision, regressionMachineForCurrentDecision);
             else
-                onPolicyProbabilities = PlaybackHelper.ProbabilitiesCache?.GetValue(this, () => PlaybackHelper.MultiModel.GetRegretMatchingProbabilities(independentVariables, CurrentDecision, regressionMachineForCurrentDecision));
+                onPolicyProbabilities = InitialPlaybackHelper.ProbabilitiesCache?.GetValue(this, () => InitialPlaybackHelper.MultiModel.GetRegretMatchingProbabilities(independentVariables, CurrentDecision, regressionMachineForCurrentDecision));
             byte actionChosen = ChooseAction(observationNum, decisionIndex, onPolicyProbabilities);
             independentVariables.ActionChosen = actionChosen;
             return (independentVariables, onPolicyProbabilities);
