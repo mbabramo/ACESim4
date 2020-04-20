@@ -1659,6 +1659,39 @@ namespace ACESim
             return reportCollection;
         }
 
+        /// <summary>
+        /// This is an alternative method of building reports from game progresses, if a set of game progresses already exists.
+        /// </summary>
+        /// <param name="gameProgresses"></param>
+        /// <returns></returns>
+        public ReportCollection GenerateReportsFromGameProgressEnumeration(IEnumerable<GameProgress> gameProgresses)
+        {
+            var simpleReportDefinitions = GetSimpleReportDefinitions();
+            int simpleReportDefinitionsCount = simpleReportDefinitions.Count();
+            ReportsBeingGenerated = new SimpleReport[simpleReportDefinitionsCount];
+            ReportCollection reportCollection = new ReportCollection();
+            for (int i = 0; i < simpleReportDefinitionsCount; i++)
+            {
+                int initialParallelDepth = Parallelizer.ParallelDepth;
+                ReportsBeingGenerated[i] = new SimpleReport(simpleReportDefinitions[i], simpleReportDefinitions[i].DivideColumnFiltersByImmediatelyEarlierReport ? ReportsBeingGenerated[i - 1] : null);
+            }
+            foreach (GameProgress p in gameProgresses)
+            {
+                for (int i = 0; i < simpleReportDefinitionsCount; i++)
+                {
+                    ReportsBeingGenerated[i].ProcessGameProgress(p, 1.0);
+                }
+            }
+
+            for (int i = 0; i < simpleReportDefinitionsCount; i++)
+            { 
+                ReportCollection result = ReportsBeingGenerated[i].BuildReport();
+                reportCollection.Add(result);
+            }
+
+            return reportCollection;
+        }
+
         public List<SimpleReportDefinition> GetSimpleReportDefinitions()
         {
             if (TemporarilyDisableFullReports)

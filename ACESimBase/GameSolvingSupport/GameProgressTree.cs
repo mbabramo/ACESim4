@@ -12,7 +12,7 @@ namespace ACESimBase.GameSolvingSupport
     {
         // DEBUG TODO: Make it so that we initially expand the tree only up to a certain level using parallelism, and then we stop using parallelism, and when we stop, we have a mechanism for creating a new play helper for the direct game player. 
 
-        public class GameProgressTreeNode
+        public class GameProgressTreeNodeInfo
         {
             public IDirectGamePlayer DirectGamePlayer;
             public GameProgress GameProgress => DirectGamePlayer.GameProgress;
@@ -28,14 +28,14 @@ namespace ACESimBase.GameSolvingSupport
             }
         }
 
-        NWayTreeStorageInternal<GameProgressTreeNode> Tree;
+        NWayTreeStorageInternal<GameProgressTreeNodeInfo> Tree;
         int InitialRandSeed;
 
         public GameProgressTree(int randSeed, int totalObservations, IDirectGamePlayer directGamePlayer)
         {
-            Tree = new NWayTreeStorageInternal<GameProgressTreeNode>(new NWayTreeStorageInternal<GameProgressTreeNode>(null))
+            Tree = new NWayTreeStorageInternal<GameProgressTreeNodeInfo>(new NWayTreeStorageInternal<GameProgressTreeNodeInfo>(null))
             {
-                StoredValue = new GameProgressTreeNode()
+                StoredValue = new GameProgressTreeNodeInfo()
                 {
                     DirectGamePlayer = directGamePlayer,
                     ObservationRange = (1, totalObservations),
@@ -51,7 +51,7 @@ namespace ACESimBase.GameSolvingSupport
             await Tree.CreateBranchesParallel(doParallel, CreateSubbranches);
         }
 
-        public (byte branchID, GameProgressTreeNode childBranch, bool isLeaf)[] CreateSubbranches(GameProgressTreeNode sourceNode)
+        public (byte branchID, GameProgressTreeNodeInfo childBranch, bool isLeaf)[] CreateSubbranches(GameProgressTreeNodeInfo sourceNode)
         {
             double[] probabilities = sourceNode.DirectGamePlayer.GetActionProbabilities();
             sourceNode.Probabilities = probabilities;
@@ -77,7 +77,7 @@ namespace ACESimBase.GameSolvingSupport
                 };
                 return childGamePlayer;
             }).ToArray();
-            List<(byte branchID, GameProgressTreeNode childBranch, bool isLeaf)> subbranches = new List<(byte branchID, GameProgressTreeNode childBranch, bool isLeaf)>();
+            List<(byte branchID, GameProgressTreeNodeInfo childBranch, bool isLeaf)> subbranches = new List<(byte branchID, GameProgressTreeNodeInfo childBranch, bool isLeaf)>();
             for (byte a = 1; a <= probabilities.Length; a++)
             {
                 int numInSubrange = subranges[a - 1] == null ? 0 : subranges[a - 1].Value.Item2 - subranges[a - 1].Value.Item1 + 1;
@@ -88,7 +88,7 @@ namespace ACESimBase.GameSolvingSupport
                     {
                         var DEBUG = 0;
                     }
-                    var childBranchItem = new GameProgressTreeNode() { DirectGamePlayer = gamePlayer, ObservationRange = subranges[a - 1].Value };
+                    var childBranchItem = new GameProgressTreeNodeInfo() { DirectGamePlayer = gamePlayer, ObservationRange = subranges[a - 1].Value };
                     subbranches.Add((a, childBranchItem, numInSubrange == 1 || gamePlayer.GameProgress.GameComplete));
                 }
             }
@@ -121,28 +121,46 @@ namespace ACESimBase.GameSolvingSupport
             if (remainingItems > 0)
             {
                 double[] remainders = proportion.Select(x => (double)(numItems * x) - (int)(numItems * x)).ToArray();
+                bool[] incremented = new bool[remainders.Length]; // we are doing our selections w/out replacement (unless we have already used all options)
+                int randomNumberDraws = 0;
                 for (int i = 0; i < remainingItems; i++)
                 {
-                    ConsistentRandomSequenceProducer r = new ConsistentRandomSequenceProducer(randSeed, 2_000_000 + i);
-                    byte index = r.GetRandomIndex(remainders);
+                    byte index = 0;
+                    do
+                    {
+                        ConsistentRandomSequenceProducer r = new ConsistentRandomSequenceProducer(randSeed, 2_000_000 + randomNumberDraws++);
+                        index = r.GetRandomIndex(remainders);
+                    }
+                    while (incremented[index]); // i.e., if we already used this (and haven't used everything) then find something else to pick
                     integerProportions[index]++;
+                    incremented[index] = true;
+                    if (incremented.All(x => x == true))
+                        incremented = new bool[remainders.Length];
                 }
             }
             return integerProportions;
         }
 
-        
 
+        static int DEBUG = 0;
         public IEnumerator<GameProgress> GetEnumerator()
         {
             foreach (var treeNode in Tree.GetAllTreeNodes())
             {
-                GameProgress gameProgress = treeNode.storedValue.GameProgress;
+                GameProgressTreeNodeInfo treeNodeInfo = treeNode.storedValue;
+                GameProgress gameProgress = treeNodeInfo.GameProgress;
                 if (gameProgress.GameComplete)
                 {
-                    int observations = treeNode.storedValue.ObservationRange.Item2 - treeNode.storedValue.ObservationRange.Item1 + 1;
+                    (int, int) observationRange = treeNodeInfo.ObservationRange;
+                    int observations = observationRange.Item2 - observationRange.Item1 + 1;
                     for (int o = 0; o < observations; o++)
+                    {
+                        if (observationRange.Item1 + o != DEBUG + 1)
+                            throw new Exception();
+                        DEBUG++;
+                        TabbedText.WriteLine($"YIELD: {observationRange.Item1 + o}");
                         yield return gameProgress;
+                    }
                 }
             }
         }

@@ -197,8 +197,7 @@ namespace ACESim
             }
             if (EvolutionSettings.DeepCFR_ApproximateBestResponse)
             {
-                await BuildGameProgressTree(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation); // DEBUG
-                double[] baselineUtilities = DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
+                double[] baselineUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
                 TabbedText.WriteLine($"Baseline utilities {string.Join(",", baselineUtilities.Select(x => x.ToSignificantFigures(4)))}");
                 for (byte p = 0; p < NumNonChancePlayers; p++)
                 {
@@ -209,7 +208,7 @@ namespace ACESim
                     {
                         var result = await PerformDeepCFRIteration(iteration, true);
                     }
-                    double[] bestResponseUtilities = DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
+                    double[] bestResponseUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
                     TabbedText.TabUnindent();
 
                     TabbedText.WriteLine($"Concluding determining best response for player {p} (recreating earlier models)");
@@ -314,7 +313,7 @@ namespace ACESim
 
         #region Utilities calculation
 
-        public async Task BuildGameProgressTree(int totalNumberObservations)
+        public async Task<GameProgressTree> BuildGameProgressTree(int totalNumberObservations)
         {
             DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel, null, null); // DEBUG -- must figure out a way to create a separate object for each thread, but problem is we don't break it down by thread.
             GameProgress initialGameProgress = GameFactory.CreateNewGameProgress(new IterationID(1));
@@ -325,17 +324,37 @@ namespace ACESim
                 directGamePlayer
                 );
             await gameProgressTree.CompleteTree(false);
-            string s = gameProgressTree.ToString();
+            //string s = gameProgressTree.ToString();
+            return gameProgressTree;
         }
 
         public GameProgress DeepCFR_GetGameProgressByPlaying(DeepCFRPlaybackHelper playbackHelper, DeepCFRObservationNum observationNum) => DeepCFRTraversal(playbackHelper, observationNum, DeepCFRTraversalMode.PlaybackSinglePath, null).completedProgress;
 
-        public double[] DeepCFR_UtilitiesAverage(int totalNumberObservations)
+        public async Task<double[]> DeepCFR_UtilitiesAverage(int totalNumberObservations)
         {
+            TabbedText.Write($"Calculating utilities from {totalNumberObservations}");
             Stopwatch s = new Stopwatch();
             s.Start();
-            TabbedText.Write($"Calculating utilities from {totalNumberObservations}");
             StatCollectorArray stats = new StatCollectorArray();
+            bool useTree = true;
+            if (useTree)
+                await DeepCFR_UtilitiesAverage_WithTree(totalNumberObservations, stats);
+            else
+                await DeepCFR_UtilitiesAverage_IndependentPlays(totalNumberObservations, stats);
+            TabbedText.WriteLine($" time {s.ElapsedMilliseconds} ms");
+            double[] averageUtilities = stats.Average().ToArray();
+            return averageUtilities;
+        }
+
+        public async Task DeepCFR_UtilitiesAverage_WithTree(int totalNumberObservations, StatCollectorArray stats)
+        {
+            GameProgressTree gameProgressTree = await BuildGameProgressTree(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
+            foreach (GameProgress progress in gameProgressTree)
+                stats.Add(progress.GetNonChancePlayerUtilities());
+        }
+
+        public Task DeepCFR_UtilitiesAverage_IndependentPlays(int totalNumberObservations, StatCollectorArray stats)
+        {
             int numObservationsToDoTogether = GetNumObservationsToDoTogether(totalNumberObservations);
             int numPlaybacks = totalNumberObservations / numObservationsToDoTogether;
             int extraObservationsDueToRounding = numPlaybacks * numObservationsToDoTogether - totalNumberObservations;
@@ -348,9 +367,7 @@ namespace ACESim
                 var utilities = DeepCFR_UtilitiesFromMultiplePlaybacks(o, numToPlaybackTogetherThisIteration, playbackHelper).ToArray();
                 stats.Add(utilities, numToPlaybackTogetherThisIteration);
             });
-            double[] averageUtilities = stats.Average().ToArray();
-            TabbedText.WriteLine($" time {s.ElapsedMilliseconds} ms");
-            return averageUtilities;
+            return Task.CompletedTask;
         }
 
         private int GetNumObservationsToDoTogether(int totalNumberObservations)
@@ -390,7 +407,14 @@ namespace ACESim
                 if (doReports)
                 {
                     Br.eak.Add("Report");
-                    reportCollection = await GenerateReportsByPlaying(true);
+                    bool useGameProgressTree = true;
+                    if (useGameProgressTree)
+                    {
+                        var gameProgressTree = await BuildGameProgressTree(EvolutionSettings.NumRandomIterationsForSummaryTable);
+                        reportCollection = GenerateReportsFromGameProgressEnumeration(gameProgressTree);
+                    }
+                    else
+                        reportCollection = await GenerateReportsByPlaying(true);
                     //CalculateUtilitiesOverall();
                     //TabbedText.WriteLine($"Utilities: {String.Join(",", Status.UtilitiesOverall.Select(x => x.ToSignificantFigures(4)))}");
                     Br.eak.Remove("Report");

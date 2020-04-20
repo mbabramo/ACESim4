@@ -40,7 +40,7 @@ namespace ACESim
             List<byte> p = base.GetSequenceToHere(child);
             if (child != null)
             {
-                for (int i = 0; i < Branches.Length; i++)
+                for (int i = 0; i < (Branches?.Length ?? 0); i++)
                     if (Branches[i] == child)
                         p.Add((byte)(i + 1));
             }
@@ -219,7 +219,7 @@ namespace ACESim
             executionCounter.Decrement();
         }
 
-        public async Task CreateBranchesParallel(bool doParallel, Func<T, (byte branchID, T childBranch, bool isLeaf)[]> subbranchesCreator)
+        public void CreateBranchesSerial(Func<T, (byte branchID, T childBranch, bool isLeaf)[]> subbranchesCreator)
         {
             var newBranches = subbranchesCreator(StoredValue);
             foreach (var branchInfo in newBranches)
@@ -227,18 +227,27 @@ namespace ACESim
                 var branch = AddBranch(branchInfo.branchID, !branchInfo.isLeaf);
                 branch.StoredValue = branchInfo.childBranch;
             }
-            if (doParallel)
+            foreach (var b in Branches.Where(x => x is NWayTreeStorageInternal<T>))
+                ((NWayTreeStorageInternal<T>)b).CreateBranchesSerial(subbranchesCreator);
+        }
+
+        public async Task CreateBranchesParallel(bool doParallel, Func<T, (byte branchID, T childBranch, bool isLeaf)[]> subbranchesCreator)
+        {
+            if (!doParallel)
             {
-                await Parallelizer.ForEachAsync(Branches.Where(x => x is NWayTreeStorageInternal<T>), async b =>
-                {
-                    await ((NWayTreeStorageInternal<T>)b).CreateBranchesParallel(true, subbranchesCreator);
-                });
+                CreateBranchesSerial(subbranchesCreator);
+                return;
             }
-            else
+            var newBranches = subbranchesCreator(StoredValue);
+            foreach (var branchInfo in newBranches)
             {
-                foreach (var b in Branches.Where(x => x is NWayTreeStorageInternal<T>))
-                    await ((NWayTreeStorageInternal<T>)b).CreateBranchesParallel(true, subbranchesCreator);
+                var branch = AddBranch(branchInfo.branchID, !branchInfo.isLeaf);
+                branch.StoredValue = branchInfo.childBranch;
             }
+            await Parallelizer.ForEachAsync(Branches.Where(x => x is NWayTreeStorageInternal<T>), async b =>
+            {
+                await ((NWayTreeStorageInternal<T>)b).CreateBranchesParallel(true, subbranchesCreator);
+            });
         }
 
         //public async Task CreateBranchesParallel(Func<NWayTreeStorageInternal<T>, (byte, NWayTreeStorage<T>)[]> subbranchesCreator)
