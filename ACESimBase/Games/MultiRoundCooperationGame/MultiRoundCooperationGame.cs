@@ -14,6 +14,16 @@ namespace ACESim
         public MultiRoundCooperationGameDefinition MyDefinition => (MultiRoundCooperationGameDefinition)GameDefinition;
         public MultiRoundCooperationGameProgress MyProgress => (MultiRoundCooperationGameProgress)Progress;
 
+        public MultiRoundCooperationGame(List<Strategy> strategies,
+            GameProgress progress,
+            GameDefinition gameDefinition,
+            bool recordReportInfo,
+            bool restartFromBeginningOfGame
+            ) : base(strategies, progress, gameDefinition, recordReportInfo, restartFromBeginningOfGame)
+        {
+
+        }
+
         public override void UpdateGameProgressFollowingAction(byte currentDecisionByteCode, byte action)
         {
             if (currentDecisionByteCode == (byte)MultiRoundCooperationGameDecisions.P1Decision)

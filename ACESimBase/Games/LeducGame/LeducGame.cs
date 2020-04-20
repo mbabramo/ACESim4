@@ -15,6 +15,16 @@ namespace ACESim
         public LeducGameProgress MyProgress => (LeducGameProgress)Progress;
         public LeducGameState MyState => MyProgress.GameState;
 
+        public LeducGame(List<Strategy> strategies,
+            GameProgress progress,
+            GameDefinition gameDefinition,
+            bool recordReportInfo,
+            bool restartFromBeginningOfGame
+            ) : base(strategies, progress, gameDefinition, recordReportInfo, restartFromBeginningOfGame)
+        {
+
+        }
+
         public override void Initialize()
         {
             MyProgress.GameState = new LeducGameState(MyDefinition.Options.OneBetSizeOnly);

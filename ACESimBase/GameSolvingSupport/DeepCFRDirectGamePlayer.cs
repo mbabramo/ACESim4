@@ -9,14 +9,14 @@ namespace ACESimBase.GameSolvingSupport
     {
         public DeepCFRPlaybackHelper PlaybackHelper;
 
-        public DeepCFRDirectGamePlayer(GameDefinition gameDefinition, GameProgress startingProgress, Game alreadyStartedGame, DeepCFRPlaybackHelper playbackHelper) : base(gameDefinition, startingProgress, alreadyStartedGame)
+        public DeepCFRDirectGamePlayer(GameDefinition gameDefinition, GameProgress progress, bool advanceToFirstStep, DeepCFRPlaybackHelper playbackHelper) : base(gameDefinition, progress, advanceToFirstStep)
         {
             PlaybackHelper = playbackHelper;
         }
 
         public override DirectGamePlayer DeepCopy()
         {
-            return new DeepCFRDirectGamePlayer(GameDefinition, GameProgress.DeepCopy(), Game, PlaybackHelper);
+            return new DeepCFRDirectGamePlayer(GameDefinition, GameProgress.DeepCopy(), false, PlaybackHelper);
         }
 
         public (DeepCFRIndependentVariables, double[]) GetIndependentVariablesAndPlayerProbabilities(DeepCFRObservationNum observationNum)

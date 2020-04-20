@@ -24,9 +24,13 @@ namespace ACESim
         /// Creates a new instance of the Game type
         /// </summary>
         /// <returns></returns>
-        public Game CreateNewGame()
+        public Game CreateNewGame(List<Strategy> strategies,
+            GameProgress progress,
+            GameDefinition gameDefinition,
+            bool recordReportInfo,
+            bool restartFromBeginningOfGame)
         {
-            return new LeducGame();
+            return new LeducGame(strategies, progress, gameDefinition, recordReportInfo, restartFromBeginningOfGame);
         }
 
         /// <summary>

@@ -7,7 +7,11 @@ namespace ACESim
 {
     public interface IGameFactory
     {
-        Game CreateNewGame();
+        Game CreateNewGame(List<Strategy> strategies,
+            GameProgress progress,
+            GameDefinition gameDefinition,
+            bool recordReportInfo,
+            bool restartFromBeginningOfGame);
         Type GetGameDefinitionType();
         GameProgress CreateNewGameProgress(IterationID iterationID);
         void InitializeStrategyDevelopment(Strategy strategy);

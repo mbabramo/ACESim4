@@ -15,7 +15,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public AdditiveEvidenceGameDefinition AdditiveEvidenceDefinition => (AdditiveEvidenceGameDefinition)GameDefinition;
         public AdditiveEvidenceGameProgress AdditiveEvidenceProgress => (AdditiveEvidenceGameProgress)Progress;
 
-        public AdditiveEvidenceGame()
+        public AdditiveEvidenceGame(List<Strategy> strategies,
+            GameProgress progress,
+            GameDefinition gameDefinition,
+            bool recordReportInfo,
+            bool restartFromBeginningOfGame
+            ) : base(strategies, progress, gameDefinition, recordReportInfo, restartFromBeginningOfGame)
         {
 
         }

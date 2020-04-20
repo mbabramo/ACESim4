@@ -13,10 +13,34 @@ namespace ACESim
     /// </summary>
     public class Game
     {
-        public GameProgress Progress;
-        public List<Strategy> Strategies;
-        public GameDefinition GameDefinition;
-        public List<GameModule> GameModules;
+        public readonly GameProgress Progress;
+        public readonly List<Strategy> Strategies;
+        public readonly GameDefinition GameDefinition;
+        public readonly List<GameModule> GameModules;
+
+        public Game(
+            List<Strategy> strategies,
+            GameProgress progress,
+            GameDefinition gameDefinition,
+            bool recordReportInfo,
+            bool restartFromBeginningOfGame
+            )
+        {
+            if (restartFromBeginningOfGame && Strategies != null)
+                progress = gameDefinition.GameFactory.CreateNewGameProgress(progress.IterationID);
+            if (restartFromBeginningOfGame)
+            {
+                progress.GameHistoryStorable = GameHistoryStorable.NewInitialized();
+            }
+
+            this.Strategies = strategies;
+            this.Progress = progress;
+            this.Progress.GameDefinition = gameDefinition;
+            this.GameDefinition = gameDefinition;
+            this.RecordReportInfo = recordReportInfo;
+            this.GameModules = SetUpGameModules();
+            Initialize();
+        }
 
         public ActionPoint CurrentActionPoint
         {
@@ -111,51 +135,31 @@ namespace ACESim
             return GameDefinition.DecisionPointForDecisionNumber(decisionNumber);
         }
 
-        public virtual void PlaySetup(
-            List<Strategy> strategies,
-            GameProgress progress,
-            GameDefinition gameDefinition,
-            bool recordReportInfo,
-            bool restartFromBeginningOfGame
-            )
-        {
-            if (restartFromBeginningOfGame && Strategies != null)
-                progress = gameDefinition.GameFactory.CreateNewGameProgress(progress.IterationID);
-            if (restartFromBeginningOfGame)
-            {
-                progress.GameHistoryStorable = GameHistoryStorable.NewInitialized();
-            }
-
-            this.Strategies = strategies;
-            this.Progress = progress;
-            this.Progress.GameDefinition = gameDefinition;
-            this.GameDefinition = gameDefinition;
-            this.RecordReportInfo = recordReportInfo;
-            SetUpGameModules();
-            Initialize();
-        }
+        
 
         public virtual void Initialize()
         {
             
         }
 
-        internal virtual void SetUpGameModules()
+        internal virtual List<GameModule> SetUpGameModules()
         {
+            List<GameModule> gameModules = null;
             if (GameDefinition.GameModules != null)
             {
                 bool mustAddGameModuleProgresses = Progress.GameModuleProgresses == null;
                 if (mustAddGameModuleProgresses)
                     Progress.GameModuleProgresses = new List<GameModuleProgress>(); // allocate list but individual CreateInstanceAndInitializeProgress routines will create objects
-                GameModules = new List<GameModule>();
+                gameModules = new List<GameModule>();
                 foreach (var originalModule in GameDefinition.GameModules)
                 {
                     originalModule.CreateInstanceAndInitializeProgress(this, Strategies, originalModule.GameModuleSettings, out GameModule theModule, out GameModuleProgress theProgress);
-                    GameModules.Add(theModule);
+                    gameModules.Add(theModule);
                     if (mustAddGameModuleProgresses)
                         Progress.GameModuleProgresses.Add(theProgress);
                 }
             }
+            return gameModules;
         }
 
         /// <summary>

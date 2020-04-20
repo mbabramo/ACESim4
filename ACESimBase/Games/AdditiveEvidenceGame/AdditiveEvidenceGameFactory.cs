@@ -23,9 +23,13 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         /// Creates a new instance of the Game type
         /// </summary>
         /// <returns></returns>
-        public Game CreateNewGame()
+        public Game CreateNewGame(List<Strategy> strategies,
+            GameProgress progress,
+            GameDefinition gameDefinition,
+            bool recordReportInfo,
+            bool restartFromBeginningOfGame)
         {
-            return new AdditiveEvidenceGame();
+            return new AdditiveEvidenceGame(strategies, progress, gameDefinition, recordReportInfo, restartFromBeginningOfGame);
         }
 
         /// <summary>

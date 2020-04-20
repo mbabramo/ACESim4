@@ -14,7 +14,12 @@ namespace ACESim
         public MyGameDefinition MyDefinition => (MyGameDefinition)GameDefinition;
         public MyGameProgress MyProgress => (MyGameProgress)Progress;
 
-        public MyGame()
+        public MyGame(List<Strategy> strategies,
+            GameProgress progress,
+            GameDefinition gameDefinition,
+            bool recordReportInfo,
+            bool restartFromBeginningOfGame
+            ) : base(strategies, progress, gameDefinition, recordReportInfo, restartFromBeginningOfGame)
         {
             
         }

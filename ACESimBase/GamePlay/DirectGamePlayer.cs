@@ -13,21 +13,13 @@ namespace ACESimBase
         public GameProgress GameProgress { get; set; }
         public Game Game;
 
-        public DirectGamePlayer(GameDefinition gameDefinition, GameProgress startingProgress, Game alreadyStartedGame)
+        public DirectGamePlayer(GameDefinition gameDefinition, GameProgress currentProgress, bool advanceToFirstStep)
         {
             GameDefinition = gameDefinition;
-            GameProgress = startingProgress.DeepCopy();
-            if (alreadyStartedGame == null)
-            {
-                Game = GameDefinition.GameFactory.CreateNewGame();
-                Game.PlaySetup(null, GameProgress, GameDefinition, false, true);
+            GameProgress = currentProgress;
+            Game = GameDefinition.GameFactory.CreateNewGame(null, GameProgress, GameDefinition, false, true);
+            if (advanceToFirstStep)
                 Game.AdvanceToOrCompleteNextStep();
-            }
-            else
-            {
-                Game = alreadyStartedGame;
-                Game.Progress = GameProgress;
-            }
         }
 
         public abstract DirectGamePlayer DeepCopy();
