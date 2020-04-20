@@ -10,5 +10,9 @@ namespace ACESimBase.GameSolvingSupport
         double[] GetActionProbabilities();
         GameProgress GameProgress { get; }
         IDirectGamePlayer CopyAndPlayAction(byte action);
+        bool GameComplete { get; }
+        Decision CurrentDecision { get; }
+        byte? CurrentDecisionIndex { get; }
+        PlayerInfo CurrentPlayer { get; }
     }
 }

@@ -18,6 +18,14 @@ namespace ACESimBase.GameSolvingSupport
             public GameProgress GameProgress => DirectGamePlayer.GameProgress;
             public (int, int) ObservationRange;
             public double[] Probabilities;
+
+            public override string ToString()
+            {
+                string probabilitiesString = Probabilities == null ? null : String.Join(",", Probabilities.Select(x => x.ToSignificantFigures(3)));
+                string resultString = GameProgress.GameComplete ? String.Join(",", GameProgress.GetNonChancePlayerUtilities().Select(x => x.ToSignificantFigures(5))) : "incomplete";
+                string result = $"Obs: {ObservationRange} Decision: {DirectGamePlayer.CurrentDecision?.Name} Probs: {probabilitiesString} Result: {resultString}";
+                return result;
+            }
         }
 
         NWayTreeStorageInternal<GameProgressTreeNode> Tree;
@@ -35,6 +43,8 @@ namespace ACESimBase.GameSolvingSupport
             };
             InitialRandSeed = randSeed;
         }
+
+        public override string ToString() => Tree?.ToTreeString("Action");
 
         public async Task CompleteTree(bool doParallel)
         {
@@ -74,6 +84,10 @@ namespace ACESimBase.GameSolvingSupport
                 IDirectGamePlayer gamePlayer = children[a - 1];
                 if (gamePlayer != null)
                 {
+                    if (subranges[a - 1].Value.Item2 == 202)
+                    {
+                        var DEBUG = 0;
+                    }
                     var childBranchItem = new GameProgressTreeNode() { DirectGamePlayer = gamePlayer, ObservationRange = subranges[a - 1].Value };
                     subbranches.Add((a, childBranchItem, numInSubrange == 1 || gamePlayer.GameProgress.GameComplete));
                 }
@@ -107,7 +121,7 @@ namespace ACESimBase.GameSolvingSupport
             if (remainingItems > 0)
             {
                 double[] remainders = proportion.Select(x => (double)(numItems * x) - (int)(numItems * x)).ToArray();
-                for (int i = 0; i < numItems; i++)
+                for (int i = 0; i < remainingItems; i++)
                 {
                     ConsistentRandomSequenceProducer r = new ConsistentRandomSequenceProducer(randSeed, 2_000_000 + i);
                     byte index = r.GetRandomIndex(remainders);

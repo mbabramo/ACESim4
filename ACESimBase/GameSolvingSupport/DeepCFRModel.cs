@@ -207,7 +207,6 @@ namespace ACESimBase.GameSolvingSupport
                 throw new Exception();
             byte originalValue = independentVariables.ActionChosen;
             independentVariables.ActionChosen = action;
-            // DEBUG -- figure out way of not having to keep recalling AsArray
             double result = Regression.GetResult(independentVariables.AsArray(IncludedDecisionIndices), regressionMachine);
             independentVariables.ActionChosen = originalValue;
             return result;

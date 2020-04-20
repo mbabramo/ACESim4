@@ -26,7 +26,12 @@ namespace ACESim
             b.Append(base.ToString(level));
             if (Branches != null)
                 foreach (var branch in Branches)
-                    b.Append(branch.ToString(level + 1));
+                {
+                    if (branch == null)
+                        b.AppendLine("N/A");
+                    else
+                        b.Append(branch.ToString(level + 1));
+                }
             return b.ToString();
         }
 

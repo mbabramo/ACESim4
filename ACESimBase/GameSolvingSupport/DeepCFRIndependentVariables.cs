@@ -9,11 +9,11 @@ namespace ACESimBase.GameSolvingSupport
         /// <summary>
         /// A code identifying the player. It is possible to include multiple players within the same regression. A binary variable will be used to represent all players but one. 
         /// </summary>
-        public byte Player;
+        public readonly byte Player;
         /// <summary>
         /// A code identifying the decision type. A single regression may include observations with different byte codes, for example representing different stages in a game. Binary variables will be used to represent the different possible decision byte codes (except for one).
         /// </summary>
-        public byte DecisionIndex;
+        public readonly byte DecisionIndex;
         /// <summary>
         /// The action chosen by the player at the information set.
         /// </summary>
@@ -22,11 +22,19 @@ namespace ACESimBase.GameSolvingSupport
         /// The information set will consist of actions of players that the player knows about, including but not limited to all of the player's own actions. Each of these will be an independent variable.
         /// If some decision indices exist for some players and not others, then there will also be an independent variable indicating whether the information is available.
         /// </summary>
-        public List<(byte decisionIndex, byte information)> InformationSet;
+        public readonly List<(byte decisionIndex, byte information)> InformationSet;
         /// <summary>
         /// If we change game parameters in each observation, then the game parameters for this observation can be specified here. If different game parameters are used for early iterations than for late iterations, then both sets can be included here. Game parameters may also include some indication of the extent to which each player takes other players' utilities into account.
         /// </summary>
-        public List<float> GameParameters;
+        public readonly List<float> GameParameters;
+        /// <summary>
+        /// The array version of the independent variables cached.
+        /// </summary>
+        private float[] CachedArray;
+        /// <summary>
+        /// The included decision indices for which the array is cached
+        /// </summary>
+        private List<byte> CachedIncludedDecisionIndices;
 
         public DeepCFRIndependentVariables()
         {
@@ -68,6 +76,11 @@ namespace ACESimBase.GameSolvingSupport
 
         public float[] AsArray(List<byte> includedDecisionIndices)
         {
+            if (CachedArray != null && includedDecisionIndices.SequenceEqual(CachedIncludedDecisionIndices))
+            {
+                CachedArray[CachedArray.Length - 1] = ActionChosen; // this is the only thing that may change
+                return CachedArray.ToArray();
+            }
             var informationSetPlusAction = InformationSetPlusActionChosen()?.ToArray();
             int numGameParameters = GameParameters?.Count() ?? 0;
             int arraySize = 2 + includedDecisionIndices.Count() * 2 + numGameParameters;
@@ -75,6 +88,9 @@ namespace ACESimBase.GameSolvingSupport
             int resultIndex = 0;
             result[resultIndex++] = Player;
             result[resultIndex++] = DecisionIndex;
+            // Finally, add the game parameters
+            for (int i = 0; i < numGameParameters; i++)
+                result[resultIndex++] = GameParameters[i];
             int informationSetPlusActionIndex = 0;
             foreach (byte decisionIndex in includedDecisionIndices)
             {
@@ -91,9 +107,8 @@ namespace ACESimBase.GameSolvingSupport
                     result[resultIndex++] = informationSetPlusAction[informationSetPlusActionIndex++].information;
                 }
             }
-            // Finally, add the game parameters
-            for (int i = 0; i < numGameParameters; i++)
-                result[resultIndex + i] = GameParameters[i];
+            CachedArray = result;
+            CachedIncludedDecisionIndices = includedDecisionIndices;
             return result;
         }
     }

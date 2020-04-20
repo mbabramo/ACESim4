@@ -13,6 +13,14 @@ namespace ACESimBase
         public GameProgress GameProgress { get; set; }
         public Game Game;
 
+        public bool GameComplete => GameProgress.GameComplete;
+
+        public Decision CurrentDecision => Game.CurrentDecision;
+
+        public byte? CurrentDecisionIndex => Game.CurrentDecisionIndex;
+
+        public PlayerInfo CurrentPlayer => GameDefinition.Players[CurrentDecision.PlayerNumber];
+
         public DirectGamePlayer(GameDefinition gameDefinition, GameProgress currentProgress, bool advanceToFirstStep)
         {
             GameDefinition = gameDefinition;
@@ -37,14 +45,6 @@ namespace ACESimBase
             Game.ContinuePathWithAction(actionToPlay);
             Game.AdvanceToOrCompleteNextStep();
         }
-
-        public bool GameComplete => GameProgress.GameComplete;
-
-        public Decision CurrentDecision => Game.CurrentDecision;
-
-        public byte? CurrentDecisionIndex => Game.CurrentDecisionIndex;
-
-        public PlayerInfo CurrentPlayer => GameDefinition.Players[CurrentDecision.PlayerNumber];
 
         public GameStateTypeEnum GetGameStateType()
         {

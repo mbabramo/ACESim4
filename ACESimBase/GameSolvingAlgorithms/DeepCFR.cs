@@ -325,7 +325,7 @@ namespace ACESim
                 directGamePlayer
                 );
             await gameProgressTree.CompleteTree(false);
-
+            string s = gameProgressTree.ToString();
         }
 
         public GameProgress DeepCFR_GetGameProgressByPlaying(DeepCFRPlaybackHelper playbackHelper, DeepCFRObservationNum observationNum) => DeepCFRTraversal(playbackHelper, observationNum, DeepCFRTraversalMode.PlaybackSinglePath, null).completedProgress;
