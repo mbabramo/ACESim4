@@ -62,7 +62,7 @@ namespace ACESimBase.GameSolvingSupport
                     // This is a leaf of the tree -- so we must play until the game is complete.
                     double[] childProbabilities = childGamePlayer.GetActionProbabilities();
                     ConsistentRandomSequenceProducer r = new ConsistentRandomSequenceProducer(++randSeed, 3_000_000);
-                    byte childAction = r.GetRandomIndex(childProbabilities);
+                    byte childAction = (byte) (1 + r.GetRandomIndex(childProbabilities));
                     childGamePlayer = childGamePlayer.CopyAndPlayAction(childAction);
                 };
                 return childGamePlayer;

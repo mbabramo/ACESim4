@@ -246,7 +246,7 @@ namespace SimpleAdditiveEvidence
             {
                 leftAxisIntercept = 0 - startingPointValue * tangent;
                 rightAxisIntercept = (1.0 - startingPointValue) * tangent;
-                Debug.WriteLine($"{startingPointValue} => {leftAxisIntercept},{rightAxisIntercept}"); // DEBUG
+                //Debug.WriteLine($"{startingPointValue} => {leftAxisIntercept},{rightAxisIntercept}");
             }
             else
             {

@@ -42,7 +42,6 @@ namespace ACESimDistributed
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    // DEBUG
                     MyGameLauncher launcher = new MyGameLauncher();
                     //AdditiveEvidenceGameLauncher launcher = new AdditiveEvidenceGameLauncher();
 

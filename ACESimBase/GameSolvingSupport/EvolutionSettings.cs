@@ -30,7 +30,7 @@ namespace ACESim
         public int? ReportEveryNIterations = 1000;
 
         // CORRELATED EQ SETTINGS -- MUST ALSO SET IN GAME DEFINITION
-        public bool ConstructCorrelatedEquilibrium = true; // DEBUG
+        public bool ConstructCorrelatedEquilibrium = false; 
         public bool ConstructCorrelatedEquilibriumMultipleTimesExPost = true;
         public int MaxNumCorrelatedEquilibriaToConstruct = 125;
         public bool CheckCorrelatedEquilibriumIncompatibilitiesAlongWay = false;
@@ -40,7 +40,7 @@ namespace ACESim
         public const int EffectivelyNever = 999999999;
         public int? BestResponseEveryMIterations = 100; // For partial recall games, this is very costly, so consider using EffectivelyNever.
         public bool RememberBestResponseExploitability = true;
-        public bool UseAcceleratedBestResponse = true; // DEBUG -- we're turning off measurement of best response for now
+        public bool UseAcceleratedBestResponse = true; 
         public bool UseCurrentStrategyForBestResponse = true; // requires accelerated best response
         public bool CalculatePerturbedBestResponseRefinement = false;
         public double PerturbationForBestResponseCalculation = 0.001;
@@ -48,7 +48,7 @@ namespace ACESim
         public bool MeasureRegretMatchingChanges = false;
         public bool UseRandomPathsForReporting = true;
         public bool RoundOffLowProbabilitiesBeforeReporting = true;
-        public bool RoundOffLowProbabilitiesBeforeAcceleratedBestResponse = true; // DEBUG
+        public bool RoundOffLowProbabilitiesBeforeAcceleratedBestResponse = true; 
         public double RoundOffThreshold = 0.005;
         public bool SerializeResults = false;
         public bool SerializeInformationSetDataOnly = true;
@@ -75,8 +75,8 @@ namespace ACESim
 
         public bool GenerateReportsByPlaying;
         public int NumRandomIterationsForSummaryTable = 10000;
-        public bool PrintGameTree = true; // DEBUG // Note: Overridden in launcher
-        public bool PrintInformationSets = true; //DEBUG // Note: Overridden in launcher
+        public bool PrintGameTree = false; // Note: Value here overridden in launcher
+        public bool PrintInformationSets = false; // Note: Value here overridden in launcher
         public bool AnalyzeInformationSets = false; 
         public List<int> RestrictToTheseInformationSets = null;
         public bool PrintNonChanceInformationSetsOnly = true;
@@ -116,7 +116,7 @@ namespace ACESim
 
         // For Vanilla algorithm:
         // From Solving Imperfect Information Games with Discounted Regret Minimization -- optimal values (for situations in which pruning may be used)
-        public bool UseContinuousRegretsDiscounting = false; // DEBUG // an alternative to discounting regrets with standard discounting approach
+        public bool UseContinuousRegretsDiscounting = true; // an alternative to discounting regrets with standard discounting approach
         public double ContinuousRegretsDiscountPerIteration => UseContinuousRegretsDiscounting ? 0.99 : 1.0; 
         public bool UseStandardDiscounting = false; // Note: This might be especially helpful sometimes for multiplicative weights
         public bool DiscountRegrets = false; // if true, Discounting_Alpha and Discounting_Beta are used -- note never currently used in MultiplicativeWeightsVanilla

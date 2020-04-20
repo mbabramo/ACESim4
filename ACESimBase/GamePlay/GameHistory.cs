@@ -88,7 +88,11 @@ namespace ACESim
         public void VerifyThread()
         {
 #if SAFETYCHECKS
-            // DEBUG -- maybe this isn't necessary to check anymore. After all, GameHistory is now stack-only, so it will never cross threads. GameHistoryStorable can cross threads. 
+            // We verify that the thread has the same. Note that GameHistory is stack-only, so it will never cross threads.
+            // The real question is thus whether a GameProgress is used to yield multiple different GameHistories that are
+            // then saved back to the same GameProgress from different threads, causing a difficult to identify bug.
+            // If we use deep copying of the GameHistory (in GameHistoryStorable), then the CreatingThreadID is reset and
+            // there is no problem. But when using shallow copies, we need to be careful.
             if (!IsEmpty && CreatingThreadID != System.Threading.Thread.CurrentThread.ManagedThreadId)
                 throw new Exception();
 #endif
