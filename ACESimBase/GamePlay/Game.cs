@@ -18,11 +18,23 @@ namespace ACESim
         public List<Strategy> Strategies;
         public GameDefinition GameDefinition;
         public List<GameModule> GameModules;
-        public ActionPoint CurrentActionPoint;
+        public ActionPoint CurrentActionPoint
+        {
+            get => Progress.CurrentActionPoint;
+            set => Progress.CurrentActionPoint = value;
+        }
 
-        public int? MostRecentDecisionIndex;
+        public int? MostRecentDecisionIndex
+        {
+            get => Progress.MostRecentDecisionIndex;
+            set => Progress.MostRecentDecisionIndex = value;
+        }
 
-        public bool CurrentlyPlayingUpToADecisionInsteadOfCompletingGame = false;
+        public bool CurrentlyPlayingUpToADecisionInsteadOfCompletingGame
+        {
+            get => Progress.CurrentlyPlayingUpToADecisionInsteadOfCompletingGame;
+            set => Progress.CurrentlyPlayingUpToADecisionInsteadOfCompletingGame = value;
+        }
 
         public byte? CurrentDecisionIndex
         {

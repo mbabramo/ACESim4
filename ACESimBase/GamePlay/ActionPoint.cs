@@ -17,6 +17,8 @@ namespace ACESim
         public byte? DecisionNumberWithinActionGroup;
         public byte? DecisionNumberWithinModule;
 
+        public ActionPoint DeepCopy() => DeepCopy(ActionGroup);
+
         public ActionPoint DeepCopy(ActionGroup newActionGroup)
         {
             return new ActionPoint() { ActionGroup = newActionGroup, Name = Name, Decision = Decision, DecisionNumber = DecisionNumber, DecisionNumberWithinActionGroup = DecisionNumberWithinActionGroup, DecisionNumberWithinModule = DecisionNumberWithinModule };

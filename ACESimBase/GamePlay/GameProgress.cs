@@ -59,6 +59,12 @@ namespace ACESim
         public byte RandomNumbersUsed;
         public double Mixedness;
 
+        public ActionPoint CurrentActionPoint;
+
+        public int? MostRecentDecisionIndex;
+
+        public bool CurrentlyPlayingUpToADecisionInsteadOfCompletingGame;
+
         public GameProgress()
         {
             var gameHistory = new GameHistory();
@@ -276,6 +282,9 @@ namespace ACESim
 
         internal virtual void CopyFieldInfo(GameProgress copy)
         {
+            copy.CurrentActionPoint = CurrentActionPoint.DeepCopy();
+            copy.MostRecentDecisionIndex = MostRecentDecisionIndex;
+            copy.CurrentlyPlayingUpToADecisionInsteadOfCompletingGame = CurrentlyPlayingUpToADecisionInsteadOfCompletingGame;
             copy.CurrentDecisionIndex = CurrentDecisionIndex;
             copy.PreparationPhase = PreparationPhase;
             copy.DecisionNeeded = DecisionNeeded;

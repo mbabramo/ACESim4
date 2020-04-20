@@ -34,8 +34,7 @@ namespace ACESimBase
 
         public IDirectGamePlayer CopyAndPlayAction(byte action)
         {
-            var copy = DeepCopy();
-            debug; // must also copy the Game object
+            var copy = DeepCopy(); // DEBUG -- must make sure that Progress makes a deep copy of the game history, so that we can move to a different thread.
             copy.PlayAction(action);
             return copy;
         }
