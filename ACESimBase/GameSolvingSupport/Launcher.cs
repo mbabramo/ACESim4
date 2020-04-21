@@ -22,7 +22,7 @@ namespace ACESim
 
         public const int VanillaIterations = 25_000; // Note: Also used for GeneralizedVanilla, DeepCFR
         public const int VanillaReportEveryNIterations = VanillaIterations;
-        public const int VanillaBestResponseEveryMIterations = VanillaIterations; // EffectivelyNever; 
+        public const int VanillaBestResponseEveryMIterations = 250; // DEBUG  VanillaIterations; // EffectivelyNever; 
         public const bool CalculatePerturbedBestResponseRefinement = true;
         public const int MiniReportEveryPIterations = EffectivelyNever;
         public const bool AlwaysSuppressDisplayReportOnScreen = true; 
