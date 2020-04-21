@@ -150,11 +150,11 @@ namespace ACESim
 
         public static MyGameOptions Custom()
         {
-            var options = BothUncertain_3BR();
+            var options = DamagesUncertainty_2BR();
             //var options = DamagesUncertainty_1BR();
             //options.NumDamagesSignals = 3;
             //options.NumOffers = 3;
-            NormalizeToDamages(options);
+            //NormalizeToDamages(options);
             //options.AllowAbandonAndDefaults = false;
             //options.PFilingCost = 0;
             //options.DAnswerCost = 0;
