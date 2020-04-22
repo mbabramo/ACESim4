@@ -59,13 +59,9 @@ namespace ACESimBase.Util
         public void AddPotentialReplacementsAtIteration(List<T> replacements, double discountRate, int iteration)
         {
             int numToDrop = CountNumToDropAtIteration(discountRate, iteration);
-            bool tooFewReplacements = replacements.Count() < numToDrop;
-            if (tooFewReplacements)
-                numToDrop = replacements.Count();
             if (numToDrop > 0)
             {
                 DropItems(numToDrop);
-            }
             replacements = replacements.Take(RemainingCapacity).ToList();
             AddReplacements(replacements);
         }
