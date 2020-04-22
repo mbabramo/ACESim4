@@ -15,9 +15,8 @@ namespace ACESimBase.GameSolvingSupport
         long ReservoirSeed;
         double DiscountRate;
 
-        public DeepCFRModel UnifiedModel;
-        public DeepCFRMultiModelContainer<byte> PlayerSpecificModels = null;
-        public DeepCFRMultiModelContainer<(byte playerIndex, byte decisionByteCodeOrIndex)> DecisionSpecificModels = null;
+        public DeepCFRMultiModelContainer<byte> Models = null;
+
         /// <summary>
         /// Factory to create a regression processor
         /// </summary>
@@ -39,7 +38,7 @@ namespace ACESimBase.GameSolvingSupport
             ReservoirSeed = reservoirSeed;
             DiscountRate = discountRate;
             RegressionFactory = regressionFactory;
-            InitializeModels();
+            Models = new DeepCFRMultiModelContainer<byte>(reservoirCapacity, reservoirSeed, discountRate, regressionFactory);
         }
 
         public DeepCFRMultiModel DeepCopyForPlaybackOnly()
@@ -50,44 +49,24 @@ namespace ACESimBase.GameSolvingSupport
                 ReservoirCapacity = ReservoirCapacity,
                 ReservoirSeed = ReservoirSeed,
                 DiscountRate = DiscountRate,
-                UnifiedModel = UnifiedModel,
-                PlayerSpecificModels = PlayerSpecificModels?.DeepCopyForPlaybackOnly(),
-                DecisionSpecificModels = DecisionSpecificModels?.DeepCopyForPlaybackOnly(),
+                Models = Models?.DeepCopyForPlaybackOnly(),
                 DeterminingBestResponseOfPlayer = DeterminingBestResponseOfPlayer
             };
         }
 
-        private void InitializeModels()
+        public static byte GetModelKey(DeepCFRMultiModelMode mode, Decision currentDecision, byte decisionIndex)
         {
-            switch (Mode)
+            return mode switch
             {
-                case DeepCFRMultiModelMode.Unified:
-                    UnifiedModel = new DeepCFRModel("Unified", ReservoirCapacity, ReservoirSeed, DiscountRate, RegressionFactory);
-                    break;
-                case DeepCFRMultiModelMode.PlayerSpecific:
-                    PlayerSpecificModels = new DeepCFRMultiModelContainer<byte>(ReservoirCapacity, ReservoirSeed, DiscountRate, RegressionFactory);
-                    break;
-                case DeepCFRMultiModelMode.DecisionTypeSpecific:
-                    DecisionSpecificModels = new DeepCFRMultiModelContainer<(byte playerIndex, byte decisionByteCodeOrIndex)>(ReservoirCapacity, ReservoirSeed, DiscountRate, RegressionFactory);
-                    break;
-            }
+                DeepCFRMultiModelMode.Unified => (byte)0,
+                DeepCFRMultiModelMode.PlayerSpecific => currentDecision.PlayerNumber,
+                DeepCFRMultiModelMode.DecisionTypeSpecific => currentDecision.DecisionByteCode,
+                DeepCFRMultiModelMode.DecisionSpecific => decisionIndex,
+                _ => throw new NotImplementedException()
+            };
         }
 
-        public DeepCFRModel GetModel(Decision decision, byte decisionIndex)
-        {
-            if (decision.IsChance)
-                throw new Exception("Should only model non-chance decisions");
-            return GetModel(decision.PlayerNumber, decision.DecisionByteCode, decisionIndex, decision.Name);
-        }
-
-        public DeepCFRModel GetModel(byte playerNumber, byte decisionByteCode, byte decisionIndex, string name) => Mode switch
-        { 
-            DeepCFRMultiModelMode.Unified => UnifiedModel,
-            DeepCFRMultiModelMode.PlayerSpecific => PlayerSpecificModels.GetModel(playerNumber, () => $"Player {playerNumber}"),
-            DeepCFRMultiModelMode.DecisionTypeSpecific => DecisionSpecificModels.GetModel((playerNumber, decisionByteCode), () => $"DecisionType {name}"),
-            DeepCFRMultiModelMode.DecisionSpecific => DecisionSpecificModels.GetModel((playerNumber, decisionIndex), () => $"Decision {name}"),
-            _ => throw new NotImplementedException(),
-        };
+        public DeepCFRModel GetModel(byte key) => Models.GetModel(key, () => );
 
         public void SetModel(Decision decision, byte decisionIndex, DeepCFRModel model)
         {
@@ -159,22 +138,10 @@ namespace ACESimBase.GameSolvingSupport
             }
         }
 
-        public static byte GetRegressionMachineKey(DeepCFRMultiModelMode mode, Decision currentDecision, byte decisionIndex)
-        {
-            return mode switch
-            {
-                DeepCFRMultiModelMode.Unified => (byte)0,
-                DeepCFRMultiModelMode.PlayerSpecific => currentDecision.PlayerNumber,
-                DeepCFRMultiModelMode.DecisionTypeSpecific => currentDecision.DecisionByteCode,
-                DeepCFRMultiModelMode.DecisionSpecific => decisionIndex,
-                _ => throw new NotImplementedException()
-            };
-        }
-
         public Dictionary<byte, IRegressionMachine> GetRegressionMachinesForLocalUse(List<(Decision decision, byte decisionIndex)> decisions)
         {
             List<(Decision decision, byte decisionIndex)> nonChanceDecisions = decisions.Where(x => !x.decision.IsChance).ToList();
-            List<(Decision decision, byte key)> decisionsWithKey = nonChanceDecisions.Select(x => (x.decision, GetRegressionMachineKey(Mode, x.decision, x.decisionIndex))).ToList();
+            List<(Decision decision, byte key)> decisionsWithKey = nonChanceDecisions.Select(x => (x.decision, GetModelKey(Mode, x.decision, x.decisionIndex))).ToList();
             List<(Decision decision, byte key)> distinctDecisionsWithKey = DistinctBy(decisionsWithKey, d => d.key).ToList();
             var models = EnumerateModelsWithPlayerInfo().ToList();
             List<(byte key, DeepCFRModel model)> keyWithModel = distinctDecisionsWithKey.Select(x => (x.key, GetModel())

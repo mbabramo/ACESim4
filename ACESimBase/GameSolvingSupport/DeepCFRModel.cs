@@ -13,7 +13,19 @@ namespace ACESimBase.GameSolvingSupport
     public class DeepCFRModel
     {
         /// <summary>
-        /// A name for the model.
+        /// The players to whom this model belongs. 
+        /// </summary>
+        public byte PlayerNumber;
+        /// <summary>
+        /// The decision type.
+        /// </summary>
+        public byte DecisionByteCode;
+        /// <summary>
+        /// The index of the first decision belonging to this model in execution order.
+        /// </summary>
+        public byte DecisionIndex;
+        /// <summary>
+        /// A name for the model, corresponding to the first instance of the decision.
         /// </summary>
         public string ModelName;
         /// <summary>
@@ -66,9 +78,11 @@ namespace ACESimBase.GameSolvingSupport
         /// </summary>
         double TestDataProportion = 0.05;
 
-        public DeepCFRModel(string modelName, int reservoirCapacity, long reservoirSeed, double discountRate, Func<IRegression> regressionFactory)
+        public DeepCFRModel(string modelName, byte decisionByteCode, byte decisionIndex, int reservoirCapacity, long reservoirSeed, double discountRate, Func<IRegression> regressionFactory)
         {
             ModelName = modelName;
+            DecisionByteCode = decisionByteCode;
+            DecisionIndex = decisionIndex;
             DiscountRate = discountRate;
             Observations = new Reservoir<DeepCFRObservation>(reservoirCapacity, reservoirSeed);
             PendingObservations = new List<DeepCFRObservation>();
@@ -78,7 +92,7 @@ namespace ACESimBase.GameSolvingSupport
 
         public DeepCFRModel DeepCopyForPlaybackOnly()
         {
-            return new DeepCFRModel(ModelName, Observations.Capacity, Observations.Seed, DiscountRate, null)
+            return new DeepCFRModel(ModelName, DecisionByteCode, DecisionIndex, Observations.Capacity, Observations.Seed, DiscountRate, null)
             {
                 Regression = Regression.DeepCopyExceptRegressionItself(),
                 IterationsProcessed = IterationsProcessed,

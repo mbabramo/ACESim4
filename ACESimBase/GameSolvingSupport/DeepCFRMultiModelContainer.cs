@@ -32,7 +32,7 @@ namespace ACESimBase.GameSolvingSupport
         public IEnumerable<DeepCFRModel> EnumerateModels() => Models.OrderBy(x => x.Key).Select(x => x.Value);
         public IEnumerable<(T key, DeepCFRModel model)> EnumerateModelsWithKey() => Models.OrderBy(x => x.Key).Select(x => (x.Key, x.Value));
 
-        private void AddModelIfNecessary(T identifier, Func<string> modelName)
+        private void AddModelIfNecessary(T identifier, Func<(string modelName, byte decisionByteCode, byte decisionIndex)> modelInfoFunc)
         {
             if (!Models.ContainsKey(identifier))
             {
@@ -40,15 +40,16 @@ namespace ACESimBase.GameSolvingSupport
                 {
                     if (!Models.ContainsKey(identifier))
                     {
-                        Models[identifier] = new DeepCFRModel(modelName(), ReservoirCapacity, ReservoirSeed, DiscountRate, RegressionFactory);
+                        (string modelName, byte decisionByteCode, byte decisionIndex) = modelInfoFunc();
+                           Models[identifier] = new DeepCFRModel(modelName, decisionByteCode, decisionIndex, ReservoirCapacity, ReservoirSeed, DiscountRate, RegressionFactory);
                     }
                 }
             }
         }
 
-        public DeepCFRModel GetModel(T identifier, Func<string> modelName)
+        public DeepCFRModel GetModel(T identifier, Func<(string modelName, byte decisionByteCode, byte decisionIndex)> modelInfoFunc)
         {
-            AddModelIfNecessary(identifier, modelName);
+            AddModelIfNecessary(identifier, modelInfoFunc);
             return Models[identifier];
         }
         public void SetModel(T identifier, Func<string> modelName, DeepCFRModel model)

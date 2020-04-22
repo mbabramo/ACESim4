@@ -43,7 +43,7 @@ namespace ACESimBase.GameSolvingSupport
             byte playerMakingDecision = CurrentPlayer.PlayerIndex;
             var informationSet = GetInformationSet(true);
             var independentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, 0 /* placeholder */, null /* TODO */);
-            IRegressionMachine regressionMachineForCurrentDecision = InitialPlaybackHelper.RegressionMachines?.GetValueOrDefault(DeepCFRMultiModel.GetRegressionMachineKey(Mode, CurrentDecision, decisionIndex));
+            IRegressionMachine regressionMachineForCurrentDecision = InitialPlaybackHelper.RegressionMachines?.GetValueOrDefault(DeepCFRMultiModel.GetModelKey(Mode, CurrentDecision, decisionIndex));
             double[] onPolicyProbabilities;
             if (InitialPlaybackHelper.ProbabilitiesCache == null)
                 onPolicyProbabilities = InitialPlaybackHelper.MultiModel.GetRegretMatchingProbabilities(independentVariables, CurrentDecision, regressionMachineForCurrentDecision);
