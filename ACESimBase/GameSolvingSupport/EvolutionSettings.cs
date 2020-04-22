@@ -41,7 +41,7 @@ namespace ACESim
         public int? BestResponseEveryMIterations = 100; // For partial recall games, this is very costly, so consider using EffectivelyNever.
         public bool RememberBestResponseExploitability = true;
         public bool UseAcceleratedBestResponse = true; 
-        public bool UseCurrentStrategyForBestResponse = false; // DEBUG // requires accelerated best response
+        public bool UseCurrentStrategyForBestResponse = true; // requires accelerated best response
         public bool CalculatePerturbedBestResponseRefinement = false;
         public double PerturbationForBestResponseCalculation = 0.001;
         public int? MiniReportEveryPIterations = 1000;
@@ -106,7 +106,7 @@ namespace ACESim
         public double DeepCFR_Epsilon_OffPolicyProbabilityForProbe = 0.05;
         public double DeepCFR_DiscountRate = 0.98;
         public bool DeepCFR_ApproximateBestResponse = true;
-        public int DeepCFR_ApproximateBestResponseIterations = 4;
+        public int DeepCFR_ApproximateBestResponseIterations = 10;
         public int DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation = 100_000; // DEBUG
         public Func<IRegression> RegressionFactory() => RegressionTechnique switch
         {
