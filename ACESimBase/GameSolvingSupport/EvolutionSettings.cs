@@ -106,7 +106,7 @@ namespace ACESim
         public double DeepCFR_Epsilon_OffPolicyProbabilityForProbe = 0.05;
         public double DeepCFR_DiscountRate = 0.98;
         public bool DeepCFR_ApproximateBestResponse = true;
-        public int DeepCFR_ApproximateBestResponseIterations = 5;
+        public int DeepCFR_ApproximateBestResponseIterations = 15;
         public int DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation = 25_000; // DEBUG
         public Func<IRegression> RegressionFactory() => RegressionTechnique switch
         {
