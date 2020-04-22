@@ -138,13 +138,14 @@ namespace ACESimBase.GameSolvingSupport
 
         public string GetModelName()
         {
+            string withoutLast(string s) => s.Substring(0, s.Length - 1);
             if (ModelNames.Count() == 1)
                 return ModelNames.Single();
             string first = ModelNames.First();
-            string prefix = first.Substring(0, first.Length - 1);
-            if (ModelNames.All(x => x.Substring(0, x.Length - 1) == prefix))
+            string prefix = withoutLast(first);
+            if (ModelNames.All(x => withoutLast(x) == prefix))
             {
-                return first + "*";
+                return prefix + "*";
             }
             return String.Join(",", ModelNames);
         }

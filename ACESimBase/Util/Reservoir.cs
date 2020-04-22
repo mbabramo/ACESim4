@@ -62,6 +62,7 @@ namespace ACESimBase.Util
             if (numToDrop > 0)
             {
                 DropItems(numToDrop);
+            }
             replacements = replacements.Take(RemainingCapacity).ToList();
             AddReplacements(replacements);
         }

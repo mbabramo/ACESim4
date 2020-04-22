@@ -25,8 +25,11 @@ namespace ACESimBase.GameSolvingSupport
             ReservoirSeed = reservoirSeed;
             DiscountRate = discountRate;
             RegressionFactory = regressionFactory;
-            List<IGrouping<byte, (Decision item, int decisionIndex)>> groupedDecisions = decisions.Select((item, index) => (item, index)).Where(x => x.item.IsChance == false).GroupBy(x => GetModelGroupingKey(Mode, x.item, (byte)x.index)).ToList();
             ModelIndexForDecisionIndex = new int[decisions.Count];
+            for (int i = 0; i < decisions.Count; i++)
+                ModelIndexForDecisionIndex[i] = 255; // indicate emptiness
+            List<IGrouping<byte, (Decision item, int decisionIndex)>> groupedDecisions = decisions.Select((item, index) => (item, index)).Where(x => !x.item.IsChance).GroupBy(x => GetModelGroupingKey(Mode, x.item, (byte)x.index)).ToList();
+            Models = new DeepCFRModel[groupedDecisions.Count];
             for (int groupedModelIndex = 0; groupedModelIndex < groupedDecisions.Count; groupedModelIndex++)
             {
                 IGrouping<byte, (Decision item, int decisionIndex)> group = (IGrouping<byte, (Decision item, int decisionIndex)>)groupedDecisions[groupedModelIndex];
