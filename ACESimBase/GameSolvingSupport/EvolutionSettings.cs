@@ -95,7 +95,7 @@ namespace ACESim
 
         // DEEPCFR SETTINGS
         // Note: DeepCFR iterations are set in Launcher, same as vanilla iterations.
-        public DeepCFRMultiModelMode DeepCFRMultiModelMode = DeepCFRMultiModelMode.DecisionSpecific;
+        public DeepCFRMultiModelMode DeepCFRMultiModelMode = DeepCFRMultiModelMode.DecisionTypeSpecific;
         public int DeepCFR_ReservoirCapacity = 25_000; // DEBUG
         public int DeepCFR_MaximumTotalObservationsPerIteration = 100_000; // DEBUG // after this number of observations, we stop looking for more observations, even if we haven't gotten enough to fill as many iterations as desired in one or more reservoirs (in which case, we rely more on earlier observations)
         public RegressionTechniques RegressionTechnique = RegressionTechniques.FastTree;

@@ -17,7 +17,7 @@ namespace ACESimBase.GameSolvingSupport
 
         public DeepCFRModel UnifiedModel;
         public DeepCFRMultiModelContainer<byte> PlayerSpecificModels = null;
-        public DeepCFRMultiModelContainer<(byte playerIndex, byte decisionByteCode)> DecisionSpecificModels = null;
+        public DeepCFRMultiModelContainer<(byte playerIndex, byte decisionByteCodeOrIndex)> DecisionSpecificModels = null;
         /// <summary>
         /// Factory to create a regression processor
         /// </summary>
@@ -67,28 +67,29 @@ namespace ACESimBase.GameSolvingSupport
                 case DeepCFRMultiModelMode.PlayerSpecific:
                     PlayerSpecificModels = new DeepCFRMultiModelContainer<byte>(ReservoirCapacity, ReservoirSeed, DiscountRate, RegressionFactory);
                     break;
-                case DeepCFRMultiModelMode.DecisionSpecific:
-                    DecisionSpecificModels = new DeepCFRMultiModelContainer<(byte playerIndex, byte decisionByteCode)>(ReservoirCapacity, ReservoirSeed, DiscountRate, RegressionFactory);
+                case DeepCFRMultiModelMode.DecisionTypeSpecific:
+                    DecisionSpecificModels = new DeepCFRMultiModelContainer<(byte playerIndex, byte decisionByteCodeOrIndex)>(ReservoirCapacity, ReservoirSeed, DiscountRate, RegressionFactory);
                     break;
             }
         }
 
-        public DeepCFRModel GetModel(Decision decision)
+        public DeepCFRModel GetModel(Decision decision, byte decisionIndex)
         {
             if (decision.IsChance)
                 throw new Exception("Should only model non-chance decisions");
-            return GetModel(decision.PlayerNumber, decision.DecisionByteCode, decision.Name);
+            return GetModel(decision.PlayerNumber, decision.DecisionByteCode, decisionIndex, decision.Name);
         }
 
-        public DeepCFRModel GetModel(byte playerNumber, byte decisionByteCode, string name) => Mode switch
+        public DeepCFRModel GetModel(byte playerNumber, byte decisionByteCode, byte decisionIndex, string name) => Mode switch
         { 
             DeepCFRMultiModelMode.Unified => UnifiedModel,
             DeepCFRMultiModelMode.PlayerSpecific => PlayerSpecificModels.GetModel(playerNumber, () => $"Player {playerNumber}"),
-            DeepCFRMultiModelMode.DecisionSpecific => DecisionSpecificModels.GetModel((playerNumber, decisionByteCode), () => $"Decision {name}"),
+            DeepCFRMultiModelMode.DecisionTypeSpecific => DecisionSpecificModels.GetModel((playerNumber, decisionByteCode), () => $"DecisionType {name}"),
+            DeepCFRMultiModelMode.DecisionSpecific => DecisionSpecificModels.GetModel((playerNumber, decisionIndex), () => $"Decision {name}"),
             _ => throw new NotImplementedException(),
         };
 
-        public void SetModel(Decision decision, DeepCFRModel model)
+        public void SetModel(Decision decision, byte decisionIndex, DeepCFRModel model)
         {
             switch (Mode)
             {
@@ -98,8 +99,11 @@ namespace ACESimBase.GameSolvingSupport
                 case DeepCFRMultiModelMode.PlayerSpecific:
                     PlayerSpecificModels.SetModel(decision.PlayerNumber, () => $"Player {decision.PlayerNumber}", model);
                     break;
-                case DeepCFRMultiModelMode.DecisionSpecific:
+                case DeepCFRMultiModelMode.DecisionTypeSpecific:
                     DecisionSpecificModels.SetModel((decision.PlayerNumber, decision.DecisionByteCode), () => $"Decision {decision.Name}", model);
+                    break;
+                case DeepCFRMultiModelMode.DecisionSpecific:
+                    DecisionSpecificModels.SetModel((decision.PlayerNumber, decisionIndex), () => $"Decision {decision.Name}", model);
                     break;
             }
         }
@@ -108,6 +112,7 @@ namespace ACESimBase.GameSolvingSupport
         {
             DeepCFRMultiModelMode.Unified => new DeepCFRModel[] { UnifiedModel },
             DeepCFRMultiModelMode.PlayerSpecific => PlayerSpecificModels.EnumerateModels(),
+            DeepCFRMultiModelMode.DecisionTypeSpecific => DecisionSpecificModels.EnumerateModels(),
             DeepCFRMultiModelMode.DecisionSpecific => DecisionSpecificModels.EnumerateModels(),
             _ => throw new NotImplementedException(),
         };
@@ -116,7 +121,7 @@ namespace ACESimBase.GameSolvingSupport
         {
             DeepCFRMultiModelMode.Unified => throw new NotSupportedException("Cannot enumerate per-player model when using unified models"), // thus, we would need to do switch to player-specific to do best response approximation with this
             DeepCFRMultiModelMode.PlayerSpecific => PlayerSpecificModels.EnumerateModelsWithKey().Where(x => x.key == playerIndex).Select(x => x.model),
-            DeepCFRMultiModelMode.DecisionSpecific => DecisionSpecificModels.EnumerateModelsWithKey().Where(x => x.key.playerIndex == playerIndex).Select(x => x.model),
+            DeepCFRMultiModelMode.DecisionTypeSpecific => DecisionSpecificModels.EnumerateModelsWithKey().Where(x => x.key.playerIndex == playerIndex).Select(x => x.model),
             _ => throw new NotImplementedException(),
         };
 
@@ -124,7 +129,7 @@ namespace ACESimBase.GameSolvingSupport
         {
             DeepCFRMultiModelMode.Unified => throw new NotSupportedException("Cannot enumerate per-player model when using unified models"), // thus, we would need to do switch to player-specific to do best response approximation with this
             DeepCFRMultiModelMode.PlayerSpecific => PlayerSpecificModels.EnumerateModelsWithKey().Where(x => x.key != playerIndex).Select(x => x.model),
-            DeepCFRMultiModelMode.DecisionSpecific => DecisionSpecificModels.EnumerateModelsWithKey().Where(x => x.key.playerIndex != playerIndex).Select(x => x.model),
+            DeepCFRMultiModelMode.DecisionTypeSpecific => DecisionSpecificModels.EnumerateModelsWithKey().Where(x => x.key.playerIndex != playerIndex).Select(x => x.model),
             _ => throw new NotImplementedException(),
         };
 
@@ -132,7 +137,7 @@ namespace ACESimBase.GameSolvingSupport
         {
             DeepCFRMultiModelMode.Unified => throw new NotSupportedException("Cannot enumerate per-player model when using unified models"), // thus, we would need to do switch to player-specific to do best response approximation with this
             DeepCFRMultiModelMode.PlayerSpecific => PlayerSpecificModels.EnumerateModelsWithKey().Select(x => (x.key, x.model)),
-            DeepCFRMultiModelMode.DecisionSpecific => DecisionSpecificModels.EnumerateModelsWithKey().Select(x => (x.key.playerIndex, x.model)),
+            DeepCFRMultiModelMode.DecisionTypeSpecific => DecisionSpecificModels.EnumerateModelsWithKey().Select(x => (x.key.playerIndex, x.model)),
             _ => throw new NotImplementedException(),
         };
 
@@ -154,20 +159,35 @@ namespace ACESimBase.GameSolvingSupport
             }
         }
 
-        public Dictionary<byte, IRegressionMachine> GetRegressionMachinesForLocalUse(List<Decision> decisions)
+        public static byte GetRegressionMachineKey(DeepCFRMultiModelMode mode, Decision currentDecision, byte decisionIndex)
         {
+            return mode switch
+            {
+                DeepCFRMultiModelMode.Unified => (byte)0,
+                DeepCFRMultiModelMode.PlayerSpecific => currentDecision.PlayerNumber,
+                DeepCFRMultiModelMode.DecisionTypeSpecific => currentDecision.DecisionByteCode,
+                DeepCFRMultiModelMode.DecisionSpecific => decisionIndex,
+                _ => throw new NotImplementedException()
+            };
+        }
 
-            var distinctDecisions = DistinctBy<Decision, byte>(decisions.Where(x => !x.IsChance), d => d.DecisionByteCode);
-            Dictionary<byte, IRegressionMachine> result = distinctDecisions.Select(d => (d, GetModel(d))).ToDictionary(dm => dm.d.DecisionByteCode, dm => dm.Item2.GetRegressionMachine());
+        public Dictionary<byte, IRegressionMachine> GetRegressionMachinesForLocalUse(List<(Decision decision, byte decisionIndex)> decisions)
+        {
+            List<(Decision decision, byte decisionIndex)> nonChanceDecisions = decisions.Where(x => !x.decision.IsChance).ToList();
+            List<(Decision decision, byte key)> decisionsWithKey = nonChanceDecisions.Select(x => (x.decision, GetRegressionMachineKey(Mode, x.decision, x.decisionIndex))).ToList();
+            List<(Decision decision, byte key)> distinctDecisionsWithKey = DistinctBy(decisionsWithKey, d => d.key).ToList();
+            var models = EnumerateModelsWithPlayerInfo().ToList();
+            List<(byte key, DeepCFRModel model)> keyWithModel = distinctDecisionsWithKey.Select(x => (x.key, GetModel())
+            Dictionary<byte, IRegressionMachine> result = distinctDecisions.ToDictionary(dm => dm.key, dm => ;
             return result;
         }
 
         public void ReturnRegressionMachines(List<Decision> decisions, Dictionary<byte, IRegressionMachine> machines)
         {
-            var distinctDecisions = DistinctBy<Decision, byte>(decisions.Where(x => !x.IsChance), d => d.DecisionByteCode);
+            var distinctDecisions = DistinctBy<Decision, byte>(decisions.Where(x => !x.IsChance), d => d.decisionByteCodeOrIndex);
             foreach (Decision d in distinctDecisions)
             {
-                GetModel(d).ReturnRegressionMachine(machines[d.DecisionByteCode]);
+                GetModel(d).ReturnRegressionMachine(machines[d.decisionByteCodeOrIndex]);
             }
         }
 
@@ -175,9 +195,9 @@ namespace ACESimBase.GameSolvingSupport
 
         #region Choosing actions
 
-        public byte ChooseAction(Decision decision, IRegressionMachine regressionMachineForDecision, double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample, double probabilityUniformRandom, ref double[] onPolicyProbabilities)
+        public byte ChooseAction(Decision decision, byte decisionIndex, IRegressionMachine regressionMachineForDecision, double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample, double probabilityUniformRandom, ref double[] onPolicyProbabilities)
         {
-            var model = GetModel(decision);
+            var model = GetModel(decision, decisionIndex,);
             byte action = ChooseAction(model, regressionMachineForDecision, randomValue, independentVariables, maxActionValue, numActionsToSample, probabilityUniformRandom, ref onPolicyProbabilities);
             if (onPolicyProbabilities == null) // i.e., if we make decision off-policy, then we still want to return the probabilities
                 onPolicyProbabilities = GetRegretMatchingProbabilities(independentVariables, decision, regressionMachineForDecision);

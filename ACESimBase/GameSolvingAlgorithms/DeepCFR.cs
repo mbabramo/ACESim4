@@ -102,15 +102,15 @@ namespace ACESim
         {
             Decision currentDecision = gamePlayer.CurrentDecision;
             var playbackHelper = gamePlayer.InitialPlaybackHelper;
-            IRegressionMachine regressionMachineForCurrentDecision = playbackHelper.RegressionMachines?.GetValueOrDefault(currentDecision.DecisionByteCode);
             byte decisionIndex = (byte)gamePlayer.CurrentDecisionIndex;
+            IRegressionMachine regressionMachineForCurrentDecision = playbackHelper.RegressionMachines?.GetValueOrDefault(DeepCFRMultiModel.GetRegressionMachineKey(EvolutionSettings.DeepCFRMultiModelMode, currentDecision, decisionIndex));
             byte playerMakingDecision = gamePlayer.CurrentPlayer.PlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionIndex);
             DeepCFRIndependentVariables independentVariables = null;
             double[] onPolicyProbabilities = null;
             (independentVariables, onPolicyProbabilities) = gamePlayer.GetIndependentVariablesAndPlayerProbabilities(observationNum);
             byte mainAction = GameDefinition.DecisionsExecutionOrder[decisionIndex].AlwaysDoAction ?? gamePlayer.ChooseAction(observationNum, decisionIndex, onPolicyProbabilities);
-            DeepCFRDirectGamePlayer mainActionPlayer = traversalMode == DeepCFRTraversalMode.PlaybackSinglePath ? gamePlayer : (DeepCFRDirectGamePlayer) gamePlayer.DeepCopy();
+            DeepCFRDirectGamePlayer mainActionPlayer = traversalMode == DeepCFRTraversalMode.PlaybackSinglePath ? gamePlayer : (DeepCFRDirectGamePlayer)gamePlayer.DeepCopy();
             mainActionPlayer.PlayAction(mainAction);
             double[] mainValues = DeepCFRTraversal(mainActionPlayer, observationNum, observations, traversalMode);
             if (traversalMode == DeepCFRTraversalMode.AddRegretObservations)
@@ -315,7 +315,7 @@ namespace ACESim
 
         private Dictionary<byte, IRegressionMachine> GetRegressionMachinesForLocalUse()
         {
-            return MultiModel.GetRegressionMachinesForLocalUse(GameDefinition.DecisionsExecutionOrder);
+            return MultiModel.GetRegressionMachinesForLocalUse(GameDefinition.DecisionsExecutionOrder.Select((item, index) => (item, (byte) index)).ToList());
         }
 
         #endregion
