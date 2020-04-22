@@ -13,7 +13,8 @@ namespace ACESim
 {
 
     // DEBUG -- TODO
-    // 0. Why is best response sometimes negative? This is true even with a number of best response iterations. 
+    // 0. Why is best response sometimes negative? This is true even with a number of best response iterations. [SORT OF FIXED, AT LEAST THIS DOES NOT SEEM TO OCCUR WHEN WE SEPARATE OUT ALL DECISION INDICES.]
+    // 0.5. Make it so that we can do a single best response iteration, moving backward across decisions. 
     // 1. Use previous prediction as input into next one. The previous prediction will be the previous prediction while playing the game, so in iteration i, the previous prediction will be based on a model from iteration i - 1. In principle, we could generate the models seriatim and then use the prediction from that same iteration, but that would prevent parallel development of the models.
     // 2. Decision index-specific prediction. Right now, we are grouping all decisions of a particular type. We should at least have an option for customizing by decision index, instead of by decision byte code.
     // 3. Game parameters. The GameDefinition needs to have a way of randomizing game parameters, so that we can randomize some set of parameters at the beginning of each iteration. Then, we need to be able to generate separate reports (including best response, if applicable) for each set of parameters. We also need to allow for initial and final value parameters (including for caring about utility of opponent), so that we can see the effect of starting with a particular set of parameters, as a way of randomizing where we end up.
@@ -205,31 +206,54 @@ namespace ACESim
             }
             if (EvolutionSettings.DeepCFR_ApproximateBestResponse)
             {
-                // DEBUG -- we should change this so that the best response just picks the single best answer rather than using regret matching -- maybe we could even go from late decisions to early decisions. 
-                double[] baselineUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
-                TabbedText.WriteLine($"Baseline utilities {string.Join(",", baselineUtilities.Select(x => x.ToSignificantFigures(4)))}");
-                for (byte p = 0; p < NumNonChancePlayers; p++)
+                await DoApproximateBestResponse();
+            }
+            return reportCollection;
+        }
+
+        private async Task DoApproximateBestResponse()
+        {
+            // DEBUG -- we should change this so that the best response just picks the single best answer rather than using regret matching -- maybe we could even go from late decisions to early decisions. 
+            double[] baselineUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
+            TabbedText.WriteLine($"Baseline utilities {string.Join(",", baselineUtilities.Select(x => x.ToSignificantFigures(4)))}");
+            for (byte p = 0; p < NumNonChancePlayers; p++)
+            {
+                TabbedText.WriteLine($"Determining best response for player {p}");
+                TabbedText.TabIndent();
+                double[] bestResponseUtilities;
+                if (EvolutionSettings.DeepCFR_ApproximateBestResponse_BackwardInduction)
                 {
-                    TabbedText.WriteLine($"Determining best response for player {p}");
-                    TabbedText.TabIndent();
-                    MultiModel.StartDeterminingBestResponse(p);
+                    var decisions = GameDefinition.DecisionsExecutionOrder.Where(x => x.PlayerNumber == p).Select((item, index) => (item, index)).OrderByDescending(x => x.index).ToList();
+                    int iterationsNeeded = decisions.Count();
+                    for (int iteration = 1; iteration <= iterationsNeeded; iteration++)
+                    {
+                        byte decisionIndex = (byte) (iterationsNeeded - iteration);
+                        MultiModel.StartDeterminingBestResponse(p, decisionIndex);
+                        var result = await PerformDeepCFRIteration(iteration, true);
+                        bestResponseUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
+                        await MultiModel.EndDeterminingBestResponse(p, decisionIndex);
+                    }
+                    bestResponseUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
+                }
+                else
+                {
+                    MultiModel.StartDeterminingBestResponse(p, null);
                     for (int iteration = 1; iteration <= EvolutionSettings.DeepCFR_ApproximateBestResponseIterations; iteration++)
                     {
                         var result = await PerformDeepCFRIteration(iteration, true);
                     }
-                    double[] bestResponseUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
-                    TabbedText.TabUnindent();
-
-                    TabbedText.WriteLine($"Concluding determining best response for player {p} (recreating earlier models)");
-                    TabbedText.TabIndent();
-                    await MultiModel.EndDeterminingBestResponse(p);
-                    TabbedText.TabUnindent();
-                    TabbedText.WriteLine($"Utilities with best response for player {p}: {string.Join(",", bestResponseUtilities.Select(x => x.ToSignificantFigures(4)))}");
-                    double bestResponseImprovement = bestResponseUtilities[p] - baselineUtilities[p];
-                    TabbedText.WriteLine($"Best response improvement for player {p}: {bestResponseImprovement.ToSignificantFigures(4)}");
+                    bestResponseUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
+                    await MultiModel.EndDeterminingBestResponse(p, null);
                 }
+
+                TabbedText.TabUnindent();
+                TabbedText.WriteLine($"Concluding determining best response for player {p} (recreating earlier models)");
+                TabbedText.TabIndent();
+                TabbedText.TabUnindent();
+                TabbedText.WriteLine($"Utilities with best response for player {p}: {string.Join(",", bestResponseUtilities.Select(x => x.ToSignificantFigures(4)))}");
+                double bestResponseImprovement = bestResponseUtilities[p] - baselineUtilities[p];
+                TabbedText.WriteLine($"Best response improvement for player {p}: {bestResponseImprovement.ToSignificantFigures(4)}");
             }
-            return reportCollection;
         }
 
         private async Task<(ReportCollection reports, double[] utilities)> PerformDeepCFRIteration(int iteration, bool isBestResponseIteration)

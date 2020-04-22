@@ -22,8 +22,6 @@ namespace ACESimBase.GameSolvingSupport
         /// </summary>
         Func<IRegression> RegressionFactory;
 
-        byte? DeterminingBestResponseOfPlayer;
-
         #region Model initialization and access
 
         public DeepCFRMultiModel()
@@ -50,7 +48,6 @@ namespace ACESimBase.GameSolvingSupport
                 ReservoirSeed = ReservoirSeed,
                 DiscountRate = DiscountRate,
                 Models = Models?.DeepCopyForPlaybackOnly(),
-                DeterminingBestResponseOfPlayer = DeterminingBestResponseOfPlayer,
             };
         }
 
@@ -58,9 +55,9 @@ namespace ACESimBase.GameSolvingSupport
 
         public IEnumerable<DeepCFRModel> EnumerateModels() => Models;
 
-        public IEnumerable<DeepCFRModel> EnumerateModelsForPlayer(byte playerIndex) => Models.Where(x => x.PlayerNumbers.Contains(playerIndex));
+        public IEnumerable<DeepCFRModel> FilterModels(byte playerIndex, byte? decisionIndex) => Models.Where(x => x.PlayerNumbers.Contains(playerIndex) && (decisionIndex == null || x.DecisionIndices.Contains((byte) decisionIndex)));
 
-        public IEnumerable<DeepCFRModel> EnumerateModelsForPlayersBesides(byte playerIndex) => Models.Where(x => !x.PlayerNumbers.Contains(playerIndex));
+        public IEnumerable<DeepCFRModel> FilterModelsExcept(byte playerIndex, byte? decisionIndex) => Models.Where(x => !(x.PlayerNumbers.Contains(playerIndex) && (decisionIndex == null || x.DecisionIndices.Contains((byte)decisionIndex))));
 
         #endregion
 
@@ -206,32 +203,28 @@ namespace ACESimBase.GameSolvingSupport
 
         #region Best response
 
-        public void StartDeterminingBestResponse(byte playerIndex)
+        public void StartDeterminingBestResponse(byte playerIndex, byte? decisionIndex)
         {
-            if (DeterminingBestResponseOfPlayer != null)
-                throw new NotImplementedException("Already determining best response.");
-            DeterminingBestResponseOfPlayer = playerIndex;
-            foreach (DeepCFRModel model in EnumerateModelsForPlayer(playerIndex))
+            foreach (DeepCFRModel model in FilterModels(playerIndex, decisionIndex))
             {
                 model.StartDeterminingBestResponse();
             }
-            foreach (DeepCFRModel model in EnumerateModelsForPlayersBesides(playerIndex))
+            foreach (DeepCFRModel model in FilterModelsExcept(playerIndex, decisionIndex))
             {
                 model.FreezeState();
             }
         }
 
-        public async Task EndDeterminingBestResponse(byte playerIndex)
+        public async Task EndDeterminingBestResponse(byte playerIndex, byte? decisionIndex)
         {
-            foreach (DeepCFRModel model in EnumerateModelsForPlayer(playerIndex))
+            foreach (DeepCFRModel model in FilterModels(playerIndex, decisionIndex))
             {
                 await model.EndDeterminingBestResponse();
             }
-            foreach (DeepCFRModel model in EnumerateModelsForPlayersBesides(playerIndex))
+            foreach (DeepCFRModel model in FilterModelsExcept(playerIndex, decisionIndex))
             {
                 model.UnfreezeState();
             }
-            DeterminingBestResponseOfPlayer = null;
         }
 
         #endregion
