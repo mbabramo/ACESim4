@@ -103,7 +103,7 @@ namespace ACESim
             Decision currentDecision = gamePlayer.CurrentDecision;
             var playbackHelper = gamePlayer.InitialPlaybackHelper;
             byte decisionIndex = (byte)gamePlayer.CurrentDecisionIndex;
-            IRegressionMachine regressionMachineForCurrentDecision = playbackHelper.RegressionMachines?.GetValueOrDefault(DeepCFRMultiModel.GetModelKey(EvolutionSettings.DeepCFRMultiModelMode, currentDecision, decisionIndex));
+            IRegressionMachine regressionMachineForCurrentDecision = playbackHelper.RegressionMachines?.GetValueOrDefault(DeepCFRMultiModel.GetModelGroupingKey(EvolutionSettings.DeepCFRMultiModelMode, currentDecision, decisionIndex));
             byte playerMakingDecision = gamePlayer.CurrentPlayer.PlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionIndex);
             DeepCFRIndependentVariables independentVariables = null;

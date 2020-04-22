@@ -15,19 +15,19 @@ namespace ACESimBase.GameSolvingSupport
         /// <summary>
         /// The players to whom this model belongs. 
         /// </summary>
-        public byte PlayerNumber;
+        public List<byte> PlayerNumbers;
         /// <summary>
-        /// The decision type.
+        /// The decision type(s)
         /// </summary>
-        public byte DecisionByteCode;
+        public List<byte> DecisionByteCodes;
         /// <summary>
-        /// The index of the first decision belonging to this model in execution order.
+        /// The decision indices.
         /// </summary>
-        public byte DecisionIndex;
+        public List<byte> DecisionIndices;
         /// <summary>
-        /// A name for the model, corresponding to the first instance of the decision.
+        /// The model names
         /// </summary>
-        public string ModelName;
+        public List<string> ModelNames;
         /// <summary>
         /// Observations used to create the most recent version of the model.
         /// </summary>
@@ -78,11 +78,12 @@ namespace ACESimBase.GameSolvingSupport
         /// </summary>
         double TestDataProportion = 0.05;
 
-        public DeepCFRModel(string modelName, byte decisionByteCode, byte decisionIndex, int reservoirCapacity, long reservoirSeed, double discountRate, Func<IRegression> regressionFactory)
+        public DeepCFRModel(List<byte> playerNumbers, List<string> modelNames, List<byte> decisionByteCodes, List<byte> decisionIndices, int reservoirCapacity, long reservoirSeed, double discountRate, Func<IRegression> regressionFactory)
         {
-            ModelName = modelName;
-            DecisionByteCode = decisionByteCode;
-            DecisionIndex = decisionIndex;
+            PlayerNumbers = playerNumbers;
+            ModelNames = modelNames;
+            DecisionByteCodes = decisionByteCodes;
+            DecisionIndices = decisionIndices;
             DiscountRate = discountRate;
             Observations = new Reservoir<DeepCFRObservation>(reservoirCapacity, reservoirSeed);
             PendingObservations = new List<DeepCFRObservation>();
@@ -92,7 +93,7 @@ namespace ACESimBase.GameSolvingSupport
 
         public DeepCFRModel DeepCopyForPlaybackOnly()
         {
-            return new DeepCFRModel(ModelName, DecisionByteCode, DecisionIndex, Observations.Capacity, Observations.Seed, DiscountRate, null)
+            return new DeepCFRModel(PlayerNumbers, ModelNames, DecisionByteCodes, DecisionIndices, Observations.Capacity, Observations.Seed, DiscountRate, null)
             {
                 Regression = Regression.DeepCopyExceptRegressionItself(),
                 IterationsProcessed = IterationsProcessed,
@@ -126,18 +127,31 @@ namespace ACESimBase.GameSolvingSupport
             return TargetToAdd;
         }
 
+        public string GetModelName()
+        {
+            if (ModelNames.Count() == 1)
+                return ModelNames.Single();
+            string first = ModelNames.First();
+            string prefix = first.Substring(0, first.Length - 1);
+            if (ModelNames.All(x => x.Substring(0, x.Length - 1) == prefix))
+            {
+                return first + "*";
+            }
+            return String.Join(",", ModelNames);
+        }
+
         public async Task<string> CompleteIteration()
         {
             IterationsProcessed++;
             if (!PendingObservations.Any())
-                return $"No pending observations ({ModelName})";
+                return $"No pending observations ({GetModelName()})";
             StringBuilder s = new StringBuilder();
             s.Append($"Pending observations: {PendingObservations.Count()} ");
             Observations.AddPotentialReplacementsAtIteration(PendingObservations.ToList(), DiscountRate, IterationsProcessed);
             PendingObservations = new List<DeepCFRObservation>();
             await BuildModel(s);
             string trainingResultString = Regression.GetTrainingResultString();
-            s.AppendLine(trainingResultString + $" ({ModelName})");
+            s.AppendLine(trainingResultString + $" ({GetModelName()})");
             return s.ToString();
         }
 
