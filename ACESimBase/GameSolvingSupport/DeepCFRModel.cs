@@ -115,6 +115,8 @@ namespace ACESimBase.GameSolvingSupport
         public async Task<string> CompleteIteration()
         {
             IterationsProcessed++;
+            if (!PendingObservations.Any())
+                return $"No pending observations ({ModelName})";
             StringBuilder s = new StringBuilder();
             s.Append($"Pending observations: {PendingObservations.Count()} ");
             Observations.AddPotentialReplacementsAtIteration(PendingObservations.ToList(), DiscountRate, IterationsProcessed);
