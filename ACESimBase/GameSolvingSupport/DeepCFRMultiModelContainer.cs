@@ -1,11 +1,12 @@
 ﻿using ACESim;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace ACESimBase.GameSolvingSupport
 {
-    public class DeepCFRMultiModelContainer
+    public class DeepCFRMultiModelContainer : IEnumerable<DeepCFRModel>
     {
         DeepCFRMultiModelMode Mode;
         private DeepCFRModel[] Models;
@@ -24,19 +25,15 @@ namespace ACESimBase.GameSolvingSupport
             ReservoirSeed = reservoirSeed;
             DiscountRate = discountRate;
             RegressionFactory = regressionFactory;
-            List<IGrouping<byte, (Decision item, int decisionIndex)>> groupedDecisions = decisions.Select((item, index) => (item, index)).GroupBy(x => GetModelGroupingKey(Mode, x.item, (byte)x.index)).ToList();
+            List<IGrouping<byte, (Decision item, int decisionIndex)>> groupedDecisions = decisions.Select((item, index) => (item, index)).Where(x => x.item.IsChance == false).GroupBy(x => GetModelGroupingKey(Mode, x.item, (byte)x.index)).ToList();
             ModelIndexForDecisionIndex = new int[decisions.Count];
             for (int groupedModelIndex = 0; groupedModelIndex < groupedDecisions.Count; groupedModelIndex++)
             {
                 IGrouping<byte, (Decision item, int decisionIndex)> group = (IGrouping<byte, (Decision item, int decisionIndex)>)groupedDecisions[groupedModelIndex];
                 foreach (var item in group)
                     ModelIndexForDecisionIndex[item.decisionIndex] = groupedModelIndex;
-                var decisionsInGroup = group.ToArray();
-                List<string> modelNames = decisionsInGroup.Select(x => x.item.Name).ToHashSet().OrderBy(x => x).ToList();
-                List<byte> playerNumbers = decisionsInGroup.Select(x => x.item.PlayerNumber).ToHashSet().OrderBy(x => x).ToList();
-                List<byte> decisionByteCodes = decisionsInGroup.Select(x => x.item.DecisionByteCode).ToHashSet().OrderBy(x => x).ToList();
-                List<byte> decisionIndices = decisionsInGroup.Select(x => (byte) x.decisionIndex).ToHashSet().OrderBy(x => x).ToList();
-                Models[groupedModelIndex] = new DeepCFRModel(playerNumbers, modelNames, decisionByteCodes, decisionIndices, ReservoirCapacity, ReservoirSeed, DiscountRate, RegressionFactory);
+                var decisionsInGroup = group.Select(x => (x.item, (byte) x.decisionIndex)).ToList();
+                Models[groupedModelIndex] = new DeepCFRModel(decisionsInGroup, ReservoirCapacity, ReservoirSeed, DiscountRate, RegressionFactory);
             }
         }
 
@@ -71,6 +68,14 @@ namespace ACESimBase.GameSolvingSupport
         }
 
         public IEnumerable<DeepCFRModel> EnumerateModels() => Models;
+
+        public IEnumerator<DeepCFRModel> GetEnumerator()
+        {
+            foreach (var model in Models)
+                yield return model;
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         public DeepCFRModel this[byte decisionIndex] => Models[ModelIndexForDecisionIndex[decisionIndex]];
     }

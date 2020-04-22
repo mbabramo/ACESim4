@@ -17,6 +17,10 @@ namespace ACESimBase.GameSolvingSupport
         /// </summary>
         public List<byte> PlayerNumbers;
         /// <summary>
+        ///  The decisions that belong to this model, with the associated decision indices.
+        /// </summary>
+        public List<(Decision item, byte decisionIndex)> Decisions;
+        /// <summary>
         /// The decision type(s)
         /// </summary>
         public List<byte> DecisionByteCodes;
@@ -78,8 +82,13 @@ namespace ACESimBase.GameSolvingSupport
         /// </summary>
         double TestDataProportion = 0.05;
 
-        public DeepCFRModel(List<byte> playerNumbers, List<string> modelNames, List<byte> decisionByteCodes, List<byte> decisionIndices, int reservoirCapacity, long reservoirSeed, double discountRate, Func<IRegression> regressionFactory)
+        public DeepCFRModel(List<(Decision item, byte decisionIndex)> decisionsInModel, int reservoirCapacity, long reservoirSeed, double discountRate, Func<IRegression> regressionFactory)
         {
+            Decisions = decisionsInModel.ToList();
+            List<string> modelNames = decisionsInModel.Select(x => x.item.Name).ToHashSet().OrderBy(x => x).ToList();
+            List<byte> playerNumbers = decisionsInModel.Select(x => x.item.PlayerNumber).ToHashSet().OrderBy(x => x).ToList();
+            List<byte> decisionByteCodes = decisionsInModel.Select(x => x.item.DecisionByteCode).ToHashSet().OrderBy(x => x).ToList();
+            List<byte> decisionIndices = decisionsInModel.Select(x => (byte)x.decisionIndex).ToHashSet().OrderBy(x => x).ToList();
             PlayerNumbers = playerNumbers;
             ModelNames = modelNames;
             DecisionByteCodes = decisionByteCodes;
@@ -93,7 +102,7 @@ namespace ACESimBase.GameSolvingSupport
 
         public DeepCFRModel DeepCopyForPlaybackOnly()
         {
-            return new DeepCFRModel(PlayerNumbers, ModelNames, DecisionByteCodes, DecisionIndices, Observations.Capacity, Observations.Seed, DiscountRate, null)
+            return new DeepCFRModel(Decisions, Observations.Capacity, Observations.Seed, DiscountRate, null)
             {
                 Regression = Regression.DeepCopyExceptRegressionItself(),
                 IterationsProcessed = IterationsProcessed,
