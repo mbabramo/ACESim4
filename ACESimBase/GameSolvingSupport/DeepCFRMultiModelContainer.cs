@@ -78,5 +78,14 @@ namespace ACESimBase.GameSolvingSupport
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         public DeepCFRModel this[byte decisionIndex] => Models[ModelIndexForDecisionIndex[decisionIndex]];
+
+        public List<byte> GetDecisionIndices()
+        {
+            HashSet<byte> hs = new HashSet<byte>();
+            foreach (var model in Models)
+                foreach (byte decisionIndex in model.DecisionIndices)
+                    hs.Add(decisionIndex);
+            return hs.OrderBy(x => x).ToList();
+        }
     }
 }

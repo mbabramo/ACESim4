@@ -30,7 +30,7 @@ namespace ACESim
 
         public DeepCFR(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
         {
-            MultiModel = new DeepCFRMultiModel(EvolutionSettings.DeepCFRMultiModelMode, EvolutionSettings.DeepCFR_ReservoirCapacity, 0, EvolutionSettings.DeepCFR_DiscountRate, EvolutionSettings.RegressionFactory());
+            MultiModel = new DeepCFRMultiModel(GameDefinition.DecisionsExecutionOrder, EvolutionSettings.DeepCFR_MultiModelMode, EvolutionSettings.DeepCFR_ReservoirCapacity, 0, EvolutionSettings.DeepCFR_DiscountRate, EvolutionSettings.RegressionFactory());
         }
 
         public override IStrategiesDeveloper DeepCopy()
@@ -72,7 +72,7 @@ namespace ACESim
         private (double[] utilities, GameProgress completedProgress) DeepCFRTraversal(DeepCFRPlaybackHelper playbackHelper, DeepCFRObservationNum observationNum, DeepCFRTraversalMode traversalMode, List<(Decision decision, DeepCFRObservation observation)> observations)
         {
             double[] finalUtilities;
-            DeepCFRDirectGamePlayer gamePlayer = new DeepCFRDirectGamePlayer(GameDefinition, GameFactory.CreateNewGameProgress(new IterationID(observationNum.ObservationNum)), true, playbackHelper, null /* we will be playing back only this observation for now, so we don't have to combine */);
+            DeepCFRDirectGamePlayer gamePlayer = new DeepCFRDirectGamePlayer(EvolutionSettings.DeepCFR_MultiModelMode, GameDefinition, GameFactory.CreateNewGameProgress(new IterationID(observationNum.ObservationNum)), true, playbackHelper, null /* we will be playing back only this observation for now, so we don't have to combine */);
             finalUtilities = DeepCFRTraversal(gamePlayer, observationNum, observations, traversalMode);
             return (finalUtilities, gamePlayer.GameProgress);
         }
@@ -103,7 +103,7 @@ namespace ACESim
             Decision currentDecision = gamePlayer.CurrentDecision;
             var playbackHelper = gamePlayer.InitialPlaybackHelper;
             byte decisionIndex = (byte)gamePlayer.CurrentDecisionIndex;
-            IRegressionMachine regressionMachineForCurrentDecision = playbackHelper.RegressionMachines?.GetValueOrDefault(DeepCFRMultiModel.GetModelGroupingKey(EvolutionSettings.DeepCFRMultiModelMode, currentDecision, decisionIndex));
+            IRegressionMachine regressionMachineForCurrentDecision = playbackHelper.GetRegressionMachineIfExists(decisionIndex);
             byte playerMakingDecision = gamePlayer.CurrentPlayer.PlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionIndex);
             DeepCFRIndependentVariables independentVariables = null;
@@ -115,17 +115,17 @@ namespace ACESim
             double[] mainValues = DeepCFRTraversal(mainActionPlayer, observationNum, observations, traversalMode);
             if (traversalMode == DeepCFRTraversalMode.AddRegretObservations)
             {
-                if (MultiModel.ObservationsNeeded(currentDecision))
+                if (MultiModel.ObservationsNeeded(decisionIndex))
                 {
                     // We do a single probe. This allows us to compare this result either to the result from the main action (fast, but high variance) or to the result from all of the other actions (slow, but low variance).
                     DeepCFRObservationNum probeIteration = observationNum.NextVariation();
-                    byte probeAction = playbackHelper.MultiModel.ChooseAction(currentDecision, regressionMachineForCurrentDecision, probeIteration.GetRandomDouble(decisionIndex), independentVariables /* note that action in this is ignored */, numPossibleActions, numPossibleActions /* TODO */, EvolutionSettings.DeepCFR_Epsilon_OffPolicyProbabilityForProbe, ref onPolicyProbabilities);
+                    byte probeAction = playbackHelper.MultiModel.ChooseAction(currentDecision, decisionIndex, regressionMachineForCurrentDecision, probeIteration.GetRandomDouble(decisionIndex), independentVariables /* note that action in this is ignored */, numPossibleActions, numPossibleActions /* TODO */, EvolutionSettings.DeepCFR_Epsilon_OffPolicyProbabilityForProbe, ref onPolicyProbabilities);
                     // Note: probe action might be same as main action. That's OK, because this helps us estimate expected regret, which is probabilistic
                     double sampledRegret;
                     if (EvolutionSettings.DeepCFR_ProbeAllActions)
                     {
                         if (onPolicyProbabilities == null)
-                            onPolicyProbabilities = playbackHelper.MultiModel.GetRegretMatchingProbabilities(independentVariables, currentDecision, regressionMachineForCurrentDecision);
+                            onPolicyProbabilities = playbackHelper.MultiModel.GetRegretMatchingProbabilities(currentDecision, decisionIndex, independentVariables, regressionMachineForCurrentDecision);
                         double utilityForProbeAction = 0, expectedUtility = 0;
                         for (byte a = 1; a <= currentDecision.NumPossibleActions; a++)
                         {
@@ -310,12 +310,12 @@ namespace ACESim
 
         private void ReturnRegressionMachines(Dictionary<byte, IRegressionMachine> regressionMachines)
         {
-            MultiModel.ReturnRegressionMachines(GameDefinition.DecisionsExecutionOrder, regressionMachines);
+            MultiModel.ReturnRegressionMachines(regressionMachines);
         }
 
         private Dictionary<byte, IRegressionMachine> GetRegressionMachinesForLocalUse()
         {
-            return MultiModel.GetRegressionMachinesForLocalUse(GameDefinition.DecisionsExecutionOrder.Select((item, index) => (item, (byte) index)).ToList());
+            return MultiModel.GetRegressionMachinesForLocalUse();
         }
 
         #endregion
@@ -328,7 +328,7 @@ namespace ACESim
         {
             DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel, null, null); // DEBUG -- must figure out a way to create a separate object for each thread, but problem is we don't break it down by thread.
             GameProgress initialGameProgress = GameFactory.CreateNewGameProgress(new IterationID(1));
-            DeepCFRDirectGamePlayer directGamePlayer = new DeepCFRDirectGamePlayer(GameDefinition, initialGameProgress, true, playbackHelper, () => new DeepCFRPlaybackHelper(MultiModel.DeepCopyForPlaybackOnly(), GetRegressionMachinesForLocalUse(), null));
+            DeepCFRDirectGamePlayer directGamePlayer = new DeepCFRDirectGamePlayer(EvolutionSettings.DeepCFR_MultiModelMode, GameDefinition, initialGameProgress, true, playbackHelper, () => new DeepCFRPlaybackHelper(MultiModel.DeepCopyForPlaybackOnly(), GetRegressionMachinesForLocalUse(), null));
             GameProgressTree gameProgressTree = new GameProgressTree(
                 0, // rand seed
                 totalNumberObservations,

@@ -14,5 +14,7 @@ namespace ACESimBase.GameSolvingSupport
             RegressionMachines = regressionMachines;
             ProbabilitiesCache = probabilitiesCache;
         }
+
+        public IRegressionMachine GetRegressionMachineIfExists(byte decisionIndex) => RegressionMachines?.GetValueOrDefault(decisionIndex);
     }
 }

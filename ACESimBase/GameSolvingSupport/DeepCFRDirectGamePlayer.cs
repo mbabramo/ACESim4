@@ -39,16 +39,17 @@ namespace ACESimBase.GameSolvingSupport
 
         public (DeepCFRIndependentVariables, double[]) GetIndependentVariablesAndPlayerProbabilities(DeepCFRObservationNum observationNum)
         {
+            Decision currentDecision = CurrentDecision;
             byte decisionIndex = (byte)CurrentDecisionIndex;
             byte playerMakingDecision = CurrentPlayer.PlayerIndex;
             var informationSet = GetInformationSet(true);
             var independentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, 0 /* placeholder */, null /* TODO */);
-            IRegressionMachine regressionMachineForCurrentDecision = InitialPlaybackHelper.RegressionMachines?.GetValueOrDefault(DeepCFRMultiModel.GetModelGroupingKey(Mode, CurrentDecision, decisionIndex));
+            IRegressionMachine regressionMachineForCurrentDecision = InitialPlaybackHelper.GetRegressionMachineIfExists(decisionIndex);
             double[] onPolicyProbabilities;
             if (InitialPlaybackHelper.ProbabilitiesCache == null)
-                onPolicyProbabilities = InitialPlaybackHelper.MultiModel.GetRegretMatchingProbabilities(independentVariables, CurrentDecision, regressionMachineForCurrentDecision);
+                onPolicyProbabilities = InitialPlaybackHelper.MultiModel.GetRegretMatchingProbabilities(currentDecision, decisionIndex, independentVariables, regressionMachineForCurrentDecision);
             else
-                onPolicyProbabilities = InitialPlaybackHelper.ProbabilitiesCache?.GetValue(this, () => InitialPlaybackHelper.MultiModel.GetRegretMatchingProbabilities(independentVariables, CurrentDecision, regressionMachineForCurrentDecision));
+                onPolicyProbabilities = InitialPlaybackHelper.ProbabilitiesCache?.GetValue(this, () => InitialPlaybackHelper.MultiModel.GetRegretMatchingProbabilities(currentDecision, decisionIndex, independentVariables, regressionMachineForCurrentDecision));
             byte actionChosen = ChooseAction(observationNum, decisionIndex, onPolicyProbabilities);
             independentVariables.ActionChosen = actionChosen;
             return (independentVariables, onPolicyProbabilities);
