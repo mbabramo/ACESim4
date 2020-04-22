@@ -106,8 +106,8 @@ namespace ACESim
         public double DeepCFR_Epsilon_OffPolicyProbabilityForProbe = 0.05;
         public double DeepCFR_DiscountRate = 0.98;
         public bool DeepCFR_ApproximateBestResponse = true;
-        public int DeepCFR_ApproximateBestResponseIterations = 10;
-        public int DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation = 100_000; // DEBUG
+        public int DeepCFR_ApproximateBestResponseIterations = 5;
+        public int DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation = 25_000; // DEBUG
         public Func<IRegression> RegressionFactory() => RegressionTechnique switch
         {
             RegressionTechniques.NeuralNetworkNetRegression => () => new NeuralNetworkNetRegression(DeepCFR_NeuralNetwork_Epochs, DeepCFR_NeuralNetwork_HiddenLayers, DeepCFR_NeuralNetwork_NeuronsPerHiddenLayer),
