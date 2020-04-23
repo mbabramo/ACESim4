@@ -216,7 +216,7 @@ namespace ACESim
 
         private async Task DoApproximateBestResponse()
         {
-            // DEBUG -- we should change this so that the best response just picks the single best answer rather than using regret matching -- maybe we could even go from late decisions to early decisions. 
+            // DEBUG -- we could change this so that the best response just picks the single best answer rather than using regret matching -- maybe we could even go from late decisions to early decisions. 
             double[] baselineUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
             TabbedText.WriteLine($"Baseline utilities {string.Join(",", baselineUtilities.Select(x => x.ToSignificantFigures(4)))}");
             await MultiModel.PrepareForBestResponseIterations(EvolutionSettings.ParallelOptimization);
