@@ -81,6 +81,10 @@ namespace ACESimBase.GameSolvingSupport
         /// The proportion of the data to be reserved for test data
         /// </summary>
         double TestDataProportion = 0.05;
+        /// <summary>
+        /// If true, regret matching is not used. Instead, the most attractive option will be chosen with 100% probability. Can be used during best response calculation.
+        /// </summary>
+        public bool AlwaysChooseBestOption = false;
 
         public DeepCFRModel(List<(Decision item, byte decisionIndex)> decisionsInModel, int reservoirCapacity, long reservoirSeed, double discountRate, Func<IRegression> regressionFactory)
         {
@@ -331,6 +335,23 @@ namespace ACESimBase.GameSolvingSupport
         public void UnfreezeState()
         {
             StateFrozen = false;
+        }
+
+        /// <summary>
+        /// Stop regret matching and just choose the best option. If using best response with backward induction,
+        /// this can be useful while optimizing earlier decisions and then while calculating the overall utility.
+        /// </summary>
+        public void StopRegretMatching()
+        {
+            AlwaysChooseBestOption = true;
+        }
+
+        /// <summary>
+        /// Resume regret matching if stopped during best response with backward induction.
+        /// </summary>
+        public void ResumeRegretMatching()
+        {
+            AlwaysChooseBestOption = false;
         }
 
         /// <summary>

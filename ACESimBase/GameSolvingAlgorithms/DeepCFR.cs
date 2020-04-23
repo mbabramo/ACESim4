@@ -112,7 +112,7 @@ namespace ACESim
             byte playerMakingDecision = gamePlayer.CurrentPlayer.PlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionIndex);
             DeepCFRIndependentVariables independentVariables = null;
-            double[] onPolicyProbabilities = null;
+            double[] onPolicyProbabilities;
             (independentVariables, onPolicyProbabilities) = gamePlayer.GetIndependentVariablesAndPlayerProbabilities(observationNum);
             byte mainAction = GameDefinition.DecisionsExecutionOrder[decisionIndex].AlwaysDoAction ?? gamePlayer.ChooseAction(observationNum, decisionIndex, onPolicyProbabilities);
             DeepCFRDirectGamePlayer mainActionPlayer = traversalMode == DeepCFRTraversalMode.PlaybackSinglePath ? gamePlayer : (DeepCFRDirectGamePlayer)gamePlayer.DeepCopy();
@@ -235,11 +235,12 @@ namespace ACESim
                     {
                         byte decisionIndex = (byte) decisionsForPlayer[iteration - 1].index; // this is the overall decision index, i.e. in GameDefinition.DecisionsExecutionOrder
                         MultiModel.TargetBestResponse(p, decisionIndex);
+                        MultiModel.StopRegretMatching(p, decisionIndex);
                         var result = await PerformDeepCFRIteration(iteration, true);
-                        bestResponseUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
                         MultiModel.ConcludeTargetingBestResponse(p, decisionIndex);
                     }
                     bestResponseUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
+                    MultiModel.ResumeRegretMatching();
                 }
                 else
                 {

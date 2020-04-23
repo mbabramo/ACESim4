@@ -103,11 +103,33 @@ namespace ACESimBase.GameSolvingSupport
         public double[] GetRegretMatchingProbabilities(Decision decision, byte decisionIndex, DeepCFRIndependentVariables independentVariables,  IRegressionMachine regressionMachineForDecision)
         {
             double[] regrets = GetExpectedRegretsForAllActions(decision, decisionIndex, independentVariables,  regressionMachineForDecision);
+            double[] probabilities = new double[decision.NumPossibleActions];
+            var model = GetModelForDecisionIndex(decisionIndex);
+            if (model.AlwaysChooseBestOption)
+            {
+                // We have temporarily disabled regret matching for this model (as we may do with accelerated best response).
+                // Just choose the best action.
+                byte bestAction = 0;
+                double bestRegrets = regrets[0];
+                probabilities[0] = 1.0; 
+                for (byte r = 1; r < regrets.Length; r++)
+                {
+                    if (regrets[r] > bestRegrets)
+                    {
+                        probabilities[bestAction] = 0; // previous best action no longer chosen
+                        probabilities[r] = 1.0;
+                        bestRegrets = regrets[r];
+                        bestAction = r;
+                    }
+                    else
+                        probabilities[r] = 0;
+                }
+                return probabilities;
+            }
             double positiveRegretsSum = 0;
             for (byte a = 1; a <= decision.NumPossibleActions; a++)
                 if (regrets?[a - 1] > 0)
                     positiveRegretsSum += regrets[a - 1];
-            double[] probabilities = new double[decision.NumPossibleActions];
             if (positiveRegretsSum == 0)
             {
                 double constantProbability = 1.0 / (double)decision.NumPossibleActions;
@@ -220,6 +242,22 @@ namespace ACESimBase.GameSolvingSupport
                 var model = models[(int)m];
                 return model.ReturnToStateBeforeBestResponseIterations();
             });
+        }
+
+        public void StopRegretMatching(byte playerIndex, byte? decisionIndex)
+        {
+            foreach (DeepCFRModel model in FilterModels(playerIndex, decisionIndex))
+            {
+                model.StopRegretMatching();
+            }
+        }
+
+        public void ResumeRegretMatching()
+        {
+            foreach (DeepCFRModel model in EnumerateModels())
+            {
+                model.StopRegretMatching();
+            }
         }
 
         public void TargetBestResponse(byte playerIndex, byte? decisionIndex)
