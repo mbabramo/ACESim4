@@ -96,8 +96,8 @@ namespace ACESim
         // DEEPCFR SETTINGS
         // Note: DeepCFR iterations are set in Launcher, same as vanilla iterations.
         public DeepCFRMultiModelMode DeepCFR_MultiModelMode = DeepCFRMultiModelMode.DecisionSpecific;
-        public int DeepCFR_ReservoirCapacity = 10_000;
-        public int DeepCFR_MaximumTotalObservationsPerIteration = 20_000; // after this number of observations, we stop looking for more observations, even if we haven't gotten enough to fill as many iterations as desired in one or more reservoirs (in which case, we rely more on earlier observations)
+        public int DeepCFR_ReservoirCapacity = 20_000;
+        public int DeepCFR_MaximumTotalObservationsPerIteration = 40_000; // after this number of observations, we stop looking for more observations, even if we haven't gotten enough to fill as many iterations as desired in one or more reservoirs (in which case, we rely more on earlier observations)
         public RegressionTechniques RegressionTechnique = RegressionTechniques.FastTree;
         public bool DeepCFR_ProbeAllActions = true;
         public int DeepCFR_NeuralNetwork_Epochs = 1_000;
@@ -116,7 +116,7 @@ namespace ACESim
         // accumulated regrets) set the baseline for that iteration. If we're calculating utilities rather than regrets,
         // all we can do is just pick the best option, so we do the same thing as is dictated by the ALwaysChooseBestOption option. 
         /// </summary>
-        public static bool DeepCFR_PredictUtilitiesNotRegrets = true; // DEBUG
+        public static bool DeepCFR_PredictUtilitiesNotRegrets = false;
         public Func<IRegression> RegressionFactory() => RegressionTechnique switch
         {
             RegressionTechniques.NeuralNetworkNetRegression => () => new NeuralNetworkNetRegression(DeepCFR_NeuralNetwork_Epochs, DeepCFR_NeuralNetwork_HiddenLayers, DeepCFR_NeuralNetwork_NeuronsPerHiddenLayer),
