@@ -27,6 +27,9 @@ namespace ACESim
     {
         DeepCFRMultiModel MultiModel;
 
+        byte ApproximateBestResponse_CurrentIterations;
+        byte ApproximateBestResponse_CurrentPlayer;
+
         #region Initialization
 
         public DeepCFR(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
@@ -219,6 +222,7 @@ namespace ACESim
             await MultiModel.PrepareForBestResponseIterations(EvolutionSettings.ParallelOptimization);
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
+                ApproximateBestResponse_CurrentPlayer = p;
                 TabbedText.WriteLine($"Determining best response for player {p}");
                 TabbedText.TabIndent();
                 double[] bestResponseUtilities;
@@ -226,6 +230,7 @@ namespace ACESim
                 {
                     var decisionsForPlayer = GameDefinition.DecisionsExecutionOrder.Select((item, index) => (item, index)).Where(x => x.item.PlayerNumber == p).OrderByDescending(x => x.index).ToList();
                     int iterationsNeeded = decisionsForPlayer.Count();
+                    ApproximateBestResponse_CurrentIterations = (byte) iterationsNeeded;
                     for (int iteration = 1; iteration <= iterationsNeeded; iteration++)
                     {
                         byte decisionIndex = (byte) decisionsForPlayer[iteration - 1].index; // this is the overall decision index, i.e. in GameDefinition.DecisionsExecutionOrder
@@ -246,7 +251,6 @@ namespace ACESim
                     bestResponseUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
                     MultiModel.ConcludeTargetingBestResponse(p, null);
                 }
-                await MultiModel.ReturnToStateBeforeBestResponseIterations(EvolutionSettings.ParallelOptimization);
 
                 TabbedText.TabUnindent();
                 TabbedText.WriteLine($"Concluding determining best response for player {p} (recreating earlier models)");
@@ -256,6 +260,7 @@ namespace ACESim
                 double bestResponseImprovement = bestResponseUtilities[p] - baselineUtilities[p];
                 TabbedText.WriteLine($"Best response improvement for player {p}: {bestResponseImprovement.ToSignificantFigures(4)}");
             }
+            await MultiModel.ReturnToStateBeforeBestResponseIterations(EvolutionSettings.ParallelOptimization);
         }
 
         private async Task<(ReportCollection reports, double[] utilities)> PerformDeepCFRIteration(int iteration, bool isBestResponseIteration)
@@ -267,11 +272,7 @@ namespace ACESim
             Stopwatch localStopwatch = new Stopwatch();
             localStopwatch.Start();
             StrategiesDeveloperStopwatch.Start();
-
-            if (isBestResponseIteration)
-                TabbedText.Write($"Best response iteration {iteration} of {EvolutionSettings.DeepCFR_ApproximateBestResponseIterations} ");
-            else
-                TabbedText.Write($"Iteration {iteration} of {EvolutionSettings.TotalIterations} ");
+            ReportIteration(iteration, isBestResponseIteration);
 
             int[] numObservationsToAdd = MultiModel.CountPendingObservationsTarget(iteration);
             int numObservationsToAddMax = numObservationsToAdd != null && numObservationsToAdd.Any() ? numObservationsToAdd.Max() : EvolutionSettings.DeepCFR_ReservoirCapacity;
@@ -332,6 +333,19 @@ namespace ACESim
                     targetMet = MultiModel.AllMeetPendingObservationsTarget(numObservationsToAdd);
                 return targetMet;
             }
+        }
+
+        private void ReportIteration(int iteration, bool isBestResponseIteration)
+        {
+            if (isBestResponseIteration)
+            {
+                if (EvolutionSettings.DeepCFR_ApproximateBestResponse_BackwardInduction)
+                    TabbedText.Write($"Best response iteration {iteration} of {ApproximateBestResponse_CurrentIterations} for player {ApproximateBestResponse_CurrentPlayer}");
+                else
+                    TabbedText.Write($"Best response iteration {iteration} of {EvolutionSettings.DeepCFR_ApproximateBestResponseIterations} ");
+            }
+            else
+                TabbedText.Write($"Iteration {iteration} of {EvolutionSettings.TotalIterations} ");
         }
 
         private void ReturnRegressionMachines(Dictionary<byte, IRegressionMachine> regressionMachines)

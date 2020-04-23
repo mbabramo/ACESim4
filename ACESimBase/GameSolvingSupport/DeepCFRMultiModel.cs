@@ -227,7 +227,7 @@ namespace ACESimBase.GameSolvingSupport
         {
             foreach (DeepCFRModel model in FilterModels(playerIndex, decisionIndex))
             {
-                model.FreezeState();
+                model.UnfreezeState();
             }
         }
 
@@ -235,7 +235,7 @@ namespace ACESimBase.GameSolvingSupport
         {
             foreach (DeepCFRModel model in FilterModels(playerIndex, decisionIndex))
             {
-                model.UnfreezeState();
+                model.FreezeState();
             }
         }
 
