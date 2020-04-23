@@ -161,7 +161,7 @@ namespace ACESimBase.GameSolvingSupport
             PendingObservations = new List<DeepCFRObservation>();
             await BuildModel(s);
             string trainingResultString = Regression.GetTrainingResultString();
-            s.AppendLine(trainingResultString + $" ({GetModelName()})");
+            s.Append(trainingResultString + $" ({GetModelName()})");
             return s.ToString();
         }
 

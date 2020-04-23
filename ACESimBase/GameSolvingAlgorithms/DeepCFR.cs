@@ -223,11 +223,11 @@ namespace ACESim
                 double[] bestResponseUtilities;
                 if (EvolutionSettings.DeepCFR_ApproximateBestResponse_BackwardInduction)
                 {
-                    var decisions = GameDefinition.DecisionsExecutionOrder.Where(x => x.PlayerNumber == p).Select((item, index) => (item, index)).OrderByDescending(x => x.index).ToList();
-                    int iterationsNeeded = decisions.Count();
+                    var decisionsForPlayer = GameDefinition.DecisionsExecutionOrder.Select((item, index) => (item, index)).Where(x => x.item.PlayerNumber == p).OrderByDescending(x => x.index).ToList();
+                    int iterationsNeeded = decisionsForPlayer.Count();
                     for (int iteration = 1; iteration <= iterationsNeeded; iteration++)
                     {
-                        byte decisionIndex = (byte) (iterationsNeeded - iteration);
+                        byte decisionIndex = (byte) decisionsForPlayer[iteration - 1].index; // this is the overall decision index, i.e. in GameDefinition.DecisionsExecutionOrder
                         MultiModel.StartDeterminingBestResponse(p, decisionIndex);
                         var result = await PerformDeepCFRIteration(iteration, true);
                         bestResponseUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
