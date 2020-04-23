@@ -102,7 +102,6 @@ namespace ACESimBase.GameSolvingSupport
 
         public double[] GetRegretMatchingProbabilities(Decision decision, byte decisionIndex, DeepCFRIndependentVariables independentVariables,  IRegressionMachine regressionMachineForDecision)
         {
-            
             double[] regrets = GetExpectedRegretsForAllActions(decision, decisionIndex, independentVariables,  regressionMachineForDecision);
             double positiveRegretsSum = 0;
             for (byte a = 1; a <= decision.NumPossibleActions; a++)

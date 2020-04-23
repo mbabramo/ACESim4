@@ -150,6 +150,8 @@ namespace ACESimBase.GameSolvingSupport
             return String.Join(",", ModelNames);
         }
 
+        #region Model building and printing
+
         public async Task<string> CompleteIteration()
         {
             IterationsProcessed++;
@@ -241,6 +243,10 @@ namespace ACESimBase.GameSolvingSupport
             }
         }
 
+#endregion
+
+        #region Choosing actions
+
         public double GetPredictedRegretForAction(DeepCFRIndependentVariables independentVariables, byte action, IRegressionMachine regressionMachine)
         {
             if (IterationsProcessed == 0)
@@ -307,20 +313,7 @@ namespace ACESimBase.GameSolvingSupport
             return (byte)(probabilities.Length);
         }
 
-        private byte ChooseActionFromPositiveRegrets(double[] positiveRegrets, double sumPositiveRegrets, double randomValue)
-        {
-            if (sumPositiveRegrets == 0)
-                return ChooseActionAtRandom(randomValue, (byte) positiveRegrets.Length);
-            double targetCumPosRegret = randomValue * sumPositiveRegrets;
-            double towardTarget = 0;
-            for (byte a = 1; a < positiveRegrets.Length; a++)
-            {
-                towardTarget += positiveRegrets[a - 1];
-                if (towardTarget > targetCumPosRegret)
-                    return a;
-            }
-            return (byte) (positiveRegrets.Length);
-        }
+        #endregion
 
         #region Freezing/remembering state (for approximate best response determination)
 

@@ -14,7 +14,8 @@ namespace ACESim
 
     // DEBUG -- TODO
     // 0. Why is best response sometimes negative? This is true even with a number of best response iterations. [SORT OF FIXED, AT LEAST THIS DOES NOT SEEM TO OCCUR WHEN WE SEPARATE OUT ALL DECISION INDICES.]
-    // 0.5. Make it so that we can do a single best response iteration, moving backward across decisions. 
+    // 0.5. Make it so that we can do a single best response iteration, moving backward across decisions. (done)
+    // 0.6. Best response could just pick the single best answer rather than using regret matching. This would be in accord with the usual approach to best response. It especially may make sense if using backward induction. 
     // 1. Use previous prediction as input into next one. The previous prediction will be the previous prediction while playing the game, so in iteration i, the previous prediction will be based on a model from iteration i - 1. In principle, we could generate the models seriatim and then use the prediction from that same iteration, but that would prevent parallel development of the models.
     // 2. Decision index-specific prediction. Right now, we are grouping all decisions of a particular type. We should at least have an option for customizing by decision index, instead of by decision byte code.
     // 3. Game parameters. The GameDefinition needs to have a way of randomizing game parameters, so that we can randomize some set of parameters at the beginning of each iteration. Then, we need to be able to generate separate reports (including best response, if applicable) for each set of parameters. We also need to allow for initial and final value parameters (including for caring about utility of opponent), so that we can see the effect of starting with a particular set of parameters, as a way of randomizing where we end up.
@@ -123,7 +124,7 @@ namespace ACESim
                 {
                     // We do a single probe. This allows us to compare this result either to the result from the main action (fast, but high variance) or to the result from all of the other actions (slow, but low variance).
                     DeepCFRObservationNum probeIteration = observationNum.NextVariation();
-                    byte probeAction = playbackHelper.MultiModel.ChooseAction(currentDecision, decisionIndex, regressionMachineForCurrentDecision, probeIteration.GetRandomDouble(decisionIndex), independentVariables /* note that action in this is ignored */, numPossibleActions, numPossibleActions /* TODO */, EvolutionSettings.DeepCFR_Epsilon_OffPolicyProbabilityForProbe, ref onPolicyProbabilities);
+                    byte probeAction = playbackHelper.MultiModel.ChooseAction(currentDecision, decisionIndex, regressionMachineForCurrentDecision, probeIteration.GetRandomDouble(decisionIndex), independentVariables /* note that action in this is ignored */, numPossibleActions, numPossibleActions /* TODO */, EvolutionSettings.DeepCFR_Epsilon_OffPolicyProbabilityForProbe /* doesn't matter if probing all actions */, ref onPolicyProbabilities);
                     // Note: probe action might be same as main action. That's OK, because this helps us estimate expected regret, which is probabilistic
                     double sampledRegret;
                     if (EvolutionSettings.DeepCFR_ProbeAllActions)
@@ -133,7 +134,7 @@ namespace ACESim
                         double utilityForProbeAction = 0, expectedUtility = 0;
                         for (byte a = 1; a <= currentDecision.NumPossibleActions; a++)
                         {
-                            double[] utilitiesForAction = null;
+                            double[] utilitiesForAction;
                             if (a == mainAction)
                                 utilitiesForAction = mainValues;
                             else
@@ -216,7 +217,6 @@ namespace ACESim
 
         private async Task DoApproximateBestResponse()
         {
-            // DEBUG -- we could change this so that the best response just picks the single best answer rather than using regret matching -- maybe we could even go from late decisions to early decisions. 
             double[] baselineUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
             TabbedText.WriteLine($"Baseline utilities {string.Join(",", baselineUtilities.Select(x => x.ToSignificantFigures(4)))}");
             await MultiModel.PrepareForBestResponseIterations(EvolutionSettings.ParallelOptimization);
