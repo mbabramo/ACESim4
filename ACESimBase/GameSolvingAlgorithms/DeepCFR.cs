@@ -216,6 +216,7 @@ namespace ACESim
             // DEBUG -- we should change this so that the best response just picks the single best answer rather than using regret matching -- maybe we could even go from late decisions to early decisions. 
             double[] baselineUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
             TabbedText.WriteLine($"Baseline utilities {string.Join(",", baselineUtilities.Select(x => x.ToSignificantFigures(4)))}");
+            await MultiModel.PrepareForBestResponseIterations(EvolutionSettings.ParallelOptimization);
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
                 TabbedText.WriteLine($"Determining best response for player {p}");
@@ -228,23 +229,24 @@ namespace ACESim
                     for (int iteration = 1; iteration <= iterationsNeeded; iteration++)
                     {
                         byte decisionIndex = (byte) decisionsForPlayer[iteration - 1].index; // this is the overall decision index, i.e. in GameDefinition.DecisionsExecutionOrder
-                        MultiModel.StartDeterminingBestResponse(p, decisionIndex);
+                        MultiModel.TargetBestResponse(p, decisionIndex);
                         var result = await PerformDeepCFRIteration(iteration, true);
                         bestResponseUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
-                        await MultiModel.EndDeterminingBestResponse(p, decisionIndex);
+                        MultiModel.ConcludeTargetingBestResponse(p, decisionIndex);
                     }
                     bestResponseUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
                 }
                 else
                 {
-                    MultiModel.StartDeterminingBestResponse(p, null);
+                    MultiModel.TargetBestResponse(p, null);
                     for (int iteration = 1; iteration <= EvolutionSettings.DeepCFR_ApproximateBestResponseIterations; iteration++)
                     {
                         var result = await PerformDeepCFRIteration(iteration, true);
                     }
                     bestResponseUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
-                    await MultiModel.EndDeterminingBestResponse(p, null);
+                    MultiModel.ConcludeTargetingBestResponse(p, null);
                 }
+                await MultiModel.ReturnToStateBeforeBestResponseIterations(EvolutionSettings.ParallelOptimization);
 
                 TabbedText.TabUnindent();
                 TabbedText.WriteLine($"Concluding determining best response for player {p} (recreating earlier models)");

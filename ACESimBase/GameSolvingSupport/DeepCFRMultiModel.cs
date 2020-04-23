@@ -203,25 +203,37 @@ namespace ACESimBase.GameSolvingSupport
 
         #region Best response
 
-        public void StartDeterminingBestResponse(byte playerIndex, byte? decisionIndex)
+        public async Task PrepareForBestResponseIterations(bool doParallel)
+        {
+            var models = EnumerateModels().ToList();
+            await Parallelizer.GoAsync(doParallel, 0, models.Count(), m =>
+            {
+                var model = models[(int) m];
+                return model.PrepareForBestResponseIterations();
+            });
+        }
+
+        public async Task ReturnToStateBeforeBestResponseIterations(bool doParallel)
+        {
+            var models = EnumerateModels().ToList();
+            await Parallelizer.GoAsync(doParallel, 0, models.Count(), m =>
+            {
+                var model = models[(int)m];
+                return model.ReturnToStateBeforeBestResponseIterations();
+            });
+        }
+
+        public void TargetBestResponse(byte playerIndex, byte? decisionIndex)
         {
             foreach (DeepCFRModel model in FilterModels(playerIndex, decisionIndex))
-            {
-                model.StartDeterminingBestResponse();
-            }
-            foreach (DeepCFRModel model in FilterModelsExcept(playerIndex, decisionIndex))
             {
                 model.FreezeState();
             }
         }
 
-        public async Task EndDeterminingBestResponse(byte playerIndex, byte? decisionIndex)
+        public void ConcludeTargetingBestResponse(byte playerIndex, byte? decisionIndex)
         {
             foreach (DeepCFRModel model in FilterModels(playerIndex, decisionIndex))
-            {
-                await model.EndDeterminingBestResponse();
-            }
-            foreach (DeepCFRModel model in FilterModelsExcept(playerIndex, decisionIndex))
             {
                 model.UnfreezeState();
             }

@@ -337,31 +337,29 @@ namespace ACESimBase.GameSolvingSupport
         /// </summary>
         public void UnfreezeState()
         {
-            if (!StateFrozen)
-                throw new NotSupportedException();
             StateFrozen = false;
         }
 
         /// <summary>
         /// Prepare to start determining the best response, by remembering the current state and targeting full
-        /// replacement of the reservoir.
+        /// replacement of the reservoir, then freezing the state. 
         /// </summary>
-        public void StartDeterminingBestResponse()
+        public Task PrepareForBestResponseIterations()
         {
             RememberedObservations = Observations.DeepCopy(o => o.DeepCopy());
             FullReservoirReplacement = true;
+            FreezeState();
+            return Task.CompletedTask;
         }
 
-        /// <summary>
-        /// Conclude determining the best response, recalling the previous state.
-        /// </summary>
-        /// <returns></returns>
-        public async Task EndDeterminingBestResponse()
+        public async Task ReturnToStateBeforeBestResponseIterations()
         {
+
             Observations = RememberedObservations;
             RememberedObservations = null;
             FullReservoirReplacement = false;
             await BuildModel(new StringBuilder()); // must rebuild model (alternative would be to have a deep copy of the model) -- won't print results of that
+            UnfreezeState();
         }
 
         #endregion
