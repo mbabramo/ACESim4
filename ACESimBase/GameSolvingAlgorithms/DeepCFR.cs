@@ -13,10 +13,11 @@ namespace ACESim
 {
 
     // DEBUG -- TODO
-    // 0. Why is best response sometimes negative? This is true even with a number of best response iterations. [SORT OF FIXED, AT LEAST THIS DOES NOT SEEM TO OCCUR WHEN WE SEPARATE OUT ALL DECISION INDICES.]
+    // 0. Why is best response sometimes negative? This is true even with a number of best response iterations. (done, if separating out decisions by index, this does not happen anymore).
     // 0.5. Make it so that we can do a single best response iteration, moving backward across decisions. (done)
-    // 0.6. Best response could just pick the single best answer rather than using regret matching. This would be in accord with the usual approach to best response. It especially may make sense if using backward induction. 
-    // 1. Use previous prediction as input into next one. The previous prediction will be the previous prediction while playing the game, so in iteration i, the previous prediction will be based on a model from iteration i - 1. In principle, we could generate the models seriatim and then use the prediction from that same iteration, but that would prevent parallel development of the models.
+    // 0.6. Best response could just pick the single best answer rather than using regret matching. This would be in accord with the usual approach to best response. It especially may make sense if using backward induction.
+    // 1. Use previous prediction as input into next one. A challenge here, though, is that we might want the relevant previous prediction to be of utilities; otherwise, the prediction is really about the different actions from the previous decision. Can we make the prediction to be utility, instead of regrets? Not easily. We need to be predicting regrets so that we can accumulate regrets over iterations. We could try to forecast utilities and see what happens. So, we would need to include an additional regression. The question then becomes whether that is worthwhile, particularly when forecasting regrets rather than utilities. 
+    // The previous prediction will be the previous prediction while playing the game, so in iteration i, the previous prediction will be based on a model from iteration i - 1. In principle, we could generate the models seriatim and then use the prediction from that same iteration, but that would prevent parallel development of the models.
     // 2. Decision index-specific prediction. Right now, we are grouping all decisions of a particular type. We should at least have an option for customizing by decision index, instead of by decision byte code.
     // 3. Game parameters. The GameDefinition needs to have a way of randomizing game parameters, so that we can randomize some set of parameters at the beginning of each iteration. Then, we need to be able to generate separate reports (including best response, if applicable) for each set of parameters. We also need to allow for initial and final value parameters (including for caring about utility of opponent), so that we can see the effect of starting with a particular set of parameters, as a way of randomizing where we end up.
     // 4. Principal components analysis. We can reduce a player's strategy to a few principal components. To do this, we need strategies at various times (or with various initial settings, such as utility to share). We need a common reservoir of observations for each of various decisions. We might create that reservoir in an initial iteration, when all decisions are equally likely to occur, but on the other hand it probably makes sense to specialize the reservoir to the decisions most likely to come up in game play (taking some random observations from each of the strategies). Note that we'll need to be able to reverse the PCA to generate a strategy; this will occur first by generating the actions taken for particular strategies and then re-generating the strategy. The PCA may be interesting in and of itself (showing the basic aspects of strategy), but also might be used as part of a technique to minimize best response improvement. That is, we might create a neural network with pairs of players' strategies (again, from different times and/or from different initial settings) and then calculate best response improvement sums. Then, we could optimize the input to this neural network by minimizing this. That's essentially what we tried before without PCA, but it should be much more manageable with just a few principal components. 
@@ -145,7 +146,10 @@ namespace ACESim
                                 utilityForProbeAction = utilityForAction;
                             expectedUtility += onPolicyProbabilities[a - 1] * utilityForAction;
                         }
-                        sampledRegret = utilityForProbeAction - expectedUtility;
+                        if (EvolutionSettings.DeepCFR_PredictUtilitiesNotRegrets)
+                            sampledRegret = utilityForProbeAction; // not really sampled regret
+                        else
+                            sampledRegret = utilityForProbeAction - expectedUtility; 
                     }
                     else
                     {

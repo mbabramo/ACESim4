@@ -105,9 +105,9 @@ namespace ACESimBase.GameSolvingSupport
             double[] regrets = GetExpectedRegretsForAllActions(decision, decisionIndex, independentVariables,  regressionMachineForDecision);
             double[] probabilities = new double[decision.NumPossibleActions];
             var model = GetModelForDecisionIndex(decisionIndex);
-            if (model.AlwaysChooseBestOption)
+            if (regrets != null && (EvolutionSettings.DeepCFR_PredictUtilitiesNotRegrets || model.AlwaysChooseBestOption))
             {
-                // We have temporarily disabled regret matching for this model (as we may do with accelerated best response).
+                // AlwaysChooseBestOption: We have temporarily disabled regret matching for this model (as we may do with accelerated best response).
                 // Just choose the best action.
                 byte bestAction = 0;
                 double bestRegrets = regrets[0];

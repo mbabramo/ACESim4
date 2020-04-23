@@ -96,8 +96,8 @@ namespace ACESim
         // DEEPCFR SETTINGS
         // Note: DeepCFR iterations are set in Launcher, same as vanilla iterations.
         public DeepCFRMultiModelMode DeepCFR_MultiModelMode = DeepCFRMultiModelMode.DecisionSpecific;
-        public int DeepCFR_ReservoirCapacity = 10_000; // DEBUG
-        public int DeepCFR_MaximumTotalObservationsPerIteration = 20_000; // DEBUG // after this number of observations, we stop looking for more observations, even if we haven't gotten enough to fill as many iterations as desired in one or more reservoirs (in which case, we rely more on earlier observations)
+        public int DeepCFR_ReservoirCapacity = 10_000;
+        public int DeepCFR_MaximumTotalObservationsPerIteration = 20_000; // after this number of observations, we stop looking for more observations, even if we haven't gotten enough to fill as many iterations as desired in one or more reservoirs (in which case, we rely more on earlier observations)
         public RegressionTechniques RegressionTechnique = RegressionTechniques.FastTree;
         public bool DeepCFR_ProbeAllActions = true;
         public int DeepCFR_NeuralNetwork_Epochs = 1_000;
@@ -109,6 +109,14 @@ namespace ACESim
         public bool DeepCFR_ApproximateBestResponse_BackwardInduction = true;
         public int DeepCFR_ApproximateBestResponseIterations = 1;
         public int DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation = 25_000; // DEBUG
+        /// <summary>
+        // With this option, we are not doing true regret matching. We are forecasting average utility for each action, 
+        // rather than average regrets. The difference is that when averaging regrets, we look at relative utilities in 
+        // each iteration to calculate regrets. Thus, the actions that then have high probabilities (based on previous
+        // accumulated regrets) set the baseline for that iteration. If we're calculating utilities rather than regrets,
+        // all we can do is just pick the best option, so we do the same thing as is dictated by the ALwaysChooseBestOption option. 
+        /// </summary>
+        public static bool DeepCFR_PredictUtilitiesNotRegrets = true; // DEBUG
         public Func<IRegression> RegressionFactory() => RegressionTechnique switch
         {
             RegressionTechniques.NeuralNetworkNetRegression => () => new NeuralNetworkNetRegression(DeepCFR_NeuralNetwork_Epochs, DeepCFR_NeuralNetwork_HiddenLayers, DeepCFR_NeuralNetwork_NeuronsPerHiddenLayer),
