@@ -28,7 +28,8 @@ namespace ACESim
     {
         DeepCFRMultiModel MultiModel;
 
-        byte ApproximateBestResponse_CurrentIterations;
+        int ApproximateBestResponse_CurrentIterationsTotal;
+        int ApproximateBestResponse_CurrentIterationsIndex;
         byte ApproximateBestResponse_CurrentPlayer;
 
         #region Initialization
@@ -229,15 +230,19 @@ namespace ACESim
                 if (EvolutionSettings.DeepCFR_ApproximateBestResponse_BackwardInduction)
                 {
                     var decisionsForPlayer = GameDefinition.DecisionsExecutionOrder.Select((item, index) => (item, index)).Where(x => x.item.PlayerNumber == p).OrderByDescending(x => x.index).ToList();
-                    int iterationsNeeded = decisionsForPlayer.Count();
-                    ApproximateBestResponse_CurrentIterations = (byte) iterationsNeeded;
-                    for (int iteration = 1; iteration <= iterationsNeeded; iteration++)
+                    int innerIterationsNeeded = decisionsForPlayer.Count();
+                    ApproximateBestResponse_CurrentIterationsTotal = innerIterationsNeeded * EvolutionSettings.DeepCFR_ApproximateBestResponseIterations;
+                    for (int outerIteration = 0; outerIteration < EvolutionSettings.DeepCFR_ApproximateBestResponseIterations; outerIteration++)
                     {
-                        byte decisionIndex = (byte) decisionsForPlayer[iteration - 1].index; // this is the overall decision index, i.e. in GameDefinition.DecisionsExecutionOrder
-                        MultiModel.TargetBestResponse(p, decisionIndex);
-                        MultiModel.StopRegretMatching(p, decisionIndex);
-                        var result = await PerformDeepCFRIteration(iteration, true);
-                        MultiModel.ConcludeTargetingBestResponse(p, decisionIndex);
+                        for (int innerIteration = 1; innerIteration <= innerIterationsNeeded; innerIteration++)
+                        {
+                            ApproximateBestResponse_CurrentIterationsIndex = outerIteration * innerIterationsNeeded + innerIteration;
+                            byte decisionIndex = (byte)decisionsForPlayer[innerIteration - 1].index; // this is the overall decision index, i.e. in GameDefinition.DecisionsExecutionOrder
+                            MultiModel.TargetBestResponse(p, decisionIndex);
+                            MultiModel.StopRegretMatching(p, decisionIndex);
+                            var result = await PerformDeepCFRIteration(innerIteration, true);
+                            MultiModel.ConcludeTargetingBestResponse(p, decisionIndex);
+                        }
                     }
                     bestResponseUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
                     MultiModel.ResumeRegretMatching();
@@ -341,7 +346,7 @@ namespace ACESim
             if (isBestResponseIteration)
             {
                 if (EvolutionSettings.DeepCFR_ApproximateBestResponse_BackwardInduction)
-                    TabbedText.Write($"Best response iteration {iteration} of {ApproximateBestResponse_CurrentIterations} for player {ApproximateBestResponse_CurrentPlayer}");
+                    TabbedText.Write($"Best response iteration {ApproximateBestResponse_CurrentIterationsIndex} of {ApproximateBestResponse_CurrentIterationsTotal} for player {ApproximateBestResponse_CurrentPlayer}");
                 else
                     TabbedText.Write($"Best response iteration {iteration} of {EvolutionSettings.DeepCFR_ApproximateBestResponseIterations} ");
             }
