@@ -385,7 +385,7 @@ namespace ACESim
                 directGamePlayer
                 );
             await gameProgressTree.CompleteTree(false);
-            //string s = gameProgressTree.ToString();
+            string s = gameProgressTree.ToString(); // DEBUG
             return gameProgressTree;
         }
 

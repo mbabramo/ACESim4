@@ -139,6 +139,27 @@ namespace ACESim
             return actionsPlayed;
         }
 
+        public int GetActionsPlayedHash(int hashVariant = 1)
+        {
+            unchecked
+            {
+                const int p = 16777619;
+                int hash = (int)2166136261 * hashVariant;
+
+                List<byte> data = ActionsPlayed();
+                int dataLength = data.Count;
+                for (int i = 0; i < dataLength; i++)
+                    hash = (hash ^ data[i]) * p;
+
+                hash += hash << 13;
+                hash ^= hash >> 7;
+                hash += hash << 3;
+                hash ^= hash >> 17;
+                hash += hash << 5;
+                return hash;
+            }
+        }
+
         public IEnumerable<short> GetInformationSetHistoryItems_OverallIndices()
         {
             return GameFullHistoryStorable.GetInformationSetHistoryItems_OverallIndices(this);

@@ -15,14 +15,22 @@ namespace ACESimBase.GameSolvingSupport
             public IDirectGamePlayer DirectGamePlayer;
             public GameProgress GameProgress => DirectGamePlayer.GameProgress;
             public (int, int) ObservationRange;
-            public double[] Probabilities;
-            public bool IsLeaf => Probabilities == null;
+            public int NumObservations => ObservationRange.Item2 - ObservationRange.Item1 + 1;
+            public double CumulativeProportion; // represents the proportion of observations represented by the node
+            public double ChildObservationsToChildCumulativeProportion(int numChildObservations) => CumulativeProportion * ((double)numChildObservations) / ((double)NumObservations);
+            public double[] ActionProbabilities;
+            public bool IsLeaf => ActionProbabilities == null;
+
 
             public override string ToString()
             {
-                string probabilitiesString = Probabilities == null ? null : String.Join(",", Probabilities.Select(x => x.ToSignificantFigures(3)));
+                string actionProbabilitiesString = ActionProbabilities == null ? null : String.Join(",", ActionProbabilities.Select(x => x.ToSignificantFigures(3)));
                 string resultString = GameProgress.GameComplete ? String.Join(",", GameProgress.GetNonChancePlayerUtilities().Select(x => x.ToSignificantFigures(5))) : "incomplete";
-                string result = $"Obs: {ObservationRange} Decision: {DirectGamePlayer.CurrentDecision?.Name} Probs: {probabilitiesString} Result: {resultString}";
+                if (CumulativeProportion < 0.0001)
+                {
+                    var DEBUG = 0;
+                }
+                string result = $"Obs: {ObservationRange} Cumulative proportion: {CumulativeProportion.ToSignificantFigures_WithSciNotationForVerySmall(4)} Decision: {DirectGamePlayer.CurrentDecision?.Name} Probs: {actionProbabilitiesString} Result: {resultString}";
                 return result;
             }
         }
@@ -38,6 +46,7 @@ namespace ACESimBase.GameSolvingSupport
                 {
                     DirectGamePlayer = directGamePlayer,
                     ObservationRange = (1, totalObservations),
+                    CumulativeProportion = 1.0,
                 }
             };
             InitialRandSeed = randSeed;
@@ -48,44 +57,44 @@ namespace ACESimBase.GameSolvingSupport
         public async Task CompleteTree(bool doParallel)
         {
             await Tree.CreateBranchesParallel(doParallel, CreateSubbranches);
-            CompleteIncompletePlayers(doParallel);
+            // DEBUG CompleteIncompletePlayers(doParallel);
         }
 
         public (byte branchID, GameProgressTreeNodeInfo childBranch, bool isLeaf)[] CreateSubbranches(GameProgressTreeNodeInfo sourceNode)
         {
-            double[] probabilities = sourceNode.DirectGamePlayer.GetActionProbabilities();
-            sourceNode.Probabilities = probabilities;
-            int randSeed = 0;
-            unchecked
-            {
-                randSeed = InitialRandSeed * 37 + sourceNode.ObservationRange.Item1 * 23 + sourceNode.ObservationRange.Item2 * 19;
-            }
-            (int, int)?[] subranges = DivideRangeIntoSubranges(sourceNode.ObservationRange, probabilities, randSeed);
-            IDirectGamePlayer[] children = Enumerable.Range(1, probabilities.Length).Select(a =>
+            double[] actionProbabilities = sourceNode.DirectGamePlayer.GetActionProbabilities();
+            sourceNode.ActionProbabilities = actionProbabilities;
+            int randSeed = sourceNode.DirectGamePlayer.GameProgress.GetActionsPlayedHash(InitialRandSeed);
+            (int, int)?[] subranges = DivideRangeIntoSubranges(sourceNode.ObservationRange, actionProbabilities, randSeed);
+            IDirectGamePlayer[] children = Enumerable.Range(1, actionProbabilities.Length).Select(a =>
             {
                 (int, int)? subrange = subranges[a - 1];
                 if (subrange == null)
                     return null;
                 IDirectGamePlayer childGamePlayer = sourceNode.DirectGamePlayer.CopyAndPlayAction((byte)a);
-                if (!childGamePlayer.GameProgress.GameComplete && subrange.Value.Item1 == subrange.Value.Item2)
-                {
-                    // This is a leaf of the tree -- so we must play until the game is complete.
-                    double[] childProbabilities = childGamePlayer.GetActionProbabilities();
-                    ConsistentRandomSequenceProducer r = new ConsistentRandomSequenceProducer(++randSeed, 3_000_000);
-                    byte childAction = (byte) (1 + r.GetRandomIndex(childProbabilities));
-                    childGamePlayer = childGamePlayer.CopyAndPlayAction(childAction);
-                };
+                //if (!childGamePlayer.GameProgress.GameComplete && subrange.Value.Item1 == subrange.Value.Item2)
+                //{
+                //    // DEBUG -- it seems to me that this only takes us one further level. Should it be needed at all? When we have one observation to divide probabilistically, we just pick one child in which to divide it, and we then keep building the tree as we normally would. Also, why isn't this a while loop?
+                //    // This is a leaf of the tree -- so we must play until the game is complete.
+                //    double[] childProbabilities = childGamePlayer.GetActionProbabilities();
+                //    // DEBUG -- we want random numbers to be based on the hash
+                //    ConsistentRandomSequenceProducer r = new ConsistentRandomSequenceProducer(++randSeed, 3_000_000);
+                //    byte childAction = (byte) (1 + r.GetRandomIndex(childProbabilities));
+                //    childGamePlayer = childGamePlayer.CopyAndPlayAction(childAction);
+                //};
                 return childGamePlayer;
             }).ToArray();
             List<(byte branchID, GameProgressTreeNodeInfo childBranch, bool isLeaf)> subbranches = new List<(byte branchID, GameProgressTreeNodeInfo childBranch, bool isLeaf)>();
-            for (byte a = 1; a <= probabilities.Length; a++)
+            for (byte a = 1; a <= actionProbabilities.Length; a++)
             {
                 int numInSubrange = subranges[a - 1] == null ? 0 : subranges[a - 1].Value.Item2 - subranges[a - 1].Value.Item1 + 1;
                 IDirectGamePlayer gamePlayer = children[a - 1];
                 if (gamePlayer != null)
                 {
-                    var childBranchItem = new GameProgressTreeNodeInfo() { DirectGamePlayer = gamePlayer, ObservationRange = subranges[a - 1].Value };
-                    subbranches.Add((a, childBranchItem, numInSubrange == 1 || gamePlayer.GameProgress.GameComplete)); // If there is only 1 in subrange, we go no further, BUT we will need to complete those games later.
+                    (int, int) childObservationRange = subranges[a - 1].Value;
+                    int childNumObservations = childObservationRange.Item2 - childObservationRange.Item1 + 1;
+                    var childBranchItem = new GameProgressTreeNodeInfo() { DirectGamePlayer = gamePlayer, ObservationRange = childObservationRange, CumulativeProportion = sourceNode.ChildObservationsToChildCumulativeProportion(childNumObservations) };
+                    subbranches.Add((a, childBranchItem, gamePlayer.GameProgress.GameComplete)); // If there is only 1 in subrange, we go no further, BUT we will need to complete those games later. DEBUG -- no, we should go further, until the end; we go no further only where the game is complete
                 }
             }
             return subbranches.ToArray();

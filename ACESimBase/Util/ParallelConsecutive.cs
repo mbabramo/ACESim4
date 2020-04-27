@@ -66,7 +66,6 @@ namespace ACESimBase.Util
                     if (!Complete)
                     {
                         int itemToStart = GetNextItemToStart();
-                        Console.WriteLine($"{itemToStart}"); // DEBUG
                         StoreProductionResult(itemToStart);
                     }
                     else loopState.Stop();
