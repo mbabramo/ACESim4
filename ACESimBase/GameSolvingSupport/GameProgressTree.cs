@@ -36,6 +36,8 @@ namespace ACESimBase.GameSolvingSupport
             /// The cumulative reach probability of this node for the allocation. 
             /// </summary>
             public double CumulativeReachProbability;
+
+            public override string ToString() => $"{ObservationRange}: Reach {CumulativeReachProbability} ChildProportions {String.Join(",", ChildProportions.Select(x => x.ToSignificantFigures_WithSciNotationForVerySmall(4)))}";
         }
 
         /// <summary>
@@ -60,11 +62,13 @@ namespace ACESimBase.GameSolvingSupport
             /// </summary>
             public List<GameProgressTreeNodeAllocation> Allocations = new List<GameProgressTreeNodeAllocation>();
 
-            public GameProgressTreeNodeProbabilities(int initialObservations, double[] playToHereProbabilities, double[] actionProbabilities)
+            public string ToString(int allocationIndex) => Allocations[allocationIndex].ToString() + $" action probabilities {String.Join(",", ActionProbabilities.Select(x => x.ToSignificantFigures_WithSciNotationForVerySmall(4)))}";
+
+            public GameProgressTreeNodeProbabilities((int, int) observationRange, double[] playToHereProbabilities, double[] actionProbabilities)
             {
                 Allocations.Add(new GameProgressTreeNodeAllocation()
                 {
-                    ObservationRange = (1, initialObservations),
+                    ObservationRange = observationRange,
                     ChildProportions = null,
                     CumulativeReachProbability = 1.0
                 });
@@ -108,39 +112,70 @@ namespace ACESimBase.GameSolvingSupport
 
             public List<(double[] explorationValues, GameProgressTreeNodeProbabilities probabilitiesInfo)> NodeProbabilityInfos = new List<(double[] explorationValues, GameProgressTreeNodeProbabilities probabilitiesInfo)>();
 
-            public GameProgressTreeNodeInfo(IDirectGamePlayer directGamePlayer, int initialObservations, double[] explorationValues, double[] playToHereProbabilities)
+            public GameProgressTreeNodeInfo(IDirectGamePlayer directGamePlayer, (int, int) observationRange, double[] explorationValues, double[] playToHereProbabilities)
             {
                 DirectGamePlayer = directGamePlayer;
-                double[] actionProbabilities = directGamePlayer.GetActionProbabilities();
-                byte currentPlayer = directGamePlayer.CurrentPlayer.PlayerIndex;
-                if (currentPlayer < explorationValues.Length && explorationValues[currentPlayer] > 0)
+                (double[] explorationValues, GameProgressTreeNodeProbabilities) npi = GetNodeProbabilityInfo(observationRange, explorationValues, playToHereProbabilities);
+                NodeProbabilityInfos = new List<(double[] explorationValues, GameProgressTreeNodeProbabilities probabilitiesInfo)>()
+                {
+                    npi
+                };
+            }
+
+            private (double[] explorationValues, GameProgressTreeNodeProbabilities) GetNodeProbabilityInfo((int, int) observationRange, double[] explorationValues, double[] playToHereProbabilities)
+            {
+                double[] actionProbabilitiesWithExploration = GetActionProbabilitiesWithExploration(explorationValues);
+                (double[] explorationValues, GameProgressTreeNodeProbabilities) npi = (explorationValues, new GameProgressTreeNodeProbabilities(observationRange, playToHereProbabilities, actionProbabilitiesWithExploration)
+                {
+
+                });
+                return npi;
+            }
+
+            private double[] GetActionProbabilitiesWithExploration(double[] explorationValues)
+            {
+                double[] actionProbabilities = DirectGamePlayer.GetActionProbabilities();
+                byte currentPlayer = DirectGamePlayer.CurrentPlayer.PlayerIndex;
+                if (explorationValues != null && currentPlayer < explorationValues.Length && explorationValues[currentPlayer] > 0)
                 {
                     double explorationValue = explorationValues[currentPlayer];
                     double equalProbabilities = 1.0 / (double)actionProbabilities.Length;
-                    actionProbabilities = actionProbabilities.Select(x => explorationValue * equalProbabilities + (1.0 - explorationValue) * x).ToArray();
+                    return actionProbabilities.Select(x => explorationValue * equalProbabilities + (1.0 - explorationValue) * x).ToArray();
                 }
-                NodeProbabilityInfos = new List<(double[] explorationValues, GameProgressTreeNodeProbabilities probabilitiesInfo)>()
-                {
-                    (explorationValues, new GameProgressTreeNodeProbabilities(initialObservations, playToHereProbabilities, actionProbabilities)
-                    {
 
-                    })
-                };
+                return actionProbabilities.ToArray();
             }
 
             public GameProgressTreeNodeProbabilities GetProbabilitiesInfo(double[] explorationValues)
             {
                 foreach (var npi in NodeProbabilityInfos)
-                    if (npi.explorationValues.SequenceEqual(explorationValues))
+                {
+                    if ((npi.explorationValues == null && explorationValues == null) ||
+(npi.explorationValues.SequenceEqual(explorationValues)))
                         return npi.probabilitiesInfo;
+                }
                 return null;
             }
 
-            public override string ToString()
+            public GameProgressTreeNodeProbabilities GetOrAddProbabilitiesInfo((int, int) observationRange, double[] explorationValues, double[] playToHereProbabilities)
             {
-                string childProportionsString = ChildProportions == null ? null : String.Join(",", ChildProportions.Select(x => x.ToSignificantFigures(3)));
+                GameProgressTreeNodeProbabilities value = GetProbabilitiesInfo(explorationValues);
+                if (value == null)
+                {
+                    var result = GetNodeProbabilityInfo(observationRange, explorationValues, playToHereProbabilities);
+                    NodeProbabilityInfos.Add(result);
+                    value = result.Item2;
+                }
+                return value;
+            }
+
+            public override string ToString() => ToString(null, 0);
+
+            public string ToString(double[] explorationValues, int allocationIndex)
+            {
+                GameProgressTreeNodeProbabilities value = GetProbabilitiesInfo(explorationValues);
                 string resultString = GameProgress.GameComplete ? String.Join(",", GameProgress.GetNonChancePlayerUtilities().Select(x => x.ToSignificantFigures(5))) : "incomplete";
-                string result = $"Obs: {ObservationRange} Cumulative proportion: {PlayToHereProbabilities.ToSignificantFigures_WithSciNotationForVerySmall(4)} Decision: {DirectGamePlayer.CurrentDecision?.Name} Probs: {childProportionsString} Result: {resultString}";
+                string result = $"{value.ToString(allocationIndex)} Result: {resultString}";
                 return result;
             }
         }
@@ -150,71 +185,63 @@ namespace ACESimBase.GameSolvingSupport
 
         public GameProgressTree(int randSeed, int totalObservations, IDirectGamePlayer directGamePlayer, double[] explorationValues)
         {
+            double[] playToHereProbabilities = Enumerable.Range(1, explorationValues.Length).Select(x => (double)1).ToArray(); // both players always play to beginning of game
             Tree = new NWayTreeStorageInternal<GameProgressTreeNodeInfo>(new NWayTreeStorageInternal<GameProgressTreeNodeInfo>(null))
             {
-                StoredValue = new GameProgressTreeNodeInfo(directGamePlayer, totalObservations, explorationValues, Enumerable.Range(1, explorationValues.Length).Select(x => (double) 1).ToArray())
+                StoredValue = new GameProgressTreeNodeInfo(directGamePlayer, (1, totalObservations), explorationValues, playToHereProbabilities)
             };
             InitialRandSeed = randSeed;
         }
 
         public override string ToString() => Tree?.ToTreeString("Action");
 
-        public async Task CompleteTree(bool doParallel)
+        public async Task CompleteTree(bool doParallel) => await CompleteTree(doParallel, (null, 0));
+
+        public async Task CompleteTree(bool doParallel, (double[] explorationValues, int allocationIndex) allocationInfo)
         {
-            await Tree.CreateBranchesParallel(doParallel, CreateSubbranches);
+            await Tree.BranchInParallel(doParallel, allocationInfo, DoBranching);
             // DEBUG CompleteIncompletePlayers(doParallel);
         }
 
-        public (byte branchID, GameProgressTreeNodeInfo childBranch, bool isLeaf)[] CreateSubbranches(GameProgressTreeNodeInfo sourceNode)
+        public (byte branchID, GameProgressTreeNodeInfo childBranch, bool isLeaf)[] DoBranching(NWayTreeStorageInternal<GameProgressTreeNodeInfo> nodeContainer, (double[] explorationValues, int allocationIndex) allocationInfo)
         {
-            if (sourceNode.ChildProportions == null)
+            var sourceNode = nodeContainer.StoredValue;
+            var probabilitiesInfo = sourceNode.GetProbabilitiesInfo(allocationInfo.explorationValues);
+            var allocation = probabilitiesInfo.GetAllocation(allocationInfo.allocationIndex);
+            double[] playToHereProbabilities = probabilitiesInfo.PlayToHereProbabilities;
+            if (allocationInfo.allocationIndex == 0)
             {
                 // The child proportions have not been set. Thus, we use the action probabilities.
-                double[] actionProbabilities = sourceNode.DirectGamePlayer.GetActionProbabilities();
-                sourceNode.ChildProportions = actionProbabilities;
+                allocation.ChildProportions = probabilitiesInfo.ActionProbabilities.ToArray();
             }
             int randSeed = sourceNode.DirectGamePlayer.GameProgress.GetActionsPlayedHash(InitialRandSeed);
-            (int, int)?[] subranges = DivideRangeIntoSubranges(sourceNode.ObservationRange, sourceNode.ChildProportions, randSeed);
-            if (sourceNode.ChildProportions == null)
-            {
-                double numObservations = ((double)sourceNode.NumObservations);
-                sourceNode.ChildProportions = subranges.Select(x =>
-                {
-                    return x == null ? 0 : ((double)x.Value.Item2 - x.Value.Item1 + 1) / numObservations;
-                }).ToArray();
-            }
-            IDirectGamePlayer[] children = Enumerable.Range(1, sourceNode.ChildProportions.Length).Select(a =>
+            (int, int)?[] subranges = DivideRangeIntoSubranges(allocation.ObservationRange, allocation.ChildProportions, randSeed);
+            byte numChildren = (byte) subranges.Length;
+            (byte branchID, GameProgressTreeNodeInfo childBranch, bool isLeaf)[] children = new (byte branchID, GameProgressTreeNodeInfo childBranch, bool isLeaf)[numChildren];
+            for (byte a = 1; a <= numChildren; a++)
             {
                 (int, int)? subrange = subranges[a - 1];
-                if (subrange == null)
-                    return null;
-                IDirectGamePlayer childGamePlayer = sourceNode.DirectGamePlayer.CopyAndPlayAction((byte)a);
-                //if (!childGamePlayer.GameProgress.GameComplete && subrange.Value.Item1 == subrange.Value.Item2)
-                //{
-                //    // DEBUG -- it seems to me that this only takes us one further level. Should it be needed at all? When we have one observation to divide probabilistically, we just pick one child in which to divide it, and we then keep building the tree as we normally would. Also, why isn't this a while loop?
-                //    // This is a leaf of the tree -- so we must play until the game is complete.
-                //    double[] childProbabilities = childGamePlayer.GetActionProbabilities();
-                //    // DEBUG -- we want random numbers to be based on the hash
-                //    ConsistentRandomSequenceProducer r = new ConsistentRandomSequenceProducer(++randSeed, 3_000_000);
-                //    byte childAction = (byte) (1 + r.GetRandomIndex(childProbabilities));
-                //    childGamePlayer = childGamePlayer.CopyAndPlayAction(childAction);
-                //};
-                return childGamePlayer;
-            }).ToArray();
-            List<(byte branchID, GameProgressTreeNodeInfo childBranch, bool isLeaf)> subbranches = new List<(byte branchID, GameProgressTreeNodeInfo childBranch, bool isLeaf)>();
-            for (byte a = 1; a <= sourceNode.ChildProportions.Length; a++)
-            {
-                int numInSubrange = subranges[a - 1] == null ? 0 : subranges[a - 1].Value.Item2 - subranges[a - 1].Value.Item1 + 1;
-                IDirectGamePlayer gamePlayer = children[a - 1];
-                if (gamePlayer != null)
+                double[] childPlayToHereProbabilities = playToHereProbabilities.ToArray();
+                childPlayToHereProbabilities[sourceNode.DirectGamePlayer.CurrentPlayer.PlayerIndex] *= probabilitiesInfo.ActionProbabilities[a - 1];
+                if (subrange != null)
                 {
-                    (int, int) childObservationRange = subranges[a - 1].Value;
-                    int childNumObservations = childObservationRange.Item2 - childObservationRange.Item1 + 1;
-                    var childBranchItem = new GameProgressTreeNodeInfo() { DirectGamePlayer = gamePlayer, ObservationRange = childObservationRange, PlayToHereProbabilities = sourceNode.ChildObservationsToChildCumulativeProportion(childNumObservations) };
-                    subbranches.Add((a, childBranchItem, gamePlayer.GameProgress.GameComplete)); // If there is only 1 in subrange, we go no further, BUT we will need to complete those games later. DEBUG -- no, we should go further, until the end; we go no further only where the game is complete
+                    int numInSubrange = subrange == null ? 0 : subrange.Value.Item2 - subrange.Value.Item1 + 1;
+                    var child = nodeContainer.GetBranch(a)?.StoredValue;
+                    if (child == null)
+                    {
+
+                        IDirectGamePlayer childGamePlayer = sourceNode.DirectGamePlayer.CopyAndPlayAction((byte)a);
+                        child = new GameProgressTreeNodeInfo(childGamePlayer, subrange.Value, allocationInfo.explorationValues, childPlayToHereProbabilities);
+                    }
+                    else
+                    {
+                        GameProgressTreeNodeProbabilities nodeProbabilities = child.GetOrAddProbabilitiesInfo(subrange.Value, allocationInfo.explorationValues, childPlayToHereProbabilities);
+                    }
+                    bool isLeaf = child.DirectGamePlayer.GameComplete;
+                    children[a - 1] = (a, child, isLeaf);
                 }
             }
-            return subbranches.ToArray();
+            return children;
         }
 
         public (int, int)?[] DivideRangeIntoSubranges((int, int) range, double[] proportion, int randSeed)
@@ -263,19 +290,6 @@ namespace ACESimBase.GameSolvingSupport
             return integerProportions;
         }
 
-        private IEnumerable<IDirectGamePlayer> GetIncompletePlayers()
-        {
-            foreach (var treeNode in Tree.GetAllTreeNodes())
-            {
-                GameProgressTreeNodeInfo treeNodeInfo = treeNode.storedValue;
-                GameProgress gameProgress = treeNodeInfo.GameProgress;
-                if (treeNodeInfo.IsLeaf && !gameProgress.GameComplete)
-                {
-                    yield return treeNodeInfo.DirectGamePlayer;
-                }
-            }
-        }
-
         private void AccumulateCombined(bool doParallel, double[] explorationValues, int newAllocationIndex)
         {
             Tree.WalkTree(treeStorage => { }, treeStorage =>
@@ -300,48 +314,6 @@ namespace ACESimBase.GameSolvingSupport
             });
         }
 
-        public void CompleteIncompletePlayers(bool doParallel)
-        {
-            // Wherever there is just one game, we have left it incomplete above. We now strive to complete those efficiently, by doing a bunch on the same thread.
-
-            var incompletes = GetIncompletePlayers().ToList();
-
-            if (!incompletes.Any())
-                return;
-            int totalNumberIncompletes = incompletes.Count();
-
-
-            int randSeed = 0;
-            unchecked
-            {
-                randSeed = InitialRandSeed * 3917;
-            }
-
-            int GetNumObservationsToDoTogether(int totalNumberObservations)
-            {
-                return doParallel ? 1 + totalNumberObservations / (Environment.ProcessorCount * 5) : totalNumberObservations;
-            }
-            int numObservationsToDoTogether = GetNumObservationsToDoTogether(totalNumberIncompletes);
-            int numPlaybacks = totalNumberIncompletes / numObservationsToDoTogether;
-            int extraObservationsDueToRounding = numPlaybacks * numObservationsToDoTogether - totalNumberIncompletes;
-            int numObservationsToDoTogetherLastSet = numPlaybacks - extraObservationsDueToRounding;
-            DeepCFRProbabilitiesCache probabilitiesCache = new DeepCFRProbabilitiesCache(); // shared across threads
-            Parallelizer.Go(doParallel, 0, numPlaybacks, o =>
-            {
-                int firstObservation = numObservationsToDoTogether * o;
-                int numObservationsToDoTogetherLastSetThisTime = o == totalNumberIncompletes - 1 ? numObservationsToDoTogetherLastSet : numObservationsToDoTogether;
-                var toDoTogether = incompletes.Skip(firstObservation).ToList();
-                toDoTogether.First().SynchronizeForSameThread(toDoTogether.Skip(1));
-                int randSeed2;
-                unchecked
-                {
-                    randSeed2 = randSeed * o;
-                }
-                foreach (var toDo in toDoTogether)
-                    toDo.PlayUntilComplete(randSeed2++);
-            });
-        }
-
         public IEnumerator<GameProgress> GetEnumerator()
         {
             foreach (var treeNode in Tree.GetAllTreeNodes())
@@ -350,7 +322,7 @@ namespace ACESimBase.GameSolvingSupport
                 GameProgress gameProgress = treeNodeInfo.GameProgress;
                 if (gameProgress.GameComplete)
                 {
-                    (int, int) observationRange = treeNodeInfo.ObservationRange;
+                    (int, int) observationRange = treeNodeInfo.GetProbabilitiesInfo(null).GetAllocation(0).ObservationRange;
                     int observations = observationRange.Item2 - observationRange.Item1 + 1;
                     for (int o = 0; o < observations; o++)
                     {

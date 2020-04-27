@@ -382,7 +382,8 @@ namespace ACESim
             GameProgressTree gameProgressTree = new GameProgressTree(
                 0, // rand seed
                 totalNumberObservations,
-                directGamePlayer
+                directGamePlayer,
+                null /* no exploration */
                 );
             await gameProgressTree.CompleteTree(false);
             string s = gameProgressTree.ToString(); // DEBUG
