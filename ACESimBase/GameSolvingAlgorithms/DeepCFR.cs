@@ -290,7 +290,7 @@ namespace ACESim
             bool separateDataEveryIteration = true;
             DeepCFRProbabilitiesCache probabilitiesCache = new DeepCFRProbabilitiesCache();
             ParallelConsecutive<List<DeepCFRObservationOfDecision>> runner = new ParallelConsecutive<List<DeepCFRObservationOfDecision>>(
-                (numCompleted) => TargetMet(iteration, isBestResponseIteration, numCompleted, numObservationsToAdd),
+                (numCompleted) => TargetMet(iteration, isBestResponseIteration, numCompleted * numObservationsToDoTogether, numObservationsToAdd),
                 i =>
                 {
                     var regressionMachines = GetRegressionMachinesForLocalUse(); // note that everything within this block will be on same thread
