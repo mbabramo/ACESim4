@@ -167,6 +167,9 @@ namespace ACESim
 
         public InformationSetHistory GetInformationSetHistory_OverallIndex(short index) => GameFullHistory.GetInformationSetHistory_OverallIndex(index, this);
 
+        public IEnumerable<byte> GetDecisionIndicesCompleted() => GameFullHistoryStorable.GetDecisionIndicesCompleted(this);
+
+        public bool IncludesDecisionIndex(byte decisionIndex) => GetDecisionIndicesCompleted().Contains(decisionIndex);
 
         static ConcurrentQueue<GameProgress> RecycledGameProgressQueue = new ConcurrentQueue<GameProgress>();
         private static int NumRecycled;

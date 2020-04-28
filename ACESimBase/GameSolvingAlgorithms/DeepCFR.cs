@@ -384,7 +384,8 @@ namespace ACESim
                 totalNumberObservations,
                 directGamePlayer,
                 null /* no exploration */,
-                NumNonChancePlayers
+                NumNonChancePlayers,
+                (byte) GameDefinition.DecisionsExecutionOrder.Count
                 );
             await gameProgressTree.CompleteTree(false);
             string s = gameProgressTree.ToString(); // DEBUG

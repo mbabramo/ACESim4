@@ -20,6 +20,22 @@ namespace ACESim
             Branches = null; // initialize to null
         }
 
+        public override IEnumerable<NWayTreeStorage<T>> EnumerateNodes(Func<NWayTreeStorage<T>, bool> enumerateThis, Func<NWayTreeStorage<T>, IEnumerable<bool>> enumerateBranches)
+        {
+            if (enumerateThis(this))
+                yield return this;
+            int branchIndex = 0;
+            foreach (bool enumerateBranch in enumerateBranches(this))
+            {
+                if (enumerateBranch)
+                {
+                    foreach (NWayTreeStorage<T> node in Branches[branchIndex].EnumerateNodes(enumerateThis, enumerateBranches))
+                        yield return node;
+                }
+                branchIndex++;
+            }
+        }
+
         public override string ToString(int level)
         {
             StringBuilder b = new StringBuilder();
