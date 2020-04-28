@@ -64,6 +64,9 @@ namespace ACESim
                 return "--";
             return RoundToSignificantFigures((double)num, numSignificantFigures).ToString();
         }
+        public static string ToSignificantFigures_WithSciNotationForVerySmall(this IEnumerable<double?> nums, int numSignificantFigures = 4) => nums == null ? "" : String.Join(",", nums.Select(num => ToSignificantFigures_WithSciNotationForVerySmall((double?)num, numSignificantFigures)));
+
+        public static string ToSignificantFigures_WithSciNotationForVerySmall(this IEnumerable<double> nums, int numSignificantFigures = 4) => nums == null ? "" : String.Join(",",nums.Select(num => ToSignificantFigures_WithSciNotationForVerySmall((double?)num, numSignificantFigures)));
 
         public static string ToSignificantFigures_WithSciNotationForVerySmall(this double num, int numSignificantFigures = 4) => ToSignificantFigures_WithSciNotationForVerySmall((double?)num, numSignificantFigures);
 

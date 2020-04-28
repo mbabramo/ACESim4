@@ -224,8 +224,11 @@ namespace ACESim
             var branches = subbrancher(this, parameter);
             foreach (var branchInfo in branches)
             {
-                var branch = GetBranch(branchInfo.branchID) ?? AddBranch(branchInfo.branchID, !branchInfo.isLeaf);
-                branch.StoredValue = branchInfo.childBranch; // note that this may already be set
+                if (branchInfo.childBranch != null)
+                {
+                    var branch = GetBranch(branchInfo.branchID) ?? AddBranch(branchInfo.branchID, !branchInfo.isLeaf);
+                    branch.StoredValue = branchInfo.childBranch; // note that this may already be set
+                }
             }
             foreach (var b in Branches.Where(x => x is NWayTreeStorageInternal<T>))
                 ((NWayTreeStorageInternal<T>)b).BranchSerially(parameter, subbrancher);

@@ -383,7 +383,8 @@ namespace ACESim
                 0, // rand seed
                 totalNumberObservations,
                 directGamePlayer,
-                null /* no exploration */
+                null /* no exploration */,
+                NumNonChancePlayers
                 );
             await gameProgressTree.CompleteTree(false);
             string s = gameProgressTree.ToString(); // DEBUG

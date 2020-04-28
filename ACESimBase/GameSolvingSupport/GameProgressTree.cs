@@ -37,7 +37,7 @@ namespace ACESimBase.GameSolvingSupport
             /// </summary>
             public double CumulativeReachProbability;
 
-            public override string ToString() => $"{ObservationRange}: Reach {CumulativeReachProbability} ChildProportions {String.Join(",", ChildProportions.Select(x => x.ToSignificantFigures_WithSciNotationForVerySmall(4)))}";
+            public override string ToString() => $"{ObservationRange}: Reach {CumulativeReachProbability} ChildProportions {ChildProportions.ToSignificantFigures_WithSciNotationForVerySmall(4)}";
         }
 
         /// <summary>
@@ -62,7 +62,7 @@ namespace ACESimBase.GameSolvingSupport
             /// </summary>
             public List<GameProgressTreeNodeAllocation> Allocations = new List<GameProgressTreeNodeAllocation>();
 
-            public string ToString(int allocationIndex) => Allocations[allocationIndex].ToString() + $" action probabilities {String.Join(",", ActionProbabilities.Select(x => x.ToSignificantFigures_WithSciNotationForVerySmall(4)))}";
+            public string ToString(int allocationIndex) => Allocations[allocationIndex].ToString() + $" action probabilities {ActionProbabilities.ToSignificantFigures_WithSciNotationForVerySmall(4)}";
 
             public GameProgressTreeNodeProbabilities((int, int) observationRange, double[] playToHereProbabilities, double[] actionProbabilities)
             {
@@ -115,16 +115,16 @@ namespace ACESimBase.GameSolvingSupport
             public GameProgressTreeNodeInfo(IDirectGamePlayer directGamePlayer, (int, int) observationRange, double[] explorationValues, double[] playToHereProbabilities)
             {
                 DirectGamePlayer = directGamePlayer;
-                (double[] explorationValues, GameProgressTreeNodeProbabilities) npi = GetNodeProbabilityInfo(observationRange, explorationValues, playToHereProbabilities);
+                (double[] explorationValues, GameProgressTreeNodeProbabilities) npi = GetNodeProbabilityInfo(observationRange, explorationValues, playToHereProbabilities, directGamePlayer.GameComplete);
                 NodeProbabilityInfos = new List<(double[] explorationValues, GameProgressTreeNodeProbabilities probabilitiesInfo)>()
                 {
                     npi
                 };
             }
 
-            private (double[] explorationValues, GameProgressTreeNodeProbabilities) GetNodeProbabilityInfo((int, int) observationRange, double[] explorationValues, double[] playToHereProbabilities)
+            private (double[] explorationValues, GameProgressTreeNodeProbabilities) GetNodeProbabilityInfo((int, int) observationRange, double[] explorationValues, double[] playToHereProbabilities, bool gameComplete)
             {
-                double[] actionProbabilitiesWithExploration = GetActionProbabilitiesWithExploration(explorationValues);
+                double[] actionProbabilitiesWithExploration = gameComplete ? null : GetActionProbabilitiesWithExploration(explorationValues);
                 (double[] explorationValues, GameProgressTreeNodeProbabilities) npi = (explorationValues, new GameProgressTreeNodeProbabilities(observationRange, playToHereProbabilities, actionProbabilitiesWithExploration)
                 {
 
@@ -157,12 +157,12 @@ namespace ACESimBase.GameSolvingSupport
                 return null;
             }
 
-            public GameProgressTreeNodeProbabilities GetOrAddProbabilitiesInfo((int, int) observationRange, double[] explorationValues, double[] playToHereProbabilities)
+            public GameProgressTreeNodeProbabilities GetOrAddProbabilitiesInfo((int, int) observationRange, double[] explorationValues, double[] playToHereProbabilities, bool gameComplete)
             {
                 GameProgressTreeNodeProbabilities value = GetProbabilitiesInfo(explorationValues);
                 if (value == null)
                 {
-                    var result = GetNodeProbabilityInfo(observationRange, explorationValues, playToHereProbabilities);
+                    var result = GetNodeProbabilityInfo(observationRange, explorationValues, playToHereProbabilities, gameComplete);
                     NodeProbabilityInfos.Add(result);
                     value = result.Item2;
                 }
@@ -183,9 +183,9 @@ namespace ACESimBase.GameSolvingSupport
         NWayTreeStorageInternal<GameProgressTreeNodeInfo> Tree;
         int InitialRandSeed;
 
-        public GameProgressTree(int randSeed, int totalObservations, IDirectGamePlayer directGamePlayer, double[] explorationValues)
+        public GameProgressTree(int randSeed, int totalObservations, IDirectGamePlayer directGamePlayer, double[] explorationValues, byte numNonChancePlayers)
         {
-            double[] playToHereProbabilities = Enumerable.Range(1, explorationValues.Length).Select(x => (double)1).ToArray(); // both players always play to beginning of game
+            double[] playToHereProbabilities = Enumerable.Range(1, numNonChancePlayers).Select(x => (double)1).ToArray(); // all players always play to beginning of game
             Tree = new NWayTreeStorageInternal<GameProgressTreeNodeInfo>(new NWayTreeStorageInternal<GameProgressTreeNodeInfo>(null))
             {
                 StoredValue = new GameProgressTreeNodeInfo(directGamePlayer, (1, totalObservations), explorationValues, playToHereProbabilities)
@@ -222,7 +222,12 @@ namespace ACESimBase.GameSolvingSupport
             {
                 (int, int)? subrange = subranges[a - 1];
                 double[] childPlayToHereProbabilities = playToHereProbabilities.ToArray();
-                childPlayToHereProbabilities[sourceNode.DirectGamePlayer.CurrentPlayer.PlayerIndex] *= probabilitiesInfo.ActionProbabilities[a - 1];
+                PlayerInfo currentPlayer = sourceNode.DirectGamePlayer.CurrentPlayer;
+                if (!currentPlayer.PlayerIsChance)
+                {
+                    byte playerIndex = currentPlayer.PlayerIndex;
+                    childPlayToHereProbabilities[playerIndex] *= probabilitiesInfo.ActionProbabilities[a - 1];
+                }
                 if (subrange != null)
                 {
                     int numInSubrange = subrange == null ? 0 : subrange.Value.Item2 - subrange.Value.Item1 + 1;
@@ -235,7 +240,7 @@ namespace ACESimBase.GameSolvingSupport
                     }
                     else
                     {
-                        GameProgressTreeNodeProbabilities nodeProbabilities = child.GetOrAddProbabilitiesInfo(subrange.Value, allocationInfo.explorationValues, childPlayToHereProbabilities);
+                        GameProgressTreeNodeProbabilities nodeProbabilities = child.GetOrAddProbabilitiesInfo(subrange.Value, allocationInfo.explorationValues, childPlayToHereProbabilities, child.DirectGamePlayer.GameComplete);
                     }
                     bool isLeaf = child.DirectGamePlayer.GameComplete;
                     children[a - 1] = (a, child, isLeaf);
