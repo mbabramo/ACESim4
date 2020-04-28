@@ -133,7 +133,7 @@ namespace ACESim
             }
         }
 
-        public virtual IEnumerable<NWayTreeStorage<T>> EnumerateNodes(Func<NWayTreeStorage<T>, bool> enumerateThis, Func<NWayTreeStorage<T>, IEnumerable<bool>> enumerateBranches)
+        public virtual IEnumerable<NWayTreeStorage<T>> EnumerateNodes(Func<NWayTreeStorage<T>, bool> enumerateThis, Func<NWayTreeStorageInternal<T>, IEnumerable<bool>> enumerateBranches)
         {
             if (enumerateThis(this))
                 yield return this;

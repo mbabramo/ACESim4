@@ -20,7 +20,7 @@ namespace ACESim
             Branches = null; // initialize to null
         }
 
-        public override IEnumerable<NWayTreeStorage<T>> EnumerateNodes(Func<NWayTreeStorage<T>, bool> enumerateThis, Func<NWayTreeStorage<T>, IEnumerable<bool>> enumerateBranches)
+        public override IEnumerable<NWayTreeStorage<T>> EnumerateNodes(Func<NWayTreeStorage<T>, bool> enumerateThis, Func<NWayTreeStorageInternal<T>, IEnumerable<bool>> enumerateBranches)
         {
             if (enumerateThis(this))
                 yield return this;

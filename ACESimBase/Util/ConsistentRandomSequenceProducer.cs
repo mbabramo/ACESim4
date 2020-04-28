@@ -111,19 +111,19 @@ namespace ACESim
             }
         }
 
-        public byte GetRandomIndex(double[] probabilities) => GetRandomIndex(probabilities, NextDouble());
+        public byte GetRandomIndex(double[] probabilitiesOrWeights) => GetRandomIndex(probabilitiesOrWeights, NextDouble());
 
-        public static byte GetRandomIndex(double[] probabilities, double randSeed)
+        public static byte GetRandomIndex(double[] probabilitiesOrWeights, double randSeed)
         {
-            double target = probabilities.Sum() * randSeed;
+            double target = probabilitiesOrWeights.Sum() * randSeed;
             double towardTarget = 0;
-            for (byte a = 0; a < probabilities.Length - 1; a++)
+            for (byte a = 0; a < probabilitiesOrWeights.Length - 1; a++)
             {
-                towardTarget += probabilities[a];
+                towardTarget += probabilitiesOrWeights[a];
                 if (towardTarget > target)
                     return a;
             }
-            return (byte)(probabilities.Length - 1);
+            return (byte)(probabilitiesOrWeights.Length - 1);
         }
 
         private static void Test_Random(IRandomProducer r)

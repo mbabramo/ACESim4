@@ -126,17 +126,19 @@ namespace ACESim
             }
         }
 
-        public IEnumerable<byte> GetDecisionIndicesCompleted(GameProgress gameProgress)
+        public List<byte> GetDecisionIndicesCompleted(GameProgress gameProgress)
         {
+            List<byte> decisionIndicesCompleted = new List<byte>();
             if (NextIndexToAddToHistory == 0)
-                yield break;
+                return decisionIndicesCompleted;
             GameFullHistory gameFullHistory = ShallowCopyToRefStruct();
             short piecesOfInfo = GameFullHistory.History_NumPiecesOfInformation;
             for (short i = 0; i < NextIndexToAddToHistory; i += piecesOfInfo)
             {
                 InformationSetHistory informationSetHistory = gameFullHistory.GetInformationSetHistory_OverallIndex(i, gameProgress);
-                yield return informationSetHistory.DecisionIndex;
+                decisionIndicesCompleted.Add(informationSetHistory.DecisionIndex);
             }
+            return decisionIndicesCompleted;
         }
     }
 }

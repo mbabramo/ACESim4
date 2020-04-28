@@ -23,11 +23,16 @@ namespace ACESimBase.GameSolvingSupport
             /// </summary>
             public double[] ChildProportions;
             /// <summary>
-            /// The cumulative reach probability of this node for the allocation. 
+            /// This is stored temporarily to determine the child proportions of the parent node when
+            /// creating a new allocation. For nodes at the decision index being used to generate the
+            /// new allocation, the ChildProportionContribution will be equal to the PlayToHereCombinedProbability.
+            /// For nodes earlier in the tree, the ChildProportionContribution will be the sum of the child
+            /// ChildProportionContributions. Meanwhile, ChildProportions will be set to the relative 
+            /// weight of the children's ChildProportionContribution values.
             /// </summary>
-            public double CumulativeReachProbability;
+            public double ChildProportionContribution;
 
-            public override string ToString() => $"{ObservationRange}: Reach {CumulativeReachProbability} ChildProportions {ChildProportions.ToSignificantFigures_WithSciNotationForVerySmall(4)}";
+            public override string ToString() => $"{ObservationRange}: Reach {ChildProportionContribution} ChildProportions {ChildProportions.ToSignificantFigures_WithSciNotationForVerySmall(4)}";
         }
 
         /// <summary>
@@ -60,7 +65,7 @@ namespace ACESimBase.GameSolvingSupport
                 {
                     ObservationRange = observationRange,
                     ChildProportions = null,
-                    CumulativeReachProbability = 1.0
+                    ChildProportionContribution = 0.0
                 });
                 PlayToHereProbabilities = playToHereProbabilities;
                 PlayToHereCombinedProbability = playToHereProbabilities.Aggregate((a, x) => a * x);
@@ -74,24 +79,27 @@ namespace ACESimBase.GameSolvingSupport
                 return null;
             }
 
-            public void CreateNextAllocation(int allocationIndexToCreate, double[] childCumulativeReachProbabilities)
+            public GameProgressTreeNodeAllocation CreateNextAllocation(int allocationIndexToCreate, double[] childReachProbaiblities, double? reachProbabilityAtDecision)
             {
                 if (!Allocations.Any())
                     throw new Exception();
                 int previousAllocationIndex = allocationIndexToCreate - 1;
                 GameProgressTreeNodeAllocation previousAllocation = Allocations[previousAllocationIndex];
 
-                double sum = childCumulativeReachProbabilities.Sum();
-                if (sum == 0)
-                    return; // nothing more to allocate. 
-                double[] childProportions = childCumulativeReachProbabilities.Select(x => x / sum).ToArray();
+                double sum = childReachProbaiblities.Sum();
+                if (sum == 0 && reachProbabilityAtDecision == null)
+                    return null; // nothing more to allocate. 
+                double[] childProportions = null;
+                if (reachProbabilityAtDecision == null)
+                    childProportions = childReachProbaiblities.Select(x => x / sum).ToArray();
 
                 GameProgressTreeNodeAllocation newAllocation = new GameProgressTreeNodeAllocation()
                 {
                     ChildProportions = childProportions,
-                    CumulativeReachProbability = sum,
+                    ChildProportionContribution = reachProbabilityAtDecision ?? sum,
                     // Note that observation range cannot yet be set, since it depends on cumulative reach probabilities elsewhere in the tree. We will thus set this going downward through the tree.
                 };
+                return newAllocation;
             }
         }
 
@@ -198,13 +206,56 @@ namespace ACESimBase.GameSolvingSupport
 
         public async Task CompleteTree(bool doParallel, double[] explorationValues, bool oversample)
         {
-            await CompleteTree(doParallel, (explorationValues, 0));
-            AllocationIndexForExplorationProbabilityAndDecisionIndex[(new DoubleList(explorationValues.ToList()), 0)] = 0;
+            DoubleList explorationValuesList = explorationValues == null ? null : new DoubleList(explorationValues.ToList());
+            byte allocationIndex = 0;
+            await CompleteTree(doParallel, (explorationValues, allocationIndex));
+
             if (oversample)
             {
-                for (int i = 1; i < NumDecisionIndices; i++)
+
+                bool done = false;
+                while (!done)
                 {
-                    debug;
+                    var gameProgressesForPreviousAllocation = GetGameProgressesForAllocationIndex(explorationValues, allocationIndex);
+                    int gameProgressesForPreviousAllocationCount = gameProgressesForPreviousAllocation.Count();
+                    Dictionary<byte, (byte allocation, int numGameProgresses)> decisionIndexInfo = new Dictionary<byte, (byte allocation, int numGameProgresses)>();
+                    byte? lowestDecisionIndexNotYetAssignedAllocationIndex = null;
+
+                    // For each decision index, if that decision index has not already been assigned an allocation index,
+                    // then: If the decision index is included in all game progresses for the previous allocation, then
+                    // assign it the previous allocation index. Otherwise, the lowest decision index appearing in at least
+                    // one GameProgress will serve as the basis for the next allocation. 
+                    // However, the allocation it is based on will not necessarily be the immediately preceding
+                    // allocation. Rather, it will be the allocation for which it has the most GameProgresses.
+
+                    for (byte decisionIndex = 0; decisionIndex < NumDecisionIndices; decisionIndex++)
+                    {
+                        bool includedInPreviousAllocation = AllocationIndexForExplorationProbabilityAndDecisionIndex.ContainsKey((explorationValuesList, decisionIndex));
+                        if (!includedInPreviousAllocation)
+                        {
+                            int numGameProgressesIncludedIn = gameProgressesForPreviousAllocation.Count(x => x.GetDecisionIndicesCompleted().Contains(decisionIndex));
+                            if (!decisionIndexInfo.ContainsKey(decisionIndex) || decisionIndexInfo[decisionIndex].numGameProgresses < numGameProgressesIncludedIn)
+                                decisionIndexInfo[decisionIndex] = (allocationIndex, numGameProgressesIncludedIn);
+                            bool includedInAllGameProgresses = numGameProgressesIncludedIn == gameProgressesForPreviousAllocationCount;
+                            if (includedInAllGameProgresses)
+                                AllocationIndexForExplorationProbabilityAndDecisionIndex[(explorationValuesList, decisionIndex)] = allocationIndex;
+                            else if (lowestDecisionIndexNotYetAssignedAllocationIndex == null)
+                            {
+                                bool includedInAtLeastOneGameProgress = numGameProgressesIncludedIn > 0;
+                                if (includedInAtLeastOneGameProgress)
+                                    lowestDecisionIndexNotYetAssignedAllocationIndex = decisionIndex;
+                            }
+                        }
+                    }
+                    done = lowestDecisionIndexNotYetAssignedAllocationIndex == null;
+                    if (!done)
+                    {
+                        byte decisionIndexForAllocation = (byte)lowestDecisionIndexNotYetAssignedAllocationIndex;
+                        byte previousAllocationIndex = decisionIndexInfo[decisionIndexForAllocation].allocation;
+                        allocationIndex++;
+                        PrepareNewAllocation(explorationValues, decisionIndexForAllocation, previousAllocationIndex, allocationIndex);
+                        await CompleteTree(doParallel, (explorationValues, allocationIndex));
+                    }
                 }
             }
         }
@@ -212,6 +263,41 @@ namespace ACESimBase.GameSolvingSupport
         public async Task CompleteTree(bool doParallel, (double[] explorationValues, int allocationIndex) allocationInfo)
         {
             await Tree.BranchInParallel(doParallel, allocationInfo, DoBranching);
+        }
+
+
+
+        private void PrepareNewAllocation(double[] explorationValues, byte decisionIndex, byte previousAllocationIndex, byte newAllocationIndex)
+        {
+            // Look in the old allocation for all points where decision decisionIndex is reached. 
+            // It doesn't matter yet for our purposes what happens after this point, including how many 
+            // branches come from decisionIndex, because all branches we develop from here will include
+            // decisionIndex. What we do need to do is set the ChildProportionContribution in the new 
+            // allocation based on the probability both players will play to that point. Then, we aggregate
+            // these values up the tree.
+            Tree.WalkTree(treeStorage => { }, treeStorage =>
+            {
+                GameProgressTreeNodeInfo node = treeStorage.StoredValue;
+                byte numPossibleActions = node.DirectGamePlayer.CurrentDecision.NumPossibleActions;
+                var childCumulativeReachProbabilities = Enumerable.Range(1, numPossibleActions).Select(a =>
+                {
+                    var branch = treeStorage.GetBranch((byte)a);
+                    if (branch == null)
+                        return 0;
+                    GameProgressTreeNodeInfo branchNode = branch.StoredValue;
+                    GameProgressTreeNodeProbabilities childProbabilitiesInfo = branchNode.GetProbabilitiesInfo(explorationValues);
+                    if (childProbabilitiesInfo == null)
+                        return 0;
+                    GameProgressTreeNodeAllocation childNewAllocation = childProbabilitiesInfo.GetAllocation(newAllocationIndex);
+                    double probability = childNewAllocation.ChildProportionContribution;
+                    return probability;
+                }).ToArray();
+                double? reachProbabilityAtDecision = null;
+                GameProgressTreeNodeProbabilities probabilitiesInfo = node.GetProbabilitiesInfo(explorationValues);
+                if (node.GameProgress.CurrentDecisionIndex == decisionIndex)
+                    reachProbabilityAtDecision = probabilitiesInfo.PlayToHereCombinedProbability;
+                var nextAllocation = probabilitiesInfo.CreateNextAllocation(newAllocationIndex, childCumulativeReachProbabilities, reachProbabilityAtDecision);
+            });
         }
 
         public (byte branchID, GameProgressTreeNodeInfo childBranch, bool isLeaf)[] DoBranching(NWayTreeStorageInternal<GameProgressTreeNodeInfo> nodeContainer, (double[] explorationValues, int allocationIndex) allocationInfo)
@@ -283,51 +369,24 @@ namespace ACESimBase.GameSolvingSupport
             int[] integerProportions = proportion.Select(x => (int)(numItems * x)).ToArray();
             int initialSum = integerProportions.Sum();
             int remainingItems = numItems - initialSum;
+            while (remainingItems >= integerProportions.Length)
+            { 
+                // might occur because of rounding
+                integerProportions = integerProportions.Select(x => x + 1).ToArray();
+                remainingItems -= integerProportions.Length;
+            }
             if (remainingItems > 0)
             {
                 double[] remainders = proportion.Select(x => (double)(numItems * x) - (int)(numItems * x)).ToArray();
-                bool[] incremented = new bool[remainders.Length]; // we are doing our selections w/out replacement (unless we have already used all options)
-                int randomNumberDraws = 0;
+                ConsistentRandomSequenceProducer r = new ConsistentRandomSequenceProducer(randSeed, 2_000_000);
                 for (int i = 0; i < remainingItems; i++)
                 {
-                    byte index = 0;
-                    do
-                    {
-                        ConsistentRandomSequenceProducer r = new ConsistentRandomSequenceProducer(randSeed, 2_000_000 + randomNumberDraws++);
-                        index = r.GetRandomIndex(remainders);
-                    }
-                    while (incremented[index]); // i.e., if we already used this (and haven't used everything) then find something else to pick
+                    byte index = r.GetRandomIndex(remainders);
                     integerProportions[index]++;
-                    incremented[index] = true;
-                    if (incremented.All(x => x == true))
-                        incremented = new bool[remainders.Length];
+                    remainders[index] = 0; // we are picking without replacement, so set the weight on this item to 0, so that we don't pick this item again. 
                 }
             }
             return integerProportions;
-        }
-
-        private void AccumulateCombined(bool doParallel, double[] explorationValues, int newAllocationIndex)
-        {
-            Tree.WalkTree(treeStorage => { }, treeStorage =>
-            {
-                GameProgressTreeNodeInfo node = treeStorage.StoredValue;
-                byte numPossibleActions = node.DirectGamePlayer.CurrentDecision.NumPossibleActions;
-                var childCumulativeReachProbabilities = Enumerable.Range(1, numPossibleActions).Select(a =>
-                {
-                    var branch = treeStorage.GetBranch((byte)a);
-                    if (branch == null)
-                        return 0;
-                    GameProgressTreeNodeInfo branchNode = branch.StoredValue;
-                    GameProgressTreeNodeProbabilities childProbabilitiesInfo = branchNode.GetProbabilitiesInfo(explorationValues);
-                    if (childProbabilitiesInfo == null)
-                        return 0;
-                    GameProgressTreeNodeAllocation childPreviousAllocation = childProbabilitiesInfo.GetAllocation(newAllocationIndex - 1);
-                    double probability = childPreviousAllocation.CumulativeReachProbability;
-                    return probability;
-                }).ToArray();
-                GameProgressTreeNodeProbabilities probabilitiesInfo = node.GetProbabilitiesInfo(explorationValues);
-                probabilitiesInfo.CreateNextAllocation(newAllocationIndex, childCumulativeReachProbabilities);
-            });
         }
 
         public IEnumerable<GameProgress> GetGameProgressesForDecisionIndex(double[] explorationValues, byte decisionIndex)
@@ -338,21 +397,43 @@ namespace ACESimBase.GameSolvingSupport
 
         public IEnumerable<GameProgress> GetGameProgressesForAllocationIndex(double[] explorationValues, byte allocationIndex)
         {
-            Tree.WalkTree(nodeStorage =>
+            var nodesStorage = Tree.EnumerateNodes(
+                nodeStorage =>
+                {
+                    // Should this node be enumerated?
+                    GameProgressTreeNodeInfo treeNodeInfo = nodeStorage.StoredValue;
+                    if (treeNodeInfo.GameProgress.GameComplete == false)
+                        return false;
+                    GameProgressTreeNodeAllocation allocation = GetGameProgressTreeNodeAllocation(explorationValues, allocationIndex, treeNodeInfo);
+                    if (allocation == null)
+                        return false;
+                    return allocation.NumObservations >= 1;
+                },
+                nodeStorage =>
+                {
+                    // Which branches should be enumerated?
+                    var branches = nodeStorage.Branches;
+                    if (branches == null || !branches.Any())
+                        return new bool[] { };
+                    GameProgressTreeNodeInfo treeNodeInfo = nodeStorage.StoredValue;
+                    GameProgressTreeNodeAllocation allocation = GetGameProgressTreeNodeAllocation(explorationValues, allocationIndex, treeNodeInfo);
+                    if (allocation == null)
+                        return new bool[] { };
+                    bool[] results = new bool[branches.Length];
+                    for (int i = 0; i < branches.Length; i++)
+                    {
+                        results[i] = branches[i] != null && allocation.ChildProportions[i] > 0;
+                    }
+                    return results;
+                }
+            );
+            foreach (var nodeStorage in nodesStorage)
             {
                 GameProgressTreeNodeInfo treeNodeInfo = nodeStorage.StoredValue;
                 GameProgressTreeNodeAllocation allocation = GetGameProgressTreeNodeAllocation(explorationValues, allocationIndex, treeNodeInfo);
-                if (allocation != null)
-                {
-                    if (treeNodeInfo.GameProgress.GameComplete)
-                    {
-                        int numObservations = allocation.NumObservations;
-                        for (int i = 0; i < numObservations; i++)
-                        {
-                            yield return treeNodeInfo.GameProgress;
-                        }
-                    }
-                }
+                int numObservations = allocation.NumObservations;
+                for (int i = 0; i < numObservations; i++)
+                    yield return nodeStorage.StoredValue.GameProgress;
             }
         }
 
@@ -365,20 +446,8 @@ namespace ACESimBase.GameSolvingSupport
 
         public IEnumerator<GameProgress> GetEnumerator()
         {
-            foreach (var treeNode in Tree.GetAllTreeNodes())
-            {
-                GameProgressTreeNodeInfo treeNodeInfo = treeNode.storedValue;
-                GameProgress gameProgress = treeNodeInfo.GameProgress;
-                if (gameProgress.GameComplete)
-                {
-                    (int, int) observationRange = treeNodeInfo.GetProbabilitiesInfo(null).GetAllocation(0).ObservationRange;
-                    int observations = observationRange.Item2 - observationRange.Item1 + 1;
-                    for (int o = 0; o < observations; o++)
-                    {
-                        yield return gameProgress;
-                    }
-                }
-            }
+            foreach (GameProgress gameProgress in GetGameProgressesForAllocationIndex(null, 0))
+                yield return gameProgress;
         }
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

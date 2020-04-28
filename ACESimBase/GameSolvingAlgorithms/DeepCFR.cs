@@ -387,7 +387,7 @@ namespace ACESim
                 NumNonChancePlayers,
                 (byte) GameDefinition.DecisionsExecutionOrder.Count
                 );
-            await gameProgressTree.CompleteTree(false);
+            await gameProgressTree.CompleteTree(false, true /* DEBUG SUPERDEBUG */);
             string s = gameProgressTree.ToString(); // DEBUG
             return gameProgressTree;
         }
