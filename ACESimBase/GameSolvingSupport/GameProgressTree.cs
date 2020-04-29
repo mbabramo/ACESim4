@@ -32,7 +32,7 @@ namespace ACESimBase.GameSolvingSupport
             /// </summary>
             public double ChildProportionContribution;
 
-            public override string ToString() => $"{ObservationRange}: Reach {ChildProportionContribution} ChildProportions {ChildProportions.ToSignificantFigures_WithSciNotationForVerySmall(4)}";
+            public override string ToString() => $"{ObservationRange}: Reach {ChildProportionContribution} ChildProportions {ChildProportions.ToSignificantFigures_WithSciNotationForVerySmall(4)} ChildProportionContribution {ChildProportionContribution.ToSignificantFigures_WithSciNotationForVerySmall(4)}";
         }
 
         /// <summary>
@@ -57,7 +57,23 @@ namespace ACESimBase.GameSolvingSupport
             /// </summary>
             public List<GameProgressTreeNodeAllocation> Allocations = new List<GameProgressTreeNodeAllocation>();
 
-            public string ToString(int allocationIndex) => Allocations[allocationIndex].ToString() + $" action probabilities {ActionProbabilities.ToSignificantFigures_WithSciNotationForVerySmall(4)}";
+            public string ToString(int allocationIndex, bool includeActionProbabilities)
+            {
+                string s = (Allocations[allocationIndex]?.ToString() ?? "");
+                if (includeActionProbabilities)
+                    return s + $" action probabilities {ActionProbabilities.ToSignificantFigures_WithSciNotationForVerySmall(4)}";
+                return s;
+            }
+                    
+            
+            public override string ToString()
+            {
+                StringBuilder s = new StringBuilder();
+                s.AppendLine($"Action probabilities {ActionProbabilities.ToSignificantFigures_WithSciNotationForVerySmall(4)}");
+                for (int i = 0; i < Allocations.Count(); i++)
+                    s.AppendLine("Allocation " + i + ": " + ToString(i, false));
+                return s.ToString();
+            }
 
             public GameProgressTreeNodeProbabilities((int, int) observationRange, double[] playToHereProbabilities, double[] actionProbabilities, byte numDecisionIndices)
             {
@@ -79,19 +95,22 @@ namespace ACESimBase.GameSolvingSupport
                 return null;
             }
 
-            public GameProgressTreeNodeAllocation CreateNextAllocation(int allocationIndexToCreate, double[] childReachProbaiblities, double? reachProbabilityAtDecision)
+            public GameProgressTreeNodeAllocation CreateNextAllocation(int allocationIndexToCreate, double[] childReachProbabilities, double? reachProbabilityAtDecision)
             {
                 if (!Allocations.Any())
                     throw new Exception();
                 int previousAllocationIndex = allocationIndexToCreate - 1;
                 GameProgressTreeNodeAllocation previousAllocation = Allocations[previousAllocationIndex];
 
-                double sum = childReachProbaiblities.Sum();
+                double sum = childReachProbabilities.Sum();
                 if (sum == 0 && reachProbabilityAtDecision == null)
+                {
+                    Allocations.Add(null);
                     return null; // nothing more to allocate. 
+                }
                 double[] childProportions = null;
                 if (reachProbabilityAtDecision == null)
-                    childProportions = childReachProbaiblities.Select(x => x / sum).ToArray();
+                    childProportions = childReachProbabilities.Select(x => x / sum).ToArray();
 
                 GameProgressTreeNodeAllocation newAllocation = new GameProgressTreeNodeAllocation()
                 {
@@ -99,6 +118,7 @@ namespace ACESimBase.GameSolvingSupport
                     ChildProportionContribution = reachProbabilityAtDecision ?? sum,
                     // Note that observation range cannot yet be set, since it depends on cumulative reach probabilities elsewhere in the tree. We will thus set this going downward through the tree.
                 };
+                Allocations.Add(newAllocation);
                 return newAllocation;
             }
         }
@@ -169,14 +189,33 @@ namespace ACESimBase.GameSolvingSupport
                 return value;
             }
 
-            public override string ToString() => ToString(null, 0);
+            public override string ToString()
+            {
+                bool basicTreeOnly = false;
+                if (basicTreeOnly)
+                    return ToString(null, 0);
+                StringBuilder s = new StringBuilder();
+                s.AppendLine(GetStatusString());
+                foreach (var npi in NodeProbabilityInfos)
+                {
+                    if (npi.explorationValues != null)
+                        s.Append(npi.explorationValues.ToSignificantFigures(4) + ": ");
+                    s.AppendLine(npi.probabilitiesInfo.ToString());
+                }
+                return s.ToString();
+            }
 
             public string ToString(double[] explorationValues, int allocationIndex)
             {
                 GameProgressTreeNodeProbabilities value = GetProbabilitiesInfo(explorationValues);
-                string resultString = GameProgress.GameComplete ? String.Join(",", GameProgress.GetNonChancePlayerUtilities().Select(x => x.ToSignificantFigures(5))) : "incomplete";
-                string result = $"{value.ToString(allocationIndex)} Result: {resultString}";
+                string statusString = GetStatusString();
+                string result = $"{value.ToString(allocationIndex, true)} {statusString}";
                 return result;
+            }
+
+            private string GetStatusString()
+            {
+                return GameProgress.GameComplete ? "Result: " + String.Join(",", GameProgress.GetNonChancePlayerUtilities().Select(x => x.ToSignificantFigures(5))) : $"Next decision: {DirectGamePlayer.CurrentDecision.Name} ({GameProgress.CurrentDecisionIndex})";
             }
         }
 
@@ -228,6 +267,7 @@ namespace ACESimBase.GameSolvingSupport
                     // However, the allocation it is based on will not necessarily be the immediately preceding
                     // allocation. Rather, it will be the allocation for which it has the most GameProgresses.
 
+                    var DEBUG2 = gameProgressesForPreviousAllocation.Select(x => (MyGameProgress)x).Where(x => x.PFiles == false).ToList();
                     for (byte decisionIndex = 0; decisionIndex < NumDecisionIndices; decisionIndex++)
                     {
                         bool includedInPreviousAllocation = AllocationIndexForExplorationProbabilityAndDecisionIndex.ContainsKey((explorationValuesList, decisionIndex));
@@ -254,6 +294,7 @@ namespace ACESimBase.GameSolvingSupport
                         byte previousAllocationIndex = decisionIndexInfo[decisionIndexForAllocation].allocation;
                         allocationIndex++;
                         PrepareNewAllocation(explorationValues, decisionIndexForAllocation, previousAllocationIndex, allocationIndex);
+                        var DEBUG = ToString();
                         await CompleteTree(doParallel, (explorationValues, allocationIndex));
                     }
                 }
@@ -278,6 +319,8 @@ namespace ACESimBase.GameSolvingSupport
             Tree.WalkTree(treeStorage => { }, treeStorage =>
             {
                 GameProgressTreeNodeInfo node = treeStorage.StoredValue;
+                if (node.GameProgress.GameComplete)
+                    return;
                 byte numPossibleActions = node.DirectGamePlayer.CurrentDecision.NumPossibleActions;
                 var childCumulativeReachProbabilities = Enumerable.Range(1, numPossibleActions).Select(a =>
                 {
@@ -289,6 +332,8 @@ namespace ACESimBase.GameSolvingSupport
                     if (childProbabilitiesInfo == null)
                         return 0;
                     GameProgressTreeNodeAllocation childNewAllocation = childProbabilitiesInfo.GetAllocation(newAllocationIndex);
+                    if (childNewAllocation == null)
+                        return 0;
                     double probability = childNewAllocation.ChildProportionContribution;
                     return probability;
                 }).ToArray();
@@ -296,7 +341,7 @@ namespace ACESimBase.GameSolvingSupport
                 GameProgressTreeNodeProbabilities probabilitiesInfo = node.GetProbabilitiesInfo(explorationValues);
                 if (node.GameProgress.CurrentDecisionIndex == decisionIndex)
                     reachProbabilityAtDecision = probabilitiesInfo.PlayToHereCombinedProbability;
-                var nextAllocation = probabilitiesInfo.CreateNextAllocation(newAllocationIndex, childCumulativeReachProbabilities, reachProbabilityAtDecision);
+                probabilitiesInfo.CreateNextAllocation(newAllocationIndex, childCumulativeReachProbabilities, reachProbabilityAtDecision);
             });
         }
 
@@ -305,6 +350,8 @@ namespace ACESimBase.GameSolvingSupport
             var sourceNode = nodeContainer.StoredValue;
             var probabilitiesInfo = sourceNode.GetProbabilitiesInfo(allocationInfo.explorationValues);
             var allocation = probabilitiesInfo.GetAllocation(allocationInfo.allocationIndex);
+            if (allocation == null)
+                return new (byte branchID, GameProgressTreeNodeInfo childBranch, bool isLeaf)[0];
             double[] playToHereProbabilities = probabilitiesInfo.PlayToHereProbabilities;
             if (allocationInfo.allocationIndex == 0)
             {
@@ -312,7 +359,7 @@ namespace ACESimBase.GameSolvingSupport
                 allocation.ChildProportions = probabilitiesInfo.ActionProbabilities.ToArray();
             }
             int randSeed = sourceNode.DirectGamePlayer.GameProgress.GetActionsPlayedHash(InitialRandSeed);
-            (int, int)?[] subranges = DivideRangeIntoSubranges(allocation.ObservationRange, allocation.ChildProportions, randSeed);
+            (int, int)?[] subranges = DivideRangeIntoSubranges(allocation.ObservationRange, allocation.ChildProportions ?? probabilitiesInfo.ActionProbabilities, randSeed);
             byte numChildren = (byte) subranges.Length;
             (byte branchID, GameProgressTreeNodeInfo childBranch, bool isLeaf)[] children = new (byte branchID, GameProgressTreeNodeInfo childBranch, bool isLeaf)[numChildren];
             for (byte a = 1; a <= numChildren; a++)

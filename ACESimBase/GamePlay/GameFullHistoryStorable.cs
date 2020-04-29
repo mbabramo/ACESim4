@@ -135,8 +135,7 @@ namespace ACESim
             short piecesOfInfo = GameFullHistory.History_NumPiecesOfInformation;
             for (short i = 0; i < NextIndexToAddToHistory; i += piecesOfInfo)
             {
-                InformationSetHistory informationSetHistory = gameFullHistory.GetInformationSetHistory_OverallIndex(i, gameProgress);
-                decisionIndicesCompleted.Add(informationSetHistory.DecisionIndex);
+                decisionIndicesCompleted.Add(History[i + GameFullHistory.History_DecisionIndex_Offset]);
             }
             return decisionIndicesCompleted;
         }

@@ -217,7 +217,7 @@ namespace ACESimBase.GameSolvingSupport
             {
                 var result = Regex.Split(s, "\r\n|\r|\n");
                 foreach (string r in result)
-                    if (s.Trim() != "")
+                    if (r.Trim() != "")
                         TabbedText.WriteLine(r);
             }
         }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -48,7 +49,24 @@ namespace ACESim
 
         public virtual string ToString(int level)
         {
-            return new string('\t', level) + StoredValue.ToString() + "\r\n";
+            StringBuilder s = new StringBuilder();
+            AppendStoredValue(level, s, true);
+            return s.ToString() + "\r\n";
+        }
+
+        private void AppendStoredValue(int level, StringBuilder s, bool indentFirstLine)
+        {
+            var separateLines = Regex.Split(StoredValue.ToString(), "\r\n|\r|\n");
+            bool first = true;
+            foreach (string line in separateLines)
+                if (line.Trim() != "")
+                {
+                    if (!first || indentFirstLine)
+                        s.AppendLine(new string('\t', level) + line);
+                    else
+                        s.AppendLine(line);
+                    first = false;
+                }
         }
 
         private void SetStoredValueWithLock(T value)
@@ -175,15 +193,19 @@ namespace ACESim
 
         internal virtual void ToTreeString(StringBuilder s, int? branch, int level, string branchWord)
         {
-            for (int i = 0; i < level * 5; i++)
-                s.Append(" ");
+            s.Append(new string('\t', level));
             if (branch == null)
                 s.Append("Root");
             else
                 s.Append($"{branchWord} {branch}");
+
             s.Append(": ");
-            s.Append($"{StoredValue}");
+
+            AppendStoredValue(level, s, false);
+
             s.Append(Environment.NewLine);
+
+
         }
     }
 }

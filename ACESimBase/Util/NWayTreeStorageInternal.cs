@@ -44,7 +44,7 @@ namespace ACESim
                 foreach (var branch in Branches)
                 {
                     if (branch == null)
-                        b.AppendLine("N/A");
+                        b.AppendLine(new string('\t', level + 1) + "N/A");
                     else
                         b.Append(branch.ToString(level + 1));
                 }
