@@ -95,9 +95,9 @@ namespace ACESimBase.GameSolvingSupport
                 return null;
             }
 
-            public GameProgressTreeNodeAllocation CreateNextAllocation(int allocationIndexToCreate, double[] childReachProbabilities, double? reachProbabilityAtDecision)
+            internal GameProgressTreeNodeAllocation CreateNextAllocation_BasedOnChildren(int allocationIndexToCreate, double[] childReachProbabilities, double? reachProbabilityAtDecision)
             {
-                if (!Allocations.Any())
+                if (Allocations.Count() != allocationIndexToCreate)
                     throw new Exception();
                 int previousAllocationIndex = allocationIndexToCreate - 1;
                 GameProgressTreeNodeAllocation previousAllocation = Allocations[previousAllocationIndex];
@@ -119,6 +119,24 @@ namespace ACESimBase.GameSolvingSupport
                     // Note that observation range cannot yet be set, since it depends on cumulative reach probabilities elsewhere in the tree. We will thus set this going downward through the tree.
                 };
                 Allocations.Add(newAllocation);
+                return newAllocation;
+            }
+
+            internal GameProgressTreeNodeAllocation CreateNextAllocation_BasedOnParent(int allocationIndexToCreate, (int, int) observationRange)
+            {
+                GameProgressTreeNodeAllocation newAllocation = new GameProgressTreeNodeAllocation()
+                {
+                    ObservationRange = observationRange
+                };
+                if (Allocations.Count() != allocationIndexToCreate)
+                {
+                    if (allocationIndexToCreate < Allocations.Count() && Allocations[allocationIndexToCreate] == null)
+                        Allocations[allocationIndexToCreate] = newAllocation;
+                    else
+                        throw new Exception();
+                }
+                else
+                    Allocations.Add(newAllocation);
                 return newAllocation;
             }
         }
@@ -341,7 +359,7 @@ namespace ACESimBase.GameSolvingSupport
                 GameProgressTreeNodeProbabilities probabilitiesInfo = node.GetProbabilitiesInfo(explorationValues);
                 if (node.GameProgress.CurrentDecisionIndex == decisionIndex)
                     reachProbabilityAtDecision = probabilitiesInfo.PlayToHereCombinedProbability;
-                probabilitiesInfo.CreateNextAllocation(newAllocationIndex, childCumulativeReachProbabilities, reachProbabilityAtDecision);
+                probabilitiesInfo.CreateNextAllocation_BasedOnChildren(newAllocationIndex, childCumulativeReachProbabilities, reachProbabilityAtDecision);
             });
         }
 
@@ -352,6 +370,12 @@ namespace ACESimBase.GameSolvingSupport
             var allocation = probabilitiesInfo.GetAllocation(allocationInfo.allocationIndex);
             if (allocation == null)
                 return new (byte branchID, GameProgressTreeNodeInfo childBranch, bool isLeaf)[0];
+            if (allocation.ObservationRange.Item1 == 0 && allocation.ObservationRange.Item2 == 0)
+                allocation.ObservationRange = probabilitiesInfo.GetAllocation(allocationInfo.allocationIndex - 1).ObservationRange;
+            if (allocation.ObservationRange.Item1 == 1 && allocation.ObservationRange.Item2 == 485 && allocationInfo.allocationIndex == 1)
+            {
+                var DEBUG = 0;
+            }
             double[] playToHereProbabilities = probabilitiesInfo.PlayToHereProbabilities;
             if (allocationInfo.allocationIndex == 0)
             {
@@ -365,16 +389,15 @@ namespace ACESimBase.GameSolvingSupport
             for (byte a = 1; a <= numChildren; a++)
             {
                 (int, int)? subrange = subranges[a - 1];
-                double[] childPlayToHereProbabilities = playToHereProbabilities.ToArray();
-                PlayerInfo currentPlayer = sourceNode.DirectGamePlayer.CurrentPlayer;
-                if (!currentPlayer.PlayerIsChance)
-                {
-                    byte playerIndex = currentPlayer.PlayerIndex;
-                    childPlayToHereProbabilities[playerIndex] *= probabilitiesInfo.ActionProbabilities[a - 1];
-                }
                 if (subrange != null)
                 {
-                    int numInSubrange = subrange == null ? 0 : subrange.Value.Item2 - subrange.Value.Item1 + 1;
+                    double[] childPlayToHereProbabilities = playToHereProbabilities.ToArray();
+                    PlayerInfo currentPlayer = sourceNode.DirectGamePlayer.CurrentPlayer;
+                    if (!currentPlayer.PlayerIsChance)
+                    {
+                        byte playerIndex = currentPlayer.PlayerIndex;
+                        childPlayToHereProbabilities[playerIndex] *= probabilitiesInfo.ActionProbabilities[a - 1];
+                    }
                     var child = nodeContainer.GetBranch(a)?.StoredValue;
                     if (child == null)
                     {
@@ -385,6 +408,11 @@ namespace ACESimBase.GameSolvingSupport
                     else
                     {
                         GameProgressTreeNodeProbabilities nodeProbabilities = child.GetOrAddProbabilitiesInfo(subrange.Value, allocationInfo.explorationValues, childPlayToHereProbabilities, child.DirectGamePlayer.GameComplete);
+                        var childAllocation = nodeProbabilities.GetAllocation(allocationInfo.allocationIndex);
+                        if (childAllocation == null)
+                            nodeProbabilities.CreateNextAllocation_BasedOnParent(allocationInfo.allocationIndex, subrange.Value);
+                        else
+                            childAllocation.ObservationRange = subrange.Value;
                     }
                     bool isLeaf = child.DirectGamePlayer.GameComplete;
                     children[a - 1] = (a, child, isLeaf);
