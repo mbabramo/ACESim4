@@ -315,14 +315,14 @@ namespace ACESim
 
         public override void WalkTree(Action<NWayTreeStorage<T>> action, ExecutionCounter executionCounter, Func<NWayTreeStorage<T>, bool> parallel = null) => WalkTree(action, null, executionCounter, parallel);
 
-        internal override void ToTreeString(StringBuilder s, int? branch, int level, string branchWord)
+        internal override void ToTreeString(StringBuilder s, int? branch, int level, Func<T, string> branchWordFunc)
         {
-            base.ToTreeString(s, branch, level, branchWord);
+            base.ToTreeString(s, branch, level, branchWordFunc);
             if (Branches != null)
                 for (int branch2 = 1; branch2 <= Branches.Length; branch2++)
                 {
                     if (Branches[branch2 - 1] != null && !Branches[branch2 - 1].Equals(default(T)))
-                        Branches[branch2 - 1].ToTreeString(s, branch2, level + 1, branchWord);
+                        Branches[branch2 - 1].ToTreeString(s, branch2, level + 1, branchWordFunc);
                 }
         }
     }

@@ -32,7 +32,7 @@ namespace ACESimBase.GameSolvingSupport
             /// </summary>
             public double ChildProportionContribution;
 
-            public override string ToString() => $"{ObservationRange}: Reach {ChildProportionContribution} ChildProportions {ChildProportions.ToSignificantFigures_WithSciNotationForVerySmall(4)} ChildProportionContribution {ChildProportionContribution.ToSignificantFigures_WithSciNotationForVerySmall(4)}";
+            public override string ToString() => $"{ObservationRange}: ChildProportions {ChildProportions.ToSignificantFigures_WithSciNotationForVerySmall(4)} ChildProportionContribution {ChildProportionContribution.ToSignificantFigures_WithSciNotationForVerySmall(4)}";
         }
 
         /// <summary>
@@ -215,7 +215,7 @@ namespace ACESimBase.GameSolvingSupport
 
             private string GetStatusString()
             {
-                return GameProgress.GameComplete ? "Result: " + String.Join(",", GameProgress.GetNonChancePlayerUtilities().Select(x => x.ToSignificantFigures(5))) : $"Next decision: {DirectGamePlayer.CurrentDecision.Name} ({GameProgress.CurrentDecisionIndex})";
+                return GameProgress.GameComplete ? "Result: " + String.Join(",", GameProgress.GetNonChancePlayerUtilities().Select(x => x.ToSignificantFigures(5))) : "Incomplete"; //  $"Next decision: {DirectGamePlayer.CurrentDecision.Name} ({GameProgress.CurrentDecisionIndex})";
             }
         }
 
@@ -236,7 +236,7 @@ namespace ACESimBase.GameSolvingSupport
             AllocationIndexForExplorationProbabilityAndDecisionIndex = new Dictionary<(DoubleList, byte), byte>();
         }
 
-        public override string ToString() => Tree?.ToTreeString("Action");
+        public override string ToString() => Tree?.ToTreeString(x => $"{x.DirectGamePlayer.CurrentDecision.Name} ({x.DirectGamePlayer.CurrentDecisionIndex})");
 
         public async Task CompleteTree(bool doParallel, bool oversample)
         {
@@ -294,8 +294,8 @@ namespace ACESimBase.GameSolvingSupport
                         byte previousAllocationIndex = decisionIndexInfo[decisionIndexForAllocation].allocation;
                         allocationIndex++;
                         PrepareNewAllocation(explorationValues, decisionIndexForAllocation, previousAllocationIndex, allocationIndex);
-                        var DEBUG = ToString();
                         await CompleteTree(doParallel, (explorationValues, allocationIndex));
+                        var DEBUG = ToString();
                     }
                 }
             }

@@ -20,7 +20,7 @@ namespace ACESim
         public PlayerInfo PlayerInfo;
 
         public NWayTreeStorageRoot<IGameState> InformationSetTree;
-        public string GetInformationSetTreeString() => InformationSetTree.ToTreeString("Branch");
+        public string GetInformationSetTreeString() => InformationSetTree.ToTreeString(x => "Branch");
         public HistoryNavigationInfo Navigation;
         public ActionStrategies ActionStrategy;
 

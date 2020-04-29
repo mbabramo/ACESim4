@@ -184,20 +184,23 @@ namespace ACESim
             executionCounter.Decrement();
         }
 
-        public string ToTreeString(string branchWord)
+        public string ToTreeString(Func<T, string> branchWordFunc)
         {
             StringBuilder s = new StringBuilder();
-            ToTreeString(s, null, 0, branchWord);
+            ToTreeString(s, null, 0, branchWordFunc);
             return s.ToString();
         }
 
-        internal virtual void ToTreeString(StringBuilder s, int? branch, int level, string branchWord)
+        internal virtual void ToTreeString(StringBuilder s, int? branch, int level, Func<T,string> branchWordFunc)
         {
             s.Append(new string('\t', level));
             if (branch == null)
                 s.Append("Root");
             else
+            {
+                string branchWord = branchWordFunc(Parent.StoredValue);
                 s.Append($"{branchWord} {branch}");
+            }
 
             s.Append(": ");
 
