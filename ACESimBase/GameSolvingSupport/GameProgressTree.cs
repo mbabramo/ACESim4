@@ -124,6 +124,10 @@ namespace ACESimBase.GameSolvingSupport
 
             internal GameProgressTreeNodeAllocation CreateNextAllocation_BasedOnParent(int allocationIndexToCreate, (int, int) observationRange)
             {
+                if (observationRange.Item1 == 5 && observationRange.Item2 == 5)
+                {
+                    var DEBUG = 0;
+                }
                 GameProgressTreeNodeAllocation newAllocation = new GameProgressTreeNodeAllocation()
                 {
                     ObservationRange = observationRange
@@ -143,14 +147,23 @@ namespace ACESimBase.GameSolvingSupport
 
         public class GameProgressTreeNodeInfo
         {
+            public static int DEBUGCount = 0;
+
             public IDirectGamePlayer DirectGamePlayer;
             public GameProgress GameProgress => DirectGamePlayer.GameProgress;
+
+            public int DEBUGNodeIndex = 0;
 
             public List<(double[] explorationValues, GameProgressTreeNodeProbabilities probabilitiesInfo)> NodeProbabilityInfos = new List<(double[] explorationValues, GameProgressTreeNodeProbabilities probabilitiesInfo)>();
             byte NumDecisionIndices;
 
             public GameProgressTreeNodeInfo(IDirectGamePlayer directGamePlayer, (int, int) observationRange, double[] explorationValues, double[] playToHereProbabilities, byte numDecisionIndices)
             {
+                DEBUGNodeIndex = DEBUGCount++;
+                if (DEBUGNodeIndex == 37656)
+                {
+                    var DEBUG2 = 0;
+                }
                 DirectGamePlayer = directGamePlayer;
                 (double[] explorationValues, GameProgressTreeNodeProbabilities) npi = GetNodeProbabilityInfo(observationRange, explorationValues, playToHereProbabilities, directGamePlayer.GameComplete, numDecisionIndices);
                 NodeProbabilityInfos = new List<(double[] explorationValues, GameProgressTreeNodeProbabilities probabilitiesInfo)>()
@@ -213,6 +226,7 @@ namespace ACESimBase.GameSolvingSupport
                 if (basicTreeOnly)
                     return ToString(null, 0);
                 StringBuilder s = new StringBuilder();
+                s.Append($"DEBUG {DEBUGNodeIndex}");
                 s.AppendLine(GetStatusString());
                 foreach (var npi in NodeProbabilityInfos)
                 {
@@ -274,6 +288,7 @@ namespace ACESimBase.GameSolvingSupport
                 while (!done)
                 {
                     var gameProgressesForPreviousAllocation = GetGameProgressesForAllocationIndex(explorationValues, allocationIndex);
+                    var DEBUGx = GetDistinctResultNodesForAllocationIndex(explorationValues, allocationIndex).ToList();
                     int gameProgressesForPreviousAllocationCount = gameProgressesForPreviousAllocation.Count();
                     Dictionary<byte, (byte allocation, int numGameProgresses)> decisionIndexInfo = new Dictionary<byte, (byte allocation, int numGameProgresses)>();
                     byte? lowestDecisionIndexNotYetAssignedAllocationIndex = null;
@@ -472,36 +487,7 @@ namespace ACESimBase.GameSolvingSupport
 
         public IEnumerable<GameProgress> GetGameProgressesForAllocationIndex(double[] explorationValues, byte allocationIndex)
         {
-            var nodesStorage = Tree.EnumerateNodes(
-                nodeStorage =>
-                {
-                    // Should this node be enumerated?
-                    GameProgressTreeNodeInfo treeNodeInfo = nodeStorage.StoredValue;
-                    if (treeNodeInfo.GameProgress.GameComplete == false)
-                        return false;
-                    GameProgressTreeNodeAllocation allocation = GetGameProgressTreeNodeAllocation(explorationValues, allocationIndex, treeNodeInfo);
-                    if (allocation == null)
-                        return false;
-                    return allocation.NumObservations >= 1;
-                },
-                nodeStorage =>
-                {
-                    // Which branches should be enumerated?
-                    var branches = nodeStorage.Branches;
-                    if (branches == null || !branches.Any())
-                        return new bool[] { };
-                    GameProgressTreeNodeInfo treeNodeInfo = nodeStorage.StoredValue;
-                    GameProgressTreeNodeAllocation allocation = GetGameProgressTreeNodeAllocation(explorationValues, allocationIndex, treeNodeInfo);
-                    if (allocation == null)
-                        return new bool[] { };
-                    bool[] results = new bool[branches.Length];
-                    for (int i = 0; i < branches.Length; i++)
-                    {
-                        results[i] = branches[i] != null && allocation.ChildProportions[i] > 0;
-                    }
-                    return results;
-                }
-            );
+            IEnumerable<NWayTreeStorage<GameProgressTreeNodeInfo>> nodesStorage = GetDistinctResultNodesForAllocationIndex(explorationValues, allocationIndex);
             foreach (var nodeStorage in nodesStorage)
             {
                 GameProgressTreeNodeInfo treeNodeInfo = nodeStorage.StoredValue;
@@ -510,6 +496,60 @@ namespace ACESimBase.GameSolvingSupport
                 for (int i = 0; i < numObservations; i++)
                     yield return nodeStorage.StoredValue.GameProgress;
             }
+        }
+
+        public bool DEBUGTrace = false;
+
+        public IEnumerable<NWayTreeStorage<GameProgressTreeNodeInfo>> GetDistinctResultNodesForAllocationIndex(double[] explorationValues, byte allocationIndex)
+        {
+            var nodesStorage = Tree.EnumerateNodes(
+                            nodeStorage =>
+                            {
+                                // Should this node be enumerated?
+                                GameProgressTreeNodeInfo treeNodeInfo = nodeStorage.StoredValue;
+                                if (treeNodeInfo.GameProgress.GameComplete == false)
+                                    return false;
+                                GameProgressTreeNodeAllocation allocation = GetGameProgressTreeNodeAllocation(explorationValues, allocationIndex, treeNodeInfo);
+                                if (allocation == null)
+                                    return false;
+                                if (allocation.ObservationRange.Item1 == 5)
+                                {
+                                    var DEBUGLSDFK = 0;
+                                }
+                                bool enumerate = allocation.NumObservations >= 1;
+                                if (DEBUGTrace)
+                                    TabbedText.WriteLine($"{enumerate} {GetGameProgressTreeNodeAllocation(explorationValues, allocationIndex, nodeStorage.StoredValue)?.ObservationRange}"); // DEBUG
+                                return enumerate;
+                            },
+                            nodeStorage =>
+                            {
+                                // Which branches should be enumerated?
+                                var branches = nodeStorage.Branches;
+                                if (branches == null || !branches.Any())
+                                    return new bool[] { };
+                                GameProgressTreeNodeInfo treeNodeInfo = nodeStorage.StoredValue;
+                                if (treeNodeInfo.GameProgress.GameComplete)
+                                    return new bool[] { };
+                                GameProgressTreeNodeAllocation allocation = GetGameProgressTreeNodeAllocation(explorationValues, allocationIndex, treeNodeInfo);
+                                if (allocation == null || allocation.NumObservations == 0)
+                                    return new bool[] { };
+                                if (allocation.ObservationRange.Item1 == 1 && allocation.ObservationRange.Item2 == 6)
+                                {
+                                    var DEBUG = 0;
+                                }
+                                bool[] results = new bool[branches.Length];
+                                for (int i = 0; i < branches.Length; i++)
+                                {
+                                    results[i] = branches[i] != null && (allocation.ChildProportions == null || allocation.ChildProportions[i] > 0);
+                                }
+                                if (DEBUGTrace)
+                                {
+                                    TabbedText.WriteLine($"{allocation.ObservationRange} {String.Join(",", results)}");
+                                }
+                                return results;
+                            }
+                        );
+            return nodesStorage;
         }
 
         private static GameProgressTreeNodeAllocation GetGameProgressTreeNodeAllocation(double[] explorationValues, byte allocationIndex, GameProgressTreeNodeInfo treeNodeInfo)

@@ -321,6 +321,9 @@ namespace ACESim
             TabbedText.WriteLine($"All models completed over {EvolutionSettings.DeepCFR_NeuralNetwork_Epochs} epochs, total time {localStopwatch.ElapsedMilliseconds} ms");
             localStopwatch.Stop();
 
+
+            var gameProgressTreeDEBUG = await BuildGameProgressTree(EvolutionSettings.NumRandomIterationsForSummaryTable);
+
             ReportCollection reportCollection = new ReportCollection();
             if (!isBestResponseIteration)
             {
