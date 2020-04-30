@@ -35,7 +35,7 @@ namespace ACESim
         public const int NumFullPlayers = 3; // includes main players and resolution player and any chance players that need full size information set
         public const int MaxNumPlayers = 13; // includes chance players that need a very limited information set
         public const int NumPartialPlayers = MaxNumPlayers - NumFullPlayers;
-        public const int MaxDeferredDecisionIndicesLength = 4;
+        public const int MaxDeferredDecisionIndicesLength = 7;
         public const int TotalSpanLength = GameFullHistory.MaxHistoryLength + CacheLength + MaxInformationSetLength + MaxDeferredDecisionIndicesLength;
 
         public bool Initialized;
