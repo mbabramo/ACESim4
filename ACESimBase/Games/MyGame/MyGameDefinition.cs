@@ -762,7 +762,6 @@ namespace ACESim
                 throw new NotImplementedException(); // subclass should define if needed
         }
 
-
         public override bool SkipDecision(Decision decision, in GameHistory gameHistory)
         {
             byte decisionByteCode = decision.DecisionByteCode;

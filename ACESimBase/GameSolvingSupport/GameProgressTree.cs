@@ -3,6 +3,7 @@ using ACESimBase.Util;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -333,6 +334,10 @@ namespace ACESimBase.GameSolvingSupport
                         byte decisionIndexForAllocation = (byte)lowestDecisionIndexNotYetAssignedAllocationIndex;
                         byte previousAllocationIndex = decisionIndexInfo[decisionIndexForAllocation].allocation;
                         allocationIndex++;
+                        if (allocationIndex == 0) // DEBUG
+                            TabbedText.WriteLine($"Creating GameProgressTree initial allocation.");
+                        else
+                            TabbedText.WriteLine($"Oversampling starting with decision index {decisionIndexForAllocation} (allocation index {allocationIndex}");
                         var DEBUG = ToString();
                         PrepareNewAllocation(explorationValues, decisionIndexForAllocation, previousAllocationIndex, allocationIndex);
 
