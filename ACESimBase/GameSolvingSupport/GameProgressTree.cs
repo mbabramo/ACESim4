@@ -32,7 +32,7 @@ namespace ACESimBase.GameSolvingSupport
             /// </summary>
             public double ChildProportionContribution;
 
-            public override string ToString() => $"{ObservationRange}: ChildProportions {ChildProportions.ToSignificantFigures_WithSciNotationForVerySmall(4)} ChildProportionContribution {ChildProportionContribution.ToSignificantFigures_WithSciNotationForVerySmall(4)}";
+            public override string ToString() => $"{ObservationRange}: {(ChildProportions == null ? "" : $"ChildProportions {ChildProportions.ToSignificantFigures_WithSciNotationForVerySmall(4)}")} {(ChildProportionContribution == 0 ? "" : $"ChildProportionContribution {ChildProportionContribution.ToSignificantFigures_WithSciNotationForVerySmall(4)}")}";
         }
 
         /// <summary>
@@ -61,7 +61,7 @@ namespace ACESimBase.GameSolvingSupport
             {
                 string s = (Allocations[allocationIndex]?.ToString() ?? "");
                 if (includeActionProbabilities)
-                    return s + $" action probabilities {ActionProbabilities.ToSignificantFigures_WithSciNotationForVerySmall(4)}";
+                    return s + $" action probabilities {ActionProbabilities.ToSignificantFigures_WithSciNotationForVerySmall(4)} reach probabilities {PlayToHereProbabilities.ToSignificantFigures_WithSciNotationForVerySmall(4)}";
                 return s;
             }
                     
@@ -71,20 +71,23 @@ namespace ACESimBase.GameSolvingSupport
                 StringBuilder s = new StringBuilder();
                 s.AppendLine($"Action probabilities {ActionProbabilities.ToSignificantFigures_WithSciNotationForVerySmall(4)}");
                 for (int i = 0; i < Allocations.Count(); i++)
-                    s.AppendLine("Allocation " + i + ": " + ToString(i, false));
+                {
+                    string s2 = ToString(i, false).Trim();
+                    if (s2 != null && s2 != "")
+                        s.AppendLine("Allocation " + i + ": " + s2);
+                }
                 return s.ToString();
             }
 
             public GameProgressTreeNodeProbabilities(byte allocationIndex, (int, int) observationRange, double[] playToHereProbabilities, double[] actionProbabilities, byte numDecisionIndices)
             {
-                for (int i = 0; i < allocationIndex; i++)
-                    Allocations.Add(null);
-                Allocations.Add(new GameProgressTreeNodeAllocation()
+                var allocation = new GameProgressTreeNodeAllocation()
                 {
                     ObservationRange = observationRange,
                     ChildProportions = null,
                     ChildProportionContribution = 0.0
-                });
+                };
+                AddAllocation(allocationIndex, allocation);
                 PlayToHereProbabilities = playToHereProbabilities;
                 PlayToHereCombinedProbability = playToHereProbabilities.Aggregate((a, x) => a * x);
                 ActionProbabilities = actionProbabilities;
@@ -104,23 +107,23 @@ namespace ACESimBase.GameSolvingSupport
                 int previousAllocationIndex = allocationIndexToCreate - 1;
                 GameProgressTreeNodeAllocation previousAllocation = Allocations[previousAllocationIndex];
 
+                GameProgressTreeNodeAllocation newAllocation = null;
                 double sum = childReachProbabilities.Sum();
-                if (sum == 0 && reachProbabilityAtDecision == null)
+                if (sum != 0 || reachProbabilityAtDecision != null)
                 {
-                    Allocations.Add(null);
-                    return null; // nothing more to allocate. 
-                }
-                double[] childProportions = null;
-                if (reachProbabilityAtDecision == null)
-                    childProportions = childReachProbabilities.Select(x => x / sum).ToArray();
+                    double[] childProportions = null;
+                    if (reachProbabilityAtDecision == null)
+                        childProportions = childReachProbabilities.Select(x => x / sum).ToArray();
 
-                GameProgressTreeNodeAllocation newAllocation = new GameProgressTreeNodeAllocation()
-                {
-                    ChildProportions = childProportions,
-                    ChildProportionContribution = reachProbabilityAtDecision ?? sum,
-                    // Note that observation range cannot yet be set, since it depends on cumulative reach probabilities elsewhere in the tree. We will thus set this going downward through the tree.
-                };
-                Allocations.Add(newAllocation);
+                    newAllocation = new GameProgressTreeNodeAllocation()
+                    {
+                        ChildProportions = childProportions,
+                        ChildProportionContribution = reachProbabilityAtDecision ?? sum,
+                        // Note that observation range cannot yet be set, since it depends on cumulative reach probabilities elsewhere in the tree. We will thus set this going downward through the tree.
+                    };
+                }
+                
+                AddAllocation(allocationIndexToCreate, newAllocation);
                 return newAllocation;
             }
 
@@ -134,16 +137,15 @@ namespace ACESimBase.GameSolvingSupport
                 {
                     ObservationRange = observationRange
                 };
-                if (Allocations.Count() != allocationIndexToCreate)
-                {
-                    if (allocationIndexToCreate < Allocations.Count() && Allocations[allocationIndexToCreate] == null)
-                        Allocations[allocationIndexToCreate] = newAllocation;
-                    else
-                        throw new Exception();
-                }
-                else
-                    Allocations.Add(newAllocation);
+                AddAllocation(allocationIndexToCreate, newAllocation);
                 return newAllocation;
+            }
+
+            private void AddAllocation(int allocationIndex, GameProgressTreeNodeAllocation allocation)
+            {
+                while (Allocations.Count() - 1 < allocationIndex)
+                    Allocations.Add(null);
+                Allocations[allocationIndex] = allocation;
             }
         }
 
