@@ -284,6 +284,10 @@ namespace ACESim
             StrategiesDeveloperStopwatch.Start();
             ReportIteration(iteration, isBestResponseIteration);
 
+
+
+            var gameProgressTreeDEBUG = await BuildGameProgressTree(EvolutionSettings.NumRandomIterationsForSummaryTable);
+
             int[] numObservationsToAdd = MultiModel.CountPendingObservationsTarget(iteration);
             int numObservationsToAddMax = numObservationsToAdd != null && numObservationsToAdd.Any() ? numObservationsToAdd.Max() : EvolutionSettings.DeepCFR_ReservoirCapacity;
             int numObservationsToDoTogether = GetNumObservationsToDoTogether(numObservationsToAddMax);
@@ -320,9 +324,6 @@ namespace ACESim
             TabbedText.TabUnindent();
             TabbedText.WriteLine($"All models completed over {EvolutionSettings.DeepCFR_NeuralNetwork_Epochs} epochs, total time {localStopwatch.ElapsedMilliseconds} ms");
             localStopwatch.Stop();
-
-
-            var gameProgressTreeDEBUG = await BuildGameProgressTree(EvolutionSettings.NumRandomIterationsForSummaryTable);
 
             ReportCollection reportCollection = new ReportCollection();
             if (!isBestResponseIteration)

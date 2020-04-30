@@ -230,7 +230,7 @@ namespace ACESimBase.GameSolvingSupport
                 if (basicTreeOnly)
                     return ToString(null, 0);
                 StringBuilder s = new StringBuilder();
-                s.Append($"DEBUG {DEBUGNodeIndex}");
+                s.Append($"DEBUG {DEBUGNodeIndex} {DirectGamePlayer.GameProgress.GameHistory.CacheString()}");
                 s.AppendLine(GetStatusString());
                 foreach (var npi in NodeProbabilityInfos)
                 {

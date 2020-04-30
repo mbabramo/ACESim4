@@ -216,7 +216,13 @@ namespace ACESim
         {
             string cacheString = "";
             for (int i = 0; i < CacheLength; i++)
-                cacheString += Cache[i] + ",";
+            {
+                cacheString += Cache[i];
+                if (i % 5 == 4)
+                    cacheString += " ";
+                else
+                    cacheString += ",";
+            }
             return cacheString;
         }
 
@@ -347,6 +353,10 @@ namespace ACESim
                     IncrementItemAtCacheIndex(cacheIndex);
             if (storeActionInCacheIndex != null)
                 SetCacheItemAtIndex((byte) storeActionInCacheIndex, action);
+            if (Cache[15] == 1 && Cache[16] == 1)
+            {
+                var DEBUG = 0;
+            }
         }
 
         private readonly void RememberDeferredDecisionIndex(byte deferredDecisionIndex)

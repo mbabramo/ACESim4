@@ -25,7 +25,7 @@ namespace ACESimBase
         {
             GameDefinition = gameDefinition;
             GameProgress = currentProgress;
-            Game = GameDefinition.GameFactory.CreateNewGame(null, GameProgress, GameDefinition, false, true);
+            Game = GameDefinition.GameFactory.CreateNewGame(null, GameProgress, GameDefinition, false, GameProgress.CurrentDecisionIndex == null && !GameProgress.GameComplete);
             if (advanceToFirstStep)
                 Game.AdvanceToOrCompleteNextStep();
         }
@@ -41,6 +41,12 @@ namespace ACESimBase
         {
             var copy = DeepCopy();
             copy.PlayAction(action);
+            bool DEBUG = true;
+            while (DEBUG && !copy.GameComplete)
+            {
+                copy = copy.DeepCopy();
+                copy.PlayAction(2);
+            }
             return copy;
         }
 
@@ -48,6 +54,9 @@ namespace ACESimBase
         {
             Game.ContinuePathWithAction(actionToPlay);
             Game.AdvanceToOrCompleteNextStep();
+            GameHistory gameHistory = GameProgress.GameHistory;
+            while (!GameProgress.GameComplete && Game.GameDefinition.SkipDecision(Game.CurrentDecision, in gameHistory))
+                Game.AdvanceToOrCompleteNextStep();
         }
 
         public void PlayUntilComplete(int randomSeed)
