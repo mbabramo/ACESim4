@@ -259,7 +259,7 @@ namespace ACESimBase.GameSolvingSupport
         NWayTreeStorageInternal<GameProgressTreeNodeInfo> Tree;
         int InitialRandSeed;
         byte NumDecisionIndices;
-        public Dictionary<(DoubleList, byte), byte> AllocationIndexForExplorationProbabilityAndDecisionIndex;
+        public Dictionary<string, byte> AllocationIndexForExplorationProbabilityAndDecisionIndex;
 
         public GameProgressTree(int randSeed, int totalObservations, IDirectGamePlayer directGamePlayer, double[] explorationValues, byte numNonChancePlayers, byte numDecisionIndices)
         {
@@ -270,7 +270,7 @@ namespace ACESimBase.GameSolvingSupport
                 StoredValue = new GameProgressTreeNodeInfo(directGamePlayer, (1, totalObservations), explorationValues, 0, playToHereProbabilities, numDecisionIndices)
             };
             InitialRandSeed = randSeed;
-            AllocationIndexForExplorationProbabilityAndDecisionIndex = new Dictionary<(DoubleList, byte), byte>();
+            AllocationIndexForExplorationProbabilityAndDecisionIndex = new Dictionary<string, byte>();
         }
 
         public override string ToString() => Tree?.ToTreeString(x => $"{x.DirectGamePlayer.CurrentDecision.Name} ({x.DirectGamePlayer.CurrentDecisionIndex})");
@@ -315,7 +315,7 @@ namespace ACESimBase.GameSolvingSupport
                         {
                             var DEBUG = 0;
                         }
-                        bool includedInAllocationBeforeImmediatelyPrevious = AllocationIndexForExplorationProbabilityAndDecisionIndex.ContainsKey((explorationValuesList, decisionIndex));
+                        bool includedInAllocationBeforeImmediatelyPrevious = AllocationIndexForExplorationProbabilityAndDecisionIndex.ContainsKey((explorationValuesList, decisionIndex).ToString());
                         if (!includedInAllocationBeforeImmediatelyPrevious)
                         {
                             int numGameProgressesIncludedInFromPreviousAllocation = gameProgressesForPreviousAllocation.Count(x => x.GetDecisionIndicesCompleted().Contains(decisionIndex));
@@ -324,7 +324,7 @@ namespace ACESimBase.GameSolvingSupport
                             {
                                 // We're done with this decision index. No need to do it again.
                                 decisionIndexInfo[decisionIndex] = (allocationIndex, numGameProgressesIncludedInFromPreviousAllocation);
-                                AllocationIndexForExplorationProbabilityAndDecisionIndex[(explorationValuesList, decisionIndex)] = allocationIndex;
+                                AllocationIndexForExplorationProbabilityAndDecisionIndex[(explorationValuesList, decisionIndex).ToString()] = allocationIndex;
                             }
                             else
                             {
@@ -337,7 +337,7 @@ namespace ACESimBase.GameSolvingSupport
                     }
                     if (decisionIndexInfo.Any())
                     {
-                        IOrderedEnumerable<KeyValuePair<byte, (byte allocation, int numGameProgresses)>> candidates = decisionIndexInfo.Where(x => !AllocationIndexForExplorationProbabilityAndDecisionIndex.ContainsKey((explorationValuesList, x.Key))).OrderByDescending(x => x.Value.numGameProgresses).ThenBy(x => x.Key);
+                        IOrderedEnumerable<KeyValuePair<byte, (byte allocation, int numGameProgresses)>> candidates = decisionIndexInfo.Where(x => !AllocationIndexForExplorationProbabilityAndDecisionIndex.ContainsKey((explorationValuesList, x.Key).ToString())).OrderByDescending(x => x.Value.numGameProgresses).ThenBy(x => x.Key);
                         if (candidates.Any())
                         {
                             nextDecisionIndexForAllocation = candidates.First().Key;
@@ -361,6 +361,25 @@ namespace ACESimBase.GameSolvingSupport
                         await CompleteTree(doParallel, (explorationValues, allocationIndex));  // DEBUG problem is here in node index 22523
                         var DEBUGafter2 = ToString();
                     }
+                }
+            }
+
+            bool verifyCompleteTree = true; // DEBUG
+            if (verifyCompleteTree)
+                VerifyCompleteTree(explorationValues);
+        }
+
+        private void VerifyCompleteTree(double[] explorationValues)
+        {
+            List<Decision> decisionsExecutionOrder = Tree.StoredValue.DirectGamePlayer.GameProgress.GameDefinition.DecisionsExecutionOrder;
+            int numObservations = Tree.StoredValue.GetProbabilitiesInfo(explorationValues).Allocations[0].NumObservations;
+            for (int i = 0; i < decisionsExecutionOrder.Count(); i++)
+            {
+                if (!decisionsExecutionOrder[i].IsChance)
+                {
+                    var gameProgressesForDecisionIndex = GetGameProgressesForDecisionIndex(explorationValues, (byte)i);
+                    if (gameProgressesForDecisionIndex.Count() != numObservations || gameProgressesForDecisionIndex.Any(x => !x.IncludesDecisionIndex((byte)i)))
+                        throw new Exception("Verification failed");
                 }
             }
         }
@@ -533,7 +552,7 @@ namespace ACESimBase.GameSolvingSupport
 
         public IEnumerable<GameProgress> GetGameProgressesForDecisionIndex(double[] explorationValues, byte decisionIndex)
         {
-            byte allocationIndex = AllocationIndexForExplorationProbabilityAndDecisionIndex[(new DoubleList(explorationValues), decisionIndex)];
+            byte allocationIndex = AllocationIndexForExplorationProbabilityAndDecisionIndex[(new DoubleList(explorationValues), decisionIndex).ToString()];
             return GetGameProgressesForAllocationIndex(explorationValues, allocationIndex);
         }
 
