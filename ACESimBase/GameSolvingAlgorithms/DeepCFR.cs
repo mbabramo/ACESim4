@@ -290,6 +290,8 @@ namespace ACESim
 
 
             var gameProgressTreeDEBUG = await BuildGameProgressTree(EvolutionSettings.NumRandomIterationsForSummaryTable, true);
+            var DEBUG2 = gameProgressTreeDEBUG.GetDirectGamePlayersForDecisionIndex(null, 17).ToList();
+            var DEBUG3 = DEBUG2.Sum(x => x.numObservations);
 
             int[] numObservationsToAdd = MultiModel.CountPendingObservationsTarget(iteration);
             int numObservationsToAddMax = numObservationsToAdd != null && numObservationsToAdd.Any() ? numObservationsToAdd.Max() : EvolutionSettings.DeepCFR_ReservoirCapacity;
