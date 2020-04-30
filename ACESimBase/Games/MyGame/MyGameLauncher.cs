@@ -519,7 +519,7 @@ namespace ACESim
             if (GameProgressLogger.LoggingOn)
                 gameDefinition.PrintOutOrderingInformation();
 
-            bool useDirectGamePlayer = true; // DEBUG useful during testing, but slower
+            bool useDirectGamePlayer = false; // potentially useful to test directgameplayer, but slower
             MyGameProgress gameProgress = null;
             if (useDirectGamePlayer)
             {

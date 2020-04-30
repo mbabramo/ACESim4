@@ -235,16 +235,8 @@ namespace ACESim
             executionCounter.Decrement();
         }
 
-        public static int DEBUGX = 0;
-
         public void BranchSerially<U>(U parameter, Func<NWayTreeStorageInternal<T>, U, (byte branchID, T childBranch, bool isLeaf)[]> subbrancher)
         {
-            DEBUGX++;
-            if (DEBUGX == 3181)
-            {
-                var DEBUGy = 0;
-            }
-            
             var branches = subbrancher(this, parameter);
             foreach (var branchInfo in branches)
             {

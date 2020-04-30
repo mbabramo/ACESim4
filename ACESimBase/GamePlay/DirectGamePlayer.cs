@@ -41,16 +41,8 @@ namespace ACESimBase
         {
             var copy = DeepCopy();
             copy.PlayAction(action);
-            bool DEBUG = false ;
-            while (DEBUG && !copy.GameComplete)
-            {
-                copy = copy.DeepCopy();
-                copy.PlayAction(2);
-            }
             return copy;
         }
-
-
 
         internal GameProgress PlayWithActionsOverride(Func<Decision, GameProgress, byte> actionsOverride)
         {

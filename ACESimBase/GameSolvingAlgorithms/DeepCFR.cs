@@ -380,7 +380,7 @@ namespace ACESim
 
         public async Task<GameProgressTree> BuildGameProgressTree(int totalNumberObservations)
         {
-            DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel, null, null); // DEBUG -- must figure out a way to create a separate object for each thread, but problem is we don't break it down by thread.
+            DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel, null, null); // ideally should figure out a way to create a separate object for each thread, but problem is we don't break it down by thread.
             GameProgress initialGameProgress = GameFactory.CreateNewGameProgress(new IterationID(1));
             DeepCFRDirectGamePlayer directGamePlayer = new DeepCFRDirectGamePlayer(EvolutionSettings.DeepCFR_MultiModelMode, GameDefinition, initialGameProgress, true, playbackHelper, () => new DeepCFRPlaybackHelper(MultiModel.DeepCopyForPlaybackOnly(), GetRegressionMachinesForLocalUse(), null));
             GameProgressTree gameProgressTree = new GameProgressTree(
@@ -391,8 +391,7 @@ namespace ACESim
                 NumNonChancePlayers,
                 (byte) GameDefinition.DecisionsExecutionOrder.Count
                 );
-            await gameProgressTree.CompleteTree(false, true /* DEBUG SUPERDEBUG */);
-            string s = gameProgressTree.ToString(); // DEBUG
+            await gameProgressTree.CompleteTree(false, false);
             return gameProgressTree;
         }
 
@@ -502,7 +501,7 @@ namespace ACESim
 
         public GameProgress DeepCFRReportingPlayHelper(int iteration, List<Strategy> strategies, bool saveCompletedGameProgressInfos, IterationID[] iterationIDArray, List<GameProgress> preplayedGameProgressInfos, Func<Decision, GameProgress, byte> actionOverride)
         {
-            DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel, null, null); // DEBUG -- no help, so this will be slow
+            DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel, null, null); // this will be slow
             GameProgress progress = DeepCFR_GetGameProgressByPlaying(playbackHelper, new DeepCFRObservationNum(iteration, 1_000_000));
             progress.IterationID = new IterationID(iteration);
 
