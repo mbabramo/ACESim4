@@ -21,6 +21,11 @@ namespace ACESimBase.Util
             TheList = theList ?? new List<double>();
         }
 
+        public override string ToString()
+        {
+            return String.Join(",", TheList);
+        }
+
         public DoubleList DeepCopy()
         {
             return new DoubleList(TheList?.ToList());
@@ -34,6 +39,31 @@ namespace ACESimBase.Util
             if (TheList == null)
                 return false;
             return TheList.SequenceEqual(other.TheList);
+        }
+
+        public static bool operator ==(DoubleList obj1, DoubleList obj2)
+        {
+            if (ReferenceEquals(obj1, obj2))
+            {
+                return true;
+            }
+
+            if (ReferenceEquals(obj1, null))
+            {
+                return false;
+            }
+            if (ReferenceEquals(obj2, null))
+            {
+                return false;
+            }
+
+            return (obj1.Equals(obj2));
+        }
+
+        // this is second one '!='
+        public static bool operator !=(DoubleList obj1, DoubleList obj2)
+        {
+            return !(obj1 == obj2);
         }
 
         public override int GetHashCode()

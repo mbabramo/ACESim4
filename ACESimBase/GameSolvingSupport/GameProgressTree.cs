@@ -290,6 +290,7 @@ namespace ACESimBase.GameSolvingSupport
             {
 
                 bool done = false;
+                Dictionary<byte, (byte allocation, int numGameProgresses)> decisionIndexInfo = new Dictionary<byte, (byte allocation, int numGameProgresses)>();
                 while (!done)
                 {
                     var gameProgressesForPreviousAllocation = GetGameProgressesForAllocationIndex(explorationValues, allocationIndex);
@@ -298,8 +299,7 @@ namespace ACESimBase.GameSolvingSupport
                     var DEBUGy = DEBUGGetInts(explorationValues, allocationIndex).ToList();
                     var DEBUGz = DEBUGy.Where(x => DEBUGy.Count(y => y == x) > 1).ToList();
                     int gameProgressesForPreviousAllocationCount = gameProgressesForPreviousAllocation.Count();
-                    Dictionary<byte, (byte allocation, int numGameProgresses)> decisionIndexInfo = new Dictionary<byte, (byte allocation, int numGameProgresses)>();
-                    byte? lowestDecisionIndexNotYetAssignedAllocationIndex = null;
+                    byte? nextDecisionIndexForAllocation = null;
 
                     // For each decision index, if that decision index has not already been assigned an allocation index,
                     // then: If the decision index is included in all game progresses for the previous allocation, then
@@ -311,27 +311,42 @@ namespace ACESimBase.GameSolvingSupport
                     var DEBUG2 = gameProgressesForPreviousAllocation.Select(x => (MyGameProgress)x).Where(x => x.PFiles == false).ToList();
                     for (byte decisionIndex = 0; decisionIndex < NumDecisionIndices; decisionIndex++)
                     {
-                        bool includedInPreviousAllocation = AllocationIndexForExplorationProbabilityAndDecisionIndex.ContainsKey((explorationValuesList, decisionIndex));
-                        if (!includedInPreviousAllocation)
+                        if (decisionIndex == 0)
                         {
-                            int numGameProgressesIncludedIn = gameProgressesForPreviousAllocation.Count(x => x.GetDecisionIndicesCompleted().Contains(decisionIndex));
-                            if (!decisionIndexInfo.ContainsKey(decisionIndex) || decisionIndexInfo[decisionIndex].numGameProgresses < numGameProgressesIncludedIn)
-                                decisionIndexInfo[decisionIndex] = (allocationIndex, numGameProgressesIncludedIn);
-                            bool includedInAllGameProgresses = numGameProgressesIncludedIn == gameProgressesForPreviousAllocationCount;
+                            var DEBUG = 0;
+                        }
+                        bool includedInAllocationBeforeImmediatelyPrevious = AllocationIndexForExplorationProbabilityAndDecisionIndex.ContainsKey((explorationValuesList, decisionIndex));
+                        if (!includedInAllocationBeforeImmediatelyPrevious)
+                        {
+                            int numGameProgressesIncludedInFromPreviousAllocation = gameProgressesForPreviousAllocation.Count(x => x.GetDecisionIndicesCompleted().Contains(decisionIndex));
+                            bool includedInAllGameProgresses = numGameProgressesIncludedInFromPreviousAllocation == gameProgressesForPreviousAllocationCount;
                             if (includedInAllGameProgresses)
-                                AllocationIndexForExplorationProbabilityAndDecisionIndex[(explorationValuesList, decisionIndex)] = allocationIndex;
-                            else if (lowestDecisionIndexNotYetAssignedAllocationIndex == null)
                             {
-                                bool includedInAtLeastOneGameProgress = numGameProgressesIncludedIn > 0;
-                                if (includedInAtLeastOneGameProgress)
-                                    lowestDecisionIndexNotYetAssignedAllocationIndex = decisionIndex;
+                                // We're done with this decision index. No need to do it again.
+                                decisionIndexInfo[decisionIndex] = (allocationIndex, numGameProgressesIncludedInFromPreviousAllocation);
+                                AllocationIndexForExplorationProbabilityAndDecisionIndex[(explorationValuesList, decisionIndex)] = allocationIndex;
+                            }
+                            else
+                            {
+                                // We haven't yet had an allocation in which every game progress includes this decision index.
+                                // If this is the most game progresses that we've had in any allocation, remember that.
+                                if (numGameProgressesIncludedInFromPreviousAllocation > 0 && (!decisionIndexInfo.ContainsKey(decisionIndex) || decisionIndexInfo[decisionIndex].numGameProgresses <= numGameProgressesIncludedInFromPreviousAllocation))
+                                    decisionIndexInfo[decisionIndex] = (allocationIndex, numGameProgressesIncludedInFromPreviousAllocation);
                             }
                         }
                     }
-                    done = lowestDecisionIndexNotYetAssignedAllocationIndex == null;
+                    if (decisionIndexInfo.Any())
+                    {
+                        IOrderedEnumerable<KeyValuePair<byte, (byte allocation, int numGameProgresses)>> candidates = decisionIndexInfo.Where(x => !AllocationIndexForExplorationProbabilityAndDecisionIndex.ContainsKey((explorationValuesList, x.Key))).OrderByDescending(x => x.Value.numGameProgresses).ThenBy(x => x.Key);
+                        if (candidates.Any())
+                        {
+                            nextDecisionIndexForAllocation = candidates.First().Key;
+                        }
+                    }
+                    done = nextDecisionIndexForAllocation == null;
                     if (!done)
                     {
-                        byte decisionIndexForAllocation = (byte)lowestDecisionIndexNotYetAssignedAllocationIndex;
+                        byte decisionIndexForAllocation = (byte)nextDecisionIndexForAllocation;
                         byte previousAllocationIndex = decisionIndexInfo[decisionIndexForAllocation].allocation;
                         allocationIndex++;
                         if (allocationIndex == 0) // DEBUG
@@ -473,7 +488,7 @@ namespace ACESimBase.GameSolvingSupport
             return children;
         }
 
-        public (int, int)?[] DivideRangeIntoSubranges((int, int) range, double[] proportion, int randSeed)
+        private (int, int)?[] DivideRangeIntoSubranges((int, int) range, double[] proportion, int randSeed)
         {
             int numSubranges = proportion.Length;
             (int, int)?[] subranges = new (int, int)?[numSubranges];
@@ -491,7 +506,7 @@ namespace ACESimBase.GameSolvingSupport
             return subranges;
         }
 
-        public int[] DivideItems(int numItems, double[] proportion, int randSeed)
+        private int[] DivideItems(int numItems, double[] proportion, int randSeed)
         {
             int[] integerProportions = proportion.Select(x => (int)(numItems * x)).ToArray();
             int initialSum = integerProportions.Sum();
