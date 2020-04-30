@@ -1,4 +1,6 @@
 ﻿using ACESim.Util;
+using ACESimBase;
+using ACESimBase.GameSolvingSupport;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -517,8 +519,19 @@ namespace ACESim
             if (GameProgressLogger.LoggingOn)
                 gameDefinition.PrintOutOrderingInformation();
 
-            GamePlayer gamePlayer = new GamePlayer(starterStrategies, false, gameDefinition);
-            MyGameProgress gameProgress = (MyGameProgress)gamePlayer.PlayUsingActionOverride(actionsOverride);
+            bool useDirectGamePlayer = true; // DEBUG useful during testing, but slower
+            MyGameProgress gameProgress = null;
+            if (useDirectGamePlayer)
+            {
+                gameProgress = (MyGameProgress) new MyGameFactory().CreateNewGameProgress(new IterationID());
+                DirectGamePlayer directGamePlayer = new DeepCFRDirectGamePlayer(DeepCFRMultiModelMode.DecisionSpecific, gameDefinition, gameProgress, true, default, null);
+                gameProgress = (MyGameProgress) directGamePlayer.PlayWithActionsOverride(actionsOverride);
+            }
+            else
+            {
+                GamePlayer gamePlayer = new GamePlayer(starterStrategies, false, gameDefinition);
+                gameProgress = (MyGameProgress)gamePlayer.PlayUsingActionOverride(actionsOverride);
+            }
 
             return gameProgress;
         }

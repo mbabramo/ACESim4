@@ -25,7 +25,7 @@ namespace ACESimBase
         {
             GameDefinition = gameDefinition;
             GameProgress = currentProgress;
-            Game = GameDefinition.GameFactory.CreateNewGame(null, GameProgress, GameDefinition, false, GameProgress.CurrentDecisionIndex == null && !GameProgress.GameComplete);
+            Game = GameDefinition.GameFactory.CreateNewGame(null, GameProgress, GameDefinition, false, GameProgress == null || (GameProgress.CurrentDecisionIndex == null && !GameProgress.GameComplete));
             if (advanceToFirstStep)
                 Game.AdvanceToOrCompleteNextStep();
         }
@@ -41,13 +41,26 @@ namespace ACESimBase
         {
             var copy = DeepCopy();
             copy.PlayAction(action);
-            bool DEBUG = true;
+            bool DEBUG = false ;
             while (DEBUG && !copy.GameComplete)
             {
                 copy = copy.DeepCopy();
                 copy.PlayAction(2);
             }
             return copy;
+        }
+
+
+
+        internal GameProgress PlayWithActionsOverride(Func<Decision, GameProgress, byte> actionsOverride)
+        {
+            var copy = DeepCopy();
+            while (!copy.GameComplete)
+            {
+                byte action = actionsOverride(copy.CurrentDecision, copy.GameProgress);
+                copy = (DirectGamePlayer) copy.CopyAndPlayAction(action);
+            }
+            return copy.GameProgress;
         }
 
         public void PlayAction(byte actionToPlay)
