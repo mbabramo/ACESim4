@@ -15,13 +15,16 @@ namespace ACESim
     // DEBUG -- TODO
     // 0. Why is best response sometimes negative? This is true even with a number of best response iterations. (done, if separating out decisions by index, this does not happen anymore).
     // 0.5. Make it so that we can do a single best response iteration, moving backward across decisions. (done)
-    // 0.6. Best response could just pick the single best answer rather than using regret matching. This would be in accord with the usual approach to best response. It especially may make sense if using backward induction.
-    // 1. Use previous prediction as input into next one. A challenge here, though, is that we might want the relevant previous prediction to be of utilities; otherwise, the prediction is really about the different actions from the previous decision. Can we make the prediction to be utility, instead of regrets? Not easily. We need to be predicting regrets so that we can accumulate regrets over iterations. We could try to forecast utilities and see what happens. So, we would need to include an additional regression. The question then becomes whether that is worthwhile, particularly when forecasting regrets rather than utilities. 
+    // 0.6. Best response could just pick the single best answer rather than using regret matching. This would be in accord with the usual approach to best response. It especially may make sense if using backward induction. (Done as option -- but seems better with regret matching)
+    // 1. Use previous prediction as input into next one. A challenge here, though, is that we might want the relevant previous prediction to be of utilities; otherwise, the prediction is really about the different actions from the previous decision. Can we make the prediction to be utility, instead of regrets? Not easily. We need to be predicting regrets so that we can accumulate regrets over iterations. We could try to forecast utilities and see what happens. So, we would need to include an additional regression. The question then becomes whether that is worthwhile, particularly when forecasting regrets rather than utilities. (Added option to work with utilities only, but not very useful)
     // The previous prediction will be the previous prediction while playing the game, so in iteration i, the previous prediction will be based on a model from iteration i - 1. In principle, we could generate the models seriatim and then use the prediction from that same iteration, but that would prevent parallel development of the models.
-    // 2. Decision index-specific prediction. Right now, we are grouping all decisions of a particular type. We should at least have an option for customizing by decision index, instead of by decision byte code.
-    // 3. Game parameters. The GameDefinition needs to have a way of randomizing game parameters, so that we can randomize some set of parameters at the beginning of each iteration. Then, we need to be able to generate separate reports (including best response, if applicable) for each set of parameters. We also need to allow for initial and final value parameters (including for caring about utility of opponent), so that we can see the effect of starting with a particular set of parameters, as a way of randomizing where we end up.
+    // 2. Decision index-specific prediction. Right now, we are grouping all decisions of a particular type. We should at least have an option for customizing by decision index, instead of by decision byte code. (Done)
+    // 3. Game parameters. The GameDefinition needs to have a way of randomizing game parameters, so that we can randomize some set of parameters at the beginning of each iteration. Then, we need to be able to generate separate reports (including best response, if applicable) for each set of parameters. We also need to allow for initial and final value parameters (including for caring about utility of opponent), so that we can see the effect of starting with a particular set of parameters, as a way of randomizing where we end up. (May not do -- won't work with GameProgressTree, below.)
     // 4. Principal components analysis. We can reduce a player's strategy to a few principal components. To do this, we need strategies at various times (or with various initial settings, such as utility to share). We need a common reservoir of observations for each of various decisions. We might create that reservoir in an initial iteration, when all decisions are equally likely to occur, but on the other hand it probably makes sense to specialize the reservoir to the decisions most likely to come up in game play (taking some random observations from each of the strategies). Note that we'll need to be able to reverse the PCA to generate a strategy; this will occur first by generating the actions taken for particular strategies and then re-generating the strategy. The PCA may be interesting in and of itself (showing the basic aspects of strategy), but also might be used as part of a technique to minimize best response improvement. That is, we might create a neural network with pairs of players' strategies (again, from different times and/or from different initial settings) and then calculate best response improvement sums. Then, we could optimize the input to this neural network by minimizing this. That's essentially what we tried before without PCA, but it should be much more manageable with just a few principal components. 
     // 5. Correlated equilibrium. With or without PCA, we need to be able to try to build a correlated equilibrium, adapting the code that we used with regret matching etc. 
+    // 6. GameProgressTree. Instead of randomly playing the game, use a tree to store the desired number of observations for each decision index. For indices that don't initially produce enough iterations, we use the iterations that are produced as the beginning of a sequence that produces more iterations. Especially with long games, this should be much faster than using random play to get deep into the game, especially when most cases will settle early. Meanwhile, it's more systematic, since we allocate observations based on the action probabilities. (initial step done)
+    // Now we need to be able to get regrets from the GameProgressTree. For each GameProgress in each allocation, we can walk back up the tree and put in the average utility. Each iteration gets equal weight in the calculus (even if some have lower reach probability than others), because the GameProgressTree is designed to assign observations in proportion to probability (even while leaving some paths out altogether). But we then have a dilemma if we don't have utilities for every action. Also, utilities across actions may not be comparable -- that is, we are using a different random number generator on different probes. In principle, we could use the same random number generator by randomizing based on the path to the node corresponding to the decision index for the allocation and then the decision index at which a decision is being made; note that the other decision indices will all be hit with certainty as well. But we still have the dilemma that some paths won't be taken at all, where the action probabilities are low.
+    // Another approach would be to do one or more probes, using the existing technique. (Note that we would still need to have the completed game progresses, at least for the purpose of generating more observations for the next allocation, although in principle we could stop at the next allocation.) If most of the effort that we exert is getting deep into the game tree, then doing these extra probes probably isn't very costly. Note that we don't need to keep duplicating GameProgress. Still, it's a lot of observations to generate.
 
 
     [Serializable]
@@ -286,7 +289,7 @@ namespace ACESim
 
 
 
-            var gameProgressTreeDEBUG = await BuildGameProgressTree(EvolutionSettings.NumRandomIterationsForSummaryTable);
+            var gameProgressTreeDEBUG = await BuildGameProgressTree(EvolutionSettings.NumRandomIterationsForSummaryTable, true);
 
             int[] numObservationsToAdd = MultiModel.CountPendingObservationsTarget(iteration);
             int numObservationsToAddMax = numObservationsToAdd != null && numObservationsToAdd.Any() ? numObservationsToAdd.Max() : EvolutionSettings.DeepCFR_ReservoirCapacity;
@@ -378,7 +381,7 @@ namespace ACESim
 
 
 
-        public async Task<GameProgressTree> BuildGameProgressTree(int totalNumberObservations)
+        public async Task<GameProgressTree> BuildGameProgressTree(int totalNumberObservations, bool oversampling)
         {
             DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel, null, null); // ideally should figure out a way to create a separate object for each thread, but problem is we don't break it down by thread.
             GameProgress initialGameProgress = GameFactory.CreateNewGameProgress(new IterationID(1));
@@ -391,7 +394,7 @@ namespace ACESim
                 NumNonChancePlayers,
                 (byte) GameDefinition.DecisionsExecutionOrder.Count
                 );
-            await gameProgressTree.CompleteTree(false, false);
+            await gameProgressTree.CompleteTree(false, oversampling);
             return gameProgressTree;
         }
 
@@ -415,7 +418,7 @@ namespace ACESim
 
         public async Task DeepCFR_UtilitiesAverage_WithTree(int totalNumberObservations, StatCollectorArray stats)
         {
-            GameProgressTree gameProgressTree = await BuildGameProgressTree(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
+            GameProgressTree gameProgressTree = await BuildGameProgressTree(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation, false) ;
             foreach (GameProgress progress in gameProgressTree)
                 stats.Add(progress.GetNonChancePlayerUtilities());
         }
@@ -478,7 +481,7 @@ namespace ACESim
                     bool useGameProgressTree = true;
                     if (useGameProgressTree)
                     {
-                        var gameProgressTree = await BuildGameProgressTree(EvolutionSettings.NumRandomIterationsForSummaryTable);
+                        var gameProgressTree = await BuildGameProgressTree(EvolutionSettings.NumRandomIterationsForSummaryTable, false);
                         reportCollection = GenerateReportsFromGameProgressEnumeration(gameProgressTree);
                     }
                     else
