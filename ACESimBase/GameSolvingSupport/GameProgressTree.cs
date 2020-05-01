@@ -523,6 +523,42 @@ namespace ACESimBase.GameSolvingSupport
             }
         }
 
+        public (IDirectGamePlayer gamePlayer, int numObservations)[][] GetDirectGamePlayersForEachDecision(double[] explorationValues, List<Decision> decisions, int[] targetObservations)
+        {
+            (IDirectGamePlayer gamePlayer, int numObservations)[][] results = new (IDirectGamePlayer gamePlayer, int numObservations)[decisions.Count()][];
+            for (byte decisionIndex = 0; decisionIndex < decisions.Count(); decisionIndex++)
+            {
+                if (decisions[decisionIndex].IsChance || targetObservations[decisionIndex] == 0)
+                    continue;
+                var directGamePlayersWithCounts = GetDirectGamePlayersForDecisionIndex(explorationValues, decisionIndex);
+                int totalAvailableCount = directGamePlayersWithCounts.Sum(x => x.numObservations);
+                int adjustedTarget = targetObservations[decisionIndex] / decisions[decisionIndex].NumPossibleActions; // we have one observation for each action, so we need to determine how many to make
+                if (adjustedTarget < totalAvailableCount)
+                    throw new Exception("Insufficient number of game players to meet the target number of observations.");
+                if (adjustedTarget == totalAvailableCount)
+                    results[decisionIndex] = directGamePlayersWithCounts.ToArray();
+                else
+                {
+                    // we need to truncate the list, either by lowering observations or by eliminating all together
+                    List<(IDirectGamePlayer gamePlayer, int numObservations)> truncatedList = new List<(IDirectGamePlayer gamePlayer, int numObservations)>();
+                    ConsistentRandomSequenceProducer r = new ConsistentRandomSequenceProducer(0, decisionIndex);
+                    bool[] keepIndices = RandomSubset.SampleExactly(adjustedTarget, totalAvailableCount, () => r.NextDouble()).ToArray();
+                    int i = 0;
+                    foreach (var directGamePlayerWithCount in directGamePlayersWithCounts.ToList())
+                    {
+                        int numToKeep = 0;
+                        for (int j = 0; j < directGamePlayerWithCount.numObservations; j++)
+                            if (keepIndices[i++])
+                                numToKeep++;
+                        if (numToKeep > 0)
+                            truncatedList.Add((directGamePlayerWithCount.gamePlayer, numToKeep));
+                    }
+                    results[decisionIndex] = truncatedList.ToArray();
+                }
+            }
+            return results;
+        }
+
         public IEnumerable<(IDirectGamePlayer gamePlayer, int numObservations)> GetDirectGamePlayersForDecisionIndex(double[] explorationValues, byte decisionIndex)
         {
             byte allocationIndex = AllocationIndexForExplorationProbabilityAndDecisionIndex[(new DoubleList(explorationValues), decisionIndex).ToString()];

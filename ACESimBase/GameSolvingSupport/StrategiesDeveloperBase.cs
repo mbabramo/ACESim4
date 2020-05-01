@@ -582,7 +582,7 @@ namespace ACESim
             foreach (Strategy s in Strategies)
             {
                 if (s.InformationSetTree == null)
-                    s.CreateInformationSetTree(GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.PlayerNumber == s.PlayerInfo.PlayerIndex)?.NumPossibleActions ?? (byte)1, s.PlayerInfo.PlayerIndex <= NumNonChancePlayers || s.PlayerInfo.PlayerIndex == GameDefinition.PlayerIndex_ResolutionPlayer);
+                    s.CreateInformationSetTree(GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.PlayerIndex == s.PlayerInfo.PlayerIndex)?.NumPossibleActions ?? (byte)1, s.PlayerInfo.PlayerIndex <= NumNonChancePlayers || s.PlayerInfo.PlayerIndex == GameDefinition.PlayerIndex_ResolutionPlayer);
             }
 
             // Create game trees
@@ -735,7 +735,7 @@ namespace ACESim
             {
                 (game, gameProgress) = GamePlayer.PlayPathAndStop(actionsSoFar);
             }
-            byte playerIndex = game.CurrentDecision?.PlayerNumber ?? 0;
+            byte playerIndex = game.CurrentDecision?.PlayerIndex ?? 0;
             Span<byte> informationSetForPlayer = new byte[GameHistory.MaxInformationSetLengthForPlayer(playerIndex)];
             if (!gameProgress.GameComplete)
                 gameProgress.GameHistory.GetPlayerInformationCurrent(playerIndex, informationSetForPlayer);
@@ -917,7 +917,7 @@ namespace ACESim
                 var informationSetHistory = progress.GetInformationSetHistory_OverallIndex(informationSetHistoryIndex);
                 var informationSetHistoryCopy = informationSetHistory; // must copy because informationSetHistory is foreach iteration variable.
                 var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
-                TabbedText.WriteLine($"Decision {decision.Name} ({decision.DecisionByteCode}) for player {GameDefinition.Players[decision.PlayerNumber].PlayerName} ({GameDefinition.Players[decision.PlayerNumber].PlayerIndex})");
+                TabbedText.WriteLine($"Decision {decision.Name} ({decision.DecisionByteCode}) for player {GameDefinition.Players[decision.PlayerIndex].PlayerName} ({GameDefinition.Players[decision.PlayerIndex].PlayerIndex})");
                 TabbedText.TabIndent();
                 bool playerIsChance = GameDefinition.Players[informationSetHistory.PlayerIndex].PlayerIsChance;
                 var playersStrategy = Strategies[informationSetHistory.PlayerIndex];

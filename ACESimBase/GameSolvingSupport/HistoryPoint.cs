@@ -131,7 +131,7 @@ namespace ACESim
                 //var informationSetHistories = HistoryToPoint.GetInformationSetHistoryItems().Select(x => x.ToString());
                 navigation.GameDefinition.GetNextDecision(in historyToPoint, out Decision nextDecision, out byte nextDecisionIndex);
                 // If nextDecision is null, then there are no more player decisions. (If this seems wrong, it could be a result of an error in whether to mark a game complete.) When there are no more player decisions, the resolution "player" is used.
-                byte nextPlayer = nextDecision?.PlayerNumber ?? navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
+                byte nextPlayer = nextDecision?.PlayerIndex ?? navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
                 Span<byte> informationSetsPtr = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
                 // string playerInformationString = HistoryToPoint.GetPlayerInformationString(currentPlayer, nextDecision?.DecisionByteCode);
                 GameHistory.GetPlayerInformationCurrent(nextPlayer, historyToPoint.InformationSets, informationSetsPtr);
@@ -274,7 +274,7 @@ namespace ACESim
             else // may be actual game or cached game history -- either way, we'll use the game history
             {
                 navigation.GameDefinition.GetNextDecision(in HistoryToPoint, out Decision nextDecision, out byte _);
-                return nextDecision.PlayerNumber;
+                return nextDecision.PlayerIndex;
             }
         }
 

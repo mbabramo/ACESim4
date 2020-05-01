@@ -98,6 +98,7 @@ namespace ACESim
         public DeepCFRMultiModelMode DeepCFR_MultiModelMode = DeepCFRMultiModelMode.DecisionSpecific;
         public int DeepCFR_BaseReservoirCapacity = 100; // the base reservoir capacity -- if generating observations through game progress tree, we multiply this by the number of possible decisions
         public bool DeepCFR_UseGameProgressTreeToGenerateObservations = true;
+        public int DeepCFR_NumProbesPerGameProgressTreeObservation = 10;
         public int DeepCFR_MaximumTotalObservationsPerIteration = 200; // after this number of observations, we stop looking for more observations, even if we haven't gotten enough to fill as many iterations as desired in one or more reservoirs (in which case, we rely more on earlier observations)
         public RegressionTechniques RegressionTechnique = RegressionTechniques.FastTree;
         public bool DeepCFR_ProbeAllActions = true;

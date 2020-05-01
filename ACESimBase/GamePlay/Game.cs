@@ -118,7 +118,7 @@ namespace ACESim
             }
         }
 
-        public byte CurrentPlayerNumber => CurrentDecision.PlayerNumber;
+        public byte CurrentPlayerNumber => CurrentDecision.PlayerIndex;
         public Strategy CurrentPlayerStrategy => Strategies[CurrentPlayerNumber];
         public GameModule CurrentModule => GameModules[(int) CurrentActionGroup.ModuleNumber];
         public string CurrentActionPointName { get { if (CurrentActionPoint == null) return null; return CurrentActionPoint.Name; } }
@@ -204,7 +204,7 @@ namespace ACESim
 
         public static void UpdateGameHistory(ref GameHistory gameHistory, GameDefinition gameDefinition, Decision decision, byte decisionIndex, byte action, GameProgress gameProgress)
         {
-            gameHistory.AddToHistory(decision.DecisionByteCode, decisionIndex, decision.PlayerNumber, action, decision.NumPossibleActions, decision.PlayersToInform, decision.PlayersToInformOfOccurrenceOnly, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, gameProgress, false, decision.DeferNotificationOfPlayers, false);
+            gameHistory.AddToHistory(decision.DecisionByteCode, decisionIndex, decision.PlayerIndex, action, decision.NumPossibleActions, decision.PlayersToInform, decision.PlayersToInformOfOccurrenceOnly, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, gameProgress, false, decision.DeferNotificationOfPlayers, false);
             if (decision.RequiresCustomInformationSetManipulation)
                 gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, action, ref gameHistory, gameProgress);
         }

@@ -29,7 +29,7 @@ namespace ACESim
         /// <summary>
         /// The player responsible for this decision.
         /// </summary>
-        public byte PlayerNumber;
+        public byte PlayerIndex;
 
         /// <summary>
         /// The players to be informed of this decision. For a non-chance decision, this will generally include the player itself, so that the player can remember the decision.
@@ -206,7 +206,7 @@ namespace ACESim
         {
             Name = name;
             Abbreviation = abbreviation;
-            PlayerNumber = playerNumber;
+            PlayerIndex = playerNumber;
             PlayersToInform = playersToInform;
             NumPossibleActions = numActions;
             DecisionByteCode = decisionByteCode;
@@ -222,14 +222,14 @@ namespace ACESim
 
         public Decision Clone()
         {
-            Decision d = new Decision(Name, Abbreviation, IsChance, PlayerNumber, PlayersToInform?.ToArray() ?? new byte[] { }, NumPossibleActions, DecisionByteCode, DecisionTypeCode, RepetitionsAfterFirst, PreevolvedStrategyFilename, InformationSetAbbreviations, AlwaysDoAction, UnevenChanceActions, CriticalNode) { PlayersToInformOfOccurrenceOnly = PlayersToInformOfOccurrenceOnly?.ToArray(), IsAlwaysPlayersLastDecision = IsAlwaysPlayersLastDecision, CanTerminateGame = CanTerminateGame, IncrementGameCacheItem = IncrementGameCacheItem, CustomByte = CustomByte, DeferNotificationOfPlayers = DeferNotificationOfPlayers, RequiresCustomInformationSetManipulation = RequiresCustomInformationSetManipulation, IsReversible = IsReversible, StoreActionInGameCacheItem = StoreActionInGameCacheItem, DistributedChanceDecision = DistributedChanceDecision, DistributableDistributorChanceInput = DistributableDistributorChanceInput, DistributorChanceDecision = DistributorChanceDecision, DistributorChanceInputDecision = DistributorChanceInputDecision, DistributorChanceInputDecisionMultiplier = DistributorChanceInputDecisionMultiplier, ProvidesPrivateInformationFor = ProvidesPrivateInformationFor, AlwaysTerminatesGame = AlwaysTerminatesGame,  IsChance = IsChance, IsContinuousAction = IsContinuousAction, Unroll_Parallelize = Unroll_Parallelize, Unroll_Parallelize_Identical = Unroll_Parallelize_Identical, WarmStartThroughIteration = WarmStartThroughIteration, WarmStartValue = WarmStartValue };
+            Decision d = new Decision(Name, Abbreviation, IsChance, PlayerIndex, PlayersToInform?.ToArray() ?? new byte[] { }, NumPossibleActions, DecisionByteCode, DecisionTypeCode, RepetitionsAfterFirst, PreevolvedStrategyFilename, InformationSetAbbreviations, AlwaysDoAction, UnevenChanceActions, CriticalNode) { PlayersToInformOfOccurrenceOnly = PlayersToInformOfOccurrenceOnly?.ToArray(), IsAlwaysPlayersLastDecision = IsAlwaysPlayersLastDecision, CanTerminateGame = CanTerminateGame, IncrementGameCacheItem = IncrementGameCacheItem, CustomByte = CustomByte, DeferNotificationOfPlayers = DeferNotificationOfPlayers, RequiresCustomInformationSetManipulation = RequiresCustomInformationSetManipulation, IsReversible = IsReversible, StoreActionInGameCacheItem = StoreActionInGameCacheItem, DistributedChanceDecision = DistributedChanceDecision, DistributableDistributorChanceInput = DistributableDistributorChanceInput, DistributorChanceDecision = DistributorChanceDecision, DistributorChanceInputDecision = DistributorChanceInputDecision, DistributorChanceInputDecisionMultiplier = DistributorChanceInputDecisionMultiplier, ProvidesPrivateInformationFor = ProvidesPrivateInformationFor, AlwaysTerminatesGame = AlwaysTerminatesGame,  IsChance = IsChance, IsContinuousAction = IsContinuousAction, Unroll_Parallelize = Unroll_Parallelize, Unroll_Parallelize_Identical = Unroll_Parallelize_Identical, WarmStartThroughIteration = WarmStartThroughIteration, WarmStartValue = WarmStartValue };
             return d;
         }
 
         public override string ToString()
         {
             return
-                $"{Name} ({Abbreviation}) Player {PlayerNumber} ByteCode {DecisionByteCode} CustomByte {CustomByte} UnevenChanceActions {UnevenChanceActions} AlwaysDoAction {AlwaysDoAction}";
+                $"{Name} ({Abbreviation}) Player {PlayerIndex} ByteCode {DecisionByteCode} CustomByte {CustomByte} UnevenChanceActions {UnevenChanceActions} AlwaysDoAction {AlwaysDoAction}";
         }
     }
 

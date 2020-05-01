@@ -90,7 +90,7 @@ namespace ACESimBase.GameSolvingSupport
         {
             Decisions = decisionsInModel.ToList();
             List<string> modelNames = decisionsInModel.Select(x => x.item.Name).ToHashSet().OrderBy(x => x).ToList();
-            List<byte> playerNumbers = decisionsInModel.Select(x => x.item.PlayerNumber).ToHashSet().OrderBy(x => x).ToList();
+            List<byte> playerNumbers = decisionsInModel.Select(x => x.item.PlayerIndex).ToHashSet().OrderBy(x => x).ToList();
             List<byte> decisionByteCodes = decisionsInModel.Select(x => x.item.DecisionByteCode).ToHashSet().OrderBy(x => x).ToList();
             List<byte> decisionIndices = decisionsInModel.Select(x => (byte)x.decisionIndex).ToHashSet().OrderBy(x => x).ToList();
             PlayerNumbers = playerNumbers;

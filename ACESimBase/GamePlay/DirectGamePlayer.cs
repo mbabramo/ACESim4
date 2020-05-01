@@ -19,7 +19,7 @@ namespace ACESimBase
 
         public byte? CurrentDecisionIndex => Game.CurrentDecisionIndex;
 
-        public PlayerInfo CurrentPlayer => GameDefinition.Players[CurrentDecision.PlayerNumber];
+        public PlayerInfo CurrentPlayer => GameDefinition.Players[CurrentDecision.PlayerIndex];
 
         public DirectGamePlayer(GameDefinition gameDefinition, GameProgress currentProgress, bool advanceToFirstStep)
         {
@@ -96,7 +96,7 @@ namespace ACESimBase
         {
             if (!GameComplete || CurrentPlayer.PlayerIsChance)
                 throw new Exception();
-            return GameProgress.GetNonChancePlayerUtilities()[CurrentDecision.PlayerNumber];
+            return GameProgress.GetNonChancePlayerUtilities()[CurrentDecision.PlayerIndex];
         }
 
         public double[] GetActionProbabilities()
@@ -150,7 +150,7 @@ namespace ACESimBase
         {
             if (GameComplete || CurrentPlayer.PlayerIsChance)
                 throw new Exception();
-            var result = GameProgress.InformationSetLog.GetPlayerDecisionAndInformationAtPoint(CurrentDecision.PlayerNumber, null).ToList();
+            var result = GameProgress.InformationSetLog.GetPlayerDecisionAndInformationAtPoint(CurrentDecision.PlayerIndex, null).ToList();
             if (useDeferredDecisionIndices)
             {
                 int deferredIndex = 0;

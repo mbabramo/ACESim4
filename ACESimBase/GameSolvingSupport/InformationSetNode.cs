@@ -30,7 +30,7 @@ namespace ACESim
         public string InformationSetContentsSinceParentString => String.Join(",", InformationSetContentsSinceParent);
         public byte DecisionByteCode => Decision.DecisionByteCode;
         public byte DecisionIndex;
-        public byte PlayerIndex => Decision.PlayerNumber;
+        public byte PlayerIndex => Decision.PlayerIndex;
 
         public double[,] NodeInformation;
         public double[,] BackupNodeInformation;

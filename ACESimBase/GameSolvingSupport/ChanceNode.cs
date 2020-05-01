@@ -14,7 +14,7 @@ namespace ACESim
         public int GetNodeNumber() => ChanceNodeNumber;
         public Decision Decision;
         public byte DecisionIndex;
-        public byte PlayerNum => Decision.PlayerNumber;
+        public byte PlayerNum => Decision.PlayerIndex;
         public byte DecisionByteCode => Decision.DecisionByteCode;
         public bool CriticalNode => Decision.CriticalNode;
 

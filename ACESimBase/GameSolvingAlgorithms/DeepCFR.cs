@@ -42,7 +42,15 @@ namespace ACESim
 
         public DeepCFR(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
         {
-            int[] reservoirCapacity = GameDefinition.DecisionsExecutionOrder.Select(x => EvolutionSettings.DeepCFR_UseGameProgressTreeToGenerateObservations ? x.NumPossibleActions * EvolutionSettings.DeepCFR_BaseReservoirCapacity : EvolutionSettings.DeepCFR_BaseReservoirCapacity).ToArray();
+            int[] reservoirCapacity = GameDefinition.DecisionsExecutionOrder.Select(x =>
+            {
+                if (x.IsChance)
+                    return 0; // this is ignored, but we keep it in the list so that capacity is associated with decision index
+                else if (EvolutionSettings.DeepCFR_UseGameProgressTreeToGenerateObservations)
+                    return x.NumPossibleActions * EvolutionSettings.DeepCFR_BaseReservoirCapacity;
+                else
+                    return EvolutionSettings.DeepCFR_BaseReservoirCapacity;
+            }).ToArray();
             MultiModel = new DeepCFRMultiModel(GameDefinition.DecisionsExecutionOrder, EvolutionSettings.DeepCFR_MultiModelMode, reservoirCapacity, 0, EvolutionSettings.DeepCFR_DiscountRate, EvolutionSettings.RegressionFactory());
         }
 
@@ -173,6 +181,26 @@ namespace ACESim
             return mainValues;
         }
 
+        private double[] DeepCFR_Probe_GetUtilitiesEachAction(DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numProbes)
+        {
+            byte numPossibleActions = gamePlayer.CurrentDecision.NumPossibleActions;
+            byte currentPlayerIndex = gamePlayer.CurrentPlayer.PlayerIndex;
+            double[] results = new double[numPossibleActions];
+            for (int probe = 0; probe < numProbes; probe++)
+            {
+                for (byte probeAction = 1; probeAction <= numPossibleActions; probeAction++)
+                {
+                    double[] utilitiesBothPlayers = DeepCFR_ProbeAction(gamePlayer, observationNum, null, probeAction);
+                    results[probeAction - 1] += utilitiesBothPlayers[currentPlayerIndex];
+                }
+                observationNum = observationNum.NextVariation();
+            }
+            if (numProbes > 1)
+                for (byte probeAction = 1; probeAction <= numPossibleActions; probeAction++)
+                    results[probeAction - 1] /= (double)numProbes;
+            return results;
+        }
+
         private double[] DeepCFR_ProbeAction(DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, List<DeepCFRObservationOfDecision> observations, byte probeAction)
         {
             DeepCFRDirectGamePlayer probeGamePlayer = (DeepCFRDirectGamePlayer) gamePlayer.DeepCopy();
@@ -217,7 +245,7 @@ namespace ACESim
             for (int iteration = 1; iteration <= EvolutionSettings.TotalIterations; iteration++)
             {
                 var result = await PerformDeepCFRIteration(iteration, false);
-                reportCollection.Add(result.reports);
+                reportCollection.Add(result);
             }
             if (EvolutionSettings.DeepCFR_ApproximateBestResponse)
             {
@@ -239,7 +267,7 @@ namespace ACESim
                 double[] bestResponseUtilities;
                 if (EvolutionSettings.DeepCFR_ApproximateBestResponse_BackwardInduction)
                 {
-                    var decisionsForPlayer = GameDefinition.DecisionsExecutionOrder.Select((item, index) => (item, index)).Where(x => x.item.PlayerNumber == p).OrderByDescending(x => x.index).ToList();
+                    var decisionsForPlayer = GameDefinition.DecisionsExecutionOrder.Select((item, index) => (item, index)).Where(x => x.item.PlayerIndex == p).OrderByDescending(x => x.index).ToList();
                     int innerIterationsNeeded = decisionsForPlayer.Count();
                     ApproximateBestResponse_CurrentIterationsTotal = innerIterationsNeeded * EvolutionSettings.DeepCFR_ApproximateBestResponseIterations;
                     for (int outerIteration = 0; outerIteration < EvolutionSettings.DeepCFR_ApproximateBestResponseIterations; outerIteration++)
@@ -279,24 +307,50 @@ namespace ACESim
             await MultiModel.ReturnToStateBeforeBestResponseIterations(EvolutionSettings.ParallelOptimization);
         }
 
-        private async Task GetDeepCFRObservations_WithGameProgressTree()
+        private async Task GenerateDeepCFRObservations_WithGameProgressTree(int iteration, bool isBestResponseIteration)
         {
+            int[] numObservationsToAdd = MultiModel.CountPendingObservationsTarget(iteration, isBestResponseIteration);
             var gameProgressTree = await BuildGameProgressTree(EvolutionSettings.NumRandomIterationsForSummaryTable, true);
-            var DEBUG2 = gameProgressTree.GetDirectGamePlayersForDecisionIndex(null, 17).ToList();
-            var DEBUG3 = DEBUG2.Sum(x => x.numObservations);
+            var directGamePlayersWithCountsForDecisions = gameProgressTree.GetDirectGamePlayersForEachDecision(null /* TODO */, GameDefinition.DecisionsExecutionOrder, numObservationsToAdd);
+            for (int decisionIndex = 0; decisionIndex < directGamePlayersWithCountsForDecisions.Length; decisionIndex++)
+            {
+                Decision currentDecision = GameDefinition.DecisionsExecutionOrder[decisionIndex];
+                byte currentPlayer = currentDecision.PlayerIndex;
+                var directGamePlayersWithCountsForDecision = directGamePlayersWithCountsForDecisions[decisionIndex];
+                if (directGamePlayersWithCountsForDecision == null)
+                    continue;
+                for (int i = 0; i < directGamePlayersWithCountsForDecision.Length; i++)
+                {
+                    var directGamePlayerWithCount = directGamePlayersWithCountsForDecision[i];
+                    DeepCFRDirectGamePlayer gamePlayer = (DeepCFRDirectGamePlayer)directGamePlayerWithCount.gamePlayer;
+                    DeepCFRObservationNum observationNum = new DeepCFRObservationNum(iteration, decisionIndex * 5_000_000 + i);
+                    double[] utilities = DeepCFR_Probe_GetUtilitiesEachAction((DeepCFRDirectGamePlayer)gamePlayer, observationNum, EvolutionSettings.DeepCFR_NumProbesPerGameProgressTreeObservation);
+                    double[] actionProbabilities = gamePlayer.GetActionProbabilities();
+                    double expectedValue = 0;
+                    for (int j = 0; j < utilities.Length; j++)
+                        expectedValue += actionProbabilities[j] * utilities[j];
+                    double[] regrets = new double[utilities.Length];
+                    for (int j = 0; j < utilities.Length; j++)
+                        regrets[j] = utilities[j] - expectedValue;
+                    var informationSet = gamePlayer.GetInformationSet(true);
+
+                    for (int j = 0; j < utilities.Length; j++)
+                    {
+                        DeepCFRObservation observation = new DeepCFRObservation()
+                        {
+                            IndependentVariables = new DeepCFRIndependentVariables(currentPlayer, (byte)decisionIndex, informationSet, (byte)(j + 1), null),
+                            SampledRegret = regrets[j]
+                        };
+                        for (int k = 0; k < directGamePlayerWithCount.numObservations; k++)
+                            MultiModel.AddPendingObservation(currentDecision, (byte) decisionIndex, observation);
+                    }
+                }
+
+            }
         }
 
-        private async Task<(ReportCollection reports, double[] utilities)> PerformDeepCFRIteration(int iteration, bool isBestResponseIteration)
+        private async Task GenerateDeepCFRObservations_WithRandomPlay(int iteration, bool isBestResponseIteration)
         {
-            Status.IterationNumDouble = iteration;
-
-            double[] finalUtilities = new double[NumNonChancePlayers];
-
-            Stopwatch localStopwatch = new Stopwatch();
-            localStopwatch.Start();
-            StrategiesDeveloperStopwatch.Start();
-            ReportIteration(iteration, isBestResponseIteration);
-
             int[] numObservationsToAdd = MultiModel.CountPendingObservationsTarget(iteration, isBestResponseIteration);
             int numObservationsToAddMax = numObservationsToAdd != null && numObservationsToAdd.Any() ? numObservationsToAdd.Max() : EvolutionSettings.DeepCFR_BaseReservoirCapacity;
             int numObservationsToDoTogether = GetNumObservationsToDoTogether(numObservationsToAddMax);
@@ -321,9 +375,33 @@ namespace ACESim
             await runner.Run(
                 EvolutionSettings.ParallelOptimization);
 
+            bool TargetMet(int iteration, bool isBestResponseIteration, int numberCompleted, int[] numObservationsToAdd)
+            {
+                bool targetMet;
+                if (!(iteration == 1 && !isBestResponseIteration) && numberCompleted >= EvolutionSettings.DeepCFR_MaximumTotalObservationsPerIteration)
+                    targetMet = true;
+                else
+                    targetMet = MultiModel.AllMeetPendingObservationsTarget(numObservationsToAdd);
+                return targetMet;
+            }
+        }
+
+        private async Task<ReportCollection> PerformDeepCFRIteration(int iteration, bool isBestResponseIteration)
+        {
+            Status.IterationNumDouble = iteration;
+
+            Stopwatch localStopwatch = new Stopwatch();
+            localStopwatch.Start();
+            StrategiesDeveloperStopwatch.Start();
+            ReportIteration(iteration, isBestResponseIteration);
+
+            if (EvolutionSettings.DeepCFR_UseGameProgressTreeToGenerateObservations)
+                await GenerateDeepCFRObservations_WithGameProgressTree(iteration, isBestResponseIteration);
+            else
+                await GenerateDeepCFRObservations_WithRandomPlay(iteration, isBestResponseIteration);
+
             localStopwatch.Stop();
             StrategiesDeveloperStopwatch.Stop();
-            //TabbedText.Write($" utilities {String.Join(",", finalUtilities.Select(x => x.ToSignificantFigures(4)))}");
             TabbedText.WriteLine($" time {localStopwatch.ElapsedMilliseconds} ms");
 
             TabbedText.TabIndent();
@@ -343,17 +421,8 @@ namespace ACESim
                 reportCollection.Add(result);
             }
 
-            return (reportCollection, finalUtilities);
+            return reportCollection;
 
-            bool TargetMet(int iteration, bool isBestResponseIteration, int numberCompleted, int[] numObservationsToAdd)
-            {
-                bool targetMet;
-                if (!(iteration == 1 && !isBestResponseIteration) && numberCompleted >= EvolutionSettings.DeepCFR_MaximumTotalObservationsPerIteration)
-                    targetMet = true;
-                else
-                    targetMet = MultiModel.AllMeetPendingObservationsTarget(numObservationsToAdd);
-                return targetMet;
-            }
         }
 
         private void ReportIteration(int iteration, bool isBestResponseIteration)

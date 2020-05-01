@@ -70,7 +70,7 @@ namespace ACESimBase.GameSolvingSupport
             return mode switch
             {
                 DeepCFRMultiModelMode.Unified => (byte)0,
-                DeepCFRMultiModelMode.PlayerSpecific => currentDecision.PlayerNumber,
+                DeepCFRMultiModelMode.PlayerSpecific => currentDecision.PlayerIndex,
                 DeepCFRMultiModelMode.DecisionTypeSpecific => currentDecision.DecisionByteCode,
                 DeepCFRMultiModelMode.DecisionSpecific => decisionIndex,
                 _ => throw new NotImplementedException()
