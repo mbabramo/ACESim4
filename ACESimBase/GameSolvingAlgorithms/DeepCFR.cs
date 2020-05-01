@@ -24,7 +24,9 @@ namespace ACESim
     // 5. Correlated equilibrium. With or without PCA, we need to be able to try to build a correlated equilibrium, adapting the code that we used with regret matching etc. 
     // 6. GameProgressTree. Instead of randomly playing the game, use a tree to store the desired number of observations for each decision index. For indices that don't initially produce enough iterations, we use the iterations that are produced as the beginning of a sequence that produces more iterations. Especially with long games, this should be much faster than using random play to get deep into the game, especially when most cases will settle early. Meanwhile, it's more systematic, since we allocate observations based on the action probabilities. (initial step done)
     // Now we need to be able to get regrets from the GameProgressTree. For each GameProgress in each allocation, we can walk back up the tree and put in the average utility. Each iteration gets equal weight in the calculus (even if some have lower reach probability than others), because the GameProgressTree is designed to assign observations in proportion to probability (even while leaving some paths out altogether). But we then have a dilemma if we don't have utilities for every action. Also, utilities across actions may not be comparable -- that is, we are using a different random number generator on different probes. In principle, we could use the same random number generator by randomizing based on the path to the node corresponding to the decision index for the allocation and then the decision index at which a decision is being made; note that the other decision indices will all be hit with certainty as well. But we still have the dilemma that some paths won't be taken at all, where the action probabilities are low.
-    // Another approach would be to do one or more probes, using the existing technique. (Note that we would still need to have the completed game progresses, at least for the purpose of generating more observations for the next allocation, although in principle we could stop at the next allocation.) If most of the effort that we exert is getting deep into the game tree, then doing these extra probes probably isn't very costly. Note that we don't need to keep duplicating GameProgress. Still, it's a lot of observations to generate.
+    // Another approach would be to do one or more probes, using the existing technique. (Note that we would still need to have the completed game progresses, at least for the purpose of generating more observations for the next allocation, although in principle we could stop at the next allocation.) If most of the effort that we exert is getting deep into the game tree, then doing these extra probes probably isn't very costly. Note that we don't need to keep duplicating GameProgress. If we want to do multiple probes, then in principle we could allocate the number we are doing so that we don't have to take an action more than once, but that may not be worthwhile.
+    // How many observations? We have a pending observations target, which each decision index must meet. This pending observations target will fall from one iteration to the next. We might create our GameProgressTree so that the number of game progresses is equal to this. But that will include some GameProgresses included more than once, and so unique GameProgresses will be lower. Unique nodes for any decision index will be lower stil, because the same node can lead to multiple GameProgresses. Still, we could generate the required number of observations for each node -- just making each such observation identical (reflecting the same probes from that node). We might have more probes for observations being included more than once. 
+    // Meanwhile, if we calculate utilities from each node, then we can calculate regrets for every action from that node, so that should give us many more observations. So, maybe we should think of the observations required as observations per node action, and we will have a larger target for decisions with more observations per node action.
 
 
     [Serializable]
@@ -276,6 +278,13 @@ namespace ACESim
             await MultiModel.ReturnToStateBeforeBestResponseIterations(EvolutionSettings.ParallelOptimization);
         }
 
+        private async Task GetDeepCFRObservations_WithGameProgressTree()
+        {
+            var gameProgressTree = await BuildGameProgressTree(EvolutionSettings.NumRandomIterationsForSummaryTable, true);
+            var DEBUG2 = gameProgressTreeDEBUG.GetDirectGamePlayersForDecisionIndex(null, 17).ToList();
+            var DEBUG3 = DEBUG2.Sum(x => x.numObservations);
+        }
+
         private async Task<(ReportCollection reports, double[] utilities)> PerformDeepCFRIteration(int iteration, bool isBestResponseIteration)
         {
             Status.IterationNumDouble = iteration;
@@ -287,11 +296,6 @@ namespace ACESim
             StrategiesDeveloperStopwatch.Start();
             ReportIteration(iteration, isBestResponseIteration);
 
-
-
-            var gameProgressTreeDEBUG = await BuildGameProgressTree(EvolutionSettings.NumRandomIterationsForSummaryTable, true);
-            var DEBUG2 = gameProgressTreeDEBUG.GetDirectGamePlayersForDecisionIndex(null, 17).ToList();
-            var DEBUG3 = DEBUG2.Sum(x => x.numObservations);
 
             int[] numObservationsToAdd = MultiModel.CountPendingObservationsTarget(iteration);
             int numObservationsToAddMax = numObservationsToAdd != null && numObservationsToAdd.Any() ? numObservationsToAdd.Max() : EvolutionSettings.DeepCFR_ReservoirCapacity;

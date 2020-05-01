@@ -193,7 +193,10 @@ namespace ACESimBase.GameSolvingSupport
 
         public bool AllMeetPendingObservationsTarget(int[] target)
         {
-            bool result = EnumerateModels().Select(x => x.PendingObservations.Count()).Zip(target, (poc, t) => poc >= t).All(x => x == true);
+            bool result = EnumerateModels()
+                .Select(x => x.PendingObservations.Count())
+                .Zip(target, (poc, t) => poc >= t)
+                .All(x => x == true);
             return result;
         }
 
