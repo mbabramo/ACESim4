@@ -190,7 +190,7 @@ namespace ACESimBase.GameSolvingSupport
             bool printAverageRegrets = false;
             if (printAverageRegrets)
                 PrintAverageRegrets(s);
-            bool printAllData = false;
+            bool printAllData = false; 
             if (printAllData)
                 PrintData(data, s);
             if (TestDataProportion != 0)

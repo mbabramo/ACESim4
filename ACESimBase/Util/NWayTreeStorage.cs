@@ -56,6 +56,8 @@ namespace ACESim
 
         private void AppendStoredValue(int level, StringBuilder s, bool indentFirstLine)
         {
+            if (StoredValue == null)
+                return;
             var separateLines = Regex.Split(StoredValue.ToString(), "\r\n|\r|\n");
             bool first = true;
             foreach (string line in separateLines)
