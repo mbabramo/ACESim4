@@ -17,6 +17,8 @@ namespace ACESimBase.GameSolvingSupport
 
         public DeepCFRMultiModelContainer Models = null;
 
+        public List<Decision> Decisions;
+
         /// <summary>
         /// Factory to create a regression processor
         /// </summary>
@@ -36,6 +38,9 @@ namespace ACESimBase.GameSolvingSupport
             ReservoirSeed = reservoirSeed;
             DiscountRate = discountRate;
             RegressionFactory = regressionFactory;
+            Decisions = decisionsInExecutionOrder;
+            if (ReservoirCapacity.Count() != decisionsInExecutionOrder.Count())
+                throw new Exception();
             Models = new DeepCFRMultiModelContainer(Mode, ReservoirCapacity, ReservoirSeed, DiscountRate, RegressionFactory, decisionsInExecutionOrder);
         }
 
@@ -183,7 +188,29 @@ namespace ACESimBase.GameSolvingSupport
         }
 
 
-        public int[] CountPendingObservationsTarget(int iteration, bool isBestResponseIteration) => iteration == 1 && !isBestResponseIteration ? ReservoirCapacity : EnumerateModels().Select(x => x.UpdateAndCountPendingObservationsTarget(iteration)).ToArray();
+        public int[] CountPendingObservationsTarget(int iteration, bool isBestResponseIteration, bool includeChanceDecisions)
+        {
+            if (iteration == 1 && !isBestResponseIteration)
+            {
+                if (includeChanceDecisions)
+                    return ReservoirCapacity;
+                throw new NotImplementedException();
+            }
+            int[] resultWithoutChanceDecisions = EnumerateModels().Select(x => x.UpdateAndCountPendingObservationsTarget(iteration)).ToArray();
+            if (includeChanceDecisions)
+            {
+                int[] resultWithChanceDecisions = new int[Decisions.Count()];
+                int resultIndex = 0;
+                for (int decisionIndex = 0; decisionIndex < Decisions.Count(); decisionIndex++)
+                {
+                    if (Decisions[decisionIndex].IsChance == false)
+                        resultWithChanceDecisions[decisionIndex] = resultWithoutChanceDecisions[resultIndex++];
+                }
+                return resultWithChanceDecisions;
+            }
+            else
+                return resultWithoutChanceDecisions;
+        }
 
         public bool AllMeetPendingObservationsTarget(int[] target)
         {

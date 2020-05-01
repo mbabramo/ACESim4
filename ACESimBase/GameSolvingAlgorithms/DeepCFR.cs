@@ -309,9 +309,11 @@ namespace ACESim
 
         private async Task GenerateDeepCFRObservations_WithGameProgressTree(int iteration, bool isBestResponseIteration)
         {
-            int[] numObservationsToAdd = MultiModel.CountPendingObservationsTarget(iteration, isBestResponseIteration);
-            var gameProgressTree = await BuildGameProgressTree(EvolutionSettings.NumRandomIterationsForSummaryTable, true);
-            var directGamePlayersWithCountsForDecisions = gameProgressTree.GetDirectGamePlayersForEachDecision(null /* TODO */, GameDefinition.DecisionsExecutionOrder, numObservationsToAdd);
+            int[] numObservationsNeeded = MultiModel.CountPendingObservationsTarget(iteration, isBestResponseIteration, true);
+            int DivideRoundingUp(int a, int b) => a / b + (a % b != 0 ? 1 : 0);
+            int[] numDirectGamePlayersNeeded = numObservationsNeeded.Select((item, index) => DivideRoundingUp(item, GameDefinition.DecisionsExecutionOrder[index].NumPossibleActions)).ToArray();
+            var gameProgressTree = await BuildGameProgressTree(numDirectGamePlayersNeeded.Max(), true);
+            var directGamePlayersWithCountsForDecisions = gameProgressTree.GetDirectGamePlayersForEachDecision(null /* TODO */, GameDefinition.DecisionsExecutionOrder, numObservationsNeeded);
             for (int decisionIndex = 0; decisionIndex < directGamePlayersWithCountsForDecisions.Length; decisionIndex++)
             {
                 Decision currentDecision = GameDefinition.DecisionsExecutionOrder[decisionIndex];
@@ -351,7 +353,7 @@ namespace ACESim
 
         private async Task GenerateDeepCFRObservations_WithRandomPlay(int iteration, bool isBestResponseIteration)
         {
-            int[] numObservationsToAdd = MultiModel.CountPendingObservationsTarget(iteration, isBestResponseIteration);
+            int[] numObservationsToAdd = MultiModel.CountPendingObservationsTarget(iteration, isBestResponseIteration, false);
             int numObservationsToAddMax = numObservationsToAdd != null && numObservationsToAdd.Any() ? numObservationsToAdd.Max() : EvolutionSettings.DeepCFR_BaseReservoirCapacity;
             int numObservationsToDoTogether = GetNumObservationsToDoTogether(numObservationsToAddMax);
             bool separateDataEveryIteration = true;

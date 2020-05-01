@@ -533,7 +533,7 @@ namespace ACESimBase.GameSolvingSupport
                 var directGamePlayersWithCounts = GetDirectGamePlayersForDecisionIndex(explorationValues, decisionIndex);
                 int totalAvailableCount = directGamePlayersWithCounts.Sum(x => x.numObservations);
                 int adjustedTarget = targetObservations[decisionIndex] / decisions[decisionIndex].NumPossibleActions; // we have one observation for each action, so we need to determine how many to make
-                if (adjustedTarget < totalAvailableCount)
+                if (adjustedTarget > totalAvailableCount)
                     throw new Exception("Insufficient number of game players to meet the target number of observations.");
                 if (adjustedTarget == totalAvailableCount)
                     results[decisionIndex] = directGamePlayersWithCounts.ToArray();
