@@ -11,7 +11,7 @@ namespace ACESimBase.GameSolvingSupport
     public class DeepCFRMultiModel
     {
         DeepCFRMultiModelMode Mode;
-        int ReservoirCapacity;
+        int[] ReservoirCapacity;
         long ReservoirSeed;
         double DiscountRate;
 
@@ -29,7 +29,7 @@ namespace ACESimBase.GameSolvingSupport
 
         }
 
-        public DeepCFRMultiModel(List<Decision> decisionsInExecutionOrder, DeepCFRMultiModelMode mode, int reservoirCapacity, long reservoirSeed, double discountRate, Func<IRegression> regressionFactory)
+        public DeepCFRMultiModel(List<Decision> decisionsInExecutionOrder, DeepCFRMultiModelMode mode, int[] reservoirCapacity, long reservoirSeed, double discountRate, Func<IRegression> regressionFactory)
         {
             Mode = mode;
             ReservoirCapacity = reservoirCapacity;
@@ -44,7 +44,7 @@ namespace ACESimBase.GameSolvingSupport
             return new DeepCFRMultiModel()
             {
                 Mode = Mode,
-                ReservoirCapacity = ReservoirCapacity,
+                ReservoirCapacity = ReservoirCapacity.ToArray(),
                 ReservoirSeed = ReservoirSeed,
                 DiscountRate = DiscountRate,
                 Models = Models?.DeepCopyForPlaybackOnly(),
@@ -182,14 +182,8 @@ namespace ACESimBase.GameSolvingSupport
             return model.ObservationsNeeded();
         }
 
-        public int[] CountPendingObservationsTarget(int iteration) => EnumerateModels().Select(x => x.UpdateAndCountPendingObservationsTarget(iteration)).ToArray();
 
-
-        public bool AllMeetInitialPendingObservationsTarget(int initialTarget)
-        {
-            bool result = EnumerateModels().All(x => x.PendingObservations.Count() >= initialTarget);
-            return result;
-        }
+        public int[] CountPendingObservationsTarget(int iteration, bool isBestResponseIteration) => iteration == 1 && !isBestResponseIteration ? ReservoirCapacity : EnumerateModels().Select(x => x.UpdateAndCountPendingObservationsTarget(iteration)).ToArray();
 
         public bool AllMeetPendingObservationsTarget(int[] target)
         {

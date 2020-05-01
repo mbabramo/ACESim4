@@ -12,13 +12,13 @@ namespace ACESimBase.GameSolvingSupport
         private DeepCFRModel[] Models;
         public int[] ModelIndexForDecisionIndex;
 
-        int ReservoirCapacity;
+        int[] ReservoirCapacity;
         long ReservoirSeed;
         double DiscountRate;
         object LockObj = new object(); 
         Func<IRegression> RegressionFactory;
 
-        public DeepCFRMultiModelContainer(DeepCFRMultiModelMode mode, int reservoirCapacity, long reservoirSeed, double discountRate, Func<IRegression> regressionFactory, List<Decision> decisions)
+        public DeepCFRMultiModelContainer(DeepCFRMultiModelMode mode, int[] reservoirCapacity, long reservoirSeed, double discountRate, Func<IRegression> regressionFactory, List<Decision> decisions)
         {
             Mode = mode;
             ReservoirCapacity = reservoirCapacity;
@@ -33,14 +33,21 @@ namespace ACESimBase.GameSolvingSupport
             for (int groupedModelIndex = 0; groupedModelIndex < groupedDecisions.Count; groupedModelIndex++)
             {
                 IGrouping<byte, (Decision item, int decisionIndex)> group = (IGrouping<byte, (Decision item, int decisionIndex)>)groupedDecisions[groupedModelIndex];
+                int? reservoirCapacityForDecisionIndex = null;
                 foreach (var item in group)
+                {
                     ModelIndexForDecisionIndex[item.decisionIndex] = groupedModelIndex;
+                    if (reservoirCapacityForDecisionIndex == null)
+                        reservoirCapacityForDecisionIndex = reservoirCapacity[item.decisionIndex];
+                    else if (reservoirCapacityForDecisionIndex != reservoirCapacity[item.decisionIndex])
+                        throw new Exception("If not grouping decisions by decision index, then each decision must have same reservoir capacity.");
+                }
                 var decisionsInGroup = group.Select(x => (x.item, (byte) x.decisionIndex)).ToList();
-                Models[groupedModelIndex] = new DeepCFRModel(decisionsInGroup, ReservoirCapacity, ReservoirSeed, DiscountRate, RegressionFactory);
+                Models[groupedModelIndex] = new DeepCFRModel(decisionsInGroup, (int) reservoirCapacityForDecisionIndex, ReservoirSeed, DiscountRate, RegressionFactory);
             }
         }
 
-        public DeepCFRMultiModelContainer(DeepCFRMultiModelMode mode, int reservoirCapacity, long reservoirSeed, double discountRate, Func<IRegression> regressionFactory, IEnumerable<DeepCFRModel> models, int[] modelIndexForDecisionIndex)
+        public DeepCFRMultiModelContainer(DeepCFRMultiModelMode mode, int[] reservoirCapacity, long reservoirSeed, double discountRate, Func<IRegression> regressionFactory, IEnumerable<DeepCFRModel> models, int[] modelIndexForDecisionIndex)
         {
             Mode = mode;
             ReservoirCapacity = reservoirCapacity;

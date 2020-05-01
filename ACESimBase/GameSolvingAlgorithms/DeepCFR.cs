@@ -42,7 +42,8 @@ namespace ACESim
 
         public DeepCFR(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
         {
-            MultiModel = new DeepCFRMultiModel(GameDefinition.DecisionsExecutionOrder, EvolutionSettings.DeepCFR_MultiModelMode, EvolutionSettings.DeepCFR_ReservoirCapacity, 0, EvolutionSettings.DeepCFR_DiscountRate, EvolutionSettings.RegressionFactory());
+            int[] reservoirCapacity = GameDefinition.DecisionsExecutionOrder.Select(x => EvolutionSettings.DeepCFR_UseGameProgressTreeToGenerateObservations ? x.NumPossibleActions * EvolutionSettings.DeepCFR_BaseReservoirCapacity : EvolutionSettings.DeepCFR_BaseReservoirCapacity).ToArray();
+            MultiModel = new DeepCFRMultiModel(GameDefinition.DecisionsExecutionOrder, EvolutionSettings.DeepCFR_MultiModelMode, reservoirCapacity, 0, EvolutionSettings.DeepCFR_DiscountRate, EvolutionSettings.RegressionFactory());
         }
 
         public override IStrategiesDeveloper DeepCopy()
@@ -281,7 +282,7 @@ namespace ACESim
         private async Task GetDeepCFRObservations_WithGameProgressTree()
         {
             var gameProgressTree = await BuildGameProgressTree(EvolutionSettings.NumRandomIterationsForSummaryTable, true);
-            var DEBUG2 = gameProgressTreeDEBUG.GetDirectGamePlayersForDecisionIndex(null, 17).ToList();
+            var DEBUG2 = gameProgressTree.GetDirectGamePlayersForDecisionIndex(null, 17).ToList();
             var DEBUG3 = DEBUG2.Sum(x => x.numObservations);
         }
 
@@ -296,9 +297,8 @@ namespace ACESim
             StrategiesDeveloperStopwatch.Start();
             ReportIteration(iteration, isBestResponseIteration);
 
-
-            int[] numObservationsToAdd = MultiModel.CountPendingObservationsTarget(iteration);
-            int numObservationsToAddMax = numObservationsToAdd != null && numObservationsToAdd.Any() ? numObservationsToAdd.Max() : EvolutionSettings.DeepCFR_ReservoirCapacity;
+            int[] numObservationsToAdd = MultiModel.CountPendingObservationsTarget(iteration, isBestResponseIteration);
+            int numObservationsToAddMax = numObservationsToAdd != null && numObservationsToAdd.Any() ? numObservationsToAdd.Max() : EvolutionSettings.DeepCFR_BaseReservoirCapacity;
             int numObservationsToDoTogether = GetNumObservationsToDoTogether(numObservationsToAddMax);
             bool separateDataEveryIteration = true;
             DeepCFRProbabilitiesCache probabilitiesCache = new DeepCFRProbabilitiesCache();
@@ -348,9 +348,7 @@ namespace ACESim
             bool TargetMet(int iteration, bool isBestResponseIteration, int numberCompleted, int[] numObservationsToAdd)
             {
                 bool targetMet;
-                if (iteration == 1 && !isBestResponseIteration)
-                    targetMet = MultiModel.AllMeetInitialPendingObservationsTarget(EvolutionSettings.DeepCFR_ReservoirCapacity); // must fill all reservoirs in first iteration
-                else if (numberCompleted >= EvolutionSettings.DeepCFR_MaximumTotalObservationsPerIteration)
+                if (!(iteration == 1 && !isBestResponseIteration) && numberCompleted >= EvolutionSettings.DeepCFR_MaximumTotalObservationsPerIteration)
                     targetMet = true;
                 else
                     targetMet = MultiModel.AllMeetPendingObservationsTarget(numObservationsToAdd);
