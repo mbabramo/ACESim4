@@ -194,7 +194,9 @@ namespace ACESimBase.GameSolvingSupport
             {
                 if (includeChanceDecisions)
                     return ReservoirCapacity;
-                throw new NotImplementedException();
+                else
+                    return ReservoirCapacity.Select((item, index) => (item, index)).Where(x => Decisions[x.index].IsChance == false).Select(x => x.item).ToArray();
+
             }
             int[] resultWithoutChanceDecisions = EnumerateModels().Select(x => x.UpdateAndCountPendingObservationsTarget(iteration)).ToArray();
             if (includeChanceDecisions)
