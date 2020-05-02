@@ -294,16 +294,36 @@ namespace ACESimBase.GameSolvingSupport
             }
         }
 
-        public (IDirectGamePlayer gamePlayer, int numObservations)[][] GetDirectGamePlayersForEachDecision(double[] explorationValues, List<Decision> decisions, int[] targetObservations)
+        public static (IDirectGamePlayer gamePlayer, int numObservations)[][] GetDirectGamePlayersForEachDecision(GameProgressTree[] gameProgressTrees, double explorationValue, int[] targetObservations)
         {
-            (IDirectGamePlayer gamePlayer, int numObservations)[][] results = new (IDirectGamePlayer gamePlayer, int numObservations)[decisions.Count()][];
-            for (byte decisionIndex = 0; decisionIndex < decisions.Count(); decisionIndex++)
+            (IDirectGamePlayer gamePlayer, int numObservations)[][] result = null;
+            for (byte playerIndex = 0; playerIndex < gameProgressTrees.Count(); playerIndex++)
             {
-                if (decisions[decisionIndex].IsChance || targetObservations[decisionIndex] == 0)
+                var gameProgressTree = gameProgressTrees[playerIndex];
+                double[] explorationValues = explorationValue == 0 ? null : Enumerable.Range(0, gameProgressTrees.Length).Select(x => x == playerIndex ? explorationValue : 0).ToArray();
+                var resultForPlayer = gameProgressTree.GetDirectGamePlayersForEachDecision(explorationValues, targetObservations);
+                if (playerIndex == 0)
+                    result = resultForPlayer;
+                else for (byte decisionIndex = 0; decisionIndex < gameProgressTree.DecisionsList.Count(); decisionIndex++)
+                {
+                    if (gameProgressTree.DecisionsList[decisionIndex].IsChance || (gameProgressTree.LimitToPlayer != null && gameProgressTree.DecisionsList[decisionIndex].PlayerIndex != gameProgressTree.LimitToPlayer) || targetObservations[decisionIndex] == 0)
+                        continue;
+                    result[decisionIndex] = resultForPlayer[decisionIndex];
+                }
+            }
+            return result;
+        }
+
+        public (IDirectGamePlayer gamePlayer, int numObservations)[][] GetDirectGamePlayersForEachDecision(double[] explorationValues, int[] targetObservations)
+        {
+            (IDirectGamePlayer gamePlayer, int numObservations)[][] results = new (IDirectGamePlayer gamePlayer, int numObservations)[DecisionsList.Count()][];
+            for (byte decisionIndex = 0; decisionIndex < NumDecisionIndices; decisionIndex++)
+            {
+                if (DecisionsList[decisionIndex].IsChance || (LimitToPlayer != null && DecisionsList[decisionIndex].PlayerIndex != LimitToPlayer) || targetObservations[decisionIndex] == 0)
                     continue;
                 var directGamePlayersWithCounts = GetDirectGamePlayersForDecisionIndex(explorationValues, decisionIndex);
                 int totalAvailableCount = directGamePlayersWithCounts.Sum(x => x.numObservations);
-                int adjustedTarget = targetObservations[decisionIndex] / decisions[decisionIndex].NumPossibleActions; // we have one observation for each action, so we need to determine how many to make
+                int adjustedTarget = targetObservations[decisionIndex] / DecisionsList[decisionIndex].NumPossibleActions; // we have one observation for each action, so we need to determine how many to make
                 if (adjustedTarget > totalAvailableCount)
                     throw new Exception("Insufficient number of game players to meet the target number of observations.");
                 if (adjustedTarget == totalAvailableCount)

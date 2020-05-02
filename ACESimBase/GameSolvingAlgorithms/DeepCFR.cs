@@ -312,9 +312,19 @@ namespace ACESim
             int[] numObservationsNeeded = MultiModel.CountPendingObservationsTarget(iteration, isBestResponseIteration, true);
             int DivideRoundingUp(int a, int b) => a / b + (a % b != 0 ? 1 : 0);
             int[] numDirectGamePlayersNeeded = numObservationsNeeded.Select((item, index) => DivideRoundingUp(item, GameDefinition.DecisionsExecutionOrder[index].NumPossibleActions)).ToArray();
-            var gameProgressTree = await BuildGameProgressTree(numDirectGamePlayersNeeded.Max(), true);
-            //DEBUG
-            var directGamePlayersWithCountsForDecisions = gameProgressTree.GetDirectGamePlayersForEachDecision(null /* TODO */, GameDefinition.DecisionsExecutionOrder, numObservationsNeeded);
+            GameProgressTree[] gameProgressTrees = new GameProgressTree[NumNonChancePlayers];
+            if (EvolutionSettings.DeepCFR_Epsilon_OffPolicyProbabilityForProbe == 0)
+            {
+                gameProgressTrees[0] = await BuildGameProgressTree(numDirectGamePlayersNeeded.Max(), true, 0, null);
+                for (int p = 1; p < NumNonChancePlayers; p++)
+                    gameProgressTrees[p] = gameProgressTrees[0];
+            }
+            else
+            {
+                for (byte p = 1; p < NumNonChancePlayers; p++)
+                    gameProgressTrees[p] = await BuildGameProgressTree(numDirectGamePlayersNeeded.Max(), true, EvolutionSettings.DeepCFR_Epsilon_OffPolicyProbabilityForProbe, p);
+            }
+            var directGamePlayersWithCountsForDecisions = GameProgressTree.GetDirectGamePlayersForEachDecision(gameProgressTrees, EvolutionSettings.DeepCFR_Epsilon_OffPolicyProbabilityForProbe, numObservationsNeeded);
             for (int decisionIndex = 0; decisionIndex < directGamePlayersWithCountsForDecisions.Length; decisionIndex++)
             {
                 Decision currentDecision = GameDefinition.DecisionsExecutionOrder[decisionIndex];
@@ -412,7 +422,7 @@ namespace ACESim
             localStopwatch.Start();
             await MultiModel.CompleteIteration(EvolutionSettings.ParallelOptimization);
             TabbedText.TabUnindent();
-            TabbedText.WriteLine($"All models completed over {EvolutionSettings.DeepCFR_NeuralNetwork_Epochs} epochs, total time {localStopwatch.ElapsedMilliseconds} ms");
+            TabbedText.WriteLine($"All models computed, total time {localStopwatch.ElapsedMilliseconds} ms");
             localStopwatch.Stop();
 
             ReportCollection reportCollection = new ReportCollection();
@@ -457,17 +467,16 @@ namespace ACESim
 
 
 
-        public async Task<GameProgressTree> BuildGameProgressTree(int totalNumberObservations, bool oversampling, byte? limitToPlayer = null)
+        public async Task<GameProgressTree> BuildGameProgressTree(int totalNumberObservations, bool oversampling, double explorationValue = 0, byte? limitToPlayer = null)
         {
             DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel, null, null); // ideally should figure out a way to create a separate object for each thread, but problem is we don't break it down by thread.
             GameProgress initialGameProgress = GameFactory.CreateNewGameProgress(new IterationID(1));
             DeepCFRDirectGamePlayer directGamePlayer = new DeepCFRDirectGamePlayer(EvolutionSettings.DeepCFR_MultiModelMode, GameDefinition, initialGameProgress, true, playbackHelper, () => new DeepCFRPlaybackHelper(MultiModel.DeepCopyForPlaybackOnly(), GetRegressionMachinesForLocalUse(), null));
-            //DEBUG
             GameProgressTree gameProgressTree = new GameProgressTree(
                 0, // rand seed
                 totalNumberObservations,
                 directGamePlayer,
-                null /* no exploration */,
+                explorationValue == 0 ? null /* no exploration */ : Enumerable.Range(0, NumNonChancePlayers).Select(x => x == limitToPlayer ? explorationValue : 0).ToArray(),
                 NumNonChancePlayers,
                 GameDefinition.DecisionsExecutionOrder,
                 limitToPlayer
