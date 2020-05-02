@@ -313,6 +313,7 @@ namespace ACESim
             int DivideRoundingUp(int a, int b) => a / b + (a % b != 0 ? 1 : 0);
             int[] numDirectGamePlayersNeeded = numObservationsNeeded.Select((item, index) => DivideRoundingUp(item, GameDefinition.DecisionsExecutionOrder[index].NumPossibleActions)).ToArray();
             var gameProgressTree = await BuildGameProgressTree(numDirectGamePlayersNeeded.Max(), true);
+            debug;
             var directGamePlayersWithCountsForDecisions = gameProgressTree.GetDirectGamePlayersForEachDecision(null /* TODO */, GameDefinition.DecisionsExecutionOrder, numObservationsNeeded);
             for (int decisionIndex = 0; decisionIndex < directGamePlayersWithCountsForDecisions.Length; decisionIndex++)
             {
@@ -461,6 +462,7 @@ namespace ACESim
             DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel, null, null); // ideally should figure out a way to create a separate object for each thread, but problem is we don't break it down by thread.
             GameProgress initialGameProgress = GameFactory.CreateNewGameProgress(new IterationID(1));
             DeepCFRDirectGamePlayer directGamePlayer = new DeepCFRDirectGamePlayer(EvolutionSettings.DeepCFR_MultiModelMode, GameDefinition, initialGameProgress, true, playbackHelper, () => new DeepCFRPlaybackHelper(MultiModel.DeepCopyForPlaybackOnly(), GetRegressionMachinesForLocalUse(), null));
+            debug;
             GameProgressTree gameProgressTree = new GameProgressTree(
                 0, // rand seed
                 totalNumberObservations,

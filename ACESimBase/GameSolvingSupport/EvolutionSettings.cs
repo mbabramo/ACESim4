@@ -105,11 +105,11 @@ namespace ACESim
         public int DeepCFR_NeuralNetwork_Epochs = 1_000;
         public int DeepCFR_NeuralNetwork_HiddenLayers = 3;
         public int DeepCFR_NeuralNetwork_NeuronsPerHiddenLayer = 150;
-        public double DeepCFR_Epsilon_OffPolicyProbabilityForProbe = 0.05;
+        public double DeepCFR_Epsilon_OffPolicyProbabilityForProbe = 0.05; // DEBUG -- not yet implemented using game progress tree
         public double DeepCFR_DiscountRate = 0.98;
         public bool DeepCFR_ApproximateBestResponse = true;
         public bool DeepCFR_ApproximateBestResponse_BackwardInduction = true;
-        public int DeepCFR_ApproximateBestResponseIterations = 3;
+        public int DeepCFR_ApproximateBestResponseIterations = 10;
         public int DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation = 250_000; // DEBUG
         /// <summary>
         // With this option, we are not doing true regret matching. We are forecasting average utility for each action, 
