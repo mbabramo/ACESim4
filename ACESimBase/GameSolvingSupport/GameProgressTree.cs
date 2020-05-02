@@ -5,258 +5,29 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace ACESimBase.GameSolvingSupport
 {
-    public class GameProgressTree : IEnumerable<GameProgress>
+    public partial class GameProgressTree : IEnumerable<GameProgress>
     {
-        /// <summary>
-        /// Information on a node in the GameProgressTree, pursuant to particular criteria for allocating observations.  Observations may be allocated (1) pursuant to particular exploration probabilities for each player; OR (2) pursuant to specified allocation proportions. After we initially explore using a set of exploration probabilities (which may be zero, if the players are playing on-policy), we then calculate the next criterion by aggregating up the tree the cumulative reach probability pursuant to the original criterion of all game progresses that reach the first decision not reached in all game paths.
-        /// </summary>
-        public class GameProgressTreeNodeAllocation
-        {
-            public (int, int) ObservationRange;
-            public int NumObservations => ObservationRange.Item2 - ObservationRange.Item1 + 1;
-            /// <summary>
-            /// Where encompassing all game progresses (regardless of the decision being played up to), the action probabilities at this game point; these will be set by the algorithm allocating observations. When encompassing only game progresses that reach at least a particular decision index, before the allocation algorithm begins, these are set to reflect the cumulative reach probability of game progresses lower in the tree reach the necessary point, and then when the algorithm elaborates the tree, this will reflect the action probabilities.
-            /// </summary>
-            public double[] ChildProportions;
-            /// <summary>
-            /// This is stored temporarily to determine the child proportions of the parent node when
-            /// creating a new allocation. For nodes at the decision index being used to generate the
-            /// new allocation, the ChildProportionContribution will be equal to the PlayToHereCombinedProbability.
-            /// For nodes earlier in the tree, the ChildProportionContribution will be the sum of the child
-            /// ChildProportionContributions. Meanwhile, ChildProportions will be set to the relative 
-            /// weight of the children's ChildProportionContribution values.
-            /// </summary>
-            public double ChildProportionContribution;
-
-            public override string ToString() => $"{ObservationRange}: {(ChildProportions == null ? "" : $"ChildProportions {ChildProportions.ToSignificantFigures_WithSciNotationForVerySmall(4)}")} {(ChildProportionContribution == 0 ? "" : $"ChildProportionContribution {ChildProportionContribution.ToSignificantFigures_WithSciNotationForVerySmall(4)}")}";
-        }
-
-        /// <summary>
-        /// Information on the probability of playing to and from this node, given the exploration scheme in force.
-        /// </summary>
-        public class GameProgressTreeNodeProbabilities
-        {
-            /// <summary>
-            /// The probability that each player will play to this node given the exploration probabilities for each player. Note that this does not reflect the child proportions that are used.
-            /// </summary>
-            public double[] PlayToHereProbabilities;
-            /// <summary>
-            /// The probability that all players combined will play to this node.
-            /// </summary>
-            public double PlayToHereCombinedProbability;
-            /// <summary>
-            /// The probability that the player at this node will choose each of the child actions, taking into account the players' exploration values.
-            /// </summary>
-            public double[] ActionProbabilities;
-            /// <summary>
-            /// The allocations of observations pursuant to these probabilities. Each allocation must be narrower than the previous, so once we have an allocation that has null for ChildProportions, there will be no further allocations.
-            /// </summary>
-            public List<GameProgressTreeNodeAllocation> Allocations = new List<GameProgressTreeNodeAllocation>();
-
-            public string ToString(int allocationIndex, bool includeActionProbabilities)
-            {
-                string s = (Allocations[allocationIndex]?.ToString() ?? "");
-                if (includeActionProbabilities)
-                    return s + $" action probabilities {ActionProbabilities.ToSignificantFigures_WithSciNotationForVerySmall(4)} reach probabilities {PlayToHereProbabilities.ToSignificantFigures_WithSciNotationForVerySmall(4)}";
-                return s;
-            }
-
-
-            public override string ToString()
-            {
-                StringBuilder s = new StringBuilder();
-                s.AppendLine($"Action probabilities {ActionProbabilities.ToSignificantFigures_WithSciNotationForVerySmall(4)}");
-                for (int i = 0; i < Allocations.Count(); i++)
-                {
-                    string s2 = ToString(i, false).Trim();
-                    if (s2 != null && s2 != "")
-                        s.AppendLine("Allocation " + i + ": " + s2);
-                }
-                return s.ToString();
-            }
-
-            public GameProgressTreeNodeProbabilities(byte allocationIndex, (int, int) observationRange, double[] playToHereProbabilities, double[] actionProbabilities, byte numDecisionIndices)
-            {
-                var allocation = new GameProgressTreeNodeAllocation()
-                {
-                    ObservationRange = observationRange,
-                    ChildProportions = null,
-                    ChildProportionContribution = 0.0
-                };
-                AddAllocation(allocationIndex, allocation);
-                PlayToHereProbabilities = playToHereProbabilities;
-                PlayToHereCombinedProbability = playToHereProbabilities.Aggregate((a, x) => a * x);
-                ActionProbabilities = actionProbabilities;
-            }
-
-            public GameProgressTreeNodeAllocation GetAllocation(int allocationIndex)
-            {
-                if (Allocations.Count > allocationIndex)
-                    return Allocations[allocationIndex];
-                return null;
-            }
-
-            internal GameProgressTreeNodeAllocation CreateNextAllocation_BasedOnChildren(int allocationIndexToCreate, double[] childReachProbabilities, double? reachProbabilityAtDecision)
-            {
-                if (Allocations.Count() != allocationIndexToCreate)
-                    throw new Exception();
-                int previousAllocationIndex = allocationIndexToCreate - 1;
-                GameProgressTreeNodeAllocation previousAllocation = Allocations[previousAllocationIndex];
-
-                GameProgressTreeNodeAllocation newAllocation = null;
-                double sum = childReachProbabilities.Sum();
-                if (sum != 0 || reachProbabilityAtDecision != null)
-                {
-                    double[] childProportions = null;
-                    if (reachProbabilityAtDecision == null)
-                        childProportions = childReachProbabilities.Select(x => x / sum).ToArray();
-
-                    newAllocation = new GameProgressTreeNodeAllocation()
-                    {
-                        ChildProportions = childProportions,
-                        ChildProportionContribution = reachProbabilityAtDecision ?? sum,
-                        // Note that observation range cannot yet be set, since it depends on cumulative reach probabilities elsewhere in the tree. We will thus set this going downward through the tree.
-                    };
-                }
-
-                AddAllocation(allocationIndexToCreate, newAllocation);
-                return newAllocation;
-            }
-
-            internal GameProgressTreeNodeAllocation CreateNextAllocation_BasedOnParent(int allocationIndexToCreate, (int, int) observationRange)
-            {
-                GameProgressTreeNodeAllocation newAllocation = new GameProgressTreeNodeAllocation()
-                {
-                    ObservationRange = observationRange
-                };
-                AddAllocation(allocationIndexToCreate, newAllocation);
-                return newAllocation;
-            }
-
-            private void AddAllocation(int allocationIndex, GameProgressTreeNodeAllocation allocation)
-            {
-                while (Allocations.Count() - 1 < allocationIndex)
-                    Allocations.Add(null);
-                Allocations[allocationIndex] = allocation;
-            }
-        }
-
-        public class GameProgressTreeNodeInfo
-        {
-            public IDirectGamePlayer DirectGamePlayer;
-            public GameProgress GameProgress => DirectGamePlayer.GameProgress;
-
-            public Decision CurrentDecision => DirectGamePlayer.CurrentDecision;
-            public byte CurrentDecisionIndex => (byte)DirectGamePlayer.CurrentDecisionIndex;
-
-            public List<(double[] explorationValues, GameProgressTreeNodeProbabilities probabilitiesInfo)> NodeProbabilityInfos = new List<(double[] explorationValues, GameProgressTreeNodeProbabilities probabilitiesInfo)>();
-            byte NumDecisionIndices;
-
-            public GameProgressTreeNodeInfo(IDirectGamePlayer directGamePlayer, (int, int) observationRange, double[] explorationValues, byte allocationIndex, double[] playToHereProbabilities, byte numDecisionIndices)
-            {
-                DirectGamePlayer = directGamePlayer;
-                (double[] explorationValues, GameProgressTreeNodeProbabilities) npi = GetNodeProbabilityInfo(allocationIndex, observationRange, explorationValues, playToHereProbabilities, directGamePlayer.GameComplete, numDecisionIndices);
-                NodeProbabilityInfos = new List<(double[] explorationValues, GameProgressTreeNodeProbabilities probabilitiesInfo)>()
-                {
-                    npi
-                };
-                NumDecisionIndices = numDecisionIndices;
-            }
-
-            private (double[] explorationValues, GameProgressTreeNodeProbabilities) GetNodeProbabilityInfo(byte allocationIndex, (int, int) observationRange, double[] explorationValues, double[] playToHereProbabilities, bool gameComplete, byte numDecisionIndices)
-            {
-                double[] actionProbabilitiesWithExploration = gameComplete ? null : GetActionProbabilitiesWithExploration(explorationValues);
-                (double[] explorationValues, GameProgressTreeNodeProbabilities) npi = (explorationValues, new GameProgressTreeNodeProbabilities(allocationIndex, observationRange, playToHereProbabilities, actionProbabilitiesWithExploration, numDecisionIndices)
-                {
-
-                });
-                return npi;
-            }
-
-            private double[] GetActionProbabilitiesWithExploration(double[] explorationValues)
-            {
-                double[] actionProbabilities = DirectGamePlayer.GetActionProbabilities();
-                byte currentPlayer = DirectGamePlayer.CurrentPlayer.PlayerIndex;
-                if (explorationValues != null && currentPlayer < explorationValues.Length && explorationValues[currentPlayer] > 0)
-                {
-                    double explorationValue = explorationValues[currentPlayer];
-                    double equalProbabilities = 1.0 / (double)actionProbabilities.Length;
-                    return actionProbabilities.Select(x => explorationValue * equalProbabilities + (1.0 - explorationValue) * x).ToArray();
-                }
-
-                return actionProbabilities.ToArray();
-            }
-
-            public GameProgressTreeNodeProbabilities GetProbabilitiesInfo(double[] explorationValues)
-            {
-                foreach (var npi in NodeProbabilityInfos)
-                {
-                    if ((npi.explorationValues == null && explorationValues == null) ||
-(npi.explorationValues.SequenceEqual(explorationValues)))
-                        return npi.probabilitiesInfo;
-                }
-                return null;
-            }
-
-            public GameProgressTreeNodeProbabilities GetOrAddProbabilitiesInfo(byte allocationIndex, (int, int) observationRange, double[] explorationValues, double[] playToHereProbabilities, bool gameComplete)
-            {
-                GameProgressTreeNodeProbabilities value = GetProbabilitiesInfo(explorationValues);
-                if (value == null)
-                {
-                    var result = GetNodeProbabilityInfo(allocationIndex, observationRange, explorationValues, playToHereProbabilities, gameComplete, NumDecisionIndices);
-                    NodeProbabilityInfos.Add(result);
-                    value = result.Item2;
-                }
-                return value;
-            }
-
-            public override string ToString()
-            {
-                bool basicTreeOnly = false;
-                if (basicTreeOnly)
-                    return ToString(null, 0);
-                StringBuilder s = new StringBuilder();
-                s.AppendLine(GetStatusString());
-                foreach (var npi in NodeProbabilityInfos)
-                {
-                    if (npi.explorationValues != null)
-                        s.Append(npi.explorationValues.ToSignificantFigures(4) + ": ");
-                    s.AppendLine(npi.probabilitiesInfo.ToString());
-                }
-                return s.ToString();
-            }
-
-            public string ToString(double[] explorationValues, int allocationIndex)
-            {
-                GameProgressTreeNodeProbabilities value = GetProbabilitiesInfo(explorationValues);
-                string statusString = GetStatusString();
-                string result = $"{value.ToString(allocationIndex, true)} {statusString}";
-                return result;
-            }
-
-            private string GetStatusString()
-            {
-                return GameProgress.GameComplete ? "Result: " + String.Join(",", GameProgress.GetNonChancePlayerUtilities().Select(x => x.ToSignificantFigures(5))) : "Incomplete"; //  $"Next decision: {DirectGamePlayer.CurrentDecision.Name} ({GameProgress.CurrentDecisionIndex})";
-            }
-        }
 
         NWayTreeStorageInternal<GameProgressTreeNodeInfo> Tree;
         int InitialRandSeed;
+        byte? LimitToPlayer;
         byte NumDecisionIndices;
+        List<Decision> DecisionsList;
         public Dictionary<string, byte> AllocationIndexForExplorationProbabilityAndDecisionIndex;
 
-        public GameProgressTree(int randSeed, int totalObservations, IDirectGamePlayer directGamePlayer, double[] explorationValues, byte numNonChancePlayers, byte numDecisionIndices)
+        public GameProgressTree(int randSeed, int totalObservations, IDirectGamePlayer directGamePlayer, double[] explorationValues, byte numNonChancePlayers, List<Decision> decisionsList, byte? limitToPlayer)
         {
             double[] playToHereProbabilities = Enumerable.Range(1, numNonChancePlayers).Select(x => (double)1).ToArray(); // all players always play to beginning of game
-            NumDecisionIndices = numDecisionIndices;
+            DecisionsList = decisionsList;
+            NumDecisionIndices = (byte) DecisionsList.Count();
+            LimitToPlayer = limitToPlayer;
             Tree = new NWayTreeStorageInternal<GameProgressTreeNodeInfo>(new NWayTreeStorageInternal<GameProgressTreeNodeInfo>(null))
             {
-                StoredValue = new GameProgressTreeNodeInfo(directGamePlayer, (1, totalObservations), explorationValues, 0, playToHereProbabilities, numDecisionIndices)
+                StoredValue = new GameProgressTreeNodeInfo(directGamePlayer, (1, totalObservations), explorationValues, 0, playToHereProbabilities, NumDecisionIndices)
             };
             InitialRandSeed = randSeed;
             AllocationIndexForExplorationProbabilityAndDecisionIndex = new Dictionary<string, byte>();
@@ -295,8 +66,8 @@ namespace ACESimBase.GameSolvingSupport
 
                     for (byte decisionIndex = 0; decisionIndex < NumDecisionIndices; decisionIndex++)
                     {
-                        bool includedInAllocationBeforeImmediatelyPrevious = AllocationIndexForExplorationProbabilityAndDecisionIndex.ContainsKey((explorationValuesList, decisionIndex).ToString());
-                        if (!includedInAllocationBeforeImmediatelyPrevious)
+                        bool allocationNotNeeded = DecisionsList[decisionIndex].IsChance || (LimitToPlayer != null && DecisionsList[decisionIndex].PlayerIndex != LimitToPlayer) || AllocationIndexForExplorationProbabilityAndDecisionIndex.ContainsKey((explorationValuesList, decisionIndex).ToString());
+                        if (!allocationNotNeeded)
                         {
                             int numGameProgressesIncludedInFromPreviousAllocation = gameProgressesForPreviousAllocation.Count(x => x.GetDecisionIndicesCompleted().Contains(decisionIndex));
                             bool includedInAllGameProgresses = numGameProgressesIncludedInFromPreviousAllocation == gameProgressesForPreviousAllocationCount;

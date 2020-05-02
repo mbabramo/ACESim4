@@ -109,7 +109,7 @@ namespace ACESim
         public double DeepCFR_DiscountRate = 0.98;
         public bool DeepCFR_ApproximateBestResponse = true;
         public bool DeepCFR_ApproximateBestResponse_BackwardInduction = true;
-        public int DeepCFR_ApproximateBestResponseIterations = 10;
+        public int DeepCFR_ApproximateBestResponseIterations = 1;
         public int DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation = 250_000; // DEBUG
         /// <summary>
         // With this option, we are not doing true regret matching. We are forecasting average utility for each action, 
