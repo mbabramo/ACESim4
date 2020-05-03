@@ -258,6 +258,7 @@ namespace ACESim
         {
             double[] baselineUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
             TabbedText.WriteLine($"Baseline utilities {string.Join(",", baselineUtilities.Select(x => x.ToSignificantFigures(8)))}");
+            double[] bestResponseImprovement = new double[NumNonChancePlayers];
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
                 await MultiModel.PrepareForBestResponseIterations(EvolutionSettings.ParallelOptimization, EvolutionSettings.DeepCFR_ApproximateBestResponse_BackwardInduction_CapacityMultiplier);
@@ -273,7 +274,6 @@ namespace ACESim
                     for (int outerIteration = 0; outerIteration < EvolutionSettings.DeepCFR_ApproximateBestResponseIterations; outerIteration++)
                     {
                         bestResponseUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
-                        TabbedText.WriteLine($"Utilities for player {p}: {string.Join(",", bestResponseUtilities.Select(x => x.ToSignificantFigures(8)))}"); // DEBUG
                         for (int innerIteration = 1; innerIteration <= innerIterationsNeeded; innerIteration++)
                         {
                             ApproximateBestResponse_CurrentIterationsIndex = outerIteration * innerIterationsNeeded + innerIteration;
@@ -283,10 +283,9 @@ namespace ACESim
                                 MultiModel.StopRegretMatching(p, decisionIndex);
                             var result = await PerformDeepCFRIteration(innerIteration, true);
                             bestResponseUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
-                            TabbedText.WriteLine($"Utilities for player {p}: {string.Join(",", bestResponseUtilities.Select(x => x.ToSignificantFigures(8)))}"); // DEBUG
                             MultiModel.ConcludeTargetingBestResponse(p, decisionIndex);
                             bestResponseUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
-                            TabbedText.WriteLine($"Utilities for player {p}: {string.Join(",", bestResponseUtilities.Select(x => x.ToSignificantFigures(8)))}"); // DEBUG
+                            TabbedText.WriteLine($"Utilities for player {p}: {string.Join(",", bestResponseUtilities.Select(x => x.ToSignificantFigures(8)))}");
                         }
                     }
                     bestResponseUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
@@ -309,10 +308,11 @@ namespace ACESim
                 TabbedText.TabIndent();
                 TabbedText.TabUnindent();
                 TabbedText.WriteLine($"Utilities with best response for player {p}: {string.Join(",", bestResponseUtilities.Select(x => x.ToSignificantFigures(8)))}");
-                double bestResponseImprovement = bestResponseUtilities[p] - baselineUtilities[p];
-                TabbedText.WriteLine($"Best response improvement for player {p}: {bestResponseImprovement.ToSignificantFigures(8)}");
+                bestResponseImprovement[p] = bestResponseUtilities[p] - baselineUtilities[p];
+                TabbedText.WriteLine($"Best response improvement for player {p}: {bestResponseImprovement[p].ToSignificantFigures(8)}");
                 await MultiModel.ReturnToStateBeforeBestResponseIterations(EvolutionSettings.ParallelOptimization);
             }
+            TabbedText.WriteLine($"Best response improvement for all players: {bestResponseImprovement.ToSignificantFigures(8)}");
         }
 
         private async Task GenerateDeepCFRObservations_WithGameProgressTree(int iteration, bool isBestResponseIteration)
