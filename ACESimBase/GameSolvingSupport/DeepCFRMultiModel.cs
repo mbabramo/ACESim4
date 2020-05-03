@@ -282,7 +282,7 @@ namespace ACESimBase.GameSolvingSupport
         {
             foreach (DeepCFRModel model in EnumerateModels())
             {
-                model.StopRegretMatching();
+                model.ResumeRegretMatching();
             }
         }
 

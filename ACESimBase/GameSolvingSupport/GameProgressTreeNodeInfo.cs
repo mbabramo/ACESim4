@@ -59,7 +59,7 @@ namespace ACESimBase.GameSolvingSupport
                 foreach (var npi in NodeProbabilityInfos)
                 {
                     if ((npi.explorationValues == null && explorationValues == null) ||
-(npi.explorationValues.SequenceEqual(explorationValues)))
+(npi.explorationValues != null && explorationValues != null && npi.explorationValues.SequenceEqual(explorationValues)))
                         return npi.probabilitiesInfo;
                 }
                 return null;

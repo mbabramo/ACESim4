@@ -257,10 +257,10 @@ namespace ACESim
         private async Task DoApproximateBestResponse()
         {
             double[] baselineUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
-            TabbedText.WriteLine($"Baseline utilities {string.Join(",", baselineUtilities.Select(x => x.ToSignificantFigures(4)))}");
-            await MultiModel.PrepareForBestResponseIterations(EvolutionSettings.ParallelOptimization);
+            TabbedText.WriteLine($"Baseline utilities {string.Join(",", baselineUtilities.Select(x => x.ToSignificantFigures(8)))}");
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
+                await MultiModel.PrepareForBestResponseIterations(EvolutionSettings.ParallelOptimization);
                 ApproximateBestResponse_CurrentPlayer = p;
                 TabbedText.WriteLine($"Determining best response for player {p}");
                 TabbedText.TabIndent();
@@ -272,18 +272,26 @@ namespace ACESim
                     ApproximateBestResponse_CurrentIterationsTotal = innerIterationsNeeded * EvolutionSettings.DeepCFR_ApproximateBestResponseIterations;
                     for (int outerIteration = 0; outerIteration < EvolutionSettings.DeepCFR_ApproximateBestResponseIterations; outerIteration++)
                     {
+                        bestResponseUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
+                        TabbedText.WriteLine($"Utilities for player {p}: {string.Join(",", bestResponseUtilities.Select(x => x.ToSignificantFigures(8)))}"); // DEBUG
                         for (int innerIteration = 1; innerIteration <= innerIterationsNeeded; innerIteration++)
                         {
                             ApproximateBestResponse_CurrentIterationsIndex = outerIteration * innerIterationsNeeded + innerIteration;
                             byte decisionIndex = (byte)decisionsForPlayer[innerIteration - 1].index; // this is the overall decision index, i.e. in GameDefinition.DecisionsExecutionOrder
                             MultiModel.TargetBestResponse(p, decisionIndex);
-                            MultiModel.StopRegretMatching(p, decisionIndex);
+                            if (EvolutionSettings.DeepCFR_ApproximateBestResponse_BackwardInduction_AlwaysPickHighestRegret)
+                                MultiModel.StopRegretMatching(p, decisionIndex);
                             var result = await PerformDeepCFRIteration(innerIteration, true);
+                            bestResponseUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
+                            TabbedText.WriteLine($"Utilities for player {p}: {string.Join(",", bestResponseUtilities.Select(x => x.ToSignificantFigures(8)))}"); // DEBUG
                             MultiModel.ConcludeTargetingBestResponse(p, decisionIndex);
+                            bestResponseUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
+                            TabbedText.WriteLine($"Utilities for player {p}: {string.Join(",", bestResponseUtilities.Select(x => x.ToSignificantFigures(8)))}"); // DEBUG
                         }
                     }
                     bestResponseUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
-                    MultiModel.ResumeRegretMatching();
+                    if (EvolutionSettings.DeepCFR_ApproximateBestResponse_BackwardInduction_AlwaysPickHighestRegret)
+                        MultiModel.ResumeRegretMatching();
                 }
                 else
                 {
@@ -300,11 +308,11 @@ namespace ACESim
                 TabbedText.WriteLine($"Concluding determining best response for player {p} (recreating earlier models)");
                 TabbedText.TabIndent();
                 TabbedText.TabUnindent();
-                TabbedText.WriteLine($"Utilities with best response for player {p}: {string.Join(",", bestResponseUtilities.Select(x => x.ToSignificantFigures(4)))}");
+                TabbedText.WriteLine($"Utilities with best response for player {p}: {string.Join(",", bestResponseUtilities.Select(x => x.ToSignificantFigures(8)))}");
                 double bestResponseImprovement = bestResponseUtilities[p] - baselineUtilities[p];
-                TabbedText.WriteLine($"Best response improvement for player {p}: {bestResponseImprovement.ToSignificantFigures(4)}");
+                TabbedText.WriteLine($"Best response improvement for player {p}: {bestResponseImprovement.ToSignificantFigures(8)}");
+                await MultiModel.ReturnToStateBeforeBestResponseIterations(EvolutionSettings.ParallelOptimization);
             }
-            await MultiModel.ReturnToStateBeforeBestResponseIterations(EvolutionSettings.ParallelOptimization);
         }
 
         private async Task GenerateDeepCFRObservations_WithGameProgressTree(int iteration, bool isBestResponseIteration)
@@ -313,7 +321,8 @@ namespace ACESim
             int DivideRoundingUp(int a, int b) => a / b + (a % b != 0 ? 1 : 0);
             int[] numDirectGamePlayersNeeded = numObservationsNeeded.Select((item, index) => DivideRoundingUp(item, GameDefinition.DecisionsExecutionOrder[index].NumPossibleActions)).ToArray();
             GameProgressTree[] gameProgressTrees = new GameProgressTree[NumNonChancePlayers];
-            if (EvolutionSettings.DeepCFR_Epsilon_OffPolicyProbabilityForProbe == 0)
+            double offPolicyProbabilityForProbe = isBestResponseIteration ? 0 : EvolutionSettings.DeepCFR_Epsilon_OffPolicyProbabilityForProbe;
+            if (offPolicyProbabilityForProbe == 0)
             {
                 gameProgressTrees[0] = await BuildGameProgressTree(numDirectGamePlayersNeeded.Max(), true, 0, null);
                 for (int p = 1; p < NumNonChancePlayers; p++)
@@ -321,10 +330,10 @@ namespace ACESim
             }
             else
             {
-                for (byte p = 1; p < NumNonChancePlayers; p++)
-                    gameProgressTrees[p] = await BuildGameProgressTree(numDirectGamePlayersNeeded.Max(), true, EvolutionSettings.DeepCFR_Epsilon_OffPolicyProbabilityForProbe, p);
+                for (byte p = 0; p < NumNonChancePlayers; p++)
+                    gameProgressTrees[p] = await BuildGameProgressTree(numDirectGamePlayersNeeded.Max(), true, offPolicyProbabilityForProbe, p);
             }
-            var directGamePlayersWithCountsForDecisions = GameProgressTree.GetDirectGamePlayersForEachDecision(gameProgressTrees, EvolutionSettings.DeepCFR_Epsilon_OffPolicyProbabilityForProbe, numObservationsNeeded);
+            var directGamePlayersWithCountsForDecisions = GameProgressTree.GetDirectGamePlayersForEachDecision(gameProgressTrees, offPolicyProbabilityForProbe, numObservationsNeeded);
             for (int decisionIndex = 0; decisionIndex < directGamePlayersWithCountsForDecisions.Length; decisionIndex++)
             {
                 Decision currentDecision = GameDefinition.DecisionsExecutionOrder[decisionIndex];
@@ -472,16 +481,17 @@ namespace ACESim
             DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel, null, null); // ideally should figure out a way to create a separate object for each thread, but problem is we don't break it down by thread.
             GameProgress initialGameProgress = GameFactory.CreateNewGameProgress(new IterationID(1));
             DeepCFRDirectGamePlayer directGamePlayer = new DeepCFRDirectGamePlayer(EvolutionSettings.DeepCFR_MultiModelMode, GameDefinition, initialGameProgress, true, playbackHelper, () => new DeepCFRPlaybackHelper(MultiModel.DeepCopyForPlaybackOnly(), GetRegressionMachinesForLocalUse(), null));
+            double[] explorationValues = explorationValue == 0 ? null /* no exploration */ : Enumerable.Range(0, NumNonChancePlayers).Select(x => x == limitToPlayer ? explorationValue : 0).ToArray();
             GameProgressTree gameProgressTree = new GameProgressTree(
                 0, // rand seed
                 totalNumberObservations,
                 directGamePlayer,
-                explorationValue == 0 ? null /* no exploration */ : Enumerable.Range(0, NumNonChancePlayers).Select(x => x == limitToPlayer ? explorationValue : 0).ToArray(),
+                explorationValues,
                 NumNonChancePlayers,
                 GameDefinition.DecisionsExecutionOrder,
                 limitToPlayer
                 );
-            await gameProgressTree.CompleteTree(false, oversampling);
+            await gameProgressTree.CompleteTree(false, explorationValues, oversampling);
             return gameProgressTree;
         }
 

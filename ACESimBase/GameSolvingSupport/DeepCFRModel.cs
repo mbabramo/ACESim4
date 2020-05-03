@@ -162,12 +162,12 @@ namespace ACESimBase.GameSolvingSupport
             if (!PendingObservations.Any())
                 return $"No pending observations ({GetModelName()})";
             StringBuilder s = new StringBuilder();
-            s.Append($"Pending observations: {PendingObservations.Count()} ");
+            s.Append($"Pending observations: {PendingObservations.Count()} ({GetModelName()})");
             Observations.AddPotentialReplacementsAtIteration(PendingObservations.ToList(), DiscountRate, IterationsProcessed);
             PendingObservations = new List<DeepCFRObservation>();
             await BuildModel(s);
             string trainingResultString = Regression.GetTrainingResultString();
-            s.Append(trainingResultString + $" ({GetModelName()})");
+            s.Append(trainingResultString);
             return s.ToString();
         }
 
@@ -368,7 +368,7 @@ namespace ACESimBase.GameSolvingSupport
 
         public async Task ReturnToStateBeforeBestResponseIterations()
         {
-
+            // DEBUG -- better thing would be to save and then reload the model
             Observations = RememberedObservations;
             RememberedObservations = null;
             FullReservoirReplacement = false;
