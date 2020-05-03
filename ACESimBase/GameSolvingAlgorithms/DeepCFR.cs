@@ -333,6 +333,8 @@ namespace ACESim
                 for (byte p = 0; p < NumNonChancePlayers; p++)
                     gameProgressTrees[p] = await BuildGameProgressTree(numDirectGamePlayersNeeded.Max(), true, offPolicyProbabilityForProbe, p);
             }
+            Stopwatch s2 = new Stopwatch();
+            s2.Start();
             var directGamePlayersWithCountsForDecisions = GameProgressTree.GetDirectGamePlayersForEachDecision(gameProgressTrees, offPolicyProbabilityForProbe, numObservationsNeeded);
             for (int decisionIndex = 0; decisionIndex < directGamePlayersWithCountsForDecisions.Length; decisionIndex++)
             {
@@ -369,6 +371,8 @@ namespace ACESim
                 }
 
             }
+            s2.Stop();
+            TabbedText.WriteLine($"Finishing games {s2.ElapsedMilliseconds}");
         }
 
         private async Task GenerateDeepCFRObservations_WithRandomPlay(int iteration, bool isBestResponseIteration)
