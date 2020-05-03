@@ -250,13 +250,13 @@ namespace ACESimBase.GameSolvingSupport
 
         #region Best response
 
-        public async Task PrepareForBestResponseIterations(bool doParallel)
+        public async Task PrepareForBestResponseIterations(bool doParallel, double capacityMultiplier)
         {
             var models = EnumerateModels().ToList();
             await Parallelizer.GoAsync(doParallel, 0, models.Count(), m =>
             {
                 var model = models[(int) m];
-                return model.PrepareForBestResponseIterations();
+                return model.PrepareForBestResponseIterations(capacityMultiplier);
             });
         }
 

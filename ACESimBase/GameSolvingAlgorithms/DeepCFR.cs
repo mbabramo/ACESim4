@@ -260,7 +260,7 @@ namespace ACESim
             TabbedText.WriteLine($"Baseline utilities {string.Join(",", baselineUtilities.Select(x => x.ToSignificantFigures(8)))}");
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
-                await MultiModel.PrepareForBestResponseIterations(EvolutionSettings.ParallelOptimization);
+                await MultiModel.PrepareForBestResponseIterations(EvolutionSettings.ParallelOptimization, EvolutionSettings.DeepCFR_ApproximateBestResponse_BackwardInduction_CapacityMultiplier);
                 ApproximateBestResponse_CurrentPlayer = p;
                 TabbedText.WriteLine($"Determining best response for player {p}");
                 TabbedText.TabIndent();

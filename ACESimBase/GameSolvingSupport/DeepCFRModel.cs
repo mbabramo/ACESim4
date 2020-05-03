@@ -358,10 +358,15 @@ namespace ACESimBase.GameSolvingSupport
         /// Prepare to start determining the best response, by remembering the current state and targeting full
         /// replacement of the reservoir, then freezing the state. 
         /// </summary>
-        public Task PrepareForBestResponseIterations()
+        public Task PrepareForBestResponseIterations(double capacityMultiplier)
         {
             RememberedObservations = Observations.DeepCopy(o => o.DeepCopy());
             FullReservoirReplacement = true;
+            if (capacityMultiplier != 1.0)
+            {
+                int revisedCapacity = (int)(Observations.Capacity * capacityMultiplier);
+                Observations.ChangeCapacity(revisedCapacity);
+            }
             FreezeState();
             return Task.CompletedTask;
         }
@@ -372,6 +377,7 @@ namespace ACESimBase.GameSolvingSupport
             Observations = RememberedObservations;
             RememberedObservations = null;
             FullReservoirReplacement = false;
+            Observations.ReturnToOriginalCapacity();
             await BuildModel(new StringBuilder()); // must rebuild model (alternative would be to have a deep copy of the model) -- won't print results of that
             UnfreezeState();
         }

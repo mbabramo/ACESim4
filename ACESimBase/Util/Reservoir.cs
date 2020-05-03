@@ -10,7 +10,7 @@ namespace ACESimBase.Util
     public class Reservoir<T> : IEnumerable<T>
     {
         ConsistentRandomSequenceProducer RandomProducer;
-        public int CurrentSize, Capacity;
+        public int CurrentSize, Capacity, OriginalCapacity;
         public long Seed;
         public int RemainingCapacity => Capacity - CurrentSize;
         public T[] Items;
@@ -20,7 +20,7 @@ namespace ACESimBase.Util
             Seed = seed;
             RandomProducer = new ConsistentRandomSequenceProducer(seed);
             CurrentSize = 0;
-            Capacity = capacity;
+            OriginalCapacity = Capacity = capacity;
             Items = new T[Capacity];
         }
 
@@ -31,6 +31,22 @@ namespace ACESimBase.Util
                 result.AddItem(deepCopyItem(item));
             return result;
         }
+
+        public void ChangeCapacity(int revisedCapacity)
+        {
+            if (revisedCapacity != Capacity)
+            {
+                T[] revisedItems = new T[revisedCapacity];
+                for (int i = 0; i < Math.Min(Capacity, revisedCapacity); i++)
+                    revisedItems[i] = Items[i];
+                Items = revisedItems;
+                Capacity = revisedCapacity;
+                if (CurrentSize > Capacity)
+                    CurrentSize = Capacity;
+            }
+        }
+
+        public void ReturnToOriginalCapacity() => ChangeCapacity(OriginalCapacity);
 
 
         IEnumerator IEnumerable.GetEnumerator()
