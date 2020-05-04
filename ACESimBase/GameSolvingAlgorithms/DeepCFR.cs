@@ -366,6 +366,7 @@ namespace ACESim
             int numPlaybacks = numGamesToComplete / numGamesToCompleteOnSingleThread;
             int extraGamesToCompleteDueToRounding = numPlaybacks * numGamesToCompleteOnSingleThread - numGamesToComplete;
             int numPlaybacksLastIteration = numPlaybacks - extraGamesToCompleteDueToRounding;
+            List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)>[] allObservationsToAdd = new List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)>[numPlaybacks]; // we don't actually add observations to model until we have completed parallel loop
             Parallelizer.Go(EvolutionSettings.ParallelOptimization, 0, numPlaybacks, o =>
             {
                 DeepCFRProbabilitiesCache probabilitiesCache = new DeepCFRProbabilitiesCache(); // DEBUG -- could consider having a single cache that also looks to GameProgressTree but that could create slowdown since it's shared
@@ -373,16 +374,23 @@ namespace ACESim
                 DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel, regressionMachines, probabilitiesCache);
                 int numToPlaybackTogetherThisIteration = o == numGamesToComplete - 1 ? numPlaybacksLastIteration : numGamesToCompleteOnSingleThread;
                 int initialObservation = o * numGamesToCompleteOnSingleThread;
+                List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)> observationsToAdd = new List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)>();
                 for (int i = 0; i < numToPlaybackTogetherThisIteration; i++)
                 {
                     var gameToComplete = gamesToComplete[initialObservation + i];
-                    DeepCFR_CompleteGame_FromGameProgressTree(gameToComplete.currentDecision, gameToComplete.decisionIndex, gameToComplete.currentPlayer, gameToComplete.gamePlayer, gameToComplete.observationNum, gameToComplete.numObservations);
+                    gameToComplete.gamePlayer.InitialPlaybackHelper = playbackHelper;
+                    var results = DeepCFR_CompleteGame_FromGameProgressTree(gameToComplete.currentDecision, gameToComplete.decisionIndex, gameToComplete.currentPlayer, gameToComplete.gamePlayer, gameToComplete.observationNum, gameToComplete.numObservations);
+                    observationsToAdd.AddRange(results);
                 }
+                allObservationsToAdd[o] = observationsToAdd;
                 ReturnRegressionMachines(regressionMachines);
             });
+            for (int i = 0; i < numPlaybacks; i++)
+                foreach (var observationToAdd in allObservationsToAdd[i])
+                    MultiModel.AddPendingObservation(observationToAdd.currentDecision, observationToAdd.decisionIndex, observationToAdd.observation);
         }
 
-        private void DeepCFR_CompleteGame_FromGameProgressTree(Decision currentDecision, int decisionIndex, byte currentPlayer, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations)
+        private List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)> DeepCFR_CompleteGame_FromGameProgressTree(Decision currentDecision, int decisionIndex, byte currentPlayer, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations)
         {
             double[] utilities = DeepCFR_Probe_GetUtilitiesEachAction(gamePlayer, observationNum, EvolutionSettings.DeepCFR_NumProbesPerGameProgressTreeObservation);
             double[] actionProbabilities = gamePlayer.GetActionProbabilities();
@@ -394,6 +402,7 @@ namespace ACESim
                 regrets[j] = utilities[j] - expectedValue;
             var informationSet = gamePlayer.GetInformationSet(true);
 
+            List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)> observationsToAdd = new List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)>();
             for (int j = 0; j < utilities.Length; j++)
             {
                 DeepCFRObservation observation = new DeepCFRObservation()
@@ -401,9 +410,10 @@ namespace ACESim
                     IndependentVariables = new DeepCFRIndependentVariables(currentPlayer, (byte)decisionIndex, informationSet, (byte)(j + 1), null),
                     SampledRegret = regrets[j]
                 };
-                for (int k = 0; k < numObservations; k++)
-                    MultiModel.AddPendingObservation(currentDecision, (byte)decisionIndex, observation);
+                observationsToAdd.Add((currentDecision, (byte)decisionIndex, observation));
             }
+
+            return observationsToAdd;
         }
 
         private async Task GenerateDeepCFRObservations_WithRandomPlay(int iteration, bool isBestResponseIteration)
