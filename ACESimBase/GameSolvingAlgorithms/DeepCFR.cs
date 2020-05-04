@@ -336,6 +336,8 @@ namespace ACESim
             Stopwatch s2 = new Stopwatch();
             s2.Start();
             var directGamePlayersWithCountsForDecisions = GameProgressTree.GetDirectGamePlayersForEachDecision(gameProgressTrees, offPolicyProbabilityForProbe, numObservationsNeeded);
+            // Identify the games to complete (we complete them afterward to allow parallelization)
+            List<(Decision currentDecision, int decisionIndex, byte currentPlayer, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations)> gamesToComplete = new List<(Decision currentDecision, int decisionIndex, byte currentPlayer, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations)>();
             for (int decisionIndex = 0; decisionIndex < directGamePlayersWithCountsForDecisions.Length; decisionIndex++)
             {
                 Decision currentDecision = GameDefinition.DecisionsExecutionOrder[decisionIndex];
@@ -348,26 +350,30 @@ namespace ACESim
                     var directGamePlayerWithCount = directGamePlayersWithCountsForDecision[i];
                     DeepCFRDirectGamePlayer gamePlayer = (DeepCFRDirectGamePlayer)directGamePlayerWithCount.gamePlayer;
                     DeepCFRObservationNum observationNum = new DeepCFRObservationNum(iteration, decisionIndex * 5_000_000 + i);
-                    double[] utilities = DeepCFR_Probe_GetUtilitiesEachAction((DeepCFRDirectGamePlayer)gamePlayer, observationNum, EvolutionSettings.DeepCFR_NumProbesPerGameProgressTreeObservation);
-                    double[] actionProbabilities = gamePlayer.GetActionProbabilities();
-                    double expectedValue = 0;
-                    for (int j = 0; j < utilities.Length; j++)
-                        expectedValue += actionProbabilities[j] * utilities[j];
-                    double[] regrets = new double[utilities.Length];
-                    for (int j = 0; j < utilities.Length; j++)
-                        regrets[j] = utilities[j] - expectedValue;
-                    var informationSet = gamePlayer.GetInformationSet(true);
+                    gamesToComplete.Add((currentDecision, decisionIndex, currentPlayer, gamePlayer, observationNum, directGamePlayerWithCount.numObservations));
+                }
+            }
+            foreach (var gameToComplete in gamesToComplete)
+            { 
+                double[] utilities = DeepCFR_Probe_GetUtilitiesEachAction(gameToComplete.gamePlayer, gameToComplete.observationNum, EvolutionSettings.DeepCFR_NumProbesPerGameProgressTreeObservation);
+                double[] actionProbabilities = gameToComplete.gamePlayer.GetActionProbabilities();
+                double expectedValue = 0;
+                for (int j = 0; j < utilities.Length; j++)
+                    expectedValue += actionProbabilities[j] * utilities[j];
+                double[] regrets = new double[utilities.Length];
+                for (int j = 0; j < utilities.Length; j++)
+                    regrets[j] = utilities[j] - expectedValue;
+                var informationSet = gameToComplete.gamePlayer.GetInformationSet(true);
 
-                    for (int j = 0; j < utilities.Length; j++)
+                for (int j = 0; j < utilities.Length; j++)
+                {
+                    DeepCFRObservation observation = new DeepCFRObservation()
                     {
-                        DeepCFRObservation observation = new DeepCFRObservation()
-                        {
-                            IndependentVariables = new DeepCFRIndependentVariables(currentPlayer, (byte)decisionIndex, informationSet, (byte)(j + 1), null),
-                            SampledRegret = regrets[j]
-                        };
-                        for (int k = 0; k < directGamePlayerWithCount.numObservations; k++)
-                            MultiModel.AddPendingObservation(currentDecision, (byte) decisionIndex, observation);
-                    }
+                        IndependentVariables = new DeepCFRIndependentVariables(gameToComplete.currentPlayer, (byte)gameToComplete.decisionIndex, informationSet, (byte)(j + 1), null),
+                        SampledRegret = regrets[j]
+                    };
+                    for (int k = 0; k < gameToComplete.numObservations; k++)
+                        MultiModel.AddPendingObservation(gameToComplete.currentDecision, (byte)gameToComplete.decisionIndex, observation);
                 }
 
             }
