@@ -228,9 +228,13 @@ namespace ACESim
                     new SimpleReportFilter("PWins", (GameProgress gp) => MyGP(gp).PWinsAtTrial),
                     new SimpleReportFilter("DWins", (GameProgress gp) => MyGP(gp).DWinsAtTrial),
                     new SimpleReportFilter("Abandoned", (GameProgress gp) => MyGP(gp).PAbandons || MyGP(gp).DDefaults),
-                    new SimpleReportFilter("OneRound", (GameProgress gp) => MyGP(gp).BargainingRoundsComplete == 1),
-                    new SimpleReportFilter("TwoRounds", (GameProgress gp) => MyGP(gp).BargainingRoundsComplete == 2),
-                    new SimpleReportFilter("ThreeRounds", (GameProgress gp) => MyGP(gp).BargainingRoundsComplete == 3),
+                };
+                for (int b = 1; b <= Options.NumPotentialBargainingRounds; b++)
+                {
+                    rows.Add(
+                        new SimpleReportFilter("Rounds" + b, (GameProgress gp) => MyGP(gp).BargainingRoundsComplete == b)
+                    );
+                }
                     //new SimpleReportFilter("LowQuality",
                     //    (GameProgress gp) => MyGP(gp).LiabilityStrengthUniform <= 0.25),
                     //new SimpleReportFilter("MediumQuality",
@@ -247,7 +251,7 @@ namespace ACESim
                     //new SimpleReportFilter("HiPLiabilitySignal", (GameProgress gp) => MyGP(gp).PLiabilitySignalUniform >= 0.75),
                     //new SimpleReportFilter("HiDLiabilitySignal", (GameProgress gp) => MyGP(gp).DLiabilitySignalUniform >= 0.75),
                     //new SimpleReportFilter("Custom", (GameProgress gp) => MyGP(gp).PLiabilitySignalUniform >= 0.7 && !MyGP(gp).DDefaults),
-                };
+                
                 for (byte signal = 1; signal < 11; signal++)
                 {
                     byte s = signal; // avoid closure

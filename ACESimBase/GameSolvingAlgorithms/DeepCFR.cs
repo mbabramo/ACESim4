@@ -27,6 +27,7 @@ namespace ACESim
     // Another approach would be to do one or more probes, using the existing technique. (Note that we would still need to have the completed game progresses, at least for the purpose of generating more observations for the next allocation, although in principle we could stop at the next allocation.) If most of the effort that we exert is getting deep into the game tree, then doing these extra probes probably isn't very costly. Note that we don't need to keep duplicating GameProgress. If we want to do multiple probes, then in principle we could allocate the number we are doing so that we don't have to take an action more than once, but that may not be worthwhile.
     // How many observations? We have a pending observations target, which each decision index must meet. This pending observations target will fall from one iteration to the next. We might create our GameProgressTree so that the number of game progresses is equal to this. But that will include some GameProgresses included more than once, and so unique GameProgresses will be lower. Unique nodes for any decision index will be lower stil, because the same node can lead to multiple GameProgresses. Still, we could generate the required number of observations for each node -- just making each such observation identical (reflecting the same probes from that node). We might have more probes for observations being included more than once. 
     // Meanwhile, if we calculate utilities from each node, then we can calculate regrets for every action from that node, so that should give us many more observations. So, maybe we should think of the observations required as observations per node action, and we will have a larger target for decisions with more observations per node action.
+    // PROBLEM: We are getting very poor best response performance in the six-round game with six bargaining rounds. Maybe we need more observations? Try with three rounds first.
 
 
     [Serializable]
@@ -353,32 +354,56 @@ namespace ACESim
                     gamesToComplete.Add((currentDecision, decisionIndex, currentPlayer, gamePlayer, observationNum, directGamePlayerWithCount.numObservations));
                 }
             }
-            foreach (var gameToComplete in gamesToComplete)
-            { 
-                double[] utilities = DeepCFR_Probe_GetUtilitiesEachAction(gameToComplete.gamePlayer, gameToComplete.observationNum, EvolutionSettings.DeepCFR_NumProbesPerGameProgressTreeObservation);
-                double[] actionProbabilities = gameToComplete.gamePlayer.GetActionProbabilities();
-                double expectedValue = 0;
-                for (int j = 0; j < utilities.Length; j++)
-                    expectedValue += actionProbabilities[j] * utilities[j];
-                double[] regrets = new double[utilities.Length];
-                for (int j = 0; j < utilities.Length; j++)
-                    regrets[j] = utilities[j] - expectedValue;
-                var informationSet = gameToComplete.gamePlayer.GetInformationSet(true);
-
-                for (int j = 0; j < utilities.Length; j++)
-                {
-                    DeepCFRObservation observation = new DeepCFRObservation()
-                    {
-                        IndependentVariables = new DeepCFRIndependentVariables(gameToComplete.currentPlayer, (byte)gameToComplete.decisionIndex, informationSet, (byte)(j + 1), null),
-                        SampledRegret = regrets[j]
-                    };
-                    for (int k = 0; k < gameToComplete.numObservations; k++)
-                        MultiModel.AddPendingObservation(gameToComplete.currentDecision, (byte)gameToComplete.decisionIndex, observation);
-                }
-
-            }
+            DeepCFR_CompleteGames_FromGameProgressTree(gamesToComplete);
             s2.Stop();
-            TabbedText.WriteLine($"Finishing games {s2.ElapsedMilliseconds}");
+            TabbedText.WriteLine($"Finishing games {s2.ElapsedMilliseconds}"); // DEBUG
+        }
+
+        private void DeepCFR_CompleteGames_FromGameProgressTree(List<(Decision currentDecision, int decisionIndex, byte currentPlayer, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations)> gamesToComplete)
+        {
+            int numGamesToComplete = gamesToComplete.Count();
+            int numGamesToCompleteOnSingleThread = GetNumObservationsToDoTogether(numGamesToComplete);
+            int numPlaybacks = numGamesToComplete / numGamesToCompleteOnSingleThread;
+            int extraGamesToCompleteDueToRounding = numPlaybacks * numGamesToCompleteOnSingleThread - numGamesToComplete;
+            int numPlaybacksLastIteration = numPlaybacks - extraGamesToCompleteDueToRounding;
+            Parallelizer.Go(EvolutionSettings.ParallelOptimization, 0, numPlaybacks, o =>
+            {
+                DeepCFRProbabilitiesCache probabilitiesCache = new DeepCFRProbabilitiesCache(); // DEBUG -- could consider having a single cache that also looks to GameProgressTree but that could create slowdown since it's shared
+                var regressionMachines = GetRegressionMachinesForLocalUse(); // note that everything within this block will be on same thread
+                DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel, regressionMachines, probabilitiesCache);
+                int numToPlaybackTogetherThisIteration = o == numGamesToComplete - 1 ? numPlaybacksLastIteration : numGamesToCompleteOnSingleThread;
+                int initialObservation = o * numGamesToCompleteOnSingleThread;
+                for (int i = 0; i < numToPlaybackTogetherThisIteration; i++)
+                {
+                    var gameToComplete = gamesToComplete[initialObservation + i];
+                    DeepCFR_CompleteGame_FromGameProgressTree(gameToComplete.currentDecision, gameToComplete.decisionIndex, gameToComplete.currentPlayer, gameToComplete.gamePlayer, gameToComplete.observationNum, gameToComplete.numObservations);
+                }
+                ReturnRegressionMachines(regressionMachines);
+            });
+        }
+
+        private void DeepCFR_CompleteGame_FromGameProgressTree(Decision currentDecision, int decisionIndex, byte currentPlayer, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations)
+        {
+            double[] utilities = DeepCFR_Probe_GetUtilitiesEachAction(gamePlayer, observationNum, EvolutionSettings.DeepCFR_NumProbesPerGameProgressTreeObservation);
+            double[] actionProbabilities = gamePlayer.GetActionProbabilities();
+            double expectedValue = 0;
+            for (int j = 0; j < utilities.Length; j++)
+                expectedValue += actionProbabilities[j] * utilities[j];
+            double[] regrets = new double[utilities.Length];
+            for (int j = 0; j < utilities.Length; j++)
+                regrets[j] = utilities[j] - expectedValue;
+            var informationSet = gamePlayer.GetInformationSet(true);
+
+            for (int j = 0; j < utilities.Length; j++)
+            {
+                DeepCFRObservation observation = new DeepCFRObservation()
+                {
+                    IndependentVariables = new DeepCFRIndependentVariables(currentPlayer, (byte)decisionIndex, informationSet, (byte)(j + 1), null),
+                    SampledRegret = regrets[j]
+                };
+                for (int k = 0; k < numObservations; k++)
+                    MultiModel.AddPendingObservation(currentDecision, (byte)decisionIndex, observation);
+            }
         }
 
         private async Task GenerateDeepCFRObservations_WithRandomPlay(int iteration, bool isBestResponseIteration)
