@@ -84,7 +84,16 @@ namespace ACESimBase.Util
             Context = new MLContext(0); // specify random seed for reproducibility
             IDataView trainDataView = ArrayToDataView(Context, data);
             IEstimator<ITransformer> estimator = GetEstimator(trainDataView);
+            
             Transformer = estimator.Fit(trainDataView);
+
+            bool applyCrossValidation = false; 
+            if (applyCrossValidation)
+            {
+                var transformedData = Transformer.Transform(trainDataView);
+                var cvResults = Context.Regression.CrossValidate(transformedData, estimator, numberOfFolds: 5);
+            }
+
             PredictionEnginePool = new FactoryCreatableObjectPool<PredictionEngine<MLNetDatum, MLNetPrediction>>(() => GetNewPredictionEngine());
             return Task.CompletedTask;
         }
