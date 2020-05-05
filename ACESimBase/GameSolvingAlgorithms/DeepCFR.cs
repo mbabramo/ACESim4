@@ -316,6 +316,14 @@ namespace ACESim
             TabbedText.WriteLine($"Best response improvement for all players: {bestResponseImprovement.ToSignificantFigures(8)}");
         }
 
+        private async Task GenerateDeepCFRIterations(int iteration, bool isBestResponseIteration)
+        {
+            if (EvolutionSettings.DeepCFR_UseGameProgressTreeToGenerateObservations)
+                await GenerateDeepCFRObservations_WithGameProgressTree(iteration, isBestResponseIteration);
+            else
+                await GenerateDeepCFRObservations_WithRandomPlay(iteration, isBestResponseIteration);
+        }
+
         private async Task GenerateDeepCFRObservations_WithGameProgressTree(int iteration, bool isBestResponseIteration)
         {
             int[] numObservationsNeeded = MultiModel.CountPendingObservationsTarget(iteration, isBestResponseIteration, true);
@@ -462,10 +470,7 @@ namespace ACESim
             StrategiesDeveloperStopwatch.Start();
             ReportIteration(iteration, isBestResponseIteration);
 
-            if (EvolutionSettings.DeepCFR_UseGameProgressTreeToGenerateObservations)
-                await GenerateDeepCFRObservations_WithGameProgressTree(iteration, isBestResponseIteration);
-            else
-                await GenerateDeepCFRObservations_WithRandomPlay(iteration, isBestResponseIteration);
+            await GenerateDeepCFRIterations(iteration, isBestResponseIteration);
 
             localStopwatch.Stop();
             StrategiesDeveloperStopwatch.Stop();

@@ -324,6 +324,11 @@ namespace ACESimBase.GameSolvingSupport
                 var directGamePlayersWithCounts = GetDirectGamePlayersForDecisionIndex(explorationValues, decisionIndex);
                 int totalAvailableCount = directGamePlayersWithCounts.Sum(x => x.numObservations);
                 int adjustedTarget = targetObservations[decisionIndex] / DecisionsList[decisionIndex].NumPossibleActions; // we have one observation for each action, so we need to determine how many to make
+                if (totalAvailableCount == 0)
+                {
+                    results[decisionIndex] = null;
+                    continue;
+                }
                 if (adjustedTarget > totalAvailableCount)
                     throw new Exception("Insufficient number of game players to meet the target number of observations.");
                 if (adjustedTarget == totalAvailableCount)
@@ -352,7 +357,10 @@ namespace ACESimBase.GameSolvingSupport
 
         public IEnumerable<(IDirectGamePlayer gamePlayer, int numObservations)> GetDirectGamePlayersForDecisionIndex(double[] explorationValues, byte decisionIndex)
         {
-            byte allocationIndex = AllocationIndexForExplorationProbabilityAndDecisionIndex[(new DoubleList(explorationValues), decisionIndex).ToString()];
+            string key = (new DoubleList(explorationValues), decisionIndex).ToString();
+            if (!AllocationIndexForExplorationProbabilityAndDecisionIndex.ContainsKey(key))
+                yield break; // this can occur when a decision is not reached at all while generating game progresses in a previous iteration
+            byte allocationIndex = AllocationIndexForExplorationProbabilityAndDecisionIndex[key];
             IEnumerable<NWayTreeStorage<GameProgressTreeNodeInfo>> nodesStorage = GetNodesForAllocationIndex(explorationValues, allocationIndex, decisionIndex);
 
             foreach (var nodeStorage in nodesStorage)

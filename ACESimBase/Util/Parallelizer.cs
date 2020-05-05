@@ -142,6 +142,8 @@ namespace ACESim
 
         public static void Go(bool doParallel, long start, long stopBeforeThis, Action<long> action, CancellationToken token)
         {
+            if (start == stopBeforeThis)
+                return;
             if (ParallelDepth > 0 || DisableParallel)
                 doParallel = false;
             if (doParallel)
