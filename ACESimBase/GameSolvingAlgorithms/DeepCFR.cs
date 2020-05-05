@@ -28,6 +28,9 @@ namespace ACESim
     // How many observations? We have a pending observations target, which each decision index must meet. This pending observations target will fall from one iteration to the next. We might create our GameProgressTree so that the number of game progresses is equal to this. But that will include some GameProgresses included more than once, and so unique GameProgresses will be lower. Unique nodes for any decision index will be lower stil, because the same node can lead to multiple GameProgresses. Still, we could generate the required number of observations for each node -- just making each such observation identical (reflecting the same probes from that node). We might have more probes for observations being included more than once. 
     // Meanwhile, if we calculate utilities from each node, then we can calculate regrets for every action from that node, so that should give us many more observations. So, maybe we should think of the observations required as observations per node action, and we will have a larger target for decisions with more observations per node action.
     // PROBLEM: We are getting very poor best response performance in the six-round game with six bargaining rounds. Maybe we need more observations? Try with three rounds first.
+    // 7. Simpler models for complete information sets. Suppose that we have an information set {2, 3, 2, 1} and we have fully explored every decision point leading to this information set. That is, we know every path leading to this information set, including the inverse pi values. If we have many paths from this information set, then in principle we could calculate regrets directly using these paths, rather than generalizing across other information sets. On the other hand, the fast forest effectively does the same thing, so there might not be all that much benefit to doing that. But maybe it would speed up the algorithm a bit. We could have a per-decision-index criterion, testing whether all information sets with a particular length include at least some fixed number of paths. If so, then we would model that decision index by information set. 
+    // 8. Alternative approximate best response: The alternative approach would divide GameProgresses according to information sets. For some set of paths up the information set, we could try each regret value and then try some number of paths from that point. We could then determine what produces the best utilities. We would use backward induction as usual, but our model would be a per-information set model. But this doesn't really work either -- because if we change a decision in the middle of the game, that could create an information set late in the late stages of the game that we haven't done already. On the other hand, one might imagine getting a lower bound on approximate best response by separately optimizing information sets for each decision index. That is, for a decision index, we would get all game progresses. Then, we would divide into information sets. Then, we could figure out the optimal regret value and the improvement over what we otherwise would have scored. Then, we would figure out the average improvement for the decision, and sum these average improvements across all decisions. The problem is that this might be too good -- particularly where we have very few items in an information set. This will likely be a greater problem later in the game, since there are exponentially more information sets later (though our approach of generating information sets reduces that problem somewhat). In these situations, one will want to allow generalization across information sets, which of course is exactly what we are currently doing. 
+    // Imperfect recall. Another possibility would be to limit recall to generate larger information sets. A very simple approach would be to use some form of bundling. 
 
 
     [Serializable]
@@ -370,17 +373,16 @@ namespace ACESim
         private void DeepCFR_CompleteGames_FromGameProgressTree(List<(Decision currentDecision, int decisionIndex, byte currentPlayer, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations)> gamesToComplete)
         {
             int numGamesToComplete = gamesToComplete.Count();
-            int numGamesToCompleteOnSingleThread = GetNumObservationsToDoTogether(numGamesToComplete);
-            int numPlaybacks = numGamesToComplete / numGamesToCompleteOnSingleThread;
-            int extraGamesToCompleteDueToRounding = numPlaybacks * numGamesToCompleteOnSingleThread - numGamesToComplete;
-            int numPlaybacksLastIteration = numPlaybacks - extraGamesToCompleteDueToRounding;
-            List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)>[] allObservationsToAdd = new List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)>[numPlaybacks]; // we don't actually add observations to model until we have completed parallel loop
-            Parallelizer.Go(EvolutionSettings.ParallelOptimization, 0, numPlaybacks, o =>
+            int numGamesToCompleteOnSingleThread = GetNumToDoPerThread(numGamesToComplete);
+            int numThreads = numGamesToComplete / numGamesToCompleteOnSingleThread;
+            int numGamesToCompleteLastThread = numGamesToComplete - (numThreads - 1) * numGamesToCompleteOnSingleThread;
+            List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)>[] allObservationsToAdd = new List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)>[numThreads]; // we don't actually add observations to model until we have completed parallel loop
+            Parallelizer.Go(EvolutionSettings.ParallelOptimization, 0, numThreads, o =>
             {
                 DeepCFRProbabilitiesCache probabilitiesCache = new DeepCFRProbabilitiesCache(); // DEBUG -- could consider having a single cache that also looks to GameProgressTree but that could create slowdown since it's shared
                 var regressionMachines = GetRegressionMachinesForLocalUse(); // note that everything within this block will be on same thread
                 DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel, regressionMachines, probabilitiesCache);
-                int numToPlaybackTogetherThisIteration = o == numGamesToComplete - 1 ? numPlaybacksLastIteration : numGamesToCompleteOnSingleThread;
+                int numToPlaybackTogetherThisIteration = o == numGamesToComplete - 1 ? numGamesToCompleteLastThread : numGamesToCompleteOnSingleThread;
                 int initialObservation = o * numGamesToCompleteOnSingleThread;
                 List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)> observationsToAdd = new List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)>();
                 for (int i = 0; i < numToPlaybackTogetherThisIteration; i++)
@@ -393,14 +395,14 @@ namespace ACESim
                 allObservationsToAdd[o] = observationsToAdd;
                 ReturnRegressionMachines(regressionMachines);
             });
-            for (int i = 0; i < numPlaybacks; i++)
+            for (int i = 0; i < numThreads; i++)
                 foreach (var observationToAdd in allObservationsToAdd[i])
                     MultiModel.AddPendingObservation(observationToAdd.currentDecision, observationToAdd.decisionIndex, observationToAdd.observation);
         }
 
         private List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)> DeepCFR_CompleteGame_FromGameProgressTree(Decision currentDecision, int decisionIndex, byte currentPlayer, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations)
         {
-            double[] utilities = DeepCFR_Probe_GetUtilitiesEachAction(gamePlayer, observationNum, EvolutionSettings.DeepCFR_NumProbesPerGameProgressTreeObservation);
+            double[] utilities = DeepCFR_Probe_GetUtilitiesEachAction(gamePlayer, observationNum, EvolutionSettings.DeepCFR_NumProbesPerGameProgressTreeObservation * (EvolutionSettings.DeepCFR_MultiplyProbesForEachIdenticalIteration ? numObservations : 1));
             double[] actionProbabilities = gamePlayer.GetActionProbabilities();
             double expectedValue = 0;
             for (int j = 0; j < utilities.Length; j++)
@@ -411,6 +413,8 @@ namespace ACESim
             var informationSet = gamePlayer.GetInformationSet(true);
 
             List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)> observationsToAdd = new List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)>();
+            if (utilities == null || utilities.Length == 0)
+                return observationsToAdd;
             for (int j = 0; j < utilities.Length; j++)
             {
                 DeepCFRObservation observation = new DeepCFRObservation()
@@ -428,16 +432,17 @@ namespace ACESim
         {
             int[] numObservationsToAdd = MultiModel.CountPendingObservationsTarget(iteration, isBestResponseIteration, false);
             int numObservationsToAddMax = numObservationsToAdd != null && numObservationsToAdd.Any() ? numObservationsToAdd.Max() : EvolutionSettings.DeepCFR_BaseReservoirCapacity;
-            int numObservationsToDoTogether = GetNumObservationsToDoTogether(numObservationsToAddMax);
+            int numObservationsToDoPerThread = GetNumToDoPerThread(numObservationsToAddMax);
+
             bool separateDataEveryIteration = true;
             DeepCFRProbabilitiesCache probabilitiesCache = new DeepCFRProbabilitiesCache();
             ParallelConsecutive<List<DeepCFRObservationOfDecision>> runner = new ParallelConsecutive<List<DeepCFRObservationOfDecision>>(
-                (numCompleted) => TargetMet(iteration, isBestResponseIteration, numCompleted * numObservationsToDoTogether, numObservationsToAdd),
+                (numCompleted) => TargetMet(iteration, isBestResponseIteration, numCompleted * numObservationsToDoPerThread, numObservationsToAdd),
                 i =>
                 {
                     var regressionMachines = GetRegressionMachinesForLocalUse(); // note that everything within this block will be on same thread
                     DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel, regressionMachines, probabilitiesCache);
-                    var additionalRegretObservations = DeepCFR_AddingRegretObservations(playbackHelper, i, separateDataEveryIteration ? iteration * 1000 : 0, numObservationsToDoTogether);
+                    var additionalRegretObservations = DeepCFR_AddingRegretObservations(playbackHelper, i, separateDataEveryIteration ? iteration * 1000 : 0, numObservationsToDoPerThread);
                     ReturnRegressionMachines(regressionMachines);
                     return additionalRegretObservations;
                 },
@@ -572,22 +577,21 @@ namespace ACESim
 
         public Task DeepCFR_UtilitiesAverage_IndependentPlays(int totalNumberObservations, StatCollectorArray stats)
         {
-            int numObservationsToDoTogether = GetNumObservationsToDoTogether(totalNumberObservations);
-            int numPlaybacks = totalNumberObservations / numObservationsToDoTogether;
-            int extraObservationsDueToRounding = numPlaybacks * numObservationsToDoTogether - totalNumberObservations;
-            int numPlaybacksLastIteration = numPlaybacks - extraObservationsDueToRounding;
+            int numObservationsToDoPerThread = GetNumToDoPerThread(totalNumberObservations);
+            int numThreads = totalNumberObservations / numObservationsToDoPerThread;
+            int numObservationsToDoTogetherLastThread = totalNumberObservations - (numThreads - 1) * numObservationsToDoPerThread;
             DeepCFRProbabilitiesCache probabilitiesCache = new DeepCFRProbabilitiesCache(); // shared across threads
-            Parallelizer.Go(EvolutionSettings.ParallelOptimization, 0, numPlaybacks, o =>
+            Parallelizer.Go(EvolutionSettings.ParallelOptimization, 0, numThreads, o =>
             {
                 DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel.DeepCopyForPlaybackOnly(), GetRegressionMachinesForLocalUse(), probabilitiesCache);
-                int numToPlaybackTogetherThisIteration = o == totalNumberObservations - 1 ? numPlaybacksLastIteration : numObservationsToDoTogether;
+                int numToPlaybackTogetherThisIteration = o == totalNumberObservations - 1 ? numObservationsToDoTogetherLastThread : numObservationsToDoPerThread;
                 var utilities = DeepCFR_UtilitiesFromMultiplePlaybacks(o, numToPlaybackTogetherThisIteration, playbackHelper).ToArray();
                 stats.Add(utilities, numToPlaybackTogetherThisIteration);
             });
             return Task.CompletedTask;
         }
 
-        private int GetNumObservationsToDoTogether(int totalNumberObservations)
+        private int GetNumToDoPerThread(int totalNumberObservations)
         {
             return EvolutionSettings.ParallelOptimization ? 1 + totalNumberObservations / (Environment.ProcessorCount * 5) : totalNumberObservations;
         }
