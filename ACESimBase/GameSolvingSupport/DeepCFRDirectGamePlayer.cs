@@ -13,7 +13,7 @@ namespace ACESimBase.GameSolvingSupport
         /// <summary>
         /// This is used if we want a number of DeepCFRDirectGamePlayers to share a thread while continuing playback from some point. It allows expensive work to be done before continuing playback.
         /// </summary>
-        public Func<DeepCFRPlaybackHelper> PlaybackHelperGenerator; // DEBUG -- maybe not needed anymore
+        public Func<DeepCFRPlaybackHelper> PlaybackHelperGenerator; // DEBUG -- maybe not needed anymore, and then we can just change the name of InitialPlaybackHelper to PlaybackHelper.
 
         public DeepCFRDirectGamePlayer(DeepCFRMultiModelMode mode, GameDefinition gameDefinition, GameProgress progress, bool advanceToFirstStep, DeepCFRPlaybackHelper initialPlaybackHelper, Func<DeepCFRPlaybackHelper> playbackHelperGenerator) : base(gameDefinition, progress, advanceToFirstStep)
         {
