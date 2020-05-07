@@ -110,12 +110,12 @@ namespace ACESim
         public double DeepCFR_DiscountRate = 0.98;
         public bool DeepCFR_ExploitabilityProxy = true;
         public int DeepCFR_GamesForExploitabilityProxy = 1_000;
-        public bool DeepCFR_ApproximateBestResponse = true;
+        public bool DeepCFR_ApproximateBestResponse = false;
         public bool DeepCFR_ApproximateBestResponse_BackwardInduction = true;
         public double DeepCFR_ApproximateBestResponse_BackwardInduction_CapacityMultiplier = 10; // if the reservoir capacity is higher for the best response, we can get a more precise measure of best response -- what matters to ensure a good result is the total number and also that there be something of a multiple
         public bool DeepCFR_ApproximateBestResponse_BackwardInduction_AlwaysPickHighestRegret = true;
         public int DeepCFR_ApproximateBestResponseIterations = 1;
-        public int DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation = 10_000; // DEBUG
+        public int DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation = 10_000; 
         /// <summary>
         // With this option, we are not doing true regret matching. We are forecasting average utility for each action, 
         // rather than average regrets. The difference is that when averaging regrets, we look at relative utilities in 

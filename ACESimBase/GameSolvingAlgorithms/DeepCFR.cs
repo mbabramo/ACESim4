@@ -501,11 +501,14 @@ namespace ACESim
             List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)> observations = DeepCFR_CompleteGames_FromGameProgressTree_GetObservations(gamesToComplete);
             foreach (var observationToAdd in observations)
                 MultiModel.AddPendingObservation(observationToAdd.currentDecision, observationToAdd.decisionIndex, observationToAdd.observation);
+            // DEBUG -- why not multiple copies of each observation?
         }
 
         private List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)> DeepCFR_CompleteGames_FromGameProgressTree_GetObservations(List<(Decision currentDecision, int decisionIndex, byte currentPlayer, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations)> gamesToComplete)
         {
             int numGamesToComplete = gamesToComplete.Count();
+            if (numGamesToComplete == 0)
+                return new List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)>();
             int numGamesToCompleteOnSingleThread = GetNumToDoPerThread(numGamesToComplete);
             int numThreads = numGamesToComplete / numGamesToCompleteOnSingleThread;
             int numGamesToCompleteLastThread = numGamesToComplete - (numThreads - 1) * numGamesToCompleteOnSingleThread;
@@ -659,6 +662,8 @@ namespace ACESim
 
         public async Task<double[]> DeepCFR_ExploitabilityProxy(int iteration, bool isBestResponseIteration)
         {
+            Stopwatch s = new Stopwatch();
+            s.Start();
             List<(Decision currentDecision, int decisionIndex, byte currentPlayer, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations)> gamesToComplete = await DeepCFR_GetGamesToComplete(iteration, isBestResponseIteration, false, EvolutionSettings.DeepCFR_GamesForExploitabilityProxy);
             int lowestDecision = gamesToComplete.Min(x => x.decisionIndex);
             double numGamesAtLowestDecision = (double) gamesToComplete.Where(x => x.decisionIndex == lowestDecision).Sum(x => x.numObservations);
@@ -669,7 +674,7 @@ namespace ACESim
                 double exploitabilityForDecision = DeepCFR_GetExploitabilityAtDecision(gameToComplete.gamePlayer, gameToComplete.observationNum, gameToComplete.numObservations);
                 averageSumExploitabilities[gameToComplete.currentPlayer] += ((double) gameToComplete.numObservations) * exploitabilityForDecision / numGamesAtLowestDecision;
             }
-            TabbedText.WriteLine($"Exploitability proxy: {String.Join(",", averageSumExploitabilities)}");
+            TabbedText.WriteLine($"Exploitability proxy: {String.Join(",", averageSumExploitabilities)} time {s.ElapsedMilliseconds} ms");
             return averageSumExploitabilities;
         }
 
