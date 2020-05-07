@@ -318,6 +318,8 @@ namespace ACESim
 
         public void ContinuePathWithAction(byte actionToPlay)
         {
+            if (Progress.GameComplete)
+                throw new Exception("Game is already complete.");
             if (!Progress.ActionsToPlay.Any())
                 Progress.ActionsToPlayIndex = -1;
             Progress.ActionsToPlay.Add(actionToPlay);

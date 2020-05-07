@@ -115,6 +115,10 @@ namespace ACESim
             TabbedText.WriteLine($"All models computed, total time {localStopwatch.ElapsedMilliseconds} ms");
             localStopwatch.Stop();
 
+            double[] exploitabilityProxy;
+            if (EvolutionSettings.DeepCFR_ExploitabilityProxy)
+                exploitabilityProxy = await DeepCFR_ExploitabilityProxy(iteration, isBestResponseIteration);
+
             ReportCollection reportCollection = new ReportCollection();
             if (!isBestResponseIteration)
             {
@@ -366,6 +370,7 @@ namespace ACESim
         private double[] DeepCFR_Probe_GetUtilitiesForPlayersForSingleAction(DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, List<DeepCFRObservationOfDecision> observations, byte probeAction)
         {
             DeepCFRDirectGamePlayer probeGamePlayer = (DeepCFRDirectGamePlayer) gamePlayer.DeepCopy();
+            //Br.eak.IfAdded("DEBUGG");
             probeGamePlayer.PlayAction(probeAction);
             double[] probeValues = DeepCFRTraversal(probeGamePlayer, observationNum, observations, DeepCFRTraversalMode.ProbeForUtilities);
             return probeValues;
@@ -437,20 +442,39 @@ namespace ACESim
             int[] numObservationsNeeded = MultiModel.CountPendingObservationsTarget(iteration, isBestResponseIteration, true);
             int DivideRoundingUp(int a, int b) => a / b + (a % b != 0 ? 1 : 0);
             int[] numDirectGamePlayersNeeded = numObservationsNeeded.Select((item, index) => DivideRoundingUp(item, GameDefinition.DecisionsExecutionOrder[index].NumPossibleActions)).ToArray();
+            int maxDirectGamePlayersNeeded = numDirectGamePlayersNeeded.Max();
+            List<(Decision currentDecision, int decisionIndex, byte currentPlayer, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations)> gamesToComplete = await DeepCFR_GetGamesToComplete(iteration, isBestResponseIteration, oversampling, numObservationsNeeded, maxDirectGamePlayersNeeded);
+            return gamesToComplete;
+        }
+
+        private async Task<List<(Decision currentDecision, int decisionIndex, byte currentPlayer, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations)>> DeepCFR_GetGamesToComplete(int iteration, bool isBestResponseIteration, bool oversampling, int numGamesPerNonChancePlayer)
+        {
+            int numDecisions = GameDefinition.DecisionsExecutionOrder.Count();
+            int[] numObservationsNeeded = new int[numDecisions];
+            for (byte p = 0; p < NumNonChancePlayers; p++)
+            {
+                int firstDecisionIndexForPlayer = GameDefinition.DecisionsExecutionOrder.Select((item, index) => (item, index)).First(x => x.item.PlayerIndex == p).index;
+                numObservationsNeeded[firstDecisionIndexForPlayer] = numGamesPerNonChancePlayer;
+            }
+            return await DeepCFR_GetGamesToComplete(iteration, isBestResponseIteration, oversampling, numObservationsNeeded, numGamesPerNonChancePlayer);
+        }
+
+        private async Task<List<(Decision currentDecision, int decisionIndex, byte currentPlayer, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations)>> DeepCFR_GetGamesToComplete(int iteration, bool isBestResponseIteration, bool oversampling, int[] numObservationsNeeded, int maxDirectGamePlayersNeeded)
+        {
             GameProgressTree[] gameProgressTrees = new GameProgressTree[NumNonChancePlayers];
             double offPolicyProbabilityForProbe = isBestResponseIteration ? 0 : EvolutionSettings.DeepCFR_Epsilon_OffPolicyProbabilityForProbe;
             if (offPolicyProbabilityForProbe == 0)
             {
-                gameProgressTrees[0] = await DeepCFR_BuildGameProgressTree(numDirectGamePlayersNeeded.Max(), oversampling, 0, null);
+                gameProgressTrees[0] = await DeepCFR_BuildGameProgressTree(maxDirectGamePlayersNeeded, oversampling, 0, null);
                 for (int p = 1; p < NumNonChancePlayers; p++)
                     gameProgressTrees[p] = gameProgressTrees[0];
             }
             else
             {
                 for (byte p = 0; p < NumNonChancePlayers; p++)
-                    gameProgressTrees[p] = await DeepCFR_BuildGameProgressTree(numDirectGamePlayersNeeded.Max(), oversampling, offPolicyProbabilityForProbe, p);
+                    gameProgressTrees[p] = await DeepCFR_BuildGameProgressTree(maxDirectGamePlayersNeeded, oversampling, offPolicyProbabilityForProbe, p);
             }
-            var directGamePlayersWithCountsForDecisions = GameProgressTree.GetDirectGamePlayersForEachDecision(gameProgressTrees, offPolicyProbabilityForProbe, numObservationsNeeded);
+            var directGamePlayersWithCountsForDecisions = GameProgressTree.GetDirectGamePlayersForEachDecision(gameProgressTrees, offPolicyProbabilityForProbe, numObservationsNeeded, oversampling);
             // Identify the games to complete (we complete them afterward to allow parallelization)
             List<(Decision currentDecision, int decisionIndex, byte currentPlayer, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations)> gamesToComplete = new List<(Decision currentDecision, int decisionIndex, byte currentPlayer, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations)>();
             for (int decisionIndex = 0; decisionIndex < directGamePlayersWithCountsForDecisions.Length; decisionIndex++)
@@ -468,6 +492,7 @@ namespace ACESim
                     gamesToComplete.Add((currentDecision, decisionIndex, currentPlayer, gamePlayer, observationNum, directGamePlayerWithCount.numObservations));
                 }
             }
+
             return gamesToComplete;
         }
 
@@ -513,7 +538,7 @@ namespace ACESim
 
         private List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)> DeepCFR_CompleteGame_FromGameProgressTree(Decision currentDecision, int decisionIndex, byte currentPlayer, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations)
         {
-            DeepCFR_ProbeForUtilitiesAndRegrets(gamePlayer, observationNum, numObservations, out double[] utilities, out double[] regrets, out List<(byte decisionIndex, byte information)> informationSet);
+            DeepCFR_ProbeForUtilitiesAndRegrets(gamePlayer, observationNum, numObservations, out double expectedValue, out double[] utilities, out double[] regrets, out List<(byte decisionIndex, byte information)> informationSet);
 
             List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)> observationsToAdd = new List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)>();
             if (utilities == null || utilities.Length == 0)
@@ -531,17 +556,24 @@ namespace ACESim
             return observationsToAdd;
         }
 
-        private void DeepCFR_ProbeForUtilitiesAndRegrets(DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations, out double[] utilities, out double[] regrets, out List<(byte decisionIndex, byte information)> informationSet)
+        private void DeepCFR_ProbeForUtilitiesAndRegrets(DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations, out double expectedValue, out double[] utilities, out double[] regrets, out List<(byte decisionIndex, byte information)> informationSet)
         {
             utilities = DeepCFR_Probe_GetUtilitiesEachAction(gamePlayer, observationNum, EvolutionSettings.DeepCFR_NumProbesPerGameProgressTreeObservation * (EvolutionSettings.DeepCFR_MultiplyProbesForEachIdenticalIteration ? numObservations : 1));
             double[] actionProbabilities = gamePlayer.GetActionProbabilities();
-            double expectedValue = 0;
+            expectedValue = 0;
             for (int j = 0; j < utilities.Length; j++)
                 expectedValue += actionProbabilities[j] * utilities[j];
             regrets = new double[utilities.Length];
             for (int j = 0; j < utilities.Length; j++)
                 regrets[j] = utilities[j] - expectedValue;
             informationSet = gamePlayer.GetInformationSet(true);
+        }
+
+        private double DeepCFR_GetExploitabilityAtDecision(DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations)
+        {
+            DeepCFR_ProbeForUtilitiesAndRegrets(gamePlayer, observationNum, numObservations, out double expectedValue, out double[] utilities, out double[] regrets, out List<(byte decisionIndex, byte information)> informationSet);
+            double maxUtility = utilities.Max();
+            return maxUtility - expectedValue;
         }
 
         #endregion
@@ -623,6 +655,22 @@ namespace ACESim
         public double[] DeepCFR_UtilitiesFromSinglePlayback(DeepCFRPlaybackHelper playbackHelper, DeepCFRObservationNum observationNum)
         {
             return DeepCFRTraversal(playbackHelper, observationNum, DeepCFRTraversalMode.PlaybackSinglePath).utilities;
+        }
+
+        public async Task<double[]> DeepCFR_ExploitabilityProxy(int iteration, bool isBestResponseIteration)
+        {
+            List<(Decision currentDecision, int decisionIndex, byte currentPlayer, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations)> gamesToComplete = await DeepCFR_GetGamesToComplete(iteration, isBestResponseIteration, false, EvolutionSettings.DeepCFR_GamesForExploitabilityProxy);
+            int lowestDecision = gamesToComplete.Min(x => x.decisionIndex);
+            double numGamesAtLowestDecision = (double) gamesToComplete.Where(x => x.decisionIndex == lowestDecision).Sum(x => x.numObservations);
+            double[] averageSumExploitabilities = new double[NumNonChancePlayers];
+            for (int i = 0; i < gamesToComplete.Count; i++)
+            {
+                (Decision currentDecision, int decisionIndex, byte currentPlayer, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations) gameToComplete = gamesToComplete[i];
+                double exploitabilityForDecision = DeepCFR_GetExploitabilityAtDecision(gameToComplete.gamePlayer, gameToComplete.observationNum, gameToComplete.numObservations);
+                averageSumExploitabilities[gameToComplete.currentPlayer] += ((double) gameToComplete.numObservations) * exploitabilityForDecision / numGamesAtLowestDecision;
+            }
+            TabbedText.WriteLine($"Exploitability proxy: {String.Join(",", averageSumExploitabilities)}");
+            return averageSumExploitabilities;
         }
 
         #endregion
