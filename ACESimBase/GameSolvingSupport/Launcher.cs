@@ -31,23 +31,22 @@ namespace ACESim
         public const int SummaryTableRandomPathsIterations = 10_000;
         public const int ProbingIterations = 20_000_000;
 
-        public const int StartGameNumber = 1;
-        public bool LaunchSingleOptionsSetOnly = false; // will be automatically set by ACESimConsole
-        public int NumRepetitions = 1;
-        public bool AzureEnabled = false;
         public int MaxParallelDepth = 3;
-
-        public string MasterReportNameForDistributedProcessing = "R150"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
-        public bool UseDistributedProcessingForMultipleOptionsSets = true;
-        public static bool MaxOneReportPerDistributedProcess = false;
-        public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && UseDistributedProcessingForMultipleOptionsSets; // this should be true if running on the local service fabric or usign ACESimDistributed
         public bool ParallelizeOptionSets = false; // run multiple option sets at same time on computer (in which case each individually will be run not in parallel)
         public bool ParallelizeIndividualExecutions = true; // only if !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing)
         public bool DynamicSetParallelIfPossible = false; 
         public bool DynamicSetParallel => DistributedProcessing && DynamicSetParallelIfPossible;
         public bool ParallelizeIndividualExecutionsAlways = false; // Note -- maybe not really working // will always take precedence
-        public bool CombineResultsOfAllOptionSetsAfterExecution = false;
 
+        public const int StartGameNumber = 1;
+        public bool LaunchSingleOptionsSetOnly = false; // will be automatically set by ACESimConsole
+        public int NumRepetitions = 1;
+        public bool AzureEnabled = false;
+        public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && UseDistributedProcessingForMultipleOptionsSets; // this should be true if running on the local service fabric or usign ACESimDistributed
+        public string MasterReportNameForDistributedProcessing = "R150"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
+        public bool UseDistributedProcessingForMultipleOptionsSets = true;
+        public static bool MaxOneReportPerDistributedProcess = false;
+        public bool CombineResultsOfAllOptionSetsAfterExecution = false;
         const int EffectivelyNever = EvolutionSettings.EffectivelyNever;
 
         #endregion

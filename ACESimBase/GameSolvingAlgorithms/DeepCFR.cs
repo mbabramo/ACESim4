@@ -652,7 +652,8 @@ namespace ACESim
         {
             Stopwatch s = new Stopwatch();
             s.Start();
-            List<(Decision currentDecision, int decisionIndex, byte currentPlayer, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations)> gamesToComplete = await DeepCFR_GetGamesToComplete(iteration, isBestResponseIteration, false, EvolutionSettings.DeepCFR_GamesForExploitabilityProxy);
+            List<(Decision currentDecision, int decisionIndex, byte currentPlayer, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations)> gamesToComplete = await DeepCFR_GetGamesToComplete(iteration, true /* regardless of whether it really is a best response iteration */, false, EvolutionSettings.DeepCFR_GamesForExploitabilityProxy);
+            var DEBUG = gamesToComplete.Select(x => x.currentDecision.Name).Distinct().ToList();
             int lowestDecision = gamesToComplete.Min(x => x.decisionIndex);
             double numGamesAtLowestDecision = (double) gamesToComplete.Where(x => x.decisionIndex == lowestDecision).Sum(x => x.numObservations);
             double[] averageSumExploitabilities = new double[NumNonChancePlayers];
