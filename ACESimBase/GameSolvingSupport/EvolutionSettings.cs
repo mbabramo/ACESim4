@@ -111,7 +111,7 @@ namespace ACESim
         public double DeepCFR_Epsilon_OffPolicyProbabilityForProbe = 0.05;
         public double DeepCFR_DiscountRate = 0.98;
         public bool DeepCFR_ExploitabilityProxy = true;
-        public int DeepCFR_GamesForExploitabilityProxy = 1_000;
+        public int DeepCFR_GamesForExploitabilityProxy = 10;
         public bool DeepCFR_ApproximateBestResponse = false;
         public bool DeepCFR_ApproximateBestResponse_BackwardInduction = true;
         public double DeepCFR_ApproximateBestResponse_BackwardInduction_CapacityMultiplier = 10; // if the reservoir capacity is higher for the best response, we can get a more precise measure of best response -- what matters to ensure a good result is the total number and also that there be something of a multiple

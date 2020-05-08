@@ -143,7 +143,14 @@ namespace ACESimBase
         
         public string GetInformationSetString(bool useDeferredDecisionIndices)
         {
-            return String.Join(";", GetInformationSet(useDeferredDecisionIndices).Select(x => $"{x.decisionIndex},{x.information}"));
+            StringBuilder s = new StringBuilder();
+            GetInformationSet(useDeferredDecisionIndices).ForEach(x =>
+            {
+                s.Append(x.decisionIndex);
+                s.Append(x.information);
+            });
+            return s.ToString();
+            // too slow: String.Join(";", GetInformationSet(useDeferredDecisionIndices).Select(x => $"{x.decisionIndex},{x.information}"));
         }
 
         public List<(byte decisionIndex, byte information)> GetInformationSet(bool useDeferredDecisionIndices)
