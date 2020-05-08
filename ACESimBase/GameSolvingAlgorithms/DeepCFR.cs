@@ -119,6 +119,10 @@ namespace ACESim
             if (EvolutionSettings.DeepCFR_ExploitabilityProxy)
                 exploitabilityProxy = await DeepCFR_ExploitabilityProxy(iteration, isBestResponseIteration);
 
+            //// DEBUG:
+            //if (EvolutionSettings.DeepCFR_ExploitabilityProxy)
+            //    exploitabilityProxy = await DeepCFR_ExploitabilityProxy(iteration + 1000, isBestResponseIteration);
+
             ReportCollection reportCollection = new ReportCollection();
             if (!isBestResponseIteration)
             {
@@ -518,7 +522,7 @@ namespace ACESim
                 DeepCFRProbabilitiesCache probabilitiesCache = new DeepCFRProbabilitiesCache(); // DEBUG -- could consider having a single cache that also looks to GameProgressTree but that could create slowdown since it's shared
                 var regressionMachines = GetRegressionMachinesForLocalUse(); // note that everything within this block will be on same thread
                 DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel, regressionMachines, probabilitiesCache);
-                int numToPlaybackTogetherThisIteration = o == numGamesToComplete - 1 ? numGamesToCompleteLastThread : numGamesToCompleteOnSingleThread;
+                int numToPlaybackTogetherThisIteration = o == numThreads - 1 ? numGamesToCompleteLastThread : numGamesToCompleteOnSingleThread;
                 int initialObservation = o * numGamesToCompleteOnSingleThread;
                 List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)> observationsToAddForThread = new List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)>();
                 for (int i = 0; i < numToPlaybackTogetherThisIteration; i++)
@@ -526,7 +530,8 @@ namespace ACESim
                     var gameToComplete = gamesToComplete[initialObservation + i];
                     gameToComplete.gamePlayer.InitialPlaybackHelper = playbackHelper;
                     var results = DeepCFR_CompleteGame_FromGameProgressTree(gameToComplete.currentDecision, gameToComplete.decisionIndex, gameToComplete.currentPlayer, gameToComplete.gamePlayer, gameToComplete.observationNum, gameToComplete.numObservations);
-                    observationsToAddForThread.AddRange(results);
+                    for (int j = 0; j < (EvolutionSettings.DeepCFR_SeparateObservationsForIdenticalGameProgressTreeItems ? gameToComplete.numObservations : 1); j++)
+                        observationsToAddForThread.AddRange(results);
                 }
                 observationsByThread[o] = observationsToAddForThread;
                 ReturnRegressionMachines(regressionMachines);
@@ -631,7 +636,7 @@ namespace ACESim
             Parallelizer.Go(EvolutionSettings.ParallelOptimization, 0, numThreads, o =>
             {
                 DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel.DeepCopyForPlaybackOnly(), GetRegressionMachinesForLocalUse(), probabilitiesCache);
-                int numToPlaybackTogetherThisIteration = o == totalNumberObservations - 1 ? numObservationsToDoTogetherLastThread : numObservationsToDoPerThread;
+                int numToPlaybackTogetherThisIteration = o == numThreads - 1 ? numObservationsToDoTogetherLastThread : numObservationsToDoPerThread;
                 var utilities = DeepCFR_UtilitiesFromMultiplePlaybacks(o, numToPlaybackTogetherThisIteration, playbackHelper).ToArray();
                 stats.Add(utilities, numToPlaybackTogetherThisIteration);
             });

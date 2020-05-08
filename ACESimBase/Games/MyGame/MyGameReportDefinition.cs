@@ -231,8 +231,9 @@ namespace ACESim
                 };
                 for (int b = 1; b <= Options.NumPotentialBargainingRounds; b++)
                 {
+                    int b2 = b; // avoid closure
                     rows.Add(
-                        new SimpleReportFilter("Rounds" + b, (GameProgress gp) => MyGP(gp).BargainingRoundsComplete == b)
+                        new SimpleReportFilter("Rounds" + b, (GameProgress gp) => MyGP(gp).BargainingRoundsComplete == b2)
                     );
                 }
                     //new SimpleReportFilter("LowQuality",
