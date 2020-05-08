@@ -45,9 +45,9 @@ namespace ACESimBase.Util
             };
         }
 
-        public async Task Regress((float[] X, float Y)[] data)
+        public async Task Regress((float[] X, float Y, float W)[] data)
         {
-            (float[] X, float[] Y)[] data2 = data.Select(d => (d.X, new float[] { d.Y })).ToArray();
+            (float[] X, float[] Y, float W)[] data2 = data.Select(d => (d.X, new float[] { d.Y }, d.W)).ToArray();
             if (Normalize)
             {
                 int numItems = data2.Count();
@@ -80,17 +80,17 @@ namespace ACESimBase.Util
                     }
                 }
             }
-            string dataString = GetDataString(data2);
+            //string dataString = GetDataString(data2);
             await Regression.Regress(data2);
         }
 
-        private string GetDataString((float[] X, float[] Y)[] data)
+        private string GetDataString((float[] X, float[] Y, float W)[] data)
         {
             StringBuilder s = new StringBuilder();
-            s.AppendLine(String.Join(",", Enumerable.Range(1, data.First().Y.Length).Select(a => $"Y{a}")) + "," + String.Join(",", Enumerable.Range(1, data.First().X.Length).Select(a => $"X{a}")));
+            s.AppendLine(String.Join(",", Enumerable.Range(1, data.First().Y.Length).Select(a => $"Y{a}")) + "," + String.Join(",", Enumerable.Range(1, data.First().X.Length).Select(a => $"X{a}")) + "," + "W");
             foreach (var datum in data)
             {
-                string toAdd = String.Join(",", datum.Y) + "," + String.Join(",", datum.X);
+                string toAdd = String.Join(",", datum.Y) + "," + String.Join(",", datum.X) + "," + datum.W;
                 s.AppendLine(toAdd);
             }
             return s.ToString();

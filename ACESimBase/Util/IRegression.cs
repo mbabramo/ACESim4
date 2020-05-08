@@ -7,7 +7,7 @@ namespace ACESimBase
 {
     public interface IRegression
     {
-        Task Regress((float[] X, float []Y)[] data);
+        Task Regress((float[] X, float[] Y, float W)[] data);
         string GetTrainingResultString();
         public IRegressionMachine GetRegressionMachine() => null;
         public void ReturnRegressionMachine(IRegressionMachine regressionMachine) { }

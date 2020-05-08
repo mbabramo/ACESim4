@@ -326,7 +326,8 @@ namespace ACESim
                     DeepCFRObservation observation = new DeepCFRObservation()
                     {
                         SampledRegret = sampledRegret,
-                        IndependentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, independentVariables.InformationSet, probeAction, null /* TODO */)
+                        IndependentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, independentVariables.InformationSet, probeAction, null /* TODO */),
+                        Weight = 1.0
                     };
                     observations.Add((currentDecision, decisionIndex, observation));
                 }
@@ -513,8 +514,19 @@ namespace ACESim
                     var gameToComplete = gamesToComplete[initialObservation + i];
                     gameToComplete.gamePlayer.InitialPlaybackHelper = playbackHelper;
                     var results = DeepCFR_CompleteGame_FromGameProgressTree(gameToComplete.currentDecision, gameToComplete.decisionIndex, gameToComplete.currentPlayer, gameToComplete.gamePlayer, gameToComplete.observationNum, gameToComplete.numObservations);
-                    for (int j = 0; j < (EvolutionSettings.DeepCFR_SeparateObservationsForIdenticalGameProgressTreeItems ? gameToComplete.numObservations : 1); j++)
+                    if (EvolutionSettings.DeepCFR_UseWeightedData)
+                    {
+                        foreach (var result in results)
+                            result.observation.Weight = gameToComplete.numObservations;
                         observationsToAddForThread.AddRange(results);
+                    }
+                    else
+                    {
+                        // instead of using weighted data, we can just add multiple copies of the same data, 
+                        // or we can just add a single datum if that's disabled. 
+                        for (int j = 0; j < (EvolutionSettings.DeepCFR_SeparateObservationsForIdenticalGameProgressTreeItems ? gameToComplete.numObservations : 1); j++)
+                            observationsToAddForThread.AddRange(results);
+                    }
                 }
                 observationsByThread[o] = observationsToAddForThread;
                 ReturnRegressionMachines(regressionMachines);
@@ -539,7 +551,8 @@ namespace ACESim
                 DeepCFRObservation observation = new DeepCFRObservation()
                 {
                     IndependentVariables = new DeepCFRIndependentVariables(currentPlayer, (byte)decisionIndex, informationSet, (byte)(j + 1), null),
-                    SampledRegret = regrets[j]
+                    SampledRegret = regrets[j],
+                    Weight = 1.0
                 };
                 observationsToAdd.Add((currentDecision, (byte)decisionIndex, observation));
             }

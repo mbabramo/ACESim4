@@ -40,8 +40,10 @@ namespace ACESimBase.Util
             return result;
         }
 
-        public async Task Regress((float[] X, float[] Y)[] data)
+        public async Task Regress((float[] X, float[] Y, float W)[] dataWithWeights)
         {
+            // NOTE: NeuralNetwork.Net does not support regression weights. 
+            (float[] X, float[] Y)[] data = dataWithWeights.Select(d => (d.X, d.Y)).ToArray();
             LayerFactory[] layerFactories = new LayerFactory[NumHiddenLayers + 1];
             for (int i = 0; i < NumHiddenLayers; i++)
                 layerFactories[i] = NetworkLayers.FullyConnected(NeuronsPerHiddenLayer, ActivationType.ReLU);

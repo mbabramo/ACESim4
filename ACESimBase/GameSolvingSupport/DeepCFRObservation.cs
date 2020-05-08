@@ -13,7 +13,11 @@ namespace ACESimBase.GameSolvingSupport
         /// The independent variables in the regression.
         /// </summary>
         public DeepCFRIndependentVariables IndependentVariables;
+        /// <summary>
+        /// The weight of this observation in the regression.
+        /// </summary>
+        public double Weight;
 
-        public DeepCFRObservation DeepCopy() => new DeepCFRObservation() { SampledRegret = SampledRegret, IndependentVariables = IndependentVariables.DeepCopy() };
+        public DeepCFRObservation DeepCopy() => new DeepCFRObservation() { SampledRegret = SampledRegret, IndependentVariables = IndependentVariables.DeepCopy(), Weight = Weight };
     }
 }

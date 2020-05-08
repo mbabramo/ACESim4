@@ -176,12 +176,12 @@ namespace ACESimBase.GameSolvingSupport
             if (!Observations.Any())
                 throw new Exception("No observations available to build model.");
             IncludedDecisionIndices = DeepCFRIndependentVariables.GetIncludedDecisionIndices(Observations.Select(x => x.IndependentVariables));
-            (float[], float)[] data = Observations.Select(x => (x.IndependentVariables.AsArray(IncludedDecisionIndices), (float) x.SampledRegret)).ToArray();
-            (float[], float)[] testData = null;
+            (float[], float, float)[] data = Observations.Select(x => (x.IndependentVariables.AsArray(IncludedDecisionIndices), (float) x.SampledRegret, (float) x.Weight)).ToArray();
+            (float[], float, float)[] testData = null;
             if (TestDataProportion != 0)
             {
                 int numToSplitAway = (int)(TestDataProportion * data.Length);
-                SplitData(data, numToSplitAway, out (float[], float)[] keep, out testData);
+                SplitData(data, numToSplitAway, out (float[], float, float)[] keep, out testData);
                 data = keep;
             }
             Regression = new RegressionController(RegressionFactory);
@@ -207,12 +207,12 @@ namespace ACESimBase.GameSolvingSupport
             s.Append($"AvgRegrets {String.Join(", ", regrets.Select(x => x.ToSignificantFigures(4)))} RegretMatch {String.Join(", ", relativePositiveRegrets.Select(x => x.ToSignificantFigures(4)))}");
         }
 
-        private void SplitData((float[], float)[] data, int numToSplitAway, out (float[], float)[] keep, out (float[], float)[] split)
+        private void SplitData((float[], float, float)[] data, int numToSplitAway, out (float[], float, float)[] keep, out (float[], float, float)[] split)
         {
             ConsistentRandomSequenceProducer r = new ConsistentRandomSequenceProducer(0);
             int numToKeep = data.Length - numToSplitAway;
-            keep = new (float[], float)[numToKeep];
-            split = new (float[], float)[numToSplitAway];
+            keep = new (float[], float, float)[numToKeep];
+            split = new (float[], float, float)[numToSplitAway];
             int overallIndex = 0, keepIndex = 0, splitIndex = 0;
             foreach (bool keepThisOne in RandomSubset.SampleExactly(numToKeep, data.Length, () => r.NextDouble()))
             {
@@ -225,13 +225,13 @@ namespace ACESimBase.GameSolvingSupport
                 throw new Exception();
         }
 
-        private void PrintTestDataResults((float[], float)[] testData, StringBuilder s)
+        private void PrintTestDataResults((float[], float, float)[] testData, StringBuilder s)
         {
             double loss = testData.Select(d => (Regression.GetResult(d.Item1, null), d.Item2)).Select(d => Math.Pow(d.Item1 - d.Item2, 2.0)).Average();
             s.AppendLine($"AvgLoss: {loss.ToSignificantFigures(4)} ");
         }
 
-        private void PrintData((float[], float)[] data, StringBuilder s)
+        private void PrintData((float[], float, float)[] data, StringBuilder s)
         {
             s.AppendLine("");
             var grouped = data.Select(x => (x, String.Join(",", x.Item1)))
@@ -240,7 +240,7 @@ namespace ACESimBase.GameSolvingSupport
                         .ToList();
             foreach (var group in grouped)
             {
-                (float[], float)[] items = group.Select(x => x.Item1).ToArray();
+                (float[], float, float)[] items = group.Select(x => x.Item1).ToArray();
                 float averageInData = items.Average(x => x.Item2);
                 float prediction = Regression.GetResult(items.First().Item1, null);
                 s.AppendLine($"{group.Key} => {averageInData} (in data) {prediction} (predicted)");

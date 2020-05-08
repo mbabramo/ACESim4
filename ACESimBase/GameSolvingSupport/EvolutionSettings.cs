@@ -99,7 +99,8 @@ namespace ACESim
         public int DeepCFR_BaseReservoirCapacity = 1_000; // the base reservoir capacity -- if generating observations through game progress tree, we multiply this by the number of possible decisions
         public bool DeepCFR_UseGameProgressTreeToGenerateObservations = true;
         public int DeepCFR_NumProbesPerGameProgressTreeObservation = 10;
-        public bool DeepCFR_SeparateObservationsForIdenticalGameProgressTreeItems = true; // with separate observations, the number of observations is proportional to their frequency in the regression; this takes longer but produces more accurate results
+        public bool DeepCFR_UseWeightedData = true;
+        public bool DeepCFR_SeparateObservationsForIdenticalGameProgressTreeItems = true; // relevant only if UseWeightedData is false; with separate observations, the number of observations is proportional to their frequency in the regression; this takes longer but produces more accurate results
         public bool DeepCFR_MultiplyProbesForEachIdenticalIteration = true;
         public int DeepCFR_MaximumTotalObservationsPerIteration = 100_000; // when not using gameprogresstree, after this number of observations, we stop looking for more observations, even if we haven't gotten enough to fill as many iterations as desired in one or more reservoirs (in which case, we rely more on earlier observations)
         public RegressionTechniques RegressionTechnique = RegressionTechniques.FastTree;
