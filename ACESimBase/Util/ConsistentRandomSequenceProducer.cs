@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Haus.Math;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -66,7 +67,7 @@ namespace ACESim
             const long prime2 = 8965095091;
             const long prime3 = 5336500537;
             long intermediateResult = ((index + Seed) * (index + Seed) * prime1 + (index + Seed) * prime2) % prime3;
-            return new Random((int)intermediateResult).NextDouble();
+            return new XorShiftRandom((ulong)intermediateResult).NextDouble();
         }
 
         public double GetDoubleAtIndex_Alt1(int index)
@@ -76,7 +77,7 @@ namespace ACESim
             const long prime3 = 5336500537;
             long intermediateResult = ((index + Seed) * (index + Seed) * prime1 + (index + Seed) * prime2) % prime3;
             if (AlwaysUseNewRandomObject)
-                return new Random((int)intermediateResult).NextDouble();
+                return new XorShiftRandom((ulong)intermediateResult).NextDouble();
             double v = Math.Abs((double)intermediateResult / (double)prime3); // should scale it to 0 to 1
             return v;
         }
