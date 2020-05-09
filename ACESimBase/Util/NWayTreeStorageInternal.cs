@@ -36,6 +36,51 @@ namespace ACESim
             }
         }
 
+        private T GetItem(IEnumerable<byte> branchSequence) => GetNodeAtPath(branchSequence).StoredValue;
+
+        private NWayTreeStorageInternal<T> GetNodeAtPath(IEnumerable<byte> branchSequence)
+        {
+            var current = this;
+            foreach (byte branch in branchSequence)
+            {
+                if (current.Branches == null || branch >= current.Branches.Length)
+                {
+                    lock(current)
+                    {
+                        if (current.Branches == null || branch >= current.Branches.Length)
+                        {
+                            if (current.Branches == null)
+                                current.Branches = new NWayTreeStorage<T>[branch + 1];
+                            if (branch >= current.Branches.Length)
+                                Array.Resize(ref current.Branches, branch + 1);
+                        }
+                    }
+                }
+                var node = current.Branches[branch];
+                if (node == null)
+                    node = current.Branches[branch] = new NWayTreeStorageInternal<T>(current);
+                if (node is NWayTreeStorageInternal<T> internalNode)
+                    current = internalNode;
+                else
+                    throw new NotImplementedException("Cannot use GetNodeAtPath to get item at leaf.");
+            }
+            return current;
+        }
+
+        public T GetOrSetValueAtPath(IEnumerable<byte> branchSequence, Func<T> valueFunc)
+        {
+            var node = GetNodeAtPath(branchSequence);
+            if (node.StoredValue == null)
+            {
+                lock(node)
+                {
+                    if (node.StoredValue == null)
+                        node.StoredValue = valueFunc();
+                }
+            }
+            return node.StoredValue;
+        }
+
         public override string ToString(int level)
         {
             StringBuilder b = new StringBuilder();
