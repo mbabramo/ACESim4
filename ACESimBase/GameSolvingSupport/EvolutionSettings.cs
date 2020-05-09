@@ -40,8 +40,8 @@ namespace ACESim
         public const int EffectivelyNever = 999999999;
         public int? BestResponseEveryMIterations = 100; // For partial recall games, this is very costly, so consider using EffectivelyNever.
         public bool RememberBestResponseExploitability = true;
-        public bool UseAcceleratedBestResponse = true; // DEBUG
-        public bool UseCurrentStrategyForBestResponse = true; // requires accelerated best response
+        public bool UseAcceleratedBestResponse = false; // DEBUG -- if false, false, whether or not distributing chance decisions, something's wrong -- seems to work again when UseAcceleratedBestResponse is true
+        public bool UseCurrentStrategyForBestResponse = false; // requires accelerated best response
         public bool CalculatePerturbedBestResponseRefinement = false;
         public double PerturbationForBestResponseCalculation = 0.001;
         public int? MiniReportEveryPIterations = 1000;

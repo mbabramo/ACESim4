@@ -150,7 +150,7 @@ namespace ACESim
 
         public static MyGameOptions Custom()
         {
-            var options = DamagesUncertainty_3BR();
+            var options = SuperSimple();
             //options.NumPotentialBargainingRounds = 5;
             //options.CostsMultiplier = 0.25; // DEBUG 3.0 / 5.0;
             //var options = DamagesUncertainty_1BR();
