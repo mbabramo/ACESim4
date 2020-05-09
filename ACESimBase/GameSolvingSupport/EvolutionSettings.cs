@@ -12,8 +12,8 @@ namespace ACESim
     [Serializable]
     public class EvolutionSettings
     {
-        public bool DistributeChanceDecisions = true; // DEBUG: Some problem now under GeneralizedVanilla when not doing this // NOTE: This is currently very slow when using full game tree.
-        public bool UnrollAlgorithm = true; // DEBUG: Fix so this works with additive evidence game.
+        public bool DistributeChanceDecisions = false; // DEBUG: Some problem now under GeneralizedVanilla when not doing this, with best response // NOTE: This is currently very slow when using full game tree.
+        public bool UnrollAlgorithm = false; // DEBUG: Fix so this works with additive evidence game.
         public bool AzureEnabled = false;
         // Note: Many of the below are overridden by launcher.
         public int TotalAvgStrategySamplingCFRIterations = 100000;
@@ -40,7 +40,7 @@ namespace ACESim
         public const int EffectivelyNever = 999999999;
         public int? BestResponseEveryMIterations = 100; // For partial recall games, this is very costly, so consider using EffectivelyNever.
         public bool RememberBestResponseExploitability = true;
-        public bool UseAcceleratedBestResponse = true; 
+        public bool UseAcceleratedBestResponse = true; // DEBUG
         public bool UseCurrentStrategyForBestResponse = true; // requires accelerated best response
         public bool CalculatePerturbedBestResponseRefinement = false;
         public double PerturbationForBestResponseCalculation = 0.001;
