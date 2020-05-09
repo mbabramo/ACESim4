@@ -1,6 +1,5 @@
 ﻿using ACESim;
 using ACESimBase.GameSolvingSupport;
-using ACESimBase.Util;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -141,30 +140,27 @@ namespace ACESimBase
                 return (byte)(1 + randomValue * currentDecision.NumPossibleActions);
         }
 
-        public Bytes50 GetInformationSetAsBytes50(bool useDeferredDecisionIndices)
+        
+        public string GetInformationSetString(bool useDeferredDecisionIndices)
         {
-            Bytes50 b = new Bytes50();
-            int i = 0;
-            foreach (var x in GetInformationSet(useDeferredDecisionIndices))
+            StringBuilder s = new StringBuilder();
+            GetInformationSet(useDeferredDecisionIndices).ForEach(x =>
             {
-                b[i++] = x.decisionIndex;
-                b[i++] = x.information;
-            }
-            return b;
+                s.Append(x.decisionIndex);
+                s.Append(x.information);
+            });
+            return s.ToString();
+            // too slow: String.Join(";", GetInformationSet(useDeferredDecisionIndices).Select(x => $"{x.decisionIndex},{x.information}"));
         }
 
-
-        //public string GetInformationSetString(bool useDeferredDecisionIndices)
-        //{
-        //    StringBuilder s = new StringBuilder();
-        //    GetInformationSet(useDeferredDecisionIndices).ForEach(x =>
-        //    {
-        //        s.Append(x.decisionIndex);
-        //        s.Append(x.information);
-        //    });
-        //    return s.ToString();
-        //    // too slow: String.Join(";", GetInformationSet(useDeferredDecisionIndices).Select(x => $"{x.decisionIndex},{x.information}"));
-        //}
+        public IEnumerable<byte> GetInformationSet_DecisionsAndInfo(bool useDeferredDecisionIndices)
+        {
+            foreach ((byte decisionIndex, byte information) in GetInformationSet(useDeferredDecisionIndices))
+            {
+                yield return decisionIndex;
+                yield return information;
+            }
+        }
 
         public List<(byte decisionIndex, byte information)> GetInformationSet(bool useDeferredDecisionIndices)
         {
