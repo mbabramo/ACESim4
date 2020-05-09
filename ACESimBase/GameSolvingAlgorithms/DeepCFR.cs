@@ -499,9 +499,9 @@ namespace ACESim
             int numThreads = numGamesToComplete / numGamesToCompleteOnSingleThread;
             int numGamesToCompleteLastThread = numGamesToComplete - (numThreads - 1) * numGamesToCompleteOnSingleThread;
             List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)>[] observationsByThread = new List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)>[numThreads]; // we don't actually add observations to model until we have completed parallel loop
+            DeepCFRProbabilitiesCache probabilitiesCache = new DeepCFRProbabilitiesCache();
             Parallelizer.Go(EvolutionSettings.ParallelOptimization, 0, numThreads, o =>
             {
-                DeepCFRProbabilitiesCache probabilitiesCache = new DeepCFRProbabilitiesCache(); 
                 var regressionMachines = GetRegressionMachinesForLocalUse(); // note that everything within this block will be on same thread
                 DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel, regressionMachines, probabilitiesCache);
                 int numGamesToCompleteThisThread = o == numThreads - 1 ? numGamesToCompleteLastThread : numGamesToCompleteOnSingleThread;
@@ -626,9 +626,9 @@ namespace ACESim
             int numObservationsToDoPerThread = GetNumToDoPerThread(totalNumberObservations);
             int numThreads = totalNumberObservations / numObservationsToDoPerThread;
             int numObservationsToDoTogetherLastThread = totalNumberObservations - (numThreads - 1) * numObservationsToDoPerThread;
+            DeepCFRProbabilitiesCache probabilitiesCache = new DeepCFRProbabilitiesCache();
             Parallelizer.Go(EvolutionSettings.ParallelOptimization, 0, numThreads, o =>
             {
-                DeepCFRProbabilitiesCache probabilitiesCache = new DeepCFRProbabilitiesCache(); // share within thread to minimize interthread communication (at cost of better caching)
                 var regressionMachines = GetRegressionMachinesForLocalUse();
                 DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel.DeepCopyForPlaybackOnly(), regressionMachines, probabilitiesCache);
                 int numToPlaybackThisThread = o == numThreads - 1 ? numObservationsToDoTogetherLastThread : numObservationsToDoPerThread;
@@ -675,9 +675,9 @@ namespace ACESim
             int numThreads = numGamesToComplete / numGamesToCompleteOnSingleThread;
             int numGamesToCompleteLastThread = numGamesToComplete - (numThreads - 1) * numGamesToCompleteOnSingleThread;
 
+            DeepCFRProbabilitiesCache probabilitiesCache = new DeepCFRProbabilitiesCache();
             Parallelizer.Go(EvolutionSettings.ParallelOptimization, 0, numThreads, o =>
             {
-                DeepCFRProbabilitiesCache probabilitiesCache = new DeepCFRProbabilitiesCache(); // share within thread to minimize interthread communication (at cost of better caching)
                 var regressionMachines = GetRegressionMachinesForLocalUse();
                 DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel.DeepCopyForPlaybackOnly(), regressionMachines, probabilitiesCache);
                 double[] averageSumExploitabilitiesContribution = new double[NumNonChancePlayers];
