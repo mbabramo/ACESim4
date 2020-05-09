@@ -539,7 +539,7 @@ namespace ACESim
 
         private List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)> DeepCFR_CompleteGame_FromGameProgressTree(Decision currentDecision, int decisionIndex, byte currentPlayer, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations)
         {
-            DeepCFR_ProbeForUtilitiesAndRegrets(gamePlayer, observationNum, numObservations, out double expectedValue, out double[] utilities, out double[] regrets, out List<(byte decisionIndex, byte information)> informationSet);
+            DeepCFR_ProbeForUtilitiesAndRegrets(gamePlayer, observationNum, numObservations, false, out double expectedValue, out double[] utilities, out double[] regrets, out List<(byte decisionIndex, byte information)> informationSet);
 
             List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)> observationsToAdd = new List<(Decision currentDecision, byte decisionIndex, DeepCFRObservation observation)>();
             if (utilities == null || utilities.Length == 0)
@@ -558,9 +558,12 @@ namespace ACESim
             return observationsToAdd;
         }
 
-        private void DeepCFR_ProbeForUtilitiesAndRegrets(DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations, out double expectedValue, out double[] utilities, out double[] regrets, out List<(byte decisionIndex, byte information)> informationSet)
+        private void DeepCFR_ProbeForUtilitiesAndRegrets(DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations, bool calculatingExploitabilityProxy, out double expectedValue, out double[] utilities, out double[] regrets, out List<(byte decisionIndex, byte information)> informationSet)
         {
-            utilities = DeepCFR_Probe_GetUtilitiesEachAction(gamePlayer, observationNum, EvolutionSettings.DeepCFR_NumProbesPerGameProgressTreeObservation * (EvolutionSettings.DeepCFR_MultiplyProbesForEachIdenticalIteration ? numObservations : 1));
+            if (calculatingExploitabilityProxy)
+                utilities = DeepCFR_Probe_GetUtilitiesEachAction(gamePlayer, observationNum, EvolutionSettings.DeepCFR_NumProbesPerGameProgressTreeObservation_Exploitability * (EvolutionSettings.DeepCFR_MultiplyProbesForEachIdenticalIteration_Exploitability ? numObservations : 1));
+            else
+                utilities = DeepCFR_Probe_GetUtilitiesEachAction(gamePlayer, observationNum, EvolutionSettings.DeepCFR_NumProbesPerGameProgressTreeObservation * (EvolutionSettings.DeepCFR_MultiplyProbesForEachIdenticalIteration ? numObservations : 1));
             double[] actionProbabilities = gamePlayer.GetActionProbabilities();
             expectedValue = 0;
             for (int j = 0; j < utilities.Length; j++)
@@ -573,7 +576,7 @@ namespace ACESim
 
         private double DeepCFR_GetExploitabilityAtDecision(DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations)
         {
-            DeepCFR_ProbeForUtilitiesAndRegrets(gamePlayer, observationNum, numObservations, out double expectedValue, out double[] utilities, out double[] regrets, out List<(byte decisionIndex, byte information)> informationSet);
+            DeepCFR_ProbeForUtilitiesAndRegrets(gamePlayer, observationNum, numObservations, true, out double expectedValue, out double[] utilities, out double[] regrets, out List<(byte decisionIndex, byte information)> informationSet);
             double maxUtility = utilities.Max();
             return maxUtility - expectedValue;
         }
