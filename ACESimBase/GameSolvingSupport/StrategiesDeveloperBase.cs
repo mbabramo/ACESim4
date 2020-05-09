@@ -1275,6 +1275,8 @@ namespace ACESim
         {
             if (!EvolutionSettings.UseAcceleratedBestResponse)
                 return;
+            if (EvolutionSettings.DistributeChanceDecisions == false && false /* DEBUG */ )
+                throw new NotImplementedException(); // this is producing incorrect values -- not sure why 
             TabbedText.WriteLine($"Prepping accelerated best response...");
             Stopwatch s = new Stopwatch();
             s.Start();
@@ -1378,12 +1380,18 @@ namespace ACESim
         {
             Status.BestResponseUtilities = new double[NumNonChancePlayers];
             ActionStrategies actionStrategy = ActionStrategy;
-            if (actionStrategy == ActionStrategies.CorrelatedEquilibrium)
-                actionStrategy = ActionStrategies.AverageStrategy; // best response against average strategy is same as against correlated equilibrium
             if (EvolutionSettings.UseCurrentStrategyForBestResponse)
+            {
+                if (actionStrategy == ActionStrategies.CorrelatedEquilibrium)
+                    throw new Exception("Playing (as opposed to constructing) correlated equilibrium requires average strategy.");
                 actionStrategy = ActionStrategies.CurrentProbability;
-            else if (EvolutionSettings.ConstructCorrelatedEquilibrium)
-                throw new Exception("When constructing correlated equilibrium, use current strategy.");
+            }
+            else
+            {
+                if (EvolutionSettings.ConstructCorrelatedEquilibrium)
+                    throw new Exception("When constructing correlated equilibrium, use current strategy.");
+                actionStrategy = ActionStrategies.AverageStrategy;
+            }
 
             if (EvolutionSettings.RoundOffLowProbabilitiesBeforeAcceleratedBestResponse)
                 foreach (var informationSet in InformationSets)
