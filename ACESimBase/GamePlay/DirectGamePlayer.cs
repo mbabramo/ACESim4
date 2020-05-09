@@ -1,5 +1,6 @@
 ﻿using ACESim;
 using ACESimBase.GameSolvingSupport;
+using ACESimBase.Util;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -140,18 +141,30 @@ namespace ACESimBase
                 return (byte)(1 + randomValue * currentDecision.NumPossibleActions);
         }
 
-        
-        public string GetInformationSetString(bool useDeferredDecisionIndices)
+        public Bytes50 GetInformationSetAsBytes50(bool useDeferredDecisionIndices)
         {
-            StringBuilder s = new StringBuilder();
-            GetInformationSet(useDeferredDecisionIndices).ForEach(x =>
+            Bytes50 b = new Bytes50();
+            int i = 0;
+            foreach (var x in GetInformationSet(useDeferredDecisionIndices))
             {
-                s.Append(x.decisionIndex);
-                s.Append(x.information);
-            });
-            return s.ToString();
-            // too slow: String.Join(";", GetInformationSet(useDeferredDecisionIndices).Select(x => $"{x.decisionIndex},{x.information}"));
+                b[i++] = x.decisionIndex;
+                b[i++] = x.information;
+            }
+            return b;
         }
+
+
+        //public string GetInformationSetString(bool useDeferredDecisionIndices)
+        //{
+        //    StringBuilder s = new StringBuilder();
+        //    GetInformationSet(useDeferredDecisionIndices).ForEach(x =>
+        //    {
+        //        s.Append(x.decisionIndex);
+        //        s.Append(x.information);
+        //    });
+        //    return s.ToString();
+        //    // too slow: String.Join(";", GetInformationSet(useDeferredDecisionIndices).Select(x => $"{x.decisionIndex},{x.information}"));
+        //}
 
         public List<(byte decisionIndex, byte information)> GetInformationSet(bool useDeferredDecisionIndices)
         {
