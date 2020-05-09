@@ -150,22 +150,20 @@ namespace ACESimBase
                 s.Append(x.information);
             });
             return s.ToString();
-            // too slow: String.Join(";", GetInformationSet(useDeferredDecisionIndices).Select(x => $"{x.decisionIndex},{x.information}"));
+            // too slow (though the above also is): String.Join(";", GetInformationSet(useDeferredDecisionIndices).Select(x => $"{x.decisionIndex},{x.information}"));
         }
 
-        public IEnumerable<byte> GetInformationSet_DecisionsAndInfo(bool useDeferredDecisionIndices)
+        public IEnumerable<byte> GetInformationSet_PlayerAndInfo(bool useDeferredDecisionIndices)
         {
+            yield return CurrentPlayer.PlayerIndex;
             foreach ((byte decisionIndex, byte information) in GetInformationSet(useDeferredDecisionIndices))
             {
-                yield return decisionIndex;
                 yield return information;
             }
         }
 
         public List<(byte decisionIndex, byte information)> GetInformationSet(bool useDeferredDecisionIndices)
         {
-            if (GameComplete || CurrentPlayer.PlayerIsChance)
-                throw new Exception();
             var result = GameProgress.InformationSetLog.GetPlayerDecisionAndInformationAtPoint(CurrentDecision.PlayerIndex, null).ToList();
             if (useDeferredDecisionIndices)
             {

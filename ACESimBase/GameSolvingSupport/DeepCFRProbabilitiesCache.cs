@@ -14,7 +14,7 @@ namespace ACESimBase.GameSolvingSupport
         {
             if (!active)
                 return probabilitiesLoader();
-            IEnumerable<byte> path = directGamePlayer.GetInformationSet_DecisionsAndInfo(true);
+            IEnumerable<byte> path = directGamePlayer.GetInformationSet_PlayerAndInfo(true);
             double[] result = Cache.GetOrSetValueAtPath(path, probabilitiesLoader);
             return result;
         }
