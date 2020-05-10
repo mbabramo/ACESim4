@@ -798,7 +798,7 @@ namespace ACESim
             switch (decisionByteCode)
             {
                 case (byte)MyGameDecisions.CourtDecisionLiability:
-                    bool pWins = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PWins) == 2; // 2 means P Wins, since this is action taken at this decision
+                    bool pWins = Options.NumLiabilitySignals == 1 || gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PWins) == 2; // 2 means P Wins, since this is action taken at this decision
                     if (pWins)
                     {
                         bool courtWouldDecideDamages = Options.NumDamagesStrengthPoints > 1;
