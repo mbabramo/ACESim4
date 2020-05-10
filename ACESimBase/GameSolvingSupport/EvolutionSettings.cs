@@ -12,7 +12,7 @@ namespace ACESim
     [Serializable]
     public class EvolutionSettings
     {
-        public bool DistributeChanceDecisions = true; // Note: Currently must be true if using accelerated best response
+        public bool DistributeChanceDecisions = false; // Note: Currently must be true if using accelerated best response
         public bool UnrollAlgorithm = false; // DEBUG: Fix so this works with additive evidence game.
         public bool AzureEnabled = false;
         // Note: Many of the below are overridden by launcher.
@@ -37,10 +37,10 @@ namespace ACESim
         public int ReduceCorrelatedEquilibriumEveryNScenariosIfCheckingAlongWay = EffectivelyNever; 
         public int CorrelatedEquilibriumCalculationsEveryNIterations = 100000; // Maybe obsolete -- old approach to CE
 
+        public bool UseAcceleratedBestResponse = true;
         public const int EffectivelyNever = 999999999;
         public int? BestResponseEveryMIterations = 100; // For partial recall games, this is very costly, so consider using EffectivelyNever.
         public bool RememberBestResponseExploitability = true;
-        public bool UseAcceleratedBestResponse = true;
         public bool UseCurrentStrategyForBestResponse = false; // requires accelerated best response
         public bool CalculatePerturbedBestResponseRefinement = false;
         public double PerturbationForBestResponseCalculation = 0.001;

@@ -36,7 +36,7 @@ namespace ACESim
             PerfectInfo,
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Faster;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.DamagesUncertainty_1BR;
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
@@ -150,7 +150,7 @@ namespace ACESim
 
         public static MyGameOptions Custom()
         {
-            var options = SuperSimple();
+            var options = DamagesUncertainty_1BR();
             //options.NumPotentialBargainingRounds = 5;
             //options.CostsMultiplier = 0.25; // DEBUG 3.0 / 5.0;
             //var options = DamagesUncertainty_1BR();
