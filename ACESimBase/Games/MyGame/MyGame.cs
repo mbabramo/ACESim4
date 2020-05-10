@@ -60,12 +60,12 @@ namespace ACESim
                 break;
                 case (byte)MyGameDecisions.PLiabilitySignal:
                     MyProgress.PLiabilitySignalDiscrete = action;
-                    MyProgress.PLiabilitySignalUniform = action * (1.0 / MyDefinition.Options.NumLiabilitySignals);
+                    MyProgress.PLiabilitySignalUniform = MyDefinition.Options.NumLiabilitySignals == 1 ? 0.5 : action * (1.0 / MyDefinition.Options.NumLiabilitySignals);
                     GameProgressLogger.Log(() => $"P: Liability Strength {MyProgress.LiabilityStrengthUniform} => signal {MyProgress.PLiabilitySignalDiscrete} ({MyProgress.PLiabilitySignalUniform})");
                 break;
                 case (byte)MyGameDecisions.DLiabilitySignal:
                     MyProgress.DLiabilitySignalDiscrete = action;
-                    MyProgress.DLiabilitySignalUniform = action * (1.0 / MyDefinition.Options.NumLiabilitySignals);
+                    MyProgress.DLiabilitySignalUniform = MyDefinition.Options.NumLiabilitySignals == 1 ? 0.5 : action * (1.0 / MyDefinition.Options.NumLiabilitySignals);
                     GameProgressLogger.Log(() => $"D: Liability Strength {MyProgress.LiabilityStrengthUniform} => signal {MyProgress.DLiabilitySignalDiscrete} ({MyProgress.DLiabilitySignalUniform})");
                     break;
                 case (byte)MyGameDecisions.DamagesStrength:
@@ -80,12 +80,12 @@ namespace ACESim
                     break;
                 case (byte)MyGameDecisions.PDamagesSignal:
                     MyProgress.PDamagesSignalDiscrete = action;
-                    MyProgress.PDamagesSignalUniform = action * (1.0 / MyDefinition.Options.NumDamagesSignals);
+                    MyProgress.PDamagesSignalUniform = MyDefinition.Options.NumDamagesSignals == 1 ? 0.5 : action * (1.0 / MyDefinition.Options.NumDamagesSignals);
                     GameProgressLogger.Log(() => $"P: Damages Strength {MyProgress.DamagesStrengthUniform} => signal {MyProgress.PDamagesSignalDiscrete} ({MyProgress.PDamagesSignalUniform})");
                     break;
                 case (byte)MyGameDecisions.DDamagesSignal:
                     MyProgress.DDamagesSignalDiscrete = action;
-                    MyProgress.DDamagesSignalUniform = action * (1.0 / MyDefinition.Options.NumDamagesSignals);
+                    MyProgress.DDamagesSignalUniform = MyDefinition.Options.NumDamagesSignals == 1 ? 0.5 : action * (1.0 / MyDefinition.Options.NumDamagesSignals);
                     GameProgressLogger.Log(() => $"D: Damages Strength {MyProgress.DamagesStrengthUniform} => signal {MyProgress.DDamagesSignalDiscrete} ({MyProgress.DDamagesSignalUniform})");
                     break;
                 case (byte)MyGameDecisions.PFile:
@@ -173,7 +173,7 @@ namespace ACESim
                     break;
                 case (byte)MyGameDecisions.CourtDecisionLiability:
                     MyProgress.TrialOccurs = true;
-                    MyProgress.PWinsAtTrial =
+                    MyProgress.PWinsAtTrial = MyDefinition.Options.NumLiabilitySignals == 1 ||
                         action == 2;
                     if (MyProgress.PWinsAtTrial == false)
                     {
@@ -192,7 +192,10 @@ namespace ACESim
                     //System.Diagnostics.TabbedText.WriteLine($"Quality {MyProgress.LiabilityStrengthUniform} Court noise action {action} => {courtNoiseNormalDraw} => signal {courtLiabilitySignal} PWins {MyProgress.PWinsAtTrial}");
                     break;
                 case (byte)MyGameDecisions.CourtDecisionDamages:
-                    MyProgress.DamagesAwarded = (double) (MyProgress.DamagesMin + (MyProgress.DamagesMax - MyProgress.DamagesMin) * ConvertActionToUniformDistributionDraw(action, true));
+                    double damagesProportion = ConvertActionToUniformDistributionDraw(action, true);
+                    if (MyDefinition.Options.NumDamagesSignals == 1)
+                        damagesProportion = 1.0;
+                    MyProgress.DamagesAwarded = (double) (MyProgress.DamagesMin + (MyProgress.DamagesMax - MyProgress.DamagesMin) * damagesProportion);
                     MyProgress.GameComplete = true;
                     break;
                 default:

@@ -801,7 +801,7 @@ namespace ACESim
             for (int iteration = 1; iteration <= EvolutionSettings.TotalIterations && !targetMet; iteration++)
             {
                 long elapsedSeconds = s.ElapsedMilliseconds / 1000;
-                if (elapsedSeconds != lastElapsedSeconds)
+                if (!TraceCFR && elapsedSeconds != lastElapsedSeconds)
                     TabbedText.SetConsoleProgressString($"Iteration {iteration} (elapsed seconds: {s.ElapsedMilliseconds / 1000})");
                 lastElapsedSeconds = elapsedSeconds;
                 if (iteration % 50 == 1 && EvolutionSettings.DynamicSetParallel)
@@ -1125,6 +1125,10 @@ namespace ACESim
             GetNextPiValues(avgStratPiValues, playerBeingOptimized, actionProbability, true,
                 nextAvgStratPiValues);
             HistoryPoint nextHistoryPoint;
+            if (chanceNode.DecisionByteCode == 26)
+            {
+                var DEBUG = 0;
+            }
             if (Navigation.LookupApproach != InformationSetLookupApproach.PlayGameDirectly && chanceNode.Decision.IsReversible)
                 nextHistoryPoint = historyPoint.SwitchToBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
             else

@@ -157,11 +157,6 @@ namespace ACESim
             options.SkipFileAndAnswerDecisions = true;
             options.NumOffers = 2;
 
-
-            //options.NumLiabilityStrengthPoints = 2;
-            options.NumLiabilitySignals = 2;
-            //options.NumPotentialBargainingRounds = 2;
-
             //options.NumPotentialBargainingRounds = 5;
             //options.CostsMultiplier = 0.25; // DEBUG 3.0 / 5.0;
             //var options = DamagesUncertainty_1BR();
@@ -299,7 +294,7 @@ namespace ACESim
         {
             var options = BaseOptions();
 
-            options.NumLiabilityStrengthPoints = 2; // Note: higher strength will be 100% of the time, b/c of ExogenousProbabilityTrulyLiable
+            options.NumLiabilityStrengthPoints = 1; // Note: same with 2 br -- higher strength will be 100% of the time, b/c of ExogenousProbabilityTrulyLiable
             options.NumLiabilitySignals = 1;
             options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
             {
