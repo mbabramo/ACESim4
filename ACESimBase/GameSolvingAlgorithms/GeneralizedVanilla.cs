@@ -537,8 +537,7 @@ namespace ACESim
                 if (pruningPossible)
                 {
                     Unroll_Commands.InsertGreaterThanOtherArrayIndexCommand(probabilityOfAction, opponentPruningThresholdIndex); // if less than then prune, so if greater than, don't prune
-                    TabbedText.WriteLine($"DEBUG PRUNING IF");
-                    DEBUG; // DEBUG: problem is that we actually need to PREVENT starting a new command chunk within this area. There may be no command chunks below. Our command tree structure does not have a conditional. So, if we create a new command chunk, then we will end up executing it, even if we don't want to. Thus, what we need to do is have a mechanism for skipping sections. In other words, we would StartCommandChunk for a new command. We would then specify that we want to skip that command chunk (e.g., by specifying the first command in that command chunk). 
+                    // DEBUG: problem is that we actually need to PREVENT starting a new command chunk within this area. There may be no command chunks below. Our command tree structure does not have a conditional. So, if we create a new command chunk, then we will end up executing it, even if we don't want to. Thus, what we need to do is have a mechanism for skipping sections. In other words, we would StartCommandChunk for a new command. We would then specify that we want to skip that command chunk (e.g., by specifying the first command in that command chunk). 
                     Unroll_Commands.InsertIfCommand(true);
                 }
 

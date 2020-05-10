@@ -92,8 +92,6 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void IncrementDepth(bool separateCommandChunk)
         {
-            TabbedText.TabIndent(); // DEBUG
-            TabbedText.WriteLine($"DEBUG Increment {separateCommandChunk} array{NextArrayIndex} command{NextCommandIndex}");
             PerDepthStartArrayIndices.Push(NextArrayIndex);
             if (separateCommandChunk && RepeatIdenticalRanges)
                 StartCommandChunk(false, null);
@@ -101,8 +99,6 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void DecrementDepth(bool separateCommandChunk, bool completeCommandList = false)
         {
-            TabbedText.WriteLine($"DEBUG Decrement {separateCommandChunk} array{NextArrayIndex} command{NextCommandIndex} complete {completeCommandList}");
-            TabbedText.TabUnindent(); // DEBUG
             var popResult = PerDepthStartArrayIndices.Pop();
             if (RepeatIdenticalRanges)
             {
@@ -118,8 +114,9 @@ namespace ACESimBase.Util.ArrayProcessing
         
         public void StartCommandChunk(bool runChildrenInParallel, int? identicalStartCommandRange, string name = "")
         {
-            AddCommand(new ArrayCommand(ArrayCommandType.Blank, -1, -1)); // DEBUG -- necessary? maybe just sometimes?
-            TabbedText.WriteLine($"DEBUG StartCommandChunk {NextCommandIndex}");
+            AddCommand(new ArrayCommand(ArrayCommandType.Blank, -1, -1));
+            if (PreventStartCommandChunkLevel > 0)
+                return;
             if (RepeatIdenticalRanges && identicalStartCommandRange is int identical)
             {
                 //Debug.WriteLine($"Repeating identical range (instead of {NextCommandIndex} using {identicalStartCommandRange})");
@@ -148,8 +145,9 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void EndCommandChunk(int[] copyIncrementsToParent = null, bool endingRepeatedChunk = false)
         {
-            AddCommand(new ArrayCommand(ArrayCommandType.Blank, -1, -1)); // DEBUG -- necessary? maybe just sometimes?
-            TabbedText.WriteLine($"DEBUG EndCommandChunk {NextCommandIndex}");
+            AddCommand(new ArrayCommand(ArrayCommandType.Blank, -1, -1));
+            if (PreventStartCommandChunkLevel > 0)
+                return;
             var commandChunkBeingEnded = CurrentCommandChunk;
             commandChunkBeingEnded.EndCommandRangeExclusive = NextCommandIndex;
             commandChunkBeingEnded.EndSourceIndicesExclusive = OrderedSourceIndices?.Count() ?? 0;
@@ -182,6 +180,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public void CompleteCommandList()
         {
             MaxCommandIndex = NextCommandIndex;
+            PreventStartCommandChunkLevel = 0;
             while (CurrentCommandTreeLocation.Any())
                 EndCommandChunk();
             CompleteCommandTree();
@@ -405,10 +404,6 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             if (NextCommandIndex == 0 && command.CommandType != ArrayCommandType.Blank)
                 InsertBlankCommand();
-            if (NextCommandIndex == 146)
-            {
-                var DEBUGX = 0;
-            }
             if (RepeatingExistingCommandRange)
             {
                 ArrayCommand existingCommand = UnderlyingCommands[NextCommandIndex];
@@ -420,10 +415,6 @@ namespace ACESimBase.Util.ArrayProcessing
             if (NextCommandIndex >= UnderlyingCommands.Length)
                 throw new Exception("Commands array size must be increased.");
             UnderlyingCommands[NextCommandIndex] = command;
-            if (command.CommandType == ArrayCommandType.If)
-                TabbedText.WriteLine($"DEBUG IF {NextCommandIndex}");
-            if (command.CommandType == ArrayCommandType.EndIf)
-                TabbedText.WriteLine($"DEBUG ENDIF {NextCommandIndex}");
             NextCommandIndex++;
             if (NextArrayIndex > MaxArrayIndex)
                 MaxArrayIndex = NextArrayIndex;
@@ -572,14 +563,11 @@ namespace ACESimBase.Util.ArrayProcessing
                 AddCommand(new ArrayCommand(ArrayCommandType.IncrementBy, index, indexOfIncrement));
         }
 
-        bool DEBUG_StopUsualLine = false;
-
         public void IncrementByProduct(int index, bool targetOriginal, int indexOfIncrementProduct1, int indexOfIncrementProduct2)
         {
             int spaceForProduct = CopyToNew(indexOfIncrementProduct1, false);
             MultiplyBy(spaceForProduct, indexOfIncrementProduct2);
             Increment(index, targetOriginal, spaceForProduct);
-            if (DEBUG_StopUsualLine)
             NextArrayIndex--; // we've set aside an array index to be used for this command. But we no longer need it, so we can now allocate it to some other purpose (e.g., incrementing by another product)
         }
 
@@ -607,8 +595,7 @@ namespace ACESimBase.Util.ArrayProcessing
             int spaceForProduct = CopyToNew(indexOfDecrementProduct1, false);
             MultiplyBy(spaceForProduct, indexOfDecrementProduct2);
             Decrement(index, spaceForProduct);
-            if (DEBUG_StopUsualLine)
-                NextArrayIndex--; // we've set aside an array index to be used for this command. But we no longer need it, so we can now allocate it to some other purpose (e.g., Decrementing by another product)
+            NextArrayIndex--; // we've set aside an array index to be used for this command. But we no longer need it, so we can now allocate it to some other purpose (e.g., Decrementing by another product)
         }
 
         // Flow control. We do flow control by a combination of comparison commands and go to commands. When a comparison is made, if the comparison fails, the next command is skipped. Thus, the combination of the comparison and the go to command ensures that the go to command will be obeyed only if the comparison succeeds.
@@ -648,18 +635,21 @@ namespace ACESimBase.Util.ArrayProcessing
             AddCommand(new ArrayCommand(ArrayCommandType.NotEqualsValue, index1, valueToCompareTo));
         }
 
-        public void InsertIfCommand(bool startCommandChunk = false)
+        int PreventStartCommandChunkLevel = 0;
+
+        public void InsertIfCommand(bool startPreventCommandChunkWithin = true)
         {
-            if (startCommandChunk)
-                StartCommandChunk(false, null);
+            if (startPreventCommandChunkWithin)
+                PreventStartCommandChunkLevel++;
             AddCommand(new ArrayCommand(ArrayCommandType.If, -1, -1));
         }
 
-        public void InsertEndIfCommand(bool endCommandChunk = false)
+        public void InsertEndIfCommand(bool endPreventCommandChunkWithin = false)
         {
             AddCommand(new ArrayCommand(ArrayCommandType.EndIf, -1, -1));
-            if (endCommandChunk)
-                EndCommandChunk();
+            if (endPreventCommandChunkWithin)
+                PreventStartCommandChunkLevel--;
+
         }
 
         /// <summary>
@@ -721,7 +711,7 @@ namespace ACESimBase.Util.ArrayProcessing
             string fnName = $"Execute{startCommandIndex}to{endCommandIndexInclusive}";
             if (!CompiledFunctions.Contains(fnName))
                 return false;
-            DEBUG; // this is where we could add a skip feature -- but we also need to make it work in other circumstances
+            // NOTE: this is where we could add a Skip feature (by returning a value from InvokeAutogeneratedCode) -- but we also need to make it work in other circumstances
             InvokeAutogeneratedCode(chunk, fnName);
             return true;
         }
@@ -780,7 +770,7 @@ bool condition = true;
                 // we don't just use virtual stack indices -- we translate to local variable indices, so that we can reuse where possible
                 int maxLocalVar = c.TranslationToLocalIndex.Where(x => x != null).Select(x => (int)x).Max();
                 for (int i = minLocalVarNumber + 1; i <= maxLocalVar; i++)
-                    b.AppendLine($"double i_{i} = 0;"); // DEBUG -- added = 0;
+                    b.AppendLine($"double i_{i} = 0;"); 
                 b.AppendLine();
             }
 
@@ -807,7 +797,7 @@ bool condition = true;
                         sourceFirstReadFromStack = c.FirstReadFromStack[sourceIfvsIndex];
                     if (source > -1 && c.TranslationToLocalIndex[source] > minLocalVarNumber)
                         if (sourceFirstReadFromStack == commandIndex)
-                            b.AppendLine($"i_{c.TranslationToLocalIndex[source]} = vs[{source}]; // DEBUG1 {commandIndex}");
+                            b.AppendLine($"i_{c.TranslationToLocalIndex[source]} = vs[{source}];");
                     if (targetIfvsIndex != -1)
                     {
                         targetFirstReadFromStack = c.FirstReadFromStack[targetIfvsIndex];
@@ -815,7 +805,7 @@ bool condition = true;
                     }
                     if (target > -1 && c.TranslationToLocalIndex[target] > minLocalVarNumber)
                         if (targetFirstReadFromStack == commandIndex)
-                            b.AppendLine($"i_{c.TranslationToLocalIndex[target]} = vs[{target}]; // DEBUG2 {commandIndex}");
+                            b.AppendLine($"i_{c.TranslationToLocalIndex[target]} = vs[{target}];");
                 }
 
                 string itemSourceString = $"vs[{source}]";
@@ -880,15 +870,13 @@ bool condition = true;
                     case ArrayCommandType.If:
                         // start counting source and destination increments that we'll miss if the code doesn't execute
 
-                        b.AppendLine($"//DEBUGstart");
                         sourceIncrementsInIfBlock.Add(0);
                         destinationIncrementsInIfBlock.Add(0);
-                        b.AppendLine($@"if (condition)  // DEBUG3 {commandIndex}
+                        b.AppendLine($@"if (condition)
 {{");
                         break;
                     case ArrayCommandType.EndIf:
                         // here is where we adjust for the fast that source and destination increments were incremented in the if block. We need to advance to the same index as if the code had executed.
-                        b.AppendLine($"//DEBUGend");
                         int sourceIncrements = sourceIncrementsInIfBlock.Any() ? sourceIncrementsInIfBlock.Last() : 0;
                         int destinationIncrements = destinationIncrementsInIfBlock.Any() ? destinationIncrementsInIfBlock.Last() : 0;
                         if (sourceIncrementsInIfBlock.Any())
@@ -896,9 +884,9 @@ bool condition = true;
                         if (destinationIncrementsInIfBlock.Any())
                             destinationIncrementsInIfBlock.RemoveAt(destinationIncrementsInIfBlock.Count() - 1);
                         if (sourceIncrements == 0 && destinationIncrements == 0)
-                            b.AppendLine("} // DEBUG4 {commandIndex}");
+                            b.AppendLine("}");
                         else
-                            b.AppendLine($@"}} // DEBUG5 {commandIndex}
+                            b.AppendLine($@"}}
 else
 {{
     cosi += {sourceIncrements};
@@ -914,7 +902,7 @@ else
                 if (CopyVirtualStackToLocalVariables && targetLastSetToStack == commandIndex)
                 {
                     if (target > -1 && c.TranslationToLocalIndex[target] > minLocalVarNumber)
-                        b.AppendLine($"vs[{target}] = i_{c.TranslationToLocalIndex[target]}; // DEBUG10 {commandIndex}");
+                        b.AppendLine($"vs[{target}] = i_{c.TranslationToLocalIndex[target]};");
                     // can't do the following, because local var may be used again in another source (this is just where we set it for the last time): b.AppendLine($"i_{c.TranslationToLocalIndex[target]} = 0;");
                 }
                 commandIndex++;
