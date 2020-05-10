@@ -12,7 +12,7 @@ namespace ACESim
     [Serializable]
     public class EvolutionSettings
     {
-        public bool DistributeChanceDecisions = false;
+        public bool DistributeChanceDecisions = true;
         public bool UnrollAlgorithm = false; // DEBUG: Fix so this works with additive evidence game.
         public bool AzureEnabled = false;
         // Note: Many of the below are overridden by launcher.
@@ -28,14 +28,6 @@ namespace ACESim
         }; // will end early if this target is reached
         public bool CreateInformationSetCharts = false; 
         public int? ReportEveryNIterations = 1000;
-
-        // CORRELATED EQ SETTINGS -- MUST ALSO SET IN GAME DEFINITION
-        public bool ConstructCorrelatedEquilibrium = false; 
-        public bool ConstructCorrelatedEquilibriumMultipleTimesExPost = true;
-        public int MaxNumCorrelatedEquilibriaToConstruct = 125;
-        public bool CheckCorrelatedEquilibriumIncompatibilitiesAlongWay = false;
-        public int ReduceCorrelatedEquilibriumEveryNScenariosIfCheckingAlongWay = EffectivelyNever; 
-        public int CorrelatedEquilibriumCalculationsEveryNIterations = 100000; // Maybe obsolete -- old approach to CE
 
         public bool UseAcceleratedBestResponse = false;
         public const int EffectivelyNever = 999999999;
@@ -57,6 +49,14 @@ namespace ACESim
         public bool DynamicSetParallel = false; // will be overridden by launcher
         public int MaxParallelDepth = 3; // will be overridden by launcher
         public string SerializeResultsPrefixPlus(int scenario, int totalScenarios) => SerializeResultsPrefix + (totalScenarios > 0 ? scenario.ToString() : "");
+
+        // CORRELATED EQ SETTINGS -- MUST ALSO SET IN GAME DEFINITION
+        public bool ConstructCorrelatedEquilibrium = false;
+        public bool ConstructCorrelatedEquilibriumMultipleTimesExPost = true;
+        public int MaxNumCorrelatedEquilibriaToConstruct = 125;
+        public bool CheckCorrelatedEquilibriumIncompatibilitiesAlongWay = false;
+        public int ReduceCorrelatedEquilibriumEveryNScenariosIfCheckingAlongWay = EffectivelyNever;
+        public int CorrelatedEquilibriumCalculationsEveryNIterations = 100000; // Maybe obsolete -- old approach to CE
 
         public bool BestResponseDynamics = false;
 
