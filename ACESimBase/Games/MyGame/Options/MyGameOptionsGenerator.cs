@@ -153,6 +153,8 @@ namespace ACESim
             var options = DamagesUncertainty_1BR();
             options.NumDamagesSignals = 2;
             options.NumDamagesStrengthPoints = 2;
+            options.AllowAbandonAndDefaults = false;
+            options.SkipFileAndAnswerDecisions = true;
             //options.NumPotentialBargainingRounds = 5;
             //options.CostsMultiplier = 0.25; // DEBUG 3.0 / 5.0;
             //var options = DamagesUncertainty_1BR();
