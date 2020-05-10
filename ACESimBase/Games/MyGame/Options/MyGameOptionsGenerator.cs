@@ -159,7 +159,7 @@ namespace ACESim
 
 
             //options.NumLiabilityStrengthPoints = 2;
-            //options.NumLiabilitySignals = 2;
+            options.NumLiabilitySignals = 2;
             //options.NumPotentialBargainingRounds = 2;
 
             //options.NumPotentialBargainingRounds = 5;
