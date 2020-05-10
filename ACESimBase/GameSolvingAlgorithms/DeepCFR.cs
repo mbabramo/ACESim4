@@ -355,7 +355,6 @@ namespace ACESim
         private double[] DeepCFR_Probe_GetUtilitiesForPlayersForSingleAction(DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, List<DeepCFRObservationOfDecision> observations, byte probeAction)
         {
             DeepCFRDirectGamePlayer probeGamePlayer = (DeepCFRDirectGamePlayer) gamePlayer.DeepCopy();
-            //Br.eak.IfAdded("DEBUGG");
             probeGamePlayer.PlayAction(probeAction);
             double[] probeValues = DeepCFRTraversal(probeGamePlayer, observationNum, observations, DeepCFRTraversalMode.ProbeForUtilities);
             return probeValues;
@@ -421,7 +420,7 @@ namespace ACESim
             stopwatch.Start();
             DeepCFR_CompleteGames_FromGameProgressTree_AddPendingObservations(gamesToComplete);
             stopwatch.Stop();
-            TabbedText.Write($"(Finishing games time {stopwatch.ElapsedMilliseconds} ms) "); // DEBUG
+            //TabbedText.Write($"(Finishing games time {stopwatch.ElapsedMilliseconds} ms) ");
         }
 
         private async Task<List<(Decision currentDecision, int decisionIndex, byte currentPlayer, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations)>> DeepCFR_GetGamesToComplete(int iteration, bool isBestResponseIteration, bool oversampling)

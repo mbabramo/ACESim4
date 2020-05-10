@@ -24,7 +24,7 @@ namespace ACESim
         public const int MaxNumMainPlayers = 4; // this affects fixed-size stack-allocated buffers // TODO: Set to 2
         public const int MaxPossibleActions = 100; // same
 
-        public InformationSetLookupApproach LookupApproach { get; set; } = InformationSetLookupApproach.PlayGameDirectly; // DEBUG SUPERDEBUG .CachedGameHistoryOnly;
+        public InformationSetLookupApproach LookupApproach { get; set; } = InformationSetLookupApproach.CachedBothMethods;  // DEBUG -- swtich to CachedGameHistoryOnly
 
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => 
@@ -1275,8 +1275,6 @@ namespace ACESim
         {
             if (!EvolutionSettings.UseAcceleratedBestResponse)
                 return;
-            if (EvolutionSettings.DistributeChanceDecisions == false && false /* DEBUG */ )
-                throw new NotImplementedException(); // this is producing incorrect values -- not sure why 
             TabbedText.WriteLine($"Prepping accelerated best response...");
             Stopwatch s = new Stopwatch();
             s.Start();

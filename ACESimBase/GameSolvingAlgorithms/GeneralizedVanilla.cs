@@ -1125,10 +1125,6 @@ namespace ACESim
             GetNextPiValues(avgStratPiValues, playerBeingOptimized, actionProbability, true,
                 nextAvgStratPiValues);
             HistoryPoint nextHistoryPoint;
-            if (chanceNode.DecisionByteCode == 26)
-            {
-                var DEBUG = 0;
-            }
             if (Navigation.LookupApproach != InformationSetLookupApproach.PlayGameDirectly && chanceNode.Decision.IsReversible)
                 nextHistoryPoint = historyPoint.SwitchToBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
             else

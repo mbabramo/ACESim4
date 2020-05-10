@@ -158,7 +158,7 @@ namespace ACESim
             options.NumOffers = 2;
 
             //options.NumPotentialBargainingRounds = 5;
-            //options.CostsMultiplier = 0.25; // DEBUG 3.0 / 5.0;
+            //options.CostsMultiplier = 0.25;
             //var options = DamagesUncertainty_1BR();
             //options.NumDamagesSignals = 3;
             //options.NumOffers = 3;

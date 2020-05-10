@@ -373,8 +373,6 @@ namespace ACESimBase.GameSolvingSupport
                 GameProgressTreeNodeAllocation allocation = GetGameProgressTreeNodeAllocation(explorationValues, allocationIndex, treeNodeInfo);
                 int numObservations = allocation.NumObservations; // could be 0 in case of a node that was included in a previous allocation despite having a low probability of occurring, but excluded from this one
                 IDirectGamePlayer directGamePlayer = nodeStorage.StoredValue.DirectGamePlayer;
-                if (directGamePlayer.GameComplete)
-                    throw new Exception("DEBUG");
                 yield return (directGamePlayer, numObservations);
             }
         }
@@ -393,7 +391,7 @@ namespace ACESimBase.GameSolvingSupport
                                     return false;
                                 bool hasObservations = allocation.NumObservations >= 1;
                             if (decisionIndex is byte decisionIndexNonNull)
-                                return (treeNodeInfo.CurrentDecisionIndex == decisionIndexNonNull && hasObservations && !treeNodeInfo.GameProgress.GameComplete /* DEBUG -- just added last part */);
+                                return (treeNodeInfo.CurrentDecisionIndex == decisionIndexNonNull && hasObservations && !treeNodeInfo.GameProgress.GameComplete );
 
                                 return hasObservations;
                             },

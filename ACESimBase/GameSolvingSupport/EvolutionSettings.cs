@@ -12,7 +12,7 @@ namespace ACESim
     [Serializable]
     public class EvolutionSettings
     {
-        public bool DistributeChanceDecisions = false; // DEBUG: BUG if we have DistributeChanceDecisions = false, UseAcceleratedBestResponse = true, and NumLiabilitySignals = 1. 
+        public bool DistributeChanceDecisions = false;
         public bool UnrollAlgorithm = false; // DEBUG: Fix so this works with additive evidence game.
         public bool AzureEnabled = false;
         // Note: Many of the below are overridden by launcher.
