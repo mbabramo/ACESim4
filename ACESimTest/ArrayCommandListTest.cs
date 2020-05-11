@@ -86,6 +86,86 @@ namespace ACESimTest
             values[destinationIndicesStart + 1].Should().BeApproximately(1_440_380, 0.001);
         }
 
+        [TestMethod]
+        public void ArrayCommandList_Conditional()
+        {
+            bool parallel = true;
+            const int sourceIndicesStart = 0;
+            const int totalSourceIndices = 10;
+            const int totalDestinationIndices = 10;
+            const int destinationIndicesStart = sourceIndicesStart + totalSourceIndices;
+            const int totalIndices = sourceIndicesStart + totalSourceIndices + totalDestinationIndices;
 
+            double[] sourceValues = new double[20] { 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }; 
+            int[] sourceIndices = new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+
+            const int initialArrayIndex = totalIndices;
+            const int maxNumCommands = 100;
+            var cl = new ArrayCommandList(maxNumCommands, initialArrayIndex, parallel);
+            cl.MinNumCommandsToCompile = 1;
+            cl.StartCommandChunk(parallel, null, "Chunk");
+
+            int[] copiedValues = cl.CopyToNew(sourceIndices, true);
+            int v1 = cl.NewZero();
+
+            cl.InsertEqualsOtherArrayIndexCommand(copiedValues[2], copiedValues[2]);
+            cl.InsertIfCommand();
+            cl.Increment(v1, false, copiedValues[0]); // since true, add 1 => 1
+            cl.InsertEndIfCommand();
+
+            cl.InsertEqualsOtherArrayIndexCommand(copiedValues[2], copiedValues[3]);
+            cl.InsertIfCommand();
+            cl.Increment(v1, false, copiedValues[1]); // since false => 1
+            cl.InsertEndIfCommand();
+
+            cl.InsertNotEqualsOtherArrayIndexCommand(copiedValues[2], copiedValues[2]);
+            cl.InsertIfCommand();
+            cl.Increment(v1, false, copiedValues[2]); // since false => 1
+            cl.InsertEndIfCommand();
+
+            cl.InsertNotEqualsOtherArrayIndexCommand(copiedValues[2], copiedValues[3]);
+            cl.InsertIfCommand();
+            cl.Increment(v1, false, copiedValues[3]); // since false => 1 + 8 => 9
+            cl.InsertEndIfCommand();
+
+            cl.InsertGreaterThanOtherArrayIndexCommand(copiedValues[2], copiedValues[2]);
+            cl.InsertIfCommand();
+            cl.Increment(v1, false, copiedValues[4]); // since false => 9
+            cl.InsertEndIfCommand();
+
+            cl.InsertGreaterThanOtherArrayIndexCommand(copiedValues[4], copiedValues[3]);
+            cl.InsertIfCommand();
+            cl.Increment(v1, false, copiedValues[5]); // since true => 9 + 32 => 41
+            cl.InsertEndIfCommand();
+
+            cl.InsertLessThanOtherArrayIndexCommand(copiedValues[3], copiedValues[2]);
+            cl.InsertIfCommand();
+            cl.Increment(v1, false, copiedValues[6]); // since false => 41
+            cl.InsertEndIfCommand();
+
+            cl.InsertLessThanOtherArrayIndexCommand(copiedValues[4], copiedValues[5]);
+            cl.InsertIfCommand();
+            cl.Increment(v1, false, copiedValues[7]); // since true => 41 + 128 = 169
+            cl.InsertEndIfCommand();
+
+            cl.InsertEqualsValueCommand(copiedValues[4], 999);
+            cl.InsertIfCommand();
+            cl.Increment(v1, false, copiedValues[8]); // since false => 169
+            cl.InsertEndIfCommand();
+
+            cl.InsertEqualsValueCommand(copiedValues[5], 32);
+            cl.InsertIfCommand();
+            cl.Increment(v1, false, copiedValues[9]); // since true => 169 + 512 = 681
+            cl.InsertEndIfCommand();
+
+            cl.Increment(destinationIndicesStart + 1, true, v1);
+
+            cl.EndCommandChunk();
+
+
+            cl.CompleteCommandList();
+            cl.ExecuteAll(sourceValues, false);
+            sourceValues[destinationIndicesStart + 1].Should().BeApproximately(681, 0.001);
+        }
     }
 }

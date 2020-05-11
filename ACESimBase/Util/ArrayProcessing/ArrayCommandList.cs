@@ -644,7 +644,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         int PreventStartCommandChunkLevel = 0;
 
-        public void InsertIfCommand(bool startPreventCommandChunkWithin = true)
+        public void InsertIfCommand(bool startPreventCommandChunkWithin = false)
         {
             if (startPreventCommandChunkWithin)
                 PreventStartCommandChunkLevel++;
@@ -793,25 +793,25 @@ bool condition = true;
                 ArrayCommand command = UnderlyingCommands[commandIndex];
                 int target = command.Index;
                 int source = command.SourceIndex;
+                int sourceIfIsIndex = command.GetSourceIndexIfUsed();
+                int targetIfIsIndex = command.GetTargetIndexIfUsed();
 
                 int? targetLastSetToStack = null;
                 if (CopyVirtualStackToLocalVariables)
                 {
-                    int sourceIfvsIndex = command.GetSourceIndexIfUsed();
-                    int targetIfvsIndex = command.GetTargetIndexIfUsed();
                     int? sourceFirstReadFromStack = null;
                     int? targetFirstReadFromStack = null;
-                    if (sourceIfvsIndex != -1)
-                        sourceFirstReadFromStack = c.FirstReadFromStack[sourceIfvsIndex];
-                    if (source > -1 && c.TranslationToLocalIndex[source] > minLocalVarNumber)
+                    if (sourceIfIsIndex != -1)
+                        sourceFirstReadFromStack = c.FirstReadFromStack[sourceIfIsIndex];
+                    if (sourceIfIsIndex > -1 && c.TranslationToLocalIndex[sourceIfIsIndex] > minLocalVarNumber)
                         if (sourceFirstReadFromStack == commandIndex)
                             b.AppendLine($"i_{c.TranslationToLocalIndex[source]} = vs[{source}];");
-                    if (targetIfvsIndex != -1)
+                    if (targetIfIsIndex != -1)
                     {
-                        targetFirstReadFromStack = c.FirstReadFromStack[targetIfvsIndex];
-                        targetLastSetToStack = c.LastSetInStack[targetIfvsIndex];
+                        targetFirstReadFromStack = c.FirstReadFromStack[targetIfIsIndex];
+                        targetLastSetToStack = c.LastSetInStack[targetIfIsIndex];
                     }
-                    if (target > -1 && c.TranslationToLocalIndex[target] > minLocalVarNumber)
+                    if (targetIfIsIndex > -1 && c.TranslationToLocalIndex[target] > minLocalVarNumber)
                         if (targetFirstReadFromStack == commandIndex)
                             b.AppendLine($"i_{c.TranslationToLocalIndex[target]} = vs[{target}];");
                 }
@@ -820,9 +820,9 @@ bool condition = true;
                 string itemTargetString = $"vs[{target}]";
                 if (CopyVirtualStackToLocalVariables)
                 {
-                    if (source != -1 && c.TranslationToLocalIndex[source] > minLocalVarNumber)
+                    if (sourceIfIsIndex != -1 && c.TranslationToLocalIndex[source] > minLocalVarNumber)
                         itemSourceString = $"i_{c.TranslationToLocalIndex[source]}";
-                    if (target != -1 && c.TranslationToLocalIndex[target] > minLocalVarNumber)
+                    if (targetIfIsIndex != -1 && c.TranslationToLocalIndex[target] > minLocalVarNumber)
                         itemTargetString = $"i_{c.TranslationToLocalIndex[target]}";
                 }
                 switch (command.CommandType)
