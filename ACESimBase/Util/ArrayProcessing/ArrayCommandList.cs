@@ -283,6 +283,10 @@ namespace ACESimBase.Util.ArrayProcessing
             HashSet<int> indicesUsed = new HashSet<int>();
             for (int commandIndex = startRange; commandIndex < endRangeExclusive; commandIndex++)
             {
+                if (commandIndex == 828)
+                {
+                    var DEBUG = 0;
+                }
                 int virtualStackIndex = UnderlyingCommands[commandIndex].GetSourceIndexIfUsed();
                 if (virtualStackIndex != -1)
                 {
@@ -402,6 +406,10 @@ namespace ACESimBase.Util.ArrayProcessing
 
         private void AddCommand(ArrayCommand command)
         {
+            if (NextCommandIndex == 828)
+            {
+                var DEBUG = 0;
+            }
             if (NextCommandIndex == 0 && command.CommandType != ArrayCommandType.Blank)
                 InsertBlankCommand();
             if (RepeatingExistingCommandRange)
@@ -568,7 +576,7 @@ namespace ACESimBase.Util.ArrayProcessing
             int spaceForProduct = CopyToNew(indexOfIncrementProduct1, false);
             MultiplyBy(spaceForProduct, indexOfIncrementProduct2);
             Increment(index, targetOriginal, spaceForProduct);
-            NextArrayIndex--; // we've set aside an array index to be used for this command. But we no longer need it, so we can now allocate it to some other purpose (e.g., incrementing by another product)
+            // DEBUG NextArrayIndex--; // we've set aside an array index to be used for this command. But we no longer need it, so we can now allocate it to some other purpose (e.g., incrementing by another product)
         }
 
         public void DecrementArrayBy(int[] indices, int indexOfDecrement)
@@ -595,7 +603,7 @@ namespace ACESimBase.Util.ArrayProcessing
             int spaceForProduct = CopyToNew(indexOfDecrementProduct1, false);
             MultiplyBy(spaceForProduct, indexOfDecrementProduct2);
             Decrement(index, spaceForProduct);
-            NextArrayIndex--; // we've set aside an array index to be used for this command. But we no longer need it, so we can now allocate it to some other purpose (e.g., Decrementing by another product)
+            // DEBUG NextArrayIndex--; // we've set aside an array index to be used for this command. But we no longer need it, so we can now allocate it to some other purpose (e.g., Decrementing by another product)
         }
 
         // Flow control. We do flow control by a combination of comparison commands and go to commands. When a comparison is made, if the comparison fails, the next command is skipped. Thus, the combination of the comparison and the go to command ensures that the go to command will be obeyed only if the comparison succeeds.
