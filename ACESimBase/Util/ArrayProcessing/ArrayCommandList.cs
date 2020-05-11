@@ -58,6 +58,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         StringBuilder CodeGenerationBuilder = new StringBuilder();
         HashSet<string> CompiledFunctions = new HashSet<string>();
+        public int MinNumCommandsToCompile = 25;
 
         #endregion
 
@@ -128,6 +129,8 @@ namespace ACESimBase.Util.ArrayProcessing
             var currentNodeIsInParallel = CurrentNode?.StoredValue.ChildrenParallelizable ?? false;
             if (currentNodeIsInParallel)
                 ReusableOrderedDestinationIndices = new Dictionary<int, int>();
+            if (currentNode.StoredValue.LastChild == 255)
+                throw new Exception("Too many tree branches");
             byte nextChild = (byte)(currentNode.StoredValue.LastChild + 1);
             NWayTreeStorageInternal<ArrayCommandChunk> childNode = new NWayTreeStorageInternal<ArrayCommandChunk>(CurrentNode);
             childNode.StoredValue = new ArrayCommandChunk()
@@ -406,10 +409,6 @@ namespace ACESimBase.Util.ArrayProcessing
 
         private void AddCommand(ArrayCommand command)
         {
-            if (NextCommandIndex == 828)
-            {
-                var DEBUG = 0;
-            }
             if (NextCommandIndex == 0 && command.CommandType != ArrayCommandType.Blank)
                 InsertBlankCommand();
             if (RepeatingExistingCommandRange)
@@ -730,14 +729,15 @@ namespace ACESimBase.Util.ArrayProcessing
             method.Invoke(null, new object[] { chunk.VirtualStack, OrderedSources, OrderedDestinations, chunk.StartSourceIndices, chunk.StartDestinationIndices });
         }
 
+
+
         private void GenerateCode(NWayTreeStorageInternal<ArrayCommandChunk> node)
         {
             if (node.Branches == null || !node.Branches.Any())
             {
                 int startCommandIndex = node.StoredValue.StartCommandRange;
                 int endCommandIndexInclusive = node.StoredValue.EndCommandRangeExclusive - 1;
-                const int minNumCommandsToCompile = 25;
-                if (endCommandIndexInclusive - startCommandIndex > minNumCommandsToCompile)
+                if (endCommandIndexInclusive - startCommandIndex + 1 >= MinNumCommandsToCompile)
                 {
                     string fnName = $"Execute{startCommandIndex}to{endCommandIndexInclusive}";
                     if (!CompiledFunctions.Contains(fnName))
@@ -770,14 +770,14 @@ bool condition = true;
 
             // we limit the max number of local vars that we will create (if copying at all) to avoid stack overflow. later indices in the virtual stack have priority, because these are reused the most often.
             const int maxLocalVariables = 200;
-            int numLocalVariables = c.TranslationToLocalIndex.Where(x => x != null).Select(x => (int)x).Max();
+            IEnumerable<int> localVariables = c.TranslationToLocalIndex.Where(x => x != null).Select(x => (int)x);
+            int numLocalVariables = localVariables.Any() ? localVariables.Max() : 0;
             int minLocalVarNumber = Math.Max(numLocalVariables - maxLocalVariables, 0);
             // declare local variables
             if (CopyVirtualStackToLocalVariables)
             {
                 // we don't just use virtual stack indices -- we translate to local variable indices, so that we can reuse where possible
-                int maxLocalVar = c.TranslationToLocalIndex.Where(x => x != null).Select(x => (int)x).Max();
-                for (int i = minLocalVarNumber + 1; i <= maxLocalVar; i++)
+                for (int i = minLocalVarNumber + 1; i <= numLocalVariables; i++)
                     b.AppendLine($"double i_{i} = 0;"); 
                 b.AppendLine();
             }
