@@ -461,7 +461,7 @@ namespace ACESim
 
         public void Unroll_GeneralizedVanillaCFR(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool isUltimateResult, int distributorChanceInputs)
         {
-            Unroll_Commands.IncrementDepth(false);
+            Unroll_Commands.IncrementDepth();
             IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
             if (gameStateType == GameStateTypeEnum.FinalUtilities)
@@ -480,12 +480,12 @@ namespace ACESim
             }
             else
                 Unroll_GeneralizedVanillaCFR_DecisionNode(in historyPoint, playerBeingOptimized, piValues, avgStratPiValues, resultArray, isUltimateResult, distributorChanceInputs);
-            Unroll_Commands.DecrementDepth(false, playerBeingOptimized == NumNonChancePlayers - 1);
+            Unroll_Commands.DecrementDepth(playerBeingOptimized == NumNonChancePlayers - 1);
         }
 
         private void Unroll_GeneralizedVanillaCFR_DecisionNode(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool isUltimateResult, int distributorChanceInputs)
         {
-            Unroll_Commands.IncrementDepth(false);
+            Unroll_Commands.IncrementDepth();
 
             int inversePi = Unroll_Commands.NewUninitialized();
             Unroll_GetInversePiValue(piValues, playerBeingOptimized, inversePi);
@@ -633,12 +633,12 @@ namespace ACESim
                     }
                 }
             }
-            Unroll_Commands.DecrementDepth(false);
+            Unroll_Commands.DecrementDepth();
         }
 
         private void Unroll_GeneralizedVanillaCFR_ChanceNode(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool isUltimateResult, int distributorChanceInputs)
         {
-            Unroll_Commands.IncrementDepth(false);
+            Unroll_Commands.IncrementDepth();
             IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             ChanceNode chanceNode = (ChanceNode)gameStateForCurrentPlayer;
             byte numPossibleActions = chanceNode.Decision.NumPossibleActions;
@@ -671,12 +671,12 @@ namespace ACESim
             if (chanceNode.Decision.Unroll_Parallelize)
                 Unroll_Commands.EndCommandChunk();
 
-            Unroll_Commands.DecrementDepth(false);
+            Unroll_Commands.DecrementDepth();
         }
 
         private void Unroll_GeneralizedVanillaCFR_ChanceNode_NextAction(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, ChanceNode chanceNode, byte action, int[] resultArray, bool isUltimateResult, int distributorChanceInputs)
         {
-            Unroll_Commands.IncrementDepth(false);
+            Unroll_Commands.IncrementDepth();
             int actionProbabilityIndex = Unroll_GetChanceNodeIndex_ProbabilityForAction(chanceNode.ChanceNodeNumber, distributorChanceInputs, action);
             int actionProbability = Unroll_Commands.CopyToNew(actionProbabilityIndex, true);
             int distributorChanceInputsNext = distributorChanceInputs;
@@ -717,12 +717,12 @@ namespace ACESim
             else
                 Unroll_Commands.MultiplyArrayBy(resultArray, actionProbability);
 
-            Unroll_Commands.DecrementDepth(false);
+            Unroll_Commands.DecrementDepth();
         }
 
         private void Unroll_GetNextPiValues(int[] currentPiValues, byte playerIndex, int probabilityToMultiplyBy, bool changeOtherPlayers, int[] resultArray)
         {
-            Unroll_Commands.IncrementDepth(false);
+            Unroll_Commands.IncrementDepth();
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
                 int currentPiValue = currentPiValues[p];
@@ -738,12 +738,12 @@ namespace ACESim
                         Unroll_Commands.MultiplyBy(resultArray[p], probabilityToMultiplyBy);
                 }
             }
-            Unroll_Commands.DecrementDepth(false);
+            Unroll_Commands.DecrementDepth();
         }
 
         private void Unroll_GetInversePiValue(int[] piValues, byte playerIndex, int inversePiValueResult)
         {
-            Unroll_Commands.IncrementDepth(false);
+            Unroll_Commands.IncrementDepth();
             if (NumNonChancePlayers == 2)
                 Unroll_Commands.CopyToExisting(inversePiValueResult, piValues[(byte)1 - playerIndex]);
             else
@@ -763,7 +763,7 @@ namespace ACESim
                         }
                     }
             }
-            Unroll_Commands.DecrementDepth(false);
+            Unroll_Commands.DecrementDepth();
         }
 
         #endregion

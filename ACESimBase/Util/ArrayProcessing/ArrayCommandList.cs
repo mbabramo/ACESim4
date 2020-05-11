@@ -91,28 +91,27 @@ namespace ACESimBase.Util.ArrayProcessing
 
         // We are simulating a stack. When entering a new depth level, we remember the next array index. Then, when exiting this depth level, we revert to this array index. A consequence of this is that depth i + 1 can return values to depth <= i only by copying to array indices already set at this earlier depth. 
 
-        public void IncrementDepth(bool separateCommandChunk)
+        public void IncrementDepth()
         {
             PerDepthStartArrayIndices.Push(NextArrayIndex);
-            if (separateCommandChunk && RepeatIdenticalRanges)
-                StartCommandChunk(false, null);
         }
 
-        public void DecrementDepth(bool separateCommandChunk, bool completeCommandList = false)
+        public void DecrementDepth(bool completeCommandList = false)
         {
             var popResult = PerDepthStartArrayIndices.Pop();
-            if (RepeatIdenticalRanges)
-            {
-                NextArrayIndex = popResult;
-                if (separateCommandChunk)
-                    EndCommandChunk();
-            }
             if (!PerDepthStartArrayIndices.Any() && completeCommandList)
             {
                 CompleteCommandList();
             }
         }
         
+        /// <summary>
+        /// Starts a new command chunk. If an identical start command range is specified, then
+        /// that range is recorded so that the commands do not need to be repeated. 
+        /// </summary>
+        /// <param name="runChildrenInParallel"></param>
+        /// <param name="identicalStartCommandRange"></param>
+        /// <param name="name"></param>
         public void StartCommandChunk(bool runChildrenInParallel, int? identicalStartCommandRange, string name = "")
         {
             AddCommand(new ArrayCommand(ArrayCommandType.Blank, -1, -1));
