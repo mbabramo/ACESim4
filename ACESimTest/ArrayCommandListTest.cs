@@ -168,7 +168,15 @@ namespace ACESimTest
         }
 
         [TestMethod]
-        public void ArrayCommandList_ParallelChunk()
+        public void ArrayCommandList_ChildIncrements_NotParallel_NotRepeated() => ArrayCommandList_ChildIncrements(false, false);
+        [TestMethod]
+        public void ArrayCommandList_ChildIncrements_NotParallel_Repeated() => ArrayCommandList_ChildIncrements(false, true);
+        [TestMethod]
+        public void ArrayCommandList_ChildIncrements_Parallel_NotRepeated() => ArrayCommandList_ChildIncrements(true, false);
+        [TestMethod]
+        public void ArrayCommandList_ChildIncrements_Parallel_Repeated() => ArrayCommandList_ChildIncrements(true, true);
+
+        private void ArrayCommandList_ChildIncrements(bool parallelize, bool repeatIdenticalChunk)
         {
             const int sourceIndicesStart = 0;
             const int totalSourceIndices = 10;
@@ -182,23 +190,27 @@ namespace ACESimTest
 
             const int initialArrayIndex = totalIndices;
             const int maxNumCommands = 1000;
-            var cl = new ArrayCommandList(maxNumCommands, initialArrayIndex, false);
+            var cl = new ArrayCommandList(maxNumCommands, initialArrayIndex, parallelize);
+
             cl.MinNumCommandsToCompile = 1;
-            cl.IncrementDepth();
+            //cl.IncrementDepth(); // NOTE: This is optional here (along with decrement below)
             cl.StartCommandChunk(false, null, "Chunk");
             int[] copiedValues = cl.CopyToNew(sourceIndices, true);
             int anotherValue = cl.CopyToNew(sourceIndices[5], true);
             int yetAnother = cl.CopyToNew(anotherValue, false);
 
-            const int numParallelChunks = 50;
+            const int numParallelChunks = 2; // DEBUG
             const int numPotentialIncrementsWithin = 10;
             const int excludeIndexFromIncrement = 3;
 
             cl.StartCommandChunk(true, null); // parallel within this chunk
+            int repeatedCommandIndex = -1;
             for (int i = 0; i < numParallelChunks; i++)
             {
-                cl.StartCommandChunk(false, null);
-                cl.IncrementDepth();
+                if (i == 0 && repeatIdenticalChunk)
+                    repeatedCommandIndex = cl.NextCommandIndex;
+                cl.StartCommandChunk(false, repeatIdenticalChunk && i != 0 ? (int?) repeatedCommandIndex : null);
+                cl.IncrementDepth(); // NOTE -- this is critical. We must increment depth here (and decrement below) so that the increments are copied from the child virtual stack back to the parent.
                 for (int j = numPotentialIncrementsWithin - 1; j >= 0; j--) // go backward to make it easier to follow algorithm
                     if (j != excludeIndexFromIncrement)
                         cl.Increment(destinationIndices[0], true /* target the original, even though ... */, copiedValues[j]);
@@ -208,18 +220,11 @@ namespace ACESimTest
             cl.EndCommandChunk();    // end parallel within chunk
 
             cl.EndCommandChunk();
-            cl.DecrementDepth();
+            //cl.DecrementDepth(); // optional -- but must match
             cl.CompleteCommandList();
-            for (int i = 0; i <= 1; i++)
-            {
-                if (i == 0)
-                    cl.Parallelize = true;
-                else
-                    cl.Parallelize = false;
-                cl.ExecuteAll(sourceValues, false);
-                sourceValues[destinationIndicesStart].Should().BeApproximately(numParallelChunks * (1023 - 2 * 2 * 2), 0.001);
-                sourceValues[destinationIndicesStart] = 0;
-            }
+            cl.ExecuteAll(sourceValues, false);
+            sourceValues[destinationIndicesStart].Should().BeApproximately(numParallelChunks * (1023 - 2 * 2 * 2), 0.001);
+            sourceValues[destinationIndicesStart] = 0;
         }
     }
 }

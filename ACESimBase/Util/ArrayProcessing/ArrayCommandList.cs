@@ -114,7 +114,6 @@ namespace ACESimBase.Util.ArrayProcessing
         /// <param name="name"></param>
         public void StartCommandChunk(bool runChildrenInParallel, int? identicalStartCommandRange, string name = "")
         {
-            AddCommand(new ArrayCommand(ArrayCommandType.Blank, -1, -1));
             if (PreventStartCommandChunkLevel > 0)
                 return;
             if (RepeatIdenticalRanges && identicalStartCommandRange is int identical)
@@ -147,7 +146,6 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void EndCommandChunk(int[] copyIncrementsToParent = null, bool endingRepeatedChunk = false)
         {
-            AddCommand(new ArrayCommand(ArrayCommandType.Blank, -1, -1));
             if (PreventStartCommandChunkLevel > 0)
                 return;
             var commandChunkBeingEnded = CurrentCommandChunk;
