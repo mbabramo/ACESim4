@@ -114,9 +114,11 @@ namespace ACESimBase.Util.ArrayProcessing
         /// <param name="name"></param>
         public void StartCommandChunk(bool runChildrenInParallel, int? identicalStartCommandRange, string name = "")
         {
+            TabbedText.WriteLine($"Starting {name}");
+            TabbedText.TabIndent(); // DEBUG
             if (RepeatIdenticalRanges && identicalStartCommandRange is int identical)
             {
-                //Debug.WriteLine($"Repeating identical range (instead of {NextCommandIndex} using {identicalStartCommandRange})");
+                TabbedText.WriteLine($"Repeating identical range (instead of {NextCommandIndex} using {identicalStartCommandRange})"); // DEBUG
                 RepeatingExistingCommandRangeStack.Push(identicalStartCommandRange);
                 NextCommandIndex = identical;
                 RepeatingExistingCommandRange = true;
@@ -144,6 +146,8 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void EndCommandChunk(int[] copyIncrementsToParent = null, bool endingRepeatedChunk = false)
         {
+            TabbedText.WriteLine($"Ending");
+            TabbedText.TabUnindent(); // DEBUG
             var commandChunkBeingEnded = CurrentCommandChunk;
             commandChunkBeingEnded.EndCommandRangeExclusive = NextCommandIndex;
             commandChunkBeingEnded.EndSourceIndicesExclusive = OrderedSourceIndices?.Count() ?? 0;
@@ -399,6 +403,7 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             if (NextCommandIndex == 0 && command.CommandType != ArrayCommandType.Blank)
                 InsertBlankCommand();
+            TabbedText.WriteLine($"{command}"); // DEBUG
             if (RepeatingExistingCommandRange)
             {
                 ArrayCommand existingCommand = UnderlyingCommands[NextCommandIndex];

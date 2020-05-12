@@ -199,7 +199,7 @@ namespace ACESimTest
             int anotherValue = cl.CopyToNew(sourceIndices[5], true);
             int yetAnother = cl.CopyToNew(anotherValue, false);
 
-            const int numParallelChunks = 2; // DEBUG
+            const int numParallelChunks = 50; 
             const int numPotentialIncrementsWithin = 10;
             const int excludeIndexFromIncrement = 3;
 
