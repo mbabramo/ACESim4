@@ -427,7 +427,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         private void AddCommand(ArrayCommand command)
         {
-            if (NextCommandIndex == 193)
+            if (NextCommandIndex == 2345)
             {
                 var DEBUG = 0;
             }
@@ -572,6 +572,7 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             if (targetOriginal)
             {
+                TabbedText.WriteLine($"Targeting original at {index}"); // DEBUG
                 if (UseOrderedDestinations)
                 {
                     if (ReuseDestinations && ReusableOrderedDestinationIndices.ContainsKey(index))

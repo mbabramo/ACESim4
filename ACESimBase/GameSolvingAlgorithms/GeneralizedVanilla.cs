@@ -564,6 +564,7 @@ namespace ACESim
                 }
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                 int[] innerResult = Unroll_Commands.NewZeroArray(3);
+                DEBUG; // if we are going into another decision node and ultimate result is true, then we need to keep it true -- because we're still in the same command chunk. The problem is that we don't know if it's true. This suggests that whether we are targeting originals should be kept track of in ArrayCommandList. That is, if we're targeting originals, then ArrayCommandList should test whether the information is really just something that we are going to increment on the virtual stack. 
                 Unroll_GeneralizedVanillaCFR(in nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, innerResult, false, distributorChanceInputsNext);
                 Unroll_Commands.CopyToExisting(expectedValueOfAction[action - 1], innerResult[Unroll_Result_CurrentVsCurrentIndex]);
                 if (playerMakingDecision == playerBeingOptimized)
@@ -571,22 +572,22 @@ namespace ACESim
                     int lastBestResponseActionIndex = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_LastBestResponse(informationSet.InformationSetNodeNumber, (byte)informationSet.NumPossibleActions), true);
                     Unroll_Commands.InsertEqualsValueCommand(lastBestResponseActionIndex, (int)action);
                     Unroll_Commands.InsertIfCommand();
-                    DEBUG; // problem: this should probably be increment. But more fundamentally, we need to target original.
-                    Unroll_Commands.CopyToExisting(resultArray[Unroll_Result_BestResponseIndex], innerResult[Unroll_Result_BestResponseIndex]);
+                    // DEBUG; // problem: this should probably be increment. But more fundamentally, we need to target original.
+                    Unroll_Commands.Increment(resultArray[Unroll_Result_BestResponseIndex], isUltimateResult, innerResult[Unroll_Result_BestResponseIndex]);
                     Unroll_Commands.InsertEndIfCommand();
                     // Get the best response indices to write to -- note that we're not reading the value in
                     int bestResponseNumerator = Unroll_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNodeNumber, action);
                     int bestResponseDenominator = Unroll_GetInformationSetIndex_BestResponseDenominator(informationSet.InformationSetNodeNumber, action);
-                    Unroll_Commands.IncrementByProduct(bestResponseNumerator, true, inversePiAvgStrat, innerResult[Unroll_Result_BestResponseIndex]);
-                    Unroll_Commands.Increment(bestResponseDenominator, true, inversePiAvgStrat);
-                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_CurrentVsCurrentIndex], false, probabilityOfAction, innerResult[Unroll_Result_CurrentVsCurrentIndex]);
-                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_AverageStrategyIndex], false, probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex]);
+                    Unroll_Commands.IncrementByProduct(bestResponseNumerator, isUltimateResult, inversePiAvgStrat, innerResult[Unroll_Result_BestResponseIndex]);
+                    Unroll_Commands.Increment(bestResponseDenominator, isUltimateResult, inversePiAvgStrat);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_CurrentVsCurrentIndex], isUltimateResult, probabilityOfAction, innerResult[Unroll_Result_CurrentVsCurrentIndex]);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_AverageStrategyIndex], isUltimateResult, probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex]);
                 }
                 else
                 {
-                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_CurrentVsCurrentIndex], false, probabilityOfAction, innerResult[Unroll_Result_CurrentVsCurrentIndex]);
-                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_AverageStrategyIndex], false, probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex]);
-                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_BestResponseIndex], false, probabilityOfActionAvgStrat, innerResult[Unroll_Result_BestResponseIndex]);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_CurrentVsCurrentIndex], isUltimateResult, probabilityOfAction, innerResult[Unroll_Result_CurrentVsCurrentIndex]);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_AverageStrategyIndex], isUltimateResult, probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex]);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_BestResponseIndex], isUltimateResult, probabilityOfActionAvgStrat, innerResult[Unroll_Result_BestResponseIndex]);
                 }
                 Unroll_Commands.IncrementByProduct(expectedValue, false, probabilityOfAction, expectedValueOfAction[action - 1]);
 
@@ -619,13 +620,13 @@ namespace ACESim
                     Unroll_Commands.Decrement(regret, expectedValue);
                     int lastRegretNumerator = Unroll_GetInformationSetIndex_LastRegretNumerator(informationSet.InformationSetNodeNumber, action);
                     int lastRegretDenominator = Unroll_GetInformationSetIndex_LastRegretDenominator(informationSet.InformationSetNodeNumber, action);
-                    Unroll_Commands.IncrementByProduct(lastRegretNumerator, true, regret, inversePi);
-                    Unroll_Commands.Increment(lastRegretDenominator, true, inversePi);
+                    Unroll_Commands.IncrementByProduct(lastRegretNumerator, isUltimateResult, regret, inversePi);
+                    Unroll_Commands.Increment(lastRegretDenominator, isUltimateResult, inversePi);
                     // now contribution to average strategy
                     int contributionToAverageStrategy = Unroll_Commands.CopyToNew(pi, false);
                     Unroll_Commands.MultiplyBy(contributionToAverageStrategy, actionProbabilities[action - 1]); // note: we don't multiply by average strategy adjustment here -- we do so at end of iteration
                     int lastCumulativeStrategyIncrement = Unroll_GetInformationSetIndex_LastCumulativeStrategyIncrement(informationSet.InformationSetNodeNumber, action);
-                    Unroll_Commands.Increment(lastCumulativeStrategyIncrement, true, contributionToAverageStrategy);
+                    Unroll_Commands.Increment(lastCumulativeStrategyIncrement, isUltimateResult, contributionToAverageStrategy);
                     if (TraceCFR)
                     {
                         int piCopy = Unroll_Commands.CopyToNew(pi, false);
