@@ -59,7 +59,7 @@ namespace ACESimTest
             const int maxNumCommands = 100;
             var cl = new ArrayCommandList(maxNumCommands, initialArrayIndex, parallel);
             cl.MinNumCommandsToCompile = 1;
-            cl.StartCommandChunk(parallel, null, "Chunk");
+            cl.StartCommandChunk(false, null, "Chunk");
 
             int v0_10 = cl.CopyToNew(sourceIndicesStart + 1 /* 10 */, fromOriginalSources: true); // example of copying from source
             int v1_10 = cl.CopyToNew(v0_10, fromOriginalSources: false);
@@ -89,7 +89,6 @@ namespace ACESimTest
         [TestMethod]
         public void ArrayCommandList_Conditional()
         {
-            bool parallel = true;
             const int sourceIndicesStart = 0;
             const int totalSourceIndices = 10;
             const int totalDestinationIndices = 10;
@@ -101,9 +100,9 @@ namespace ACESimTest
 
             const int initialArrayIndex = totalIndices;
             const int maxNumCommands = 100;
-            var cl = new ArrayCommandList(maxNumCommands, initialArrayIndex, parallel);
+            var cl = new ArrayCommandList(maxNumCommands, initialArrayIndex, false);
             cl.MinNumCommandsToCompile = 1;
-            cl.StartCommandChunk(parallel, null, "Chunk");
+            cl.StartCommandChunk(false, null, "Chunk");
 
             int[] copiedValues = cl.CopyToNew(sourceIndices, true);
             int v1 = cl.NewZero();
@@ -166,6 +165,61 @@ namespace ACESimTest
             cl.CompleteCommandList();
             cl.ExecuteAll(sourceValues, false);
             sourceValues[destinationIndicesStart + 1].Should().BeApproximately(681, 0.001);
+        }
+
+        [TestMethod]
+        public void ArrayCommandList_ParallelChunk()
+        {
+            const int sourceIndicesStart = 0;
+            const int totalSourceIndices = 10;
+            const int totalDestinationIndices = 10;
+            const int destinationIndicesStart = sourceIndicesStart + totalSourceIndices;
+            const int totalIndices = sourceIndicesStart + totalSourceIndices + totalDestinationIndices;
+
+            double[] sourceValues = new double[20] { 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+            int[] sourceIndices = new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+            int[] destinationIndices = new int[] { 10, 11 };
+
+            const int initialArrayIndex = totalIndices;
+            const int maxNumCommands = 1000;
+            var cl = new ArrayCommandList(maxNumCommands, initialArrayIndex, false);
+            cl.MinNumCommandsToCompile = 1;
+            cl.IncrementDepth();
+            cl.StartCommandChunk(false, null, "Chunk");
+            int[] copiedValues = cl.CopyToNew(sourceIndices, true);
+            int anotherValue = cl.CopyToNew(sourceIndices[5], true);
+            int yetAnother = cl.CopyToNew(anotherValue, false);
+
+            const int numParallelChunks = 50;
+            const int numPotentialIncrementsWithin = 10;
+            const int excludeIndexFromIncrement = 3;
+
+            cl.StartCommandChunk(true, null); // parallel within this chunk
+            for (int i = 0; i < numParallelChunks; i++)
+            {
+                cl.StartCommandChunk(false, null);
+                cl.IncrementDepth();
+                for (int j = numPotentialIncrementsWithin - 1; j >= 0; j--) // go backward to make it easier to follow algorithm
+                    if (j != excludeIndexFromIncrement)
+                        cl.Increment(destinationIndices[0], true /* target the original, even though ... */, copiedValues[j]);
+                cl.DecrementDepth();
+                cl.EndCommandChunk(destinationIndices); // ... we will ultimately need to copy the destination increments recorded here to the outer command chunk so that these increments are not lost.
+            }
+            cl.EndCommandChunk();    // end parallel within chunk
+
+            cl.EndCommandChunk();
+            cl.DecrementDepth();
+            cl.CompleteCommandList();
+            for (int i = 0; i <= 1; i++)
+            {
+                if (i == 0)
+                    cl.Parallelize = true;
+                else
+                    cl.Parallelize = false;
+                cl.ExecuteAll(sourceValues, false);
+                sourceValues[destinationIndicesStart].Should().BeApproximately(numParallelChunks * (1023 - 2 * 2 * 2), 0.001);
+                sourceValues[destinationIndicesStart] = 0;
+            }
         }
     }
 }

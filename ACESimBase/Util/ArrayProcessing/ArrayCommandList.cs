@@ -285,10 +285,6 @@ namespace ACESimBase.Util.ArrayProcessing
             HashSet<int> indicesUsed = new HashSet<int>();
             for (int commandIndex = startRange; commandIndex < endRangeExclusive; commandIndex++)
             {
-                if (commandIndex == 828)
-                {
-                    var DEBUG = 0;
-                }
                 int virtualStackIndex = UnderlyingCommands[commandIndex].GetSourceIndexIfUsed();
                 if (virtualStackIndex != -1)
                 {
