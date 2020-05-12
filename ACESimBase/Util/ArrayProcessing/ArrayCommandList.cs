@@ -114,8 +114,6 @@ namespace ACESimBase.Util.ArrayProcessing
         /// <param name="name"></param>
         public void StartCommandChunk(bool runChildrenInParallel, int? identicalStartCommandRange, string name = "")
         {
-            if (PreventStartCommandChunkLevel > 0)
-                return;
             if (RepeatIdenticalRanges && identicalStartCommandRange is int identical)
             {
                 //Debug.WriteLine($"Repeating identical range (instead of {NextCommandIndex} using {identicalStartCommandRange})");
@@ -146,8 +144,6 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void EndCommandChunk(int[] copyIncrementsToParent = null, bool endingRepeatedChunk = false)
         {
-            if (PreventStartCommandChunkLevel > 0)
-                return;
             var commandChunkBeingEnded = CurrentCommandChunk;
             commandChunkBeingEnded.EndCommandRangeExclusive = NextCommandIndex;
             commandChunkBeingEnded.EndSourceIndicesExclusive = OrderedSourceIndices?.Count() ?? 0;
@@ -180,7 +176,6 @@ namespace ACESimBase.Util.ArrayProcessing
         public void CompleteCommandList()
         {
             MaxCommandIndex = NextCommandIndex;
-            PreventStartCommandChunkLevel = 0;
             while (CurrentCommandTreeLocation.Any())
                 EndCommandChunk();
             CompleteCommandTree();
@@ -635,20 +630,14 @@ namespace ACESimBase.Util.ArrayProcessing
             AddCommand(new ArrayCommand(ArrayCommandType.NotEqualsValue, index1, valueToCompareTo));
         }
 
-        int PreventStartCommandChunkLevel = 0;
-
-        public void InsertIfCommand(bool startPreventCommandChunkWithin = false)
+        public void InsertIfCommand()
         {
-            if (startPreventCommandChunkWithin)
-                PreventStartCommandChunkLevel++;
             AddCommand(new ArrayCommand(ArrayCommandType.If, -1, -1));
         }
 
-        public void InsertEndIfCommand(bool endPreventCommandChunkWithin = false)
+        public void InsertEndIfCommand()
         {
             AddCommand(new ArrayCommand(ArrayCommandType.EndIf, -1, -1));
-            if (endPreventCommandChunkWithin)
-                PreventStartCommandChunkLevel--;
 
         }
 
