@@ -99,6 +99,10 @@ namespace ACESimBase.Util.ArrayProcessing
         public void DecrementDepth(bool completeCommandList = false)
         {
             var popResult = PerDepthStartArrayIndices.Pop();
+            if (RepeatIdenticalRanges)
+            {
+                NextArrayIndex = popResult;
+            }
             if (!PerDepthStartArrayIndices.Any() && completeCommandList)
             {
                 CompleteCommandList();
@@ -114,11 +118,11 @@ namespace ACESimBase.Util.ArrayProcessing
         /// <param name="name"></param>
         public void StartCommandChunk(bool runChildrenInParallel, int? identicalStartCommandRange, string name = "")
         {
-            TabbedText.WriteLine($"Starting {name}");
-            TabbedText.TabIndent(); // DEBUG
+            // TabbedText.WriteLine($"Starting {name}");
+            // TabbedText.TabIndent();
             if (RepeatIdenticalRanges && identicalStartCommandRange is int identical)
             {
-                TabbedText.WriteLine($"Repeating identical range (instead of {NextCommandIndex} using {identicalStartCommandRange})"); // DEBUG
+                // TabbedText.WriteLine($"Repeating identical range (instead of {NextCommandIndex} using {identicalStartCommandRange})");
                 RepeatingExistingCommandRangeStack.Push(identicalStartCommandRange);
                 NextCommandIndex = identical;
                 RepeatingExistingCommandRange = true;
@@ -146,8 +150,8 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void EndCommandChunk(int[] copyIncrementsToParent = null, bool endingRepeatedChunk = false)
         {
-            TabbedText.WriteLine($"Ending");
-            TabbedText.TabUnindent(); // DEBUG
+            // TabbedText.WriteLine($"Ending");
+            // TabbedText.TabUnindent(); 
             var commandChunkBeingEnded = CurrentCommandChunk;
             commandChunkBeingEnded.EndCommandRangeExclusive = NextCommandIndex;
             commandChunkBeingEnded.EndSourceIndicesExclusive = OrderedSourceIndices?.Count() ?? 0;
@@ -403,7 +407,6 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             if (NextCommandIndex == 0 && command.CommandType != ArrayCommandType.Blank)
                 InsertBlankCommand();
-            TabbedText.WriteLine($"{command}"); // DEBUG
             if (RepeatingExistingCommandRange)
             {
                 ArrayCommand existingCommand = UnderlyingCommands[NextCommandIndex];
