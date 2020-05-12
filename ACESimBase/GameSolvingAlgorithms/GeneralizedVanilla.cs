@@ -538,7 +538,7 @@ namespace ACESim
                 {
                     Unroll_Commands.InsertGreaterThanOtherArrayIndexCommand(probabilityOfAction, opponentPruningThresholdIndex); // if less than then prune, so if greater than, don't prune
                     // NOTE: When we insert this "if command," by passing TRUE, we prevent further breaking of the problem into chunks. Our command tree structure does not have a conditional, though we started to work on the Skip feature in ArrayCommandList. If we started a new command chunk after the if command (as could occur without passing true), then we would have malformed code, because we would start the conditional in one method and end it in another.
-                    Unroll_Commands.InsertIfCommand(true);
+                    Unroll_Commands.InsertIfCommand();
                 }
 
                 //if (EvolutionSettings.PruneOnOpponentStrategy && playerBeingOptimized != playerMakingDecision && probabilityOfAction < EvolutionSettings.PruneOnOpponentStrategyThreshold)
@@ -594,7 +594,7 @@ namespace ACESim
 
                 if (pruningPossible)
                 {
-                    Unroll_Commands.InsertEndIfCommand(true);
+                    Unroll_Commands.InsertEndIfCommand();
                 }
             }
             if (playerMakingDecision == playerBeingOptimized)
