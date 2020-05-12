@@ -536,6 +536,13 @@ namespace ACESim
                 int probabilityOfAction = actionProbabilities[action - 1];
                 if (pruningPossible)
                 {
+                    // NOTE: When we insert this IF command, we need to ensure that all of the subsequent commands before the "end if"
+                    // are in the same command chunk. If all chance decisions precede all player decisions, then that should be possible.
+                    // We are setting up the IF in a decision, but we are only starting the new command chunk in the chance nodes. 
+                    // Thus, even if we have multiple IF/THENs, they will all be contained within the same command chunk.
+                    // But if we have a different structure, then we need to make sure that we don't break up the command chunk.
+                    // The ArrayCommandList currently takes care of this by keeping commands together within the if/then loop.
+
                     Unroll_Commands.InsertGreaterThanOtherArrayIndexCommand(probabilityOfAction, opponentPruningThresholdIndex); // if less than then prune, so if greater than, don't prune
                     // NOTE: When we insert this "if command," by passing TRUE, we prevent further breaking of the problem into chunks. Our command tree structure does not have a conditional, though we started to work on the Skip feature in ArrayCommandList. If we started a new command chunk after the if command (as could occur without passing true), then we would have malformed code, because we would start the conditional in one method and end it in another.
                     Unroll_Commands.InsertIfCommand();
@@ -564,6 +571,7 @@ namespace ACESim
                     int lastBestResponseActionIndex = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_LastBestResponse(informationSet.InformationSetNodeNumber, (byte)informationSet.NumPossibleActions), true);
                     Unroll_Commands.InsertEqualsValueCommand(lastBestResponseActionIndex, (int)action);
                     Unroll_Commands.InsertIfCommand();
+                    DEBUG; // problem: this should probably be increment. But more fundamentally, we need to target original.
                     Unroll_Commands.CopyToExisting(resultArray[Unroll_Result_BestResponseIndex], innerResult[Unroll_Result_BestResponseIndex]);
                     Unroll_Commands.InsertEndIfCommand();
                     // Get the best response indices to write to -- note that we're not reading the value in
@@ -648,12 +656,17 @@ namespace ACESim
             var historyPointCopy = historyPoint; // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use GeneralizedVanillaCFR much.
             int[] probabilityAdjustedInnerResult = Unroll_Commands.NewUninitializedArray(3); // must allocate this outside the parallel loop, because if we have commands writing to an array created in the parallel loop, the array indices will change
             if (chanceNode.Decision.Unroll_Parallelize)
+            {
+                TabbedText.WriteLine($"Starting command chunk parallel {Unroll_Commands.NextCommandIndex}"); // DEBUG
                 Unroll_Commands.StartCommandChunk(true, null, chanceNode.Decision.Name);
+                Unroll_Commands.InsertBlankCommand(); // to separate from next one
+            }
             int? firstCommandToRepeat = null;
             for (byte action = 1; action <= numPossibleActionsToExplore; action++)
             {
                 if (chanceNode.Decision.Unroll_Parallelize)
                 {
+                    TabbedText.WriteLine($"Starting command chunk serial {Unroll_Commands.NextCommandIndex}"); // DEBUG
                     Unroll_Commands.StartCommandChunk(false /* inner commands are run sequentially */, firstCommandToRepeat, chanceNode.Decision.Name + "=" + action.ToString());
                     if (action == 1 && chanceNode.Decision.Unroll_Parallelize_Identical)
                         firstCommandToRepeat = Unroll_Commands.NextCommandIndex;
