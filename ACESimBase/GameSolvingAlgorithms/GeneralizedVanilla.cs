@@ -487,9 +487,9 @@ namespace ACESim
         {
             Unroll_Commands.IncrementDepth();
 
-            int inversePi = Unroll_Commands.NewUninitialized();
+            int inversePi = Unroll_Commands.NewZero();
             Unroll_GetInversePiValue(piValues, playerBeingOptimized, inversePi);
-            int inversePiAvgStrat = Unroll_Commands.NewUninitialized();
+            int inversePiAvgStrat = Unroll_Commands.NewZero();
             Unroll_GetInversePiValue(avgStratPiValues, playerBeingOptimized, inversePiAvgStrat);
             //var actionsToHere = historyPoint.GetActionsToHere(Navigation);
             //var historyPointString = historyPoint.ToString();
@@ -520,7 +520,7 @@ namespace ACESim
                     Unroll_GetInformationSetIndex_CurrentProbabilitiesOpponent_All(informationSet.InformationSetNodeNumber, numPossibleActions),
                 true);
             }
-            int[] expectedValueOfAction = Unroll_Commands.NewUninitializedArray(numPossibleActions);
+            int[] expectedValueOfAction = Unroll_Commands.NewZeroArray(numPossibleActions);
             int expectedValue = Unroll_Commands.NewZero();
             bool pruningPossible = (EvolutionSettings.PruneOnOpponentStrategy || EvolutionSettings.CFRBR) && playerBeingOptimized != playerMakingDecision;
             int opponentPruningThresholdIndex = -1;
@@ -550,9 +550,9 @@ namespace ACESim
                 //if (EvolutionSettings.PruneOnOpponentStrategy && playerBeingOptimized != playerMakingDecision && probabilityOfAction < EvolutionSettings.PruneOnOpponentStrategyThreshold)
                 //    continue;
                 int probabilityOfActionAvgStrat = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_AverageStrategy(informationSet.InformationSetNodeNumber, action), true);
-                int[] nextPiValues = Unroll_Commands.NewUninitializedArray(NumNonChancePlayers);
+                int[] nextPiValues = Unroll_Commands.NewZeroArray(NumNonChancePlayers);
                 Unroll_GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false, nextPiValues); // reduce probability associated with player being optimized, without changing probabilities for other players
-                int[] nextAvgStratPiValues = Unroll_Commands.NewUninitializedArray(NumNonChancePlayers);
+                int[] nextAvgStratPiValues = Unroll_Commands.NewZeroArray(NumNonChancePlayers);
                 Unroll_GetNextPiValues(avgStratPiValues, playerMakingDecision, probabilityOfActionAvgStrat, false, nextAvgStratPiValues);
                 if (TraceCFR)
                 {
@@ -575,7 +575,7 @@ namespace ACESim
                     // Get the best response indices to write to -- note that we're not reading the value in
                     int bestResponseNumerator = Unroll_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNodeNumber, action);
                     int bestResponseDenominator = Unroll_GetInformationSetIndex_BestResponseDenominator(informationSet.InformationSetNodeNumber, action);
-                    Unroll_Commands.IncrementByProduct(bestResponseNumerator, true, inversePiAvgStrat, innerResult[Unroll_Result_BestResponseIndex]);
+                    Unroll_Commands.IncrementByProduct(bestResponseNumerator, true, inversePiAvgStrat, innerResult[Unroll_Result_BestResponseIndex]); // since we are not using these internal to the tree walk, we target originals
                     Unroll_Commands.Increment(bestResponseDenominator, true, inversePiAvgStrat);
                     Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_CurrentVsCurrentIndex], isUltimateResult, probabilityOfAction, innerResult[Unroll_Result_CurrentVsCurrentIndex]);
                     Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_AverageStrategyIndex], isUltimateResult, probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex]);
@@ -608,12 +608,12 @@ namespace ACESim
                 int smallestPossible = Unroll_Commands.CopyToNew(Unroll_SmallestProbabilityRepresentedIndex, true);
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
-                    int pi = Unroll_Commands.CopyToNew(piValues[playerBeingOptimized], false);
+                    int pi = Unroll_Commands.CopyToNew(piValues[playerBeingOptimized], false); 
                     Unroll_Commands.InsertLessThanOtherArrayIndexCommand(pi, smallestPossible);
                     Unroll_Commands.InsertIfCommand();
                     Unroll_Commands.CopyToExisting(pi, smallestPossible);
                     Unroll_Commands.InsertEndIfCommand();
-                    int regret = Unroll_Commands.CopyToNew(expectedValueOfAction[action - 1], false);
+                    int regret = Unroll_Commands.CopyToNew(expectedValueOfAction[action - 1], false); 
                     Unroll_Commands.Decrement(regret, expectedValue);
                     int lastRegretNumerator = Unroll_GetInformationSetIndex_LastRegretNumerator(informationSet.InformationSetNodeNumber, action);
                     int lastRegretDenominator = Unroll_GetInformationSetIndex_LastRegretDenominator(informationSet.InformationSetNodeNumber, action);
@@ -652,7 +652,7 @@ namespace ACESim
             if (EvolutionSettings.DistributeChanceDecisions && chanceNode.Decision.DistributedChanceDecision)
                 numPossibleActionsToExplore = 1;
             var historyPointCopy = historyPoint; // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use GeneralizedVanillaCFR much.
-            int[] probabilityAdjustedInnerResult = Unroll_Commands.NewUninitializedArray(3); // must allocate this outside the parallel loop, because if we have commands writing to an array created in the parallel loop, the array indices will change
+            int[] probabilityAdjustedInnerResult = Unroll_Commands.NewZeroArray(3); // must allocate this outside the parallel loop, because if we have commands writing to an array created in the parallel loop, the array indices will change
             if (chanceNode.Decision.Unroll_Parallelize)
             {
                 TabbedText.WriteLine($"Starting command chunk parallel {Unroll_Commands.NextCommandIndex}"); // DEBUG
@@ -695,9 +695,9 @@ namespace ACESim
                 distributorChanceInputsNext += action * chanceNode.Decision.DistributorChanceInputDecisionMultiplier;
             if (EvolutionSettings.DistributeChanceDecisions && chanceNode.Decision.DistributedChanceDecision)
                 actionProbability = Unroll_Commands.CopyToNew(Unroll_OneIndex, true);
-            int[] nextPiValues = Unroll_Commands.NewUninitializedArray(NumNonChancePlayers);
+            int[] nextPiValues = Unroll_Commands.NewZeroArray(NumNonChancePlayers);
             Unroll_GetNextPiValues(piValues, playerBeingOptimized, actionProbability, true, nextPiValues);
-            int[] nextAvgStratPiValues = Unroll_Commands.NewUninitializedArray(NumNonChancePlayers);
+            int[] nextAvgStratPiValues = Unroll_Commands.NewZeroArray(NumNonChancePlayers);
             Unroll_GetNextPiValues(avgStratPiValues, playerBeingOptimized, actionProbability, true, nextAvgStratPiValues);
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
 
