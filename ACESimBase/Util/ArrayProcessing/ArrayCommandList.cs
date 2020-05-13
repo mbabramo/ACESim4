@@ -708,8 +708,8 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void InsertEndIfCommand()
         {
-            EndKeepCommandsTogether();
             AddCommand(new ArrayCommand(ArrayCommandType.EndIf, -1, -1));
+            EndKeepCommandsTogether();
         }
 
         /// <summary>

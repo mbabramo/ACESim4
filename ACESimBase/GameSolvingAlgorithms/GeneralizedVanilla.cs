@@ -538,13 +538,12 @@ namespace ACESim
                 {
                     // NOTE: When we insert this IF command, we need to ensure that all of the subsequent commands before the "end if"
                     // are in the same command chunk. If all chance decisions precede all player decisions, then that should be possible.
-                    // We are setting up the IF in a decision, but we are only starting the new command chunk in the chance nodes. 
+                    // We are setting up the IF in a player decision, but we are only starting the new command chunk in the chance nodes. 
                     // Thus, even if we have multiple IF/THENs, they will all be contained within the same command chunk.
                     // But if we have a different structure, then we need to make sure that we don't break up the command chunk.
                     // The ArrayCommandList currently takes care of this by keeping commands together within the if/then loop.
 
-                    Unroll_Commands.InsertGreaterThanOtherArrayIndexCommand(probabilityOfAction, opponentPruningThresholdIndex); // if less than then prune, so if greater than, don't prune
-                    // NOTE: When we insert this "if command," by passing TRUE, we prevent further breaking of the problem into chunks. Our command tree structure does not have a conditional, though we started to work on the Skip feature in ArrayCommandList. If we started a new command chunk after the if command (as could occur without passing true), then we would have malformed code, because we would start the conditional in one method and end it in another.
+                    Unroll_Commands.InsertGreaterThanOtherArrayIndexCommand(probabilityOfAction, opponentPruningThresholdIndex); // if less than or equal to then prune, so if greater than, don't prune (continue into if block)
                     Unroll_Commands.InsertIfCommand();
                 }
 
@@ -571,22 +570,21 @@ namespace ACESim
                     int lastBestResponseActionIndex = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_LastBestResponse(informationSet.InformationSetNodeNumber, (byte)informationSet.NumPossibleActions), true);
                     Unroll_Commands.InsertEqualsValueCommand(lastBestResponseActionIndex, (int)action);
                     Unroll_Commands.InsertIfCommand();
-                    // DEBUG: Should this be increment?
-                    Unroll_Commands.CopyToExisting(resultArray[Unroll_Result_BestResponseIndex], innerResult[Unroll_Result_BestResponseIndex]);
+                    Unroll_Commands.Increment(resultArray[Unroll_Result_BestResponseIndex], isUltimateResult, innerResult[Unroll_Result_BestResponseIndex]);
                     Unroll_Commands.InsertEndIfCommand();
                     // Get the best response indices to write to -- note that we're not reading the value in
                     int bestResponseNumerator = Unroll_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNodeNumber, action);
                     int bestResponseDenominator = Unroll_GetInformationSetIndex_BestResponseDenominator(informationSet.InformationSetNodeNumber, action);
                     Unroll_Commands.IncrementByProduct(bestResponseNumerator, true, inversePiAvgStrat, innerResult[Unroll_Result_BestResponseIndex]);
                     Unroll_Commands.Increment(bestResponseDenominator, true, inversePiAvgStrat);
-                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_CurrentVsCurrentIndex], false, probabilityOfAction, innerResult[Unroll_Result_CurrentVsCurrentIndex]);
-                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_AverageStrategyIndex], false, probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex]);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_CurrentVsCurrentIndex], isUltimateResult, probabilityOfAction, innerResult[Unroll_Result_CurrentVsCurrentIndex]);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_AverageStrategyIndex], isUltimateResult, probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex]);
                 }
                 else
                 {
-                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_CurrentVsCurrentIndex], false, probabilityOfAction, innerResult[Unroll_Result_CurrentVsCurrentIndex]);
-                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_AverageStrategyIndex], false, probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex]);
-                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_BestResponseIndex], false, probabilityOfActionAvgStrat, innerResult[Unroll_Result_BestResponseIndex]);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_CurrentVsCurrentIndex], isUltimateResult, probabilityOfAction, innerResult[Unroll_Result_CurrentVsCurrentIndex]);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_AverageStrategyIndex], isUltimateResult, probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex]);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_BestResponseIndex], isUltimateResult, probabilityOfActionAvgStrat, innerResult[Unroll_Result_BestResponseIndex]);
                 }
                 Unroll_Commands.IncrementByProduct(expectedValue, false, probabilityOfAction, expectedValueOfAction[action - 1]);
 
@@ -997,6 +995,11 @@ namespace ACESim
                     distributorChanceInputsNext += action * informationSet.Decision.DistributorChanceInputDecisionMultiplier;
                 double probabilityOfAction = actionProbabilities[action - 1];
                 bool prune = playerBeingOptimized != playerMakingDecision && probabilityOfAction == 0;
+                if (prune)
+                {
+                    var DEBUG = 0;
+                }
+
                 if (!prune)
                 {
                     double probabilityOfActionAvgStrat = informationSet.GetAverageStrategy(action);
