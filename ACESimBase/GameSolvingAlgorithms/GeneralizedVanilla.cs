@@ -98,6 +98,13 @@ namespace ACESim
             long lastElapsedSeconds = -1;
             for (int iteration = 1; iteration <= EvolutionSettings.TotalIterations && !targetMet; iteration++)
             {
+                if (iteration == 5)
+                {
+                    TraceCFR = true; // DEBUG
+                    array = new double[Unroll_SizeOfArray];
+                }
+                else
+                    TraceCFR = false; // DEBUG
                 long elapsedSeconds = s.ElapsedMilliseconds / 1000;
                 if (elapsedSeconds != lastElapsedSeconds)
                     TabbedText.SetConsoleProgressString($"Iteration {iteration} (elapsed seconds: {s.ElapsedMilliseconds / 1000})");
@@ -130,7 +137,7 @@ namespace ACESim
                 targetMet = Status.BestResponseTargetMet(EvolutionSettings.BestResponseTarget);
                 if (TraceCFR)
                 { // only trace through iteration
-                    // There are a number of advanced settings in ArrayCommandList that must be disabled for this feature to work properly. 
+                    // There are a number of advanced settings in ArrayCommandList that must be disabled for this feature to work properly. Parallelize || RepeatIdenticalRanges || UseOrderedDestinations || UseOrderedSources must be false.
                     string resultWithReplacementOfARRAY = TraceCommandList(array);
                 }
                 if (EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions)
@@ -812,6 +819,8 @@ namespace ACESim
             long lastElapsedSeconds = -1;
             for (int iteration = 1; iteration <= EvolutionSettings.TotalIterations && !targetMet; iteration++)
             {
+                if (iteration == 5)
+                    TraceCFR = true; // DEBUG
                 long elapsedSeconds = s.ElapsedMilliseconds / 1000;
                 if (!TraceCFR && elapsedSeconds != lastElapsedSeconds)
                     TabbedText.SetConsoleProgressString($"Iteration {iteration} (elapsed seconds: {s.ElapsedMilliseconds / 1000})");
