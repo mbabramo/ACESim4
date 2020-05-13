@@ -151,8 +151,8 @@ namespace ACESim
         public static MyGameOptions Custom()
         {
             var options = SuperSimple();
-            options.NumPotentialBargainingRounds = 2;
-            options.SkipFileAndAnswerDecisions = false;
+            //options.NumPotentialBargainingRounds = 2;
+            //options.SkipFileAndAnswerDecisions = false;
             //var options = DamagesUncertainty_2BR();
 
             //options.NumPotentialBargainingRounds = 5;

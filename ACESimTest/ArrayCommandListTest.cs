@@ -189,7 +189,7 @@ namespace ACESimTest
             int[] destinationIndices = new int[] { 10, 11 };
 
             const int initialArrayIndex = totalIndices;
-            const int maxNumCommands = 1000;
+            const int maxNumCommands = 5000;
             var cl = new ArrayCommandList(maxNumCommands, initialArrayIndex, parallelize);
 
             cl.MinNumCommandsToCompile = 1;
@@ -203,28 +203,60 @@ namespace ACESimTest
             const int numPotentialIncrementsWithin = 10;
             const int excludeIndexFromIncrement = 3;
 
+            int intermediateVariableIndex = cl.CopyToNew(copiedValues[0], false);
+            int[] incrementToParentIndices = new int[] { intermediateVariableIndex }; // that is, we want increments to this intermediate variable to be copied from the child virtual stacks back into this virtual stack. 
+
             cl.StartCommandChunk(true, null); // parallel within this chunk
             int repeatedCommandIndex = -1;
+
+            int inParallelWithParallelChunks = cl.CopyToNew(copiedValues[4], false); // this is in parallel with the parallel chunks below, because it is before the call to StartCommandChunk in the for  loop below. 
+
             for (int i = 0; i < numParallelChunks; i++)
             {
                 if (i == 0 && repeatIdenticalChunk)
                     repeatedCommandIndex = cl.NextCommandIndex;
+                Debug.WriteLine($"Repeated command index {repeatedCommandIndex}");
                 cl.StartCommandChunk(false, repeatIdenticalChunk && i != 0 ? (int?) repeatedCommandIndex : null);
                 cl.IncrementDepth(); // NOTE -- this is critical. We must increment depth here (and decrement below) so that the increments are copied from the child virtual stack back to the parent.
                 for (int j = numPotentialIncrementsWithin - 1; j >= 0; j--) // go backward to make it easier to follow algorithm
                     if (j != excludeIndexFromIncrement)
-                        cl.Increment(destinationIndices[0], true /* target the original, even though ... */, copiedValues[j]);
+                    {
+                        // do a bunch of operations that amount to incrementing destinationIndices[0] once. Here, we are targeting the ORIGINAL values array.
+                        int copiedValueIndex = cl.CopyToNew(copiedValues[j], false);
+                        int negativeCopiedValueIndex = cl.NewZero();
+                        cl.Decrement(negativeCopiedValueIndex, copiedValueIndex);
+                        cl.Increment(destinationIndices[0], true, copiedValues[j]);
+                        cl.Increment(destinationIndices[0], true, negativeCopiedValueIndex);
+                        cl.Increment(destinationIndices[0], true, copiedValues[j]);
+                        // and some irrelevant stuff
+                        for (int k = 0; k < 2; k++)
+                        {
+                            int ignored = cl.NewZero();
+                            cl.Increment(ignored, false, copiedValueIndex);
+                        }
+                    }
+                // And now let's increment an intermediate value from before this command chunk.
+                cl.Increment(intermediateVariableIndex, false, copiedValues[1]);
+
                 cl.DecrementDepth();
-                cl.EndCommandChunk(destinationIndices); // ... we will ultimately need to copy the destination increments recorded here to the outer command chunk so that these increments are not lost.
+                cl.EndCommandChunk(incrementToParentIndices, i == 0 ? false : repeatIdenticalChunk); // two key things here: (1) We specify what is to be incremented to parent indices. Note that this doesn't include changes directly to the destination, only changes to the parent virtual stack's indices. (2) We need to specify on each iteration after the initial one being repeated that this was a repeat, so that we can record that this repeat is done.
             }
+
+            int inParallelWithParallelChunks2 = cl.CopyToNew(copiedValues[5], false); // this is also in parallel with the parallel chunks below, because it is before the call to StartCommandChunk in the for  loop below. 
             cl.EndCommandChunk();    // end parallel within chunk
 
-            cl.EndCommandChunk();
+            int[] ignoredArray = cl.NewZeroArray(5);
+            cl.Increment(destinationIndices[1], true, intermediateVariableIndex);
+
+            cl.EndCommandChunk(); // sequential within this chunk (but child chunk contains parallel).
             //cl.DecrementDepth(); // optional -- but must match
             cl.CompleteCommandList();
+            //Debug.WriteLine($"{cl.CommandTree}");
             cl.ExecuteAll(sourceValues, false);
             sourceValues[destinationIndicesStart].Should().BeApproximately(numParallelChunks * (1023 - 2 * 2 * 2), 0.001);
+            sourceValues[destinationIndicesStart + 1].Should().BeApproximately(2 * numParallelChunks + 1, 0.001);
             sourceValues[destinationIndicesStart] = 0;
+            sourceValues[destinationIndicesStart + 1] = 0;
         }
     }
 }

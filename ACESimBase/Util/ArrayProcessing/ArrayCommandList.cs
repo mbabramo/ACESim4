@@ -29,7 +29,8 @@ namespace ACESimBase.Util.ArrayProcessing
         // of the bargaining regardless of how we ended up in the second round. If we could bracket an entire round of decisions, that
         // would greatly reduce the size of the tree and allow us to have more rounds (though still at considerable cost with regard 
         // to execution). 
-        // (3) DEBUG: Can we avoid revisiting when we repeat identical sequences, at least as an option?
+        // (3) DEBUG: Can we avoid revisiting when we repeat identical sequences, at least as an option? I think the challenge here is
+        // with ReuseDestinations, since the numbers may go to different destinations. 
 
         #region Fields and settings
 
@@ -65,7 +66,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public Stack<int?> RepeatingExistingCommandRangeStack;
         public bool RepeatingExistingCommandRange = false; // when this is true, we don't need to add new commands
 
-        NWayTreeStorageInternal<ArrayCommandChunk> CommandTree;
+        public NWayTreeStorageInternal<ArrayCommandChunk> CommandTree;
         string CommandTreeString;
         List<byte> CurrentCommandTreeLocation = new List<byte>();
         NWayTreeStorageInternal<ArrayCommandChunk> CurrentNode => (NWayTreeStorageInternal<ArrayCommandChunk>) CommandTree.GetNode(CurrentCommandTreeLocation);
@@ -180,7 +181,15 @@ namespace ACESimBase.Util.ArrayProcessing
             CurrentCommandChunk.EndCommandRangeExclusive = NextCommandIndex;
             CurrentCommandChunk.EndSourceIndicesExclusive = OrderedSourceIndices?.Count() ?? 0;
             CurrentCommandChunk.EndDestinationIndicesExclusive = OrderedDestinationIndices?.Count() ?? 0;
+            if (copyIncrementsToParent != null)
+            {
+                TabbedText.WriteLine($"Planning to copy increments {String.Join(",", copyIncrementsToParent)} on {commandChunkBeingEnded.ID} with stackid {commandChunkBeingEnded.VirtualStackID} to parentsid {commandChunkBeingEnded.ParentVirtualStackID}");
+            }
             commandChunkBeingEnded.CopyIncrementsToParent = copyIncrementsToParent;
+            if (endingRepeatedChunk)
+            {
+                var DEBUG = 0;
+            }
             if (endingRepeatedChunk && RepeatingExistingCommandRangeStack.Any())
             {
                 RepeatingExistingCommandRangeStack.Pop();
@@ -427,7 +436,8 @@ namespace ACESimBase.Util.ArrayProcessing
 
         private void AddCommand(ArrayCommand command)
         {
-            if (NextCommandIndex == 2345)
+            Debug.WriteLine($"Addcommand {NextCommandIndex}: {command}"); // DEBUG
+            if (NextCommandIndex == 104)
             {
                 var DEBUG = 0;
             }
@@ -438,6 +448,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 ArrayCommand existingCommand = UnderlyingCommands[NextCommandIndex];
                 if (!command.Equals(existingCommand) && (!ReuseDestinations || command.CommandType != ArrayCommandType.ReusedDestination)) // note that goto may be specified later
                     throw new Exception("Expected repeated command to be equal but it wasn't");
+                TabbedText.WriteLine($"Repeating {NextCommandIndex}: {existingCommand}"); // DEBUG
                 NextCommandIndex++;
                 return;
             }
@@ -572,6 +583,16 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             if (targetOriginal)
             {
+                // When this is true, the goal is to change a value in the original array of values, specifically among the destination
+                // indices. This allows us to return various results from the algorithm as a whole. We do this by adding the index in
+                // the original array to OrderedDestinationIndices. Then, we add a NextDestination command. When that command is
+                // processed, the processing code will look at the next value in OrderedDestinationIndices, and it will set the
+                // 
+
+                // DEBUG But it is also necessary to return
+                // results to lower depth values -- that is, to a part of the code before IncrementDepth was called after
+                // DecrementDepth is called. 
+
                 TabbedText.WriteLine($"Targeting original at {index}"); // DEBUG
                 if (UseOrderedDestinations)
                 {
@@ -971,12 +992,14 @@ else
                 {
                     var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
                     var commandChunk = node.StoredValue;
+                    Debug.WriteLine($"Arriving at {commandChunk.ID}"); // DEBUG
                     commandChunk.CopyParentVirtualStack();
-                    commandChunk.ResetIncrementsForParent(); // the parent virtual stack may have already received increments from another node being run in parallel to this one. So, we set that to zero here to avoid double-counting.
+                    commandChunk.ResetIncrementsForParent(); // the parent virtual stack may have already received increments from another node being run in parallel to this one. Those may have been copied here. So, we set the increments here  for the parent to zero here to avoid double-counting. Note that we are not changing the increments IN the parent here, but the increments HERE for the parent.
                 }, n =>
                 {
                     var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
                     var commandChunk = node.StoredValue;
+                    Debug.WriteLine($"Executing commands in {commandChunk}"); // DEBUG
                     if (!commandChunk.Skip)
                     {
                         if (node.Branches == null || !node.Branches.Any())
@@ -985,6 +1008,7 @@ else
                         }
                         commandChunk.CopyIncrementsToParentIfNecessary();
                     }
+                    Debug.WriteLine($"Done executing commands in {commandChunk}"); // DEBUG
                 }, n =>
                 {
                     var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
@@ -1012,7 +1036,7 @@ else
 
         private void ExecuteSectionOfCommands(ArrayCommandChunk commandChunk)
         {
-            bool isCompiled = ExecuteAutogeneratedCode(commandChunk);
+            bool isCompiled = false /* DEBUG */ && ExecuteAutogeneratedCode(commandChunk);
             if (!isCompiled)
             {
                 ExecuteSectionOfCommands(new Span<double>(commandChunk.VirtualStack), commandChunk.StartCommandRange, commandChunk.EndCommandRangeExclusive - 1, commandChunk.StartSourceIndices, commandChunk.StartDestinationIndices);
@@ -1026,7 +1050,7 @@ else
             while (commandIndex <= endCommandIndexInclusive)
             {
                 ArrayCommand command = UnderlyingCommands[commandIndex];
-                //System.Diagnostics.Debug.WriteLine(*command);
+                System.Diagnostics.Debug.WriteLine(command); // DEBUG
                 switch (command.CommandType)
                 {
                     case ArrayCommandType.Zero:
