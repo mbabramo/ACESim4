@@ -98,6 +98,13 @@ namespace ACESim
             long lastElapsedSeconds = -1;
             for (int iteration = 1; iteration <= EvolutionSettings.TotalIterations && !targetMet; iteration++)
             {
+                if (iteration == 5)
+                {
+                    TraceCFR = true; // DEBUG
+                    array = new double[Unroll_SizeOfArray];
+                }
+                else
+                    TraceCFR = false; // DEBUG
                 long elapsedSeconds = s.ElapsedMilliseconds / 1000;
                 if (elapsedSeconds != lastElapsedSeconds)
                     TabbedText.SetConsoleProgressString($"Iteration {iteration} (elapsed seconds: {s.ElapsedMilliseconds / 1000})");
@@ -543,8 +550,7 @@ namespace ACESim
                     // But if we have a different structure, then we need to make sure that we don't break up the command chunk.
                     // The ArrayCommandList currently takes care of this by keeping commands together within the if/then loop.
 
-                    // DEBUG SUPERDEBUG -- change back to greater than
-                    Unroll_Commands.InsertLessThanOtherArrayIndexCommand(probabilityOfAction, opponentPruningThresholdIndex); // if less than or equal to then prune, so if greater than, don't prune (continue into if block)
+                    Unroll_Commands.InsertGreaterThanOtherArrayIndexCommand(probabilityOfAction, opponentPruningThresholdIndex); // if less than or equal to then prune, so if greater than, don't prune (continue into if block)
                     Unroll_Commands.InsertIfCommand();
                 }
 
@@ -813,6 +819,8 @@ namespace ACESim
             long lastElapsedSeconds = -1;
             for (int iteration = 1; iteration <= EvolutionSettings.TotalIterations && !targetMet; iteration++)
             {
+                if (iteration == 5)
+                    TraceCFR = true; // DEBUG
                 long elapsedSeconds = s.ElapsedMilliseconds / 1000;
                 if (!TraceCFR && elapsedSeconds != lastElapsedSeconds)
                     TabbedText.SetConsoleProgressString($"Iteration {iteration} (elapsed seconds: {s.ElapsedMilliseconds / 1000})");
@@ -996,7 +1004,6 @@ namespace ACESim
                     distributorChanceInputsNext += action * informationSet.Decision.DistributorChanceInputDecisionMultiplier;
                 double probabilityOfAction = actionProbabilities[action - 1];
                 bool prune = playerBeingOptimized != playerMakingDecision && probabilityOfAction == 0;
-                prune = !prune; // DEBUG SUPERDEBUG
                 if (prune)
                 {
                     var DEBUG = 0;
