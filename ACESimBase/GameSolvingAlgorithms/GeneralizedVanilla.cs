@@ -80,7 +80,7 @@ namespace ACESim
 
         #endregion
 
-        
+
         #region Unrolled preparation
 
         // We can achieve considerable improvements in performance by unrolling the algorithm. Instead of traversing the tree, we simply have a series of simple commands that can be processed on an array. The challenge is that we need to create this series of commands. This section prepares for the copying of data between information sets and the array. We can compare the outcomes of the regular algorithm and the unrolled version (which should always be equal) by using TraceCFR = true.
@@ -515,9 +515,9 @@ namespace ACESim
             }
             else
             {
-                actionProbabilities = Unroll_Commands.CopyToNew(playerMakingDecision == playerBeingOptimized ? 
-                    Unroll_GetInformationSetIndex_CurrentProbabilities_All(informationSet.InformationSetNodeNumber, numPossibleActions) : 
-                    Unroll_GetInformationSetIndex_CurrentProbabilitiesOpponent_All(informationSet.InformationSetNodeNumber, numPossibleActions), 
+                actionProbabilities = Unroll_Commands.CopyToNew(playerMakingDecision == playerBeingOptimized ?
+                    Unroll_GetInformationSetIndex_CurrentProbabilities_All(informationSet.InformationSetNodeNumber, numPossibleActions) :
+                    Unroll_GetInformationSetIndex_CurrentProbabilitiesOpponent_All(informationSet.InformationSetNodeNumber, numPossibleActions),
                 true);
             }
             int[] expectedValueOfAction = Unroll_Commands.NewUninitializedArray(numPossibleActions);
@@ -564,7 +564,6 @@ namespace ACESim
                 }
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                 int[] innerResult = Unroll_Commands.NewZeroArray(3);
-                // DEBUG DEBUG; // if we are going into another decision node and ultimate result is true, then we need to keep it true -- because we're still in the same command chunk. The problem is that we don't know if it's true. This suggests that whether we are targeting originals should be kept track of in ArrayCommandList. That is, if we're targeting originals, then ArrayCommandList should test whether the information is really just something that we are going to increment on the virtual stack. 
                 Unroll_GeneralizedVanillaCFR(in nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, innerResult, false, distributorChanceInputsNext);
                 Unroll_Commands.CopyToExisting(expectedValueOfAction[action - 1], innerResult[Unroll_Result_CurrentVsCurrentIndex]);
                 if (playerMakingDecision == playerBeingOptimized)
@@ -572,22 +571,22 @@ namespace ACESim
                     int lastBestResponseActionIndex = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_LastBestResponse(informationSet.InformationSetNodeNumber, (byte)informationSet.NumPossibleActions), true);
                     Unroll_Commands.InsertEqualsValueCommand(lastBestResponseActionIndex, (int)action);
                     Unroll_Commands.InsertIfCommand();
-                    // DEBUG; // problem: this should probably be increment. But more fundamentally, we need to target original.
-                    Unroll_Commands.Increment(resultArray[Unroll_Result_BestResponseIndex], true, innerResult[Unroll_Result_BestResponseIndex]);
+                    // DEBUG: Should this be increment?
+                    Unroll_Commands.CopyToExisting(resultArray[Unroll_Result_BestResponseIndex], innerResult[Unroll_Result_BestResponseIndex]);
                     Unroll_Commands.InsertEndIfCommand();
                     // Get the best response indices to write to -- note that we're not reading the value in
                     int bestResponseNumerator = Unroll_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNodeNumber, action);
                     int bestResponseDenominator = Unroll_GetInformationSetIndex_BestResponseDenominator(informationSet.InformationSetNodeNumber, action);
                     Unroll_Commands.IncrementByProduct(bestResponseNumerator, true, inversePiAvgStrat, innerResult[Unroll_Result_BestResponseIndex]);
                     Unroll_Commands.Increment(bestResponseDenominator, true, inversePiAvgStrat);
-                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_CurrentVsCurrentIndex], true, probabilityOfAction, innerResult[Unroll_Result_CurrentVsCurrentIndex]);
-                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_AverageStrategyIndex], true, probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex]);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_CurrentVsCurrentIndex], false, probabilityOfAction, innerResult[Unroll_Result_CurrentVsCurrentIndex]);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_AverageStrategyIndex], false, probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex]);
                 }
                 else
                 {
-                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_CurrentVsCurrentIndex], true, probabilityOfAction, innerResult[Unroll_Result_CurrentVsCurrentIndex]);
-                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_AverageStrategyIndex], true, probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex]);
-                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_BestResponseIndex], true, probabilityOfActionAvgStrat, innerResult[Unroll_Result_BestResponseIndex]);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_CurrentVsCurrentIndex], false, probabilityOfAction, innerResult[Unroll_Result_CurrentVsCurrentIndex]);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_AverageStrategyIndex], false, probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex]);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_BestResponseIndex], false, probabilityOfActionAvgStrat, innerResult[Unroll_Result_BestResponseIndex]);
                 }
                 Unroll_Commands.IncrementByProduct(expectedValue, false, probabilityOfAction, expectedValueOfAction[action - 1]);
 
@@ -677,10 +676,10 @@ namespace ACESim
                 Unroll_GeneralizedVanillaCFR_ChanceNode_NextAction(in historyPointCopy2,
                     playerBeingOptimized, piValues, avgStratPiValues,
                         chanceNode, action, probabilityAdjustedInnerResult, false, distributorChanceInputs);
-                Unroll_Commands.IncrementArrayBy(resultArray, true, probabilityAdjustedInnerResult);
+                Unroll_Commands.IncrementArrayBy(resultArray, isUltimateResult, probabilityAdjustedInnerResult);
 
                 if (chanceNode.Decision.Unroll_Parallelize)
-                    Unroll_Commands.EndCommandChunk(resultArray, action != 1);
+                    Unroll_Commands.EndCommandChunk(isUltimateResult ? null : resultArray, action != 1);
             }
             if (chanceNode.Decision.Unroll_Parallelize)
                 Unroll_Commands.EndCommandChunk();

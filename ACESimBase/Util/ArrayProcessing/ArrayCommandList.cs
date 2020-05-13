@@ -136,7 +136,7 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             if (KeepCommandsTogetherLevel > 0)
                 return;
-            TabbedText.WriteLine($"Starting {name} {NextCommandIndex}"); // DEBUG
+            //TabbedText.WriteLine($"Starting {name} {NextCommandIndex}"); // DEBUG
             TabbedText.TabIndent();
             if (RepeatIdenticalRanges && identicalStartCommandRange is int identical)
             {
@@ -436,7 +436,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         private void AddCommand(ArrayCommand command)
         {
-            Debug.WriteLine($"Addcommand {NextCommandIndex}: {command}"); // DEBUG
+            //Debug.WriteLine($"Addcommand {NextCommandIndex}: {command}"); // DEBUG
             if (NextCommandIndex == 104)
             {
                 var DEBUG = 0;
@@ -448,11 +448,11 @@ namespace ACESimBase.Util.ArrayProcessing
                 ArrayCommand existingCommand = UnderlyingCommands[NextCommandIndex];
                 if (!command.Equals(existingCommand) && (!ReuseDestinations || command.CommandType != ArrayCommandType.ReusedDestination)) // note that goto may be specified later
                     throw new Exception("Expected repeated command to be equal but it wasn't");
-                TabbedText.WriteLine($"Repeating {NextCommandIndex}: {existingCommand}"); // DEBUG
+                //TabbedText.WriteLine($"Repeating {NextCommandIndex}: {existingCommand}"); // DEBUG
                 NextCommandIndex++;
                 return;
             }
-            TabbedText.WriteLine($"Adding at {NextCommandIndex}: {command}"); // DEBUG
+            //TabbedText.WriteLine($"Adding at {NextCommandIndex}: {command}"); // DEBUG
             if (NextCommandIndex >= UnderlyingCommands.Length)
                 throw new Exception("Commands array size must be increased.");
             UnderlyingCommands[NextCommandIndex] = command;
@@ -593,7 +593,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 // results to lower depth values -- that is, to a part of the code before IncrementDepth was called after
                 // DecrementDepth is called. 
 
-                TabbedText.WriteLine($"Targeting original at {index}"); // DEBUG
+                //TabbedText.WriteLine($"Targeting original at {index}"); // DEBUG
                 if (UseOrderedDestinations)
                 {
                     if (ReuseDestinations && ReusableOrderedDestinationIndices.ContainsKey(index))
@@ -790,7 +790,7 @@ namespace ACESimBase.Util.ArrayProcessing
             {
                 int startCommandIndex = node.StoredValue.StartCommandRange;
                 int endCommandIndexInclusive = node.StoredValue.EndCommandRangeExclusive - 1;
-                TabbedText.WriteLine($"GenerateCode [{startCommandIndex}, {endCommandIndexInclusive})"); // DEBUG
+                //TabbedText.WriteLine($"GenerateCode [{startCommandIndex}, {endCommandIndexInclusive})"); // DEBUG
                 if (endCommandIndexInclusive - startCommandIndex + 1 >= MinNumCommandsToCompile)
                 {
                     string fnName = $"Execute{startCommandIndex}to{endCommandIndexInclusive}";
@@ -992,14 +992,14 @@ else
                 {
                     var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
                     var commandChunk = node.StoredValue;
-                    Debug.WriteLine($"Arriving at {commandChunk.ID}"); // DEBUG
+                    //Debug.WriteLine($"Arriving at {commandChunk.ID}"); // DEBUG
                     commandChunk.CopyParentVirtualStack();
                     commandChunk.ResetIncrementsForParent(); // the parent virtual stack may have already received increments from another node being run in parallel to this one. Those may have been copied here. So, we set the increments here  for the parent to zero here to avoid double-counting. Note that we are not changing the increments IN the parent here, but the increments HERE for the parent.
                 }, n =>
                 {
                     var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
                     var commandChunk = node.StoredValue;
-                    Debug.WriteLine($"Executing commands in {commandChunk}"); // DEBUG
+                    //Debug.WriteLine($"Executing commands in {commandChunk}"); // DEBUG
                     if (!commandChunk.Skip)
                     {
                         if (node.Branches == null || !node.Branches.Any())
@@ -1008,7 +1008,7 @@ else
                         }
                         commandChunk.CopyIncrementsToParentIfNecessary();
                     }
-                    Debug.WriteLine($"Done executing commands in {commandChunk}"); // DEBUG
+                    //Debug.WriteLine($"Done executing commands in {commandChunk}"); // DEBUG
                 }, n =>
                 {
                     var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
@@ -1036,7 +1036,7 @@ else
 
         private void ExecuteSectionOfCommands(ArrayCommandChunk commandChunk)
         {
-            bool isCompiled = false /* DEBUG */ && ExecuteAutogeneratedCode(commandChunk);
+            bool isCompiled = ExecuteAutogeneratedCode(commandChunk);
             if (!isCompiled)
             {
                 ExecuteSectionOfCommands(new Span<double>(commandChunk.VirtualStack), commandChunk.StartCommandRange, commandChunk.EndCommandRangeExclusive - 1, commandChunk.StartSourceIndices, commandChunk.StartDestinationIndices);
@@ -1050,7 +1050,7 @@ else
             while (commandIndex <= endCommandIndexInclusive)
             {
                 ArrayCommand command = UnderlyingCommands[commandIndex];
-                System.Diagnostics.Debug.WriteLine(command); // DEBUG
+                //System.Diagnostics.Debug.WriteLine(command); // DEBUG
                 switch (command.CommandType)
                 {
                     case ArrayCommandType.Zero:
