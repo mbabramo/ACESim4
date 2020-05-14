@@ -88,6 +88,8 @@ namespace ACESim
         private ArrayCommandList Unroll_Commands;
         private int Unroll_SizeOfArray;
 
+        int UnrollCheckpointIteration = -1; // if using checkpoints to debug unrolling, set an iteration (such as 1) here
+
         public async Task<ReportCollection> Unroll_SolveGeneralizedVanillaCFR()
         {
             ReportCollection reportCollection = new ReportCollection();
@@ -98,10 +100,9 @@ namespace ACESim
             long lastElapsedSeconds = -1;
             for (int iteration = 1; iteration <= EvolutionSettings.TotalIterations && !targetMet; iteration++)
             {
-                if (iteration == 5)
+                if (Unroll_Commands.UseCheckpoints && iteration == UnrollCheckpointIteration)
                 {
-                    Br.eak.Add("ITER5");
-                    Unroll_Commands.ResetCheckpoints(); // DEBUG
+                    Unroll_Commands.ResetCheckpoints();
                 }
                 long elapsedSeconds = s.ElapsedMilliseconds / 1000;
                 if (elapsedSeconds != lastElapsedSeconds)
@@ -119,7 +120,7 @@ namespace ACESim
                     CalculateBestResponse(false);
                 Unroll_ExecuteUnrolledCommands(array, iteration == 1 || iteration == GameDefinition.IterationsForWarmupScenario + 1);
                 StrategiesDeveloperStopwatch.Stop();
-                if (iteration == 5 && Unroll_Commands.UseCheckpoints)
+                if (Unroll_Commands.UseCheckpoints)
                 {
                     Unroll_Commands.LoadCheckpoints();
                     var checkpoints = String.Join("\r\n", Enumerable.Range(0, Unroll_Commands.Checkpoints.Count).Select(x => $"{x}: {Unroll_Commands.Checkpoints[x]}"));

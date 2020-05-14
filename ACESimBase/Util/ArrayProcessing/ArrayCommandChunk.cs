@@ -91,8 +91,6 @@ namespace ACESimBase.Util.ArrayProcessing
                 }
             }
 
-            public static bool DEBUGOn = false;
-
             public void CopyIncrementsToParentIfNecessary()
             {
                 if (ParentVirtualStack != VirtualStack && ParentVirtualStack != null && CopyIncrementsToParent != null)
