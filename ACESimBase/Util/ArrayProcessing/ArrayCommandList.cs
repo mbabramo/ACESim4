@@ -457,6 +457,10 @@ namespace ACESimBase.Util.ArrayProcessing
 
         private void AddCommand(ArrayCommand command)
         {
+            if (NextCommandIndex == 11)
+            {
+                var DEBUG = 0;
+            }
             //Debug.WriteLine($"Addcommand {NextCommandIndex}: {command}");
             if (NextCommandIndex == 0 && command.CommandType != ArrayCommandType.Blank)
                 InsertBlankCommand();

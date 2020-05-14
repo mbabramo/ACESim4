@@ -497,14 +497,12 @@ namespace ACESim
 
         private void Unroll_GeneralizedVanillaCFR_DecisionNode(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool algorithmIsLowestDepth, int distributorChanceInputs)
         {
-            Unroll_Commands.IncrementDepth();
-
             if (algorithmIsLowestDepth)
             {
                 piValues = Unroll_Commands.CopyToNew(piValues, true);
                 avgStratPiValues = Unroll_Commands.CopyToNew(avgStratPiValues, true);
             }
-
+            Unroll_Commands.IncrementDepth();
             int inversePi = Unroll_Commands.NewZero();
             Unroll_GetInversePiValue(piValues, playerBeingOptimized, inversePi);
             int inversePiAvgStrat = Unroll_Commands.NewZero();
@@ -674,6 +672,11 @@ namespace ACESim
 
         private void Unroll_GeneralizedVanillaCFR_ChanceNode(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool algorithmIsLowestDepth, int distributorChanceInputs)
         {
+            if (algorithmIsLowestDepth)
+            {
+                piValues = Unroll_Commands.CopyToNew(piValues, true);
+                avgStratPiValues = Unroll_Commands.CopyToNew(avgStratPiValues, true);
+            }
             Unroll_Commands.IncrementDepth();
             IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             ChanceNode chanceNode = (ChanceNode)gameStateForCurrentPlayer;
