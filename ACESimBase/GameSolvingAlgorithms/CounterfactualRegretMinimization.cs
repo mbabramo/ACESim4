@@ -23,7 +23,7 @@ namespace ACESim
 
         #region Options and variables
 
-        public bool TraceCFR = true; // DEBUG
+        public bool TraceCFR = false; // DEBUG
 
         #endregion
 

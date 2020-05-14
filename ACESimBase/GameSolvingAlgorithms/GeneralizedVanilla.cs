@@ -99,12 +99,7 @@ namespace ACESim
             for (int iteration = 1; iteration <= EvolutionSettings.TotalIterations && !targetMet; iteration++)
             {
                 if (iteration == 5)
-                {
-                    TraceCFR = true; // DEBUG
-                    array = new double[Unroll_SizeOfArray];
-                }
-                else
-                    TraceCFR = false; // DEBUG
+                    ArrayCommandList.ArrayCommandChunk.DEBUGOn = true;
                 long elapsedSeconds = s.ElapsedMilliseconds / 1000;
                 if (elapsedSeconds != lastElapsedSeconds)
                     TabbedText.SetConsoleProgressString($"Iteration {iteration} (elapsed seconds: {s.ElapsedMilliseconds / 1000})");
@@ -820,7 +815,7 @@ namespace ACESim
             for (int iteration = 1; iteration <= EvolutionSettings.TotalIterations && !targetMet; iteration++)
             {
                 if (iteration == 5)
-                    TraceCFR = true; // DEBUG
+                    ArrayCommandList.ArrayCommandChunk.DEBUGOn = true;
                 long elapsedSeconds = s.ElapsedMilliseconds / 1000;
                 if (!TraceCFR && elapsedSeconds != lastElapsedSeconds)
                     TabbedText.SetConsoleProgressString($"Iteration {iteration} (elapsed seconds: {s.ElapsedMilliseconds / 1000})");

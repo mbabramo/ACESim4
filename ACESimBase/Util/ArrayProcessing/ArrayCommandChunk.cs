@@ -91,6 +91,8 @@ namespace ACESimBase.Util.ArrayProcessing
                 }
             }
 
+            public static bool DEBUGOn = false;
+
             public void CopyIncrementsToParentIfNecessary()
             {
                 if (ParentVirtualStack != VirtualStack && ParentVirtualStack != null && CopyIncrementsToParent != null)
@@ -102,7 +104,8 @@ namespace ACESimBase.Util.ArrayProcessing
                         if (value != 0)
                         {
                             double result = Interlocking.Add(ref ParentVirtualStack[index], value);
-                            //Debug.WriteLine($"Result {result} "); // DEBUG
+                            if (DEBUGOn)
+                            Debug.WriteLine($"Result {result} "); // DEBUG
                         }
                     }
                 }
