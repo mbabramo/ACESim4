@@ -926,8 +926,11 @@ bool condition = true;
                         b.AppendLine($"condition = {itemTargetString} != (double) {source};");
                         break;
                     case ArrayCommandType.If:
-                        // start counting source and destination increments that we'll miss if the code doesn't execute
-
+                        // start counting source and destination increments that we'll miss if the code doesn't execute.
+                        // Each element of sourceIncrementsInIfBlock and destinationIncrementsInIfBlock corresponds to an
+                        // if block. Whenever we encounter a new source or destination, we increment the corresponding number
+                        // for every active block. Then, when we get to the EndIf, we'll remove the last element. That way,
+                        // we can move forward the correct number of source and destination increments. 
                         sourceIncrementsInIfBlock.Add(0);
                         destinationIncrementsInIfBlock.Add(0);
                         b.AppendLine($@"if (condition)
