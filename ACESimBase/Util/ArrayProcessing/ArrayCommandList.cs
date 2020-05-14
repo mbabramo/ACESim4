@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace ACESimBase.Util.ArrayProcessing
 {
@@ -41,13 +42,15 @@ namespace ACESimBase.Util.ArrayProcessing
         public int NextArrayIndex;
         public int MaxArrayIndex;
 
+        public bool DisableAdvancedFeatures = false;
+
         // Ordered sources: We initially develop a list of indices of the data passed to the algorithm each iteration. Before each iteration, we copy the data corresponding to these indices into the OrderedSources array in the order in which it will be needed. A command that otherwise would copy from the original data instead loads the next item in ordered sources. This may slightly improve performance because a sequence of original data will be cached. More importantly, it can improve parallelism: When a player chooses among many actions that are structurally equivalent (that is, they do not change how the game is played from that point on), we can run the same code with different slices of the OrderedSources array.
-        public bool UseOrderedSources = true; 
+        public bool UseOrderedSources => !DisableAdvancedFeatures && true; 
         public List<int> OrderedSourceIndices;
         public double[] OrderedSources;
         // Ordered destinations: Similarly, when the unrolled algorithm changes the data passed to it (for example, incrementing regrets in CFR), instead of directly incrementing the data, we develop in advance a list of the indices that will be changed. Then, when running the algorithm, we store the actual data that needs to be changed in an array, and on completion of the algorithm, we run through that array and change the data at the specified index for each item. This enhances parallelism because we don't have to lock around each data change, instead locking only around the final set of changes. This also may facilitate spreading the algorithm across machines, since each CPU can simply report the set of changes to make.
-        public bool UseOrderedDestinations = true;
-        public bool ReuseDestinations = false; // NOTE: Not currently working (must adapt to source code generation). If true, then we will not add a new ordered destination index for a destination location already used within code executed not in parallel. Instead, we will just increment the previous destination.
+        public bool UseOrderedDestinations => !DisableAdvancedFeatures && true;
+        public bool ReuseDestinations => !DisableAdvancedFeatures && false; // NOTE: Not currently working (must adapt to source code generation). If true, then we will not add a new ordered destination index for a destination location already used within code executed not in parallel. Instead, we will just increment the previous destination.
         public List<int> OrderedDestinationIndices;
         public double[] OrderedDestinations;
         public List<int>[] OrderedDestinationsInverted; // here, the outer array is the same size as the target array, and the inner list consists of the items to add up for that array index.
@@ -55,14 +58,16 @@ namespace ACESimBase.Util.ArrayProcessing
         public Dictionary<int, int> ReusableOrderedDestinationIndices;
         public bool Parallelize;
 
+        private bool DoParallel => !DisableAdvancedFeatures && Parallelize && false /* DEBUG */;
+
         // If true, then when a command refers to an array index, 0 refers to FirstScratchIndex.
         public bool ScratchIndicesStartAt0 => UseOrderedSources && UseOrderedDestinations;
-        public int FullArraySize => FirstScratchIndex + (Parallelize ? 0 : MaxArrayIndex);
+        public int FullArraySize => FirstScratchIndex + (DoParallel ? 0 : MaxArrayIndex);
 
         public Stack<int> PerDepthStartArrayIndices;
         int NextVirtualStackID = 0;
 
-        bool RepeatIdenticalRanges = true; // instead of repeating identical sequences of commands, we run the same sequence twice
+        bool RepeatIdenticalRanges => !DisableAdvancedFeatures && true; // instead of repeating identical sequences of commands, we run the same sequence twice
         public Stack<int?> RepeatingExistingCommandRangeStack;
         public bool RepeatingExistingCommandRange = false; // when this is true, we don't need to add new commands
 
@@ -334,6 +339,9 @@ namespace ACESimBase.Util.ArrayProcessing
                     virtualStackIndex = -1;
                 if (virtualStackIndex != -1)
                 {
+                    // NOTE: If we get an IndexOutOfRangeException or other problem here,
+                    // it may because of a failure to copy increments to parent when ending
+                    // a chunk.
                     if (firstReadFromStack[virtualStackIndex] == null && firstSetInStack[virtualStackIndex] == null)
                     {
                         if (UnderlyingCommands[commandIndex].CommandType >= ArrayCommandType.MultiplyBy && UnderlyingCommands[commandIndex].CommandType <= ArrayCommandType.DecrementBy)
@@ -443,7 +451,7 @@ namespace ACESimBase.Util.ArrayProcessing
         private void AddCommand(ArrayCommand command)
         {
             //Debug.WriteLine($"Addcommand {NextCommandIndex}: {command}"); // DEBUG
-            if (NextCommandIndex == 104)
+            if (NextCommandIndex == 3048)
             {
                 var DEBUG = 0;
             }
@@ -739,7 +747,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         #region Code generation
 
-        bool AutogenerateCode = true;
+        bool AutogenerateCode => !DisableAdvancedFeatures && true;
         [NonSerialized]
         Type AutogeneratedCodeType;
         public bool AutogeneratedCodeIsPrecompiled = false; // We can autogenerate and then just save to a c# file, so long as the game structure doesn't change. But we still need to initialize our game tree, since we use it to calculate our ordered sources. In that case, we don't need to autogenerate the code.
@@ -818,7 +826,7 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             if (!UseCheckpoints)
                 return;
-            Parallelize = false;
+
             if (AutogenerateCode)
             {
                 var method = AutogeneratedCodeType.GetMethod("ResetCheckpoints");
@@ -1045,9 +1053,9 @@ else
         public void ExecuteAll(double[] array, bool tracing)
         {
             PrepareOrderedSourcesAndDestinations(array);
-            if (tracing && (Parallelize || RepeatIdenticalRanges || UseOrderedDestinations || UseOrderedSources)) 
-                throw new Exception("Cannot trace unrolling with any of these options.");
-            if (Parallelize || RepeatIdenticalRanges)
+            if (tracing && (DoParallel || RepeatIdenticalRanges || UseOrderedDestinations || UseOrderedSources)) 
+                throw new Exception("Cannot trace unrolling with any of these options."); // NOTE: We can use checkpoints instead of tracing
+            if (DoParallel || RepeatIdenticalRanges)
             {
                 if (!UseOrderedSources || !UseOrderedDestinations)
                     throw new Exception("Must use ordered sources and destinations with parallelizable and/or RepeatIdenticalRanges");
@@ -1121,7 +1129,10 @@ else
                         break;
                     case ArrayCommandType.CopyTo:
                         if (UseCheckpoints && command.Index == CheckpointTrigger)
-                            Checkpoints.Add(virtualStack[command.SourceIndex]);
+                        {
+                            if (Checkpoints != null)
+                                Checkpoints.Add(virtualStack[command.SourceIndex]);
+                        }
                         else
                             virtualStack[command.Index] = virtualStack[command.SourceIndex];
                         break;
@@ -1236,7 +1247,7 @@ else
                 OrderedSources = new double[sourcesCount];
                 OrderedDestinations = new double[destinationsCount];
             }
-            Parallelizer.Go(Parallelize, 0, sourcesCount, n =>
+            Parallelizer.Go(DoParallel, 0, sourcesCount, n =>
             {
                 OrderedSources[n] = array[OrderedSourceIndices[n]];
             });
@@ -1247,7 +1258,7 @@ else
         {
             int startOrderedDestinationIndex = 0;
             int endOrderedDestinationIndexExclusive = OrderedDestinationIndices.Count();
-            if (Parallelize)
+            if (DoParallel)
             {
                 if (OrderedDestinationsInverted == null)
                 {
@@ -1296,8 +1307,16 @@ else
                 
                 for (int currentOrderedDestinationIndex = startOrderedDestinationIndex; currentOrderedDestinationIndex < endOrderedDestinationIndexExclusive; currentOrderedDestinationIndex++)
                 {
+                    if (currentOrderedDestinationIndex == 27 && Br.eak.Contains("ITER5"))
+                    {
+                        var DEBUG = 0;
+                    }
                     int destinationIndex = OrderedDestinationIndices[currentOrderedDestinationIndex];
                     array[destinationIndex] += OrderedDestinations[currentOrderedDestinationIndex];
+                    if (destinationIndex == 143)
+                    {
+                        var DEBUG = 0;
+                    }
                 }
             }
         }
