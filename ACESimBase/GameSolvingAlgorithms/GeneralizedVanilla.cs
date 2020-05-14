@@ -99,7 +99,7 @@ namespace ACESim
             for (int iteration = 1; iteration <= EvolutionSettings.TotalIterations && !targetMet; iteration++)
             {
                 if (iteration == 5)
-                    ArrayCommandList.ArrayCommandChunk.DEBUGOn = true;
+                    Unroll_Commands.ResetCheckpoints(); // DEBUG
                 long elapsedSeconds = s.ElapsedMilliseconds / 1000;
                 if (elapsedSeconds != lastElapsedSeconds)
                     TabbedText.SetConsoleProgressString($"Iteration {iteration} (elapsed seconds: {s.ElapsedMilliseconds / 1000})");
@@ -116,6 +116,12 @@ namespace ACESim
                     CalculateBestResponse(false);
                 Unroll_ExecuteUnrolledCommands(array, iteration == 1 || iteration == GameDefinition.IterationsForWarmupScenario + 1);
                 StrategiesDeveloperStopwatch.Stop();
+                if (iteration == 5 && Unroll_Commands.UseCheckpoints)
+                {
+                    Unroll_Commands.LoadCheckpoints();
+                    var checkpoints = String.Join("\r\n", Enumerable.Range(0, Unroll_Commands.Checkpoints.Count).Select(x => $"{x}: {Unroll_Commands.Checkpoints[x]}"));
+                    var DEBUG = 0;
+                }
                 UpdateInformationSets(iteration);
                 SimulatedAnnealing(iteration);
                 MiniReport(iteration, Unroll_IterationResultForPlayers);
@@ -567,6 +573,7 @@ namespace ACESim
                 int[] innerResult = Unroll_Commands.NewZeroArray(3);
                 Unroll_GeneralizedVanillaCFR(in nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, innerResult, false, distributorChanceInputsNext);
                 Unroll_Commands.CopyToExisting(expectedValueOfAction[action - 1], innerResult[Unroll_Result_CurrentVsCurrentIndex]);
+                Unroll_Commands.CreateCheckpoint(expectedValueOfAction[action - 1]); // DEBUG
                 if (playerMakingDecision == playerBeingOptimized)
                 {
                     int lastBestResponseActionIndex = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_LastBestResponse(informationSet.InformationSetNodeNumber, (byte)informationSet.NumPossibleActions), true);

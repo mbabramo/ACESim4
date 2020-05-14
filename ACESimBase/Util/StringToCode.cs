@@ -23,7 +23,7 @@ namespace ACESimBase.Util
             {
                 return LoadCodeHelper(codeString, fullyQualifiedClassName, extraTypesToReference);
             }
-            catch
+            catch (Exception ex)
             {
                 if (++tryNum <= maxRetries)
                     goto retry;
