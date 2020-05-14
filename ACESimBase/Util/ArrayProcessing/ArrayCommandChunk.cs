@@ -67,13 +67,13 @@ namespace ACESimBase.Util.ArrayProcessing
             {
                 if (ParentVirtualStack != VirtualStack && ParentVirtualStack != null)
                 {
-                    //Debug.Write($"Copying stack from {ParentVirtualStackID} to {VirtualStackID}: "); // DEBUG
+                    //Debug.Write($"Copying stack from {ParentVirtualStackID} to {VirtualStackID}: "); 
                     foreach (int index in IndicesReadFromStack)
                     {
                         VirtualStack[index] = ParentVirtualStack[index];
-                        //Debug.Write($"{index}:{VirtualStack[index]}, "); // DEBUG
+                        //Debug.Write($"{index}:{VirtualStack[index]}, "); 
                     }
-                    //Debug.WriteLine(""); // DEBUG
+                    //Debug.WriteLine(""); 
                     //int stackSize = Math.Min(VirtualStack.Length, ParentVirtualStack.Length);
                     //for (int i = 0; i < stackSize; i++)
                     //    VirtualStack[i] = ParentVirtualStack[i];
@@ -97,19 +97,18 @@ namespace ACESimBase.Util.ArrayProcessing
             {
                 if (ParentVirtualStack != VirtualStack && ParentVirtualStack != null && CopyIncrementsToParent != null)
                 {
-                    //Debug.WriteLine($"Copying increments for chunk {ID} {String.Join(",", CopyIncrementsToParent.Select(x => VirtualStack[x]))}"); // DEBUG
+                    //Debug.WriteLine($"Copying increments for chunk {ID} {String.Join(",", CopyIncrementsToParent.Select(x => VirtualStack[x]))}"); 
                     foreach (int index in CopyIncrementsToParent)
                     {
                         double value = VirtualStack[index];
                         if (value != 0)
                         {
                             double result = Interlocking.Add(ref ParentVirtualStack[index], value);
-                            if (DEBUGOn)
-                            Debug.WriteLine($"Result {result} "); // DEBUG
+                            Debug.WriteLine($"Result {result} "); 
                         }
                     }
                 }
-                //else Debug.WriteLine($"Not copying increments for chunk {ID}"); // DEBUG
+                //else Debug.WriteLine($"Not copying increments for chunk {ID}"); 
             }
         }
     }

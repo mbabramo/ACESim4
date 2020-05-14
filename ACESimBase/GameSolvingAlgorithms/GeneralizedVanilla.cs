@@ -123,7 +123,6 @@ namespace ACESim
                 {
                     Unroll_Commands.LoadCheckpoints();
                     var checkpoints = String.Join("\r\n", Enumerable.Range(0, Unroll_Commands.Checkpoints.Count).Select(x => $"{x}: {Unroll_Commands.Checkpoints[x]}"));
-                    var DEBUG = 0;
                 }
                 UpdateInformationSets(iteration);
                 SimulatedAnnealing(iteration);
@@ -652,11 +651,7 @@ namespace ACESim
                         int regretCopy = Unroll_Commands.CopyToNew(regret, false);
                         int inversePiCopy = Unroll_Commands.CopyToNew(inversePi, false);
                         int contributionToAverageStrategyCopy = Unroll_Commands.CopyToNew(contributionToAverageStrategy, false);
-                        int cumulativeStrategyCopy = Unroll_Commands.CopyToNew(lastCumulativeStrategyIncrement, true); // DEBUG -- this doesn't work, b/c we can't copy from the ultimate destinations
-                        if (lastCumulativeStrategyIncrement == 143)
-                        { // DEBUG
-                            Debug.WriteLine($"ODI: {Unroll_Commands.OrderedDestinationIndices.Count()}");
-                        }
+                        int cumulativeStrategyCopy = Unroll_Commands.CopyToNew(lastCumulativeStrategyIncrement, true);
                         if (TraceCFR)
                         {
                             TabbedText.WriteLine($"PiValues ARRAY{piValuesZeroCopy} ARRAY{piValuesOneCopy} pi for optimized ARRAY{piCopy}");
@@ -665,18 +660,17 @@ namespace ACESim
                         }
                         if (Unroll_Commands.UseCheckpoints)
                         {
-                            //Unroll_Commands.CreateCheckpoint(actionProbabilities[action - 1]); // DEBUG
-                            //Unroll_Commands.CreateCheckpoint(regretCopy); // DEBUG
-                            //Unroll_Commands.CreateCheckpoint(inversePiCopy); // DEBUG
-                            //Unroll_Commands.CreateCheckpoint(pi); // DEBUG
-                           // Unroll_Commands.CreateCheckpoint(cumulativeStrategyCopy); // DEBUG -- must exclude this one, because it's a copy of something targeting original, so the value will not be available.
+                            //Unroll_Commands.CreateCheckpoint(actionProbabilities[action - 1]);
+                            //Unroll_Commands.CreateCheckpoint(regretCopy);
+                            //Unroll_Commands.CreateCheckpoint(inversePiCopy);
+                            //Unroll_Commands.CreateCheckpoint(pi); 
+                           // Unroll_Commands.CreateCheckpoint(cumulativeStrategyCopy); // IMPORTANT NOTE: must exclude this one, because it's a copy of something targeting original, so the value will not be available.
                         }
                     }
                 }
             }
             Unroll_Commands.DecrementDepth();
         }
-        int DEBUGX = 0;
 
         private void Unroll_GeneralizedVanillaCFR_ChanceNode(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool algorithmIsLowestDepth, int distributorChanceInputs)
         {
@@ -691,7 +685,7 @@ namespace ACESim
             int[] probabilityAdjustedInnerResult = Unroll_Commands.NewZeroArray(3); // must allocate this outside the parallel loop, because if we have commands writing to an array created in the parallel loop, the array indices will change
             if (chanceNode.Decision.Unroll_Parallelize)
             {
-                TabbedText.WriteLine($"Starting command chunk parallel {Unroll_Commands.NextCommandIndex}"); // DEBUG
+                //TabbedText.WriteLine($"Starting command chunk parallel {Unroll_Commands.NextCommandIndex}");
                 Unroll_Commands.StartCommandChunk(true, null, chanceNode.Decision.Name);
                 Unroll_Commands.InsertBlankCommand(); // to separate from next one
             }
@@ -700,7 +694,7 @@ namespace ACESim
             {
                 if (chanceNode.Decision.Unroll_Parallelize)
                 {
-                    TabbedText.WriteLine($"Starting command chunk serial {Unroll_Commands.NextCommandIndex}"); // DEBUG
+                    //TabbedText.WriteLine($"Starting command chunk serial {Unroll_Commands.NextCommandIndex}");
                     Unroll_Commands.StartCommandChunk(false /* inner commands are run sequentially */, firstCommandToRepeat, chanceNode.Decision.Name + "=" + action.ToString());
                     if (action == 1 && chanceNode.Decision.Unroll_Parallelize_Identical)
                         firstCommandToRepeat = Unroll_Commands.NextCommandIndex;
@@ -848,8 +842,6 @@ namespace ACESim
             long lastElapsedSeconds = -1;
             for (int iteration = 1; iteration <= EvolutionSettings.TotalIterations && !targetMet; iteration++)
             {
-                if (iteration == 5)
-                    ArrayCommandList.ArrayCommandChunk.DEBUGOn = true;
                 long elapsedSeconds = s.ElapsedMilliseconds / 1000;
                 if (!TraceCFR && elapsedSeconds != lastElapsedSeconds)
                     TabbedText.SetConsoleProgressString($"Iteration {iteration} (elapsed seconds: {s.ElapsedMilliseconds / 1000})");
@@ -1033,11 +1025,6 @@ namespace ACESim
                     distributorChanceInputsNext += action * informationSet.Decision.DistributorChanceInputDecisionMultiplier;
                 double probabilityOfAction = actionProbabilities[action - 1];
                 bool prune = playerBeingOptimized != playerMakingDecision && probabilityOfAction == 0;
-                if (prune)
-                {
-                    var DEBUG = 0;
-                }
-
                 if (!prune)
                 {
                     double probabilityOfActionAvgStrat = informationSet.GetAverageStrategy(action);
