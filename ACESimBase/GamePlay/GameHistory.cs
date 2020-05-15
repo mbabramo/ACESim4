@@ -19,9 +19,7 @@ namespace ACESim
     {
         #region Construction
 
-        // We use a ref struct here because this makes a big difference in performance, allowing GameHistory to be allocated on the stack. Currently, we fix the number of players, maximum size of different players' information sets, etc. in the GameHistory (which means that we need to change the code whenever we change games). We distinguish between full and partial players because this also produces a significant performance boost. 
-
-        // TODO: Make it so that the size can be specified by the game. Also, make it so that we can have a large space for history, most of which is blank space for the next history. Then, we could make it so that we don't have to keep copying all the earlier steps, but include the index of the previous and current steps. 
+        // We use a ref struct here because this makes a difference in performance, allowing GameHistory to be allocated on the stack. Currently, we fix the number of players, maximum size of different players' information sets, etc. in the GameHistory (which means that we need to change the code whenever we change games). We distinguish between full and partial players because this also produces a significant performance boost. 
 
         public const int CacheLength = 25; // the game and game definition can use the cache to store information. This is helpful when the game player is simulating the game without playing the underlying game. The game definition may, for example, need to be able to figure out which decision is next.
         public const byte Cache_SubdivisionAggregationIndex = 0; // Use this cache entry to aggregate subdivision decisions. Thus, do NOT use it for any other purpose.
@@ -140,6 +138,7 @@ namespace ACESim
             {
                 Complete = Complete,
                 NextIndexInHistoryActionsOnly = NextIndexInHistoryActionsOnly,
+                HighestCacheIndex = HighestCacheIndex,
                 Initialized = Initialized,
                 PreviousNotificationDeferred = PreviousNotificationDeferred,
                 DeferredAction = DeferredAction,

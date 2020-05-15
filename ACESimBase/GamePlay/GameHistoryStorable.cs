@@ -13,10 +13,11 @@ namespace ACESim
         public bool Complete;
         public byte[] ActionsHistory;
         public byte[] DecisionsHistory;
-        public byte NextIndexInHistoryActionsOnly;
-        public byte[] Cache; 
-        public bool Initialized;
+        public byte[] Cache;
         public byte[] InformationSets;
+        public byte NextIndexInHistoryActionsOnly;
+        public byte HighestCacheIndex;
+        public bool Initialized;
         public bool PreviousNotificationDeferred;
         public byte DeferredAction;
         public byte DeferredPlayerNumber;
@@ -92,6 +93,7 @@ namespace ACESim
         {
             Complete = mutationOfShallowCopy.Complete;
             NextIndexInHistoryActionsOnly = mutationOfShallowCopy.NextIndexInHistoryActionsOnly;
+            HighestCacheIndex = mutationOfShallowCopy.HighestCacheIndex;
             Initialized = mutationOfShallowCopy.Initialized;
             PreviousNotificationDeferred = mutationOfShallowCopy.PreviousNotificationDeferred;
             DeferredAction = mutationOfShallowCopy.DeferredAction;

@@ -1135,7 +1135,7 @@ namespace ACESim
                     (byte)(numPossibleActionsToExplore + 1),
                     action =>
                     {
-                        var historyPointCopy2 = historyPointCopy.DeepCopyToRefStruct();
+                        var historyPointCopy2 = historyPointCopy.DeepCopyToRefStruct(); // we need to do a deep copy (despite the costly copy above) because each thread needs its own copy
                         //Debug.WriteLine($"{action}: Chance node for {chanceNode.DecisionIndex}: {historyPointCopy2.HistoryToPoint.ToString()}");
                         GeneralizedVanillaUtilities probabilityAdjustedInnerResult = GeneralizedVanillaCFR_ChanceNode_NextAction(in historyPointCopy2, playerBeingOptimized, piValues2,
                                 avgStratPiValues2, chanceNode, action, distributorChanceInputs);
