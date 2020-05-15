@@ -1,5 +1,7 @@
-﻿using System;
+﻿using JetBrains.Annotations;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -14,7 +16,6 @@ namespace ACESim
 
 
         public bool DisputeArises;
-        public bool IsTrulyLiable;
         public bool PFiles, DAnswers, PReadyToAbandon, DReadyToAbandon, BothReadyToGiveUp, PAbandons, DDefaults;
         public byte BargainingRoundsComplete;
 
@@ -34,7 +35,6 @@ namespace ACESim
         public MyGamePretrialActions PretrialActions;
         public MyGameRunningSideBetsActions RunningSideBetsActions;
 
-        public byte NumChips;
         public double DamagesAwarded;
 
         public byte LiabilityStrengthDiscrete;
@@ -49,33 +49,71 @@ namespace ACESim
         public byte PDamagesSignalDiscrete;
         public byte DDamagesSignalDiscrete;
 
-        public double? LiabilityStrengthUniform;
-        public double PLiabilitySignalUniform;
-        public double DLiabilitySignalUniform;
-        public double? DamagesStrengthUniform;
-        public double PDamagesSignalUniform;
-        public double DDamagesSignalUniform;
-
-        public double FalsePositiveExpenditures;
-        public double FalseNegativeShortfall;
-        public double TotalExpensesIncurred;
-        public double PreDisputeSharedWelfare;
-
-        public double PChangeWealth;
-        public double DChangeWealth;
+        public double  PChangeWealth;
+        public double  DChangeWealth;
         public double? PFinalWealthWithBestOffer;
         public double? DFinalWealthWithBestOffer;
-        public double PFinalWealth;
-        public double DFinalWealth;
-        public double PWelfare;
-        public double DWelfare;
+        public double  PFinalWealth;
+        public double  DFinalWealth;
+        public double  PWelfare;
+        public double  DWelfare;
+        public byte    NumChips;
+
         public List<double> POfferMixedness;
         public List<double> DOfferMixedness;
+
+        public class MyGameProgress_PostGameInfo
+        {
+            public double? LiabilityStrengthUniform;
+            public double PLiabilitySignalUniform;
+            public double DLiabilitySignalUniform;
+            public double? DamagesStrengthUniform;
+            public double PDamagesSignalUniform;
+            public double DDamagesSignalUniform;
+
+            public double FalsePositiveExpenditures;
+            public double FalseNegativeShortfall;
+            public double TotalExpensesIncurred;
+            public double PreDisputeSharedWelfare;
+
+            public bool IsTrulyLiable;
+        }
+
+        public MyGameProgress_PostGameInfo _PostGameInfo;
+        public MyGameProgress_PostGameInfo PostGameInfo
+        {
+            get
+            {
+                if (_PostGameInfo == null)
+                {
+                    if (!GameComplete)
+                        throw new Exception("Accessing post-game info prematurely.");
+                    _PostGameInfo = new MyGameProgress_PostGameInfo();
+                    CalculatePostGameInfo();
+                }
+                return _PostGameInfo;
+            }
+        }
+
+        public double? LiabilityStrengthUniform { get => PostGameInfo.LiabilityStrengthUniform; set { PostGameInfo.LiabilityStrengthUniform = value; } }
+        public double PLiabilitySignalUniform { get => PostGameInfo.PLiabilitySignalUniform; set { PostGameInfo.PLiabilitySignalUniform = value; } }
+        public double DLiabilitySignalUniform { get => PostGameInfo.DLiabilitySignalUniform; set { PostGameInfo.DLiabilitySignalUniform = value; } }
+        public double? DamagesStrengthUniform { get => PostGameInfo.DamagesStrengthUniform; set { PostGameInfo.DamagesStrengthUniform = value; } }
+        public double PDamagesSignalUniform { get => PostGameInfo.PDamagesSignalUniform; set { PostGameInfo.PDamagesSignalUniform = value; } }
+        public double DDamagesSignalUniform { get => PostGameInfo.DDamagesSignalUniform; set { PostGameInfo.DDamagesSignalUniform = value; } }
+
+        public double FalsePositiveExpenditures { get => PostGameInfo.FalsePositiveExpenditures; set { PostGameInfo.FalsePositiveExpenditures = value; } }
+        public double FalseNegativeShortfall { get => PostGameInfo.FalseNegativeShortfall; set { PostGameInfo.FalseNegativeShortfall = value; } }
+        public double TotalExpensesIncurred { get => PostGameInfo.TotalExpensesIncurred; set { PostGameInfo.TotalExpensesIncurred = value; } }
+        public double PreDisputeSharedWelfare { get => PostGameInfo.PreDisputeSharedWelfare; set { PostGameInfo.PreDisputeSharedWelfare = value; } }
+
+        public bool IsTrulyLiable { get => PostGameInfo.IsTrulyLiable; set { PostGameInfo.IsTrulyLiable = value; } }
+
 
         public override string ToString()
         {
             return
-                $"DisputeArises {DisputeArises} IsTrulyLiable {IsTrulyLiable} LiabilityStrengthDiscrete {LiabilityStrengthDiscrete} LiabilityStrengthUniform {LiabilityStrengthUniform} PLiabilitySignalDiscrete {PLiabilitySignalDiscrete} DLiabilitySignalDiscrete {DLiabilitySignalDiscrete} PLiabilitySignalUniform {PLiabilitySignalUniform} DLiabilitySignalUniform {DLiabilitySignalUniform} DamagesStrengthDiscrete {DamagesStrengthDiscrete} DamagesStrengthUniform {DamagesStrengthUniform} PDamagesSignalDiscrete {PDamagesSignalDiscrete} DDamagesSignalDiscrete {DDamagesSignalDiscrete} PDamagesSignalUniform {PDamagesSignalUniform} DDamagesSignalUniform {DDamagesSignalUniform} PFiles {PFiles} DAnswers {DAnswers} BargainingRoundsComplete {BargainingRoundsComplete} PLastAgreesToBargain {PLastAgreesToBargain} DLastAgreesToBargain {DLastAgreesToBargain} PLastOffer {PLastOffer} DLastOffer {DLastOffer} CaseSettles {CaseSettles} SettlementValue {SettlementValue} PAbandons {PAbandons} DDefaults {DDefaults} TrialOccurs {TrialOccurs} PWinsAtTrial {PWinsAtTrial} DamagesAwarded {DamagesAwarded} PFinalWealthWithBestOffer {PFinalWealthWithBestOffer} DFinalWealthWithBestOffer {DFinalWealthWithBestOffer} PFinalWealth {PFinalWealth} DFinalWealth {DFinalWealth} PWelfare {PWelfare} DWelfare {DWelfare} FalsePositiveExpenditures {FalsePositiveExpenditures} FalseNegativeShortfall {FalseNegativeShortfall} TotalExpensesIncurred {TotalExpensesIncurred} NumChips {NumChips}";
+                $"DisputeArises {DisputeArises} IsTrulyLiable {_PostGameInfo?.IsTrulyLiable} LiabilityStrengthDiscrete {LiabilityStrengthDiscrete} LiabilityStrengthUniform {_PostGameInfo?.LiabilityStrengthUniform} PLiabilitySignalDiscrete {PLiabilitySignalDiscrete} DLiabilitySignalDiscrete {DLiabilitySignalDiscrete} PLiabilitySignalUniform {_PostGameInfo?.PLiabilitySignalUniform} DLiabilitySignalUniform {_PostGameInfo?.DLiabilitySignalUniform} DamagesStrengthDiscrete {DamagesStrengthDiscrete} DamagesStrengthUniform {_PostGameInfo?.DamagesStrengthUniform} PDamagesSignalDiscrete {PDamagesSignalDiscrete} DDamagesSignalDiscrete {DDamagesSignalDiscrete} PDamagesSignalUniform {_PostGameInfo?.PDamagesSignalUniform} DDamagesSignalUniform {_PostGameInfo?.DDamagesSignalUniform} PFiles {PFiles} DAnswers {DAnswers} BargainingRoundsComplete {BargainingRoundsComplete} PLastAgreesToBargain {PLastAgreesToBargain} DLastAgreesToBargain {DLastAgreesToBargain} PLastOffer {PLastOffer} DLastOffer {DLastOffer} CaseSettles {CaseSettles} SettlementValue {SettlementValue} PAbandons {PAbandons} DDefaults {DDefaults} TrialOccurs {TrialOccurs} PWinsAtTrial {PWinsAtTrial} DamagesAwarded {DamagesAwarded} PFinalWealthWithBestOffer {PFinalWealthWithBestOffer} DFinalWealthWithBestOffer {DFinalWealthWithBestOffer} PFinalWealth {PFinalWealth} DFinalWealth {DFinalWealth} PWelfare {PWelfare} DWelfare {DWelfare} FalsePositiveExpenditures {_PostGameInfo?.FalsePositiveExpenditures} FalseNegativeShortfall {_PostGameInfo?.FalseNegativeShortfall} TotalExpensesIncurred {_PostGameInfo?.TotalExpensesIncurred} NumChips {NumChips}";
         }
 
         public bool? PFirstAgreesToBargain => (bool?)PAgreesToBargain?.FirstOrDefault() ?? null;
@@ -236,28 +274,21 @@ namespace ACESim
             // copy.GameComplete = this.GameComplete;
             base.CopyFieldInfo(copy);
             copy.DisputeArises = DisputeArises;
-            copy.IsTrulyLiable = IsTrulyLiable;
             copy.LiabilityStrengthDiscrete = LiabilityStrengthDiscrete;
             copy.PLiabilityNoiseDiscrete = PLiabilityNoiseDiscrete;
             copy.DLiabilityNoiseDiscrete = DLiabilityNoiseDiscrete;
             copy.PLiabilitySignalDiscrete = PLiabilitySignalDiscrete;
             copy.DLiabilitySignalDiscrete = DLiabilitySignalDiscrete;
-            copy.LiabilityStrengthUniform = LiabilityStrengthUniform;
             copy.PLiabilitySignalDiscrete = PLiabilitySignalDiscrete;
             copy.DLiabilitySignalDiscrete = DLiabilitySignalDiscrete;
-            copy.PLiabilitySignalUniform = PLiabilitySignalUniform;
-            copy.DLiabilitySignalUniform = DLiabilitySignalUniform;
 
             copy.DamagesStrengthDiscrete = DamagesStrengthDiscrete;
             copy.PDamagesNoiseDiscrete = PDamagesNoiseDiscrete;
             copy.DDamagesNoiseDiscrete = DDamagesNoiseDiscrete;
             copy.PDamagesSignalDiscrete = PDamagesSignalDiscrete;
             copy.DDamagesSignalDiscrete = DDamagesSignalDiscrete;
-            copy.DamagesStrengthUniform = DamagesStrengthUniform;
             copy.PDamagesSignalDiscrete = PDamagesSignalDiscrete;
             copy.DDamagesSignalDiscrete = DDamagesSignalDiscrete;
-            copy.PDamagesSignalUniform = PDamagesSignalUniform;
-            copy.DDamagesSignalUniform = DDamagesSignalUniform;
 
             copy.PFiles = PFiles;
             copy.DAnswers = DAnswers;
@@ -271,8 +302,6 @@ namespace ACESim
             copy.DAgreesToBargain = DAgreesToBargain?.ToList();
             copy.POffers = POffers?.ToList();
             copy.DOffers = DOffers?.ToList();
-            copy.POfferMixedness = POfferMixedness?.ToList();
-            copy.DOfferMixedness = DOfferMixedness?.ToList();
             copy.PResponses = PResponses?.ToList();
             copy.DResponses = DResponses?.ToList();
             copy.CaseSettles = CaseSettles;
@@ -280,6 +309,10 @@ namespace ACESim
             copy.TrialOccurs = TrialOccurs;
             copy.PWinsAtTrial = PWinsAtTrial;
             copy.DamagesAwarded = DamagesAwarded;
+            copy.DisputeGeneratorActions = DisputeGeneratorActions;
+            copy.PretrialActions = PretrialActions;
+            copy.RunningSideBetsActions = RunningSideBetsActions;
+
             copy.PChangeWealth = PChangeWealth;
             copy.DChangeWealth = DChangeWealth;
             copy.PFinalWealthWithBestOffer = PFinalWealthWithBestOffer;
@@ -288,13 +321,12 @@ namespace ACESim
             copy.DFinalWealth = DFinalWealth;
             copy.PWelfare = PWelfare;
             copy.DWelfare = DWelfare;
-            copy.FalsePositiveExpenditures = FalsePositiveExpenditures;
-            copy.FalseNegativeShortfall = FalseNegativeShortfall;
-            copy.TotalExpensesIncurred = TotalExpensesIncurred;
-            copy.PreDisputeSharedWelfare = PreDisputeSharedWelfare;
-            copy.DisputeGeneratorActions = DisputeGeneratorActions;
-            copy.PretrialActions = PretrialActions;
-            copy.RunningSideBetsActions = RunningSideBetsActions;
+            copy.NumChips = NumChips;
+
+            if (POfferMixedness != null)
+                copy.POfferMixedness = POfferMixedness.ToList();
+            if (DOfferMixedness != null)
+                copy.DOfferMixedness = DOfferMixedness.ToList();
 
             return copy;
         }
@@ -351,6 +383,8 @@ namespace ACESim
 
         public void AddOfferMixedness(bool plaintiff, double value)
         {
+            if (!ReportingMode)
+                return;
             if (plaintiff)
             {
                 if (POfferMixedness == null)
@@ -394,6 +428,57 @@ namespace ACESim
             DWelfare = outcome.DWelfare;
             TrialOccurs = outcome.TrialOccurs;
             NumChips = outcome.NumChips;
+        }
+
+        private void CalculatePostGameInfo()
+        {
+            LiabilityStrengthUniform = Game.ConvertActionToUniformDistributionDraw(LiabilityStrengthDiscrete, MyGameDefinition.Options.NumLiabilityStrengthPoints, false);
+            // If one or both parties have perfect information, then they can get their information about litigation quality now, since they don't need a signal. Note that we also specify in the game definition that the litigation quality should become part of their information set.
+            if (MyGameDefinition.Options.PLiabilityNoiseStdev == 0)
+                PLiabilitySignalUniform = (double)LiabilityStrengthUniform;
+            if (MyGameDefinition.Options.DLiabilityNoiseStdev == 0)
+                DLiabilitySignalUniform = (double)LiabilityStrengthUniform;
+            PLiabilitySignalUniform = MyGameDefinition.Options.NumLiabilitySignals == 1 ? 0.5 : PLiabilitySignalDiscrete * (1.0 / MyGameDefinition.Options.NumLiabilitySignals);
+            DLiabilitySignalUniform = MyGameDefinition.Options.NumLiabilitySignals == 1 ? 0.5 : DLiabilitySignalDiscrete * (1.0 / MyGameDefinition.Options.NumLiabilitySignals);
+            DamagesStrengthUniform = Game.ConvertActionToUniformDistributionDraw(DamagesStrengthDiscrete, MyGameDefinition.Options.NumDamagesStrengthPoints, true /* include endpoints so that we can have possibility of max or min damages */);
+            // If one or both parties have perfect information, then they can get their information about litigation quality now, since they don't need a signal. Note that we also specify in the game definition that the litigation quality should become part of their information set.
+            if (MyGameDefinition.Options.PDamagesNoiseStdev == 0)
+                PDamagesSignalUniform = (double)DamagesStrengthUniform;
+            if (MyGameDefinition.Options.DDamagesNoiseStdev == 0)
+                DDamagesSignalUniform = (double)DamagesStrengthUniform;
+            PDamagesSignalUniform = MyGameDefinition.Options.NumDamagesSignals == 1 ? 0.5 : PDamagesSignalDiscrete * (1.0 / MyGameDefinition.Options.NumDamagesSignals);
+            DDamagesSignalUniform = MyGameDefinition.Options.NumDamagesSignals == 1 ? 0.5 : DDamagesSignalDiscrete * (1.0 / MyGameDefinition.Options.NumDamagesSignals);
+
+            TotalExpensesIncurred = 0 - PChangeWealth - DChangeWealth;
+            PreDisputeSharedWelfare = MyGameDefinition.Options.MyGameDisputeGenerator.GetLitigationIndependentSocialWelfare(MyGameDefinition, DisputeGeneratorActions);
+            if (!DisputeArises)
+            {
+                FalseNegativeShortfall = 0;
+                FalsePositiveExpenditures = 0;
+                return;
+            }
+            double correctDamagesIfTrulyLiable;
+            if (MyGameDefinition.Options.NumDamagesStrengthPoints <= 1)
+                correctDamagesIfTrulyLiable = (double)MyGameDefinition.Options.DamagesMax;
+            else
+                correctDamagesIfTrulyLiable = (double)(MyGameDefinition.Options.DamagesMin + DamagesStrengthUniform * (MyGameDefinition.Options.DamagesMax - MyGameDefinition.Options.DamagesMin));
+            double falseNegativeShortfallIfTrulyLiable = Math.Max(0, correctDamagesIfTrulyLiable - PChangeWealth); // how much plaintiff's payment fell short (if at all)
+            double falsePositiveExpendituresIfNotTrulyLiable = Math.Max(0, 0 - DChangeWealth); // how much defendant's payment was excessive (if at all), in the condition in which the defendant is NOT truly liable. In this case, the defendant ideally would pay 0.
+            double falsePositiveExpendituresIfTrulyLiable = Math.Max(0, 0 - correctDamagesIfTrulyLiable - DChangeWealth); // how much defendant's payment was excessive (if at all), in the condition in which the defendant is truly liable. In this case, the defendant ideally would pay the correct amount of damages. E.g., if correct damages are 100 and defendant pays out 150 (including costs), then change in wealth is -150, we have -100 - -150, so we have 50.
+            if (!MyGameDefinition.Options.MyGameDisputeGenerator.PotentialDisputeArises(MyGameDefinition, DisputeGeneratorActions))
+                IsTrulyLiable = false;
+            else
+                IsTrulyLiable = MyGameDefinition.Options.MyGameDisputeGenerator.IsTrulyLiable(MyGameDefinition, DisputeGeneratorActions, this);
+            if (IsTrulyLiable)
+            {
+                FalseNegativeShortfall = falseNegativeShortfallIfTrulyLiable;
+                FalsePositiveExpenditures = falsePositiveExpendituresIfTrulyLiable;
+            }
+            else
+            {
+                FalseNegativeShortfall = 0;
+                FalsePositiveExpenditures = falsePositiveExpendituresIfNotTrulyLiable;
+            }
         }
 
         public override void RecalculateGameOutcome()

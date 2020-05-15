@@ -1,6 +1,7 @@
 ﻿using ACESim.Util;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -69,7 +70,8 @@ namespace ACESim
         public bool IsTrulyLiable(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
         {
             MyGameProgress myGameProgress = (MyGameProgress) gameProgress;
-            double probabilityTrulyLiable = MonotonicCurve.CalculateYValueForX(0, 1.0, Curvature, (double) myGameProgress.LiabilityStrengthUniform);
+            double liabilityStrengthUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(myGameProgress.LiabilityStrengthDiscrete - 1 /* make it zero-based */, myGameDefinition.Options.NumLiabilityStrengthPoints, false); 
+            double probabilityTrulyLiable = MonotonicCurve.CalculateYValueForX(0, 1.0, Curvature, (double)liabilityStrengthUniform);
             double randomValue = EquallySpaced.GetLocationOfEquallySpacedPoint(disputeGeneratorActions.PostPrimaryChanceAction - 1, NumPointsToDetermineTrulyLiable, false);
             return probabilityTrulyLiable >= randomValue;
         }

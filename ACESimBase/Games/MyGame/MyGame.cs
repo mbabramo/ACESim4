@@ -1,4 +1,5 @@
 ﻿using ACESim.Util;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -47,41 +48,25 @@ namespace ACESim
                     break;
                 case (byte)MyGameDecisions.LiabilityStrength:
                     MyProgress.LiabilityStrengthDiscrete = action;
-                    MyProgress.LiabilityStrengthUniform = ConvertActionToUniformDistributionDraw(action, false);
-                    // If one or both parties have perfect information, then they can get their information about litigation quality now, since they don't need a signal. Note that we also specify in the game definition that the litigation quality should become part of their information set.
-                    if (MyDefinition.Options.PLiabilityNoiseStdev == 0)
-                        MyProgress.PLiabilitySignalUniform = (double) MyProgress.LiabilityStrengthUniform;
-                    if (MyDefinition.Options.DLiabilityNoiseStdev == 0)
-                        MyProgress.DLiabilitySignalUniform = (double) MyProgress.LiabilityStrengthUniform;
                 break;
                 case (byte)MyGameDecisions.PLiabilitySignal:
                     MyProgress.PLiabilitySignalDiscrete = action;
-                    MyProgress.PLiabilitySignalUniform = MyDefinition.Options.NumLiabilitySignals == 1 ? 0.5 : action * (1.0 / MyDefinition.Options.NumLiabilitySignals);
-                    GameProgressLogger.Log(() => $"P: Liability Strength {MyProgress.LiabilityStrengthUniform} => signal {MyProgress.PLiabilitySignalDiscrete} ({MyProgress.PLiabilitySignalUniform})");
+                    GameProgressLogger.Log(() => $"P: Liability Strength {MyProgress.LiabilityStrengthDiscrete} => signal {MyProgress.PLiabilitySignalDiscrete}");
                 break;
                 case (byte)MyGameDecisions.DLiabilitySignal:
                     MyProgress.DLiabilitySignalDiscrete = action;
-                    MyProgress.DLiabilitySignalUniform = MyDefinition.Options.NumLiabilitySignals == 1 ? 0.5 : action * (1.0 / MyDefinition.Options.NumLiabilitySignals);
-                    GameProgressLogger.Log(() => $"D: Liability Strength {MyProgress.LiabilityStrengthUniform} => signal {MyProgress.DLiabilitySignalDiscrete} ({MyProgress.DLiabilitySignalUniform})");
+                    GameProgressLogger.Log(() => $"D: Liability Strength {MyProgress.LiabilityStrengthDiscrete} => signal {MyProgress.DLiabilitySignalDiscrete}");
                     break;
                 case (byte)MyGameDecisions.DamagesStrength:
                     MyProgress.DamagesStrengthDiscrete = action;
-                    MyProgress.DamagesStrengthUniform = ConvertActionToUniformDistributionDraw(action, true /* include endpoints so that we can have possibility of max or min damages */);
-                    // If one or both parties have perfect information, then they can get their information about litigation quality now, since they don't need a signal. Note that we also specify in the game definition that the litigation quality should become part of their information set.
-                    if (MyDefinition.Options.PDamagesNoiseStdev == 0)
-                        MyProgress.PDamagesSignalUniform = (double)MyProgress.DamagesStrengthUniform;
-                    if (MyDefinition.Options.DDamagesNoiseStdev == 0)
-                        MyProgress.DDamagesSignalUniform = (double)MyProgress.DamagesStrengthUniform;
                     break;
                 case (byte)MyGameDecisions.PDamagesSignal:
                     MyProgress.PDamagesSignalDiscrete = action;
-                    MyProgress.PDamagesSignalUniform = MyDefinition.Options.NumDamagesSignals == 1 ? 0.5 : action * (1.0 / MyDefinition.Options.NumDamagesSignals);
-                    GameProgressLogger.Log(() => $"P: Damages Strength {MyProgress.DamagesStrengthUniform} => signal {MyProgress.PDamagesSignalDiscrete} ({MyProgress.PDamagesSignalUniform})");
+                    GameProgressLogger.Log(() => $"P: Damages Strength {MyProgress.DamagesStrengthDiscrete} => signal {MyProgress.PDamagesSignalDiscrete}");
                     break;
                 case (byte)MyGameDecisions.DDamagesSignal:
                     MyProgress.DDamagesSignalDiscrete = action;
-                    MyProgress.DDamagesSignalUniform = MyDefinition.Options.NumDamagesSignals == 1 ? 0.5 : action * (1.0 / MyDefinition.Options.NumDamagesSignals);
-                    GameProgressLogger.Log(() => $"D: Damages Strength {MyProgress.DamagesStrengthUniform} => signal {MyProgress.DDamagesSignalDiscrete} ({MyProgress.DDamagesSignalUniform})");
+                    GameProgressLogger.Log(() => $"D: Damages Strength {MyProgress.DamagesStrengthDiscrete} => signal {MyProgress.DDamagesSignalDiscrete}");
                     break;
                 case (byte)MyGameDecisions.PFile:
                     MyProgress.PFiles = action == 1;
@@ -395,43 +380,7 @@ namespace ACESim
         {
             MyProgress.CalculateGameOutcome();
 
-            CalculateSocialWelfareOutcomes();
-
             base.FinalProcessing();
-        }
-
-        private void CalculateSocialWelfareOutcomes()
-        {
-            MyProgress.TotalExpensesIncurred = 0 - MyProgress.PChangeWealth - MyProgress.DChangeWealth;
-            MyProgress.PreDisputeSharedWelfare = MyDefinition.Options.MyGameDisputeGenerator.GetLitigationIndependentSocialWelfare(MyDefinition, MyProgress.DisputeGeneratorActions);
-            if (!MyProgress.DisputeArises)
-            {
-                MyProgress.FalseNegativeShortfall = 0;
-                MyProgress.FalsePositiveExpenditures = 0;
-                return;
-            }
-            double correctDamagesIfTrulyLiable;
-            if (MyDefinition.Options.NumDamagesStrengthPoints <= 1)
-                correctDamagesIfTrulyLiable = (double)MyDefinition.Options.DamagesMax;
-            else
-                correctDamagesIfTrulyLiable = (double) (MyDefinition.Options.DamagesMin + MyProgress.DamagesStrengthUniform * (MyDefinition.Options.DamagesMax - MyDefinition.Options.DamagesMin));
-            double falseNegativeShortfallIfTrulyLiable = Math.Max(0, correctDamagesIfTrulyLiable - MyProgress.PChangeWealth); // how much plaintiff's payment fell short (if at all)
-            double falsePositiveExpendituresIfNotTrulyLiable = Math.Max(0, 0 - MyProgress.DChangeWealth); // how much defendant's payment was excessive (if at all), in the condition in which the defendant is NOT truly liable. In this case, the defendant ideally would pay 0.
-            double falsePositiveExpendituresIfTrulyLiable = Math.Max(0, 0 - correctDamagesIfTrulyLiable - MyProgress.DChangeWealth); // how much defendant's payment was excessive (if at all), in the condition in which the defendant is truly liable. In this case, the defendant ideally would pay the correct amount of damages. E.g., if correct damages are 100 and defendant pays out 150 (including costs), then change in wealth is -150, we have -100 - -150, so we have 50.
-            if (!MyDefinition.Options.MyGameDisputeGenerator.PotentialDisputeArises(MyDefinition, MyProgress.DisputeGeneratorActions))
-                MyProgress.IsTrulyLiable = false;
-            else
-                MyProgress.IsTrulyLiable = MyDefinition.Options.MyGameDisputeGenerator.IsTrulyLiable(MyDefinition, MyProgress.DisputeGeneratorActions, MyProgress);
-            if (MyProgress.IsTrulyLiable)
-            {
-                MyProgress.FalseNegativeShortfall = falseNegativeShortfallIfTrulyLiable;
-                MyProgress.FalsePositiveExpenditures = falsePositiveExpendituresIfTrulyLiable;
-            }
-            else
-            {
-                MyProgress.FalseNegativeShortfall = 0;
-                MyProgress.FalsePositiveExpenditures = falsePositiveExpendituresIfNotTrulyLiable;
-            }
         }
     }
 }
