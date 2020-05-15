@@ -51,6 +51,14 @@ namespace ACESimBase.Util.ArrayProcessing
             ArrayCommand ac = (ArrayCommand)obj;
             return ac.CommandType == CommandType && ac.Index == Index && ac.SourceIndex == SourceIndex;
         }
+        public static bool operator ==(ArrayCommand command1, ArrayCommand command2)
+        {
+            return command1.Equals(command2);
+        }
+        public static bool operator !=(ArrayCommand command1, ArrayCommand command2)
+        {
+            return !command1.Equals(command2);
+        }
 
         public override int GetHashCode()
         {
