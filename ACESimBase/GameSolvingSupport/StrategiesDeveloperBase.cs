@@ -979,12 +979,12 @@ namespace ACESim
             }
         }
 
-        public HistoryPoint GetStartOfGameHistoryPoint()
+        public HistoryPoint GetStartOfGameHistoryPoint(bool fullHistoryRequired = true)
         {
             switch (Navigation.LookupApproach)
             {
                 case InformationSetLookupApproach.PlayGameDirectly:
-                    GameProgress startingProgress = GameFactory.CreateNewGameProgress(new IterationID(1));
+                    GameProgress startingProgress = GameFactory.CreateNewGameProgress(fullHistoryRequired, new IterationID(1));
                     return new HistoryPoint(null, startingProgress.GameHistory, startingProgress);
                 case InformationSetLookupApproach.CachedGameTreeOnly:
                     GameHistory gameHistory = new GameHistory();

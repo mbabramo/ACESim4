@@ -10,6 +10,11 @@ namespace ACESim
     [Serializable]
     public class MyGameProgress : GameProgress
     {
+        public MyGameProgress(bool fullHistoryRequired) : base(fullHistoryRequired)
+        {
+
+        }
+
         public MyGameDefinition MyGameDefinition => (MyGameDefinition)GameDefinition;
         public MyGameOptions MyGameOptions => MyGameDefinition.Options;
 
@@ -267,7 +272,7 @@ namespace ACESim
 
         public override GameProgress DeepCopy()
         {
-            MyGameProgress copy = new MyGameProgress();
+            MyGameProgress copy = new MyGameProgress(FullHistoryRequired);
 
             // copy.GameComplete = this.GameComplete;
             base.CopyFieldInfo(copy);

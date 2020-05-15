@@ -8,11 +8,15 @@ namespace ACESim
     [Serializable]
     public class MultiRoundCooperationGameProgress : GameProgress
     {
+        public MultiRoundCooperationGameProgress(bool fullHistoryRequired) : base(fullHistoryRequired)
+        {
+
+        }
         public List<byte> P1Decisions = new List<byte>(), P2Decisions = new List<byte>(), ChanceDecision = new List<byte>();
 
         public override GameProgress DeepCopy()
         {
-            MultiRoundCooperationGameProgress copy = new MultiRoundCooperationGameProgress();
+            MultiRoundCooperationGameProgress copy = new MultiRoundCooperationGameProgress(FullHistoryRequired);
 
             copy.GameComplete = this.GameComplete;
             CopyFieldInfo(copy);

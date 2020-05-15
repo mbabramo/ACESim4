@@ -23,11 +23,12 @@ namespace ACESim
             GameProgress progress,
             GameDefinition gameDefinition,
             bool recordReportInfo,
-            bool restartFromBeginningOfGame
+            bool restartFromBeginningOfGame,
+            bool fullHistoryRequired
             )
         {
             if (restartFromBeginningOfGame && (progress == null || Strategies != null))
-                progress = gameDefinition.GameFactory.CreateNewGameProgress(progress?.IterationID ?? new IterationID());
+                progress = gameDefinition.GameFactory.CreateNewGameProgress(fullHistoryRequired, progress?.IterationID ?? new IterationID());
             if (restartFromBeginningOfGame)
             {
                 progress.GameHistoryStorable = GameHistoryStorable.NewInitialized();

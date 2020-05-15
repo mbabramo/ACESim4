@@ -8,11 +8,15 @@ namespace ACESim
     [Serializable]
     public class LeducGameProgress : GameProgress
     {
+        public LeducGameProgress(bool fullHistoryRequired) : base(fullHistoryRequired)
+        {
+
+        }
         public LeducGameState GameState;
 
         public override GameProgress DeepCopy()
         {
-            LeducGameProgress copy = new LeducGameProgress();
+            LeducGameProgress copy = new LeducGameProgress(FullHistoryRequired);
 
             // copy.GameComplete = this.GameComplete;
             CopyFieldInfo(copy);

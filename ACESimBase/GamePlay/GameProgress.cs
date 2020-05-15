@@ -32,7 +32,21 @@ namespace ACESim
         public List<GameModuleProgress> GameModuleProgresses;
         public GameHistoryStorable GameHistoryStorable;
         public GameHistory GameHistory => GameHistoryStorable.ShallowCopyToRefStruct();
-        public GameFullHistoryStorable GameFullHistoryStorable;
+        private GameFullHistoryStorable _GameFullHistoryStorable;
+
+        public GameFullHistoryStorable GameFullHistoryStorable
+        {
+            get
+            {
+                if (FullHistoryRequired == false)
+                    throw new Exception("Attempt to access full history when not stored.");
+                return _GameFullHistoryStorable;
+            }
+            set
+            {
+                _GameFullHistoryStorable = value;
+            }
+        }
         public GameFullHistory GameFullHistory => GameFullHistoryStorable.ShallowCopyToRefStruct();
         public InformationSetLog InformationSetLog;
         public double PiChance; // probability chance would play to here
@@ -65,12 +79,16 @@ namespace ACESim
 
         public bool CurrentlyPlayingUpToADecisionInsteadOfCompletingGame;
 
-        public GameProgress()
+        public bool FullHistoryRequired;
+
+        public GameProgress(bool fullHistoryRequired)
         {
             var gameHistory = new GameHistory();
             gameHistory.Initialize();
             GameHistoryStorable = gameHistory.DeepCopyToStorable();
-            GameFullHistoryStorable = GameFullHistoryStorable.Initialize();
+            FullHistoryRequired = fullHistoryRequired;
+            if (fullHistoryRequired)
+                GameFullHistoryStorable = GameFullHistoryStorable.Initialize();
             InformationSetLog.Initialize();
         }
 
@@ -167,7 +185,10 @@ namespace ACESim
 
         public InformationSetHistory GetInformationSetHistory_OverallIndex(short index) => GameFullHistory.GetInformationSetHistory_OverallIndex(index, this);
 
-        public IEnumerable<byte> GetDecisionIndicesCompleted() => GameFullHistoryStorable.GetDecisionIndicesCompleted(this);
+        public IEnumerable<byte> GetDecisionIndicesCompleted()
+        {
+            return GameFullHistoryStorable.GetDecisionIndicesCompleted(this);
+        }
 
         public bool IncludesDecisionIndex(byte decisionIndex) => GetDecisionIndicesCompleted().Contains(decisionIndex);
 
@@ -196,7 +217,8 @@ namespace ACESim
                     gmp.Recycle();
             GameModuleProgresses = null;
             GameHistoryStorable = GameHistoryStorable = GameHistoryStorable.NewInitialized();
-            GameFullHistoryStorable = GameFullHistoryStorable.Initialize();
+            if (FullHistoryRequired)
+                GameFullHistoryStorable = GameFullHistoryStorable.Initialize();
             ActionsToPlay = null;
             ActionsToPlayIndex = -1;
             GameComplete = false;
@@ -298,7 +320,7 @@ namespace ACESim
         /// <returns cref="GameProgress"></returns>
         public virtual GameProgress DeepCopy()
         {
-            GameProgress copy = new GameProgress();
+            GameProgress copy = new GameProgress(FullHistoryRequired);
 
             CopyFieldInfo(copy);
             return copy;
@@ -323,7 +345,8 @@ namespace ACESim
             copy.GameDefinition = GameDefinition;
             copy.GameModuleProgresses = GameModuleProgresses == null ? null : (GameModuleProgresses.Select(x => x?.DeepCopy()).ToList());
             copy.GameHistoryStorable = GameHistoryStorable.ShallowCopyToRefStruct().DeepCopyToStorable();
-            copy.GameFullHistoryStorable = GameFullHistoryStorable.ShallowCopyToRefStruct().DeepCopyToStorable();
+            if (FullHistoryRequired)
+                copy.GameFullHistoryStorable = GameFullHistoryStorable.ShallowCopyToRefStruct().DeepCopyToStorable();
             copy.ActionsToPlay = ActionsToPlay?.ToList(); 
             copy.ActionsToPlayIndex = ActionsToPlayIndex;
             copy.GameComplete = this.GameComplete;
@@ -335,6 +358,7 @@ namespace ACESim
             copy.RandomNumbersUsed = this.RandomNumbersUsed;
             copy.Mixedness = this.Mixedness;
             copy.ReportingMode = this.ReportingMode;
+            copy.FullHistoryRequired = this.FullHistoryRequired;
         }
 
         private object GetFieldValueForReportFromGameModuleProgress(string variableNameForReport, int? listIndex, out bool found)

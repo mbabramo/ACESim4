@@ -27,9 +27,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             GameProgress progress,
             GameDefinition gameDefinition,
             bool recordReportInfo,
-            bool restartFromBeginningOfGame)
+            bool restartFromBeginningOfGame,
+            bool fullHistoryRequired)
         {
-            return new AdditiveEvidenceGame(strategies, progress, gameDefinition, recordReportInfo, restartFromBeginningOfGame);
+            return new AdditiveEvidenceGame(strategies, progress, gameDefinition, recordReportInfo, restartFromBeginningOfGame, fullHistoryRequired);
         }
 
         /// <summary>
@@ -37,9 +38,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         /// of the game will have subclassed GameProgressInfo and thus must override this method. 
         /// </summary>
         /// <returns></returns>
-        public GameProgress CreateNewGameProgress(IterationID iterationID)
+        public GameProgress CreateNewGameProgress(bool fullHistoryRequired, IterationID iterationID)
         {
-            GameProgress gameProgress = new AdditiveEvidenceGameProgress() { IterationID = iterationID };
+            GameProgress gameProgress = new AdditiveEvidenceGameProgress(fullHistoryRequired) { IterationID = iterationID };
             return gameProgress;
         }
 

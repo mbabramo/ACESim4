@@ -9,6 +9,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
     [Serializable]
     public class AdditiveEvidenceGameProgress : GameProgress
     {
+
+        public AdditiveEvidenceGameProgress(bool fullHistoryRequired) : base(fullHistoryRequired)
+        {
+
+        }
         public AdditiveEvidenceGameDefinition AdditiveEvidenceGameDefinition => (AdditiveEvidenceGameDefinition)GameDefinition;
         public AdditiveEvidenceGameOptions AdditiveEvidenceGameOptions => AdditiveEvidenceGameDefinition.Options;
 
@@ -193,7 +198,7 @@ AccuracyIgnoringCosts {Accuracy} Accuracy_ForPlaintiff {Accuracy_ForPlaintiff} A
 
         public override GameProgress DeepCopy()
         {
-            AdditiveEvidenceGameProgress copy = new AdditiveEvidenceGameProgress();
+            AdditiveEvidenceGameProgress copy = new AdditiveEvidenceGameProgress(FullHistoryRequired);
 
             // copy.GameComplete = this.GameComplete;
             base.CopyFieldInfo(copy);

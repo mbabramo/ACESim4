@@ -39,7 +39,7 @@ namespace ACESim
             Strategies = strategies;
             DoParallelIfNotDisabled = doParallel;
             GameDefinition = gameDefinition;
-            StartingProgress = GameDefinition.GameFactory.CreateNewGameProgress(new IterationID(1));
+            StartingProgress = GameDefinition.GameFactory.CreateNewGameProgress(true, new IterationID(1));
         }
 
 
@@ -229,7 +229,7 @@ namespace ACESim
         public (Game game, GameProgress gameProgress) PlayPathAndStop(List<byte> actionsToPlay)
         {
             GameProgress gameProgress = StartingProgress.DeepCopy();
-            Game game = GameDefinition.GameFactory.CreateNewGame(Strategies, gameProgress, GameDefinition, false, true);
+            Game game = GameDefinition.GameFactory.CreateNewGame(Strategies, gameProgress, GameDefinition, false, true, true);
             game.PlayPathAndStop(actionsToPlay);
             if (!gameProgress.GameComplete)
                 game.AdvanceToOrCompleteNextStep();
@@ -241,7 +241,7 @@ namespace ACESim
         public (Game game, GameProgress gameProgress) GetGameStarted()
         {
             GameProgress gameProgress = StartingProgress.DeepCopy();
-            Game game = GameDefinition.GameFactory.CreateNewGame(Strategies, gameProgress, GameDefinition, false, true);
+            Game game = GameDefinition.GameFactory.CreateNewGame(Strategies, gameProgress, GameDefinition, false, true, true);
             game.AdvanceToOrCompleteNextStep();
             return (game, gameProgress);
         }
@@ -250,7 +250,7 @@ namespace ACESim
         {
             GameProgress gameProgress = StartingProgress.DeepCopy();
             gameProgress.ActionOverrider = actionOverride;
-            Game game = GameDefinition.GameFactory.CreateNewGame(Strategies, gameProgress, GameDefinition, false, true);
+            Game game = GameDefinition.GameFactory.CreateNewGame(Strategies, gameProgress, GameDefinition, false, true, true);
             game.PlayUntilComplete();
             return gameProgress;
         }
@@ -258,7 +258,7 @@ namespace ACESim
         public GameProgress PlayPathAndKeepGoing(Span<byte> actionsToPlay, ref Span<byte> nextActionsToPlay)
         {
             GameProgress gameProgress = StartingProgress.DeepCopy();
-            Game game = GameDefinition.GameFactory.CreateNewGame(Strategies, gameProgress, GameDefinition, false, true);
+            Game game = GameDefinition.GameFactory.CreateNewGame(Strategies, gameProgress, GameDefinition, false, true, true);
             game.PlayPathAndContinueWithDefaultAction(actionsToPlay, ref nextActionsToPlay);
             return gameProgress;
         }
@@ -266,14 +266,14 @@ namespace ACESim
 
         private GameProgress PlayGameFromSpecifiedPoint(GameProgress currentState)
         {
-            Game game = GameDefinition.GameFactory.CreateNewGame(Strategies, currentState, GameDefinition, false, false);
+            Game game = GameDefinition.GameFactory.CreateNewGame(Strategies, currentState, GameDefinition, false, false, true);
             game.PlayUntilComplete();
             return game.Progress;
         }
 
         public void ContinuePathWithAction(byte actionToPlay, GameProgress currentGameState)
         {
-            Game game = GameDefinition.GameFactory.CreateNewGame(Strategies, currentGameState, GameDefinition, false, false);
+            Game game = GameDefinition.GameFactory.CreateNewGame(Strategies, currentGameState, GameDefinition, false, false, true);
             game.ContinuePathWithAction(actionToPlay);
         }
 
@@ -403,12 +403,12 @@ namespace ACESim
             }
             else
             {
-                gameProgress = GameDefinition.GameFactory.CreateNewGameProgress(iterationIDArray?[iteration]);
+                gameProgress = GameDefinition.GameFactory.CreateNewGameProgress(true, iterationIDArray?[iteration]);
                 gameProgress.ReportingMode = ReportingMode;
                 gameProgress.ActionOverrider = actionOverride;
             }
 
-            Game game = GameDefinition.GameFactory.CreateNewGame(strategies, gameProgress, GameDefinition, saveCompletedGameProgressInfos, false);
+            Game game = GameDefinition.GameFactory.CreateNewGame(strategies, gameProgress, GameDefinition, saveCompletedGameProgressInfos, false, true);
             game.PlayUntilComplete();
 
             if (saveCompletedGameProgressInfos)

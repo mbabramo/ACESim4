@@ -11,9 +11,10 @@ namespace ACESim
             GameProgress progress,
             GameDefinition gameDefinition,
             bool recordReportInfo,
-            bool restartFromBeginningOfGame);
+            bool restartFromBeginningOfGame,
+            bool fullHistoryRequired);
         Type GetGameDefinitionType();
-        GameProgress CreateNewGameProgress(IterationID iterationID);
+        GameProgress CreateNewGameProgress(bool fullHistoryRequired, IterationID iterationID);
         void InitializeStrategyDevelopment(Strategy strategy);
         void ConcludeStrategyDevelopment();
     }

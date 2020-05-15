@@ -25,7 +25,7 @@ namespace ACESimBase
         {
             GameDefinition = gameDefinition;
             GameProgress = currentProgress;
-            Game = GameDefinition.GameFactory.CreateNewGame(null, GameProgress, GameDefinition, false, GameProgress == null || (GameProgress.CurrentDecisionIndex == null && !GameProgress.GameComplete));
+            Game = GameDefinition.GameFactory.CreateNewGame(null, GameProgress, GameDefinition, false, GameProgress == null || (GameProgress.CurrentDecisionIndex == null && !GameProgress.GameComplete), false);
             if (advanceToFirstStep)
                 Game.AdvanceToOrCompleteNextStep();
         }

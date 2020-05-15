@@ -19,8 +19,9 @@ namespace ACESim
             GameProgress progress,
             GameDefinition gameDefinition,
             bool recordReportInfo,
-            bool restartFromBeginningOfGame
-            ) : base(strategies, progress, gameDefinition, recordReportInfo, restartFromBeginningOfGame)
+            bool restartFromBeginningOfGame,
+            bool fullHistoryRequired
+            ) : base(strategies, progress, gameDefinition, recordReportInfo, restartFromBeginningOfGame, fullHistoryRequired)
         {
             
         }

@@ -8,11 +8,15 @@ namespace ACESim
     [Serializable]
     public class SimpleGameProgress : GameProgress
     {
+        public SimpleGameProgress(bool fullHistoryRequired) : base(fullHistoryRequired)
+        {
+
+        }
         public byte P1Decision, P2Decision, ChanceDecision;
 
         public override GameProgress DeepCopy()
         {
-            SimpleGameProgress copy = new SimpleGameProgress();
+            SimpleGameProgress copy = new SimpleGameProgress(FullHistoryRequired);
 
             // copy.GameComplete = this.GameComplete;
             CopyFieldInfo(copy);

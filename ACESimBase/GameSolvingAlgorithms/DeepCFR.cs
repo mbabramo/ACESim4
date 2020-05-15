@@ -249,7 +249,7 @@ namespace ACESim
         private (double[] utilities, GameProgress completedProgress) DeepCFRTraversal(DeepCFRPlaybackHelper playbackHelper, DeepCFRObservationNum observationNum, DeepCFRTraversalMode traversalMode, List<DeepCFRObservationOfDecision> observations)
         {
             double[] finalUtilities;
-            DeepCFRDirectGamePlayer gamePlayer = new DeepCFRDirectGamePlayer(EvolutionSettings.DeepCFR_MultiModelMode, GameDefinition, GameFactory.CreateNewGameProgress(new IterationID(observationNum.ObservationNum)), true, playbackHelper, null /* we will be playing back only this observation for now, so we don't have to combine */);
+            DeepCFRDirectGamePlayer gamePlayer = new DeepCFRDirectGamePlayer(EvolutionSettings.DeepCFR_MultiModelMode, GameDefinition, GameFactory.CreateNewGameProgress(false, new IterationID(observationNum.ObservationNum)), true, playbackHelper, null /* we will be playing back only this observation for now, so we don't have to combine */);
             finalUtilities = DeepCFRTraversal(gamePlayer, observationNum, observations, traversalMode);
             return (finalUtilities, gamePlayer.GameProgress);
         }
@@ -393,7 +393,7 @@ namespace ACESim
         public async Task<GameProgressTree> DeepCFR_BuildGameProgressTree(int totalNumberObservations, bool oversampling, double explorationValue = 0, byte? limitToPlayer = null)
         {
             DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel, null, null); // ideally should figure out a way to create a separate object for each thread, but problem is we don't break it down by thread.
-            GameProgress initialGameProgress = GameFactory.CreateNewGameProgress(new IterationID(1));
+            GameProgress initialGameProgress = GameFactory.CreateNewGameProgress(false, new IterationID(1));
             var regressionMachines = GetRegressionMachinesForLocalUse();
             DeepCFRDirectGamePlayer directGamePlayer = new DeepCFRDirectGamePlayer(EvolutionSettings.DeepCFR_MultiModelMode, GameDefinition, initialGameProgress, true, playbackHelper, () => new DeepCFRPlaybackHelper(MultiModel.DeepCopyForPlaybackOnly(), regressionMachines, null));
             double[] explorationValues = explorationValue == 0 ? null /* no exploration */ : Enumerable.Range(0, NumNonChancePlayers).Select(x => x == limitToPlayer ? explorationValue : 0).ToArray();

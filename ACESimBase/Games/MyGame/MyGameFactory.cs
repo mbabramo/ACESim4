@@ -28,9 +28,10 @@ namespace ACESim
             GameProgress progress,
             GameDefinition gameDefinition,
             bool recordReportInfo,
-            bool restartFromBeginningOfGame)
+            bool restartFromBeginningOfGame,
+            bool fullHistoryRequired)
         {
-            return new MyGame(strategies, progress, gameDefinition, recordReportInfo, restartFromBeginningOfGame);
+            return new MyGame(strategies, progress, gameDefinition, recordReportInfo, restartFromBeginningOfGame, fullHistoryRequired);
         }
 
         /// <summary>
@@ -38,9 +39,9 @@ namespace ACESim
         /// of the game will have subclassed GameProgressInfo and thus must override this method. 
         /// </summary>
         /// <returns></returns>
-        public GameProgress CreateNewGameProgress(IterationID iterationID)
+        public GameProgress CreateNewGameProgress(bool fullHistoryRequired, IterationID iterationID)
         {
-            GameProgress gameProgress = new MyGameProgress()  { IterationID = iterationID };
+            GameProgress gameProgress = new MyGameProgress(fullHistoryRequired)  { IterationID = iterationID };
             return gameProgress;
         }
 
