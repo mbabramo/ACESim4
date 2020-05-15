@@ -13,8 +13,6 @@ namespace ACESim
         public MyGameDefinition MyGameDefinition => (MyGameDefinition)GameDefinition;
         public MyGameOptions MyGameOptions => MyGameDefinition.Options;
 
-
-
         public bool DisputeArises;
         public bool PFiles, DAnswers, PReadyToAbandon, DReadyToAbandon, BothReadyToGiveUp, PAbandons, DDefaults;
         public byte BargainingRoundsComplete;
