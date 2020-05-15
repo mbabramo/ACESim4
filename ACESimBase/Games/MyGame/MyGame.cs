@@ -26,8 +26,6 @@ namespace ACESim
 
         public override void Initialize()
         {
-            MyProgress.PInitialWealth = MyDefinition.Options.PInitialWealth;
-            MyProgress.DInitialWealth = MyDefinition.Options.DInitialWealth;
         }
 
         public override void UpdateGameProgressFollowingAction(byte currentDecisionByteCode, byte action)
@@ -48,8 +46,6 @@ namespace ACESim
                         MyProgress.GameComplete = true;
                     break;
                 case (byte)MyGameDecisions.LiabilityStrength:
-                    MyProgress.DamagesMin = MyDefinition.Options.DamagesMin;
-                    MyProgress.DamagesMax = MyDefinition.Options.DamagesMax;
                     MyProgress.LiabilityStrengthDiscrete = action;
                     MyProgress.LiabilityStrengthUniform = ConvertActionToUniformDistributionDraw(action, false);
                     // If one or both parties have perfect information, then they can get their information about litigation quality now, since they don't need a signal. Note that we also specify in the game definition that the litigation quality should become part of their information set.
@@ -69,7 +65,6 @@ namespace ACESim
                     GameProgressLogger.Log(() => $"D: Liability Strength {MyProgress.LiabilityStrengthUniform} => signal {MyProgress.DLiabilitySignalDiscrete} ({MyProgress.DLiabilitySignalUniform})");
                     break;
                 case (byte)MyGameDecisions.DamagesStrength:
-                    MyProgress.DamagesMax = MyDefinition.Options.DamagesMax;
                     MyProgress.DamagesStrengthDiscrete = action;
                     MyProgress.DamagesStrengthUniform = ConvertActionToUniformDistributionDraw(action, true /* include endpoints so that we can have possibility of max or min damages */);
                     // If one or both parties have perfect information, then they can get their information about litigation quality now, since they don't need a signal. Note that we also specify in the game definition that the litigation quality should become part of their information set.
@@ -185,7 +180,7 @@ namespace ACESim
                         bool courtWouldDecideDamages = MyDefinition.Options.NumDamagesStrengthPoints > 1;
                         if (!courtWouldDecideDamages)
                         {
-                            MyProgress.DamagesAwarded = (double) MyProgress.DamagesMax;
+                            MyProgress.DamagesAwarded = (double)MyDefinition.Options.DamagesMax;
                             MyProgress.GameComplete = true;
                         }
                     }
@@ -195,7 +190,7 @@ namespace ACESim
                     double damagesProportion = ConvertActionToUniformDistributionDraw(action, true);
                     if (MyDefinition.Options.NumDamagesSignals == 1)
                         damagesProportion = 1.0;
-                    MyProgress.DamagesAwarded = (double) (MyProgress.DamagesMin + (MyProgress.DamagesMax - MyProgress.DamagesMin) * damagesProportion);
+                    MyProgress.DamagesAwarded = (double) (MyDefinition.Options.DamagesMin + (MyDefinition.Options.DamagesMax - MyDefinition.Options.DamagesMin) * damagesProportion);
                     MyProgress.GameComplete = true;
                     break;
                 default:
@@ -408,7 +403,7 @@ namespace ACESim
         private void CalculateSocialWelfareOutcomes()
         {
             MyProgress.TotalExpensesIncurred = 0 - MyProgress.PChangeWealth - MyProgress.DChangeWealth;
-            MyProgress.PreDisputeSWelfare = MyDefinition.Options.MyGameDisputeGenerator.GetLitigationIndependentSocialWelfare(MyDefinition, MyProgress.DisputeGeneratorActions);
+            MyProgress.PreDisputeSharedWelfare = MyDefinition.Options.MyGameDisputeGenerator.GetLitigationIndependentSocialWelfare(MyDefinition, MyProgress.DisputeGeneratorActions);
             if (!MyProgress.DisputeArises)
             {
                 MyProgress.FalseNegativeShortfall = 0;
@@ -417,9 +412,9 @@ namespace ACESim
             }
             double correctDamagesIfTrulyLiable;
             if (MyDefinition.Options.NumDamagesStrengthPoints <= 1)
-                correctDamagesIfTrulyLiable = (double) MyProgress.DamagesMax;
+                correctDamagesIfTrulyLiable = (double)MyDefinition.Options.DamagesMax;
             else
-                correctDamagesIfTrulyLiable = (double) (MyProgress.DamagesMin + MyProgress.DamagesStrengthUniform * (MyProgress.DamagesMax - MyProgress.DamagesMin));
+                correctDamagesIfTrulyLiable = (double) (MyDefinition.Options.DamagesMin + MyProgress.DamagesStrengthUniform * (MyDefinition.Options.DamagesMax - MyDefinition.Options.DamagesMin));
             double falseNegativeShortfallIfTrulyLiable = Math.Max(0, correctDamagesIfTrulyLiable - MyProgress.PChangeWealth); // how much plaintiff's payment fell short (if at all)
             double falsePositiveExpendituresIfNotTrulyLiable = Math.Max(0, 0 - MyProgress.DChangeWealth); // how much defendant's payment was excessive (if at all), in the condition in which the defendant is NOT truly liable. In this case, the defendant ideally would pay 0.
             double falsePositiveExpendituresIfTrulyLiable = Math.Max(0, 0 - correctDamagesIfTrulyLiable - MyProgress.DChangeWealth); // how much defendant's payment was excessive (if at all), in the condition in which the defendant is truly liable. In this case, the defendant ideally would pay the correct amount of damages. E.g., if correct damages are 100 and defendant pays out 150 (including costs), then change in wealth is -150, we have -100 - -150, so we have 50.

@@ -27,7 +27,7 @@ namespace ACESimBase.Util
             {
                 if (++tryNum <= maxRetries)
                     goto retry;
-                throw new Exception("LoadCode failed");
+                throw new Exception("LoadCode failed:" + ex.Message);
             }
         }
 
