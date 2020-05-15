@@ -2,6 +2,7 @@
 
 
 using ACESimBase.Util;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace ACESim
@@ -11,6 +12,7 @@ namespace ACESim
     {
         public bool Complete;
         public byte[] ActionsHistory;
+        public byte[] DecisionsHistory;
         public byte NextIndexInHistoryActionsOnly;
         public byte[] Cache; 
         public bool Initialized;
@@ -43,8 +45,10 @@ namespace ACESim
             if (ActionsHistory != null)
             {
                 result.CreateArraysForSpans(false);
-                for (int i = 0; i < GameFullHistory.MaxHistoryLength; i++)
+                for (int i = 0; i < GameFullHistory.MaxNumActions; i++)
                     result.ActionsHistory[i] = ActionsHistory[i];
+                for (int i = 0; i < GameFullHistory.MaxNumActions; i++)
+                    result.DecisionsHistory[i] = DecisionsHistory[i];
                 for (int i = 0; i < GameHistory.CacheLength; i++)
                     result.Cache[i] = Cache[i];
                 result.VerifyThread();
@@ -73,6 +77,7 @@ namespace ACESim
                 DeferredPlayersToInform = DeferredPlayersToInform,  // this does not need to be duplicated because it is set in gamedefinition and not changed
                 LastDecisionIndexAdded = LastDecisionIndexAdded,
                 ActionsHistory = ActionsHistory,
+                DecisionsHistory = DecisionsHistory,
                 Cache = Cache,
                 DeferredDecisionIndices = DeferredDecisionIndices,
                 InformationSets = InformationSets,
@@ -93,6 +98,11 @@ namespace ACESim
             DeferredPlayerNumber = mutationOfShallowCopy.DeferredPlayerNumber;
             DeferredPlayersToInform = mutationOfShallowCopy.DeferredPlayersToInform;
             LastDecisionIndexAdded = mutationOfShallowCopy.LastDecisionIndexAdded;
+        }
+        public IEnumerable<byte> GetDecisionsEnumerable()
+        {
+            for (int i = 0; i < NextIndexInHistoryActionsOnly; i++)
+                yield return DecisionsHistory[i];
         }
     }
 }

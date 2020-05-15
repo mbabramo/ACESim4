@@ -42,30 +42,27 @@ namespace ACESim
             return new GameFullHistoryStorable(history, lastIndexAddedToHistory);
         }
 
-        public GameFullHistoryStorable AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, bool skipAddToHistory)
+        public GameFullHistoryStorable AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions)
         {
             var history = History;
             short nextIndexToAddToHistory = NextIndexToAddToHistory;
-            if (!skipAddToHistory)
-            {
-                short i = nextIndexToAddToHistory;
+            short i = nextIndexToAddToHistory;
 #if (SAFETYCHECKS)
-                if (history[i] == GameFullHistory.HistoryComplete)
-                    ThrowHelper.Throw("Cannot add to history of complete game.");
+            if (history[i] == GameFullHistory.HistoryComplete)
+                ThrowHelper.Throw("Cannot add to history of complete game.");
 #endif
-                history[i + GameFullHistory.History_DecisionByteCode_Offset] = decisionByteCode;
-                history[i + GameFullHistory.History_DecisionIndex_Offset] = decisionIndex;
-                history[i + GameFullHistory.History_PlayerNumber_Offset] = playerIndex;
-                history[i + GameFullHistory.History_Action_Offset] = action;
-                history[i + GameFullHistory.History_NumPossibleActions_Offset] = numPossibleActions;
-                history[i + GameFullHistory.History_NumPiecesOfInformation] = GameFullHistory.HistoryTerminator; // this is just one item at end of all history items
-                nextIndexToAddToHistory = (short)(i + GameFullHistory.History_NumPiecesOfInformation);
+            history[i + GameFullHistory.History_DecisionByteCode_Offset] = decisionByteCode;
+            history[i + GameFullHistory.History_DecisionIndex_Offset] = decisionIndex;
+            history[i + GameFullHistory.History_PlayerNumber_Offset] = playerIndex;
+            history[i + GameFullHistory.History_Action_Offset] = action;
+            history[i + GameFullHistory.History_NumPossibleActions_Offset] = numPossibleActions;
+            history[i + GameFullHistory.History_NumPiecesOfInformation] = GameFullHistory.HistoryTerminator; // this is just one item at end of all history items
+            nextIndexToAddToHistory = (short)(i + GameFullHistory.History_NumPiecesOfInformation);
 
 #if (SAFETYCHECKS)
-                if (nextIndexToAddToHistory >= GameFullHistory.MaxHistoryLength - 2) // must account for terminator characters
-                    ThrowHelper.Throw("Internal error. Must increase history length.");
+            if (nextIndexToAddToHistory >= GameFullHistory.MaxHistoryLength - 2) // must account for terminator characters
+                ThrowHelper.Throw("Internal error. Must increase history length.");
 #endif
-            }
             var result = new GameFullHistoryStorable(history, nextIndexToAddToHistory);
             if (GameProgressLogger.LoggingOn)
                 GameProgressLogger.Log($"Actions so far: {result.ShallowCopyToRefStruct().GetActionsAsListString()}");

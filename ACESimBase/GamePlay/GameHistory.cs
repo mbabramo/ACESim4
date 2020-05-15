@@ -42,6 +42,7 @@ namespace ACESim
         public bool Complete;
         public byte NextIndexInHistoryActionsOnly;
         public byte LastDecisionIndexAdded;
+        public byte HighestCacheIndex; // not necessarily sequentially added
 
         // The following are used to defer adding information to a player information set.
         public bool PreviousNotificationDeferred;
@@ -49,7 +50,8 @@ namespace ACESim
         public byte DeferredPlayerNumber;
         public byte[] DeferredPlayersToInform; // NOTE: We can leave this as an array because it is set in game definition and not changed.
 
-        public Span<byte> ActionsHistory; // length GameFullHistory.MaxHistoryLength
+        public Span<byte> ActionsHistory; // length GameFullHistory.MaxNumActions
+        public Span<byte> DecisionsHistory; // length GameFullHistory.MaxNumActions
         public Span<byte> Cache; // length CacheLength
         public Span<byte> InformationSets; // length MaxInformationSetLength
         public Span<byte> DeferredDecisionIndices; // length MaxDeferredDecisionIndicesLength
@@ -60,7 +62,21 @@ namespace ACESim
         // Information set structure. We have an information set buffer for each player. We need to be able to remove information from the information set for a player, but still to remember that it was there as of a particular point in time, so that we can figure out what the information set was as of a particular decision. (This is needed for reconstructing the game play.) We thus store information in pairs. The first byte consists of the decision byte code after which we are making changes. The second byte either consists of an item to add, or 254, indicating that we are removing an item from the information set. All of this is internal. When we get the information set, we get it as of a certain point, and thus we skip decision byte codes and automatically process deletions. 
 
         // Must also change values in InformationSetLog.
-        public static int InformationSetIndex(byte playerIndex) => playerIndex <= NumFullPlayers ? MaxInformationSetLengthPerFullPlayer * playerIndex : MaxInformationSetLengthPerFullPlayer * NumFullPlayers + (playerIndex - NumFullPlayers) * MaxInformationSetLengthPerPartialPlayer;
+        public static int InformationSetIndex(byte playerIndex)
+        {
+            if (playerIndex == 0)
+                return 0;
+            else if (playerIndex <= NumFullPlayers)
+            {
+                if (playerIndex == 1)
+                    return MaxInformationSetLengthPerFullPlayer;
+                return MaxInformationSetLengthPerFullPlayer * playerIndex;
+            }
+            else
+            {
+                return MaxInformationSetLengthPerFullPlayer * NumFullPlayers + (playerIndex - NumFullPlayers) * MaxInformationSetLengthPerPartialPlayer;
+            }
+        }
         public static int MaxInformationSetLengthForPlayer(byte playerIndex) => playerIndex < NumFullPlayers ? MaxInformationSetLengthPerFullPlayer : MaxInformationSetLengthPerPartialPlayer;
 
         public bool Matches(GameHistory other)
@@ -130,18 +146,24 @@ namespace ACESim
                 DeferredPlayerNumber = DeferredPlayerNumber,
                 DeferredPlayersToInform = DeferredPlayersToInform,
                 LastDecisionIndexAdded = LastDecisionIndexAdded,
-                ActionsHistory = ActionsHistory.Length > 0 ? new byte[GameFullHistory.MaxHistoryLength] : null,
+                ActionsHistory = ActionsHistory.Length > 0 ? new byte[GameFullHistory.MaxNumActions] : null,
+                DecisionsHistory = DecisionsHistory.Length > 0 ? new byte[GameFullHistory.MaxNumActions] : null,
                 Cache = Cache.Length > 0 ? new byte[GameHistory.CacheLength] : null,
                 InformationSets = InformationSets.Length > 0 ? new byte[GameHistory.MaxInformationSetLength] : null,
                 DeferredDecisionIndices = DeferredDecisionIndices.Length > 0 ? new byte[GameHistory.MaxDeferredDecisionIndicesLength] : null
             };
+            byte maxActions = Math.Min((byte) GameFullHistory.MaxNumActions, (byte)NextIndexInHistoryActionsOnly);
             if (ActionsHistory.Length > 0)
-                for (int i = 0; i < GameFullHistory.MaxHistoryLength && i < NextIndexInHistoryActionsOnly; i++)
+                for (byte i = 0; i < maxActions; i++)
                     result.ActionsHistory[i] = ActionsHistory[i];
+            if (DecisionsHistory.Length > 0)
+                for (byte i = 0; i < maxActions; i++)
+                    result.DecisionsHistory[i] = DecisionsHistory[i];
             if (Cache.Length > 0)
-                for (int i = 0; i < GameHistory.CacheLength; i++)
+                for (byte i = 0; i < GameHistory.CacheLength; i++)
                     result.Cache[i] = Cache[i];
-            if (InformationSets.Length > 0)
+            int informationSetsLength = InformationSets.Length;
+            if (informationSetsLength > 0)
             {
 #if SAFETYCHECKS
                 // it doesn't matter what the CreatingThreadID is on this GameHistory; now that we've 
@@ -164,7 +186,8 @@ namespace ACESim
         {
             if (onlyIfNeeded && ActionsHistory != null)
                 return;
-            ActionsHistory = new byte[GameFullHistory.MaxHistoryLength];
+            ActionsHistory = new byte[GameFullHistory.MaxNumActions];
+            DecisionsHistory = new byte[GameFullHistory.MaxNumActions];
             Cache = new byte[GameHistory.CacheLength];
             InformationSets = new byte[GameHistory.MaxInformationSetLength];
             DeferredDecisionIndices = new byte[GameHistory.MaxDeferredDecisionIndicesLength];
@@ -194,7 +217,9 @@ namespace ACESim
                 result.CreateArraysForSpans(false);
                 for (int i = 0; i < GameFullHistory.MaxHistoryLength && i < NextIndexInHistoryActionsOnly; i++)
                     result.ActionsHistory[i] = ActionsHistory[i];
-                for (int i = 0; i < GameHistory.CacheLength; i++)
+                for (int i = 0; i < GameFullHistory.MaxHistoryLength && i < NextIndexInHistoryActionsOnly; i++)
+                    result.DecisionsHistory[i] = DecisionsHistory[i];
+                for (int i = 0; i <= HighestCacheIndex; i++)
                     result.Cache[i] = Cache[i];
                 result.VerifyThread();
                 for (int i = 0; i < GameHistory.MaxInformationSetLength; i++)
@@ -215,7 +240,7 @@ namespace ACESim
         public string CacheString()
         {
             string cacheString = "";
-            for (int i = 0; i < CacheLength; i++)
+            for (int i = 0; i <= HighestCacheIndex; i++)
             {
                 cacheString += Cache[i];
                 if (i % 5 == 4)
@@ -253,7 +278,8 @@ namespace ACESim
         // The special constructor is used to deserialize values.
         public GameHistory(SerializationInfo info, StreamingContext context)
         {
-            ActionsHistory = new byte[GameFullHistory.MaxHistoryLength];
+            ActionsHistory = new byte[GameFullHistory.MaxNumActions];
+            DecisionsHistory = new byte[GameFullHistory.MaxNumActions];
             Cache = new byte[GameHistory.CacheLength];
             InformationSets = new byte[GameHistory.MaxInformationSetLength];
             DeferredDecisionIndices = new byte[GameHistory.MaxDeferredDecisionIndicesLength];
@@ -268,6 +294,7 @@ namespace ACESim
             Initialized = (bool)info.GetValue("Initialized", typeof(bool));
 
             NextIndexInHistoryActionsOnly = 0;
+            HighestCacheIndex = 0; // actually hull, but it doesn't hurt to have it as 0
             LastDecisionIndexAdded = 255;
             Complete = false;
 
@@ -287,6 +314,8 @@ namespace ACESim
         {
             // TabbedText.WriteLine($"Increment cache for {cacheIndexToIncrement}");
             Cache[(byte) cacheIndexToIncrement] += incrementBy;
+            if (cacheIndexToIncrement > HighestCacheIndex)
+                HighestCacheIndex = cacheIndexToIncrement;
         }
 
         public void DecrementItemAtCacheIndex(byte cacheIndexToDecrement, byte decrementBy = 1)
@@ -298,6 +327,8 @@ namespace ACESim
                 ThrowHelper.Throw();
 #endif
             Cache[(byte) cacheIndexToDecrement] = (byte) (currentValue - (byte)decrementBy);
+            if (cacheIndexToDecrement > HighestCacheIndex)
+                HighestCacheIndex = cacheIndexToDecrement;
         }
 
         public byte GetCacheItemAtIndex(byte cacheIndexToReset)
@@ -313,6 +344,8 @@ namespace ACESim
                 ThrowHelper.Throw();
 #endif
             Cache[(byte) cacheIndexToReset] = newValue;
+            if (cacheIndexToReset > HighestCacheIndex)
+                HighestCacheIndex = cacheIndexToReset;
         }
 
 #endregion
@@ -320,13 +353,12 @@ namespace ACESim
 #region History
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, byte[] playersToInform, byte[] playersToInformOfOccurrenceOnly, byte[] cacheIndicesToIncrement, byte? storeActionInCacheIndex, GameProgress gameProgress, bool skipAddToHistory, bool deferNotification, bool delayPreviousDeferredNotification)
+        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, byte[] playersToInform, byte[] playersToInformOfOccurrenceOnly, byte[] cacheIndicesToIncrement, byte? storeActionInCacheIndex, GameProgress gameProgress, bool deferNotification, bool delayPreviousDeferredNotification)
         {
             // Debug.WriteLine($"Add to history {decisionByteCode} for player {playerIndex} action {action} of {numPossibleActions}");
-            if (!skipAddToHistory)
-                AddToSimpleActionsList(action);
+            AddToSimpleActionsLists(action, decisionIndex);
             if (gameProgress != null && gameProgress.FullHistoryRequired)
-                gameProgress.GameFullHistoryStorable = gameProgress.GameFullHistoryStorable.AddToHistory(decisionByteCode, decisionIndex, playerIndex, action, numPossibleActions, skipAddToHistory);
+                gameProgress.GameFullHistoryStorable = gameProgress.GameFullHistoryStorable.AddToHistory(decisionByteCode, decisionIndex, playerIndex, action, numPossibleActions);
             LastDecisionIndexAdded = decisionIndex;
             if (!delayPreviousDeferredNotification)
             {
@@ -370,13 +402,14 @@ namespace ACESim
                 throw new Exception("Must increase MaxDeferredDecisionIndicesLength");
         }
 
-        private void AddToSimpleActionsList(byte action)
+        private void AddToSimpleActionsLists(byte action, byte decisionIndex)
         {
 #if SAFETYCHECKS
             if (action == 0)
                 ThrowHelper.Throw("Invalid action.");
 #endif
             ActionsHistory[NextIndexInHistoryActionsOnly] = action;
+            DecisionsHistory[NextIndexInHistoryActionsOnly] = decisionIndex;
             NextIndexInHistoryActionsOnly++;
 #if SAFETYCHECKS
             if (NextIndexInHistoryActionsOnly >= GameFullHistory.MaxNumActions)
@@ -394,6 +427,14 @@ namespace ACESim
             List<byte> actions = new List<byte>();
             for (int i = 0; i < NextIndexInHistoryActionsOnly; i++)
                 actions.Add(ActionsHistory[i]);
+            return actions;
+        }
+
+        public List<byte> GetDecisionsAsList()
+        {
+            List<byte> actions = new List<byte>();
+            for (int i = 0; i < NextIndexInHistoryActionsOnly; i++)
+                actions.Add(DecisionsHistory[i]);
             return actions;
         }
 
