@@ -121,6 +121,7 @@ namespace ACESim
                     MyDefinition.Options.MyGameRunningSideBets.SaveRunningSideBets(MyDefinition, MyProgress, action);
                     break;
                 case (byte)MyGameDecisions.PAbandon:
+                    Br.eak.IfAdded("3272");
                     MyProgress.PReadyToAbandon = action == 1;
                     break;
                 case (byte)MyGameDecisions.DDefault:

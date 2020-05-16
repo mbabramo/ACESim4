@@ -70,10 +70,6 @@ namespace ACESim
         /// </summary>
         public bool IncludeAgreementToBargainDecisions;
         /// <summary>
-        /// If true, this is a partial recall game, in which players do not remember earlier bargaining rounds.
-        /// </summary>
-        public MyGameBargainingRoundRecall BargainingRoundRecall;
-        /// <summary>
         /// This can be used to set the strategy to be used when optimizing the opponent for a certain number of iterations.
         /// </summary>
         public MyGameWarmStartOptions WarmStartOptions;
@@ -236,7 +232,7 @@ $@"NumOffers {NumOffers} IncludeEndpointsForOffers {IncludeEndpointsForOffers}
 NumPotentialBargainingRounds {NumPotentialBargainingRounds}  BargainingRoundsSimultaneous {BargainingRoundsSimultaneous} SimultaneousOffersUltimatelyRevealed {SimultaneousOffersUltimatelyRevealed} 
 NumLiabilityStrengthPoints {NumLiabilityStrengthPoints} NumLiabilitySignals {NumLiabilitySignals} PLiabilityNoiseStdev {PLiabilityNoiseStdev} DLiabilityNoiseStdev {DLiabilityNoiseStdev} CourtLiabilityNoiseStdev {CourtLiabilityNoiseStdev} 
 NumDamagesStrengthPoints {NumDamagesStrengthPoints} NumDamagesSignals {NumDamagesSignals} PDamagesNoiseStdev {PDamagesNoiseStdev} DDamagesNoiseStdev {DDamagesNoiseStdev} CourtDamagesNoiseStdev {CourtDamagesNoiseStdev} 
-SkipFileAndAnswerDecisions {SkipFileAndAnswerDecisions} IncludeAgreementToBargainDecisions {IncludeAgreementToBargainDecisions} BargainingRoundRecall {BargainingRoundRecall} DeltaOffersOptions {DeltaOffersOptions} 
+SkipFileAndAnswerDecisions {SkipFileAndAnswerDecisions} IncludeAgreementToBargainDecisions {IncludeAgreementToBargainDecisions} DeltaOffersOptions {DeltaOffersOptions} 
 CostsMultiplier {CostsMultiplier} PTrialCosts {PTrialCosts} DTrialCosts {DTrialCosts} PFilingCost {PFilingCost} DAnswerCost {DAnswerCost} PerPartyCostsLeadingUpToBargainingRound {PerPartyCostsLeadingUpToBargainingRound} 
 LoserPays {LoserPays} LoserPaysMultiple {LoserPaysMultiple} LoserPaysAfterAbandonment {LoserPaysAfterAbandonment} 
 ShootoutSettlements {ShootoutSettlements} ShootoutStrength {ShootoutStrength} ShootoutsAverageAllRounds {ShootoutsAverageAllRounds} ShootoutsApplyAfterAbandonment {ShootoutsApplyAfterAbandonment}

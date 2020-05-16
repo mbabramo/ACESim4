@@ -133,21 +133,17 @@ namespace ACESim
         public byte GameHistoryCacheIndex_PostPrimaryChance = 3; // e.g., exogenous dispute generator sometimes chooses between is truly liable and is not truly liable
         public byte GameHistoryCacheIndex_LiabilityStrength = 4;
         public byte GameHistoryCacheIndex_DamagesStrength = 5;
-        public byte GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound = 6;
-        public byte GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound = 7;
-        public byte GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound = 8;
-        public byte GameHistoryCacheIndex_PAgreesToBargain = 9;
-        public byte GameHistoryCacheIndex_DAgreesToBargain = 10;
-        public byte GameHistoryCacheIndex_POffer = 11;
-        public byte GameHistoryCacheIndex_DOffer = 12;
-        public byte GameHistoryCacheIndex_PResponse = 13;
-        public byte GameHistoryCacheIndex_DResponse = 14;
-        public byte GameHistoryCacheIndex_PReadyToAbandon = 15;
-        public byte GameHistoryCacheIndex_DReadyToAbandon = 16;
-        public byte GameHistoryCacheIndex_PChipsAction = 17;
-        public byte GameHistoryCacheIndex_DChipsAction = 18;
-        public byte GameHistoryCacheIndex_TotalChipsSoFar = 19;
-        public byte GameHistoryCacheIndex_PWins = 20;
+        public byte GameHistoryCacheIndex_PAgreesToBargain = 6;
+        public byte GameHistoryCacheIndex_DAgreesToBargain = 7;
+        public byte GameHistoryCacheIndex_POffer = 8;
+        public byte GameHistoryCacheIndex_DOffer = 9;
+        public byte GameHistoryCacheIndex_PResponse = 10;
+        public byte GameHistoryCacheIndex_DResponse = 11;
+        public byte GameHistoryCacheIndex_PReadyToAbandon = 12;
+        public byte GameHistoryCacheIndex_DReadyToAbandon = 13;
+        public byte GameHistoryCacheIndex_PChipsAction = 14;
+        public byte GameHistoryCacheIndex_DChipsAction = 15;
+        public byte GameHistoryCacheIndex_PWins = 16;
 
         public bool CheckCompleteAfterPrimaryAction;
         public bool CheckCompleteAfterPostPrimaryAction;
@@ -399,9 +395,6 @@ namespace ACESim
                     2, (byte) MyGameDecisions.PAgreeToBargain)
                 {
                     CustomByte = (byte) (b + 1),
-                    IncrementGameCacheItem = new byte[] {
-                        GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound,
-                    },
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_PAgreesToBargain,
                     DeferNotificationOfPlayers = true,
                     WarmStartThroughIteration = Options.WarmStartThroughIteration,
@@ -413,9 +406,6 @@ namespace ACESim
                     2, (byte) MyGameDecisions.DAgreeToBargain)
                 {
                     CustomByte = (byte) (b + 1),
-                    IncrementGameCacheItem = new byte[] {
-                        GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound,
-                    },
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_DAgreesToBargain,
                     WarmStartThroughIteration = Options.WarmStartThroughIteration,
                     WarmStartValue = 1
@@ -426,23 +416,15 @@ namespace ACESim
             // note that we will do all information set manipulation in CustomInformationSetManipulation below.
             if (Options.BargainingRoundsSimultaneous)
             {
-                byte[] informedOfPOffer, informedOfDOffer, pIncrementGameCacheItem, dIncrementGameCacheItem;
-                if (Options.SimultaneousOffersUltimatelyRevealed && Options.BargainingRoundRecall != MyGameBargainingRoundRecall.ForgetEarlierBargainingRounds)
+                byte[] informedOfPOffer, informedOfDOffer;
+                if (Options.SimultaneousOffersUltimatelyRevealed)
                 {
                     informedOfPOffer = informedOfDOffer = new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution };
-                    pIncrementGameCacheItem = dIncrementGameCacheItem = new byte[] {
-                        GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound,
-                        };
                 }
                 else
                 {
                     informedOfPOffer = new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Resolution };
-                    pIncrementGameCacheItem = new byte[] {
-                        GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound,  GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound,
-                        };
                     informedOfDOffer = new byte[] { (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution };
-                    dIncrementGameCacheItem = new byte[] {GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound,
-                        };
                 }
                 // samuelson-chaterjee bargaining.
                 var pOffer =
@@ -450,7 +432,6 @@ namespace ACESim
                         Options.NumOffers, (byte)MyGameDecisions.POffer)
                     {
                         CustomByte = (byte)(b + 1),
-                        IncrementGameCacheItem = pIncrementGameCacheItem,
                         DeferNotificationOfPlayers = true, // wait until after defendant has gone for defendant to find out -- of course, we don't do that with defendant decision
                         StoreActionInGameCacheItem = GameHistoryCacheIndex_POffer,
                         IsContinuousAction = true,
@@ -469,7 +450,6 @@ namespace ACESim
                     {
                         CanTerminateGame = true,
                         CustomByte = (byte)(b + 1),
-                        IncrementGameCacheItem = dIncrementGameCacheItem,
                         StoreActionInGameCacheItem = GameHistoryCacheIndex_DOffer,
                         IsContinuousAction = true,
                         WarmStartThroughIteration = Options.WarmStartThroughIteration,
@@ -492,9 +472,6 @@ namespace ACESim
                             Options.NumOffers, (byte)MyGameDecisions.POffer)
                         {
                             CustomByte = (byte)(b + 1),
-                            IncrementGameCacheItem = new byte[] {
-                        GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound
-                        },
                             StoreActionInGameCacheItem = GameHistoryCacheIndex_POffer,
                             IsContinuousAction = true,
                         }; // { AlwaysDoAction = 4});
@@ -505,7 +482,6 @@ namespace ACESim
                         {
                             CanTerminateGame = true,
                             CustomByte = (byte)(b + 1),
-                            IncrementGameCacheItem = new byte[] { GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound },
                             StoreActionInGameCacheItem = GameHistoryCacheIndex_DResponse,
                             WarmStartThroughIteration = Options.WarmStartThroughIteration,
                             WarmStartValue = (byte)(Options.WarmStartOptions switch
@@ -523,11 +499,6 @@ namespace ACESim
                             Options.NumOffers, (byte)MyGameDecisions.DOffer)
                         {
                             CustomByte = (byte)(b + 1),
-                            IncrementGameCacheItem = new byte[] {
-                                GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound,
-                                GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound,
-                                GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound,
-                            },
                             StoreActionInGameCacheItem = GameHistoryCacheIndex_DOffer,
                             IsContinuousAction = true,
                             WarmStartThroughIteration = Options.WarmStartThroughIteration,
@@ -545,7 +516,6 @@ namespace ACESim
                         {
                             CanTerminateGame = true,
                             CustomByte = (byte)(b + 1),
-                            IncrementGameCacheItem = new byte[] { GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound },
                             StoreActionInGameCacheItem = GameHistoryCacheIndex_PResponse,
                             WarmStartThroughIteration = Options.WarmStartThroughIteration,
                             WarmStartValue = (byte)(Options.WarmStartOptions switch
@@ -567,26 +537,24 @@ namespace ACESim
         private void AddRunningSideBetDecisions(int b, List<Decision> decisions)
         {
             var pRSideBet =
-                new Decision("pRSideBet" + (b + 1), "PRSB" + (b + 1), false, (byte)MyGamePlayers.Plaintiff, new byte[] { },
+                new Decision("pRSideBet" + (b + 1), "PRSB" + (b + 1), false, (byte)MyGamePlayers.Plaintiff, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
                     (byte) (Options.MyGameRunningSideBets.MaxChipsPerRound + 1), (byte)MyGameDecisions.PChips)
                 {
                     CustomByte = (byte)(b + 1),
-                    CanTerminateGame = false, 
-                    IncrementGameCacheItem = new byte[] { },
+                    CanTerminateGame = false,
+                    DeferNotificationOfPlayers = true,
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_PChipsAction,
                     IsReversible = true,
                 };
             decisions.Add(pRSideBet);
             var dRSideBet =
-                new Decision("dRSideBet" + (b + 1), "DRSB" + (b + 1), false, (byte)MyGamePlayers.Defendant, new byte[] { },
+                new Decision("dRSideBet" + (b + 1), "DRSB" + (b + 1), false, (byte)MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
                     (byte)(Options.MyGameRunningSideBets.MaxChipsPerRound + 1), (byte)MyGameDecisions.DChips)
                 {
                     CustomByte = (byte)(b + 1),
                     CanTerminateGame = false,
-                    IncrementGameCacheItem = new byte[] { },
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_DChipsAction,
                     IsReversible = true,
-                    RequiresCustomInformationSetManipulation = true
                 };
             decisions.Add(dRSideBet);
         }
@@ -601,7 +569,6 @@ namespace ACESim
                 {
                     CustomByte = (byte)(b + 1),
                     CanTerminateGame = false, // we always must look at whether D is defaulting too. 
-                    IncrementGameCacheItem = new byte[] { GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound },
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_PReadyToAbandon,
                     IsReversible = true,
                     PlayersToInformOfOccurrenceOnly = new byte[] {(byte)MyGamePlayers.Plaintiff}
@@ -614,7 +581,6 @@ namespace ACESim
                 {
                     CustomByte = (byte)(b + 1),
                     CanTerminateGame = true, // if either but not both has given up, game terminates
-                    IncrementGameCacheItem = new byte[] { GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound },
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_DReadyToAbandon,
                     IsReversible = true,
                     PlayersToInformOfOccurrenceOnly = new byte[] { (byte)MyGamePlayers.Defendant }
@@ -628,7 +594,6 @@ namespace ACESim
                     CustomByte = (byte)(b + 1),
                     CanTerminateGame = true, // if this decision is needed, then both have given up, and the decision always terminates the game
                     CriticalNode = true, // always play out both sides of this coin flip
-                    IncrementGameCacheItem = new byte[] { GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound },
                     IsReversible = true
                 };
             decisions.Add(bothGiveUp);
@@ -636,6 +601,7 @@ namespace ACESim
 
         private void AddPreBargainingRoundDummyDecision(int b, List<Decision> decisions)
         {
+            // DEBUG -- can we eliminate this and the next one?
             var dummyDecision =
                 new Decision("PreBargainingRound" + (b + 1), "PRBR" + (b + 1), true, (byte)MyGamePlayers.PreBargainingRoundChance, null,
                     1 /* i.e., just an opportunity to do some calculation and cleanup */, (byte)MyGameDecisions.PreBargainingRound, unevenChanceActions: false)
@@ -643,7 +609,6 @@ namespace ACESim
                     CustomByte = (byte)(b + 1),
                     CanTerminateGame = false, 
                     CriticalNode = false, // doesn't matter -- just one possibility
-                    RequiresCustomInformationSetManipulation = true // this is where we do cleanup from previous bargaining rounds
                 };
             decisions.Add(dummyDecision);
         }
@@ -854,104 +819,7 @@ namespace ACESim
         public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory, GameProgress gameProgress)
         {
             byte decisionByteCode = currentDecision.DecisionByteCode; // get the original decision byte code
-            if (decisionByteCode == (byte) MyGameDecisions.DChips)
-            {
-                // Inform the players of the total number of chips bet in this round. This will allow the players to make a decision about whether to abandon/default this round. We separately add information on P/D chips to the players' information sets, because we want the players to have a sense of who is bidding more aggressively (thus allowing them to track their own bluffing). 
-                // We also have to update the resolution set with the same information. The reason is that if a player bets a certain number of chips and then withdraws, then the smaller of that number and the other player's bet is still counted.
-                // Note that below, we delete the information from the previous round but then add back in the total number of chips bet so far.
-                
-                // the pChipsAction and dChipsAction here are 1 more than the number of chips bet
-                byte pChipsAction = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PChipsAction);
-                byte dChipsAction = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DChipsAction);
-                gameHistory.AddToInformationSetAndLog(pChipsAction, currentDecisionIndex, (byte) MyGamePlayers.Plaintiff, gameProgress);
-                gameHistory.AddToInformationSetAndLog(dChipsAction, currentDecisionIndex, (byte)MyGamePlayers.Plaintiff, gameProgress);
-                gameHistory.AddToInformationSetAndLog(pChipsAction, currentDecisionIndex, (byte)MyGamePlayers.Defendant, gameProgress);
-                gameHistory.AddToInformationSetAndLog(dChipsAction, currentDecisionIndex, (byte)MyGamePlayers.Defendant, gameProgress);
-                gameHistory.AddToInformationSetAndLog(pChipsAction, currentDecisionIndex, (byte)MyGamePlayers.Resolution, gameProgress);
-                gameHistory.AddToInformationSetAndLog(dChipsAction, currentDecisionIndex, (byte)MyGamePlayers.Resolution, gameProgress);
-                gameHistory.IncrementItemAtCacheIndex(GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, 2);
-                gameHistory.IncrementItemAtCacheIndex(GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, 2);
-                gameHistory.IncrementItemAtCacheIndex(GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, 2);
-            }
-            else if (decisionByteCode == (byte)MyGameDecisions.PreBargainingRound)
-            {
-                // TODO: Consider eliminating this. This was designed for forgetting earlier bargaining rounds, but partial recall leads to considerable complications in executing optimization. However, we also use this to keep track of the resolution information set (since it sometimes doesn't matter what happened in earlier bargaining rounds). 
-                // At the beginning of one bargaining round, we must clean up the results of the previous bargaining round. Thus, if we are forgetting earlier bargaining rounds, then we want to delete all of the items in the resolution information set from that bargaining round. We need to know the number of items that have been added since the beginning of the previous bargaining round. We can do this by incrementing something in the game history cache whenever we process any of these decisions. We do this by using the IncrementGameCacheItem option of Decision.
-                // Clean up previous round after the bargaining round:
-                // We don't want to do it immediately after the bargaining round. If the game has ended as a result of a settlement, a post-bargaining round decision won't
-                // execute. That's OK. But if the game ends because this is the last bargaining round and bargaining fails, then we have a trial, and the outcomes may depend on the offers in the last bargaining round. That is why we want to do this cleanup at the beginning of the next bargaining round.
-
-                // Clean up resolution set and (if necessary) players' sets
-                byte numItemsInResolutionSetFromPreviousBargainingRound = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound);
-                if (numItemsInResolutionSetFromPreviousBargainingRound > 0)
-                    gameHistory.RemoveItemsInInformationSetAndLog((byte) MyGamePlayers.Resolution, currentDecisionIndex, numItemsInResolutionSetFromPreviousBargainingRound, gameProgress);
-
-                if (Options.BargainingRoundRecall == MyGameBargainingRoundRecall.ForgetEarlierBargainingRounds || Options.BargainingRoundRecall == MyGameBargainingRoundRecall.RememberOnlyLastBargainingRound)
-                { // first remove everything, even if we want to remember the last bargaining round
-                    byte numItemsInPlaintiffSetFromPreviousBargainingRound = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound);
-                    if (numItemsInPlaintiffSetFromPreviousBargainingRound > 0)
-                        gameHistory.RemoveItemsInInformationSetAndLog((byte) MyGamePlayers.Plaintiff, currentDecisionIndex, numItemsInPlaintiffSetFromPreviousBargainingRound, gameProgress);
-
-                    byte numItemsInDefendantSetFromPreviousBargainingRound = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound);
-                    if (numItemsInDefendantSetFromPreviousBargainingRound > 0)
-                        gameHistory.RemoveItemsInInformationSetAndLog((byte) MyGamePlayers.Defendant, currentDecisionIndex, numItemsInDefendantSetFromPreviousBargainingRound, gameProgress);
-                }
-
-                // Add an indication of the bargaining round we're in.
-                byte bargainingRound = currentDecision.CustomByte;
-                gameHistory.AddToInformationSetAndLog(bargainingRound, currentDecisionIndex, (byte)MyGamePlayers.Resolution, gameProgress);
-                gameHistory.AddToInformationSetAndLog(bargainingRound, currentDecisionIndex, (byte)MyGamePlayers.Plaintiff, gameProgress);
-                gameHistory.AddToInformationSetAndLog(bargainingRound, currentDecisionIndex, (byte)MyGamePlayers.Defendant, gameProgress);
-
-                byte numPlaintiffItems = 1, numDefendantItems = 1, numResolutionItems = 1;
-                if (Options.BargainingRoundRecall == MyGameBargainingRoundRecall.RememberOnlyLastBargainingRound)
-                { // add back in opponent's last offer, if applicable, and increment the cache index
-                    byte lastPOffer = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_POffer);
-                    if (lastPOffer != 0)
-                    {
-                        gameHistory.AddToInformationSetAndLog(lastPOffer, currentDecisionIndex, (byte) MyGamePlayers.Defendant, gameProgress);
-                        numDefendantItems++;
-                    }
-                    byte lastDOffer = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DOffer);
-                    if (lastDOffer != 0)
-                    {
-                        gameHistory.AddToInformationSetAndLog(lastDOffer, currentDecisionIndex, (byte) MyGamePlayers.Plaintiff, gameProgress);
-                        numPlaintiffItems++;
-                    }
-                }
-                if (Options.MyGameRunningSideBets != null)
-                { // Add the total number of chips bet so far to each player's information sets.
-                    byte totalChipsSoFar = 0;
-                    if (bargainingRound > 1)
-                    {
-                        // adjust for fact that chips action is 1 more than number of chips
-                        byte pChipsLastRound = (byte) (gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PChipsAction) - 1);
-                        byte dChipsLastRound = (byte) (gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DChipsAction) - 1);
-                        byte chipsLastRound = Math.Max(pChipsLastRound, dChipsLastRound);
-                        totalChipsSoFar = chipsLastRound;
-                        if (bargainingRound > 2)
-                        {
-                            byte chipsFromBeforeLastRound = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_TotalChipsSoFar); // chips from before last round exist only if we're in the third round or later
-                            totalChipsSoFar += chipsFromBeforeLastRound;
-                        }
-                    }
-                    gameHistory.SetCacheItemAtIndex(GameHistoryCacheIndex_TotalChipsSoFar, totalChipsSoFar); // so, at round n, this shows total chips from round n - 1
-                    byte totalChipsSoFarAction = (byte) (totalChipsSoFar + 1); // can't use 0 as an action
-                    //DEBUG // none of these are getting added. The question is how to add them. we've been adding on the assumption that we add for one decision at a time, to all players. But we need to allow for the possibility that we have more than one piece of information per decision. Meanwhile, it might make sense to consolidate these, so that we add to all players at once. More radical thing would be to eliminate all of this custom manipulation and use of partial recall. We don't really need any of this but will also have to fix the tests. 
-                    gameHistory.AddToInformationSetAndLog(totalChipsSoFarAction, currentDecisionIndex, (byte) MyGamePlayers.Plaintiff, gameProgress);
-                    gameHistory.AddToInformationSetAndLog(totalChipsSoFarAction, currentDecisionIndex, (byte)MyGamePlayers.Defendant, gameProgress);
-                    gameHistory.AddToInformationSetAndLog(totalChipsSoFarAction, currentDecisionIndex, (byte)MyGamePlayers.Resolution, gameProgress);
-                    numPlaintiffItems++;
-                    numDefendantItems++;
-                    numResolutionItems++;
-                }
-
-                // Reset the cache indices to reflect how many items we have placed for this bargaining round
-                gameHistory.SetCacheItemAtIndex(GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, numResolutionItems);
-                gameHistory.SetCacheItemAtIndex(GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, numPlaintiffItems);
-                gameHistory.SetCacheItemAtIndex(GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, numDefendantItems);
-
-            }
+            
         }
 
         public override void ReverseSwitchToBranchEffects(Decision decisionToReverse, in HistoryPoint historyPoint)
@@ -960,15 +828,6 @@ namespace ACESim
                 return; // we aren't tracking the game history (maybe because we are using a game tree instead of cached history)
             base.ReverseSwitchToBranchEffects(decisionToReverse, in historyPoint);
             byte decisionByteCode = decisionToReverse.DecisionByteCode;
-            if (decisionByteCode == (byte)MyGameDecisions.DChips)
-            {
-                historyPoint.HistoryToPoint.ReverseAdditionsToInformationSet((byte)MyGamePlayers.Plaintiff, 2, null);
-                historyPoint.HistoryToPoint.ReverseAdditionsToInformationSet((byte)MyGamePlayers.Defendant, 2, null);
-                historyPoint.HistoryToPoint.ReverseAdditionsToInformationSet((byte)MyGamePlayers.Resolution, 2, null);
-                historyPoint.HistoryToPoint.DecrementItemAtCacheIndex(GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, 2);
-                historyPoint.HistoryToPoint.DecrementItemAtCacheIndex(GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, 2);
-                historyPoint.HistoryToPoint.DecrementItemAtCacheIndex(GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, 2);
-            }
         }
 
         #endregion

@@ -343,10 +343,8 @@ namespace ACESim
         public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, byte[] playersToInform, byte[] playersToInformOfOccurrenceOnly, byte[] cacheIndicesToIncrement, byte? storeActionInCacheIndex, GameProgress gameProgress, bool deferNotification, bool delayPreviousDeferredNotification)
         {
             DEBUGCount++;
-            if (DEBUGCount == 10)
-            {
-                var DEBUGQ = 0;
-            }
+            if (decisionByteCode == 20)
+                Br.eak.IfAdded("3272");
             // Debug.WriteLine($"Add to history {decisionByteCode} for player {playerIndex} action {action} of {numPossibleActions}");
             RecordAction(action, decisionIndex, deferNotification, playersToInform);
             if (gameProgress != null && gameProgress.FullHistoryRequired)

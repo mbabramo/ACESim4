@@ -126,7 +126,6 @@ namespace ACESim
                     MaxDelta = 0.25
                 },
                 NumPotentialBargainingRounds = 2, 
-                BargainingRoundRecall = MyGameBargainingRoundRecall.RememberAllBargainingRounds,
                 BargainingRoundsSimultaneous = true, 
                 SimultaneousOffersUltimatelyRevealed = true, 
                 PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },
