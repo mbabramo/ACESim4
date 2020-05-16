@@ -35,7 +35,7 @@ namespace ACESim
         public const int NumFullPlayers = 3; // includes main players and resolution player and any chance players that need full size information set
         public const int MaxNumPlayers = 18; // includes chance players that need a very limited information set
         public const int NumPartialPlayers = MaxNumPlayers - NumFullPlayers;
-        public const int MaxDeferredDecisionIndicesLength = 7;
+        public const int MaxDeferredDecisionIndicesLength = 10;
         public const int SizeInBits_BitArrayForInformationSetMembership = GameHistory.MaxNumActions * MaxNumPlayers;
         public const int SizeInBytes_BitArrayForInformationSetMembership = SizeInBits_BitArrayForInformationSetMembership / 8 + (SizeInBits_BitArrayForInformationSetMembership % 8 == 0 ? 0 : 1);
         public const int SizeInBytes_BitArrayForDecisionsDeferred = GameHistory.MaxNumActions / 8 + (MaxNumActions % 8 == 0 ? 0 : 1);
@@ -343,8 +343,6 @@ namespace ACESim
         public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, byte[] playersToInform, byte[] cacheIndicesToIncrement, byte? storeActionInCacheIndex, GameProgress gameProgress, bool deferNotification, bool delayPreviousDeferredNotification)
         {
             DEBUGCount++;
-            if (decisionByteCode == 20)
-                Br.eak.IfAdded("3272");
             // Debug.WriteLine($"Add to history {decisionByteCode} for player {playerIndex} action {action} of {numPossibleActions}");
             RecordAction(action, decisionIndex, deferNotification, playersToInform);
             if (gameProgress != null && gameProgress.FullHistoryRequired)

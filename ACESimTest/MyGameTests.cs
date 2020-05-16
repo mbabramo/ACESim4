@@ -168,12 +168,8 @@ namespace ACESimTest
                 false, false, false, false, 0, 0, sideBetChallenges, runningSideBetChallenges);
         }
 
-        private string ConstructExpectedResolutionSet(byte liabilityStrength, bool allowDamagesVariation, byte damagesStrength, bool pFiles, bool dAnswers, HowToSimulateBargainingFailure simulatingBargainingFailure, List<(byte? pMove, byte? dMove)> bargainingRounds, bool simultaneousBargainingRounds, bool simultaneousOffersUltimatelyRevealed, bool settlementReachedLastRound, bool allowAbandonAndDefault, bool pReadyToAbandonLastRound, bool dReadyToDefaultLastRound, bool ifBothDefaultPlaintiffLoses, bool caseGoesToTrial, byte liabilityResultAtTrial, byte damagesResultIfAllowVariation, SideBetChallenges sideBetChallenges, RunningSideBetChallenges runningSideBetChallenges)
+        private string ConstructExpectedResolutionSet(byte liabilityStrength, bool allowDamagesVariation, byte damagesStrength, bool pFiles, bool dAnswers, HowToSimulateBargainingFailure simulatingBargainingFailure, List<(byte? pMove, byte? dMove)> bargainingRounds, bool simultaneousBargainingRounds, bool simultaneousOffersUltimatelyRevealed, bool settlementReachedInLastRoundCompleted, bool allowAbandonAndDefault, bool pReadyToAbandonLastRound, bool dReadyToDefaultLastRound, bool ifBothDefaultPlaintiffLoses, bool caseGoesToTrial, byte liabilityResultAtTrial, byte damagesResultIfAllowVariation, SideBetChallenges sideBetChallenges, RunningSideBetChallenges runningSideBetChallenges)
         {
-            if (CaseNumber == 3272)
-            {
-                var DEBUG = 0;
-            }
             var l = new List<byte> {liabilityStrength};
             if (allowDamagesVariation)
                 l.Add(damagesStrength);
@@ -187,52 +183,45 @@ namespace ACESimTest
                     int numBargainingRoundsCompleted = bargainingRounds.Count();
                     foreach (var moveSet in bargainingRounds)
                     {
-                        // DEBUG bool isLastBargainedRound = bargainingRound == numBargainingRoundsCompleted;
-                        // Note that the resolution information set always consists of just the last round settled, regardless of whether the case goes to trial. Some of this information may be irrelevant to trial (if we're not doing the settlement shootout).
-                        if (true) // DEBUG isLastBargainedRound)
+                        bool pAgreesToBargain = moveSet.pMove != null;
+                        bool dAgreesToBargain = moveSet.dMove != null;
+                        if (simulatingBargainingFailure != HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain)
                         {
-                            //DEBUG
-                            //l.Add(bargainingRound);
-                            //if (runningSideBetChallenges != RunningSideBetChallenges.None)
-                            //    l.Add((byte)(1 + 2 * (numBargainingRoundsCompleted - 1))); // number of chips bet in previous rounds, i.e. higher bet in each of those rounds, which we are setting to 2, plus 1 (since we have no 0 zction)
-
-                            bool pAgreesToBargain = moveSet.pMove != null;
-                            bool dAgreesToBargain = moveSet.dMove != null;
-                            if (simulatingBargainingFailure != HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain)
+                            l.Add(pAgreesToBargain ? (byte) 1 : (byte) 2);
+                            l.Add(dAgreesToBargain ? (byte) 1 : (byte) 2);
+                        }
+                        if (pAgreesToBargain && dAgreesToBargain)
+                        {
+                            bool pMovesFirst = bargainingRound % 2 == 1 || simultaneousBargainingRounds;
+                            if (pMovesFirst)
                             {
-                                l.Add(pAgreesToBargain ? (byte) 1 : (byte) 2);
-                                l.Add(dAgreesToBargain ? (byte) 1 : (byte) 2);
+                                l.Add((byte) moveSet.pMove);
+                                l.Add((byte) moveSet.dMove);
                             }
-                            if (pAgreesToBargain && dAgreesToBargain)
+                            else
                             {
-                                bool pMovesFirst = bargainingRound % 2 == 1 || simultaneousBargainingRounds;
-                                if (pMovesFirst)
-                                {
-                                    l.Add((byte) moveSet.pMove);
-                                    l.Add((byte) moveSet.dMove);
-                                }
-                                else
-                                {
-                                    l.Add((byte) moveSet.dMove);
-                                    l.Add((byte) moveSet.pMove);
-                                }
+                                l.Add((byte) moveSet.dMove);
+                                l.Add((byte) moveSet.pMove);
                             }
-                            bool caseHasSettled = settlementReachedLastRound && bargainingRound == numBargainingRoundsCompleted;
-                            if (runningSideBetChallenges != RunningSideBetChallenges.None && !caseHasSettled)
-                            {
-                                // note that action is 1 more than number of chips bet
-                                byte pAction = runningSideBetChallenges == RunningSideBetChallenges.PChallenges2D1 ? (byte) 3 : (byte) 2;
-                                byte dAction = runningSideBetChallenges == RunningSideBetChallenges.DChallenges2P1 ? (byte) 3 : (byte) 2;
-                                l.Add(pAction);
-                                l.Add(dAction);
-                            }
-                            if (allowAbandonAndDefault && !settlementReachedLastRound) // if a settlement was reached last round, we don't get to this decision
-                            {
-                                l.Add(pReadyToAbandonLastRound ? (byte) 1 : (byte) 2);
-                                l.Add(dReadyToDefaultLastRound ? (byte) 1 : (byte) 2);
-                                if (pReadyToAbandonLastRound && dReadyToDefaultLastRound)
-                                    l.Add(ifBothDefaultPlaintiffLoses ? (byte) 1 : (byte) 2);
-                            }
+                        }
+                        bool isLastBargainingRoundCompleted = bargainingRound == numBargainingRoundsCompleted;
+                        bool caseHasSettled = settlementReachedInLastRoundCompleted && isLastBargainingRoundCompleted;
+                        if (runningSideBetChallenges != RunningSideBetChallenges.None && !caseHasSettled)
+                        {
+                            // note that action is 1 more than number of chips bet
+                            byte pAction = runningSideBetChallenges == RunningSideBetChallenges.PChallenges2D1 ? (byte) 3 : (byte) 2;
+                            byte dAction = runningSideBetChallenges == RunningSideBetChallenges.DChallenges2P1 ? (byte) 3 : (byte) 2;
+                            l.Add(pAction);
+                            l.Add(dAction);
+                        }
+                        if (allowAbandonAndDefault && (!settlementReachedInLastRoundCompleted || !isLastBargainingRoundCompleted)) // if a settlement was reached last round, we don't get to this decision
+                        {
+                            bool pReadyToAbandon = isLastBargainingRoundCompleted && pReadyToAbandonLastRound;
+                            bool dReadyToDefault = isLastBargainingRoundCompleted && dReadyToDefaultLastRound;
+                            l.Add(pReadyToAbandon ? (byte) 1 : (byte) 2);
+                            l.Add(dReadyToDefault ? (byte) 1 : (byte) 2);
+                            if (pReadyToAbandon && dReadyToDefault)
+                                l.Add(ifBothDefaultPlaintiffLoses ? (byte) 1 : (byte) 2);
                         }
                         bargainingRound++;
                     }
@@ -394,24 +383,7 @@ namespace ACESimTest
                     var settled = false;
                     for (byte b = 1; b <= bargainingRoundCount; b++)
                     {
-                        //if (b >= startingRound)
-                        //{
-                        //    DEBUG
-                        //    pInfo.Add(b);
-                        //    dInfo.Add(b);
-                        //    pInfoExplanations.Add($"Bargaining round {b}");
-                        //    dInfoExplanations.Add($"Bargaining round {b}");
-
-                        //    if (runningSideBetChallenges != RunningSideBetChallenges.None)
-                        //    {
-                        //        // add the total chips bet so far
-                        //        var chipsSoFar = (byte)(2 * (b - 1));
-                        //        pInfo.Add((byte)(chipsSoFar + 1));
-                        //        dInfo.Add((byte)(chipsSoFar + 1));
-                        //        pInfoExplanations.Add($"Chips plus one {chipsSoFar}");
-                        //        dInfoExplanations.Add($"Chips plus one {chipsSoFar}");
-                        //    }
-                        //}
+                        
                         (byte? pMove, byte? dMove) = bargainingMoves[b - 1];
                         if (simulatingBargainingFailure != HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain && b >= startingRound)
                         {
@@ -617,9 +589,10 @@ namespace ACESimTest
                             continue; // not interested in this case
                         if ((!plaintiffGivesUp || !defendantGivesUp) && !plaintiffWinsIfBothGiveUp)
                             continue; // only need to test both values of plaintiff wins if both give up.
-                        if (CaseNumber == 116)
+                        if (CaseNumber == 99999999)
                         {
                             Br.eak.Add("Case");
+                            Br.eak.Add(CaseNumber.ToString());
                             GameProgressLogger.LoggingOn = true;
                             GameProgressLogger.DetailedLogging = true;
                             GameProgressLogger.OutputLogMessages = true;
@@ -627,11 +600,10 @@ namespace ACESimTest
                         else
                         {
                             Br.eak.Remove("Case");
+                            Br.eak.Remove(CaseNumber.ToString());
                             GameProgressLogger.LoggingOn = false;
                             GameProgressLogger.OutputLogMessages = false;
                         }
-                                if (CaseNumber == 3272)
-                                    Br.eak.Add("3272");
                         CaseGivenUp_SpecificSettingsAndActions(numPotentialBargainingRounds, abandonmentInRound,                             simultaneousBargainingRounds,
                             simultaneousOffersUltimatelyRevealed, LiabilityStrength, DamagesStrength, plaintiffGivesUp ? abandonmentInRound : (byte?)null,
                             defendantGivesUp ? abandonmentInRound : (byte?)null,
@@ -783,7 +755,7 @@ namespace ACESimTest
                         for (byte settlementInRound = 1; settlementInRound <= numPotentialBargainingRounds; settlementInRound++)
                             foreach (var runningSideBetChallenges in new[] {RunningSideBetChallenges.None, RunningSideBetChallenges.PChallenges2D1, RunningSideBetChallenges.DChallenges2P1})
                             {
-                                if (CaseNumber == 999999)
+                                if (CaseNumber == 9999999)
                                 {
                                     Br.eak.Add("Case");
                                     GameProgressLogger.LoggingOn = true;
@@ -831,6 +803,7 @@ namespace ACESimTest
             //var informationSetHistories = myGameProgress.GameHistory.GetInformationSetHistoryItems().ToList();
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet, out string resolutionSet);
             var expectedPartyInformationSets = ConstructExpectedPartyInformationSets(LiabilityStrength, PLiabilitySignal, DLiabilitySignal, allowDamagesVariation, PDamagesSignal, DDamagesSignal, true, true, simulatingBargainingFailure, runningSideBetChallenges, bargainingRoundMoves, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, allowAbandonAndDefault, null, null);
+            Br.eak.IfAdded("Case");
             string expectedResolutionSet = ConstructExpectedResolutionSet_CaseSettles(LiabilityStrength, allowDamagesVariation, DamagesStrength, true, true, simulatingBargainingFailure,  bargainingRoundMoves, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, allowAbandonAndDefault, SideBetChallenges.Irrelevant, runningSideBetChallenges);
             pInformationSet.Should().Be(expectedPartyInformationSets.pInformationSet);
             dInformationSet.Should().Be(expectedPartyInformationSets.dInformationSet);
