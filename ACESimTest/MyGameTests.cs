@@ -351,7 +351,7 @@ namespace ACESimTest
             return bestOffers;
         }
 
-        private (string pInformationSet, string dInformationSet, string pInformationSetExplanations, string dInformationSetExplanations) ConstructExpectedPartyInformationSets(byte liabilityStrength, byte pLiabilitySignal, byte dLiabilitySignal, bool allowDamagesVariation, byte pDamagesSignal, byte dDamagesSignal, bool pFiles, bool dAnswers, HowToSimulateBargainingFailure simulatingBargainingFailure, RunningSideBetChallenges runningSideBetChallenges, List<(byte? pMove, byte? dMove)> bargainingMoves, bool simultaneousBargaining, bool simultaneousOffersUltimatelyRevealed, bool allowAbandonAndDefault)
+        private (string pInformationSet, string dInformationSet, string pInformationSetExplanations, string dInformationSetExplanations) ConstructExpectedPartyInformationSets(byte liabilityStrength, byte pLiabilitySignal, byte dLiabilitySignal, bool allowDamagesVariation, byte pDamagesSignal, byte dDamagesSignal, bool pFiles, bool dAnswers, HowToSimulateBargainingFailure simulatingBargainingFailure, RunningSideBetChallenges runningSideBetChallenges, List<(byte? pMove, byte? dMove)> bargainingMoves, bool simultaneousBargaining, bool simultaneousOffersUltimatelyRevealed, bool allowAbandonAndDefault, byte? pReadyToAbandonRound, byte? dReadyToDefaultRound)
         {
             double liabilityStrengthUniform =
                 EquallySpaced.GetLocationOfEquallySpacedPoint(liabilityStrength - 1, NumLiabilityStrengthPoints, false);
@@ -504,10 +504,12 @@ namespace ACESimTest
                         if (allowAbandonAndDefault && !settled && b >= startingRound) // if a settlement was reached last round, we don't get to this decision
                         {
                             // Each player must have in its information set an indication that it has already made the abandon/default decision, so that when it doesn't abandon/default, it can distinguish this decision from later decisions
-                            pInfo.Add(GameHistory.DecisionHasOccurred);
-                            pInfoExplanations.Add("DecisionOccurred");
-                            dInfo.Add(GameHistory.DecisionHasOccurred);
-                            dInfoExplanations.Add("DecisionOccurred");
+                            byte pAction = pReadyToAbandonRound == b ? (byte)1 : (byte)2;
+                            pInfo.Add(pAction);
+                            pInfoExplanations.Add($"pReadyToAbandonRound{b} {pAction}");
+                            byte dAction = dReadyToDefaultRound == b ? (byte)1 : (byte)2;
+                            dInfo.Add(dAction);
+                            dInfoExplanations.Add($"dReadyToDefaultRound{b} {dAction}");
                         }
                     }
                 }
@@ -735,7 +737,7 @@ namespace ACESimTest
 
             //var informationSetHistories = myGameProgress.GameHistory.GetInformationSetHistoryItems().ToList();
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet, out string resolutionSet);
-            var expectedPartyInformationSets = ConstructExpectedPartyInformationSets(LiabilityStrength, PLiabilitySignal, DLiabilitySignal, allowDamagesVariation, PDamagesSignal, DDamagesSignal, pFiles, dAnswers, simulatingBargainingFailure, runningSideBetChallenges, bargainingRoundMoves, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, true);
+            var expectedPartyInformationSets = ConstructExpectedPartyInformationSets(LiabilityStrength, PLiabilitySignal, DLiabilitySignal, allowDamagesVariation, PDamagesSignal, DDamagesSignal, pFiles, dAnswers, simulatingBargainingFailure, runningSideBetChallenges, bargainingRoundMoves, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, true, pReadyToAbandonRound, dReadyToDefaultRound);
             string expectedResolutionSet = ConstructExpectedResolutionSet(liabilityStrength, allowDamagesVariation, damagesStrength, pFiles, dAnswers, simulatingBargainingFailure, bargainingRoundMoves, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, false, true, pReadyToAbandonRound != null, dReadyToDefaultRound != null, mutualGiveUpResult == 1, false, 0, 0, SideBetChallenges.Irrelevant, runningSideBetChallenges);
             pInformationSet.Should().Be(expectedPartyInformationSets.pInformationSet);
             dInformationSet.Should().Be(expectedPartyInformationSets.dInformationSet);
@@ -828,7 +830,7 @@ namespace ACESimTest
 
             //var informationSetHistories = myGameProgress.GameHistory.GetInformationSetHistoryItems().ToList();
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet, out string resolutionSet);
-            var expectedPartyInformationSets = ConstructExpectedPartyInformationSets(LiabilityStrength, PLiabilitySignal, DLiabilitySignal, allowDamagesVariation, PDamagesSignal, DDamagesSignal, true, true, simulatingBargainingFailure, runningSideBetChallenges, bargainingRoundMoves, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, allowAbandonAndDefault);
+            var expectedPartyInformationSets = ConstructExpectedPartyInformationSets(LiabilityStrength, PLiabilitySignal, DLiabilitySignal, allowDamagesVariation, PDamagesSignal, DDamagesSignal, true, true, simulatingBargainingFailure, runningSideBetChallenges, bargainingRoundMoves, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, allowAbandonAndDefault, null, null);
             string expectedResolutionSet = ConstructExpectedResolutionSet_CaseSettles(LiabilityStrength, allowDamagesVariation, DamagesStrength, true, true, simulatingBargainingFailure,  bargainingRoundMoves, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, allowAbandonAndDefault, SideBetChallenges.Irrelevant, runningSideBetChallenges);
             pInformationSet.Should().Be(expectedPartyInformationSets.pInformationSet);
             dInformationSet.Should().Be(expectedPartyInformationSets.dInformationSet);
@@ -946,7 +948,7 @@ namespace ACESimTest
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet,
                 out string resolutionSet);
             var expectedPartyInformationSets = ConstructExpectedPartyInformationSets(LiabilityStrength, PLiabilitySignal, DLiabilitySignal, allowDamagesVariation, PDamagesSignal, DDamagesSignal, true, true, simulatingBargainingFailure, runningSideBetChallenges, bargainingMoves,
-              simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, allowAbandonAndDefaults);
+              simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, allowAbandonAndDefaults, null, null);
             string expectedResolutionSet = ConstructExpectedResolutionSet(LiabilityStrength, allowDamagesVariation, DamagesStrength, true, true, simulatingBargainingFailure, bargainingMoves,
                 simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, false, allowAbandonAndDefaults, false, false, false, true, courtLiabilityResult, courtDamagesResultIfAllowVariation, sideBetChallenges, runningSideBetChallenges);
             pInformationSet.Should().Be(expectedPartyInformationSets.pInformationSet);

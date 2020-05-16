@@ -340,7 +340,7 @@ namespace ACESim
 
         // DEBUG -- must also deal with playersToInformOfOccurrenceOnly
 
-        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, byte[] playersToInform, byte[] playersToInformOfOccurrenceOnly, byte[] cacheIndicesToIncrement, byte? storeActionInCacheIndex, GameProgress gameProgress, bool deferNotification, bool delayPreviousDeferredNotification)
+        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, byte[] playersToInform, byte[] cacheIndicesToIncrement, byte? storeActionInCacheIndex, GameProgress gameProgress, bool deferNotification, bool delayPreviousDeferredNotification)
         {
             DEBUGCount++;
             if (decisionByteCode == 20)
@@ -367,8 +367,6 @@ namespace ACESim
             {
                 AddToInformationSetAndLog(action, decisionIndex, decisionIndex, playerIndex, playersToInform, gameProgress); 
             }
-            if (playersToInformOfOccurrenceOnly != null && playersToInformOfOccurrenceOnly.Length > 0)
-                AddToInformationSetAndLog(DecisionHasOccurred, decisionIndex, decisionIndex, playerIndex, playersToInformOfOccurrenceOnly, gameProgress);
             if (cacheIndicesToIncrement != null && cacheIndicesToIncrement.Length > 0)
                 foreach (byte cacheIndex in cacheIndicesToIncrement)
                     IncrementItemAtCacheIndex(cacheIndex);

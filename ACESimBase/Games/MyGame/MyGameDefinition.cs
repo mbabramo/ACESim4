@@ -561,29 +561,25 @@ namespace ACESim
 
         private void AddAbandonOrDefaultDecisions(int b, List<Decision> decisions)
         {
-            // These decisions don't need to be added to P/D information sets, because if the game is abandoned or defaulted by at least one player, there are no more player decisions. If there are player decisions, this hasn't occurred. However, we still need a marker to indicate that the decision has occurred, so that the player can distinguish its own decision to abandon/default from any later pretrial decision.
-
             var pAbandon =
-                new Decision("PAbandon" + (b + 1), "PA" + (b + 1), false, (byte)MyGamePlayers.Plaintiff, new byte[] { (byte)MyGamePlayers.Resolution },
+                new Decision("PAbandon" + (b + 1), "PA" + (b + 1), false, (byte)MyGamePlayers.Plaintiff, new byte[] {(byte) MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Resolution },
                     2, (byte)MyGameDecisions.PAbandon)
                 {
                     CustomByte = (byte)(b + 1),
                     CanTerminateGame = false, // we always must look at whether D is defaulting too. 
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_PReadyToAbandon,
                     IsReversible = true,
-                    PlayersToInformOfOccurrenceOnly = new byte[] {(byte)MyGamePlayers.Plaintiff}
                 };
             decisions.Add(pAbandon);
 
             var dDefault =
-                new Decision("DDefault" + (b + 1), "DD" + (b + 1), false, (byte)MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Resolution },
+                new Decision("DDefault" + (b + 1), "DD" + (b + 1), false, (byte)MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
                     2, (byte)MyGameDecisions.DDefault)
                 {
                     CustomByte = (byte)(b + 1),
                     CanTerminateGame = true, // if either but not both has given up, game terminates
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_DReadyToAbandon,
                     IsReversible = true,
-                    PlayersToInformOfOccurrenceOnly = new byte[] { (byte)MyGamePlayers.Defendant }
                 };
             decisions.Add(dDefault);
 
