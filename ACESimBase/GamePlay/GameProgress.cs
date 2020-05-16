@@ -110,7 +110,9 @@ namespace ACESim
 
             if (disposing)
             {
+
                 // TODO: If using array pool on InformationSetLog: ArrayPool<byte>.Shared.Return(InformationSetLog.LogStorage);
+                // DEBUG2 ArrayPool<byte>.Shared.Return(InformationSetLog.LogStorage); 
             }
 
             disposed = true;
@@ -341,7 +343,7 @@ namespace ACESim
             copy.LastIterationNumberReceivingRandomNumber = LastIterationNumberReceivingRandomNumber;
             copy.RandomNumberForIteration = RandomNumberForIteration;
 
-            copy.InformationSetLog = new InformationSetLog() { LogStorage = InformationSetLog.LogStorage.ToArray(), Initialized = InformationSetLog.Initialized }; // NOTE: We can't just copy the array because then the starting game progress will be shared among all copies.
+            copy.InformationSetLog = new InformationSetLog() { LogStorage = InformationSetLog.LogStorage?.ToArray(), Initialized = InformationSetLog.Initialized }; // NOTE: We can't just copy the array because then the starting game progress will be shared among all copies.
             copy.IterationID = IterationID;
             copy.GameDefinition = GameDefinition;
             copy.GameModuleProgresses = GameModuleProgresses == null ? null : (GameModuleProgresses.Select(x => x?.DeepCopy()).ToList());

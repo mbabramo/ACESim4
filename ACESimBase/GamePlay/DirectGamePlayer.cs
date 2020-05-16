@@ -181,6 +181,7 @@ namespace ACESimBase
                     }
                 }
             }
+            var DEBUG = GameProgress.GameHistory.GetCurrentInformationSetForPlayer(CurrentDecision.PlayerIndex);
             return result;
         }
     }

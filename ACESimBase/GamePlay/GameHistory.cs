@@ -134,50 +134,8 @@ namespace ACESim
         /// <returns></returns>
         public GameHistoryStorable DeepCopyToStorable()
         {
-            var result = new GameHistoryStorable()
-            {
-                Complete = Complete,
-                NextIndexInHistoryActionsOnly = NextIndexInHistoryActionsOnly,
-                HighestCacheIndex = HighestCacheIndex,
-                Initialized = Initialized,
-                PreviousNotificationDeferred = PreviousNotificationDeferred,
-                DeferredAction = DeferredAction,
-                DeferredPlayerNumber = DeferredPlayerNumber,
-                DeferredPlayersToInform = DeferredPlayersToInform,
-                LastDecisionIndexAdded = LastDecisionIndexAdded,
-                ActionsHistory = ActionsHistory.Length > 0 ? new byte[GameFullHistory.MaxNumActions] : null,
-                DecisionsHistory = DecisionsHistory.Length > 0 ? new byte[GameFullHistory.MaxNumActions] : null,
-                Cache = Cache.Length > 0 ? new byte[GameHistory.CacheLength] : null,
-                InformationSets = InformationSets.Length > 0 ? new byte[GameHistory.MaxInformationSetLength] : null,
-                DeferredDecisionIndices = DeferredDecisionIndices.Length > 0 ? new byte[GameHistory.MaxDeferredDecisionIndicesLength] : null
-            };
-            byte maxActions = Math.Min((byte) GameFullHistory.MaxNumActions, (byte)NextIndexInHistoryActionsOnly);
-            if (ActionsHistory.Length > 0)
-                for (byte i = 0; i < maxActions; i++)
-                    result.ActionsHistory[i] = ActionsHistory[i];
-            if (DecisionsHistory.Length > 0)
-                for (byte i = 0; i < maxActions; i++)
-                    result.DecisionsHistory[i] = DecisionsHistory[i];
-            if (Cache.Length > 0)
-                for (byte i = 0; i < GameHistory.CacheLength; i++)
-                    result.Cache[i] = Cache[i];
-            int informationSetsLength = InformationSets.Length;
-            if (informationSetsLength > 0)
-            {
-#if SAFETYCHECKS
-                // it doesn't matter what the CreatingThreadID is on this GameHistory; now that we've 
-                // duplicated the entire object, this can be used on whatever the current thread is
-                // (and then on some other thread if there is another deep copy).
-                result.CreatingThreadID = System.Threading.Thread.CurrentThread.ManagedThreadId;
-#endif
-                for (int i = 0; i < GameHistory.MaxInformationSetLength; i++)
-                    result.InformationSets[i] = InformationSets[i];
-            }
-            if (DeferredDecisionIndices.Length > 0)
-            {
-                for (int i = 0; i < GameHistory.MaxDeferredDecisionIndicesLength; i++)
-                    result.DeferredDecisionIndices[i] = DeferredDecisionIndices[i];
-            }
+            var result = new GameHistoryStorable(this);
+
             return result;
         }
 
@@ -540,10 +498,16 @@ namespace ACESim
 
         public string GetCurrentPlayerInformationString(byte playerIndex)
         {
-            Span<byte> playerInfoBuffer = stackalloc byte[MaxInformationSetLengthPerFullPlayer]; 
+            List<byte> informationSetList = GetCurrentInformationSetForPlayer(playerIndex);
+            return String.Join(",", informationSetList);
+        }
+
+        public List<byte> GetCurrentInformationSetForPlayer(byte playerIndex)
+        {
+            Span<byte> playerInfoBuffer = stackalloc byte[MaxInformationSetLengthPerFullPlayer];
             GetPlayerInformationCurrent(playerIndex, InformationSets, playerInfoBuffer);
             List<byte> informationSetList = ListExtensions.GetSpan255TerminatedAsList(playerInfoBuffer);
-            return String.Join(",", informationSetList);
+            return informationSetList;
         }
 
         public byte CountItemsInInformationSet(byte playerIndex)
