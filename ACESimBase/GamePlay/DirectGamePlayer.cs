@@ -174,7 +174,7 @@ namespace ACESimBase
                     for (int j = i + 1; j < resultLength; j++)
                     {
                         if (result[i].decisionIndex == result[j].decisionIndex)
-                        { // we've found a duplicate decision index, so the first one must be a deferred decision index -- replace it.
+                        { // we've found a duplicate decision index, so the first one must be a deferred decision index -- replace it. note that we're implicitly assuming here that only one player's decisions will be deferred. For example, we have a plaintiff's offer, which is deferred until the defendant's offer (so that defendant won't know plaintiff's offer before making its own offer). So these are recorded as of the time that the information ends up in the plaintiff's information set -- i.e., after the defendant has made an offer. But for this purpose, we need to know the original decision number. 
                             result[i] = (GameProgress.GameHistory.DeferredDecisionIndices[deferredIndex++], result[i].information);
                             break;
                         }
@@ -182,6 +182,8 @@ namespace ACESimBase
                 }
             }
             var DEBUG = GameProgress.GameHistory.GetCurrentInformationSetForPlayer(CurrentDecision.PlayerIndex);
+            if (!DEBUG.SequenceEqual(result.Select(x => x.information)))
+                throw new Exception();
             return result;
         }
     }

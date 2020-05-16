@@ -875,7 +875,7 @@ namespace ACESim
             }
             else if (decisionByteCode == (byte)MyGameDecisions.PreBargainingRound)
             {
-                // TODO: Consider eliminating this. This was designed for forgetting earlier bargaining rounds, but partial recall leads to considerable complications in executing optimization.
+                // TODO: Consider eliminating this. This was designed for forgetting earlier bargaining rounds, but partial recall leads to considerable complications in executing optimization. However, we also use this to keep track of the resolution information set (since it sometimes doesn't matter what happened in earlier bargaining rounds). 
                 // At the beginning of one bargaining round, we must clean up the results of the previous bargaining round. Thus, if we are forgetting earlier bargaining rounds, then we want to delete all of the items in the resolution information set from that bargaining round. We need to know the number of items that have been added since the beginning of the previous bargaining round. We can do this by incrementing something in the game history cache whenever we process any of these decisions. We do this by using the IncrementGameCacheItem option of Decision.
                 // Clean up previous round after the bargaining round:
                 // We don't want to do it immediately after the bargaining round. If the game has ended as a result of a settlement, a post-bargaining round decision won't

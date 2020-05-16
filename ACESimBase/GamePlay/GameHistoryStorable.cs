@@ -64,7 +64,7 @@ namespace ACESim
             {
                 for (byte p = 0; p < GameHistory.NumFullPlayers; p++)
                 {
-                    int i = GameHistory.InformationSetIndex(p);
+                    int i = GameHistory.InformationSetsIndex(p);
                     byte b = 0;
                     do
                     {
@@ -76,7 +76,7 @@ namespace ACESim
                 }
                 for (byte p = GameHistory.NumFullPlayers; p < GameHistory.MaxNumPlayers; p++)
                 {
-                    int i = GameHistory.InformationSetIndex(p);
+                    int i = GameHistory.InformationSetsIndex(p);
                     for (int j = 0; j < GameHistory.MaxInformationSetLengthPerPartialPlayer; j++)
                     {
                         InformationSets[i] = gameHistory.InformationSets[i];
