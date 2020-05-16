@@ -13,10 +13,12 @@ namespace ACESim
     {
         public bool Complete;
         public byte[] Buffer;
-        public Span<byte> ActionsHistory => new Span<byte>(Buffer, 0, GameFullHistory.MaxNumActions);
-        public Span<byte> DecisionsHistory => new Span<byte>(Buffer, GameFullHistory.MaxNumActions, GameFullHistory.MaxNumActions);
-        public Span<byte> Cache => new Span<byte>(Buffer, GameFullHistory.MaxNumActions + GameFullHistory.MaxNumActions, GameHistory.CacheLength);
-        public Span<byte> InformationSets => new Span<byte>(Buffer, GameFullHistory.MaxNumActions + GameFullHistory.MaxNumActions + GameHistory.CacheLength, GameHistory.MaxInformationSetLength);
+        public Span<byte> ActionsHistory => new Span<byte>(Buffer, 0, GameHistory.MaxNumActions);
+        public Span<byte> DecisionsHistory => new Span<byte>(Buffer, GameHistory.MaxNumActions, GameHistory.MaxNumActions);
+        public Span<byte> Cache => new Span<byte>(Buffer, GameHistory.MaxNumActions + GameHistory.MaxNumActions, GameHistory.CacheLength);
+        public Span<byte> InformationSets => new Span<byte>(Buffer, GameHistory.MaxNumActions + GameHistory.MaxNumActions + GameHistory.CacheLength, GameHistory.MaxInformationSetLength);
+        public Span<byte> InformationSetMembership => new Span<byte>(Buffer, GameHistory.MaxNumActions + GameHistory.MaxNumActions + GameHistory.CacheLength + GameHistory.MaxInformationSetLength, GameHistory.SizeInBytes_BitArrayForInformationSetMembership);
+        public Span<byte> DecisionsDeferred => new Span<byte>(Buffer, GameHistory.MaxNumActions + GameHistory.MaxNumActions + GameHistory.CacheLength + GameHistory.MaxInformationSetLength + GameHistory.SizeInBytes_BitArrayForInformationSetMembership, GameHistory.SizeInBytes_BitArrayForDecisionsDeferred);
         public byte NextIndexInHistoryActionsOnly;
         public byte HighestCacheIndex;
         public bool Initialized;
@@ -29,11 +31,13 @@ namespace ACESim
 #if SAFETYCHECKS
         public int CreatingThreadID;
 #endif
+        public int DEBUGCount;
 
         public GameHistoryStorable(in GameHistory gameHistory)
         {
+            DEBUGCount = gameHistory.DEBUGCount;
             Complete = gameHistory.Complete;
-            NextIndexInHistoryActionsOnly = gameHistory.NextIndexInHistoryActionsOnly;
+            NextIndexInHistoryActionsOnly = gameHistory.NextActionsAndDecisionsHistoryIndex;
             HighestCacheIndex = gameHistory.HighestCacheIndex;
             Initialized = gameHistory.Initialized;
             PreviousNotificationDeferred = gameHistory.PreviousNotificationDeferred;
@@ -41,7 +45,7 @@ namespace ACESim
             DeferredPlayerNumber = gameHistory.DeferredPlayerNumber;
             DeferredPlayersToInform = gameHistory.DeferredPlayersToInform;
             LastDecisionIndexAdded = gameHistory.LastDecisionIndexAdded;
-            Buffer = new byte[GameFullHistory.MaxNumActions + GameFullHistory.MaxNumActions + GameHistory.CacheLength + GameHistory.MaxInformationSetLength];
+            Buffer = new byte[GameHistory.TotalBufferSize];
             DeferredDecisionIndices = gameHistory.DeferredDecisionIndices.Length > 0 ? new byte[GameHistory.MaxDeferredDecisionIndicesLength] : null;
 #if SAFETYCHECKS
             // it doesn't matter what the CreatingThreadID is on this GameHistory; now that we've 
@@ -49,13 +53,13 @@ namespace ACESim
             // (and then on some other thread if there is another deep copy).
             CreatingThreadID = System.Threading.Thread.CurrentThread.ManagedThreadId;
 #endif
-            byte maxActions = Math.Min((byte)GameFullHistory.MaxNumActions, (byte)NextIndexInHistoryActionsOnly);
+            byte maxActions = Math.Min((byte)GameHistory.MaxNumActions, (byte)NextIndexInHistoryActionsOnly);
             if (ActionsHistory.Length > 0)
                 for (byte i = 0; i < maxActions; i++)
                     ActionsHistory[i] = gameHistory.ActionsHistory[i];
             if (DecisionsHistory.Length > 0)
                 for (byte i = 0; i < maxActions; i++)
-                    DecisionsHistory[i] = gameHistory.DecisionsHistory[i];
+                    DecisionsHistory[i] = gameHistory.DecisionIndicesHistory[i];
             if (Cache.Length > 0)
                 for (byte i = 0; i < GameHistory.CacheLength; i++)
                     Cache[i] = gameHistory.Cache[i];
@@ -87,6 +91,12 @@ namespace ACESim
                 //for (int i = 0; i < GameHistory.MaxInformationSetLength; i++)
                 //    InformationSets[i] = gameHistory.InformationSets[i];
             }
+            if (InformationSetMembership.Length > 0)
+                for (int i = 0; i < GameHistory.SizeInBytes_BitArrayForInformationSetMembership; i++)
+                    InformationSetMembership[i] = gameHistory.InformationSetMembership[i];
+            if (DecisionsDeferred.Length > 0)
+                for (int i = 0; i < GameHistory.SizeInBytes_BitArrayForDecisionsDeferred; i++)
+                    DecisionsDeferred[i] = gameHistory.DecisionsDeferred[i];
             if (DeferredDecisionIndices.Length > 0)
             {
                 for (int i = 0; i < GameHistory.MaxDeferredDecisionIndicesLength; i++)
@@ -112,17 +122,21 @@ namespace ACESim
             if (ActionsHistory != null)
             {
                 result.CreateArraysForSpans(false);
-                for (int i = 0; i < GameFullHistory.MaxNumActions; i++)
+                for (int i = 0; i < GameHistory.MaxNumActions; i++)
                     result.ActionsHistory[i] = ActionsHistory[i];
-                for (int i = 0; i < GameFullHistory.MaxNumActions; i++)
-                    result.DecisionsHistory[i] = DecisionsHistory[i];
+                for (int i = 0; i < GameHistory.MaxNumActions; i++)
+                    result.DecisionIndicesHistory[i] = DecisionsHistory[i];
                 for (int i = 0; i < GameHistory.CacheLength; i++)
                     result.Cache[i] = Cache[i];
                 result.VerifyThread();
                 for (int i = 0; i < GameHistory.MaxInformationSetLength; i++)
                     result.InformationSets[i] = InformationSets[i];
                 for (int i = 0; i < GameHistory.MaxDeferredDecisionIndicesLength; i++)
-                    result.DeferredDecisionIndices[i] = DeferredDecisionIndices[i];
+                    result.DeferredDecisionIndices[i] = DeferredDecisionIndices[i]; 
+                for (int i = 0; i < GameHistory.SizeInBytes_BitArrayForInformationSetMembership; i++)
+                    result.InformationSetMembership[i] = InformationSetMembership[i];
+               for (int i = 0; i < GameHistory.SizeInBytes_BitArrayForDecisionsDeferred; i++)
+                    result.DecisionsDeferred[i] = DecisionsDeferred[i];
             }
             return result;
         }
@@ -135,8 +149,9 @@ namespace ACESim
         {
             var result = new GameHistory()
             {
+                DEBUGCount = DEBUGCount,
                 Complete = Complete,
-                NextIndexInHistoryActionsOnly = NextIndexInHistoryActionsOnly,
+                NextActionsAndDecisionsHistoryIndex = NextIndexInHistoryActionsOnly,
                 Initialized = Initialized,
                 PreviousNotificationDeferred = PreviousNotificationDeferred,
                 DeferredAction = DeferredAction,
@@ -144,10 +159,12 @@ namespace ACESim
                 DeferredPlayersToInform = DeferredPlayersToInform,  // this does not need to be duplicated because it is set in gamedefinition and not changed
                 LastDecisionIndexAdded = LastDecisionIndexAdded,
                 ActionsHistory = ActionsHistory,
-                DecisionsHistory = DecisionsHistory,
+                DecisionIndicesHistory = DecisionsHistory,
                 Cache = Cache,
                 DeferredDecisionIndices = DeferredDecisionIndices,
                 InformationSets = InformationSets,
+                InformationSetMembership = InformationSetMembership,
+                DecisionsDeferred = DecisionsDeferred,
 #if SAFETYCHECKS
                 CreatingThreadID = CreatingThreadID
 #endif
@@ -161,8 +178,9 @@ namespace ACESim
         /// <param name="mutationOfShallowCopy"></param>
         public void UpdateFromShallowCopy(GameHistory mutationOfShallowCopy)
         {
+            DEBUGCount = mutationOfShallowCopy.DEBUGCount;
             Complete = mutationOfShallowCopy.Complete;
-            NextIndexInHistoryActionsOnly = mutationOfShallowCopy.NextIndexInHistoryActionsOnly;
+            NextIndexInHistoryActionsOnly = mutationOfShallowCopy.NextActionsAndDecisionsHistoryIndex;
             HighestCacheIndex = mutationOfShallowCopy.HighestCacheIndex;
             Initialized = mutationOfShallowCopy.Initialized;
             PreviousNotificationDeferred = mutationOfShallowCopy.PreviousNotificationDeferred;

@@ -1,11 +1,14 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace ACESimBase.Util
 {
     public static class SpanBitArray
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void Set(ref byte aByte, int pos, bool value)
         {
             if (value)
@@ -20,6 +23,7 @@ namespace ACESimBase.Util
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool Get(byte aByte, int pos)
         {
             //left-shift 1, then bitwise AND, then check for non-zero
@@ -33,6 +37,7 @@ namespace ACESimBase.Util
 
             byte b = span[byteIndex];
             Set(ref b, bitInByte, on);
+            span[byteIndex] = b;
         }
 
         public static bool Get(Span<byte> span, int pos)
@@ -41,7 +46,7 @@ namespace ACESimBase.Util
             int bitInByte = pos % 8;
 
             byte b = span[byteIndex];
-            return Get(b, pos);
+            return Get(b, bitInByte);
         }
     }
 }

@@ -134,6 +134,8 @@ namespace ACESim
                 byte nextPlayer = nextDecision?.PlayerIndex ?? navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
                 Span<byte> informationSetsPtr = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
                 // string playerInformationString = HistoryToPoint.GetPlayerInformationString(currentPlayer, nextDecision?.DecisionByteCode);
+
+                // DEBUG GameHistory.GetPlayerInformationCurrent_New(nextPlayer, historyToPoint.NextActionsAndDecisionsHistoryIndex, historyToPoint.ActionsHistory, historyToPoint.DecisionIndicesHistory, historyToPoint.InformationSetMembership, historyToPoint.DecisionsDeferred, informationSetsPtr);
                 GameHistory.GetPlayerInformationCurrent(nextPlayer, historyToPoint.InformationSets, informationSetsPtr);
                 if (GameProgressLogger.LoggingOn)
                 {

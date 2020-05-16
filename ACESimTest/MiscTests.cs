@@ -101,6 +101,21 @@ namespace ACESimTest
         }
 
         [TestMethod]
+        public void SpanBitArrayWorks()
+        {
+            byte[] bytes = new byte[100];
+            SpanBitArray.Set(bytes, 799, true);
+            SpanBitArray.Get(bytes, 799).Should().BeTrue();
+            SpanBitArray.Get(bytes, 798).Should().BeFalse();
+            SpanBitArray.Set(bytes, 798, true);
+            SpanBitArray.Get(bytes, 799).Should().BeTrue();
+            SpanBitArray.Get(bytes, 798).Should().BeTrue();
+            SpanBitArray.Set(bytes, 798, false);
+            SpanBitArray.Get(bytes, 799).Should().BeTrue();
+            SpanBitArray.Get(bytes, 798).Should().BeFalse();
+        }
+
+        [TestMethod]
         public void CheckConfidenceInterval()
         {
             // this is a minimal check to make sure that our logit transformation works

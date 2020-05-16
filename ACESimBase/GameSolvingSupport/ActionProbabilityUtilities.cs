@@ -71,17 +71,17 @@ namespace ACESim
 
         private static void GetActionProbabilitiesAtHistoryPoint_Helper(IGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, double randomNumberToChooseIteration, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation, out double[] probabilities)
         {
-            probabilities = new double[GameFullHistory.MaxNumActions];
-            Span<double> probabilitiesBuffer = stackalloc double[GameFullHistory.MaxNumActions];
+            probabilities = new double[GameHistory.MaxNumActions];
+            Span<double> probabilitiesBuffer = stackalloc double[GameHistory.MaxNumActions];
             GetActionProbabilitiesAtHistoryPoint(gameStateForCurrentPlayer, actionStrategy, randomNumberToChooseIteration, probabilitiesBuffer, numPossibleActions, alwaysDoAction, navigation);
-            for (byte a = 0; a < GameFullHistory.MaxNumActions; a++)
+            for (byte a = 0; a < GameHistory.MaxNumActions; a++)
                 probabilities[a] = probabilitiesBuffer[a];
         }
 
         public static void GetActionProbabilitiesAtHistoryPoint(IGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, double randomNumberToChooseIteration, double[] probabilities, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)
         {
 
-            Span<double> probabilities2 = stackalloc double[GameFullHistory.MaxNumActions];
+            Span<double> probabilities2 = stackalloc double[GameHistory.MaxNumActions];
             GetActionProbabilitiesAtHistoryPoint(gameStateForCurrentPlayer, actionStrategy, randomNumberToChooseIteration, probabilities2, numPossibleActions, alwaysDoAction, navigation);
             for (int i = 0; i < probabilities.Length; i++)
                 probabilities[i] = probabilities2[i];

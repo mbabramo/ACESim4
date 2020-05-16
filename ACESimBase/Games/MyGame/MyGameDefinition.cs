@@ -937,6 +937,7 @@ namespace ACESim
                     }
                     gameHistory.SetCacheItemAtIndex(GameHistoryCacheIndex_TotalChipsSoFar, totalChipsSoFar); // so, at round n, this shows total chips from round n - 1
                     byte totalChipsSoFarAction = (byte) (totalChipsSoFar + 1); // can't use 0 as an action
+                    //DEBUG // none of these are getting added. The question is how to add them. we've been adding on the assumption that we add for one decision at a time, to all players. But we need to allow for the possibility that we have more than one piece of information per decision. Meanwhile, it might make sense to consolidate these, so that we add to all players at once. More radical thing would be to eliminate all of this custom manipulation and use of partial recall. We don't really need any of this but will also have to fix the tests. 
                     gameHistory.AddToInformationSetAndLog(totalChipsSoFarAction, currentDecisionIndex, (byte) MyGamePlayers.Plaintiff, gameProgress);
                     gameHistory.AddToInformationSetAndLog(totalChipsSoFarAction, currentDecisionIndex, (byte)MyGamePlayers.Defendant, gameProgress);
                     gameHistory.AddToInformationSetAndLog(totalChipsSoFarAction, currentDecisionIndex, (byte)MyGamePlayers.Resolution, gameProgress);

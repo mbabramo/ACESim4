@@ -656,7 +656,7 @@ namespace ACESim
         void ProcessInitializedGameProgress(GameProgress gameProgress)
         {
             // First, add the utilities at the end of the tree for this path.
-            Span<byte> actions = stackalloc byte[GameFullHistory.MaxNumActions];
+            Span<byte> actions = stackalloc byte[GameHistory.MaxNumActions];
             gameProgress.GameFullHistory.GetActions(actions);
             //var actionsAsList = ListExtensions.GetPointerAsList_255Terminated(actions);
 
@@ -880,7 +880,7 @@ namespace ACESim
 
         private void PrintGameProbabilistically(GameProgress progress)
         {
-            Span<byte> path = stackalloc byte[GameFullHistory.MaxNumActions];
+            Span<byte> path = stackalloc byte[GameHistory.MaxNumActions];
             bool overridePrint = false;
             string actionsList = progress.GameFullHistory.GetActionsAsListString();
             if (actionsList == "INSERT_PATH_HERE") // use this to print a single path
@@ -1551,7 +1551,7 @@ namespace ACESim
 
         private async Task ProcessAllPaths_Helper(HistoryPointStorable historyPoint, double probability, Func<HistoryPointStorable, double, Task> completedGameProcessor, ActionStrategies actionStrategy)
         {
-            double[] probabilities = new double[GameFullHistory.MaxNumActions];
+            double[] probabilities = new double[GameHistory.MaxNumActions];
             byte nextDecisionIndex = historyPoint.ShallowCopyToRefStruct().GetNextDecisionIndex(Navigation);
             byte numPossibleActions = NumPossibleActionsAtDecision(nextDecisionIndex);
             IGameState gameState = GetGameState(historyPoint);

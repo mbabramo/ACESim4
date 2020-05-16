@@ -27,18 +27,22 @@ namespace ACESim
         public const byte InformationSetTerminator = 255;
         public const byte DecisionHasOccurred = 251; // if reporting only that the decision has occurred, we do that here.
 
+        // DEBUG -- should not be const's anymore
+        public const int MaxNumActions = 100;
         public const int MaxInformationSetLength = MaxInformationSetLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLengthPerPartialPlayer * NumPartialPlayers;
         public const int MaxInformationSetLengthPerFullPlayer = 40;
         public const int MaxInformationSetLengthPerPartialPlayer = 3;
         public const int NumFullPlayers = 3; // includes main players and resolution player and any chance players that need full size information set
-        public const int MaxNumPlayers = 13; // includes chance players that need a very limited information set
+        public const int MaxNumPlayers = 18; // includes chance players that need a very limited information set
         public const int NumPartialPlayers = MaxNumPlayers - NumFullPlayers;
         public const int MaxDeferredDecisionIndicesLength = 7;
-        public const int TotalSpanLength = GameFullHistory.MaxHistoryLength + CacheLength + MaxInformationSetLength + MaxDeferredDecisionIndicesLength;
-
+        public const int SizeInBits_BitArrayForInformationSetMembership = GameHistory.MaxNumActions * MaxNumPlayers;
+        public const int SizeInBytes_BitArrayForInformationSetMembership = SizeInBits_BitArrayForInformationSetMembership / 8 + (SizeInBits_BitArrayForInformationSetMembership % 8 == 0 ? 0 : 1);
+        public const int SizeInBytes_BitArrayForDecisionsDeferred = GameHistory.MaxNumActions / 8 + (MaxNumActions % 8 == 0 ? 0 : 1);
+        public const int TotalBufferSize = GameHistory.MaxNumActions + GameHistory.MaxNumActions + CacheLength + MaxInformationSetLength + GameHistory.SizeInBytes_BitArrayForInformationSetMembership + GameHistory.SizeInBytes_BitArrayForDecisionsDeferred;
         public bool Initialized;
         public bool Complete;
-        public byte NextIndexInHistoryActionsOnly;
+        public byte NextActionsAndDecisionsHistoryIndex;
         public byte LastDecisionIndexAdded;
         public byte HighestCacheIndex; // not necessarily sequentially added
 
@@ -48,11 +52,13 @@ namespace ACESim
         public byte DeferredPlayerNumber;
         public byte[] DeferredPlayersToInform; // NOTE: We can leave this as an array because it is set in game definition and not changed.
 
-        public Span<byte> ActionsHistory; // length GameFullHistory.MaxNumActions
-        public Span<byte> DecisionsHistory; // length GameFullHistory.MaxNumActions
+        public Span<byte> ActionsHistory; // length GameHistory.MaxNumActions
+        public Span<byte> DecisionIndicesHistory; // length GameHistory.MaxNumActions
         public Span<byte> Cache; // length CacheLength
-        public Span<byte> InformationSets; // length MaxInformationSetLength
-        DEBUG; // an alternative approach would be to maintain a set of bits for each player, setting 1 to a bit if the player has the information. The complication is that we need to know WHEN the player gets the information. If we eliminated the possiblity of multiple deferrals (which we aren't using anyway), then we could also record if a decision is deferred by having an additional bit per decision (or we could just continue to use DeferredDecisionIndices). That is, we'd record all actions and decision indices, and we'd record which decision indices were initially deferred. That way, we could return the information set as of any particular piece of information. We could still record all of the information in the information set log that we now store. But we would get rid of both InformationSets and DeferredDecisionIndices. But would this save space? Certainly for the full players (main players plus resolution player), but not really for the partial players (i.e., chance players). 
+        public Span<byte> InformationSetMembership; // length GameHistory.SizeInBytes_BitArrayForInformationSetMembership
+        public Span<byte> DecisionsDeferred; // length GameHistory.SizeInBytes_BitArrayForDecisionsDeferred
+        public Span<byte> InformationSets; // length MaxInformationSetLength // DEBUG -- make for partial players only
+         // DEBUG an alternative approach would be to maintain a set of bits for each player, setting 1 to a bit if the player has the information. The complication is that we need to know WHEN the player gets the information. If we eliminated the possiblity of multiple deferrals (which we aren't using anyway), then we could also record if a decision is deferred by having an additional bit per decision (or we could just continue to use DeferredDecisionIndices). That is, we'd record all actions and decision indices, and we'd record which decision indices were initially deferred. That way, we could return the information set as of any particular piece of information. We could still record all of the information in the information set log that we now store. But we would get rid of both InformationSets and DeferredDecisionIndices. But would this save space? Certainly for the full players (main players plus resolution player), but not really for the partial players (i.e., chance players). 
             // But what's the goal? We need to be able to quickly load the current information set for a player INCLUDING the decision index when the decision was actually reached. We could do that without even looking at DeferredDecisionIndices. Then, we could use DeferredDecisionIndices where necessary. 
             // The initial step woud be to create a bitarray span (done).
             // One question is whether we even need InformationSetLog anymore. The one thing that this does is that it can show us the exact sequence in which items were added and REMOVED from individual players' information sets. We may not always need that, but it oculd be helpful. We could handle removal pretty straightforwardly here by just removing the specified decision. Still, we could disable InformationSetLog for most purposes. The only thing we really need it for outside the tests is GetPlayerInformationAtPoint, as well as the GetPlayerDecisionAndInformation, but those could be replaced pretty easily. One possibility would be to move the information set log into the game full history within GameProgress, so that we would omit it when we are not using the full history. 
@@ -84,7 +90,7 @@ namespace ACESim
 
         public bool Matches(GameHistory other)
         {
-            var basics = Initialized == other.Initialized && Complete == other.Complete && NextIndexInHistoryActionsOnly == other.NextIndexInHistoryActionsOnly && LastDecisionIndexAdded == other.LastDecisionIndexAdded && PreviousNotificationDeferred == other.PreviousNotificationDeferred && DeferredAction == other.DeferredAction && DeferredPlayerNumber == other.DeferredPlayerNumber && ((DeferredPlayersToInform == null && other.DeferredPlayersToInform == null) || DeferredPlayersToInform.SequenceEqual(other.DeferredPlayersToInform));
+            var basics = Initialized == other.Initialized && Complete == other.Complete && NextActionsAndDecisionsHistoryIndex == other.NextActionsAndDecisionsHistoryIndex && LastDecisionIndexAdded == other.LastDecisionIndexAdded && PreviousNotificationDeferred == other.PreviousNotificationDeferred && DeferredAction == other.DeferredAction && DeferredPlayerNumber == other.DeferredPlayerNumber && ((DeferredPlayersToInform == null && other.DeferredPlayersToInform == null) || DeferredPlayersToInform.SequenceEqual(other.DeferredPlayersToInform));
             if (!basics)
                 return false;
             if (!GetActionsAsList().SequenceEqual(other.GetActionsAsList())) // will ignore info after items in span
@@ -128,9 +134,13 @@ namespace ACESim
             }
             Initialized = true;
             LastDecisionIndexAdded = 255;
-            NextIndexInHistoryActionsOnly = 0;
+            NextActionsAndDecisionsHistoryIndex = 0;
             for (int i = 0; i < GameHistory.CacheLength; i++)
                 Cache[i] = 0;
+            for (int i = 0; i < GameHistory.SizeInBytes_BitArrayForInformationSetMembership; i++)
+                InformationSetMembership[i] = 0;
+            for (int i = 0; i < GameHistory.SizeInBytes_BitArrayForDecisionsDeferred; i++)
+                DecisionsDeferred[i] = 0;
         }
 
         /// <summary>
@@ -148,10 +158,13 @@ namespace ACESim
         {
             if (onlyIfNeeded && ActionsHistory != null)
                 return;
-            ActionsHistory = new byte[GameFullHistory.MaxNumActions];
-            DecisionsHistory = new byte[GameFullHistory.MaxNumActions];
+            // DEBUG -- change to single allocation and use span (but see if we check for null, in which case we should check for length 0)
+            ActionsHistory = new byte[GameHistory.MaxNumActions];
+            DecisionIndicesHistory = new byte[GameHistory.MaxNumActions];
             Cache = new byte[GameHistory.CacheLength];
             InformationSets = new byte[GameHistory.MaxInformationSetLength];
+            InformationSetMembership = new byte[GameHistory.SizeInBytes_BitArrayForInformationSetMembership];
+            DecisionsDeferred = new byte[GameHistory.SizeInBytes_BitArrayForDecisionsDeferred];
             DeferredDecisionIndices = new byte[GameHistory.MaxDeferredDecisionIndicesLength];
 #if SAFETYCHECKS
             CreatingThreadID = System.Threading.Thread.CurrentThread.ManagedThreadId;
@@ -166,7 +179,7 @@ namespace ACESim
             GameHistory result = new GameHistory()
             {
                 Complete = Complete,
-                NextIndexInHistoryActionsOnly = NextIndexInHistoryActionsOnly,
+                NextActionsAndDecisionsHistoryIndex = NextActionsAndDecisionsHistoryIndex,
                 Initialized = Initialized,
                 PreviousNotificationDeferred = PreviousNotificationDeferred,
                 DeferredAction = DeferredAction,
@@ -177,13 +190,18 @@ namespace ACESim
             if (!IsEmpty)
             {
                 result.CreateArraysForSpans(false);
-                for (int i = 0; i < GameFullHistory.MaxHistoryLength && i < NextIndexInHistoryActionsOnly; i++)
+                int maxNumActions = Math.Min((int)GameHistory.MaxNumActions, (int) NextActionsAndDecisionsHistoryIndex);
+                for (int i = 0; i < maxNumActions; i++)
                     result.ActionsHistory[i] = ActionsHistory[i];
-                for (int i = 0; i < GameFullHistory.MaxHistoryLength && i < NextIndexInHistoryActionsOnly; i++)
-                    result.DecisionsHistory[i] = DecisionsHistory[i];
+                for (int i = 0; i < maxNumActions; i++)
+                    result.DecisionIndicesHistory[i] = DecisionIndicesHistory[i];
                 for (int i = 0; i <= HighestCacheIndex; i++)
                     result.Cache[i] = Cache[i];
                 result.VerifyThread();
+                for (int i = 0; i < SizeInBytes_BitArrayForInformationSetMembership; i++)
+                    result.InformationSetMembership[i] = InformationSetMembership[i];
+                for (int i = 0; i < GameHistory.SizeInBytes_BitArrayForDecisionsDeferred; i++)
+                    result.DecisionsDeferred[i] = DecisionsDeferred[i];
                 for (int i = 0; i < GameHistory.MaxInformationSetLength; i++)
                     result.InformationSets[i] = InformationSets[i];
             }
@@ -228,6 +246,7 @@ namespace ACESim
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             // Use the AddValue method to specify serialized values.
+            throw new NotImplementedException("TODO -- update");
             byte[] informationSets = new byte[MaxInformationSetLength];
             for (int b = 0; b < MaxInformationSetLength; b++)
                 informationSets[b] = InformationSets[b];
@@ -240,10 +259,13 @@ namespace ACESim
         // The special constructor is used to deserialize values.
         public GameHistory(SerializationInfo info, StreamingContext context)
         {
-            ActionsHistory = new byte[GameFullHistory.MaxNumActions];
-            DecisionsHistory = new byte[GameFullHistory.MaxNumActions];
+            throw new NotImplementedException("TODO -- update");
+            ActionsHistory = new byte[GameHistory.MaxNumActions];
+            DecisionIndicesHistory = new byte[GameHistory.MaxNumActions];
             Cache = new byte[GameHistory.CacheLength];
             InformationSets = new byte[GameHistory.MaxInformationSetLength];
+            InformationSetMembership = new byte[GameHistory.SizeInBytes_BitArrayForInformationSetMembership];
+            DecisionsDeferred = new byte[GameHistory.SizeInBytes_BitArrayForDecisionsDeferred];
             DeferredDecisionIndices = new byte[GameHistory.MaxDeferredDecisionIndicesLength];
 #if SAFETYCHECKS
             CreatingThreadID = System.Threading.Thread.CurrentThread.ManagedThreadId;
@@ -255,7 +277,7 @@ namespace ACESim
                 InformationSets[b] = informationSets[b];
             Initialized = (bool)info.GetValue("Initialized", typeof(bool));
 
-            NextIndexInHistoryActionsOnly = 0;
+            NextActionsAndDecisionsHistoryIndex = 0;
             HighestCacheIndex = 0; // actually hull, but it doesn't hurt to have it as 0
             LastDecisionIndexAdded = 255;
             Complete = false;
@@ -310,14 +332,23 @@ namespace ACESim
                 HighestCacheIndex = cacheIndexToReset;
         }
 
-#endregion
+        #endregion
 
-#region History
+        #region History
+
+        public int DEBUGCount;
+
+        // DEBUG -- must also deal with playersToInformOfOccurrenceOnly
 
         public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, byte[] playersToInform, byte[] playersToInformOfOccurrenceOnly, byte[] cacheIndicesToIncrement, byte? storeActionInCacheIndex, GameProgress gameProgress, bool deferNotification, bool delayPreviousDeferredNotification)
         {
+            DEBUGCount++;
+            if (DEBUGCount == 10)
+            {
+                var DEBUGQ = 0;
+            }
             // Debug.WriteLine($"Add to history {decisionByteCode} for player {playerIndex} action {action} of {numPossibleActions}");
-            AddToSimpleActionsLists(action, decisionIndex);
+            RecordAction(action, decisionIndex, deferNotification, playersToInform);
             if (gameProgress != null && gameProgress.FullHistoryRequired)
                 gameProgress.GameFullHistoryStorable = gameProgress.GameFullHistoryStorable.AddToHistory(decisionByteCode, decisionIndex, playerIndex, action, numPossibleActions);
             LastDecisionIndexAdded = decisionIndex;
@@ -345,6 +376,14 @@ namespace ACESim
                     IncrementItemAtCacheIndex(cacheIndex);
             if (storeActionInCacheIndex != null)
                 SetCacheItemAtIndex((byte) storeActionInCacheIndex, action);
+
+            // DEBUG
+            for (byte DEBUGplayerIndex = 0; DEBUGplayerIndex < MaxNumPlayers; DEBUGplayerIndex++)
+            {
+                int size = DEBUGplayerIndex < NumFullPlayers ? MaxInformationSetLengthPerFullPlayer : MaxInformationSetLengthPerPartialPlayer;
+                byte[] pInfo = new byte[size];
+                GetPlayerInformationCurrent(DEBUGplayerIndex, pInfo);
+            }
         }
 
         private readonly void RememberDeferredDecisionIndex(byte deferredDecisionIndex)
@@ -379,30 +418,37 @@ namespace ACESim
             return b;
         }
 
-        private void AddToSimpleActionsLists(byte action, byte decisionIndex)
+        private void RecordAction(byte action, byte decisionIndex, bool decisionIsDeferred, byte[] playersToInform)
         {
 #if SAFETYCHECKS
             if (action == 0)
                 ThrowHelper.Throw("Invalid action.");
 #endif
-            ActionsHistory[NextIndexInHistoryActionsOnly] = action;
-            DecisionsHistory[NextIndexInHistoryActionsOnly] = decisionIndex;
-            NextIndexInHistoryActionsOnly++;
+            ActionsHistory[NextActionsAndDecisionsHistoryIndex] = action;
+            DecisionIndicesHistory[NextActionsAndDecisionsHistoryIndex] = decisionIndex;
+            if (decisionIsDeferred)
+                SpanBitArray.Set(DecisionsDeferred, NextActionsAndDecisionsHistoryIndex, decisionIsDeferred);
+            if (playersToInform != null)
+                foreach (byte playerToInform in playersToInform)
+                    SpanBitArray.Set(InformationSetMembership, playerToInform * MaxNumActions + NextActionsAndDecisionsHistoryIndex, true);
+            NextActionsAndDecisionsHistoryIndex++;
 #if SAFETYCHECKS
-            if (NextIndexInHistoryActionsOnly >= GameFullHistory.MaxNumActions)
+            if (NextActionsAndDecisionsHistoryIndex >= GameHistory.MaxNumActions)
                 ThrowHelper.Throw("Internal error. Must increase MaxNumActions.");
 #endif
         }
 
+        public bool DecessionIsDeferred_FromNextActionsAndDecisionsHistoryIndex(byte nextActionsAndDecisionsHistoryIndex) => SpanBitArray.Get(DecisionsDeferred, nextActionsAndDecisionsHistoryIndex);
+
         private void RemoveLastActionFromSimpleActionsList()
         {
-            NextIndexInHistoryActionsOnly--;
+            NextActionsAndDecisionsHistoryIndex--;
         }
 
         public List<byte> GetActionsAsList()
         {
             List<byte> actions = new List<byte>();
-            for (int i = 0; i < NextIndexInHistoryActionsOnly; i++)
+            for (int i = 0; i < NextActionsAndDecisionsHistoryIndex; i++)
                 actions.Add(ActionsHistory[i]);
             return actions;
         }
@@ -410,8 +456,8 @@ namespace ACESim
         public List<byte> GetDecisionsAsList()
         {
             List<byte> actions = new List<byte>();
-            for (int i = 0; i < NextIndexInHistoryActionsOnly; i++)
-                actions.Add(DecisionsHistory[i]);
+            for (int i = 0; i < NextActionsAndDecisionsHistoryIndex; i++)
+                actions.Add(DecisionIndicesHistory[i]);
             return actions;
         }
 
@@ -506,9 +552,38 @@ namespace ACESim
             return info;
         }
 
+        public void GetPlayerInformationCurrent_New(byte playerIndex, Span<byte> playerInfo)
+        {
+            GetPlayerInformationCurrent_New(playerIndex, NextActionsAndDecisionsHistoryIndex, ActionsHistory, DecisionIndicesHistory, InformationSetMembership, DecisionsDeferred, playerInfo);
+        }
+
+        public static void GetPlayerInformationCurrent_New(byte playerIndex, byte nextActionsAndDecisionsHistoryIndex, Span<byte> actions, Span<byte> decisionIndices, Span<byte> informationSetMembership, Span<byte> decisionsDeferred, Span<byte> playerInfo)
+        {
+            byte playerInfoIndex = 0;
+            for (int i = 0; i < nextActionsAndDecisionsHistoryIndex; i++)
+            {
+                bool isMember = SpanBitArray.Get(informationSetMembership, playerIndex * MaxNumActions + i);
+                if (isMember)
+                {
+                    bool isLastAndDeferred = i == nextActionsAndDecisionsHistoryIndex - 1 && SpanBitArray.Get(decisionsDeferred, nextActionsAndDecisionsHistoryIndex);
+                    if (isLastAndDeferred)
+                    {
+                        var DEBUG = 0;
+                    }
+                    if (!isLastAndDeferred)
+                        playerInfo[playerInfoIndex++] = actions[i];
+                }
+            }
+            playerInfo[playerInfoIndex] = InformationSetTerminator;
+        }
+
         public void GetPlayerInformationCurrent(byte playerIndex, Span<byte> playerInfo)
         {
             GetPlayerInformationCurrent(playerIndex, InformationSets, playerInfo);
+            var DEBUG = new byte[playerInfo.Length];
+            GetPlayerInformationCurrent_New(playerIndex, DEBUG);
+            // SUPERDEBUG if (!DEBUG.SequenceEqual(playerInfo.ToArray()))
+                // throw new Exception("DEBUG");
         }
 
 

@@ -25,8 +25,8 @@ namespace ACESim
         public const byte History_NumPossibleActions_Offset = 4;
         public const byte History_NumPiecesOfInformation = 5; // the total number of pieces of information above, so that we know how much to skip (i.e., 0, 1, 2, and 3)
 
-        public const int MaxNumActions = 100;
-        public const int MaxHistoryLength = 300;
+
+        public const int MaxHistoryLength = GameHistory.MaxNumActions * History_NumPiecesOfInformation;
 
         public readonly Span<byte> History; // length is MaxHistoryLength
         public readonly short NextIndexToAddToHistory;
@@ -105,7 +105,7 @@ namespace ACESim
 
         public List<byte> GetActionsAsList()
         {
-            Span<byte> actions = stackalloc byte[MaxNumActions];
+            Span<byte> actions = stackalloc byte[GameHistory.MaxNumActions];
             GetActions(actions);
             return ListExtensions.GetSpan255TerminatedAsList(actions);
         }
@@ -188,7 +188,7 @@ namespace ACESim
             // We need to find the last decision made where there was another action that could have been taken.
             int? lastDecisionInNextPath = GetIndexOfLastDecisionWithAnotherAction(gameDefinition) ?? -1; // negative number symbolizes that there is nothing else to do
             int indexInNewDecisionPath = 0, indexInCurrentActions = 0;
-            Span<byte> currentActions = stackalloc byte[GameFullHistory.MaxNumActions];
+            Span<byte> currentActions = stackalloc byte[GameHistory.MaxNumActions];
             GetActionsWithBlanksForSkippedDecisions(currentActions);
             //var currentActionsList = Util.ListExtensions.GetPointerAsList_255Terminated(currentActions);
             while (indexInNewDecisionPath <= lastDecisionInNextPath)

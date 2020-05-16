@@ -211,12 +211,12 @@ namespace ACESim
 
         public (GameProgress progress, IEnumerable<byte> next) PlayPath(IEnumerable<byte> actionsToPlay, bool getNextPath)
         {
-            Span<byte> actionsToPlay_AsPointer = stackalloc byte[GameFullHistory.MaxNumActions];
+            Span<byte> actionsToPlay_AsPointer = stackalloc byte[GameHistory.MaxNumActions];
             int d = 0;
             foreach (byte b in actionsToPlay)
                 actionsToPlay_AsPointer[d++] = b;
             actionsToPlay_AsPointer[d] = 255;
-            Span<byte> nextActionsToPlay = stackalloc byte[GameFullHistory.MaxNumActions];
+            Span<byte> nextActionsToPlay = stackalloc byte[GameHistory.MaxNumActions];
             if (!getNextPath)
                 nextActionsToPlay = null;
             GameProgress progress = PlayPathAndKeepGoing(actionsToPlay_AsPointer, ref nextActionsToPlay);
