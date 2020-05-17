@@ -1,19 +1,15 @@
 ﻿#define SAFETYCHECKS
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
+
 using ACESim.Util;
 using ACESimBase.Util;
+using System;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace ACESim
 {
-
-    public readonly ref struct GameFullHistory
+    public readonly struct GameFullHistory
     {
         public const byte HistoryComplete = 254;
         public const byte HistoryTerminator = 255;
@@ -25,48 +21,125 @@ namespace ACESim
         public const byte History_NumPossibleActions_Offset = 4;
         public const byte History_NumPiecesOfInformation = 5; // the total number of pieces of information above, so that we know how much to skip (i.e., 0, 1, 2, and 3)
 
-
         public const int MaxHistoryLength = GameHistory.MaxNumActions * History_NumPiecesOfInformation;
 
-        public readonly Span<byte> History; // length is MaxHistoryLength
+        public readonly byte[] History; // length is MaxHistoryLength;
         public readonly short NextIndexToAddToHistory;
 
-        public GameFullHistory(Span<byte> history, short nextIndexToAddToHistory)
+        public GameFullHistory(byte[] history, short lastIndexAddedToHistory)
         {
             History = history;
-            NextIndexToAddToHistory = nextIndexToAddToHistory;
+            NextIndexToAddToHistory = lastIndexAddedToHistory;
         }
 
-        public GameFullHistoryStorable DeepCopyToStorable()
+        public GameFullHistory DeepCopy()
         {
-            var result = new GameFullHistoryStorable(new byte[History.Length], NextIndexToAddToHistory);
-            for (int i = 0; i < History.Length; i++)
-                result.History[i] = History[i];
+            var history = new byte[MaxHistoryLength];
+            for (int i = 0; i < MaxHistoryLength; i++)
+                history[i] = History[i];
+            return new GameFullHistory(history, NextIndexToAddToHistory);
+        }
+
+        public GameFullHistory ShallowCopy()
+        {
+            var result = new GameFullHistory(History, NextIndexToAddToHistory);
             return result;
         }
 
-        public void GetObjectData(SerializationInfo info, StreamingContext context)
+        public static GameFullHistory Initialize()
         {
-            // Use the AddValue method to specify serialized values.
-            byte[] history = new byte[MaxHistoryLength];
-            for (int b = 0; b < MaxHistoryLength; b++)
-                history[b] = History[b];
-
-            info.AddValue("history", history, typeof(byte[]));
-            info.AddValue("LastIndexAddedToHistory", NextIndexToAddToHistory, typeof(short));
-
+            var history = new byte[MaxHistoryLength];
+            history[0] = HistoryTerminator;
+            const short lastIndexAddedToHistory = 0;
+            return new GameFullHistory(history, lastIndexAddedToHistory);
         }
 
-        // The special constructor is used to deserialize values.
-        public GameFullHistory(SerializationInfo info, StreamingContext context)
+        public GameFullHistory AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions)
         {
-            History = new byte[MaxHistoryLength]; // rarely used so allocation not an issue
-            byte[] history = (byte[])info.GetValue("history", typeof(byte[]));
-            for (int b = 0; b < MaxHistoryLength; b++)
-                History[b] = history[b];
-            NextIndexToAddToHistory = (short)info.GetValue("LastIndexAddedToHistory", typeof(short));
+            var history = History;
+            short nextIndexToAddToHistory = NextIndexToAddToHistory;
+            short i = nextIndexToAddToHistory;
+#if (SAFETYCHECKS)
+            if (history[i] == HistoryComplete)
+                ThrowHelper.Throw("Cannot add to history of complete game.");
+#endif
+            history[i + History_DecisionByteCode_Offset] = decisionByteCode;
+            history[i + History_DecisionIndex_Offset] = decisionIndex;
+            history[i + History_PlayerNumber_Offset] = playerIndex;
+            history[i + History_Action_Offset] = action;
+            history[i + History_NumPossibleActions_Offset] = numPossibleActions;
+            history[i + History_NumPiecesOfInformation] = HistoryTerminator; // this is just one item at end of all history items
+            nextIndexToAddToHistory = (short)(i + History_NumPiecesOfInformation);
+
+#if (SAFETYCHECKS)
+            if (nextIndexToAddToHistory >= MaxHistoryLength - 2) // must account for terminator characters
+                ThrowHelper.Throw("Internal error. Must increase history length.");
+#endif
+            var result = new GameFullHistory(history, nextIndexToAddToHistory);
+            if (GameProgressLogger.LoggingOn)
+                GameProgressLogger.Log($"Actions so far: {result.GetActionsAsListString()}");
+            return result;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void MarkComplete()
+        {
+            // NOTE: Because this doesn't change LastIndexAddedToHistory, we just change the History bytespan, and thus we don't need to return a new GameFullHistoryStorable.
+            short i = NextIndexToAddToHistory;
+#if (SAFETYCHECKS)
+            if (History[i] == HistoryComplete)
+                ThrowHelper.Throw("Game is already complete.");
+#endif
+            History[i] = HistoryComplete;
+            History[i + 1] = HistoryTerminator;
+        }
+
+        public void MarkIncomplete()
+        {
+            History[NextIndexToAddToHistory] = HistoryTerminator; // overwrite HistoryComplete
+        }
+
+
+        public string GetInformationSetHistoryItemsString(GameProgress gameProgress) => String.Join(",", GetInformationSetHistoryItemsStrings(gameProgress));
+
+        public IEnumerable<string> GetInformationSetHistoryItemsStrings(GameProgress gameProgress)
+        {
+            short numItems = GetInformationSetHistoryItems_Count(gameProgress);
+            for (short i = 0; i < numItems; i++)
+            {
+                string s = GetInformationSetHistory_OverallIndex(i, gameProgress).ToString();
+                yield return s;
+            }
+        }
+
+
+        // NOTE: InformationSetHistory is ref struct, so we can't enumerate it directly. We can enumerate the indices, and the caller can then
+        // access each InformationSetHistory one at a time.
+
+        public IEnumerable<short> GetInformationSetHistoryItems_OverallIndices(GameProgress gameProgress)
+        {
+            if (NextIndexToAddToHistory == 0)
+                yield break;
+            short overallIndex = 0;
+            short piecesOfInfo = History_NumPiecesOfInformation;
+            for (short i = 0; i < NextIndexToAddToHistory; i += piecesOfInfo)
+            {
+                yield return overallIndex++;
+            }
+        }
+
+        public List<byte> GetDecisionIndicesCompleted(GameProgress gameProgress)
+        {
+            List<byte> decisionIndicesCompleted = new List<byte>();
+            if (NextIndexToAddToHistory == 0)
+                return decisionIndicesCompleted;
+            short piecesOfInfo = History_NumPiecesOfInformation;
+            for (short i = 0; i < NextIndexToAddToHistory; i += piecesOfInfo)
+            {
+                decisionIndicesCompleted.Add(History[i + History_DecisionIndex_Offset]);
+            }
+            return decisionIndicesCompleted;
+        }
 
 
         /// <summary>
@@ -149,11 +222,11 @@ namespace ACESim
             return overallIndex;
         }
 
-        
+
 
         public InformationSetHistory GetInformationSetHistory_OverallIndex(short index, GameProgress gameProgress)
         {
-            return GetInformationSetHistory((short) (index * History_NumPiecesOfInformation), gameProgress);
+            return GetInformationSetHistory((short)(index * History_NumPiecesOfInformation), gameProgress);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -162,7 +235,7 @@ namespace ACESim
             byte playerIndex = GetHistoryIndex(index + History_PlayerNumber_Offset);
             byte decisionByteCode = GetHistoryIndex(index + History_DecisionByteCode_Offset);
             byte decisionIndex = GetHistoryIndex(index + History_DecisionIndex_Offset);
-            Span<byte> informationSetForPlayer = new byte[InformationSetLog.MaxInformationSetLoggingLengthPerFullPlayer]; // NOTE: This allocation occurs when we are creating GameProgress manually, but not in other time-sensitive loops. There might be ways of allocating the memory in advance so that it could be reused and/or recycling the memory, as part of a project to recycle arrays in GameProgress.
+            Span<byte> informationSetForPlayer = new byte[InformationSetLog.MaxInformationSetLoggingLengthPerFullPlayer];
             byte actionChosen = GetHistoryIndex(index + History_Action_Offset);
             byte numPossibleActions = GetHistoryIndex(index + History_NumPossibleActions_Offset);
             bool isTerminalAction = GetHistoryIndex(index + History_NumPiecesOfInformation) == HistoryComplete;
@@ -171,7 +244,7 @@ namespace ACESim
             return informationSetHistory;
         }
 
-#region Decision paths
+        #region Decision paths
 
         /// <summary>
         /// When called on a complete game, this returns the next decision path to take. 
@@ -245,6 +318,6 @@ namespace ACESim
             return lastDecisionWithAnotherAction;
         }
 
-#endregion
+        #endregion
     }
 }

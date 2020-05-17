@@ -977,7 +977,7 @@ namespace ACESimTest
 
         private static void VerifyInformationSetUniqueness(MyGameProgress myGameProgress, MyGameOptions options)
         {
-            var informationSetHistoriesIndices = myGameProgress.GameFullHistoryStorable.GetInformationSetHistoryItems_OverallIndices(myGameProgress).ToList();
+            var informationSetHistoriesIndices = myGameProgress.GameFullHistory.GetInformationSetHistoryItems_OverallIndices(myGameProgress).ToList();
             var playerAndInformation = informationSetHistoriesIndices.Select(x => myGameProgress.GameFullHistory.GetInformationSetHistory_OverallIndex(x, myGameProgress).GetPlayerAndInformationSetAsList()).ToList();
             if (playerAndInformation.Count() != playerAndInformation.Distinct().Count())
             {

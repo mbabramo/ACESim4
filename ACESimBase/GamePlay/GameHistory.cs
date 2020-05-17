@@ -253,7 +253,7 @@ namespace ACESim
             // Debug.WriteLine($"Add to history {decisionByteCode} for player {playerIndex} action {action} of {numPossibleActions}");
             RecordAction(action, decisionIndex, deferNotification, playersToInform);
             if (gameProgress != null && gameProgress.FullHistoryRequired)
-                gameProgress.GameFullHistoryStorable = gameProgress.GameFullHistoryStorable.AddToHistory(decisionByteCode, decisionIndex, playerIndex, action, numPossibleActions);
+                gameProgress.GameFullHistory = gameProgress.GameFullHistory.AddToHistory(decisionByteCode, decisionIndex, playerIndex, action, numPossibleActions);
             LastDecisionIndexAdded = decisionIndex;
             if (!delayPreviousDeferredNotification)
             {
@@ -319,8 +319,8 @@ namespace ACESim
         public void MarkComplete(GameProgress gameProgress = null)
         {
             Complete = true;
-            if (gameProgress != null && gameProgress.FullHistoryRequired && !gameProgress.GameFullHistoryStorable.IsComplete())
-                gameProgress.GameFullHistoryStorable.MarkComplete();
+            if (gameProgress != null && gameProgress.FullHistoryRequired && !gameProgress.GameFullHistory.IsComplete())
+                gameProgress.GameFullHistory.MarkComplete();
         }
 
         public bool IsComplete()

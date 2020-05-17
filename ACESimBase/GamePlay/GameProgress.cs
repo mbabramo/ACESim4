@@ -32,9 +32,9 @@ namespace ACESim
         public List<GameModuleProgress> GameModuleProgresses;
         public GameHistoryStorable GameHistoryStorable;
         public GameHistory GameHistory => GameHistoryStorable.ShallowCopyToRefStruct();
-        private GameFullHistoryStorable _GameFullHistoryStorable;
+        private GameFullHistory _GameFullHistoryStorable;
 
-        public GameFullHistoryStorable GameFullHistoryStorable
+        public GameFullHistory GameFullHistory
         {
             get
             {
@@ -47,7 +47,6 @@ namespace ACESim
                 _GameFullHistoryStorable = value;
             }
         }
-        public GameFullHistory GameFullHistory => GameFullHistoryStorable.ShallowCopyToRefStruct();
         public InformationSetLog InformationSetLog;
         public double PiChance; // probability chance would play to here
         public List<byte> ActionsToPlay = new List<byte>();
@@ -88,7 +87,7 @@ namespace ACESim
             GameHistoryStorable = gameHistory.DeepCopyToStorable();
             FullHistoryRequired = fullHistoryRequired;
             if (fullHistoryRequired)
-                GameFullHistoryStorable = GameFullHistoryStorable.Initialize();
+                GameFullHistory = GameFullHistory.Initialize();
             InformationSetLog.Initialize();
         }
 
@@ -182,7 +181,7 @@ namespace ACESim
 
         public IEnumerable<short> GetInformationSetHistoryItems_OverallIndices()
         {
-            return GameFullHistoryStorable.GetInformationSetHistoryItems_OverallIndices(this);
+            return GameFullHistory.GetInformationSetHistoryItems_OverallIndices(this);
         }
 
         public InformationSetHistory GetInformationSetHistory_OverallIndex(short index) => GameFullHistory.GetInformationSetHistory_OverallIndex(index, this);
@@ -221,7 +220,7 @@ namespace ACESim
             GameModuleProgresses = null;
             GameHistoryStorable = GameHistoryStorable = GameHistoryStorable.NewInitialized();
             if (FullHistoryRequired)
-                GameFullHistoryStorable = GameFullHistoryStorable.Initialize();
+                GameFullHistory = GameFullHistory.Initialize();
             ActionsToPlay = null;
             ActionsToPlayIndex = -1;
             GameComplete = false;
@@ -349,7 +348,7 @@ namespace ACESim
             copy.GameModuleProgresses = GameModuleProgresses == null ? null : (GameModuleProgresses.Select(x => x?.DeepCopy()).ToList());
             copy.GameHistoryStorable = GameHistoryStorable.ShallowCopyToRefStruct().DeepCopyToStorable();
             if (FullHistoryRequired)
-                copy.GameFullHistoryStorable = GameFullHistoryStorable.ShallowCopyToRefStruct().DeepCopyToStorable();
+                copy.GameFullHistory = GameFullHistory.DeepCopy();
             copy.ActionsToPlay = ActionsToPlay?.ToList(); 
             copy.ActionsToPlayIndex = ActionsToPlayIndex;
             copy.GameComplete = this.GameComplete;
