@@ -450,7 +450,95 @@ namespace ACESim
             }
         }
 
-#endregion
+        #endregion
+
+
+
+        #region Decision paths
+
+        /// <summary>
+        /// When called on a complete game, this returns the next decision path to take. 
+        /// For example, if there are three decisions with three actions each, then after (1, 1, 1), it would return (1, 1, 2), then (1, 1, 3), then (1, 2). 
+        /// Note that in this example there may be further decisions after (1, 2). 
+        /// If called on (3, 3, 3), it will throw an Exception.
+        /// </summary>
+        public void GetNextDecisionPath(GameDefinition gameDefinition, Span<byte> nextDecisionPath)
+        {
+#if (SAFETYCHECKS)
+            if (!IsComplete())
+                ThrowHelper.Throw("Can get next path to try only on a completed game.");
+#endif
+            // We need to find the last decision made where there was another action that could have been taken.
+            int? lastDecisionInNextPath = GetIndexOfLastDecisionWithAnotherAction(gameDefinition) ?? -1; // negative number symbolizes that there is nothing else to do
+            int indexInNewDecisionPath = 0, indexInCurrentActions = 0;
+            byte[] currentActions = new byte[GameHistory.MaxNumActions];
+            GetActionsWithBlanksForSkippedDecisions(currentActions);
+            //var currentActionsList = Util.ListExtensions.GetPointerAsList_255Terminated(currentActions);
+            while (indexInNewDecisionPath <= lastDecisionInNextPath)
+            {
+                byte currentAction = currentActions[indexInCurrentActions];
+                if (currentAction == 0)
+                {
+                    indexInCurrentActions++;
+                    lastDecisionInNextPath--;
+                }
+                else
+                {
+#if (SAFETYCHECKS)
+                    bool another = currentAction != GameFullHistory.HistoryTerminator;
+                    if (!another)
+                        ThrowHelper.Throw("Internal error. Expected another decision to exist.");
+#endif
+                    if (indexInNewDecisionPath == lastDecisionInNextPath)
+                        nextDecisionPath[indexInNewDecisionPath] =
+                            (byte)(currentAction +
+                                   (byte)1); // this is the decision where we need to try the next path
+                    else
+                        nextDecisionPath[indexInNewDecisionPath] = currentAction; // we're still on the same path
+
+                    indexInCurrentActions++;
+                    indexInNewDecisionPath++;
+                }
+            }
+            nextDecisionPath[indexInNewDecisionPath] = GameFullHistory.HistoryTerminator;
+            //var nextDecisionPath2 = Util.ListExtensions.GetPointerAsList_255Terminated(nextDecisionPath);
+        }
+
+        private int? GetIndexOfLastDecisionWithAnotherAction(GameDefinition gameDefinition)
+        {
+            int? lastDecisionWithAnotherAction = null;
+
+            for (int i = 0; i < NextActionsAndDecisionsHistoryIndex; i++)
+            {
+                byte action = ActionsHistory[i];
+                byte decisionIndex = DecisionIndicesHistory[i];
+                if (gameDefinition.DecisionsExecutionOrder[decisionIndex].NumPossibleActions > action)
+                {
+                    lastDecisionWithAnotherAction = decisionIndex;
+                    break;
+                }
+            }
+#if (SAFETYCHECKS)
+            if (lastDecisionWithAnotherAction == null)
+                ThrowHelper.Throw("No more decision paths to take."); // indicates that there are no more decisions to take
+#endif
+            return lastDecisionWithAnotherAction;
+        }
+        private void GetActionsWithBlanksForSkippedDecisions(Span<byte> actions)
+        {
+            int d = 0;
+            for (int i = 0; i < NextActionsAndDecisionsHistoryIndex; i++)
+            {
+                byte action = ActionsHistory[i];
+                byte decisionIndex = DecisionIndicesHistory[i];
+                while (d != decisionIndex)
+                    actions[d++] = 0;
+                actions[d++] = action;
+            }
+            actions[d] = GameFullHistory.HistoryTerminator;
+        }
+
+        #endregion
 
     }
 }

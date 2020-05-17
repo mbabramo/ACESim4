@@ -359,7 +359,7 @@ namespace ACESim
                 nextPath = null;
                 return;
             }
-            Progress.GameFullHistory.GetNextDecisionPath(GameDefinition, nextPath);
+            Progress.GameHistory.GetNextDecisionPath(GameDefinition, nextPath);
             ChooseDefaultActionIfNoneChosen = false;
         }
 
