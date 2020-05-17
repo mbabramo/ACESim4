@@ -402,8 +402,7 @@ namespace ACESim
             if (gameHistory.IsEmpty)
                 return; // we aren't tracking the game history (maybe because we are using a game tree instead of cached history)
             if (decisionToReverse.PlayersToInform != null)
-                foreach (byte playerIndex in decisionToReverse.PlayersToInform)
-                    gameHistory.ReverseAdditionsToInformationSet(playerIndex, 1, null);
+                    gameHistory.ReverseAdditionsToInformationSet(decisionToReverse.PlayersToInform, null);
             if (decisionToReverse.IncrementGameCacheItem != null)
                 foreach (byte cacheIndex in decisionToReverse.IncrementGameCacheItem)
                     gameHistory.DecrementItemAtCacheIndex(cacheIndex);

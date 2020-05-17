@@ -14,7 +14,7 @@ namespace ACESim
     public class EvolutionSettings
     {
         public bool DistributeChanceDecisions = true; 
-        public bool UnrollAlgorithm = true;
+        public bool UnrollAlgorithm = false; // DEBUG
         public bool AzureEnabled = false;
         // Note: Many of the below are overridden by launcher.
         public int TotalAvgStrategySamplingCFRIterations = 100000;
