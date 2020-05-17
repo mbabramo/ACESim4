@@ -967,7 +967,7 @@ namespace ACESim
             }
         }
 
-        public HistoryPoint GetStartOfGameHistoryPoint(bool fullHistoryRequired = true)
+        public HistoryPoint GetStartOfGameHistoryPoint(bool fullHistoryRequired = false)
         {
             switch (Navigation.LookupApproach)
             {
