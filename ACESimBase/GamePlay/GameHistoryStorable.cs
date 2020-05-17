@@ -121,6 +121,7 @@ namespace ACESim
                 CreatingThreadID = CreatingThreadID
 #endif
             };
+            result.SliceBuffer();
             return result;
         }
 

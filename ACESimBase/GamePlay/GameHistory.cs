@@ -43,11 +43,11 @@ namespace ACESim
         public byte HighestCacheIndex; // not necessarily sequentially added
 
         public Span<byte> Buffer;
-        public Span<byte> ActionsHistory => Buffer.Slice(0, GameHistory.MaxNumActions);
-        public Span<byte> DecisionIndicesHistory => Buffer.Slice(GameHistory.MaxNumActions, GameHistory.MaxNumActions);
-        public Span<byte> Cache => Buffer.Slice(GameHistory.MaxNumActions + GameHistory.MaxNumActions, GameHistory.CacheLength);
-        public Span<byte> InformationSetMembership => Buffer.Slice(GameHistory.MaxNumActions + GameHistory.MaxNumActions + GameHistory.CacheLength, GameHistory.SizeInBytes_BitArrayForInformationSetMembership);
-        public Span<byte> DecisionsDeferred => Buffer.Slice(GameHistory.MaxNumActions + GameHistory.MaxNumActions + GameHistory.CacheLength + GameHistory.SizeInBytes_BitArrayForInformationSetMembership, GameHistory.SizeInBytes_BitArrayForDecisionsDeferred);
+        public Span<byte> ActionsHistory;
+        public Span<byte> DecisionIndicesHistory;
+        public Span<byte> Cache;
+        public Span<byte> InformationSetMembership;
+        public Span<byte> DecisionsDeferred;
 #if SAFETYCHECKS
         public int CreatingThreadID;
 #endif
@@ -127,9 +127,19 @@ namespace ACESim
             if (onlyIfNeeded && Buffer.Length > 0)
                 return;
             Buffer = new byte[GameHistory.TotalBufferSize];
+            SliceBuffer();
 #if SAFETYCHECKS
             CreatingThreadID = System.Threading.Thread.CurrentThread.ManagedThreadId;
 #endif
+        }
+
+        public void SliceBuffer()
+        {
+            ActionsHistory = Buffer.Slice(0, GameHistory.MaxNumActions);
+            DecisionIndicesHistory = Buffer.Slice(GameHistory.MaxNumActions, GameHistory.MaxNumActions);
+            Cache = Buffer.Slice(GameHistory.MaxNumActions + GameHistory.MaxNumActions, GameHistory.CacheLength);
+            InformationSetMembership = Buffer.Slice(GameHistory.MaxNumActions + GameHistory.MaxNumActions + GameHistory.CacheLength, GameHistory.SizeInBytes_BitArrayForInformationSetMembership);
+            DecisionsDeferred = Buffer.Slice(GameHistory.MaxNumActions + GameHistory.MaxNumActions + GameHistory.CacheLength + GameHistory.SizeInBytes_BitArrayForInformationSetMembership, GameHistory.SizeInBytes_BitArrayForDecisionsDeferred);
         }
 
         public bool IsEmpty => ActionsHistory.Length == 0;
