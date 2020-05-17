@@ -43,7 +43,7 @@ namespace ACESimBase.GameSolvingSupport
             Decision currentDecision = CurrentDecision;
             byte decisionIndex = (byte)CurrentDecisionIndex;
             byte playerMakingDecision = CurrentPlayer.PlayerIndex;
-            var informationSet = GetInformationSet(true);
+            var informationSet = GetInformationSet();
             var independentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, 0 /* placeholder */, null /* TODO */);
             IRegressionMachine regressionMachineForCurrentDecision = InitialPlaybackHelper.GetRegressionMachineIfExists(decisionIndex);
             double[] onPolicyProbabilities;

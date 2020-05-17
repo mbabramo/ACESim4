@@ -141,10 +141,10 @@ namespace ACESimBase
         }
 
         
-        public string GetInformationSetString(bool useDeferredDecisionIndices)
+        public string GetInformationSetString()
         {
             StringBuilder s = new StringBuilder();
-            GetInformationSet(useDeferredDecisionIndices).ForEach(x =>
+            GetInformationSet().ForEach(x =>
             {
                 s.Append(x.decisionIndex);
                 s.Append(x.information);
@@ -153,38 +153,18 @@ namespace ACESimBase
             // too slow (though the above also is): String.Join(";", GetInformationSet(useDeferredDecisionIndices).Select(x => $"{x.decisionIndex},{x.information}"));
         }
 
-        public IEnumerable<byte> GetInformationSet_PlayerAndInfo(bool useDeferredDecisionIndices)
+        public IEnumerable<byte> GetInformationSet_PlayerAndInfo()
         {
             yield return CurrentPlayer.PlayerIndex;
-            foreach ((byte decisionIndex, byte information) in GetInformationSet(useDeferredDecisionIndices))
+            foreach ((byte decisionIndex, byte information) in GetInformationSet())
             {
                 yield return information;
             }
         }
 
-        public List<(byte decisionIndex, byte information)> GetInformationSet(bool useDeferredDecisionIndices)
+        public List<(byte decisionIndex, byte information)> GetInformationSet()
         {
-            
-            var result = GameProgress.InformationSetLog.GetPlayerDecisionAndInformationAtPoint(CurrentDecision.PlayerIndex, null).ToList();
-            if (useDeferredDecisionIndices)
-            {
-                int deferredIndex = 0;
-                int resultLength = result.Count();
-                for (int i = 0; i < resultLength; i++)
-                {
-                    for (int j = i + 1; j < resultLength; j++)
-                    {
-                        if (result[i].decisionIndex == result[j].decisionIndex)
-                        { // we've found a duplicate decision index, so the first one must be a deferred decision index -- replace it. note that we're implicitly assuming here that only one player's decisions will be deferred. For example, we have a plaintiff's offer, which is deferred until the defendant's offer (so that defendant won't know plaintiff's offer before making its own offer). So these are recorded as of the time that the information ends up in the plaintiff's information set -- i.e., after the defendant has made an offer. But for this purpose, we need to know the original decision number. 
-                            result[i] = (GameProgress.GameHistory.DeferredDecisionIndices[deferredIndex++], result[i].information);
-                            break;
-                        }
-                    }
-                }
-            }
-            var DEBUG = GameProgress.GameHistory.GetLabeledCurrentInformationSetForPlayer(CurrentDecision.PlayerIndex);
-            if (!DEBUG.SequenceEqual(result))
-                throw new Exception();
+            var result = GameProgress.GameHistory.GetLabeledCurrentInformationSetForPlayer(CurrentDecision.PlayerIndex);
             return result;
         }
     }

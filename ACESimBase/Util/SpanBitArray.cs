@@ -30,6 +30,7 @@ namespace ACESimBase.Util
             return ((aByte & (1 << pos)) != 0);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Set(Span<byte> span, int pos, bool on)
         {
             int byteIndex = pos / 8;
@@ -40,6 +41,7 @@ namespace ACESimBase.Util
             span[byteIndex] = b;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool Get(Span<byte> span, int pos)
         {
             int byteIndex = pos / 8;

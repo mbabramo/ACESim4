@@ -505,9 +505,10 @@ namespace ACESim
         public List<byte> GetCurrentInformationSetForPlayer(byte playerIndex)
         {
             List<byte> info = new List<byte>();
+            int firstPlayerIndexAction = playerIndex * MaxNumActions;
             for (int i = 0; i < NextActionsAndDecisionsHistoryIndex; i++)
             {
-                bool isMember = SpanBitArray.Get(InformationSetMembership, playerIndex * MaxNumActions + i);
+                bool isMember = SpanBitArray.Get(InformationSetMembership, firstPlayerIndexAction + i);
                 if (isMember)
                 {
                     bool isLastAndDeferred = i == NextActionsAndDecisionsHistoryIndex - 1 && SpanBitArray.Get(DecisionsDeferred, NextActionsAndDecisionsHistoryIndex - 1);
@@ -521,9 +522,10 @@ namespace ACESim
         public List<(byte decisionIndex, byte information)> GetLabeledCurrentInformationSetForPlayer(byte playerIndex)
         {
             List<(byte decisionIndex, byte information)> info = new List<(byte decisionIndex, byte information)>();
+            int firstPlayerIndexAction = playerIndex * MaxNumActions;
             for (int i = 0; i < NextActionsAndDecisionsHistoryIndex; i++)
             {
-                bool isMember = SpanBitArray.Get(InformationSetMembership, playerIndex * MaxNumActions + i);
+                bool isMember = SpanBitArray.Get(InformationSetMembership, firstPlayerIndexAction + i);
                 if (isMember)
                 {
                     bool isLastAndDeferred = i == NextActionsAndDecisionsHistoryIndex - 1 && SpanBitArray.Get(DecisionsDeferred, NextActionsAndDecisionsHistoryIndex - 1);
@@ -542,9 +544,10 @@ namespace ACESim
         public static void GetCurrentInformationSetForPlayer(byte playerIndex, byte nextActionsAndDecisionsHistoryIndex, Span<byte> actions, Span<byte> informationSetMembership, Span<byte> decisionsDeferred, Span<byte> playerInfo)
         {
             byte playerInfoIndex = 0;
+            int firstPlayerIndexAction = playerIndex * MaxNumActions;
             for (int i = 0; i < nextActionsAndDecisionsHistoryIndex; i++)
             {
-                bool isMember = SpanBitArray.Get(informationSetMembership, playerIndex * MaxNumActions + i);
+                bool isMember = SpanBitArray.Get(informationSetMembership, firstPlayerIndexAction + i);
                 if (isMember)
                 {
                     bool isLastAndDeferred = i == nextActionsAndDecisionsHistoryIndex - 1 && SpanBitArray.Get(decisionsDeferred, nextActionsAndDecisionsHistoryIndex - 1);
@@ -571,7 +574,6 @@ namespace ACESim
             foreach (byte playerIndex in playerIndices)
             {
                 SpanBitArray.Set(InformationSetMembership, playerIndex * MaxNumActions + NextActionsAndDecisionsHistoryIndex, false);
-                RemoveItemsInInformationSet(playerIndex); // DEBUG -- old 
             }
 
             foreach (byte playerIndex in playerIndices)
@@ -579,17 +581,6 @@ namespace ACESim
                 if (gameProgress != null)
                     gameProgress.InformationSetLog.RemoveLastItemInLog(playerIndex);
             }
-        }
-
-        // DEBUG -- remove this
-        public void RemoveItemsInInformationSet(byte playerIndex)
-        {
-            int informationSetIndex = InformationSetsIndex(playerIndex);
-            while (InformationSets[informationSetIndex] != InformationSetTerminator)
-                informationSetIndex++; // now move past the information
-            informationSetIndex--; ;
-            VerifyThread();
-            InformationSets[informationSetIndex] = InformationSetTerminator;
         }
 
 #endregion

@@ -570,7 +570,7 @@ namespace ACESim
             regrets = new double[utilities.Length];
             for (int j = 0; j < utilities.Length; j++)
                 regrets[j] = utilities[j] - expectedValue;
-            informationSet = gamePlayer.GetInformationSet(true);
+            informationSet = gamePlayer.GetInformationSet();
         }
 
         private double DeepCFR_GetExploitabilityAtDecision(DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations)
