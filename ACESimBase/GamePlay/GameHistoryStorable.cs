@@ -31,11 +31,9 @@ namespace ACESim
 #if SAFETYCHECKS
         public int CreatingThreadID;
 #endif
-        public int DEBUGCount;
 
         public GameHistoryStorable(in GameHistory gameHistory)
         {
-            DEBUGCount = gameHistory.DEBUGCount;
             Complete = gameHistory.Complete;
             NextIndexInHistoryActionsOnly = gameHistory.NextActionsAndDecisionsHistoryIndex;
             HighestCacheIndex = gameHistory.HighestCacheIndex;
@@ -149,7 +147,6 @@ namespace ACESim
         {
             var result = new GameHistory()
             {
-                DEBUGCount = DEBUGCount,
                 Complete = Complete,
                 NextActionsAndDecisionsHistoryIndex = NextIndexInHistoryActionsOnly,
                 Initialized = Initialized,
@@ -178,7 +175,6 @@ namespace ACESim
         /// <param name="mutationOfShallowCopy"></param>
         public void UpdateFromShallowCopy(GameHistory mutationOfShallowCopy)
         {
-            DEBUGCount = mutationOfShallowCopy.DEBUGCount;
             Complete = mutationOfShallowCopy.Complete;
             NextIndexInHistoryActionsOnly = mutationOfShallowCopy.NextActionsAndDecisionsHistoryIndex;
             HighestCacheIndex = mutationOfShallowCopy.HighestCacheIndex;

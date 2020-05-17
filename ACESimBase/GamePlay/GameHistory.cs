@@ -236,57 +236,6 @@ namespace ACESim
 
         #endregion
 
-        #region Serialization
-
-        public void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-            // Use the AddValue method to specify serialized values.
-            throw new NotImplementedException("TODO -- update");
-            byte[] informationSets = new byte[MaxInformationSetLength];
-            for (int b = 0; b < MaxInformationSetLength; b++)
-                informationSets[b] = InformationSets[b];
-
-            info.AddValue("informationSets", informationSets, typeof(byte[]));
-            info.AddValue("Initialized", Initialized, typeof(bool));
-
-        }
-
-        // The special constructor is used to deserialize values.
-        public GameHistory(SerializationInfo info, StreamingContext context)
-        {
-            throw new NotImplementedException("TODO -- update");
-            ActionsHistory = new byte[GameHistory.MaxNumActions];
-            DecisionIndicesHistory = new byte[GameHistory.MaxNumActions];
-            Cache = new byte[GameHistory.CacheLength];
-            InformationSets = new byte[GameHistory.MaxInformationSetLength];
-            InformationSetMembership = new byte[GameHistory.SizeInBytes_BitArrayForInformationSetMembership];
-            DecisionsDeferred = new byte[GameHistory.SizeInBytes_BitArrayForDecisionsDeferred];
-            DeferredDecisionIndices = new byte[GameHistory.MaxDeferredDecisionIndicesLength];
-#if SAFETYCHECKS
-            CreatingThreadID = System.Threading.Thread.CurrentThread.ManagedThreadId;
-#endif
-
-            byte[] history = (byte[])info.GetValue("history", typeof(byte[]));
-            byte[] informationSets = (byte[])info.GetValue("informationSets", typeof(byte[]));
-            for (int b = 0; b < MaxInformationSetLength; b++)
-                InformationSets[b] = informationSets[b];
-            Initialized = (bool)info.GetValue("Initialized", typeof(bool));
-
-            NextActionsAndDecisionsHistoryIndex = 0;
-            HighestCacheIndex = 0; // actually hull, but it doesn't hurt to have it as 0
-            LastDecisionIndexAdded = 255;
-            Complete = false;
-
-            PreviousNotificationDeferred = false;
-            DeferredAction = 0;
-            DeferredPlayerNumber = 0;
-            DeferredPlayersToInform = null;
-            DeferredDecisionIndices = null;
-        }
-
-
-        #endregion
-
         #region Cache
 
         public void IncrementItemAtCacheIndex(byte cacheIndexToIncrement, byte incrementBy = 1)
@@ -331,20 +280,8 @@ namespace ACESim
 
         #region History
 
-        public int DEBUGCount;
-        public static int DEBUGCount2;
-
         public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, byte[] playersToInform, byte[] cacheIndicesToIncrement, byte? storeActionInCacheIndex, GameProgress gameProgress, bool deferNotification, bool delayPreviousDeferredNotification)
         {
-            DEBUGCount++;
-            DEBUGCount2++;
-            // DEBUG
-            for (byte DEBUGplayerIndex = 0; DEBUGplayerIndex < MaxNumPlayers; DEBUGplayerIndex++)
-            {
-                int size = DEBUGplayerIndex < NumFullPlayers ? MaxInformationSetLengthPerFullPlayer : MaxInformationSetLengthPerPartialPlayer;
-                byte[] pInfo = new byte[size];
-                GetCurrentInformationSetForPlayer(DEBUGplayerIndex, pInfo);
-            }
             // Debug.WriteLine($"Add to history {decisionByteCode} for player {playerIndex} action {action} of {numPossibleActions}");
             RecordAction(action, decisionIndex, deferNotification, playersToInform);
             if (gameProgress != null && gameProgress.FullHistoryRequired)
@@ -353,7 +290,7 @@ namespace ACESim
             if (!delayPreviousDeferredNotification)
             {
                 if (PreviousNotificationDeferred && DeferredPlayersToInform != null)
-                    AddToInformationSetAndLog(DeferredAction, decisionIndex, DeferredPlayerNumber, DeferredPlayersToInform, gameProgress); /* we use the current decision index, not the decision from which it was deferred -- this is important in setting the information set correctly when we want all information that a player has up to some point */
+                    AddToInformationSetLog(DeferredAction, decisionIndex, DeferredPlayerNumber, DeferredPlayersToInform, gameProgress); /* we use the current decision index, not the decision from which it was deferred -- this is important in setting the information set correctly when we want all information that a player has up to some point */
                 PreviousNotificationDeferred = deferNotification;
             }
             if (deferNotification)
@@ -365,21 +302,13 @@ namespace ACESim
             }
             else if (playersToInform != null && playersToInform.Length > 0)
             {
-                AddToInformationSetAndLog(action, decisionIndex, playerIndex, playersToInform, gameProgress); 
+                AddToInformationSetLog(action, decisionIndex, playerIndex, playersToInform, gameProgress); 
             }
             if (cacheIndicesToIncrement != null && cacheIndicesToIncrement.Length > 0)
                 foreach (byte cacheIndex in cacheIndicesToIncrement)
                     IncrementItemAtCacheIndex(cacheIndex);
             if (storeActionInCacheIndex != null)
                 SetCacheItemAtIndex((byte) storeActionInCacheIndex, action);
-
-            // DEBUG
-            for (byte DEBUGplayerIndex = 0; DEBUGplayerIndex < MaxNumPlayers; DEBUGplayerIndex++)
-            {
-                int size = DEBUGplayerIndex < NumFullPlayers ? MaxInformationSetLengthPerFullPlayer : MaxInformationSetLengthPerPartialPlayer;
-                byte[] pInfo = new byte[size];
-                GetCurrentInformationSetForPlayer(DEBUGplayerIndex, pInfo);
-            }
         }
 
         private readonly void RememberDeferredDecisionIndex(byte deferredDecisionIndex)
@@ -419,11 +348,6 @@ namespace ACESim
 
         public bool DecessionIsDeferred_FromNextActionsAndDecisionsHistoryIndex(byte nextActionsAndDecisionsHistoryIndex) => SpanBitArray.Get(DecisionsDeferred, nextActionsAndDecisionsHistoryIndex);
 
-        private void RemoveLastActionFromSimpleActionsList()
-        {
-            NextActionsAndDecisionsHistoryIndex--;
-        }
-
         public List<byte> GetActionsAsList()
         {
             List<byte> actions = new List<byte>();
@@ -456,13 +380,12 @@ namespace ACESim
 
 #region Player information sets
 
-        private void AddToInformationSetAndLog(byte information, byte informationIsKnownFollowingDecisionIndex, byte playerIndex, byte[] playersToInform, GameProgress gameProgress)
+        private void AddToInformationSetLog(byte information, byte informationIsKnownFollowingDecisionIndex, byte playerIndex, byte[] playersToInform, GameProgress gameProgress)
         {
             if (playersToInform == null)
                 return;
             foreach (byte playerToInformIndex in playersToInform)
             {
-                AddToInformationSet(information, playerToInformIndex);
                 gameProgress?.InformationSetLog.AddToLog(information, informationIsKnownFollowingDecisionIndex, playerToInformIndex, gameProgress.GameDefinition.PlayerNames, gameProgress.GameDefinition.DecisionPointsExecutionOrder);
             }
             if (GameProgressLogger.LoggingOn && GameProgressLogger.DetailedLogging)
@@ -475,32 +398,6 @@ namespace ACESim
                     }
             }
         }
-
-        private void AddToInformationSet(byte information, byte playerIndex)
-        {
-#if SAFETYCHECKS
-            if (playerIndex >= MaxNumPlayers)
-                ThrowHelper.Throw();
-#endif
-            int informationSetsIndex = InformationSetsIndex(playerIndex);
-            byte numItems = 0;
-            while (InformationSets[informationSetsIndex] != InformationSetTerminator)
-            {
-                informationSetsIndex++;
-                numItems++;
-            }
-            VerifyThread();
-            InformationSets[informationSetsIndex] = information;
-            informationSetsIndex++;
-            numItems++;
-#if SAFETYCHECKS
-            if (numItems >= MaxInformationSetLengthForPlayer(playerIndex))
-                ThrowHelper.Throw("Must increase MaxInformationSetLengthPerPlayer");
-#endif
-            InformationSets[informationSetsIndex] = InformationSetTerminator;
-        }
-
-
 
         public List<byte> GetCurrentInformationSetForPlayer(byte playerIndex)
         {
