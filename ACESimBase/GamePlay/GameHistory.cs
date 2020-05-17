@@ -338,7 +338,8 @@ namespace ACESim
                 return;
             foreach (byte playerToInformIndex in playersToInform)
             {
-                gameProgress?.InformationSetLog.AddToLog(information, informationIsKnownFollowingDecisionIndex, playerToInformIndex, gameProgress.GameDefinition.PlayerNames, gameProgress.GameDefinition.DecisionPointsExecutionOrder);
+                if (gameProgress != null && gameProgress.FullHistoryRequired)
+                    gameProgress.GameFullHistory.InformationSetLog.AddToLog(information, informationIsKnownFollowingDecisionIndex, playerToInformIndex, gameProgress.GameDefinition.PlayerNames, gameProgress.GameDefinition.DecisionPointsExecutionOrder);
             }
             if (GameProgressLogger.LoggingOn && GameProgressLogger.DetailedLogging)
             {
@@ -427,8 +428,8 @@ namespace ACESim
 
             foreach (byte playerIndex in playerIndices)
             {
-                if (gameProgress != null)
-                    gameProgress.InformationSetLog.RemoveLastItemInLog(playerIndex);
+                if (gameProgress != null && gameProgress.FullHistoryRequired)
+                    gameProgress.GameFullHistory.InformationSetLog.RemoveLastItemInLog(playerIndex);
             }
         }
 

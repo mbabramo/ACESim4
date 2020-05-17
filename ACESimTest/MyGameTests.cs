@@ -90,9 +90,9 @@ namespace ACESimTest
         private static void GetInformationSetStrings(MyGameProgress myGameProgress, out string pInformationSet,
             out string dInformationSet, out string resolutionSet)
         {
-            pInformationSet = myGameProgress.InformationSetLog.GetPlayerInformationAtPointString((byte) MyGamePlayers.Plaintiff, null);
-            dInformationSet = myGameProgress.InformationSetLog.GetPlayerInformationAtPointString((byte) MyGamePlayers.Defendant, null);
-            resolutionSet = myGameProgress.InformationSetLog.GetPlayerInformationAtPointString((byte) MyGamePlayers.Resolution, null);
+            pInformationSet = myGameProgress.GameFullHistory.InformationSetLog.GetPlayerInformationAtPointString((byte) MyGamePlayers.Plaintiff, null);
+            dInformationSet = myGameProgress.GameFullHistory.InformationSetLog.GetPlayerInformationAtPointString((byte) MyGamePlayers.Defendant, null);
+            resolutionSet = myGameProgress.GameFullHistory.InformationSetLog.GetPlayerInformationAtPointString((byte) MyGamePlayers.Resolution, null);
             string pInformationSet2 = myGameProgress.GameHistory.GetCurrentPlayerInformationString((byte) MyGamePlayers.Plaintiff);
             string dInformationSet2 = myGameProgress.GameHistory.GetCurrentPlayerInformationString((byte) MyGamePlayers.Defendant);
             string resolutionSet2 = myGameProgress.GameHistory.GetCurrentPlayerInformationString((byte) MyGamePlayers.Resolution);
@@ -978,13 +978,13 @@ namespace ACESimTest
         private static void VerifyInformationSetUniqueness(MyGameProgress myGameProgress, MyGameOptions options)
         {
             var informationSetHistoriesIndices = myGameProgress.GameFullHistory.GetInformationSetHistoryItems_OverallIndices(myGameProgress).ToList();
-            var playerAndInformation = informationSetHistoriesIndices.Select(x => myGameProgress.GameFullHistory.GetInformationSetHistory_OverallIndex(x, myGameProgress).GetPlayerAndInformationSetAsList()).ToList();
+            var playerAndInformation = informationSetHistoriesIndices.Select(x => myGameProgress.GameFullHistory.GetInformationSetHistory_OverallIndex(x).GetPlayerAndInformationSetAsList()).ToList();
             if (playerAndInformation.Count() != playerAndInformation.Distinct().Count())
             {
                 MyGameDefinition gameDefinition = new MyGameDefinition();
                 gameDefinition.Setup(options);
                 List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
-                var playerAndInformation2 = informationSetHistoriesIndices.Select(x => (myGameProgress.GameFullHistory.GetInformationSetHistory_OverallIndex(x, myGameProgress).PlayerIndex, String.Join(",", myGameProgress.GameFullHistory.GetInformationSetHistory_OverallIndex(x, myGameProgress).GetInformationSetForPlayerAsList()), gameDefinition.DecisionPointsExecutionOrder[myGameProgress.GameFullHistory.GetInformationSetHistory_OverallIndex(x, myGameProgress).DecisionIndex].Name, gameDefinition.DecisionPointsExecutionOrder[myGameProgress.GameFullHistory.GetInformationSetHistory_OverallIndex(x, myGameProgress).DecisionIndex].Decision.NumPossibleActions)).Where(x => x.Item4 != 1).ToList();
+                var playerAndInformation2 = informationSetHistoriesIndices.Select(x => (myGameProgress.GameFullHistory.GetInformationSetHistory_OverallIndex(x).PlayerIndex, String.Join(",", myGameProgress.GameFullHistory.GetInformationSetHistory_OverallIndex(x).GetInformationSetForPlayerAsList()), gameDefinition.DecisionPointsExecutionOrder[myGameProgress.GameFullHistory.GetInformationSetHistory_OverallIndex(x).DecisionIndex].Name, gameDefinition.DecisionPointsExecutionOrder[myGameProgress.GameFullHistory.GetInformationSetHistory_OverallIndex(x).DecisionIndex].Decision.NumPossibleActions)).Where(x => x.Item4 != 1).ToList();
                 var orderedInfo = playerAndInformation2.OrderBy(x => x.Item1).ThenBy(x => x.Item2).ToList();
                 bool problemVerified = false;
                 for (int i = 1; i < orderedInfo.Count(); i++)

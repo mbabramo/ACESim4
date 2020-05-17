@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -47,7 +48,6 @@ namespace ACESim
                 _GameFullHistoryStorable = value;
             }
         }
-        public InformationSetLog InformationSetLog;
         public double PiChance; // probability chance would play to here
         public List<byte> ActionsToPlay = new List<byte>();
         /// <summary>
@@ -88,7 +88,6 @@ namespace ACESim
             FullHistoryRequired = fullHistoryRequired;
             if (fullHistoryRequired)
                 GameFullHistory = GameFullHistory.Initialize();
-            InformationSetLog.Initialize();
         }
 
         bool disposed = false;
@@ -184,7 +183,7 @@ namespace ACESim
             return GameFullHistory.GetInformationSetHistoryItems_OverallIndices(this);
         }
 
-        public InformationSetHistory GetInformationSetHistory_OverallIndex(short index) => GameFullHistory.GetInformationSetHistory_OverallIndex(index, this);
+        public InformationSetHistory GetInformationSetHistory_OverallIndex(short index) => GameFullHistory.GetInformationSetHistory_OverallIndex(index);
 
         public IEnumerable<byte> GetDecisionIndicesCompleted()
         {
@@ -210,7 +209,6 @@ namespace ACESim
 
         public virtual void CleanAfterRecycling()
         {
-            InformationSetLog.Initialize();
             DummyVariable = 1.0;
             IterationID = null; // torecycle
             GameDefinition = null;
@@ -341,8 +339,6 @@ namespace ACESim
             copy.ChooseDefaultActionIfNoneChosen = ChooseDefaultActionIfNoneChosen;
             copy.LastIterationNumberReceivingRandomNumber = LastIterationNumberReceivingRandomNumber;
             copy.RandomNumberForIteration = RandomNumberForIteration;
-
-            copy.InformationSetLog = new InformationSetLog() { LogStorage = InformationSetLog.LogStorage?.ToArray(), Initialized = InformationSetLog.Initialized }; // NOTE: We can't just copy the array because then the starting game progress will be shared among all copies.
             copy.IterationID = IterationID;
             copy.GameDefinition = GameDefinition;
             copy.GameModuleProgresses = GameModuleProgresses == null ? null : (GameModuleProgresses.Select(x => x?.DeepCopy()).ToList());

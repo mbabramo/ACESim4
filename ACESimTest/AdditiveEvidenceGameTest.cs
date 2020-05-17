@@ -335,9 +335,9 @@ namespace ACESimTest
         private static void GetInformationSetStrings(AdditiveEvidenceGameProgress AdditiveEvidenceGameProgress, out string pInformationSet,
             out string dInformationSet, out string resolutionSet)
         {
-            pInformationSet = AdditiveEvidenceGameProgress.InformationSetLog.GetPlayerInformationAtPointString((byte)AdditiveEvidenceGamePlayers.Plaintiff, null);
-            dInformationSet = AdditiveEvidenceGameProgress.InformationSetLog.GetPlayerInformationAtPointString((byte)AdditiveEvidenceGamePlayers.Defendant, null);
-            resolutionSet = AdditiveEvidenceGameProgress.InformationSetLog.GetPlayerInformationAtPointString((byte)AdditiveEvidenceGamePlayers.Resolution, null);
+            pInformationSet = AdditiveEvidenceGameProgress.GameFullHistory.InformationSetLog.GetPlayerInformationAtPointString((byte)AdditiveEvidenceGamePlayers.Plaintiff, null);
+            dInformationSet = AdditiveEvidenceGameProgress.GameFullHistory.InformationSetLog.GetPlayerInformationAtPointString((byte)AdditiveEvidenceGamePlayers.Defendant, null);
+            resolutionSet = AdditiveEvidenceGameProgress.GameFullHistory.InformationSetLog.GetPlayerInformationAtPointString((byte)AdditiveEvidenceGamePlayers.Resolution, null);
             string pInformationSet2 = AdditiveEvidenceGameProgress.GameHistory.GetCurrentPlayerInformationString((byte)AdditiveEvidenceGamePlayers.Plaintiff);
             string dInformationSet2 = AdditiveEvidenceGameProgress.GameHistory.GetCurrentPlayerInformationString((byte)AdditiveEvidenceGamePlayers.Defendant);
             string resolutionSet2 = AdditiveEvidenceGameProgress.GameHistory.GetCurrentPlayerInformationString((byte)AdditiveEvidenceGamePlayers.Resolution);

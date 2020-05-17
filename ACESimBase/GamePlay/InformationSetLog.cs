@@ -16,6 +16,9 @@ namespace ACESim
     [Serializable]
     public struct InformationSetLog
     {
+        public bool Initialized;
+
+        private byte[] _LogStorage;
 
         // must also set similar values ref GameHistory.
         public const int MaxInformationSetLoggingLength = 1200; // MUST equal MaxInformationSetLoggingLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLoggingLengthPerPartialPlayer * NumPartialPlayers. 
@@ -29,10 +32,6 @@ namespace ACESim
 
         public int InformationSetLoggingIndex(byte playerIndex) => playerIndex <= NumFullPlayers ? MaxInformationSetLoggingLengthPerFullPlayer * playerIndex : MaxInformationSetLoggingLengthPerFullPlayer * NumFullPlayers + (playerIndex - NumFullPlayers) * MaxInformationSetLoggingLengthPerPartialPlayer;
         public int MaxInformationSetLoggingLengthForPlayer(byte playerIndex) => playerIndex < NumFullPlayers ? MaxInformationSetLoggingLengthPerFullPlayer : MaxInformationSetLoggingLengthPerPartialPlayer;
-
-        public bool Initialized;
-
-        private byte[] _LogStorage;
         public byte[] LogStorage
         {
             get
@@ -52,6 +51,14 @@ namespace ACESim
         public const byte InformationSetTerminator = 255;
         public const byte RemoveItemFromInformationSet = 254;
 
+        public InformationSetLog(byte[] logStorage, bool initialized)
+        {
+            _LogStorage = logStorage;
+            if (_LogStorage.Length < MaxInformationSetLoggingLength)
+                throw new Exception("Invalid log length.");
+            Initialized = initialized;
+        }
+
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             // Use the AddValue method to specify serialized values.
@@ -68,10 +75,12 @@ namespace ACESim
             Initialized = true;
         }
 
+        public InformationSetLog DeepCopy() => new InformationSetLog(LogStorage.ToArray(), Initialized);
+
         public void Initialize()
         {
             if (LogStorage == null)
-                LogStorage = new byte[MaxInformationSetLoggingLength]; // DEBUG2 // TODO: Use array pool. But only high priority if we are using PlayUnderlyingGame, since this will not otherwise be called in main algorithm. If doing this, must also use in GameProgress.CopyFieldInfo. Then, we must return the array. We don't necessarily need to catch all uses, just common ones, since unreturned array will still eventually be garbage collected and recycled. Key collection point would be GenerateReports_RandomPaths but also where we use GetGameState.
+                LogStorage = new byte[MaxInformationSetLoggingLength];
             if (MaxInformationSetLoggingLength != MaxInformationSetLoggingLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLoggingLengthPerPartialPlayer * NumPartialPlayers)
                 ThrowHelper.Throw("Lengths not set correctly.");
             for (byte p = 0; p < MaxNumPlayers; p++)

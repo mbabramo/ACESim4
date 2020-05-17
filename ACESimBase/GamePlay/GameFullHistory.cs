@@ -25,11 +25,13 @@ namespace ACESim
 
         public readonly byte[] History; // length is MaxHistoryLength;
         public readonly short NextIndexToAddToHistory;
+        public readonly InformationSetLog InformationSetLog;
 
-        public GameFullHistory(byte[] history, short lastIndexAddedToHistory)
+        public GameFullHistory(byte[] history, short lastIndexAddedToHistory, InformationSetLog informationSetLog)
         {
             History = history;
             NextIndexToAddToHistory = lastIndexAddedToHistory;
+            InformationSetLog = informationSetLog;
         }
 
         public GameFullHistory DeepCopy()
@@ -37,13 +39,7 @@ namespace ACESim
             var history = new byte[MaxHistoryLength];
             for (int i = 0; i < MaxHistoryLength; i++)
                 history[i] = History[i];
-            return new GameFullHistory(history, NextIndexToAddToHistory);
-        }
-
-        public GameFullHistory ShallowCopy()
-        {
-            var result = new GameFullHistory(History, NextIndexToAddToHistory);
-            return result;
+            return new GameFullHistory(history, NextIndexToAddToHistory, InformationSetLog.DeepCopy());
         }
 
         public static GameFullHistory Initialize()
@@ -51,7 +47,9 @@ namespace ACESim
             var history = new byte[MaxHistoryLength];
             history[0] = HistoryTerminator;
             const short lastIndexAddedToHistory = 0;
-            return new GameFullHistory(history, lastIndexAddedToHistory);
+            InformationSetLog log = new InformationSetLog();
+            log.Initialize();
+            return new GameFullHistory(history, lastIndexAddedToHistory, log);
         }
 
         public GameFullHistory AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions)
@@ -75,7 +73,7 @@ namespace ACESim
             if (nextIndexToAddToHistory >= MaxHistoryLength - 2) // must account for terminator characters
                 ThrowHelper.Throw("Internal error. Must increase history length.");
 #endif
-            var result = new GameFullHistory(history, nextIndexToAddToHistory);
+            var result = new GameFullHistory(history, nextIndexToAddToHistory, InformationSetLog);
             if (GameProgressLogger.LoggingOn)
                 GameProgressLogger.Log($"Actions so far: {result.GetActionsAsListString()}");
             return result;
@@ -107,7 +105,7 @@ namespace ACESim
             short numItems = GetInformationSetHistoryItems_Count(gameProgress);
             for (short i = 0; i < numItems; i++)
             {
-                string s = GetInformationSetHistory_OverallIndex(i, gameProgress).ToString();
+                string s = GetInformationSetHistory_OverallIndex(i).ToString();
                 yield return s;
             }
         }
@@ -224,13 +222,13 @@ namespace ACESim
 
 
 
-        public InformationSetHistory GetInformationSetHistory_OverallIndex(short index, GameProgress gameProgress)
+        public InformationSetHistory GetInformationSetHistory_OverallIndex(short index)
         {
-            return GetInformationSetHistory((short)(index * History_NumPiecesOfInformation), gameProgress);
+            return GetInformationSetHistory((short)(index * History_NumPiecesOfInformation));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private InformationSetHistory GetInformationSetHistory(short index, GameProgress gameProgress)
+        private InformationSetHistory GetInformationSetHistory(short index)
         {
             byte playerIndex = GetHistoryIndex(index + History_PlayerNumber_Offset);
             byte decisionByteCode = GetHistoryIndex(index + History_DecisionByteCode_Offset);
@@ -240,7 +238,7 @@ namespace ACESim
             byte numPossibleActions = GetHistoryIndex(index + History_NumPossibleActions_Offset);
             bool isTerminalAction = GetHistoryIndex(index + History_NumPiecesOfInformation) == HistoryComplete;
             var informationSetHistory = new InformationSetHistory(informationSetForPlayer, playerIndex, decisionByteCode, decisionIndex, actionChosen, numPossibleActions, isTerminalAction);
-            gameProgress.InformationSetLog.GetPlayerInformationAtPoint(playerIndex, decisionIndex, informationSetHistory.InformationSetForPlayer);
+            InformationSetLog.GetPlayerInformationAtPoint(playerIndex, decisionIndex, informationSetHistory.InformationSetForPlayer);
             return informationSetHistory;
         }
 
