@@ -25,7 +25,6 @@ namespace ACESim
         public byte DeferredAction;
         public byte DeferredPlayerNumber;
         public byte[] DeferredPlayersToInform;
-        public byte[] DeferredDecisionIndices;
         public byte LastDecisionIndexAdded;
 #if SAFETYCHECKS
         public int CreatingThreadID;
@@ -43,7 +42,6 @@ namespace ACESim
             DeferredPlayersToInform = gameHistory.DeferredPlayersToInform;
             LastDecisionIndexAdded = gameHistory.LastDecisionIndexAdded;
             Buffer = new byte[GameHistory.TotalBufferSize];
-            DeferredDecisionIndices = gameHistory.DeferredDecisionIndices.Length > 0 ? new byte[GameHistory.MaxDeferredDecisionIndicesLength] : null;
 #if SAFETYCHECKS
             // it doesn't matter what the CreatingThreadID is on this GameHistory; now that we've 
             // duplicated the entire object, this can be used on whatever the current thread is
@@ -67,11 +65,6 @@ namespace ACESim
             if (DecisionsDeferred.Length > 0)
                 for (int i = 0; i < GameHistory.SizeInBytes_BitArrayForDecisionsDeferred; i++)
                     DecisionsDeferred[i] = gameHistory.DecisionsDeferred[i];
-            if (DeferredDecisionIndices.Length > 0)
-            {
-                for (int i = 0; i < GameHistory.MaxDeferredDecisionIndicesLength; i++)
-                    DeferredDecisionIndices[i] = gameHistory.DeferredDecisionIndices[i];
-            }
         }
 
         public static GameHistoryStorable NewInitialized()
@@ -99,8 +92,6 @@ namespace ACESim
                 for (int i = 0; i < GameHistory.CacheLength; i++)
                     result.Cache[i] = Cache[i];
                 result.VerifyThread();
-                for (int i = 0; i < GameHistory.MaxDeferredDecisionIndicesLength; i++)
-                    result.DeferredDecisionIndices[i] = DeferredDecisionIndices[i]; 
                 for (int i = 0; i < GameHistory.SizeInBytes_BitArrayForInformationSetMembership; i++)
                     result.InformationSetMembership[i] = InformationSetMembership[i];
                for (int i = 0; i < GameHistory.SizeInBytes_BitArrayForDecisionsDeferred; i++)
@@ -128,7 +119,6 @@ namespace ACESim
                 ActionsHistory = ActionsHistory,
                 DecisionIndicesHistory = DecisionsHistory,
                 Cache = Cache,
-                DeferredDecisionIndices = DeferredDecisionIndices,
                 InformationSetMembership = InformationSetMembership,
                 DecisionsDeferred = DecisionsDeferred,
 #if SAFETYCHECKS

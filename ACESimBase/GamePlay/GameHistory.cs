@@ -25,19 +25,17 @@ namespace ACESim
         public const byte Cache_SubdivisionAggregationIndex = 0; // Use this cache entry to aggregate subdivision decisions. Thus, do NOT use it for any other purpose.
 
         public const byte InformationSetTerminator = 255;
-        public const byte DecisionHasOccurred = 251; // if reporting only that the decision has occurred, we do that here.
 
-        // DEBUG -- should not be const's anymore
+        // TODO: Consider replacing const ints with something variable determined by the game. GameHistory would then be initialized with a struct including the relevant constants. This might save space, though it would increase the number of calculations.
         public const int MaxNumActions = 100;
-        public const int NumFullPlayers = 3; // includes main players and resolution player and any chance players that need full size information set
         public const int MaxNumPlayers = 18; // includes chance players that need a very limited information set
-        public const int NumPartialPlayers = MaxNumPlayers - NumFullPlayers;
         public const int MaxDeferredDecisionIndicesLength = 10;
         public const int SizeInBits_BitArrayForInformationSetMembership = GameHistory.MaxNumActions * MaxNumPlayers;
         public const int SizeInBytes_BitArrayForInformationSetMembership = SizeInBits_BitArrayForInformationSetMembership / 8 + (SizeInBits_BitArrayForInformationSetMembership % 8 == 0 ? 0 : 1);
         public const int SizeInBytes_BitArrayForDecisionsDeferred = GameHistory.MaxNumActions / 8 + (MaxNumActions % 8 == 0 ? 0 : 1);
         public const int TotalBufferSize = GameHistory.MaxNumActions + GameHistory.MaxNumActions + CacheLength + GameHistory.SizeInBytes_BitArrayForInformationSetMembership + GameHistory.SizeInBytes_BitArrayForDecisionsDeferred;
         public const int MaxInformationSetLength = 40; // used by code that creates Span to hold information set
+
         public bool Initialized;
         public bool Complete;
         public byte NextActionsAndDecisionsHistoryIndex;
@@ -55,7 +53,6 @@ namespace ACESim
         public Span<byte> Cache; // length CacheLength
         public Span<byte> InformationSetMembership; // length GameHistory.SizeInBytes_BitArrayForInformationSetMembership
         public Span<byte> DecisionsDeferred; // length GameHistory.SizeInBytes_BitArrayForDecisionsDeferred
-        public Span<byte> DeferredDecisionIndices; // length MaxDeferredDecisionIndicesLength
 #if SAFETYCHECKS
         public int CreatingThreadID;
 #endif
@@ -134,7 +131,6 @@ namespace ACESim
             Cache = new byte[GameHistory.CacheLength];
             InformationSetMembership = new byte[GameHistory.SizeInBytes_BitArrayForInformationSetMembership];
             DecisionsDeferred = new byte[GameHistory.SizeInBytes_BitArrayForDecisionsDeferred];
-            DeferredDecisionIndices = new byte[GameHistory.MaxDeferredDecisionIndicesLength];
 #if SAFETYCHECKS
             CreatingThreadID = System.Threading.Thread.CurrentThread.ManagedThreadId;
 #endif
@@ -270,7 +266,6 @@ namespace ACESim
                 DeferredAction = action;
                 DeferredPlayerNumber = playerIndex;
                 DeferredPlayersToInform = playersToInform;
-                RememberDeferredDecisionIndex(decisionIndex);
             }
             else if (playersToInform != null && playersToInform.Length > 0)
             {
@@ -281,21 +276,6 @@ namespace ACESim
                     IncrementItemAtCacheIndex(cacheIndex);
             if (storeActionInCacheIndex != null)
                 SetCacheItemAtIndex((byte) storeActionInCacheIndex, action);
-        }
-
-        private readonly void RememberDeferredDecisionIndex(byte deferredDecisionIndex)
-        {
-            bool found = false;
-            for (int i = 0; i < MaxDeferredDecisionIndicesLength && !found; i++)
-            {
-                if (DeferredDecisionIndices[i] == 0)
-                {
-                    DeferredDecisionIndices[i] = deferredDecisionIndex;
-                    found = true;
-                }
-            }
-            if (!found)
-                throw new Exception("Must increase MaxDeferredDecisionIndicesLength");
         }
 
         private void RecordAction(byte action, byte decisionIndex, bool decisionIsDeferred, byte[] playersToInform)
