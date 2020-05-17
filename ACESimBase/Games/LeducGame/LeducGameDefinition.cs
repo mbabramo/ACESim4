@@ -64,8 +64,6 @@ namespace ACESim
             decisions.Add(
                 new Decision("FC", "FC", true,  (byte)LeducGamePlayers.FlopChance, new byte[] { (byte)LeducGamePlayers.Player1, (byte)LeducGamePlayers.Player2, (byte)LeducGamePlayers.Resolution }, 3, (byte)LeducGameDecisions.FlopChance, unevenChanceActions: true) { StoreActionInGameCacheItem = GameHistoryCacheIndex_FlopCard });
             AddRoundDecisions(false, decisions);
-            foreach (Decision d in decisions)
-                d.IsReversible = true;
             return decisions;
         }
 

@@ -170,7 +170,7 @@ namespace ACESim
 
         public bool BranchingIsReversible(HistoryNavigationInfo navigation, Decision nextDecision)
         {
-            return navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly && nextDecision.IsReversible && GameProgress == null;
+            return navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly && GameProgress == null;
         }
 
         public HistoryPoint GetBranch(HistoryNavigationInfo navigation, byte actionChosen, Decision nextDecision, byte nextDecisionIndex)
@@ -370,6 +370,10 @@ namespace ACESim
                 {
                     navigation.GetGameState(in this); // make sure that point is initialized up to here
                     finalUtilities = (FinalUtilitiesNode)strategy.GetInformationSetTreeValue(resolutionInformationSet);
+                    if (finalUtilities == null)
+                    {
+                        var DEBUG = 0;
+                    }
                 }
                 utilitiesFromCachedGameHistory = finalUtilities.Utilities;
             }
