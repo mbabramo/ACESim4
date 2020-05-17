@@ -132,21 +132,21 @@ namespace ACESim
                 navigation.GameDefinition.GetNextDecision(in historyToPoint, out Decision nextDecision, out byte nextDecisionIndex);
                 // If nextDecision is null, then there are no more player decisions. (If this seems wrong, it could be a result of an error in whether to mark a game complete.) When there are no more player decisions, the resolution "player" is used.
                 byte nextPlayer = nextDecision?.PlayerIndex ?? navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
-                Span<byte> informationSetsPtr = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
+                Span<byte> informationSetsSpan = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
                 // string playerInformationString = HistoryToPoint.GetPlayerInformationString(currentPlayer, nextDecision?.DecisionByteCode);
 
                 // DEBUG GameHistory.GetPlayerInformationCurrent_New(nextPlayer, historyToPoint.NextActionsAndDecisionsHistoryIndex, historyToPoint.ActionsHistory, historyToPoint.DecisionIndicesHistory, historyToPoint.InformationSetMembership, historyToPoint.DecisionsDeferred, informationSetsPtr);
-                GameHistory.GetPlayerInformationCurrent(nextPlayer, historyToPoint.InformationSets, informationSetsPtr);
+                GameHistory.GetPlayerInformationCurrent(nextPlayer, historyToPoint.InformationSets, informationSetsSpan);
                 if (GameProgressLogger.LoggingOn)
                 {
-                    var informationSetList = Util.ListExtensions.GetSpan255TerminatedAsList(informationSetsPtr);
+                    var informationSetList = Util.ListExtensions.GetSpan255TerminatedAsList(informationSetsSpan);
                     var actionsToHere = String.Join(",", historyToPoint.GetActionsAsList());
                     GameProgressLogger.Log($"Player {nextPlayer} decision: {nextDecision?.Name ?? "Resolution"} information set: {String.Join(",", informationSetList)} actions to here: {actionsToHere}");
                 }
                 if (nextDecision != null)
-                    gameStateFromGameHistory = navigation.Strategies[nextPlayer].GetInformationSetTreeValue(nextDecisionIndex, informationSetsPtr);
+                    gameStateFromGameHistory = navigation.Strategies[nextPlayer].GetInformationSetTreeValue(nextDecisionIndex, informationSetsSpan);
                 else
-                    gameStateFromGameHistory = navigation.Strategies[nextPlayer].GetInformationSetTreeValue(informationSetsPtr); // resolution player -- we don't use the decision index
+                    gameStateFromGameHistory = navigation.Strategies[nextPlayer].GetInformationSetTreeValue(informationSetsSpan); // resolution player -- we don't use the decision index
                 if (gameStateFromGameHistory == null && navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly)
                     return null; // we haven't initialized, so we need to do so and then try again.
             }

@@ -164,6 +164,7 @@ namespace ACESimBase
 
         public List<(byte decisionIndex, byte information)> GetInformationSet(bool useDeferredDecisionIndices)
         {
+            
             var result = GameProgress.InformationSetLog.GetPlayerDecisionAndInformationAtPoint(CurrentDecision.PlayerIndex, null).ToList();
             if (useDeferredDecisionIndices)
             {
@@ -181,8 +182,8 @@ namespace ACESimBase
                     }
                 }
             }
-            var DEBUG = GameProgress.GameHistory.GetCurrentInformationSetForPlayer(CurrentDecision.PlayerIndex);
-            if (!DEBUG.SequenceEqual(result.Select(x => x.information)))
+            var DEBUG = GameProgress.GameHistory.GetLabeledCurrentInformationSetForPlayer(CurrentDecision.PlayerIndex);
+            if (!DEBUG.SequenceEqual(result))
                 throw new Exception();
             return result;
         }

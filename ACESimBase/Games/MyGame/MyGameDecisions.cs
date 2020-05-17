@@ -19,6 +19,7 @@ namespace ACESim
         DDamagesSignal,
         PFile, // 1 = yes, 2 = no
         DAnswer, // 1 = yes, 2 = no
+        // DEBUG -- can we eliminate pre and post bargaining round?
         PreBargainingRound, // dummy chance decision -- gives us chance to perform some processing 
         PAgreeToBargain, // 1 = yes (can do rest of bargaining for this round), 2 = no (no settlement reached this round)
         DAgreeToBargain, // 1 = yes (can do rest of bargaining for this round), 2 = no (no settlement reached this round)

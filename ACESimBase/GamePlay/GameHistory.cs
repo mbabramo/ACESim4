@@ -382,11 +382,6 @@ namespace ACESim
             if (storeActionInCacheIndex != null)
                 SetCacheItemAtIndex((byte) storeActionInCacheIndex, action);
 
-            if (DEBUGCount2 >= 493897 && SpanBitArray.Get(InformationSetMembership, 214))
-            {
-                var DEBUGSXDF = 0;
-            }
-
             // DEBUG
             for (byte DEBUGplayerIndex = 0; DEBUGplayerIndex < MaxNumPlayers; DEBUGplayerIndex++)
             {
@@ -409,23 +404,6 @@ namespace ACESim
             }
             if (!found)
                 throw new Exception("Must increase MaxDeferredDecisionIndicesLength");
-        }
-
-        private byte GetLastDeferredDecisionIndex()
-        {
-            byte b = DeferredDecisionIndices[0];
-            if (b == 0)
-                throw new Exception("No deferred decision index found.");
-            bool found = false;
-            for (int i = 1; i < MaxDeferredDecisionIndicesLength && !found; i++)
-            {
-                if (DeferredDecisionIndices[i] == 0)
-                {
-                    b = DeferredDecisionIndices[i];
-                    found = true;
-                }
-            }
-            return b;
         }
 
         private void RecordAction(byte action, byte decisionIndex, bool decisionIsDeferred, byte[] playersToInform)
@@ -531,7 +509,29 @@ namespace ACESim
             InformationSets[informationSetsIndex] = InformationSetTerminator;
         }
 
+
+
         public List<byte> GetCurrentInformationSetForPlayer(byte playerIndex)
+        {
+            List<byte> info = new List<byte>();
+            for (int i = 0; i < NextActionsAndDecisionsHistoryIndex; i++)
+                if (SpanBitArray.Get(InformationSetMembership, playerIndex * MaxNumActions + i))
+                    info.Add(ActionsHistory[i]);
+            
+            return info;
+        }
+
+        public List<(byte decisionIndex, byte information)> GetLabeledCurrentInformationSetForPlayer(byte playerIndex)
+        {
+            List<(byte decisionIndex, byte information)> info = new List<(byte decisionIndex, byte information)>();
+            for (int i = 0; i < NextActionsAndDecisionsHistoryIndex; i++)
+                if (SpanBitArray.Get(InformationSetMembership, playerIndex * MaxNumActions + i))
+                    info.Add((DecisionIndicesHistory[i], ActionsHistory[i]));
+
+            return info;
+        }
+
+        public List<byte> GetCurrentInformationSetForPlayer_Old_DEBUG(byte playerIndex)
         {
             List<byte> info = new List<byte>();
             if (playerIndex >= MaxNumPlayers)
@@ -563,42 +563,17 @@ namespace ACESim
         public static void GetPlayerInformationCurrent_New(byte playerIndex, byte nextActionsAndDecisionsHistoryIndex, Span<byte> actions, Span<byte> decisionIndices, Span<byte> informationSetMembership, Span<byte> decisionsDeferred, Span<byte> playerInfo)
         {
             byte playerInfoIndex = 0;
-            if (DEBUGCount2 == 493897)
-            {
-                var DEBUG = 0;
-            }
             for (int i = 0; i < nextActionsAndDecisionsHistoryIndex; i++)
             {
-                if (DEBUGCount2 == 493904)
-                {
-                    var DEBUG = 0;
-                }
                 bool isMember = SpanBitArray.Get(informationSetMembership, playerIndex * MaxNumActions + i);
                 if (isMember)
                 {
                     bool isLastAndDeferred = i == nextActionsAndDecisionsHistoryIndex - 1 && SpanBitArray.Get(decisionsDeferred, nextActionsAndDecisionsHistoryIndex - 1);
-                    if (isLastAndDeferred)
-                    {
-                        var DEBUG = 0;
-                    }
                     if (!isLastAndDeferred)
                         playerInfo[playerInfoIndex++] = actions[i];
                 }
             }
             playerInfo[playerInfoIndex] = InformationSetTerminator;
-        }
-
-        public void GetPlayerInformationCurrent(byte playerIndex, Span<byte> playerInfo)
-        {
-            GetPlayerInformationCurrent(playerIndex, InformationSets, playerInfo);
-            var DEBUG = new byte[playerInfo.Length];
-            GetPlayerInformationCurrent_New(playerIndex, DEBUG);
-            if (DEBUGCount2 > 493890 && playerIndex == 2)
-            {
-                //Debug.WriteLine($"{DEBUGCount2}: {String.Join(",", DEBUG)}: {SpanBitArray.Get(InformationSetMembership, 214)} {NextActionsAndDecisionsHistoryIndex} {String.Join(",", playerInfo.ToArray())}");
-            }
-            if (!DEBUG.SequenceEqual(playerInfo.ToArray()))
-                throw new Exception("DEBUG");
         }
 
 

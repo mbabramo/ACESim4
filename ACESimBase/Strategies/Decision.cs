@@ -51,6 +51,7 @@ namespace ACESim
         /// </summary>
         public bool RequiresCustomInformationSetManipulation;
 
+        // DEBUG -- all decision steps are now reversible
         /// <summary>
         /// If true, then the decision step can be reversed, via the ReverseDecision mechanism or an overload.
         /// </summary>
