@@ -98,19 +98,6 @@ namespace ACESim
             History[NextIndexToAddToHistory] = HistoryTerminator; // overwrite HistoryComplete
         }
 
-
-        public string GetInformationSetHistoryItemsString(GameProgress gameProgress) => String.Join(",", GetInformationSetHistoryItemsStrings(gameProgress));
-
-        public IEnumerable<string> GetInformationSetHistoryItemsStrings(GameProgress gameProgress)
-        {
-            short numItems = GetInformationSetHistoryItems_Count(gameProgress);
-            for (short i = 0; i < numItems; i++)
-            {
-                string s = GetInformationSetHistory_OverallIndex(i).ToString();
-                yield return s;
-            }
-        }
-
         // NOTE: InformationSetHistory is ref struct, so we can't enumerate it directly. We can enumerate the indices, and the caller can then
         // access each InformationSetHistory one at a time.
 

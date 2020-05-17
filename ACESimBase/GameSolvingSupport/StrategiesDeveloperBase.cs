@@ -656,14 +656,13 @@ namespace ACESim
         void ProcessInitializedGameProgress(GameProgress gameProgress)
         {
             // First, add the utilities at the end of the tree for this path.
-            Span<byte> actions = stackalloc byte[GameHistory.MaxNumActions];
-            gameProgress.GameFullHistory.GetActions(actions);
+            List<byte> actions = gameProgress.GameHistory.GetActionsAsList();
             //var actionsAsList = ListExtensions.GetPointerAsList_255Terminated(actions);
 
             // Go through each non-chance decision point on this path and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
 
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
-            IEnumerable<InformationSetHistory> informationSetHistories = gameProgress.GameHistory.GetInformationSetHistories(d => GameDefinition.DecisionsExecutionOrder[d]);
+            IEnumerable<InformationSetHistory> informationSetHistories = gameProgress.GameHistory.GetInformationSetHistories(GameDefinition.DecisionsExecutionOrder);
             //GameProgressLogger.Log(() => "Processing information set histories");
             //if (GameProgressLogger.LoggingOn)
             //{
@@ -879,9 +878,8 @@ namespace ACESim
 
         private void PrintGameProbabilistically(GameProgress progress)
         {
-            Span<byte> path = stackalloc byte[GameHistory.MaxNumActions];
             bool overridePrint = false;
-            string actionsList = progress.GameFullHistory.GetActionsAsListString();
+            string actionsList = progress.GameHistory.GetActionsAsListString();
             if (actionsList == "INSERT_PATH_HERE") // use this to print a single path
             {
                 overridePrint = true;
@@ -890,16 +888,9 @@ namespace ACESim
             {
                 lock (this)
                 {
-
-                    progress.GameFullHistory.GetActions(path);
-                    List<byte> path2 = new List<byte>();
-                    int i = 0;
-                    while (path[i] != 255)
-                    {
-                        path2.Add(path[i]);
-                        i++;
-                    }
-                    TabbedText.WriteLine($"{String.Join(",", path2)}");
+                    List<byte> path = progress.GameHistory.GetActionsAsList();
+                    
+                    TabbedText.WriteLine($"{String.Join(",", path)}");
                     TabbedText.TabIndent();
                     PrintGenericGameProgress(progress);
                     TabbedText.TabUnindent();
@@ -911,7 +902,7 @@ namespace ACESim
         {
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
             // Go through each non-chance decision point 
-            foreach (InformationSetHistory informationSetHistory in progress.GameHistory.GetInformationSetHistories(d => GameDefinition.DecisionsExecutionOrder[d]))
+            foreach (InformationSetHistory informationSetHistory in progress.GameHistory.GetInformationSetHistories(GameDefinition.DecisionsExecutionOrder))
             {
                 var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
                 TabbedText.WriteLine($"Decision {decision.Name} ({decision.DecisionByteCode}) for player {GameDefinition.Players[decision.PlayerIndex].PlayerName} ({GameDefinition.Players[decision.PlayerIndex].PlayerIndex})");
@@ -1513,7 +1504,7 @@ namespace ACESim
             for (int i = 0; i < EvolutionSettings.NumRandomIterationsForSummaryTable; i++)
             {
                 GameProgress gameProgress1 = gameProgresses[i];
-                string gameActions = gameProgress1.GameFullHistory.GetActionsAsListString();
+                string gameActions = gameProgress1.GameHistory.GetActionsAsListString();
                 if (!CountPaths.ContainsKey(gameActions))
                     CountPaths[gameActions] = 1;
                 else

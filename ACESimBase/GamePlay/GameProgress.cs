@@ -181,7 +181,6 @@ namespace ACESim
         public IEnumerable<byte> GetDecisionIndicesCompleted()
         {
             return GameHistoryStorable.GetDecisionsEnumerable();
-            // DEBUG return GameFullHistoryStorable.GetDecisionIndicesCompleted(this);
         }
 
         public bool IncludesDecisionIndex(byte decisionIndex) => GetDecisionIndicesCompleted().Contains(decisionIndex);

@@ -307,6 +307,10 @@ namespace ACESim
                 actions.Add(ActionsHistory[i]);
             return actions;
         }
+        public string GetActionsAsListString()
+        {
+            return String.Join(",", GetActionsAsList());
+        }
 
         public List<byte> GetDecisionsAsList()
         {
@@ -370,20 +374,6 @@ namespace ACESim
                 }
             }
             return info;
-        }
-
-        public List<InformationSetHistory> GetInformationSetHistories(Func<byte, Decision> decisionFn)
-        {
-            List<InformationSetHistory> informationSetHistories = new List<InformationSetHistory>();
-            for (int i = 0; i < NextActionsAndDecisionsHistoryIndex; i++)
-            {
-                byte decisionIndex = DecisionIndicesHistory[i];
-                byte actionChosen = ActionsHistory[i];
-                Decision d = decisionFn(decisionIndex);
-                byte[] informationSet = GetCurrentInformationSetForPlayer_Array(d.PlayerIndex);
-                informationSetHistories.Add(new InformationSetHistory(informationSet, d.PlayerIndex, d.DecisionByteCode, decisionIndex, actionChosen, d.NumPossibleActions));
-            }
-            return informationSetHistories;
         }
 
         public List<(byte decisionIndex, byte information)> GetLabeledCurrentInformationSetForPlayer(byte playerIndex)
@@ -450,9 +440,33 @@ namespace ACESim
             }
         }
 
+        public List<InformationSetHistory> GetInformationSetHistories(List<Decision> decisions)
+        {
+            List<InformationSetHistory> informationSetHistories = new List<InformationSetHistory>();
+            for (int i = 0; i < NextActionsAndDecisionsHistoryIndex; i++)
+            {
+                byte decisionIndex = DecisionIndicesHistory[i];
+                byte actionChosen = ActionsHistory[i];
+                Decision d = decisions[decisionIndex];
+                byte[] informationSet = GetCurrentInformationSetForPlayer_Array(d.PlayerIndex);
+                informationSetHistories.Add(new InformationSetHistory(informationSet, d.PlayerIndex, d.DecisionByteCode, decisionIndex, actionChosen, d.NumPossibleActions));
+            }
+            return informationSetHistories;
+        }
+
+        public string GetInformationSetHistoryItemsString(List<Decision> decisions) => String.Join(",", GetInformationSetHistoryItemsStrings(decisions));
+
+        public List<string> GetInformationSetHistoryItemsStrings(List<Decision> decisions)
+        {
+            List<string> informationSetHistoryStrings = new List<string>();
+            foreach (InformationSetHistory informationSetHistory in GetInformationSetHistories(decisions))
+            {
+                informationSetHistoryStrings.Add(informationSetHistory.ToString());
+            }
+            return informationSetHistoryStrings;
+        }
+
         #endregion
-
-
 
         #region Decision paths
 
