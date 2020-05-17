@@ -208,23 +208,23 @@ namespace ACESim
             CheckCompleteAfterPostPrimaryAction = postPrimaryChanceCanTerminate;
             if (prePrimaryChanceActions > 0)
             {
-                decisions.Add(new Decision("PrePrimaryChanceActions", "PrePrimary", true, (byte) MyGamePlayers.PrePrimaryChance, prePrimaryPlayersToInform, prePrimaryChanceActions, (byte) MyGameDecisions.PrePrimaryActionChance) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PrePrimaryChance, UnevenChanceActions = prePrimaryUnevenChance, Unroll_Parallelize = disputeGenerator.GetPrePrimaryUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetPrePrimaryUnrollSettings().unrollIdentical, DistributedChanceDecision = true });
+                decisions.Add(new Decision("PrePrimaryChanceActions", "PrePrimary", true, (byte) MyGamePlayers.PrePrimaryChance, prePrimaryPlayersToInform, prePrimaryChanceActions, (byte) MyGameDecisions.PrePrimaryActionChance) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PrePrimaryChance, IsReversible = true, UnevenChanceActions = prePrimaryUnevenChance, Unroll_Parallelize = disputeGenerator.GetPrePrimaryUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetPrePrimaryUnrollSettings().unrollIdentical, DistributedChanceDecision = true });
             }
             if (primaryActions > 0)
             {
-                decisions.Add(new Decision("PrimaryActions", "Primary", true, (byte) MyGamePlayers.PrePrimaryChance /* there is no primary chance player */, primaryPlayersToInform, primaryActions, (byte) MyGameDecisions.PrimaryAction) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PrimaryAction, CanTerminateGame = primaryActionCanTerminate, Unroll_Parallelize = disputeGenerator.GetPrimaryUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetPrimaryUnrollSettings().unrollIdentical, DistributedChanceDecision = true });
+                decisions.Add(new Decision("PrimaryActions", "Primary", true, (byte) MyGamePlayers.PrePrimaryChance /* there is no primary chance player */, primaryPlayersToInform, primaryActions, (byte) MyGameDecisions.PrimaryAction) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PrimaryAction, IsReversible = true, CanTerminateGame = primaryActionCanTerminate, Unroll_Parallelize = disputeGenerator.GetPrimaryUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetPrimaryUnrollSettings().unrollIdentical, DistributedChanceDecision = true });
             }
             if (postPrimaryChanceActions > 0)
             {
-                decisions.Add(new Decision("PostPrimaryChanceActions", "PostPrimary", true, (byte) MyGamePlayers.PostPrimaryChance, postPrimaryPlayersToInform, postPrimaryChanceActions, (byte) MyGameDecisions.PostPrimaryActionChance) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PostPrimaryChance, UnevenChanceActions = postPrimaryUnevenChance, CanTerminateGame = postPrimaryChanceCanTerminate, Unroll_Parallelize = disputeGenerator.GetPostPrimaryUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetPostPrimaryUnrollSettings().unrollIdentical, DistributedChanceDecision = true });
+                decisions.Add(new Decision("PostPrimaryChanceActions", "PostPrimary", true, (byte) MyGamePlayers.PostPrimaryChance, postPrimaryPlayersToInform, postPrimaryChanceActions, (byte) MyGameDecisions.PostPrimaryActionChance) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PostPrimaryChance, IsReversible = true, UnevenChanceActions = postPrimaryUnevenChance, CanTerminateGame = postPrimaryChanceCanTerminate, Unroll_Parallelize = disputeGenerator.GetPostPrimaryUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetPostPrimaryUnrollSettings().unrollIdentical, DistributedChanceDecision = true });
             }
             decisions.Add(new Decision("LiabilityStrength", "LiabStr", true, (byte)MyGamePlayers.LiabilityStrengthChance,
                     playersKnowingLiabilityStrength.ToArray(), Options.NumLiabilityStrengthPoints, (byte)MyGameDecisions.LiabilityStrength)
-                { StoreActionInGameCacheItem = GameHistoryCacheIndex_LiabilityStrength, UnevenChanceActions = litigationQualityUnevenChance, Unroll_Parallelize = disputeGenerator.GetLiabilityStrengthUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetLiabilityStrengthUnrollSettings().unrollIdentical, DistributedChanceDecision = true });
+                { StoreActionInGameCacheItem = GameHistoryCacheIndex_LiabilityStrength, IsReversible = true, UnevenChanceActions = litigationQualityUnevenChance, Unroll_Parallelize = disputeGenerator.GetLiabilityStrengthUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetLiabilityStrengthUnrollSettings().unrollIdentical, DistributedChanceDecision = true });
             if (Options.NumDamagesStrengthPoints > 1)
                 decisions.Add(new Decision("DamagesStrength", "DamStr", true, (byte)MyGamePlayers.DamagesStrengthChance,
                     playersKnowingDamagesStrength.ToArray(), Options.NumDamagesStrengthPoints, (byte)MyGameDecisions.DamagesStrength)
-                { StoreActionInGameCacheItem = GameHistoryCacheIndex_DamagesStrength, UnevenChanceActions = litigationQualityUnevenChance, Unroll_Parallelize = disputeGenerator.GetDamagesStrengthUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetDamagesStrengthUnrollSettings().unrollIdentical, DistributedChanceDecision = true });
+                { StoreActionInGameCacheItem = GameHistoryCacheIndex_DamagesStrength, IsReversible = true, UnevenChanceActions = litigationQualityUnevenChance, Unroll_Parallelize = disputeGenerator.GetDamagesStrengthUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetDamagesStrengthUnrollSettings().unrollIdentical, DistributedChanceDecision = true });
         }
         
         private void AddLiabilitySignalsDecisions(List<Decision> decisions)
@@ -235,6 +235,7 @@ namespace ACESim
                     new byte[] {(byte) MyGamePlayers.Plaintiff},
                     Options.NumLiabilitySignals, (byte)MyGameDecisions.PLiabilitySignal, unevenChanceActions: true)
                 {
+                    IsReversible = true,
                     Unroll_Parallelize = true,
                     Unroll_Parallelize_Identical = true,
                     DistributorChanceInputDecision = true,
@@ -246,6 +247,7 @@ namespace ACESim
                     new byte[] { (byte)MyGamePlayers.Defendant },
                     Options.NumLiabilitySignals, (byte)MyGameDecisions.DLiabilitySignal, unevenChanceActions: true)
                 {
+                    IsReversible = true,
                     Unroll_Parallelize = true,
                     Unroll_Parallelize_Identical = true,
                     DistributorChanceInputDecision = true,
@@ -289,6 +291,7 @@ namespace ACESim
                     new byte[] { (byte)MyGamePlayers.Plaintiff },
                     Options.NumDamagesSignals, (byte)MyGameDecisions.PDamagesSignal, unevenChanceActions: true)
                 {
+                    IsReversible = true,
                     Unroll_Parallelize = true,
                     Unroll_Parallelize_Identical = true,
                     DistributorChanceInputDecision = true,
@@ -300,6 +303,7 @@ namespace ACESim
                     new byte[] { (byte)MyGamePlayers.Defendant },
                     Options.NumDamagesSignals, (byte)MyGameDecisions.DDamagesSignal, unevenChanceActions: true)
                 {
+                    IsReversible = true,
                     Unroll_Parallelize = true,
                     Unroll_Parallelize_Identical = true,
                     DistributorChanceInputDecision = true,
@@ -365,6 +369,7 @@ namespace ACESim
                     2, (byte)MyGameDecisions.PFile)
                 { // TODO: Maybe can eliminate notice to plaintiff and defendant here and below
                     CanTerminateGame = true, // not filing always terminates
+                    IsReversible = true
                 };
             decisions.Add(pFile);
 
@@ -373,6 +378,7 @@ namespace ACESim
                     2, (byte)MyGameDecisions.DAnswer)
                 {
                     CanTerminateGame = true, // not answering terminates, with defendant paying full damages
+                    IsReversible = true
                 };
             decisions.Add(dAnswer);
         }
@@ -538,6 +544,7 @@ namespace ACESim
                     CanTerminateGame = false,
                     DeferNotificationOfPlayers = true,
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_PChipsAction,
+                    IsReversible = true,
                 };
             decisions.Add(pRSideBet);
             var dRSideBet =
@@ -547,6 +554,7 @@ namespace ACESim
                     CustomByte = (byte)(b + 1),
                     CanTerminateGame = false,
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_DChipsAction,
+                    IsReversible = true,
                 };
             decisions.Add(dRSideBet);
         }
@@ -560,6 +568,7 @@ namespace ACESim
                     CustomByte = (byte)(b + 1),
                     CanTerminateGame = false, // we always must look at whether D is defaulting too. 
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_PReadyToAbandon,
+                    IsReversible = true,
                 };
             decisions.Add(pAbandon);
 
@@ -570,6 +579,7 @@ namespace ACESim
                     CustomByte = (byte)(b + 1),
                     CanTerminateGame = true, // if either but not both has given up, game terminates
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_DReadyToAbandon,
+                    IsReversible = true,
                 };
             decisions.Add(dDefault);
 
@@ -580,6 +590,7 @@ namespace ACESim
                     CustomByte = (byte)(b + 1),
                     CanTerminateGame = true, // if this decision is needed, then both have given up, and the decision always terminates the game
                     CriticalNode = true, // always play out both sides of this coin flip
+                    IsReversible = true
                 };
             decisions.Add(bothGiveUp);
         }
@@ -606,6 +617,7 @@ namespace ACESim
                     CustomByte = (byte)(b + 1),
                     CanTerminateGame = false,
                     CriticalNode = false, // doesn't matter -- just one possibility
+                    IsReversible = true
                 };
             decisions.Add(dummyDecision);
         }
@@ -617,11 +629,11 @@ namespace ACESim
                 Options.MyGamePretrialDecisionGeneratorGenerator.GetActionsSetup(this, out byte pActions, out byte dActions, out byte[] playersToInformOfPAction, out byte[] playersToInformOfDAction);
                 if (pActions > 0)
                 {
-                    decisions.Add(new Decision("PPreTrial", "PPT", false, (byte) MyGamePlayers.Plaintiff, playersToInformOfPAction, pActions, (byte) MyGameDecisions.PPretrialAction) { });
+                    decisions.Add(new Decision("PPreTrial", "PPT", false, (byte) MyGamePlayers.Plaintiff, playersToInformOfPAction, pActions, (byte) MyGameDecisions.PPretrialAction) { IsReversible = true});
                 }
                 if (dActions > 0)
                 {
-                    decisions.Add(new Decision("DPreTrial", "DPT", false, (byte)MyGamePlayers.Defendant, playersToInformOfDAction, dActions, (byte)MyGameDecisions.DPretrialAction) {  });
+                    decisions.Add(new Decision("DPreTrial", "DPT", false, (byte)MyGamePlayers.Defendant, playersToInformOfDAction, dActions, (byte)MyGameDecisions.DPretrialAction) { IsReversible = true });
                 }
             }
         }
@@ -632,12 +644,12 @@ namespace ACESim
             decisions.Add(new Decision("CourtLiabilityDecision", "CL", true, (byte)MyGamePlayers.CourtLiabilityChance,
                     new byte[] { (byte)MyGamePlayers.Resolution }, 2, (byte)MyGameDecisions.CourtDecisionLiability,
                     unevenChanceActions: true, criticalNode: true)
-                { CanTerminateGame = true, AlwaysTerminatesGame = !courtDecidesDamages, DistributorChanceDecision = true, CanCalculateDistributorChanceDecisionProbabilitiesFromInformationSet = true, StoreActionInGameCacheItem = GameHistoryCacheIndex_PWins }); // even chance options
+                { CanTerminateGame = true, AlwaysTerminatesGame = !courtDecidesDamages, IsReversible = true, DistributorChanceDecision = true, CanCalculateDistributorChanceDecisionProbabilitiesFromInformationSet = true, StoreActionInGameCacheItem = GameHistoryCacheIndex_PWins }); // even chance options
             if (courtDecidesDamages)
                 decisions.Add(new Decision("CourtDamagesDecision", "CD", true, (byte)MyGamePlayers.CourtDamagesChance,
                     new byte[] { (byte)MyGamePlayers.Resolution }, Options.NumDamagesSignals, (byte)MyGameDecisions.CourtDecisionDamages,
                     unevenChanceActions: true, criticalNode: true)
-                { CanTerminateGame = true, AlwaysTerminatesGame = true, DistributorChanceDecision = true, CanCalculateDistributorChanceDecisionProbabilitiesFromInformationSet = true }); // even chance options
+                { CanTerminateGame = true, AlwaysTerminatesGame = true, IsReversible = true, DistributorChanceDecision = true, CanCalculateDistributorChanceDecisionProbabilitiesFromInformationSet = true }); // even chance options
         }
 
         #endregion
