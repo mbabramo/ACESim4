@@ -452,9 +452,11 @@ namespace ACESim
             return await DeepCFR_GetGamesToComplete(iteration, isBestResponseIteration, oversampling, numObservationsNeeded, numGamesPerNonChancePlayer);
         }
 
+        GameProgressTree[] gameProgressTrees;
+
         private async Task<List<(Decision currentDecision, int decisionIndex, byte currentPlayer, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations)>> DeepCFR_GetGamesToComplete(int iteration, bool isBestResponseIteration, bool oversampling, int[] numObservationsNeeded, int maxDirectGamePlayersNeeded)
         {
-            GameProgressTree[] gameProgressTrees = new GameProgressTree[NumNonChancePlayers];
+             gameProgressTrees = new GameProgressTree[NumNonChancePlayers];
             double offPolicyProbabilityForProbe = isBestResponseIteration ? 0 : EvolutionSettings.DeepCFR_Epsilon_OffPolicyProbabilityForProbe;
             if (offPolicyProbabilityForProbe == 0)
             {
@@ -625,9 +627,11 @@ namespace ACESim
 
         public async Task DeepCFR_UtilitiesAverage_WithTree(int totalNumberObservations, StatCollectorArray stats)
         {
-            GameProgressTree gameProgressTree = await DeepCFR_BuildGameProgressTree(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation, false) ;
-            foreach (GameProgress progress in gameProgressTree)
-                stats.Add(progress.GetNonChancePlayerUtilities());
+            using (GameProgressTree gameProgressTree = await DeepCFR_BuildGameProgressTree(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation, false))
+            {
+                foreach (GameProgress progress in gameProgressTree)
+                    stats.Add(progress.GetNonChancePlayerUtilities());
+            }
         }
 
         public Task DeepCFR_UtilitiesAverage_IndependentPlays(int totalNumberObservations, StatCollectorArray stats)
@@ -727,8 +731,10 @@ namespace ACESim
                     bool useGameProgressTree = true;
                     if (useGameProgressTree)
                     {
-                        var gameProgressTree = await DeepCFR_BuildGameProgressTree(EvolutionSettings.NumRandomIterationsForSummaryTable, false);
-                        reportCollection = GenerateReportsFromGameProgressEnumeration(gameProgressTree);
+                        using (var gameProgressTree = await DeepCFR_BuildGameProgressTree(EvolutionSettings.NumRandomIterationsForSummaryTable, false))
+                        {
+                            reportCollection = GenerateReportsFromGameProgressEnumeration(gameProgressTree);
+                        }
                     }
                     else
                         reportCollection = await GenerateReportsByPlaying(true);

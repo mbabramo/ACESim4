@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.GameSolvingSupport
 {
-    public partial class GameProgressTree : IEnumerable<GameProgress>
+    public partial class GameProgressTree : IEnumerable<GameProgress>, IDisposable
     {
 
         NWayTreeStorageInternal<GameProgressTreeNodeInfo> Tree;
@@ -434,5 +434,30 @@ namespace ACESimBase.GameSolvingSupport
         }
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        bool disposed = false;
+
+        public void Dispose()
+        {
+            // Dispose of unmanaged resources.
+            Dispose(true);
+            // Suppress finalization.
+            GC.SuppressFinalize(this);
+        }
+
+        // Protected implementation of Dispose pattern.
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposed)
+                return;
+
+            if (disposing)
+            {
+                foreach (GameProgress progress in this)
+                    progress.Dispose();
+            }
+
+            disposed = true;
+        }
     }
 }
