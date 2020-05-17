@@ -108,10 +108,7 @@ namespace ACESim
 
             if (disposing)
             {
-
-                // If using array pool on InformationSetLog: ArrayPool<byte>.Shared.Return(InformationSetLog.LogStorage);
-                // Probably not worth the effort now that InformationSetLog is only part of GameFullHistory, which we 
-                // ordinarily don't use.
+                GameHistoryStorable.Dispose();
             }
 
             disposed = true;

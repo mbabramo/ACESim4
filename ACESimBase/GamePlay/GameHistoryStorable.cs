@@ -3,13 +3,14 @@
 
 using ACESimBase.Util;
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace ACESim
 {
 
-    public struct GameHistoryStorable
+    public struct GameHistoryStorable : IDisposable
     {
         public bool Complete;
         public byte[] Buffer;
@@ -41,7 +42,7 @@ namespace ACESim
             DeferredPlayerNumber = gameHistory.DeferredPlayerNumber;
             DeferredPlayersToInform = gameHistory.DeferredPlayersToInform;
             LastDecisionIndexAdded = gameHistory.LastDecisionIndexAdded;
-            Buffer = new byte[GameHistory.TotalBufferSize];
+            Buffer = ArrayPool<byte>.Shared.Rent(GameHistory.TotalBufferSize);
 #if SAFETYCHECKS
             // it doesn't matter what the CreatingThreadID is on this GameHistory; now that we've 
             // duplicated the entire object, this can be used on whatever the current thread is
@@ -50,6 +51,7 @@ namespace ACESim
 #endif
             for (int i = 0; i < GameHistory.TotalBufferSize; i++)
                 Buffer[i] = gameHistory.Buffer[i];
+            _disposed = false;
         }
 
         public static GameHistoryStorable NewInitialized()
@@ -123,6 +125,28 @@ namespace ACESim
         {
             for (int i = 0; i < NextIndexInHistoryActionsOnly; i++)
                 yield return DecisionIndicesHistory[i];
+        }
+
+        // To detect redundant calls
+        private bool _disposed;
+
+        // Public implementation of Dispose pattern callable by consumers.
+        public void Dispose() => Dispose(true);
+
+        private void Dispose(bool disposing)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                _disposed = true;
+                // Dispose managed state (managed objects).
+                ArrayPool<byte>.Shared.Return(Buffer);
+            }
+
         }
     }
 }

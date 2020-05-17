@@ -3,6 +3,7 @@
 using ACESim.Util;
 using ACESimBase.Util;
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -27,7 +28,7 @@ namespace ACESim
         public const byte InformationSetTerminator = 255;
 
         // TODO: Consider replacing const ints with something variable determined by the game. GameHistory would then be initialized with a struct including the relevant constants. This might save space, though it would increase the number of calculations.
-        public const int MaxNumActions = 100;
+        public const int MaxNumActions = 30;
         public const int MaxNumPlayers = 18; // includes chance players that need a very limited information set
         public const int MaxDeferredDecisionIndicesLength = 10;
         public const int SizeInBits_BitArrayForInformationSetMembership = GameHistory.MaxNumActions * MaxNumPlayers;
@@ -126,7 +127,7 @@ namespace ACESim
         {
             if (onlyIfNeeded && Buffer.Length > 0)
                 return;
-            Buffer = new byte[GameHistory.TotalBufferSize];
+            Buffer = ArrayPool<byte>.Shared.Rent(GameHistory.TotalBufferSize);
             SliceBuffer();
 #if SAFETYCHECKS
             CreatingThreadID = System.Threading.Thread.CurrentThread.ManagedThreadId;

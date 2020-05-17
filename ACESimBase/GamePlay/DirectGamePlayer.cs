@@ -7,7 +7,7 @@ using System.Text;
 
 namespace ACESimBase
 {
-    public abstract class DirectGamePlayer : IDirectGamePlayer
+    public abstract class DirectGamePlayer : IDirectGamePlayer, IDisposable
     {
         public GameDefinition GameDefinition;
         public GameProgress GameProgress { get; set; }
@@ -166,6 +166,28 @@ namespace ACESimBase
         {
             var result = GameProgress.GameHistory.GetLabeledCurrentInformationSetForPlayer(CurrentDecision.PlayerIndex);
             return result;
+        }
+
+        // To detect redundant calls
+        private bool _disposed;
+
+        // Public implementation of Dispose pattern callable by consumers.
+        public void Dispose() => Dispose(true);
+
+        private void Dispose(bool disposing)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                _disposed = true;
+                // Dispose managed state (managed objects).
+                GameProgress.Dispose();
+            }
+
         }
     }
 }

@@ -284,6 +284,8 @@ namespace ACESim
             DeepCFRDirectGamePlayer mainActionPlayer = traversalMode == DeepCFRTraversalMode.PlaybackSinglePath ? gamePlayer : (DeepCFRDirectGamePlayer)gamePlayer.DeepCopy();
             mainActionPlayer.PlayAction(mainAction);
             double[] mainValues = DeepCFRTraversal(mainActionPlayer, observationNum, observations, traversalMode);
+            if (traversalMode != DeepCFRTraversalMode.PlaybackSinglePath)
+                mainActionPlayer.Dispose();
             if (traversalMode == DeepCFRTraversalMode.AddRegretObservations)
             {
                 if (MultiModel.ObservationsNeeded(decisionIndex))
@@ -354,9 +356,12 @@ namespace ACESim
 
         private double[] DeepCFR_Probe_GetUtilitiesForPlayersForSingleAction(DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, List<DeepCFRObservationOfDecision> observations, byte probeAction)
         {
-            DeepCFRDirectGamePlayer probeGamePlayer = (DeepCFRDirectGamePlayer) gamePlayer.DeepCopy();
-            probeGamePlayer.PlayAction(probeAction);
-            double[] probeValues = DeepCFRTraversal(probeGamePlayer, observationNum, observations, DeepCFRTraversalMode.ProbeForUtilities);
+            double[] probeValues = null;
+            using (DeepCFRDirectGamePlayer probeGamePlayer = (DeepCFRDirectGamePlayer)gamePlayer.DeepCopy())
+            {
+                probeGamePlayer.PlayAction(probeAction);
+                probeValues = DeepCFRTraversal(probeGamePlayer, observationNum, observations, DeepCFRTraversalMode.ProbeForUtilities);
+            }
             return probeValues;
         }
 
@@ -370,11 +375,13 @@ namespace ACESim
                 double[] probabilitiesForActions = gamePlayer.GetChanceProbabilities();
                 for (byte a = 1; a <= currentDecision.NumPossibleActions; a++)
                 {
-                    DeepCFRDirectGamePlayer copyPlayer = (DeepCFRDirectGamePlayer)gamePlayer.DeepCopy();
-                    copyPlayer.PlayAction(a);
-                    double[] utilities = DeepCFRTraversal(copyPlayer, observationNum, observations, traversalMode);
-                    for (int i = 0; i < NumNonChancePlayers; i++)
-                        weightedResults[i] += probabilitiesForActions[a - 1] * utilities[i];
+                    using (DeepCFRDirectGamePlayer copyPlayer = (DeepCFRDirectGamePlayer)gamePlayer.DeepCopy())
+                    {
+                        copyPlayer.PlayAction(a);
+                        double[] utilities = DeepCFRTraversal(copyPlayer, observationNum, observations, traversalMode);
+                        for (int i = 0; i < NumNonChancePlayers; i++)
+                            weightedResults[i] += probabilitiesForActions[a - 1] * utilities[i];
+                    }
                 }
                 return weightedResults;
             }
