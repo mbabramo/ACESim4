@@ -116,6 +116,18 @@ namespace ACESimTest
         }
 
         [TestMethod]
+        public void DoubleListWorks()
+        {
+            // checking whether it can be used as a Hash
+            DoubleList d = new DoubleList(new double[] { 0.3, 0.4 });
+            DoubleList d2 = new DoubleList(new double[] { 0.3, 0.4 });
+            Dictionary<DoubleList, string> dict = new Dictionary<DoubleList, string>();
+            dict[d] = "Yes";
+            dict[d2].Should().Be("Yes");
+            d.GetHashCode().Should().Be(d2.GetHashCode());
+        }
+
+        [TestMethod]
         public void CheckConfidenceInterval()
         {
             // this is a minimal check to make sure that our logit transformation works

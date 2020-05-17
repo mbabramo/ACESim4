@@ -17,7 +17,7 @@ namespace ACESimBase.GameSolvingSupport
         byte? LimitToPlayer;
         byte NumDecisionIndices;
         List<Decision> DecisionsList;
-        public Dictionary<string, byte> AllocationIndexForExplorationProbabilityAndDecisionIndex;
+        public Dictionary<(DoubleList, byte), byte> AllocationIndexForExplorationProbabilityAndDecisionIndex;
 
         public GameProgressTree(int randSeed, int totalObservations, IDirectGamePlayer directGamePlayer, double[] explorationValues, byte numNonChancePlayers, List<Decision> decisionsList, byte? limitToPlayer)
         {
@@ -30,7 +30,7 @@ namespace ACESimBase.GameSolvingSupport
                 StoredValue = new GameProgressTreeNodeInfo(directGamePlayer, (1, totalObservations), explorationValues, 0, playToHereProbabilities, NumDecisionIndices)
             };
             InitialRandSeed = randSeed;
-            AllocationIndexForExplorationProbabilityAndDecisionIndex = new Dictionary<string, byte>();
+            AllocationIndexForExplorationProbabilityAndDecisionIndex = new Dictionary<(DoubleList, byte), byte>();
         }
 
         public override string ToString() => Tree?.ToTreeString(x => $"{x.DirectGamePlayer.CurrentDecision.Name} ({x.DirectGamePlayer.CurrentDecisionIndex})");
@@ -66,7 +66,7 @@ namespace ACESimBase.GameSolvingSupport
 
                     for (byte decisionIndex = 0; decisionIndex < NumDecisionIndices; decisionIndex++)
                     {
-                        bool allocationNotNeeded = DecisionsList[decisionIndex].IsChance || (LimitToPlayer != null && DecisionsList[decisionIndex].PlayerIndex != LimitToPlayer) || AllocationIndexForExplorationProbabilityAndDecisionIndex.ContainsKey((explorationValuesList, decisionIndex).ToString());
+                        bool allocationNotNeeded = DecisionsList[decisionIndex].IsChance || (LimitToPlayer != null && DecisionsList[decisionIndex].PlayerIndex != LimitToPlayer) || AllocationIndexForExplorationProbabilityAndDecisionIndex.ContainsKey((explorationValuesList, decisionIndex));
                         if (!allocationNotNeeded)
                         {
                             int numGameProgressesIncludedInFromPreviousAllocation = gameProgressesForPreviousAllocation.Count(x => x.GetDecisionIndicesCompleted().Contains(decisionIndex));
@@ -75,7 +75,7 @@ namespace ACESimBase.GameSolvingSupport
                             {
                                 // We're done with this decision index. No need to do it again.
                                 decisionIndexInfo[decisionIndex] = (allocationIndex, numGameProgressesIncludedInFromPreviousAllocation);
-                                AllocationIndexForExplorationProbabilityAndDecisionIndex[(explorationValuesList, decisionIndex).ToString()] = allocationIndex;
+                                AllocationIndexForExplorationProbabilityAndDecisionIndex[(explorationValuesList, decisionIndex)] = allocationIndex;
                             }
                             else
                             {
@@ -88,7 +88,7 @@ namespace ACESimBase.GameSolvingSupport
                     }
                     if (decisionIndexInfo.Any())
                     {
-                        IOrderedEnumerable<KeyValuePair<byte, (byte allocation, int numGameProgresses)>> candidates = decisionIndexInfo.Where(x => !AllocationIndexForExplorationProbabilityAndDecisionIndex.ContainsKey((explorationValuesList, x.Key).ToString())).OrderByDescending(x => x.Value.numGameProgresses).ThenBy(x => x.Key);
+                        IOrderedEnumerable<KeyValuePair<byte, (byte allocation, int numGameProgresses)>> candidates = decisionIndexInfo.Where(x => !AllocationIndexForExplorationProbabilityAndDecisionIndex.ContainsKey((explorationValuesList, x.Key))).OrderByDescending(x => x.Value.numGameProgresses).ThenBy(x => x.Key);
                         if (candidates.Any())
                         {
                             nextDecisionIndexForAllocation = candidates.First().Key;
@@ -277,7 +277,7 @@ namespace ACESimBase.GameSolvingSupport
 
         public IEnumerable<GameProgress> GetGameProgressesForDecisionIndex(double[] explorationValues, byte decisionIndex)
         {
-            byte allocationIndex = AllocationIndexForExplorationProbabilityAndDecisionIndex[(new DoubleList(explorationValues), decisionIndex).ToString()];
+            byte allocationIndex = AllocationIndexForExplorationProbabilityAndDecisionIndex[(new DoubleList(explorationValues), decisionIndex)];
             return GetGameProgressesForAllocationIndex(explorationValues, allocationIndex);
         }
 
@@ -357,7 +357,7 @@ namespace ACESimBase.GameSolvingSupport
 
         public IEnumerable<(IDirectGamePlayer gamePlayer, int numObservations)> GetDirectGamePlayersForDecisionIndex(double[] explorationValues, byte decisionIndex, bool oversampling)
         {
-            string key = (new DoubleList(explorationValues), decisionIndex).ToString();
+            var key = (new DoubleList(explorationValues), decisionIndex);
             byte allocationIndex = 0;
             if (oversampling)
             {
@@ -423,14 +423,17 @@ namespace ACESimBase.GameSolvingSupport
         private static GameProgressTreeNodeAllocation GetGameProgressTreeNodeAllocation(double[] explorationValues, byte allocationIndex, GameProgressTreeNodeInfo treeNodeInfo)
         {
             GameProgressTreeNodeProbabilities probabilities = treeNodeInfo.GetProbabilitiesInfo(explorationValues);
+            if (probabilities == null)
+                return null;
             GameProgressTreeNodeAllocation allocation = probabilities.GetAllocation(allocationIndex);
             return allocation;
         }
 
         public IEnumerator<GameProgress> GetEnumerator()
         {
-            foreach (GameProgress gameProgress in GetGameProgressesForAllocationIndex(null, 0))
-                yield return gameProgress;
+            foreach (var key in AllocationIndexForExplorationProbabilityAndDecisionIndex.Keys)
+                foreach (GameProgress gameProgress in GetGameProgressesForAllocationIndex(key.Item1.TheList.ToArray(), key.Item2))
+                    yield return gameProgress;
         }
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

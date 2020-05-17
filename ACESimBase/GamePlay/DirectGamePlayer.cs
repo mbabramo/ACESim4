@@ -172,9 +172,13 @@ namespace ACESimBase
         private bool _disposed;
 
         // Public implementation of Dispose pattern callable by consumers.
-        public void Dispose() => Dispose(true);
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
 
-        private void Dispose(bool disposing)
+        protected virtual void Dispose(bool disposing)
         {
             if (_disposed)
             {

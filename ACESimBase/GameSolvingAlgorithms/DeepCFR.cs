@@ -28,6 +28,8 @@ namespace ACESim
         int ApproximateBestResponse_CurrentIterationsIndex;
         byte ApproximateBestResponse_CurrentPlayer;
 
+        GameProgressTree[] GameProgressTrees; // used internally, kept as a field to facilitate disposal (and thus array pooling)
+
         #region Initialization
 
         public DeepCFR(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
@@ -427,6 +429,8 @@ namespace ACESim
             stopwatch.Start();
             DeepCFR_CompleteGames_FromGameProgressTree_AddPendingObservations(gamesToComplete);
             stopwatch.Stop();
+            foreach (GameProgressTree tree in GameProgressTrees)
+                tree.Dispose();
             //TabbedText.Write($"(Finishing games time {stopwatch.ElapsedMilliseconds} ms) ");
         }
 
@@ -452,24 +456,22 @@ namespace ACESim
             return await DeepCFR_GetGamesToComplete(iteration, isBestResponseIteration, oversampling, numObservationsNeeded, numGamesPerNonChancePlayer);
         }
 
-        GameProgressTree[] gameProgressTrees;
-
         private async Task<List<(Decision currentDecision, int decisionIndex, byte currentPlayer, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations)>> DeepCFR_GetGamesToComplete(int iteration, bool isBestResponseIteration, bool oversampling, int[] numObservationsNeeded, int maxDirectGamePlayersNeeded)
         {
-             gameProgressTrees = new GameProgressTree[NumNonChancePlayers];
+            GameProgressTrees = new GameProgressTree[NumNonChancePlayers];
             double offPolicyProbabilityForProbe = isBestResponseIteration ? 0 : EvolutionSettings.DeepCFR_Epsilon_OffPolicyProbabilityForProbe;
             if (offPolicyProbabilityForProbe == 0)
             {
-                gameProgressTrees[0] = await DeepCFR_BuildGameProgressTree(maxDirectGamePlayersNeeded, oversampling, 0, null);
+                GameProgressTrees[0] = await DeepCFR_BuildGameProgressTree(maxDirectGamePlayersNeeded, oversampling, 0, null);
                 for (int p = 1; p < NumNonChancePlayers; p++)
-                    gameProgressTrees[p] = gameProgressTrees[0];
+                    GameProgressTrees[p] = GameProgressTrees[0];
             }
             else
             {
                 for (byte p = 0; p < NumNonChancePlayers; p++)
-                    gameProgressTrees[p] = await DeepCFR_BuildGameProgressTree(maxDirectGamePlayersNeeded, oversampling, offPolicyProbabilityForProbe, p);
+                    GameProgressTrees[p] = await DeepCFR_BuildGameProgressTree(maxDirectGamePlayersNeeded, oversampling, offPolicyProbabilityForProbe, p);
             }
-            var directGamePlayersWithCountsForDecisions = GameProgressTree.GetDirectGamePlayersForEachDecision(gameProgressTrees, offPolicyProbabilityForProbe, numObservationsNeeded, oversampling);
+            var directGamePlayersWithCountsForDecisions = GameProgressTree.GetDirectGamePlayersForEachDecision(GameProgressTrees, offPolicyProbabilityForProbe, numObservationsNeeded, oversampling);
             // Identify the games to complete (we complete them afterward to allow parallelization)
             List<(Decision currentDecision, int decisionIndex, byte currentPlayer, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations)> gamesToComplete = new List<(Decision currentDecision, int decisionIndex, byte currentPlayer, DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, int numObservations)>();
             for (int decisionIndex = 0; decisionIndex < directGamePlayersWithCountsForDecisions.Length; decisionIndex++)
