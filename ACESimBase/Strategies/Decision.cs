@@ -51,9 +51,9 @@ namespace ACESim
         /// </summary>
         public bool RequiresCustomInformationSetManipulation;
 
-        // DEBUG -- all decision steps are now reversible
         /// <summary>
         /// If true, then the decision step can be reversed, via the ReverseDecision mechanism or an overload.
+        /// At present, decisions are irreversible if we are deferring notification of players.
         /// </summary>
         public bool IsReversible;
 
