@@ -14,7 +14,7 @@ namespace ACESim
         public bool Complete;
         public byte[] Buffer;
         public Span<byte> ActionsHistory => new Span<byte>(Buffer, 0, GameHistory.MaxNumActions);
-        public Span<byte> DecisionsHistory => new Span<byte>(Buffer, GameHistory.MaxNumActions, GameHistory.MaxNumActions);
+        public Span<byte> DecisionIndicesHistory => new Span<byte>(Buffer, GameHistory.MaxNumActions, GameHistory.MaxNumActions);
         public Span<byte> Cache => new Span<byte>(Buffer, GameHistory.MaxNumActions + GameHistory.MaxNumActions, GameHistory.CacheLength);
         public Span<byte> InformationSetMembership => new Span<byte>(Buffer, GameHistory.MaxNumActions + GameHistory.MaxNumActions + GameHistory.CacheLength, GameHistory.SizeInBytes_BitArrayForInformationSetMembership);
         public Span<byte> DecisionsDeferred => new Span<byte>(Buffer, GameHistory.MaxNumActions + GameHistory.MaxNumActions + GameHistory.CacheLength + GameHistory.SizeInBytes_BitArrayForInformationSetMembership, GameHistory.SizeInBytes_BitArrayForDecisionsDeferred);
@@ -52,9 +52,9 @@ namespace ACESim
             if (ActionsHistory.Length > 0)
                 for (byte i = 0; i < maxActions; i++)
                     ActionsHistory[i] = gameHistory.ActionsHistory[i];
-            if (DecisionsHistory.Length > 0)
+            if (DecisionIndicesHistory.Length > 0)
                 for (byte i = 0; i < maxActions; i++)
-                    DecisionsHistory[i] = gameHistory.DecisionIndicesHistory[i];
+                    DecisionIndicesHistory[i] = gameHistory.DecisionIndicesHistory[i];
             if (Cache.Length > 0)
                 for (byte i = 0; i < GameHistory.CacheLength; i++)
                     Cache[i] = gameHistory.Cache[i];
@@ -84,11 +84,11 @@ namespace ACESim
             result.CreatingThreadID = System.Threading.Thread.CurrentThread.ManagedThreadId; // we can specify a new thread, since we're copying all of the information.
             if (ActionsHistory != null)
             {
-                result.CreateArraysForSpans(false);
+                result.CreateArrayForSpans(false);
                 for (int i = 0; i < GameHistory.MaxNumActions; i++)
                     result.ActionsHistory[i] = ActionsHistory[i];
                 for (int i = 0; i < GameHistory.MaxNumActions; i++)
-                    result.DecisionIndicesHistory[i] = DecisionsHistory[i];
+                    result.DecisionIndicesHistory[i] = DecisionIndicesHistory[i];
                 for (int i = 0; i < GameHistory.CacheLength; i++)
                     result.Cache[i] = Cache[i];
                 result.VerifyThread();
@@ -116,11 +116,7 @@ namespace ACESim
                 DeferredPlayerNumber = DeferredPlayerNumber,
                 DeferredPlayersToInform = DeferredPlayersToInform,  // this does not need to be duplicated because it is set in gamedefinition and not changed
                 LastDecisionIndexAdded = LastDecisionIndexAdded,
-                ActionsHistory = ActionsHistory,
-                DecisionIndicesHistory = DecisionsHistory,
-                Cache = Cache,
-                InformationSetMembership = InformationSetMembership,
-                DecisionsDeferred = DecisionsDeferred,
+                Buffer = Buffer,
 #if SAFETYCHECKS
                 CreatingThreadID = CreatingThreadID
 #endif
@@ -147,7 +143,7 @@ namespace ACESim
         public IEnumerable<byte> GetDecisionsEnumerable()
         {
             for (int i = 0; i < NextIndexInHistoryActionsOnly; i++)
-                yield return DecisionsHistory[i];
+                yield return DecisionIndicesHistory[i];
         }
     }
 }

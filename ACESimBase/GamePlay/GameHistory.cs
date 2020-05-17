@@ -42,20 +42,21 @@ namespace ACESim
         public byte LastDecisionIndexAdded;
         public byte HighestCacheIndex; // not necessarily sequentially added
 
+        public Span<byte> Buffer;
+        public Span<byte> ActionsHistory => Buffer.Slice(0, GameHistory.MaxNumActions);
+        public Span<byte> DecisionIndicesHistory => Buffer.Slice(GameHistory.MaxNumActions, GameHistory.MaxNumActions);
+        public Span<byte> Cache => Buffer.Slice(GameHistory.MaxNumActions + GameHistory.MaxNumActions, GameHistory.CacheLength);
+        public Span<byte> InformationSetMembership => Buffer.Slice(GameHistory.MaxNumActions + GameHistory.MaxNumActions + GameHistory.CacheLength, GameHistory.SizeInBytes_BitArrayForInformationSetMembership);
+        public Span<byte> DecisionsDeferred => Buffer.Slice(GameHistory.MaxNumActions + GameHistory.MaxNumActions + GameHistory.CacheLength + GameHistory.SizeInBytes_BitArrayForInformationSetMembership, GameHistory.SizeInBytes_BitArrayForDecisionsDeferred);
+#if SAFETYCHECKS
+        public int CreatingThreadID;
+#endif
+
         // The following are used to defer adding information to a player information set.
         public bool PreviousNotificationDeferred;
         public byte DeferredAction;
         public byte DeferredPlayerNumber;
         public byte[] DeferredPlayersToInform; // NOTE: We can leave this as an array because it is set in game definition and not changed.
-
-        public Span<byte> ActionsHistory; // length GameHistory.MaxNumActions
-        public Span<byte> DecisionIndicesHistory; // length GameHistory.MaxNumActions
-        public Span<byte> Cache; // length CacheLength
-        public Span<byte> InformationSetMembership; // length GameHistory.SizeInBytes_BitArrayForInformationSetMembership
-        public Span<byte> DecisionsDeferred; // length GameHistory.SizeInBytes_BitArrayForDecisionsDeferred
-#if SAFETYCHECKS
-        public int CreatingThreadID;
-#endif
 
         // Information set structure. We have an information set buffer for each player. We need to be able to remove information from the information set for a player, but still to remember that it was there as of a particular point in time, so that we can figure out what the information set was as of a particular decision. (This is needed for reconstructing the game play.) We thus store information in pairs. The first byte consists of the decision byte code after which we are making changes. The second byte either consists of an item to add, or 254, indicating that we are removing an item from the information set. All of this is internal. When we get the information set, we get it as of a certain point, and thus we skip decision byte codes and automatically process deletions. 
 
@@ -98,7 +99,7 @@ namespace ACESim
         private void Initialize_Helper(bool createArraysForSpans)
         {
             if (createArraysForSpans)
-                CreateArraysForSpans(true);
+                CreateArrayForSpans(true);
             Initialized = true;
             LastDecisionIndexAdded = 255;
             NextActionsAndDecisionsHistoryIndex = 0;
@@ -121,16 +122,11 @@ namespace ACESim
             return result;
         }
 
-        public void CreateArraysForSpans(bool onlyIfNeeded)
+        public void CreateArrayForSpans(bool onlyIfNeeded)
         {
-            if (onlyIfNeeded && ActionsHistory != null)
+            if (onlyIfNeeded && Buffer.Length > 0)
                 return;
-            // DEBUG -- change to single allocation and use span (but see if we check for null, in which case we should check for length 0)
-            ActionsHistory = new byte[GameHistory.MaxNumActions];
-            DecisionIndicesHistory = new byte[GameHistory.MaxNumActions];
-            Cache = new byte[GameHistory.CacheLength];
-            InformationSetMembership = new byte[GameHistory.SizeInBytes_BitArrayForInformationSetMembership];
-            DecisionsDeferred = new byte[GameHistory.SizeInBytes_BitArrayForDecisionsDeferred];
+            Buffer = new byte[GameHistory.TotalBufferSize];
 #if SAFETYCHECKS
             CreatingThreadID = System.Threading.Thread.CurrentThread.ManagedThreadId;
 #endif
@@ -154,7 +150,7 @@ namespace ACESim
             };
             if (!IsEmpty)
             {
-                result.CreateArraysForSpans(false);
+                result.CreateArrayForSpans(false);
                 int maxNumActions = Math.Min((int)GameHistory.MaxNumActions, (int) NextActionsAndDecisionsHistoryIndex);
                 for (int i = 0; i < maxNumActions; i++)
                     result.ActionsHistory[i] = ActionsHistory[i];
