@@ -7,17 +7,16 @@ using System.Threading.Tasks;
 namespace ACESim
 {
 
-    public readonly ref struct InformationSetHistory
+    public readonly struct InformationSetHistory
     {
-        public readonly Span<byte> InformationSetForPlayer; // length [InformationSetLog.MaxInformationSetLoggingLengthPerFullPlayer];
+        public readonly byte[] InformationSetForPlayer; // length [InformationSetLog.MaxInformationSetLoggingLengthPerFullPlayer];
         public readonly byte PlayerIndex;
         public readonly byte DecisionByteCode;
         public readonly byte DecisionIndex;
         public readonly byte ActionChosen;
         public readonly byte NumPossibleActions;
-        public readonly bool IsTerminalAction;
 
-        public InformationSetHistory(Span<byte> informationSetForPlayer, byte playerIndex, byte decisionByteCode, byte decisionIndex, byte actionChosen, byte numPossibleActions, bool isTerminalAction)
+        public InformationSetHistory(byte[] informationSetForPlayer, byte playerIndex, byte decisionByteCode, byte decisionIndex, byte actionChosen, byte numPossibleActions)
         {
             InformationSetForPlayer = informationSetForPlayer;
             PlayerIndex = playerIndex;
@@ -25,10 +24,9 @@ namespace ACESim
             DecisionIndex = decisionIndex;
             ActionChosen = actionChosen;
             NumPossibleActions = numPossibleActions;
-            IsTerminalAction = isTerminalAction;
         }
 
-        public InformationSetHistory(Span<byte> informationSetForPlayer, Game justStartedGame)
+        public InformationSetHistory(byte[] informationSetForPlayer, Game justStartedGame)
         {
             InformationSetForPlayer = informationSetForPlayer;
             PlayerIndex = justStartedGame.CurrentPlayerNumber;
@@ -36,7 +34,6 @@ namespace ACESim
             DecisionIndex = justStartedGame.CurrentDecisionIndex ?? 0;
             ActionChosen = 0; // assume that no action has been taken
             NumPossibleActions = justStartedGame.CurrentDecision.NumPossibleActions;
-            IsTerminalAction = false;
         }
 
         public List<byte> GetInformationSetForPlayerAsList()
@@ -63,7 +60,7 @@ namespace ACESim
                 infoSet.Append(InformationSetForPlayer[index]);
                 index++; // move to next information -- note that decision indices are not included
             }
-            return $"Player {PlayerIndex} Decision {DecisionByteCode} (index {DecisionIndex}) Information {infoSet.ToString()} ActionChosen {ActionChosen} NumPossible {NumPossibleActions} IsTerminal {IsTerminalAction}";
+            return $"Player {PlayerIndex} Decision {DecisionByteCode} (index {DecisionIndex}) Information {infoSet} ActionChosen {ActionChosen} NumPossible {NumPossibleActions}";
         }
     }
 }

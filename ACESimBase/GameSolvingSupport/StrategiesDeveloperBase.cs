@@ -663,19 +663,18 @@ namespace ACESim
             // Go through each non-chance decision point on this path and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
 
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
-            IEnumerable<short> informationSetHistoriesIndices = gameProgress.GetInformationSetHistoryItems_OverallIndices();
+            IEnumerable<InformationSetHistory> informationSetHistories = gameProgress.GameHistory.GetInformationSetHistories(d => GameDefinition.DecisionsExecutionOrder[d]);
             //GameProgressLogger.Log(() => "Processing information set histories");
             //if (GameProgressLogger.LoggingOn)
             //{
             //    GameProgressLogger.Tabs++;
             //}
             int i = 1;
-            foreach (short informationSetHistoryIndex in informationSetHistoriesIndices)
+            foreach (InformationSetHistory informationSetHistory in informationSetHistories)
             {
-                InformationSetHistory informationSetHistory = gameProgress.GetInformationSetHistory_OverallIndex(informationSetHistoryIndex);
                 if (GameProgressLogger.DetailedLogging && GameProgressLogger.LoggingOn)
                 {
-                    string informationSetHistoryString = informationSetHistoryIndex.ToString();
+                    string informationSetHistoryString = informationSetHistory.ToString();
                     GameProgressLogger.Log(() => $"Setting information set point based on player's information set: {informationSetHistoryString}");
                 }
                 GameProgressLogger.Tabs++;
@@ -736,7 +735,7 @@ namespace ACESim
                 (game, gameProgress) = GamePlayer.PlayPathAndStop(actionsSoFar);
             }
             byte playerIndex = game.CurrentDecision?.PlayerIndex ?? 0;
-            Span<byte> informationSetForPlayer = new byte[GameHistory.MaxInformationSetLength];
+            byte[] informationSetForPlayer = new byte[GameHistory.MaxInformationSetLength];
             if (!gameProgress.GameComplete)
                 gameProgress.GameHistory.GetCurrentInformationSetForPlayer(playerIndex, informationSetForPlayer);
             informationSetHistory = new InformationSetHistory(informationSetForPlayer, game);
@@ -912,16 +911,14 @@ namespace ACESim
         {
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
             // Go through each non-chance decision point 
-            foreach (short informationSetHistoryIndex in progress.GetInformationSetHistoryItems_OverallIndices())
+            foreach (InformationSetHistory informationSetHistory in progress.GameHistory.GetInformationSetHistories(d => GameDefinition.DecisionsExecutionOrder[d]))
             {
-                var informationSetHistory = progress.GetInformationSetHistory_OverallIndex(informationSetHistoryIndex);
-                var informationSetHistoryCopy = informationSetHistory; // must copy because informationSetHistory is foreach iteration variable.
                 var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
                 TabbedText.WriteLine($"Decision {decision.Name} ({decision.DecisionByteCode}) for player {GameDefinition.Players[decision.PlayerIndex].PlayerName} ({GameDefinition.Players[decision.PlayerIndex].PlayerIndex})");
                 TabbedText.TabIndent();
                 bool playerIsChance = GameDefinition.Players[informationSetHistory.PlayerIndex].PlayerIsChance;
                 var playersStrategy = Strategies[informationSetHistory.PlayerIndex];
-                List<byte> informationSetList = informationSetHistoryCopy.GetInformationSetForPlayerAsList();
+                List<byte> informationSetList = informationSetHistory.GetInformationSetForPlayerAsList();
                 TabbedText.WriteLine($"Information set before action: {String.Join(",", informationSetList)}");
                 IGameState gameState = GetGameState(in historyPoint);
                 TabbedText.WriteLine($"Game state before action: {gameState}");

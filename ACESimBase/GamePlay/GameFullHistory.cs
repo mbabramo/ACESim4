@@ -5,6 +5,7 @@ using ACESim.Util;
 using ACESimBase.Util;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace ACESim
@@ -219,8 +220,6 @@ namespace ACESim
             return overallIndex;
         }
 
-
-
         public InformationSetHistory GetInformationSetHistory_OverallIndex(short index)
         {
             return GetInformationSetHistory((short)(index * History_NumPiecesOfInformation));
@@ -232,11 +231,11 @@ namespace ACESim
             byte playerIndex = GetHistoryIndex(index + History_PlayerNumber_Offset);
             byte decisionByteCode = GetHistoryIndex(index + History_DecisionByteCode_Offset);
             byte decisionIndex = GetHistoryIndex(index + History_DecisionIndex_Offset);
-            Span<byte> informationSetForPlayer = new byte[InformationSetLog.MaxInformationSetLoggingLengthPerFullPlayer];
+            byte[] informationSetForPlayer = new byte[GameHistory.MaxInformationSetLength];
             byte actionChosen = GetHistoryIndex(index + History_Action_Offset);
             byte numPossibleActions = GetHistoryIndex(index + History_NumPossibleActions_Offset);
             bool isTerminalAction = GetHistoryIndex(index + History_NumPiecesOfInformation) == HistoryComplete;
-            var informationSetHistory = new InformationSetHistory(informationSetForPlayer, playerIndex, decisionByteCode, decisionIndex, actionChosen, numPossibleActions, isTerminalAction);
+            var informationSetHistory = new InformationSetHistory(informationSetForPlayer, playerIndex, decisionByteCode, decisionIndex, actionChosen, numPossibleActions);
             InformationSetLog.GetPlayerInformationAtPoint(playerIndex, decisionIndex, informationSetHistory.InformationSetForPlayer);
             return informationSetHistory;
         }

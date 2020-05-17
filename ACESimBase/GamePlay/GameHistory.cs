@@ -352,6 +352,9 @@ namespace ACESim
             }
         }
 
+        public byte[] GetCurrentInformationSetForPlayer_Array(byte playerIndex) => GetCurrentInformationSetForPlayer(playerIndex).ToArray();
+
+
         public List<byte> GetCurrentInformationSetForPlayer(byte playerIndex)
         {
             List<byte> info = new List<byte>();
@@ -367,6 +370,20 @@ namespace ACESim
                 }
             }
             return info;
+        }
+
+        public List<InformationSetHistory> GetInformationSetHistories(Func<byte, Decision> decisionFn)
+        {
+            List<InformationSetHistory> informationSetHistories = new List<InformationSetHistory>();
+            for (int i = 0; i < NextActionsAndDecisionsHistoryIndex; i++)
+            {
+                byte decisionIndex = DecisionIndicesHistory[i];
+                byte actionChosen = ActionsHistory[i];
+                Decision d = decisionFn(decisionIndex);
+                byte[] informationSet = GetCurrentInformationSetForPlayer_Array(d.PlayerIndex);
+                informationSetHistories.Add(new InformationSetHistory(informationSet, d.PlayerIndex, d.DecisionByteCode, decisionIndex, actionChosen, d.NumPossibleActions));
+            }
+            return informationSetHistories;
         }
 
         public List<(byte decisionIndex, byte information)> GetLabeledCurrentInformationSetForPlayer(byte playerIndex)

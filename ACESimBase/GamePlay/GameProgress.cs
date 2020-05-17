@@ -178,13 +178,6 @@ namespace ACESim
             }
         }
 
-        public IEnumerable<short> GetInformationSetHistoryItems_OverallIndices()
-        {
-            return GameFullHistory.GetInformationSetHistoryItems_OverallIndices(this);
-        }
-
-        public InformationSetHistory GetInformationSetHistory_OverallIndex(short index) => GameFullHistory.GetInformationSetHistory_OverallIndex(index);
-
         public IEnumerable<byte> GetDecisionIndicesCompleted()
         {
             return GameHistoryStorable.GetDecisionsEnumerable();
