@@ -16,9 +16,8 @@ namespace ACESim
         public Span<byte> ActionsHistory => new Span<byte>(Buffer, 0, GameHistory.MaxNumActions);
         public Span<byte> DecisionsHistory => new Span<byte>(Buffer, GameHistory.MaxNumActions, GameHistory.MaxNumActions);
         public Span<byte> Cache => new Span<byte>(Buffer, GameHistory.MaxNumActions + GameHistory.MaxNumActions, GameHistory.CacheLength);
-        public Span<byte> InformationSets => new Span<byte>(Buffer, GameHistory.MaxNumActions + GameHistory.MaxNumActions + GameHistory.CacheLength, GameHistory.MaxInformationSetLength);
-        public Span<byte> InformationSetMembership => new Span<byte>(Buffer, GameHistory.MaxNumActions + GameHistory.MaxNumActions + GameHistory.CacheLength + GameHistory.MaxInformationSetLength, GameHistory.SizeInBytes_BitArrayForInformationSetMembership);
-        public Span<byte> DecisionsDeferred => new Span<byte>(Buffer, GameHistory.MaxNumActions + GameHistory.MaxNumActions + GameHistory.CacheLength + GameHistory.MaxInformationSetLength + GameHistory.SizeInBytes_BitArrayForInformationSetMembership, GameHistory.SizeInBytes_BitArrayForDecisionsDeferred);
+        public Span<byte> InformationSetMembership => new Span<byte>(Buffer, GameHistory.MaxNumActions + GameHistory.MaxNumActions + GameHistory.CacheLength, GameHistory.SizeInBytes_BitArrayForInformationSetMembership);
+        public Span<byte> DecisionsDeferred => new Span<byte>(Buffer, GameHistory.MaxNumActions + GameHistory.MaxNumActions + GameHistory.CacheLength + GameHistory.SizeInBytes_BitArrayForInformationSetMembership, GameHistory.SizeInBytes_BitArrayForDecisionsDeferred);
         public byte NextIndexInHistoryActionsOnly;
         public byte HighestCacheIndex;
         public bool Initialized;
@@ -61,34 +60,7 @@ namespace ACESim
             if (Cache.Length > 0)
                 for (byte i = 0; i < GameHistory.CacheLength; i++)
                     Cache[i] = gameHistory.Cache[i];
-            int informationSetsLength = InformationSets.Length;
-            if (informationSetsLength > 0)
-            {
-                for (byte p = 0; p < GameHistory.NumFullPlayers; p++)
-                {
-                    int i = GameHistory.InformationSetsIndex(p);
-                    byte b = 0;
-                    do
-                    {
-                        b = gameHistory.InformationSets[i];
-                        InformationSets[i] = b;
-                        i++;
-                    }
-                    while (b != GameHistory.InformationSetTerminator);
-                }
-                for (byte p = GameHistory.NumFullPlayers; p < GameHistory.MaxNumPlayers; p++)
-                {
-                    int i = GameHistory.InformationSetsIndex(p);
-                    for (int j = 0; j < GameHistory.MaxInformationSetLengthPerPartialPlayer; j++)
-                    {
-                        InformationSets[i] = gameHistory.InformationSets[i];
-                        i++;
-                    }
-                }
-                //Simpler, but slower, because it copies past the information set terminator
-                //for (int i = 0; i < GameHistory.MaxInformationSetLength; i++)
-                //    InformationSets[i] = gameHistory.InformationSets[i];
-            }
+            
             if (InformationSetMembership.Length > 0)
                 for (int i = 0; i < GameHistory.SizeInBytes_BitArrayForInformationSetMembership; i++)
                     InformationSetMembership[i] = gameHistory.InformationSetMembership[i];
@@ -127,8 +99,6 @@ namespace ACESim
                 for (int i = 0; i < GameHistory.CacheLength; i++)
                     result.Cache[i] = Cache[i];
                 result.VerifyThread();
-                for (int i = 0; i < GameHistory.MaxInformationSetLength; i++)
-                    result.InformationSets[i] = InformationSets[i];
                 for (int i = 0; i < GameHistory.MaxDeferredDecisionIndicesLength; i++)
                     result.DeferredDecisionIndices[i] = DeferredDecisionIndices[i]; 
                 for (int i = 0; i < GameHistory.SizeInBytes_BitArrayForInformationSetMembership; i++)
@@ -159,7 +129,6 @@ namespace ACESim
                 DecisionIndicesHistory = DecisionsHistory,
                 Cache = Cache,
                 DeferredDecisionIndices = DeferredDecisionIndices,
-                InformationSets = InformationSets,
                 InformationSetMembership = InformationSetMembership,
                 DecisionsDeferred = DecisionsDeferred,
 #if SAFETYCHECKS

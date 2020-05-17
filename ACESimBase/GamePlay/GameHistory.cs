@@ -29,9 +29,6 @@ namespace ACESim
 
         // DEBUG -- should not be const's anymore
         public const int MaxNumActions = 100;
-        public const int MaxInformationSetLength = MaxInformationSetLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLengthPerPartialPlayer * NumPartialPlayers;
-        public const int MaxInformationSetLengthPerFullPlayer = 40;
-        public const int MaxInformationSetLengthPerPartialPlayer = 3;
         public const int NumFullPlayers = 3; // includes main players and resolution player and any chance players that need full size information set
         public const int MaxNumPlayers = 18; // includes chance players that need a very limited information set
         public const int NumPartialPlayers = MaxNumPlayers - NumFullPlayers;
@@ -39,7 +36,8 @@ namespace ACESim
         public const int SizeInBits_BitArrayForInformationSetMembership = GameHistory.MaxNumActions * MaxNumPlayers;
         public const int SizeInBytes_BitArrayForInformationSetMembership = SizeInBits_BitArrayForInformationSetMembership / 8 + (SizeInBits_BitArrayForInformationSetMembership % 8 == 0 ? 0 : 1);
         public const int SizeInBytes_BitArrayForDecisionsDeferred = GameHistory.MaxNumActions / 8 + (MaxNumActions % 8 == 0 ? 0 : 1);
-        public const int TotalBufferSize = GameHistory.MaxNumActions + GameHistory.MaxNumActions + CacheLength + MaxInformationSetLength + GameHistory.SizeInBytes_BitArrayForInformationSetMembership + GameHistory.SizeInBytes_BitArrayForDecisionsDeferred;
+        public const int TotalBufferSize = GameHistory.MaxNumActions + GameHistory.MaxNumActions + CacheLength + GameHistory.SizeInBytes_BitArrayForInformationSetMembership + GameHistory.SizeInBytes_BitArrayForDecisionsDeferred;
+        public const int MaxInformationSetLength = 40; // used by code that creates Span to hold information set
         public bool Initialized;
         public bool Complete;
         public byte NextActionsAndDecisionsHistoryIndex;
@@ -57,7 +55,6 @@ namespace ACESim
         public Span<byte> Cache; // length CacheLength
         public Span<byte> InformationSetMembership; // length GameHistory.SizeInBytes_BitArrayForInformationSetMembership
         public Span<byte> DecisionsDeferred; // length GameHistory.SizeInBytes_BitArrayForDecisionsDeferred
-        public Span<byte> InformationSets; // length MaxInformationSetLength // DEBUG -- make for partial players only
         public Span<byte> DeferredDecisionIndices; // length MaxDeferredDecisionIndicesLength
 #if SAFETYCHECKS
         public int CreatingThreadID;
@@ -65,23 +62,6 @@ namespace ACESim
 
         // Information set structure. We have an information set buffer for each player. We need to be able to remove information from the information set for a player, but still to remember that it was there as of a particular point in time, so that we can figure out what the information set was as of a particular decision. (This is needed for reconstructing the game play.) We thus store information in pairs. The first byte consists of the decision byte code after which we are making changes. The second byte either consists of an item to add, or 254, indicating that we are removing an item from the information set. All of this is internal. When we get the information set, we get it as of a certain point, and thus we skip decision byte codes and automatically process deletions. 
 
-        // Must also change values in InformationSetLog.
-        public static int InformationSetsIndex(byte playerIndex)
-        {
-            if (playerIndex == 0)
-                return 0;
-            else if (playerIndex <= NumFullPlayers)
-            {
-                if (playerIndex == 1)
-                    return MaxInformationSetLengthPerFullPlayer;
-                return MaxInformationSetLengthPerFullPlayer * playerIndex;
-            }
-            else
-            {
-                return MaxInformationSetLengthPerFullPlayer * NumFullPlayers + (playerIndex - NumFullPlayers) * MaxInformationSetLengthPerPartialPlayer;
-            }
-        }
-        public static int MaxInformationSetLengthForPlayer(byte playerIndex) => playerIndex < NumFullPlayers ? MaxInformationSetLengthPerFullPlayer : MaxInformationSetLengthPerPartialPlayer;
 
         public bool Matches(GameHistory other)
         {
@@ -122,11 +102,6 @@ namespace ACESim
         {
             if (createArraysForSpans)
                 CreateArraysForSpans(true);
-            for (byte p = 0; p < GameHistory.MaxNumPlayers; p++)
-            {
-                VerifyThread();
-                InformationSets[GameHistory.InformationSetsIndex(p)] = GameHistory.InformationSetTerminator;
-            }
             Initialized = true;
             LastDecisionIndexAdded = 255;
             NextActionsAndDecisionsHistoryIndex = 0;
@@ -157,7 +132,6 @@ namespace ACESim
             ActionsHistory = new byte[GameHistory.MaxNumActions];
             DecisionIndicesHistory = new byte[GameHistory.MaxNumActions];
             Cache = new byte[GameHistory.CacheLength];
-            InformationSets = new byte[GameHistory.MaxInformationSetLength];
             InformationSetMembership = new byte[GameHistory.SizeInBytes_BitArrayForInformationSetMembership];
             DecisionsDeferred = new byte[GameHistory.SizeInBytes_BitArrayForDecisionsDeferred];
             DeferredDecisionIndices = new byte[GameHistory.MaxDeferredDecisionIndicesLength];
@@ -197,8 +171,6 @@ namespace ACESim
                     result.InformationSetMembership[i] = InformationSetMembership[i];
                 for (int i = 0; i < GameHistory.SizeInBytes_BitArrayForDecisionsDeferred; i++)
                     result.DecisionsDeferred[i] = DecisionsDeferred[i];
-                for (int i = 0; i < GameHistory.MaxInformationSetLength; i++)
-                    result.InformationSets[i] = InformationSets[i];
             }
             return result;
         }

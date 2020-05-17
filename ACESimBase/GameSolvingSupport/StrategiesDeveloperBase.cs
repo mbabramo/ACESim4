@@ -736,7 +736,7 @@ namespace ACESim
                 (game, gameProgress) = GamePlayer.PlayPathAndStop(actionsSoFar);
             }
             byte playerIndex = game.CurrentDecision?.PlayerIndex ?? 0;
-            Span<byte> informationSetForPlayer = new byte[GameHistory.MaxInformationSetLengthForPlayer(playerIndex)];
+            Span<byte> informationSetForPlayer = new byte[GameHistory.MaxInformationSetLength];
             if (!gameProgress.GameComplete)
                 gameProgress.GameHistory.GetCurrentInformationSetForPlayer(playerIndex, informationSetForPlayer);
             informationSetHistory = new InformationSetHistory(informationSetForPlayer, game);

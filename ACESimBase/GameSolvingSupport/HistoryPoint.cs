@@ -132,7 +132,7 @@ namespace ACESim
                 navigation.GameDefinition.GetNextDecision(in historyToPoint, out Decision nextDecision, out byte nextDecisionIndex);
                 // If nextDecision is null, then there are no more player decisions. (If this seems wrong, it could be a result of an error in whether to mark a game complete.) When there are no more player decisions, the resolution "player" is used.
                 byte nextPlayer = nextDecision?.PlayerIndex ?? navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
-                Span<byte> informationSetsSpan = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
+                Span<byte> informationSetsSpan = stackalloc byte[GameHistory.MaxInformationSetLength];
                 // string playerInformationString = HistoryToPoint.GetPlayerInformationString(currentPlayer, nextDecision?.DecisionByteCode);
 
                 // DEBUG GameHistory.GetPlayerInformationCurrent_New(nextPlayer, historyToPoint.NextActionsAndDecisionsHistoryIndex, historyToPoint.ActionsHistory, historyToPoint.DecisionIndicesHistory, historyToPoint.InformationSetMembership, historyToPoint.DecisionsDeferred, informationSetsPtr);
@@ -332,7 +332,7 @@ namespace ACESim
                 throw new Exception("Game is not complete.");
             byte resolutionPlayer = navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
             var strategy = navigation.Strategies[resolutionPlayer];
-            Span<byte> resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
+            Span<byte> resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLength];
             GameHistory historyToPoint = gameProgress.GameHistory;
             GameHistory.GetCurrentInformationSetForPlayer(resolutionPlayer, historyToPoint.NextActionsAndDecisionsHistoryIndex, historyToPoint.ActionsHistory, historyToPoint.InformationSetMembership, historyToPoint.DecisionsDeferred, resolutionInformationSet);
             //var resolutionInformationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(resolutionInformationSet); 
@@ -364,7 +364,7 @@ namespace ACESim
             {
                 byte resolutionPlayer = navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
                 var strategy = navigation.Strategies[resolutionPlayer];
-                Span<byte> resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
+                Span<byte> resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLength];
                 GameHistory.GetCurrentInformationSetForPlayer(resolutionPlayer, HistoryToPoint.NextActionsAndDecisionsHistoryIndex, HistoryToPoint.ActionsHistory, HistoryToPoint.InformationSetMembership, HistoryToPoint.DecisionsDeferred, resolutionInformationSet);
                 FinalUtilitiesNode finalUtilities = (FinalUtilitiesNode)strategy.GetInformationSetTreeValue(resolutionInformationSet);
                 if (finalUtilities == null)
