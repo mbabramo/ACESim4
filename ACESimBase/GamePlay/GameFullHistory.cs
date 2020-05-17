@@ -110,7 +110,6 @@ namespace ACESim
             }
         }
 
-
         // NOTE: InformationSetHistory is ref struct, so we can't enumerate it directly. We can enumerate the indices, and the caller can then
         // access each InformationSetHistory one at a time.
 
