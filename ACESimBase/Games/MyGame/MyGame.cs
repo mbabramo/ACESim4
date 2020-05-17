@@ -80,8 +80,6 @@ namespace ACESim
                         MyProgress.GameComplete = true;
                     break;
                 case (byte)MyGameDecisions.PreBargainingRound:
-                    // DEBUG -- if we eliminate pre-bargaining round, we must find some other way to set
-                    // this to true
                     if (MyDefinition.Options.SkipFileAndAnswerDecisions)
                     {
                         MyProgress.PFiles = MyProgress.DAnswers = true;

@@ -597,7 +597,6 @@ namespace ACESim
 
         private void AddPreBargainingRoundDummyDecision(int b, List<Decision> decisions)
         {
-            // DEBUG -- can we eliminate this and the next one?
             var dummyDecision =
                 new Decision("PreBargainingRound" + (b + 1), "PRBR" + (b + 1), true, (byte)MyGamePlayers.PreBargainingRoundChance, null,
                     1 /* i.e., just an opportunity to do some calculation and cleanup */, (byte)MyGameDecisions.PreBargainingRound, unevenChanceActions: false)

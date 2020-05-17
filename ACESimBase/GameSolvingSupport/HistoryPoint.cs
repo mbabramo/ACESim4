@@ -135,7 +135,6 @@ namespace ACESim
                 Span<byte> informationSetsSpan = stackalloc byte[GameHistory.MaxInformationSetLength];
                 // string playerInformationString = HistoryToPoint.GetPlayerInformationString(currentPlayer, nextDecision?.DecisionByteCode);
 
-                // DEBUG GameHistory.GetPlayerInformationCurrent_New(nextPlayer, historyToPoint.NextActionsAndDecisionsHistoryIndex, historyToPoint.ActionsHistory, historyToPoint.DecisionIndicesHistory, historyToPoint.InformationSetMembership, historyToPoint.DecisionsDeferred, informationSetsPtr);
                 GameHistory.GetCurrentInformationSetForPlayer(nextPlayer, historyToPoint.NextActionsAndDecisionsHistoryIndex, historyToPoint.ActionsHistory, historyToPoint.InformationSetMembership, historyToPoint.DecisionsDeferred, informationSetsSpan);
                 if (GameProgressLogger.LoggingOn)
                 {

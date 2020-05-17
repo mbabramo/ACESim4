@@ -205,10 +205,10 @@ namespace ACESim
 
         public static void UpdateGameHistory(ref GameHistory gameHistory, GameDefinition gameDefinition, Decision decision, byte decisionIndex, byte action, GameProgress gameProgress)
         {
-            if (Br.eak.Contains("Case") && decision.PlayersToInform != null && decision.PlayersToInform.Any(x => x == 2))
-            {
-                Debug.WriteLine($"RESOLUTION: {decision} {action}");
-            } // DEBUG
+            //if (Br.eak.Contains("Case") && decision.PlayersToInform != null && decision.PlayersToInform.Any(x => x == 2))
+            //{
+            //    Debug.WriteLine($"RESOLUTION: {decision} {action}");
+            //} 
             gameHistory.AddToHistory(decision.DecisionByteCode, decisionIndex, decision.PlayerIndex, action, decision.NumPossibleActions, decision.PlayersToInform, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, gameProgress, decision.DeferNotificationOfPlayers, false);
             if (decision.RequiresCustomInformationSetManipulation)
                 gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, action, ref gameHistory, gameProgress);

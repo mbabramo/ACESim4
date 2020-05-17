@@ -373,7 +373,7 @@ namespace ACESimBase.GameSolvingSupport
 
         public async Task ReturnToStateBeforeBestResponseIterations()
         {
-            // DEBUG -- better thing would be to save and then reload the model
+            // TODO -- better thing would be to save and then reload the model
             Observations = RememberedObservations;
             RememberedObservations = null;
             FullReservoirReplacement = false;
