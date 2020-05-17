@@ -136,7 +136,7 @@ namespace ACESim
                 // string playerInformationString = HistoryToPoint.GetPlayerInformationString(currentPlayer, nextDecision?.DecisionByteCode);
 
                 // DEBUG GameHistory.GetPlayerInformationCurrent_New(nextPlayer, historyToPoint.NextActionsAndDecisionsHistoryIndex, historyToPoint.ActionsHistory, historyToPoint.DecisionIndicesHistory, historyToPoint.InformationSetMembership, historyToPoint.DecisionsDeferred, informationSetsPtr);
-                GameHistory.GetPlayerInformationCurrent(nextPlayer, historyToPoint.InformationSets, informationSetsSpan);
+                GameHistory.GetCurrentInformationSetForPlayer(nextPlayer, historyToPoint.NextActionsAndDecisionsHistoryIndex, historyToPoint.ActionsHistory, historyToPoint.InformationSetMembership, historyToPoint.DecisionsDeferred, informationSetsSpan);
                 if (GameProgressLogger.LoggingOn)
                 {
                     var informationSetList = Util.ListExtensions.GetSpan255TerminatedAsList(informationSetsSpan);
@@ -333,7 +333,8 @@ namespace ACESim
             byte resolutionPlayer = navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
             var strategy = navigation.Strategies[resolutionPlayer];
             Span<byte> resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
-            GameHistory.GetPlayerInformationCurrent(resolutionPlayer, gameProgress.GameHistory.InformationSets, resolutionInformationSet);
+            GameHistory historyToPoint = gameProgress.GameHistory;
+            GameHistory.GetCurrentInformationSetForPlayer(resolutionPlayer, historyToPoint.NextActionsAndDecisionsHistoryIndex, historyToPoint.ActionsHistory, historyToPoint.InformationSetMembership, historyToPoint.DecisionsDeferred, resolutionInformationSet);
             //var resolutionInformationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(resolutionInformationSet); 
             NWayTreeStorage<IGameState> informationSetNode = strategy.SetInformationSetTreeValueIfNotSet(
                         resolutionInformationSet,
@@ -364,7 +365,7 @@ namespace ACESim
                 byte resolutionPlayer = navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
                 var strategy = navigation.Strategies[resolutionPlayer];
                 Span<byte> resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
-                GameHistory.GetPlayerInformationCurrent(resolutionPlayer, HistoryToPoint.InformationSets, resolutionInformationSet);
+                GameHistory.GetCurrentInformationSetForPlayer(resolutionPlayer, HistoryToPoint.NextActionsAndDecisionsHistoryIndex, HistoryToPoint.ActionsHistory, HistoryToPoint.InformationSetMembership, HistoryToPoint.DecisionsDeferred, resolutionInformationSet);
                 FinalUtilitiesNode finalUtilities = (FinalUtilitiesNode)strategy.GetInformationSetTreeValue(resolutionInformationSet);
                 if (finalUtilities == null)
                 {

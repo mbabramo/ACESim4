@@ -58,11 +58,6 @@ namespace ACESim
         public Span<byte> InformationSetMembership; // length GameHistory.SizeInBytes_BitArrayForInformationSetMembership
         public Span<byte> DecisionsDeferred; // length GameHistory.SizeInBytes_BitArrayForDecisionsDeferred
         public Span<byte> InformationSets; // length MaxInformationSetLength // DEBUG -- make for partial players only
-         // DEBUG an alternative approach would be to maintain a set of bits for each player, setting 1 to a bit if the player has the information. The complication is that we need to know WHEN the player gets the information. If we eliminated the possiblity of multiple deferrals (which we aren't using anyway), then we could also record if a decision is deferred by having an additional bit per decision (or we could just continue to use DeferredDecisionIndices). That is, we'd record all actions and decision indices, and we'd record which decision indices were initially deferred. That way, we could return the information set as of any particular piece of information. We could still record all of the information in the information set log that we now store. But we would get rid of both InformationSets and DeferredDecisionIndices. But would this save space? Certainly for the full players (main players plus resolution player), but not really for the partial players (i.e., chance players). 
-            // But what's the goal? We need to be able to quickly load the current information set for a player INCLUDING the decision index when the decision was actually reached. We could do that without even looking at DeferredDecisionIndices. Then, we could use DeferredDecisionIndices where necessary. 
-            // The initial step woud be to create a bitarray span (done).
-            // One question is whether we even need InformationSetLog anymore. The one thing that this does is that it can show us the exact sequence in which items were added and REMOVED from individual players' information sets. We may not always need that, but it oculd be helpful. We could handle removal pretty straightforwardly here by just removing the specified decision. Still, we could disable InformationSetLog for most purposes. The only thing we really need it for outside the tests is GetPlayerInformationAtPoint, as well as the GetPlayerDecisionAndInformation, but those could be replaced pretty easily. One possibility would be to move the information set log into the game full history within GameProgress, so that we would omit it when we are not using the full history. 
-            // END DEBUG
         public Span<byte> DeferredDecisionIndices; // length MaxDeferredDecisionIndicesLength
 #if SAFETYCHECKS
         public int CreatingThreadID;
@@ -343,16 +338,12 @@ namespace ACESim
         {
             DEBUGCount++;
             DEBUGCount2++;
-            if (DEBUGCount2 == 493898) // 493904)
-            {
-                var DEBUGSDF = 0;
-            }
             // DEBUG
             for (byte DEBUGplayerIndex = 0; DEBUGplayerIndex < MaxNumPlayers; DEBUGplayerIndex++)
             {
                 int size = DEBUGplayerIndex < NumFullPlayers ? MaxInformationSetLengthPerFullPlayer : MaxInformationSetLengthPerPartialPlayer;
                 byte[] pInfo = new byte[size];
-                GetPlayerInformationCurrent(DEBUGplayerIndex, pInfo);
+                GetCurrentInformationSetForPlayer(DEBUGplayerIndex, pInfo);
             }
             // Debug.WriteLine($"Add to history {decisionByteCode} for player {playerIndex} action {action} of {numPossibleActions}");
             RecordAction(action, decisionIndex, deferNotification, playersToInform);
@@ -387,7 +378,7 @@ namespace ACESim
             {
                 int size = DEBUGplayerIndex < NumFullPlayers ? MaxInformationSetLengthPerFullPlayer : MaxInformationSetLengthPerPartialPlayer;
                 byte[] pInfo = new byte[size];
-                GetPlayerInformationCurrent(DEBUGplayerIndex, pInfo);
+                GetCurrentInformationSetForPlayer(DEBUGplayerIndex, pInfo);
             }
         }
 
@@ -515,9 +506,15 @@ namespace ACESim
         {
             List<byte> info = new List<byte>();
             for (int i = 0; i < NextActionsAndDecisionsHistoryIndex; i++)
-                if (SpanBitArray.Get(InformationSetMembership, playerIndex * MaxNumActions + i))
-                    info.Add(ActionsHistory[i]);
-            
+            {
+                bool isMember = SpanBitArray.Get(InformationSetMembership, playerIndex * MaxNumActions + i);
+                if (isMember)
+                {
+                    bool isLastAndDeferred = i == NextActionsAndDecisionsHistoryIndex - 1 && SpanBitArray.Get(DecisionsDeferred, NextActionsAndDecisionsHistoryIndex - 1);
+                    if (!isLastAndDeferred)
+                        info.Add(ActionsHistory[i]);
+                }
+            }
             return info;
         }
 
@@ -525,42 +522,24 @@ namespace ACESim
         {
             List<(byte decisionIndex, byte information)> info = new List<(byte decisionIndex, byte information)>();
             for (int i = 0; i < NextActionsAndDecisionsHistoryIndex; i++)
-                if (SpanBitArray.Get(InformationSetMembership, playerIndex * MaxNumActions + i))
-                    info.Add((DecisionIndicesHistory[i], ActionsHistory[i]));
-
-            return info;
-        }
-
-        public List<byte> GetCurrentInformationSetForPlayer_Old_DEBUG(byte playerIndex)
-        {
-            List<byte> info = new List<byte>();
-            if (playerIndex >= MaxNumPlayers)
             {
-                // player has no information
-                return info;
-            }
-            int maxInformationSetLengthForPlayer = MaxInformationSetLengthForPlayer(playerIndex);
-            byte size = 0;
-            int indexInInformationSets = InformationSetsIndex(playerIndex);
-            while (InformationSets[indexInInformationSets] != InformationSetTerminator)
-            {
-                info.Add(InformationSets[indexInInformationSets]);
-                indexInInformationSets++;
-                size++;
-#if SAFETYCHECKS
-                if (size == maxInformationSetLengthForPlayer)
-                    ThrowHelper.Throw("Internal error.");
-#endif
+                bool isMember = SpanBitArray.Get(InformationSetMembership, playerIndex * MaxNumActions + i);
+                if (isMember)
+                {
+                    bool isLastAndDeferred = i == NextActionsAndDecisionsHistoryIndex - 1 && SpanBitArray.Get(DecisionsDeferred, NextActionsAndDecisionsHistoryIndex - 1);
+                    if (!isLastAndDeferred)
+                        info.Add((DecisionIndicesHistory[i], ActionsHistory[i]));
+                }
             }
             return info;
         }
 
-        public void GetPlayerInformationCurrent_New(byte playerIndex, Span<byte> playerInfo)
+        public void GetCurrentInformationSetForPlayer(byte playerIndex, Span<byte> playerInfo)
         {
-            GetPlayerInformationCurrent_New(playerIndex, NextActionsAndDecisionsHistoryIndex, ActionsHistory, DecisionIndicesHistory, InformationSetMembership, DecisionsDeferred, playerInfo);
+            GetCurrentInformationSetForPlayer(playerIndex, NextActionsAndDecisionsHistoryIndex, ActionsHistory, InformationSetMembership, DecisionsDeferred, playerInfo);
         }
 
-        public static void GetPlayerInformationCurrent_New(byte playerIndex, byte nextActionsAndDecisionsHistoryIndex, Span<byte> actions, Span<byte> decisionIndices, Span<byte> informationSetMembership, Span<byte> decisionsDeferred, Span<byte> playerInfo)
+        public static void GetCurrentInformationSetForPlayer(byte playerIndex, byte nextActionsAndDecisionsHistoryIndex, Span<byte> actions, Span<byte> informationSetMembership, Span<byte> decisionsDeferred, Span<byte> playerInfo)
         {
             byte playerInfoIndex = 0;
             for (int i = 0; i < nextActionsAndDecisionsHistoryIndex; i++)
@@ -577,64 +556,10 @@ namespace ACESim
         }
 
 
-        // Note: This static method is made available so that we can call this when playerInfo Span<byte> is stack-allocated.
-        public static void GetPlayerInformationCurrent(byte playerIndex, Span<byte> informationSets, Span<byte> playerInfo)
-        {
-            int playerInfoBufferIndex = 0;
-            if (playerIndex >= MaxNumPlayers)
-            {
-                // player has no information
-                playerInfo[playerInfoBufferIndex] = InformationSetTerminator;
-                return;
-            }
-            int maxInformationSetLengthForPlayer = MaxInformationSetLengthForPlayer(playerIndex);
-            byte size = 0;
-            int indexInInformationSets = InformationSetsIndex(playerIndex);
-            while (informationSets[indexInInformationSets] != InformationSetTerminator)
-            {
-                playerInfo[playerInfoBufferIndex] = informationSets[indexInInformationSets];
-                indexInInformationSets++;
-                playerInfoBufferIndex++;
-                size++;
-#if SAFETYCHECKS
-                if (size == maxInformationSetLengthForPlayer)
-                    ThrowHelper.Throw("Internal error.");
-#endif
-            }
-            playerInfo[playerInfoBufferIndex] = InformationSetTerminator;
-        }
-
-
         public string GetCurrentPlayerInformationString(byte playerIndex)
         {
             List<byte> informationSetList = GetCurrentInformationSetForPlayer(playerIndex);
             return String.Join(",", informationSetList);
-        }
-
-        // DEBUG
-        //public List<byte> GetCurrentInformationSetForPlayer(byte playerIndex)
-        //{
-        //    return GetPlayerInformationCurrent(playerIndex);
-        //    Span<byte> playerInfoBuffer = stackalloc byte[MaxInformationSetLengthPerFullPlayer];
-        //    GetPlayerInformationCurrent(playerIndex, InformationSets, playerInfoBuffer);
-        //    List<byte> informationSetList = ListExtensions.GetSpan255TerminatedAsList(playerInfoBuffer);
-        //    return informationSetList;
-        //}
-
-        public byte CountItemsInInformationSet(byte playerIndex)
-        {
-#if SAFETYCHECKS
-            if (playerIndex >= MaxNumPlayers)
-                ThrowHelper.Throw();
-#endif
-            byte b = 0;
-            int ptr = InformationSetsIndex(playerIndex);
-            while (InformationSets[ptr] != InformationSetTerminator)
-            {
-                b++;
-                ptr++; // now move past the information
-            }
-            return b;
         }
 
         public void ReverseAdditionsToInformationSet(IEnumerable<byte> playerIndices, GameProgress gameProgress = null)
