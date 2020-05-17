@@ -48,23 +48,8 @@ namespace ACESim
             // (and then on some other thread if there is another deep copy).
             CreatingThreadID = System.Threading.Thread.CurrentThread.ManagedThreadId;
 #endif
-            byte maxActions = Math.Min((byte)GameHistory.MaxNumActions, (byte)NextIndexInHistoryActionsOnly);
-            if (ActionsHistory.Length > 0)
-                for (byte i = 0; i < maxActions; i++)
-                    ActionsHistory[i] = gameHistory.ActionsHistory[i];
-            if (DecisionIndicesHistory.Length > 0)
-                for (byte i = 0; i < maxActions; i++)
-                    DecisionIndicesHistory[i] = gameHistory.DecisionIndicesHistory[i];
-            if (Cache.Length > 0)
-                for (byte i = 0; i < GameHistory.CacheLength; i++)
-                    Cache[i] = gameHistory.Cache[i];
-            
-            if (InformationSetMembership.Length > 0)
-                for (int i = 0; i < GameHistory.SizeInBytes_BitArrayForInformationSetMembership; i++)
-                    InformationSetMembership[i] = gameHistory.InformationSetMembership[i];
-            if (DecisionsDeferred.Length > 0)
-                for (int i = 0; i < GameHistory.SizeInBytes_BitArrayForDecisionsDeferred; i++)
-                    DecisionsDeferred[i] = gameHistory.DecisionsDeferred[i];
+            for (int i = 0; i < GameHistory.TotalBufferSize; i++)
+                Buffer[i] = gameHistory.Buffer[i];
         }
 
         public static GameHistoryStorable NewInitialized()
@@ -85,17 +70,10 @@ namespace ACESim
             if (ActionsHistory != null)
             {
                 result.CreateArrayForSpans(false);
-                for (int i = 0; i < GameHistory.MaxNumActions; i++)
-                    result.ActionsHistory[i] = ActionsHistory[i];
-                for (int i = 0; i < GameHistory.MaxNumActions; i++)
-                    result.DecisionIndicesHistory[i] = DecisionIndicesHistory[i];
-                for (int i = 0; i < GameHistory.CacheLength; i++)
-                    result.Cache[i] = Cache[i];
+
+                for (int i = 0; i < GameHistory.TotalBufferSize; i++)
+                    result.Buffer[i] = Buffer[i];
                 result.VerifyThread();
-                for (int i = 0; i < GameHistory.SizeInBytes_BitArrayForInformationSetMembership; i++)
-                    result.InformationSetMembership[i] = InformationSetMembership[i];
-               for (int i = 0; i < GameHistory.SizeInBytes_BitArrayForDecisionsDeferred; i++)
-                    result.DecisionsDeferred[i] = DecisionsDeferred[i];
             }
             return result;
         }
