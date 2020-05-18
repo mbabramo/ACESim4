@@ -69,6 +69,7 @@ namespace ACESim
                 }
                 numProcessed += numPerMetaFilter;
             }
+            completedGame.Dispose();
         }
 
         public void Append(StringBuilder standardReport, StringBuilder csvReport, bool isNumeric, string text, int? columnWidth, bool isLastColumn)

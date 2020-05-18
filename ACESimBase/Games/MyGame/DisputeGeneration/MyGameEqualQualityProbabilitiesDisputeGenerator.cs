@@ -106,30 +106,8 @@ namespace ACESim
             throw new NotImplementedException(); // we use even chance probabilities
         }
 
-        public (bool unrollParallelize, bool unrollIdentical) GetPrePrimaryUnrollSettings()
-        {
-            return (false, false);
-        }
+        public bool SupportsSymmetry() => false; // DEBUG -- we might be able to change this by changing the curvature so that we have symmetry around probability of 0.5
 
-        public (bool unrollParallelize, bool unrollIdentical) GetPrimaryUnrollSettings()
-        {
-            return (false, false);
-        }
-
-        public (bool unrollParallelize, bool unrollIdentical) GetPostPrimaryUnrollSettings()
-        {
-            return (false, false);
-        }
-
-        public (bool unrollParallelize, bool unrollIdentical) GetLiabilityStrengthUnrollSettings()
-        {
-            return (false, false);
-        }
-
-        public (bool unrollParallelize, bool unrollIdentical) GetDamagesStrengthUnrollSettings()
-        {
-            return (false, false);
-        }
         public bool PostPrimaryDoesNotAffectStrategy() => false;
     }
 }

@@ -163,30 +163,6 @@ namespace ACESim
         {
             throw new NotImplementedException(); // no post primary chance function
         }
-        public (bool unrollParallelize, bool unrollIdentical) GetPrePrimaryUnrollSettings()
-        {
-            return (false, false);
-        }
-
-        public (bool unrollParallelize, bool unrollIdentical) GetPrimaryUnrollSettings()
-        {
-            return (false, false);
-        }
-
-        public (bool unrollParallelize, bool unrollIdentical) GetPostPrimaryUnrollSettings()
-        {
-            return (false, false);
-        }
-
-        public (bool unrollParallelize, bool unrollIdentical) GetLiabilityStrengthUnrollSettings()
-        {
-            return (false, false);
-        }
-
-        public (bool unrollParallelize, bool unrollIdentical) GetDamagesStrengthUnrollSettings()
-        {
-            return (false, false);
-        }
         public bool PostPrimaryDoesNotAffectStrategy() => false;
     }
 }

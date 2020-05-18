@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Diagnostics;
 using ACESimBase.Util;
+using ACESimBase.GameSolvingSupport;
 
 namespace ACESim
 {
@@ -455,6 +456,18 @@ namespace ACESim
         {
             return false;
         }
+
+        /// <summary>
+        /// Specifies whether the game is a two-player symmetric game. In such a game, for each player 0 information set, there is a corresponding player 1 information set, but some information actions and decisions may appear in reverse. Final utilities will also be exactly reversed; that is the utilities player 0 earns in a particular resolution information set is the same as what player 1 earns in the corresponding resolution information set. In a symmetric game, both players must make all their decisions simultaneously, each without knowing the decision of the other. 
+        /// </summary>
+        /// <returns></returns>
+        public virtual bool GameIsSymmetric() => false;
+        
+        /// <summary>
+        
+        /// </summary>
+        /// <returns></returns>
+        public virtual (SymmetryMapInput information, InformationSetSymmetryMap_Decision decision)[] GetSymmetryMap() => throw new NotImplementedException();
 
         public virtual List<SimpleReportDefinition> GetSimpleReportDefinitions()
         {

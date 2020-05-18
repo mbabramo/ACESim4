@@ -1,4 +1,5 @@
 ﻿using ACESim.Util;
+using ACESimBase.GameSolvingSupport;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -113,30 +114,20 @@ namespace ACESim
             return ProbabilityOfTrulyLiableValues;
         }
 
-        public (bool unrollParallelize, bool unrollIdentical) GetPrePrimaryUnrollSettings()
-        {
-            return (true, true);
-        }
-
-        public (bool unrollParallelize, bool unrollIdentical) GetPrimaryUnrollSettings()
-        {
-            return (true, true);
-        }
-
-        public (bool unrollParallelize, bool unrollIdentical) GetPostPrimaryUnrollSettings()
-        {
-            return (true, true);
-        }
-
-        public (bool unrollParallelize, bool unrollIdentical) GetLiabilityStrengthUnrollSettings()
-        {
-            return (true, true);
-        }
-
-        public (bool unrollParallelize, bool unrollIdentical) GetDamagesStrengthUnrollSettings()
-        {
-            return (true, true);
-        }
         public bool PostPrimaryDoesNotAffectStrategy() => true;
+
+        public bool SupportsSymmetry() => false;
+
+        public (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput) GetPrePrimaryUnrollSettings() =>
+            (true, true, SymmetryMapInput.SameInfo);
+        public (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput) GetPrimaryUnrollSettings() =>
+            (true, true, SymmetryMapInput.SameInfo);
+        public (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput) GetPostPrimaryUnrollSettings() =>
+            (true, true, SymmetryMapInput.ReverseInfo);
+        public (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput) GetLiabilityStrengthUnrollSettings() =>
+            (true, true, SymmetryMapInput.ReverseInfo);
+        public (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput) GetDamagesStrengthUnrollSettings() =>
+            (true, true, SymmetryMapInput.ReverseInfo);
+
     }
 }

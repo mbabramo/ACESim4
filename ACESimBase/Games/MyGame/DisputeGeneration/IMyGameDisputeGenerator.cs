@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ACESimBase.GameSolvingSupport;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -21,11 +22,18 @@ namespace ACESim
         double GetLitigationIndependentSocialWelfare(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions);
         double[] GetLitigationIndependentWealthEffects(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions);
 
-        (bool unrollParallelize, bool unrollIdentical) GetPrePrimaryUnrollSettings();
-        (bool unrollParallelize, bool unrollIdentical) GetPrimaryUnrollSettings();
-        (bool unrollParallelize, bool unrollIdentical) GetPostPrimaryUnrollSettings();
-        (bool unrollParallelize, bool unrollIdentical) GetLiabilityStrengthUnrollSettings();
-        (bool unrollParallelize, bool unrollIdentical) GetDamagesStrengthUnrollSettings();
+        public bool SupportsSymmetry() => false;
+
+        public (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput) GetPrePrimaryUnrollSettings() =>
+            (false, false, SymmetryMapInput.SameInfo);
+        public (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput) GetPrimaryUnrollSettings() =>
+            (false, false, SymmetryMapInput.SameInfo);
+        public (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput) GetPostPrimaryUnrollSettings() =>
+            (false, false, SymmetryMapInput.SameInfo);
+        public (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput) GetLiabilityStrengthUnrollSettings() =>
+            (false, false, SymmetryMapInput.SameInfo);
+        public (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput) GetDamagesStrengthUnrollSettings() =>
+            (false, false, SymmetryMapInput.SameInfo);
 
         bool PostPrimaryDoesNotAffectStrategy();
 
