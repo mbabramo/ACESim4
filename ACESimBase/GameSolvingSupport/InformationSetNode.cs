@@ -114,68 +114,6 @@ namespace ACESim
             E = 1;
         }
 
-        public byte[] GetSymmetricInformationSet(GameDefinition gameDefinition)
-        {
-            byte[] symmetric = InformationSetContents.ToArray();
-            for (int i = 0; i < symmetric.Length; i++)
-            {
-                byte decisionIndex = LabeledInformationSet[i].decisionIndex;
-                Decision decision = gameDefinition.DecisionPointsExecutionOrder[decisionIndex].Decision;
-                var symmetryMap = decision.SymmetryMap;
-                if (symmetryMap.information == SymmetryMapInput.NotInInformationSet)
-                    throw new Exception("Information supposedly not in information set found in information set");
-                if (symmetryMap.information == SymmetryMapInput.NotCompatibleWithSymmetry)
-                    throw new Exception("Decision not compatible with symmetry");
-                byte playerIndex = decision.PlayerIndex;
-                if (playerIndex == 0)
-                {
-                    byte nextDecisionIndex = LabeledInformationSet[i + 1].decisionIndex;
-                    Decision nextDecision = gameDefinition.DecisionPointsExecutionOrder[nextDecisionIndex].Decision;
-                    if (nextDecision.PlayerIndex != 1 || nextDecision.SymmetryMap != decision.SymmetryMap)
-                        throw new Exception();
-                    byte temp = symmetric[decisionIndex + 1];
-                    symmetric[decisionIndex + 1] = symmetric[decisionIndex];
-                    symmetric[decisionIndex] = temp;
-                    if (symmetryMap.information == SymmetryMapInput.ReverseInfo)
-                    {
-                        symmetric[decisionIndex] = (byte) (decision.NumPossibleActions - symmetric[decisionIndex] + 1);
-                        symmetric[decisionIndex + 1] = (byte) (decision.NumPossibleActions - symmetric[decisionIndex + 1] + 1);
-                    }
-                }
-                else if (decision.IsChance)
-                {
-                    if (symmetryMap.information == SymmetryMapInput.ReverseInfo)
-                        symmetric[decisionIndex] = (byte)(decision.NumPossibleActions - symmetric[decisionIndex] + 1);
-                }
-            }
-            return symmetric;
-        }
-
-        public static Dictionary<InformationSetNode, InformationSetNode> IdentifySymmetricInformationSets(List<InformationSetNode> nodes, GameDefinition gameDefinition)
-        {
-            if (!gameDefinition.GameIsSymmetric() || gameDefinition.DecisionsExecutionOrder.Any(x => x.SymmetryMap.information == SymmetryMapInput.NotCompatibleWithSymmetry))
-                throw new Exception("This game or a decision in it is not compatible with symmetry.");
-            Dictionary<string, InformationSetNode> reverseInformationSetToNodeMap = new Dictionary<string, InformationSetNode>();
-            Dictionary<InformationSetNode, InformationSetNode> result = new Dictionary<InformationSetNode, InformationSetNode>();
-            foreach (InformationSetNode node in nodes)
-            {
-                if (node.PlayerIndex == 0 || node.PlayerIndex == 1)
-                {
-                    byte[] reverse = node.GetSymmetricInformationSet(gameDefinition);
-                    reverseInformationSetToNodeMap[String.Join(",", reverse)] = node;
-                }
-            }
-            foreach (InformationSetNode node in nodes)
-            {
-                if (node.PlayerIndex == 0 || node.PlayerIndex == 1)
-                {
-                    InformationSetNode symmetricNode = reverseInformationSetToNodeMap[String.Join(",", node.InformationSetContents)];
-                    result[node] = symmetricNode;
-                }
-            }
-            return result;
-        }
-
         public static void IdentifyNodeRelationships(List<InformationSetNode> all)
         {
             foreach (InformationSetNode x in all)
@@ -247,7 +185,7 @@ namespace ACESim
 
         public override string ToString()
         {
-            return $"Information set {InformationSetNodeNumber} ({Decision.Name}): DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetCurrentProbabilitiesAsString()} {GetBestResponseStringIfAvailable()}Average {GetAverageStrategiesAsString()} Regrets {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()}";
+            return $"Information set {InformationSetNodeNumber} ({Decision.Name}): DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetCurrentProbabilitiesAsString()} {GetBestResponseStringIfAvailable()}Average {GetAverageStrategiesAsString()} Regrets {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()} InformationSetContents {String.Join(";", LabeledInformationSet)}";
         }
 
         public string GetBestResponseStringIfAvailable()
@@ -1315,6 +1253,110 @@ namespace ACESim
             for (int a = 0; a < NumPossibleActions; a++)
                 array[a] = actionProbabilities[a];
             return array;
+        }
+
+        #endregion
+
+        #region Symmetry
+
+        public byte[] GetSymmetricInformationSet(GameDefinition gameDefinition)
+        {
+            byte[] symmetric = InformationSetContents.ToArray();
+            for (int i = 0; i < symmetric.Length; i++)
+            {
+                byte decisionIndex = LabeledInformationSet[i].decisionIndex;
+                Decision decision = gameDefinition.DecisionPointsExecutionOrder[decisionIndex].Decision;
+                var symmetryMap = decision.SymmetryMap;
+                if (symmetryMap.information == SymmetryMapInput.NotInInformationSet)
+                    throw new Exception("Information supposedly not in information set found in information set");
+                if (symmetryMap.information == SymmetryMapInput.NotCompatibleWithSymmetry)
+                    throw new Exception("Decision not compatible with symmetry");
+                byte playerIndex = decision.PlayerIndex;
+                if (playerIndex == 0)
+                {
+                    byte? nextDecisionIndex = LabeledInformationSet.Count() > i + 1 ? (byte?)LabeledInformationSet[i + 1].decisionIndex : null;
+                    Decision nextDecision = nextDecisionIndex == null ? null : gameDefinition.DecisionPointsExecutionOrder[(byte)nextDecisionIndex].Decision;
+                    bool nextDecisionIsOpponent = nextDecision != null && nextDecision.PlayerIndex == 1; // this will usually be true -- that is, both players make the same offer at the same time; but it will not be true if a player puts information into its own information set only (e.g., as a way of distinguishing one information set from the next)
+                    if (nextDecisionIsOpponent && nextDecision.SymmetryMap != decision.SymmetryMap)
+                        throw new Exception();
+                    if (nextDecisionIsOpponent)
+                    {
+                        byte temp = symmetric[i + 1];
+                        symmetric[i + 1] = symmetric[i];
+                        symmetric[i] = temp;
+                    }
+                    if (symmetryMap.information == SymmetryMapInput.ReverseInfo)
+                    {
+                        symmetric[i] = (byte)(decision.NumPossibleActions - symmetric[i] + 1);
+                        if (nextDecisionIsOpponent)
+                            symmetric[i + 1] = (byte)(decision.NumPossibleActions - symmetric[i + 1] + 1);
+                    }
+                }
+                else if (decision.IsChance)
+                {
+                    if (symmetryMap.information == SymmetryMapInput.ReverseInfo)
+                        symmetric[i] = (byte)(decision.NumPossibleActions - symmetric[i] + 1);
+                }
+            }
+            return symmetric;
+        }
+
+        public static Dictionary<InformationSetNode, InformationSetNode> IdentifySymmetricInformationSets(List<InformationSetNode> nodes, GameDefinition gameDefinition)
+        {
+            if (!gameDefinition.GameIsSymmetric() || gameDefinition.DecisionsExecutionOrder.Any(x => x.SymmetryMap.information == SymmetryMapInput.NotCompatibleWithSymmetry))
+                throw new Exception("This game or a decision in it is not compatible with symmetry.");
+            Dictionary<string, InformationSetNode> reverseInformationSetToNodeMap = new Dictionary<string, InformationSetNode>();
+            Dictionary<InformationSetNode, InformationSetNode> result = new Dictionary<InformationSetNode, InformationSetNode>();
+            foreach (InformationSetNode node in nodes)
+            {
+                if (node.PlayerIndex == 0)
+                {
+                    byte[] reverse = node.GetSymmetricInformationSet(gameDefinition);
+                    reverseInformationSetToNodeMap[String.Join(",", reverse)] = node;
+                    Debug.WriteLine($"{String.Join(";", node.LabeledInformationSet)} (labeled) => {String.Join(",", reverse)}"); // DEBUG
+                }
+            }
+            foreach (InformationSetNode node in nodes)
+            {
+                if (node.PlayerIndex == 1)
+                {
+                    InformationSetNode symmetricNode = reverseInformationSetToNodeMap[String.Join(",", node.InformationSetContents)];
+                    result[node] = symmetricNode;
+                    Debug.WriteLine($"Information set {symmetricNode.InformationSetNodeNumber} => {node.InformationSetNodeNumber} "); // DEBUG
+                }
+            }
+            return result;
+        }
+
+        public void CopyFromSymmetricInformationSet(InformationSetNode sourceInformationSet, SymmetryMapOutput symmetryMapOutput, bool verifySymmetry)
+        {
+            if (symmetryMapOutput == SymmetryMapOutput.ChanceDecision)
+                throw new Exception("Cannot copy to chance decision information set.");
+            for (byte a = 1; a <= Decision.NumPossibleActions; a++)
+            {
+                byte source = (byte) (a - 1);
+                byte target;
+                if (symmetryMapOutput == SymmetryMapOutput.SameAction)
+                    target = (byte)(a - 1);
+                else
+                    target = (byte) (Decision.NumPossibleActions - a + 1 - 1);
+                if (verifySymmetry)
+                {
+                    if (Math.Abs(NodeInformation[sumInversePiDimension, target] - sourceInformationSet.NodeInformation[sumInversePiDimension, source]) > 1E-6)
+                        throw new Exception("Symmetry verification failed.");
+                    if (Math.Abs(NodeInformation[sumRegretTimesInversePiDimension, target] - sourceInformationSet.NodeInformation[sumRegretTimesInversePiDimension, source]) > 1E-6)
+                        throw new Exception("Symmetry verification failed.");
+                    if (Math.Abs(NodeInformation[bestResponseNumeratorDimension, target] - sourceInformationSet.NodeInformation[bestResponseNumeratorDimension, source]) > 1E-6)
+                        throw new Exception("Symmetry verification failed.");
+                    if (Math.Abs(NodeInformation[bestResponseDenominatorDimension, target] - sourceInformationSet.NodeInformation[bestResponseDenominatorDimension, source]) > 1E-6)
+                        throw new Exception("Symmetry verification failed.");
+                }
+                // even if verifying symmetry, we make sure that the symmetry is exact, to avoid accumulating rounding errors
+                NodeInformation[sumInversePiDimension, target] = sourceInformationSet.NodeInformation[sumInversePiDimension, source];
+                NodeInformation[sumRegretTimesInversePiDimension, target] = sourceInformationSet.NodeInformation[sumRegretTimesInversePiDimension, source];
+                NodeInformation[bestResponseNumeratorDimension, target] = sourceInformationSet.NodeInformation[bestResponseNumeratorDimension, source];
+                NodeInformation[bestResponseDenominatorDimension, target] = sourceInformationSet.NodeInformation[bestResponseDenominatorDimension, source];
+            }
         }
 
         #endregion

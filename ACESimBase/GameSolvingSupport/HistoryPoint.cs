@@ -447,9 +447,7 @@ namespace ACESim
                         );
             if (informationSetNode.StoredValue is InformationSetNode isn && isn.InformationSetContents == null)
             {
-                if (ListExtensions.GetSpan255TerminatedAsArray(informationSetForPlayer).SequenceEqual(informationSetForPlayer) == false)
-                    throw new Exception("DEBUG -- must change back to Span255");
-                isn.InformationSetContents = informationSetForPlayer;
+                isn.InformationSetContents = ListExtensions.GetSpan255TerminatedAsArray(informationSetForPlayer);
                 isn.LabeledInformationSet = labeledInformationSetForPlayer;
             }
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)

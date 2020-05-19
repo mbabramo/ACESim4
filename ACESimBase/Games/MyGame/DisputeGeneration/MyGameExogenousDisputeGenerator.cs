@@ -116,7 +116,7 @@ namespace ACESim
 
         public bool PostPrimaryDoesNotAffectStrategy() => true;
 
-        public bool SupportsSymmetry() => false;
+        public bool SupportsSymmetry() => true;
 
         public (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput) GetPrePrimaryUnrollSettings() =>
             (true, true, SymmetryMapInput.SameInfo);

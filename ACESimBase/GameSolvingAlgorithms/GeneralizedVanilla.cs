@@ -15,6 +15,8 @@ namespace ACESim
     {
         double AverageStrategyAdjustment, AverageStrategyAdjustmentAsPctOfMax;
         PostIterationUpdaterBase PostIterationUpdater;
+        Dictionary<InformationSetNode, InformationSetNode> InformationSetSymmetryMap;
+        bool VerifySymmetry = true; // DEBUG // if true, symmetry is verified instead of used as a way of saving time
 
         public GeneralizedVanilla(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition, PostIterationUpdaterBase postIterationUpdater) : base(existingStrategyState, evolutionSettings, gameDefinition)
         {
@@ -32,6 +34,8 @@ namespace ACESim
 
         public void UpdateInformationSets(int iteration)
         {
+            HandleSymmetry(iteration);
+
             int numInformationSets = InformationSets.Count;
             PostIterationUpdater.PrepareForUpdating(iteration, EvolutionSettings);
             double? pruneOpponentStrategyBelow = !EvolutionSettings.CFR_OpponentSampling && EvolutionSettings.PruneOnOpponentStrategy && !EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions ? EvolutionSettings.PruneOnOpponentStrategyThreshold : (double?)null;
@@ -77,6 +81,32 @@ namespace ACESim
 
             Parallelizer.Go(EvolutionSettings.ParallelOptimization, 0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, PostIterationUpdater, averageStrategyAdjustment, normalizeCumulativeStrategyIncrements, resetPreviousCumulativeStrategyIncrements, continuousRegretsDiscountingAdjustment, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble, EvolutionSettings.Algorithm == GameApproximationAlgorithm.RegretMatching && EvolutionSettings.CFR_OpponentSampling, randomNumberToSelectSingleOpponentAction(n)));
         }
+
+        private void HandleSymmetry(int iteration)
+        {
+            bool symmetric = GameDefinition.GameIsSymmetric();
+            if (symmetric)
+            {
+                if (iteration == 1)
+                    InformationSetSymmetryMap = InformationSetNode.IdentifySymmetricInformationSets(InformationSets, GameDefinition);
+                if (iteration > 1 || VerifySymmetry)
+                    CopySymmetricInformationSets();
+            }
+        }
+
+        public void CopySymmetricInformationSets()
+        {
+            foreach (var dictionaryEntry in InformationSetSymmetryMap)
+            {
+                InformationSetNode informationSet = dictionaryEntry.Key;
+                if (informationSet.PlayerIndex == 1)
+                {
+                    InformationSetNode correspondingPlayer0InformationSet = dictionaryEntry.Value;
+                    informationSet.CopyFromSymmetricInformationSet(correspondingPlayer0InformationSet, GameDefinition.DecisionsExecutionOrder[dictionaryEntry.Key.DecisionIndex].SymmetryMap.decision, VerifySymmetry);
+                }
+            }
+        }
+
 
         #endregion
 
@@ -879,6 +909,8 @@ namespace ACESim
             GeneralizedVanillaUtilities[] results = new GeneralizedVanillaUtilities[NumNonChancePlayers];
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
+                if (playerBeingOptimized == 1 && GameDefinition.GameIsSymmetric() && iteration > 1 && !VerifySymmetry)
+                    continue;
                 GeneralizedVanillaCFRIteration_OptimizePlayer(iteration, results, playerBeingOptimized);
             }
             UpdateInformationSets(iteration);

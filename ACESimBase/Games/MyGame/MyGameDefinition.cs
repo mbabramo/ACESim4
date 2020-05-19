@@ -38,7 +38,10 @@ namespace ACESim
             Initialize(gameFactory);
         }
 
-
+        public override bool GameIsSymmetric()
+        {
+            return Options.IsSymmetric();
+        }
 
         private void FurtherOptionsSetup()
         {

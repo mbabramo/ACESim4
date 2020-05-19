@@ -225,6 +225,8 @@ namespace ACESim
                 NumDamagesSignals = 3;
         }
 
+        public bool IsSymmetric() => MyGameDisputeGenerator.SupportsSymmetry() && BargainingRoundsSimultaneous && SkipFileAndAnswerDecisions /* Note: If changing this, must ensure PFilingCost == DAnswerCost */ && PLiabilityNoiseStdev == DLiabilityNoiseStdev && PDamagesNoiseStdev == DDamagesNoiseStdev && PTrialCosts == DTrialCosts && PTrialCosts_Original == DTrialCosts_Original && PInitialWealth + DamagesMax == DInitialWealth;
+
         public override string ToString()
         {
             return 

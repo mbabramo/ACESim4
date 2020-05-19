@@ -36,7 +36,7 @@ namespace ACESim
             PerfectInfo,
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.DamagesUncertainty_3BR;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom2;
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
@@ -240,49 +240,10 @@ namespace ACESim
 
         public static MyGameOptions Custom2()
         {
-            var options = BaseOptions();
-
-            options.NumLiabilityStrengthPoints = 5;
-            options.NumLiabilitySignals = 5;
-            options.NumOffers = 5;
-
-            options.NumDamagesSignals = 1;
-            options.NumDamagesStrengthPoints = 1;
-            options.DamagesMax = options.DamagesMin = 100_000;
-            //options.NumDamagesStrengthPoints = 5; 
-            //options.NumDamagesSignals = 5;
-
-            double level = .20;
-            options.PLiabilityNoiseStdev = level;
-            options.DLiabilityNoiseStdev = level;
-            options.CourtLiabilityNoiseStdev = level;
-            options.PDamagesNoiseStdev = level;
-            options.DDamagesNoiseStdev = level;
-            options.CourtDamagesNoiseStdev = level;
-
-            options.AllowAbandonAndDefaults = true; 
-            options.IncludeAgreementToBargainDecisions = false;
-            options.SkipFileAndAnswerDecisions = false;
-
-            //options.WarmStartOptions = MyGameWarmStartOptions.FacilitateSettlementByMakingOpponentStingy; 
-            //options.WarmStartThroughIteration = null; 
-            //options.IncludeAgreementToBargainDecisions = false; 
-            //options.SkipFileAndAnswerDecisions = true;
-            //options.AllowAbandonAndDefaults = false;
-
-            options.PFilingCost = options.DAnswerCost = 10_000;
-            options.PerPartyCostsLeadingUpToBargainingRound = 0;
-            options.PTrialCosts = 10_000;
-            options.DTrialCosts = 10_000;
-            options.PerPartyCostsLeadingUpToBargainingRound = 7_500;
-            options.NumPotentialBargainingRounds = 2;
-
-            //options.LoserPays = true;
-            //options.LoserPaysAfterAbandonment = true;
-            //options.LoserPaysMultiple = 1.0; 
-
-            //options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 5 * 0.000001 };
-            //options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 5 * 0.000001 };
+            // make it symmetric
+            var options = SuperSimple();
+            options.SkipFileAndAnswerDecisions = true;
+            options.PInitialWealth = options.DInitialWealth - options.DamagesMax; // so, fees aside, the losing party will end up at PInitialWealth, and the winning party will end up at DInitialWealth.
 
             return options;
         }

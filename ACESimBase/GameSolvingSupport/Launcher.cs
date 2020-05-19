@@ -168,7 +168,7 @@ namespace ACESim
 
                 NumRandomIterationsForSummaryTable = SummaryTableRandomPathsIterations,
                 GenerateReportsByPlaying = true,
-                PrintInformationSets = false, 
+                PrintInformationSets = true,  // DEBUG
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
                 PrintGameTree = false, 
                 ActionStrategiesToUseInReporting =
