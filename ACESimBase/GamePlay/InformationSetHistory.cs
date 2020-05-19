@@ -10,15 +10,17 @@ namespace ACESim
     public readonly struct InformationSetHistory
     {
         public readonly byte[] InformationSetForPlayer; // length [InformationSetLog.MaxInformationSetLoggingLengthPerFullPlayer];
+        public readonly List<(byte decisionIndex, byte information)> LabeledInformationSetForPlayer;
         public readonly byte PlayerIndex;
         public readonly byte DecisionByteCode;
         public readonly byte DecisionIndex;
         public readonly byte ActionChosen;
         public readonly byte NumPossibleActions;
 
-        public InformationSetHistory(byte[] informationSetForPlayer, byte playerIndex, byte decisionByteCode, byte decisionIndex, byte actionChosen, byte numPossibleActions)
+        public InformationSetHistory(byte[] informationSetForPlayer, List<(byte decisionIndex, byte information)> labeledInformationSetForPlayer, byte playerIndex, byte decisionByteCode, byte decisionIndex, byte actionChosen, byte numPossibleActions)
         {
             InformationSetForPlayer = informationSetForPlayer;
+            LabeledInformationSetForPlayer = labeledInformationSetForPlayer;
             PlayerIndex = playerIndex;
             DecisionByteCode = decisionByteCode;
             DecisionIndex = decisionIndex;
@@ -26,9 +28,10 @@ namespace ACESim
             NumPossibleActions = numPossibleActions;
         }
 
-        public InformationSetHistory(byte[] informationSetForPlayer, Game justStartedGame)
+        public InformationSetHistory(byte[] informationSetForPlayer, List<(byte decisionIndex, byte information)> labeledInformationSetForPlayer, Game justStartedGame)
         {
             InformationSetForPlayer = informationSetForPlayer;
+            LabeledInformationSetForPlayer = labeledInformationSetForPlayer;
             PlayerIndex = justStartedGame.CurrentPlayerNumber;
             DecisionByteCode = justStartedGame.CurrentDecision.DecisionByteCode;
             DecisionIndex = justStartedGame.CurrentDecisionIndex ?? 0;

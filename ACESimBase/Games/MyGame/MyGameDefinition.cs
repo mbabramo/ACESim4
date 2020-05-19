@@ -241,7 +241,8 @@ namespace ACESim
                     Unroll_Parallelize_Identical = true,
                     DistributorChanceInputDecision = true,
                     DistributableDistributorChanceInput = true,
-                    ProvidesPrivateInformationFor = (byte)MyGamePlayers.Plaintiff
+                    ProvidesPrivateInformationFor = (byte)MyGamePlayers.Plaintiff,
+                    SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
                 });
             if (Options.DLiabilityNoiseStdev != 0)
                 decisions.Add(new Decision("DefendantLiabilitySignal", "DLS", true, (byte)MyGamePlayers.DLiabilitySignalChance,
@@ -253,7 +254,8 @@ namespace ACESim
                     Unroll_Parallelize_Identical = true,
                     DistributorChanceInputDecision = true,
                     DistributableDistributorChanceInput = true,
-                    ProvidesPrivateInformationFor = (byte) MyGamePlayers.Defendant
+                    ProvidesPrivateInformationFor = (byte) MyGamePlayers.Defendant,
+                    SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
                 });
             CreateLiabilitySignalsTables();
         }
@@ -297,7 +299,8 @@ namespace ACESim
                     Unroll_Parallelize_Identical = true,
                     DistributorChanceInputDecision = true,
                     DistributableDistributorChanceInput = true,
-                    ProvidesPrivateInformationFor = (byte)MyGamePlayers.Plaintiff
+                    ProvidesPrivateInformationFor = (byte)MyGamePlayers.Plaintiff,
+                    SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
                 });
             if (Options.DDamagesNoiseStdev != 0)
                 decisions.Add(new Decision("DefendantDamagesSignal", "DDS", true, (byte)MyGamePlayers.DDamagesSignalChance,
@@ -309,7 +312,8 @@ namespace ACESim
                     Unroll_Parallelize_Identical = true,
                     DistributorChanceInputDecision = true,
                     DistributableDistributorChanceInput = true,
-                    ProvidesPrivateInformationFor = (byte)MyGamePlayers.Defendant
+                    ProvidesPrivateInformationFor = (byte)MyGamePlayers.Defendant,
+                    SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
                 });
             CreateDamagesSignalsTables();
         }
@@ -370,7 +374,8 @@ namespace ACESim
                     2, (byte)MyGameDecisions.PFile)
                 { // TODO: Maybe can eliminate notice to plaintiff and defendant here and below
                     CanTerminateGame = true, // not filing always terminates
-                    IsReversible = true
+                    IsReversible = true,
+                    SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.SameAction)
                 };
             decisions.Add(pFile);
 
@@ -379,7 +384,8 @@ namespace ACESim
                     2, (byte)MyGameDecisions.DAnswer)
                 {
                     CanTerminateGame = true, // not answering terminates, with defendant paying full damages
-                    IsReversible = true
+                    IsReversible = true,
+                    SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.SameAction)
                 };
             decisions.Add(dAnswer);
         }
@@ -397,7 +403,8 @@ namespace ACESim
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_PAgreesToBargain,
                     DeferNotificationOfPlayers = true,
                     WarmStartThroughIteration = Options.WarmStartThroughIteration,
-                    WarmStartValue = 1
+                    WarmStartValue = 1,
+                    SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.SameAction)
                 };
                 decisions.Add(pAgreeToBargain);
 
@@ -407,7 +414,8 @@ namespace ACESim
                     CustomByte = (byte) (b + 1),
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_DAgreesToBargain,
                     WarmStartThroughIteration = Options.WarmStartThroughIteration,
-                    WarmStartValue = 1
+                    WarmStartValue = 1,
+                    SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.SameAction)
                 };
                 decisions.Add(dAgreeToBargain);
             }
@@ -440,7 +448,8 @@ namespace ACESim
                             MyGameWarmStartOptions.DiscourageSettlementByMakingOpponentGenerous => 1,
                             MyGameWarmStartOptions.FacilitateSettlementByMakingOpponentStingy => Options.NumOffers,
                             _ => 0,
-                        })
+                        }),
+                        SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ReverseAction)
                     };
                 AddOfferDecision(decisions, pOffer);
                 var dOffer =
@@ -457,7 +466,8 @@ namespace ACESim
                             MyGameWarmStartOptions.DiscourageSettlementByMakingOpponentGenerous => Options.NumOffers,
                             MyGameWarmStartOptions.FacilitateSettlementByMakingOpponentStingy => 1,
                             _ => 0,
-                        })
+                        }),
+                        SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ReverseAction)
                     };
                 AddOfferDecision(decisions, dOffer);
             }
@@ -473,6 +483,7 @@ namespace ACESim
                             CustomByte = (byte)(b + 1),
                             StoreActionInGameCacheItem = GameHistoryCacheIndex_POffer,
                             IsContinuousAction = true,
+                            SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.SameAction) // NOTE: We could make this compatible with symmetry by having an earlier chance decision that randomly chooses who goes first
                         }; // { AlwaysDoAction = 4});
                     AddOfferDecision(decisions, pOffer);
                     decisions.Add(
@@ -488,7 +499,8 @@ namespace ACESim
                                 MyGameWarmStartOptions.DiscourageSettlementByMakingOpponentGenerous => 1,
                                 MyGameWarmStartOptions.FacilitateSettlementByMakingOpponentStingy => 2,
                                 _ => 0,
-                            })
+                            }),
+                            SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.SameAction)
                         });
                 }
                 else
@@ -506,7 +518,8 @@ namespace ACESim
                                 MyGameWarmStartOptions.DiscourageSettlementByMakingOpponentGenerous => Options.NumOffers,
                                 MyGameWarmStartOptions.FacilitateSettlementByMakingOpponentStingy => 1,
                                 _ => 0,
-                            })
+                            }),
+                            SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.SameAction)
                         };
                     AddOfferDecision(decisions, dOffer);
                     decisions.Add(
@@ -522,7 +535,8 @@ namespace ACESim
                                 MyGameWarmStartOptions.DiscourageSettlementByMakingOpponentGenerous => 1,
                                 MyGameWarmStartOptions.FacilitateSettlementByMakingOpponentStingy => 2,
                                 _ => 0,
-                            })
+                            }),
+                            SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.SameAction)
                         });
                 }
             }
@@ -543,6 +557,7 @@ namespace ACESim
                     CanTerminateGame = false,
                     DeferNotificationOfPlayers = true,
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_PChipsAction,
+                    SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.SameAction)
                 };
             decisions.Add(pRSideBet);
             var dRSideBet =
@@ -553,6 +568,7 @@ namespace ACESim
                     CanTerminateGame = false,
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_DChipsAction,
                     IsReversible = true,
+                    SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.SameAction)
                 };
             decisions.Add(dRSideBet);
         }
@@ -567,6 +583,7 @@ namespace ACESim
                     CanTerminateGame = false, // we always must look at whether D is defaulting too. 
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_PReadyToAbandon,
                     IsReversible = true,
+                    SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.SameAction)
                 };
             decisions.Add(pAbandon);
 
@@ -578,6 +595,7 @@ namespace ACESim
                     CanTerminateGame = true, // if either but not both has given up, game terminates
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_DReadyToAbandon,
                     IsReversible = true,
+                    SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.SameAction)
                 };
             decisions.Add(dDefault);
 
@@ -588,7 +606,8 @@ namespace ACESim
                     CustomByte = (byte)(b + 1),
                     CanTerminateGame = true, // if this decision is needed, then both have given up, and the decision always terminates the game
                     CriticalNode = true, // always play out both sides of this coin flip
-                    IsReversible = true
+                    IsReversible = true,
+                    SymmetryMap = (SymmetryMapInput.NotInInformationSet, SymmetryMapOutput.ChanceDecision)
                 };
             decisions.Add(bothGiveUp);
         }
@@ -601,7 +620,8 @@ namespace ACESim
                 {
                     CustomByte = (byte)(b + 1),
                     CanTerminateGame = false, 
-                    CriticalNode = false, // doesn't matter -- just one possibility
+                    CriticalNode = false, // doesn't matter -- just one possibility,
+                    SymmetryMap = (SymmetryMapInput.NotInInformationSet, SymmetryMapOutput.ChanceDecision)
                 };
             decisions.Add(dummyDecision);
         }
@@ -615,7 +635,8 @@ namespace ACESim
                     CustomByte = (byte)(b + 1),
                     CanTerminateGame = false,
                     CriticalNode = false, // doesn't matter -- just one possibility
-                    IsReversible = true
+                    IsReversible = true,
+                    SymmetryMap = (SymmetryMapInput.NotInInformationSet, SymmetryMapOutput.ChanceDecision)
                 };
             decisions.Add(dummyDecision);
         }
@@ -627,11 +648,15 @@ namespace ACESim
                 Options.MyGamePretrialDecisionGeneratorGenerator.GetActionsSetup(this, out byte pActions, out byte dActions, out byte[] playersToInformOfPAction, out byte[] playersToInformOfDAction);
                 if (pActions > 0)
                 {
-                    decisions.Add(new Decision("PPreTrial", "PPT", false, (byte) MyGamePlayers.Plaintiff, playersToInformOfPAction, pActions, (byte) MyGameDecisions.PPretrialAction) { IsReversible = true});
+                    decisions.Add(new Decision("PPreTrial", "PPT", false, (byte) MyGamePlayers.Plaintiff, playersToInformOfPAction, pActions, (byte) MyGameDecisions.PPretrialAction) { IsReversible = true,
+                        SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.SameAction)
+                    });
                 }
                 if (dActions > 0)
                 {
-                    decisions.Add(new Decision("DPreTrial", "DPT", false, (byte)MyGamePlayers.Defendant, playersToInformOfDAction, dActions, (byte)MyGameDecisions.DPretrialAction) { IsReversible = true });
+                    decisions.Add(new Decision("DPreTrial", "DPT", false, (byte)MyGamePlayers.Defendant, playersToInformOfDAction, dActions, (byte)MyGameDecisions.DPretrialAction) { IsReversible = true,
+                        SymmetryMap = (SymmetryMapInput.NotCompatibleWithSymmetry, SymmetryMapOutput.SameAction)
+                    });
                 }
             }
         }
@@ -642,12 +667,16 @@ namespace ACESim
             decisions.Add(new Decision("CourtLiabilityDecision", "CL", true, (byte)MyGamePlayers.CourtLiabilityChance,
                     new byte[] { (byte)MyGamePlayers.Resolution }, 2, (byte)MyGameDecisions.CourtDecisionLiability,
                     unevenChanceActions: true, criticalNode: true)
-                { CanTerminateGame = true, AlwaysTerminatesGame = !courtDecidesDamages, IsReversible = true, DistributorChanceDecision = true, CanCalculateDistributorChanceDecisionProbabilitiesFromInformationSet = true, StoreActionInGameCacheItem = GameHistoryCacheIndex_PWins }); // even chance options
+                { CanTerminateGame = true, AlwaysTerminatesGame = !courtDecidesDamages, IsReversible = true, DistributorChanceDecision = true, CanCalculateDistributorChanceDecisionProbabilitiesFromInformationSet = true, StoreActionInGameCacheItem = GameHistoryCacheIndex_PWins,
+                SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
+            }); // even chance options
             if (courtDecidesDamages)
                 decisions.Add(new Decision("CourtDamagesDecision", "CD", true, (byte)MyGamePlayers.CourtDamagesChance,
                     new byte[] { (byte)MyGamePlayers.Resolution }, Options.NumDamagesSignals, (byte)MyGameDecisions.CourtDecisionDamages,
                     unevenChanceActions: true, criticalNode: true)
-                { CanTerminateGame = true, AlwaysTerminatesGame = true, IsReversible = true, DistributorChanceDecision = true, CanCalculateDistributorChanceDecisionProbabilitiesFromInformationSet = true }); // even chance options
+                { CanTerminateGame = true, AlwaysTerminatesGame = true, IsReversible = true, DistributorChanceDecision = true, CanCalculateDistributorChanceDecisionProbabilitiesFromInformationSet = true,
+                    SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
+                }); // even chance options
         }
 
         #endregion

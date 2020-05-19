@@ -1,4 +1,5 @@
 ﻿using ACESim.Util;
+using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -403,7 +404,8 @@ namespace ACESim
             bool isNecessarilyLast = false; // Not relevant now that we are storing final utilities decisio n.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
             bool creatingInformationSet = false; // verify inner lock working correctly
             InformationSetHistory informationSetHistoryCopy = informationSetHistory;
-            Span<byte> informationSetForPlayer = informationSetHistoryCopy.InformationSetForPlayer;
+            byte[] informationSetForPlayer = informationSetHistoryCopy.InformationSetForPlayer;
+            var labeledInformationSetForPlayer = informationSetHistoryCopy.LabeledInformationSetForPlayer;
             NWayTreeStorage<IGameState> informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
                         informationSetHistoryCopy.DecisionIndex, // this will be a choice at the root level of the information set
                         informationSetHistoryCopy.InformationSetForPlayer,
@@ -444,7 +446,12 @@ namespace ACESim
                         }
                         );
             if (informationSetNode.StoredValue is InformationSetNode isn && isn.InformationSetContents == null)
-                isn.InformationSetContents = ListExtensions.GetSpan255TerminatedAsArray(informationSetForPlayer);
+            {
+                if (ListExtensions.GetSpan255TerminatedAsArray(informationSetForPlayer).SequenceEqual(informationSetForPlayer) == false)
+                    throw new Exception("DEBUG -- must change back to Span255");
+                isn.InformationSetContents = informationSetForPlayer;
+                isn.LabeledInformationSet = labeledInformationSetForPlayer;
+            }
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
                 TreePoint.StoredValue = informationSetNode.StoredValue;
             return informationSetNode.StoredValue;

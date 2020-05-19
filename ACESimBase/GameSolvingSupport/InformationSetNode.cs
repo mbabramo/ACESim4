@@ -1,6 +1,7 @@
 ﻿using ACESim.Util;
 using ACESimBase.GameSolvingSupport;
 using ACESimBase.Util;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -26,6 +27,7 @@ namespace ACESim
         public Decision Decision;
         public EvolutionSettings EvolutionSettings;
         public byte[] InformationSetContents;
+        public List<(byte decisionIndex, byte information)> LabeledInformationSet;
         public byte[] InformationSetContentsSinceParent => ParentInformationSet == null ? InformationSetContents : InformationSetContents.Skip(ParentInformationSet.InformationSetContents.Length).ToArray();
         public string InformationSetContentsSinceParentString => String.Join(",", InformationSetContentsSinceParent);
         public byte DecisionByteCode => Decision.DecisionByteCode;
@@ -110,6 +112,68 @@ namespace ACESim
             V = 0;
             MaxAbsRegretDiff = 0;
             E = 1;
+        }
+
+        public byte[] GetSymmetricInformationSet(GameDefinition gameDefinition)
+        {
+            byte[] symmetric = InformationSetContents.ToArray();
+            for (int i = 0; i < symmetric.Length; i++)
+            {
+                byte decisionIndex = LabeledInformationSet[i].decisionIndex;
+                Decision decision = gameDefinition.DecisionPointsExecutionOrder[decisionIndex].Decision;
+                var symmetryMap = decision.SymmetryMap;
+                if (symmetryMap.information == SymmetryMapInput.NotInInformationSet)
+                    throw new Exception("Information supposedly not in information set found in information set");
+                if (symmetryMap.information == SymmetryMapInput.NotCompatibleWithSymmetry)
+                    throw new Exception("Decision not compatible with symmetry");
+                byte playerIndex = decision.PlayerIndex;
+                if (playerIndex == 0)
+                {
+                    byte nextDecisionIndex = LabeledInformationSet[i + 1].decisionIndex;
+                    Decision nextDecision = gameDefinition.DecisionPointsExecutionOrder[nextDecisionIndex].Decision;
+                    if (nextDecision.PlayerIndex != 1 || nextDecision.SymmetryMap != decision.SymmetryMap)
+                        throw new Exception();
+                    byte temp = symmetric[decisionIndex + 1];
+                    symmetric[decisionIndex + 1] = symmetric[decisionIndex];
+                    symmetric[decisionIndex] = temp;
+                    if (symmetryMap.information == SymmetryMapInput.ReverseInfo)
+                    {
+                        symmetric[decisionIndex] = (byte) (decision.NumPossibleActions - symmetric[decisionIndex] + 1);
+                        symmetric[decisionIndex + 1] = (byte) (decision.NumPossibleActions - symmetric[decisionIndex + 1] + 1);
+                    }
+                }
+                else if (decision.IsChance)
+                {
+                    if (symmetryMap.information == SymmetryMapInput.ReverseInfo)
+                        symmetric[decisionIndex] = (byte)(decision.NumPossibleActions - symmetric[decisionIndex] + 1);
+                }
+            }
+            return symmetric;
+        }
+
+        public static Dictionary<InformationSetNode, InformationSetNode> IdentifySymmetricInformationSets(List<InformationSetNode> nodes, GameDefinition gameDefinition)
+        {
+            if (!gameDefinition.GameIsSymmetric() || gameDefinition.DecisionsExecutionOrder.Any(x => x.SymmetryMap.information == SymmetryMapInput.NotCompatibleWithSymmetry))
+                throw new Exception("This game or a decision in it is not compatible with symmetry.");
+            Dictionary<string, InformationSetNode> reverseInformationSetToNodeMap = new Dictionary<string, InformationSetNode>();
+            Dictionary<InformationSetNode, InformationSetNode> result = new Dictionary<InformationSetNode, InformationSetNode>();
+            foreach (InformationSetNode node in nodes)
+            {
+                if (node.PlayerIndex == 0 || node.PlayerIndex == 1)
+                {
+                    byte[] reverse = node.GetSymmetricInformationSet(gameDefinition);
+                    reverseInformationSetToNodeMap[String.Join(",", reverse)] = node;
+                }
+            }
+            foreach (InformationSetNode node in nodes)
+            {
+                if (node.PlayerIndex == 0 || node.PlayerIndex == 1)
+                {
+                    InformationSetNode symmetricNode = reverseInformationSetToNodeMap[String.Join(",", node.InformationSetContents)];
+                    result[node] = symmetricNode;
+                }
+            }
+            return result;
         }
 
         public static void IdentifyNodeRelationships(List<InformationSetNode> all)

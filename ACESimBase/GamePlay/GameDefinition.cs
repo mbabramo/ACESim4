@@ -463,11 +463,6 @@ namespace ACESim
         /// <returns></returns>
         public virtual bool GameIsSymmetric() => false;
         
-        /// <summary>
-        
-        /// </summary>
-        /// <returns></returns>
-        public virtual (SymmetryMapInput information, InformationSetSymmetryMap_Decision decision)[] GetSymmetryMap() => throw new NotImplementedException();
 
         public virtual List<SimpleReportDefinition> GetSimpleReportDefinitions()
         {

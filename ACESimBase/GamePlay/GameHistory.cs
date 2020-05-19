@@ -456,7 +456,8 @@ namespace ACESim
                 byte actionChosen = ActionsHistory[i];
                 Decision d = decisions[decisionIndex];
                 byte[] informationSet = GetCurrentInformationSetForPlayer_Array(d.PlayerIndex);
-                informationSetHistories.Add(new InformationSetHistory(informationSet, d.PlayerIndex, d.DecisionByteCode, decisionIndex, actionChosen, d.NumPossibleActions));
+                var labeledInformationSet = GetLabeledCurrentInformationSetForPlayer(d.PlayerIndex);
+                informationSetHistories.Add(new InformationSetHistory(informationSet, labeledInformationSet, d.PlayerIndex, d.DecisionByteCode, decisionIndex, actionChosen, d.NumPossibleActions));
             }
             return informationSetHistories;
         }

@@ -735,9 +735,13 @@ namespace ACESim
             }
             byte playerIndex = game.CurrentDecision?.PlayerIndex ?? 0;
             byte[] informationSetForPlayer = new byte[GameHistory.MaxInformationSetLength];
+            List<(byte decisionIndex, byte information)> labeledInformationSetForPlayer = null;
             if (!gameProgress.GameComplete)
+            {
                 gameProgress.GameHistory.GetCurrentInformationSetForPlayer(playerIndex, informationSetForPlayer);
-            informationSetHistory = new InformationSetHistory(informationSetForPlayer, game);
+                labeledInformationSetForPlayer = gameProgress.GameHistory.GetLabeledCurrentInformationSetForPlayer(playerIndex); // DEBUG -- maybe load this only if we are playing a symmetric game
+            }
+            informationSetHistory = new InformationSetHistory(informationSetForPlayer, labeledInformationSetForPlayer, game);
             HistoryPoint updatedHistoryPoint = historyPoint.WithGameProgress(gameProgress).WithHistoryToPoint(gameProgress.GameHistory);
             if (gameProgress.GameComplete)
                 gameState = ProcessProgress(in updatedHistoryPoint, navigationSettings, gameProgress);

@@ -22,5 +22,9 @@ namespace ACESimBase.GameSolvingSupport
         /// This decision maps in reverse. That is, if this information appears in player 0's information set as action a, and the number of possible actions is n, then the corresponding information set for player 1 has this information has action n - a + 1. 
         /// </summary>
         ReverseInfo,
+        /// <summary>
+        /// This decision cannot be used in a symmetric game, because as it is defined, play is not symmetric.
+        /// </summary>
+        NotCompatibleWithSymmetry,
     }
 }

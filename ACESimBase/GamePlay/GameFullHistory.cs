@@ -207,7 +207,7 @@ namespace ACESim
             byte actionChosen = GetHistoryIndex(index + History_Action_Offset);
             byte numPossibleActions = GetHistoryIndex(index + History_NumPossibleActions_Offset);
             bool isTerminalAction = GetHistoryIndex(index + History_NumPiecesOfInformation) == HistoryComplete;
-            var informationSetHistory = new InformationSetHistory(informationSetForPlayer, playerIndex, decisionByteCode, decisionIndex, actionChosen, numPossibleActions);
+            var informationSetHistory = new InformationSetHistory(informationSetForPlayer, null /* TODO -- not really needed in full history but we could add this */, playerIndex, decisionByteCode, decisionIndex, actionChosen, numPossibleActions);
             InformationSetLog.GetPlayerInformationAtPoint(playerIndex, decisionIndex, informationSetHistory.InformationSetForPlayer);
             return informationSetHistory;
         }
