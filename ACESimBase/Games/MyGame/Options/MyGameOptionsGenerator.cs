@@ -241,14 +241,9 @@ namespace ACESim
         public static MyGameOptions Custom2()
         {
             // make it symmetric
-            var options = SuperSimple();
+            var options = DamagesUncertainty_2BR();
 
-            //// SUPERDEBUG
-            //options.NumDamagesStrengthPoints = 1;
-            //options.NumDamagesSignals = 1;
-            //options.NumLiabilityStrengthPoints = 2;
-            //options.NumLiabilitySignals = 1;
-            //options.CostsMultiplier = 0;
+            options.CostsMultiplier = 0; // DEBUG
 
             options.SkipFileAndAnswerDecisions = true;
             options.PInitialWealth = options.DInitialWealth - options.DamagesMax; // so, fees aside, the losing party will end up at PInitialWealth, and the winning party will end up at DInitialWealth.

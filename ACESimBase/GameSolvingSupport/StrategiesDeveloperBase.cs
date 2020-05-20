@@ -739,7 +739,7 @@ namespace ACESim
             if (!gameProgress.GameComplete)
             {
                 gameProgress.GameHistory.GetCurrentInformationSetForPlayer(playerIndex, informationSetForPlayer);
-                labeledInformationSetForPlayer = gameProgress.GameHistory.GetLabeledCurrentInformationSetForPlayer(playerIndex); // DEBUG -- maybe load this only if we are playing a symmetric game
+                labeledInformationSetForPlayer = gameProgress.GameHistory.GetLabeledCurrentInformationSetForPlayer(playerIndex); // TODO -- maybe load this only if we are playing a symmetric game
             }
             informationSetHistory = new InformationSetHistory(informationSetForPlayer, labeledInformationSetForPlayer, game);
             HistoryPoint updatedHistoryPoint = historyPoint.WithGameProgress(gameProgress).WithHistoryToPoint(gameProgress.GameHistory);

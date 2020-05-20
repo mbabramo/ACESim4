@@ -154,7 +154,7 @@ namespace ACESim
                     break;
                 case (byte)MyGameDecisions.CourtDecisionLiability:
                     MyProgress.TrialOccurs = true;
-                    MyProgress.PWinsAtTrial = /* MyDefinition.Options.NumLiabilitySignals == 1 || DEBUG SUPERDEBUG */
+                    MyProgress.PWinsAtTrial = MyDefinition.Options.NumLiabilitySignals == 1 /* IMPORTANT: This highlights that when there is only one liability signal, the court ALWAYS finds liability */ || 
                         action == 2; 
                     if (MyProgress.PWinsAtTrial == false)
                     {

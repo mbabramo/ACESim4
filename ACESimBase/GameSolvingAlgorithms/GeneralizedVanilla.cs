@@ -913,7 +913,8 @@ namespace ACESim
             {
                 if (playerBeingOptimized == 1 && GameDefinition.GameIsSymmetric() && iteration > 1 && !VerifySymmetry)
                     continue;
-                TabbedText.WriteLine($"Optimizing for player {playerBeingOptimized}"); // DEBUG -- remove line
+                if (TraceCFR)
+                    TabbedText.WriteLine($"Optimizing for player {playerBeingOptimized}");
                 GeneralizedVanillaCFRIteration_OptimizePlayer(iteration, results, playerBeingOptimized);
             }
             UpdateInformationSets(iteration);
@@ -1103,12 +1104,22 @@ namespace ACESim
                         result.IncrementBasedOnNotYetProbabilityAdjusted(ref innerResult, probabilityOfActionAvgStrat, probabilityOfAction);
                     }
                     expectedValue += probabilityOfAction * expectedValueOfAction[action - 1];
-
-                    if (TraceCFR)
+                    // DEBUG -- experimental. If it works, must add to Unroll_
+                    if (playerMakingDecision != playerBeingOptimized)
                     {
+                        result.BestResponseToAverageStrategy = expectedValue;
+                    }
+
+                        if (TraceCFR)
+                    {
+                        if (DEBUGCount5 == 44649)
+                        {
+                            var DEBUGSDFSDFG = 0;
+                        }
                         TabbedText.TabUnindent();
                         TabbedText.WriteLine(
-                            $"... action {action}{(informationSet.BestResponseAction == action && IncludeAsteriskForBestResponseInTrace ? "*" : "")} expected value {expectedValueOfAction[action - 1]} best response expected value {result.BestResponseToAverageStrategy} cum expected value {expectedValue}{(action == numPossibleActions && IncludeAsteriskForBestResponseInTrace ? "*" : "")}");
+                            $"... action {action}{(informationSet.BestResponseAction == action && IncludeAsteriskForBestResponseInTrace ? "*" : "")} expected value {expectedValueOfAction[action - 1]} best response expected value {result.BestResponseToAverageStrategy} cum expected value {expectedValue}{(action == numPossibleActions && IncludeAsteriskForBestResponseInTrace ? "*" : "")} {DEBUGCount5++}");
+
                     }
                     if (Navigation.LookupApproach != InformationSetLookupApproach.PlayGameDirectly && informationSet.Decision.IsReversible)
                     {
@@ -1191,8 +1202,16 @@ namespace ACESim
             return result;
         }
 
+        static int DEBUGCount3 = 0;
+
         private GeneralizedVanillaUtilities GeneralizedVanillaCFR_ChanceNode_NextAction(in HistoryPoint historyPoint, byte playerBeingOptimized, Span<double> piValues, Span<double> avgStratPiValues, ChanceNode chanceNode, byte action, int distributorChanceInputs)
         {
+            TabbedText.DisableOutput(); // DEBUG
+            int DEBUGCount4 = DEBUGCount3++;
+            if (DEBUGCount4 == 69415)
+            {
+                var DEBUGasdfasdf = 0;
+            }
             Span<double> nextPiValues = stackalloc double[MaxNumMainPlayers];
             Span<double> nextAvgStratPiValues = stackalloc double[MaxNumMainPlayers];
             double actionProbability = chanceNode.GetActionProbability(action, distributorChanceInputs);
@@ -1213,16 +1232,24 @@ namespace ACESim
             if (TraceCFR)
             {
                 TabbedText.WriteLine(
-                    $"Chance code {chanceNode.DecisionByteCode} ({GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.DecisionByteCode == chanceNode.DecisionByteCode).Name}) action {action} probability {actionProbability} ...");
+                    $"Chance code {chanceNode.DecisionByteCode} ({chanceNode.Decision.Name}) action {action} probability {actionProbability} ...");
                 TabbedText.TabIndent();
+            }
+            if (DEBUGCount4 == 69416)
+            {
+                var DEBUGasdfasdf = 0;
             }
             GeneralizedVanillaUtilities result =
                 GeneralizedVanillaCFR(in nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, distributorChanceInputsNext);
             if (TraceCFR)
             {
+                if (DEBUGCount2 == 69556)
+                {
+                    var DEBUGasdfasdfas = 0;
+                }
                 TabbedText.TabUnindent();
                 TabbedText.WriteLine(
-                    $"... action {action} value {result.CurrentVsCurrent} probability {actionProbability} expected value contribution {result.CurrentVsCurrent * actionProbability}");
+                    $"... action {action} value {result.CurrentVsCurrent} probability {actionProbability} expected value contribution {result.CurrentVsCurrent * actionProbability} {DEBUGCount2++}");
             }
             result.MakeProbabilityAdjusted(actionProbability);
             if (Navigation.LookupApproach != InformationSetLookupApproach.PlayGameDirectly && chanceNode.Decision.IsReversible)
@@ -1230,6 +1257,9 @@ namespace ACESim
 
             return result;
         }
+
+        static int DEBUGCount2 = 0;
+        static int DEBUGCount5 = 0;
 
         #endregion
 

@@ -106,7 +106,7 @@ namespace ACESim
             throw new NotImplementedException(); // we use even chance probabilities
         }
 
-        public bool SupportsSymmetry() => false; // DEBUG -- we might be able to change this by changing the curvature so that we have symmetry around probability of 0.5
+        public bool SupportsSymmetry() => false; // we might be able to change this by changing the curvature so that we have symmetry around probability of 0.5
 
         public bool PostPrimaryDoesNotAffectStrategy() => false;
     }

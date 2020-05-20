@@ -586,7 +586,7 @@ namespace ACESim
                     CanTerminateGame = false, // we always must look at whether D is defaulting too. 
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_PReadyToAbandon,
                     IsReversible = true,
-                    SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.SameAction)
+                    SymmetryMap = (SymmetryMapInput.SameInfo, SymmetryMapOutput.SameAction)
                 };
             decisions.Add(pAbandon);
 
@@ -598,7 +598,7 @@ namespace ACESim
                     CanTerminateGame = true, // if either but not both has given up, game terminates
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_DReadyToAbandon,
                     IsReversible = true,
-                    SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.SameAction)
+                    SymmetryMap = (SymmetryMapInput.SameInfo, SymmetryMapOutput.SameAction)
                 };
             decisions.Add(dDefault);
 

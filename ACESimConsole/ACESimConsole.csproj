@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="TextCopy" Version="1.7.1" />
+    <PackageReference Include="TextCopy" Version="3.3.0" />
   </ItemGroup>
 
   <ItemGroup>
