@@ -243,12 +243,12 @@ namespace ACESim
             // make it symmetric
             var options = SuperSimple();
 
-            // SUPERDEBUG
-            options.NumDamagesStrengthPoints = 1;
-            options.NumDamagesSignals = 1;
-            options.NumLiabilityStrengthPoints = 2;
-            options.NumLiabilitySignals = 1;
-            options.CostsMultiplier = 0;
+            //// SUPERDEBUG
+            //options.NumDamagesStrengthPoints = 1;
+            //options.NumDamagesSignals = 1;
+            //options.NumLiabilityStrengthPoints = 2;
+            //options.NumLiabilitySignals = 1;
+            //options.CostsMultiplier = 0;
 
             options.SkipFileAndAnswerDecisions = true;
             options.PInitialWealth = options.DInitialWealth - options.DamagesMax; // so, fees aside, the losing party will end up at PInitialWealth, and the winning party will end up at DInitialWealth.

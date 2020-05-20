@@ -27,7 +27,7 @@ namespace ACESim
         public const int MiniReportEveryPIterations = EffectivelyNever;
         public const bool AlwaysSuppressDisplayReportOnScreen = true; 
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever;
-        public const bool UseRandomPathsForReporting = true; 
+        public const bool UseRandomPathsForReporting = false; // DEBUG
         public const int SummaryTableRandomPathsIterations = 10_000;
         public const int ProbingIterations = 20_000_000;
 
