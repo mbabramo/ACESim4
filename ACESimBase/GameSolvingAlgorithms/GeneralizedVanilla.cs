@@ -96,6 +96,8 @@ namespace ACESim
 
         public void CopySymmetricInformationSets()
         {
+            if (VerifySymmetry && EvolutionSettings.PruneOnOpponentStrategy)
+                throw new Exception("Should not verify symmetry with pruning."); // the reason is that one player may have twice as many VISITS to information sets as the other player because of decision sequencing. Without pruning, these visits will add up to the same effect if symmetry is working correctly, but pruning may wipe out the unlikely half of these decisions. One can still USE pruning with enforcement of symmetry, after one has verified that it is working without pruning. Indeed, enforcing symmetry helps prevent mild asymmetries from the combination of sequencing and pruning.
             foreach (var dictionaryEntry in InformationSetSymmetryMap)
             {
                 InformationSetNode informationSet = dictionaryEntry.Key;

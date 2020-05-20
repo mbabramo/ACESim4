@@ -13,7 +13,7 @@ namespace ACESim
     [Serializable]
     public class EvolutionSettings
     {
-        public bool DistributeChanceDecisions = true; 
+        public bool DistributeChanceDecisions = false;  // DEBUG
         public bool UnrollAlgorithm = false; 
         public bool AzureEnabled = false;
         // Note: Many of the below are overridden by launcher.
@@ -86,7 +86,7 @@ namespace ACESim
         internal int NumRandomIterationsForUtilityCalculation = 10000;
         internal bool SuppressReportDisplayOnScreen;
 
-        public static bool PruneOnOpponentStrategy = true; // DEBUG // NOTE: In general sum games, this seems to cause difficulties, because some of the player's own information sets may not be visited, as a result of pruning on opponents' sets. 
+        public static bool PruneOnOpponentStrategy = false; // DEBUG // NOTE: In general sum games, this seems to cause difficulties, because some of the player's own information sets may not be visited, as a result of pruning on opponents' sets. 
         public static double PruneOnOpponentStrategyThreshold = 1E-4; // NOTE: This is the probability for this action, not the cumulative probability. Meanwhile, this is not looked at directly during the generalized tree walk. This value affects only the updating of the information sets, by setting pruned probability to the smallest value possible (a positive value about 1). Pruning will then happen in turn in the tree walk.
         public static bool PredeterminePrunabilityBasedOnRelativeContributions = false; // if True, then we prune if and only if the action contributes negligibly at any later information set
 

@@ -321,7 +321,7 @@ namespace ACESim
         {
             NodeInformation[bestResponseNumeratorDimension, action - 1] += piInverse * expectedValue;
             NodeInformation[bestResponseDenominatorDimension, action - 1] += piInverse;
-            TabbedText.WriteLine($"DEBUG {DEBUGCount++} best response increment {InformationSetNodeNumber}, {action}: {piInverse}*{expectedValue} => {NodeInformation[bestResponseNumeratorDimension, action - 1]} / {NodeInformation[bestResponseDenominatorDimension, action - 1]}");
+            TabbedText.WriteLine($"DEBUG #{DEBUGCount++} best response increment infoset {InformationSetNodeNumber}, {action}: {piInverse}*{expectedValue} => {NodeInformation[bestResponseNumeratorDimension, action - 1]} / {NodeInformation[bestResponseDenominatorDimension, action - 1]}");
             BestResponseDeterminedFromIncrements = false;
         }
 
@@ -536,6 +536,7 @@ namespace ACESim
         {
             NodeInformation[sumRegretTimesInversePiDimension, action - 1] += regretTimesInversePi;
             NodeInformation[sumInversePiDimension, action - 1] += inversePi;
+            TabbedText.WriteLine($"DEBUG #{DEBUGCount++} invPi, reg increment infoset {InformationSetNodeNumber}, {action}: {inversePi}, {regretTimesInversePi / inversePi} => {NodeInformation[sumInversePiDimension, action - 1]}, {NodeInformation[sumRegretTimesInversePiDimension, action - 1] / NodeInformation[sumInversePiDimension, action - 1]}");
         }
         public void IncrementLastRegret_Parallel(byte action, double regretTimesInversePi, double inversePi)
         {

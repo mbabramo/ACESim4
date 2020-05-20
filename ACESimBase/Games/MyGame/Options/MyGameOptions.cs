@@ -25,7 +25,7 @@ namespace ACESim
         /// </summary>
         public byte NumLiabilityStrengthPoints;
         /// <summary>
-        /// The number of discrete signals that a party can receive. For example, 10 signals would allow each party to differentiate 10 different levels of case strength.
+        /// The number of discrete signals that a party can receive. For example, 10 signals would allow each party to differentiate 10 different levels of case strength. If there is only 1 liability signal, liability is certain. (TODO: Allow for number of court liability signals to differ from number of party liability signals. In that case, we could have 1 liability signal for parties and 2 or more for courts, so liability occurs only some of the time. Also, having multiple liability signals for courts often isn't needed -- the question is just whether court thinks party is liable or not, except with some options where strength of case matters.)
         /// </summary>
         public byte NumLiabilitySignals;
         /// <summary>
