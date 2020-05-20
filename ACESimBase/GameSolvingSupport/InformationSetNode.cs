@@ -322,9 +322,9 @@ namespace ACESim
         {
             NodeInformation[bestResponseNumeratorDimension, action - 1] += piInverse * expectedValue;
             NodeInformation[bestResponseDenominatorDimension, action - 1] += piInverse;
-            if (InformationSetNodeNumber == 1 || InformationSetNodeNumber == 36)
+            if (InformationSetNodeNumber == 1 || InformationSetNodeNumber == 6)
             {
-                if (DEBUGCount == 29)
+                if (DEBUGCount == 95)
                 {
                     var DEBUGSSDF = 0;
                 }
@@ -1367,17 +1367,17 @@ namespace ACESim
                         throw new Exception("Symmetry verification failed.");
                     if (Math.Abs(NodeInformation[sumRegretTimesInversePiDimension, target] - sourceInformationSet.NodeInformation[sumRegretTimesInversePiDimension, source]) > 1E-6)
                         throw new Exception("Symmetry verification failed.");
-                    //if (Math.Abs(NodeInformation[bestResponseNumeratorDimension, target] - sourceInformationSet.NodeInformation[bestResponseNumeratorDimension, source]) > 1E-6)
-                    //{
-                    //    var DEBUG = TabbedText.AccumulatedText.ToString(); 
-                    //    TextCopy.Clipboard.SetText(DEBUG);
-                    //    throw new Exception("Symmetry verification failed.");
-                    //}
-                    //if (Math.Abs(NodeInformation[bestResponseDenominatorDimension, target] - sourceInformationSet.NodeInformation[bestResponseDenominatorDimension, source]) > 1E-6)
-                    //{
-                    //    var DEBUG = TabbedText.AccumulatedText.ToString();
-                    //    throw new Exception("Symmetry verification failed.");
-                    //}
+                    if (Math.Abs(NodeInformation[bestResponseNumeratorDimension, target] - sourceInformationSet.NodeInformation[bestResponseNumeratorDimension, source]) > 1E-6)
+                    {
+                        var DEBUG = TabbedText.AccumulatedText.ToString();
+                        TextCopy.Clipboard.SetText(DEBUG);
+                        throw new Exception("Symmetry verification failed.");
+                    }
+                    if (Math.Abs(NodeInformation[bestResponseDenominatorDimension, target] - sourceInformationSet.NodeInformation[bestResponseDenominatorDimension, source]) > 1E-6)
+                    {
+                        var DEBUG = TabbedText.AccumulatedText.ToString();
+                        throw new Exception("Symmetry verification failed.");
+                    }
                 }
                 // even if verifying symmetry, we make sure that the symmetry is exact, to avoid accumulating rounding errors
                 NodeInformation[sumInversePiDimension, target] = sourceInformationSet.NodeInformation[sumInversePiDimension, source];
