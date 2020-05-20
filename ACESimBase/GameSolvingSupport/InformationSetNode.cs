@@ -316,20 +316,10 @@ namespace ACESim
                     probabilities[a - 1] = 0;
         }
 
-        public static int DEBUGCount = 0;
-
         public void IncrementBestResponse(int action, double piInverse, double expectedValue)
         {
             NodeInformation[bestResponseNumeratorDimension, action - 1] += piInverse * expectedValue;
             NodeInformation[bestResponseDenominatorDimension, action - 1] += piInverse;
-            if (InformationSetNodeNumber == 1 || InformationSetNodeNumber == 6)
-            {
-                if (DEBUGCount == 95)
-                {
-                    var DEBUGSSDF = 0;
-                }
-                TabbedText.WriteLine($"DEBUGQQ {DEBUGCount++} Incrementing best response node {InformationSetNodeNumber} player {PlayerIndex} decision {Decision.Name} Information set {String.Join(",", LabeledInformationSet)} piInverse {piInverse} expectedValue {expectedValue}");
-            }
             BestResponseDeterminedFromIncrements = false;
         }
 
@@ -1324,26 +1314,17 @@ namespace ACESim
                 {
                     byte[] reverse = node.GetSymmetricInformationSet(gameDefinition);
                     reverseInformationSetToNodeMap[String.Join(",", reverse)] = node;
-                    Debug.WriteLine($"Player 0: {String.Join(";", node.InformationSetWithLabels(gameDefinition))} => {String.Join(",", reverse)}"); // DEBUG
-                }
-                else
-                { // DEBUG section not needed
-                    byte[] reverse = node.GetSymmetricInformationSet(gameDefinition);
-                    Debug.WriteLine($"Player 1: {String.Join(";", node.InformationSetWithLabels(gameDefinition))} => {String.Join(",", reverse)}"); // DEBUG
-                    if (String.Join(",", node.InformationSetContents) == "1,1,2,1,2")
-                    {
-                        var DEBUG = 0; // DEBUG -- this is for when we go back to 2 BR
-                    }
+                    // Debug.WriteLine($"Player 0: {String.Join(";", node.InformationSetWithLabels(gameDefinition))} => {String.Join(",", reverse)}"); 
                 }
             }
             foreach (InformationSetNode node in nodes)
             {
                 if (node.PlayerIndex == 1)
                 {
-                    Debug.WriteLine($"{node.InformationSetWithLabels(gameDefinition)}"); // DEBUG -- remove this
+                    //Debug.WriteLine($"{node.InformationSetWithLabels(gameDefinition)}");
                     InformationSetNode symmetricNode = reverseInformationSetToNodeMap[String.Join(",", node.InformationSetContents)];
                     result[node] = symmetricNode;
-                    Debug.WriteLine($"Information set {symmetricNode.InformationSetNodeNumber} => {node.InformationSetNodeNumber} "); // DEBUG
+                    //Debug.WriteLine($"Information set {symmetricNode.InformationSetNodeNumber} => {node.InformationSetNodeNumber} ");
                 }
             }
             return result;
@@ -1367,17 +1348,11 @@ namespace ACESim
                         throw new Exception("Symmetry verification failed.");
                     if (Math.Abs(NodeInformation[sumRegretTimesInversePiDimension, target] - sourceInformationSet.NodeInformation[sumRegretTimesInversePiDimension, source]) > 1E-6)
                         throw new Exception("Symmetry verification failed.");
-                    if (Math.Abs(NodeInformation[bestResponseNumeratorDimension, target] - sourceInformationSet.NodeInformation[bestResponseNumeratorDimension, source]) > 1E-6)
-                    {
-                        var DEBUG = TabbedText.AccumulatedText.ToString();
-                        TextCopy.Clipboard.SetText(DEBUG);
-                        throw new Exception("Symmetry verification failed.");
-                    }
-                    if (Math.Abs(NodeInformation[bestResponseDenominatorDimension, target] - sourceInformationSet.NodeInformation[bestResponseDenominatorDimension, source]) > 1E-6)
-                    {
-                        var DEBUG = TabbedText.AccumulatedText.ToString();
-                        throw new Exception("Symmetry verification failed.");
-                    }
+                    // NOTE: We can't get perfect symmetry in our online best response (at least currently). This does NOT affect our general best response calculation, just the online approximation; moreover, we can still get a symmetric response from the online approximation, we just can't use symmetry verification. The problem is that the player 1 information sets will be visited twice as much as the player 0 information sets because of the sequencing. And this effectively gives player 1 more options in selecting best responses using this algorithm. So we're disabling verification of this.
+                    //if (Math.Abs(NodeInformation[bestResponseNumeratorDimension, target] - sourceInformationSet.NodeInformation[bestResponseNumeratorDimension, source]) > 1E-6)
+                    //    throw new Exception("Symmetry verification failed.");
+                    //if (Math.Abs(NodeInformation[bestResponseDenominatorDimension, target] - sourceInformationSet.NodeInformation[bestResponseDenominatorDimension, source]) > 1E-6)
+                    //    throw new Exception("Symmetry verification failed.");
                 }
                 // even if verifying symmetry, we make sure that the symmetry is exact, to avoid accumulating rounding errors
                 NodeInformation[sumInversePiDimension, target] = sourceInformationSet.NodeInformation[sumInversePiDimension, source];

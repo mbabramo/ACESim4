@@ -241,9 +241,9 @@ namespace ACESim
         public static MyGameOptions Custom2()
         {
             // make it symmetric
-            var options = DamagesUncertainty_1BR();
+            var options = DamagesUncertainty_2BR();
 
-            options.CostsMultiplier = 0; // DEBUG
+            options.CostsMultiplier = 0; 
             options.NumDamagesSignals = 2;
             options.NumDamagesStrengthPoints = 2;
             options.NumOffers = 2;

@@ -373,7 +373,7 @@ namespace ACESim
                     finalUtilities = (FinalUtilitiesNode)strategy.GetInformationSetTreeValue(resolutionInformationSet);
                 }
                 if (finalUtilities == null)
-                    throw new Exception("Internal error. Not able to find final utilities in cached game history or game tree."); // DEBUG -- figure out why this is happening when using all paths
+                    throw new Exception("Internal error. Not able to find final utilities in cached game history or game tree."); // DEBUG -- figure out why this is happening when using all paths for reporting
                 utilitiesFromCachedGameHistory = finalUtilities.Utilities;
             }
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods && !utilitiesFromGameTree.SequenceEqual(utilitiesFromCachedGameHistory))
