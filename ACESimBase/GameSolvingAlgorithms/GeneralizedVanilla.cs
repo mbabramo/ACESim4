@@ -911,6 +911,7 @@ namespace ACESim
             {
                 if (playerBeingOptimized == 1 && GameDefinition.GameIsSymmetric() && iteration > 1 && !VerifySymmetry)
                     continue;
+                TabbedText.WriteLine($"Optimizing for player {playerBeingOptimized}"); // DEBUG -- remove line
                 GeneralizedVanillaCFRIteration_OptimizePlayer(iteration, results, playerBeingOptimized);
             }
             UpdateInformationSets(iteration);

@@ -315,10 +315,13 @@ namespace ACESim
                     probabilities[a - 1] = 0;
         }
 
+        public int DEBUGCount = 0;
+
         public void IncrementBestResponse(int action, double piInverse, double expectedValue)
         {
             NodeInformation[bestResponseNumeratorDimension, action - 1] += piInverse * expectedValue;
             NodeInformation[bestResponseDenominatorDimension, action - 1] += piInverse;
+            TabbedText.WriteLine($"DEBUG {DEBUGCount++} best response increment {InformationSetNodeNumber}, {action}: {piInverse}*{expectedValue} => {NodeInformation[bestResponseNumeratorDimension, action - 1]} / {NodeInformation[bestResponseDenominatorDimension, action - 1]}");
             BestResponseDeterminedFromIncrements = false;
         }
 
