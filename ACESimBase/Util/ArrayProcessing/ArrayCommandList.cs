@@ -300,6 +300,10 @@ namespace ACESimBase.Util.ArrayProcessing
         private void SetupVirtualStack(NWayTreeStorageInternal<ArrayCommandChunk> node)
         {
             ArrayCommandChunk c = node.StoredValue;
+            if (c.ID == 10)
+            {
+                var DEBUG = 0;
+            }
             c.VirtualStack = new double[MaxArrayIndex + 1];
             c.VirtualStackID = NextVirtualStackID++;
             if (node.Branches == null || node.Branches.Length == 0)
@@ -460,6 +464,10 @@ namespace ACESimBase.Util.ArrayProcessing
             //Debug.WriteLine($"Addcommand {NextCommandIndex}: {command}");
             if (NextCommandIndex == 0 && command.CommandType != ArrayCommandType.Blank)
                 InsertBlankCommand();
+            if (NextCommandIndex == 74)
+            {
+                var DEBUG = 0;
+            }
             if (RepeatingExistingCommandRange)
             {
                 ArrayCommand existingCommand = UnderlyingCommands[NextCommandIndex];
@@ -1051,6 +1059,8 @@ else
 
         public void ExecuteAll(double[] array, bool tracing)
         {
+            if (CommandTreeString == null)
+                throw new Exception("CommandTree not created yet.");
             PrepareOrderedSourcesAndDestinations(array);
             if (tracing && (DoParallel || RepeatIdenticalRanges || UseOrderedDestinations || UseOrderedSources)) 
                 throw new Exception("Cannot trace unrolling with any of these options."); // NOTE: We can use checkpoints instead of tracing

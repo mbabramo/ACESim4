@@ -1355,10 +1355,8 @@ namespace ACESim
                     //    throw new Exception("Symmetry verification failed.");
                 }
                 // even if verifying symmetry, we make sure that the symmetry is exact, to avoid accumulating rounding errors
-                NodeInformation[sumInversePiDimension, target] = sourceInformationSet.NodeInformation[sumInversePiDimension, source];
-                NodeInformation[sumRegretTimesInversePiDimension, target] = sourceInformationSet.NodeInformation[sumRegretTimesInversePiDimension, source];
-                NodeInformation[bestResponseNumeratorDimension, target] = sourceInformationSet.NodeInformation[bestResponseNumeratorDimension, source];
-                NodeInformation[bestResponseDenominatorDimension, target] = sourceInformationSet.NodeInformation[bestResponseDenominatorDimension, source];
+                for (int dimension = 0; dimension <= scratchDimension; dimension++)
+                    NodeInformation[dimension, target] = sourceInformationSet.NodeInformation[dimension, source];
             }
         }
 

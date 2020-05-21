@@ -15,8 +15,9 @@ namespace ACESim
     {
         double AverageStrategyAdjustment, AverageStrategyAdjustmentAsPctOfMax;
         PostIterationUpdaterBase PostIterationUpdater;
+        bool ShortcutInSymmetricGames = true; 
         Dictionary<InformationSetNode, InformationSetNode> InformationSetSymmetryMap;
-        bool VerifySymmetry = true; // DEBUG // if true, symmetry is verified instead of used as a way of saving time
+        bool VerifySymmetry = false; // if true, symmetry is verified instead of used as a way of saving time
 
         public GeneralizedVanilla(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition, PostIterationUpdaterBase postIterationUpdater) : base(existingStrategyState, evolutionSettings, gameDefinition)
         {
@@ -84,13 +85,12 @@ namespace ACESim
 
         private void HandleSymmetry(int iteration)
         {
-            bool symmetric = GameDefinition.GameIsSymmetric();
+            bool symmetric = GameDefinition.GameIsSymmetric() && ShortcutInSymmetricGames;
             if (symmetric)
             {
                 if (iteration == 1)
                     InformationSetSymmetryMap = InformationSetNode.IdentifySymmetricInformationSets(InformationSets, GameDefinition);
-                if (iteration > 1 || VerifySymmetry)
-                    CopySymmetricInformationSets();
+                CopySymmetricInformationSets();
             }
         }
 
@@ -104,7 +104,7 @@ namespace ACESim
                 if (informationSet.PlayerIndex == 1)
                 {
                     InformationSetNode correspondingPlayer0InformationSet = dictionaryEntry.Value;
-                    informationSet.CopyFromSymmetricInformationSet(correspondingPlayer0InformationSet, GameDefinition.DecisionsExecutionOrder[dictionaryEntry.Key.DecisionIndex].SymmetryMap.decision, VerifySymmetry);
+                    informationSet.CopyFromSymmetricInformationSet(correspondingPlayer0InformationSet, GameDefinition.DecisionsExecutionOrder[dictionaryEntry.Key.DecisionIndex].SymmetryMap.decision,  VerifySymmetry);
                 }
             }
         }
@@ -219,12 +219,15 @@ namespace ACESim
             List<int> resultIndices = new List<int>();
 
             Unroll_Commands.StartCommandChunk(false, null, "Iteration");
+            bool takeSymmetryShortcut = NumNonChancePlayers == 2 && GameDefinition.GameIsSymmetric() && ShortcutInSymmetricGames;
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
+                if (takeSymmetryShortcut && p == 1)
+                    continue;
                 Unroll_Commands.StartCommandChunk(false, null, "Optimizing player " + p.ToString());
                 if (TraceCFR)
                     TabbedText.WriteLine($"Unrolling for Player {p}");
-                Unroll_GeneralizedVanillaCFR(in historyPoint, p, Unroll_InitialPiValuesIndices, Unroll_InitialAvgStratPiValuesIndices, Unroll_IterationResultForPlayersIndices[p], true, 0);
+                Unroll_GeneralizedVanillaCFR(in historyPoint, p, Unroll_InitialPiValuesIndices, Unroll_InitialAvgStratPiValuesIndices, Unroll_IterationResultForPlayersIndices[p], true, 0, takeSymmetryShortcut || p == NumNonChancePlayers - 1);
                 Unroll_Commands.EndCommandChunk();
             }
             Unroll_Commands.EndCommandChunk();
@@ -504,7 +507,7 @@ namespace ACESim
 
         #region Unrolled algorithm
 
-        public void Unroll_GeneralizedVanillaCFR(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool algorithmIsLowestDepth, int distributorChanceInputs)
+        public void Unroll_GeneralizedVanillaCFR(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool algorithmIsLowestDepth, int distributorChanceInputs, bool completeCommandList)
         {
             Unroll_Commands.IncrementDepth();
             IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
@@ -525,7 +528,7 @@ namespace ACESim
             }
             else
                 Unroll_GeneralizedVanillaCFR_DecisionNode(in historyPoint, playerBeingOptimized, piValues, avgStratPiValues, resultArray, algorithmIsLowestDepth, distributorChanceInputs);
-            Unroll_Commands.DecrementDepth(playerBeingOptimized == NumNonChancePlayers - 1);
+            Unroll_Commands.DecrementDepth(completeCommandList);
         }
 
         private void Unroll_GeneralizedVanillaCFR_DecisionNode(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool algorithmIsLowestDepth, int distributorChanceInputs)
@@ -612,7 +615,7 @@ namespace ACESim
                 }
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                 int[] innerResult = Unroll_Commands.NewZeroArray(3);
-                Unroll_GeneralizedVanillaCFR(in nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, innerResult, false, distributorChanceInputsNext);
+                Unroll_GeneralizedVanillaCFR(in nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, innerResult, false, distributorChanceInputsNext, playerBeingOptimized == NumNonChancePlayers - 1);
                 Unroll_Commands.CopyToExisting(expectedValueOfAction[action - 1], innerResult[Unroll_Result_CurrentVsCurrentIndex]);
                 if (playerMakingDecision == playerBeingOptimized)
                 {
@@ -775,7 +778,7 @@ namespace ACESim
                 TabbedText.TabIndent();
             }
             int[] innerResult = Unroll_Commands.NewZeroArray(3);
-            Unroll_GeneralizedVanillaCFR(in nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, innerResult, false, distributorChanceInputsNext);
+            Unroll_GeneralizedVanillaCFR(in nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, innerResult, false, distributorChanceInputsNext, playerBeingOptimized == NumNonChancePlayers - 1);
             Unroll_Commands.CopyToExisting(resultArray, innerResult);
             if (TraceCFR)
             {
@@ -911,7 +914,7 @@ namespace ACESim
             GeneralizedVanillaUtilities[] results = new GeneralizedVanillaUtilities[NumNonChancePlayers];
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
-                if (playerBeingOptimized == 1 && GameDefinition.GameIsSymmetric() && iteration > 1 && !VerifySymmetry)
+                if (playerBeingOptimized == 1 && GameDefinition.GameIsSymmetric() && ShortcutInSymmetricGames && !VerifySymmetry)
                     continue;
                 if (TraceCFR)
                     TabbedText.WriteLine($"Optimizing for player {playerBeingOptimized}");
