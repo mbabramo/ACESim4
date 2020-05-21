@@ -25,6 +25,8 @@ namespace ACESim
         }
         public override void Setup(GameOptions options)
         {
+            if (options == null)
+                throw new Exception("Options cannot be null.");
             Options = (MyGameOptions) options;
             FurtherOptionsSetup();
 

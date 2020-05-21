@@ -83,6 +83,18 @@ namespace ACESim
             Parallelizer.Go(EvolutionSettings.ParallelOptimization, 0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, PostIterationUpdater, averageStrategyAdjustment, normalizeCumulativeStrategyIncrements, resetPreviousCumulativeStrategyIncrements, continuousRegretsDiscountingAdjustment, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble, EvolutionSettings.Algorithm == GameApproximationAlgorithm.RegretMatching && EvolutionSettings.CFR_OpponentSampling, randomNumberToSelectSingleOpponentAction(n)));
         }
 
+        private void PrintSpecfiedInformationSets(int iteration)
+        {
+            if (iteration != 1 && (iteration < 6950 || iteration > 7000) & !(iteration % 25 == 0))
+                return;
+            int pDamagesSignal = GameDefinition.DecisionPointsExecutionOrder.Select((item, index) => (item, index)).First(x => x.item.Name == "PlaintiffDamagesSignal").index;
+            int pOffer2Index = GameDefinition.DecisionPointsExecutionOrder.Select((item, index) => (item, index)).First(x => x.item.Name == "PlaintiffOffer2").index;
+            var matchingSets = InformationSets.Where(x => x.DecisionIndex == pOffer2Index && x.LabeledInformationSet.Any(x => x.decisionIndex == pDamagesSignal && x.information == 4)).ToList();
+            foreach (var set in matchingSets)
+                TabbedText.WriteLine(iteration + ": " + set.GetCumulativeRegretsString() + " ==> " + set.GetCurrentProbabilitiesAsString());
+            TabbedText.WriteLine("");
+        }
+
         private void HandleSymmetry(int iteration)
         {
             bool symmetric = GameDefinition.GameIsSymmetric() && ShortcutInSymmetricGames;

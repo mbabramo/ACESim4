@@ -29,12 +29,14 @@ namespace ACESim
         }; // will end early if this target is reached
         public bool CreateInformationSetCharts = false; 
         public int? ReportEveryNIterations = 1000;
+        public int? SuppressReportBeforeIteration = null;
 
-        public bool UseAcceleratedBestResponse = false;
+        public bool UseAcceleratedBestResponse = true; // DEBUG
         public const int EffectivelyNever = 999999999;
         public int? BestResponseEveryMIterations = 100; // For partial recall games, this is very costly, so consider using EffectivelyNever.
+        public int? SuppressBestResponseBeforeIteration = null;
         public bool RememberBestResponseExploitability = true;
-        public bool UseCurrentStrategyForBestResponse = false; // requires accelerated best response
+        public bool UseCurrentStrategyForBestResponse = true; // DEBUG // requires accelerated best response
         public bool CalculatePerturbedBestResponseRefinement = false;
         public double PerturbationForBestResponseCalculation = 0.001;
         public int? MiniReportEveryPIterations = 1000;

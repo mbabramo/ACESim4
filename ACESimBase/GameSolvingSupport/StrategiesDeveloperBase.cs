@@ -1067,8 +1067,8 @@ namespace ACESim
         public virtual async Task<ReportCollection> GenerateReports(int iteration, Func<string> prefaceFn)
         {
             ReportCollection reportCollection = new ReportCollection();
-            bool doBestResponse = (EvolutionSettings.BestResponseEveryMIterations != null && iteration % EvolutionSettings.BestResponseEveryMIterations == 0 && EvolutionSettings.BestResponseEveryMIterations != EvolutionSettings.EffectivelyNever && iteration != 0);
-            bool doReports = EvolutionSettings.ReportEveryNIterations != null && (iteration % EvolutionSettings.ReportEveryNIterations == 0 || Status.BestResponseTargetMet(EvolutionSettings.BestResponseTarget));
+            bool doBestResponse = (EvolutionSettings.BestResponseEveryMIterations != null && (EvolutionSettings.SuppressBestResponseBeforeIteration == null || iteration >= EvolutionSettings.SuppressBestResponseBeforeIteration) && iteration % EvolutionSettings.BestResponseEveryMIterations == 0 && EvolutionSettings.BestResponseEveryMIterations != EvolutionSettings.EffectivelyNever && iteration != 0);
+            bool doReports = EvolutionSettings.ReportEveryNIterations != null && (EvolutionSettings.SuppressReportBeforeIteration == null || iteration >= EvolutionSettings.SuppressReportBeforeIteration) && (iteration % EvolutionSettings.ReportEveryNIterations == 0 || Status.BestResponseTargetMet(EvolutionSettings.BestResponseTarget));
             if (doReports || doBestResponse)
             {
                 TabbedText.HideConsoleProgressString();

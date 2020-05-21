@@ -91,8 +91,14 @@ namespace ACESim
                 {
                     if (!GameComplete)
                         throw new Exception("Accessing post-game info prematurely.");
-                    _PostGameInfo = new MyGameProgress_PostGameInfo();
-                    CalculatePostGameInfo();
+                    lock (this) // this is only place we lock on MyGameProgress, so no danger from lock(this)
+                    {
+                        if (_PostGameInfo == null)
+                        {
+                            _PostGameInfo = new MyGameProgress_PostGameInfo();
+                            CalculatePostGameInfo();
+                        }
+                    }
                 }
                 return _PostGameInfo;
             }
@@ -461,6 +467,10 @@ namespace ACESim
                 return;
             }
             double correctDamagesIfTrulyLiable;
+            if (MyGameDefinition.Options == null)
+                throw new Exception("DEBUG");
+            if (DamagesStrengthUniform == null)
+                throw new Exception("DEBUG2");
             if (MyGameDefinition.Options.NumDamagesStrengthPoints <= 1)
                 correctDamagesIfTrulyLiable = (double)MyGameDefinition.Options.DamagesMax;
             else

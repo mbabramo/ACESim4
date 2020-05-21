@@ -20,12 +20,14 @@ namespace ACESim
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; // use RegretMatching etc. for GeneralizedVanilla
 
-        public const int VanillaIterations = 100_000; // Note: Also used for GeneralizedVanilla, DeepCFR
-        public const int VanillaReportEveryNIterations = VanillaIterations;
-        public const int VanillaBestResponseEveryMIterations = 100_000; // EffectivelyNever; 
+        public const int VanillaIterations = 7_000; // Note: Also used for GeneralizedVanilla, DeepCFR
+        public const int VanillaReportEveryNIterations = 1; // DEBUG VanillaIterations;
+        public int? SuppressReportBeforeIteration = 6_985; // DEBUG // null
+        public const int VanillaBestResponseEveryMIterations = 1; // EffectivelyNever;
+        public int? SuppressBestResponseBeforeIteration = 6_985; // DEBUG // null
         public const bool CalculatePerturbedBestResponseRefinement = true;
         public const int MiniReportEveryPIterations = EffectivelyNever;
-        public const bool AlwaysSuppressDisplayReportOnScreen = true; 
+        public const bool AlwaysSuppressDisplayReportOnScreen = false; // DEBUG
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever;
         public const bool UseRandomPathsForReporting = true;
         public const int SummaryTableRandomPathsIterations = 1_000;
@@ -149,9 +151,9 @@ namespace ACESim
             {
                 AzureEnabled = AzureEnabled,
 
-                MaxParallelDepth = MaxParallelDepth, 
-                ParallelOptimization = ParallelizeIndividualExecutionsAlways || 
-                            ( ParallelizeIndividualExecutions && !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing) ),
+                MaxParallelDepth = MaxParallelDepth,
+                ParallelOptimization = ParallelizeIndividualExecutionsAlways ||
+                            (ParallelizeIndividualExecutions && !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing)),
                 DynamicSetParallel = DynamicSetParallel,
                 SuppressReportDisplayOnScreen = AlwaysSuppressDisplayReportOnScreen || (!LaunchSingleOptionsSetOnly && (ParallelizeOptionSets || DistributedProcessing)),
 
@@ -161,8 +163,10 @@ namespace ACESim
 
                 UseRandomPathsForReporting = UseRandomPathsForReporting,
                 ReportEveryNIterations = VanillaReportEveryNIterations,
+                SuppressReportBeforeIteration = SuppressReportBeforeIteration,
                 CorrelatedEquilibriumCalculationsEveryNIterations = CorrelatedEquilibriumCalculationsEveryNIterations,
                 BestResponseEveryMIterations = VanillaBestResponseEveryMIterations, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
+                SuppressBestResponseBeforeIteration = SuppressBestResponseBeforeIteration,
                 CalculatePerturbedBestResponseRefinement = CalculatePerturbedBestResponseRefinement,
                 MiniReportEveryPIterations = MiniReportEveryPIterations,
 
