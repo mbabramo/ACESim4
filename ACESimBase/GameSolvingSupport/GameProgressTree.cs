@@ -107,6 +107,8 @@ namespace ACESimBase.GameSolvingSupport
                     }
                 }
             }
+            else
+                AllocationIndexForExplorationProbabilityAndDecisionIndex[(explorationValuesList, 0)] = allocationIndex;
 
             bool verifyCompleteTree = false;
             if (verifyCompleteTree)
@@ -432,7 +434,7 @@ namespace ACESimBase.GameSolvingSupport
         public IEnumerator<GameProgress> GetEnumerator()
         {
             foreach (var key in AllocationIndexForExplorationProbabilityAndDecisionIndex.Keys)
-                foreach (GameProgress gameProgress in GetGameProgressesForAllocationIndex(key.Item1.TheList.ToArray(), key.Item2))
+                foreach (GameProgress gameProgress in GetGameProgressesForAllocationIndex(key.Item1?.TheList.ToArray(), key.Item2))
                     yield return gameProgress;
         }
 

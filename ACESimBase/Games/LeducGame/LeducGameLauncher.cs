@@ -49,7 +49,7 @@ namespace ACESim
             if (GameProgressLogger.LoggingOn)
                 gameDefinition.PrintOutOrderingInformation();
 
-            GamePlayer gamePlayer = new GamePlayer(starterStrategies, false, gameDefinition);
+            GamePlayer gamePlayer = new GamePlayer(starterStrategies, false, gameDefinition, true);
             LeducGameProgress gameProgress = (LeducGameProgress)gamePlayer.PlayUsingActionOverride(actionsOverride);
 
             return gameProgress;

@@ -34,12 +34,12 @@ namespace ACESim
         {
         }
 
-        public GamePlayer(List<Strategy> strategies, bool doParallel, GameDefinition gameDefinition)
+        public GamePlayer(List<Strategy> strategies, bool doParallel, GameDefinition gameDefinition, bool fullHistoryRequired)
         {
             Strategies = strategies;
             DoParallelIfNotDisabled = doParallel;
             GameDefinition = gameDefinition;
-            StartingProgress = GameDefinition.GameFactory.CreateNewGameProgress(false, new IterationID(1));
+            StartingProgress = GameDefinition.GameFactory.CreateNewGameProgress(fullHistoryRequired, new IterationID(1));
         }
 
 

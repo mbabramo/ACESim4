@@ -106,6 +106,8 @@ namespace ACESimBase.GameSolvingSupport
 
         public DeepCFRModel DeepCopyForPlaybackOnly()
         {
+            if (Observations == null || Observations.Capacity == 0)
+                return null;
             return new DeepCFRModel(Decisions, Observations.Capacity, Observations.Seed, DiscountRate, null)
             {
                 Regression = Regression.DeepCopyExceptRegressionItself(),

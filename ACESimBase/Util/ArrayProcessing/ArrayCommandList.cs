@@ -300,10 +300,6 @@ namespace ACESimBase.Util.ArrayProcessing
         private void SetupVirtualStack(NWayTreeStorageInternal<ArrayCommandChunk> node)
         {
             ArrayCommandChunk c = node.StoredValue;
-            if (c.ID == 10)
-            {
-                var DEBUG = 0;
-            }
             c.VirtualStack = new double[MaxArrayIndex + 1];
             c.VirtualStackID = NextVirtualStackID++;
             if (node.Branches == null || node.Branches.Length == 0)
@@ -464,10 +460,6 @@ namespace ACESimBase.Util.ArrayProcessing
             //Debug.WriteLine($"Addcommand {NextCommandIndex}: {command}");
             if (NextCommandIndex == 0 && command.CommandType != ArrayCommandType.Blank)
                 InsertBlankCommand();
-            if (NextCommandIndex == 74)
-            {
-                var DEBUG = 0;
-            }
             if (RepeatingExistingCommandRange)
             {
                 ArrayCommand existingCommand = UnderlyingCommands[NextCommandIndex];

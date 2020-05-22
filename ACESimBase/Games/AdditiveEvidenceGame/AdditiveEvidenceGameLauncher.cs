@@ -202,7 +202,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             if (GameProgressLogger.LoggingOn)
                 gameDefinition.PrintOutOrderingInformation();
 
-            GamePlayer gamePlayer = new GamePlayer(starterStrategies, false, gameDefinition);
+            GamePlayer gamePlayer = new GamePlayer(starterStrategies, true, gameDefinition, true);
             AdditiveEvidenceGameProgress gameProgress = (AdditiveEvidenceGameProgress)gamePlayer.PlayUsingActionOverride(actionsOverride);
 
             return gameProgress;

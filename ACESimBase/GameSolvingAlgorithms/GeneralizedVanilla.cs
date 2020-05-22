@@ -15,8 +15,8 @@ namespace ACESim
     {
         double AverageStrategyAdjustment, AverageStrategyAdjustmentAsPctOfMax;
         PostIterationUpdaterBase PostIterationUpdater;
-        bool ShortcutInSymmetricGames = true; 
         Dictionary<InformationSetNode, InformationSetNode> InformationSetSymmetryMap;
+        public bool TakeShortcutInSymmetricGames = true;
         bool VerifySymmetry = false; // if true, symmetry is verified instead of used as a way of saving time
 
         public GeneralizedVanilla(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition, PostIterationUpdaterBase postIterationUpdater) : base(existingStrategyState, evolutionSettings, gameDefinition)
@@ -97,7 +97,7 @@ namespace ACESim
 
         private void HandleSymmetry(int iteration)
         {
-            bool symmetric = GameDefinition.GameIsSymmetric() && ShortcutInSymmetricGames;
+            bool symmetric = GameDefinition.GameIsSymmetric() && TakeShortcutInSymmetricGames;
             if (symmetric)
             {
                 if (iteration == 1)
@@ -231,7 +231,7 @@ namespace ACESim
             List<int> resultIndices = new List<int>();
 
             Unroll_Commands.StartCommandChunk(false, null, "Iteration");
-            bool takeSymmetryShortcut = NumNonChancePlayers == 2 && GameDefinition.GameIsSymmetric() && ShortcutInSymmetricGames;
+            bool takeSymmetryShortcut = NumNonChancePlayers == 2 && GameDefinition.GameIsSymmetric() && TakeShortcutInSymmetricGames;
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
                 if (takeSymmetryShortcut && p == 1)
@@ -926,7 +926,7 @@ namespace ACESim
             GeneralizedVanillaUtilities[] results = new GeneralizedVanillaUtilities[NumNonChancePlayers];
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
-                if (playerBeingOptimized == 1 && GameDefinition.GameIsSymmetric() && ShortcutInSymmetricGames && !VerifySymmetry)
+                if (playerBeingOptimized == 1 && GameDefinition.GameIsSymmetric() && TakeShortcutInSymmetricGames && !VerifySymmetry)
                     continue;
                 if (TraceCFR)
                     TabbedText.WriteLine($"Optimizing for player {playerBeingOptimized}");

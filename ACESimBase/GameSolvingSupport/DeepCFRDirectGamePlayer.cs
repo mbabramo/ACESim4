@@ -14,10 +14,12 @@ namespace ACESimBase.GameSolvingSupport
         /// This is used if we want a number of DeepCFRDirectGamePlayers to share a thread while continuing playback from some point. It allows expensive work to be done before continuing playback.
         /// </summary>
         public Func<DeepCFRPlaybackHelper> PlaybackHelperGenerator;
+        public bool UsingShortcutForSymmetricGames;
 
-        public DeepCFRDirectGamePlayer(DeepCFRMultiModelMode mode, GameDefinition gameDefinition, GameProgress progress, bool advanceToFirstStep, DeepCFRPlaybackHelper initialPlaybackHelper, Func<DeepCFRPlaybackHelper> playbackHelperGenerator) : base(gameDefinition, progress, advanceToFirstStep)
+        public DeepCFRDirectGamePlayer(DeepCFRMultiModelMode mode, GameDefinition gameDefinition, GameProgress progress, bool advanceToFirstStep, bool usingShortcutForSymmetricGames, DeepCFRPlaybackHelper initialPlaybackHelper, Func<DeepCFRPlaybackHelper> playbackHelperGenerator) : base(gameDefinition, progress, advanceToFirstStep)
         {
             Mode = mode;
+            UsingShortcutForSymmetricGames = usingShortcutForSymmetricGames;
             InitialPlaybackHelper = initialPlaybackHelper;
             PlaybackHelperGenerator = playbackHelperGenerator;
         }
@@ -35,7 +37,7 @@ namespace ACESimBase.GameSolvingSupport
         public override DirectGamePlayer DeepCopy()
         {
             GameProgress progress = GameProgress.DeepCopy();
-            return new DeepCFRDirectGamePlayer(Mode, GameDefinition, progress, false, InitialPlaybackHelper, PlaybackHelperGenerator);
+            return new DeepCFRDirectGamePlayer(Mode, GameDefinition, progress, false, UsingShortcutForSymmetricGames, InitialPlaybackHelper, PlaybackHelperGenerator);
         }
 
         public (DeepCFRIndependentVariables, double[]) GetIndependentVariablesAndPlayerProbabilities(DeepCFRObservationNum observationNum)
@@ -45,8 +47,10 @@ namespace ACESimBase.GameSolvingSupport
             byte playerMakingDecision = CurrentPlayer.PlayerIndex;
             var informationSet = GetInformationSet();
             var independentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, 0 /* placeholder */, null /* TODO */);
-            IRegressionMachine regressionMachineForCurrentDecision = InitialPlaybackHelper.GetRegressionMachineIfExists(decisionIndex);
+            byte adjustedDecisionIndex = UsingShortcutForSymmetricGames && currentDecision.PlayerIndex == 1 ? (byte)(decisionIndex - 1) : decisionIndex;
+            IRegressionMachine regressionMachineForCurrentDecision = InitialPlaybackHelper.GetRegressionMachineIfExists(adjustedDecisionIndex);
             double[] onPolicyProbabilities;
+            //Br.eak.IfAdded("DEEPDEBUG");
             if (InitialPlaybackHelper.ProbabilitiesCache == null)
                 onPolicyProbabilities = InitialPlaybackHelper.MultiModel.GetRegretMatchingProbabilities(currentDecision, decisionIndex, independentVariables, regressionMachineForCurrentDecision);
             else

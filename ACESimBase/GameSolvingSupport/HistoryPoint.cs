@@ -203,7 +203,7 @@ namespace ACESim
             {
                 GameProgress nextProgress = GameProgress.DeepCopy();
                 IGameFactory gameFactory = navigation.GameDefinition.GameFactory;
-                GamePlayer player = new GamePlayer(navigation.Strategies, false, navigation.GameDefinition);
+                GamePlayer player = new GamePlayer(navigation.Strategies, false, navigation.GameDefinition, nextProgress.FullHistoryRequired);
                 player.ContinuePathWithAction(actionChosen, nextProgress);
                 nextHistoryToPoint = nextProgress.GameHistory;
                 nextGameProgress = nextProgress;
@@ -249,7 +249,7 @@ namespace ACESim
             if (navigation.LookupApproach == InformationSetLookupApproach.PlayGameDirectly)
             {
                 IGameFactory gameFactory = navigation.GameDefinition.GameFactory;
-                GamePlayer player = new GamePlayer(navigation.Strategies, false, navigation.GameDefinition);
+                GamePlayer player = new GamePlayer(navigation.Strategies, false, navigation.GameDefinition, false);
                 player.ContinuePathWithAction(actionChosen, GameProgress);
                 toReturn = toReturn.WithGameProgress(GameProgress);
             }

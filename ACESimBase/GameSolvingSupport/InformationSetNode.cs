@@ -1260,12 +1260,15 @@ namespace ACESim
 
         #region Symmetry
 
-        public byte[] GetSymmetricInformationSet(GameDefinition gameDefinition)
+        public byte[] GetSymmetricInformationSet(GameDefinition gameDefinition) => GetSymmetricInformationSet(gameDefinition,
+ LabeledInformationSet);
+
+        public static byte[] GetSymmetricInformationSet(GameDefinition gameDefinition, List<(byte decisionIndex, byte information)> labeledInformationSet)
         {
-            byte[] symmetric = InformationSetContents.ToArray();
+            byte[] symmetric = labeledInformationSet.Select(x => x.information).ToArray();
             for (int i = 0; i < symmetric.Length; i++)
             {
-                byte decisionIndex = LabeledInformationSet[i].decisionIndex;
+                byte decisionIndex = labeledInformationSet[i].decisionIndex;
                 Decision decision = gameDefinition.DecisionPointsExecutionOrder[decisionIndex].Decision;
                 var symmetryMap = decision.SymmetryMap;
                 if (symmetryMap.information == SymmetryMapInput.NotInInformationSet)
@@ -1275,7 +1278,7 @@ namespace ACESim
                 byte playerIndex = decision.PlayerIndex;
                 if (playerIndex == 0)
                 {
-                    byte? nextDecisionIndex = LabeledInformationSet.Count() > i + 1 ? (byte?)LabeledInformationSet[i + 1].decisionIndex : null;
+                    byte? nextDecisionIndex = labeledInformationSet.Count() > i + 1 ? (byte?)labeledInformationSet[i + 1].decisionIndex : null;
                     Decision nextDecision = nextDecisionIndex == null ? null : gameDefinition.DecisionPointsExecutionOrder[(byte)nextDecisionIndex].Decision;
                     bool nextDecisionIsOpponent = nextDecision != null && nextDecision.PlayerIndex == 1; // this will usually be true -- that is, both players make the same offer at the same time; but it will not be true if a player puts information into its own information set only (e.g., as a way of distinguishing one information set from the next)
                     if (nextDecisionIsOpponent && nextDecision.SymmetryMap != decision.SymmetryMap)
@@ -1297,6 +1300,62 @@ namespace ACESim
                 {
                     if (symmetryMap.information == SymmetryMapInput.ReverseInfo)
                         symmetric[i] = (byte)(decision.NumPossibleActions - symmetric[i] + 1);
+                }
+            }
+            return symmetric;
+        }
+
+
+        public static List<(byte decisionIndex, byte information)> GetSymmetricLabeledInformationSet_FromLaterDecisionToEarlier(GameDefinition gameDefinition, List<(byte decisionIndex, byte information)> labeledInformationSet)
+        
+        {
+            // This is exactly the same as the above, but it produces a labeled informatoin set.
+            List<(byte decisionIndex, byte information)> symmetric = labeledInformationSet.ToList();
+            for (int i = 0; i < symmetric.Count; i++)
+            {
+                byte decisionIndex = labeledInformationSet[i].decisionIndex;
+                Decision decision = gameDefinition.DecisionPointsExecutionOrder[decisionIndex].Decision;
+                var symmetryMap = decision.SymmetryMap;
+                if (symmetryMap.information == SymmetryMapInput.NotInInformationSet)
+                    throw new Exception("Information supposedly not in information set found in information set");
+                if (symmetryMap.information == SymmetryMapInput.NotCompatibleWithSymmetry)
+                    throw new Exception("Decision not compatible with symmetry");
+                byte playerIndex = decision.PlayerIndex;
+                if (playerIndex == 1)
+                {
+                    byte? previousDecisionIndex =  labeledInformationSet.Count() > i - 1 ? (byte?)labeledInformationSet[i - 1].decisionIndex : null;
+                    Decision previousDecision = previousDecisionIndex == null ? null : gameDefinition.DecisionPointsExecutionOrder[(byte)previousDecisionIndex].Decision;
+                    bool previousDecisionInInformationSetIsOpponents = previousDecision != null && previousDecision.PlayerIndex == 0 && previousDecision.DecisionByteCode == decision.DecisionByteCode - 1; // this will usually be true -- that is, both players make the same offer at the same time; but it will not be true if a player puts information into its own information set only (e.g., as a way of distinguishing one information set from the next)
+                    if (previousDecisionInInformationSetIsOpponents != (previousDecision != null && previousDecision.PlayerIndex == 0))
+                    {
+                        var DEBUG = 0;
+                    }
+                    if (previousDecisionInInformationSetIsOpponents && previousDecision.SymmetryMap != decision.SymmetryMap)
+                        throw new Exception();
+                    if (previousDecisionInInformationSetIsOpponents)
+                    {
+                        var temp = symmetric[i - 1].information;
+                        symmetric[i - 1] = (symmetric[i - 1].decisionIndex, symmetric[i].information);
+                        symmetric[i] = (symmetric[i].decisionIndex, temp);
+                    }
+                    else
+                    {
+                        symmetric[i] = ((byte) (symmetric[i].decisionIndex - 1), symmetric[i].information);
+                    }
+                    if (symmetryMap.information == SymmetryMapInput.ReverseInfo)
+                    {
+                        symmetric[i] = (symmetric[i].decisionIndex, (byte)(decision.NumPossibleActions - symmetric[i].information + 1));
+                        if (previousDecisionInInformationSetIsOpponents)
+                            symmetric[i - 1] = (symmetric[i - 1].decisionIndex, (byte)(decision.NumPossibleActions - symmetric[i - 1].information + 1));
+                    }
+                }
+                else if (decision.IsChance)
+                {
+                    bool isOnlyForPlayer1 = decision.PlayersToInform.Contains((byte)1) && !decision.PlayersToInform.Contains((byte)0);
+                    if (isOnlyForPlayer1)
+                        symmetric[i] = ((byte) (symmetric[i].decisionIndex - 1), symmetric[i].information);
+                    if (symmetryMap.information == SymmetryMapInput.ReverseInfo)
+                        symmetric[i] = (symmetric[i].decisionIndex, (byte)(decision.NumPossibleActions - symmetric[i].information + 1));
                 }
             }
             return symmetric;

@@ -1,6 +1,8 @@
 ﻿using ACESim;
+using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -14,9 +16,10 @@ namespace ACESimBase.GameSolvingSupport
         int[] ReservoirCapacity;
         long ReservoirSeed;
         double DiscountRate;
+        bool UsingShortcutForSymmetricGames;
 
         public DeepCFRMultiModelContainer Models = null;
-
+        public GameDefinition GameDefinition;
         public List<Decision> Decisions;
 
         /// <summary>
@@ -31,17 +34,19 @@ namespace ACESimBase.GameSolvingSupport
 
         }
 
-        public DeepCFRMultiModel(List<Decision> decisionsInExecutionOrder, DeepCFRMultiModelMode mode, int[] reservoirCapacity, long reservoirSeed, double discountRate, Func<IRegression> regressionFactory)
+        public DeepCFRMultiModel(GameDefinition gameDefinition, DeepCFRMultiModelMode mode, int[] reservoirCapacity, long reservoirSeed, double discountRate, bool usingShortcutForSymmetricGames, Func<IRegression> regressionFactory)
         {
             Mode = mode;
             ReservoirCapacity = reservoirCapacity;
             ReservoirSeed = reservoirSeed;
             DiscountRate = discountRate;
+            UsingShortcutForSymmetricGames = usingShortcutForSymmetricGames;
             RegressionFactory = regressionFactory;
-            Decisions = decisionsInExecutionOrder;
-            if (ReservoirCapacity.Count() != decisionsInExecutionOrder.Count())
+            GameDefinition = gameDefinition;
+            Decisions = gameDefinition.DecisionsExecutionOrder.ToList();
+            if (ReservoirCapacity.Count() != Decisions.Count())
                 throw new Exception();
-            Models = new DeepCFRMultiModelContainer(Mode, ReservoirCapacity, ReservoirSeed, DiscountRate, RegressionFactory, decisionsInExecutionOrder);
+            Models = new DeepCFRMultiModelContainer(Mode, ReservoirCapacity, ReservoirSeed, DiscountRate, RegressionFactory, Decisions);
         }
 
         public DeepCFRMultiModel DeepCopyForPlaybackOnly()
@@ -85,6 +90,20 @@ namespace ACESimBase.GameSolvingSupport
 
         public byte ChooseAction(Decision decision, byte decisionIndex, IRegressionMachine regressionMachineForDecision, double randomValue, DeepCFRIndependentVariables independentVariables, byte maxActionValue, byte numActionsToSample, double probabilityUniformRandom, ref double[] onPolicyProbabilities)
         {
+            if (UsingShortcutForSymmetricGames && decision.PlayerIndex == 1)
+            {
+                var symmetricIndependentVariables = independentVariables.DeepCopyWithSymmetricInformationSet(GameDefinition);
+                byte player0DecisionIndex = (byte) (decisionIndex - 1);
+                Decision player0Decision = GameDefinition.DecisionsExecutionOrder[player0DecisionIndex];
+                byte actionFromEarlierDecision = ChooseAction(player0Decision, player0DecisionIndex, regressionMachineForDecision /* NOTE: This is the regression machine for player 0 decision if this is symmetric */, randomValue, symmetricIndependentVariables, maxActionValue, numActionsToSample, probabilityUniformRandom, ref onPolicyProbabilities);
+                bool reverse = decision.SymmetryMap.decision == SymmetryMapOutput.ReverseAction;
+                byte actionToChoose;
+                if (reverse)
+                    actionToChoose = (byte)(decision.NumPossibleActions - actionFromEarlierDecision + 1);
+                else
+                    actionToChoose = actionFromEarlierDecision;
+                return actionToChoose;
+            }
             var model = GetModelForDecisionIndex(decisionIndex);
             byte action = ChooseAction(model, regressionMachineForDecision, randomValue, independentVariables, maxActionValue, numActionsToSample, probabilityUniformRandom, ref onPolicyProbabilities);
             if (onPolicyProbabilities == null) // i.e., if we make decision off-policy, then we still want to return the probabilities
@@ -105,7 +124,7 @@ namespace ACESimBase.GameSolvingSupport
             return result;
         }
 
-        public double[] GetRegretMatchingProbabilities(Decision decision, byte decisionIndex, DeepCFRIndependentVariables independentVariables,  IRegressionMachine regressionMachineForDecision)
+        public double[] GetRegretMatchingProbabilities(Decision decision, byte decisionIndex, DeepCFRIndependentVariables independentVariables, IRegressionMachine regressionMachineForDecision)
         {
             double[] regrets = GetExpectedRegretsForAllActions(decision, decisionIndex, independentVariables,  regressionMachineForDecision);
             double[] probabilities = new double[decision.NumPossibleActions];
@@ -157,6 +176,13 @@ namespace ACESimBase.GameSolvingSupport
 
         public double[] GetExpectedRegretsForAllActions(Decision decision, byte decisionIndex, DeepCFRIndependentVariables independentVariables, IRegressionMachine regressionMachineForDecision)
         {
+            if (UsingShortcutForSymmetricGames && decision.PlayerIndex == 1)
+            {
+                double[] previous = GetExpectedRegretsForAllActions(GameDefinition.DecisionsExecutionOrder[decisionIndex - 1], (byte) (decisionIndex - 1), independentVariables.DeepCopyWithSymmetricInformationSet(GameDefinition), regressionMachineForDecision /* will be for correct decision */);
+                if (decision.SymmetryMap.decision == SymmetryMapOutput.ReverseAction)
+                    previous = previous?.Reverse().ToArray();
+                return previous;
+            }
             var model = GetModelForDecisionIndex(decisionIndex);
             if (model.IterationsProcessed == 0)
                 return null;

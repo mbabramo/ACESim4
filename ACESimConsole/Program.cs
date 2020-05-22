@@ -89,7 +89,7 @@ namespace ACESim
             }
             launcher.LaunchSingleOptionsSetOnly = true;
             ReportCollection launchResult = await launcher.Launch();
-            TextCopy.Clipboard.SetText(launchResult.standardReport);
+            TextCopy.Clipboard.SetText(launchResult?.standardReport ?? "");
             s.Stop();
             TabbedText.WriteLineEvenIfDisabled($"Total runtime {s.Elapsed} ");
             TabbedText.WriteLineEvenIfDisabled("");

@@ -577,7 +577,7 @@ namespace ACESim
             foreach (Strategy strategy in Strategies)
                 strategy.Navigation = Navigation;
 
-            GamePlayer = new GamePlayer(Strategies, EvolutionSettings.ParallelOptimization, GameDefinition);
+            GamePlayer = new GamePlayer(Strategies, EvolutionSettings.ParallelOptimization, GameDefinition, false);
 
             foreach (Strategy s in Strategies)
             {

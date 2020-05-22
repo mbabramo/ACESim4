@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ACESim;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -57,6 +58,20 @@ namespace ACESimBase.GameSolvingSupport
             return new DeepCFRIndependentVariables(Player, DecisionIndex, InformationSet?.ToList(), ActionChosen, GameParameters?.ToList());
         }
 
+        public DeepCFRIndependentVariables DeepCopyWithSymmetricInformationSet(GameDefinition gameDefinition)
+        {
+            var symmetric = InformationSetNode.GetSymmetricLabeledInformationSet_FromLaterDecisionToEarlier(gameDefinition, InformationSet);
+            byte symmetricActionChosen;
+            if (ActionChosen == 0)
+                symmetricActionChosen = 0;
+            else if (gameDefinition.DecisionsExecutionOrder[DecisionIndex].SymmetryMap.decision == SymmetryMapOutput.ReverseAction)
+                symmetricActionChosen = (byte) (gameDefinition.DecisionsExecutionOrder[DecisionIndex].NumPossibleActions - ActionChosen + 1);
+            else
+                symmetricActionChosen = ActionChosen;
+            var result = new DeepCFRIndependentVariables(0, (byte) (DecisionIndex - 1), symmetric, symmetricActionChosen, GameParameters?.ToList());
+            return result;
+        }
+
         public IEnumerable<(byte decisionIndex, byte information)> InformationSetPlusActionChosen()
         {
             foreach (var item in InformationSet)
@@ -110,6 +125,11 @@ namespace ACESimBase.GameSolvingSupport
             CachedArray = result;
             CachedIncludedDecisionIndices = includedDecisionIndices;
             return result;
+        }
+
+        public string InformationSetString(GameDefinition gameDefinition)
+        {
+            return String.Join(",", InformationSet.Select(x => $"{gameDefinition.DecisionsExecutionOrder[x.decisionIndex].Name}: {x.information}"));
         }
     }
 }

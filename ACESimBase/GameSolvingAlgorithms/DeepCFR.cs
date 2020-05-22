@@ -29,22 +29,29 @@ namespace ACESim
         int ApproximateBestResponse_CurrentIterationsIndex;
         byte ApproximateBestResponse_CurrentPlayer;
 
+        bool TakeShortcutInSymmetricGames = true;
+        bool UsingShortcutForSymmetricGames;
+
         GameProgressTree[] GameProgressTrees; // used internally, kept as a field to facilitate disposal (and thus array pooling)
 
         #region Initialization
 
         public DeepCFR(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
         {
+            UsingShortcutForSymmetricGames = TakeShortcutInSymmetricGames && gameDefinition.GameIsSymmetric();
+
             int[] reservoirCapacity = GameDefinition.DecisionsExecutionOrder.Select(x =>
             {
                 if (x.IsChance)
                     return 0; // this is ignored, but we keep it in the list so that capacity is associated with decision index
+                else if (UsingShortcutForSymmetricGames && x.PlayerIndex == 1)
+                    return 0;
                 else if (EvolutionSettings.DeepCFR_UseGameProgressTreeToGenerateObservations)
                     return x.NumPossibleActions * EvolutionSettings.DeepCFR_BaseReservoirCapacity;
                 else
                     return EvolutionSettings.DeepCFR_BaseReservoirCapacity;
             }).ToArray();
-            MultiModel = new DeepCFRMultiModel(GameDefinition.DecisionsExecutionOrder, EvolutionSettings.DeepCFR_MultiModelMode, reservoirCapacity, 0, EvolutionSettings.DeepCFR_DiscountRate, EvolutionSettings.RegressionFactory());
+            MultiModel = new DeepCFRMultiModel(GameDefinition, EvolutionSettings.DeepCFR_MultiModelMode, reservoirCapacity, 0, EvolutionSettings.DeepCFR_DiscountRate, UsingShortcutForSymmetricGames, EvolutionSettings.RegressionFactory());
         }
 
         public override IStrategiesDeveloper DeepCopy()
@@ -252,7 +259,7 @@ namespace ACESim
         private (double[] utilities, GameProgress completedProgress) DeepCFRTraversal(DeepCFRPlaybackHelper playbackHelper, DeepCFRObservationNum observationNum, DeepCFRTraversalMode traversalMode, List<DeepCFRObservationOfDecision> observations)
         {
             double[] finalUtilities;
-            DeepCFRDirectGamePlayer gamePlayer = new DeepCFRDirectGamePlayer(EvolutionSettings.DeepCFR_MultiModelMode, GameDefinition, GameFactory.CreateNewGameProgress(false, new IterationID(observationNum.ObservationNum)), true, playbackHelper, null /* we will be playing back only this observation for now, so we don't have to combine */);
+            DeepCFRDirectGamePlayer gamePlayer = new DeepCFRDirectGamePlayer(EvolutionSettings.DeepCFR_MultiModelMode, GameDefinition, GameFactory.CreateNewGameProgress(false, new IterationID(observationNum.ObservationNum)), true, UsingShortcutForSymmetricGames, playbackHelper, null /* we will be playing back only this observation for now, so we don't have to combine */);
             finalUtilities = DeepCFRTraversal(gamePlayer, observationNum, observations, traversalMode);
             return (finalUtilities, gamePlayer.GameProgress);
         }
@@ -277,7 +284,8 @@ namespace ACESim
             Decision currentDecision = gamePlayer.CurrentDecision;
             var playbackHelper = gamePlayer.InitialPlaybackHelper;
             byte decisionIndex = (byte)gamePlayer.CurrentDecisionIndex;
-            IRegressionMachine regressionMachineForCurrentDecision = playbackHelper.GetRegressionMachineIfExists(decisionIndex);
+            byte adjustedDecisionIndex = UsingShortcutForSymmetricGames && currentDecision.PlayerIndex == 1 ? (byte)(decisionIndex - 1) : decisionIndex;
+            IRegressionMachine regressionMachineForCurrentDecision = playbackHelper.GetRegressionMachineIfExists(adjustedDecisionIndex); 
             byte playerMakingDecision = gamePlayer.CurrentPlayer.PlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionIndex);
             DeepCFRIndependentVariables independentVariables = null;
@@ -405,7 +413,7 @@ namespace ACESim
             DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel, null, null); // ideally should figure out a way to create a separate object for each thread, but problem is we don't break it down by thread.
             GameProgress initialGameProgress = GameFactory.CreateNewGameProgress(false, new IterationID(1));
             var regressionMachines = GetRegressionMachinesForLocalUse();
-            DeepCFRDirectGamePlayer directGamePlayer = new DeepCFRDirectGamePlayer(EvolutionSettings.DeepCFR_MultiModelMode, GameDefinition, initialGameProgress, true, playbackHelper, () => new DeepCFRPlaybackHelper(MultiModel.DeepCopyForPlaybackOnly(), regressionMachines, null));
+            DeepCFRDirectGamePlayer directGamePlayer = new DeepCFRDirectGamePlayer(EvolutionSettings.DeepCFR_MultiModelMode, GameDefinition, initialGameProgress, true, UsingShortcutForSymmetricGames, playbackHelper, () => new DeepCFRPlaybackHelper(MultiModel.DeepCopyForPlaybackOnly(), regressionMachines, null));
             double[] explorationValues = explorationValue == 0 ? null /* no exploration */ : Enumerable.Range(0, NumNonChancePlayers).Select(x => x == limitToPlayer ? explorationValue : 0).ToArray();
             GameProgressTree gameProgressTree = new GameProgressTree(
                 0, // rand seed
@@ -734,9 +742,13 @@ namespace ACESim
                     bool useGameProgressTree = true;
                     if (useGameProgressTree)
                     {
+                        // DEBUG // it's not working even without symmetry -- apparently because without sampling allocation index is not being set.
+                        Br.eak.Add("DEEPDEBUG");
                         using (var gameProgressTree = await DeepCFR_BuildGameProgressTree(EvolutionSettings.NumRandomIterationsForSummaryTable, false))
                         {
-                            reportCollection = GenerateReportsFromGameProgressEnumeration(gameProgressTree);
+                            var gameProgresses = gameProgressTree.AsEnumerable();
+                            var DEBUG = gameProgresses.ToArray();
+                            reportCollection = GenerateReportsFromGameProgressEnumeration(DEBUG);
                         }
                     }
                     else
