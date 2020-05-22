@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -326,13 +327,27 @@ namespace ACESim
                 }
             }
 
-            double pFilingCostIncurred = pFiles ? gameDefinition.Options.PFilingCost * gameDefinition.Options.CostsMultiplier : 0;
-            double dAnswerCostIncurred = dAnswers ? gameDefinition.Options.DAnswerCost * gameDefinition.Options.CostsMultiplier : 0;
-            double pTrialCostsIncurred = outcome.TrialOccurs ? gameDefinition.Options.PTrialCosts * gameDefinition.Options.CostsMultiplier * trialCostsMultiplier : 0;
-            double dTrialCostsIncurred = outcome.TrialOccurs ? gameDefinition.Options.DTrialCosts * gameDefinition.Options.CostsMultiplier * trialCostsMultiplier : 0;
-            double perPartyBargainingCostsIncurred = gameDefinition.Options.PerPartyCostsLeadingUpToBargainingRound * gameDefinition.Options.CostsMultiplier * bargainingRoundsComplete;
-            double pCostsInitiallyIncurred = pFilingCostIncurred + perPartyBargainingCostsIncurred + pTrialCostsIncurred;
-            double dCostsInitiallyIncurred = dAnswerCostIncurred + perPartyBargainingCostsIncurred + dTrialCostsIncurred;
+            double costsMultiplier = gameDefinition.Options.CostsMultiplier;
+            double pFilingCostIncurred = pFiles ? gameDefinition.Options.PFilingCost * costsMultiplier : 0;
+            double dAnswerCostIncurred = dAnswers ? gameDefinition.Options.DAnswerCost * costsMultiplier : 0;
+            double pTrialCostsIncurred = outcome.TrialOccurs ? gameDefinition.Options.PTrialCosts * costsMultiplier * trialCostsMultiplier : 0;
+            double dTrialCostsIncurred = outcome.TrialOccurs ? gameDefinition.Options.DTrialCosts * costsMultiplier * trialCostsMultiplier : 0;
+            double pBargainingCostsIncurred = 0, dBargainingCostsIncurred = 0;
+            Br.eak.IfAdded("Case"); // DEBUG
+            if (gameDefinition.Options.RoundSpecificBargainingCosts is (double pCosts, double dCosts)[] roundSpecific)
+            {
+                for (int i = 0; i < bargainingRoundsComplete; i++)
+                {
+                    pBargainingCostsIncurred += roundSpecific[i].pCosts * costsMultiplier;
+                    dBargainingCostsIncurred += roundSpecific[i].dCosts * costsMultiplier;
+                }
+            }
+            else
+            {
+                pBargainingCostsIncurred = dBargainingCostsIncurred = gameDefinition.Options.PerPartyCostsLeadingUpToBargainingRound * costsMultiplier * bargainingRoundsComplete;
+            }
+            double pCostsInitiallyIncurred = pFilingCostIncurred + pBargainingCostsIncurred + pTrialCostsIncurred;
+            double dCostsInitiallyIncurred = dAnswerCostIncurred + dBargainingCostsIncurred + dTrialCostsIncurred;
             double pEffectOfExpenses = 0, dEffectOfExpenses = 0;
             bool loserPaysApplies = gameDefinition.Options.LoserPays && (outcome.TrialOccurs || (gameDefinition.Options.LoserPaysAfterAbandonment && (pAbandons || dDefaults)));
             if (loserPaysApplies)
@@ -352,8 +367,8 @@ namespace ACESim
             }
             else
             { // American rule
-                pEffectOfExpenses -= pFilingCostIncurred + perPartyBargainingCostsIncurred + pTrialCostsIncurred;
-                dEffectOfExpenses -= dAnswerCostIncurred + perPartyBargainingCostsIncurred + dTrialCostsIncurred;
+                pEffectOfExpenses -= pFilingCostIncurred + pBargainingCostsIncurred + pTrialCostsIncurred;
+                dEffectOfExpenses -= dAnswerCostIncurred + dBargainingCostsIncurred + dTrialCostsIncurred;
             }
 
             outcome.PChangeWealth += pEffectOfExpenses;

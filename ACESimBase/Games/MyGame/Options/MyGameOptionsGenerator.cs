@@ -79,6 +79,8 @@ namespace ACESim
             o.PTrialCosts /= divideBy;
             o.DTrialCosts /= divideBy;
             o.PerPartyCostsLeadingUpToBargainingRound /= divideBy;
+            if (o.RoundSpecificBargainingCosts != null)
+                o.RoundSpecificBargainingCosts = o.RoundSpecificBargainingCosts.Select(x => (x.pCosts / divideBy, x.dCosts / divideBy)).ToArray();
         }
 
         public static MyGameOptions BaseOptions()
@@ -115,6 +117,7 @@ namespace ACESim
                 RegretAversion = 0.0,
                 IncludeAgreementToBargainDecisions = false,
                 PerPartyCostsLeadingUpToBargainingRound = 15_000,
+                RoundSpecificBargainingCosts = null,
                 AllowAbandonAndDefaults = true, 
                 LoserPays = false,
                 LoserPaysMultiple = 1.0,
@@ -200,6 +203,7 @@ namespace ACESim
             options.PFilingCost = options.DAnswerCost = 0.05; // but see below for when we're using options
             options.PTrialCosts = options.DTrialCosts = 0.15; 
             options.PerPartyCostsLeadingUpToBargainingRound = 0;
+            options.RoundSpecificBargainingCosts = null;
             options.CostsMultiplier = 1;
             options.SkipFileAndAnswerDecisions = true;
             options.AllowAbandonAndDefaults = false;

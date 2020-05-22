@@ -1,6 +1,7 @@
 using System;
 using ACESim.Util;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace ACESim
 {
@@ -131,9 +132,13 @@ namespace ACESim
         /// </summary>
         public double DAnswerCost;
         /// <summary>
-        /// Costs that each party must pay per round of bargaining. Note that an immediate successful resolution will still produce costs.
+        /// Costs that each party must pay per round of bargaining, where RoundSpecificBargainingCosts are not specified. Note that an immediate successful resolution will still produce costs.
         /// </summary>
         public double PerPartyCostsLeadingUpToBargainingRound;
+        /// <summary>
+        /// If non-null, then per-party costs leading up to the bargaining round vary by round and 
+        /// </summary>
+        public (double pCosts, double dCosts)[] RoundSpecificBargainingCosts;
         /// <summary>
         /// The number of bargaining rounds
         /// </summary>
@@ -235,7 +240,7 @@ NumPotentialBargainingRounds {NumPotentialBargainingRounds}  BargainingRoundsSim
 NumLiabilityStrengthPoints {NumLiabilityStrengthPoints} NumLiabilitySignals {NumLiabilitySignals} PLiabilityNoiseStdev {PLiabilityNoiseStdev} DLiabilityNoiseStdev {DLiabilityNoiseStdev} CourtLiabilityNoiseStdev {CourtLiabilityNoiseStdev} 
 NumDamagesStrengthPoints {NumDamagesStrengthPoints} NumDamagesSignals {NumDamagesSignals} PDamagesNoiseStdev {PDamagesNoiseStdev} DDamagesNoiseStdev {DDamagesNoiseStdev} CourtDamagesNoiseStdev {CourtDamagesNoiseStdev} 
 SkipFileAndAnswerDecisions {SkipFileAndAnswerDecisions} IncludeAgreementToBargainDecisions {IncludeAgreementToBargainDecisions} DeltaOffersOptions {DeltaOffersOptions} 
-CostsMultiplier {CostsMultiplier} PTrialCosts {PTrialCosts} DTrialCosts {DTrialCosts} PFilingCost {PFilingCost} DAnswerCost {DAnswerCost} PerPartyCostsLeadingUpToBargainingRound {PerPartyCostsLeadingUpToBargainingRound} 
+CostsMultiplier {CostsMultiplier} PTrialCosts {PTrialCosts} DTrialCosts {DTrialCosts} PFilingCost {PFilingCost} DAnswerCost {DAnswerCost} {(RoundSpecificBargainingCosts == null ? $"PerPartyCostsLeadingUpToBargainingRound {PerPartyCostsLeadingUpToBargainingRound}" : $"RoundSpecificBargainingCosts {String.Join(",", RoundSpecificBargainingCosts)}")} 
 LoserPays {LoserPays} LoserPaysMultiple {LoserPaysMultiple} LoserPaysAfterAbandonment {LoserPaysAfterAbandonment} 
 ShootoutSettlements {ShootoutSettlements} ShootoutStrength {ShootoutStrength} ShootoutsAverageAllRounds {ShootoutsAverageAllRounds} ShootoutsApplyAfterAbandonment {ShootoutsApplyAfterAbandonment}
 PInitialWealth {PInitialWealth} DInitialWealth {DInitialWealth} 
