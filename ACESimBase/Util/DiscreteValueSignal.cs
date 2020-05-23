@@ -10,15 +10,15 @@ namespace ACESim.Util
     public static class DiscreteValueSignal
     {
         /// <summary>
-        /// Calculates a signal by adding noise drawn from a normal distribution to a true value. If the sum is less than 0, the signal returned is 1. If it is greater than 1, the signal returned is numLiabilitySignalValues. Otherwise, the signal is in between.
+        /// Calculates a signal by adding noise drawn from a normal distribution to a true value. If the sum is less than 0, the signal returned is 1. If it is greater than 1, the signal returned is numSignalValues. Otherwise, the signal is in between.
         /// </summary>
         /// <param name="trueValueFrom0To1"></param>
         /// <param name="oneBasedNoiseValue"></param>
         /// <param name="numNoiseValues"></param>
         /// <param name="standardDeviationOfNoise"></param>
-        /// <param name="numLiabilitySignalValues"></param>
+        /// <param name="numSignalValues"></param>
         /// <returns></returns>
-        public static byte ConvertNoiseToLiabilitySignal(double trueValueFrom0To1, byte oneBasedNoiseValue, byte numNoiseValues, double standardDeviationOfNoise, byte numLiabilitySignalValues)
+        public static byte ConvertNoiseToSignal(double trueValueFrom0To1, byte oneBasedNoiseValue, byte numNoiseValues, double standardDeviationOfNoise, byte numSignalValues)
         {
             double noiseUniformDistribution = EquallySpaced.GetLocationOfEquallySpacedPoint((byte) (oneBasedNoiseValue - 1), numNoiseValues, false);
             double noiseNormalDistributionDraw = InvNormal.Calculate(noiseUniformDistribution) * standardDeviationOfNoise;
@@ -26,21 +26,21 @@ namespace ACESim.Util
             if (obfuscatedValue < 0)
                 return 1;
             else if (obfuscatedValue > 1)
-                return numLiabilitySignalValues;
+                return numSignalValues;
             else
-                return (byte) (2 + (int) Math.Floor(obfuscatedValue * (numLiabilitySignalValues - 2)));
+                return (byte) (2 + (int) Math.Floor(obfuscatedValue * (numSignalValues - 2)));
         }
 
         /// <summary>
         /// Given a signal (in the form of the sum of values taken from a uniform distribution and from a normal distribution), returns a discrete signal, such that each signal will ex ante be equally likely to obtain. The lowest signal is equal to 1. 
-        /// For example, if NumLiabilitySignals is 10, then one-tenth of the time, we will draw from the two distributions in a way that will produce a signal of i, for all i from 1 to 10. 
+        /// For example, if NumSignals is 10, then one-tenth of the time, we will draw from the two distributions in a way that will produce a signal of i, for all i from 1 to 10. 
         /// </summary>
         /// <param name="signal"></param>
         /// <param name="dsParams"></param>
         /// <returns></returns>
-        public static int GetDiscreteLiabilitySignal(double signal, DiscreteValueSignalParameters dsParams)
+        public static int GetDiscreteSignal(double signal, DiscreteValueSignalParameters dsParams)
         {
-            double[] cutoffs = GetLiabilitySignalCutoffs(dsParams);
+            double[] cutoffs = GetSignalCutoffs(dsParams);
             int i = 0;
             while (i < cutoffs.Length && cutoffs[i] < signal)
                 i++;
@@ -51,23 +51,23 @@ namespace ACESim.Util
         /// Given a draw of a band from a uniform distribution, returns the probability that a signal consisting of the sum of the midpoint of this band and a value drawn from a normal distribution would end up in the specified discrete band of signals, where each signal band is of equal size.
         /// </summary>
         /// <param name="actualUniformDistributionValue">The discrete band of the uniform distribution (numbered 1 .. number of bands)</param>
-        /// <param name="discreteLiabilitySignal">The discrete band of the signal (numbered 1 .. number of signals)</param>
+        /// <param name="discreteSignal">The discrete band of the signal (numbered 1 .. number of signals)</param>
         /// <param name="dsParams">The parameters specifying the noise and the number of signals and uniform distribution points</param>
         /// <returns></returns>
-        public static double GetProbabilityOfDiscreteLiabilitySignal(int actualUniformDistributionValue, int discreteLiabilitySignal, DiscreteValueSignalParameters dsParams)
+        public static double GetProbabilityOfDiscreteSignal(int actualUniformDistributionValue, int discreteSignal, DiscreteValueSignalParameters dsParams)
         {
-            return GetProbabilitiesOfDiscreteSignals(actualUniformDistributionValue, dsParams)[discreteLiabilitySignal - 1];
+            return GetProbabilitiesOfDiscreteSignals(actualUniformDistributionValue, dsParams)[discreteSignal - 1];
         }
 
 
         public static double[] GetProbabilitiesOfDiscreteSignals(int actualUniformDistributionValue, DiscreteValueSignalParameters dsParams)
         {
-            double[][] probabilities = GetProbabilitiesOfLiabilitySignalGivenSourceLiabilityStrength(dsParams);
+            double[][] probabilities = GetProbabilitiesOfDiscreteSignalGivenSourceStrength(dsParams);
             return probabilities[actualUniformDistributionValue - 1];
         }
 
         private static Dictionary<DiscreteValueSignalParameters, double[]> CutoffsForStandardDeviation = new Dictionary<DiscreteValueSignalParameters, double[]>();
-        private static Dictionary<DiscreteValueSignalParameters, double[][]> ProbabilitiesOfLiabilitySignalGivenSourceLiabilityStrengthForStandardDeviation = new Dictionary<DiscreteValueSignalParameters, double[][]>();
+        private static Dictionary<DiscreteValueSignalParameters, double[][]> ProbabilitiesOfSignalGivenSourceStrengthForStandardDeviation = new Dictionary<DiscreteValueSignalParameters, double[][]>();
         private static object CalcLock = new object();
 
         // We will calculate a number of discrete points in the inverse normal distribution
@@ -100,7 +100,7 @@ namespace ACESim.Util
         private static double[][] CachedProbabilitiesValue;
         private static DiscreteValueSignalParameters CachedParamsValue;
 
-        private static double[] GetLiabilitySignalCutoffs(DiscreteValueSignalParameters nsParams)
+        private static double[] GetSignalCutoffs(DiscreteValueSignalParameters nsParams)
         {
             double[] returnVal;
             if (AllowCaching && CachedParamsValue.Equals(nsParams))
@@ -130,7 +130,7 @@ namespace ACESim.Util
             }
         }
 
-        private static double[][] GetProbabilitiesOfLiabilitySignalGivenSourceLiabilityStrength(DiscreteValueSignalParameters nsParams)
+        private static double[][] GetProbabilitiesOfDiscreteSignalGivenSourceStrength(DiscreteValueSignalParameters nsParams)
         {
             double[][] returnVal;
             if (AllowCaching && CachedParamsValue.Equals(nsParams))
@@ -142,7 +142,7 @@ namespace ACESim.Util
                 }
             }
             CalculateCutoffsIfNecessary(nsParams);
-            returnVal = ProbabilitiesOfLiabilitySignalGivenSourceLiabilityStrengthForStandardDeviation[nsParams];
+            returnVal = ProbabilitiesOfSignalGivenSourceStrengthForStandardDeviation[nsParams];
             CachedParamsValue = nsParams; // must change this first so that we can be sure to detect the change
             CachedProbabilitiesValue = returnVal;
             return returnVal;
@@ -175,17 +175,17 @@ namespace ACESim.Util
             }
             // Now, for each of the signal ranges, we must determine the probability that we would end up in this signal range given
             // any actual litigation quality value. We're now using the basic standard deviation of normal distribution -- not the one for cutoff points. 
-            double[][] probabilitiesOfLiabilitySignalGivenSourceLiabilityStrength = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(nsParams.NumPointsInSourceUniformDistribution, nsParams.NumSignals);
+            double[][] probabilitiesOfSignalGivenSourceStrength = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(nsParams.NumPointsInSourceUniformDistribution, nsParams.NumSignals);
             for (int u = 0; u < nsParams.NumPointsInSourceUniformDistribution; u++)
             {
-                int[] numValuesAtEachLiabilitySignal = new int[nsParams.NumSignals];
+                int[] numValuesAtEachSignal = new int[nsParams.NumSignals];
                 double uniformDistributionPoint = sourcePoints[u];
                 var crossProductFromThisUniformDistributionPoint = uniformAndNormDistPointsToCombine.Where(x => x.uniformDistPoint == uniformDistributionPoint).ToArray();
                 int totalNumberForUniformDistributionPoint = 0;
                 foreach (var point in crossProductFromThisUniformDistributionPoint)
                 {
-                    int band = GetBandForLiabilitySignalValue(point.uniformDistPoint + point.normDistValue, signalValueCutoffs);
-                    numValuesAtEachLiabilitySignal[band]++;
+                    int band = GetBandForSignalValue(point.uniformDistPoint + point.normDistValue, signalValueCutoffs);
+                    numValuesAtEachSignal[band]++;
                     totalNumberForUniformDistributionPoint++;
                 }
                 bool calculateExactValues = true; // if false, we use an approximation
@@ -206,23 +206,23 @@ namespace ACESim.Util
                         double cumNormal = NormalDistributionCalculation.CumulativeNormalDistribution(0 - numStdDeviations);
                         sumCumNormal += cumNormal;
                         if (!signalWithinCutoffs || !subtractOneResultFromOthers)
-                            probabilitiesOfLiabilitySignalGivenSourceLiabilityStrength[u][s] = cumNormal; // the s values won't add up to 1.0 yet (we have to divide below)
+                            probabilitiesOfSignalGivenSourceStrength[u][s] = cumNormal; // the s values won't add up to 1.0 yet (we have to divide below)
                     }
                     if (subtractOneResultFromOthers)
-                        probabilitiesOfLiabilitySignalGivenSourceLiabilityStrength[u][indexOfSignalWithinCutoff] = 1.0 - sumCumNormal;
+                        probabilitiesOfSignalGivenSourceStrength[u][indexOfSignalWithinCutoff] = 1.0 - sumCumNormal;
                     else
                     {
                         if (sumCumNormal == 0)
                         {
                             // standard deviation size is so low that even using double precision, all cumulative normal distribution values
                             // round off to 0. So, let's just set the closest one to 1.
-                            probabilitiesOfLiabilitySignalGivenSourceLiabilityStrength[u][indexOfSignalWithinCutoff] = 1.0;
+                            probabilitiesOfSignalGivenSourceStrength[u][indexOfSignalWithinCutoff] = 1.0;
                         }
                         else
                         {
                             if (sumCumNormal != 1)
                                 for (int s = 0; s < nsParams.NumSignals; s++)
-                                    probabilitiesOfLiabilitySignalGivenSourceLiabilityStrength[u][s] /= sumCumNormal;
+                                    probabilitiesOfSignalGivenSourceStrength[u][s] /= sumCumNormal;
                         }
                     }
 
@@ -231,13 +231,13 @@ namespace ACESim.Util
                 {
                     for (int s = 0; s < nsParams.NumSignals; s++)
                     {
-                        probabilitiesOfLiabilitySignalGivenSourceLiabilityStrength[u][s] = ((double)numValuesAtEachLiabilitySignal[s]) / ((double)totalNumberForUniformDistributionPoint);
+                        probabilitiesOfSignalGivenSourceStrength[u][s] = ((double)numValuesAtEachSignal[s]) / ((double)totalNumberForUniformDistributionPoint);
                     }
                 }
             }
             // Assign to dictionary.
             CutoffsForStandardDeviation[nsParams] = signalValueCutoffs;
-            ProbabilitiesOfLiabilitySignalGivenSourceLiabilityStrengthForStandardDeviation[nsParams] = probabilitiesOfLiabilitySignalGivenSourceLiabilityStrength;
+            ProbabilitiesOfSignalGivenSourceStrengthForStandardDeviation[nsParams] = probabilitiesOfSignalGivenSourceStrength;
         }
 
         private static void GetCombinedPoints(double[] sourcePoints, double stdev, out (double uniformDistPoint, double normDistValue)[] uniformAndNormDistPointsToCombine, out double[] distinctPointsOrdered)
@@ -248,7 +248,7 @@ namespace ACESim.Util
             distinctPointsOrdered = uniformAndNormDistPointsToCombine.Select(x => x.uniformDistPoint + x.normDistValue).OrderBy(x => x).ToArray();
         }
 
-        private static int GetBandForLiabilitySignalValue(double signalValue, double[] signalValueCutoffs)
+        private static int GetBandForSignalValue(double signalValue, double[] signalValueCutoffs)
         {
 
             for (int s = 0; s < signalValueCutoffs.Length; s++)
