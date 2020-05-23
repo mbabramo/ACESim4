@@ -333,7 +333,6 @@ namespace ACESim
             double pTrialCostsIncurred = outcome.TrialOccurs ? gameDefinition.Options.PTrialCosts * costsMultiplier * trialCostsMultiplier : 0;
             double dTrialCostsIncurred = outcome.TrialOccurs ? gameDefinition.Options.DTrialCosts * costsMultiplier * trialCostsMultiplier : 0;
             double pBargainingCostsIncurred = 0, dBargainingCostsIncurred = 0;
-            Br.eak.IfAdded("Case"); // DEBUG
             if (gameDefinition.Options.RoundSpecificBargainingCosts is (double pCosts, double dCosts)[] roundSpecific)
             {
                 for (int i = 0; i < bargainingRoundsComplete; i++)

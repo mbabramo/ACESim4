@@ -71,7 +71,7 @@ namespace ACESimTest
         private int CaseNumber;
         public double DamagesMultipleForChallengedToPay = 0.75;
         public double DamagesMultipleForChallengerToPay = 1.25;
-        private (double pCosts, double dCosts)[] RoundSpecificBargainingCosts = new (double pCosts, double dCosts)[] { (10, 20), (30, 40), (50, 60) };
+        private (double pCosts, double dCosts)[] RoundSpecificBargainingCosts =  new (double pCosts, double dCosts)[] { (10, 20), (30, 40), (50, 60) };
 
         [TestMethod]
         public void DiscreteValueSignals()
@@ -143,7 +143,7 @@ namespace ACESimTest
                 LoserPays = loserPaysPolicy != LoserPaysPolicy.NoLoserPays,
                 LoserPaysMultiple = LoserPaysMultiple,
                 LoserPaysAfterAbandonment = loserPaysPolicy == LoserPaysPolicy.EvenAfterAbandonOrDefault,
-                PerPartyCostsLeadingUpToBargainingRound = roundSpecificBargainingCosts ? 0 : PerRoundBargainingCost,
+                PerPartyCostsLeadingUpToBargainingRound = PerRoundBargainingCost,
                 RoundSpecificBargainingCosts = roundSpecificBargainingCosts ? RoundSpecificBargainingCosts : null,
                 AllowAbandonAndDefaults = allowAbandonAndDefaults,
                 DeltaOffersOptions = new DeltaOffersOptions
@@ -321,21 +321,23 @@ namespace ACESimTest
         }
 
         private (double? bestRejectedOfferToP, double? bestRejectedOfferToD) GetBestOffers(
-            List<(byte offerMove, byte bargainingRoundNumber, bool isOfferToP)> offers)
+            List<(byte offerMove, byte bargainingRoundNumber, bool isOfferToP)> offers, MyGameOptions options)
         {
             (double? bestRejectedOfferToP, double? bestRejectedOfferToD) bestOffers = (null, null);
             foreach (var offer in offers)
                 if (offer.isOfferToP)
                 {
+                    CalculateBargainingRoundExpenses(offer.bargainingRoundNumber, options, out double pBargainingRoundExpenses, out double dBargainingRoundExpenses);
                     double offerToP = EquallySpaced.GetLocationOfEquallySpacedPoint((byte) (offer.offerMove - 1), NumOffers, true);
-                    double roundAdjustedOfferToP = InitialWealth + offerToP * DamagesAlleged - PFileCost * CostsMultiplier - offer.bargainingRoundNumber * PerRoundBargainingCost * CostsMultiplier;
+                    double roundAdjustedOfferToP = InitialWealth + offerToP * DamagesAlleged - PFileCost * CostsMultiplier - pBargainingRoundExpenses * CostsMultiplier;
                     if (bestOffers.bestRejectedOfferToP == null || roundAdjustedOfferToP > bestOffers.bestRejectedOfferToP)
                         bestOffers.bestRejectedOfferToP = roundAdjustedOfferToP;
                 }
                 else
                 {
+                    CalculateBargainingRoundExpenses(offer.bargainingRoundNumber, options, out double pBargainingRoundExpenses, out double dBargainingRoundExpenses);
                     double offerToD = EquallySpaced.GetLocationOfEquallySpacedPoint((byte) (offer.offerMove - 1), NumOffers, true);
-                    double roundAdjustedOfferToD = InitialWealth - offerToD * DamagesAlleged - DAnswerCost * CostsMultiplier - offer.bargainingRoundNumber * PerRoundBargainingCost * CostsMultiplier; // note that this is negative, because it's the change in wealth for D
+                    double roundAdjustedOfferToD = InitialWealth - offerToD * DamagesAlleged - DAnswerCost * CostsMultiplier - dBargainingRoundExpenses * CostsMultiplier; 
                     if (bestOffers.bestRejectedOfferToD == null || roundAdjustedOfferToD > bestOffers.bestRejectedOfferToD)
                         bestOffers.bestRejectedOfferToD = roundAdjustedOfferToD;
                 }
@@ -591,7 +593,7 @@ namespace ACESimTest
                             continue; // not interested in this case
                         if ((!plaintiffGivesUp || !defendantGivesUp) && !plaintiffWinsIfBothGiveUp)
                             continue; // only need to test both values of plaintiff wins if both give up.
-                        if (CaseNumber == 8308) // DEBUG 9999999)
+                        if (CaseNumber == int.MaxValue)
                         {
                             Br.eak.Add("Case");
                             Br.eak.Add(CaseNumber.ToString());
@@ -628,9 +630,9 @@ namespace ACESimTest
         {
             var bargainingRoundMoves = GetBargainingRoundMoves(simultaneousBargainingRounds,
                 abandonmentInRound ?? numPotentialBargainingRounds, false, simulatingBargainingFailure, out var offers);
-            var bestOffers = GetBestOffers(offers);
             var numActualRounds = (byte) bargainingRoundMoves.Count();
             var options = GetGameOptions(allowDamagesVariation, true, numPotentialBargainingRounds, numPotentialBargainingRounds == 3, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, loserPaysPolicy, simulatingBargainingFailure, SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges, shootout);
+            var bestOffers = GetBestOffers(offers, options);
             bool pFiles = pReadyToAbandonRound != 0;
             bool dAnswers = pFiles && dReadyToDefaultRound != 0;
             var actionsToPlay = GetPlayerActions(pFiles, dAnswers, liabilityStrength, PLiabilitySignal,
@@ -667,21 +669,7 @@ namespace ACESimTest
             double pExpenses, dExpenses;
             if (myGameProgress.PFiles && myGameProgress.DAnswers)
             {
-                double pBargainingRoundExpenses = 0;
-                double dBargainingRoundExpenses = 0;
-                Br.eak.IfAdded("Case"); // DEBUG
-                if (options.RoundSpecificBargainingCosts != null)
-                {
-                    for (int i = 0; i < numActualRounds; i++)
-                    {
-                        pBargainingRoundExpenses += options.RoundSpecificBargainingCosts[i].pCosts;
-                        dBargainingRoundExpenses += options.RoundSpecificBargainingCosts[i].dCosts;
-                    }
-                }
-                else
-                {
-                    pBargainingRoundExpenses = dBargainingRoundExpenses = numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound;
-                }
+                CalculateBargainingRoundExpenses(numActualRounds, options, out double pBargainingRoundExpenses, out double dBargainingRoundExpenses);
                 double pInitialExpenses = options.PFilingCost * options.CostsMultiplier + pBargainingRoundExpenses * options.CostsMultiplier;
                 double dInitialExpenses = options.DAnswerCost * options.CostsMultiplier + dBargainingRoundExpenses * options.CostsMultiplier;
                 GetExpensesAfterFeeShifting(options, true, pWins, pInitialExpenses, dInitialExpenses, out pExpenses, out dExpenses);
@@ -731,6 +719,24 @@ namespace ACESimTest
             pInformationSet.Should().Be(expectedPartyInformationSets.pInformationSet);
             dInformationSet.Should().Be(expectedPartyInformationSets.dInformationSet);
             resolutionSet.Should().Be(expectedResolutionSet);
+        }
+
+        private static void CalculateBargainingRoundExpenses(byte numActualRounds, MyGameOptions options, out double pBargainingRoundExpenses, out double dBargainingRoundExpenses)
+        {
+            pBargainingRoundExpenses = 0;
+            dBargainingRoundExpenses = 0;
+            if (options.RoundSpecificBargainingCosts != null)
+            {
+                for (int i = 0; i < numActualRounds; i++)
+                {
+                    pBargainingRoundExpenses += options.RoundSpecificBargainingCosts[i].pCosts;
+                    dBargainingRoundExpenses += options.RoundSpecificBargainingCosts[i].dCosts;
+                }
+            }
+            else
+            {
+                pBargainingRoundExpenses = dBargainingRoundExpenses = numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound;
+            }
         }
 
         private void GetExpensesAfterFeeShifting(MyGameOptions options, bool loserPaysAfterAbandonmentRequired, bool pWins, double pInitialExpenses, double dInitialExpenses, out double pExpenses, out double dExpenses)
@@ -800,9 +806,9 @@ namespace ACESimTest
         {
             var bargainingRoundMoves = GetBargainingRoundMoves(simultaneousBargainingRounds,
                 settlementInRound ?? numPotentialBargainingRounds, settlementInRound != null, simulatingBargainingFailure, out var offers);
-            var bestOffers = GetBestOffers(offers);
             var numActualRounds = (byte) bargainingRoundMoves.Count();
             var options = GetGameOptions(allowDamagesVariation, allowAbandonAndDefault, numPotentialBargainingRounds, numPotentialBargainingRounds == 2, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, loserPaysPolicy, simulatingBargainingFailure, SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges, ShootoutSettings.None);
+            var bestOffers = GetBestOffers(offers, options);
             var actionsToPlay = GetPlayerActions(true, true, LiabilityStrength, PLiabilitySignal,
                 DLiabilitySignal, DamagesStrength, PDamagesSignal, DDamagesSignal, simulatingBargainingFailure, bargainingRoundMoves: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed: simultaneousOffersUltimatelyRevealed, sideBetChallenges: SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges: runningSideBetChallenges);
             var myGameProgress = MyGameLauncher.PlayMyGameOnce(options, actionsToPlay);
@@ -812,9 +818,10 @@ namespace ACESimTest
 
             myGameProgress.GameComplete.Should().BeTrue();
             myGameProgress.CaseSettles.Should().BeTrue();
-            double pFinalWealthExpected = options.PInitialWealth - options.PFilingCost * options.CostsMultiplier + settlementProportion * options.DamagesMax - numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound * options.CostsMultiplier;
+            CalculateBargainingRoundExpenses(numActualRounds, options, out double pBargainingRoundExpenses, out double dBargainingRoundExpenses);
+            double pFinalWealthExpected = options.PInitialWealth - options.PFilingCost * options.CostsMultiplier + settlementProportion * options.DamagesMax - pBargainingRoundExpenses * options.CostsMultiplier;
             double dFinalWealthExpected = options.DInitialWealth - options.DAnswerCost * options.CostsMultiplier - settlementProportion * options.DamagesMax -
-                                          numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound * options.CostsMultiplier;
+                                          dBargainingRoundExpenses * options.CostsMultiplier;
             CheckFinalWelfare(myGameProgress, pFinalWealthExpected, dFinalWealthExpected, bestOffers);
 
             //var informationSetHistories = myGameProgress.GameHistory.GetInformationSetHistoryItems().ToList();
@@ -846,7 +853,7 @@ namespace ACESimTest
                 foreach (var shootout in new[] { ShootoutSettings.None, ShootoutSettings.Regular, ShootoutSettings.AverageAllRounds, ShootoutSettings.ApplyAfterAbandonment, ShootoutSettings.ApplyAfterAbandonment_AverageAllRounds })
                 {
                     var skipThis = false;
-                    if (CaseNumber == 0) // DEBUG int.MaxValue)
+                    if (CaseNumber == int.MaxValue)
                     {
                         Br.eak.Add("Case");
                         GameProgressLogger.LoggingOn = true;
@@ -882,7 +889,7 @@ namespace ACESimTest
         {
             var options = GetGameOptions(allowDamagesVariation, allowAbandonAndDefaults, numBargainingRounds, simultaneousBargainingRounds /* doesn't matter, just must do it sometimes */, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, loserPaysPolicy, simulatingBargainingFailure, sideBetChallenges, runningSideBetChallenges, shootout);
             var bargainingMoves = GetBargainingRoundMoves(simultaneousBargainingRounds, numBargainingRounds, false, simulatingBargainingFailure, out var offers);
-            var bestOffers = GetBestOffers(offers);
+            var bestOffers = GetBestOffers(offers, options);
             byte courtLiabilityResult = plaintiffWins ? (byte)2 : (byte)1;
             byte courtDamagesResultIfAllowVariation = CDamagesSignal;
             double damagesIfAwarded = DamagesAlleged;
@@ -897,8 +904,9 @@ namespace ACESimTest
             myGameProgress.GameComplete.Should().BeTrue();
             VerifyInformationSetUniqueness(myGameProgress, options);
 
-            double pInitialExpenses = options.PFilingCost * options.CostsMultiplier + numBargainingRounds * options.PerPartyCostsLeadingUpToBargainingRound * options.CostsMultiplier + options.PTrialCosts * options.CostsMultiplier;
-            double dInitialExpenses = options.DAnswerCost * options.CostsMultiplier + numBargainingRounds * options.PerPartyCostsLeadingUpToBargainingRound * options.CostsMultiplier + options.DTrialCosts * options.CostsMultiplier;
+            CalculateBargainingRoundExpenses(numBargainingRounds, options, out double pBargainingRoundExpenses, out double dBargainingRoundExpenses);
+            double pInitialExpenses = options.PFilingCost * options.CostsMultiplier + pBargainingRoundExpenses * options.CostsMultiplier + options.PTrialCosts * options.CostsMultiplier;
+            double dInitialExpenses = options.DAnswerCost * options.CostsMultiplier + dBargainingRoundExpenses * options.CostsMultiplier + options.DTrialCosts * options.CostsMultiplier;
             GetExpensesAfterFeeShifting(options, false, plaintiffWins, pInitialExpenses, dInitialExpenses, out double pExpenses, out double dExpenses);
 
             double sideBetTransferFromP = 0; // this will reduce P's wealth and increase D's (if negative, of course will have the reverse effect)

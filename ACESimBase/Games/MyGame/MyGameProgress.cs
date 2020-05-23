@@ -467,10 +467,6 @@ namespace ACESim
                 return;
             }
             double correctDamagesIfTrulyLiable;
-            if (MyGameDefinition.Options == null)
-                throw new Exception("DEBUG");
-            if (DamagesStrengthUniform == null)
-                throw new Exception("DEBUG2");
             if (MyGameDefinition.Options.NumDamagesStrengthPoints <= 1)
                 correctDamagesIfTrulyLiable = (double)MyGameDefinition.Options.DamagesMax;
             else

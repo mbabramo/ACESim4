@@ -31,12 +31,12 @@ namespace ACESim
         public int? ReportEveryNIterations = 1000;
         public int? SuppressReportBeforeIteration = null;
 
-        public bool UseAcceleratedBestResponse = true; // DEBUG
+        public bool UseAcceleratedBestResponse = true; 
         public const int EffectivelyNever = 999999999;
         public int? BestResponseEveryMIterations = 100; // For partial recall games, this is very costly, so consider using EffectivelyNever.
         public int? SuppressBestResponseBeforeIteration = null;
         public bool RememberBestResponseExploitability = true;
-        public bool UseCurrentStrategyForBestResponse = true; // DEBUG // requires accelerated best response
+        public bool UseCurrentStrategyForBestResponse = true; // requires accelerated best response
         public bool CalculatePerturbedBestResponseRefinement = false;
         public double PerturbationForBestResponseCalculation = 0.001;
         public int? MiniReportEveryPIterations = 1000;
@@ -88,7 +88,7 @@ namespace ACESim
         internal int NumRandomIterationsForUtilityCalculation = 10000;
         internal bool SuppressReportDisplayOnScreen;
 
-        public static bool PruneOnOpponentStrategy = false; // DEBUG // NOTE: In general sum games, this seems to cause difficulties, because some of the player's own information sets may not be visited, as a result of pruning on opponents' sets. 
+        public static bool PruneOnOpponentStrategy = true; // NOTE: In general sum games, this seemed to cause difficulties at one point, because some of the player's own information sets may not be visited, as a result of pruning on opponents' sets. Also, note that this cannot be used with symmetric games.
         public static double PruneOnOpponentStrategyThreshold = 1E-4; // NOTE: This is the probability for this action, not the cumulative probability. Meanwhile, this is not looked at directly during the generalized tree walk. This value affects only the updating of the information sets, by setting pruned probability to the smallest value possible (a positive value about 1). Pruning will then happen in turn in the tree walk.
         public static bool PredeterminePrunabilityBasedOnRelativeContributions = false; // if True, then we prune if and only if the action contributes negligibly at any later information set
 

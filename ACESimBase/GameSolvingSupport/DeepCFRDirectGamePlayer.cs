@@ -50,7 +50,6 @@ namespace ACESimBase.GameSolvingSupport
             byte adjustedDecisionIndex = UsingShortcutForSymmetricGames && currentDecision.PlayerIndex == 1 ? (byte)(decisionIndex - 1) : decisionIndex;
             IRegressionMachine regressionMachineForCurrentDecision = InitialPlaybackHelper.GetRegressionMachineIfExists(adjustedDecisionIndex);
             double[] onPolicyProbabilities;
-            //Br.eak.IfAdded("DEEPDEBUG");
             if (InitialPlaybackHelper.ProbabilitiesCache == null)
                 onPolicyProbabilities = InitialPlaybackHelper.MultiModel.GetRegretMatchingProbabilities(currentDecision, decisionIndex, independentVariables, regressionMachineForCurrentDecision);
             else

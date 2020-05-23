@@ -39,8 +39,8 @@ namespace ACESim
 
             int numInformationSets = InformationSets.Count;
             PostIterationUpdater.PrepareForUpdating(iteration, EvolutionSettings);
-            double? pruneOpponentStrategyBelow = !EvolutionSettings.CFR_OpponentSampling && EvolutionSettings.PruneOnOpponentStrategy && !EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions ? EvolutionSettings.PruneOnOpponentStrategyThreshold : (double?)null;
-            bool predeterminePrunability = !EvolutionSettings.CFR_OpponentSampling && EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions;
+            double? pruneOpponentStrategyBelow = !EvolutionSettings.CFR_OpponentSampling && EvolutionSettings.PruneOnOpponentStrategy && !TakeShortcutInSymmetricGames && !EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions ? EvolutionSettings.PruneOnOpponentStrategyThreshold : (double?)null;
+            bool predeterminePrunability = !EvolutionSettings.CFR_OpponentSampling && EvolutionSettings.PruneOnOpponentStrategy && !TakeShortcutInSymmetricGames && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions;
 
             Func<int, double?> randomNumberToSelectSingleOpponentAction = n => null;
             if (EvolutionSettings.CFR_OpponentSampling)

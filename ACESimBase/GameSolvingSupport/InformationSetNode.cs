@@ -1326,10 +1326,6 @@ namespace ACESim
                     byte? previousDecisionIndex =  labeledInformationSet.Count() > i - 1 ? (byte?)labeledInformationSet[i - 1].decisionIndex : null;
                     Decision previousDecision = previousDecisionIndex == null ? null : gameDefinition.DecisionPointsExecutionOrder[(byte)previousDecisionIndex].Decision;
                     bool previousDecisionInInformationSetIsOpponents = previousDecision != null && previousDecision.PlayerIndex == 0 && previousDecision.DecisionByteCode == decision.DecisionByteCode - 1; // this will usually be true -- that is, both players make the same offer at the same time; but it will not be true if a player puts information into its own information set only (e.g., as a way of distinguishing one information set from the next)
-                    if (previousDecisionInInformationSetIsOpponents != (previousDecision != null && previousDecision.PlayerIndex == 0))
-                    {
-                        var DEBUG = 0;
-                    }
                     if (previousDecisionInInformationSetIsOpponents && previousDecision.SymmetryMap != decision.SymmetryMap)
                         throw new Exception();
                     if (previousDecisionInInformationSetIsOpponents)

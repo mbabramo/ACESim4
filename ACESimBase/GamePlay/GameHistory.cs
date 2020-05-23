@@ -28,7 +28,7 @@ namespace ACESim
         public const byte InformationSetTerminator = 255;
 
         // TODO: Consider replacing const ints with something variable determined by the game. GameHistory would then be initialized with a struct including the relevant constants. This might save space, though it would increase the number of calculations.
-        public const int MaxNumActions = 60; // DEBUG 30; 
+        public const int MaxNumActions = 60; // DEBUG 30
         public const int MaxNumPlayers = 18; // includes chance players that need a very limited information set
         public const int MaxDeferredDecisionIndicesLength = 10;
         public const int SizeInBits_BitArrayForInformationSetMembership = GameHistory.MaxNumActions * MaxNumPlayers;

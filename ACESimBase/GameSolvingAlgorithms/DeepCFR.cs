@@ -742,13 +742,11 @@ namespace ACESim
                     bool useGameProgressTree = true;
                     if (useGameProgressTree)
                     {
-                        // DEBUG // it's not working even without symmetry -- apparently because without sampling allocation index is not being set.
-                        Br.eak.Add("DEEPDEBUG");
                         using (var gameProgressTree = await DeepCFR_BuildGameProgressTree(EvolutionSettings.NumRandomIterationsForSummaryTable, false))
                         {
                             var gameProgresses = gameProgressTree.AsEnumerable();
-                            var DEBUG = gameProgresses.ToArray();
-                            reportCollection = GenerateReportsFromGameProgressEnumeration(DEBUG);
+                            var gameProgressesArray = gameProgresses.ToArray();
+                            reportCollection = GenerateReportsFromGameProgressEnumeration(gameProgressesArray);
                         }
                     }
                     else
