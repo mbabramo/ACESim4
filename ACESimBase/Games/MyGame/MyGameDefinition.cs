@@ -62,13 +62,15 @@ namespace ACESim
             {
                 NumPointsInSourceUniformDistribution = Options.NumDamagesStrengthPoints,
                 StdevOfNormalDistribution = Options.PDamagesNoiseStdev,
-                NumSignals = Options.NumDamagesSignals
+                NumSignals = Options.NumDamagesSignals,
+                UseEndpoints = false
             };
             Options.DDamagesSignalParameters = new DiscreteValueSignalParameters()
             {
                 NumPointsInSourceUniformDistribution = Options.NumDamagesStrengthPoints,
                 StdevOfNormalDistribution = Options.DDamagesNoiseStdev,
-                NumSignals = Options.NumDamagesSignals
+                NumSignals = Options.NumDamagesSignals,
+                UseEndpoints = false
             };
         }
 
@@ -78,7 +80,8 @@ namespace ACESim
             {
                 NumPointsInSourceUniformDistribution = Options.NumLiabilityStrengthPoints,
                 StdevOfNormalDistribution = Options.PLiabilityNoiseStdev,
-                NumSignals = Options.NumLiabilitySignals
+                NumSignals = Options.NumLiabilitySignals,
+                UseEndpoints = false
             };
             Options.DLiabilitySignalParameters = new DiscreteValueSignalParameters()
             {
@@ -279,10 +282,8 @@ namespace ACESim
                     EquallySpaced.GetLocationOfEquallySpacedPoint(litigationQuality - 1,
                         Options.NumLiabilityStrengthPoints, false);
 
-                DiscreteValueSignalParameters pParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumLiabilityStrengthPoints, NumSignals = Options.NumLiabilitySignals, StdevOfNormalDistribution = Options.PLiabilityNoiseStdev, UseEndpoints = false };
-                PLiabilitySignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, pParams);
-                DiscreteValueSignalParameters dParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumLiabilityStrengthPoints, NumSignals = Options.NumLiabilitySignals, StdevOfNormalDistribution = Options.DLiabilityNoiseStdev, UseEndpoints = false };
-                DLiabilitySignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, dParams);
+                PLiabilitySignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, Options.PLiabilitySignalParameters);
+                DLiabilitySignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, Options.DLiabilitySignalParameters);
                 DiscreteValueSignalParameters cParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumLiabilityStrengthPoints, NumSignals = 2, StdevOfNormalDistribution = Options.CourtLiabilityNoiseStdev, UseEndpoints = false };
                 CLiabilitySignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, cParams);
             }
@@ -336,10 +337,8 @@ namespace ACESim
                     EquallySpaced.GetLocationOfEquallySpacedPoint(litigationQuality - 1,
                         Options.NumDamagesStrengthPoints, false);
 
-                DiscreteValueSignalParameters pParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumDamagesStrengthPoints, NumSignals = Options.NumDamagesSignals, StdevOfNormalDistribution = Options.PDamagesNoiseStdev, UseEndpoints = false };
-                PDamagesSignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, pParams);
-                DiscreteValueSignalParameters dParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumDamagesStrengthPoints, NumSignals = Options.NumDamagesSignals, StdevOfNormalDistribution = Options.DDamagesNoiseStdev, UseEndpoints = false };
-                DDamagesSignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, dParams);
+                PDamagesSignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, Options.PDamagesSignalParameters);
+                DDamagesSignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, Options.DDamagesSignalParameters);
                 DiscreteValueSignalParameters cParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumDamagesStrengthPoints, NumSignals = Options.NumDamagesSignals, StdevOfNormalDistribution = Options.CourtDamagesNoiseStdev, UseEndpoints = false }; // TODO: Differentiate number of court damages signals, since we might want that to be a higher number.
                 CDamagesSignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, cParams);
             }
