@@ -2,6 +2,7 @@
 using ACESimBase;
 using ACESimBase.GameSolvingSupport;
 using ACESimBase.Util;
+using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -24,6 +25,12 @@ namespace ACESim
     public partial class DeepCFR : CounterfactualRegretMinimization
     {
         DeepCFRMultiModel MultiModel;
+
+        public bool UseGenotyping = true;
+        public int FirstIterationToSaveGenotypes = 20;
+        public int SaveGenotypeEveryNIterationsAfterFirst = 5;
+        DeepCFRMultiModel GenotypingBaselineMultiModel;
+        public List<float[][]> SavedGenotypes; // saved genotypes by time, player, and observation index from baseline multimodel
 
         int ApproximateBestResponse_CurrentIterationsTotal;
         int ApproximateBestResponse_CurrentIterationsIndex;
@@ -109,6 +116,8 @@ namespace ACESim
             TabbedText.WriteLine($"All models computed, time {localStopwatch.ElapsedMilliseconds} ms");
             localStopwatch.Stop();
 
+            Genotyping(iteration);
+
             double[] exploitabilityProxy;
             if (EvolutionSettings.DeepCFR_ExploitabilityProxy)
                 exploitabilityProxy = await DeepCFR_ExploitabilityProxy(iteration, isBestResponseIteration);
@@ -124,6 +133,23 @@ namespace ACESim
 
             return reportCollection;
 
+        }
+
+        private void Genotyping(int iteration)
+        {
+            if (UseGenotyping)
+            {
+                if (iteration == 1)
+                {
+                    GenotypingBaselineMultiModel = MultiModel.DeepCopyObservationsOnly();
+                    SavedGenotypes = new List<float[][]>();
+                }
+                if (iteration >= FirstIterationToSaveGenotypes && iteration % SaveGenotypeEveryNIterationsAfterFirst == 0)
+                {
+                    float[][] genotype = MultiModel.GetGenotypes(GenotypingBaselineMultiModel, NumNonChancePlayers);
+                    SavedGenotypes.Add(genotype);
+                }
+            }
         }
 
         private async Task DeepCFR_GenerateObservations(int iteration, bool isBestResponseIteration)

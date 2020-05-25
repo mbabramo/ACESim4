@@ -58,6 +58,13 @@ namespace ACESimBase.GameSolvingSupport
             ModelIndexForDecisionIndex = modelIndexForDecisionIndex.ToArray();
         }
 
+        public DeepCFRMultiModelContainer DeepCopyObservationsOnly()
+        {
+            var models = EnumerateModels().Select(x => x.DeepCopyObservationsOnly()).ToArray();
+            var result = new DeepCFRMultiModelContainer(Mode, ReservoirCapacity, ReservoirSeed, DiscountRate, RegressionFactory, models, ModelIndexForDecisionIndex);
+            return result;
+        }
+
         public DeepCFRMultiModelContainer DeepCopyForPlaybackOnly()
         {
             var models = EnumerateModels().Select(x => x.DeepCopyForPlaybackOnly()).ToArray();

@@ -120,6 +120,23 @@ namespace ACESimBase.GameSolvingSupport
             };
         }
 
+        public DeepCFRModel DeepCopyObservationsOnly()
+        {
+            if (Observations == null || Observations.Capacity == 0)
+                return null;
+            return new DeepCFRModel(Decisions, Observations.Capacity, Observations.Seed, DiscountRate, null)
+            {
+                Regression = null,
+                Observations = Observations.DeepCopy(x => x.DeepCopy()),
+                IterationsProcessed = IterationsProcessed,
+                IncludedDecisionIndices = IncludedDecisionIndices,
+                TargetToAdd = TargetToAdd,
+                StateFrozen = StateFrozen,
+                FullReservoirReplacement = FullReservoirReplacement,
+                TestDataProportion = TestDataProportion
+            };
+        }
+
         public IRegressionMachine GetRegressionMachine() => Regression?.GetRegressionMachine();
         public void ReturnRegressionMachine(IRegressionMachine regressionMachine) => Regression?.ReturnRegressionMachine(regressionMachine);
 
@@ -252,6 +269,18 @@ namespace ACESimBase.GameSolvingSupport
 #endregion
 
         #region Choosing actions
+
+        public IEnumerable<double> GetPredictedRegretForObservations(IEnumerable<DeepCFRObservation> observations)
+        {
+            IRegressionMachine regressionMachine = GetRegressionMachine();
+            foreach (var observation in observations)
+            {
+                if (observation.IndependentVariables.ActionChosen == 0)
+                    throw new Exception("Invalid action.");
+                double predictedRegret = GetPredictedRegretForAction(observation.IndependentVariables, observation.IndependentVariables.ActionChosen, regressionMachine);
+                yield return predictedRegret;
+            }
+        }
 
         public double GetPredictedRegretForAction(DeepCFRIndependentVariables independentVariables, byte action, IRegressionMachine regressionMachine)
         {

@@ -1,5 +1,6 @@
 ﻿using ACESim;
 using JetBrains.Annotations;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -60,10 +61,21 @@ namespace ACESimBase.GameSolvingSupport
                 Models = Models?.DeepCopyForPlaybackOnly(),
             };
         }
+        public DeepCFRMultiModel DeepCopyObservationsOnly()
+        {
+            return new DeepCFRMultiModel()
+            {
+                Mode = Mode,
+                ReservoirCapacity = ReservoirCapacity.ToArray(),
+                ReservoirSeed = ReservoirSeed,
+                DiscountRate = DiscountRate,
+                Models = Models?.DeepCopyObservationsOnly(),
+            };
+        }
 
         public DeepCFRModel GetModelForDecisionIndex(byte decisionIndex) => Models[decisionIndex];
 
-        public IEnumerable<DeepCFRModel> EnumerateModels() => Models;
+        public IEnumerable<DeepCFRModel> EnumerateModels(byte? playerIndex = null, byte? decisionIndex = null) => playerIndex == null ? Models : FilterModels((byte) playerIndex, decisionIndex);
 
         public IEnumerable<DeepCFRModel> FilterModels(byte playerIndex, byte? decisionIndex) => Models.Where(x => x.PlayerNumbers.Contains(playerIndex) && (decisionIndex == null || x.DecisionIndices.Contains((byte) decisionIndex)));
 
@@ -190,6 +202,46 @@ namespace ACESimBase.GameSolvingSupport
             for (byte a = 1; a <= decision.NumPossibleActions; a++)
                 results[a - 1] = model.GetPredictedRegretForAction(independentVariables, a, regressionMachineForDecision);
             return results;
+        }
+
+        /// <summary>
+        /// /// This produces genotypes based on a baseline multimodel. That is, it uses the observations that were used
+        /// to generate the baseline multimodel and it calculates the regrets that would obtain in the current multimodel.
+        /// Thus, any given multimodel can be typed as a series of numbers. We can then reduce the dimensionality of these
+        /// numbers, assuming that we have a fair number of genotypes (but possibly far fewer than the number of
+        /// observations in the baseline multimodel), by using a tool such as Principal Components Analysis.
+        /// </summary>
+        /// <param name="baseline"></param>
+        /// <param name="numNonChancePlayers"></param>
+        /// <returns></returns>
+        public float[][] GetGenotypes(DeepCFRMultiModel baseline, byte numNonChancePlayers)
+        {
+            float[][] result = new float[numNonChancePlayers][];
+            for (byte p = 0; p < numNonChancePlayers; p++)
+                result[p] = GetGenotype(baseline, p);
+            return result;
+        }
+
+        /// <summary>
+        /// Returns a genotype for a single player.
+        /// </summary>
+        /// <param name="baseline"></param>
+        /// <returns></returns>
+        private float[] GetGenotype(DeepCFRMultiModel baseline, byte? playerIndex)
+        {
+            return GetExpectedRegretsForMultiModelBaseline(baseline, playerIndex).Select(x => (float)x).ToArray();
+        }
+
+        private IEnumerable<double> GetExpectedRegretsForMultiModelBaseline(DeepCFRMultiModel baseline, byte? playerIndex)
+        {
+            var matchedModels = EnumerateModels(playerIndex).Zip(baseline.EnumerateModels(playerIndex), (currentModel, baselineModel) => (currentModel, baselineModel)).ToList();
+            // TODO: Improve performance by parallelizing, doing each model on a separate thread
+            foreach (var match in matchedModels)
+            {
+                IEnumerable<double> expectedRegrets = match.currentModel.GetPredictedRegretForObservations(match.baselineModel.Observations);
+                foreach (double expectedRegret in expectedRegrets)
+                    yield return expectedRegret;
+            }
         }
 
         #endregion
