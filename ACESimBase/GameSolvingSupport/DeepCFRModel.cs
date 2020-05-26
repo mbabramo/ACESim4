@@ -127,6 +127,7 @@ namespace ACESimBase.GameSolvingSupport
             return new DeepCFRModel(Decisions, Observations.Capacity, Observations.Seed, DiscountRate, null)
             {
                 Regression = null,
+                RegressionFactory = RegressionFactory,
                 Observations = Observations.DeepCopy(x => x.DeepCopy()),
                 IterationsProcessed = IterationsProcessed,
                 IncludedDecisionIndices = IncludedDecisionIndices,
@@ -175,15 +176,20 @@ namespace ACESimBase.GameSolvingSupport
 
         #region Model building and printing
 
-        public async Task<string> CompleteIteration()
+        public async Task<string> ProcessObservations(bool addPendingObservations)
         {
-            IterationsProcessed++;
-            if (!PendingObservations.Any())
-                return $"No pending observations ({GetModelName()})";
             StringBuilder s = new StringBuilder();
-            s.Append($"Pending observations: {PendingObservations.Count()} ({GetModelName()})");
-            Observations.AddPotentialReplacementsAtIteration(PendingObservations.ToList(), DiscountRate, IterationsProcessed);
-            PendingObservations = new List<DeepCFRObservation>();
+            if (addPendingObservations)
+            {
+                IterationsProcessed++;
+                if (!PendingObservations.Any())
+                    return $"No pending observations ({GetModelName()})";
+                s.Append($"Pending observations: {PendingObservations.Count()} ({GetModelName()})");
+                Observations.AddPotentialReplacementsAtIteration(PendingObservations.ToList(), DiscountRate, IterationsProcessed);
+                PendingObservations = new List<DeepCFRObservation>();
+            }
+            else
+                s.Append($"Total observations: {Observations.Count()} ({GetModelName()})");
             await BuildModel(s);
             string trainingResultString = Regression.GetTrainingResultString();
             s.Append(trainingResultString);

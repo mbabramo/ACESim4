@@ -58,9 +58,14 @@ namespace ACESimBase.GameSolvingSupport
             ModelIndexForDecisionIndex = modelIndexForDecisionIndex.ToArray();
         }
 
-        public DeepCFRMultiModelContainer DeepCopyObservationsOnly()
+        public DeepCFRMultiModelContainer DeepCopyObservationsOnly(byte? limitToPlayerIndex)
         {
-            var models = EnumerateModels().Select(x => x.DeepCopyObservationsOnly()).ToArray();
+            var models = EnumerateModels().Select(x =>
+            {
+                if (limitToPlayerIndex == null || x.PlayerNumbers.Contains((byte) limitToPlayerIndex))
+                    return x.DeepCopyObservationsOnly();
+                return null;
+            }).ToArray();
             var result = new DeepCFRMultiModelContainer(Mode, ReservoirCapacity, ReservoirSeed, DiscountRate, RegressionFactory, models, ModelIndexForDecisionIndex);
             return result;
         }
@@ -95,6 +100,21 @@ namespace ACESimBase.GameSolvingSupport
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         public DeepCFRModel this[byte decisionIndex] => Models[ModelIndexForDecisionIndex[decisionIndex]];
+
+        public void IntegrateOtherContainer(DeepCFRMultiModelContainer other)
+        {
+            int numModels = Models.Length;
+            if (other.Models.Length != numModels)
+                throw new Exception("Inconsistent number of models");
+            for (byte i = 0; i < numModels; i++)
+                if (other.Models[i] != null)
+                {
+                    //Because the following is commented out, the other container will take precedence over this one.
+                    //if (Models[i] != null)
+                    //    throw new Exception("Both contain same model.");
+                    Models[i] = other.Models[i];
+                }
+        }
 
         public List<byte> GetDecisionIndices()
         {

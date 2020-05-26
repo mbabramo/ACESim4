@@ -26,11 +26,10 @@ namespace ACESim
     {
         DeepCFRMultiModel MultiModel;
 
-        public bool UseGenotyping = true;
-        public int FirstIterationToSaveGenotypes = 20;
-        public int SaveGenotypeEveryNIterationsAfterFirst = 5;
         DeepCFRMultiModel GenotypingBaselineMultiModel;
         public List<float[][]> SavedGenotypes; // saved genotypes by time, player, and observation index from baseline multimodel
+        public PCAResultsForPlayer[] PCAResultsForEachPlayer;
+        public List<DeepCFRMultiModel>[] PCAStrategiesForEachPlayer;
 
         int ApproximateBestResponse_CurrentIterationsTotal;
         int ApproximateBestResponse_CurrentIterationsIndex;
@@ -116,7 +115,7 @@ namespace ACESim
             TabbedText.WriteLine($"All models computed, time {localStopwatch.ElapsedMilliseconds} ms");
             localStopwatch.Stop();
 
-            Genotyping(iteration);
+            await Genotyping(iteration);
 
             double[] exploitabilityProxy;
             if (EvolutionSettings.DeepCFR_ExploitabilityProxy)
@@ -133,23 +132,6 @@ namespace ACESim
 
             return reportCollection;
 
-        }
-
-        private void Genotyping(int iteration)
-        {
-            if (UseGenotyping)
-            {
-                if (iteration == 1)
-                {
-                    GenotypingBaselineMultiModel = MultiModel.DeepCopyObservationsOnly();
-                    SavedGenotypes = new List<float[][]>();
-                }
-                if (iteration >= FirstIterationToSaveGenotypes && iteration % SaveGenotypeEveryNIterationsAfterFirst == 0)
-                {
-                    float[][] genotype = MultiModel.GetGenotypes(GenotypingBaselineMultiModel, NumNonChancePlayers);
-                    SavedGenotypes.Add(genotype);
-                }
-            }
         }
 
         private async Task DeepCFR_GenerateObservations(int iteration, bool isBestResponseIteration)
@@ -813,6 +795,165 @@ namespace ACESim
             }
             else
                 TabbedText.Write($"Iteration {iteration} of {EvolutionSettings.TotalIterations} ");
+        }
+
+        #endregion
+
+        #region Principal component analysis
+
+        private async Task Genotyping(int iteration)
+        {
+            if (EvolutionSettings.DeepCFR_PCA_PerformPrincipalComponentAnalysis)
+            {
+                if (iteration == 1)
+                {
+                    GenotypingBaselineMultiModel = MultiModel.DeepCopyObservationsOnly(null);
+                    SavedGenotypes = new List<float[][]>();
+                }
+                if (iteration >= EvolutionSettings.DeepCFR_PCA_FirstIterationToSaveGenotypes && iteration % EvolutionSettings.DeepCFR_PCA_SaveGenotypeEveryNIterationsAfterFirst == 0)
+                {
+                    float[][] genotype = MultiModel.GetGenotypes(GenotypingBaselineMultiModel, NumNonChancePlayers);
+                    SavedGenotypes.Add(genotype);
+                }
+                if (iteration == EvolutionSettings.TotalIterations)
+                {
+                    PCAResultsForEachPlayer = new PCAResultsForPlayer[NumNonChancePlayers];
+                    for (byte p = 0; p < NumNonChancePlayers; p++)
+                        PCAResultsForEachPlayer[p] = PerformPrincipalComponentAnalysis(p);
+                    await LoadReducedFormStrategies();
+                }
+            }
+        }
+
+        public PCAResultsForPlayer PerformPrincipalComponentAnalysis(byte playerIndex)
+        {
+            int numElementsInGenotype = SavedGenotypes.First()[playerIndex].Length;
+            int numGenotypes = SavedGenotypes.Count();
+            double[,] originalGenotypes = new double[numGenotypes, numElementsInGenotype];
+            for (int i = 0; i < numGenotypes; i++)
+                for (int j = 0; j < numElementsInGenotype; j++)
+                    originalGenotypes[i, j] = SavedGenotypes[i][playerIndex][j];
+            (double[,] meanCentered, double[] mean, double[] stdev) = originalGenotypes.ZScored();
+            alglib.pcatruncatedsubspace(meanCentered, numGenotypes, numElementsInGenotype, EvolutionSettings.DeepCFR_PCA_NumPrincipalComponents, EvolutionSettings.DeepCFR_PCA_Precision, 0, out double[] sigma_squared, out double[,] v_principalComponentLoadings);
+            double[] proportionOfAccountedVariance = sigma_squared.Select(x => x / sigma_squared.Sum()).ToArray();
+            double[,] u_principalComponentScores = meanCentered.Multiply(v_principalComponentLoadings);
+            // Calculate stats on principal component scores. Mean will be zero. Standard deviations will
+            // be such that their squares (i.e., variances) will be in proportion with proportionOfAccountedVariance.
+            // So, we don't really need this, but the standard deviations are useful.
+            StatCollectorArray principalComponentScoresDistribution = new StatCollectorArray();
+            foreach (double[] row in u_principalComponentScores.GetRows())
+                principalComponentScoresDistribution.Add(row);
+            double[] firstDimensionOnly = u_principalComponentScores.GetColumn(0);
+            double[,] vTranspose = v_principalComponentLoadings.Transpose();
+            double[,] backProjectedMeanCentered = u_principalComponentScores.Multiply(vTranspose);
+            double[,] backProjected = backProjectedMeanCentered.ReverseZScored(mean, stdev);
+            PCAResultsForPlayer stats = new PCAResultsForPlayer()
+            {
+                playerIndex = playerIndex,
+                meanOfOriginalElements = mean,
+                stdevOfOriginalElements = stdev,
+                sigma_squared = sigma_squared,
+                v_principalComponentLoadings = v_principalComponentLoadings,
+                proportionOfAccountedVariance = proportionOfAccountedVariance,
+                principalComponentStdevs = principalComponentScoresDistribution.StandardDeviation().ToArray(),
+            };
+            return stats;
+        }
+
+        //public async Task<DeepCFRMultiModel> GenerateModelFromPlayerPrincipalComponents(DeepCFRMultiModel baselineModel, double[][] principalComponentScoresForPlayers, bool parallel)
+        //{
+        //    DeepCFRMultiModel targetModel = baselineModel.DeepCopyObservationsOnly(null);
+        //    int numPlayers = StatsForPlayer.Length;
+        //    for (byte playerIndex = 0; playerIndex < numPlayers; playerIndex++)
+        //    {
+        //        double[] principalComponentScoresForPlayer = principalComponentScoresForPlayers[playerIndex];
+        //        ChangeModelBasedOnPlayerPrincipalComponents(targetModel, playerIndex, principalComponentScoresForPlayer);
+        //    }
+        //    await targetModel.ProcessObservations(false, parallel);
+        //    return targetModel;
+        //}
+
+        public async Task LoadReducedFormStrategies()
+        {
+            PCAStrategiesForEachPlayer = new List<DeepCFRMultiModel>[NumNonChancePlayers];
+            for (byte p = 0; p < NumNonChancePlayers; p++)
+                PCAStrategiesForEachPlayer[p] = await GetSinglePlayerReducedFormStrategies(p);
+        }
+
+        public async Task<List<DeepCFRMultiModel>> GetSinglePlayerReducedFormStrategies(byte playerIndex)
+        {
+            var stats = PCAResultsForEachPlayer[playerIndex];
+            int[] numVariationsPerPrincipalComponent = EvolutionSettings.DeepCFR_PCA_NumVariationsPerPrincipalComponent;
+            int numPrincipalComponents = EvolutionSettings.DeepCFR_PCA_NumPrincipalComponents;
+            // 1. Calculate the range of values for each principal component. This depends on the number of
+            // variations per component and the standard deviation for that component. We determine number
+            // of standard deviations for each variation by drawing from the inverse cumulative normal distribution.
+            double[][] valuesForEachPrincipalComponent = new double[numPrincipalComponents][];
+            for (int principalComponent = 0; principalComponent < numPrincipalComponents; principalComponent++)
+            {
+                double stdev = stats.principalComponentStdevs[principalComponent];
+                int numVariations = numVariationsPerPrincipalComponent[principalComponent];
+                valuesForEachPrincipalComponent[principalComponent] = Enumerable.Range(0, numVariations)
+                    .Select(v => EquallySpaced.GetLocationOfEquallySpacedPoint(v, numVariations, false))
+                    .Select(p => NormalDistributionCalculation.CumulativeNormalDistribution(p))
+                    .Select(n => n * stdev)
+                    .ToArray();
+            }
+            // 2. Calculate permutations of the value for each principal component, so for example if there are 
+            // 3 values of PC0 and 4 values of PC1 (and nothing else), we would have 12 permutations. Each of
+            // these 12 permutations would have a different value for each principal component.
+            double[][] permutations = PermutationMaker.GetPermutations(numVariationsPerPrincipalComponent.ToList(), resultsZeroBased: true)
+                .Select(permutation =>
+                    permutation.Select((item, index) => (item, index))
+                    .Select(p => valuesForEachPrincipalComponent[p.index][p.item])
+                    .ToArray()
+                    )
+                .ToArray();
+            int numPermutations = permutations.GetLength(0);
+            // 3. Create a strategy from each set of principal components.
+            List<DeepCFRMultiModel> strategiesForPlayer = new List<DeepCFRMultiModel>();
+            for (int permutation = 0; permutation < numPermutations; permutation++)
+            {
+                TabbedText.WriteLine($"Getting reduced form strategy {permutation + 1} of {numPermutations} for player {playerIndex}");
+                DeepCFRMultiModel strategy = await GetSinglePlayerStrategyBasedOnPrincipalComponents(playerIndex, permutations[permutation], EvolutionSettings.ParallelOptimization);
+                strategiesForPlayer.Add(strategy);
+            }
+            // 4. Return result
+            return strategiesForPlayer;
+        }
+
+        public async Task<DeepCFRMultiModel> GetSinglePlayerStrategyBasedOnPrincipalComponents(byte playerIndex, double[] principalComponentScoresForPlayer, bool parallel)
+        {
+            DeepCFRMultiModel targetModel = GenotypingBaselineMultiModel.DeepCopyObservationsOnly(playerIndex);
+            ChangeModelBasedOnPlayerPrincipalComponents(targetModel, playerIndex, principalComponentScoresForPlayer);
+            await targetModel.ProcessObservations(false, parallel);
+            return targetModel;
+        }
+
+
+        private void ChangeModelBasedOnPlayerPrincipalComponents(DeepCFRMultiModel targetModel, byte playerIndex, double[] principalComponentScoresForPlayer)
+        {
+            double[] elementsForPlayers = PCAResultsForEachPlayer[playerIndex].PrincipalComponentsToElements(principalComponentScoresForPlayer);
+            targetModel.SetExpectedRegretsForObservations(playerIndex, elementsForPlayers);
+        }
+
+        public class PCAResultsForPlayer
+        {
+            public byte playerIndex;
+            public double[] meanOfOriginalElements;
+            public double[] stdevOfOriginalElements;
+            public double[] sigma_squared;
+            public double[,] v_principalComponentLoadings;
+            public double[,] vTranspose => v_principalComponentLoadings.Transpose();
+            public double[] proportionOfAccountedVariance;
+            public double[] principalComponentStdevs; // NOTE: Square these to calculate variance. Then proportionOfAccountedVariance is the proportion of the sum of the squares for each one. 
+
+            public double[] PrincipalComponentsToElements(double[] principalComponentScoresForPlayer)
+            {
+                double[] backProjectedMeanCentered = principalComponentScoresForPlayer.Multiply(vTranspose);
+                double[] backProjected = backProjectedMeanCentered.ReverseZScored(meanOfOriginalElements, stdevOfOriginalElements);
+                return backProjected;
+            }
         }
 
         #endregion

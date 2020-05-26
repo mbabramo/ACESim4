@@ -61,7 +61,8 @@ namespace ACESimBase.GameSolvingSupport
                 Models = Models?.DeepCopyForPlaybackOnly(),
             };
         }
-        public DeepCFRMultiModel DeepCopyObservationsOnly()
+
+        public DeepCFRMultiModel DeepCopyObservationsOnly(byte? limitToPlayerIndex)
         {
             return new DeepCFRMultiModel()
             {
@@ -69,17 +70,22 @@ namespace ACESimBase.GameSolvingSupport
                 ReservoirCapacity = ReservoirCapacity.ToArray(),
                 ReservoirSeed = ReservoirSeed,
                 DiscountRate = DiscountRate,
-                Models = Models?.DeepCopyObservationsOnly(),
+                Models = Models?.DeepCopyObservationsOnly(limitToPlayerIndex),
             };
+        }
+
+        public void IntegrateOtherMultiModel(DeepCFRMultiModel other)
+        {
+            Models.IntegrateOtherContainer(other.Models);
         }
 
         public DeepCFRModel GetModelForDecisionIndex(byte decisionIndex) => Models[decisionIndex];
 
         public IEnumerable<DeepCFRModel> EnumerateModels(byte? playerIndex = null, byte? decisionIndex = null) => playerIndex == null ? Models : FilterModels((byte) playerIndex, decisionIndex);
 
-        public IEnumerable<DeepCFRModel> FilterModels(byte playerIndex, byte? decisionIndex) => Models.Where(x => x.PlayerNumbers.Contains(playerIndex) && (decisionIndex == null || x.DecisionIndices.Contains((byte) decisionIndex)));
+        public IEnumerable<DeepCFRModel> FilterModels(byte playerIndex, byte? decisionIndex) => Models.Where(x => x != null && x.PlayerNumbers.Contains(playerIndex) && (decisionIndex == null || x.DecisionIndices.Contains((byte) decisionIndex)));
 
-        public IEnumerable<DeepCFRModel> FilterModelsExcept(byte playerIndex, byte? decisionIndex) => Models.Where(x => !(x.PlayerNumbers.Contains(playerIndex) && (decisionIndex == null || x.DecisionIndices.Contains((byte)decisionIndex))));
+        public IEnumerable<DeepCFRModel> FilterModelsExcept(byte playerIndex, byte? decisionIndex) => Models.Where(x => x != null && !(x.PlayerNumbers.Contains(playerIndex) && (decisionIndex == null || x.DecisionIndices.Contains((byte)decisionIndex))));
 
         #endregion
 
@@ -244,6 +250,20 @@ namespace ACESimBase.GameSolvingSupport
             }
         }
 
+        public void SetExpectedRegretsForObservations(byte? playerIndex, double[] regrets)
+        {
+            int regretIndex = 0;
+            var models = EnumerateModels(playerIndex);
+            foreach (var model in models)
+            {
+                var observations = model.Observations;
+                foreach (var observation in observations)
+                {
+                    observation.SampledRegret = regrets[regretIndex++];
+                }
+            }
+        }
+
         #endregion
 
         #region Pending observations
@@ -303,19 +323,21 @@ namespace ACESimBase.GameSolvingSupport
 
         #endregion
 
-        public async Task CompleteIteration(bool parallel)
+        public Task CompleteIteration(bool parallel) => ProcessObservations(true, parallel);
+
+        public async Task ProcessObservations(bool addPendingObservations, bool parallel)
         {
-            var models = EnumerateModels().Select((item, index) => (item, index)).ToArray();
+            var models = EnumerateModels().Where(x => x != null).Select((item, index) => (item, index)).ToArray();
             string[] text = new string[models.Length];
             if (parallel)
                 await Parallelizer.ForEachAsync(models, async m =>
                 {
-                    text[m.Item2] = await m.Item1.CompleteIteration();
+                    text[m.Item2] = await m.Item1.ProcessObservations(addPendingObservations);
                 });
             else
             {
                 foreach (var (model, index) in models)
-                    text[index] = await model.CompleteIteration();
+                    text[index] = await model.ProcessObservations(addPendingObservations);
             }
             foreach (string s in text)
             {
