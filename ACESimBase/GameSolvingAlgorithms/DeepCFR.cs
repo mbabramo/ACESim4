@@ -632,7 +632,7 @@ namespace ACESim
             Stopwatch s = new Stopwatch();
             s.Start();
             StatCollectorArray stats = new StatCollectorArray();
-            bool useGameProgressTree = true;
+            bool useGameProgressTree = true; // DEBUG -- test speed.
             if (useGameProgressTree)
                 await DeepCFR_UtilitiesAverage_WithTree(totalNumberObservations, stats);
             else
