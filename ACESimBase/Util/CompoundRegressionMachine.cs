@@ -3,6 +3,7 @@ using System.Linq;
 
 namespace ACESimBase
 {
+
     public class CompoundRegressionMachine : IRegressionMachine
     {
         public IRegressionMachine BaselineMachine;

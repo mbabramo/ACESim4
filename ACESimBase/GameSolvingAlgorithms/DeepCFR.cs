@@ -610,14 +610,17 @@ namespace ACESim
 
         #region Cached regression machines
 
-        private void ReturnRegressionMachines(Dictionary<byte, IRegressionMachine> regressionMachines)
-        {
-            MultiModel.ReturnRegressionMachines(regressionMachines);
-        }
+        Dictionary<byte, IRegressionMachine> CompoundRegressionMachines = null; Debug;
 
         private Dictionary<byte, IRegressionMachine> GetRegressionMachinesForLocalUse()
         {
-            return MultiModel.GetRegressionMachinesForLocalUse();
+            return CompoundRegressionMachines ?? MultiModel.GetRegressionMachinesForLocalUse();
+        }
+
+        private void ReturnRegressionMachines(Dictionary<byte, IRegressionMachine> regressionMachines)
+        {
+            if (CompoundRegressionMachines )
+            MultiModel.ReturnRegressionMachines(regressionMachines);
         }
 
         #endregion
@@ -632,6 +635,7 @@ namespace ACESim
             Stopwatch s = new Stopwatch();
             s.Start();
             StatCollectorArray stats = new StatCollectorArray();
+            Debug;
             bool useGameProgressTree = true; // DEBUG -- test speed.
             if (useGameProgressTree)
                 await DeepCFR_UtilitiesAverage_WithTree(totalNumberObservations, stats);

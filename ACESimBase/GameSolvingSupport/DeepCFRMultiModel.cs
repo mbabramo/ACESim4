@@ -91,6 +91,8 @@ namespace ACESimBase.GameSolvingSupport
 
         #region Cached regression machine
 
+        public IRegressionMachine GetParticularRegressionMachineForLocalUse(byte decisionIndex) => Models.First(x => x.DecisionIndices.Contains(decisionIndex)).GetRegressionMachine();
+
         public Dictionary<byte, IRegressionMachine> GetRegressionMachinesForLocalUse()
         {
             return Models.GetDecisionIndices().ToDictionary(x => x, x => Models[x].GetRegressionMachine());
