@@ -915,25 +915,48 @@ namespace ACESim
             for (int permutation = 0; permutation < numPermutations; permutation++)
             {
                 TabbedText.WriteLine($"Getting reduced form strategy {permutation + 1} of {numPermutations} for player {playerIndex}");
-                DeepCFRMultiModel strategy = await GetSinglePlayerStrategyBasedOnPrincipalComponents(playerIndex, permutations[permutation], EvolutionSettings.ParallelOptimization);
+                DeepCFRMultiModel strategy = await GetSinglePlayerStrategyBasedOnPrincipalComponents(playerIndex, permutations[permutation], EvolutionSettings.ParallelOptimization, false);
                 strategiesForPlayer.Add(strategy);
             }
             // 4. Return result
             return strategiesForPlayer;
         }
 
-        public async Task<DeepCFRMultiModel> GetSinglePlayerStrategyBasedOnPrincipalComponents(byte playerIndex, double[] principalComponentScoresForPlayer, bool parallel)
+        public async Task<List<DeepCFRMultiModel>> GetSeparateStrategiesForPrincipalComponents(byte playerIndex, bool parallel)
+        {
+            List<DeepCFRMultiModel> result = new List<DeepCFRMultiModel>();
+            double[] allZeros = Enumerable.Range(0, EvolutionSettings.DeepCFR_PCA_NumPrincipalComponents).Select(x => (double)0).ToArray();
+            var baselineStrategy = await GetSinglePlayerStrategyBasedOnPrincipalComponents(playerIndex, allZeros, parallel, false);
+            result.Add(baselineStrategy);
+            for (int i = 0; i < EvolutionSettings.DeepCFR_PCA_NumPrincipalComponents; i++)
+            {
+                double[] principalComponentForThisStrategyOnly = allZeros.ToArray();
+                principalComponentForThisStrategyOnly[i] = 1.0;
+                var strategyForPrincipalComponent = await GetSinglePlayerStrategyBasedOnPrincipalComponents(playerIndex, principalComponentForThisStrategyOnly, parallel, true);
+            }
+            return result;
+        }
+
+        public async Task<DeepCFRMultiModel> GetSinglePlayerStrategyBasedOnPrincipalComponents(byte playerIndex, double[] principalComponentScoresForPlayer, bool parallel, bool getBoostedModel)
         {
             DeepCFRMultiModel targetModel = GenotypingBaselineMultiModel.DeepCopyObservationsOnly(playerIndex);
-            ChangeModelBasedOnPlayerPrincipalComponents(targetModel, playerIndex, principalComponentScoresForPlayer);
+            ChangeModelBasedOnPlayerPrincipalComponents(targetModel, playerIndex, principalComponentScoresForPlayer, getBoostedModel);
             await targetModel.ProcessObservations(false, parallel);
             return targetModel;
         }
 
 
-        private void ChangeModelBasedOnPlayerPrincipalComponents(DeepCFRMultiModel targetModel, byte playerIndex, double[] principalComponentScoresForPlayer)
+        private void ChangeModelBasedOnPlayerPrincipalComponents(DeepCFRMultiModel targetModel, byte playerIndex, double[] principalComponentScoresForPlayer, bool getBoostedModel)
         {
             double[] elementsForPlayers = PCAResultsForEachPlayer[playerIndex].PrincipalComponentsToElements(principalComponentScoresForPlayer);
+            if (getBoostedModel)
+            {
+                // With a boosted model, we start with a baseline where each principal component is zero. We then subtract the elements of 
+                // this baseline from the elements corresponding to the desired principal components. Thus, one can determine a strategy 
+                // by first using the baseline model and then the other model, adding them together. 
+                double[] baselineElements = PCAResultsForEachPlayer[playerIndex].PrincipalComponentsToElements(principalComponentScoresForPlayer.Select(x => (double) 0).ToArray()); // i.e., baseline is result with all 0 principal components
+                elementsForPlayers = elementsForPlayers.Zip(baselineElements, (first, second) => first - second).ToArray();
+            }
             targetModel.SetExpectedRegretsForObservations(playerIndex, elementsForPlayers);
         }
 
