@@ -32,11 +32,6 @@ namespace ACESimBase
 
         public abstract DirectGamePlayer DeepCopy();
 
-        public virtual void SynchronizeForSameThread(IEnumerable<IDirectGamePlayer> othersOnSameThread)
-        {
-
-        }
-
         public IDirectGamePlayer CopyAndPlayAction(byte action)
         {
             var copy = DeepCopy();

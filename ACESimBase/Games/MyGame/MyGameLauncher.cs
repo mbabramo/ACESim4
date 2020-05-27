@@ -524,7 +524,7 @@ namespace ACESim
             if (useDirectGamePlayer)
             {
                 gameProgress = (MyGameProgress) new MyGameFactory().CreateNewGameProgress(true, new IterationID());
-                DirectGamePlayer directGamePlayer = new DeepCFRDirectGamePlayer(DeepCFRMultiModelMode.DecisionSpecific, gameDefinition, gameProgress, true, false, default, null);
+                DirectGamePlayer directGamePlayer = new DeepCFRDirectGamePlayer(DeepCFRMultiModelMode.DecisionSpecific, gameDefinition, gameProgress, true, false, default);
                 gameProgress = (MyGameProgress) directGamePlayer.PlayWithActionsOverride(actionsOverride);
             }
             else

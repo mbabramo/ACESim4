@@ -9,35 +9,20 @@ namespace ACESimBase.GameSolvingSupport
     public class DeepCFRDirectGamePlayer : DirectGamePlayer
     {
         public DeepCFRMultiModelMode Mode;
-        public DeepCFRPlaybackHelper InitialPlaybackHelper;
-        /// <summary>
-        /// This is used if we want a number of DeepCFRDirectGamePlayers to share a thread while continuing playback from some point. It allows expensive work to be done before continuing playback.
-        /// </summary>
-        public Func<DeepCFRPlaybackHelper> PlaybackHelperGenerator;
+        public DeepCFRPlaybackHelper PlaybackHelper;
         public bool UsingShortcutForSymmetricGames;
 
-        public DeepCFRDirectGamePlayer(DeepCFRMultiModelMode mode, GameDefinition gameDefinition, GameProgress progress, bool advanceToFirstStep, bool usingShortcutForSymmetricGames, DeepCFRPlaybackHelper initialPlaybackHelper, Func<DeepCFRPlaybackHelper> playbackHelperGenerator) : base(gameDefinition, progress, advanceToFirstStep)
+        public DeepCFRDirectGamePlayer(DeepCFRMultiModelMode mode, GameDefinition gameDefinition, GameProgress progress, bool advanceToFirstStep, bool usingShortcutForSymmetricGames, DeepCFRPlaybackHelper playbackHelper) : base(gameDefinition, progress, advanceToFirstStep)
         {
             Mode = mode;
             UsingShortcutForSymmetricGames = usingShortcutForSymmetricGames;
-            InitialPlaybackHelper = initialPlaybackHelper;
-            PlaybackHelperGenerator = playbackHelperGenerator;
-        }
-
-        public override void SynchronizeForSameThread(IEnumerable<IDirectGamePlayer> othersOnSameThread)
-        {
-            // Note: This will be called only for first on the thread.
-            InitialPlaybackHelper = PlaybackHelperGenerator();
-            foreach (DeepCFRDirectGamePlayer other in othersOnSameThread.Cast<DeepCFRDirectGamePlayer>())
-            {
-                other.InitialPlaybackHelper = InitialPlaybackHelper;
-            }
+            PlaybackHelper = playbackHelper;
         }
 
         public override DirectGamePlayer DeepCopy()
         {
             GameProgress progress = GameProgress.DeepCopy();
-            return new DeepCFRDirectGamePlayer(Mode, GameDefinition, progress, false, UsingShortcutForSymmetricGames, InitialPlaybackHelper, PlaybackHelperGenerator);
+            return new DeepCFRDirectGamePlayer(Mode, GameDefinition, progress, false, UsingShortcutForSymmetricGames, PlaybackHelper);
         }
 
         public (DeepCFRIndependentVariables, double[]) GetIndependentVariablesAndPlayerProbabilities(DeepCFRObservationNum observationNum)
@@ -48,12 +33,12 @@ namespace ACESimBase.GameSolvingSupport
             var informationSet = GetInformationSet();
             var independentVariables = new DeepCFRIndependentVariables(playerMakingDecision, decisionIndex, informationSet, 0 /* placeholder */, null /* TODO */);
             byte adjustedDecisionIndex = UsingShortcutForSymmetricGames && currentDecision.PlayerIndex == 1 ? (byte)(decisionIndex - 1) : decisionIndex;
-            IRegressionMachine regressionMachineForCurrentDecision = InitialPlaybackHelper.GetRegressionMachineIfExists(adjustedDecisionIndex);
+            IRegressionMachine regressionMachineForCurrentDecision = PlaybackHelper.GetRegressionMachineIfExists(adjustedDecisionIndex);
             double[] onPolicyProbabilities;
-            if (InitialPlaybackHelper.ProbabilitiesCache == null)
-                onPolicyProbabilities = InitialPlaybackHelper.MultiModel.GetRegretMatchingProbabilities(currentDecision, decisionIndex, independentVariables, regressionMachineForCurrentDecision);
+            if (PlaybackHelper.ProbabilitiesCache == null)
+                onPolicyProbabilities = PlaybackHelper.MultiModel.GetRegretMatchingProbabilities(currentDecision, decisionIndex, independentVariables, regressionMachineForCurrentDecision);
             else
-                onPolicyProbabilities = InitialPlaybackHelper.ProbabilitiesCache?.GetValue(this, () => InitialPlaybackHelper.MultiModel.GetRegretMatchingProbabilities(currentDecision, decisionIndex, independentVariables, regressionMachineForCurrentDecision));
+                onPolicyProbabilities = PlaybackHelper.ProbabilitiesCache?.GetValue(this, () => PlaybackHelper.MultiModel.GetRegretMatchingProbabilities(currentDecision, decisionIndex, independentVariables, regressionMachineForCurrentDecision));
             byte actionChosen = ChooseAction(observationNum, decisionIndex, onPolicyProbabilities);
             independentVariables.ActionChosen = actionChosen;
             return (independentVariables, onPolicyProbabilities);

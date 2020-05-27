@@ -267,7 +267,7 @@ namespace ACESim
         private (double[] utilities, GameProgress completedProgress) DeepCFRTraversal(DeepCFRPlaybackHelper playbackHelper, DeepCFRObservationNum observationNum, DeepCFRTraversalMode traversalMode, List<DeepCFRObservationOfDecision> observations)
         {
             double[] finalUtilities;
-            DeepCFRDirectGamePlayer gamePlayer = new DeepCFRDirectGamePlayer(EvolutionSettings.DeepCFR_MultiModelMode, GameDefinition, GameFactory.CreateNewGameProgress(false, new IterationID(observationNum.ObservationNum)), true, UsingShortcutForSymmetricGames, playbackHelper, null /* we will be playing back only this observation for now, so we don't have to combine */);
+            DeepCFRDirectGamePlayer gamePlayer = new DeepCFRDirectGamePlayer(EvolutionSettings.DeepCFR_MultiModelMode, GameDefinition, GameFactory.CreateNewGameProgress(false, new IterationID(observationNum.ObservationNum)), true, UsingShortcutForSymmetricGames, playbackHelper);
             finalUtilities = DeepCFRTraversal(gamePlayer, observationNum, observations, traversalMode);
             return (finalUtilities, gamePlayer.GameProgress);
         }
@@ -290,7 +290,7 @@ namespace ACESim
         private double[] DeepCFR_DecisionNode(DeepCFRDirectGamePlayer gamePlayer, DeepCFRObservationNum observationNum, List<DeepCFRObservationOfDecision> observations, DeepCFRTraversalMode traversalMode)
         {
             Decision currentDecision = gamePlayer.CurrentDecision;
-            var playbackHelper = gamePlayer.InitialPlaybackHelper;
+            var playbackHelper = gamePlayer.PlaybackHelper;
             byte decisionIndex = (byte)gamePlayer.CurrentDecisionIndex;
             byte adjustedDecisionIndex = UsingShortcutForSymmetricGames && currentDecision.PlayerIndex == 1 ? (byte)(decisionIndex - 1) : decisionIndex;
             IRegressionMachine regressionMachineForCurrentDecision = playbackHelper.GetRegressionMachineIfExists(adjustedDecisionIndex); 
@@ -418,10 +418,9 @@ namespace ACESim
 
         public async Task<GameProgressTree> DeepCFR_BuildGameProgressTree(int totalNumberObservations, bool oversampling, double explorationValue = 0, byte? limitToPlayer = null)
         {
-            DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel, null, null); // ideally should figure out a way to create a separate object for each thread, but problem is we don't break it down by thread.
+            DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel, null, null); // ideally should figure out a way to create a separate object for each thread, but problem is that GameProgressTree doesn't work by thread
             GameProgress initialGameProgress = GameFactory.CreateNewGameProgress(false, new IterationID(1));
-            var regressionMachines = GetRegressionMachinesForLocalUse();
-            DeepCFRDirectGamePlayer directGamePlayer = new DeepCFRDirectGamePlayer(EvolutionSettings.DeepCFR_MultiModelMode, GameDefinition, initialGameProgress, true, UsingShortcutForSymmetricGames, playbackHelper, () => new DeepCFRPlaybackHelper(MultiModel.DeepCopyForPlaybackOnly(), regressionMachines, null));
+            DeepCFRDirectGamePlayer directGamePlayer = new DeepCFRDirectGamePlayer(EvolutionSettings.DeepCFR_MultiModelMode, GameDefinition, initialGameProgress, true, UsingShortcutForSymmetricGames, playbackHelper);
             double[] explorationValues = explorationValue == 0 ? null /* no exploration */ : Enumerable.Range(0, NumNonChancePlayers).Select(x => x == limitToPlayer ? explorationValue : 0).ToArray();
             GameProgressTree gameProgressTree = new GameProgressTree(
                 0, // rand seed
@@ -433,7 +432,6 @@ namespace ACESim
                 limitToPlayer
                 );
             await gameProgressTree.CompleteTree(false, explorationValues, oversampling);
-            ReturnRegressionMachines(regressionMachines);
             return gameProgressTree;
         }
 
@@ -537,7 +535,7 @@ namespace ACESim
                 for (int i = 0; i < numGamesToCompleteThisThread; i++)
                 {
                     var gameToComplete = gamesToComplete[initialObservation + i];
-                    gameToComplete.gamePlayer.InitialPlaybackHelper = playbackHelper;
+                    gameToComplete.gamePlayer.PlaybackHelper = playbackHelper;
                     var results = DeepCFR_CompleteGame_FromGameProgressTree(gameToComplete.currentDecision, gameToComplete.decisionIndex, gameToComplete.currentPlayer, gameToComplete.gamePlayer, gameToComplete.observationNum, gameToComplete.numObservations);
                     if (EvolutionSettings.DeepCFR_UseWeightedData)
                     {
