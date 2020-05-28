@@ -144,11 +144,11 @@ namespace ACESimBase.Util
         public IRegressionMachine GetRegressionMachine() => Regression.GetRegressionMachine();
         public void ReturnRegressionMachine(IRegressionMachine regressionMachine) => Regression.ReturnRegressionMachine(regressionMachine);
 
-        public float GetResult(float[] x, IRegressionMachine regressionMachine)
+        public float GetResult(float[] x, IRegressionMachine regressionMachine, object supplementalInfo)
         {
             if (Normalize)
                 x = NormalizeIndependentVars(x);
-            float result = regressionMachine == null ? Regression.GetResults(x, null)[0] : regressionMachine.GetResults(x)[0];
+            float result = regressionMachine == null ? Regression.GetResults(x, null)[0] : regressionMachine.GetResults(x, supplementalInfo)[0];
             if (Normalize)
                 result = DenormalizeDependentVar(result);
             return result;

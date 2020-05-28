@@ -6,5 +6,11 @@
     public interface IRegressionMachine
     {
         float[] GetResults(float[] x);
+
+        /// <summary>
+        /// Get results from the regression machine, passing machine-specific supplemental information
+        /// </summary>
+        /// <returns></returns>
+        public float[] GetResults(float[] x, object supplementalInfo) => GetResults(x);
     }
 }

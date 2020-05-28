@@ -62,7 +62,7 @@ namespace ACESimBase.GameSolvingSupport
         {
             var models = EnumerateModels().Select(x =>
             {
-                if (limitToPlayerIndex == null || x.PlayerNumbers.Contains((byte) limitToPlayerIndex))
+                if (limitToPlayerIndex == null || x.PlayerIndices.Contains((byte) limitToPlayerIndex))
                     return x.DeepCopyObservationsOnly();
                 return null;
             }).ToArray();

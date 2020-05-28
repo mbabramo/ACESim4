@@ -15,7 +15,7 @@ namespace ACESimBase.GameSolvingSupport
         /// <summary>
         /// The players to whom this model belongs. 
         /// </summary>
-        public List<byte> PlayerNumbers;
+        public List<byte> PlayerIndices;
         /// <summary>
         ///  The decisions that belong to this model, with the associated decision indices.
         /// </summary>
@@ -93,7 +93,7 @@ namespace ACESimBase.GameSolvingSupport
             List<byte> playerNumbers = decisionsInModel.Select(x => x.item.PlayerIndex).ToHashSet().OrderBy(x => x).ToList();
             List<byte> decisionByteCodes = decisionsInModel.Select(x => x.item.DecisionByteCode).ToHashSet().OrderBy(x => x).ToList();
             List<byte> decisionIndices = decisionsInModel.Select(x => (byte)x.decisionIndex).ToHashSet().OrderBy(x => x).ToList();
-            PlayerNumbers = playerNumbers;
+            PlayerIndices = playerNumbers;
             ModelNames = modelNames;
             DecisionByteCodes = decisionByteCodes;
             DecisionIndices = decisionIndices;
@@ -174,6 +174,8 @@ namespace ACESimBase.GameSolvingSupport
             return String.Join(",", ModelNames);
         }
 
+        public byte? UniquePlayerIndex => PlayerIndices.Count() == 1 ? (byte?) PlayerIndices[0] : null;
+
         #region Model building and printing
 
         public async Task<string> ProcessObservations(bool addPendingObservations)
@@ -252,7 +254,7 @@ namespace ACESimBase.GameSolvingSupport
 
         private void PrintTestDataResults((float[], float, float)[] testData, StringBuilder s)
         {
-            double loss = testData.Select(d => (Regression.GetResult(d.Item1, null), d.Item2)).Select(d => Math.Pow(d.Item1 - d.Item2, 2.0)).Average();
+            double loss = testData.Select(d => (Regression.GetResult(d.Item1, null, UniquePlayerIndex), d.Item2)).Select(d => Math.Pow(d.Item1 - d.Item2, 2.0)).Average();
             s.AppendLine($"AvgLoss: {loss.ToSignificantFigures(4)} ");
         }
 
@@ -267,7 +269,7 @@ namespace ACESimBase.GameSolvingSupport
             {
                 (float[], float, float)[] items = group.Select(x => x.Item1).ToArray();
                 float averageInData = items.Average(x => x.Item2);
-                float prediction = Regression.GetResult(items.First().Item1, null);
+                float prediction = Regression.GetResult(items.First().Item1, null, UniquePlayerIndex);
                 s.AppendLine($"{group.Key} => {averageInData} (in data) {prediction} (predicted)");
             }
         }
@@ -294,7 +296,7 @@ namespace ACESimBase.GameSolvingSupport
                 throw new Exception();
             byte originalValue = independentVariables.ActionChosen;
             independentVariables.ActionChosen = action;
-            double result = Regression.GetResult(independentVariables.AsArray(IncludedDecisionIndices), regressionMachine);
+            double result = Regression.GetResult(independentVariables.AsArray(IncludedDecisionIndices), regressionMachine, UniquePlayerIndex);
             independentVariables.ActionChosen = originalValue;
             return result;
         }

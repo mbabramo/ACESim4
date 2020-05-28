@@ -418,6 +418,7 @@ namespace ACESim
 
         public async Task<GameProgressTree> DeepCFR_BuildGameProgressTree(int totalNumberObservations, bool oversampling, double explorationValue = 0, byte? limitToPlayer = null)
         {
+            Debug;
             DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel, null, null); // ideally should figure out a way to create a separate object for each thread, but problem is that GameProgressTree doesn't work by thread
             GameProgress initialGameProgress = GameFactory.CreateNewGameProgress(false, new IterationID(1));
             DeepCFRDirectGamePlayer directGamePlayer = new DeepCFRDirectGamePlayer(EvolutionSettings.DeepCFR_MultiModelMode, GameDefinition, initialGameProgress, true, UsingShortcutForSymmetricGames, playbackHelper);
@@ -610,17 +611,25 @@ namespace ACESim
 
         #region Cached regression machines
 
-        Dictionary<byte, IRegressionMachine> CompoundRegressionMachines = null; Debug;
+        DeepCFRCompoundRegressionMachinesContainer CompoundRegressionMachinesContainer;
 
         private Dictionary<byte, IRegressionMachine> GetRegressionMachinesForLocalUse()
         {
-            return CompoundRegressionMachines ?? MultiModel.GetRegressionMachinesForLocalUse();
+            if (CompoundRegressionMachinesContainer == null)
+                return MultiModel.GetRegressionMachinesForLocalUse();
+            else
+                return CompoundRegressionMachinesContainer.GetRegressionMachinesForLocalUse();
         }
 
         private void ReturnRegressionMachines(Dictionary<byte, IRegressionMachine> regressionMachines)
         {
-            if (CompoundRegressionMachines )
-            MultiModel.ReturnRegressionMachines(regressionMachines);
+            if (CompoundRegressionMachinesContainer == null)
+                MultiModel.ReturnRegressionMachines(regressionMachines);
+            else
+            {
+                CompoundRegressionMachinesContainer.ReturnRegressionMachines();
+                CompoundRegressionMachinesContainer = null;
+            }
         }
 
         #endregion
@@ -922,6 +931,29 @@ namespace ACESim
             }
             // 4. Return result
             return strategiesForPlayer;
+        }
+
+        public async Task<DeepCFRCompoundRegressionMachinesContainer> GetCompoundStrategyUsingPrincipalComponents()
+        {
+            var strategies = await GetSeparateStrategiesForPrincipalComponents(EvolutionSettings.ParallelOptimization);
+            DeepCFRCompoundRegressionMachinesContainer container = new DeepCFRCompoundRegressionMachinesContainer(strategies);
+        }
+
+        public async Task<List<DeepCFRMultiModel>> GetSeparateStrategiesForPrincipalComponents(bool parallel)
+        {
+            List<DeepCFRMultiModel> integratedStrategies = null;
+            for (byte p = 0; p < NumNonChancePlayers; p++)
+            {
+                List<DeepCFRMultiModel> playerStrategies = await GetSeparateStrategiesForPrincipalComponents(p, parallel);
+                if (p == 0)
+                    integratedStrategies = playerStrategies;
+                else
+                {
+                    for (int i = 0; i < integratedStrategies.Count(); i++)
+                        integratedStrategies[i].IntegrateOtherMultiModel(playerStrategies[i]);
+                }
+            }
+            return integratedStrategies;
         }
 
         public async Task<List<DeepCFRMultiModel>> GetSeparateStrategiesForPrincipalComponents(byte playerIndex, bool parallel)

@@ -83,15 +83,13 @@ namespace ACESimBase.GameSolvingSupport
 
         public IEnumerable<DeepCFRModel> EnumerateModels(byte? playerIndex = null, byte? decisionIndex = null) => playerIndex == null ? Models : FilterModels((byte) playerIndex, decisionIndex);
 
-        public IEnumerable<DeepCFRModel> FilterModels(byte playerIndex, byte? decisionIndex) => Models.Where(x => x != null && x.PlayerNumbers.Contains(playerIndex) && (decisionIndex == null || x.DecisionIndices.Contains((byte) decisionIndex)));
+        public IEnumerable<DeepCFRModel> FilterModels(byte playerIndex, byte? decisionIndex) => Models.Where(x => x != null && x.PlayerIndices.Contains(playerIndex) && (decisionIndex == null || x.DecisionIndices.Contains((byte) decisionIndex)));
 
-        public IEnumerable<DeepCFRModel> FilterModelsExcept(byte playerIndex, byte? decisionIndex) => Models.Where(x => x != null && !(x.PlayerNumbers.Contains(playerIndex) && (decisionIndex == null || x.DecisionIndices.Contains((byte)decisionIndex))));
+        public IEnumerable<DeepCFRModel> FilterModelsExcept(byte playerIndex, byte? decisionIndex) => Models.Where(x => x != null && !(x.PlayerIndices.Contains(playerIndex) && (decisionIndex == null || x.DecisionIndices.Contains((byte)decisionIndex))));
 
         #endregion
 
         #region Cached regression machine
-
-        public IRegressionMachine GetParticularRegressionMachineForLocalUse(byte decisionIndex) => Models.First(x => x.DecisionIndices.Contains(decisionIndex)).GetRegressionMachine();
 
         public Dictionary<byte, IRegressionMachine> GetRegressionMachinesForLocalUse()
         {
@@ -102,6 +100,13 @@ namespace ACESimBase.GameSolvingSupport
         {
             foreach (var dictionaryEntry in regressionMachineDictionary)
                 Models[dictionaryEntry.Key].ReturnRegressionMachine(dictionaryEntry.Value);
+        }
+
+        public IRegressionMachine GetRegressionMachineForDecision(byte decisionIndex) => Models.First(x => x.DecisionIndices.Contains(decisionIndex)).GetRegressionMachine();
+
+        public void ReturnRegressionMachineForDecision(byte decisionIndex, IRegressionMachine regressionMachine)
+        {
+            Models[decisionIndex].ReturnRegressionMachine(regressionMachine);
         }
 
         #endregion
