@@ -418,7 +418,6 @@ namespace ACESim
 
         public async Task<GameProgressTree> DeepCFR_BuildGameProgressTree(int totalNumberObservations, bool oversampling, double explorationValue = 0, byte? limitToPlayer = null)
         {
-            Debug;
             DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel, null, null); // ideally should figure out a way to create a separate object for each thread, but problem is that GameProgressTree doesn't work by thread
             GameProgress initialGameProgress = GameFactory.CreateNewGameProgress(false, new IterationID(1));
             DeepCFRDirectGamePlayer directGamePlayer = new DeepCFRDirectGamePlayer(EvolutionSettings.DeepCFR_MultiModelMode, GameDefinition, initialGameProgress, true, UsingShortcutForSymmetricGames, playbackHelper);
@@ -627,7 +626,7 @@ namespace ACESim
                 MultiModel.ReturnRegressionMachines(regressionMachines);
             else
             {
-                CompoundRegressionMachinesContainer.ReturnRegressionMachines();
+                CompoundRegressionMachinesContainer.ReturnRegressionMachines(regressionMachines);
                 CompoundRegressionMachinesContainer = null;
             }
         }
@@ -644,7 +643,6 @@ namespace ACESim
             Stopwatch s = new Stopwatch();
             s.Start();
             StatCollectorArray stats = new StatCollectorArray();
-            Debug;
             bool useGameProgressTree = true; // DEBUG -- test speed.
             if (useGameProgressTree)
                 await DeepCFR_UtilitiesAverage_WithTree(totalNumberObservations, stats);
@@ -831,8 +829,31 @@ namespace ACESim
                     PCAResultsForEachPlayer = new PCAResultsForPlayer[NumNonChancePlayers];
                     for (byte p = 0; p < NumNonChancePlayers; p++)
                         PCAResultsForEachPlayer[p] = PerformPrincipalComponentAnalysis(p);
-                    await LoadReducedFormStrategies();
+                    //await LoadReducedFormStrategies();
+                    await SetCompoundStrategyUsingPrincipalComponents();
+                    await AssessCompoundStrategyAccuracy();
                 }
+            }
+        }
+
+        private async Task AssessCompoundStrategyAccuracy()
+        {
+            // DEBUG -- Compare utilities with a compound strategy (i.e., where each principal component has a separate strategy for each decision) and a PC-specific strategy (i.e., where there is a separate strategy for each decision and that strategy takes into account all of the principal components). The compound strategy can be created just once (but estimation must occur for every principal component), while the PC-specific strategy must be estimated separately for each set of principal component weights.
+            var copyContainer = CompoundRegressionMachinesContainer;
+            var copyMultiModel = MultiModel;
+            for (int i = 0; i < 100; i++)
+            {
+                List<double>[] principalComponentWeightsForEachPlayer = GetRandomPrincipalComponentWeightsForEachPlayer(i * 737);
+                string principalComponentWeightsString = String.Join(";", Enumerable.Range(0, NumNonChancePlayers).Select(x => x.ToString() + ": " + principalComponentWeightsForEachPlayer[x].ToSignificantFigures(3)));
+                CompoundRegressionMachinesContainer.SpecifyWeightOnSupplementalMachines(principalComponentWeightsForEachPlayer);
+                double[] compoundUtilities = await DeepCFR_UtilitiesAverage(100_000);
+                CompoundRegressionMachinesContainer = null;
+                var pcSpecificStrategy = await GetIntegratedStrategyBasedOnPrincipalComponents(principalComponentWeightsForEachPlayer, EvolutionSettings.ParallelOptimization);
+                MultiModel = pcSpecificStrategy;
+                double[] pcSpecificUtilities = GetAverageUtilities();
+                MultiModel = copyMultiModel;
+                CompoundRegressionMachinesContainer = copyContainer;
+                TabbedText.WriteLine($"principal component weights: {principalComponentWeightsString} compound strategy utilities: {compoundUtilities.ToSignificantFigures(3)} regular strategy utilities: {pcSpecificUtilities.ToSignificantFigures(3)}");
             }
         }
 
@@ -891,6 +912,26 @@ namespace ACESim
                 PCAStrategiesForEachPlayer[p] = await GetSinglePlayerReducedFormStrategies(p);
         }
 
+        private async Task<DeepCFRMultiModel> GetDeepCFRMultiModelWithRandomPrincipalComponentWeights(int randomIndex)
+        {
+            List<double>[] principalComponentWeightsForEachPlayer = GetRandomPrincipalComponentWeightsForEachPlayer(randomIndex);
+            var result = await GetIntegratedStrategyBasedOnPrincipalComponents(principalComponentWeightsForEachPlayer, EvolutionSettings.ParallelOptimization);
+            return result;
+        }
+
+        private List<double>[] GetRandomPrincipalComponentWeightsForEachPlayer(int randomIndex)
+        {
+            return Enumerable.Range(0, NumNonChancePlayers).Select(x => GetRandomPrincipalComponentWeights((byte)x, new ConsistentRandomSequenceProducer(randomIndex, 1_000_000 * x))).ToArray();
+        }
+
+        private List<double> GetRandomPrincipalComponentWeights(byte playerIndex, ConsistentRandomSequenceProducer randomizer)
+        {
+            var stats = PCAResultsForEachPlayer[playerIndex];
+            int numPrincipalComponents = EvolutionSettings.DeepCFR_PCA_NumPrincipalComponents;
+            var result = Enumerable.Range(0, numPrincipalComponents).Select(principalComponent => InvNormal.Calculate(randomizer.GetDoubleAtIndex(principalComponent)) * stats.principalComponentStdevs[principalComponent]).ToList();
+            return result;
+        }
+
         public async Task<List<DeepCFRMultiModel>> GetSinglePlayerReducedFormStrategies(byte playerIndex)
         {
             var stats = PCAResultsForEachPlayer[playerIndex];
@@ -906,7 +947,7 @@ namespace ACESim
                 int numVariations = numVariationsPerPrincipalComponent[principalComponent];
                 valuesForEachPrincipalComponent[principalComponent] = Enumerable.Range(0, numVariations)
                     .Select(v => EquallySpaced.GetLocationOfEquallySpacedPoint(v, numVariations, false))
-                    .Select(p => NormalDistributionCalculation.CumulativeNormalDistribution(p))
+                    .Select(p => InvNormal.Calculate(p))
                     .Select(n => n * stdev)
                     .ToArray();
             }
@@ -933,10 +974,11 @@ namespace ACESim
             return strategiesForPlayer;
         }
 
-        public async Task<DeepCFRCompoundRegressionMachinesContainer> GetCompoundStrategyUsingPrincipalComponents()
+        public async Task SetCompoundStrategyUsingPrincipalComponents()
         {
             var strategies = await GetSeparateStrategiesForPrincipalComponents(EvolutionSettings.ParallelOptimization);
-            DeepCFRCompoundRegressionMachinesContainer container = new DeepCFRCompoundRegressionMachinesContainer(strategies);
+            DeepCFRCompoundRegressionMachinesContainer container = new DeepCFRCompoundRegressionMachinesContainer(strategies, GameDefinition, NumNonChancePlayers);
+            CompoundRegressionMachinesContainer = container;
         }
 
         public async Task<List<DeepCFRMultiModel>> GetSeparateStrategiesForPrincipalComponents(bool parallel)
@@ -964,11 +1006,28 @@ namespace ACESim
             result.Add(baselineStrategy);
             for (int i = 0; i < EvolutionSettings.DeepCFR_PCA_NumPrincipalComponents; i++)
             {
+                TabbedText.WriteLine($"Generating strategy for principal component {i} for player {playerIndex}");
                 double[] principalComponentForThisStrategyOnly = allZeros.ToArray();
                 principalComponentForThisStrategyOnly[i] = 1.0;
                 var strategyForPrincipalComponent = await GetSinglePlayerStrategyBasedOnPrincipalComponents(playerIndex, principalComponentForThisStrategyOnly, parallel, true);
             }
             return result;
+        }
+
+
+
+        public async Task<DeepCFRMultiModel> GetIntegratedStrategyBasedOnPrincipalComponents(List<double>[] principalComponentScoresForEachPlayer, bool parallel)
+        {
+            DeepCFRMultiModel integratedStrategies = null;
+            for (byte p = 0; p < NumNonChancePlayers; p++)
+            {
+                DeepCFRMultiModel playerStrategies = await GetSinglePlayerStrategyBasedOnPrincipalComponents(p, principalComponentScoresForEachPlayer[p].ToArray(), parallel, false);
+                if (p == 0)
+                    integratedStrategies = playerStrategies;
+                else
+                    integratedStrategies.IntegrateOtherMultiModel(playerStrategies);
+            }
+            return integratedStrategies;
         }
 
         public async Task<DeepCFRMultiModel> GetSinglePlayerStrategyBasedOnPrincipalComponents(byte playerIndex, double[] principalComponentScoresForPlayer, bool parallel, bool getBoostedModel)

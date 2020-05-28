@@ -111,8 +111,8 @@ namespace ACESim
 
         public bool DeepCFR_PCA_PerformPrincipalComponentAnalysis = true;
         public double DeepCFR_PCA_Precision = 1E-5;
-        public int DeepCFR_PCA_FirstIterationToSaveGenotypes = 20;
-        public int DeepCFR_PCA_SaveGenotypeEveryNIterationsAfterFirst = 1;
+        public int DeepCFR_PCA_FirstIterationToSaveGenotypes = 5; // DEBUG
+        public int DeepCFR_PCA_SaveGenotypeEveryNIterationsAfterFirst = 1; // DEBUG
         public int[] DeepCFR_PCA_NumVariationsPerPrincipalComponent = new int[] { 4, 3, 2 };
         public int DeepCFR_PCA_NumPrincipalComponents => DeepCFR_PCA_NumVariationsPerPrincipalComponent.Length;
 

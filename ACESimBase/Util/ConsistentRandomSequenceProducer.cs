@@ -56,7 +56,7 @@ namespace ACESim
         public double GetDoubleAtIndex(int index)
         {
             // Combine multiple random numbers into 1. But averaging them won't work. Note that if one averaged a billion random numbers, we would converge to 0.5. This is a simple approach; we could probably do something more sophisticated (like bit interleaving).
-            if (AlwaysUseNewRandomObject)
+            if (AlwaysUseNewRandomObject || Seed == 0)
                 return GetDoubleWithNewRandomObject(index);
             return GetDoubleAtIndex_Alt1(index) > 0.5 ? GetDoubleAtIndex_Alt2(index) : GetDoubleAtIndex_Alt3(index);
         }

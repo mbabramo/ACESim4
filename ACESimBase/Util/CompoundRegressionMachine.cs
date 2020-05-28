@@ -10,33 +10,27 @@ namespace ACESimBase
     {
         public IRegressionMachine BaselineMachine;
         public List<IRegressionMachine> SupplementalMachines;
-        public List<double>[] PerPlayerWeightOnSupplementalMachines; Debug; // separate for each player?
+        public List<double> WeightOnSupplementalMachines;
 
-        public CompoundRegressionMachine(IRegressionMachine baselineMachine, List<IRegressionMachine> supplementalMachines, byte numberOfPlayers)
+        public CompoundRegressionMachine(IRegressionMachine baselineMachine, List<IRegressionMachine> supplementalMachines)
         {
             BaselineMachine = baselineMachine;
             SupplementalMachines = supplementalMachines;
-            PerPlayerWeightOnSupplementalMachines = new List<double>[numberOfPlayers];
-            for (byte p = 0; p < numberOfPlayers; p++)
-            {
-                List<double> weightOnMachines = supplementalMachines.Select(x => (double)0).ToList();
-                PerPlayerWeightOnSupplementalMachines[p] = weightOnMachines;
-            }
+            WeightOnSupplementalMachines = supplementalMachines.Select(x => (double)0).ToList();
         }
 
-        public void SpecifyWeightOnSupplementalMachines(byte playerIndex, List<double> weightOnSupplementalMachines)
+        public void SpecifyWeightOnSupplementalMachines(List<double> weightOnSupplementalMachines)
         {
-            PerPlayerWeightOnSupplementalMachines[playerIndex] = weightOnSupplementalMachines;
+            WeightOnSupplementalMachines = weightOnSupplementalMachines;
         }
 
-        public float[] GetResults(float[] x, object supplementalInfo)
+        public float[] GetResults(float[] x)
         {
-            byte playerIndex = (byte)(byte?)supplementalInfo;
             float[] baselineResults = BaselineMachine.GetResults(x);
             float[] outcome = baselineResults.ToArray();
             for (int i = 0; i < SupplementalMachines.Count(); i++)
             {
-                double weight = PerPlayerWeightOnSupplementalMachines[playerIndex][i];
+                double weight = WeightOnSupplementalMachines[i];
                 if (weight != 0)
                 {
                     float[] unweighted = SupplementalMachines[i].GetResults(x);
@@ -47,7 +41,5 @@ namespace ACESimBase
             }
             return outcome;
         }
-
-        public float[] GetResults(float[] x) => throw new NotImplementedException("Must know player number to GetResults on CompoundRegressionMachine");
     }
 }
