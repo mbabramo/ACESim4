@@ -113,8 +113,11 @@ namespace ACESim
         public double DeepCFR_PCA_Precision = 1E-5;
         public int DeepCFR_PCA_FirstIterationToSaveGenotypes = 1; // DEBUG
         public int DeepCFR_PCA_SaveGenotypeEveryNIterationsAfterFirst = 1; // DEBUG
-        public int[] DeepCFR_PCA_NumVariationsPerPrincipalComponent = new int[] { 4, 3, 2 };
-        public int DeepCFR_PCA_NumPrincipalComponents => DeepCFR_PCA_NumVariationsPerPrincipalComponent.Length;
+        public int[] DeepCFR_PCA_NumVariationsPerPrincipalComponent = new int[] { 4, 3, 2 }; // NOTE: Not currently being used; this can be used to generate non-random permutations of principal components.
+        public int DeepCFR_PCA_NumPrincipalComponents = 3;
+        public bool DeepCFR_PCA_BuildModelToPredictUtilitiesBasedOnPrincipalComponents = true;
+        public int DeepCFR_PCA_NumUtilitiesToCalculateToBuildModel = 1_000;
+        public int DeepCFR_PCA_NumGamesToPlayToEstimateEachUtilityWhileBuildingModel = 1_000;
 
         public RegressionTechniques RegressionTechnique = RegressionTechniques.FastTree;
         public bool DeepCFR_ProbeAllActions = true;

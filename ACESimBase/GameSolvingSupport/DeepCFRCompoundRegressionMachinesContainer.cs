@@ -25,10 +25,10 @@ namespace ACESimBase.GameSolvingSupport
                 WeightOnSupplementalMachines[p] = BaselineAndAdditiveModels.Skip(1).Select(x => (double)0).ToList();
         }
 
-        public void SpecifyWeightOnSupplementalMachines(List<double>[] weightOnSupplementalMachines)
+        public void SpecifyWeightOnSupplementalMachines(List<double>[] weightOnSupplementalMachines, double furtherMultiplier)
         {
             for (byte p = 0; p < weightOnSupplementalMachines.Length; p++)
-                SpecifyWeightOnSupplementalMachines(p, weightOnSupplementalMachines[p]);
+                SpecifyWeightOnSupplementalMachines(p, weightOnSupplementalMachines[p].Select(x => x * furtherMultiplier).ToList());
         }
 
         public void SpecifyWeightOnSupplementalMachines(byte playerIndex, List<double> weightOnSupplementalMachines)
