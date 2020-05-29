@@ -26,7 +26,7 @@ namespace ACESimBase.GameSolvingSupport
         /// <summary>
         /// Factory to create a regression processor
         /// </summary>
-        Func<IRegression> RegressionFactory;
+        Func<(IRegression regression, bool requiresNormalization)> RegressionFactory;
 
         #region Model initialization and access
 
@@ -35,7 +35,7 @@ namespace ACESimBase.GameSolvingSupport
 
         }
 
-        public DeepCFRMultiModel(GameDefinition gameDefinition, DeepCFRMultiModelMode mode, int[] reservoirCapacity, long reservoirSeed, double discountRate, bool usingShortcutForSymmetricGames, Func<IRegression> regressionFactory)
+        public DeepCFRMultiModel(GameDefinition gameDefinition, DeepCFRMultiModelMode mode, int[] reservoirCapacity, long reservoirSeed, double discountRate, bool usingShortcutForSymmetricGames, Func<(IRegression regression, bool requiresNormalization)> regressionFactory)
         {
             Mode = mode;
             ReservoirCapacity = reservoirCapacity;

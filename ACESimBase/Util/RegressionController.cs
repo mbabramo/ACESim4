@@ -21,9 +21,9 @@ namespace ACESimBase.Util
 
         }
 
-        public RegressionController(Func<IRegression> regressionFactory)
+        public RegressionController(Func<(IRegression regression, bool requiresNormalization)> regressionFactory)
         {
-            Regression = regressionFactory();
+            (Regression, Normalize) = regressionFactory();
         }
 
         /// <summary>
@@ -37,7 +37,7 @@ namespace ACESimBase.Util
             {
                 Regression = null,
                 Normalize = Normalize,
-                Ranges = Ranges.ToArray(),
+                Ranges = Ranges?.ToArray(),
                 IndependentVariableConstant = IndependentVariableConstant?.ToArray(),
                 NumConstantIndependentVariables = NumConstantIndependentVariables,
                 MinY = MinY,

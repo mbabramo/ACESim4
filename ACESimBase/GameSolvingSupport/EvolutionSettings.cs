@@ -139,10 +139,10 @@ namespace ACESim
         // all we can do is just pick the best option, so we do the same thing as is dictated by the ALwaysChooseBestOption option. 
         /// </summary>
         public static bool DeepCFR_PredictUtilitiesNotRegrets = false;
-        public Func<IRegression> RegressionFactory() => RegressionTechnique switch
+        public Func<(IRegression regression, bool requiresNormalization)> RegressionFactory() => RegressionTechnique switch
         {
-            RegressionTechniques.NeuralNetworkNetRegression => () => new NeuralNetworkNetRegression(DeepCFR_NeuralNetwork_Epochs, DeepCFR_NeuralNetwork_HiddenLayers, DeepCFR_NeuralNetwork_NeuronsPerHiddenLayer),
-            _ => () => new MLNetRegression(RegressionTechnique)
+            RegressionTechniques.NeuralNetworkNetRegression => () => (new NeuralNetworkNetRegression(DeepCFR_NeuralNetwork_Epochs, DeepCFR_NeuralNetwork_HiddenLayers, DeepCFR_NeuralNetwork_NeuronsPerHiddenLayer), true),
+            _ => () => (new MLNetRegression(RegressionTechnique), false)
         };
 
         // For Vanilla algorithm:

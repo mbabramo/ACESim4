@@ -15,10 +15,10 @@ namespace ACESimBase.GameSolvingSupport
         int[] ReservoirCapacity;
         long ReservoirSeed;
         double DiscountRate;
-        object LockObj = new object(); 
-        Func<IRegression> RegressionFactory;
+        object LockObj = new object();
+        Func<(IRegression regression, bool requiresNormalization)> RegressionFactory;
 
-        public DeepCFRMultiModelContainer(DeepCFRMultiModelMode mode, int[] reservoirCapacity, long reservoirSeed, double discountRate, Func<IRegression> regressionFactory, List<Decision> decisions)
+        public DeepCFRMultiModelContainer(DeepCFRMultiModelMode mode, int[] reservoirCapacity, long reservoirSeed, double discountRate, Func<(IRegression regression, bool requiresNormalization)> regressionFactory, List<Decision> decisions)
         {
             Mode = mode;
             ReservoirCapacity = reservoirCapacity;
@@ -47,7 +47,7 @@ namespace ACESimBase.GameSolvingSupport
             }
         }
 
-        public DeepCFRMultiModelContainer(DeepCFRMultiModelMode mode, int[] reservoirCapacity, long reservoirSeed, double discountRate, Func<IRegression> regressionFactory, IEnumerable<DeepCFRModel> models, int[] modelIndexForDecisionIndex)
+        public DeepCFRMultiModelContainer(DeepCFRMultiModelMode mode, int[] reservoirCapacity, long reservoirSeed, double discountRate, Func<(IRegression regression, bool requiresNormalization)> regressionFactory, IEnumerable<DeepCFRModel> models, int[] modelIndexForDecisionIndex)
         {
             Mode = mode;
             ReservoirCapacity = reservoirCapacity;

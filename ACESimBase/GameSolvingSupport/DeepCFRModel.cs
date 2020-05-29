@@ -76,7 +76,7 @@ namespace ACESimBase.GameSolvingSupport
         /// <summary>
         /// Factory to create a regression processor
         /// </summary>
-        Func<IRegression> RegressionFactory;
+        Func<(IRegression regression, bool requiresNormalization)> RegressionFactory;
         /// <summary>
         /// The proportion of the data to be reserved for test data
         /// </summary>
@@ -86,7 +86,7 @@ namespace ACESimBase.GameSolvingSupport
         /// </summary>
         public bool AlwaysChooseBestOption = false;
 
-        public DeepCFRModel(List<(Decision item, byte decisionIndex)> decisionsInModel, int reservoirCapacity, long reservoirSeed, double discountRate, Func<IRegression> regressionFactory)
+        public DeepCFRModel(List<(Decision item, byte decisionIndex)> decisionsInModel, int reservoirCapacity, long reservoirSeed, double discountRate, Func<(IRegression regression, bool requiresNormalization)> regressionFactory)
         {
             Decisions = decisionsInModel.ToList();
             List<string> modelNames = decisionsInModel.Select(x => x.item.Name).ToHashSet().OrderBy(x => x).ToList();
