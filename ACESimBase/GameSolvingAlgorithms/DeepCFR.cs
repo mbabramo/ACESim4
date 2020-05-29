@@ -667,7 +667,6 @@ namespace ACESim
             DeepCFRProbabilitiesCache probabilitiesCache = new DeepCFRProbabilitiesCache();
             Parallelizer.Go(EvolutionSettings.ParallelOptimization, 0, numThreads, o =>
             {
-                bool DEBUG = CompoundRegressionMachinesContainer == null;
                 var regressionMachines = GetRegressionMachinesForLocalUse();
                 DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel.DeepCopyForPlaybackOnly(), regressionMachines, probabilitiesCache);
                 int numToPlaybackThisThread = o == numThreads - 1 ? numObservationsToDoTogetherLastThread : numObservationsToDoPerThread;
@@ -983,18 +982,6 @@ namespace ACESim
             var strategies = await GetSeparateStrategiesForPrincipalComponents(EvolutionSettings.ParallelOptimization);
             DeepCFRCompoundRegressionMachinesContainer container = new DeepCFRCompoundRegressionMachinesContainer(strategies, GameDefinition, NumNonChancePlayers);
             CompoundRegressionMachinesContainer = container;
-            var DEBUG = strategies.First().EnumerateModels().First().GetRegressionMachine().GetResults(new float[] { 21.0f, 1.0f }).ToArray();
-            var DEBUG2 = strategies.First().EnumerateModels().First().GetRegressionMachine();
-            var DEBUG3 = strategies.First().EnumerateModels().First().Observations.Select(x => x.SampledRegret).ToArray();
-            // var DEBUG: Why is the baseline always producing very low regrets
-            bool doDEBUG = false;
-            if (doDEBUG)
-            {
-                var DEBUGX = strategies.First().EnumerateModels().First();
-                var DEBUGX1 = DEBUGX.Observations.ToList();
-                foreach (var x in DEBUGX1)
-                    x.SampledRegret = 1000 + new Random().NextDouble();
-            }
         }
 
         public async Task<List<DeepCFRMultiModel>> GetSeparateStrategiesForPrincipalComponents(bool parallel)
@@ -1018,14 +1005,13 @@ namespace ACESim
         {
             List<DeepCFRMultiModel> result = new List<DeepCFRMultiModel>();
             double[] allZeros = Enumerable.Range(0, EvolutionSettings.DeepCFR_PCA_NumPrincipalComponents).Select(x => (double)0).ToArray();
-            Br.eak.Add("DEBUGBASELINE");
             var baselineStrategy = await GetSinglePlayerStrategyBasedOnPrincipalComponents(playerIndex, allZeros, parallel, false);
             result.Add(baselineStrategy);
             for (int i = 0; i < EvolutionSettings.DeepCFR_PCA_NumPrincipalComponents; i++)
             {
                 TabbedText.WriteLine($"Generating strategy for principal component {i} for player {playerIndex}");
                 double[] principalComponentForThisStrategyOnly = allZeros.ToArray();
-                principalComponentForThisStrategyOnly[i] = 0.001; // DEBUG SUPERDEBUG
+                principalComponentForThisStrategyOnly[i] = 1.0; // DEBUG -- could consider smaller value and then multiply
                 var strategyForPrincipalComponent = await GetSinglePlayerStrategyBasedOnPrincipalComponents(playerIndex, principalComponentForThisStrategyOnly, parallel, true);
                 result.Add(strategyForPrincipalComponent);
             }
@@ -1051,41 +1037,8 @@ namespace ACESim
         public async Task<DeepCFRMultiModel> GetSinglePlayerStrategyBasedOnPrincipalComponents(byte playerIndex, double[] principalComponentScoresForPlayer, bool parallel, bool getBoostedModel)
         {
             DeepCFRMultiModel targetModel = GenotypingBaselineMultiModel.DeepCopyObservationsOnly(playerIndex);
-
-            bool doDEBUG = false;
-            if (Br.eak.Contains("DEBUGBASELINE"))
-                doDEBUG = true;
-            if (doDEBUG)
-            {
-                //var DEBUGX = GenotypingBaselineMultiModel.EnumerateModels().First();
-                //foreach (var x in DEBUGX.Observations)
-                //    x.SampledRegret = 1000 + new Random().NextDouble();
-                //await DEBUGX.ProcessObservations(false);
-                //var DEBUGASDF = DEBUGX.Regression.GetRegressionMachine().GetResults(new float[] { 1f, 1f });
-                //var DEBUGX1 = DEBUGX.Observations.ToList();
-            }
             ChangeModelBasedOnPlayerPrincipalComponents(targetModel, playerIndex, principalComponentScoresForPlayer, getBoostedModel);
-            var DEBUG = targetModel.EnumerateModels(0).SelectMany(x => x.Observations).ToList();
-
-            if (doDEBUG)
-            {
-                var DEBUGX = targetModel.EnumerateModels().First();
-                var DEBUGX1 = DEBUGX.Observations.ToList();
-                foreach (var x in DEBUGX1)
-                    x.SampledRegret = 1000 + new Random().NextDouble();
-            }
-            try
-            {
-                await targetModel.ProcessObservations(false, parallel);
-            }
-            catch
-            {
-                // DEBUG
-            }
-            if (doDEBUG)
-            {
-                var DEBUGASDFasd = targetModel.EnumerateModels().First().Regression.GetRegressionMachine().GetResults(new float[] { 1f, 1f });
-            }
+            await targetModel.ProcessObservations(false, parallel);
             return targetModel;
         }
 
@@ -1094,9 +1047,7 @@ namespace ACESim
         {
             double[] elementsForPlayers = PCAResultsForEachPlayer[playerIndex].PrincipalComponentsToElements(principalComponentScoresForPlayer);
             if (elementsForPlayers.Any(x => double.IsNaN(x) || double.IsInfinity(x)))
-                {
-                var DEBUG = 0;
-            }
+                throw new Exception("Invalid player element.");
             if (getBoostedModel)
             {
                 // With a boosted model, we start with a baseline where each principal component is zero. We then subtract the elements of 
