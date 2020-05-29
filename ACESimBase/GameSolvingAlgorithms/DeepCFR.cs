@@ -1005,6 +1005,8 @@ namespace ACESim
         {
             List<DeepCFRMultiModel> result = new List<DeepCFRMultiModel>();
             double[] allZeros = Enumerable.Range(0, EvolutionSettings.DeepCFR_PCA_NumPrincipalComponents).Select(x => (double)0).ToArray();
+            TabbedText.WriteLine("");
+            TabbedText.WriteLine($"Generating strategy for baseline for player {playerIndex}");
             var baselineStrategy = await GetSinglePlayerStrategyBasedOnPrincipalComponents(playerIndex, allZeros, parallel, false);
             result.Add(baselineStrategy);
             for (int i = 0; i < EvolutionSettings.DeepCFR_PCA_NumPrincipalComponents; i++)

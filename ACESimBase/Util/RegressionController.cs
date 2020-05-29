@@ -166,12 +166,15 @@ namespace ACESimBase.Util
         // DEBUG -- get rid of supplementalInfo after all
         public float GetResult(float[] x, IRegressionMachine regressionMachine, object supplementalInfo)
         {
+            IRegressionMachine regressionMachineToUse;
             if (regressionMachine is NormalizingRegressionMachineWrapper wrapper)
-                regressionMachine = wrapper.RegressionMachine;
-            if (Normalize)
-                x = NormalizeIndependentVars(x);
-            float result = regressionMachine == null ? Regression.GetResults(x, null)[0] : regressionMachine.GetResults(x, supplementalInfo)[0];
-            if (Normalize)
+                regressionMachineToUse = wrapper.RegressionMachine;
+            else
+                regressionMachineToUse = regressionMachine;
+            bool normalize = Normalize && !(regressionMachineToUse is CompoundRegressionMachine); // if we have a CompoundRegressionMachine, then within it, we'll have a NormalizingRegressionMachineWrapper, so we will normalize and denormalize there.
+            float[] xNormalized = normalize ? NormalizeIndependentVars(x) : x;
+            float result = regressionMachineToUse == null ? Regression.GetResults(xNormalized, null)[0] : regressionMachineToUse.GetResults(xNormalized, supplementalInfo)[0];
+            if (normalize)
                 result = DenormalizeDependentVar(result);
             return result;
         }
