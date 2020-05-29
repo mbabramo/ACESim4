@@ -99,7 +99,7 @@ namespace ACESim
         // DEEPCFR SETTINGS
         // Note: DeepCFR iterations are set in Launcher, same as vanilla iterations.
         public DeepCFRMultiModelMode DeepCFR_MultiModelMode = DeepCFRMultiModelMode.DecisionSpecific;
-        public int DeepCFR_BaseReservoirCapacity = 5_000; // the base reservoir capacity -- if generating observations through game progress tree, we multiply this by the number of possible decisions
+        public int DeepCFR_BaseReservoirCapacity = 1_000; // the base reservoir capacity -- if generating observations through game progress tree, we multiply this by the number of possible decisions
         public bool DeepCFR_UseGameProgressTreeToGenerateObservations = true;
         public int DeepCFR_NumProbesPerGameProgressTreeObservation = 1;
         public bool DeepCFR_MultiplyProbesForEachIdenticalIteration = true;
@@ -111,7 +111,7 @@ namespace ACESim
 
         public bool DeepCFR_PCA_PerformPrincipalComponentAnalysis = true;
         public double DeepCFR_PCA_Precision = 1E-5;
-        public int DeepCFR_PCA_FirstIterationToSaveGenotypes = 5; // DEBUG
+        public int DeepCFR_PCA_FirstIterationToSaveGenotypes = 1; // DEBUG
         public int DeepCFR_PCA_SaveGenotypeEveryNIterationsAfterFirst = 1; // DEBUG
         public int[] DeepCFR_PCA_NumVariationsPerPrincipalComponent = new int[] { 4, 3, 2 };
         public int DeepCFR_PCA_NumPrincipalComponents => DeepCFR_PCA_NumVariationsPerPrincipalComponent.Length;

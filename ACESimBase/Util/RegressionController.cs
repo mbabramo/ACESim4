@@ -141,11 +141,33 @@ namespace ACESimBase.Util
 
         public string GetTrainingResultString() => Regression.GetTrainingResultString();
 
-        public IRegressionMachine GetRegressionMachine() => Regression.GetRegressionMachine();
-        public void ReturnRegressionMachine(IRegressionMachine regressionMachine) => Regression.ReturnRegressionMachine(regressionMachine);
+        // This wraps a regression machine, so that the call to GetResults applies normalization where appropriate
+        // by calling back to the RegressionController class.
+        private class NormalizingRegressionMachineWrapper : IRegressionMachine
+        {
+            public RegressionController Controller;
+            public IRegressionMachine RegressionMachine;
+            public NormalizingRegressionMachineWrapper(RegressionController controller, IRegressionMachine regressionMachine)
+            {
+                Controller = controller;
+                RegressionMachine = regressionMachine;
+            }
 
+            public float[] GetResults(float[] x)
+            {
+                float scalarResult = Controller.GetResult(x, RegressionMachine, null);
+                return new float[] { scalarResult };
+            }
+        }
+
+        public IRegressionMachine GetRegressionMachine() => new NormalizingRegressionMachineWrapper(this, Regression.GetRegressionMachine());
+        public void ReturnRegressionMachine(IRegressionMachine regressionMachine) => Regression.ReturnRegressionMachine(((NormalizingRegressionMachineWrapper)regressionMachine).RegressionMachine);
+
+        // DEBUG -- get rid of supplementalInfo after all
         public float GetResult(float[] x, IRegressionMachine regressionMachine, object supplementalInfo)
         {
+            if (regressionMachine is NormalizingRegressionMachineWrapper wrapper)
+                regressionMachine = wrapper.RegressionMachine;
             if (Normalize)
                 x = NormalizeIndependentVars(x);
             float result = regressionMachine == null ? Regression.GetResults(x, null)[0] : regressionMachine.GetResults(x, supplementalInfo)[0];

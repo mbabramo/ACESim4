@@ -259,6 +259,8 @@ namespace ACESimBase.GameSolvingSupport
 
         public void SetExpectedRegretsForObservations(byte? playerIndex, double[] regrets)
         {
+            if (regrets.Any(x => double.IsNaN(x) || double.IsInfinity(x)))
+                throw new Exception();
             int regretIndex = 0;
             var models = EnumerateModels(playerIndex);
             foreach (var model in models)

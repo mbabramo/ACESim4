@@ -67,6 +67,8 @@ namespace ACESim
             const long prime2 = 8965095091;
             const long prime3 = 5336500537;
             long intermediateResult = ((index + Seed) * (index + Seed) * prime1 + (index + Seed) * prime2) % prime3;
+            if (intermediateResult == 0)
+                intermediateResult = long.MaxValue;
             return new XorShiftRandom((ulong)intermediateResult).NextDouble();
         }
 

@@ -56,7 +56,7 @@ namespace ACESimBase.GameSolvingSupport
         /// <summary>
         /// The trained neural network.
         /// </summary>
-        RegressionController Regression;
+        public RegressionController Regression;
         /// <summary>
         /// The decision indices that are included in the independent variables of the regression
         /// </summary>
@@ -254,6 +254,10 @@ namespace ACESimBase.GameSolvingSupport
 
         private void PrintTestDataResults((float[], float, float)[] testData, StringBuilder s)
         {
+            if (Br.eak.Contains("DEBUGBASELINE"))
+            {
+                var DEBUG = testData.Select(d => (Regression.GetResult(d.Item1, null, UniquePlayerIndex), d.Item2)).ToList();
+            }
             double loss = testData.Select(d => (Regression.GetResult(d.Item1, null, UniquePlayerIndex), d.Item2)).Select(d => Math.Pow(d.Item1 - d.Item2, 2.0)).Average();
             s.AppendLine($"AvgLoss: {loss.ToSignificantFigures(4)} ");
         }
