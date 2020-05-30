@@ -643,9 +643,10 @@ namespace ACESim
 
         public GameProgress DeepCFR_GetGameProgressByPlaying(DeepCFRPlaybackHelper playbackHelper, DeepCFRObservationNum observationNum) => DeepCFRTraversal(playbackHelper, observationNum, DeepCFRTraversalMode.PlaybackSinglePath, null).completedProgress;
 
-        public async Task<double[]> DeepCFR_UtilitiesAverage(int totalNumberObservations, int observationOffset = 0, bool useGameProgressTree = true)
+        public async Task<double[]> DeepCFR_UtilitiesAverage(int totalNumberObservations, int observationOffset = 0, bool useGameProgressTree = true, bool reportTime = true)
         {
-            TabbedText.Write($"Calculating utilities from {totalNumberObservations}");
+            if (reportTime)
+                TabbedText.Write($"Calculating utilities from {totalNumberObservations}");
             Stopwatch s = new Stopwatch();
             s.Start();
             StatCollectorArray stats = new StatCollectorArray();
@@ -653,7 +654,8 @@ namespace ACESim
                 await DeepCFR_UtilitiesAverage_WithTree(totalNumberObservations, observationOffset, stats);
             else
                 await DeepCFR_UtilitiesAverage_IndependentPlays(totalNumberObservations, observationOffset, stats);
-            TabbedText.WriteLine($" time {s.ElapsedMilliseconds} ms");
+            if (reportTime)
+                TabbedText.WriteLine($" time {s.ElapsedMilliseconds} ms");
             double[] averageUtilities = stats.Average().ToArray();
             return averageUtilities;
         }
@@ -888,7 +890,7 @@ namespace ACESim
                 {
                     Stopwatch innerStopwatch = new Stopwatch();
                     innerStopwatch.Start();
-                    List<double>[] principalComponentWeightsForEachPlayer = GetRandomPrincipalComponentWeightsForEachPlayer(i * 737);
+                    List<double>[] principalComponentWeightsForEachPlayer = GetRandomPrincipalComponentWeightsForEachPlayer(i * 737, 1.5 /* DEBUG */);
                     string principalComponentWeightsString = String.Join("; ", Enumerable.Range(0, NumNonChancePlayers).Select(x => x.ToString() + ": " + principalComponentWeightsForEachPlayer[x].ToSignificantFigures(3)));
                     CompoundRegressionMachinesContainer.SpecifyWeightOnSupplementalMachines(principalComponentWeightsForEachPlayer, InverseNumStandardDeviationsForPrincipalComponentStrategy);
                     double[] compoundUtilities = await DeepCFR_UtilitiesAverage(numGamesToPlayToEstimateEachUtilityWhileBuildingModel, i * numUtilitiesToCalculateToBuildModel, true);
@@ -916,26 +918,57 @@ namespace ACESim
         private async Task AssessModelsToPredictUtilitiesFromPrincipalComponents()
         {
             StatCollector s = new StatCollector();
-            await Parallelizer.GoAsync(EvolutionSettings.ParallelOptimization, 0, 100, async j =>
+            const int numToCompare = 100;
+            double[][] actualArray = new double[NumNonChancePlayers][], predictedArray = new double[NumNonChancePlayers][];
+            for (int p = 0; p < NumNonChancePlayers; p++)
             {
-                List<double>[] principalComponentWeightsForEachPlayer = GetRandomPrincipalComponentWeightsForEachPlayer(((int)j) * 2011);
+                actualArray[p] = new double[numToCompare];
+                predictedArray[p] = new double[numToCompare];
+            }
+            await Parallelizer.GoAsync(EvolutionSettings.ParallelOptimization, 0, numToCompare, async j =>
+            {
+                List<double>[] principalComponentWeightsForEachPlayer = GetRandomPrincipalComponentWeightsForEachPlayer(((int)j) * 2011, 1.0);
                 string principalComponentWeightsString = string.Join("; ", Enumerable.Range(0, NumNonChancePlayers).Select(x => x.ToString() + ": " + principalComponentWeightsForEachPlayer[x].ToSignificantFigures(3)));
                 ModelPredictingUtilitiesDatum datum = new ModelPredictingUtilitiesDatum(principalComponentWeightsForEachPlayer, null);
-                TabbedText.WriteLine($"Principal components {j}: {principalComponentWeightsString}");
                 CompoundRegressionMachinesContainer.SpecifyWeightOnSupplementalMachines(principalComponentWeightsForEachPlayer, InverseNumStandardDeviationsForPrincipalComponentStrategy);
-                double[] actual = await DeepCFR_UtilitiesAverage(100_000);
+                double[] actual = await DeepCFR_UtilitiesAverage(1_000_000, reportTime: false);
                 double[] predicted = new double[NumNonChancePlayers];
                 for (byte p = 0; p < NumNonChancePlayers; p++)
                 {
                     var model = ModelsToPredictUtilitiesFromPrincipalComponents[p];
                     predicted[p] = model.GetResult(datum.Convert().X, null, null);
+                    predictedArray[p][j] = predicted[p];
+                    actualArray[p][j] = actual[p];
                 }
                 double[] absoluteDifference = actual.Zip(predicted, (first, second) => Math.Abs(first - second)).ToArray();
                 double avgAbsoluteDifference = absoluteDifference.Average();
                 s.Add(avgAbsoluteDifference);
-                TabbedText.WriteLine($"Prediction {predicted.ToSignificantFigures(6)} actual {actual.ToSignificantFigures(6)} avg_abs_diff {avgAbsoluteDifference.ToSignificantFigures(3)} ");
+                TabbedText.WriteLine($"Principal components {j}: {principalComponentWeightsString} ==> Prediction {predicted.ToSignificantFigures(6)} actual {actual.ToSignificantFigures(6)} avg_abs_diff {avgAbsoluteDifference.ToSignificantFigures(3)} ");
             });
             TabbedText.WriteLine($"Overall average absolute difference: " + s.Average().ToSignificantFigures(3));
+            for (int p = 0; p < NumNonChancePlayers; p++)
+            {
+                double coef = ComputeCoeff(actualArray[p], predictedArray[p]);
+                TabbedText.WriteLine($"Correlation coefficient player {p}: {coef}");
+            }
+        }
+
+        public double ComputeCoeff(double[] values1, double[] values2)
+        {
+            if (values1.Length != values2.Length)
+                throw new ArgumentException("values must be the same length");
+
+            var avg1 = values1.Average();
+            var avg2 = values2.Average();
+
+            var sum1 = values1.Zip(values2, (x1, y1) => (x1 - avg1) * (y1 - avg2)).Sum();
+
+            var sumSqr1 = values1.Sum(x => Math.Pow((x - avg1), 2.0));
+            var sumSqr2 = values2.Sum(y => Math.Pow((y - avg2), 2.0));
+
+            var result = sum1 / Math.Sqrt(sumSqr1 * sumSqr2);
+
+            return result;
         }
 
         private async Task AssessCompoundStrategyAccuracy()
@@ -946,7 +979,7 @@ namespace ACESim
             StatCollectorArray compoundStats = new StatCollectorArray(), pcSpecificStats = new StatCollectorArray();
             for (int i = 0; i < 100; i++)
             {
-                List<double>[] principalComponentWeightsForEachPlayer = GetRandomPrincipalComponentWeightsForEachPlayer(i * 737);
+                List<double>[] principalComponentWeightsForEachPlayer = GetRandomPrincipalComponentWeightsForEachPlayer(i * 737, 1.0);
                 string principalComponentWeightsString = String.Join(";", Enumerable.Range(0, NumNonChancePlayers).Select(x => x.ToString() + ": " + principalComponentWeightsForEachPlayer[x].ToSignificantFigures(3)));
                 CompoundRegressionMachinesContainer.SpecifyWeightOnSupplementalMachines(principalComponentWeightsForEachPlayer, InverseNumStandardDeviationsForPrincipalComponentStrategy);
                 double[] compoundUtilities = await DeepCFR_UtilitiesAverage(1_000_000);
@@ -1022,21 +1055,21 @@ namespace ACESim
 
         private async Task<DeepCFRMultiModel> GetDeepCFRMultiModelWithRandomPrincipalComponentWeights(int randomIndex)
         {
-            List<double>[] principalComponentWeightsForEachPlayer = GetRandomPrincipalComponentWeightsForEachPlayer(randomIndex);
+            List<double>[] principalComponentWeightsForEachPlayer = GetRandomPrincipalComponentWeightsForEachPlayer(randomIndex, 1.0);
             var result = await GetIntegratedStrategyBasedOnPrincipalComponents(principalComponentWeightsForEachPlayer, EvolutionSettings.ParallelOptimization);
             return result;
         }
 
-        private List<double>[] GetRandomPrincipalComponentWeightsForEachPlayer(int randomIndex)
+        private List<double>[] GetRandomPrincipalComponentWeightsForEachPlayer(int randomIndex, double multiplier)
         {
-            return Enumerable.Range(0, NumNonChancePlayers).Select(x => GetRandomPrincipalComponentWeights((byte)x, new ConsistentRandomSequenceProducer(randomIndex, 1_000_000 * x))).ToArray();
+            return Enumerable.Range(0, NumNonChancePlayers).Select(x => GetRandomPrincipalComponentWeights((byte)x, new ConsistentRandomSequenceProducer(randomIndex, 1_000_000 * x), multiplier)).ToArray();
         }
 
-        private List<double> GetRandomPrincipalComponentWeights(byte playerIndex, ConsistentRandomSequenceProducer randomizer)
+        private List<double> GetRandomPrincipalComponentWeights(byte playerIndex, ConsistentRandomSequenceProducer randomizer, double multiplier)
         {
             var stats = PCAResultsForEachPlayer[playerIndex];
             int numPrincipalComponents = EvolutionSettings.DeepCFR_PCA_NumPrincipalComponents;
-            var result = Enumerable.Range(0, numPrincipalComponents).Select(principalComponent => InvNormal.Calculate(randomizer.GetDoubleAtIndex(principalComponent)) * stats.principalComponentStdevs[principalComponent]).ToList();
+            var result = Enumerable.Range(0, numPrincipalComponents).Select(principalComponent => multiplier * InvNormal.Calculate(randomizer.GetDoubleAtIndex(principalComponent)) * stats.principalComponentStdevs[principalComponent]).ToList();
             return result;
         }
 

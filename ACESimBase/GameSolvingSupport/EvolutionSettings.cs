@@ -111,7 +111,7 @@ namespace ACESim
 
         public bool DeepCFR_PCA_PerformPrincipalComponentAnalysis = true;
         public double DeepCFR_PCA_Precision = 1E-5;
-        public int DeepCFR_PCA_FirstIterationToSaveGenotypes = 1; // DEBUG
+        public int DeepCFR_PCA_FirstIterationToSaveGenotypes = 20; // DEBUG
         public int DeepCFR_PCA_SaveGenotypeEveryNIterationsAfterFirst = 1; // DEBUG
         public int[] DeepCFR_PCA_NumVariationsPerPrincipalComponent = new int[] { 4, 3, 2 }; // NOTE: Not currently being used; this can be used to generate non-random permutations of principal components.
         public int DeepCFR_PCA_NumPrincipalComponents = 3;
