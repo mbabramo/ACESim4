@@ -911,7 +911,53 @@ namespace ACESim
                 }
                 outerStopwatch.Stop();
                 TabbedText.WriteLine($"Utilities model build in {outerStopwatch.ElapsedMilliseconds} ms");
-                await AssessModelsToPredictUtilitiesFromPrincipalComponents();
+                bool assessModels = false;
+                if (assessModels)
+                    await AssessModelsToPredictUtilitiesFromPrincipalComponents();
+                await UsePCAToEvaluateEquilibria();
+            }
+        }
+
+        public async Task UsePCAToEvaluateEquilibria()
+        {
+            if (NumNonChancePlayers != 2)
+                throw new NotSupportedException();
+            int numStrategyChoicesPerPlayer = EvolutionSettings.DeepCFR_PCA_NumStrategyChoicesPerPlayer;
+            double[,] player0Utilities = new double[numStrategyChoicesPerPlayer, numStrategyChoicesPerPlayer];
+            double[,] player1Utilities = new double[numStrategyChoicesPerPlayer, numStrategyChoicesPerPlayer];
+            List<double>[] principalComponentsWeightsForPlayer0 = new List<double>[numStrategyChoicesPerPlayer];
+            List<double>[] principalComponentsWeightsForPlayer1 = new List<double>[numStrategyChoicesPerPlayer];
+            for (int i = 0; i < numStrategyChoicesPerPlayer; i++)
+            {
+                List<double>[] principalComponentWeightsForEachPlayer = GetRandomPrincipalComponentWeightsForEachPlayer(i * 2017, 1.0);
+                principalComponentsWeightsForPlayer0[i] = principalComponentWeightsForEachPlayer[0];
+                principalComponentsWeightsForPlayer1[i] = principalComponentWeightsForEachPlayer[1];
+            }
+            for (int i = 0; i < numStrategyChoicesPerPlayer; i++)
+            {
+                for (int j = 0; j < numStrategyChoicesPerPlayer; j++)
+                {
+                    List<double>[] principalComponentWeightsForEachPlayer = new List<double>[2] { principalComponentsWeightsForPlayer0[i], principalComponentsWeightsForPlayer1[j] };
+                    var datum = new ModelPredictingUtilitiesDatum(principalComponentWeightsForEachPlayer, null);
+                    var model = ModelsToPredictUtilitiesFromPrincipalComponents[0];
+                    player0Utilities[i, j] = model.GetResult(datum.Convert().X, null, null);
+                    model = ModelsToPredictUtilitiesFromPrincipalComponents[1];
+                    player1Utilities[i, j] = model.GetResult(datum.Convert().X, null, null);
+                    //CompoundRegressionMachinesContainer.SpecifyWeightOnSupplementalMachines(principalComponentWeightsForEachPlayer, InverseNumStandardDeviationsForPrincipalComponentStrategy);
+                }
+            }
+            var equilibria = PureStrategiesFinder.ComputeNashEquilibria(player0Utilities, player1Utilities, false)
+                .Select(x => new List<double>[2] { principalComponentsWeightsForPlayer0[x.player0Strategy], principalComponentsWeightsForPlayer1[x.player1Strategy] })
+                .ToList();
+            foreach (var equilibrium in equilibria)
+            {
+                var datum = new ModelPredictingUtilitiesDatum(equilibrium, null);
+                var model = ModelsToPredictUtilitiesFromPrincipalComponents[0];
+                double player0Utility = model.GetResult(datum.Convert().X, null, null);
+                model = ModelsToPredictUtilitiesFromPrincipalComponents[1];
+                double player1Utility = model.GetResult(datum.Convert().X, null, null);
+                string principalComponentWeightsString = string.Join("; ", Enumerable.Range(0, NumNonChancePlayers).Select(x => x.ToString() + ": " + equilibrium[x].ToSignificantFigures(3)));
+                TabbedText.WriteLine($"eq for {principalComponentWeightsString}; utility {player0Utility.ToSignificantFigures(5)}, {player1Utility.ToSignificantFigures(5)}");
             }
         }
 
