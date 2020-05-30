@@ -111,12 +111,12 @@ namespace ACESim
 
         public bool DeepCFR_PCA_PerformPrincipalComponentAnalysis = true;
         public double DeepCFR_PCA_Precision = 1E-5;
-        public int DeepCFR_PCA_FirstIterationToSaveGenotypes = 20; // DEBUG
+        public int DeepCFR_PCA_FirstIterationToSaveGenotypes = 3; // DEBUG
         public int DeepCFR_PCA_SaveGenotypeEveryNIterationsAfterFirst = 1; // DEBUG
         public int[] DeepCFR_PCA_NumVariationsPerPrincipalComponent = new int[] { 4, 3, 2 }; // NOTE: Not currently being used; this can be used to generate non-random permutations of principal components.
         public int DeepCFR_PCA_NumPrincipalComponents = 3;
         public bool DeepCFR_PCA_BuildModelToPredictUtilitiesBasedOnPrincipalComponents = true;
-        public int DeepCFR_PCA_NumUtilitiesToCalculateToBuildModel = 1_000;
+        public int DeepCFR_PCA_NumUtilitiesToCalculateToBuildModel = 30; // DEBUG 1_000;
         public int DeepCFR_PCA_NumGamesToPlayToEstimateEachUtilityWhileBuildingModel = 100;
         public int DeepCFR_PCA_NumStrategyChoicesPerPlayer = 1_000;
 

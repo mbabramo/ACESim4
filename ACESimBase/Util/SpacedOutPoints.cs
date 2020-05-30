@@ -48,21 +48,23 @@ namespace ACESimBase.Util
 
         public void AddAdditionalPoint()
         {
-            int i = GetIndexOfPointClosestToNeighbor();
-            var point = GenerateRandomPoint();
-            var currentOccupant = CurrentPoints[i];
-            CurrentPoints[i] = point;
-            var closest = GetClosest(i);
-            if (closest.closestDistance > ClosestData[i].closestDistance)
+            int pointToConsiderKickingOutIndex = GetIndexOfPointClosestToNeighbor();
+            var pointToConsiderKickingOutInfo = CurrentPoints[pointToConsiderKickingOutIndex];
+            var randomPoint = GenerateRandomPoint();
+            CurrentPoints[pointToConsiderKickingOutIndex] = randomPoint;
+            var closestToRandomPoint = GetClosest(pointToConsiderKickingOutIndex);
+            if (closestToRandomPoint.closestDistance > ClosestData[pointToConsiderKickingOutIndex].closestDistance)
             {
+                // random point is farther from point we're considering kicking out, so we will go ahead with kicking it out.
+                // now we need to update data on any other point that was closest to that one, as well as the new point.
                 for (int j = 0; j < TargetNumPoints; j++)
                 {
-                    if (i == j || ClosestData[j].indexOfClosest == i)
+                    if (pointToConsiderKickingOutIndex == j || ClosestData[j].indexOfClosest == pointToConsiderKickingOutIndex)
                         ClosestData[j] = GetClosest(j);
                 }
             }
             else
-                CurrentPoints[i] = currentOccupant; // no change
+                CurrentPoints[pointToConsiderKickingOutIndex] = pointToConsiderKickingOutInfo; // restore this point -- we're not kicking it out
         }
 
         public int GetIndexOfPointClosestToNeighbor()
