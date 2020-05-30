@@ -210,10 +210,36 @@ namespace ACESim
 
         public static (int player0Strategy, int player1Strategy) GetApproximateNashEquilibrium(double[,] player0Utilities, double[,] player1Utilities)
         {
+            int numRows, numColumns;
+            numRows = player0Utilities.GetLength(0);
+            numColumns = player0Utilities.GetLength(1);
+            double[,] DistanceFromNash;
+            DistanceFromNash = GetApproximateNashEquilibriumValuesMatrix(player0Utilities, player1Utilities);
+            int bestRow = -1;
+            int bestCol = -1;
+            double lowestTotal = double.MaxValue;
+            for (int r = 0; r < numRows; r++)
+                for (int c = 0; c < numColumns; c++)
+                {
+                    double distance = DistanceFromNash[r, c];
+                    if (distance < lowestTotal)
+                    {
+                        bestRow = r;
+                        bestCol = c;
+                        lowestTotal = distance;
+                    }
+                }
+            return (bestRow, bestCol);
+        }
+
+        public static double[,] GetApproximateNashEquilibriumValuesMatrix(double[,] player0Utilities, double[,] player1Utilities)
+        {
             int numRows = player0Utilities.GetLength(0);
             int numColumns = player0Utilities.GetLength(1);
             double[] player0MaxValueInColumn = Enumerable.Range(0, numColumns).Select(c => Enumerable.Range(0, numRows).Select(r => player0Utilities[r, c]).Max()).ToArray();
             double[] player1MaxValueInRow = Enumerable.Range(0, numRows).Select(r => Enumerable.Range(0, numColumns).Select(c => player1Utilities[r, c]).Max()).ToArray();
+
+            double[,] DistanceFromNash = new double[numRows, numColumns];
             double distanceFromNash(int r, int c)
             {
                 double total = 0;
@@ -223,21 +249,54 @@ namespace ACESim
                     total += Math.Pow(player1Utilities[r, c] - player1MaxValueInRow[r], 2);
                 return total;
             }
-            int bestRow = -1;
-            int bestCol = -1;
-            double lowestTotal = double.MaxValue;
             for (int r = 0; r < numRows; r++)
                 for (int c = 0; c < numColumns; c++)
+                    DistanceFromNash[r, c] = distanceFromNash(r, c);
+            return DistanceFromNash;
+        }
+
+        public static List<(int player0Strategy, int player1Strategy, double approximateNashEquilibriumDistance)> GetOrderedApproximateNashEquilibriaStrategyChoices(double[,] player0Utilities, double[,] player1Utilities)
+        {
+            int numRows = player0Utilities.GetLength(0);
+            int numColumns = player0Utilities.GetLength(1);
+            double[,] matrix = GetApproximateNashEquilibriumValuesMatrix(player0Utilities, player1Utilities);
+            List<(int player0Strategy, int player1Strategy, double approximateNashEquilibriumDistance)> strategyChoices = new List<(int player0Strategy, int player1Strategy, double approximateNashEquilibriumDistance)>();
+            for (int r = 0; r < numRows; r++)
+                for (int c = 0; c < numColumns; c++)
+                    strategyChoices.Add((r, c, matrix[r, c]));
+            strategyChoices = strategyChoices.OrderBy(x => x.approximateNashEquilibriumDistance).ToList();
+            return strategyChoices;
+        }
+
+        public static List<(int player0Strategy, int player1Strategy, double approximateNashEquilibriumDistance)> GetCorrelatedEquilibrium(double[,] player0Utilities, double[,] player1Utilities)
+        {
+            var candidates = GetOrderedApproximateNashEquilibriaStrategyChoices(player0Utilities, player1Utilities);
+            List<(int player0Strategy, int player1Strategy, double approximateNashEquilibriumDistance)> admittees = new List<(int player0Strategy, int player1Strategy, double approximateNashEquilibriumDistance)>();
+            foreach (var candidate in candidates)
+            {
+                bool admissible = true;
+                // Check for compatibility with EVERY existing admittee.
+                foreach (var admittee in admittees)
                 {
-                    double distance = distanceFromNash(r, c);
-                    if (distance < lowestTotal)
+                    // We have four things to worry about. Player 0 might defect from admittee to candidate or vice-versa, and same for Player 1.
+                    // In each of the four, we can see the equilibrium potentially being defected from on the right, so the left looks to see whether one player
+                    // can get a higher utility by switching to the strategy represented by the other strategy. 
+                    // Because we are looking for a correlated equilibrium, it doesn't matter whether the player might defect to some OTHER strategy not
+                    // admitted to the correlated equilibrium.
+                    bool defect = player0Utilities[candidate.player0Strategy, admittee.player1Strategy] > player0Utilities[admittee.player0Strategy, admittee.player1Strategy] ||
+                        player0Utilities[admittee.player0Strategy, candidate.player1Strategy] > player0Utilities[candidate.player0Strategy, candidate.player1Strategy] ||
+                        player1Utilities[admittee.player0Strategy, candidate.player1Strategy] > player1Utilities[admittee.player0Strategy, admittee.player1Strategy] ||
+                        player1Utilities[candidate.player0Strategy, admittee.player1Strategy] > player1Utilities[candidate.player0Strategy, candidate.player1Strategy];
+                    if (defect)
                     {
-                        bestRow = r;
-                        bestCol = c;
-                        lowestTotal = distance;
+                        admissible = false;
+                        break;
                     }
                 }
-            return (bestRow, bestCol);
+                if (admissible)
+                    admittees.Add(candidate);
+            }
+            return admittees;
         }
 
         public static double DistanceFromNash_SingleStrategy(int r, int c, double[,] player0Utilities, double[,] player1Utilities)

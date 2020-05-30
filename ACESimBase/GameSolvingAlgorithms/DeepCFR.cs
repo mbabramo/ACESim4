@@ -924,11 +924,52 @@ namespace ACESim
                 throw new NotSupportedException();
             TabbedText.WriteLine($"Search for equilibria with PCA");
             int numStrategyChoicesPerPlayer = EvolutionSettings.DeepCFR_PCA_NumStrategyChoicesPerPlayer;
-            double[,] player0Utilities = new double[numStrategyChoicesPerPlayer, numStrategyChoicesPerPlayer];
-            double[,] player1Utilities = new double[numStrategyChoicesPerPlayer, numStrategyChoicesPerPlayer];
+            double[,] player0Utilities, player1Utilities;
+            List<double>[] principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1;
+            GetEstimatedUtilitiesForStrategyChoices(numStrategyChoicesPerPlayer, out player0Utilities, out player1Utilities, out principalComponentsWeightsForPlayer0, out principalComponentsWeightsForPlayer1);
+
+            TabbedText.WriteLine($"Nash equilibria");
+            List<List<double>[]> nashEquilibria = PureStrategiesFinder.ComputeNashEquilibria(player0Utilities, player1Utilities, false)
+                .Select(x => new List<double>[2] { principalComponentsWeightsForPlayer0[x.player0Strategy], principalComponentsWeightsForPlayer1[x.player1Strategy] })
+                .ToList();
+            if (!nashEquilibria.Any())
+            {
+                TabbedText.WriteLine($"No Nash equilibrium found. Finding best approximate Nash equilibrium.");
+                var result = PureStrategiesFinder.GetApproximateNashEquilibrium(player0Utilities, player1Utilities);
+                nashEquilibria.Add(new List<double>[2] { principalComponentsWeightsForPlayer0[result.player0Strategy], principalComponentsWeightsForPlayer1[result.player1Strategy] });
+            }
+            if (nashEquilibria.FirstOrDefault() is List<double>[] equilibrium)
+                CompoundRegressionMachinesContainer.SpecifyWeightOnSupplementalMachines(equilibrium, InverseNumStandardDeviationsForPrincipalComponentStrategy);
+            ReportEquilibria(nashEquilibria);
+
+            TabbedText.WriteLine($"Correlated equilibria");
+            var correlatedEquilibria = PureStrategiesFinder.GetCorrelatedEquilibrium(player0Utilities, player1Utilities)
+                .Select(x => new List<double>[2] { principalComponentsWeightsForPlayer0[x.player0Strategy], principalComponentsWeightsForPlayer1[x.player1Strategy] })
+                .ToList();
+            ReportEquilibria(correlatedEquilibria);
+        }
+
+        private void ReportEquilibria(List<List<double>[]> equilibria)
+        {
+            foreach (var equilibrium in equilibria)
+            {
+                var datum = new ModelPredictingUtilitiesDatum(equilibrium, null);
+                var model = ModelsToPredictUtilitiesFromPrincipalComponents[0];
+                double player0Utility = model.GetResult(datum.Convert().X, null, null);
+                model = ModelsToPredictUtilitiesFromPrincipalComponents[1];
+                double player1Utility = model.GetResult(datum.Convert().X, null, null);
+                string principalComponentWeightsString = string.Join("; ", Enumerable.Range(0, NumNonChancePlayers).Select(x => x.ToString() + ": " + equilibrium[x].ToSignificantFigures(3)));
+                TabbedText.WriteLine($"eq for principal components {principalComponentWeightsString}; utility {player0Utility.ToSignificantFigures(5)}, {player1Utility.ToSignificantFigures(5)}");
+            }
+        }
+
+        private void GetEstimatedUtilitiesForStrategyChoices(int numStrategyChoicesPerPlayer, out double[,] player0Utilities, out double[,] player1Utilities, out List<double>[] principalComponentsWeightsForPlayer0, out List<double>[] principalComponentsWeightsForPlayer1)
+        {
+            player0Utilities = new double[numStrategyChoicesPerPlayer, numStrategyChoicesPerPlayer];
+            player1Utilities = new double[numStrategyChoicesPerPlayer, numStrategyChoicesPerPlayer];
             // Determine principal component weights for each strategy choice, making sure they are slightly spaced out. There is no deterministic algorithm for the "sphere packing problem" in n-dimensional space, but the SpacedOutPoints class should work in an approximate way.
-            List<double>[] principalComponentsWeightsForPlayer0 = new List<double>[numStrategyChoicesPerPlayer];
-            List<double>[] principalComponentsWeightsForPlayer1 = new List<double>[numStrategyChoicesPerPlayer];
+            principalComponentsWeightsForPlayer0 = new List<double>[numStrategyChoicesPerPlayer];
+            principalComponentsWeightsForPlayer1 = new List<double>[numStrategyChoicesPerPlayer];
             principalComponentsWeightsForPlayer0 = GetRandomPrincipalComponentWeights(0, new SpacedOutPoints(numStrategyChoicesPerPlayer, numStrategyChoicesPerPlayer * 10, Enumerable.Range(0, EvolutionSettings.DeepCFR_PCA_NumPrincipalComponents).Select(x => 1.0).ToArray(), new ConsistentRandomSequenceProducer(5_000_001)).CalculatePoints(), 1.0);
             principalComponentsWeightsForPlayer1 = GetRandomPrincipalComponentWeights(1, new SpacedOutPoints(numStrategyChoicesPerPlayer, numStrategyChoicesPerPlayer * 10, Enumerable.Range(0, EvolutionSettings.DeepCFR_PCA_NumPrincipalComponents).Select(x => 1.0).ToArray(), new ConsistentRandomSequenceProducer(5_000_002)).CalculatePoints(), 1.0);
             for (int i = 0; i < numStrategyChoicesPerPlayer; i++)
@@ -942,31 +983,6 @@ namespace ACESim
                     model = ModelsToPredictUtilitiesFromPrincipalComponents[1];
                     player1Utilities[i, j] = model.GetResult(datum.Convert().X, null, null);
                     //CompoundRegressionMachinesContainer.SpecifyWeightOnSupplementalMachines(principalComponentWeightsForEachPlayer, InverseNumStandardDeviationsForPrincipalComponentStrategy);
-                }
-            }
-            List<List<double>[]> equilibria = PureStrategiesFinder.ComputeNashEquilibria(player0Utilities, player1Utilities, false)
-                .Select(x => new List<double>[2] { principalComponentsWeightsForPlayer0[x.player0Strategy], principalComponentsWeightsForPlayer1[x.player1Strategy] })
-                .ToList();
-            if (!equilibria.Any())
-            {
-                TabbedText.WriteLine($"No Nash equilibrium found. Finding best approximate Nash equilibrium.");
-                var result = PureStrategiesFinder.GetApproximateNashEquilibrium(player0Utilities, player1Utilities);
-                equilibria.Add(new List<double>[2] { principalComponentsWeightsForPlayer0[result.player0Strategy], principalComponentsWeightsForPlayer1[result.player1Strategy] });
-            }
-            bool first = true;
-            foreach (var equilibrium in equilibria)
-            {
-                var datum = new ModelPredictingUtilitiesDatum(equilibrium, null);
-                var model = ModelsToPredictUtilitiesFromPrincipalComponents[0];
-                double player0Utility = model.GetResult(datum.Convert().X, null, null);
-                model = ModelsToPredictUtilitiesFromPrincipalComponents[1];
-                double player1Utility = model.GetResult(datum.Convert().X, null, null);
-                string principalComponentWeightsString = string.Join("; ", Enumerable.Range(0, NumNonChancePlayers).Select(x => x.ToString() + ": " + equilibrium[x].ToSignificantFigures(3)));
-                TabbedText.WriteLine($"eq for principal components {principalComponentWeightsString}; utility {player0Utility.ToSignificantFigures(5)}, {player1Utility.ToSignificantFigures(5)}");
-                if (first)
-                {
-                    CompoundRegressionMachinesContainer.SpecifyWeightOnSupplementalMachines(equilibrium, InverseNumStandardDeviationsForPrincipalComponentStrategy);
-                    first = false;
                 }
             }
         }
