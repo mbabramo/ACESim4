@@ -914,25 +914,23 @@ namespace ACESim
                 bool assessModels = false;
                 if (assessModels)
                     await AssessModelsToPredictUtilitiesFromPrincipalComponents();
-                await UsePCAToEvaluateEquilibria();
+                UsePCAToEvaluateEquilibria();
             }
         }
 
-        public async Task UsePCAToEvaluateEquilibria()
+        public void UsePCAToEvaluateEquilibria()
         {
             if (NumNonChancePlayers != 2)
                 throw new NotSupportedException();
+            TabbedText.WriteLine($"Search for equilibria with PCA");
             int numStrategyChoicesPerPlayer = EvolutionSettings.DeepCFR_PCA_NumStrategyChoicesPerPlayer;
             double[,] player0Utilities = new double[numStrategyChoicesPerPlayer, numStrategyChoicesPerPlayer];
             double[,] player1Utilities = new double[numStrategyChoicesPerPlayer, numStrategyChoicesPerPlayer];
+            // Determine principal component weights for each strategy choice, making sure they are slightly spaced out. There is no deterministic algorithm for the "sphere packing problem" in n-dimensional space, but the SpacedOutPoints class should work in an approximate way.
             List<double>[] principalComponentsWeightsForPlayer0 = new List<double>[numStrategyChoicesPerPlayer];
             List<double>[] principalComponentsWeightsForPlayer1 = new List<double>[numStrategyChoicesPerPlayer];
-            for (int i = 0; i < numStrategyChoicesPerPlayer; i++)
-            {
-                List<double>[] principalComponentWeightsForEachPlayer = GetRandomPrincipalComponentWeightsForEachPlayer(i * 2017, 1.0);
-                principalComponentsWeightsForPlayer0[i] = principalComponentWeightsForEachPlayer[0];
-                principalComponentsWeightsForPlayer1[i] = principalComponentWeightsForEachPlayer[1];
-            }
+            principalComponentsWeightsForPlayer0 = GetRandomPrincipalComponentWeights(0, new SpacedOutPoints(numStrategyChoicesPerPlayer, numStrategyChoicesPerPlayer * 10, Enumerable.Range(0, EvolutionSettings.DeepCFR_PCA_NumPrincipalComponents).Select(x => 1.0).ToArray(), new ConsistentRandomSequenceProducer(5_000_001)).CalculatePoints(), 1.0);
+            principalComponentsWeightsForPlayer1 = GetRandomPrincipalComponentWeights(1, new SpacedOutPoints(numStrategyChoicesPerPlayer, numStrategyChoicesPerPlayer * 10, Enumerable.Range(0, EvolutionSettings.DeepCFR_PCA_NumPrincipalComponents).Select(x => 1.0).ToArray(), new ConsistentRandomSequenceProducer(5_000_002)).CalculatePoints(), 1.0);
             for (int i = 0; i < numStrategyChoicesPerPlayer; i++)
             {
                 for (int j = 0; j < numStrategyChoicesPerPlayer; j++)
@@ -946,9 +944,16 @@ namespace ACESim
                     //CompoundRegressionMachinesContainer.SpecifyWeightOnSupplementalMachines(principalComponentWeightsForEachPlayer, InverseNumStandardDeviationsForPrincipalComponentStrategy);
                 }
             }
-            var equilibria = PureStrategiesFinder.ComputeNashEquilibria(player0Utilities, player1Utilities, false)
+            List<List<double>[]> equilibria = PureStrategiesFinder.ComputeNashEquilibria(player0Utilities, player1Utilities, false)
                 .Select(x => new List<double>[2] { principalComponentsWeightsForPlayer0[x.player0Strategy], principalComponentsWeightsForPlayer1[x.player1Strategy] })
                 .ToList();
+            if (!equilibria.Any())
+            {
+                TabbedText.WriteLine($"No Nash equilibrium found. Finding best approximate Nash equilibrium.");
+                var result = PureStrategiesFinder.GetApproximateNashEquilibrium(player0Utilities, player1Utilities);
+                equilibria.Add(new List<double>[2] { principalComponentsWeightsForPlayer0[result.player0Strategy], principalComponentsWeightsForPlayer1[result.player1Strategy] });
+            }
+            bool first = true;
             foreach (var equilibrium in equilibria)
             {
                 var datum = new ModelPredictingUtilitiesDatum(equilibrium, null);
@@ -957,7 +962,12 @@ namespace ACESim
                 model = ModelsToPredictUtilitiesFromPrincipalComponents[1];
                 double player1Utility = model.GetResult(datum.Convert().X, null, null);
                 string principalComponentWeightsString = string.Join("; ", Enumerable.Range(0, NumNonChancePlayers).Select(x => x.ToString() + ": " + equilibrium[x].ToSignificantFigures(3)));
-                TabbedText.WriteLine($"eq for {principalComponentWeightsString}; utility {player0Utility.ToSignificantFigures(5)}, {player1Utility.ToSignificantFigures(5)}");
+                TabbedText.WriteLine($"eq for principal components {principalComponentWeightsString}; utility {player0Utility.ToSignificantFigures(5)}, {player1Utility.ToSignificantFigures(5)}");
+                if (first)
+                {
+                    CompoundRegressionMachinesContainer.SpecifyWeightOnSupplementalMachines(equilibrium, InverseNumStandardDeviationsForPrincipalComponentStrategy);
+                    first = false;
+                }
             }
         }
 
@@ -1117,6 +1127,19 @@ namespace ACESim
             int numPrincipalComponents = EvolutionSettings.DeepCFR_PCA_NumPrincipalComponents;
             var result = Enumerable.Range(0, numPrincipalComponents).Select(principalComponent => multiplier * InvNormal.Calculate(randomizer.GetDoubleAtIndex(principalComponent)) * stats.principalComponentStdevs[principalComponent]).ToList();
             return result;
+        }
+        private List<double> GetRandomPrincipalComponentWeights(byte playerIndex, double[] randomizerValues, double multiplier)
+        {
+            var stats = PCAResultsForEachPlayer[playerIndex];
+            int numPrincipalComponents = EvolutionSettings.DeepCFR_PCA_NumPrincipalComponents;
+            var result = Enumerable.Range(0, numPrincipalComponents).Select(principalComponent => multiplier * InvNormal.Calculate(randomizerValues[principalComponent]) * stats.principalComponentStdevs[principalComponent]).ToList();
+            return result;
+        }
+
+        private List<double>[] GetRandomPrincipalComponentWeights(byte playerIndex, double[][] randomizerValues, double multiplier)
+        {
+            int numToGet = randomizerValues.GetLength(0);
+            return Enumerable.Range(0, numToGet).Select(x => GetRandomPrincipalComponentWeights(playerIndex, randomizerValues[x], multiplier)).ToArray();
         }
 
         public async Task<List<DeepCFRMultiModel>> GetSinglePlayerReducedFormStrategies(byte playerIndex)

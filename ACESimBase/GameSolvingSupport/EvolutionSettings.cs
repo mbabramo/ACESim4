@@ -118,7 +118,6 @@ namespace ACESim
         public bool DeepCFR_PCA_BuildModelToPredictUtilitiesBasedOnPrincipalComponents = true;
         public int DeepCFR_PCA_NumUtilitiesToCalculateToBuildModel = 1_000;
         public int DeepCFR_PCA_NumGamesToPlayToEstimateEachUtilityWhileBuildingModel = 100;
-        
         public int DeepCFR_PCA_NumStrategyChoicesPerPlayer = 1_000;
 
         public RegressionTechniques RegressionTechnique = RegressionTechniques.FastTree;

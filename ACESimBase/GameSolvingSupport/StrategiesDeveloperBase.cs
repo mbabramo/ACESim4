@@ -79,6 +79,7 @@ namespace ACESim
                 Status.ScenarioName = scenarioFullName;
 
                 TabbedText.WriteLineEvenIfDisabled(optionSetInfo);
+                
                 ReportCollection reportToAddToCollection = await RunAlgorithm(optionSetName);
                 if (constructCorrelatedEquilibrium)
                 {
