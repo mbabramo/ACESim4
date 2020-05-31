@@ -145,7 +145,7 @@ namespace ACESim
 
         private async Task DoApproximateBestResponse()
         {
-            double[] baselineUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
+            (double[] baselineUtilities, double[] customStats) = await DeepCFR_UtilitiesAndCustomResultAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
             TabbedText.WriteLine($"Baseline utilities {string.Join(",", baselineUtilities.Select(x => x.ToSignificantFigures(8)))}");
             double[] bestResponseImprovement = new double[NumNonChancePlayers];
             for (byte p = 0; p < NumNonChancePlayers; p++)
@@ -154,7 +154,7 @@ namespace ACESim
                 ApproximateBestResponse_CurrentPlayer = p;
                 TabbedText.WriteLine($"Determining best response for player {p}");
                 TabbedText.TabIndent();
-                double[] bestResponseUtilities;
+                double[] bestResponseUtilities, bestResponseStats;
                 if (EvolutionSettings.DeepCFR_ApproximateBestResponse_BackwardInduction)
                 {
                     var decisionsForPlayer = GameDefinition.DecisionsExecutionOrder.Select((item, index) => (item, index)).Where(x => x.item.PlayerIndex == p).OrderByDescending(x => x.index).ToList();
@@ -162,7 +162,7 @@ namespace ACESim
                     ApproximateBestResponse_CurrentIterationsTotal = innerIterationsNeeded * EvolutionSettings.DeepCFR_ApproximateBestResponseIterations;
                     for (int outerIteration = 0; outerIteration < EvolutionSettings.DeepCFR_ApproximateBestResponseIterations; outerIteration++)
                     {
-                        bestResponseUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
+                        (bestResponseUtilities, bestResponseStats) = await DeepCFR_UtilitiesAndCustomResultAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
                         for (int innerIteration = 1; innerIteration <= innerIterationsNeeded; innerIteration++)
                         {
                             ApproximateBestResponse_CurrentIterationsIndex = outerIteration * innerIterationsNeeded + innerIteration;
@@ -171,13 +171,13 @@ namespace ACESim
                             if (EvolutionSettings.DeepCFR_ApproximateBestResponse_BackwardInduction_AlwaysPickHighestRegret)
                                 MultiModel.StopRegretMatching(p, decisionIndex);
                             var result = await PerformDeepCFRIteration(innerIteration, true);
-                            bestResponseUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
+                            (bestResponseUtilities, bestResponseStats) = await DeepCFR_UtilitiesAndCustomResultAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
                             MultiModel.ConcludeTargetingBestResponse(p, decisionIndex);
-                            bestResponseUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
+                            (bestResponseUtilities, bestResponseStats) = await DeepCFR_UtilitiesAndCustomResultAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
                             TabbedText.WriteLine($"Utilities for player {p}: {string.Join(",", bestResponseUtilities.Select(x => x.ToSignificantFigures(8)))}");
                         }
                     }
-                    bestResponseUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
+                    (bestResponseUtilities, bestResponseStats) = await DeepCFR_UtilitiesAndCustomResultAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
                     if (EvolutionSettings.DeepCFR_ApproximateBestResponse_BackwardInduction_AlwaysPickHighestRegret)
                         MultiModel.ResumeRegretMatching();
                 }
@@ -188,7 +188,7 @@ namespace ACESim
                     {
                         var result = await PerformDeepCFRIteration(iteration, true);
                     }
-                    bestResponseUtilities = await DeepCFR_UtilitiesAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
+                    (bestResponseUtilities, bestResponseStats) = await DeepCFR_UtilitiesAndCustomResultAverage(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation);
                     MultiModel.ConcludeTargetingBestResponse(p, null);
                 }
 
@@ -643,33 +643,38 @@ namespace ACESim
 
         public GameProgress DeepCFR_GetGameProgressByPlaying(DeepCFRPlaybackHelper playbackHelper, DeepCFRObservationNum observationNum) => DeepCFRTraversal(playbackHelper, observationNum, DeepCFRTraversalMode.PlaybackSinglePath, null).completedProgress;
 
-        public async Task<double[]> DeepCFR_UtilitiesAverage(int totalNumberObservations, int observationOffset = 0, bool useGameProgressTree = true, bool reportTime = true)
+        public async Task<(double[] utilities, double[] customResults)> DeepCFR_UtilitiesAndCustomResultAverage(int totalNumberObservations, int observationOffset = 0, bool useGameProgressTree = true, bool reportTime = true)
         {
             if (reportTime)
                 TabbedText.Write($"Calculating utilities from {totalNumberObservations}");
             Stopwatch s = new Stopwatch();
             s.Start();
-            StatCollectorArray stats = new StatCollectorArray();
+            StatCollectorArray utilityStats = new StatCollectorArray();
+            StatCollectorArray customResultStats = new StatCollectorArray();
             if (useGameProgressTree)
-                await DeepCFR_UtilitiesAverage_WithTree(totalNumberObservations, observationOffset, stats);
+                await DeepCFR_UtilitiesAndCustomResultAverage_WithTree(totalNumberObservations, observationOffset, utilityStats, customResultStats);
             else
-                await DeepCFR_UtilitiesAverage_IndependentPlays(totalNumberObservations, observationOffset, stats);
+                await DeepCFR_UtilitiesAndCustomResultsAverage_IndependentPlays(totalNumberObservations, observationOffset, utilityStats, customResultStats);
             if (reportTime)
                 TabbedText.WriteLine($" time {s.ElapsedMilliseconds} ms");
-            double[] averageUtilities = stats.Average().ToArray();
-            return averageUtilities;
+            double[] averageUtilities = utilityStats.Average().ToArray();
+            double[] customResults = customResultStats.Average().ToArray();
+            return (averageUtilities, customResults);
         }
 
-        public async Task DeepCFR_UtilitiesAverage_WithTree(int totalNumberObservations, int randSeed, StatCollectorArray stats)
+        public async Task DeepCFR_UtilitiesAndCustomResultAverage_WithTree(int totalNumberObservations, int randSeed, StatCollectorArray utilityStats, StatCollectorArray customResultStats)
         {
             using (GameProgressTree gameProgressTree = await DeepCFR_BuildGameProgressTree(EvolutionSettings.DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation, randSeed, false))
             {
                 foreach (GameProgress progress in gameProgressTree)
-                    stats.Add(progress.GetNonChancePlayerUtilities());
+                {
+                    utilityStats.Add(progress.GetNonChancePlayerUtilities());
+                    customResultStats.Add(progress.GetCustomResult().AsDoubleArray());
+                }
             }
         }
 
-        public Task DeepCFR_UtilitiesAverage_IndependentPlays(int totalNumberObservations, int observationOffset, StatCollectorArray stats)
+        public Task DeepCFR_UtilitiesAndCustomResultsAverage_IndependentPlays(int totalNumberObservations, int observationOffset, StatCollectorArray utilityStats, StatCollectorArray customResultStats)
         {
             int numObservationsToDoPerThread = GetNumToDoPerThread(totalNumberObservations);
             int numThreads = totalNumberObservations / numObservationsToDoPerThread;
@@ -681,7 +686,8 @@ namespace ACESim
                 DeepCFRPlaybackHelper playbackHelper = new DeepCFRPlaybackHelper(MultiModel.DeepCopyForPlaybackOnly(), regressionMachines, probabilitiesCache);
                 int numToPlaybackThisThread = o == numThreads - 1 ? numObservationsToDoTogetherLastThread : numObservationsToDoPerThread;
                 var utilities = DeepCFR_UtilitiesFromMultiplePlaybacks(o + observationOffset, numToPlaybackThisThread, playbackHelper).ToArray();
-                stats.Add(utilities, numToPlaybackThisThread);
+                utilityStats.Add(utilities, numToPlaybackThisThread);
+                customResultStats.Add(new double[] { 0, 0, 0, 0 }); // TODO: Implement
                 ReturnRegressionMachines(regressionMachines);
             });
             return Task.CompletedTask;
@@ -779,10 +785,13 @@ namespace ACESim
                     var gameProgresses = gameProgressTree.AsEnumerable();
                     var gameProgressesArray = gameProgresses.ToArray();
                     reportCollection = GenerateReportsFromGameProgressEnumeration(gameProgressesArray);
+                    PrintReportsToScreenIfNotSuppressed(reportCollection);
                 }
             }
             else
+            {
                 reportCollection = await GenerateReportsByPlaying(true);
+            }
             //CalculateUtilitiesOverall();
             //TabbedText.WriteLine($"Utilities: {String.Join(",", Status.UtilitiesOverall.Select(x => x.ToSignificantFigures(4)))}");
             Br.eak.Remove("Report");
@@ -905,11 +914,11 @@ namespace ACESim
                     List<double>[] principalComponentWeightsForEachPlayer = GetRandomPrincipalComponentWeightsForEachPlayer(i * 737, 1.5 /* DEBUG */);
                     string principalComponentWeightsString = String.Join("; ", Enumerable.Range(0, NumNonChancePlayers).Select(x => x.ToString() + ": " + principalComponentWeightsForEachPlayer[x].ToSignificantFigures(3)));
                     CompoundRegressionMachinesContainer.SpecifyWeightOnSupplementalMachines(principalComponentWeightsForEachPlayer, InverseNumStandardDeviationsForPrincipalComponentStrategy);
-                    double[] compoundUtilities = await DeepCFR_UtilitiesAverage(numGamesToPlayToEstimateEachUtilityWhileBuildingModel, i * numUtilitiesToCalculateToBuildModel, true);
+                    (double[] compoundUtilities, double[] customStats) = await DeepCFR_UtilitiesAndCustomResultAverage(numGamesToPlayToEstimateEachUtilityWhileBuildingModel, i * numUtilitiesToCalculateToBuildModel, true);
                     data.Add(new ModelPredictingUtilitiesDatum(principalComponentWeightsForEachPlayer, compoundUtilities));
                     innerStopwatch.Stop();
                     timeStats.Add(innerStopwatch.ElapsedMilliseconds);
-                    TabbedText.WriteLine($"Data input {i}: {principalComponentWeightsString} utilities: {compoundUtilities.ToSignificantFigures(4)}");
+                    TabbedText.WriteLine($"Data input {i}: {principalComponentWeightsString} utilities: {compoundUtilities.ToSignificantFigures(4)} customStats: {customStats.ToSignificantFigures(4)}");
                 }
                 TabbedText.WriteLine($"Average ms per each of {numUtilitiesToCalculateToBuildModel} utilities to calculate: {timeStats.Average().ToSignificantFigures(3)} (total time: {outerStopwatch.ElapsedMilliseconds})");
                 outerStopwatch.Reset();
@@ -939,21 +948,15 @@ namespace ACESim
             double[,] player0Utilities, player1Utilities;
             List<double>[] principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1;
             GetEstimatedUtilitiesForStrategyChoices(numStrategyChoicesPerPlayer, out player0Utilities, out player1Utilities, out principalComponentsWeightsForPlayer0, out principalComponentsWeightsForPlayer1);
+            UsePCAToEvaluateNashEquilibria(player0Utilities, player1Utilities, principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1);
 
-            TabbedText.WriteLine($"Nash equilibria");
-            List<List<double>[]> nashEquilibria = PureStrategiesFinder.ComputeNashEquilibria(player0Utilities, player1Utilities, false)
-                .Select(x => new List<double>[2] { principalComponentsWeightsForPlayer0[x.player0Strategy], principalComponentsWeightsForPlayer1[x.player1Strategy] })
-                .ToList();
-            if (!nashEquilibria.Any())
-            {
-                var result = PureStrategiesFinder.GetApproximateNashEquilibrium(player0Utilities, player1Utilities, out double nashDistance);
-                TabbedText.WriteLine($"No Nash equilibrium found. Finding best approximate Nash equilibrium (distance from Nash: {nashDistance}).");
-                nashEquilibria.Add(new List<double>[2] { principalComponentsWeightsForPlayer0[result.player0Strategy], principalComponentsWeightsForPlayer1[result.player1Strategy] });
-            }
-            if (nashEquilibria.FirstOrDefault() is List<double>[] equilibrium)
-                CompoundRegressionMachinesContainer.SpecifyWeightOnSupplementalMachines(equilibrium, InverseNumStandardDeviationsForPrincipalComponentStrategy);
-            ReportEquilibria(nashEquilibria);
+            UsePCAToEvaluateCorrelatedEquilibria(player0Utilities, player1Utilities, principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1);
+        }
 
+        private void UsePCAToEvaluateCorrelatedEquilibria(double[,] player0Utilities, double[,] player1Utilities, List<double>[] principalComponentsWeightsForPlayer0, List<double>[] principalComponentsWeightsForPlayer1)
+        {
+            if (!EvolutionSettings.ConstructCorrelatedEquilibrium)
+                return;
             TabbedText.WriteLine($"Correlated equilibria");
             var correlatedEquilibria = PureStrategiesFinder.GetCorrelatedEquilibrium_OrderingByApproxNashValue(player0Utilities, player1Utilities)
                 .Select(x => new List<double>[2] { principalComponentsWeightsForPlayer0[x.player0Strategy], principalComponentsWeightsForPlayer1[x.player1Strategy] })
@@ -971,8 +974,26 @@ namespace ACESim
             }
         }
 
-        private void ReportEquilibria(List<List<double>[]> equilibria)
+        private void UsePCAToEvaluateNashEquilibria(double[,] player0Utilities, double[,] player1Utilities, List<double>[] principalComponentsWeightsForPlayer0, List<double>[] principalComponentsWeightsForPlayer1)
         {
+            TabbedText.WriteLine($"Nash equilibria");
+            List<List<double>[]> nashEquilibria = PureStrategiesFinder.ComputeNashEquilibria(player0Utilities, player1Utilities, false)
+                .Select(x => new List<double>[2] { principalComponentsWeightsForPlayer0[x.player0Strategy], principalComponentsWeightsForPlayer1[x.player1Strategy] })
+                .ToList();
+            if (!nashEquilibria.Any())
+            {
+                var result = PureStrategiesFinder.GetApproximateNashEquilibrium(player0Utilities, player1Utilities, out double nashDistance);
+                TabbedText.WriteLine($"No Nash equilibrium found. Finding best approximate Nash equilibrium (distance from Nash: {nashDistance}).");
+                nashEquilibria.Add(new List<double>[2] { principalComponentsWeightsForPlayer0[result.player0Strategy], principalComponentsWeightsForPlayer1[result.player1Strategy] });
+            }
+            if (nashEquilibria.FirstOrDefault() is List<double>[] equilibrium)
+                CompoundRegressionMachinesContainer.SpecifyWeightOnSupplementalMachines(equilibrium, InverseNumStandardDeviationsForPrincipalComponentStrategy);
+            ReportEquilibria(nashEquilibria);
+        }
+
+        private void ReportEquilibria(List<List<double>[]> equilibria, bool removeRedundantEquilibria = true)
+        {
+            HashSet<string> redundantEquilibria = new HashSet<string>();
             foreach (var equilibrium in equilibria)
             {
                 var datum = new ModelPredictingUtilitiesDatum(equilibrium, null);
@@ -981,7 +1002,14 @@ namespace ACESim
                 model = ModelsToPredictUtilitiesFromPrincipalComponents[1];
                 double player1Utility = model.GetResult(datum.Convert().X, null, null);
                 string principalComponentWeightsString = string.Join("; ", Enumerable.Range(0, NumNonChancePlayers).Select(x => x.ToString() + ": " + equilibrium[x].ToSignificantFigures(3)));
-                TabbedText.WriteLine($"eq for principal components {principalComponentWeightsString}; utility {player0Utility.ToSignificantFigures(5)}, {player1Utility.ToSignificantFigures(5)}");
+                string hashToCheckRedundancy0 = $"{equilibrium[0].ToSignificantFigures(10)} {player0Utility.ToSignificantFigures(10)} {player1Utility.ToSignificantFigures(10)}";
+                string hashToCheckRedundancy1 = $"{equilibrium[1].ToSignificantFigures(10)} {player0Utility.ToSignificantFigures(10)} {player1Utility.ToSignificantFigures(10)}";
+                if (!redundantEquilibria.Contains(hashToCheckRedundancy0) && !redundantEquilibria.Contains(hashToCheckRedundancy1))
+                {
+                    TabbedText.WriteLine($"eq for principal components {principalComponentWeightsString}; utility {player0Utility.ToSignificantFigures(10)}, {player1Utility.ToSignificantFigures(10)}");
+                    redundantEquilibria.Add(hashToCheckRedundancy0);
+                    redundantEquilibria.Add(hashToCheckRedundancy1);
+                }
             }
         }
 
@@ -1025,7 +1053,7 @@ namespace ACESim
                 string principalComponentWeightsString = string.Join("; ", Enumerable.Range(0, NumNonChancePlayers).Select(x => x.ToString() + ": " + principalComponentWeightsForEachPlayer[x].ToSignificantFigures(3)));
                 ModelPredictingUtilitiesDatum datum = new ModelPredictingUtilitiesDatum(principalComponentWeightsForEachPlayer, null);
                 CompoundRegressionMachinesContainer.SpecifyWeightOnSupplementalMachines(principalComponentWeightsForEachPlayer, InverseNumStandardDeviationsForPrincipalComponentStrategy);
-                double[] actual = await DeepCFR_UtilitiesAverage(1_000_000, reportTime: false);
+                (double[] actual, double[] customStats) = await DeepCFR_UtilitiesAndCustomResultAverage(1_000_000, reportTime: false);
                 double[] predicted = new double[NumNonChancePlayers];
                 for (byte p = 0; p < NumNonChancePlayers; p++)
                 {
@@ -1076,12 +1104,12 @@ namespace ACESim
                 List<double>[] principalComponentWeightsForEachPlayer = GetRandomPrincipalComponentWeightsForEachPlayer(i * 737, 1.0);
                 string principalComponentWeightsString = String.Join(";", Enumerable.Range(0, NumNonChancePlayers).Select(x => x.ToString() + ": " + principalComponentWeightsForEachPlayer[x].ToSignificantFigures(3)));
                 CompoundRegressionMachinesContainer.SpecifyWeightOnSupplementalMachines(principalComponentWeightsForEachPlayer, InverseNumStandardDeviationsForPrincipalComponentStrategy);
-                double[] compoundUtilities = await DeepCFR_UtilitiesAverage(1_000_000);
+                (double[] compoundUtilities, double[] compoundCustomStats) = await DeepCFR_UtilitiesAndCustomResultAverage(1_000_000);
                 compoundStats.Add(compoundUtilities);
                 CompoundRegressionMachinesContainer = null;
                 var pcSpecificStrategy = await GetIntegratedStrategyBasedOnPrincipalComponents(principalComponentWeightsForEachPlayer, EvolutionSettings.ParallelOptimization);
                 MultiModel = pcSpecificStrategy;
-                double[] pcSpecificUtilities = await DeepCFR_UtilitiesAverage(1_000_000);
+                (double[] pcSpecificUtilities, double[] pcSpecificCustomStats) = await DeepCFR_UtilitiesAndCustomResultAverage(1_000_000);
                 pcSpecificStats.Add(pcSpecificUtilities);
                 MultiModel = copyMultiModel;
                 CompoundRegressionMachinesContainer = copyContainer;

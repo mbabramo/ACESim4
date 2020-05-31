@@ -99,7 +99,7 @@ namespace ACESim
         // DEEPCFR SETTINGS
         // Note: DeepCFR iterations are set in Launcher, same as vanilla iterations.
         public DeepCFRMultiModelMode DeepCFR_MultiModelMode = DeepCFRMultiModelMode.DecisionSpecific;
-        public int DeepCFR_BaseReservoirCapacity = 10_000; // the base reservoir capacity -- if generating observations through game progress tree, we multiply this by the number of possible decisions
+        public int DeepCFR_BaseReservoirCapacity = 1_000; // DEBUG // the base reservoir capacity -- if generating observations through game progress tree, we multiply this by the number of possible decisions
         public bool DeepCFR_UseGameProgressTreeToGenerateObservations = true;
         public int DeepCFR_NumProbesPerGameProgressTreeObservation = 1;
         public bool DeepCFR_MultiplyProbesForEachIdenticalIteration = true;
@@ -112,12 +112,12 @@ namespace ACESim
         public bool DeepCFR_PCA_PerformPrincipalComponentAnalysis = true;
         public double DeepCFR_PCA_Precision = 1E-5;
         public int DeepCFR_PCA_FirstIterationToSaveGenotypes = 20; // DEBUG
-        public int DeepCFR_PCA_SaveGenotypeEveryNIterationsAfterFirst = 1; // DEBUG
+        public int DeepCFR_PCA_SaveGenotypeEveryNIterationsAfterFirst = 1;
         public int[] DeepCFR_PCA_NumVariationsPerPrincipalComponent = new int[] { 4, 3, 2 }; // NOTE: Not currently being used; this can be used to generate non-random permutations of principal components.
         public int DeepCFR_PCA_NumPrincipalComponents = 3;
         public bool DeepCFR_PCA_BuildModelToPredictUtilitiesBasedOnPrincipalComponents = true;
-        public int DeepCFR_PCA_NumUtilitiesToCalculateToBuildModel = 1_000;
-        public int DeepCFR_PCA_NumGamesToPlayToEstimateEachUtilityWhileBuildingModel = 1_000;
+        public int DeepCFR_PCA_NumUtilitiesToCalculateToBuildModel = 250; // DEBUG 1_000;
+        public int DeepCFR_PCA_NumGamesToPlayToEstimateEachUtilityWhileBuildingModel = 100; // DEBUG 1_000;
         public int DeepCFR_PCA_NumStrategyChoicesPerPlayer = 1_000;
 
         public RegressionTechniques RegressionTechnique = RegressionTechniques.FastTree;

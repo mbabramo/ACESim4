@@ -1163,12 +1163,17 @@ namespace ACESim
                 reportGenerator = GenerateReports_AllPaths;
             }
             var reports = await GenerateReportsByPlaying(reportGenerator);
+            PrintReportsToScreenIfNotSuppressed(reports);
+            return reports;
+        }
+
+        public void PrintReportsToScreenIfNotSuppressed(ReportCollection reports)
+        {
             if (!EvolutionSettings.SuppressReportDisplayOnScreen)
             {
                 Debug.WriteLine($"{reports.standardReport}");
                 TabbedText.WriteLine($"{reports.standardReport}");
             }
-            return reports;
         }
 
         public async Task GenerateUtilitiesByPlayingRandomPaths()
