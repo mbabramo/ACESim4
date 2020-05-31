@@ -208,7 +208,7 @@ namespace ACESim
             return atLeastOneEliminated;
         }
 
-        public static (int player0Strategy, int player1Strategy) GetApproximateNashEquilibrium(double[,] player0Utilities, double[,] player1Utilities)
+        public static (int player0Strategy, int player1Strategy) GetApproximateNashEquilibrium(double[,] player0Utilities, double[,] player1Utilities, out double nashDistance)
         {
             int numRows, numColumns;
             numRows = player0Utilities.GetLength(0);
@@ -217,18 +217,19 @@ namespace ACESim
             DistanceFromNash = GetApproximateNashEquilibriumValuesMatrix(player0Utilities, player1Utilities);
             int bestRow = -1;
             int bestCol = -1;
-            double lowestTotal = double.MaxValue;
+            nashDistance = double.MaxValue;
             for (int r = 0; r < numRows; r++)
                 for (int c = 0; c < numColumns; c++)
                 {
                     double distance = DistanceFromNash[r, c];
-                    if (distance < lowestTotal)
+                    if (distance < nashDistance)
                     {
                         bestRow = r;
                         bestCol = c;
-                        lowestTotal = distance;
+                        nashDistance = distance;
                     }
                 }
+            nashDistance = Math.Sqrt(nashDistance); // lowestTotal is sum of squares
             return (bestRow, bestCol);
         }
 

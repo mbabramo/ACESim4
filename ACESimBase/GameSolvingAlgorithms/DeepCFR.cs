@@ -946,8 +946,8 @@ namespace ACESim
                 .ToList();
             if (!nashEquilibria.Any())
             {
-                TabbedText.WriteLine($"No Nash equilibrium found. Finding best approximate Nash equilibrium.");
-                var result = PureStrategiesFinder.GetApproximateNashEquilibrium(player0Utilities, player1Utilities);
+                var result = PureStrategiesFinder.GetApproximateNashEquilibrium(player0Utilities, player1Utilities, out double nashDistance);
+                TabbedText.WriteLine($"No Nash equilibrium found. Finding best approximate Nash equilibrium (distance from Nash: {nashDistance}).");
                 nashEquilibria.Add(new List<double>[2] { principalComponentsWeightsForPlayer0[result.player0Strategy], principalComponentsWeightsForPlayer1[result.player1Strategy] });
             }
             if (nashEquilibria.FirstOrDefault() is List<double>[] equilibrium)
