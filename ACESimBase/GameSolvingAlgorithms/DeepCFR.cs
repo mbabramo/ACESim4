@@ -752,36 +752,41 @@ namespace ACESim
 
         public override async Task<ReportCollection> GenerateReports(int iteration, Func<string> prefaceFn)
         {
-            ReportCollection reportCollection = new ReportCollection();
+            ReportCollection reportCollection = null;
             bool doReports = EvolutionSettings.ReportEveryNIterations != null && (iteration % EvolutionSettings.ReportEveryNIterations == 0 || Status.BestResponseTargetMet(EvolutionSettings.BestResponseTarget));
             if (doReports)
             {
-                TabbedText.HideConsoleProgressString();
-                TabbedText.WriteLine("");
-                TabbedText.WriteLine(prefaceFn());
-
-                if (doReports)
-                {
-                    Br.eak.Add("Report");
-                    bool useGameProgressTree = true;
-                    if (useGameProgressTree)
-                    {
-                        using (var gameProgressTree = await DeepCFR_BuildGameProgressTree(EvolutionSettings.NumRandomIterationsForSummaryTable, 0, false))
-                        {
-                            var gameProgresses = gameProgressTree.AsEnumerable();
-                            var gameProgressesArray = gameProgresses.ToArray();
-                            reportCollection = GenerateReportsFromGameProgressEnumeration(gameProgressesArray);
-                        }
-                    }
-                    else
-                        reportCollection = await GenerateReportsByPlaying(true);
-                    //CalculateUtilitiesOverall();
-                    //TabbedText.WriteLine($"Utilities: {String.Join(",", Status.UtilitiesOverall.Select(x => x.ToSignificantFigures(4)))}");
-                    Br.eak.Remove("Report");
-                }
-                TabbedText.ShowConsoleProgressString();
+                reportCollection = await DeepCFR_GenerateReports(prefaceFn);
             }
 
+            return reportCollection ?? new ReportCollection();
+        }
+
+        private async Task<ReportCollection> DeepCFR_GenerateReports(Func<string> prefaceFn)
+        {
+            TabbedText.HideConsoleProgressString();
+            TabbedText.WriteLine("");
+            TabbedText.WriteLine(prefaceFn());
+
+            ReportCollection reportCollection = new ReportCollection();
+            
+            Br.eak.Add("Report");
+            bool useGameProgressTree = true;
+            if (useGameProgressTree)
+            {
+                using (var gameProgressTree = await DeepCFR_BuildGameProgressTree(EvolutionSettings.NumRandomIterationsForSummaryTable, 0, false))
+                {
+                    var gameProgresses = gameProgressTree.AsEnumerable();
+                    var gameProgressesArray = gameProgresses.ToArray();
+                    reportCollection = GenerateReportsFromGameProgressEnumeration(gameProgressesArray);
+                }
+            }
+            else
+                reportCollection = await GenerateReportsByPlaying(true);
+            //CalculateUtilitiesOverall();
+            //TabbedText.WriteLine($"Utilities: {String.Join(",", Status.UtilitiesOverall.Select(x => x.ToSignificantFigures(4)))}");
+            Br.eak.Remove("Report");
+            TabbedText.ShowConsoleProgressString();
             return reportCollection;
         }
 
@@ -841,7 +846,14 @@ namespace ACESim
                     //await LoadReducedFormStrategies();
                     await SetCompoundStrategyUsingPrincipalComponents();
                     TabbedText.WriteLine($"Total time performing PCA and creating compound strategy {s.ElapsedMilliseconds} ms");
-                    await BuildModelPredictingUtilitiesBasedOnPrincipalComponents();
+                    for (int DEBUG = 0; DEBUG < 15; DEBUG++)
+                    {
+                        ((MyGameDefinition)GameDefinition).Options.CostsMultiplier = 0.05 * DEBUG;
+                        TabbedText.WriteLine($"Trying CostsMultiplier {0.05 * DEBUG}");
+                        // DEBUG -- keep the following line
+                        await BuildModelPredictingUtilitiesBasedOnPrincipalComponents();
+                        await DeepCFR_GenerateReports(() => $"CM{0.05 * DEBUG}"); // DEBUG
+                    }
                 }
             }
         }
@@ -943,10 +955,20 @@ namespace ACESim
             ReportEquilibria(nashEquilibria);
 
             TabbedText.WriteLine($"Correlated equilibria");
-            var correlatedEquilibria = PureStrategiesFinder.GetCorrelatedEquilibrium(player0Utilities, player1Utilities)
+            var correlatedEquilibria = PureStrategiesFinder.GetCorrelatedEquilibrium_OrderingByApproxNashValue(player0Utilities, player1Utilities)
                 .Select(x => new List<double>[2] { principalComponentsWeightsForPlayer0[x.player0Strategy], principalComponentsWeightsForPlayer1[x.player1Strategy] })
                 .ToList();
             ReportEquilibria(correlatedEquilibria);
+            ConsistentRandomSequenceProducer randomSequenceProducer = new ConsistentRandomSequenceProducer(6_000_234);
+            for (int i = 0; i < 1; i++)
+            {
+                TabbedText.WriteLine($"correlated eq random start {i}");
+                correlatedEquilibria = PureStrategiesFinder.GetCorrelatedEquilibrium_OrderingByFarthestDistanceFromAdmittees_StartingWithRandomStrategy(player0Utilities, player1Utilities, randomSequenceProducer)
+                    .Select(x => new List<double>[2] { principalComponentsWeightsForPlayer0[x.player0Strategy], principalComponentsWeightsForPlayer1[x.player1Strategy] })
+                    .ToList();
+                ReportEquilibria(correlatedEquilibria);
+
+            }
         }
 
         private void ReportEquilibria(List<List<double>[]> equilibria)

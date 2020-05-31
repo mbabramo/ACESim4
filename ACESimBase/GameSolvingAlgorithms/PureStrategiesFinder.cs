@@ -255,48 +255,105 @@ namespace ACESim
             return DistanceFromNash;
         }
 
-        public static List<(int player0Strategy, int player1Strategy, double approximateNashEquilibriumDistance)> GetOrderedApproximateNashEquilibriaStrategyChoices(double[,] player0Utilities, double[,] player1Utilities)
+        private static IEnumerable<(int player0Strategy, int player1Strategy)> GetAllStrategyPermutations(double[,] player0Utilities, double[,] player1Utilities)
         {
             int numRows = player0Utilities.GetLength(0);
             int numColumns = player0Utilities.GetLength(1);
-            double[,] matrix = GetApproximateNashEquilibriumValuesMatrix(player0Utilities, player1Utilities);
-            List<(int player0Strategy, int player1Strategy, double approximateNashEquilibriumDistance)> strategyChoices = new List<(int player0Strategy, int player1Strategy, double approximateNashEquilibriumDistance)>();
             for (int r = 0; r < numRows; r++)
                 for (int c = 0; c < numColumns; c++)
-                    strategyChoices.Add((r, c, matrix[r, c]));
-            strategyChoices = strategyChoices.OrderBy(x => x.approximateNashEquilibriumDistance).ToList();
-            return strategyChoices;
+                    yield return (r, c);
         }
 
-        public static List<(int player0Strategy, int player1Strategy, double approximateNashEquilibriumDistance)> GetCorrelatedEquilibrium(double[,] player0Utilities, double[,] player1Utilities)
+        public static List<(int player0Strategy, int player1Strategy)> GetCorrelatedEquilibrium_OrderingByApproxNashValue(double[,] player0Utilities, double[,] player1Utilities)
         {
-            var candidates = GetOrderedApproximateNashEquilibriaStrategyChoices(player0Utilities, player1Utilities);
-            List<(int player0Strategy, int player1Strategy, double approximateNashEquilibriumDistance)> admittees = new List<(int player0Strategy, int player1Strategy, double approximateNashEquilibriumDistance)>();
-            foreach (var candidate in candidates)
+            double[,] matrix = GetApproximateNashEquilibriumValuesMatrix(player0Utilities, player1Utilities);
+            Func<List<(int player0Strategy, int player1Strategy)>, List<(int player0Strategy, int player1Strategy)>, List<(int player0Strategy, int player1Strategy)>> ordering = (candidates, admittees) => candidates.OrderBy(x => matrix[x.player0Strategy, x.player1Strategy]).ToList();
+            List<(int player0Strategy, int player1Strategy)> candidates = GetAllStrategyPermutations(player0Utilities, player1Utilities).ToList();
+            var admittees = GetCorrelatedEquilibrium(player0Utilities, player1Utilities, ordering, candidates, false);
+            return admittees;
+        }
+
+        public static List<(int player0Strategy, int player1Strategy)> GetCorrelatedEquilibrium_OrderingByFarthestDistanceFromAdmittees_StartingWithRandomStrategy(double[,] player0Utilities, double[,] player1Utilities, ConsistentRandomSequenceProducer randomizer)
+        {
+            int numRows = player0Utilities.GetLength(0);
+            int numColumns = player0Utilities.GetLength(1);
+            int player0Strategy = randomizer.NextInt(numRows);
+            int player1Strategy = randomizer.NextInt(numColumns);
+            return GetCorrelatedEquilibrium_OrderingByFarthestDistanceFromAdmittees(player0Utilities, player1Utilities, (player0Strategy, player1Strategy));
+        }
+
+        public static List<(int player0Strategy, int player1Strategy)> GetCorrelatedEquilibrium_OrderingByFarthestDistanceFromAdmittees(double[,] player0Utilities, double[,] player1Utilities, (int player0Strategy, int player1Strategy) initialStrategy)
+        {
+            double closestDistance((int player0Strategy, int player1Strategy) item, List<(int player0Strategy, int player1Strategy)> otherItems)
             {
-                bool admissible = true;
-                // Check for compatibility with EVERY existing admittee.
-                foreach (var admittee in admittees)
+                double distance((int player0Strategy, int player1Strategy) first, (int player0Strategy, int player1Strategy) second)
                 {
-                    // We have four things to worry about. Player 0 might defect from admittee to candidate or vice-versa, and same for Player 1.
-                    // In each of the four, we can see the equilibrium potentially being defected from on the right, so the left looks to see whether one player
-                    // can get a higher utility by switching to the strategy represented by the other strategy. 
-                    // Because we are looking for a correlated equilibrium, it doesn't matter whether the player might defect to some OTHER strategy not
-                    // admitted to the correlated equilibrium.
-                    bool defect = player0Utilities[candidate.player0Strategy, admittee.player1Strategy] > player0Utilities[admittee.player0Strategy, admittee.player1Strategy] ||
-                        player0Utilities[admittee.player0Strategy, candidate.player1Strategy] > player0Utilities[candidate.player0Strategy, candidate.player1Strategy] ||
-                        player1Utilities[admittee.player0Strategy, candidate.player1Strategy] > player1Utilities[admittee.player0Strategy, admittee.player1Strategy] ||
-                        player1Utilities[candidate.player0Strategy, admittee.player1Strategy] > player1Utilities[candidate.player0Strategy, candidate.player1Strategy];
-                    if (defect)
+                    double player0FirstUtility = player0Utilities[first.player0Strategy, first.player1Strategy];
+                    double player0SecondUtility = player0Utilities[second.player0Strategy, second.player1Strategy];
+                    double player0Difference = player0FirstUtility - player0SecondUtility;
+                    double player1FirstUtility = player1Utilities[first.player0Strategy, first.player1Strategy];
+                    double player1SecondUtility = player1Utilities[second.player0Strategy, second.player1Strategy];
+                    double player1Difference = player1FirstUtility - player1SecondUtility;
+                    return player0Difference * player0Difference + player1Difference * player1Difference;
+                }
+                return otherItems.Min(x => distance(x, item));
+            }
+
+            List<(int player0Strategy, int player1Strategy)> candidates = GetAllStrategyPermutations(player0Utilities, player1Utilities).ToList();
+            candidates.Remove(initialStrategy);
+            candidates.Insert(0, initialStrategy);
+            Func<List<(int player0Strategy, int player1Strategy)>, List<(int player0Strategy, int player1Strategy)>, List<(int player0Strategy, int player1Strategy)>> ordering = (candidates, admittees) => admittees.Any() ? candidates.OrderByDescending(x => closestDistance(x, admittees)).ToList() : candidates;
+            var admittees = GetCorrelatedEquilibrium(player0Utilities, player1Utilities, ordering, candidates, true);
+            return admittees;
+        }
+
+        private static List<(int player0Strategy, int player1Strategy)> GetCorrelatedEquilibrium(double[,] player0Utilities, double[,] player1Utilities, Func<List<(int player0Strategy, int player1Strategy)>, List<(int player0Strategy, int player1Strategy)>, List<(int player0Strategy, int player1Strategy)>> ordering, List<(int player0Strategy, int player1Strategy)> candidates, bool reorderAfterAdmittance)
+        {
+            List<(int player0Strategy, int player1Strategy)> admittees = new List<(int player0Strategy, int player1Strategy)>();
+            candidates = ordering(candidates, admittees);
+            while (candidates.Any())
+            {
+                int numCandidatesProcessed = 0;
+                foreach (var candidate in candidates)
+                {
+                    numCandidatesProcessed++;
+                    bool admissible = true;
+                    // Check for compatibility with EVERY existing admittee.
+                    foreach (var admittee in admittees)
                     {
-                        admissible = false;
-                        break;
+                        bool defect = !StrategiesAreCompatibleInCorrelatedEquilibrium(player0Utilities, player1Utilities, candidate, admittee);
+                        if (defect)
+                        {
+                            admissible = false;
+                            break;
+                        }
+                    }
+                    if (admissible)
+                    {
+                        admittees.Add(candidate);
+                        if (reorderAfterAdmittance)
+                            break;
                     }
                 }
-                if (admissible)
-                    admittees.Add(candidate);
+                candidates = candidates.Skip(numCandidatesProcessed).ToList();
+                if (reorderAfterAdmittance)
+                    candidates = ordering(candidates, admittees);
             }
             return admittees;
+        }
+
+        // We have four things to worry about. Player 0 might defect from admittee to candidate or vice-versa, and same for Player 1.
+        // In each of the four, we can see the equilibrium potentially being defected from on the right, so the left looks to see whether one player
+        // can get a higher utility by switching to the strategy represented by the other strategy. 
+        // Because we are looking for a correlated equilibrium, it doesn't matter whether the player might defect to some OTHER strategy not
+        // admitted to the correlated equilibrium.
+        private static bool StrategiesAreCompatibleInCorrelatedEquilibrium(double[,] player0Utilities, double[,] player1Utilities, (int player0Strategy, int player1Strategy) candidate, (int player0Strategy, int player1Strategy) admittee)
+        {
+            bool defect = player0Utilities[candidate.player0Strategy, admittee.player1Strategy] > player0Utilities[admittee.player0Strategy, admittee.player1Strategy] ||
+                                    player0Utilities[admittee.player0Strategy, candidate.player1Strategy] > player0Utilities[candidate.player0Strategy, candidate.player1Strategy] ||
+                                    player1Utilities[admittee.player0Strategy, candidate.player1Strategy] > player1Utilities[admittee.player0Strategy, admittee.player1Strategy] ||
+                                    player1Utilities[candidate.player0Strategy, admittee.player1Strategy] > player1Utilities[candidate.player0Strategy, candidate.player1Strategy];
+            return !defect;
         }
 
         public static double DistanceFromNash_SingleStrategy(int r, int c, double[,] player0Utilities, double[,] player1Utilities)
