@@ -20,6 +20,52 @@ namespace ACESim.Util
 
     public static class ListExtensions
     {
+        public static void Resize<T>(this List<T> list, int sz, Func<T> c)
+        {
+            int cur = list.Count;
+            if (sz < cur)
+                list.RemoveRange(sz, cur - sz);
+            else if (sz > cur)
+            {
+                if (sz > list.Capacity)//this bit is purely an optimisation, to avoid multiple automatic capacity changes.
+                    list.Capacity = sz;
+                for (int i = 0; i < sz - cur; i++)
+                    list.Add(c());
+            }
+        }
+        public static void Resize<T>(this List<T> list, int sz, T c)
+        {
+            int cur = list.Count;
+            if (sz < cur)
+                list.RemoveRange(sz, cur - sz);
+            else if (sz > cur)
+            {
+                if (sz > list.Capacity)//this bit is purely an optimisation, to avoid multiple automatic capacity changes.
+                    list.Capacity = sz;
+                list.AddRange(Enumerable.Repeat(c, sz - cur));
+            }
+        }
+
+        public static List<List<T>> ConvertToListOfLists<T>(this T[,] original)
+        {
+            int rows = original.GetLength(0);
+            int columns = original.GetLength(1);
+            List<List<T>> result = new List<List<T>>();
+            for (int r = 0; r < rows; r++)
+            {
+                var innerList = new List<T>();
+                for (int c = 0; c < columns; c++)
+                    innerList.Add(original[r, c]);
+                result.Add(innerList);
+            }
+            return result;
+        }
+
+        public static void Resize<T>(this List<T> list, int sz) where T : new()
+        {
+            Resize(list, sz, new T());
+        }
+
         public static int GetSequenceHashCode<TItem>(this IEnumerable<TItem> list)
         {
             if (list == null) return 0;

@@ -140,6 +140,36 @@ namespace ACESimTest
         }
 
         [TestMethod]
+        public void LemkeHowsonWorks()
+        {
+            double[,] rowPlayer = new double[,]
+            {
+                {3, 1 },
+                {1, 3 }
+            };
+            double[,] colPlayer = new double[,]
+            {
+                {1, 3 },
+                {3, 1 }
+            };
+            LH_Tableaux tableaux = new LH_Tableaux(rowPlayer, colPlayer);
+            tableaux.PrintTableaux();
+
+            lemke_howson lh = new lemke_howson();
+            var v1 = new List<List<int>>()
+            {
+                new List<int>() {3, 1 },
+                new List<int>() {1, 3 },
+            }; 
+            var v2 = new List<List<int>>()
+            {
+                new List<int>() {1, 3 },
+                new List<int>() {3, 1 },
+            };
+            lh.runAlgorithm(100, v1, v2);
+        }
+
+        [TestMethod]
         public void MergeCSVWorks()
         {
             string csv1 = @"""V1"",""V2"",""V3""

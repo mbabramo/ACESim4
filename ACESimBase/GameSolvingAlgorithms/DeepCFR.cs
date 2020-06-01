@@ -855,13 +855,18 @@ namespace ACESim
                     //await LoadReducedFormStrategies();
                     await SetCompoundStrategyUsingPrincipalComponents();
                     TabbedText.WriteLine($"Total time performing PCA and creating compound strategy {s.ElapsedMilliseconds} ms");
-                    for (int DEBUG = 0; DEBUG < 15; DEBUG++)
+                    bool varyGameDefinition = true;
+                    for (int DEBUG = 0; DEBUG < (varyGameDefinition ? 15 : 1); DEBUG++)
                     {
-                        ((MyGameDefinition)GameDefinition).Options.CostsMultiplier = 0.05 * DEBUG;
-                        TabbedText.WriteLine($"Trying CostsMultiplier {0.05 * DEBUG}");
+                        if (varyGameDefinition)
+                        {
+                            ((MyGameDefinition)GameDefinition).Options.CostsMultiplier = 0.05 * DEBUG;
+                            TabbedText.WriteLine($"Trying CostsMultiplier {0.05 * DEBUG}");
+                        }
                         // DEBUG -- keep the following line
                         await BuildModelPredictingUtilitiesBasedOnPrincipalComponents();
-                        await DeepCFR_GenerateReports(() => $"CM{0.05 * DEBUG}"); // DEBUG
+                        if (varyGameDefinition)
+                            await DeepCFR_GenerateReports(() => $"CM{0.05 * DEBUG}"); // DEBUG
                     }
                 }
             }
