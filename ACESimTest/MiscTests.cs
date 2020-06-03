@@ -140,7 +140,7 @@ namespace ACESimTest
         }
 
         [TestMethod]
-        public void LemkeHowsonWorks()
+        public void LemkeHowsonWorks1()
         {
             double[,] rowPlayer = new double[,]
             {
@@ -152,21 +152,86 @@ namespace ACESimTest
                 {1, 3 },
                 {3, 1 }
             };
-            LH_Tableaux tableaux = new LH_Tableaux(rowPlayer, colPlayer);
-            tableaux.PrintTableaux();
+            double[] rowPlayerExpected = new double[] { 0.5, 0.5 };
+            double[] colPlayerExpected = new double[] { 0.5, 0.5 };
+            LemkeHowsonCheck(rowPlayer, colPlayer, rowPlayerExpected, colPlayerExpected);
+        }
 
-            lemke_howson lh = new lemke_howson();
-            var v1 = new List<List<int>>()
+        [TestMethod]
+        public void LemkeHowsonWorks2()
+        {
+            double[,] rowPlayer = new double[,]
             {
-                new List<int>() {3, 1 },
-                new List<int>() {1, 3 },
-            }; 
-            var v2 = new List<List<int>>()
-            {
-                new List<int>() {1, 3 },
-                new List<int>() {3, 1 },
+                {1, -1 },
+                {-1, 1 }
             };
-            lh.runAlgorithm(100, v1, v2);
+            double[,] colPlayer = new double[,]
+            {
+                {-1, 1 },
+                {1, -1 }
+            };
+            double[] rowPlayerExpected = new double[] { 0.5, 0.5 };
+            double[] colPlayerExpected = new double[] { 0.5, 0.5 };
+            LemkeHowsonCheck(rowPlayer, colPlayer, rowPlayerExpected, colPlayerExpected);
+        }
+
+        [TestMethod]
+        public void LemkeHowsonWorks_Random()
+        {
+            ConsistentRandomSequenceProducer ran = new ConsistentRandomSequenceProducer(0);
+            int numRowStrategies = 2, numColStrategies = 2;
+            double[,] rowPlayer = new double[numRowStrategies, numColStrategies];
+            double[,] colPlayer = new double[numRowStrategies, numColStrategies];
+            for (int r = 0; r < numRowStrategies; r++)
+            {
+                for (int c = 0; c < numColStrategies; c++)
+                {
+                    rowPlayer[r, c] = -10 + 20.0 * ran.NextDouble(); // do an irrelevant scaling
+                    colPlayer[r, c] = ran.NextDouble();
+                }
+            }
+
+            var tableaux = new LH_Tableaux(rowPlayer, colPlayer);
+            var result = tableaux.DoLemkeHowsonStartingAtAllPossibilities();
+            ConfirmNash(rowPlayer, colPlayer, result);
+        }
+
+        private static void LemkeHowsonCheck(double[,] rowPlayer, double[,] colPlayer, double[] rowPlayerExpected, double[] colPlayerExpected)
+        {
+            int rowPlayerStrategies = rowPlayer.GetLength(0);
+            int colPlayerStrategies = colPlayer.GetLength(1);
+            LH_Tableaux tableaux = null;
+            for (int i = 0; i < rowPlayerStrategies + colPlayerStrategies; i++)
+            {
+                tableaux = new LH_Tableaux(rowPlayer, colPlayer);
+                double[][] result = tableaux.DoLemkeHowsonStartingAtLabel(i);
+                ConfirmNash(rowPlayer, colPlayer, result);
+                result[0].Should().BeEquivalentTo(rowPlayerExpected);
+                result[1].Should().BeEquivalentTo(colPlayerExpected);
+            }
+
+            tableaux = new LH_Tableaux(rowPlayer, colPlayer);
+            var result2 = tableaux.DoLemkeHowsonStartingAtAllPossibilities();
+            result2[0].Should().BeEquivalentTo(rowPlayerExpected);
+            result2[1].Should().BeEquivalentTo(colPlayerExpected);
+        }
+
+        private static void ConfirmNash(double[,] rowPlayer, double[,] colPlayer, double[][] result)
+        {
+            bool isNash = Matrix.ConfirmNash(rowPlayer, colPlayer, result[0], result[1]);
+            if (!isNash)
+                throw new Exception("Not nash");
+        }
+
+        private static void LemkeHowsonCheck(double[,] rowPlayer, double[,] colPlayer)
+        {
+            int rowPlayerStrategies = rowPlayer.GetLength(0);
+            int colPlayerStrategies = colPlayer.GetLength(1);
+            var tableaux = new LH_Tableaux(rowPlayer, colPlayer);
+            var result = tableaux.DoLemkeHowsonStartingAtAllPossibilities();
+            // Figure out each player's expected utility against the other's Nash equilibrium strategy.
+            // Then calculate each player's expected utility playing a pure strategy. 
+            // The 
         }
 
         [TestMethod]

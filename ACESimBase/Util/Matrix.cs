@@ -1,12 +1,219 @@
 ﻿using ACESim;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace ACESimBase.Util
 {
     public static class Matrix
     {
+        public static double[,] FromNested(this IEnumerable<IEnumerable<double>> A)
+        {
+            int rows = A.Count();
+            int cols = A.First().Count();
+            var result = new double[rows, cols];
+            for (int r = 0; r < rows; r++)
+            {
+                var list = A.Skip(r).First().ToList();
+                for (int c = 0; c < cols; c++)
+                    result[r, c] = list[c];
+            }
+            return result;
+        }
+
+        public static int Rows(this double[,] A)
+        {
+            return A.GetLength(0);
+        }
+        public static int Columns(this double[,] A)
+        {
+            return A.GetLength(1);
+        }
+
+        public static bool ColumnIsBasic(this double[,] A, int col)
+        {
+            int rows = A.Rows();
+            int numNonZero = 0;
+            for (int r = 0; r < rows; r++)
+            {
+                if (A[r, col] != 0)
+                    numNonZero++;
+            }
+            return numNonZero == 1;
+        }
+
+        public static string GetColumnLabelsString(this double[,] A, int widthEachElement)
+        {
+            int cols = A.Columns() - 1; // exclude last column
+            StringBuilder s = new StringBuilder();
+            for (int c = 0; c < cols; c++)
+            {
+                string itemString = "";
+                if (!A.ColumnIsBasic(c))
+                {
+                    itemString = c.ToString();
+                    s.Append(itemString);
+                }
+                for (int k = itemString.Length; k < widthEachElement; k++)
+                    s.Append(" ");
+            }
+            return s.ToString();
+        }
+
+        public static double[,] KeepColumns(this double[,] A, bool[] columnsToKeep)
+        {
+            int rows = A.Rows();
+            int initialColumns = A.Columns();
+            int numColumnsToKeep = columnsToKeep.Count(x => x == true);
+            double[,] result = new double[rows, numColumnsToKeep];
+            for (int r = 0; r < rows; r++)
+            {
+                int targetColumn = 0;
+                for (int c = 0; c < initialColumns; c++)
+                {
+                    if (columnsToKeep[c])
+                    {
+                        result[r, targetColumn] = A[r, c];
+                        targetColumn++;
+                    }
+                }
+            }
+            return result;
+        }
+
+        public static double[,] RemoveLabeledColumns(this double[,] A)
+        {
+            int columns = A.Columns();
+            bool[] labeled = Enumerable.Range(0, columns).Select(col => col == columns - 1 ? false : !A.ColumnIsBasic(col)).ToArray();
+            bool[] columnsToKeep = labeled.Select(x => !x).ToArray();
+            double[,] result = A.KeepColumns(columnsToKeep);
+            return result;
+        }
+
+        private static int MinimumRatioTest(this double[,] A, int pivotColumn)
+        {
+            // choose the row to pivot on, by returning the row with the lowest ratio of 
+            // the last column to the value in the pivot column
+            int rows = A.Rows();
+            int cols = A.Columns();
+            int lastCol = cols - 1;
+            int bestRow = 0;
+            double minRatio = A[0, lastCol] / A[0, pivotColumn];
+            for (int r = 1; r < rows; r++)
+            {
+                double ratio = A[r, lastCol] / A[r, pivotColumn];
+                if (ratio < minRatio)
+                {
+                    bestRow = r;
+                    minRatio = ratio;
+                }
+            }
+            return bestRow;
+        }
+
+        public static void Pivot(this double[,] A, int pivotColumn)
+        {
+            int pivotRow = A.MinimumRatioTest(pivotColumn);
+            A.Pivot(pivotRow, pivotColumn);
+        }
+
+        private static void Pivot(this double[,] A, int pivotRow, int pivotColumn)
+        {
+            int rows = A.Rows();
+            int cols = A.Columns();
+            for (int r = 0; r < rows; r++)
+            {
+                if (r != pivotRow)
+                {
+                    double multiplier = A[pivotRow, pivotColumn] / A[r, pivotColumn];
+                    for (int c = 0; c < cols; c++)
+                    {
+                        if (c == pivotColumn)
+                        {
+                            A[r, c] = 0;
+                        }
+                        else
+                        {
+                            A[r, c] = multiplier * A[r, c] - A[pivotRow, c];
+                        }
+                    }
+                }
+            }
+        }
+
+        public static void MakePositive(this double[,] A)
+        {
+            int rowsA = A.GetLength(0);
+            int colsA = A.GetLength(1);
+            double min = A[0, 0];
+            for (int r = 0; r < rowsA; r++)
+                for (int c = 0; c < colsA; c++)
+                {
+                    if (A[r, c] < min)
+                        min = A[r, c];
+                }
+            if (min < 0)
+            {
+                for (int r = 0; r < rowsA; r++)
+                    for (int c = 0; c < colsA; c++)
+                        A[r, c] -= min - 1.0;
+            }
+        }
+
+
+        public static double[,] Append(this double[,] A, double[,] B)
+        {
+            int rowsA = A.GetLength(0);
+            int colsA = A.GetLength(1);
+            int rowsB = B.GetLength(0);
+            int colsB = B.GetLength(1);
+            if (rowsA != rowsB)
+                throw new ArgumentException();
+            double[,] result = new double[rowsA, colsA + colsB];
+            for (int r = 0; r < rowsA; r++)
+                for (int c = 0; c < colsA + colsB; c++)
+                {
+                    if (c < colsA)
+                        result[r, c] = A[r, c];
+                    else
+                        result[r, c] = B[r, c - colsA];
+                }
+            return result;
+        }
+
+        public static double[] SolveLinearSystem(this double[,] x)
+        {
+            var rows = x.GetLength(0);
+            var cols = x.GetLength(1);
+            if (rows != cols - 1)
+                throw new ArgumentException();
+            var B = x.GetColumn(cols - 1);
+            var A = x.KeepColumns(Enumerable.Range(0, cols).Select(x => x == cols - 1 ? false : true).ToArray());
+            alglib.rmatrixsolvefast(A, rows, ref B, out int info);
+            if (info != 1)
+                throw new Exception("Linear system does not have unique solutions.");
+            return B; // B is overwritten with the answer.
+        }
+
+        public static double[,] Identity(int size)
+        {
+            double[,] result = new double[size, size];
+            for (int r = 0; r < size; r++)
+                for (int c = 0; c < size; c++)
+                {
+                    result[r, c] = (r == c) ? 1.0 : 0;
+                }
+            return result;
+        }
+
+        public static double[,] One(int rows)
+        {
+            double[,] result = new double[rows, 1];
+            for (int r = 0; r < rows; r++)
+                result[r, 0] = 1.0;
+            return result;
+        }
 
         public static double[] Mean(this double[,] A)
         {
@@ -245,6 +452,78 @@ namespace ACESimBase.Util
                 }
                 return kHasil;
             }
+        }
+
+        public static bool ConfirmNash(this double[,] A, double[,] B, double[] A_MixedStrategy, double[] B_MixedStrategy, double precision = 1E-10)
+        {
+            int aStrategies = A_MixedStrategy.Length;
+            int bStrategies = B_MixedStrategy.Length;
+            var mixedResult = ExpectedUtility(A, B, A_MixedStrategy, B_MixedStrategy);
+            for (int aPure = 0; aPure < aStrategies; aPure++)
+            {
+                var pureResult = ExpectedUtility(A, B, aPure, B_MixedStrategy);
+                if (pureResult.a > mixedResult.a + precision)
+                    return false;
+            }
+            for (int bPure = 0; bPure < bStrategies; bPure++)
+            {
+                var pureResult = ExpectedUtility(A, B, A_MixedStrategy, bPure);
+                if (pureResult.b > mixedResult.b + precision)
+                    return false;
+            }
+            return true;
+        }
+
+        public static (double a, double b) ExpectedUtility(this double[,] A, double[,] B, int A_PureIndex, double[] B_MixedStrategy)
+        {
+            double[] aMixed = Enumerable.Range(0, A.GetLength(0)).Select(x => x == A_PureIndex ? 1.0 : 0).ToArray();
+            return ExpectedUtility(A, B, aMixed, B_MixedStrategy);
+        }
+        public static (double a, double b) ExpectedUtility(this double[,] A, double[,] B, double[] A_MixedStrategy, int B_PureIndex)
+        {
+            double[] bMixed = Enumerable.Range(0, A.GetLength(1)).Select(x => x == B_PureIndex ? 1.0 : 0).ToArray();
+            return ExpectedUtility(A, B, A_MixedStrategy, B_PureIndex);
+        }
+
+        public static (double a, double b) ExpectedUtility(this double[,] A,  double[,] B, double[] A_MixedStrategy, double[] B_MixedStrategy)
+        {
+            double totalA = 0, totalB = 0;
+            for (int i = 0; i < A_MixedStrategy.Length; i++)
+            {
+                double aProbability = A_MixedStrategy[i];
+                if (aProbability > 0)
+                {
+                    for (int j = 0; j < B_MixedStrategy.Length; j++)
+                    {
+                        double bProbability = B_MixedStrategy[j];
+                        if (bProbability > 0)
+                        {
+                            totalA += aProbability * bProbability * A[i, j];
+                            totalB += aProbability * bProbability * B[i, j];
+                        }
+                    }
+                }
+            }
+            return (totalA, totalB);
+        }
+
+        public static string ToString(this double?[,] matrix, int significantFigures = 4, int widthEachElement = 10)
+        {
+            StringBuilder s = new StringBuilder();
+            for (int i = 0; i < matrix.GetLength(0); i++)
+            {
+                for (int j = 0; j < matrix.GetLength(1); j++)
+                {
+                    string itemString = matrix[i, j]?.ToSignificantFigures(significantFigures) ?? "";
+                    if (itemString.Length > widthEachElement - 1)
+                        itemString = itemString.Substring(0, widthEachElement - 1);
+                    s.Append(itemString);
+                    for (int k = itemString.Length; k < widthEachElement; k++)
+                        s.Append(" ");
+                }
+                s.AppendLine();
+            }
+            return s.ToString();
         }
 
         public static string ToString(this double[,] matrix, int significantFigures = 4, int widthEachElement = 10)
