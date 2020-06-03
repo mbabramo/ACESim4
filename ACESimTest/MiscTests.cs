@@ -176,6 +176,24 @@ namespace ACESimTest
         }
 
         [TestMethod]
+        public void LemkeHowsonWorks3()
+        {
+            double[,] rowPlayer = new double[,]
+            {
+                { 7, 4 },
+                {9, 3 }
+            };
+            double[,] colPlayer = new double[,]
+            {
+                {1, 17 },
+                {16, 19 }
+            };
+            double[] rowPlayerExpected = new double[] { 1.0, 0 };
+            double[] colPlayerExpected = new double[] { 0, 1};
+            LemkeHowsonCheck(rowPlayer, colPlayer, rowPlayerExpected, colPlayerExpected);
+        }
+
+        [TestMethod]
         public void LemkeHowsonWorks_Random()
         {
             ConsistentRandomSequenceProducer ran = new ConsistentRandomSequenceProducer(0);
@@ -192,8 +210,13 @@ namespace ACESimTest
             }
 
             var tableaux = new LH_Tableaux(rowPlayer, colPlayer);
-            var result = tableaux.DoLemkeHowsonStartingAtAllPossibilities();
-            ConfirmNash(rowPlayer, colPlayer, result);
+            for (int i = 0; i < 4; i++)
+            {
+                double[][] result = tableaux.DoLemkeHowsonStartingAtLabel(i);
+                //Debug.WriteLine(result.FromNested().ToString(4, 10));
+            }
+            // DEBUG var result = tableaux.DoLemkeHowsonStartingAtAllPossibilities();
+            //ConfirmNash(rowPlayer, colPlayer, result);
         }
 
         private static void LemkeHowsonCheck(double[,] rowPlayer, double[,] colPlayer, double[] rowPlayerExpected, double[] colPlayerExpected)
