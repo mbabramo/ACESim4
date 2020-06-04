@@ -99,7 +99,10 @@ namespace ACESimBase.Util
             StringBuilder s = new StringBuilder();
             s.Append(LHS.ToString(1.0, MainVarName));
             s.Append(" = ");
-            s.Append(RHS_Constant);
+            string constantString = RHS_Constant.ToSignificantFigures(4);
+            for (int i = constantString.Length; i < 7; i++)
+                s.Append(" ");
+            s.Append(constantString);
             for (int i = 0; i < RHS_Vars.Length; i++)
                 s.Append($" + {RHS_Vars[i].variable.ToString(RHS_Vars[i].coefficient, MainVarName)}");
             return s.ToString();
@@ -122,6 +125,7 @@ namespace ACESimBase.Util
                     RHS_Vars[i].coefficient *= -1.0 / coefficient;
                 }
             }
+            RHS_Constant *= -1.0 / coefficient;
             LHS = variableToMoveFromRHSToLHS;
         }
 
@@ -136,11 +140,13 @@ namespace ACESimBase.Util
                 else
                     RHS_Vars[i].coefficient += coefficientOnVariableBeingSubstitutedFor * otherEquation.RHS_Vars[i].coefficient;
             }
+            RHS_Constant += coefficientOnVariableBeingSubstitutedFor * otherEquation.RHS_Constant;
         }
     }
 
     public class EquationSet
     {
+        public char MainVarName;
         public int NumMainVars;
         public int NumSlackVars;
         public int MinMainVarIndex;
@@ -151,6 +157,7 @@ namespace ACESimBase.Util
         
         public EquationSet(double[,] matrix, char mainVarName, int minSlackVarIndex, int minMainVarIndex)
         {
+            MainVarName = mainVarName;
             NumSlackVars = matrix.GetLength(0);
             NumMainVars = matrix.GetLength(1);
             MinSlackVarIndex = minSlackVarIndex;
@@ -160,6 +167,19 @@ namespace ACESimBase.Util
             {
                 Equations[matrixRowIndex] = new EquationInSet(matrixRowIndex, minSlackVarIndex, minMainVarIndex, NumSlackVars, 1.0, Enumerable.Range(0, NumMainVars).Select(matrixColumnIndex => (0 - matrix[matrixRowIndex, matrixColumnIndex])).ToArray(), mainVarName);
             }
+        }
+
+        public bool MainVarsIsolated => Equations.All(x => x.LHS.IsMain);
+
+        public double[] GetConstants()
+        {
+            double[] result = new double[Equations.Length];
+            for (int e = 0; e < Equations.Length; e++)
+            {
+                var lhs = Equations[e].LHS;
+                result[lhs.Index - MinMainVarIndex] = Equations[e].RHS_Constant;
+            }
+            return result;
         }
 
         public void ChangeOfBasis(VariableInEquation variableEnteringBasis, out VariableInEquation variableLeavingBasis)
@@ -210,7 +230,8 @@ namespace ACESimBase.Util
         bool[] ColPlayerLabels;
         bool RowPlayerNext;
         int? LabelToDrop;
-        bool FullyLabeled => LabelToDrop == null;
+        VariableInEquation VariableEnteringBasis;
+        bool FullyLabeled => EquationTableaux[0].MainVarsIsolated && EquationTableaux[1].MainVarsIsolated;
 
         public EquationSet[] EquationTableaux;
 
@@ -245,13 +266,15 @@ namespace ACESimBase.Util
                 RowPlayerLabels = (bool[])RowPlayerLabels.Clone(),
                 ColPlayerLabels = (bool[])ColPlayerLabels.Clone(),
                 RowPlayerNext = RowPlayerNext,
-                LabelToDrop = LabelToDrop
+                LabelToDrop = LabelToDrop,
+                VariableEnteringBasis = VariableEnteringBasis
             };
         }
 
         public LH_Tableaux DeepCopy_SpecifyingStartingPoint(int labelToDrop)
         {
             var result = DeepCopy();
+            result.VariableEnteringBasis = new VariableInEquation(true, labelToDrop);
             result.RowPlayerNext = RowPlayerLabels[labelToDrop];
             result.LabelToDrop = labelToDrop;
             return result;
@@ -316,14 +339,16 @@ namespace ACESimBase.Util
         public double[][] DoLemkeHowsonStartingAtLabel0()
         {
             int labelToDrop = 0;
-            return DoLemkeHowsonStartingAtLabel(labelToDrop);
+            VariableEnteringBasis = new VariableInEquation(true, 0);
+            return DoLemkeHowsonStartingAtLabel(labelToDrop, VariableEnteringBasis);
         }
 
-        public double[][] DoLemkeHowsonStartingAtLabel(int labelToDrop)
+        public double[][] DoLemkeHowsonStartingAtLabel(int labelToDrop, VariableInEquation variableEnteringBasis)
         {
             if (trace)
                 PrintTableaux();
             LabelToDrop = labelToDrop;
+            VariableEnteringBasis = variableEnteringBasis;
             RowPlayerNext = RowPlayerLabels[labelToDrop];
             int iteration = 0;
             do
@@ -339,23 +364,24 @@ namespace ACESimBase.Util
 
         private void LemkeHowsonStep()
         {
-            DoPivotIteration(RowPlayerNext, (int)LabelToDrop);
+            DoPivotIteration(RowPlayerNext, LabelToDrop ?? 0);
             PrintTableaux();
             RowPlayerNext = !RowPlayerNext;
         }
 
         private double[][] CompleteLemkeHowson()
         {
-            List<double[,]> linearSystems = Tableaux.Select(x => x.RemoveLabeledColumns()).ToList();
-            double[][] unnormalized = linearSystems.Select(x => x.SolveLinearSystem()).ToArray();
+            // DEBUG List<double[,]> linearSystems = Tableaux.Select(x => x.RemoveLabeledColumns()).ToList();
+            // double[][] unnormalized = linearSystems.Select(x => x.SolveLinearSystem()).ToArray();
+            double[][] unnormalized = new double[2][] { EquationTableaux[0].GetConstants(), EquationTableaux[1].GetConstants() };
             double[][] normalized = unnormalized.Select(x => Normalize(x)).ToArray();
             if (trace)
             {
                 Debug.WriteLine("");
                 Debug.WriteLine($"COMPLETING LEMKE-HOWSON");
                 Debug.WriteLine($"Linear system:");
-                foreach (var linearSystem in linearSystems)
-                    Debug.WriteLine(linearSystem.ToString(4, 10));
+                //foreach (var linearSystem in linearSystems)
+                //    Debug.WriteLine(linearSystem.ToString(4, 10));
                 Debug.WriteLine($"Unnormalized results:");
                 Debug.WriteLine(unnormalized.FromNested().ToString(4, 10));
                 Debug.WriteLine($"Normalized results:");
@@ -387,13 +413,20 @@ namespace ACESimBase.Util
 
         private void DoPivotIteration(bool pivotOnRowPlayerTableau, int pivotColumn)
         {
-            (var tableau, var labels) = pivotOnRowPlayerTableau ? (RowPlayerTableau, RowPlayerLabels) : (ColPlayerTableau, ColPlayerLabels); 
-            if (!labels[pivotColumn])
-                throw new ArgumentException("Cannot pivot on unlabeled column");
+            var equationTableaux = pivotOnRowPlayerTableau ? EquationTableaux[0] : EquationTableaux[1];
+            equationTableaux.ChangeOfBasis(VariableEnteringBasis, out VariableInEquation variableLeavingBasis);
             if (trace)
-                Debug.WriteLine($"Pivoting {(pivotOnRowPlayerTableau ? "row" : "column")} player tableau on column {pivotColumn}");
-            tableau.Pivot(pivotColumn);
-            SetLabels(pivotOnRowPlayerTableau, !pivotOnRowPlayerTableau);
+                Debug.WriteLine($"Variable entering basis: {VariableEnteringBasis.ToString(1.0, equationTableaux.MainVarName)} leaving basis: {variableLeavingBasis.ToString(1.0, equationTableaux.MainVarName)}");
+            VariableEnteringBasis = new VariableInEquation(!variableLeavingBasis.IsMain, variableLeavingBasis.Index); // in opposite tableau, opposite variable type, but same index
+
+            // DEBUG
+            //(var tableau, var labels) = pivotOnRowPlayerTableau ? (RowPlayerTableau, RowPlayerLabels) : (ColPlayerTableau, ColPlayerLabels); 
+            //if (!labels[pivotColumn])
+            //    throw new ArgumentException("Cannot pivot on unlabeled column");
+            //if (trace)
+            //    Debug.WriteLine($"Pivoting {(pivotOnRowPlayerTableau ? "row" : "column")} player tableau on column {pivotColumn}");
+            //tableau.Pivot(pivotColumn);
+            //SetLabels(pivotOnRowPlayerTableau, !pivotOnRowPlayerTableau);
         }
 
         public string ToString(bool rowPlayer)

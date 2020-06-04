@@ -212,7 +212,7 @@ namespace ACESimTest
             var tableaux = new LH_Tableaux(rowPlayer, colPlayer);
             for (int i = 0; i < 4; i++)
             {
-                double[][] result = tableaux.DoLemkeHowsonStartingAtLabel(i);
+                double[][] result = tableaux.DoLemkeHowsonStartingAtLabel(i, new VariableInEquation(true, i));
                 //Debug.WriteLine(result.FromNested().ToString(4, 10));
             }
             // DEBUG var result = tableaux.DoLemkeHowsonStartingAtAllPossibilities();
@@ -227,7 +227,7 @@ namespace ACESimTest
             for (int i = 0; i < rowPlayerStrategies + colPlayerStrategies; i++)
             {
                 tableaux = new LH_Tableaux(rowPlayer, colPlayer);
-                double[][] result = tableaux.DoLemkeHowsonStartingAtLabel(i);
+                double[][] result = tableaux.DoLemkeHowsonStartingAtLabel(i, new VariableInEquation(true, i));
                 ConfirmNash(rowPlayer, colPlayer, result);
                 // DEBUG result[0].Should().BeEquivalentTo(rowPlayerExpected);
                 // DEBUG result[1].Should().BeEquivalentTo(colPlayerExpected);
