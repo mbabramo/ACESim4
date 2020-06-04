@@ -120,6 +120,10 @@ namespace ACESimBase.Util
                 {
                     RHS_Vars[i].coefficient = 1.0 / coefficient;
                 }
+                else if (i == indexInRHSOfVariableToMove)
+                {
+                    RHS_Vars[i].coefficient = 0;
+                }
                 else
                 {
                     RHS_Vars[i].coefficient *= -1.0 / coefficient;
