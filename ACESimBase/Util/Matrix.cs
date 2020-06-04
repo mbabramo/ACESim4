@@ -482,7 +482,7 @@ namespace ACESimBase.Util
         public static (double a, double b) ExpectedUtility(this double[,] A, double[,] B, double[] A_MixedStrategy, int B_PureIndex)
         {
             double[] bMixed = Enumerable.Range(0, A.GetLength(1)).Select(x => x == B_PureIndex ? 1.0 : 0).ToArray();
-            return ExpectedUtility(A, B, A_MixedStrategy, B_PureIndex);
+            return ExpectedUtility(A, B, A_MixedStrategy, bMixed);
         }
 
         public static (double a, double b) ExpectedUtility(this double[,] A,  double[,] B, double[] A_MixedStrategy, double[] B_MixedStrategy)
