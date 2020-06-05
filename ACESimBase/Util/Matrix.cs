@@ -1,6 +1,7 @@
 ﻿using ACESim;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -94,19 +95,20 @@ namespace ACESimBase.Util
         private static int MinimumRatioTest(this double[,] A, int pivotColumn)
         {
             // choose the row to pivot on, by returning the row with the lowest ratio of 
-            // the last column to the value in the pivot column
+            // the last column to the value in the pivot column. in fact, however, we 
+            // do the maximum ratio test of the inverse, to avoid divide by zero errors
             int rows = A.Rows();
             int cols = A.Columns();
             int lastCol = cols - 1;
             int bestRow = 0;
-            double minRatio = A[0, lastCol] / A[0, pivotColumn];
+            double maxRatio = A[0, pivotColumn] / A[0, lastCol];
             for (int r = 1; r < rows; r++)
             {
-                double ratio = A[r, lastCol] / A[r, pivotColumn];
-                if (ratio < minRatio)
+                double ratio = A[r, pivotColumn] / A[r, lastCol];
+                if (ratio > maxRatio)
                 {
                     bestRow = r;
-                    minRatio = ratio;
+                    maxRatio = ratio;
                 }
             }
             return bestRow;
@@ -122,21 +124,15 @@ namespace ACESimBase.Util
         {
             int rows = A.Rows();
             int cols = A.Columns();
+            double pivotElement = A[pivotRow, pivotColumn];
             for (int r = 0; r < rows; r++)
             {
                 if (r != pivotRow)
                 {
-                    double multiplier = A[pivotRow, pivotColumn] / A[r, pivotColumn];
+                    double valueInPivotColumn = A[r, pivotColumn];
                     for (int c = 0; c < cols; c++)
                     {
-                        if (c == pivotColumn)
-                        {
-                            A[r, c] = 0;
-                        }
-                        else
-                        {
-                            A[r, c] = multiplier * A[r, c] - A[pivotRow, c];
-                        }
+                        A[r, c] = A[r,c] * pivotElement - A[pivotRow, c] * valueInPivotColumn;
                     }
                 }
             }
@@ -153,7 +149,7 @@ namespace ACESimBase.Util
                     if (A[r, c] < min)
                         min = A[r, c];
                 }
-            if (min < 0)
+            if (min <= 0)
             {
                 for (int r = 0; r < rowsA; r++)
                     for (int c = 0; c < colsA; c++)

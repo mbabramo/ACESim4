@@ -217,8 +217,8 @@ namespace ACESimTest
             // This uses an example from "Game Theory and Algorithms, Lecture 6: The Lemke-Howson Algorithm," by David Pritchard. It has a unique Nash equilibrium in mixed strategies.
             double[,] rowPlayer = new double[,]
             {
-                { 1, 3, 0},
-                { 0, 0, 2},
+                {1, 3, 0},
+                {0, 0, 2},
                 {2, 1, 1 }
             };
             double[,] colPlayer = new double[,]
@@ -236,26 +236,34 @@ namespace ACESimTest
         public void LemkeHowsonWorks_Random()
         {
             ConsistentRandomSequenceProducer ran = new ConsistentRandomSequenceProducer(0);
-            int numRowStrategies = 2, numColStrategies = 2;
-            double[,] rowPlayer = new double[numRowStrategies, numColStrategies];
-            double[,] colPlayer = new double[numRowStrategies, numColStrategies];
-            for (int r = 0; r < numRowStrategies; r++)
+            int numRepetitions = 5;
+            for (int repetition = 0; repetition < numRepetitions; repetition++)
             {
-                for (int c = 0; c < numColStrategies; c++)
+                int numRowStrategies = 2 + ran.NextInt(100), numColStrategies = 2 + ran.NextInt(100);
+                double[,] rowPlayer = new double[numRowStrategies, numColStrategies];
+                double[,] colPlayer = new double[numRowStrategies, numColStrategies];
+                for (int r = 0; r < numRowStrategies; r++)
                 {
-                    rowPlayer[r, c] = -10 + 20.0 * ran.NextDouble(); // do an irrelevant scaling
-                    colPlayer[r, c] = ran.NextDouble();
+                    for (int c = 0; c < numColStrategies; c++)
+                    {
+                        rowPlayer[r, c] = -10 + 20.0 * ran.NextDouble(); // do an irrelevant scaling
+                        colPlayer[r, c] = ran.NextDouble();
+                    }
                 }
-            }
 
-            var tableaux = new LH_Tableaux(rowPlayer, colPlayer);
-            for (int i = 0; i < 4; i++)
-            {
-                double[][] result = tableaux.DoLemkeHowsonStartingAtLabel(i, new VariableInEquation(true, i));
-                //Debug.WriteLine(result.FromNested().ToString(4, 10));
+                LH_Tableaux_NoEQ tableaux = null;
+                // DEBUG -- undelete
+                //for (int i = 0; i < numRowStrategies + numColStrategies; i++)
+                //{
+                //    tableaux = new LH_Tableaux_NoEQ(rowPlayer, colPlayer);
+                //    double[][] result = tableaux.DoLemkeHowsonStartingAtLabel(i);
+                //    //Debug.WriteLine(result.FromNested().ToString(4, 10));
+                //    ConfirmNash(rowPlayer, colPlayer, result);
+                //}
+                tableaux = new LH_Tableaux_NoEQ(rowPlayer, colPlayer);
+                var result_allPossibilities = tableaux.DoLemkeHowsonStartingAtAllPossibilities();
+                ConfirmNash(rowPlayer, colPlayer, result_allPossibilities);
             }
-            // DEBUG var result = tableaux.DoLemkeHowsonStartingAtAllPossibilities();
-            //ConfirmNash(rowPlayer, colPlayer, result);
         }
 
         private static void LemkeHowsonEqCheck(double[,] rowPlayer, double[,] colPlayer, double[] rowPlayerExpected, double[] colPlayerExpected)
@@ -279,12 +287,17 @@ namespace ACESimTest
         private static void LemkeHowsonNoEqCheck(double[,] rowPlayer, double[,] colPlayer, double[] rowPlayerExpected, double[] colPlayerExpected)
         {
             // DEBUG
-            var tableaux = new LH_Tableaux_NoEQ(rowPlayer, colPlayer);
-            var result2 = tableaux.DoLemkeHowsonStartingAtLabel0();
-            //var result2 = tableaux.DoLemkeHowsonStartingAtAllPossibilities();
-            ConfirmNash(rowPlayer, colPlayer, result2);
-            result2[0].Should().BeEquivalentTo(rowPlayerExpected);
-            result2[1].Should().BeEquivalentTo(colPlayerExpected);
+            int numStrategies = rowPlayer.GetLength(0) + colPlayer.GetLength(0);
+            for (int i = 0; i <= numStrategies; i++)
+            {
+                Debug.WriteLine($"=======================================");
+                Debug.WriteLine($"Check {i}");
+                var tableaux = new LH_Tableaux_NoEQ(rowPlayer, colPlayer);
+                var result = i == numStrategies ? tableaux.DoLemkeHowsonStartingAtAllPossibilities() : tableaux.DoLemkeHowsonStartingAtLabel(i);
+                ConfirmNash(rowPlayer, colPlayer, result);
+                result[0].Should().BeEquivalentTo(rowPlayerExpected);
+                result[1].Should().BeEquivalentTo(colPlayerExpected);
+            }
         }
 
         private static void ConfirmNash(double[,] rowPlayer, double[,] colPlayer, double[][] result)
