@@ -194,6 +194,45 @@ namespace ACESimTest
         }
 
         [TestMethod]
+        public void LemkeHowsonWorks3b()
+        {
+            double[,] rowPlayer = new double[,]
+            {
+                { 3, 1 },
+                {1, 3 }
+            };
+            double[,] colPlayer = new double[,]
+            {
+                {1, 3 },
+                {2, 1 }
+            };
+            double[] rowPlayerExpected = new double[] { 1.0 / 3.0, 2.0 / 3.0};
+            double[] colPlayerExpected = new double[] { 0.5, 0.5 };
+            LemkeHowsonCheck(rowPlayer, colPlayer, rowPlayerExpected, colPlayerExpected);
+        }
+
+        [TestMethod]
+        public void LemkeHowsonWorks4()
+        {
+            // This uses an example from "Game Theory and Algorithms, Lecture 6: The Lemke-Howson Algorithm," by David Pritchard. It has a unique Nash equilibrium in mixed strategies.
+            double[,] rowPlayer = new double[,]
+            {
+                { 1, 3, 0},
+                { 0, 0, 2},
+                {2, 1, 1 }
+            };
+            double[,] colPlayer = new double[,]
+            {
+                {2, 1, 0},
+                {1, 3, 1},
+                {0, 0, 3 }
+            };
+            double[] rowPlayerExpected = new double[] { 6.0 / 13.0, 3.0 / 13.0, 4.0 / 13.0 };
+            double[] colPlayerExpected = new double[] { 1.0 / 9.0, 3.0 / 9.0, 5.0 / 9.0 };
+            LemkeHowsonCheck(rowPlayer, colPlayer, rowPlayerExpected, colPlayerExpected);
+        }
+
+        [TestMethod]
         public void LemkeHowsonWorks_Random()
         {
             ConsistentRandomSequenceProducer ran = new ConsistentRandomSequenceProducer(0);
@@ -229,14 +268,18 @@ namespace ACESimTest
                 tableaux = new LH_Tableaux(rowPlayer, colPlayer);
                 double[][] result = tableaux.DoLemkeHowsonStartingAtLabel(i, new VariableInEquation(true, i));
                 ConfirmNash(rowPlayer, colPlayer, result);
-                // DEBUG result[0].Should().BeEquivalentTo(rowPlayerExpected);
-                // DEBUG result[1].Should().BeEquivalentTo(colPlayerExpected);
+                for (int j = 0; j < result[0].Length; j++)
+                {
+                    result[0][j].Should().BeApproximately(rowPlayerExpected[j], 1E-8);
+                    result[1][j].Should().BeApproximately(colPlayerExpected[j], 1E-8);
+                }
             }
 
-            tableaux = new LH_Tableaux(rowPlayer, colPlayer);
-            var result2 = tableaux.DoLemkeHowsonStartingAtAllPossibilities();
-            result2[0].Should().BeEquivalentTo(rowPlayerExpected);
-            result2[1].Should().BeEquivalentTo(colPlayerExpected);
+            // DEBUG
+            //tableaux = new LH_Tableaux(rowPlayer, colPlayer);
+            //var result2 = tableaux.DoLemkeHowsonStartingAtAllPossibilities();
+            //result2[0].Should().BeEquivalentTo(rowPlayerExpected);
+            //result2[1].Should().BeEquivalentTo(colPlayerExpected);
         }
 
         private static void ConfirmNash(double[,] rowPlayer, double[,] colPlayer, double[][] result)

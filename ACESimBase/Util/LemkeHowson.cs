@@ -31,6 +31,8 @@ namespace ACESimBase.Util
             return (IsMain, Index).GetHashCode();
         }
 
+        public static bool AdjustVariablesToOneBasingWhenPrinting => false; 
+
         public string ToString(double coefficient, char mainVarName)
         {
             StringBuilder s = new StringBuilder();
@@ -44,7 +46,10 @@ namespace ACESimBase.Util
                 s.Append(mainVarName);
             else
                 s.Append('s');
-            s.Append(Index.ToString());
+            if (AdjustVariablesToOneBasingWhenPrinting)
+                s.Append((Index + 1).ToString());
+            else
+                s.Append(Index.ToString());
             return s.ToString();
         }
 
@@ -61,6 +66,7 @@ namespace ACESimBase.Util
 
     public class EquationInSet
     {
+
         public VariableInEquation LHS;
         public double RHS_Constant;
         public (double coefficient, VariableInEquation variable)[] RHS_Vars;
@@ -99,13 +105,52 @@ namespace ACESimBase.Util
             StringBuilder s = new StringBuilder();
             s.Append(LHS.ToString(1.0, MainVarName));
             s.Append(" = ");
-            string constantString = RHS_Constant.ToSignificantFigures(4);
-            for (int i = constantString.Length; i < 7; i++)
-                s.Append(" ");
-            s.Append(constantString);
-            for (int i = 0; i < RHS_Vars.Length; i++)
-                s.Append($" + {RHS_Vars[i].variable.ToString(RHS_Vars[i].coefficient, MainVarName)}");
+            bool constantFirst = false;
+            bool includePlus = constantFirst;
+            if (constantFirst)
+                AppendConstant(s);
+            (bool printMain, bool printSlack)[] printMainVariablesCycles = new (bool printMain, bool printSlack)[] { (false, true), (true, false) };
+
+            bool sameOrderForAllTableaux = true;
+            if (sameOrderForAllTableaux && MinMainIndex == 0)
+            {
+                printMainVariablesCycles = new (bool printMain, bool printSlack)[] { (true, false), (false, true) };
+            }
+            foreach ((bool printMain, bool printSlack) in printMainVariablesCycles)
+            {
+                for (int i = 0; i < RHS_Vars.Length; i++)
+                {
+                    if ((printMain && RHS_Vars[i].variable.IsMain) || (printSlack && RHS_Vars[i].variable.IsSlack))
+                    {
+                        AppendVarAtIndex(s, i, ref includePlus);
+                    }
+                }
+            }
+            if (!constantFirst)
+            {
+                s.Append(" + ");
+                AppendConstant(s);
+            }
             return s.ToString();
+
+            void AppendConstant(StringBuilder s)
+            {
+                string constantString = RHS_Constant.ToSignificantFigures(4);
+                for (int i = constantString.Length; i < 7; i++)
+                    s.Append(" ");
+                s.Append(constantString);
+            }
+
+            void AppendVarAtIndex(StringBuilder s, int i, ref bool includePlus)
+            {
+                double coefficient = RHS_Vars[i].coefficient;
+                string variableToPrint = $"{(includePlus ? " + " : "")}{RHS_Vars[i].variable.ToString(coefficient, MainVarName)}";
+                if (coefficient == 0)
+                    variableToPrint = new String(' ', variableToPrint.Length);
+                else
+                    includePlus = true;
+                s.Append(variableToPrint);
+            }
         }
 
         public void MoveVariableToLHS(VariableInEquation variableToMove)
@@ -186,25 +231,82 @@ namespace ACESimBase.Util
             return result;
         }
 
-        public void ChangeOfBasis(VariableInEquation variableEnteringBasis, out VariableInEquation variableLeavingBasis)
+        public void ChangeOfBasis(VariableInEquation variableEnteringBasis, bool[] thisPlayerVariablesInBasis, bool[] opponentVariablesInBasis, out VariableInEquation variableLeavingBasis)
         {
-            int equationToModifyInitiallyIndex = 0;
-            double lowestValue = 0;
+            int equationToModifyInitiallyIndex = GetIndexOfEquationToModifyDEBUG2(variableEnteringBasis, opponentVariablesInBasis);
+            //if (equationToModifyInitiallyIndex != GetIndexOfEquationToModifyDEBUG(variableEnteringBasis, opponentVariablesInBasis))
+            //{
+            //    throw new Exception("DEBUG");
+            //}
+            if (equationToModifyInitiallyIndex == -1)
+                throw new Exception("No equation found suitable to modify.");
+            EquationInSet equationToModifyInitially = Equations[equationToModifyInitiallyIndex];
+            variableLeavingBasis = equationToModifyInitially.LHS;
+            Debug.WriteLine($"leaving basis {variableLeavingBasis.ToString(1.0, 'v')}"); // DEBUG
+            thisPlayerVariablesInBasis[variableEnteringBasis.Index] = true;
+            thisPlayerVariablesInBasis[variableLeavingBasis.Index] = false;
+            Debug.WriteLine(String.Join(',', thisPlayerVariablesInBasis)); // DEBUG
+            equationToModifyInitially.MoveVariableToLHS(variableEnteringBasis);
+            for (int e = 0; e < Equations.Length; e++)
+                if (e != equationToModifyInitiallyIndex)
+                    Equations[e].ApplySubstitution(equationToModifyInitially);
+        }
+
+        private int GetIndexOfEquationToModify(VariableInEquation variableEnteringBasis, bool[] opponentMainVariablesInBasis)
+        {
+            int equationToModifyInitiallyIndex = -1;
+            double lowestValue = double.MaxValue;
             for (int e = 0; e < Equations.Length; e++)
             {
                 double coefficient = Equations[e].GetCoefficient(variableEnteringBasis.IsMain, variableEnteringBasis.Index);
-                if (e == 0 || coefficient < lowestValue)
+                VariableInEquation variableThatWouldLeaveBasis = Equations[e].LHS;
+                bool plausibleCandidateToModify = (variableThatWouldLeaveBasis.IsMain || !opponentMainVariablesInBasis[variableThatWouldLeaveBasis.Index]); // We can modify an equation only if the variable leaving the basis either is a main variable (so that in the complementary tableau, a slack variable will then be introduced into the basis) or it is a slack variable whose main variable is not in the basis of the complementary tableau (so that in the complementary tableau, the main variable can then be introduced into the basis). 
+                if (plausibleCandidateToModify && coefficient < lowestValue)
                 {
                     equationToModifyInitiallyIndex = e;
                     lowestValue = coefficient;
                 }
             }
-            EquationInSet equationToModifyInitially = Equations[equationToModifyInitiallyIndex];
-            variableLeavingBasis = equationToModifyInitially.LHS;
-            equationToModifyInitially.MoveVariableToLHS(variableEnteringBasis);
+
+            return equationToModifyInitiallyIndex;
+        }
+
+        private int GetIndexOfEquationToModifyDEBUG(VariableInEquation variableEnteringBasis, bool[] opponentMainVariablesInBasis)
+        {
+            int equationToModifyInitiallyIndex = -1;
+            double lowestValue = double.MaxValue;
             for (int e = 0; e < Equations.Length; e++)
-                if (e != equationToModifyInitiallyIndex)
-                    Equations[e].ApplySubstitution(equationToModifyInitially);
+            {
+                double coefficient = Equations[e].GetCoefficient(variableEnteringBasis.IsMain, variableEnteringBasis.Index);
+                VariableInEquation variableThatWouldLeaveBasis = Equations[e].LHS;
+                if (coefficient < lowestValue)
+                {
+                    equationToModifyInitiallyIndex = e;
+                    lowestValue = coefficient;
+                }
+            }
+
+            return equationToModifyInitiallyIndex;
+        }
+
+        private int GetIndexOfEquationToModifyDEBUG2(VariableInEquation variableEnteringBasis, bool[] opponentMainVariablesInBasis)
+        {
+            int equationToModifyInitiallyIndex = -1;
+            double lowestValue = double.MaxValue;
+            for (int e = 0; e < Equations.Length; e++)
+            {
+                double ratio = -Equations[e].RHS_Constant / Equations[e].GetCoefficient(variableEnteringBasis.IsMain, variableEnteringBasis.Index);
+                Debug.WriteLine($"Equation {e} constant {Equations[e].RHS_Constant} coefficient {Equations[e].GetCoefficient(variableEnteringBasis.IsMain, variableEnteringBasis.Index)} ratio {ratio}"); // DEBUG
+                VariableInEquation variableThatWouldLeaveBasis = Equations[e].LHS;
+                if (double.IsNegativeInfinity(lowestValue) || (ratio < lowestValue && !double.IsNegativeInfinity(ratio)))
+                {
+                    equationToModifyInitiallyIndex = e;
+                    lowestValue = ratio;
+                }
+            }
+            Debug.WriteLine($"Equation to modify {equationToModifyInitiallyIndex}");
+
+            return equationToModifyInitiallyIndex;
         }
 
         public override string ToString()
@@ -230,6 +332,8 @@ namespace ACESimBase.Util
         public double[][,] Tableaux => new double[2][,] { RowPlayerTableau, ColPlayerTableau };
         double[,] RowPlayerUtilities_A;
         double[,] ColPlayerUtilities_B;
+        bool[] RowPlayerVariableIsInBasis;
+        bool[] ColPlayerStrategyIsInBasis;
         bool[] RowPlayerLabels;
         bool[] ColPlayerLabels;
         bool RowPlayerNext;
@@ -248,6 +352,12 @@ namespace ACESimBase.Util
         {
             NumRowStrategies = rowPlayerUtilities_A.GetLength(0);
             NumColStrategies = rowPlayerUtilities_A.GetLength(1);
+            RowPlayerVariableIsInBasis = new bool[NumRowStrategies + NumColStrategies];
+            for (int i = NumRowStrategies; i < NumRowStrategies + NumColStrategies; i++)
+                RowPlayerVariableIsInBasis[i] = true; 
+            ColPlayerStrategyIsInBasis = new bool[NumRowStrategies + NumColStrategies]; // ... note that we have extra items in the array because 
+            for (int i = 0; i < NumColStrategies; i++)
+                ColPlayerStrategyIsInBasis[i] = true;
             if (colPlayerUtilities_B.GetLength(0) != NumColStrategies || colPlayerUtilities_B.GetLength(1) != NumRowStrategies)
                 throw new ArgumentException();
             RowPlayerUtilities_A = (double[,]) rowPlayerUtilities_A.Clone();
@@ -267,6 +377,8 @@ namespace ACESimBase.Util
                 ColPlayerTableau = (double[,])ColPlayerTableau.Clone(),
                 RowPlayerUtilities_A = (double[,])RowPlayerUtilities_A.Clone(),
                 ColPlayerUtilities_B = (double[,])ColPlayerUtilities_B.Clone(),
+                RowPlayerVariableIsInBasis = (bool[])RowPlayerVariableIsInBasis.Clone(),
+                ColPlayerStrategyIsInBasis = (bool[])ColPlayerStrategyIsInBasis.Clone(),
                 RowPlayerLabels = (bool[])RowPlayerLabels.Clone(),
                 ColPlayerLabels = (bool[])ColPlayerLabels.Clone(),
                 RowPlayerNext = RowPlayerNext,
@@ -353,7 +465,9 @@ namespace ACESimBase.Util
                 PrintTableaux();
             LabelToDrop = labelToDrop;
             VariableEnteringBasis = variableEnteringBasis;
-            RowPlayerNext = RowPlayerLabels[labelToDrop];
+            if (variableEnteringBasis.IsMain == false)
+                throw new ArgumentException();
+            RowPlayerNext = variableEnteringBasis.Index < NumRowStrategies; // DEBUG RowPlayerLabels[labelToDrop];
             int iteration = 0;
             do
             {
@@ -368,7 +482,7 @@ namespace ACESimBase.Util
 
         private void LemkeHowsonStep()
         {
-            DoPivotIteration(RowPlayerNext, LabelToDrop ?? 0);
+            DoPivotIteration(RowPlayerNext);
             PrintTableaux();
             RowPlayerNext = !RowPlayerNext;
         }
@@ -415,12 +529,14 @@ namespace ACESimBase.Util
             }
         }
 
-        private void DoPivotIteration(bool pivotOnRowPlayerTableau, int pivotColumn)
+        private void DoPivotIteration(bool pivotOnRowPlayerTableau)
         {
-            var equationTableaux = pivotOnRowPlayerTableau ? EquationTableaux[0] : EquationTableaux[1];
-            equationTableaux.ChangeOfBasis(VariableEnteringBasis, out VariableInEquation variableLeavingBasis);
+            (EquationSet equationTableaux, bool[] thisPlayerMainVariablesInBasis, bool[] opponentMainVariablesInBasis) = pivotOnRowPlayerTableau ? (EquationTableaux[0], RowPlayerVariableIsInBasis, ColPlayerStrategyIsInBasis) : (EquationTableaux[1], ColPlayerStrategyIsInBasis, RowPlayerVariableIsInBasis);
             if (trace)
-                Debug.WriteLine($"Variable entering basis: {VariableEnteringBasis.ToString(1.0, equationTableaux.MainVarName)} leaving basis: {variableLeavingBasis.ToString(1.0, equationTableaux.MainVarName)}");
+                Debug.WriteLine($"Pivoting: {(pivotOnRowPlayerTableau ? "row" : "column")} player tableau with variable entering basis {VariableEnteringBasis.ToString(1.0, equationTableaux.MainVarName)} ");
+            equationTableaux.ChangeOfBasis(VariableEnteringBasis, thisPlayerMainVariablesInBasis, opponentMainVariablesInBasis, out VariableInEquation variableLeavingBasis);
+            //if (trace)
+            //    Debug.WriteLine($"Variable entering basis: {VariableEnteringBasis.ToString(1.0, equationTableaux.MainVarName)} leaving basis: {variableLeavingBasis.ToString(1.0, equationTableaux.MainVarName)}");
             VariableEnteringBasis = new VariableInEquation(!variableLeavingBasis.IsMain, variableLeavingBasis.Index); // in opposite tableau, opposite variable type, but same index
 
             // DEBUG
