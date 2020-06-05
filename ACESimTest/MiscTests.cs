@@ -154,7 +154,7 @@ namespace ACESimTest
             };
             double[] rowPlayerExpected = new double[] { 0.5, 0.5 };
             double[] colPlayerExpected = new double[] { 0.5, 0.5 };
-            LemkeHowsonCheck(rowPlayer, colPlayer, rowPlayerExpected, colPlayerExpected);
+            LemkeHowsonNoEqCheck(rowPlayer, colPlayer, rowPlayerExpected, colPlayerExpected);
         }
 
         [TestMethod]
@@ -172,7 +172,7 @@ namespace ACESimTest
             };
             double[] rowPlayerExpected = new double[] { 0.5, 0.5 };
             double[] colPlayerExpected = new double[] { 0.5, 0.5 };
-            LemkeHowsonCheck(rowPlayer, colPlayer, rowPlayerExpected, colPlayerExpected);
+            LemkeHowsonNoEqCheck(rowPlayer, colPlayer, rowPlayerExpected, colPlayerExpected);
         }
 
         [TestMethod]
@@ -190,7 +190,7 @@ namespace ACESimTest
             };
             double[] rowPlayerExpected = new double[] { 1.0, 0 };
             double[] colPlayerExpected = new double[] { 0, 1};
-            LemkeHowsonCheck(rowPlayer, colPlayer, rowPlayerExpected, colPlayerExpected);
+            LemkeHowsonNoEqCheck(rowPlayer, colPlayer, rowPlayerExpected, colPlayerExpected);
         }
 
         [TestMethod]
@@ -208,7 +208,7 @@ namespace ACESimTest
             };
             double[] rowPlayerExpected = new double[] { 1.0 / 3.0, 2.0 / 3.0};
             double[] colPlayerExpected = new double[] { 0.5, 0.5 };
-            LemkeHowsonCheck(rowPlayer, colPlayer, rowPlayerExpected, colPlayerExpected);
+            LemkeHowsonNoEqCheck(rowPlayer, colPlayer, rowPlayerExpected, colPlayerExpected);
         }
 
         [TestMethod]
@@ -229,7 +229,7 @@ namespace ACESimTest
             };
             double[] rowPlayerExpected = new double[] { 6.0 / 13.0, 3.0 / 13.0, 4.0 / 13.0 };
             double[] colPlayerExpected = new double[] { 1.0 / 9.0, 3.0 / 9.0, 5.0 / 9.0 };
-            LemkeHowsonCheck(rowPlayer, colPlayer, rowPlayerExpected, colPlayerExpected);
+            LemkeHowsonNoEqCheck(rowPlayer, colPlayer, rowPlayerExpected, colPlayerExpected);
         }
 
         [TestMethod]
@@ -258,7 +258,7 @@ namespace ACESimTest
             //ConfirmNash(rowPlayer, colPlayer, result);
         }
 
-        private static void LemkeHowsonCheck(double[,] rowPlayer, double[,] colPlayer, double[] rowPlayerExpected, double[] colPlayerExpected)
+        private static void LemkeHowsonEqCheck(double[,] rowPlayer, double[,] colPlayer, double[] rowPlayerExpected, double[] colPlayerExpected)
         {
             int rowPlayerStrategies = rowPlayer.GetLength(0);
             int colPlayerStrategies = colPlayer.GetLength(1);
@@ -274,23 +274,27 @@ namespace ACESimTest
                     result[1][j].Should().BeApproximately(colPlayerExpected[j], 1E-8);
                 }
             }
+        }
 
+        private static void LemkeHowsonNoEqCheck(double[,] rowPlayer, double[,] colPlayer, double[] rowPlayerExpected, double[] colPlayerExpected)
+        {
             // DEBUG
-            //tableaux = new LH_Tableaux(rowPlayer, colPlayer);
+            var tableaux = new LH_Tableaux_NoEQ(rowPlayer, colPlayer);
+            var result2 = tableaux.DoLemkeHowsonStartingAtLabel0();
             //var result2 = tableaux.DoLemkeHowsonStartingAtAllPossibilities();
-            //result2[0].Should().BeEquivalentTo(rowPlayerExpected);
-            //result2[1].Should().BeEquivalentTo(colPlayerExpected);
+            ConfirmNash(rowPlayer, colPlayer, result2);
+            result2[0].Should().BeEquivalentTo(rowPlayerExpected);
+            result2[1].Should().BeEquivalentTo(colPlayerExpected);
         }
 
         private static void ConfirmNash(double[,] rowPlayer, double[,] colPlayer, double[][] result)
         {
             bool isNash = Matrix.ConfirmNash(rowPlayer, colPlayer, result[0], result[1]);
             if (!isNash)
-                Debug.WriteLine("NOT Nash");
-                // DEBUG  throw new Exception("Not nash");
+                throw new Exception("Not nash");
         }
 
-        private static void LemkeHowsonCheck(double[,] rowPlayer, double[,] colPlayer)
+        private static void LemkeHowsonNoEqCheck(double[,] rowPlayer, double[,] colPlayer)
         {
             int rowPlayerStrategies = rowPlayer.GetLength(0);
             int colPlayerStrategies = colPlayer.GetLength(1);
