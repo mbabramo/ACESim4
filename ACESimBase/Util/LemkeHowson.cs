@@ -9,9 +9,9 @@ using ACESim;
 namespace ACESimBase.Util
 {
 
-    public class LH_Tableaux_NoEQ
+    public class LemkeHowson
     {
-        bool trace = false; // DEBUG
+        bool Trace = false;
 
         int NumRowStrategies;
         int NumColStrategies;
@@ -24,12 +24,12 @@ namespace ACESimBase.Util
         bool RowPlayerNext;
         int InitialLabelToDrop;
         int NextLabel;
-        public LH_Tableaux_NoEQ()
+        public LemkeHowson()
         {
 
         }
 
-        public LH_Tableaux_NoEQ(double[,] rowPlayerUtilities_A, double[,] colPlayerUtilities_B)
+        public LemkeHowson(double[,] rowPlayerUtilities_A, double[,] colPlayerUtilities_B)
         {
             NumRowStrategies = rowPlayerUtilities_A.GetLength(0);
             NumColStrategies = rowPlayerUtilities_A.GetLength(1);
@@ -40,9 +40,9 @@ namespace ACESimBase.Util
             FillTableauxInitially();
         }
 
-        public LH_Tableaux_NoEQ DeepCopy()
+        public LemkeHowson DeepCopy()
         {
-            return new LH_Tableaux_NoEQ()
+            return new LemkeHowson()
             {
                 NumRowStrategies = NumRowStrategies,
                 NumColStrategies = NumColStrategies,
@@ -56,7 +56,7 @@ namespace ACESimBase.Util
             };
         }
 
-        public LH_Tableaux_NoEQ DeepCopy_SpecifyingStartingPoint(int labelToDrop)
+        public LemkeHowson DeepCopy_SpecifyingStartingPoint(int labelToDrop)
         {
             var result = DeepCopy();
             result.InitialLabelToDrop = labelToDrop;
@@ -65,9 +65,10 @@ namespace ACESimBase.Util
             return result;
         }
 
-        public IEnumerable<LH_Tableaux_NoEQ> GenerateAllStartingPoints()
+        public IEnumerable<LemkeHowson> GenerateAllStartingPoints(int maxPossibilitiesToCheck)
         {
-            for (int i = 0; i < NumRowStrategies + NumColStrategies; i++)
+            int numStartingPoints = Math.Min(NumRowStrategies + NumColStrategies, maxPossibilitiesToCheck);
+            for (int i = 0; i < numStartingPoints; i++)
                 yield return DeepCopy_SpecifyingStartingPoint(i);
         }
 
@@ -84,31 +85,46 @@ namespace ACESimBase.Util
             ColPlayerTableau = identityForRowStrategies.Append(RowPlayerUtilities_A).Append(onesForRowStrategies);
         }
 
-        public double[][] DoLemkeHowsonStartingAtAllPossibilities()
+        /// <summary>
+        /// Try LemkeHowson for different labels to drop, one step at a time for each label. 
+        /// </summary>
+        /// <returns>The first result obtained, or null if all labels fail to return a valid strategy.</returns>
+        public double[][] DoLemkeHowsonStartingAtAllPossibilities(int maxPossibilitiesToCheck = int.MaxValue)
         {
-            List<LH_Tableaux_NoEQ> tableauxGroups = GenerateAllStartingPoints().ToList();
+            List<LemkeHowson> tableauxGroups = GenerateAllStartingPoints(maxPossibilitiesToCheck).ToList();
 
-            if (trace)
+            if (Trace)
             {
                 foreach (var tableaux in tableauxGroups)
                     tableaux.PrintTableaux();
             }
            
             int? completedIndex = null;
+            bool[] groupDone = new bool[tableauxGroups.Count];
+            bool doneOverall = false;
+            double[][] result = null;
             do
             {
                 for (int i = 0; i < tableauxGroups.Count(); i++)
                 {
-                    bool done = tableauxGroups[i].LemkeHowsonStep();
-                    if (done)
+                    if (!groupDone[i])
                     {
-                        completedIndex = i;
-                        break;
+                        groupDone[i] = tableauxGroups[i].LemkeHowsonStep();
+                        if (groupDone[i])
+                        {
+                            result = tableauxGroups[i].CompleteLemkeHowson();
+                            doneOverall = result != null;
+                        }
+                        if (doneOverall)
+                        {
+                            completedIndex = i;
+                            break;
+                        }
                     }
                 }
             }
-            while (completedIndex == null);
-            return tableauxGroups[(int) completedIndex].CompleteLemkeHowson();
+            while (completedIndex == null && !groupDone.All(x => x == true));
+            return result;
         }
 
         public double[][] DoLemkeHowsonStartingAtLabel0()
@@ -122,7 +138,7 @@ namespace ACESimBase.Util
             InitialLabelToDrop = initialLabelToDrop;
             NextLabel = initialLabelToDrop;
             RowPlayerNext = initialLabelToDrop < NumRowStrategies;
-            if (trace)
+            if (Trace)
             {
                 Debug.WriteLine($"Initial tableaux");
                 PrintTableaux();
@@ -131,7 +147,7 @@ namespace ACESimBase.Util
             bool done;
             do
             {
-                if (trace)
+                if (Trace)
                     Debug.WriteLine($"Lemke-Howson iteration {iteration}");
                 done = LemkeHowsonStep();
                 iteration++;
@@ -142,7 +158,9 @@ namespace ACESimBase.Util
 
         private bool LemkeHowsonStep()
         {
-            DoPivotIteration(RowPlayerNext);
+            bool stopPrematurely = DoPivotIteration(RowPlayerNext);
+            if (stopPrematurely)
+                return true;
             PrintTableaux();
             RowPlayerNext = !RowPlayerNext;
             return NextLabel == InitialLabelToDrop;
@@ -168,7 +186,7 @@ namespace ACESimBase.Util
             }
             if (unnormalized.Any(x => x < 0 || double.IsNaN(x)))
             {
-                throw new Exception("Invalid results");
+                return null;
             }
             var normalized = Normalize(unnormalized.ToArray());
             return normalized;
@@ -176,8 +194,12 @@ namespace ACESimBase.Util
 
         private double[][] CompleteLemkeHowson()
         {
+            if (NextLabel != InitialLabelToDrop)
+                return null; // problem occurred
             var rowStrategy = TableauToStrategy(RowPlayerTableau, NonBasicVariables(ColPlayerTableau), Enumerable.Range(0, NumRowStrategies).ToList());
             var colStrategy = TableauToStrategy(ColPlayerTableau, NonBasicVariables(RowPlayerTableau), Enumerable.Range(NumRowStrategies, NumColStrategies).ToList());
+            if (rowStrategy == null || colStrategy == null)
+                return null; // degenerate matrix or other problem
             
             return new double[2][] { rowStrategy, colStrategy };
         }
@@ -197,13 +219,12 @@ namespace ACESimBase.Util
                     labels.Add(c);
             return labels;
         }
-        private void DoPivotIteration(bool pivotOnRowPlayerTableau)
+        private bool DoPivotIteration(bool pivotOnRowPlayerTableau)
         {
-            // DEBUG
             int pivotColumn = NextLabel;
             var tableau = pivotOnRowPlayerTableau ? RowPlayerTableau : ColPlayerTableau;
             var originalLabels = NonBasicVariables(tableau);
-            if (trace)
+            if (Trace)
             {
                 Debug.WriteLine($"Pivoting {(pivotOnRowPlayerTableau ? "row" : "column")} player tableau on column {pivotColumn}");
                 Debug.WriteLine("Original tableau");
@@ -211,20 +232,23 @@ namespace ACESimBase.Util
                 Debug.WriteLine($"Original labels: {String.Join(',', originalLabels)}");
             }
             tableau.Pivot(pivotColumn);
-            if (trace)
+            if (Trace)
             {
                 Debug.WriteLine("Revised tableau");
                 Debug.WriteLine(tableau.ToString(4, 10));
             }
             var revisedLabels = NonBasicVariables(tableau);
             var difference = revisedLabels.Where(x => !originalLabels.Contains(x)).ToList();
+            if (!difference.Any())
+                return true;
             NextLabel = difference.First(); 
-            if (trace)
+            if (Trace)
             {
                 Debug.WriteLine($"Revised labels: {String.Join(',', revisedLabels)}");
                 Debug.WriteLine($"Next label: {NextLabel}");
                 Debug.WriteLine("");
             }
+            return false;
         }
 
         public string ToString(bool rowPlayer)
@@ -237,9 +261,8 @@ namespace ACESimBase.Util
 
         public void PrintTableaux()
         {
-            if (trace)
+            if (Trace)
             {
-                //DEBUG
                 Debug.WriteLine($"Row player:");
                 Debug.WriteLine(ToString(true));
                 Debug.WriteLine($"Col player:");

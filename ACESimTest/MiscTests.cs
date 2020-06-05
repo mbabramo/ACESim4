@@ -154,7 +154,7 @@ namespace ACESimTest
             };
             double[] rowPlayerExpected = new double[] { 0.5, 0.5 };
             double[] colPlayerExpected = new double[] { 0.5, 0.5 };
-            LemkeHowsonNoEqCheck(rowPlayer, colPlayer, rowPlayerExpected, colPlayerExpected);
+            LemkeHowsonCheck(rowPlayer, colPlayer, rowPlayerExpected, colPlayerExpected);
         }
 
         [TestMethod]
@@ -172,7 +172,7 @@ namespace ACESimTest
             };
             double[] rowPlayerExpected = new double[] { 0.5, 0.5 };
             double[] colPlayerExpected = new double[] { 0.5, 0.5 };
-            LemkeHowsonNoEqCheck(rowPlayer, colPlayer, rowPlayerExpected, colPlayerExpected);
+            LemkeHowsonCheck(rowPlayer, colPlayer, rowPlayerExpected, colPlayerExpected);
         }
 
         [TestMethod]
@@ -190,7 +190,7 @@ namespace ACESimTest
             };
             double[] rowPlayerExpected = new double[] { 1.0, 0 };
             double[] colPlayerExpected = new double[] { 0, 1};
-            LemkeHowsonNoEqCheck(rowPlayer, colPlayer, rowPlayerExpected, colPlayerExpected);
+            LemkeHowsonCheck(rowPlayer, colPlayer, rowPlayerExpected, colPlayerExpected);
         }
 
         [TestMethod]
@@ -208,7 +208,7 @@ namespace ACESimTest
             };
             double[] rowPlayerExpected = new double[] { 1.0 / 3.0, 2.0 / 3.0};
             double[] colPlayerExpected = new double[] { 0.5, 0.5 };
-            LemkeHowsonNoEqCheck(rowPlayer, colPlayer, rowPlayerExpected, colPlayerExpected);
+            LemkeHowsonCheck(rowPlayer, colPlayer, rowPlayerExpected, colPlayerExpected);
         }
 
         [TestMethod]
@@ -229,7 +229,7 @@ namespace ACESimTest
             };
             double[] rowPlayerExpected = new double[] { 6.0 / 13.0, 3.0 / 13.0, 4.0 / 13.0 };
             double[] colPlayerExpected = new double[] { 1.0 / 9.0, 3.0 / 9.0, 5.0 / 9.0 };
-            LemkeHowsonNoEqCheck(rowPlayer, colPlayer, rowPlayerExpected, colPlayerExpected);
+            LemkeHowsonCheck(rowPlayer, colPlayer, rowPlayerExpected, colPlayerExpected);
         }
 
         [TestMethod]
@@ -237,9 +237,10 @@ namespace ACESimTest
         {
             ConsistentRandomSequenceProducer ran = new ConsistentRandomSequenceProducer(0);
             int numRepetitions = 5;
+            int maxNumStrategies = 1_000;
             for (int repetition = 0; repetition < numRepetitions; repetition++)
             {
-                int numRowStrategies = 2 + ran.NextInt(100), numColStrategies = 2 + ran.NextInt(100);
+                int numRowStrategies = 2 + ran.NextInt(maxNumStrategies - 1), numColStrategies = 2 + ran.NextInt(maxNumStrategies - 1);
                 double[,] rowPlayer = new double[numRowStrategies, numColStrategies];
                 double[,] colPlayer = new double[numRowStrategies, numColStrategies];
                 for (int r = 0; r < numRowStrategies; r++)
@@ -251,8 +252,7 @@ namespace ACESimTest
                     }
                 }
 
-                LH_Tableaux_NoEQ tableaux = null;
-                // DEBUG -- undelete
+                LemkeHowson tableaux = null;
                 //for (int i = 0; i < numRowStrategies + numColStrategies; i++)
                 //{
                 //    tableaux = new LH_Tableaux_NoEQ(rowPlayer, colPlayer);
@@ -260,31 +260,14 @@ namespace ACESimTest
                 //    //Debug.WriteLine(result.FromNested().ToString(4, 10));
                 //    ConfirmNash(rowPlayer, colPlayer, result);
                 //}
-                tableaux = new LH_Tableaux_NoEQ(rowPlayer, colPlayer);
-                var result_allPossibilities = tableaux.DoLemkeHowsonStartingAtAllPossibilities();
+                tableaux = new LemkeHowson(rowPlayer, colPlayer);
+                var result_allPossibilities = tableaux.DoLemkeHowsonStartingAtAllPossibilities(10); // DEBUG
+                Debug;
                 ConfirmNash(rowPlayer, colPlayer, result_allPossibilities);
             }
         }
 
-        private static void LemkeHowsonEqCheck(double[,] rowPlayer, double[,] colPlayer, double[] rowPlayerExpected, double[] colPlayerExpected)
-        {
-            int rowPlayerStrategies = rowPlayer.GetLength(0);
-            int colPlayerStrategies = colPlayer.GetLength(1);
-            LH_Tableaux tableaux = null;
-            for (int i = 0; i < rowPlayerStrategies + colPlayerStrategies; i++)
-            {
-                tableaux = new LH_Tableaux(rowPlayer, colPlayer);
-                double[][] result = tableaux.DoLemkeHowsonStartingAtLabel(i, new VariableInEquation(true, i));
-                ConfirmNash(rowPlayer, colPlayer, result);
-                for (int j = 0; j < result[0].Length; j++)
-                {
-                    result[0][j].Should().BeApproximately(rowPlayerExpected[j], 1E-8);
-                    result[1][j].Should().BeApproximately(colPlayerExpected[j], 1E-8);
-                }
-            }
-        }
-
-        private static void LemkeHowsonNoEqCheck(double[,] rowPlayer, double[,] colPlayer, double[] rowPlayerExpected, double[] colPlayerExpected)
+        private static void LemkeHowsonCheck(double[,] rowPlayer, double[,] colPlayer, double[] rowPlayerExpected, double[] colPlayerExpected)
         {
             // DEBUG
             int numStrategies = rowPlayer.GetLength(0) + colPlayer.GetLength(0);
@@ -292,7 +275,7 @@ namespace ACESimTest
             {
                 Debug.WriteLine($"=======================================");
                 Debug.WriteLine($"Check {i}");
-                var tableaux = new LH_Tableaux_NoEQ(rowPlayer, colPlayer);
+                var tableaux = new LemkeHowson(rowPlayer, colPlayer);
                 var result = i == numStrategies ? tableaux.DoLemkeHowsonStartingAtAllPossibilities() : tableaux.DoLemkeHowsonStartingAtLabel(i);
                 ConfirmNash(rowPlayer, colPlayer, result);
                 result[0].Should().BeEquivalentTo(rowPlayerExpected);
@@ -302,16 +285,19 @@ namespace ACESimTest
 
         private static void ConfirmNash(double[,] rowPlayer, double[,] colPlayer, double[][] result)
         {
-            bool isNash = Matrix.ConfirmNash(rowPlayer, colPlayer, result[0], result[1]);
-            if (!isNash)
-                throw new Exception("Not nash");
+            if (result != null)
+            {
+                bool isNash = Matrix.ConfirmNash(rowPlayer, colPlayer, result[0], result[1]);
+                if (!isNash)
+                    throw new Exception("Not nash");
+            }
         }
 
         private static void LemkeHowsonNoEqCheck(double[,] rowPlayer, double[,] colPlayer)
         {
             int rowPlayerStrategies = rowPlayer.GetLength(0);
             int colPlayerStrategies = colPlayer.GetLength(1);
-            var tableaux = new LH_Tableaux(rowPlayer, colPlayer);
+            var tableaux = new LemkeHowson(rowPlayer, colPlayer);
             var result = tableaux.DoLemkeHowsonStartingAtAllPossibilities();
             // Figure out each player's expected utility against the other's Nash equilibrium strategy.
             // Then calculate each player's expected utility playing a pure strategy. 
