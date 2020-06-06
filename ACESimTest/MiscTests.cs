@@ -236,8 +236,8 @@ namespace ACESimTest
         public void LemkeHowsonWorks_Random()
         {
             ConsistentRandomSequenceProducer ran = new ConsistentRandomSequenceProducer(0);
-            int numRepetitions = 5;
-            int maxNumStrategies = 1_000;
+            int numRepetitions = 1500000;
+            int maxNumStrategies = 10;
             for (int repetition = 0; repetition < numRepetitions; repetition++)
             {
                 int numRowStrategies = 2 + ran.NextInt(maxNumStrategies - 1), numColStrategies = 2 + ran.NextInt(maxNumStrategies - 1);
@@ -247,11 +247,10 @@ namespace ACESimTest
                 {
                     for (int c = 0; c < numColStrategies; c++)
                     {
-                        rowPlayer[r, c] = -10 + 20.0 * ran.NextDouble(); // do an irrelevant scaling
-                        colPlayer[r, c] = ran.NextDouble();
+                        rowPlayer[r, c] = Math.Round(-10 + 20.0 * ran.NextDouble(), 1); // do an irrelevant scaling
+                        colPlayer[r, c] = Math.Round(ran.NextDouble(), 1);
                     }
                 }
-
                 LemkeHowson tableaux = null;
                 //for (int i = 0; i < numRowStrategies + numColStrategies; i++)
                 //{
@@ -261,22 +260,46 @@ namespace ACESimTest
                 //    ConfirmNash(rowPlayer, colPlayer, result);
                 //}
                 tableaux = new LemkeHowson(rowPlayer, colPlayer);
-                var result_allPossibilities = tableaux.DoLemkeHowsonStartingAtAllPossibilities(10); // DEBUG
-                Debug;
+
+                if (repetition == 2848)
+                {
+                    var DEBUG = 0;
+                    Debug.WriteLine(rowPlayer.ToCodeStringPython());
+                    Debug.WriteLine("");
+                    Debug.WriteLine(colPlayer.ToCodeStringPython());
+                    Debug.WriteLine("");
+                    Debug.WriteLine(rowPlayer.ToCodeString());
+                    Debug.WriteLine("");
+                    Debug.WriteLine(colPlayer.ToCodeString());
+                    Debug.WriteLine("");
+                    Debug.WriteLine(rowPlayer.ToCodeStringSpaces());
+                    Debug.WriteLine("");
+                    Debug.WriteLine(colPlayer.ToCodeStringSpaces());
+                    Debug.WriteLine("");
+                }
+                double[][] result_allPossibilities = null;
+                try
+                {
+                    result_allPossibilities = tableaux.DoLemkeHowsonStartingAtAllPossibilities(10, 100_000, true);
+                }
+                catch (Exception ex)
+                {
+                    if (result_allPossibilities == null)
+                        throw new Exception($"No eq found on repetition {repetition} with {numRowStrategies}, {numColStrategies} strategies ({ex.Message})");
+                }
                 ConfirmNash(rowPlayer, colPlayer, result_allPossibilities);
             }
         }
 
         private static void LemkeHowsonCheck(double[,] rowPlayer, double[,] colPlayer, double[] rowPlayerExpected, double[] colPlayerExpected)
         {
-            // DEBUG
             int numStrategies = rowPlayer.GetLength(0) + colPlayer.GetLength(0);
             for (int i = 0; i <= numStrategies; i++)
             {
                 Debug.WriteLine($"=======================================");
                 Debug.WriteLine($"Check {i}");
                 var tableaux = new LemkeHowson(rowPlayer, colPlayer);
-                var result = i == numStrategies ? tableaux.DoLemkeHowsonStartingAtAllPossibilities() : tableaux.DoLemkeHowsonStartingAtLabel(i);
+                var result = i == numStrategies ? tableaux.DoLemkeHowsonStartingAtAllPossibilities(int.MaxValue, int.MaxValue) : tableaux.DoLemkeHowsonStartingAtLabel(i);
                 ConfirmNash(rowPlayer, colPlayer, result);
                 result[0].Should().BeEquivalentTo(rowPlayerExpected);
                 result[1].Should().BeEquivalentTo(colPlayerExpected);
@@ -291,17 +314,6 @@ namespace ACESimTest
                 if (!isNash)
                     throw new Exception("Not nash");
             }
-        }
-
-        private static void LemkeHowsonNoEqCheck(double[,] rowPlayer, double[,] colPlayer)
-        {
-            int rowPlayerStrategies = rowPlayer.GetLength(0);
-            int colPlayerStrategies = colPlayer.GetLength(1);
-            var tableaux = new LemkeHowson(rowPlayer, colPlayer);
-            var result = tableaux.DoLemkeHowsonStartingAtAllPossibilities();
-            // Figure out each player's expected utility against the other's Nash equilibrium strategy.
-            // Then calculate each player's expected utility playing a pure strategy. 
-            // The 
         }
 
         [TestMethod]

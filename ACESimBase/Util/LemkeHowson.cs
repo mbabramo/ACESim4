@@ -5,6 +5,7 @@ using System.Linq;
 using System.Diagnostics;
 using ACESim.Util;
 using ACESim;
+using JetBrains.Annotations;
 
 namespace ACESimBase.Util
 {
@@ -65,10 +66,10 @@ namespace ACESimBase.Util
             return result;
         }
 
-        public IEnumerable<LemkeHowson> GenerateAllStartingPoints(int maxPossibilitiesToCheck)
+        private IEnumerable<LemkeHowson> GenerateAllStartingPoints(int firstPossibilityToCheck, int maxPossibilitiesToCheck)
         {
-            int numStartingPoints = Math.Min(NumRowStrategies + NumColStrategies, maxPossibilitiesToCheck);
-            for (int i = 0; i < numStartingPoints; i++)
+            int lastPossibilityToCheck = Math.Min(NumRowStrategies + NumColStrategies, firstPossibilityToCheck + maxPossibilitiesToCheck);
+            for (int i = firstPossibilityToCheck; i < lastPossibilityToCheck; i++)
                 yield return DeepCopy_SpecifyingStartingPoint(i);
         }
 
@@ -89,41 +90,50 @@ namespace ACESimBase.Util
         /// Try LemkeHowson for different labels to drop, one step at a time for each label. 
         /// </summary>
         /// <returns>The first result obtained, or null if all labels fail to return a valid strategy.</returns>
-        public double[][] DoLemkeHowsonStartingAtAllPossibilities(int maxPossibilitiesToCheck = int.MaxValue)
+        public double[][] DoLemkeHowsonStartingAtAllPossibilities(int maxPossibilitiesToCheckEachTime, int maxPossibilitiesToCheckAltogether, bool errorIfFailure = false)
         {
-            List<LemkeHowson> tableauxGroups = GenerateAllStartingPoints(maxPossibilitiesToCheck).ToList();
-
-            if (Trace)
-            {
-                foreach (var tableaux in tableauxGroups)
-                    tableaux.PrintTableaux();
-            }
-           
-            int? completedIndex = null;
-            bool[] groupDone = new bool[tableauxGroups.Count];
-            bool doneOverall = false;
+            int firstPossibilityToCheck = 0;
             double[][] result = null;
-            do
+            while (firstPossibilityToCheck < maxPossibilitiesToCheckAltogether)
             {
-                for (int i = 0; i < tableauxGroups.Count(); i++)
+                List<LemkeHowson> tableauxGroups = GenerateAllStartingPoints(firstPossibilityToCheck, maxPossibilitiesToCheckEachTime).ToList();
+
+                if (Trace)
                 {
-                    if (!groupDone[i])
+                    foreach (var tableaux in tableauxGroups)
+                        tableaux.PrintTableaux();
+                }
+
+                int? completedIndex = null;
+                bool[] groupDone = new bool[tableauxGroups.Count];
+                bool doneOverall = false;
+                do
+                {
+                    for (int i = 0; i < tableauxGroups.Count(); i++)
                     {
-                        groupDone[i] = tableauxGroups[i].LemkeHowsonStep();
-                        if (groupDone[i])
+                        if (!groupDone[i])
                         {
-                            result = tableauxGroups[i].CompleteLemkeHowson();
-                            doneOverall = result != null;
-                        }
-                        if (doneOverall)
-                        {
-                            completedIndex = i;
-                            break;
+                            groupDone[i] = tableauxGroups[i].LemkeHowsonStep();
+                            if (groupDone[i])
+                            {
+                                result = tableauxGroups[i].CompleteLemkeHowson();
+                                doneOverall = result != null;
+                                if (!doneOverall && errorIfFailure)
+                                    throw new Exception($"Failed to find equilibrium for possibility {firstPossibilityToCheck + i}.");
+                            }
+                            if (doneOverall)
+                            {
+                                completedIndex = i;
+                                break;
+                            }
                         }
                     }
                 }
-            }
-            while (completedIndex == null && !groupDone.All(x => x == true));
+                while (completedIndex == null && !groupDone.All(x => x == true));
+                if (result != null)
+                    break;
+                firstPossibilityToCheck += maxPossibilitiesToCheckEachTime;
+            };
             return result;
         }
 

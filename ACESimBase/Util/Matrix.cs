@@ -114,6 +114,23 @@ namespace ACESimBase.Util
             return bestRow;
         }
 
+        public static int[,] RotateMatrixCounterClockwise(int[,] oldMatrix)
+        {
+            int[,] newMatrix = new int[oldMatrix.GetLength(1), oldMatrix.GetLength(0)];
+            int newColumn, newRow = 0;
+            for (int oldColumn = oldMatrix.GetLength(1) - 1; oldColumn >= 0; oldColumn--)
+            {
+                newColumn = 0;
+                for (int oldRow = 0; oldRow < oldMatrix.GetLength(0); oldRow++)
+                {
+                    newMatrix[newRow, newColumn] = oldMatrix[oldRow, oldColumn];
+                    newColumn++;
+                }
+                newRow++;
+            }
+            return newMatrix;
+        }
+
         public static void Pivot(this double[,] A, int pivotColumn)
         {
             int pivotRow = A.MinimumRatioTest(pivotColumn);
@@ -538,6 +555,34 @@ namespace ACESimBase.Util
                 }
                 s.AppendLine();
             }
+            return s.ToString();
+        }
+
+        public static string ToCodeStringPython(this double[,] matrix, int significantFigures = 4) => ToCodeString(matrix, significantFigures, '[', ']');
+
+        public static string ToCodeStringSpaces(this double[,] matrix, int significantFigures = 4) => ToCodeString(matrix, significantFigures, ' ', ' ', ' ', '\n');
+
+        public static string ToCodeString(this double[,] matrix, int significantFigures = 4, char leftDelimeter = '{', char rightDelimeter = '}', char betweenItems = ',', char betweenRows = ',')
+        {
+            int rows = matrix.GetLength(0);
+            int cols = matrix.GetLength(1);
+            StringBuilder s = new StringBuilder();
+            s.Append($"{leftDelimeter}");
+            for (int i = 0; i < rows; i++)
+            {
+                s.Append($"{leftDelimeter} ");
+                for (int j = 0; j < cols; j++)
+                {
+                    string itemString = matrix[i, j].ToSignificantFigures(significantFigures);
+                    s.Append(itemString);
+                    if (j < cols - 1)
+                        s.Append($"{betweenItems} ");
+                }
+                s.Append($" {rightDelimeter}");
+                if (i < rows - 1)
+                    s.Append($"{betweenRows} ");
+            }
+            s.AppendLine($"{rightDelimeter}");
             return s.ToString();
         }
     }
