@@ -53,7 +53,8 @@ namespace ACESim
         public int MaxParallelDepth = 3; // will be overridden by launcher
         public string SerializeResultsPrefixPlus(int scenario, int totalScenarios) => SerializeResultsPrefix + (totalScenarios > 0 ? scenario.ToString() : "");
 
-        // CORRELATED EQ SETTINGS -- MUST ALSO SET IN GAME DEFINITION
+        // CORRELATED EQ SETTINGS -- MUST ALSO SET IN GAME DEFINITION.
+        // NOTE: This is separate from correlated equilibrium computed via principal components analysis (see below)
         public bool ConstructCorrelatedEquilibrium = false;
         public bool ConstructCorrelatedEquilibriumMultipleTimesExPost = true;
         public int MaxNumCorrelatedEquilibriaToConstruct = 125;
@@ -109,16 +110,16 @@ namespace ACESim
         public bool DeepCFR_SeparateObservationsForIdenticalGameProgressTreeItems = true; // relevant only if UseWeightedData is false; with separate observations, the number of observations is proportional to their frequency in the regression; this takes longer but produces more accurate results
         public int DeepCFR_MaximumTotalObservationsPerIteration = 100_000; // when not using gameprogresstree, after this number of observations, we stop looking for more observations, even if we haven't gotten enough to fill as many iterations as desired in one or more reservoirs (in which case, we rely more on earlier observations)
 
-        public bool DeepCFR_PCA_PerformPrincipalComponentAnalysis = true;
-        public double DeepCFR_PCA_Precision = 1E-5;
-        public int DeepCFR_PCA_FirstIterationToSaveGenotypes = 5; // DEBUG
-        public int DeepCFR_PCA_SaveGenotypeEveryNIterationsAfterFirst = 1;
-        public int[] DeepCFR_PCA_NumVariationsPerPrincipalComponent = new int[] { 4, 3, 2 }; // NOTE: Not currently being used; this can be used to generate non-random permutations of principal components.
-        public int DeepCFR_PCA_NumPrincipalComponents = 3;
-        public bool DeepCFR_PCA_BuildModelToPredictUtilitiesBasedOnPrincipalComponents = true;
-        public int DeepCFR_PCA_NumUtilitiesToCalculateToBuildModel = 250; // DEBUG 1_000;
-        public int DeepCFR_PCA_NumGamesToPlayToEstimateEachUtilityWhileBuildingModel = 100; // DEBUG 1_000;
-        public int DeepCFR_PCA_NumStrategyChoicesPerPlayer = 1_000;
+        public bool PCA_PerformPrincipalComponentAnalysis = true;
+        public double PCA_Precision = 1E-5;
+        public int PCA_FirstIterationToSaveAsPCAObservation = 5; // DEBUG
+        public int PCA_SavePCAObservationEveryNIterationsAfterFirst = 1;
+        public int[] PCA_NumVariationsPerPrincipalComponent_Obsolete = new int[] { 4, 3, 2 }; // NOTE: Not currently being used; this can be used to generate non-random permutations of principal components.
+        public int PCA_NumPrincipalComponents = 3;
+        public bool PCA_BuildModelToPredictUtilitiesBasedOnPrincipalComponents = true;
+        public int PCA_NumUtilitiesToCalculateToBuildModel = 250; // DEBUG 1_000;
+        public int PCA_NumGamesToPlayToEstimateEachUtilityWhileBuildingModel = 100; // DEBUG 1_000;
+        public int PCA_NumStrategyChoicesPerPlayer = 1_000;
 
         public RegressionTechniques RegressionTechnique = RegressionTechniques.FastTree;
         public bool DeepCFR_ProbeAllActions = true;
