@@ -227,7 +227,7 @@ namespace ACESimBase.GameSolvingSupport
         /// <param name="baseline"></param>
         /// <param name="numNonChancePlayers"></param>
         /// <returns></returns>
-        public float[][] GetGenotypes(DeepCFRMultiModel baseline, byte numNonChancePlayers)
+        public float[][] GetModelVariables(DeepCFRMultiModel baseline, byte numNonChancePlayers)
         {
             float[][] result = new float[numNonChancePlayers][];
             for (byte p = 0; p < numNonChancePlayers; p++)
