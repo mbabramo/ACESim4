@@ -236,7 +236,7 @@ namespace ACESimTest
         public void LemkeHowsonWorks_Random()
         {
             ConsistentRandomSequenceProducer ran = new ConsistentRandomSequenceProducer(0);
-            int numRepetitions = 1500000;
+            int numRepetitions = 15000;
             int maxNumStrategies = 10;
             for (int repetition = 0; repetition < numRepetitions; repetition++)
             {
@@ -252,18 +252,17 @@ namespace ACESimTest
                     }
                 }
                 LemkeHowson tableaux = null;
-                //for (int i = 0; i < numRowStrategies + numColStrategies; i++)
-                //{
-                //    tableaux = new LH_Tableaux_NoEQ(rowPlayer, colPlayer);
-                //    double[][] result = tableaux.DoLemkeHowsonStartingAtLabel(i);
-                //    //Debug.WriteLine(result.FromNested().ToString(4, 10));
-                //    ConfirmNash(rowPlayer, colPlayer, result);
-                //}
                 tableaux = new LemkeHowson(rowPlayer, colPlayer);
 
                 if (repetition == 2848)
                 {
-                    var DEBUG = 0;
+                    // NOTE: This is where we have a problem. But the problem also occurs in the code that we translated from Python.
+                    // I have created a GitHub issue to track that: https://github.com/drvinceknight/Nashpy/issues/83
+                    // As noted there, I don't believe the problem is that the game is degenerate. 
+                    // This problem occurs much more frequently with large matrices.
+                    // If we can't fix it, one possibility is to implement the integer_pivoting_lex approach that Nashpy implements.
+                    // Much of the code will be similar to what we have, but the integer pivoting code will take some work, because
+                    // some of the Python functions used by that code are not readily available in C# (even with NumSharp).
                     Debug.WriteLine(rowPlayer.ToCodeStringPython());
                     Debug.WriteLine("");
                     Debug.WriteLine(colPlayer.ToCodeStringPython());
