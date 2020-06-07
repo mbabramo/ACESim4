@@ -36,10 +36,32 @@ namespace ACESim
     {
         DeepCFRMultiModel MultiModel;
 
-        DeepCFRMultiModel GenotypingBaselineMultiModel;
-        public List<float[][]> SavedGenotypes; // saved genotypes by time, player, and observation index from baseline multimodel
-        public PCAResultsForPlayer[] PCAResultsForEachPlayer;
-        public List<DeepCFRMultiModel>[] PCAStrategiesForEachPlayer;
+        /// <summary>
+        /// Saved model data, by time, player, and model variable. For example, a model variable in DeepCFR represents a 
+        /// predicted regret for a particular information set.
+        /// </summary>
+        public List<float[][]> SavedModelData;
+        /// <summary>
+        /// The results of principal components analysis, conducted separately for each player. These results are created
+        /// from the saved model data, and can be reconstructed from 
+        /// </summary>
+        public PrincipalComponentsAnalysis[] PCAResultsForEachPlayer;
+        /// <summary>
+        /// This is a model that is used to provide a baseline for generating model data with DeepCFR. Each datum is a 
+        /// regret value for a particular information set and action combination. The baseline multimodel includes for
+        /// each decision a collection of such information-set-and-action combinations, so the genomes are interpreted
+        /// as lists of regret values in these combinations. Principal components analysis (PCA) can then be used to
+        /// reduce model data into a few principal components.
+        /// </summary>
+        DeepCFRMultiModel BaselineMultiModelForPCA;
+        /// <summary>
+        /// A collection of different strategies derived by principal component analysis for each player, using a fixed
+        /// number of variations for each principal component. For example, there might be five variations for each first
+        /// principal component multiplied by three for each second, for a total of fifteen different strategies. 
+        /// We are not currently using this approach, instead using approach that allows building on the fly a large number
+        /// of different strategies quickly.
+        /// </summary>
+        public List<DeepCFRMultiModel>[] PCAStrategiesForEachPlayer_Obsolete;
         public RegressionController[] ModelsToPredictUtilitiesFromPrincipalComponents;
 
         int ApproximateBestResponse_CurrentIterationsTotal;
@@ -847,19 +869,19 @@ namespace ACESim
             {
                 if (iteration == 1)
                 {
-                    GenotypingBaselineMultiModel = MultiModel.DeepCopyObservationsOnly(null);
-                    SavedGenotypes = new List<float[][]>();
+                    BaselineMultiModelForPCA = MultiModel.DeepCopyObservationsOnly(null);
+                    SavedModelData = new List<float[][]>();
                 }
                 if (iteration >= EvolutionSettings.DeepCFR_PCA_FirstIterationToSaveGenotypes && iteration % EvolutionSettings.DeepCFR_PCA_SaveGenotypeEveryNIterationsAfterFirst == 0)
                 {
-                    float[][] genotype = MultiModel.GetGenotypes(GenotypingBaselineMultiModel, NumNonChancePlayers);
-                    SavedGenotypes.Add(genotype);
+                    float[][] genotype = MultiModel.GetGenotypes(BaselineMultiModelForPCA, NumNonChancePlayers);
+                    SavedModelData.Add(genotype);
                 }
                 if (iteration == EvolutionSettings.TotalIterations)
                 {
                     Stopwatch s = new Stopwatch();
                     s.Start();
-                    PCAResultsForEachPlayer = new PCAResultsForPlayer[NumNonChancePlayers];
+                    PCAResultsForEachPlayer = new PrincipalComponentsAnalysis[NumNonChancePlayers];
                     for (byte p = 0; p < NumNonChancePlayers; p++)
                         PCAResultsForEachPlayer[p] = PerformPrincipalComponentAnalysis(p);
                     //await LoadReducedFormStrategies();
@@ -1135,59 +1157,23 @@ namespace ACESim
 
         }
 
-        public PCAResultsForPlayer PerformPrincipalComponentAnalysis(byte playerIndex)
+        public PrincipalComponentsAnalysis PerformPrincipalComponentAnalysis(byte playerIndex)
         {
-            int numElementsInGenotype = SavedGenotypes.First()[playerIndex].Length;
-            int numGenotypes = SavedGenotypes.Count();
-            double[,] originalGenotypes = new double[numGenotypes, numElementsInGenotype];
-            for (int i = 0; i < numGenotypes; i++)
-                for (int j = 0; j < numElementsInGenotype; j++)
-                    originalGenotypes[i, j] = SavedGenotypes[i][playerIndex][j];
-            (double[,] meanCentered, double[] mean, double[] stdev) = originalGenotypes.ZScored();
-            alglib.pcatruncatedsubspace(meanCentered, numGenotypes, numElementsInGenotype, EvolutionSettings.DeepCFR_PCA_NumPrincipalComponents, EvolutionSettings.DeepCFR_PCA_Precision, 0, out double[] sigma_squared, out double[,] v_principalComponentLoadings);
-            double[] proportionOfAccountedVariance = sigma_squared.Select(x => x / sigma_squared.Sum()).ToArray();
-            double[,] u_principalComponentScores = meanCentered.Multiply(v_principalComponentLoadings);
-            // Calculate stats on principal component scores. Mean will be zero. Standard deviations will
-            // be such that their squares (i.e., variances) will be in proportion with proportionOfAccountedVariance.
-            // So, we don't really need this, but the standard deviations are useful.
-            StatCollectorArray principalComponentScoresDistribution = new StatCollectorArray();
-            foreach (double[] row in u_principalComponentScores.GetRows())
-                principalComponentScoresDistribution.Add(row);
-            double[] firstDimensionOnly = u_principalComponentScores.GetColumn(0);
-            double[,] vTranspose = v_principalComponentLoadings.Transpose();
-            double[,] backProjectedMeanCentered = u_principalComponentScores.Multiply(vTranspose);
-            double[,] backProjected = backProjectedMeanCentered.ReverseZScored(mean, stdev);
-            PCAResultsForPlayer stats = new PCAResultsForPlayer()
-            {
-                playerIndex = playerIndex,
-                meanOfOriginalElements = mean,
-                stdevOfOriginalElements = stdev,
-                sigma_squared = sigma_squared,
-                v_principalComponentLoadings = v_principalComponentLoadings,
-                proportionOfAccountedVariance = proportionOfAccountedVariance,
-                principalComponentStdevs = principalComponentScoresDistribution.StandardDeviation().ToArray(),
-            };
+            int numVariablesInModel = SavedModelData.First()[playerIndex].Length;
+            int numVersionsOfModel = SavedModelData.Count();
+            double[,] originalGenotypes = new double[numVersionsOfModel, numVariablesInModel];
+            for (int i = 0; i < numVersionsOfModel; i++)
+                for (int j = 0; j < numVariablesInModel; j++)
+                    originalGenotypes[i, j] = SavedModelData[i][playerIndex][j];
+            PrincipalComponentsAnalysis stats = new PrincipalComponentsAnalysis(originalGenotypes, EvolutionSettings.DeepCFR_PCA_NumPrincipalComponents, EvolutionSettings.DeepCFR_PCA_Precision);
             return stats;
         }
 
-        //public async Task<DeepCFRMultiModel> GenerateModelFromPlayerPrincipalComponents(DeepCFRMultiModel baselineModel, double[][] principalComponentScoresForPlayers, bool parallel)
-        //{
-        //    DeepCFRMultiModel targetModel = baselineModel.DeepCopyObservationsOnly(null);
-        //    int numPlayers = StatsForPlayer.Length;
-        //    for (byte playerIndex = 0; playerIndex < numPlayers; playerIndex++)
-        //    {
-        //        double[] principalComponentScoresForPlayer = principalComponentScoresForPlayers[playerIndex];
-        //        ChangeModelBasedOnPlayerPrincipalComponents(targetModel, playerIndex, principalComponentScoresForPlayer);
-        //    }
-        //    await targetModel.ProcessObservations(false, parallel);
-        //    return targetModel;
-        //}
-
-        public async Task LoadReducedFormStrategies()
+        public async Task LoadReducedFormStrategies_Obsolete()
         {
-            PCAStrategiesForEachPlayer = new List<DeepCFRMultiModel>[NumNonChancePlayers];
+            PCAStrategiesForEachPlayer_Obsolete = new List<DeepCFRMultiModel>[NumNonChancePlayers];
             for (byte p = 0; p < NumNonChancePlayers; p++)
-                PCAStrategiesForEachPlayer[p] = await GetSinglePlayerReducedFormStrategies(p);
+                PCAStrategiesForEachPlayer_Obsolete[p] = await GetSinglePlayerReducedFormStrategies_Obsolete(p);
         }
 
         private async Task<DeepCFRMultiModel> GetDeepCFRMultiModelWithRandomPrincipalComponentWeights(int randomIndex)
@@ -1223,7 +1209,7 @@ namespace ACESim
             return Enumerable.Range(0, numToGet).Select(x => GetRandomPrincipalComponentWeights(playerIndex, randomizerValues[x], multiplier)).ToArray();
         }
 
-        public async Task<List<DeepCFRMultiModel>> GetSinglePlayerReducedFormStrategies(byte playerIndex)
+        public async Task<List<DeepCFRMultiModel>> GetSinglePlayerReducedFormStrategies_Obsolete(byte playerIndex)
         {
             var stats = PCAResultsForEachPlayer[playerIndex];
             int[] numVariationsPerPrincipalComponent = EvolutionSettings.DeepCFR_PCA_NumVariationsPerPrincipalComponent;
@@ -1326,7 +1312,7 @@ namespace ACESim
 
         public async Task<DeepCFRMultiModel> GetSinglePlayerStrategyBasedOnPrincipalComponents(byte playerIndex, double[] principalComponentScoresForPlayer, bool parallel, bool getBoostedModel)
         {
-            DeepCFRMultiModel targetModel = GenotypingBaselineMultiModel.DeepCopyObservationsOnly(playerIndex);
+            DeepCFRMultiModel targetModel = BaselineMultiModelForPCA.DeepCopyObservationsOnly(playerIndex);
             ChangeModelBasedOnPlayerPrincipalComponents(targetModel, playerIndex, principalComponentScoresForPlayer, getBoostedModel);
             await targetModel.ProcessObservations(false, parallel);
             return targetModel;
@@ -1335,7 +1321,7 @@ namespace ACESim
 
         private void ChangeModelBasedOnPlayerPrincipalComponents(DeepCFRMultiModel targetModel, byte playerIndex, double[] principalComponentScoresForPlayer, bool getBoostedModel)
         {
-            double[] elementsForPlayers = PCAResultsForEachPlayer[playerIndex].PrincipalComponentsToElements(principalComponentScoresForPlayer);
+            double[] elementsForPlayers = PCAResultsForEachPlayer[playerIndex].PrincipalComponentsToVariable(principalComponentScoresForPlayer);
             if (elementsForPlayers.Any(x => double.IsNaN(x) || double.IsInfinity(x)))
                 throw new Exception("Invalid player element.");
             if (getBoostedModel)
@@ -1343,29 +1329,10 @@ namespace ACESim
                 // With a boosted model, we start with a baseline where each principal component is zero. We then subtract the elements of 
                 // this baseline from the elements corresponding to the desired principal components. Thus, one can determine a strategy 
                 // by first using the baseline model and then the other model, adding them together. 
-                double[] baselineElements = PCAResultsForEachPlayer[playerIndex].PrincipalComponentsToElements(principalComponentScoresForPlayer.Select(x => (double) 0).ToArray()); // i.e., baseline is result with all 0 principal components
+                double[] baselineElements = PCAResultsForEachPlayer[playerIndex].PrincipalComponentsToVariable(principalComponentScoresForPlayer.Select(x => (double) 0).ToArray()); // i.e., baseline is result with all 0 principal components
                 elementsForPlayers = elementsForPlayers.Zip(baselineElements, (first, second) => first - second).ToArray();
             }
             targetModel.SetExpectedRegretsForObservations(playerIndex, elementsForPlayers);
-        }
-
-        public class PCAResultsForPlayer
-        {
-            public byte playerIndex;
-            public double[] meanOfOriginalElements;
-            public double[] stdevOfOriginalElements;
-            public double[] sigma_squared;
-            public double[,] v_principalComponentLoadings;
-            public double[,] vTranspose => v_principalComponentLoadings.Transpose();
-            public double[] proportionOfAccountedVariance;
-            public double[] principalComponentStdevs; // NOTE: Square these to calculate variance. Then proportionOfAccountedVariance is the proportion of the sum of the squares for each one. 
-
-            public double[] PrincipalComponentsToElements(double[] principalComponentScoresForPlayer)
-            {
-                double[] backProjectedMeanCentered = principalComponentScoresForPlayer.Multiply(vTranspose);
-                double[] backProjected = backProjectedMeanCentered.ReverseZScored(meanOfOriginalElements, stdevOfOriginalElements);
-                return backProjected;
-            }
         }
 
         #endregion
