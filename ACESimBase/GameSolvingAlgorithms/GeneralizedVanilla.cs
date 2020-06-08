@@ -1250,5 +1250,9 @@ namespace ACESim
 
         #endregion
 
+        #region Principal component analysis
+
+        #endregion
+
     }
 }

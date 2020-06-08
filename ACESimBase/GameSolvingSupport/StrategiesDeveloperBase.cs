@@ -455,22 +455,42 @@ namespace ACESim
 
         #region Principal components analysis
 
+        /// <summary>
+        /// Called after the first iteration, this provides an opportunity to perform any initialization so that data can be
+        /// saved by <see cref="GetCurrentModelVariablesForPCA"/>.
+        /// </summary>
+        public virtual void InitializePreparationForPCA()
+        {
+            ModelDataSavedForPCA = new List<float[][]>();
+        }
+
+        /// <summary>
+        /// Copies the model variables for each player into a separate float array for that player. 
+        /// </summary>
+        /// <returns></returns>
         public virtual float[][] GetCurrentModelVariablesForPCA()
         {
             return null;
         }
 
-        public virtual void InitializeRememberingModelsForPCA()
-        {
-            ModelDataSavedForPCA = new List<float[][]>();
-        }
-
-        public virtual Task SetCompoundStrategyUsingPrincipalComponents()
+        /// <summary>
+        /// Perform any processing needed after the PCA analysis, prior to the specification of weights to apply.
+        /// </summary>
+        /// <returns></returns>
+        public virtual Task ProcessPrincipalComponentsResults()
         {
             return Task.CompletedTask;
         }
-        public virtual void SetModelToPrincipalComponentWeights(List<double>[] principalComponentWeightsForEachPlayer)
+
+        /// <summary>
+        /// Update the model to use the specified principal component weights. In general, this should effectively do
+        /// the reverse of <see cref="GetCurrentModelVariablesForPCA"/>, using the principal component results to
+        /// update the current model.
+        /// </summary>
+        /// <param name="principalComponentWeightsForEachPlayer"></param>
+        public virtual Task SetModelToPrincipalComponentWeights(List<double>[] principalComponentWeightsForEachPlayer)
         {
+            return Task.CompletedTask;
         }
 
         public async Task RememberModelVariablesForPCA(int iteration)
@@ -479,7 +499,7 @@ namespace ACESim
             {
                 if (iteration == 1)
                 {
-                    InitializeRememberingModelsForPCA();
+                    InitializePreparationForPCA();
                 }
                 if (iteration >= EvolutionSettings.PCA_FirstIterationToSaveAsPCAObservation && iteration % EvolutionSettings.PCA_SavePCAObservationEveryNIterationsAfterFirst == 0)
                 {
@@ -488,17 +508,22 @@ namespace ACESim
                 }
                 if (iteration == EvolutionSettings.TotalIterations)
                 {
-                    Stopwatch s = new Stopwatch();
-                    s.Start();
-                    PCAResultsForEachPlayer = new PrincipalComponentsAnalysis[NumNonChancePlayers];
-                    for (byte p = 0; p < NumNonChancePlayers; p++)
-                        PCAResultsForEachPlayer[p] = PerformPrincipalComponentAnalysis(p);
-                    //await LoadReducedFormStrategies();
-                    await SetCompoundStrategyUsingPrincipalComponents();
-                    TabbedText.WriteLine($"Total time performing PCA and creating compound strategy {s.ElapsedMilliseconds} ms");
-                    await BuildModelPredictingUtilitiesBasedOnPrincipalComponents();
+                    await PerformPrincipalComponentAnalysis();
                 }
             }
+        }
+
+        private async Task PerformPrincipalComponentAnalysis()
+        {
+            Stopwatch s = new Stopwatch();
+            s.Start();
+            PCAResultsForEachPlayer = new PrincipalComponentsAnalysis[NumNonChancePlayers];
+            for (byte p = 0; p < NumNonChancePlayers; p++)
+                PCAResultsForEachPlayer[p] = PerformPrincipalComponentAnalysis(p);
+            //await LoadReducedFormStrategies();
+            await ProcessPrincipalComponentsResults();
+            TabbedText.WriteLine($"Total time performing PCA and creating compound strategy {s.ElapsedMilliseconds} ms");
+            await BuildModelPredictingUtilitiesBasedOnPrincipalComponents();
         }
 
         public PrincipalComponentsAnalysis PerformPrincipalComponentAnalysis(byte playerIndex)
@@ -725,27 +750,9 @@ namespace ACESim
             TabbedText.WriteLine($"Overall average absolute difference: " + s.Average().ToSignificantFigures(3));
             for (int p = 0; p < NumNonChancePlayers; p++)
             {
-                double coef = ComputeCoeff(actualArray[p], predictedArray[p]);
+                double coef = actualArray[p].CorrelationCoefficient(predictedArray[p]);
                 TabbedText.WriteLine($"Correlation coefficient player {p}: {coef}");
             }
-        }
-
-        public double ComputeCoeff(double[] values1, double[] values2)
-        {
-            if (values1.Length != values2.Length)
-                throw new ArgumentException("values must be the same length");
-
-            var avg1 = values1.Average();
-            var avg2 = values2.Average();
-
-            var sum1 = values1.Zip(values2, (x1, y1) => (x1 - avg1) * (y1 - avg2)).Sum();
-
-            var sumSqr1 = values1.Sum(x => Math.Pow((x - avg1), 2.0));
-            var sumSqr2 = values2.Sum(y => Math.Pow((y - avg2), 2.0));
-
-            var result = sum1 / Math.Sqrt(sumSqr1 * sumSqr2);
-
-            return result;
         }
 
         #endregion

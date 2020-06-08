@@ -5,7 +5,9 @@ using System.Linq;
 
 namespace ACESimBase
 {
-
+    /// <summary>
+    /// Returns regression results equal to a baseline regression plus specified weights (positive or negative) for each of some additional number of additional regressions.
+    /// </summary>
     public class CompoundRegressionMachine : IRegressionMachine
     {
         public IRegressionMachine BaselineMachine;

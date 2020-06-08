@@ -859,18 +859,27 @@ namespace ACESim
             return MultiModel.GetModelVariables(BaselineMultiModelForPCA, NumNonChancePlayers);
         }
 
-        public override void InitializeRememberingModelsForPCA()
+        public override void InitializePreparationForPCA()
         {
             BaselineMultiModelForPCA = MultiModel.DeepCopyObservationsOnly(null);
             ModelDataSavedForPCA = new List<float[][]>();
         }
 
-        public override void SetModelToPrincipalComponentWeights(List<double>[] principalComponentWeightsForEachPlayer)
+        public override async Task SetModelToPrincipalComponentWeights(List<double>[] principalComponentWeightsForEachPlayer)
         {
-            CompoundRegressionMachinesContainer.SpecifyWeightOnSupplementalMachines(principalComponentWeightsForEachPlayer, InverseNumStandardDeviationsForPrincipalComponentStrategy);
+            // Note: We are using the compound regression machines container. The logic is considerably more complicated, but
+            // this allows us to very quickly update the model for a new set of weights, by weighting separate models for each
+            // principal component in each decision and adding them to a baseline model. The alternative approach is included
+            // here for comparison. In this case, we change the regrets in the existing multi model to match the regrets 
+            // generated from the principal component weights for each player.
+            bool useCompoundRegressionMachinesContainer = true;
+            if (useCompoundRegressionMachinesContainer)
+                CompoundRegressionMachinesContainer.SpecifyWeightOnSupplementalMachines(principalComponentWeightsForEachPlayer, InverseNumStandardDeviationsForPrincipalComponentStrategy);
+            else
+                await GetAllPlayerStrategiesBasedOnPrincipalComponents(principalComponentWeightsForEachPlayer, EvolutionSettings.ParallelOptimization);
         }
 
-        public override async Task SetCompoundStrategyUsingPrincipalComponents()
+        public override async Task ProcessPrincipalComponentsResults()
         {
             var strategies = await GetSeparateStrategiesForPrincipalComponents(EvolutionSettings.ParallelOptimization);
             DeepCFRCompoundRegressionMachinesContainer container = new DeepCFRCompoundRegressionMachinesContainer(strategies, GameDefinition, NumNonChancePlayers);
@@ -913,7 +922,7 @@ namespace ACESim
             return result;
         }
 
-        private async Task<DeepCFRMultiModel> GetIntegratedStrategyBasedOnPrincipalComponents(List<double>[] principalComponentScoresForEachPlayer, bool parallel)
+        private async Task<DeepCFRMultiModel> GetAllPlayerStrategiesBasedOnPrincipalComponents(List<double>[] principalComponentScoresForEachPlayer, bool parallel)
         {
             DeepCFRMultiModel integratedStrategies = null;
             for (byte p = 0; p < NumNonChancePlayers; p++)
@@ -965,7 +974,7 @@ namespace ACESim
                 (double[] compoundUtilities, double[] compoundCustomStats) = await DeepCFR_UtilitiesAndCustomResultAverage(1_000_000);
                 compoundStats.Add(compoundUtilities);
                 CompoundRegressionMachinesContainer = null;
-                var pcSpecificStrategy = await GetIntegratedStrategyBasedOnPrincipalComponents(principalComponentWeightsForEachPlayer, EvolutionSettings.ParallelOptimization);
+                var pcSpecificStrategy = await GetAllPlayerStrategiesBasedOnPrincipalComponents(principalComponentWeightsForEachPlayer, EvolutionSettings.ParallelOptimization);
                 MultiModel = pcSpecificStrategy;
                 (double[] pcSpecificUtilities, double[] pcSpecificCustomStats) = await DeepCFR_UtilitiesAndCustomResultAverage(1_000_000);
                 pcSpecificStats.Add(pcSpecificUtilities);

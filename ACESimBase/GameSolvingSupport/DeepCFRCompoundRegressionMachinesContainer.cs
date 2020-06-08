@@ -7,7 +7,12 @@ using System.Text;
 
 namespace ACESimBase.GameSolvingSupport
 {
-
+    /// <summary>
+    /// Stores baseline and additive models, each of which specifies regressions for all decisions in the game. 
+    /// It then can create regression machines accessible by a map from decision index, where each regression
+    /// machine is a CompoundRegressionMachine of the baseline and additive models for that decision. The weight
+    /// on the baseline and additive models can be changed programmatically. 
+    /// </summary>
     public class DeepCFRCompoundRegressionMachinesContainer
     {
         List<DeepCFRMultiModel> BaselineAndAdditiveModels;
