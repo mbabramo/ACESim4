@@ -20,7 +20,7 @@ namespace ACESim
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; // use RegretMatching etc. for GeneralizedVanilla
 
-        public const int VanillaIterations = 1_000; // DEBUG // Note: Also used for GeneralizedVanilla, DeepCFR
+        public const int VanillaIterations = 1000; // DEBUG // Note: Also used for GeneralizedVanilla, DeepCFR
         public const int VanillaReportEveryNIterations = VanillaIterations;
         public int? SuppressReportBeforeIteration = null;
         public const int VanillaBestResponseEveryMIterations = 25; // DEBUG VanillaIterations; 
