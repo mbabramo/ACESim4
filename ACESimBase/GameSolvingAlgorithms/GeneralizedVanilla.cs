@@ -170,6 +170,7 @@ namespace ACESim
                     var checkpoints = String.Join("\r\n", Enumerable.Range(0, Unroll_Commands.Checkpoints.Count).Select(x => $"{x}: {Unroll_Commands.Checkpoints[x]}"));
                 }
                 UpdateInformationSets(iteration);
+                await PostIterationWorkForPrincipalComponentsAnalysis(iteration);
                 SimulatedAnnealing(iteration);
                 MiniReport(iteration, Unroll_IterationResultForPlayers);
                 bool addGeneticAlgorithm = false;
@@ -933,6 +934,7 @@ namespace ACESim
                 GeneralizedVanillaCFRIteration_OptimizePlayer(iteration, results, playerBeingOptimized);
             }
             UpdateInformationSets(iteration);
+            await PostIterationWorkForPrincipalComponentsAnalysis(iteration);
             SimulatedAnnealing(iteration);
             MiniReport(iteration, results);
 
@@ -1252,6 +1254,65 @@ namespace ACESim
 
         #region Principal component analysis
 
+        /// <summary>
+        /// Copies the model variables for each player (that is, the regret values in the player's information sets) into a separate float array for that player. 
+        /// </summary>
+        /// <returns></returns>
+        public override float[][] GetCurrentModelVariablesForPCA()
+        {
+            float[][] result = new float[NumNonChancePlayers][];
+            for (int p = 0; p < NumNonChancePlayers; p++)
+            {
+                List<float> modelVariablesForPlayer = new List<float>();
+                foreach (var informationSet in InformationSets)
+                {
+                    if (informationSet.PlayerIndex == p)
+                    {
+                        for (int a = 1; a <= informationSet.NumPossibleActions; a++)
+                        {
+                            double regret = informationSet.GetCumulativeRegret(a);
+                            modelVariablesForPlayer.Add((float) regret);
+                        }
+                    }
+                }
+                result[p] = modelVariablesForPlayer.ToArray();
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Update the model to use the specified principal component weights. In general, this should effectively do
+        /// the reverse of <see cref="GetCurrentModelVariablesForPCA"/>, using the principal component results to
+        /// update the current model.
+        /// </summary>
+        /// <param name="principalComponentWeightsForEachPlayer"></param>
+        public override Task SetModelToPrincipalComponentWeights(List<double>[] principalComponentWeightsForEachPlayer)
+        {
+            for (int p = 0; p < NumNonChancePlayers; p++)
+            {
+                double[] modelVariablesForPlayer = PCAResultsForEachPlayer[p].PrincipalComponentsToVariable(principalComponentWeightsForEachPlayer[p].ToArray());
+                int index = 0;
+                foreach (var informationSet in InformationSets)
+                {
+                    if (informationSet.PlayerIndex == p)
+                    {
+                        for (int a = 1; a <= informationSet.NumPossibleActions; a++)
+                        {
+                            informationSet.SetCumulativeRegret(a, modelVariablesForPlayer[index++]);
+                        }
+                        informationSet.SetToMixedStrategyBasedOnRegretMatchingCumulativeRegrets(true);
+                    }
+                }
+            }
+            DEBUGX();
+            return Task.CompletedTask;
+        }
+
+        public override void DEBUGX()
+        {
+            var DEBUG = InformationSets.Where(x => x.PlayerIndex == 0).Sum(x => x.GetCumulativeRegret(1));
+            TabbedText.WriteLine($"Sum {DEBUG}");
+        }
         #endregion
 
     }

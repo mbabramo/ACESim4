@@ -137,7 +137,7 @@ namespace ACESim
             TabbedText.WriteLine($"All models computed, time {localStopwatch.ElapsedMilliseconds} ms");
             localStopwatch.Stop();
 
-            await RememberModelVariablesForPCA(iteration);
+            await PostIterationWorkForPrincipalComponentsAnalysis(iteration);
 
             double[] exploitabilityProxy;
             if (EvolutionSettings.DeepCFR_ExploitabilityProxy)
@@ -970,7 +970,7 @@ namespace ACESim
             {
                 List<double>[] principalComponentWeightsForEachPlayer = GetRandomPrincipalComponentWeightsForEachPlayer(i * 737, 1.0);
                 string principalComponentWeightsString = String.Join(";", Enumerable.Range(0, NumNonChancePlayers).Select(x => x.ToString() + ": " + principalComponentWeightsForEachPlayer[x].ToSignificantFigures(3)));
-                SetModelToPrincipalComponentWeights(principalComponentWeightsForEachPlayer);
+                await SetModelToPrincipalComponentWeights(principalComponentWeightsForEachPlayer);
                 (double[] compoundUtilities, double[] compoundCustomStats) = await DeepCFR_UtilitiesAndCustomResultAverage(1_000_000);
                 compoundStats.Add(compoundUtilities);
                 CompoundRegressionMachinesContainer = null;

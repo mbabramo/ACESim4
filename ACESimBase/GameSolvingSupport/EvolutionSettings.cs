@@ -112,14 +112,15 @@ namespace ACESim
 
         public bool PCA_PerformPrincipalComponentAnalysis = true;
         public double PCA_Precision = 1E-5;
-        public int PCA_FirstIterationToSaveAsPCAObservation = 5; // DEBUG
+        public int PCA_FirstIterationToSaveAsPCAObservation = 20; // DEBUG
         public int PCA_SavePCAObservationEveryNIterationsAfterFirst = 1;
         public int[] PCA_NumVariationsPerPrincipalComponent_Obsolete = new int[] { 4, 3, 2 }; // NOTE: Not currently being used; this can be used to generate non-random permutations of principal components.
         public int PCA_NumPrincipalComponents = 3;
         public bool PCA_BuildModelToPredictUtilitiesBasedOnPrincipalComponents = true;
-        public int PCA_NumUtilitiesToCalculateToBuildModel = 50; // DEBUG 1_000;
-        public int PCA_NumGamesToPlayToEstimateEachUtilityWhileBuildingModel = 100; // DEBUG 1_000;
+        public int PCA_NumUtilitiesToCalculateToBuildModel = 1_000; // DEBUG 1_000;
+        public int PCA_NumGamesToPlayToEstimateEachUtilityWhileBuildingModel = 100; // DEBUG 1_000; // Note: This doesn't apply to GeneralizedVanilla.
         public int PCA_NumStrategyChoicesPerPlayer = 1_000;
+        public bool PCA_AssessModelsToPredictUtilitiesFromPrincipalComponents = false;
 
         public RegressionTechniques RegressionTechnique = RegressionTechniques.FastTree;
         public bool DeepCFR_ProbeAllActions = true;

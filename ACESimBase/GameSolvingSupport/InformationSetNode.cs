@@ -219,7 +219,6 @@ namespace ACESim
                 NodeInformation[sumInversePiDimension, a - 1] = 0;
                 NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1] = 0;
                 NodeInformation[scratchDimension, a - 1] = 0;
-
             }
             if (EvolutionSettings.RecordPastValues && clearPastValues) 
             {
@@ -568,6 +567,11 @@ namespace ACESim
         public double GetCumulativeRegret(int action)
         {
             return NodeInformation[cumulativeRegretDimension, action - 1];
+        }
+
+        public void SetCumulativeRegret(int action, double regret)
+        {
+            NodeInformation[cumulativeRegretDimension, action - 1] = regret;
         }
 
         public double GetPositiveCumulativeRegret(int action)
@@ -1418,6 +1422,13 @@ namespace ACESim
         #endregion
 
         #region General manipulation
+
+        public void SetToMixedStrategyBasedOnRegretMatchingCumulativeRegrets(bool setAverageAndCumulativeStrategy)
+        {
+            double[] strategy = new double[NumPossibleActions];
+            GetRegretMatchingProbabilities(strategy);
+            SetToMixedStrategy(strategy, setAverageAndCumulativeStrategy);
+        }
 
         public void SetToMixedStrategy(double[] strategy, bool setAverageAndCumulativeStrategy)
         {

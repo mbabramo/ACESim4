@@ -493,7 +493,12 @@ namespace ACESim
             return Task.CompletedTask;
         }
 
-        public async Task RememberModelVariablesForPCA(int iteration)
+        /// <summary>
+        /// Depending on the iteration and settings, initialize preparation for PCA, save model data, or perform PCA.
+        /// </summary>
+        /// <param name="iteration"></param>
+        /// <returns></returns>
+        public async Task PostIterationWorkForPrincipalComponentsAnalysis(int iteration)
         {
             if (EvolutionSettings.PCA_PerformPrincipalComponentAnalysis)
             {
@@ -508,7 +513,9 @@ namespace ACESim
                 }
                 if (iteration == EvolutionSettings.TotalIterations)
                 {
+                    TabbedText.HideConsoleProgressString();
                     await PerformPrincipalComponentAnalysis();
+                    TabbedText.ShowConsoleProgressString();
                 }
             }
         }
@@ -579,7 +586,7 @@ namespace ACESim
                     innerStopwatch.Start();
                     List<double>[] principalComponentWeightsForEachPlayer = GetRandomPrincipalComponentWeightsForEachPlayer(i * 737, 1.5 /* DEBUG */);
                     string principalComponentWeightsString = String.Join("; ", Enumerable.Range(0, NumNonChancePlayers).Select(x => x.ToString() + ": " + principalComponentWeightsForEachPlayer[x].ToSignificantFigures(3)));
-                    SetModelToPrincipalComponentWeights(principalComponentWeightsForEachPlayer);
+                    await SetModelToPrincipalComponentWeights(principalComponentWeightsForEachPlayer);
                     (double[] compoundUtilities, double[] customStats) = await PCA_UtilitiesAndCustomResultAverage(i * numUtilitiesToCalculateToBuildModel, true);
                     data.Add(new ModelPredictingUtilitiesDatum(principalComponentWeightsForEachPlayer, compoundUtilities));
                     innerStopwatch.Stop();
@@ -598,8 +605,7 @@ namespace ACESim
                 }
                 outerStopwatch.Stop();
                 TabbedText.WriteLine($"Utilities model build in {outerStopwatch.ElapsedMilliseconds} ms");
-                bool assessModels = false;
-                if (assessModels)
+                if (EvolutionSettings.PCA_AssessModelsToPredictUtilitiesFromPrincipalComponents)
                     await AssessModelsToPredictUtilitiesFromPrincipalComponents();
                 UsePCAToEvaluateEquilibria();
             }
@@ -607,16 +613,27 @@ namespace ACESim
 
         public virtual Task<(double[] compoundUtilities, double[] customStats)> PCA_UtilitiesAndCustomResultAverage(int randSeed, bool reportTime = false)
         {
+            (double[] utilities, double[] customStats) ultimateResult = default;
             if (reportTime)
                 TabbedText.Write($"Calculating utilities");
             Stopwatch s = new Stopwatch();
             s.Start();
-            var calculator = new UtilitiesAndCustomResultTreeCalculation(EvolutionSettings.DistributeChanceDecisions, false);
-            var treeWalkResult = TreeWalk_Tree(calculator, true);
-            (double[] utilities, double[]) resultTransformed = (treeWalkResult.utilities, treeWalkResult.customResult.AsDoubleArray());
+            if (EvolutionSettings.UseAcceleratedBestResponse)
+            {
+                var abrResult = ExecuteAcceleratedBestResponse(false);
+                double[] utilities = abrResult.Select(x => x.utilityResult).ToArray();
+                double[] customStats = abrResult.First().customResult.AsDoubleArray();
+                ultimateResult = (utilities, customStats);
+            }
+            else
+            {
+                var calculator = new UtilitiesAndCustomResultTreeCalculation(EvolutionSettings.DistributeChanceDecisions, false);
+                var treeWalkResult = TreeWalk_Tree(calculator, true);
+                ultimateResult = (treeWalkResult.utilities, treeWalkResult.customResult.AsDoubleArray());
+            }
             if (reportTime)
-                TabbedText.WriteLine($"({treeWalkResult.utilities.ToSignificantFigures(4)}; customResults: {resultTransformed.Item2.ToSignificantFigures(4)} time {s.ElapsedMilliseconds} ms");
-            return Task.FromResult(resultTransformed);
+                TabbedText.WriteLine($"({ultimateResult.utilities.ToSignificantFigures(4)}; customResults: {ultimateResult.customStats.ToSignificantFigures(4)} time {s.ElapsedMilliseconds} ms");
+            return Task.FromResult(ultimateResult);
         }
 
         public void UsePCAToEvaluateEquilibria()
@@ -666,7 +683,9 @@ namespace ACESim
                 TabbedText.WriteLine($"No Nash equilibrium found. Finding best approximate Nash equilibrium (distance from Nash: {nashDistance}).");
                 nashEquilibria.Add(new List<double>[2] { principalComponentsWeightsForPlayer0[result.player0Strategy], principalComponentsWeightsForPlayer1[result.player1Strategy] });
             }
-            if (nashEquilibria.FirstOrDefault() is List<double>[] equilibrium)
+            nashEquilibria = nashEquilibria.OrderByDescending(eq => GetSumOfPlayerUtilitiesInEquilibrium(eq)).ToList();
+            var nashEquilibriumToPick = nashEquilibria.FirstOrDefault();
+            if (nashEquilibriumToPick is List<double>[] equilibrium)
                 SetModelToPrincipalComponentWeights(equilibrium);
             ReportEquilibria(nashEquilibria);
         }
@@ -676,11 +695,7 @@ namespace ACESim
             HashSet<string> redundantEquilibria = new HashSet<string>();
             foreach (var equilibrium in equilibria)
             {
-                var datum = new ModelPredictingUtilitiesDatum(equilibrium, null);
-                var model = ModelsToPredictUtilitiesFromPrincipalComponents[0];
-                double player0Utility = model.GetResult(datum.Convert().X, null, null);
-                model = ModelsToPredictUtilitiesFromPrincipalComponents[1];
-                double player1Utility = model.GetResult(datum.Convert().X, null, null);
+                (double player0Utility, double player1Utility) = GetPlayerUtilitiesInEquilibrium(equilibrium);
                 string principalComponentWeightsString = string.Join("; ", Enumerable.Range(0, NumNonChancePlayers).Select(x => x.ToString() + ": " + equilibrium[x].ToSignificantFigures(3)));
                 string hashToCheckRedundancy0 = $"{equilibrium[0].ToSignificantFigures(10)} {player0Utility.ToSignificantFigures(10)} {player1Utility.ToSignificantFigures(10)}";
                 string hashToCheckRedundancy1 = $"{equilibrium[1].ToSignificantFigures(10)} {player0Utility.ToSignificantFigures(10)} {player1Utility.ToSignificantFigures(10)}";
@@ -691,6 +706,22 @@ namespace ACESim
                     redundantEquilibria.Add(hashToCheckRedundancy1);
                 }
             }
+        }
+
+        private double GetSumOfPlayerUtilitiesInEquilibrium(List<double>[] equilibrium)
+        {
+            var utilities = GetPlayerUtilitiesInEquilibrium(equilibrium);
+            return utilities.player0Utility + utilities.player1Utility;
+        }
+
+        private (double player0Utility, double player1Utility) GetPlayerUtilitiesInEquilibrium(List<double>[] equilibrium)
+        {
+            var datum = new ModelPredictingUtilitiesDatum(equilibrium, null);
+            var model = ModelsToPredictUtilitiesFromPrincipalComponents[0];
+            double player0Utility = model.GetResult(datum.Convert().X, null, null);
+            model = ModelsToPredictUtilitiesFromPrincipalComponents[1];
+            double player1Utility = model.GetResult(datum.Convert().X, null, null);
+            return (player0Utility, player1Utility);
         }
 
         public void GetEstimatedUtilitiesForStrategyChoices(int numStrategyChoicesPerPlayer, out double[,] player0Utilities, out double[,] player1Utilities, out List<double>[] principalComponentsWeightsForPlayer0, out List<double>[] principalComponentsWeightsForPlayer1)
@@ -732,7 +763,7 @@ namespace ACESim
                 List<double>[] principalComponentWeightsForEachPlayer = GetRandomPrincipalComponentWeightsForEachPlayer(((int)j) * 2011, 1.0);
                 string principalComponentWeightsString = string.Join("; ", Enumerable.Range(0, NumNonChancePlayers).Select(x => x.ToString() + ": " + principalComponentWeightsForEachPlayer[x].ToSignificantFigures(3)));
                 ModelPredictingUtilitiesDatum datum = new ModelPredictingUtilitiesDatum(principalComponentWeightsForEachPlayer, null);
-                SetModelToPrincipalComponentWeights(principalComponentWeightsForEachPlayer);
+                await SetModelToPrincipalComponentWeights(principalComponentWeightsForEachPlayer);
                 (double[] actual, double[] customStats) = await PCA_UtilitiesAndCustomResultAverage((int) j, reportTime: false);
                 double[] predicted = new double[NumNonChancePlayers];
                 for (byte p = 0; p < NumNonChancePlayers; p++)
@@ -1592,6 +1623,11 @@ namespace ACESim
             }
         }
 
+        public virtual void DEBUGX()
+        {
+
+        }
+
         public DevelopmentStatus Status = new DevelopmentStatus();
 
         
@@ -1613,15 +1649,16 @@ namespace ACESim
             TabbedText.WriteLine($"... {s.ElapsedMilliseconds} milliseconds. Total information sets: {InformationSets.Count()}");
         }
 
-        private void ExecuteAcceleratedBestResponse(bool determineWhetherReachable)
+        private (double bestResponseResult, double utilityResult, FloatSet customResult)[] ExecuteAcceleratedBestResponse(bool determineWhetherReachable)
         {
             // index through information sets by decision (note that i is not the same as the actual decision index). First, calculate reach probabilities going forward. Second, calculate best response values going backward.
             bool parallelize = EvolutionSettings.ParallelOptimization;
             ResetWeightOnOpponentsUtilityToZero();
             CalculateReachProbabilitiesAndPrunability(parallelize);
             CalculateBestResponseValuesAndReachability(determineWhetherReachable, parallelize);
-            CompleteAcceleratedBestResponse();
+            (double bestResponseResult, double utilityResult, FloatSet customResult)[] result = CompleteAcceleratedBestResponse();
             ResetWeightOnOpponentsUtilityToCurrentWeight();
+            return result;
         }
 
 
@@ -1681,7 +1718,7 @@ namespace ACESim
                 }
         }
 
-        private void CompleteAcceleratedBestResponse()
+        private (double bestResponseResult, double utilityResult, FloatSet customResult)[] CompleteAcceleratedBestResponse()
         {
             // Finally, we need to calculate the final values by looking at the first information sets for each player.
             if (Status.BestResponseUtilities == null || Status.BestResponseImprovement == null || Status.UtilitiesOverall == null)
@@ -1690,16 +1727,19 @@ namespace ACESim
                 Status.BestResponseImprovement = new double[NumNonChancePlayers];
                 Status.UtilitiesOverall = new double[NumNonChancePlayers];
             }
+            (double bestResponseResult, double utilityResult, FloatSet customResult)[] results = new (double bestResponseResult, double utilityResult, FloatSet customResult)[NumNonChancePlayers];
             for (byte playerIndex = 0; playerIndex < NumNonChancePlayers; playerIndex++)
             {
                 var resultForPlayer = AcceleratedBestResponsePrepResult[playerIndex];
                 (double bestResponseResult, double utilityResult, FloatSet customResult) = resultForPlayer.GetProbabilityAdjustedValueOfPaths(playerIndex, EvolutionSettings.UseCurrentStrategyForBestResponse);
+                results[playerIndex] = (bestResponseResult, utilityResult, customResult);
                 Status.BestResponseReflectsCurrentStrategy = EvolutionSettings.UseCurrentStrategyForBestResponse;
                 Status.BestResponseUtilities[playerIndex] = bestResponseResult;
                 Status.UtilitiesOverall[playerIndex] = utilityResult;
                 Status.BestResponseImprovement[playerIndex] = bestResponseResult - utilityResult;
                 Status.CustomResult = customResult; // will be same for each player
             }
+            return results;
         }
 
         public void CalculateBestResponse(bool determineWhetherReachable)
@@ -1763,6 +1803,7 @@ namespace ACESim
         {
             // This is comparing (1) Best response vs. average strategy; to (2) most recently calculated average strategy
             bool overallUtilitiesRecorded = Status.UtilitiesOverall != null;
+            DEBUGX();
             if (!overallUtilitiesRecorded)
             {
                 if (UtilityCalculationsArray == null)
@@ -1770,6 +1811,7 @@ namespace ACESim
                 else
                     CalculateUtilitiesOverall();
             }
+            DEBUGX();
             TabbedText.WriteLine(Status.ToString());
             TabbedText.WriteLine("");
             if (!overallUtilitiesRecorded)
