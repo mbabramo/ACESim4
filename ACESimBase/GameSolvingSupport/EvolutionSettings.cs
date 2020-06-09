@@ -121,6 +121,8 @@ namespace ACESim
         public int PCA_NumGamesToPlayToEstimateEachUtilityWhileBuildingModel = 1_000; // Note: This doesn't apply to GeneralizedVanilla.
         public int PCA_NumStrategyChoicesPerPlayer = 1_000;
         public bool PCA_AssessModelsToPredictUtilitiesFromPrincipalComponents = false;
+        public bool PCA_BestResponseAfterPCA = true;
+        public bool PCA_ReportsAfterPCA = true;
 
         public RegressionTechniques RegressionTechnique = RegressionTechniques.FastTree;
         public bool DeepCFR_ProbeAllActions = true;

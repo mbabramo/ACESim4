@@ -127,6 +127,7 @@ namespace ACESim
             {
                 await RecoverSavedPCAModelData();
                 await PerformPrincipalComponentAnalysis();
+                await GenerateReports(() => GameDefinition.OptionSetName, reportCollection, EvolutionSettings.PCA_BestResponseAfterPCA, EvolutionSettings.PCA_ReportsAfterPCA);
             }
             if (constructCorrelatedEquilibrium)
                 reportCollection = await FinalizeCorrelatedEquilibrium();
@@ -1498,44 +1499,20 @@ namespace ACESim
             bool doReports = EvolutionSettings.ReportEveryNIterations != null && (EvolutionSettings.SuppressReportBeforeIteration == null || iteration >= EvolutionSettings.SuppressReportBeforeIteration) && (iteration % EvolutionSettings.ReportEveryNIterations == 0 || Status.BestResponseTargetMet(EvolutionSettings.BestResponseTarget));
             if (doReports || doBestResponse)
             {
+                if (EvolutionSettings.CreateInformationSetCharts)
+                    InformationSetCharts.CreateInformationSetChart(InformationSets, @"H:\My Drive\Articles, books in progress\Machine learning model of litigation\bluffing results\images\image" + iteration.ToString("D8") + ".png");
+            }
+            if (doReports || doBestResponse)
+            {
                 TabbedText.HideConsoleProgressString();
                 if (EvolutionSettings.CreateInformationSetCharts)
                     InformationSetCharts.CreateInformationSetChart(InformationSets, @"H:\My Drive\Articles, books in progress\Machine learning model of litigation\bluffing results\images\image" + iteration.ToString("D8") + ".png");
-                TabbedText.WriteLine("");
-                TabbedText.WriteLine(prefaceFn());
+                await GenerateReports(prefaceFn, reportCollection, doBestResponse, doReports);
                 if (doBestResponse)
                 {
-                    CalculateBestResponse(false);
-                    if (EvolutionSettings.CalculatePerturbedBestResponseRefinement)
-                    {
-                        var utilities = Status.BestResponseUtilities.ToArray();
-                        var improvement = Status.BestResponseImprovement.ToArray();
-                        var br = Status.BestResponseImprovementAdjAvg;
-                        InformationSets.ForEach(x =>
-                        {
-                            x.CreateBackup();
-                            x.PerturbAverageStrategy(EvolutionSettings.PerturbationForBestResponseCalculation, false);
-                        });
-                        CalculateBestResponse(false);
-                        InformationSets.ForEach(x => x.RestoreBackup());
-                        double refinement = br / Status.BestResponseImprovementAdjAvg; // i.e., the exploitability without a perturbation divided by the exploitability with a perturbation. if very refined, this should be close to 1. If the perturbation greatly increases exploitability, this will be closer to 0.
-                        // restore previous values
-                        Status.BestResponseUtilities = utilities;
-                        Status.BestResponseImprovement = improvement;
-                        Status.Refinement = refinement;
-                    }
                     RememberBestResponseExploitabilityValues(iteration);
-                }
-                if (doReports)
-                {
-                    Br.eak.Add("Report");
-                    var actionStrategiesToUse = EvolutionSettings.ActionStrategiesToUseInReporting;
-                    await CompleteMainReports(reportCollection, actionStrategiesToUse);
-                    RecallBestOverTime();
-                    Br.eak.Remove("Report");
-                }
-                if (doBestResponse)
                     BestResponseComparison();
+                }
                 if (iteration % EvolutionSettings.CorrelatedEquilibriumCalculationsEveryNIterations == 0)
                     DoCorrelatedEquilibriumCalculations(iteration);
                 if (EvolutionSettings.PrintGameTree)
@@ -1548,6 +1525,42 @@ namespace ACESim
             }
 
             return reportCollection;
+        }
+
+        private async Task GenerateReports(Func<string> prefaceFn, ReportCollection reportCollection, bool doBestResponse, bool doReports)
+        {
+            TabbedText.WriteLine("");
+            TabbedText.WriteLine(prefaceFn());
+            if (doBestResponse)
+            {
+                CalculateBestResponse(false);
+                if (EvolutionSettings.CalculatePerturbedBestResponseRefinement)
+                {
+                    var utilities = Status.BestResponseUtilities.ToArray();
+                    var improvement = Status.BestResponseImprovement.ToArray();
+                    var br = Status.BestResponseImprovementAdjAvg;
+                    InformationSets.ForEach(x =>
+                    {
+                        x.CreateBackup();
+                        x.PerturbAverageStrategy(EvolutionSettings.PerturbationForBestResponseCalculation, false);
+                    });
+                    CalculateBestResponse(false);
+                    InformationSets.ForEach(x => x.RestoreBackup());
+                    double refinement = br / Status.BestResponseImprovementAdjAvg; // i.e., the exploitability without a perturbation divided by the exploitability with a perturbation. if very refined, this should be close to 1. If the perturbation greatly increases exploitability, this will be closer to 0.
+                                                                                   // restore previous values
+                    Status.BestResponseUtilities = utilities;
+                    Status.BestResponseImprovement = improvement;
+                    Status.Refinement = refinement;
+                }
+            }
+            if (doReports)
+            {
+                Br.eak.Add("Report");
+                var actionStrategiesToUse = EvolutionSettings.ActionStrategiesToUseInReporting;
+                await CompleteMainReports(reportCollection, actionStrategiesToUse);
+                RecallBestOverTime();
+                Br.eak.Remove("Report");
+            }
         }
 
         private async Task CompleteMainReports(ReportCollection reportCollection, List<ActionStrategies> actionStrategiesToUse)
