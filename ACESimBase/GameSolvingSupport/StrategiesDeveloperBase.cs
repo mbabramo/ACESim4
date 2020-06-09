@@ -11,6 +11,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using JetBrains.Annotations;
+using ACESim.Util;
 
 namespace ACESim
 {
@@ -107,8 +109,13 @@ namespace ACESim
                 TabbedText.WriteLineEvenIfDisabled(optionSetInfo);
                 
                 ReportCollection reportToAddToCollection = await RunAlgorithm(optionSetName);
-                if (constructCorrelatedEquilibrium)
+
+                if (EvolutionSettings.PCA_PerformPrincipalComponentAnalysis)
                 {
+                    await SavePCAModelData();
+                }
+                else if (constructCorrelatedEquilibrium)
+                { // if doing correlated eq & PCA, we just save PCA data.
                     RememberScenarioForCorrelatedEquilibrium(overallScenarioIndex);
                     if ((overallScenarioIndex + 1) % EvolutionSettings.ReduceCorrelatedEquilibriumEveryNScenariosIfCheckingAlongWay == 0 && EvolutionSettings.CheckCorrelatedEquilibriumIncompatibilitiesAlongWay)
                         ReduceToCorrelatedEquilibrium_BasedOnPredeterminedIncompatibilities();
@@ -425,8 +432,8 @@ namespace ACESim
         {
             try
             {
-                string path = FolderFinder.GetFolderToWriteTo("Strategies").FullName;
-                string filename = GameDefinition.OptionSetName + "-" + EvolutionSettings.SerializeResultsPrefixPlus(overallScenarioIndex, GameDefinition.NumScenarioPermutations);
+                string path, filename;
+                GetPathAndFilenameForScenario(overallScenarioIndex, out path, out filename);
                 if (EvolutionSettings.SerializeInformationSetDataOnly)
                     StrategySerialization.SerializeInformationSets(InformationSets, path, filename, EvolutionSettings.AzureEnabled);
                 else
@@ -436,6 +443,12 @@ namespace ACESim
             {
                 // ignore failure to serialize strategies
             }
+        }
+
+        private void GetPathAndFilenameForScenario(int overallScenarioIndex, out string path, out string filename)
+        {
+            path = FolderFinder.GetFolderToWriteTo("Strategies").FullName;
+            filename = GameDefinition.OptionSetName + "-" + EvolutionSettings.SerializeResultsPrefixPlus(overallScenarioIndex, GameDefinition.NumScenarioPermutations);
         }
 
         public abstract IStrategiesDeveloper DeepCopy();
@@ -518,6 +531,64 @@ namespace ACESim
                     TabbedText.ShowConsoleProgressString();
                 }
             }
+        }
+
+        public Task SavePCAModelData()
+        {
+            int numModels, totalBytesNeeded;
+            GetPCAModelCount(out numModels, out totalBytesNeeded);
+            var buffer = new byte[totalBytesNeeded];
+            int numBytesCopied = 0;
+            for (int m = 0; m < numModels; m++)
+                for (int p = 0; p < NumNonChancePlayers; p++)
+                {
+                    float[] src = ModelDataSavedForPCA[m][p];
+                    int numBytesToCopy = src.Length * sizeof(float);
+                    Buffer.BlockCopy(src, 0, buffer, numBytesCopied, numBytesToCopy);
+                    numBytesCopied += numBytesToCopy;
+                }
+
+            string path, filename;
+            GetPathAndFilenameForScenario(OverallScenarioIndex, out path, out filename);
+            AzureBlob.SaveByteArrayToFileOrAzure(buffer, path, "pcadata", filename, EvolutionSettings.AzureEnabled);
+            return Task.CompletedTask;
+        }
+
+        private void GetPCAModelCount(out int numModels, out int totalBytesNeeded)
+        {
+            var currentModel = GetCurrentModelVariablesForPCA();
+            int numFloatElementsPerModel = currentModel.Sum(x => x.Length);
+            numModels = ModelDataSavedForPCA.Count();
+            totalBytesNeeded = numFloatElementsPerModel * sizeof(float) * numModels;
+        }
+
+        public Task RecoverSavedPCAModelData()
+        {
+            var currentModel = GetCurrentModelVariablesForPCA();
+            int[] numFloatElementsPerPlayer = currentModel.Select(x => x.Length).ToArray();
+            int numModels = ModelDataSavedForPCA.Count();
+            ModelDataSavedForPCA = new List<float[][]>();
+            for (int scenarioIndex = 0; scenarioIndex < GameDefinition.NumScenarioPermutations; scenarioIndex++)
+            {
+                string path, filename;
+                GetPathAndFilenameForScenario(scenarioIndex, out path, out filename);
+                byte[] bytes = AzureBlob.GetByteArrayFromFileOrAzure(path, "pcadata", filename, EvolutionSettings.AzureEnabled);
+                int numBytesCopied = 0;
+                for (int m = 0; m < numModels; m++)
+                {
+                    var particularModel = new float[NumNonChancePlayers][];
+                    for (int p = 0; p < NumNonChancePlayers; p++)
+                    {
+                        float[] modelDataForPlayer = new float[numFloatElementsPerPlayer[p]];
+                        int numBytesToCopy = modelDataForPlayer.Length * sizeof(float);
+                        Buffer.BlockCopy(bytes, numBytesCopied, modelDataForPlayer, 0, numBytesToCopy);
+                        numBytesCopied += numBytesToCopy;
+                        particularModel[p] = modelDataForPlayer;
+                    }
+                    ModelDataSavedForPCA.Add(particularModel);
+                }
+            }
+            return Task.CompletedTask;
         }
 
         private async Task PerformPrincipalComponentAnalysis()
@@ -869,23 +940,11 @@ namespace ACESim
             int updatedPostWarmupScenarioIndex = GameDefinition.CurrentPostWarmupScenarioIndex;
             int? updatedWarmupScenarioIndex = GameDefinition.CurrentWarmupScenarioIndex;
             int updatedScenarioIndex = updatedWarmupScenarioIndex ?? updatedPostWarmupScenarioIndex;
-            if (warmupVersion || !GameDefinition.UseDifferentWarmup)
-            {
-                ReinitializeInformationSets();
-            }
-            var firstFinalUtilitiesNode = FinalUtilitiesNodes?.FirstOrDefault();
-            if (FinalUtilitiesNodes != null && firstFinalUtilitiesNode != null && (previousScenarioIndex != updatedScenarioIndex || previousWeightOnOpponentP0 != GameDefinition.CurrentWeightOnOpponentP0 || previousWeightOnOpponentOtherPlayers != GameDefinition.CurrentWeightOnOpponentOtherPlayers))
-            {
-                foreach (var node in FinalUtilitiesNodes)
-                {
-                    node.CurrentInitializedScenarioIndex = updatedScenarioIndex;
-                    node.WeightOnOpponentsUtilityP0 = GameDefinition.CurrentWeightOnOpponentP0;
-                    node.WeightOnOpponentsUtilityOtherPlayers = GameDefinition.CurrentWeightOnOpponentOtherPlayers;
-                }
-                CalculateMinMax();
-            }
-            if (GameDefinition.CurrentWeightOnOpponentP0 > 0 && !EvolutionSettings.UseContinuousRegretsDiscounting)
-                throw new Exception("Using current weight on opponent for warmup has been shown to work only with continuous regrets discounting.");
+            CompleteReinitializeForScenario(warmupVersion, previousScenarioIndex, previousWeightOnOpponentP0, previousWeightOnOpponentOtherPlayers, updatedScenarioIndex);
+        }
+
+        public virtual void CompleteReinitializeForScenario(bool warmupVersion, int previousScenarioIndex, double previousWeightOnOpponentP0, double previousWeightOnOpponentOtherPlayers, int updatedScenarioIndex)
+        {
         }
 
         public void ResetWeightOnOpponentsUtilityToZero()

@@ -7,6 +7,7 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
 using ACESimBase.Resources; // NOTE: If not defined, then you need to add cloudpw.cs (see email) to Resources folder in ACESimBase. This is not committed to git for security reasons
+using JetBrains.Annotations;
 using Microsoft.Azure.Storage;
 using Microsoft.Azure.Storage.Blob;
 
@@ -24,6 +25,20 @@ namespace ACESim.Util
             {
                 string fullFilename = Path.Combine(path, fileName);
                 BinarySerialization.SerializeObject(fullFilename, toSerialize);
+            }
+        }
+
+        public static void SaveByteArrayToFileOrAzure(byte[] byteArray, string path, string containerName, string fileName, bool useAzure)
+        {
+            if (useAzure)
+            {
+                var blockBlob = GetBlockBlob(containerName, fileName, true);
+                AzureBlob.SaveByteArray(byteArray, blockBlob);
+            }
+            else
+            {
+                string fullFilename = Path.Combine(path, fileName);
+                File.WriteAllBytes(fullFilename, byteArray);
             }
         }
 
@@ -50,6 +65,38 @@ namespace ACESim.Util
                 blockBlob.UploadFromStream(stream, accessCondition, options);
                 if (leaseID != null)
                     blockBlob.ReleaseLease(accessCondition);
+            }
+        }
+
+        public static void SaveByteArray(byte[] byteArray, CloudBlockBlob blockBlob, string leaseID = null)
+        {
+            var options = new BlobRequestOptions()
+            {
+                ServerTimeout = TimeSpan.FromMinutes(10)
+            };
+
+            using (var stream = new MemoryStream(byteArray))
+            {
+                stream.Seek(0, SeekOrigin.Begin);
+                AccessCondition accessCondition = leaseID == null ? null : new AccessCondition() { LeaseId = leaseID };
+                blockBlob.UploadFromStream(stream, accessCondition, options);
+                if (leaseID != null)
+                    blockBlob.ReleaseLease(accessCondition);
+            }
+        }
+
+        public static byte[] GetByteArrayFromFileOrAzure(string path, string containerName, string fileName, bool useAzure)
+        {
+            if (useAzure)
+            {
+                var blockBlob = GetBlockBlob(containerName, fileName, true);
+                return GetByteArray(blockBlob);
+            }
+            else
+            {
+                string fullFilename = Path.Combine(path, fileName);
+                byte[] result = File.ReadAllBytes(fullFilename);
+                return result;
             }
         }
 
@@ -89,6 +136,22 @@ namespace ACESim.Util
                     return null;
                 object theObject = formatter.Deserialize(stream);
                 return theObject;
+            }
+        }
+
+        public static byte[] GetByteArray(CloudBlockBlob blockBlob)
+        {
+            var options = new BlobRequestOptions()
+            {
+                ServerTimeout = TimeSpan.FromMinutes(10)
+            };
+
+            using (var stream = new MemoryStream())
+            {
+                blockBlob.DownloadToStream(stream, null, options);
+                stream.Seek(0, SeekOrigin.Begin);
+                byte[] bytes = stream.ToArray();
+                return bytes;
             }
         }
 

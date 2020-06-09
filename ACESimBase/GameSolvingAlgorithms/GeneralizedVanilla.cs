@@ -120,7 +120,26 @@ namespace ACESim
                 }
             }
         }
-
+        public override void CompleteReinitializeForScenario(bool warmupVersion, int previousScenarioIndex, double previousWeightOnOpponentP0, double previousWeightOnOpponentOtherPlayers, int updatedScenarioIndex)
+        {
+            if (warmupVersion || !GameDefinition.UseDifferentWarmup)
+            {
+                ReinitializeInformationSets();
+            }
+            var firstFinalUtilitiesNode = FinalUtilitiesNodes?.FirstOrDefault();
+            if (FinalUtilitiesNodes != null && firstFinalUtilitiesNode != null && (previousScenarioIndex != updatedScenarioIndex || previousWeightOnOpponentP0 != GameDefinition.CurrentWeightOnOpponentP0 || previousWeightOnOpponentOtherPlayers != GameDefinition.CurrentWeightOnOpponentOtherPlayers))
+            {
+                foreach (var node in FinalUtilitiesNodes)
+                {
+                    node.CurrentInitializedScenarioIndex = updatedScenarioIndex;
+                    node.WeightOnOpponentsUtilityP0 = GameDefinition.CurrentWeightOnOpponentP0;
+                    node.WeightOnOpponentsUtilityOtherPlayers = GameDefinition.CurrentWeightOnOpponentOtherPlayers;
+                }
+                CalculateMinMax();
+            }
+            if (GameDefinition.CurrentWeightOnOpponentP0 > 0 && !EvolutionSettings.UseContinuousRegretsDiscounting)
+                throw new Exception("Using current weight on opponent for warmup has been shown to work only with continuous regrets discounting.");
+        }
 
         #endregion
 

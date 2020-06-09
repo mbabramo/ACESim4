@@ -201,6 +201,7 @@ namespace ACESim
 
         public async Task<ReportCollection> LaunchDistributedProcessingParticipation()
         {
+            Debug;
             string masterReportName = MasterReportNameForDistributedProcessing;
             bool singleThread = false;
             if (singleThread)
