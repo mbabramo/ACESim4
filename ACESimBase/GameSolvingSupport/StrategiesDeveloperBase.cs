@@ -229,6 +229,8 @@ namespace ACESim
 
         private async Task<ReportCollection> FinalizeCorrelatedEquilibrium()
         {
+            if (EvolutionSettings.PCA_PerformPrincipalComponentAnalysis)
+                return new ReportCollection(); // using a different approach to finding correlated equilibrium there
             if (EvolutionSettings.CheckCorrelatedEquilibriumIncompatibilitiesAlongWay)
                 ReduceToCorrelatedEquilibrium_BasedOnPredeterminedIncompatibilities();
             else
@@ -724,7 +726,6 @@ namespace ACESim
             List<double>[] principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1;
             GetEstimatedUtilitiesForStrategyChoices(numStrategyChoicesPerPlayer, out player0Utilities, out player1Utilities, out principalComponentsWeightsForPlayer0, out principalComponentsWeightsForPlayer1);
             UsePCAToEvaluateNashEquilibria(player0Utilities, player1Utilities, principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1);
-
             UsePCAToEvaluateCorrelatedEquilibria(player0Utilities, player1Utilities, principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1);
         }
 
@@ -737,16 +738,16 @@ namespace ACESim
                 .Select(x => new List<double>[2] { principalComponentsWeightsForPlayer0[x.player0Strategy], principalComponentsWeightsForPlayer1[x.player1Strategy] })
                 .ToList();
             ReportEquilibria(correlatedEquilibria);
-            ConsistentRandomSequenceProducer randomSequenceProducer = new ConsistentRandomSequenceProducer(6_000_234);
-            for (int i = 0; i < 1; i++)
-            {
-                TabbedText.WriteLine($"correlated eq random start {i}");
-                correlatedEquilibria = PureStrategiesFinder.GetCorrelatedEquilibrium_OrderingByFarthestDistanceFromAdmittees_StartingWithRandomStrategy(player0Utilities, player1Utilities, randomSequenceProducer)
-                    .Select(x => new List<double>[2] { principalComponentsWeightsForPlayer0[x.player0Strategy], principalComponentsWeightsForPlayer1[x.player1Strategy] })
-                    .ToList();
-                ReportEquilibria(correlatedEquilibria);
+            //ConsistentRandomSequenceProducer randomSequenceProducer = new ConsistentRandomSequenceProducer(6_000_234);
+            //for (int i = 0; i < 1; i++)
+            //{
+            //    TabbedText.WriteLine($"correlated eq random start {i}");
+            //    correlatedEquilibria = PureStrategiesFinder.GetCorrelatedEquilibrium_OrderingByFarthestDistanceFromAdmittees_StartingWithRandomStrategy(player0Utilities, player1Utilities, randomSequenceProducer)
+            //        .Select(x => new List<double>[2] { principalComponentsWeightsForPlayer0[x.player0Strategy], principalComponentsWeightsForPlayer1[x.player1Strategy] })
+            //        .ToList();
+            //    ReportEquilibria(correlatedEquilibria);
 
-            }
+            //}
         }
 
         public void UsePCAToEvaluateNashEquilibria(double[,] player0Utilities, double[,] player1Utilities, List<double>[] principalComponentsWeightsForPlayer0, List<double>[] principalComponentsWeightsForPlayer1)
@@ -773,7 +774,7 @@ namespace ACESim
             HashSet<string> redundantEquilibria = new HashSet<string>();
             foreach (var equilibrium in equilibria)
             {
-                (double player0Utility, double player1Utility) = GetPlayerUtilitiesInEquilibrium(equilibrium);
+                (double player0Utility, double player1Utility) = GetPredictedPlayerUtilitiesInEquilibrium(equilibrium);
                 string principalComponentWeightsString = string.Join("; ", Enumerable.Range(0, NumNonChancePlayers).Select(x => x.ToString() + ": " + equilibrium[x].ToSignificantFigures(3)));
                 string hashToCheckRedundancy0 = $"{equilibrium[0].ToSignificantFigures(10)} {player0Utility.ToSignificantFigures(10)} {player1Utility.ToSignificantFigures(10)}";
                 string hashToCheckRedundancy1 = $"{equilibrium[1].ToSignificantFigures(10)} {player0Utility.ToSignificantFigures(10)} {player1Utility.ToSignificantFigures(10)}";
@@ -788,11 +789,11 @@ namespace ACESim
 
         private double GetSumOfPlayerUtilitiesInEquilibrium(List<double>[] equilibrium)
         {
-            var utilities = GetPlayerUtilitiesInEquilibrium(equilibrium);
+            var utilities = GetPredictedPlayerUtilitiesInEquilibrium(equilibrium);
             return utilities.player0Utility + utilities.player1Utility;
         }
 
-        private (double player0Utility, double player1Utility) GetPlayerUtilitiesInEquilibrium(List<double>[] equilibrium)
+        private (double player0Utility, double player1Utility) GetPredictedPlayerUtilitiesInEquilibrium(List<double>[] equilibrium)
         {
             var datum = new ModelPredictingUtilitiesDatum(equilibrium, null);
             var model = ModelsToPredictUtilitiesFromPrincipalComponents[0];
