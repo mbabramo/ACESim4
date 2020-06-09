@@ -123,6 +123,11 @@ namespace ACESim
                 else
                     reportCollection.Add(reportToAddToCollection); // if constructing correlated equilibrium, we ignore the interim reports
             }
+            if (EvolutionSettings.PCA_PerformPrincipalComponentAnalysis)
+            {
+                await RecoverSavedPCAModelData();
+                await PerformPrincipalComponentAnalysis();
+            }
             if (constructCorrelatedEquilibrium)
                 reportCollection = await FinalizeCorrelatedEquilibrium();
             return reportCollection;
@@ -524,7 +529,7 @@ namespace ACESim
                     float[][] perPlayerModels = GetCurrentModelVariablesForPCA();
                     ModelDataSavedForPCA.Add(perPlayerModels);
                 }
-                if (iteration == EvolutionSettings.TotalIterations)
+                if (iteration == EvolutionSettings.TotalIterations && GameDefinition.NumScenarioPermutations == 1) // if there are multiple scenarios, we wait for all to be complete
                 {
                     TabbedText.HideConsoleProgressString();
                     await PerformPrincipalComponentAnalysis();
@@ -551,6 +556,7 @@ namespace ACESim
             string path, filename;
             GetPathAndFilenameForScenario(OverallScenarioIndex, out path, out filename);
             AzureBlob.SaveByteArrayToFileOrAzure(buffer, path, "pcadata", filename, EvolutionSettings.AzureEnabled);
+            ModelDataSavedForPCA = new List<float[][]>();
             return Task.CompletedTask;
         }
 
@@ -566,7 +572,7 @@ namespace ACESim
         {
             var currentModel = GetCurrentModelVariablesForPCA();
             int[] numFloatElementsPerPlayer = currentModel.Select(x => x.Length).ToArray();
-            int numModels = ModelDataSavedForPCA.Count();
+            int numModels = GameDefinition.NumScenarioPermutations;
             ModelDataSavedForPCA = new List<float[][]>();
             for (int scenarioIndex = 0; scenarioIndex < GameDefinition.NumScenarioPermutations; scenarioIndex++)
             {

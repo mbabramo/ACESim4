@@ -18,12 +18,12 @@ namespace ACESim
 
         #region Settings
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.DeepCFR; // use RegretMatching etc. for GeneralizedVanilla
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; // use RegretMatching etc. for GeneralizedVanilla
 
-        public const int VanillaIterations = 1000; // DEBUG // Note: Also used for GeneralizedVanilla, DeepCFR
-        public const int VanillaReportEveryNIterations = VanillaIterations;
+        public const int VanillaIterations = 30; // DEBUG // Note: Also used for GeneralizedVanilla, DeepCFR
+        public const int VanillaReportEveryNIterations = EffectivelyNever; // DEBUG VanillaIterations;
         public int? SuppressReportBeforeIteration = null;
-        public const int VanillaBestResponseEveryMIterations = 25; // DEBUG VanillaIterations; 
+        public const int VanillaBestResponseEveryMIterations = EffectivelyNever; // DEBUG VanillaIterations; 
         public int? SuppressBestResponseBeforeIteration = null; 
         public const bool CalculatePerturbedBestResponseRefinement = true;
         public const int MiniReportEveryPIterations = EffectivelyNever;
@@ -201,7 +201,6 @@ namespace ACESim
 
         public async Task<ReportCollection> LaunchDistributedProcessingParticipation()
         {
-            Debug;
             string masterReportName = MasterReportNameForDistributedProcessing;
             bool singleThread = false;
             if (singleThread)

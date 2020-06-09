@@ -110,12 +110,12 @@ namespace ACESim
         public bool DeepCFR_SeparateObservationsForIdenticalGameProgressTreeItems = true; // relevant only if UseWeightedData is false; with separate observations, the number of observations is proportional to their frequency in the regression; this takes longer but produces more accurate results
         public int DeepCFR_MaximumTotalObservationsPerIteration = 100_000; // when not using gameprogresstree, after this number of observations, we stop looking for more observations, even if we haven't gotten enough to fill as many iterations as desired in one or more reservoirs (in which case, we rely more on earlier observations)
 
-        public bool PCA_PerformPrincipalComponentAnalysis = false; // DEBUG
+        public bool PCA_PerformPrincipalComponentAnalysis = true; // DEBUG
         public double PCA_Precision = 1E-5;
         public int PCA_FirstIterationToSaveAsPCAObservation = 20; // DEBUG
         public int PCA_SavePCAObservationEveryNIterationsAfterFirst = 1;
         public int[] PCA_NumVariationsPerPrincipalComponent_Obsolete = new int[] { 4, 3, 2 }; // NOTE: Not currently being used; this can be used to generate non-random permutations of principal components.
-        public int PCA_NumPrincipalComponents = 3;
+        public int PCA_NumPrincipalComponents = 5;
         public bool PCA_BuildModelToPredictUtilitiesBasedOnPrincipalComponents = true;
         public int PCA_NumUtilitiesToCalculateToBuildModel = 100; // DEBUG 1_000;
         public int PCA_NumGamesToPlayToEstimateEachUtilityWhileBuildingModel = 1_000; // Note: This doesn't apply to GeneralizedVanilla.
