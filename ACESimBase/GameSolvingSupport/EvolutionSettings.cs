@@ -118,7 +118,7 @@ namespace ACESim
         public int PCA_NumPrincipalComponents = 3;
         public bool PCA_BuildModelToPredictUtilitiesBasedOnPrincipalComponents = true;
         public int PCA_NumUtilitiesToCalculateToBuildModel = 100; // DEBUG 1_000;
-        public int PCA_NumGamesToPlayToEstimateEachUtilityWhileBuildingModel = 100; // DEBUG 1_000; // Note: This doesn't apply to GeneralizedVanilla.
+        public int PCA_NumGamesToPlayToEstimateEachUtilityWhileBuildingModel = 1_000; // Note: This doesn't apply to GeneralizedVanilla.
         public int PCA_NumStrategyChoicesPerPlayer = 1_000;
         public bool PCA_AssessModelsToPredictUtilitiesFromPrincipalComponents = false;
 
