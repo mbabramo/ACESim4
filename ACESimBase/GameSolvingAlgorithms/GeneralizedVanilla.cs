@@ -189,7 +189,7 @@ namespace ACESim
                     var checkpoints = String.Join("\r\n", Enumerable.Range(0, Unroll_Commands.Checkpoints.Count).Select(x => $"{x}: {Unroll_Commands.Checkpoints[x]}"));
                 }
                 UpdateInformationSets(iteration);
-                await PostIterationWorkForPrincipalComponentsAnalysis(iteration);
+                await PostIterationWorkForPrincipalComponentsAnalysis(iteration, reportCollection);
                 SimulatedAnnealing(iteration);
                 MiniReport(iteration, Unroll_IterationResultForPlayers);
                 bool addGeneticAlgorithm = false;
@@ -953,7 +953,7 @@ namespace ACESim
                 GeneralizedVanillaCFRIteration_OptimizePlayer(iteration, results, playerBeingOptimized);
             }
             UpdateInformationSets(iteration);
-            await PostIterationWorkForPrincipalComponentsAnalysis(iteration);
+            await PostIterationWorkForPrincipalComponentsAnalysis(iteration, reportCollection);
             SimulatedAnnealing(iteration);
             MiniReport(iteration, results);
 

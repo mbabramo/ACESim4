@@ -123,6 +123,7 @@ namespace ACESim
         public bool PCA_AssessModelsToPredictUtilitiesFromPrincipalComponents = false;
         public bool PCA_BestResponseAfterPCA = true;
         public bool PCA_ReportsAfterPCA = true;
+        public bool PCA_SeparateReportPerEquilibrium = true;
 
         public RegressionTechniques RegressionTechnique = RegressionTechniques.FastTree;
         public bool DeepCFR_ProbeAllActions = true;

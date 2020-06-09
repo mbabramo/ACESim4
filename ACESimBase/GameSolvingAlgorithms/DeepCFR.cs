@@ -116,6 +116,7 @@ namespace ACESim
 
         private async Task<ReportCollection> PerformDeepCFRIteration(int iteration, bool isBestResponseIteration)
         {
+            ReportCollection reportCollection = new ReportCollection();
             Status.IterationNumDouble = iteration;
 
             Stopwatch localStopwatch = new Stopwatch();
@@ -137,13 +138,12 @@ namespace ACESim
             TabbedText.WriteLine($"All models computed, time {localStopwatch.ElapsedMilliseconds} ms");
             localStopwatch.Stop();
 
-            await PostIterationWorkForPrincipalComponentsAnalysis(iteration);
+            await PostIterationWorkForPrincipalComponentsAnalysis(iteration, reportCollection);
 
             double[] exploitabilityProxy;
             if (EvolutionSettings.DeepCFR_ExploitabilityProxy)
                 exploitabilityProxy = await DeepCFR_ExploitabilityProxy(iteration, isBestResponseIteration);
 
-            ReportCollection reportCollection = new ReportCollection();
             if (!isBestResponseIteration)
             {
                 var result = await GenerateReports(iteration,

@@ -126,8 +126,9 @@ namespace ACESim
             if (EvolutionSettings.PCA_PerformPrincipalComponentAnalysis)
             {
                 await RecoverSavedPCAModelData();
-                await PerformPrincipalComponentAnalysis();
-                await GenerateReports(() => GameDefinition.OptionSetName, reportCollection, EvolutionSettings.PCA_BestResponseAfterPCA, EvolutionSettings.PCA_ReportsAfterPCA);
+                await PerformPrincipalComponentAnalysis(reportCollection);
+                if (!EvolutionSettings.PCA_SeparateReportPerEquilibrium)
+                    await GenerateReports(() => GameDefinition.OptionSetName, reportCollection, EvolutionSettings.PCA_BestResponseAfterPCA, EvolutionSettings.PCA_ReportsAfterPCA);
             }
             if (constructCorrelatedEquilibrium)
                 reportCollection = await FinalizeCorrelatedEquilibrium();
@@ -519,7 +520,7 @@ namespace ACESim
         /// </summary>
         /// <param name="iteration"></param>
         /// <returns></returns>
-        public async Task PostIterationWorkForPrincipalComponentsAnalysis(int iteration)
+        public async Task PostIterationWorkForPrincipalComponentsAnalysis(int iteration, ReportCollection reportCollection)
         {
             if (EvolutionSettings.PCA_PerformPrincipalComponentAnalysis)
             {
@@ -535,7 +536,7 @@ namespace ACESim
                 if (iteration == EvolutionSettings.TotalIterations && GameDefinition.NumScenarioPermutations == 1) // if there are multiple scenarios, we wait for all to be complete
                 {
                     TabbedText.HideConsoleProgressString();
-                    await PerformPrincipalComponentAnalysis();
+                    await PerformPrincipalComponentAnalysis(reportCollection);
                     TabbedText.ShowConsoleProgressString();
                 }
             }
@@ -600,7 +601,7 @@ namespace ACESim
             return Task.CompletedTask;
         }
 
-        private async Task PerformPrincipalComponentAnalysis()
+        private async Task PerformPrincipalComponentAnalysis(ReportCollection reportCollection)
         {
             Stopwatch s = new Stopwatch();
             s.Start();
@@ -610,7 +611,7 @@ namespace ACESim
             //await LoadReducedFormStrategies();
             await ProcessPrincipalComponentsResults();
             TabbedText.WriteLine($"Total time performing PCA and creating compound strategy {s.ElapsedMilliseconds} ms");
-            await BuildModelPredictingUtilitiesBasedOnPrincipalComponents();
+            await BuildModelPredictingUtilitiesBasedOnPrincipalComponents(reportCollection);
         }
 
         public PrincipalComponentsAnalysis PerformPrincipalComponentAnalysis(byte playerIndex)
@@ -651,7 +652,7 @@ namespace ACESim
             return Enumerable.Range(0, numToGet).Select(x => GetRandomPrincipalComponentWeights(playerIndex, randomizerValues[x], multiplier)).ToArray();
         }
 
-        private async Task BuildModelPredictingUtilitiesBasedOnPrincipalComponents()
+        private async Task BuildModelPredictingUtilitiesBasedOnPrincipalComponents(ReportCollection reportCollection)
         {
             if (EvolutionSettings.PCA_BuildModelToPredictUtilitiesBasedOnPrincipalComponents)
             {
@@ -687,7 +688,7 @@ namespace ACESim
                 TabbedText.WriteLine($"Utilities model build in {outerStopwatch.ElapsedMilliseconds} ms");
                 if (EvolutionSettings.PCA_AssessModelsToPredictUtilitiesFromPrincipalComponents)
                     await AssessModelsToPredictUtilitiesFromPrincipalComponents();
-                UsePCAToEvaluateEquilibria();
+                await UsePCAToEvaluateEquilibria(reportCollection);
             }
         }
 
@@ -716,7 +717,7 @@ namespace ACESim
             return Task.FromResult(ultimateResult);
         }
 
-        public void UsePCAToEvaluateEquilibria()
+        public async Task UsePCAToEvaluateEquilibria(ReportCollection reportCollection)
         {
             if (NumNonChancePlayers != 2)
                 throw new NotSupportedException();
@@ -725,11 +726,11 @@ namespace ACESim
             double[,] player0Utilities, player1Utilities;
             List<double>[] principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1;
             GetEstimatedUtilitiesForStrategyChoices(numStrategyChoicesPerPlayer, out player0Utilities, out player1Utilities, out principalComponentsWeightsForPlayer0, out principalComponentsWeightsForPlayer1);
-            UsePCAToEvaluateNashEquilibria(player0Utilities, player1Utilities, principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1);
-            UsePCAToEvaluateCorrelatedEquilibria(player0Utilities, player1Utilities, principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1);
+            await UsePCAToEvaluateNashEquilibria(player0Utilities, player1Utilities, principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1, reportCollection);
+            await UsePCAToEvaluateCorrelatedEquilibria(player0Utilities, player1Utilities, principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1, reportCollection);
         }
 
-        private void UsePCAToEvaluateCorrelatedEquilibria(double[,] player0Utilities, double[,] player1Utilities, List<double>[] principalComponentsWeightsForPlayer0, List<double>[] principalComponentsWeightsForPlayer1)
+        private async Task UsePCAToEvaluateCorrelatedEquilibria(double[,] player0Utilities, double[,] player1Utilities, List<double>[] principalComponentsWeightsForPlayer0, List<double>[] principalComponentsWeightsForPlayer1, ReportCollection reportCollection)
         {
             if (!EvolutionSettings.ConstructCorrelatedEquilibrium)
                 return;
@@ -738,6 +739,8 @@ namespace ACESim
                 .Select(x => new List<double>[2] { principalComponentsWeightsForPlayer0[x.player0Strategy], principalComponentsWeightsForPlayer1[x.player1Strategy] })
                 .ToList();
             ReportEquilibria(correlatedEquilibria);
+
+            await PCA_SeparateReportsForEachEquilibrium(reportCollection, correlatedEquilibria);
             //ConsistentRandomSequenceProducer randomSequenceProducer = new ConsistentRandomSequenceProducer(6_000_234);
             //for (int i = 0; i < 1; i++)
             //{
@@ -750,7 +753,7 @@ namespace ACESim
             //}
         }
 
-        public void UsePCAToEvaluateNashEquilibria(double[,] player0Utilities, double[,] player1Utilities, List<double>[] principalComponentsWeightsForPlayer0, List<double>[] principalComponentsWeightsForPlayer1)
+        public async Task UsePCAToEvaluateNashEquilibria(double[,] player0Utilities, double[,] player1Utilities, List<double>[] principalComponentsWeightsForPlayer0, List<double>[] principalComponentsWeightsForPlayer1, ReportCollection reportCollection)
         {
             TabbedText.WriteLine($"Nash equilibria");
             List<List<double>[]> nashEquilibria = PureStrategiesFinder.ComputeNashEquilibria(player0Utilities, player1Utilities, false)
@@ -763,10 +766,23 @@ namespace ACESim
                 nashEquilibria.Add(new List<double>[2] { principalComponentsWeightsForPlayer0[result.player0Strategy], principalComponentsWeightsForPlayer1[result.player1Strategy] });
             }
             nashEquilibria = nashEquilibria.OrderByDescending(eq => GetSumOfPlayerUtilitiesInEquilibrium(eq)).ToList();
+            await PCA_SeparateReportsForEachEquilibrium(reportCollection, nashEquilibria);
             var nashEquilibriumToPick = nashEquilibria.FirstOrDefault();
             if (nashEquilibriumToPick is List<double>[] equilibrium)
-                SetModelToPrincipalComponentWeights(equilibrium);
+                await SetModelToPrincipalComponentWeights(equilibrium);
             ReportEquilibria(nashEquilibria);
+        }
+
+        private async Task PCA_SeparateReportsForEachEquilibrium(ReportCollection reportCollection, List<List<double>[]> equilibria)
+        {
+            if (EvolutionSettings.PCA_SeparateReportPerEquilibrium)
+            {
+                foreach (var eq in equilibria)
+                {
+                    await SetModelToPrincipalComponentWeights(eq);
+                    await GenerateReports(() => GameDefinition.OptionSetName, reportCollection, EvolutionSettings.PCA_BestResponseAfterPCA, EvolutionSettings.PCA_ReportsAfterPCA);
+                }
+            }
         }
 
         private void ReportEquilibria(List<List<double>[]> equilibria, bool removeRedundantEquilibria = true)
