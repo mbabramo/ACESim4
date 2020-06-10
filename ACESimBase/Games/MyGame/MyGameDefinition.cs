@@ -862,12 +862,12 @@ namespace ACESim
 
         public override bool PlayMultipleScenarios => true; // DEBUG // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
 
-        public override int NumPostWarmupOptionSets => 1; 
-        public override int NumWarmupOptionSets => 2; // Note that this can be 0. This indicates the variations on the costs multiplier; variations on weight to opponent are below. 
-        public override int WarmupIterations_IfWarmingUp => 5; // DEBUG 
+        public override int NumPostWarmupOptionSets => 2; // DEBUG
+        public override int NumWarmupOptionSets => 2; // Note that this can be 0 (indicating that costs multiplier doesn't change). This indicates the variations on the costs multiplier; variations on weight to opponent are below. 
+        public override int WarmupIterations_IfWarmingUp => 2; // DEBUG 
         public override bool MultiplyWarmupScenariosByAlteringWeightOnOpponentsStrategy => true;
-        public override int NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios => 2; // DEBUG // should be odd if we want to include zero
-        public override bool VaryWeightOnOpponentsStrategySeparatelyForEachPlayer => true; 
+        public override int NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios => 3; // DEBUG // should be odd if we want to include zero
+        public override bool VaryWeightOnOpponentsStrategySeparatelyForEachPlayer => false; // NOTE: If this is true, this multiplies number of scenarios by NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios^2
         public override (double, double) MinMaxWeightOnOpponentsStrategyDuringWarmup => (-0.8, 0.8); // NOTE: Don't go all the way up to 1, because then if costs multiplier is 0 (i.e., it is a zero-sum game), utility for a player will be invariant.
 
         public enum ChangeInScenario
@@ -878,7 +878,7 @@ namespace ACESim
 
         // note that we do not integrate the warmup and postwarmup at any one time. So, if a different variable is changing warmup and postwarmup, then the warmup phase will reflect the default value for the post warmup variable, not the eventual value.
         ChangeInScenario? WhatToChange_Warmup = ChangeInScenario.CostsMultiplier;
-        ChangeInScenario? WhatToChange_PostWarmup = null; 
+        ChangeInScenario? WhatToChange_PostWarmup = ChangeInScenario.CostsMultiplier; 
 
         public double TrialCostsScenarioPerPartyMin = 0; 
         public double TrialCostsScenarioPerPartyMax = 30_000; 

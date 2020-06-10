@@ -1,4 +1,5 @@
 ﻿using ACESimBase.Util;
+using System;
 using System.Linq;
 
 namespace ACESim
@@ -8,6 +9,7 @@ namespace ACESim
     /// into a variety of statistics, including principal component loadings. These statistics can then be used to reconstruct variable values
     /// from a set of principal components.
     /// </summary>
+    [Serializable]
     public class PrincipalComponentsAnalysis
     {
         public double[] meanOfOriginalElements;

@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using JetBrains.Annotations;
 using ACESim.Util;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ACESim
 {
@@ -459,6 +460,11 @@ namespace ACESim
             path = FolderFinder.GetFolderToWriteTo("Strategies").FullName;
             filename = GameDefinition.OptionSetName + "-" + EvolutionSettings.SerializeResultsPrefixPlus(overallScenarioIndex, GameDefinition.NumScenarioPermutations);
         }
+        private void GetPathAndFilenameForOptionSet(string suffix, out string path, out string filename)
+        {
+            path = FolderFinder.GetFolderToWriteTo("Strategies").FullName;
+            filename = GameDefinition.OptionSetName + "-" + suffix;
+        }
 
         public abstract IStrategiesDeveloper DeepCopy();
 
@@ -541,7 +547,7 @@ namespace ACESim
                 }
             }
         }
-
+        int DEBUGQ = 0;
         public Task SavePCAModelData()
         {
             int numModels, totalBytesNeeded;
@@ -556,10 +562,10 @@ namespace ACESim
                     Buffer.BlockCopy(src, 0, buffer, numBytesCopied, numBytesToCopy);
                     numBytesCopied += numBytesToCopy;
                 }
-
+            TabbedText.WriteLine("Saving PCA data for scenario " + OverallScenarioIndex);
             string path, filename;
             GetPathAndFilenameForScenario(OverallScenarioIndex, out path, out filename);
-            AzureBlob.SaveByteArrayToFileOrAzure(buffer, path, "pcadata", filename, EvolutionSettings.AzureEnabled);
+            AzureBlob.SaveByteArrayToFileOrAzure(buffer, path, "pcadata", filename + ".pcd", EvolutionSettings.AzureEnabled);
             ModelDataSavedForPCA = new List<float[][]>();
             return Task.CompletedTask;
         }
@@ -567,24 +573,23 @@ namespace ACESim
         private void GetPCAModelCount(out int numModels, out int totalBytesNeeded)
         {
             var currentModel = GetCurrentModelVariablesForPCA();
-            int numFloatElementsPerModel = currentModel.Sum(x => x.Length);
             numModels = ModelDataSavedForPCA.Count();
-            totalBytesNeeded = numFloatElementsPerModel * sizeof(float) * numModels;
+            totalBytesNeeded = ModelDataSavedForPCA.Sum(m => m.Sum(p => p.Length)) * sizeof(float);
         }
 
         public Task RecoverSavedPCAModelData()
         {
             var currentModel = GetCurrentModelVariablesForPCA();
             int[] numFloatElementsPerPlayer = currentModel.Select(x => x.Length).ToArray();
-            int numModels = GameDefinition.NumScenarioPermutations;
             ModelDataSavedForPCA = new List<float[][]>();
             for (int scenarioIndex = 0; scenarioIndex < GameDefinition.NumScenarioPermutations; scenarioIndex++)
             {
                 string path, filename;
                 GetPathAndFilenameForScenario(scenarioIndex, out path, out filename);
-                byte[] bytes = AzureBlob.GetByteArrayFromFileOrAzure(path, "pcadata", filename, EvolutionSettings.AzureEnabled);
+                byte[] bytes = AzureBlob.GetByteArrayFromFileOrAzure(path, "pcadata", filename + ".pcd", EvolutionSettings.AzureEnabled);
                 int numBytesCopied = 0;
-                for (int m = 0; m < numModels; m++)
+                int modelIndex = 0;
+                while (numBytesCopied < bytes.Length)
                 {
                     var particularModel = new float[NumNonChancePlayers][];
                     for (int p = 0; p < NumNonChancePlayers; p++)
@@ -596,6 +601,7 @@ namespace ACESim
                         particularModel[p] = modelDataForPlayer;
                     }
                     ModelDataSavedForPCA.Add(particularModel);
+                    modelIndex++;
                 }
             }
             return Task.CompletedTask;
@@ -608,9 +614,38 @@ namespace ACESim
             PCAResultsForEachPlayer = new PrincipalComponentsAnalysis[NumNonChancePlayers];
             for (byte p = 0; p < NumNonChancePlayers; p++)
                 PCAResultsForEachPlayer[p] = PerformPrincipalComponentAnalysis(p);
+            await SavePCAResults();
             //await LoadReducedFormStrategies();
             await ProcessPrincipalComponentsResults();
             TabbedText.WriteLine($"Total time performing PCA and creating compound strategy {s.ElapsedMilliseconds} ms");
+            await BuildModelPredictingUtilitiesBasedOnPrincipalComponents(reportCollection);
+        }
+
+        private Task SavePCAResults()
+        {
+            for (byte p = 0; p < NumNonChancePlayers; p++)
+            {
+                string path, filename;
+                GetPathAndFilenameForOptionSet($"p{p}.pcr", out path, out filename);
+                AzureBlob.SerializeToFileOrAzure(PCAResultsForEachPlayer[p], path, "pcadata", filename, EvolutionSettings.AzureEnabled);
+                PCAResultsForEachPlayer[p] = PerformPrincipalComponentAnalysis(p);
+            }
+            return Task.CompletedTask;
+        }
+
+        private async Task LoadPCAResults(ReportCollection reportCollection)
+        {
+            PCAResultsForEachPlayer = new PrincipalComponentsAnalysis[NumNonChancePlayers];
+            TabbedText.WriteLine("Loading PCA results");
+            for (byte p = 0; p < NumNonChancePlayers; p++)
+            {
+                string path, filename;
+                GetPathAndFilenameForOptionSet($"p{p}.pcr", out path, out filename);
+                PCAResultsForEachPlayer[p] = (PrincipalComponentsAnalysis) AzureBlob.GetSerializedObjectFromFileOrAzure(path, "pcadata", filename, EvolutionSettings.AzureEnabled);
+            }
+            TabbedText.WriteLine("Processing PCA results");
+            await ProcessPrincipalComponentsResults();
+            TabbedText.WriteLine($"Building model based on PCA results");
             await BuildModelPredictingUtilitiesBasedOnPrincipalComponents(reportCollection);
         }
 
@@ -659,36 +694,41 @@ namespace ACESim
                 int numUtilitiesToCalculateToBuildModel = EvolutionSettings.PCA_NumUtilitiesToCalculateToBuildModel;
                 Stopwatch outerStopwatch = new Stopwatch();
                 outerStopwatch.Start();
-                StatCollector timeStats = new StatCollector();
-                List<ModelPredictingUtilitiesDatum> data = new List<ModelPredictingUtilitiesDatum>();
-                for (int i = 0; i < numUtilitiesToCalculateToBuildModel; i++)
+                for (int s = 0; s < GameDefinition.NumPostWarmupOptionSets; s++)
                 {
-                    Stopwatch innerStopwatch = new Stopwatch();
-                    innerStopwatch.Start();
-                    List<double>[] principalComponentWeightsForEachPlayer = GetRandomPrincipalComponentWeightsForEachPlayer(i * 737, 1.5 /* DEBUG */);
-                    string principalComponentWeightsString = String.Join("; ", Enumerable.Range(0, NumNonChancePlayers).Select(x => x.ToString() + ": " + principalComponentWeightsForEachPlayer[x].ToSignificantFigures(3)));
-                    await SetModelToPrincipalComponentWeights(principalComponentWeightsForEachPlayer);
-                    (double[] compoundUtilities, double[] customStats) = await PCA_UtilitiesAndCustomResultAverage(i * numUtilitiesToCalculateToBuildModel, true);
-                    data.Add(new ModelPredictingUtilitiesDatum(principalComponentWeightsForEachPlayer, compoundUtilities));
-                    innerStopwatch.Stop();
-                    timeStats.Add(innerStopwatch.ElapsedMilliseconds);
-                    TabbedText.WriteLine($"Data input {i}: {principalComponentWeightsString} utilities: {compoundUtilities.ToSignificantFigures(4)} customStats: {customStats.ToSignificantFigures(4)}");
+                    TabbedText.WriteLine($"Post-warmup option set {s + 1} of {GameDefinition.NumPostWarmupOptionSets}");
+                    GameDefinition.ChangeOptionsBasedOnScenario(GameDefinition.NumPostWarmupOptionSets > 1 ? (int?) s : null, null);
+                    StatCollector timeStats = new StatCollector();
+                    List<ModelPredictingUtilitiesDatum> data = new List<ModelPredictingUtilitiesDatum>();
+                    for (int utilIndex = 0; utilIndex < numUtilitiesToCalculateToBuildModel; utilIndex++)
+                    {
+                        Stopwatch innerStopwatch = new Stopwatch();
+                        innerStopwatch.Start();
+                        List<double>[] principalComponentWeightsForEachPlayer = GetRandomPrincipalComponentWeightsForEachPlayer(utilIndex * 737, 1.5 /* DEBUG */);
+                        string principalComponentWeightsString = String.Join("; ", Enumerable.Range(0, NumNonChancePlayers).Select(x => x.ToString() + ": " + principalComponentWeightsForEachPlayer[x].ToSignificantFigures(3)));
+                        await SetModelToPrincipalComponentWeights(principalComponentWeightsForEachPlayer);
+                        (double[] compoundUtilities, double[] customStats) = await PCA_UtilitiesAndCustomResultAverage(utilIndex * numUtilitiesToCalculateToBuildModel, true);
+                        data.Add(new ModelPredictingUtilitiesDatum(principalComponentWeightsForEachPlayer, compoundUtilities));
+                        innerStopwatch.Stop();
+                        timeStats.Add(innerStopwatch.ElapsedMilliseconds);
+                        TabbedText.WriteLine($"Data input {utilIndex}: {principalComponentWeightsString} utilities: {compoundUtilities.ToSignificantFigures(4)} customStats: {customStats.ToSignificantFigures(4)}");
+                    }
+                    TabbedText.WriteLine($"Average ms per each of {numUtilitiesToCalculateToBuildModel} utilities to calculate: {timeStats.Average().ToSignificantFigures(3)} (total time: {outerStopwatch.ElapsedMilliseconds})");
+                    outerStopwatch.Reset();
+                    outerStopwatch.Start();
+                    ModelsToPredictUtilitiesFromPrincipalComponents = new RegressionController[NumNonChancePlayers];
+                    for (byte p = 0; p < NumNonChancePlayers; p++)
+                    {
+                        ModelsToPredictUtilitiesFromPrincipalComponents[p] = new RegressionController(EvolutionSettings.RegressionFactory());
+                        var dataConverted = data.Select(x => x.Convert(p)).ToArray();
+                        await ModelsToPredictUtilitiesFromPrincipalComponents[p].Regress(dataConverted);
+                    }
+                    outerStopwatch.Stop();
+                    TabbedText.WriteLine($"Utilities model build in {outerStopwatch.ElapsedMilliseconds} ms");
+                    if (EvolutionSettings.PCA_AssessModelsToPredictUtilitiesFromPrincipalComponents)
+                        await AssessModelsToPredictUtilitiesFromPrincipalComponents();
+                    await UsePCAToEvaluateEquilibria(reportCollection);
                 }
-                TabbedText.WriteLine($"Average ms per each of {numUtilitiesToCalculateToBuildModel} utilities to calculate: {timeStats.Average().ToSignificantFigures(3)} (total time: {outerStopwatch.ElapsedMilliseconds})");
-                outerStopwatch.Reset();
-                outerStopwatch.Start();
-                ModelsToPredictUtilitiesFromPrincipalComponents = new RegressionController[NumNonChancePlayers];
-                for (byte p = 0; p < NumNonChancePlayers; p++)
-                {
-                    ModelsToPredictUtilitiesFromPrincipalComponents[p] = new RegressionController(EvolutionSettings.RegressionFactory());
-                    var dataConverted = data.Select(x => x.Convert(p)).ToArray();
-                    await ModelsToPredictUtilitiesFromPrincipalComponents[p].Regress(dataConverted);
-                }
-                outerStopwatch.Stop();
-                TabbedText.WriteLine($"Utilities model build in {outerStopwatch.ElapsedMilliseconds} ms");
-                if (EvolutionSettings.PCA_AssessModelsToPredictUtilitiesFromPrincipalComponents)
-                    await AssessModelsToPredictUtilitiesFromPrincipalComponents();
-                await UsePCAToEvaluateEquilibria(reportCollection);
             }
         }
 
@@ -730,27 +770,29 @@ namespace ACESim
             await UsePCAToEvaluateCorrelatedEquilibria(player0Utilities, player1Utilities, principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1, reportCollection);
         }
 
-        private async Task UsePCAToEvaluateCorrelatedEquilibria(double[,] player0Utilities, double[,] player1Utilities, List<double>[] principalComponentsWeightsForPlayer0, List<double>[] principalComponentsWeightsForPlayer1, ReportCollection reportCollection)
+        private async Task UsePCAToEvaluateCorrelatedEquilibria(double[,] player0Utilities, double[,] player1Utilities, List<double>[] principalComponentsWeightsForPlayer0, List<double>[] principalComponentsWeightsForPlayer1, ReportCollection reportCollection, int numAttemptsToGetBiggerEquilibria = 200)
         {
             if (!EvolutionSettings.ConstructCorrelatedEquilibrium)
                 return;
             TabbedText.WriteLine($"Correlated equilibria");
-            var correlatedEquilibria = PureStrategiesFinder.GetCorrelatedEquilibrium_OrderingByApproxNashValue(player0Utilities, player1Utilities)
+            var correlatedEquilibrium = PureStrategiesFinder.GetCorrelatedEquilibrium_OrderingByApproxNashValue(player0Utilities, player1Utilities)
                 .Select(x => new List<double>[2] { principalComponentsWeightsForPlayer0[x.player0Strategy], principalComponentsWeightsForPlayer1[x.player1Strategy] })
                 .ToList();
-            ReportEquilibria(correlatedEquilibria);
+            ConsistentRandomSequenceProducer randomSequenceProducer = new ConsistentRandomSequenceProducer(6_012_345); // arbitrary sequence
+            for (int i = 0; i < numAttemptsToGetBiggerEquilibria; i++)
+            {
+                List<List<double>[]> candidate = PureStrategiesFinder.GetCorrelatedEquilibrium_OrderingByFarthestDistanceFromAdmittees_StartingWithRandomStrategy(player0Utilities, player1Utilities, randomSequenceProducer)
+                    .Select(x => new List<double>[2] { principalComponentsWeightsForPlayer0[x.player0Strategy], principalComponentsWeightsForPlayer1[x.player1Strategy] })
+                    .ToList();
+                int numOfEquilibriaWithinCorrelatedCandidate = candidate.Count();
+                if (numOfEquilibriaWithinCorrelatedCandidate > correlatedEquilibrium.Count())
+                    correlatedEquilibrium = candidate;
+            }
 
-            await PCA_SeparateReportsForEachEquilibrium(reportCollection, correlatedEquilibria);
-            //ConsistentRandomSequenceProducer randomSequenceProducer = new ConsistentRandomSequenceProducer(6_000_234);
-            //for (int i = 0; i < 1; i++)
-            //{
-            //    TabbedText.WriteLine($"correlated eq random start {i}");
-            //    correlatedEquilibria = PureStrategiesFinder.GetCorrelatedEquilibrium_OrderingByFarthestDistanceFromAdmittees_StartingWithRandomStrategy(player0Utilities, player1Utilities, randomSequenceProducer)
-            //        .Select(x => new List<double>[2] { principalComponentsWeightsForPlayer0[x.player0Strategy], principalComponentsWeightsForPlayer1[x.player1Strategy] })
-            //        .ToList();
-            //    ReportEquilibria(correlatedEquilibria);
+            ReportEquilibria(correlatedEquilibrium);
 
-            //}
+            await PCA_SeparateReportsForEachEquilibrium(reportCollection, correlatedEquilibrium);
+            
         }
 
         public async Task UsePCAToEvaluateNashEquilibria(double[,] player0Utilities, double[,] player1Utilities, List<double>[] principalComponentsWeightsForPlayer0, List<double>[] principalComponentsWeightsForPlayer1, ReportCollection reportCollection)

@@ -112,7 +112,7 @@ namespace ACESim
 
         public bool PCA_PerformPrincipalComponentAnalysis = true; // DEBUG
         public double PCA_Precision = 1E-5;
-        public int PCA_FirstIterationToSaveAsPCAObservation = 20; // DEBUG
+        public int PCA_FirstIterationToSaveAsPCAObservation = 21; // DEBUG
         public int PCA_SavePCAObservationEveryNIterationsAfterFirst = 1;
         public int[] PCA_NumVariationsPerPrincipalComponent_Obsolete = new int[] { 4, 3, 2 }; // NOTE: Not currently being used; this can be used to generate non-random permutations of principal components.
         public int PCA_NumPrincipalComponents = 5;
