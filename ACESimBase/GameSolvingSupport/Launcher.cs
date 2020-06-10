@@ -47,6 +47,7 @@ namespace ACESim
         public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && UseDistributedProcessingForMultipleOptionsSets; // this should be true if running on the local service fabric or usign ACESimDistributed
         public string MasterReportNameForDistributedProcessing = "R150"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
         public bool UseDistributedProcessingForMultipleOptionsSets = true;
+        public bool SeparateScenariosWhenUsingDistributedProcessing = true;
         public static bool MaxOneReportPerDistributedProcess = false;
         public bool CombineResultsOfAllOptionSetsAfterExecution = false;
         const int EffectivelyNever = EvolutionSettings.EffectivelyNever;
@@ -261,9 +262,9 @@ namespace ACESim
                     }
                     else
                     {
-                        logAction($"Beginning task {taskToDo.Name} (ID {taskToDo.ID})");
+                        logAction($"Beginning task {taskToDo.TaskType} (ID {taskToDo.ID})");
                         await CompleteIndividualTask(masterReportName, taskToDo, logAction);
-                        logAction($"Completed task {taskToDo.Name} (ID {taskToDo.ID})");
+                        logAction($"Completed task {taskToDo.TaskType} (ID {taskToDo.ID})");
                         taskCompleted = taskToDo;
                     }
                 }
@@ -276,21 +277,25 @@ namespace ACESim
         {
             if (logAction == null)
                 logAction = s => Debug.WriteLine(s);
-            if (taskToDo.Name == "Optimize")
+            if (taskToDo.TaskType == "Optimize")
             {
                 IStrategiesDeveloper developer = GetDeveloper(taskToDo.ID);
-                await GetSingleRepetitionReportAndSave(masterReportName, taskToDo.ID, taskToDo.Repetition, true, developer, logAction);
+                await GetSingleRepetitionReportAndSave(masterReportName, taskToDo.ID, taskToDo.Repetition, true, developer, taskToDo.RestrictToScenarioIndex, logAction);
                 TabbedText.ResetAccumulated();
             }
-            else if (taskToDo.Name == "CombineRepetitions")
+            else if (taskToDo.TaskType == "CombineRepetitions")
             {
                 if (NumRepetitions > 1)
                     CombineResultsOfRepetitionsOfOptionSets(masterReportName, taskToDo.ID);
             }
-            else if (taskToDo.Name == "CombineOptionSets")
+            else if (taskToDo.TaskType == "CombineOptionSets")
             {
                 if (CombineResultsOfAllOptionSetsAfterExecution)
                     CombineResultsOfAllOptionSets(masterReportName);
+            }
+            else if (taskToDo.TaskType == "CompletePCA")
+            {
+                IStrategiesDeveloper developer = GetDeveloper(taskToDo.ID); // note that this specifies the option set
             }
             else
                 throw new NotImplementedException();
@@ -300,14 +305,19 @@ namespace ACESim
         {
             List<(string optionSetName, GameOptions options)> optionSets = GetOptionsSets();
             int optionSetsCount = optionSets.Count();
+            int? scenarios = null;
+            if (DistributedProcessing && SeparateScenariosWhenUsingDistributedProcessing)
+                scenarios = GetGameDefinition().NumScenarioPermutations;
             var taskStages = new List<TaskStage>()
             {
-                new TaskStage(Enumerable.Range(0, optionSetsCount).Select(x => new RepeatedTask("Optimize", x, NumRepetitions)).ToList())
+                new TaskStage(Enumerable.Range(0, optionSetsCount).Select(x => new RepeatedTask("Optimize", x, NumRepetitions, scenarios)).ToList())
             };
+            if (DistributedProcessing && SeparateScenariosWhenUsingDistributedProcessing)
+                taskStages.Add(new TaskStage(Enumerable.Range(0, optionSetsCount).Select(x => new RepeatedTask("CompletePCA", x, 1, null)).ToList()));
             if (NumRepetitions > 1)
-                taskStages.Add(new TaskStage(Enumerable.Range(0, optionSetsCount).Select(x => new RepeatedTask("CombineRepetitions", x, 1)).ToList()));
+                taskStages.Add(new TaskStage(Enumerable.Range(0, optionSetsCount).Select(x => new RepeatedTask("CombineRepetitions", x, 1, null)).ToList()));
             if (optionSetsCount > 1)
-                taskStages.Add(new TaskStage(Enumerable.Range(0, 1).Select(x => new RepeatedTask("CombineOptionSets", x, 1) { AvoidRedundantExecution = true }).ToList()));
+                taskStages.Add(new TaskStage(Enumerable.Range(0, 1).Select(x => new RepeatedTask("CombineOptionSets", x, 1, null) { AvoidRedundantExecution = true }).ToList()));
             TaskCoordinator tasks = new TaskCoordinator(taskStages);
             var blockBlob = AzureBlob.GetLeasedBlockBlob("results", masterReportName + " Coordinator", true);
             var result = AzureBlob.TransformSharedBlobObject(blockBlob.blob, blockBlob.lease, o => o == null ? tasks : null); // return null if the task coordinator object is already created
@@ -444,23 +454,23 @@ namespace ACESim
             ReportCollection result = new ReportCollection();
             for (int i = 0; i < NumRepetitions; i++)
             {
-                var repetitionReport = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSetName, i, addOptionSetColumns, developer);
+                var repetitionReport = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSetName, i, addOptionSetColumns, developer, null);
                 result.Add(repetitionReport);
             }
             return result;
         }
 
-        private async Task<ReportCollection> GetSingleRepetitionReportAndSave(string masterReportName, int optionSetIndex, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer, Action<string> logAction = null)
+        private async Task<ReportCollection> GetSingleRepetitionReportAndSave(string masterReportName, int optionSetIndex, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer, int? restrictToScenarioIndex, Action<string> logAction = null)
         {
             if (logAction == null)
                 logAction = s => Debug.WriteLine(s);
             List<(string optionSetName, GameOptions options)> optionSets = GetOptionsSets();
             var options = optionSets[optionSetIndex].options;
-            var result = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSets[optionSetIndex].optionSetName, repetition, addOptionSetColumns, developer, logAction);
+            var result = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSets[optionSetIndex].optionSetName, repetition, addOptionSetColumns, developer, restrictToScenarioIndex, logAction);
             return result;
         }
 
-        private async Task<ReportCollection> GetSingleRepetitionReportAndSave(string masterReportName, GameOptions options, string optionSetName, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer, Action<string> logAction = null)
+        private async Task<ReportCollection> GetSingleRepetitionReportAndSave(string masterReportName, GameOptions options, string optionSetName, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer, int? restrictToScenarioIndex, Action<string> logAction = null)
         {
             string masterReportNamePlusOptionSet = $"{masterReportName} {optionSetName}";
             if (logAction == null)
@@ -469,7 +479,7 @@ namespace ACESim
                 throw new Exception("Developer must be set"); // should call GetDeveloper(options) before calling this (note: earlier version passed developer as ref so that it could be set here)
             try
             {
-                var result = await GetSingleRepetitionReport(optionSetName, repetition, addOptionSetColumns, developer, logAction);
+                var result = await GetSingleRepetitionReport(optionSetName, repetition, addOptionSetColumns, developer, restrictToScenarioIndex, logAction);
                 logAction("Writing report to blob");
                 if (AzureEnabled && result.csvReports.Any())
                 {
@@ -486,7 +496,7 @@ namespace ACESim
             }
         }
 
-        private async Task<ReportCollection> GetSingleRepetitionReport(string optionSetName, int i, bool addOptionSetColumns, IStrategiesDeveloper developer, Action<string> logAction = null)
+        private async Task<ReportCollection> GetSingleRepetitionReport(string optionSetName, int i, bool addOptionSetColumns, IStrategiesDeveloper developer, int? restrictToScenarioIndex, Action<string> logAction = null)
         {
             if (logAction == null)
                 logAction = s => Debug.WriteLine(s);
@@ -498,7 +508,7 @@ namespace ACESim
         retry:
             try
             {
-                reportCollection = await developer.DevelopStrategies(optionSetName);
+                reportCollection = await developer.DevelopStrategies(optionSetName, restrictToScenarioIndex);
             }
             catch (Exception e)
             {

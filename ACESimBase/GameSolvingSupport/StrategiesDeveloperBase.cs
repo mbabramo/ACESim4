@@ -88,17 +88,24 @@ namespace ACESim
 
         public int OverallScenarioIndex;
 
-        public async Task<ReportCollection> DevelopStrategies(string optionSetName)
+        public async Task<ReportCollection> DevelopStrategies(string optionSetName, int? restrictToScenarioIndex)
         {
             await Initialize();
             ReportCollection reportCollection = new ReportCollection();
             bool constructCorrelatedEquilibrium = GameDefinition.NumScenarioPermutations > 1 && EvolutionSettings.ConstructCorrelatedEquilibrium;
-            for (int overallScenarioIndex = 0; overallScenarioIndex < GameDefinition.NumScenarioPermutations; overallScenarioIndex++)
+            int startingScenarioIndex = 0;
+            int numScenarios = GameDefinition.NumScenarioPermutations;
+            if (restrictToScenarioIndex is int restriction)
+            {
+                startingScenarioIndex = restriction;
+                numScenarios = 1;
+            }
+            for (int overallScenarioIndex = startingScenarioIndex; overallScenarioIndex < numScenarios; overallScenarioIndex++)
             {
                 OverallScenarioIndex = overallScenarioIndex;
                 ReinitializeForScenario(overallScenarioIndex, GameDefinition.UseDifferentWarmup);
                 string optionSetInfo = $@"Option set {optionSetName}";
-                string scenarioFullName = optionSetInfo; 
+                string scenarioFullName = optionSetInfo;
                 if (GameDefinition.NumScenarioPermutations > 1)
                 {
                     scenarioFullName = GameDefinition.GetNameForScenario_WithOpponentWeight();
@@ -108,7 +115,7 @@ namespace ACESim
                 Status.ScenarioName = scenarioFullName;
 
                 TabbedText.WriteLineEvenIfDisabled(optionSetInfo);
-                
+
                 ReportCollection reportToAddToCollection = await RunAlgorithm(optionSetName);
 
                 if (EvolutionSettings.PCA_PerformPrincipalComponentAnalysis)
@@ -124,13 +131,8 @@ namespace ACESim
                 else
                     reportCollection.Add(reportToAddToCollection); // if constructing correlated equilibrium, we ignore the interim reports
             }
-            if (EvolutionSettings.PCA_PerformPrincipalComponentAnalysis)
-            {
-                await RecoverSavedPCAModelData();
-                await PerformPrincipalComponentAnalysis(reportCollection);
-                if (!EvolutionSettings.PCA_SeparateReportPerEquilibrium)
-                    await GenerateReports(() => GameDefinition.OptionSetName, reportCollection, EvolutionSettings.PCA_BestResponseAfterPCA, EvolutionSettings.PCA_ReportsAfterPCA);
-            }
+            if (restrictToScenarioIndex == null)
+                await RecoverSavedPCAModelDataAndPerformAnalysis(reportCollection);
             if (constructCorrelatedEquilibrium)
                 reportCollection = await FinalizeCorrelatedEquilibrium();
             return reportCollection;
@@ -547,7 +549,6 @@ namespace ACESim
                 }
             }
         }
-        int DEBUGQ = 0;
         public Task SavePCAModelData()
         {
             int numModels, totalBytesNeeded;
@@ -605,6 +606,17 @@ namespace ACESim
                 }
             }
             return Task.CompletedTask;
+        }
+
+        public async Task RecoverSavedPCAModelDataAndPerformAnalysis(ReportCollection reportCollection)
+        {
+            if (EvolutionSettings.PCA_PerformPrincipalComponentAnalysis)
+            {
+                await RecoverSavedPCAModelData();
+                await PerformPrincipalComponentAnalysis(reportCollection);
+                if (!EvolutionSettings.PCA_SeparateReportPerEquilibrium)
+                    await GenerateReports(() => GameDefinition.OptionSetName, reportCollection, EvolutionSettings.PCA_BestResponseAfterPCA, EvolutionSettings.PCA_ReportsAfterPCA);
+            }
         }
 
         private async Task PerformPrincipalComponentAnalysis(ReportCollection reportCollection)

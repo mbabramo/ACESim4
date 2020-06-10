@@ -5,24 +5,26 @@ namespace ACESim.Util
     [Serializable]
     public class IndividualTask
     {
-        public string Name;
+        public string TaskType;
         public int ID;
-        public int Repetition; 
+        public int Repetition;
+        public int? RestrictToScenarioIndex;
         public DateTime? Started;
         public DateTime? Completed;
         public TimeSpan DurationOfLongestComplete => Completed == null ? TimeSpan.FromSeconds(0) : (TimeSpan) (Completed - Started); // we do not count incomplete tasks here
         public bool Complete;
 
-        public IndividualTask(string name, int id, int repetition)
+        public IndividualTask(string taskType, int id, int repetition, int? restrictToScenarioIndex)
         {
-            Name = name;
+            TaskType = taskType;
             ID = id;
             Repetition = repetition;
+            RestrictToScenarioIndex = restrictToScenarioIndex;
         }
 
         public override string ToString()
         {
-            return $"{Name} {ID} {Repetition} Started:{Started} Complete:{Complete}";
+            return $"{TaskType} {ID} {Repetition} {(RestrictToScenarioIndex != null ? $"Scenario: {RestrictToScenarioIndex}" : "")}Started:{Started} Complete:{Complete}";
         }
     }
 }

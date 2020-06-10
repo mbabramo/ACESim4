@@ -6,19 +6,25 @@ namespace ACESim.Util
     [Serializable]
     public class RepeatedTask
     {
-        public string Name;
+        public string TaskType;
         public int ID;
         public bool AvoidRedundantExecution; // use AvoidRedundantExecution for very long tasks at the end of a series of tasks, so other processes do not try to do them simultaneously when they see that it has been some time before the task was started
         public IndividualTask[] IndividualTasks;
 
-        public RepeatedTask(string name, int id, int repetitions)
+        public RepeatedTask(string taskType, int id, int repetitions, int? scenarios)
         {
-            Name = name;
+            TaskType = taskType;
             ID = id;
             IndividualTasks = new IndividualTask[repetitions];
-            for (int repetition = 0; repetition < repetitions; repetition++)
+            int?[] scenarioArray = new int?[] { null };
+            if (scenarios != null)
+                scenarioArray = Enumerable.Range(0, (int)scenarios).Select(x => (int?) x).ToArray();
+            foreach (int? scenarioIndex in scenarioArray)
             {
-                IndividualTasks[repetition] = new IndividualTask(Name, ID, repetition);
+                for (int repetition = 0; repetition < repetitions; repetition++)
+                {
+                    IndividualTasks[repetition] = new IndividualTask(taskType, ID, repetition, scenarioIndex);
+                }
             }
         }
 
