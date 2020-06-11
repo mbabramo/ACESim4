@@ -1323,14 +1323,7 @@ namespace ACESim
                     }
                 }
             }
-            DEBUGX();
             return Task.CompletedTask;
-        }
-
-        public override void DEBUGX()
-        {
-            var DEBUG = InformationSets.Where(x => x.PlayerIndex == 0).Sum(x => x.GetCumulativeRegret(1));
-            TabbedText.WriteLine($"Sum {DEBUG}");
         }
         #endregion
 

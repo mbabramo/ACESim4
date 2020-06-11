@@ -104,7 +104,8 @@ namespace SimpleAdditiveEvidence
 
             if (!AllEquilibria.Any())
             {
-                (OptimalPStrategy, OptimalDStrategy) = PureStrategiesFinder.GetApproximateNashEquilibrium(PUtilities, DUtilities, out double nashDistance);
+                double[,] distanceFromNash = null;
+                (OptimalPStrategy, OptimalDStrategy, distanceFromNash) = PureStrategiesFinder.GetApproximateNashEquilibrium(PUtilities, DUtilities, out double nashDistance);
                 b.AppendLine($"No pure equilibria; using approximate equilibrium {OptimalPStrategy},{OptimalDStrategy} => ({PUtilities[OptimalPStrategy, OptimalDStrategy]},{DUtilities[OptimalPStrategy, OptimalDStrategy]}) (exploitability {nashDistance})");
                 RecordUtilities(true, false, OptimalPStrategy, OptimalDStrategy); // calculate more advanced stats
             }

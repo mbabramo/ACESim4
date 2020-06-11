@@ -20,7 +20,7 @@ namespace ACESim
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; // use RegretMatching etc. for GeneralizedVanilla
 
-        public const int VanillaIterations = 25; // DEBUG // Note: Also used for GeneralizedVanilla, DeepCFR
+        public const int VanillaIterations = 30; // DEBUG // Note: Also used for GeneralizedVanilla, DeepCFR
         public const int VanillaReportEveryNIterations = EffectivelyNever; // DEBUG VanillaIterations;
         public int? SuppressReportBeforeIteration = null;
         public const int VanillaBestResponseEveryMIterations = EffectivelyNever; // DEBUG VanillaIterations; 
@@ -45,7 +45,7 @@ namespace ACESim
         public int NumRepetitions = 1;
         public bool AzureEnabled = false;
         public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && UseDistributedProcessingForMultipleOptionsSets; // this should be true if running on the local service fabric or usign ACESimDistributed
-        public string MasterReportNameForDistributedProcessing = "R302"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
+        public string MasterReportNameForDistributedProcessing = "R309"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
         public bool UseDistributedProcessingForMultipleOptionsSets = true;
         public bool SeparateScenariosWhenUsingDistributedProcessing = true;
         public static bool MaxOneReportPerDistributedProcess = false;
@@ -218,9 +218,16 @@ namespace ACESim
                 TabbedText.EnableOutput();
             }
             var result = AzureBlob.GetBlobText("results", $"{masterReportName} AllCombined.csv");
-            DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
-            TextFileCreate.CreateTextFile(Path.Combine(folder.FullName, "csvreport.csv"), result);
+            string folderFullName = ReportFolder();
+            TextFileCreate.CreateTextFile(Path.Combine(folderFullName, "csvreport.csv"), result);
             return new ReportCollection("", result);
+        }
+
+        public static string ReportFolder()
+        {
+            DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
+            var folderFullName = folder.FullName;
+            return folderFullName;
         }
 
         public async Task ParticipateInDistributedProcessing(string masterReportName, CancellationToken cancellationToken, Action<string> logAction = null)
@@ -247,6 +254,7 @@ namespace ACESim
                     if (taskCoordinator == null)
                         throw new Exception("Corrupted or nonexistent task coordinator blob");
                     taskCoordinator.Update(theCompletedTask, readyForAnotherTask, out taskToDo, out complete);
+                    TabbedText.WriteLineEvenIfDisabled($"");
                     TabbedText.WriteLineEvenIfDisabled($"Percentage Complete {100.0 * taskCoordinator.ProportionComplete}% of {taskCoordinator.IndividualTaskCount}");
                     if (taskToDo != null)
                         TabbedText.WriteLineEvenIfDisabled($"Task to do: {taskToDo}");
@@ -298,13 +306,16 @@ namespace ACESim
                 IStrategiesDeveloper developer = GetDeveloper(taskToDo.ID); // note that this specifies the option set
                 if (developer is StrategiesDeveloperBase strategiesDeveloper)
                 {
-                    // must start developing a strategy just to get information sets etc into memory
+                    // must start developing a strategy for an iteration just to get information sets etc into memory. Then we will do the principal components analysis. This means that we don't want to save the model data from this iteration. 
                     var firstOptionSet = GetOptionsSets().First();
                     var evolutionSettings = GetEvolutionSettings();
                     int totalIterations = evolutionSettings.TotalIterations;
                     evolutionSettings.TotalIterations = 1;
+                    bool originalPerformPrincipalComponentAnalysis = evolutionSettings.PCA_PerformPrincipalComponentAnalysis;
+                    evolutionSettings.PCA_PerformPrincipalComponentAnalysis = false; 
                     await developer.DevelopStrategies(firstOptionSet.optionSetName, null);
                     evolutionSettings.TotalIterations = totalIterations;
+                    evolutionSettings.PCA_PerformPrincipalComponentAnalysis = originalPerformPrincipalComponentAnalysis;
                     ReportCollection reportCollection = new ReportCollection();
                     await strategiesDeveloper.RecoverSavedPCAModelDataAndPerformAnalysis(reportCollection);
                 }
@@ -384,7 +395,7 @@ namespace ACESim
             // it is possible that we have multiple csvReports -- meaning that different simulations produced
             // different first lines. that's OK, we need to output all of them.
             string combinedResults = reportCollection.csvReports.FirstOrDefault();
-            AzureBlob.WriteTextToBlob("results", $"{masterReportName} AllCombined.csv", true, combinedResults);
+            AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), $"{masterReportName} AllCombined.csv", true, combinedResults, AzureEnabled);
             return combinedResults;
         }
 
@@ -412,8 +423,8 @@ namespace ACESim
             }
             string combinedRepetitionsReport = String.Join("", combinedReports);
             string mergedReport = SimpleReportMerging.GetDistributionReports(combinedRepetitionsReport, optionSetName, includeFirstLine);
-            AzureBlob.WriteTextToBlob("results", masterReportNamePlusOptionSet, true, mergedReport + ".csv");
-            AzureBlob.WriteTextToBlob("results", masterReportNamePlusOptionSet + "log.txt", true, TabbedText.AccumulatedText.ToString());
+            AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), masterReportNamePlusOptionSet, true, mergedReport + ".csv", AzureEnabled);
+            AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), masterReportNamePlusOptionSet + "log.txt", true, TabbedText.AccumulatedText.ToString(), AzureEnabled);
             TabbedText.ResetAccumulated();
             return mergedReport;
         }
@@ -495,8 +506,8 @@ namespace ACESim
                 logAction("Writing report to blob");
                 if (AzureEnabled && result.csvReports.Any())
                 {
-                    AzureBlob.WriteTextToBlob("results", masterReportNamePlusOptionSet + ".csv", true, result.csvReports.FirstOrDefault()); // we write to a blob in case this times out and also to allow individual report to be taken out
-                    AzureBlob.WriteTextToBlob("results", masterReportNamePlusOptionSet + "log.txt", true, TabbedText.AccumulatedText.ToString());
+                    AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), masterReportNamePlusOptionSet + ".csv", true, result.csvReports.FirstOrDefault(), AzureEnabled); // we write to a blob in case this times out and also to allow individual report to be taken out
+                    AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), masterReportNamePlusOptionSet + "log.txt", true, TabbedText.AccumulatedText.ToString(), AzureEnabled);
                 }
                 logAction("Report written to blob");
                 return result;
@@ -565,7 +576,7 @@ namespace ACESim
             foreach (var taskResult in taskResults)
                 stringResults.Add(taskResult);
             string combinedResults = String.Join("", stringResults);
-            AzureBlob.WriteTextToBlob("results", azureBlobReportName + " allsets.csv", true, combinedResults);
+            AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), azureBlobReportName + " allsets.csv", true, combinedResults, AzureEnabled);
             return combinedResults;
         }
 

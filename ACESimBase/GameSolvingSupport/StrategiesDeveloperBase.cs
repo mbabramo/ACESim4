@@ -100,7 +100,7 @@ namespace ACESim
                 startingScenarioIndex = restriction;
                 numScenarios = 1;
             }
-            for (int overallScenarioIndex = startingScenarioIndex; overallScenarioIndex < numScenarios; overallScenarioIndex++)
+            for (int overallScenarioIndex = startingScenarioIndex; overallScenarioIndex < startingScenarioIndex + numScenarios; overallScenarioIndex++)
             {
                 OverallScenarioIndex = overallScenarioIndex;
                 ReinitializeForScenario(overallScenarioIndex, GameDefinition.UseDifferentWarmup);
@@ -549,6 +549,7 @@ namespace ACESim
                 }
             }
         }
+
         public Task SavePCAModelData()
         {
             int numModels, totalBytesNeeded;
@@ -614,8 +615,14 @@ namespace ACESim
             {
                 await RecoverSavedPCAModelData();
                 await PerformPrincipalComponentAnalysis(reportCollection);
+                Debug; // must still get something separate for each scenario
                 if (!EvolutionSettings.PCA_SeparateReportPerEquilibrium)
                     await GenerateReports(() => GameDefinition.OptionSetName, reportCollection, EvolutionSettings.PCA_BestResponseAfterPCA, EvolutionSettings.PCA_ReportsAfterPCA);
+                foreach (var reportCSV in reportCollection.csvReports)
+                {
+                    GetPathAndFilenameForOptionSet()
+                    AzureBlob.;
+                }
             }
         }
 
@@ -795,12 +802,16 @@ namespace ACESim
 
             for (int i = 0; i < numAttemptsToGetBiggerEquilibria; i++)
             {
-                List<List<double>[]> candidate = PureStrategiesFinder.GetCorrelatedEquilibrium_OrderingByFarthestDistanceFromAdmittees_StartingWithRandomStrategy(player0Utilities, player1Utilities, distanceFromNash, maxNumCandidatesToConsider, randomSequenceProducer)
-                    .Select(x => new List<double>[2] { principalComponentsWeightsForPlayer0[x.player0Strategy], principalComponentsWeightsForPlayer1[x.player1Strategy] })
+                List<(int player0Strategy, int player1Strategy)> candidateEquilibriumStrategies = PureStrategiesFinder.GetCorrelatedEquilibrium_OrderingByFarthestDistanceFromAdmittees_StartingWithRandomStrategy(player0Utilities, player1Utilities, distanceFromNash, maxNumCandidatesToConsider, randomSequenceProducer);
+                List<List<double>[]> candidateEquilibrium = candidateEquilibriumStrategies
+                    .Select(x => (new List<double>[2] { principalComponentsWeightsForPlayer0[x.player0Strategy], principalComponentsWeightsForPlayer1[x.player1Strategy] }))
                     .ToList();
-                int numOfEquilibriaWithinCorrelatedCandidate = candidate.Count();
+                int numOfEquilibriaWithinCorrelatedCandidate = candidateEquilibrium.Count();
                 if (numOfEquilibriaWithinCorrelatedCandidate > correlatedEquilibrium.Count())
-                    correlatedEquilibrium = candidate;
+                {
+                    correlatedEquilibriumStrategies = candidateEquilibriumStrategies;
+                    correlatedEquilibrium = candidateEquilibrium;
+                }
             }
 
             ReportEquilibria(correlatedEquilibriumStrategies, correlatedEquilibrium, distanceFromNash);
@@ -831,14 +842,19 @@ namespace ACESim
             return (nashEquilibriaStrategies, nashEquilibriaPrincipalComponents, approximateNash.distanceFromNash);
         }
 
-        private async Task PCA_SeparateReportsForEachEquilibrium(ReportCollection reportCollection, List<List<double>[]> equilibria)
+        private async Task PCA_SeparateReportsForEachEquilibrium(List<List<double>[]> equilibria, string equilibriumType)
         {
+            Debug;
             if (EvolutionSettings.PCA_SeparateReportPerEquilibrium)
             {
-                foreach (var eq in equilibria)
+                for (int e = 0; e < equilibria.Count; e++)
                 {
+                    List<double>[] eq = equilibria[e];
                     await SetModelToPrincipalComponentWeights(eq);
-                    await GenerateReports(() => GameDefinition.OptionSetName, reportCollection, EvolutionSettings.PCA_BestResponseAfterPCA, EvolutionSettings.PCA_ReportsAfterPCA);
+                    ReportCollection singleReport = new ReportCollection();
+                    Func<string> prefaceFn = () => GameDefinition.OptionSetName + "-" + equilibriumType + "-" + e.ToString(); Debug; // must still get the specific report within the option set corresponding to the scenario.
+                    await GenerateReports(prefaceFn, singleReport, EvolutionSettings.PCA_BestResponseAfterPCA, EvolutionSettings.PCA_ReportsAfterPCA);
+                    AzureBlob.WriteTextToFileOrAzure("reports", Launcher.ReportFolder(), prefaceFn() + ".csv", true, singleReport.csvReports.First(), EvolutionSettings.AzureEnabled);
                 }
             }
         }
@@ -1959,7 +1975,6 @@ namespace ACESim
         {
             // This is comparing (1) Best response vs. average strategy; to (2) most recently calculated average strategy
             bool overallUtilitiesRecorded = Status.UtilitiesOverall != null;
-            DEBUGX();
             if (!overallUtilitiesRecorded)
             {
                 if (UtilityCalculationsArray == null)
@@ -1967,7 +1982,6 @@ namespace ACESim
                 else
                     CalculateUtilitiesOverall();
             }
-            DEBUGX();
             TabbedText.WriteLine(Status.ToString());
             TabbedText.WriteLine("");
             if (!overallUtilitiesRecorded)

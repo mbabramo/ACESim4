@@ -207,6 +207,19 @@ namespace ACESim.Util
             blockBlob.ReleaseLease(accessCondition);
         }
 
+        public static void WriteTextToFileOrAzure(string containerName, string path, string fileName, bool publicAccess, string text, bool useAzure)
+        {
+            if (useAzure)
+            {
+                WriteTextToBlob(containerName, fileName, publicAccess, text);
+            }
+            else
+            {
+                string fullFilename = Path.Combine(path, fileName);
+                System.IO.File.WriteAllText(fullFilename, text);
+            }
+        }
+
         public static void WriteTextToBlob(string containerName, string fileName, bool publicAccess, string text)
         {
             var blockBlob = GetBlockBlob(containerName, fileName, publicAccess);
