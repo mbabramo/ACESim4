@@ -209,20 +209,20 @@ namespace ACESim
             return atLeastOneEliminated;
         }
 
-        public static (int player0Strategy, int player1Strategy) GetApproximateNashEquilibrium(double[,] player0Utilities, double[,] player1Utilities, out double nashDistance)
+        public static (int player0Strategy, int player1Strategy, double[,] distanceFromNash) GetApproximateNashEquilibrium(double[,] player0Utilities, double[,] player1Utilities, out double nashDistance)
         {
             int numRows, numColumns;
             numRows = player0Utilities.GetLength(0);
             numColumns = player0Utilities.GetLength(1);
-            double[,] DistanceFromNash;
-            DistanceFromNash = GetApproximateNashEquilibriumValuesMatrix(player0Utilities, player1Utilities);
+            double[,] distanceFromNash;
+            distanceFromNash = GetApproximateNashEquilibriumValuesMatrix(player0Utilities, player1Utilities);
             int bestRow = -1;
             int bestCol = -1;
             nashDistance = double.MaxValue;
             for (int r = 0; r < numRows; r++)
                 for (int c = 0; c < numColumns; c++)
                 {
-                    double distance = DistanceFromNash[r, c];
+                    double distance = distanceFromNash[r, c];
                     if (distance < nashDistance)
                     {
                         bestRow = r;
@@ -231,7 +231,7 @@ namespace ACESim
                     }
                 }
             nashDistance = Math.Sqrt(nashDistance); // lowestTotal is sum of squares
-            return (bestRow, bestCol);
+            return (bestRow, bestCol, distanceFromNash);
         }
 
         public static double[,] GetApproximateNashEquilibriumValuesMatrix(double[,] player0Utilities, double[,] player1Utilities)
@@ -266,25 +266,24 @@ namespace ACESim
                     yield return (r, c);
         }
 
-        public static List<(int player0Strategy, int player1Strategy)> GetCorrelatedEquilibrium_OrderingByApproxNashValue(double[,] player0Utilities, double[,] player1Utilities)
+        public static List<(int player0Strategy, int player1Strategy)> GetCorrelatedEquilibrium_OrderingByApproxNashValue(double[,] player0Utilities, double[,] player1Utilities, double[,] distanceFromNash)
         {
-            double[,] matrix = GetApproximateNashEquilibriumValuesMatrix(player0Utilities, player1Utilities);
-            Func<List<(int player0Strategy, int player1Strategy)>, List<(int player0Strategy, int player1Strategy)>, List<(int player0Strategy, int player1Strategy)>> ordering = (candidates, admittees) => candidates.OrderBy(x => matrix[x.player0Strategy, x.player1Strategy]).ToList();
+            Func<List<(int player0Strategy, int player1Strategy)>, List<(int player0Strategy, int player1Strategy)>, List<(int player0Strategy, int player1Strategy)>> ordering = (candidates, admittees) => candidates.OrderBy(x => distanceFromNash[x.player0Strategy, x.player1Strategy]).ToList();
             List<(int player0Strategy, int player1Strategy)> candidates = GetAllStrategyPermutations(player0Utilities, player1Utilities).ToList();
             var admittees = GetCorrelatedEquilibrium(player0Utilities, player1Utilities, ordering, candidates, false);
             return admittees;
         }
 
-        public static List<(int player0Strategy, int player1Strategy)> GetCorrelatedEquilibrium_OrderingByFarthestDistanceFromAdmittees_StartingWithRandomStrategy(double[,] player0Utilities, double[,] player1Utilities, ConsistentRandomSequenceProducer randomizer)
+        public static List<(int player0Strategy, int player1Strategy)> GetCorrelatedEquilibrium_OrderingByFarthestDistanceFromAdmittees_StartingWithRandomStrategy(double[,] player0Utilities, double[,] player1Utilities, double[,] distanceFromNash, int maxNumCandidatesToConsider, ConsistentRandomSequenceProducer randomizer)
         {
             int numRows = player0Utilities.GetLength(0);
             int numColumns = player0Utilities.GetLength(1);
             int player0Strategy = randomizer.NextInt(numRows);
             int player1Strategy = randomizer.NextInt(numColumns);
-            return GetCorrelatedEquilibrium_OrderingByFarthestDistanceFromAdmittees(player0Utilities, player1Utilities, (player0Strategy, player1Strategy));
+            return GetCorrelatedEquilibrium_OrderingByFarthestDistanceFromAdmittees(player0Utilities, player1Utilities, (player0Strategy, player1Strategy), distanceFromNash, maxNumCandidatesToConsider);
         }
 
-        public static List<(int player0Strategy, int player1Strategy)> GetCorrelatedEquilibrium_OrderingByFarthestDistanceFromAdmittees(double[,] player0Utilities, double[,] player1Utilities, (int player0Strategy, int player1Strategy) initialStrategy)
+        public static List<(int player0Strategy, int player1Strategy)> GetCorrelatedEquilibrium_OrderingByFarthestDistanceFromAdmittees(double[,] player0Utilities, double[,] player1Utilities, (int player0Strategy, int player1Strategy) initialStrategy, double[,] distanceFromNash, int maxNumCandidatesToConsider)
         {
             double closestDistance((int player0Strategy, int player1Strategy) item, List<(int player0Strategy, int player1Strategy)> otherItems)
             {
@@ -301,9 +300,9 @@ namespace ACESim
                 return otherItems.Min(x => distance(x, item));
             }
 
-            List<(int player0Strategy, int player1Strategy)> candidates = GetAllStrategyPermutations(player0Utilities, player1Utilities).ToList();
-            candidates.Remove(initialStrategy);
-            candidates.Insert(0, initialStrategy);
+            List<(int player0Strategy, int player1Strategy)> candidates = GetAllStrategyPermutations(player0Utilities, player1Utilities).ToList(); // that is, every combination of a row-player and a column-player strategy
+            candidates = candidates.Where(x => x != initialStrategy).OrderBy(x => distanceFromNash[x.player0Strategy, x.player1Strategy]).Take(maxNumCandidatesToConsider).ToList();
+            candidates.Insert(0, initialStrategy); // initial strategy to front of list
             Func<List<(int player0Strategy, int player1Strategy)>, List<(int player0Strategy, int player1Strategy)>, List<(int player0Strategy, int player1Strategy)>> ordering = (candidates, admittees) => admittees.Any() ? candidates.OrderByDescending(x => closestDistance(x, admittees)).ToList() : candidates;
             var admittees = GetCorrelatedEquilibrium(player0Utilities, player1Utilities, ordering, candidates, true);
             return admittees;

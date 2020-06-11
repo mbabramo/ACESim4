@@ -30,6 +30,7 @@ namespace ACESim
 
         private enum OptionSetChoice
         {
+            Single,
             Fast,
             ShootoutPermutations,
             VariousUncertainties,
@@ -46,9 +47,12 @@ namespace ACESim
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-            OptionSetChoice optionSetChoice = OptionSetChoice.KlermanEtAl_Options;
+            OptionSetChoice optionSetChoice = OptionSetChoice.Single; // <<-- Choose option set here
             switch (optionSetChoice)
             {
+                case OptionSetChoice.Single:
+                    AddSingle(optionSets, MyGameOptionsGenerator.DamagesUncertainty_2BR(), "singleoptionset");
+                    break;
                 case OptionSetChoice.Fast:
                     AddFast(optionSets);
                     break;
@@ -146,6 +150,11 @@ namespace ACESim
             optionSets.Add(GetAndTransform("both_unc", "basecosts", MyGameOptionsGenerator.BothUncertain_1BR, x => { x.CostsMultiplier = 1.0; }, RiskAversion.RiskNeutral));
             optionSets.Add(GetAndTransform("both_unc2BR", "basecosts", MyGameOptionsGenerator.BothUncertain_2BR, x => { x.CostsMultiplier = 1.0; }, RiskAversion.RiskNeutral));
 
+        }
+
+        private void AddSingle(List<(string optionSetName, GameOptions options)> optionSets, GameOptions options, string optionSetName)
+        {
+            optionSets.Add((optionSetName, options));
         }
 
         private void AddFast(List<(string optionSetName, GameOptions options)> optionSets)

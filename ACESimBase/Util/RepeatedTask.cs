@@ -15,15 +15,20 @@ namespace ACESim.Util
         {
             TaskType = taskType;
             ID = id;
-            IndividualTasks = new IndividualTask[repetitions];
+            int numIndividualTasks = repetitions;
             int?[] scenarioArray = new int?[] { null };
             if (scenarios != null)
-                scenarioArray = Enumerable.Range(0, (int)scenarios).Select(x => (int?) x).ToArray();
+            {
+                scenarioArray = Enumerable.Range(0, (int)scenarios).Select(x => (int?)x).ToArray();
+                numIndividualTasks *= (int)scenarios;
+            }
+            IndividualTasks = new IndividualTask[numIndividualTasks];
+            int individualTasksIndex = 0;
             foreach (int? scenarioIndex in scenarioArray)
             {
                 for (int repetition = 0; repetition < repetitions; repetition++)
                 {
-                    IndividualTasks[repetition] = new IndividualTask(taskType, ID, repetition, scenarioIndex);
+                    IndividualTasks[individualTasksIndex++] = new IndividualTask(taskType, ID, repetition, scenarioIndex);
                 }
             }
         }

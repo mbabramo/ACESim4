@@ -778,22 +778,24 @@ namespace ACESim
             double[,] player0Utilities, player1Utilities;
             List<double>[] principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1;
             GetEstimatedUtilitiesForStrategyChoices(numStrategyChoicesPerPlayer, out player0Utilities, out player1Utilities, out principalComponentsWeightsForPlayer0, out principalComponentsWeightsForPlayer1);
-            await UsePCAToEvaluateNashEquilibria(player0Utilities, player1Utilities, principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1, reportCollection);
-            await UsePCAToEvaluateCorrelatedEquilibria(player0Utilities, player1Utilities, principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1, reportCollection);
+            var nashResults = await UsePCAToEvaluateNashEquilibria(player0Utilities, player1Utilities, principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1, reportCollection);
+            await UsePCAToEvaluateCorrelatedEquilibria(player0Utilities, player1Utilities, principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1, reportCollection, nashResults.distanceFromNash, 10_000, 100);
         }
 
-        private async Task UsePCAToEvaluateCorrelatedEquilibria(double[,] player0Utilities, double[,] player1Utilities, List<double>[] principalComponentsWeightsForPlayer0, List<double>[] principalComponentsWeightsForPlayer1, ReportCollection reportCollection, int numAttemptsToGetBiggerEquilibria = 200)
+        private async Task UsePCAToEvaluateCorrelatedEquilibria(double[,] player0Utilities, double[,] player1Utilities, List<double>[] principalComponentsWeightsForPlayer0, List<double>[] principalComponentsWeightsForPlayer1, ReportCollection reportCollection, double[,] distanceFromNash, int maxNumCandidatesToConsider, int numAttemptsToGetBiggerEquilibria)
         {
             if (!EvolutionSettings.ConstructCorrelatedEquilibrium)
                 return;
             TabbedText.WriteLine($"Correlated equilibria");
-            var correlatedEquilibrium = PureStrategiesFinder.GetCorrelatedEquilibrium_OrderingByApproxNashValue(player0Utilities, player1Utilities)
-                .Select(x => new List<double>[2] { principalComponentsWeightsForPlayer0[x.player0Strategy], principalComponentsWeightsForPlayer1[x.player1Strategy] })
+            List<(int player0Strategy, int player1Strategy)> correlatedEquilibriumStrategies = PureStrategiesFinder.GetCorrelatedEquilibrium_OrderingByApproxNashValue(player0Utilities, player1Utilities, distanceFromNash);
+            List<List<double>[]> correlatedEquilibrium = correlatedEquilibriumStrategies
+                .Select(x => (new List<double>[2] { principalComponentsWeightsForPlayer0[x.player0Strategy], principalComponentsWeightsForPlayer1[x.player1Strategy] }))
                 .ToList();
             ConsistentRandomSequenceProducer randomSequenceProducer = new ConsistentRandomSequenceProducer(6_012_345); // arbitrary sequence
+
             for (int i = 0; i < numAttemptsToGetBiggerEquilibria; i++)
             {
-                List<List<double>[]> candidate = PureStrategiesFinder.GetCorrelatedEquilibrium_OrderingByFarthestDistanceFromAdmittees_StartingWithRandomStrategy(player0Utilities, player1Utilities, randomSequenceProducer)
+                List<List<double>[]> candidate = PureStrategiesFinder.GetCorrelatedEquilibrium_OrderingByFarthestDistanceFromAdmittees_StartingWithRandomStrategy(player0Utilities, player1Utilities, distanceFromNash, maxNumCandidatesToConsider, randomSequenceProducer)
                     .Select(x => new List<double>[2] { principalComponentsWeightsForPlayer0[x.player0Strategy], principalComponentsWeightsForPlayer1[x.player1Strategy] })
                     .ToList();
                 int numOfEquilibriaWithinCorrelatedCandidate = candidate.Count();
@@ -801,30 +803,32 @@ namespace ACESim
                     correlatedEquilibrium = candidate;
             }
 
-            ReportEquilibria(correlatedEquilibrium);
+            ReportEquilibria(correlatedEquilibriumStrategies, correlatedEquilibrium, distanceFromNash);
 
             await PCA_SeparateReportsForEachEquilibrium(reportCollection, correlatedEquilibrium);
             
         }
 
-        public async Task UsePCAToEvaluateNashEquilibria(double[,] player0Utilities, double[,] player1Utilities, List<double>[] principalComponentsWeightsForPlayer0, List<double>[] principalComponentsWeightsForPlayer1, ReportCollection reportCollection)
+        public async Task<(List<(int player0Strategy, int player1Strategy)> nashEquilibriaStrategies, List<List<double>[]> nashEquilibriaPrincipalComponents, double[,] distanceFromNash)> UsePCAToEvaluateNashEquilibria(double[,] player0Utilities, double[,] player1Utilities, List<double>[] principalComponentsWeightsForPlayer0, List<double>[] principalComponentsWeightsForPlayer1, ReportCollection reportCollection)
         {
             TabbedText.WriteLine($"Nash equilibria");
-            List<List<double>[]> nashEquilibria = PureStrategiesFinder.ComputeNashEquilibria(player0Utilities, player1Utilities, false)
+            List<(int player0Strategy, int player1Strategy)> nashEquilibriaStrategies = PureStrategiesFinder.ComputeNashEquilibria(player0Utilities, player1Utilities, false);
+            List<List<double>[]> nashEquilibriaPrincipalComponents = nashEquilibriaStrategies
                 .Select(x => new List<double>[2] { principalComponentsWeightsForPlayer0[x.player0Strategy], principalComponentsWeightsForPlayer1[x.player1Strategy] })
                 .ToList();
-            if (!nashEquilibria.Any())
+            var approximateNash = PureStrategiesFinder.GetApproximateNashEquilibrium(player0Utilities, player1Utilities, out double nashDistance);
+            if (!nashEquilibriaPrincipalComponents.Any())
             {
-                var result = PureStrategiesFinder.GetApproximateNashEquilibrium(player0Utilities, player1Utilities, out double nashDistance);
                 TabbedText.WriteLine($"No Nash equilibrium found. Finding best approximate Nash equilibrium (distance from Nash: {nashDistance}).");
-                nashEquilibria.Add(new List<double>[2] { principalComponentsWeightsForPlayer0[result.player0Strategy], principalComponentsWeightsForPlayer1[result.player1Strategy] });
+                nashEquilibriaPrincipalComponents.Add(new List<double>[2] { principalComponentsWeightsForPlayer0[approximateNash.player0Strategy], principalComponentsWeightsForPlayer1[approximateNash.player1Strategy] });
             }
-            nashEquilibria = nashEquilibria.OrderByDescending(eq => GetSumOfPlayerUtilitiesInEquilibrium(eq)).ToList();
-            await PCA_SeparateReportsForEachEquilibrium(reportCollection, nashEquilibria);
-            var nashEquilibriumToPick = nashEquilibria.FirstOrDefault();
+            nashEquilibriaPrincipalComponents = nashEquilibriaPrincipalComponents.OrderByDescending(eq => GetSumOfPlayerUtilitiesInEquilibrium(eq)).ToList();
+            await PCA_SeparateReportsForEachEquilibrium(reportCollection, nashEquilibriaPrincipalComponents);
+            var nashEquilibriumToPick = nashEquilibriaPrincipalComponents.FirstOrDefault();
             if (nashEquilibriumToPick is List<double>[] equilibrium)
                 await SetModelToPrincipalComponentWeights(equilibrium);
-            ReportEquilibria(nashEquilibria);
+            ReportEquilibria(nashEquilibriaStrategies, nashEquilibriaPrincipalComponents, approximateNash.distanceFromNash);
+            return (nashEquilibriaStrategies, nashEquilibriaPrincipalComponents, approximateNash.distanceFromNash);
         }
 
         private async Task PCA_SeparateReportsForEachEquilibrium(ReportCollection reportCollection, List<List<double>[]> equilibria)
@@ -839,18 +843,21 @@ namespace ACESim
             }
         }
 
-        private void ReportEquilibria(List<List<double>[]> equilibria, bool removeRedundantEquilibria = true)
+        private void ReportEquilibria(List<(int player0Strategy, int player1Strategy)> equilibriaStrategies, List<List<double>[]> equilibriaPrincipalComponents, double[,] distanceFromNash, bool removeRedundantEquilibria = true)
         {
             HashSet<string> redundantEquilibria = new HashSet<string>();
-            foreach (var equilibrium in equilibria)
+            for (int i = 0; i < equilibriaPrincipalComponents.Count; i++)
             {
+                List<double>[] equilibrium = (List<double>[])equilibriaPrincipalComponents[i];
+                (int player0Strategy, int player1Strategy) = equilibriaStrategies[i];
                 (double player0Utility, double player1Utility) = GetPredictedPlayerUtilitiesInEquilibrium(equilibrium);
+                double approximateNashDistance = distanceFromNash[player0Strategy, player1Strategy];
                 string principalComponentWeightsString = string.Join("; ", Enumerable.Range(0, NumNonChancePlayers).Select(x => x.ToString() + ": " + equilibrium[x].ToSignificantFigures(3)));
                 string hashToCheckRedundancy0 = $"{equilibrium[0].ToSignificantFigures(10)} {player0Utility.ToSignificantFigures(10)} {player1Utility.ToSignificantFigures(10)}";
                 string hashToCheckRedundancy1 = $"{equilibrium[1].ToSignificantFigures(10)} {player0Utility.ToSignificantFigures(10)} {player1Utility.ToSignificantFigures(10)}";
                 if (!redundantEquilibria.Contains(hashToCheckRedundancy0) && !redundantEquilibria.Contains(hashToCheckRedundancy1))
                 {
-                    TabbedText.WriteLine($"eq for principal components {principalComponentWeightsString}; utility {player0Utility.ToSignificantFigures(10)}, {player1Utility.ToSignificantFigures(10)}");
+                    TabbedText.WriteLine($"eq for principal components {principalComponentWeightsString}; utility {player0Utility.ToSignificantFigures(10)}, {player1Utility.ToSignificantFigures(10)} {(approximateNashDistance > 0 ? "Distance from Nash " + approximateNashDistance.ToSignificantFigures(4) : "")}");
                     redundantEquilibria.Add(hashToCheckRedundancy0);
                     redundantEquilibria.Add(hashToCheckRedundancy1);
                 }

@@ -12,7 +12,11 @@ namespace ACESim.Util
         public DateTime? Started;
         public DateTime? Completed;
         public TimeSpan DurationOfLongestComplete => Completed == null ? TimeSpan.FromSeconds(0) : (TimeSpan) (Completed - Started); // we do not count incomplete tasks here
-        public bool Complete;
+        public bool Complete
+        {
+            get;
+            set;
+        }
 
         public IndividualTask(string taskType, int id, int repetition, int? restrictToScenarioIndex)
         {

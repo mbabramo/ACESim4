@@ -31,8 +31,9 @@ namespace ACESim.Util
             {
                 // mark the completed task as complete
                 repeatedTask = RepeatedTasks.First(x => x.TaskType == taskCompleted.TaskType && x.ID == taskCompleted.ID); // repeatedtask has same name and id as each individualtask within it
-                repeatedTask.IndividualTasks[taskCompleted.Repetition].Complete = true;
-                repeatedTask.IndividualTasks[taskCompleted.Repetition].Completed = DateTime.Now;
+                var individualTask = repeatedTask.IndividualTasks.First(x => x.Repetition == taskCompleted.Repetition && x.RestrictToScenarioIndex == taskCompleted.RestrictToScenarioIndex);
+                individualTask.Complete = true;
+                individualTask.Completed = DateTime.Now;
                 if (!readyForAnotherTask)
                 {
                     taskToDo = null;

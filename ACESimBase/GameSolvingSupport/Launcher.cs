@@ -45,7 +45,7 @@ namespace ACESim
         public int NumRepetitions = 1;
         public bool AzureEnabled = false;
         public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && UseDistributedProcessingForMultipleOptionsSets; // this should be true if running on the local service fabric or usign ACESimDistributed
-        public string MasterReportNameForDistributedProcessing = "R150"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
+        public string MasterReportNameForDistributedProcessing = "R302"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
         public bool UseDistributedProcessingForMultipleOptionsSets = true;
         public bool SeparateScenariosWhenUsingDistributedProcessing = true;
         public static bool MaxOneReportPerDistributedProcess = false;
@@ -296,6 +296,18 @@ namespace ACESim
             else if (taskToDo.TaskType == "CompletePCA")
             {
                 IStrategiesDeveloper developer = GetDeveloper(taskToDo.ID); // note that this specifies the option set
+                if (developer is StrategiesDeveloperBase strategiesDeveloper)
+                {
+                    // must start developing a strategy just to get information sets etc into memory
+                    var firstOptionSet = GetOptionsSets().First();
+                    var evolutionSettings = GetEvolutionSettings();
+                    int totalIterations = evolutionSettings.TotalIterations;
+                    evolutionSettings.TotalIterations = 1;
+                    await developer.DevelopStrategies(firstOptionSet.optionSetName, null);
+                    evolutionSettings.TotalIterations = totalIterations;
+                    ReportCollection reportCollection = new ReportCollection();
+                    await strategiesDeveloper.RecoverSavedPCAModelDataAndPerformAnalysis(reportCollection);
+                }
             }
             else
                 throw new NotImplementedException();
