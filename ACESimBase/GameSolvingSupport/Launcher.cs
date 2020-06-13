@@ -45,7 +45,7 @@ namespace ACESim
         public int NumRepetitions = 1;
         public bool AzureEnabled = false;
         public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && UseDistributedProcessingForMultipleOptionsSets; // this should be true if running on the local service fabric or usign ACESimDistributed
-        public string MasterReportNameForDistributedProcessing = "R309"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
+        public string MasterReportNameForDistributedProcessing = "R311"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
         public bool UseDistributedProcessingForMultipleOptionsSets = true;
         public bool SeparateScenariosWhenUsingDistributedProcessing = true;
         public static bool MaxOneReportPerDistributedProcess = false;
@@ -313,7 +313,7 @@ namespace ACESim
                     evolutionSettings.TotalIterations = 1;
                     bool originalPerformPrincipalComponentAnalysis = evolutionSettings.PCA_PerformPrincipalComponentAnalysis;
                     evolutionSettings.PCA_PerformPrincipalComponentAnalysis = false; 
-                    await developer.DevelopStrategies(firstOptionSet.optionSetName, null /* i.e., do every scenario */);
+                    await developer.DevelopStrategies(firstOptionSet.optionSetName, 0 /* it doesn't matter what scenario we do, because the real action is where we perform analysis below */);
                     evolutionSettings.TotalIterations = totalIterations;
                     evolutionSettings.PCA_PerformPrincipalComponentAnalysis = originalPerformPrincipalComponentAnalysis;
                     ReportCollection reportCollection = new ReportCollection();

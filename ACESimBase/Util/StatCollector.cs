@@ -26,6 +26,11 @@ namespace ACESim
             }
         }
 
+        public override string ToString()
+        {
+            return String.Join("; ", StatCollectors.Select(x => $"{x.Average().ToSignificantFigures(5)} (sd {x.StandardDeviation().ToSignificantFigures(5)})"));
+        }
+
         public void Reset()
         {
             lock (theLock)

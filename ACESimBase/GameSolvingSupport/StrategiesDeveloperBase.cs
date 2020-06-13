@@ -746,22 +746,29 @@ namespace ACESim
         {
             Stopwatch outerStopwatch = new Stopwatch();
             outerStopwatch.Start();
+            StatCollectorArray utilitiesStats = new StatCollectorArray();
+            StatCollectorArray customStatsStats = new StatCollectorArray();
             StatCollector timeStats = new StatCollector();
             List<ModelPredictingUtilitiesDatum> data = new List<ModelPredictingUtilitiesDatum>();
             for (int utilIndex = 0; utilIndex < numUtilitiesToCalculateToBuildModel; utilIndex++)
             {
                 Stopwatch innerStopwatch = new Stopwatch();
                 innerStopwatch.Start();
-                List<double>[] principalComponentWeightsForEachPlayer = GetRandomPrincipalComponentWeightsForEachPlayer(utilIndex * 737, 1.5 /* DEBUG */);
+                List<double>[] principalComponentWeightsForEachPlayer = GetRandomPrincipalComponentWeightsForEachPlayer(utilIndex * 737, 1.5);
                 string principalComponentWeightsString = String.Join("; ", Enumerable.Range(0, NumNonChancePlayers).Select(x => x.ToString() + ": " + principalComponentWeightsForEachPlayer[x].ToSignificantFigures(3)));
+                bool printAndTimeEachCalculation = false;
                 await SetModelToPrincipalComponentWeights(principalComponentWeightsForEachPlayer);
-                (double[] compoundUtilities, double[] customStats) = await PCA_UtilitiesAndCustomResultAverage(utilIndex * numUtilitiesToCalculateToBuildModel, true);
+                (double[] compoundUtilities, double[] customStats) = await PCA_UtilitiesAndCustomResultAverage(utilIndex * numUtilitiesToCalculateToBuildModel, printAndTimeEachCalculation);
                 data.Add(new ModelPredictingUtilitiesDatum(principalComponentWeightsForEachPlayer, compoundUtilities));
                 innerStopwatch.Stop();
                 timeStats.Add(innerStopwatch.ElapsedMilliseconds);
-                TabbedText.WriteLine($"Data input {utilIndex}: {principalComponentWeightsString} utilities: {compoundUtilities.ToSignificantFigures(4)} customStats: {customStats.ToSignificantFigures(4)}");
+                utilitiesStats.Add(compoundUtilities);
+                customStatsStats.Add(customStats);
+                if (printAndTimeEachCalculation)
+                    TabbedText.WriteLine($"Data input {utilIndex}: {principalComponentWeightsString} utilities: {compoundUtilities.ToSignificantFigures(4)} customStats: {customStats.ToSignificantFigures(4)}");
             }
             TabbedText.WriteLine($"Average ms per each of {numUtilitiesToCalculateToBuildModel} utilities to calculate: {timeStats.Average().ToSignificantFigures(3)} (total time: {outerStopwatch.ElapsedMilliseconds})");
+            TabbedText.WriteLine($"utilities {utilitiesStats.ToString()} custom stats {customStatsStats.ToString()}");
             return data;
         }
 
@@ -807,8 +814,7 @@ namespace ACESim
             List<double>[] principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1;
             GetEstimatedUtilitiesForStrategyChoices(numStrategyChoicesPerPlayer, out player0Utilities, out player1Utilities, out principalComponentsWeightsForPlayer0, out principalComponentsWeightsForPlayer1);
             var nashResults = await UsePCAToEvaluateNashEquilibria(player0Utilities, player1Utilities, principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1, reportCollection);
-            if (!EvolutionSettings.PCA_SeparateReportPerEquilibrium)
-                await GenerateReportsAfterPCA(reportCollection, () => GameDefinition.OptionSetName + "-" + GameDefinition.GetNameForScenario());
+            await GenerateReportsAfterPCA(reportCollection, () => GameDefinition.OptionSetName + "-" + GameDefinition.GetNameForScenario() + "-bestnash");
             await UsePCAToEvaluateCorrelatedEquilibria(player0Utilities, player1Utilities, principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1, reportCollection, nashResults.distanceFromNash, 10_000, 100);
 
         }
