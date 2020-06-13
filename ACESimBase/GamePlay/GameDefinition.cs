@@ -537,6 +537,7 @@ namespace ACESim
         public bool CurrentlyWarmingUp => CurrentWarmupScenarioIndex != null;
         public double CurrentWeightOnOpponentP0 = 0;
         public double CurrentWeightOnOpponentOtherPlayers = 0;
+        public string ScenarioEquilibriumName = null;
 
         public virtual void SetScenario(int overallScenarioIndex, bool warmupVersion)
         {

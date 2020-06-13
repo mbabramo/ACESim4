@@ -14,6 +14,7 @@ using System.Threading.Tasks.Dataflow;
 using JetBrains.Annotations;
 using ACESim.Util;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Runtime.CompilerServices;
 
 namespace ACESim
 {
@@ -814,7 +815,7 @@ namespace ACESim
             List<double>[] principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1;
             GetEstimatedUtilitiesForStrategyChoices(numStrategyChoicesPerPlayer, out player0Utilities, out player1Utilities, out principalComponentsWeightsForPlayer0, out principalComponentsWeightsForPlayer1);
             var nashResults = await UsePCAToEvaluateNashEquilibria(player0Utilities, player1Utilities, principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1, reportCollection);
-            await GenerateReportsAfterPCA(reportCollection, () => GameDefinition.OptionSetName + "-" + GameDefinition.GetNameForScenario() + "-bestnash");
+            await GenerateReportsAfterPCA(reportCollection, GameDefinition.OptionSetName + "-" + GameDefinition.GetNameForScenario(), "-bestnash");
             await UsePCAToEvaluateCorrelatedEquilibria(player0Utilities, player1Utilities, principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1, reportCollection, nashResults.distanceFromNash, 10_000, 100);
 
         }
@@ -881,16 +882,20 @@ namespace ACESim
                     List<double>[] eq = equilibria[e];
                     await SetModelToPrincipalComponentWeights(eq);
                     ReportCollection singleReport = new ReportCollection();
-                    Func<string> prefaceFn = () => GameDefinition.OptionSetName + "-" + GameDefinition.GetNameForScenario() + "-" + equilibriumType + "-" + e.ToString();
-                    await GenerateReportsAfterPCA(singleReport, prefaceFn);
+                    string scenarioName = GameDefinition.OptionSetName + "-" + GameDefinition.GetNameForScenario();
+                    string scenarioEquilibriumName = equilibriumType + "-" + e.ToString();
+                    await GenerateReportsAfterPCA(singleReport, scenarioName, scenarioEquilibriumName);
                 }
             }
         }
 
-        private async Task GenerateReportsAfterPCA(ReportCollection reportCollection, Func<string> prefaceFn)
+        private async Task GenerateReportsAfterPCA(ReportCollection reportCollection, string scenarioName, string scenarioEquilibriumName)
         {
+            GameDefinition.ScenarioEquilibriumName = scenarioEquilibriumName;
+            Func<string> prefaceFn = () => (scenarioEquilibriumName == null) ? scenarioName : $"{scenarioName}-{scenarioEquilibriumName}";
             await GenerateReports(prefaceFn, reportCollection, EvolutionSettings.PCA_BestResponseAfterPCA, EvolutionSettings.PCA_ReportsAfterPCA);
             AzureBlob.WriteTextToFileOrAzure("reports", Launcher.ReportFolder(), prefaceFn() + ".csv", true, reportCollection.csvReports.First(), EvolutionSettings.AzureEnabled);
+            GameDefinition.ScenarioEquilibriumName = null;
         }
 
         private void WriteBasicEquilibriaInfo(List<(int player0Strategy, int player1Strategy)> equilibriaStrategies, List<List<double>[]> equilibriaPrincipalComponents, double[,] distanceFromNash, bool removeRedundantEquilibria = true)
@@ -2282,7 +2287,10 @@ namespace ACESim
                 if (d.StaticTextColumns == null)
                     d.StaticTextColumns = new List<(string textColumnName, string textColumnContent)>();
                 if (GameDefinition.NumScenarioPermutations > 1)
+                {
                     d.StaticTextColumns.Add(("Scenario", GameDefinition.GetNameForScenario()));
+                    d.StaticTextColumns.Add(("Eq", GameDefinition.ScenarioEquilibriumName));
+                }
                 if (GameDefinition.OptionSetName != null && GameDefinition.OptionSetName != "")
                     d.StaticTextColumns.Add(("OptionSet", GameDefinition.OptionSetName));
                 if (Status.BestResponseImprovementAdj != null)
