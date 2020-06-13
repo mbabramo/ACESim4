@@ -862,8 +862,8 @@ namespace ACESim
 
         public override bool PlayMultipleScenarios => true; // DEBUG // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
 
-        public override int NumPostWarmupOptionSets => 2; // DEBUG
-        public override int NumWarmupOptionSets => 2; // Note that this can be 0 (indicating that costs multiplier doesn't change). This indicates the variations on the costs multiplier; variations on weight to opponent are below. 
+        public override int NumPostWarmupPossibilities => 2; // DEBUG
+        public override int NumWarmupPossibilities => 2; // Note that this can be 0 (indicating that costs multiplier doesn't change). This indicates the variations on the costs multiplier; variations on weight to opponent are below. 
         public override int WarmupIterations_IfWarmingUp => 10; // DEBUG 
         public override bool MultiplyWarmupScenariosByAlteringWeightOnOpponentsStrategy => true;
         public override int NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios => 2; // DEBUG // should be odd if we want to include zero
@@ -928,9 +928,9 @@ namespace ACESim
         {
             RememberOriginalChangeableOptions(); 
             RestoreOriginalChangeableOptions();
-            if (NumPostWarmupOptionSets > 1 && WhatToChange_PostWarmup == null)
+            if (NumPostWarmupPossibilities > 1 && WhatToChange_PostWarmup == null)
                 throw new Exception("WhatToChange_PostWarmup is undefined");
-            if (NumWarmupOptionSets > 0 && WhatToChange_Warmup == null)
+            if (NumWarmupPossibilities > 0 && WhatToChange_Warmup == null)
                 throw new Exception("WhatToChange_Warmup is undefined");
             if (postWarmupScenarioIndex != null && warmupScenarioIndex != null)
                 throw new Exception("We can change variables to warmup or postwarmup scenario, but not to both at once, because we don't support having a warmup and a postwarmup scenario at the same time.");
@@ -946,29 +946,29 @@ namespace ACESim
                 if (WhatToChange_PostWarmup == ChangeInScenario.TrialCosts)
                 {
                     if (changeTrialCostsForPlaintiff)
-                        Options.PTrialCosts = GetParameterInRange(TrialCostsScenarioPerPartyMin, TrialCostsScenarioPerPartyMax, (int) postWarmupScenarioIndex, NumPostWarmupOptionSets);
+                        Options.PTrialCosts = GetParameterInRange(TrialCostsScenarioPerPartyMin, TrialCostsScenarioPerPartyMax, (int) postWarmupScenarioIndex, NumPostWarmupPossibilities);
                     if (changeTrialCostsForDefendant)
-                        Options.DTrialCosts = GetParameterInRange(TrialCostsScenarioPerPartyMin, TrialCostsScenarioPerPartyMax, (int) postWarmupScenarioIndex, NumPostWarmupOptionSets);
+                        Options.DTrialCosts = GetParameterInRange(TrialCostsScenarioPerPartyMin, TrialCostsScenarioPerPartyMax, (int) postWarmupScenarioIndex, NumPostWarmupPossibilities);
                 }
                 else if (WhatToChange_PostWarmup == ChangeInScenario.CostsMultiplier)
                 {
-                    Options.CostsMultiplier = GetParameterInRange(CostsMultiplierMin, CostsMultiplierMax, (int) postWarmupScenarioIndex, NumPostWarmupOptionSets);
+                    Options.CostsMultiplier = GetParameterInRange(CostsMultiplierMin, CostsMultiplierMax, (int) postWarmupScenarioIndex, NumPostWarmupPossibilities);
                 }
             }
-            if (NumWarmupOptionSets > 0)
+            if (NumWarmupPossibilities > 0)
             {
                 if (warmupScenarioIndex != null)
                 {
                     if (WhatToChange_Warmup == ChangeInScenario.TrialCosts)
                     {
                         if (changeTrialCostsForPlaintiff)
-                            Options.PTrialCosts = GetParameterInRange(TrialCostsScenarioPerPartyMin_Warmup, TrialCostsScenarioPerPartyMax_Warmup, (int)warmupScenarioIndex, NumWarmupOptionSets);
+                            Options.PTrialCosts = GetParameterInRange(TrialCostsScenarioPerPartyMin_Warmup, TrialCostsScenarioPerPartyMax_Warmup, (int)warmupScenarioIndex, NumWarmupPossibilities);
                         if (changeTrialCostsForDefendant)
-                            Options.DTrialCosts = GetParameterInRange(TrialCostsScenarioPerPartyMin_Warmup, TrialCostsScenarioPerPartyMax_Warmup, (int)warmupScenarioIndex, NumWarmupOptionSets);
+                            Options.DTrialCosts = GetParameterInRange(TrialCostsScenarioPerPartyMin_Warmup, TrialCostsScenarioPerPartyMax_Warmup, (int)warmupScenarioIndex, NumWarmupPossibilities);
                     }
                     else if (WhatToChange_Warmup == ChangeInScenario.CostsMultiplier)
                     {
-                        Options.CostsMultiplier = GetParameterInRange(CostsMultiplierMin_Warmup, CostsMultiplierMax_Warmup, (int)warmupScenarioIndex, NumWarmupOptionSets);
+                        Options.CostsMultiplier = GetParameterInRange(CostsMultiplierMin_Warmup, CostsMultiplierMax_Warmup, (int)warmupScenarioIndex, NumWarmupPossibilities);
                     }
                 }
             }

@@ -475,11 +475,11 @@ namespace ACESim
         // When playing multiple scenarios, we can define one or more concluding scenarios
 
         public virtual bool PlayMultipleScenarios => false;
-        public virtual int NumPostWarmupOptionSets => 1;
-        public virtual int NumWarmupOptionSets => 0;
+        public virtual int NumPostWarmupPossibilities => 1;
+        public virtual int NumWarmupPossibilities => 0;
         public virtual int WarmupIterations_IfWarmingUp => 200;
-        public bool UseDifferentWarmup => PlayMultipleScenarios && (NumWarmupOptionSets > 0 || NumDifferentWeightsOnOpponentsStrategy > 0);
-        public int NumScenariosToInitialize => PlayMultipleScenarios ? NumPostWarmupOptionSets + NumWarmupOptionSets : 1;
+        public bool UseDifferentWarmup => PlayMultipleScenarios && (NumWarmupPossibilities > 0 || NumDifferentWeightsOnOpponentsStrategy > 0);
+        public int NumScenariosToInitialize => PlayMultipleScenarios ? NumPostWarmupPossibilities + NumWarmupPossibilities : 1;
         public int? IterationsForWarmupScenario => UseDifferentWarmup ? (int?) WarmupIterations_IfWarmingUp : (int?) null;
 
 
@@ -497,8 +497,8 @@ namespace ACESim
         public double WeightOnOpponentsStrategyDuringWarmup(int weightsPermutationValue) =>  MultiplyWarmupScenariosByAlteringWeightOnOpponentsStrategy ? 
             (GetParameterInRange(MinMaxWeightOnOpponentsStrategyDuringWarmup.Item1, MinMaxWeightOnOpponentsStrategyDuringWarmup.Item2, weightsPermutationValue, NumDifferentWeightsOnOpponentsStrategyPerPlayer))
             : 0;
-        private int WarmupsContributionToPermutations => (NumWarmupOptionSets == 0 ? 1 : NumWarmupOptionSets);
-        public int NumScenarioPermutations => PlayMultipleScenarios ? NumPostWarmupOptionSets * WarmupsContributionToPermutations * NumDifferentWeightsOnOpponentsStrategy : 1;
+        private int WarmupsContributionToPermutations => (NumWarmupPossibilities == 0 ? 1 : NumWarmupPossibilities);
+        public int NumScenarioPermutations => PlayMultipleScenarios ? NumPostWarmupPossibilities * WarmupsContributionToPermutations * NumDifferentWeightsOnOpponentsStrategy : 1;
 
         public List<List<int>> AllScenarioPermutations;
 
@@ -509,7 +509,7 @@ namespace ACESim
             // be permuted with every warmup-weight permutation.
             if (AllScenarioPermutations == null)
             {
-                AllScenarioPermutations = PermutationMaker.GetPermutations(new List<int>() { NumPostWarmupOptionSets, WarmupsContributionToPermutations, NumDifferentWeightsOnOpponentsStrategyPerPlayer, VaryWeightOnOpponentsStrategySeparatelyForEachPlayer ? NumDifferentWeightsOnOpponentsStrategyPerPlayer : 1 }, true);
+                AllScenarioPermutations = PermutationMaker.GetPermutations(new List<int>() { NumPostWarmupPossibilities, WarmupsContributionToPermutations, NumDifferentWeightsOnOpponentsStrategyPerPlayer, VaryWeightOnOpponentsStrategySeparatelyForEachPlayer ? NumDifferentWeightsOnOpponentsStrategyPerPlayer : 1 }, true);
                 RandomSubset.Shuffle(AllScenarioPermutations, 1); // note that we will use a fixed random seed (can't be zero) to get consistent results (we won't be running this twice)
                 //AllScenarioPermutations = AllScenarioPermutations.OrderBy(x => Math.Abs(WeightOnOpponentsStrategyDuringWarmup(x[2]))).ThenBy(x => Math.Abs(WeightOnOpponentsStrategyDuringWarmup(x[3]))).ToList(); // place lowest absolute weight values first
                 if (!VaryWeightOnOpponentsStrategySeparatelyForEachPlayer)
@@ -523,11 +523,11 @@ namespace ACESim
             if (!UseDifferentWarmup) // i.e., NumWarmupOptionSets == 0
                 throw new Exception("Not using different warmup");
             int warmupPermutationValue = permutation[1];
-            if (NumWarmupOptionSets == 0 || NumWarmupOptionSets == 1)
+            if (NumWarmupPossibilities == 0 || NumWarmupPossibilities == 1)
                 warmupPermutationValue = -1; // there are no warmup sets, so we want to use the last postwarmup set as the warmup set
             int weightsPermutationValueP0 = permutation[2];
             int weightsPermutationValueOtherPlayers = permutation[3];
-            return (postWarmupPermutationValue, NumPostWarmupOptionSets + warmupPermutationValue,  WeightOnOpponentsStrategyDuringWarmup(weightsPermutationValueP0), WeightOnOpponentsStrategyDuringWarmup(weightsPermutationValueOtherPlayers));
+            return (postWarmupPermutationValue, NumPostWarmupPossibilities + warmupPermutationValue,  WeightOnOpponentsStrategyDuringWarmup(weightsPermutationValueP0), WeightOnOpponentsStrategyDuringWarmup(weightsPermutationValueOtherPlayers));
 
         }
 
@@ -574,7 +574,7 @@ namespace ACESim
         {
             var result = GetScenarioIndexAndWeightValues(overallScenarioIndex, warmupVersion);
             if (warmupVersion)
-                ChangeOptionsBasedOnScenario(null, result.indexInWarmupScenarios - NumPostWarmupOptionSets);
+                ChangeOptionsBasedOnScenario(null, result.indexInWarmupScenarios - NumPostWarmupPossibilities);
             else
                 ChangeOptionsBasedOnScenario(result.indexInPostWarmupScenarios, null);
         }

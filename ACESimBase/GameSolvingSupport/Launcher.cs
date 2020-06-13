@@ -313,7 +313,7 @@ namespace ACESim
                     evolutionSettings.TotalIterations = 1;
                     bool originalPerformPrincipalComponentAnalysis = evolutionSettings.PCA_PerformPrincipalComponentAnalysis;
                     evolutionSettings.PCA_PerformPrincipalComponentAnalysis = false; 
-                    await developer.DevelopStrategies(firstOptionSet.optionSetName, null);
+                    await developer.DevelopStrategies(firstOptionSet.optionSetName, null /* i.e., do every scenario */);
                     evolutionSettings.TotalIterations = totalIterations;
                     evolutionSettings.PCA_PerformPrincipalComponentAnalysis = originalPerformPrincipalComponentAnalysis;
                     ReportCollection reportCollection = new ReportCollection();

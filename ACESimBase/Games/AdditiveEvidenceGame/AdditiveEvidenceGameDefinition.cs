@@ -295,8 +295,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public override bool PlayMultipleScenarios => false; // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
 
-        public override int NumPostWarmupOptionSets => 1;
-        public override int NumWarmupOptionSets => 0; // Note that this can be 0.
+        public override int NumPostWarmupPossibilities => 1;
+        public override int NumWarmupPossibilities => 0; // Note that this can be 0.
         public override int WarmupIterations_IfWarmingUp => 100; // CORRELATED EQ SETTING
         public override bool MultiplyWarmupScenariosByAlteringWeightOnOpponentsStrategy => true;
         public override int NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios => 10; // should be odd if we want to include zero
