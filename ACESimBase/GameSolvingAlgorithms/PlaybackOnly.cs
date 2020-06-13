@@ -33,10 +33,10 @@ namespace ACESim
             string filename = GameDefinition.OptionSetName + "-" + EvolutionSettings.SerializeResultsPrefixPlus(GameDefinition.CurrentOverallScenarioIndex, GameDefinition.NumScenarioPermutations);
             if (EvolutionSettings.SerializeInformationSetDataOnly)
             {
-                StrategySerialization.DeserializeInformationSets(InformationSets, path, filename, EvolutionSettings.AzureEnabled);
+                StrategySerialization.DeserializeInformationSets(InformationSets, path, filename, EvolutionSettings.SaveToAzureBlob);
             }
             else
-                Strategies = StrategySerialization.DeserializeStrategies(path, filename, EvolutionSettings.AzureEnabled).ToList();
+                Strategies = StrategySerialization.DeserializeStrategies(path, filename, EvolutionSettings.SaveToAzureBlob).ToList();
             var correctScenarioInfo = GameDefinition.GetScenarioIndexAndWeightValues(GameDefinition.CurrentOverallScenarioIndex, false);
             if (correctScenarioInfo.indexInPostWarmupScenarios != GameDefinition.CurrentOverallScenarioIndex)
             {

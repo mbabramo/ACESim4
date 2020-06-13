@@ -94,6 +94,12 @@ namespace ACESim
             await Initialize();
             ReportCollection reportCollection = new ReportCollection();
             bool constructCorrelatedEquilibrium = GameDefinition.NumScenarioPermutations > 1 && EvolutionSettings.ConstructCorrelatedEquilibrium;
+            bool anyScenarioOK = false;
+            if (restrictToScenarioIndex == -1)
+            {
+                anyScenarioOK = true; // it doesn't matter what the scenario is, because we're just doing a single iteration to get initialization complete
+                restrictToScenarioIndex = 0;
+            }
             int startingScenarioIndex = 0;
             int numScenarios = GameDefinition.NumScenarioPermutations;
             if (restrictToScenarioIndex is int restriction)
@@ -112,7 +118,10 @@ namespace ACESim
                 if (GameDefinition.NumScenarioPermutations > 1)
                 {
                     scenarioFullName = GameDefinition.GetNameForScenario_WithOpponentWeight();
-                    optionSetInfo += $" (scenario index {overallScenarioIndex} (total scenarios: {GameDefinition.NumScenarioPermutations}) = {scenarioFullName})";
+                    if (anyScenarioOK)
+                        optionSetInfo += $" (scenario irrelevant -- loading only)";
+                    else
+                        optionSetInfo += $" (scenario index {overallScenarioIndex} (total scenarios: {GameDefinition.NumScenarioPermutations}) = {scenarioFullName})";
                 }
                 Status.ScenarioIndex = overallScenarioIndex;
                 Status.ScenarioName = scenarioFullName;
@@ -123,7 +132,8 @@ namespace ACESim
 
                 if (EvolutionSettings.PCA_PerformPrincipalComponentAnalysis)
                 {
-                    await SavePCAModelData();
+                    if (!anyScenarioOK)
+                        await SavePCAModelData();
                 }
                 else if (constructCorrelatedEquilibrium)
                 { // if doing correlated eq & PCA, we just save PCA data.
@@ -450,9 +460,9 @@ namespace ACESim
                 string path, filename;
                 GetPathAndFilenameForScenario(overallScenarioIndex, out path, out filename);
                 if (EvolutionSettings.SerializeInformationSetDataOnly)
-                    StrategySerialization.SerializeInformationSets(InformationSets, path, filename, EvolutionSettings.AzureEnabled);
+                    StrategySerialization.SerializeInformationSets(InformationSets, path, filename, EvolutionSettings.SaveToAzureBlob);
                 else
-                    StrategySerialization.SerializeStrategies(Strategies.ToArray(), path, filename, EvolutionSettings.AzureEnabled);
+                    StrategySerialization.SerializeStrategies(Strategies.ToArray(), path, filename, EvolutionSettings.SaveToAzureBlob);
             }
             catch
             {
@@ -571,7 +581,7 @@ namespace ACESim
             TabbedText.WriteLine("Saving PCA data for scenario " + OverallScenarioIndex);
             string path, filename;
             GetPathAndFilenameForScenario(OverallScenarioIndex, out path, out filename);
-            AzureBlob.SaveByteArrayToFileOrAzure(buffer, path, "pcadata", filename + ".pcd", EvolutionSettings.AzureEnabled);
+            AzureBlob.SaveByteArrayToFileOrAzure(buffer, path, "pcadata", filename + ".pcd", EvolutionSettings.SaveToAzureBlob);
             ModelDataSavedForPCA = new List<float[][]>();
             return Task.CompletedTask;
         }
@@ -592,7 +602,7 @@ namespace ACESim
             {
                 string path, filename;
                 GetPathAndFilenameForScenario(scenarioIndex, out path, out filename);
-                byte[] bytes = AzureBlob.GetByteArrayFromFileOrAzure(path, "pcadata", filename + ".pcd", EvolutionSettings.AzureEnabled);
+                byte[] bytes = AzureBlob.GetByteArrayFromFileOrAzure(path, "pcadata", filename + ".pcd", EvolutionSettings.SaveToAzureBlob);
                 int numBytesCopied = 0;
                 int modelIndex = 0;
                 while (numBytesCopied < bytes.Length)
@@ -644,7 +654,7 @@ namespace ACESim
             {
                 string path, filename;
                 GetPathAndFilenameForOptionSet($"p{p}.pcr", out path, out filename);
-                AzureBlob.SerializeToFileOrAzure(PCAResultsForEachPlayer[p], path, "pcadata", filename, EvolutionSettings.AzureEnabled);
+                AzureBlob.SerializeToFileOrAzure(PCAResultsForEachPlayer[p], path, "pcadata", filename, EvolutionSettings.SaveToAzureBlob);
                 PCAResultsForEachPlayer[p] = PerformPrincipalComponentAnalysis(p);
             }
             return Task.CompletedTask;
@@ -658,7 +668,7 @@ namespace ACESim
             {
                 string path, filename;
                 GetPathAndFilenameForOptionSet($"p{p}.pcr", out path, out filename);
-                PCAResultsForEachPlayer[p] = (PrincipalComponentsAnalysis) AzureBlob.GetSerializedObjectFromFileOrAzure(path, "pcadata", filename, EvolutionSettings.AzureEnabled);
+                PCAResultsForEachPlayer[p] = (PrincipalComponentsAnalysis) AzureBlob.GetSerializedObjectFromFileOrAzure(path, "pcadata", filename, EvolutionSettings.SaveToAzureBlob);
             }
             TabbedText.WriteLine("Processing PCA results");
             await ProcessPrincipalComponentsResults();
@@ -815,7 +825,7 @@ namespace ACESim
             List<double>[] principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1;
             GetEstimatedUtilitiesForStrategyChoices(numStrategyChoicesPerPlayer, out player0Utilities, out player1Utilities, out principalComponentsWeightsForPlayer0, out principalComponentsWeightsForPlayer1);
             var nashResults = await UsePCAToEvaluateNashEquilibria(player0Utilities, player1Utilities, principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1, reportCollection);
-            await GenerateReportsAfterPCA(reportCollection, GameDefinition.OptionSetName + "-" + GameDefinition.GetNameForScenario(), "-bestnash");
+            await GenerateReportsAfterPCA(reportCollection, GameDefinition.OptionSetName + "-" + GameDefinition.GetNameForScenario(), "bestnash");
             await UsePCAToEvaluateCorrelatedEquilibria(player0Utilities, player1Utilities, principalComponentsWeightsForPlayer0, principalComponentsWeightsForPlayer1, reportCollection, nashResults.distanceFromNash, 10_000, 100);
 
         }
@@ -863,6 +873,7 @@ namespace ACESim
             {
                 TabbedText.WriteLine($"No Nash equilibrium found. Finding best approximate Nash equilibrium (distance from Nash: {nashDistance}).");
                 nashEquilibriaPrincipalComponents.Add(new List<double>[2] { principalComponentsWeightsForPlayer0[approximateNash.player0Strategy], principalComponentsWeightsForPlayer1[approximateNash.player1Strategy] });
+                nashEquilibriaStrategies.Add((approximateNash.player0Strategy, approximateNash.player1Strategy)); 
             }
             nashEquilibriaPrincipalComponents = nashEquilibriaPrincipalComponents.OrderByDescending(eq => GetSumOfPlayerUtilitiesInEquilibrium(eq)).ToList();
             await PCA_SeparateReportsForEachEquilibrium(nashEquilibriaPrincipalComponents, "nash");
@@ -894,7 +905,7 @@ namespace ACESim
             GameDefinition.ScenarioEquilibriumName = scenarioEquilibriumName;
             Func<string> prefaceFn = () => (scenarioEquilibriumName == null) ? scenarioName : $"{scenarioName}-{scenarioEquilibriumName}";
             await GenerateReports(prefaceFn, reportCollection, EvolutionSettings.PCA_BestResponseAfterPCA, EvolutionSettings.PCA_ReportsAfterPCA);
-            AzureBlob.WriteTextToFileOrAzure("reports", Launcher.ReportFolder(), prefaceFn() + ".csv", true, reportCollection.csvReports.First(), EvolutionSettings.AzureEnabled);
+            AzureBlob.WriteTextToFileOrAzure("reports", Launcher.ReportFolder(), prefaceFn() + ".csv", true, reportCollection.csvReports.First(), EvolutionSettings.SaveToAzureBlob);
             GameDefinition.ScenarioEquilibriumName = null;
         }
 

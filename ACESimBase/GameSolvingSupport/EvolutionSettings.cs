@@ -15,7 +15,7 @@ namespace ACESim
     {
         public bool DistributeChanceDecisions = true;
         public bool UnrollAlgorithm = true; 
-        public bool AzureEnabled = false;
+        public bool SaveToAzureBlob = false;
         // Note: Many of the below are overridden by launcher.
         public int TotalAvgStrategySamplingCFRIterations = 100000;
         public int TotalProbingCFRIterations = 100000;
@@ -123,7 +123,7 @@ namespace ACESim
         public bool PCA_AssessModelsToPredictUtilitiesFromPrincipalComponents = false;
         public bool PCA_BestResponseAfterPCA = true;
         public bool PCA_ReportsAfterPCA = true;
-        public bool PCA_SeparateReportPerEquilibrium = true; // i.e., if we have three nash equilibria, three reports, rather than just a report on the one with the highest total payout; or if we have a correlated equilibria of 20 elements, a separate report for each one
+        public bool PCA_SeparateReportPerEquilibrium = false; // i.e., if we have three nash equilibria, three reports, rather than just a report on the one with the highest total payout; or if we have a correlated equilibria of 20 elements, a separate report for each one
 
         public RegressionTechniques RegressionTechnique = RegressionTechniques.FastTree;
         public bool DeepCFR_ProbeAllActions = true;

@@ -43,9 +43,9 @@ namespace ACESim
         public const int StartGameNumber = 1;
         public bool LaunchSingleOptionsSetOnly = false; // will be automatically set by ACESimConsole
         public int NumRepetitions = 1;
-        public bool AzureEnabled = false;
+        public bool SaveToAzureBlob = false;
         public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && UseDistributedProcessingForMultipleOptionsSets; // this should be true if running on the local service fabric or usign ACESimDistributed
-        public string MasterReportNameForDistributedProcessing = "R311"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
+        public string MasterReportNameForDistributedProcessing = "R317"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
         public bool UseDistributedProcessingForMultipleOptionsSets = true;
         public bool SeparateScenariosWhenUsingDistributedProcessing = true;
         public static bool MaxOneReportPerDistributedProcess = false;
@@ -87,8 +87,6 @@ namespace ACESim
         {
             var optionSets = GetOptionsSets();
             var combined = DistributedProcessing ? await LaunchDistributedProcessingParticipation() : await ProcessAllOptionSetsLocally();
-            if (!AzureEnabled)
-                combined.SaveLatestLocally();
             return combined;
         }
 
@@ -150,7 +148,7 @@ namespace ACESim
         {
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
-                AzureEnabled = AzureEnabled,
+                SaveToAzureBlob = SaveToAzureBlob,
 
                 MaxParallelDepth = MaxParallelDepth,
                 ParallelOptimization = ParallelizeIndividualExecutionsAlways ||
@@ -285,11 +283,12 @@ namespace ACESim
         {
             if (logAction == null)
                 logAction = s => Debug.WriteLine(s);
+            ReportCollection reportCollection = null;
+            string optionSetName = null;
             if (taskToDo.TaskType == "Optimize")
             {
                 IStrategiesDeveloper developer = GetDeveloper(taskToDo.ID);
-                await GetSingleRepetitionReportAndSave(masterReportName, taskToDo.ID, taskToDo.Repetition, true, developer, taskToDo.RestrictToScenarioIndex, logAction);
-                TabbedText.ResetAccumulated();
+                (reportCollection, optionSetName) = await GetSingleRepetitionReportAndSave(masterReportName, taskToDo.ID, taskToDo.Repetition, true, developer, taskToDo.RestrictToScenarioIndex, logAction);
             }
             else if (taskToDo.TaskType == "CombineRepetitions")
             {
@@ -303,25 +302,32 @@ namespace ACESim
             }
             else if (taskToDo.TaskType == "CompletePCA")
             {
-                IStrategiesDeveloper developer = GetDeveloper(taskToDo.ID); // note that this specifies the option set
-                if (developer is StrategiesDeveloperBase strategiesDeveloper)
-                {
-                    // must start developing a strategy for an iteration just to get information sets etc into memory. Then we will do the principal components analysis. This means that we don't want to save the model data from this iteration. 
-                    var firstOptionSet = GetOptionsSets().First();
-                    var evolutionSettings = GetEvolutionSettings();
-                    int totalIterations = evolutionSettings.TotalIterations;
-                    evolutionSettings.TotalIterations = 1;
-                    bool originalPerformPrincipalComponentAnalysis = evolutionSettings.PCA_PerformPrincipalComponentAnalysis;
-                    evolutionSettings.PCA_PerformPrincipalComponentAnalysis = false; 
-                    await developer.DevelopStrategies(firstOptionSet.optionSetName, 0 /* it doesn't matter what scenario we do, because the real action is where we perform analysis below */);
-                    evolutionSettings.TotalIterations = totalIterations;
-                    evolutionSettings.PCA_PerformPrincipalComponentAnalysis = originalPerformPrincipalComponentAnalysis;
-                    ReportCollection reportCollection = new ReportCollection();
-                    await strategiesDeveloper.RecoverSavedPCAModelDataAndPerformAnalysis(reportCollection);
-                }
+                await CompletePCATask(taskToDo);
             }
             else
                 throw new NotImplementedException();
+            AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), $"{masterReportName}-{(optionSetName != null ? optionSetName + taskToDo.RestrictToScenarioIndex?.ToString() : taskToDo.TaskType)}-log.txt", true, TabbedText.AccumulatedText.ToString(), SaveToAzureBlob);
+            TabbedText.ResetAccumulated();
+        }
+
+        private async Task CompletePCATask(IndividualTask taskToDo)
+        {
+            IStrategiesDeveloper developer = GetDeveloper(taskToDo.ID); // note that this specifies the option set
+            if (developer is StrategiesDeveloperBase strategiesDeveloper)
+            {
+                // must start developing a strategy for an iteration just to get information sets etc into memory. Then we will do the principal components analysis. This means that we don't want to save the model data from this iteration. 
+                var firstOptionSet = GetOptionsSets().First();
+                var evolutionSettings = GetEvolutionSettings();
+                int totalIterations = evolutionSettings.TotalIterations;
+                evolutionSettings.TotalIterations = 1;
+                bool originalPerformPrincipalComponentAnalysis = evolutionSettings.PCA_PerformPrincipalComponentAnalysis;
+                evolutionSettings.PCA_PerformPrincipalComponentAnalysis = false;
+                await developer.DevelopStrategies(firstOptionSet.optionSetName, -1 /* it doesn't matter what scenario we do, because the real action is where we perform analysis below */);
+                evolutionSettings.TotalIterations = totalIterations;
+                evolutionSettings.PCA_PerformPrincipalComponentAnalysis = originalPerformPrincipalComponentAnalysis;
+                ReportCollection reportCollection = new ReportCollection();
+                await strategiesDeveloper.RecoverSavedPCAModelDataAndPerformAnalysis(reportCollection);
+            }
         }
 
         private void InitializeTaskCoordinatorIfNecessary(string masterReportName)
@@ -395,7 +401,7 @@ namespace ACESim
             // it is possible that we have multiple csvReports -- meaning that different simulations produced
             // different first lines. that's OK, we need to output all of them.
             string combinedResults = reportCollection.csvReports.FirstOrDefault();
-            AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), $"{masterReportName} AllCombined.csv", true, combinedResults, AzureEnabled);
+            AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), $"{masterReportName} AllCombined.csv", true, combinedResults, SaveToAzureBlob);
             return combinedResults;
         }
 
@@ -423,8 +429,7 @@ namespace ACESim
             }
             string combinedRepetitionsReport = String.Join("", combinedReports);
             string mergedReport = SimpleReportMerging.GetDistributionReports(combinedRepetitionsReport, optionSetName, includeFirstLine);
-            AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), masterReportNamePlusOptionSet, true, mergedReport + ".csv", AzureEnabled);
-            AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), masterReportNamePlusOptionSet + "log.txt", true, TabbedText.AccumulatedText.ToString(), AzureEnabled);
+            AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), masterReportNamePlusOptionSet, true, mergedReport + ".csv", SaveToAzureBlob);
             TabbedText.ResetAccumulated();
             return mergedReport;
         }
@@ -483,14 +488,14 @@ namespace ACESim
             return result;
         }
 
-        private async Task<ReportCollection> GetSingleRepetitionReportAndSave(string masterReportName, int optionSetIndex, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer, int? restrictToScenarioIndex, Action<string> logAction = null)
+        private async Task<(ReportCollection report, string optionSetName)> GetSingleRepetitionReportAndSave(string masterReportName, int optionSetIndex, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer, int? restrictToScenarioIndex, Action<string> logAction = null)
         {
             if (logAction == null)
                 logAction = s => Debug.WriteLine(s);
             List<(string optionSetName, GameOptions options)> optionSets = GetOptionsSets();
             var options = optionSets[optionSetIndex].options;
             var result = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSets[optionSetIndex].optionSetName, repetition, addOptionSetColumns, developer, restrictToScenarioIndex, logAction);
-            return result;
+            return (result, optionSets[optionSetIndex].optionSetName);
         }
 
         private async Task<ReportCollection> GetSingleRepetitionReportAndSave(string masterReportName, GameOptions options, string optionSetName, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer, int? restrictToScenarioIndex, Action<string> logAction = null)
@@ -504,10 +509,9 @@ namespace ACESim
             {
                 var result = await GetSingleRepetitionReport(optionSetName, repetition, addOptionSetColumns, developer, restrictToScenarioIndex, logAction);
                 logAction("Writing report to blob");
-                if (AzureEnabled && result.csvReports.Any())
+                if (result.csvReports.Any())
                 {
-                    AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), masterReportNamePlusOptionSet + ".csv", true, result.csvReports.FirstOrDefault(), AzureEnabled); // we write to a blob in case this times out and also to allow individual report to be taken out
-                    AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), masterReportNamePlusOptionSet + "log.txt", true, TabbedText.AccumulatedText.ToString(), AzureEnabled);
+                    AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), masterReportNamePlusOptionSet + ".csv", true, result.csvReports.FirstOrDefault(), SaveToAzureBlob); // we write to a blob in case this times out and also to allow individual report to be taken out
                 }
                 logAction("Report written to blob");
                 return result;
@@ -576,7 +580,7 @@ namespace ACESim
             foreach (var taskResult in taskResults)
                 stringResults.Add(taskResult);
             string combinedResults = String.Join("", stringResults);
-            AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), azureBlobReportName + " allsets.csv", true, combinedResults, AzureEnabled);
+            AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), azureBlobReportName + " allsets.csv", true, combinedResults, SaveToAzureBlob);
             return combinedResults;
         }
 
