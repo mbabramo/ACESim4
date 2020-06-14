@@ -501,6 +501,7 @@ namespace ACESim
         public int NumScenarioPermutations => PlayMultipleScenarios ? NumPostWarmupPossibilities * WarmupsContributionToPermutations * NumDifferentWeightsOnOpponentsStrategy : 1;
 
         public List<List<int>> AllScenarioPermutations;
+        public int[] PostWarmupScenarioIndices; // the indices in AllScenarioPermutations corresponding to the first scenario for each post-warmup possibility
 
         public (int indexInPostWarmupScenarios, int? indexInWarmupScenarios, double weightOnOpponentsStrategyP0, double weightOnOpponentsStrategyOtherPlayers) GetScenarioIndexAndWeightValues(int overallScenarioIndex, bool warmupPhase)
         {
@@ -515,6 +516,7 @@ namespace ACESim
                 if (!VaryWeightOnOpponentsStrategySeparatelyForEachPlayer)
                     foreach (var p in AllScenarioPermutations)
                         p[3] = p[2];
+                PostWarmupScenarioIndices = AllScenarioPermutations.Select((item, index) => (item, index)).GroupBy(x => x.item[0]).Select(x => x.First().index).ToArray();
             }
             List<int> permutation = AllScenarioPermutations[overallScenarioIndex];
             int postWarmupPermutationValue = permutation[0];
@@ -539,7 +541,7 @@ namespace ACESim
         public double CurrentWeightOnOpponentOtherPlayers = 0;
         public string ScenarioEquilibriumName = null;
 
-        public virtual void SetScenario(int overallScenarioIndex, bool warmupVersion)
+        public virtual void SetScenario(int overallScenarioIndex, bool warmupVersion, bool alwaysResetScenario)
         {
             int originalScenarioIndex = CurrentOverallScenarioIndex;
             double originalWeightOnOpponentP0 = CurrentWeightOnOpponentP0;
@@ -547,7 +549,7 @@ namespace ACESim
             int? originalWarmupScenarioIndex = CurrentWarmupScenarioIndex;
             CurrentOverallScenarioIndex = overallScenarioIndex;
             (CurrentPostWarmupScenarioIndex, CurrentWarmupScenarioIndex, CurrentWeightOnOpponentP0, CurrentWeightOnOpponentOtherPlayers) = GetScenarioIndexAndWeightValues(overallScenarioIndex, warmupVersion);
-            if (originalScenarioIndex != CurrentOverallScenarioIndex || originalWarmupScenarioIndex != CurrentWarmupScenarioIndex || originalWeightOnOpponentP0 != CurrentWeightOnOpponentP0)
+            if (originalScenarioIndex != CurrentOverallScenarioIndex || originalWarmupScenarioIndex != CurrentWarmupScenarioIndex || originalWeightOnOpponentP0 != CurrentWeightOnOpponentP0 || originalWeightOnOpponentOtherPlayers != CurrentWeightOnOpponentOtherPlayers || alwaysResetScenario)
             {
                 ChangeOptionsToCurrentScenario();
                 if (PlayMultipleScenarios && !CurrentlyWarmingUp)

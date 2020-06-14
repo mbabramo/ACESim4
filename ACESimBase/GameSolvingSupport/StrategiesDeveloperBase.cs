@@ -15,6 +15,7 @@ using JetBrains.Annotations;
 using ACESim.Util;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Runtime.CompilerServices;
+using System.Net.Http.Headers;
 
 namespace ACESim
 {
@@ -558,7 +559,7 @@ namespace ACESim
                 {
                     TabbedText.HideConsoleProgressString();
                     await PerformPrincipalComponentAnalysis(true);
-                    await BuildPCAModelsForEachPostWarmupScenario(reportCollection);
+                    await BuildPCAModelsForSpecifiedScenarios(reportCollection, new int[] { 0 });
                     TabbedText.ShowConsoleProgressString();
                 }
             }
@@ -629,7 +630,7 @@ namespace ACESim
             {
                 await RecoverSavedPCAModelData();
                 await PerformPrincipalComponentAnalysis(true);
-                await BuildPCAModelsForEachPostWarmupScenario(reportCollection);
+                await BuildPCAModelsForSpecifiedScenarios(reportCollection, GameDefinition.PostWarmupScenarioIndices);
             }
         }
 
@@ -673,7 +674,7 @@ namespace ACESim
             TabbedText.WriteLine("Processing PCA results");
             await ProcessPrincipalComponentsResults();
             TabbedText.WriteLine($"Building model based on PCA results");
-            await BuildPCAModelsForEachPostWarmupScenario(reportCollection);
+            await BuildPCAModelsForSpecifiedScenarios(reportCollection, GameDefinition.PostWarmupScenarioIndices);
         }
 
         public PrincipalComponentsAnalysis PerformPrincipalComponentAnalysis(byte playerIndex)
@@ -715,22 +716,24 @@ namespace ACESim
         }
 
         
-        private async Task BuildPCAModelsForEachPostWarmupScenario(ReportCollection reportCollection)
+        private async Task BuildPCAModelsForSpecifiedScenarios(ReportCollection reportCollection, int[] scenarioIndices)
         {
             if (EvolutionSettings.PCA_BuildModelToPredictUtilitiesBasedOnPrincipalComponents)
             {
-                for (int s = 0; s < GameDefinition.NumPostWarmupPossibilities; s++)
+                for (int s = 0; s < scenarioIndices.Length; s++)
                 {
-                    await BuildModelPredictingUtilitiesBasedOnPrincipalComponents(reportCollection, s);
+                    await BuildModelPredictingUtilitiesBasedOnPrincipalComponents(reportCollection, scenarioIndices, s);
                 }
             }
         }
 
-        private async Task BuildModelPredictingUtilitiesBasedOnPrincipalComponents(ReportCollection reportCollection, int s)
+        private async Task BuildModelPredictingUtilitiesBasedOnPrincipalComponents(ReportCollection reportCollection, int[] scenarioIndices, int s)
         {
             int numUtilitiesToCalculateToBuildModel = EvolutionSettings.PCA_NumUtilitiesToCalculateToBuildModel;
+            TabbedText.WriteLine("");
             TabbedText.WriteLine($"Post-warmup option set {s + 1} of {GameDefinition.NumPostWarmupPossibilities}");
-            GameDefinition.ChangeOptionsBasedOnScenario(GameDefinition.NumPostWarmupPossibilities > 1 ? (int?)s : null, null);
+            int scenarioIndex = scenarioIndices[s];
+            ReinitializeForScenario(scenarioIndex, false, true /* b/c if this is first, we might have set the scenario for just one iteration without actually calling ReinitializeForScenario */);
             List<ModelPredictingUtilitiesDatum> data = await GetDataForModelPredictingUtilities(numUtilitiesToCalculateToBuildModel);
             await CompleteUtilitiesModelBuild(data);
             if (EvolutionSettings.PCA_AssessModelsToPredictUtilitiesFromPrincipalComponents)
@@ -767,7 +770,7 @@ namespace ACESim
                 innerStopwatch.Start();
                 List<double>[] principalComponentWeightsForEachPlayer = GetRandomPrincipalComponentWeightsForEachPlayer(utilIndex * 737, 1.5);
                 string principalComponentWeightsString = String.Join("; ", Enumerable.Range(0, NumNonChancePlayers).Select(x => x.ToString() + ": " + principalComponentWeightsForEachPlayer[x].ToSignificantFigures(3)));
-                bool printAndTimeEachCalculation = false;
+                bool printAndTimeEachCalculation = true; // DEBUG
                 await SetModelToPrincipalComponentWeights(principalComponentWeightsForEachPlayer);
                 (double[] compoundUtilities, double[] customStats) = await PCA_UtilitiesAndCustomResultAverage(utilIndex * numUtilitiesToCalculateToBuildModel, printAndTimeEachCalculation);
                 data.Add(new ModelPredictingUtilitiesDatum(principalComponentWeightsForEachPlayer, compoundUtilities));
@@ -776,7 +779,7 @@ namespace ACESim
                 utilitiesStats.Add(compoundUtilities);
                 customStatsStats.Add(customStats);
                 if (printAndTimeEachCalculation)
-                    TabbedText.WriteLine($"Data input {utilIndex}: {principalComponentWeightsString} utilities: {compoundUtilities.ToSignificantFigures(4)} customStats: {customStats.ToSignificantFigures(4)}");
+                    TabbedText.WriteLine($"Data input {utilIndex}: {principalComponentWeightsString} utilities: {compoundUtilities.ToSignificantFigures(4)} customStats (same for each post-warmup scenario): {customStats.ToSignificantFigures(4)}"); // same for each post-warmup scenario because here we are using the same principal component weights to detemrine strategy; the only thing that's changing is utilities.
             }
             TabbedText.WriteLine($"Average ms per each of {numUtilitiesToCalculateToBuildModel} utilities to calculate: {timeStats.Average().ToSignificantFigures(3)} (total time: {outerStopwatch.ElapsedMilliseconds})");
             TabbedText.WriteLine($"utilities {utilitiesStats.ToString()} custom stats {customStatsStats.ToString()}");
@@ -790,7 +793,8 @@ namespace ACESim
                 TabbedText.Write($"Calculating utilities");
             Stopwatch s = new Stopwatch();
             s.Start();
-            if (EvolutionSettings.UseAcceleratedBestResponse)
+            bool useAcceleratedBestResponseForCalculation = false; // DEBUG -- maybe the accelerated best response actually doesn't give use the original utilities
+            if (EvolutionSettings.UseAcceleratedBestResponse && useAcceleratedBestResponseForCalculation)
             {
                 var abrResult = ExecuteAcceleratedBestResponse(false);
                 double[] utilities = abrResult.Select(x => x.utilityResult).ToArray();
@@ -877,9 +881,8 @@ namespace ACESim
             }
             nashEquilibriaPrincipalComponents = nashEquilibriaPrincipalComponents.OrderByDescending(eq => GetSumOfPlayerUtilitiesInEquilibrium(eq)).ToList();
             await PCA_SeparateReportsForEachEquilibrium(nashEquilibriaPrincipalComponents, "nash");
-            var nashEquilibriumToPick = nashEquilibriaPrincipalComponents.FirstOrDefault();
-            if (nashEquilibriumToPick is List<double>[] equilibrium)
-                await SetModelToPrincipalComponentWeights(equilibrium);
+            var nashEquilibriumToPick = nashEquilibriaPrincipalComponents.First();
+            await SetModelToPrincipalComponentWeights(nashEquilibriumToPick);
             WriteBasicEquilibriaInfo(nashEquilibriaStrategies, nashEquilibriaPrincipalComponents, approximateNash.distanceFromNash);
             return (nashEquilibriaStrategies, nashEquilibriaPrincipalComponents, approximateNash.distanceFromNash);
         }
@@ -902,11 +905,14 @@ namespace ACESim
 
         private async Task GenerateReportsAfterPCA(ReportCollection reportCollection, string scenarioName, string scenarioEquilibriumName)
         {
+            // DEBUG -- add masterReportName
             GameDefinition.ScenarioEquilibriumName = scenarioEquilibriumName;
             Func<string> prefaceFn = () => (scenarioEquilibriumName == null) ? scenarioName : $"{scenarioName}-{scenarioEquilibriumName}";
             await GenerateReports(prefaceFn, reportCollection, EvolutionSettings.PCA_BestResponseAfterPCA, EvolutionSettings.PCA_ReportsAfterPCA);
             AzureBlob.WriteTextToFileOrAzure("reports", Launcher.ReportFolder(), prefaceFn() + ".csv", true, reportCollection.csvReports.First(), EvolutionSettings.SaveToAzureBlob);
             GameDefinition.ScenarioEquilibriumName = null;
+            var DEBUG = await PCA_UtilitiesAndCustomResultAverage(17);
+            TabbedText.WriteLine($"DEBUG Utilities average {DEBUG.compoundUtilities.ToSignificantFigures(10)}");
         }
 
         private void WriteBasicEquilibriaInfo(List<(int player0Strategy, int player1Strategy)> equilibriaStrategies, List<List<double>[]> equilibriaPrincipalComponents, double[,] distanceFromNash, bool removeRedundantEquilibria = true)
@@ -1079,7 +1085,7 @@ namespace ACESim
             Parallel.For(0, numInformationSets, n => InformationSets[n].Reinitialize());
         }
 
-        public virtual void ReinitializeForScenario(int overallScenarioIndex, bool warmupVersion)
+        public void ReinitializeForScenario(int overallScenarioIndex, bool warmupVersion, bool alwaysResetScenario = false)
         {
             ResetBestExploitability();
             int previousPostWarmupScenarioIndex = GameDefinition.CurrentPostWarmupScenarioIndex;
@@ -1087,14 +1093,14 @@ namespace ACESim
             int previousScenarioIndex = previousWarmupScenarioIndex ?? previousPostWarmupScenarioIndex;
             double previousWeightOnOpponentP0 = GameDefinition.CurrentWeightOnOpponentP0;
             double previousWeightOnOpponentOtherPlayers = GameDefinition.CurrentWeightOnOpponentOtherPlayers;
-            GameDefinition.SetScenario(overallScenarioIndex, warmupVersion);
+            GameDefinition.SetScenario(overallScenarioIndex, warmupVersion, alwaysResetScenario);
             int updatedPostWarmupScenarioIndex = GameDefinition.CurrentPostWarmupScenarioIndex;
             int? updatedWarmupScenarioIndex = GameDefinition.CurrentWarmupScenarioIndex;
             int updatedScenarioIndex = updatedWarmupScenarioIndex ?? updatedPostWarmupScenarioIndex;
-            CompleteReinitializeForScenario(warmupVersion, previousScenarioIndex, previousWeightOnOpponentP0, previousWeightOnOpponentOtherPlayers, updatedScenarioIndex);
+            CompleteReinitializeForScenario(warmupVersion, previousScenarioIndex, previousWeightOnOpponentP0, previousWeightOnOpponentOtherPlayers, updatedScenarioIndex, alwaysResetScenario);
         }
 
-        public virtual void CompleteReinitializeForScenario(bool warmupVersion, int previousScenarioIndex, double previousWeightOnOpponentP0, double previousWeightOnOpponentOtherPlayers, int updatedScenarioIndex)
+        public virtual void CompleteReinitializeForScenario(bool warmupVersion, int previousScenarioIndex, double previousWeightOnOpponentP0, double previousWeightOnOpponentOtherPlayers, int updatedScenarioIndex, bool alwaysReinitialize)
         {
         }
 

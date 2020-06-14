@@ -155,6 +155,14 @@ namespace ACESim.Util
             }
         }
 
+        public static object TransformSharedBlobOrFileObject(string path, string containerName, string fileName, Func<object, object> transformFunction, bool useAzure)
+        {
+            if (useAzure)
+                return TransformSharedBlobObject(containerName, fileName, transformFunction);
+            else
+                return TransformSharedFileBlob(path, fileName, transformFunction);
+        }
+
         public static object TransformSharedBlobObject(string containerName, string fileName, Func<object, object> transformFunction)
         {
             var leasedBlob = GetLeasedBlockBlob(containerName, fileName, true);
@@ -173,6 +181,52 @@ namespace ACESim.Util
             else
                 ReleaseBlobLease(blockBlob, leaseID);
             return result;
+        }
+
+        public static object TransformSharedFileBlob(string path, string filename, Func<object, object> transformFunction)
+        {
+            using (FileStream stream = GetFileStream(path, filename))
+            {
+                stream.Seek(0, SeekOrigin.Begin);
+                BinaryFormatter formatter = new BinaryFormatter();
+                object initialState = null;
+                if (stream.Length > 0)
+                    initialState = formatter.Deserialize(stream);
+                object finalState = transformFunction(initialState);
+                formatter = new BinaryFormatter();
+                stream.Seek(0, SeekOrigin.Begin);
+                if (finalState != null) 
+                    formatter.Serialize(stream, finalState);
+                return finalState;
+            }
+        }
+
+        public static FileStream GetFileStream(string path, string filename)
+        {
+            int retryInterval = 10;
+            string fullFilename = Path.Combine(path, filename);
+            retry:
+            try
+            {
+                var exists = File.Exists(fullFilename);
+                FileStream fileStream;
+                if (!exists)
+                {
+                    using (fileStream = File.Create(fullFilename))
+                    {
+
+                    }
+                }
+                fileStream = File.Open(fullFilename, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+                return fileStream;
+            }
+            catch (IOException)
+            { // file in use
+                Task.Delay(retryInterval);
+                if (retryInterval < 10_000)
+                    retryInterval = (int)(retryInterval * 1.5); // use exponential backoff -- requesting lease too much causes very long delays
+                goto retry;
+            }
         }
 
         public static (string lease, CloudBlockBlob blob) GetLeasedBlockBlob(string containerName, string fileName, bool publicAccess)

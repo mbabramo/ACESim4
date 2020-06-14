@@ -45,7 +45,7 @@ namespace ACESim
         public int NumRepetitions = 1;
         public bool SaveToAzureBlob = false;
         public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && UseDistributedProcessingForMultipleOptionsSets; // this should be true if running on the local service fabric or usign ACESimDistributed
-        public string MasterReportNameForDistributedProcessing = "R319"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
+        public string MasterReportNameForDistributedProcessing = "R332"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
         public bool UseDistributedProcessingForMultipleOptionsSets = true;
         public bool SeparateScenariosWhenUsingDistributedProcessing = true;
         public static bool MaxOneReportPerDistributedProcess = false;
@@ -240,24 +240,29 @@ namespace ACESim
             while (!complete)
             {
                 IndividualTask theCompletedTask = taskCompleted; // avoid problem with closure
+                bool readyForAnotherTask = !cancellationToken.IsCancellationRequested;
                 Stopwatch s = new Stopwatch();
                 s.Start();
-                var blockBlob = AzureBlob.GetLeasedBlockBlob("results", masterReportName + " Coordinator", true);
-               // TabbedText.WriteLine($"Received block blob lease ({s.ElapsedMilliseconds} milliseconds)");
-                bool readyForAnotherTask = !cancellationToken.IsCancellationRequested;
                 // We are serializing the TaskCoordinator to synchronize information. Thus, we need to update the task coordinator to report that this job is complete. 
-                AzureBlob.TransformSharedBlobObject(blockBlob.blob, blockBlob.lease, o =>
+                AzureBlob.TransformSharedBlobOrFileObject(ReportFolder(), "results", masterReportName + " Coordinator", o =>
                 {
                     TaskCoordinator taskCoordinator = (TaskCoordinator)o; // because of TransformSharedBlobObject, changes to this will be persisted
                     if (taskCoordinator == null)
                         throw new Exception("Corrupted or nonexistent task coordinator blob");
+
+                    // DEBUG SUPERDEBUG
+                    // Uncomment this to redo a particular completed step or steps
+                    //foreach (IndividualTask taskToChange in taskCoordinator.Stages.SelectMany(x => x.RepeatedTasks.SelectMany(y => y.IndividualTasks)))
+                    //    if (taskToChange.TaskType == "CompletePCA")
+                    //        taskToChange.Complete = false;
+
                     taskCoordinator.Update(theCompletedTask, readyForAnotherTask, out taskToDo, out complete);
                     TabbedText.WriteLineEvenIfDisabled($"");
                     TabbedText.WriteLineEvenIfDisabled($"Percentage Complete {100.0 * taskCoordinator.ProportionComplete}% of {taskCoordinator.IndividualTaskCount}");
                     if (taskToDo != null)
                         TabbedText.WriteLineEvenIfDisabled($"Task to do: {taskToDo}");
                     return taskCoordinator;
-                });
+                }, SaveToAzureBlob);
                 TabbedText.WriteLine($"Updated status (total {s.ElapsedMilliseconds} milliseconds)");
                 if (!complete)
                 {
@@ -348,8 +353,12 @@ namespace ACESim
             if (optionSetsCount > 1)
                 taskStages.Add(new TaskStage(Enumerable.Range(0, 1).Select(x => new RepeatedTask("CombineOptionSets", x, 1, null) { AvoidRedundantExecution = true }).ToList()));
             TaskCoordinator tasks = new TaskCoordinator(taskStages);
-            var blockBlob = AzureBlob.GetLeasedBlockBlob("results", masterReportName + " Coordinator", true);
-            var result = AzureBlob.TransformSharedBlobObject(blockBlob.blob, blockBlob.lease, o => o == null ? tasks : null); // return null if the task coordinator object is already created
+            var result = AzureBlob.TransformSharedBlobOrFileObject(ReportFolder(), "results", masterReportName + " Coordinator", o =>
+            {
+                if (o == null)
+                    return tasks; // create a new file
+                return null; // this will leave the existing file unchanged, and shortly we'll look at the existing file
+            }, SaveToAzureBlob); // return null if the task coordinator object is already created
             //if (result != null)
             //    Debug.WriteLine(result);
         }

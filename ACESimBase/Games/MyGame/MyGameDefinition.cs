@@ -862,11 +862,11 @@ namespace ACESim
 
         public override bool PlayMultipleScenarios => true; // DEBUG // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
 
-        public override int NumPostWarmupPossibilities => 3; // DEBUG
-        public override int NumWarmupPossibilities => 2; // Note that this can be 0 (indicating that costs multiplier doesn't change). This indicates the variations on the costs multiplier; variations on weight to opponent are below. 
+        public override int NumPostWarmupPossibilities => 8; // DEBUG
+        public override int NumWarmupPossibilities => 4; // Note that this can be 0 (indicating that costs multiplier doesn't change). This indicates the variations on the costs multiplier; variations on weight to opponent are below. 
         public override int WarmupIterations_IfWarmingUp => 10; // DEBUG 
         public override bool MultiplyWarmupScenariosByAlteringWeightOnOpponentsStrategy => true;
-        public override int NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios => 2; // DEBUG // should be odd if we want to include zero
+        public override int NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios => 3; // should be odd if we want to include zero
         public override bool VaryWeightOnOpponentsStrategySeparatelyForEachPlayer => false; // NOTE: If this is true, this multiplies number of scenarios by NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios^2
         public override (double, double) MinMaxWeightOnOpponentsStrategyDuringWarmup => (-0.8, 0.8); // NOTE: Don't go all the way up to 1, because then if costs multiplier is 0 (i.e., it is a zero-sum game), utility for a player will be invariant.
 

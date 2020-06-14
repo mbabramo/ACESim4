@@ -120,9 +120,9 @@ namespace ACESim
                 }
             }
         }
-        public override void CompleteReinitializeForScenario(bool warmupVersion, int previousScenarioIndex, double previousWeightOnOpponentP0, double previousWeightOnOpponentOtherPlayers, int updatedScenarioIndex)
+        public override void CompleteReinitializeForScenario(bool warmupVersion, int previousScenarioIndex, double previousWeightOnOpponentP0, double previousWeightOnOpponentOtherPlayers, int updatedScenarioIndex, bool alwaysReinitialize)
         {
-            if (warmupVersion || !GameDefinition.UseDifferentWarmup)
+            if (warmupVersion || !GameDefinition.UseDifferentWarmup || alwaysReinitialize)
             {
                 ReinitializeInformationSets();
             }
@@ -1315,6 +1315,11 @@ namespace ACESim
                 {
                     if (informationSet.PlayerIndex == p)
                     {
+                        if (informationSet.Decision.Name?.Contains("PFile") ?? false)
+                        { // DEBUG SUPERDEBUG
+                            //modelVariablesForPlayer[index] = -1.0;
+                            //modelVariablesForPlayer[index + 1] = 1.0;
+                        }
                         for (int a = 1; a <= informationSet.NumPossibleActions; a++)
                         {
                             informationSet.SetCumulativeRegret(a, modelVariablesForPlayer[index++]);

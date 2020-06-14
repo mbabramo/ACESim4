@@ -30,7 +30,7 @@ namespace ACESim
 
         private enum OptionSetChoice
         {
-            Single,
+            JustOneOption,
             Fast,
             ShootoutPermutations,
             VariousUncertainties,
@@ -47,10 +47,10 @@ namespace ACESim
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-            OptionSetChoice optionSetChoice = OptionSetChoice.Single; // <<-- Choose option set here
+            OptionSetChoice optionSetChoice = OptionSetChoice.JustOneOption; // <<-- Choose option set here
             switch (optionSetChoice)
             {
-                case OptionSetChoice.Single:
+                case OptionSetChoice.JustOneOption:
                     AddSingle(optionSets, MyGameOptionsGenerator.DamagesUncertainty_2BR(), "singleoptionset");
                     break;
                 case OptionSetChoice.Fast:
