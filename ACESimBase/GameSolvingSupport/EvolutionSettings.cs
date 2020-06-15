@@ -117,7 +117,7 @@ namespace ACESim
         public int[] PCA_NumVariationsPerPrincipalComponent_Obsolete = new int[] { 4, 3, 2 }; // NOTE: Not currently being used; this can be used to generate non-random permutations of principal components.
         public int PCA_NumPrincipalComponents = 3; // DEBUG
         public bool PCA_BuildModelToPredictUtilitiesBasedOnPrincipalComponents = true;
-        public int PCA_NumUtilitiesToCalculateToBuildModel = 250;
+        public int PCA_NumUtilitiesToCalculateToBuildModel = 500;
         public int PCA_NumGamesToPlayToEstimateEachUtilityWhileBuildingModel = 1_000; // Note: This doesn't apply to GeneralizedVanilla.
         public int PCA_NumStrategyChoicesPerPlayer = 1_000;
         public bool PCA_AssessModelsToPredictUtilitiesFromPrincipalComponents = false;

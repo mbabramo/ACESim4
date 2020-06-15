@@ -45,7 +45,7 @@ namespace ACESim
         public int NumRepetitions = 1;
         public bool SaveToAzureBlob = false;
         public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && UseDistributedProcessingForMultipleOptionsSets; // this should be true if running on the local service fabric or usign ACESimDistributed
-        public string MasterReportNameForDistributedProcessing = "R332"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
+        public string MasterReportNameForDistributedProcessing = "R339"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
         public bool UseDistributedProcessingForMultipleOptionsSets = true;
         public bool SeparateScenariosWhenUsingDistributedProcessing = true;
         public static bool MaxOneReportPerDistributedProcess = false;

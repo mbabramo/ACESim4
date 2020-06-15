@@ -34,6 +34,7 @@ namespace ACESimDistributed
                 string original = AzureBlob.GetSerializedObject(containerName, fileName) as string ?? "";
                 string revised = original + "\r\n" + text;
                 AzureBlob.SerializeObject(containerName, fileName, true, revised);
+                Console.WriteLine(text);
             }
 
             while (iterations < 10)
@@ -47,6 +48,9 @@ namespace ACESimDistributed
 
                     if (launcher.LaunchSingleOptionsSetOnly)
                         throw new Exception("LaunchSingleOptionsSetOnly should only be used with ACESimConsole.");
+
+                    //for (int q = 0; q < 10_000; q++)
+                    //Console.WriteLine("DEBUG");
 
                     await launcher.ParticipateInDistributedProcessing(
                         launcher.MasterReportNameForDistributedProcessing,
