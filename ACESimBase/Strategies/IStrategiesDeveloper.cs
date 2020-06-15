@@ -8,7 +8,7 @@ namespace ACESim
     {
         List<Strategy> Strategies { get; set; }
         IStrategiesDeveloper DeepCopy();
-        Task<ReportCollection> DevelopStrategies(string optionSetName, int? restrictToScenarioIndex);
+        Task<ReportCollection> DevelopStrategies(string optionSetName, int? restrictToScenarioIndex, string masterReportName);
         Task<ReportCollection> RunAlgorithm(string optionSetName);
         EvolutionSettings EvolutionSettings { get; set; }
 

@@ -327,11 +327,11 @@ namespace ACESim
                 evolutionSettings.TotalIterations = 1;
                 bool originalPerformPrincipalComponentAnalysis = evolutionSettings.PCA_PerformPrincipalComponentAnalysis;
                 evolutionSettings.PCA_PerformPrincipalComponentAnalysis = false;
-                await developer.DevelopStrategies(firstOptionSet.optionSetName, -1 /* it doesn't matter what scenario we do, because the real action is where we perform analysis below */);
+                await developer.DevelopStrategies(firstOptionSet.optionSetName, -1 /* it doesn't matter what scenario we do, because the real action is where we perform analysis below */, MasterReportNameForDistributedProcessing);
                 evolutionSettings.TotalIterations = totalIterations;
                 evolutionSettings.PCA_PerformPrincipalComponentAnalysis = originalPerformPrincipalComponentAnalysis;
                 ReportCollection reportCollection = new ReportCollection();
-                await strategiesDeveloper.RecoverSavedPCAModelDataAndPerformAnalysis(reportCollection);
+                await strategiesDeveloper.RecoverSavedPCAModelDataAndPerformAnalysis(reportCollection, MasterReportNameForDistributedProcessing);
             }
         }
 
@@ -544,7 +544,7 @@ namespace ACESim
         retry:
             try
             {
-                reportCollection = await developer.DevelopStrategies(optionSetName, restrictToScenarioIndex);
+                reportCollection = await developer.DevelopStrategies(optionSetName, restrictToScenarioIndex, MasterReportNameForDistributedProcessing);
             }
             catch (Exception e)
             {
