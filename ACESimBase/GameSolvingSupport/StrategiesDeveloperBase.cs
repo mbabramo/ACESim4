@@ -770,7 +770,7 @@ namespace ACESim
                 innerStopwatch.Start();
                 List<double>[] principalComponentWeightsForEachPlayer = GetRandomPrincipalComponentWeightsForEachPlayer(utilIndex * 737, 1.5);
                 string principalComponentWeightsString = String.Join("; ", Enumerable.Range(0, NumNonChancePlayers).Select(x => x.ToString() + ": " + principalComponentWeightsForEachPlayer[x].ToSignificantFigures(3)));
-                bool printAndTimeEachCalculation = true; // DEBUG
+                bool printAndTimeEachCalculation = false; 
                 await SetModelToPrincipalComponentWeights(principalComponentWeightsForEachPlayer);
                 (double[] compoundUtilities, double[] customStats) = await PCA_UtilitiesAndCustomResultAverage(utilIndex * numUtilitiesToCalculateToBuildModel, printAndTimeEachCalculation);
                 data.Add(new ModelPredictingUtilitiesDatum(principalComponentWeightsForEachPlayer, compoundUtilities));
@@ -793,7 +793,7 @@ namespace ACESim
                 TabbedText.Write($"Calculating utilities");
             Stopwatch s = new Stopwatch();
             s.Start();
-            bool useAcceleratedBestResponseForCalculation = false; // DEBUG -- maybe the accelerated best response actually doesn't give use the original utilities
+            bool useAcceleratedBestResponseForCalculation = true; // DEBUG -- if there is a problem, maybe set this to false
             if (EvolutionSettings.UseAcceleratedBestResponse && useAcceleratedBestResponseForCalculation)
             {
                 var abrResult = ExecuteAcceleratedBestResponse(false);

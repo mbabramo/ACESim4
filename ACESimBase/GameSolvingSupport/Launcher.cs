@@ -20,14 +20,14 @@ namespace ACESim
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; // use RegretMatching etc. for GeneralizedVanilla
 
-        public const int VanillaIterations = 30; // DEBUG // Note: Also used for GeneralizedVanilla, DeepCFR
-        public const int VanillaReportEveryNIterations = EffectivelyNever; // DEBUG VanillaIterations;
+        public const int VanillaIterations = 100; // Note: Also used for GeneralizedVanilla, DeepCFR
+        public const int VanillaReportEveryNIterations = EffectivelyNever; // VanillaIterations;
         public int? SuppressReportBeforeIteration = null;
-        public const int VanillaBestResponseEveryMIterations = EffectivelyNever; // DEBUG VanillaIterations; 
+        public const int VanillaBestResponseEveryMIterations = EffectivelyNever; // VanillaIterations; 
         public int? SuppressBestResponseBeforeIteration = null; 
         public const bool CalculatePerturbedBestResponseRefinement = true;
         public const int MiniReportEveryPIterations = EffectivelyNever;
-        public const bool AlwaysSuppressDisplayReportOnScreen = false; // DEBUG
+        public const bool AlwaysSuppressDisplayReportOnScreen = true;
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever;
         public const bool UseRandomPathsForReporting = true;
         public const int SummaryTableRandomPathsIterations = 1_000;
@@ -250,8 +250,7 @@ namespace ACESim
                     if (taskCoordinator == null)
                         throw new Exception("Corrupted or nonexistent task coordinator blob");
 
-                    // DEBUG SUPERDEBUG
-                    // Uncomment this to redo a particular completed step or steps
+                    // Uncomment this to redo a particular completed step or steps so that it can be debugged without doing all earlier steps
                     //foreach (IndividualTask taskToChange in taskCoordinator.Stages.SelectMany(x => x.RepeatedTasks.SelectMany(y => y.IndividualTasks)))
                     //    if (taskToChange.TaskType == "CompletePCA")
                     //        taskToChange.Complete = false;

@@ -56,7 +56,7 @@ namespace ACESim
             int player1Permutations = player0Utilities.GetLength(1);
             bool[] player0StrategyEliminated = new bool[player0Permutations];
             bool[] player1StrategyEliminated = new bool[player1Permutations];
-            TabbedText.WriteLine($"Number of strategies eliminated {player0StrategyEliminated.Count(x => x == true)},{player1StrategyEliminated.Count(x => x == true)}"); // DEBUG
+            //TabbedText.WriteLine($"Number of strategies eliminated {player0StrategyEliminated.Count(x => x == true)},{player1StrategyEliminated.Count(x => x == true)}");
             EliminateDominatedStrategies(player0Utilities, player1Utilities,
                 player0StrategyEliminated, player1StrategyEliminated);
             List<(int player0Strategy, int player1Strategy)> nashEquilibria =

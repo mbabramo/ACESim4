@@ -1315,11 +1315,6 @@ namespace ACESim
                 {
                     if (informationSet.PlayerIndex == p)
                     {
-                        if (informationSet.Decision.Name?.Contains("PFile") ?? false)
-                        { // DEBUG SUPERDEBUG
-                            //modelVariablesForPlayer[index] = -1.0;
-                            //modelVariablesForPlayer[index + 1] = 1.0;
-                        }
                         for (int a = 1; a <= informationSet.NumPossibleActions; a++)
                         {
                             informationSet.SetCumulativeRegret(a, modelVariablesForPlayer[index++]);
