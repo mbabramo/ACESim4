@@ -254,7 +254,7 @@ namespace ACESimBase.GameSolvingSupport
 
         private void PrintTestDataResults((float[], float, float)[] testData, StringBuilder s)
         {
-            double loss = testData.Select(d => (Regression.GetResult(d.Item1, null, UniquePlayerIndex), d.Item2)).Select(d => Math.Pow(d.Item1 - d.Item2, 2.0)).Average();
+            double loss = testData.Select(d => (Regression.GetResult(d.Item1, null), d.Item2)).Select(d => Math.Pow(d.Item1 - d.Item2, 2.0)).Average();
             s.AppendLine($"AvgLoss: {Math.Sqrt(loss).ToSignificantFigures(4)} ");
         }
 
@@ -269,7 +269,7 @@ namespace ACESimBase.GameSolvingSupport
             {
                 (float[], float, float)[] items = group.Select(x => x.Item1).ToArray();
                 float averageInData = items.Average(x => x.Item2);
-                float prediction = Regression.GetResult(items.First().Item1, null, UniquePlayerIndex);
+                float prediction = Regression.GetResult(items.First().Item1, null);
                 s.AppendLine($"{group.Key} => {averageInData} (in data) {prediction} (predicted)");
             }
         }
@@ -296,7 +296,7 @@ namespace ACESimBase.GameSolvingSupport
                 throw new Exception();
             byte originalValue = independentVariables.ActionChosen;
             independentVariables.ActionChosen = action;
-            double result = Regression.GetResult(independentVariables.AsArray(IncludedDecisionIndices), regressionMachine, UniquePlayerIndex);
+            double result = Regression.GetResult(independentVariables.AsArray(IncludedDecisionIndices), regressionMachine);
             independentVariables.ActionChosen = originalValue;
             return result;
         }

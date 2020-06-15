@@ -155,7 +155,7 @@ namespace ACESimBase.Util
 
             public float[] GetResults(float[] x)
             {
-                float scalarResult = Controller.GetResult(x, RegressionMachine, null);
+                float scalarResult = Controller.GetResult(x, RegressionMachine);
                 return new float[] { scalarResult };
             }
         }
@@ -163,8 +163,7 @@ namespace ACESimBase.Util
         public IRegressionMachine GetRegressionMachine() => new NormalizingRegressionMachineWrapper(this, Regression.GetRegressionMachine());
         public void ReturnRegressionMachine(IRegressionMachine regressionMachine) => Regression.ReturnRegressionMachine(((NormalizingRegressionMachineWrapper)regressionMachine).RegressionMachine);
 
-        // DEBUG -- get rid of supplementalInfo after all
-        public float GetResult(float[] x, IRegressionMachine regressionMachine, object supplementalInfo)
+        public float GetResult(float[] x, IRegressionMachine regressionMachine)
         {
             IRegressionMachine regressionMachineToUse;
             if (regressionMachine is NormalizingRegressionMachineWrapper wrapper)
@@ -173,7 +172,7 @@ namespace ACESimBase.Util
                 regressionMachineToUse = regressionMachine;
             bool normalize = Normalize && !(regressionMachineToUse is CompoundRegressionMachine); // if we have a CompoundRegressionMachine, then within it, we'll have a NormalizingRegressionMachineWrapper, so we will normalize and denormalize there.
             float[] xNormalized = normalize ? NormalizeIndependentVars(x) : x;
-            float result = regressionMachineToUse == null ? Regression.GetResults(xNormalized, null)[0] : regressionMachineToUse.GetResults(xNormalized, supplementalInfo)[0];
+            float result = regressionMachineToUse == null ? Regression.GetResults(xNormalized, null)[0] : regressionMachineToUse.GetResults(xNormalized)[0];
             if (normalize)
                 result = DenormalizeDependentVar(result);
             return result;

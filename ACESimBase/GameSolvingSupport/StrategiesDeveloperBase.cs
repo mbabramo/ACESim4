@@ -946,9 +946,9 @@ namespace ACESim
         {
             var datum = new ModelPredictingUtilitiesDatum(equilibrium, null);
             var model = ModelsToPredictUtilitiesFromPrincipalComponents[0];
-            double player0Utility = model.GetResult(datum.Convert().X, null, null);
+            double player0Utility = model.GetResult(datum.Convert().X, null);
             model = ModelsToPredictUtilitiesFromPrincipalComponents[1];
-            double player1Utility = model.GetResult(datum.Convert().X, null, null);
+            double player1Utility = model.GetResult(datum.Convert().X, null);
             return (player0Utility, player1Utility);
         }
 
@@ -968,9 +968,9 @@ namespace ACESim
                     List<double>[] principalComponentWeightsForEachPlayer = new List<double>[2] { principalComponentsWeightsForPlayer0[i], principalComponentsWeightsForPlayer1[j] };
                     var datum = new ModelPredictingUtilitiesDatum(principalComponentWeightsForEachPlayer, null);
                     var model = ModelsToPredictUtilitiesFromPrincipalComponents[0];
-                    player0Utilities[i, j] = model.GetResult(datum.Convert().X, null, null);
+                    player0Utilities[i, j] = model.GetResult(datum.Convert().X, null);
                     model = ModelsToPredictUtilitiesFromPrincipalComponents[1];
-                    player1Utilities[i, j] = model.GetResult(datum.Convert().X, null, null);
+                    player1Utilities[i, j] = model.GetResult(datum.Convert().X, null);
                     //CompoundRegressionMachinesContainer.SpecifyWeightOnSupplementalMachines(principalComponentWeightsForEachPlayer, InverseNumStandardDeviationsForPrincipalComponentStrategy);
                 }
             }
@@ -997,7 +997,7 @@ namespace ACESim
                 for (byte p = 0; p < NumNonChancePlayers; p++)
                 {
                     var model = ModelsToPredictUtilitiesFromPrincipalComponents[p];
-                    predicted[p] = model.GetResult(datum.Convert().X, null, null);
+                    predicted[p] = model.GetResult(datum.Convert().X, null);
                     predictedArray[p][j] = predicted[p];
                     actualArray[p][j] = actual[p];
                 }
