@@ -1851,11 +1851,6 @@ namespace ACESim
             }
         }
 
-        public virtual void DEBUGX()
-        {
-
-        }
-
         public DevelopmentStatus Status = new DevelopmentStatus();
 
         
