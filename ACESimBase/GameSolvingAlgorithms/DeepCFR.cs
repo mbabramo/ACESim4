@@ -15,14 +15,9 @@ namespace ACESim
 {
 
     // TODO
-    // 1. Generalize PCA beyond DeepCFR. With GeneralizedVanilla, the individual probabilities at each information set would be the relevant elements, and we would need methods
-    // to convert from strategies to element sets and vice versa. However, we would still use a neural network to model which player would win.
-    // 2. Allow saving of elements. Then, we can combine them at an appropriate time.
-    // 3. Make it so that we can have the PCA done as a process after a number of other processes are complete, as we currently do with scenarios. That is, we could run a 
-    // bunch of scenarios and then do the PCA, saving the results.
-    // 4. Once we have a PCA, see what happens to the Nash equilibria as we change settings. Where there is no unique Nash equilibrium, try to use Lemke-Howson.
+    // 1. Once we have a PCA, see what happens to the Nash equilibria as we change settings. Where there is no unique Nash equilibrium, try to use Lemke-Howson.
     // We can also give further thought to the correlated equilibrium strategies and study whether these are consistent enough to be worth exploring. 
-    // 5. Consider also the possibility of a meta-equilibrium on randomness based on distance from Nash equilibria. That is the probability that each player would play
+    // 2. Consider also the possibility of a meta-equilibrium on randomness based on distance from Nash equilibria. That is the probability that each player would play
     // a particular strategy would be be (1 / (k + d)), where d is the sum of square distances from Nash equilibria. The question is whether there is a value of k
     // from which neither player would have an incentive to defect in a meta-game determining the degree of randomness. Choosing very small positive k would be equivalent
     // to each player seeking to play a Nash equilibrium (but not always succeeding if there are multiple Nash equilibria). So, each entry in the bimatrix metagame would

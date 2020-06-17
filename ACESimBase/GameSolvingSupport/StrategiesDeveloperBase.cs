@@ -1179,6 +1179,7 @@ namespace ACESim
                 //await ProcessAllPathsAsync(GetStartOfGameHistoryPoint(), (historyPoint, probability) => ProcessInitializedGameProgressAsync(historyPoint, probability));
                 //Navigation = Navigation.WithLookupApproach(originalLookup);
                 NumInitializedGamePaths = GamePlayer.PlayAllPaths(ProcessInitializedGameProgress);
+                // TODO: We could probably make things a lot faster if we used our tree algorithm, but added support for reversing a step in games. That is, it would play the actual game, but would reverse as necessary. 
                 stopwatch.Stop();
                 string parallelString = GamePlayer.PlayAllPathsIsParallel ? " (higher number in parallel)" : "";
                 string informationSetsString = StoreGameStateNodesInLists ? $" Total information sets: {InformationSets.Count()} chance nodes: {ChanceNodes.Count()} final nodes: {FinalUtilitiesNodes.Count()}" : "";
