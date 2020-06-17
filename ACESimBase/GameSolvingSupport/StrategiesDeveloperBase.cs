@@ -793,7 +793,7 @@ namespace ACESim
                 TabbedText.Write($"Calculating utilities");
             Stopwatch s = new Stopwatch();
             s.Start();
-            bool useAcceleratedBestResponseForCalculation = true; // DEBUG -- if there is a problem, maybe set this to false
+            bool useAcceleratedBestResponseForCalculation = true;
             if (EvolutionSettings.UseAcceleratedBestResponse && useAcceleratedBestResponseForCalculation)
             {
                 var abrResult = ExecuteAcceleratedBestResponse(false);

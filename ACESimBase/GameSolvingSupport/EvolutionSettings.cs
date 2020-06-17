@@ -55,7 +55,7 @@ namespace ACESim
 
         // CORRELATED EQ SETTINGS -- MUST ALSO SET IN GAME DEFINITION.
         // NOTE: This is separate from correlated equilibrium computed via principal components analysis (see below)
-        public bool ConstructCorrelatedEquilibrium = true; // DEBUG -- TODO enable correlated equilibrium reporting with PCA test. Probably requires copying many strategies into information set.
+        public bool ConstructCorrelatedEquilibrium = false; // TODO enable correlated equilibrium reporting with PCA test. Probably requires copying many strategies into information set.
         public bool ConstructCorrelatedEquilibriumMultipleTimesExPost = true;
         public int MaxNumCorrelatedEquilibriaToConstruct = 125;
         public bool CheckCorrelatedEquilibriumIncompatibilitiesAlongWay = false;
