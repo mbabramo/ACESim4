@@ -18,7 +18,7 @@ namespace ACESim
 
         #region Settings
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; // use RegretMatching etc. for GeneralizedVanilla
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.SequenceForm; // use RegretMatching etc. for GeneralizedVanilla
 
         public const int VanillaIterations = 100; // Note: Also used for GeneralizedVanilla, DeepCFR
         public const int VanillaReportEveryNIterations = EffectivelyNever; // VanillaIterations;
@@ -137,6 +137,8 @@ namespace ACESim
                     return new GeneticAlgorithm(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.DeepCFR:
                     return new DeepCFR(existingStrategyState, evolutionSettings, gameDefinition);
+                case GameApproximationAlgorithm.SequenceForm:
+                    return new SequenceForm(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.PlaybackOnly:
                     return new PlaybackOnly(existingStrategyState, evolutionSettings, gameDefinition);
                 default:

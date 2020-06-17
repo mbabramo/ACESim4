@@ -36,7 +36,7 @@ namespace ACESim
             PerfectInfo,
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.DamagesUncertainty_2BR;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.SuperSimple;
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {

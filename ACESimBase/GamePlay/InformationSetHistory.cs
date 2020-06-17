@@ -9,7 +9,7 @@ namespace ACESim
 
     public readonly struct InformationSetHistory
     {
-        public readonly byte[] InformationSetForPlayer; // length [InformationSetLog.MaxInformationSetLoggingLengthPerFullPlayer];
+        public readonly byte[] InformationSetForPlayer; 
         public readonly List<(byte decisionIndex, byte information)> LabeledInformationSetForPlayer;
         public readonly byte PlayerIndex;
         public readonly byte DecisionByteCode;

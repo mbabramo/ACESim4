@@ -34,7 +34,7 @@ namespace ACESim
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => 
             AllowSkipEveryPermutationInitialization  
-            && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder;
+            && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder && EvolutionSettings.Algorithm != GameApproximationAlgorithm.SequenceForm;
 
         bool TemporarilyDisableFullReports; 
 
@@ -113,11 +113,11 @@ namespace ACESim
             for (int overallScenarioIndex = startingScenarioIndex; overallScenarioIndex < startingScenarioIndex + numScenarios; overallScenarioIndex++)
             {
                 OverallScenarioIndex = overallScenarioIndex;
-                ReinitializeForScenario(overallScenarioIndex, GameDefinition.UseDifferentWarmup);
                 string optionSetInfo = $@"Option set {optionSetName}";
                 string scenarioFullName = optionSetInfo;
                 if (GameDefinition.NumScenarioPermutations > 1)
                 {
+                    ReinitializeForScenario(overallScenarioIndex, GameDefinition.UseDifferentWarmup);
                     scenarioFullName = GameDefinition.GetNameForScenario_WithOpponentWeight();
                     if (anyScenarioOK)
                         optionSetInfo += $" (scenario irrelevant -- loading only)";

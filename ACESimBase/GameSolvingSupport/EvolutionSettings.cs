@@ -20,7 +20,7 @@ namespace ACESim
         public int TotalAvgStrategySamplingCFRIterations = 100000;
         public int TotalProbingCFRIterations = 100000;
         public int TotalIterations = 100000;
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.DeepCFR; // also will be overridden by Launcher
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.SequenceForm; // also will be overridden by Launcher
         public double BestResponseTarget => Algorithm switch
         {
             GameApproximationAlgorithm.FictitiousPlay => -1, // 0.00001,
@@ -110,7 +110,7 @@ namespace ACESim
         public bool DeepCFR_SeparateObservationsForIdenticalGameProgressTreeItems = true; // relevant only if UseWeightedData is false; with separate observations, the number of observations is proportional to their frequency in the regression; this takes longer but produces more accurate results
         public int DeepCFR_MaximumTotalObservationsPerIteration = 100_000; // when not using gameprogresstree, after this number of observations, we stop looking for more observations, even if we haven't gotten enough to fill as many iterations as desired in one or more reservoirs (in which case, we rely more on earlier observations)
 
-        public bool PCA_PerformPrincipalComponentAnalysis = true; 
+        public bool PCA_PerformPrincipalComponentAnalysis = false; // DEBUG
         public double PCA_Precision = 1E-5;
         public int PCA_FirstIterationToSaveAsPCAObservation = 11; 
         public int PCA_SavePCAObservationEveryNIterationsAfterFirst = 1;

@@ -363,10 +363,10 @@ namespace ACESim
             }
         }
 
-        public byte[] GetCurrentInformationSetForPlayer_Array(byte playerIndex) => GetCurrentInformationSetForPlayer(playerIndex).ToArray();
+        public byte[] GetCurrentInformationSetForPlayer_Array(byte playerIndex, bool addInformationSetTerminator) => GetCurrentInformationSetForPlayer(playerIndex, addInformationSetTerminator).ToArray();
 
 
-        public List<byte> GetCurrentInformationSetForPlayer(byte playerIndex)
+        public List<byte> GetCurrentInformationSetForPlayer(byte playerIndex, bool addInformationSetTerminator)
         {
             List<byte> info = new List<byte>();
             int firstPlayerIndexAction = playerIndex * MaxNumActions;
@@ -380,6 +380,8 @@ namespace ACESim
                         info.Add(ActionsHistory[i]);
                 }
             }
+            if (addInformationSetTerminator)
+                info.Add(InformationSetTerminator);
             return info;
         }
 
@@ -425,7 +427,7 @@ namespace ACESim
 
         public string GetCurrentPlayerInformationString(byte playerIndex)
         {
-            List<byte> informationSetList = GetCurrentInformationSetForPlayer(playerIndex);
+            List<byte> informationSetList = GetCurrentInformationSetForPlayer(playerIndex, false);
             return String.Join(",", informationSetList);
         }
 
@@ -455,7 +457,7 @@ namespace ACESim
                 byte decisionIndex = DecisionIndicesHistory[i];
                 byte actionChosen = ActionsHistory[i];
                 Decision d = decisions[decisionIndex];
-                byte[] informationSet = GetCurrentInformationSetForPlayer_Array(d.PlayerIndex);
+                byte[] informationSet = GetCurrentInformationSetForPlayer_Array(d.PlayerIndex, true);
                 var labeledInformationSet = GetLabeledCurrentInformationSetForPlayer(d.PlayerIndex);
                 informationSetHistories.Add(new InformationSetHistory(informationSet, labeledInformationSet, d.PlayerIndex, d.DecisionByteCode, decisionIndex, actionChosen, d.NumPossibleActions));
             }
