@@ -16,23 +16,36 @@ namespace ACESim
     [Serializable]
     public class InformationSetNode : IGameState
     {
-        
+
         #region Properties, members, and constants
 
         public const double SmallestProbabilityRepresented = 1E-16; // We make this considerably greater than Double.Epsilon (but still very small), because (1) otherwise when we multiply the value by anything < 1, we get 0, and this makes it impossible to climb out of being a zero-probability action, (2) we want to be able to represent 1 - probability.
         public const double SmallestProbabilityInAverageStrategy = 1E-5; // This is greater still -- when calculating average strategies, we disregard very small probabilities (which presumably are on their way to zero)
 
         public int InformationSetNodeNumber; // could delete this once things are working, but may be useful in testing scenarios
+
         public int GetNodeNumber() => InformationSetNodeNumber;
         public Decision Decision;
         public EvolutionSettings EvolutionSettings;
         public byte[] InformationSetContents;
+        public string InformationSetContentsString => String.Join(",", InformationSetContents.Select(x => $"{x:7}").ToArray());
         public List<(byte decisionIndex, byte information)> LabeledInformationSet;
         public string InformationSetWithLabels(GameDefinition gd) => String.Join(";", LabeledInformationSet.Select(x => $"{gd.DecisionsExecutionOrder[x.decisionIndex].Name}: {x.information}"));
         public byte[] InformationSetContentsSinceParent => ParentInformationSet == null ? InformationSetContents : InformationSetContents.Skip(ParentInformationSet.InformationSetContents.Length).ToArray();
         public string InformationSetContentsSinceParentString => String.Join(",", InformationSetContentsSinceParent);
         public byte DecisionByteCode => Decision.DecisionByteCode;
         public byte DecisionIndex;
+
+        // the following are for sequence form
+        /// <summary>
+        /// An information set number starting numbering at 1 for this player only.
+        /// </summary>
+        public int PerPlayerNodeNumber;
+        /// <summary>
+        /// A number that, when added to a one-based action, will yield a cumulative choice action across all of a player's information sets, with the first cumulative choice action (ignoring the empty sequence) is 1 (i.e., the CumulativeChoiceNumber of the first information set is 0).
+        /// </summary>
+        public int CumulativeChoiceNumber;
+
         public byte PlayerIndex => Decision.PlayerIndex;
 
         public double[,] NodeInformation;
