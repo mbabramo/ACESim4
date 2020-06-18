@@ -39,12 +39,12 @@ namespace ACESim
             if (predecessor is ChanceNode chanceNode)
             {
                 double probability = chanceNode.GetActionProbability(predecessorAction);
-                return fromPredecessor.WithChanceProbabilityMultiplied(probability);
+                return fromPredecessor?.WithChanceProbabilityMultiplied(probability) ?? new SequenceFormPayoffsTreeInfo(probability, 0, 0);
             }
             else if (predecessor is InformationSetNode informationSet)
             {
                 int cumulativeChoice = informationSet.CumulativeChoiceNumber + predecessorAction;
-                return fromPredecessor.WithCumulativeChoice(informationSet.PlayerIndex == 0, cumulativeChoice); 
+                return (fromPredecessor ?? new SequenceFormPayoffsTreeInfo()).WithCumulativeChoice(informationSet.PlayerIndex == 0, cumulativeChoice); 
             }
             return fromPredecessor;
         }

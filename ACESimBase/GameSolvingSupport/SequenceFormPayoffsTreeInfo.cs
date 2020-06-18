@@ -1,8 +1,8 @@
 ﻿namespace ACESim
 {
-    public struct SequenceFormPayoffsTreeInfo
+    public class SequenceFormPayoffsTreeInfo
     {
-        public double ChanceProbability;
+        public double ChanceProbability = 1.0;
         public int RowPlayerCumulativeChoice;
         public int ColPlayerCumulativeChoice;
 
@@ -13,7 +13,7 @@
             ColPlayerCumulativeChoice = colPlayerCumulativeChoice;
         }
 
-        public SequenceFormPayoffsTreeInfo(bool ignoredParameter)
+        public SequenceFormPayoffsTreeInfo()
         {
             ChanceProbability = 1.0;
             RowPlayerCumulativeChoice = 0;
