@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using NumSharp;
+using System.IO;
 
 namespace ACESimBase.GameSolvingAlgorithms
 {
@@ -36,6 +38,7 @@ namespace ACESimBase.GameSolvingAlgorithms
         {
             CreateConstraintMatrices();
             CreatePayoffMatrices();
+            ExportMatrices();
 
             ReportCollection reportCollection = new ReportCollection();
 
@@ -49,6 +52,69 @@ namespace ACESimBase.GameSolvingAlgorithms
             c.FinalizeMatrices();
             A = c.A;
             B = c.B;
+        }
+
+        private void ExportMatrices()
+        {
+            string path = FolderFinder.GetFolderToWriteTo("Strategies").FullName;
+            SaveMultidimensionalMatrix(path, "A.npy", A);
+            SaveMultidimensionalMatrix(path, "B.npy", B);
+            SaveMultidimensionalMatrix(path, "E.npy", E);
+            SaveMultidimensionalMatrix(path, "F.npy", F);
+        }
+
+        private static void SaveMultidimensionalMatrix(string path, string filename, double[,] original)
+        {
+            bool verify = false;
+            if (verify)
+                VerifyNotAllZero(original);
+            np.Save(original, Path.Combine(path, filename));
+            if (verify)
+                VerifyMatrixSerialization(path, filename, original);
+        }
+
+        private static void VerifyNotAllZero(double[,] original)
+        {
+            int dim0 = original.GetLength(0);
+            int dim1 = original.GetLength(1);
+            bool allZero = true;
+            for (int counter0 = 0; counter0 < dim0; counter0++)
+            {
+                for (int counter1 = 0; counter1 < dim1; counter1++)
+                {
+                    if (original[counter0, counter1] != 0)
+                    {
+                        allZero = false;
+                        break;
+                    }
+                }
+                if (!allZero)
+                    break;
+            }
+            if (allZero)
+                throw new Exception("Matrix is entirely zeros.");
+        }
+
+        private static void VerifyMatrixSerialization(string path, string filename, double[,] original)
+        {
+            var reloaded = np.Load<double[,]>(Path.Combine(path, filename));
+            bool isEqual = true;
+            int dim0 = original.GetLength(0);
+            int dim1 = original.GetLength(1);
+            if (dim0 != reloaded.GetLength(0) || dim1 != reloaded.GetLength(1))
+                throw new Exception("Serialization failed -- inconsistent array sizes");
+            for (int counter0 = 0; counter0 < dim0; counter0++)
+            {
+                for (int counter1 = 0; counter1 < dim1; counter1++)
+                {
+                    if (original[counter0, counter1] != reloaded[counter0, counter1])
+                    {
+                        isEqual = false;
+                    }
+                }
+            }
+            if (!isEqual)
+                throw new Exception("Serialization failed");
         }
 
         private void CreateConstraintMatrices()

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace ACESim
@@ -34,12 +35,27 @@ namespace ACESim
             }
         }
 
-        public SequenceFormPayoffsTreeInfo ProcessPredecessor(IGameState predecessor, byte predecessorAction, SequenceFormPayoffsTreeInfo fromPredecessor)
+        public SequenceFormPayoffsTreeInfo ProcessPredecessor(IGameState predecessor, byte predecessorAction, SequenceFormPayoffsTreeInfo fromPredecessor, int distributorChanceInputs = -1)
         {
             if (predecessor is ChanceNode chanceNode)
             {
-                double probability = chanceNode.GetActionProbability(predecessorAction);
-                return fromPredecessor?.WithChanceProbabilityMultiplied(probability) ?? new SequenceFormPayoffsTreeInfo(probability, 0, 0);
+                if (chanceNode.Decision.DistributedChanceDecision)
+                    return fromPredecessor;
+                double probability = chanceNode.GetActionProbability(predecessorAction, distributorChanceInputs);
+                if (probability == 0)
+                {
+                    var DEBUG = 0;
+                }
+                if (probability == 0 && chanceNode.DecisionByteCode != 2)
+                {
+                    var DEBUG = 0;
+                }
+                if (probability != 0 && chanceNode.DecisionByteCode == 2)
+                {
+                    var DEBUG = 0;
+                }
+                var returnVal = fromPredecessor?.WithChanceProbabilityMultiplied(probability) ?? new SequenceFormPayoffsTreeInfo(probability, 0, 0);
+                return returnVal;
             }
             else if (predecessor is InformationSetNode informationSet)
             {
@@ -56,14 +72,20 @@ namespace ACESim
 
         public SequenceFormPayoffsTreeInfo ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, SequenceFormPayoffsTreeInfo fromPredecessor, int distributorChanceInputs)
         {
-            return ProcessPredecessor(predecessor, predecessorAction, fromPredecessor);
+            return ProcessPredecessor(predecessor, predecessorAction, fromPredecessor, predecessorDistributorChanceInputs);
         }
 
         public bool FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, SequenceFormPayoffsTreeInfo fromPredecessor)
         {
             var finalSequenceInfo = ProcessPredecessor(predecessor, predecessorAction, fromPredecessor);
-            A[finalSequenceInfo.RowPlayerCumulativeChoice, finalSequenceInfo.ColPlayerCumulativeChoice] += finalUtilities.Utilities[0] * finalSequenceInfo.ChanceProbability;
-            B[finalSequenceInfo.RowPlayerCumulativeChoice, finalSequenceInfo.ColPlayerCumulativeChoice] += finalUtilities.Utilities[1] * finalSequenceInfo.ChanceProbability;
+            double incrementA = finalUtilities.Utilities[0] * finalSequenceInfo.ChanceProbability;
+            A[finalSequenceInfo.RowPlayerCumulativeChoice, finalSequenceInfo.ColPlayerCumulativeChoice] += incrementA;
+            double incrementB = finalUtilities.Utilities[1] * finalSequenceInfo.ChanceProbability;
+            B[finalSequenceInfo.RowPlayerCumulativeChoice, finalSequenceInfo.ColPlayerCumulativeChoice] += incrementB;
+            if (incrementA != 0 || incrementB != 0)
+            {
+                var DEBUG = 0;
+            }
             ChanceProbabilitySums[finalSequenceInfo.RowPlayerCumulativeChoice, finalSequenceInfo.ColPlayerCumulativeChoice] += finalSequenceInfo.ChanceProbability;
             return true; // ignored
         }

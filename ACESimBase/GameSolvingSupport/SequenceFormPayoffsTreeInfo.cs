@@ -8,6 +8,10 @@
 
         public SequenceFormPayoffsTreeInfo(double chanceProbability, int rowPlayerCumulativeChoice, int colPlayerCumulativeChoice)
         {
+            if (chanceProbability == 0)
+            {
+                var DEBUG = 0;
+            }
             ChanceProbability = chanceProbability;
             RowPlayerCumulativeChoice = rowPlayerCumulativeChoice;
             ColPlayerCumulativeChoice = colPlayerCumulativeChoice;
