@@ -14,13 +14,13 @@ namespace ACESim
     public class EvolutionSettings
     {
         public bool DistributeChanceDecisions = true;
-        public bool UnrollAlgorithm = true; 
+        public bool UnrollAlgorithm = true;
         public bool SaveToAzureBlob = false;
         // Note: Many of the below are overridden by launcher.
         public int TotalAvgStrategySamplingCFRIterations = 100000;
         public int TotalProbingCFRIterations = 100000;
         public int TotalIterations = 100000;
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.SequenceForm; // also will be overridden by Launcher
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; // also will be overridden by Launcher
         public double BestResponseTarget => Algorithm switch
         {
             GameApproximationAlgorithm.FictitiousPlay => -1, // 0.00001,
@@ -36,7 +36,7 @@ namespace ACESim
         public int? BestResponseEveryMIterations = 100; // For partial recall games, this is very costly, so consider using EffectivelyNever.
         public int? SuppressBestResponseBeforeIteration = null;
         public bool RememberBestResponseExploitability = true;
-        public bool UseCurrentStrategyForBestResponse = true; // requires accelerated best response
+        public bool UseCurrentStrategyForBestResponse = false; // DEBUG true; // requires accelerated best response
         public bool CalculatePerturbedBestResponseRefinement = false;
         public double PerturbationForBestResponseCalculation = 0.001;
         public int? MiniReportEveryPIterations = 1000;

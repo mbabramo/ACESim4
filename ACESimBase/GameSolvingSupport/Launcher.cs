@@ -21,9 +21,9 @@ namespace ACESim
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.SequenceForm; // use RegretMatching etc. for GeneralizedVanilla
 
         public const int VanillaIterations = 100; // Note: Also used for GeneralizedVanilla, DeepCFR
-        public const int VanillaReportEveryNIterations = EffectivelyNever; // VanillaIterations;
+        public const int VanillaReportEveryNIterations =  VanillaIterations; // DEBUG EffectivelyNever
         public int? SuppressReportBeforeIteration = null;
-        public const int VanillaBestResponseEveryMIterations = EffectivelyNever; // VanillaIterations; 
+        public const int VanillaBestResponseEveryMIterations = VanillaIterations; // DEBUG EffectivelyNever
         public int? SuppressBestResponseBeforeIteration = null; 
         public const bool CalculatePerturbedBestResponseRefinement = true;
         public const int MiniReportEveryPIterations = EffectivelyNever;
@@ -175,7 +175,7 @@ namespace ACESim
                 GenerateReportsByPlaying = true,
                 PrintInformationSets = false, 
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
-                PrintGameTree = false, 
+                PrintGameTree = false,
                 ActionStrategiesToUseInReporting =
                  new List<ActionStrategies>() {
                      //ActionStrategies.CorrelatedEquilibrium,

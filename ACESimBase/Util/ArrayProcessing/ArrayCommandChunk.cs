@@ -102,7 +102,7 @@ namespace ACESimBase.Util.ArrayProcessing
                         if (value != 0)
                         {
                             double result = Interlocking.Add(ref ParentVirtualStack[index], value);
-                            Debug.WriteLine($"Result {result} "); 
+                            //Debug.WriteLine($"Result {result} "); 
                         }
                     }
                 }

@@ -79,7 +79,10 @@ namespace ACESim
         public void Initialize(bool createArraysForSpans = true)
         {
             if (Initialized)
+            {
+                ResetCache();
                 return;
+            }
             Initialize_Helper(createArraysForSpans);
         }
 
@@ -127,8 +130,13 @@ namespace ACESim
         {
             if (onlyIfNeeded && Buffer.Length > 0)
                 return;
-            Buffer = ArrayPool<byte>.Shared.Rent(GameHistory.TotalBufferSize);
+            bool usePool = true;
+            if (usePool)
+                Buffer = ArrayPool<byte>.Shared.Rent(GameHistory.TotalBufferSize);
+            else
+                Buffer = new byte[GameHistory.TotalBufferSize]; 
             SliceBuffer();
+            ResetCache();
 #if SAFETYCHECKS
             CreatingThreadID = System.Threading.Thread.CurrentThread.ManagedThreadId;
 #endif
@@ -212,6 +220,12 @@ namespace ACESim
         #endregion
 
         #region Cache
+
+        public void ResetCache()
+        {
+            for (int i = 0; i < Cache.Length; i++)
+                Cache[i] = 0;
+        }
 
         public void IncrementItemAtCacheIndex(byte cacheIndexToIncrement, byte incrementBy = 1)
         {
@@ -457,8 +471,10 @@ namespace ACESim
                 byte decisionIndex = DecisionIndicesHistory[i];
                 byte actionChosen = ActionsHistory[i];
                 Decision d = decisions[decisionIndex];
-                byte[] informationSet = GetCurrentInformationSetForPlayer_Array(d.PlayerIndex, true);
-                var labeledInformationSet = GetLabeledCurrentInformationSetForPlayer(d.PlayerIndex);
+                List<(byte decisionIndex, byte information)> labeledInformationSet = GetLabeledCurrentInformationSetForPlayer(d.PlayerIndex).TakeWhile(x => x.decisionIndex < decisionIndex).ToList();
+                var informationSetUnlabeled = labeledInformationSet.Select(x => x.information).ToList();
+                informationSetUnlabeled.Add(InformationSetTerminator);
+                byte[] informationSet = informationSetUnlabeled.ToArray();
                 informationSetHistories.Add(new InformationSetHistory(informationSet, labeledInformationSet, d.PlayerIndex, d.DecisionByteCode, decisionIndex, actionChosen, d.NumPossibleActions));
             }
             return informationSetHistories;

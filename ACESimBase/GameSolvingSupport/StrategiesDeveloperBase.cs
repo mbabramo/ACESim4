@@ -1247,6 +1247,7 @@ namespace ACESim
             //    GameProgressLogger.Tabs++;
             //}
             int i = 1;
+            // use the information set histories to navigate through the game
             foreach (InformationSetHistory informationSetHistory in informationSetHistories)
             {
                 if (GameProgressLogger.DetailedLogging && GameProgressLogger.LoggingOn)
@@ -1865,9 +1866,10 @@ namespace ACESim
             TabbedText.WriteLine($"Prepping accelerated best response...");
             Stopwatch s = new Stopwatch();
             s.Start();
+            Br.eak.Add("PREP");
             AcceleratedBestResponsePrep prepWalk = new AcceleratedBestResponsePrep(EvolutionSettings.DistributeChanceDecisions, (byte)NumNonChancePlayers, TraceTreeWalk);
             AcceleratedBestResponsePrepResult = TreeWalk_Tree(prepWalk, new NodeActionsHistory());
-            InformationSetsByDecisionIndex = InformationSets.GroupBy(x => x.DecisionIndex).Select(x => x.ToList()).ToList();
+            InformationSetsByDecisionIndex = InformationSets.GroupBy(x => x.DecisionIndex).OrderBy(x => x.Key).Select(x => x.ToList()).ToList();
             s.Stop();
             TabbedText.WriteLine($"... {s.ElapsedMilliseconds} milliseconds. Total information sets: {InformationSets.Count()}");
         }
@@ -2865,6 +2867,7 @@ namespace ACESim
 
         public Back TreeWalk_Tree<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, Forward forward = default)
         {
+            // TraceTreeWalk = true; 
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
             return TreeWalk_Node(processor, null, 0, 0, forward, 0, in historyPoint);
         }
@@ -2942,6 +2945,8 @@ namespace ACESim
             }
             return processor.InformationSet_Backward(informationSetNode, fromSuccessors);
         }
+
+        
 
         #endregion
     }

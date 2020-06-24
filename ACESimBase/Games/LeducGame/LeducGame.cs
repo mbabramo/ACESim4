@@ -59,6 +59,8 @@ namespace ACESim
             }
             if (GameProgressLogger.LoggingOn)
                 GameProgressLogger.Log($"State: {MyState} NextTurn: {MyState.GetTurn()} Choices: {String.Join(",", MyState.GetAvailableChoices())}");
+            if (MyState.GameIsComplete())
+                Progress.GameComplete = true;
         }
 
 

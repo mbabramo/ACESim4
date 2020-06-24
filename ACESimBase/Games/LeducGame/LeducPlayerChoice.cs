@@ -10,5 +10,6 @@
         BetOrRaise04,
         BetOrRaise08,
         BetOrRaise16,
+        InvalidChoice
     }
 }

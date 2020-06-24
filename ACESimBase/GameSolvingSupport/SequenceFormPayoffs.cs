@@ -42,18 +42,6 @@ namespace ACESim
                 if (chanceNode.Decision.DistributedChanceDecision)
                     return fromPredecessor;
                 double probability = chanceNode.GetActionProbability(predecessorAction, distributorChanceInputs);
-                if (probability == 0)
-                {
-                    var DEBUG = 0;
-                }
-                if (probability == 0 && chanceNode.DecisionByteCode != 2)
-                {
-                    var DEBUG = 0;
-                }
-                if (probability != 0 && chanceNode.DecisionByteCode == 2)
-                {
-                    var DEBUG = 0;
-                }
                 var returnVal = fromPredecessor?.WithChanceProbabilityMultiplied(probability) ?? new SequenceFormPayoffsTreeInfo(probability, 0, 0);
                 return returnVal;
             }
@@ -82,10 +70,6 @@ namespace ACESim
             A[finalSequenceInfo.RowPlayerCumulativeChoice, finalSequenceInfo.ColPlayerCumulativeChoice] += incrementA;
             double incrementB = finalUtilities.Utilities[1] * finalSequenceInfo.ChanceProbability;
             B[finalSequenceInfo.RowPlayerCumulativeChoice, finalSequenceInfo.ColPlayerCumulativeChoice] += incrementB;
-            if (incrementA != 0 || incrementB != 0)
-            {
-                var DEBUG = 0;
-            }
             ChanceProbabilitySums[finalSequenceInfo.RowPlayerCumulativeChoice, finalSequenceInfo.ColPlayerCumulativeChoice] += finalSequenceInfo.ChanceProbability;
             return true; // ignored
         }
