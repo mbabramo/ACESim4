@@ -26,7 +26,7 @@ namespace ACESim
             AdditiveEvidenceGame
         }
 
-        public static AvailableGames GameToPlay = AvailableGames.Leduc; 
+        public static AvailableGames GameToPlay = AvailableGames.MyGame; 
 
         [STAThread]
         public static async Task Main(string[] args)

@@ -10,11 +10,11 @@ namespace ACESim
     {
         public double[,] A, B, ChanceProbabilitySums;
 
-        public SequenceFormPayoffs(int rowPlayerCumulativeChoices, int colPlayerCumulativeChoices)
+        public SequenceFormPayoffs(int rowPlayerStrategies, int colPlayerStrategies)
         {
-            A = new double[rowPlayerCumulativeChoices + 1, colPlayerCumulativeChoices + 1];
-            B = new double[rowPlayerCumulativeChoices + 1, colPlayerCumulativeChoices + 1];
-            ChanceProbabilitySums = new double[rowPlayerCumulativeChoices + 1, colPlayerCumulativeChoices + 1];
+            A = new double[rowPlayerStrategies, colPlayerStrategies];
+            B = new double[rowPlayerStrategies, colPlayerStrategies];
+            ChanceProbabilitySums = new double[rowPlayerStrategies, colPlayerStrategies];
         }
 
         public void FinalizeMatrices()

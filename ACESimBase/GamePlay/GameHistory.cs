@@ -471,7 +471,15 @@ namespace ACESim
                 byte decisionIndex = DecisionIndicesHistory[i];
                 byte actionChosen = ActionsHistory[i];
                 Decision d = decisions[decisionIndex];
-                List<(byte decisionIndex, byte information)> labeledInformationSet = GetLabeledCurrentInformationSetForPlayer(d.PlayerIndex).TakeWhile(x => x.decisionIndex < decisionIndex).ToList();
+                List<(byte decisionIndex, byte information)> labeledInformationSet = GetLabeledCurrentInformationSetForPlayer(d.PlayerIndex).TakeWhile(x =>
+                {
+                    if (x.decisionIndex >= decisionIndex)
+                        return false;
+                    if (x.decisionIndex == decisionIndex - 1 && decisions[decisionIndex - 1].DeferNotificationOfPlayers)
+                        return false;
+                    return true;
+                }
+                ).ToList();
                 var informationSetUnlabeled = labeledInformationSet.Select(x => x.information).ToList();
                 informationSetUnlabeled.Add(InformationSetTerminator);
                 byte[] informationSet = informationSetUnlabeled.ToArray();
