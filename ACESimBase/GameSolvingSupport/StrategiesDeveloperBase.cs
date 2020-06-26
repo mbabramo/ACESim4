@@ -1171,25 +1171,22 @@ namespace ACESim
                 Stopwatch stopwatch = new Stopwatch();
                 stopwatch.Start();
                 TreeWalk_Tree(new WalkOnly());
-                if (StoreGameStateNodesInLists && GamePlayer.PlayAllPathsIsParallel)
-                    throw new NotImplementedException();
                 // slower approach commented out
                 //NumInitializedGamePaths = 0;
                 //var originalLookup = Navigation.LookupApproach;
                 //Navigation = Navigation.WithLookupApproach(InformationSetLookupApproach.PlayUnderlyingGame);
                 //await ProcessAllPathsAsync(GetStartOfGameHistoryPoint(), (historyPoint, probability) => ProcessInitializedGameProgressAsync(historyPoint, probability));
                 //Navigation = Navigation.WithLookupApproach(originalLookup);
-                // DEBUG -- maybe not necessary any more NumInitializedGamePaths = GamePlayer.PlayAllPaths(ProcessInitializedGameProgress);
+                // old approach commented out (we've now deleted PlayAllPaths after trouble using it)
+                //NumInitializedGamePaths = GamePlayer.PlayAllPaths(ProcessInitializedGameProgress);
                 // TODO: We could probably make things a lot faster if we used our tree algorithm, but added support for reversing a step in games. That is, it would play the actual game, but would reverse as necessary. 
                 stopwatch.Stop();
-                string parallelString = GamePlayer.PlayAllPathsIsParallel ? " (higher number in parallel)" : "";
                 string informationSetsString = StoreGameStateNodesInLists ? $" Total information sets: {InformationSets.Count()} chance nodes: {ChanceNodes.Count()} final nodes: {FinalUtilitiesNodes.Count()}" : "";
-                TabbedText.WriteLine($"... Initialized. Total paths{parallelString}: {NumInitializedGamePaths}{informationSetsString} Initialization milliseconds {stopwatch.ElapsedMilliseconds}");
+                TabbedText.WriteLine($"... {informationSetsString} Initialization milliseconds {stopwatch.ElapsedMilliseconds}");
             }
 
             DistributeChanceDecisions();
             PrepareAcceleratedBestResponse();
-            PrintSameGameResults();
             CalculateMinMax();
 
             return Task.CompletedTask;
@@ -1448,38 +1445,6 @@ namespace ACESim
                 }
             }
             throw new NotImplementedException();
-        }
-
-        double printProbability = 0.0;
-        bool processIfNotPrinting = false;
-        private void PrintSameGameResults()
-        {
-            //player.PlaySinglePathAndKeepGoing("1,1,1,1,2,1,1", inputs); // use this to trace through a single path
-            if (printProbability == 0 && !processIfNotPrinting)
-                return;
-            GamePlayer.PlayAllPaths(PrintGameProbabilistically);
-        }
-
-        private void PrintGameProbabilistically(GameProgress progress)
-        {
-            bool overridePrint = false;
-            string actionsList = progress.GameHistory.GetActionsAsListString();
-            if (actionsList == "INSERT_PATH_HERE") // use this to print a single path
-            {
-                overridePrint = true;
-            }
-            if (overridePrint || RandomGenerator.NextDouble() < printProbability)
-            {
-                lock (this)
-                {
-                    List<byte> path = progress.GameHistory.GetActionsAsList();
-                    
-                    TabbedText.WriteLine($"{String.Join(",", path)}");
-                    TabbedText.TabIndent();
-                    PrintGenericGameProgress(progress);
-                    TabbedText.TabUnindent();
-                }
-            }
         }
 
         public void PrintGenericGameProgress(GameProgress progress)
@@ -2134,7 +2099,7 @@ namespace ACESim
         private async Task ProcessAllPaths_Recursive(HistoryPointStorable history, Func<HistoryPointStorable, double, Task> pathPlayer, ActionStrategies actionStrategy, double probability, byte action = 0, byte nextDecisionIndex = 0)
         {
             // The last two parameters are included to facilitate debugging.
-            // Note that this method is different from GamePlayer.PlayAllPaths, because it relies on the cached history, rather than needing to play the game to discover what the next paths are.
+            // Note that this method is different from (now deleted) GamePlayer.PlayAllPaths, because it relies on the cached history, rather than needing to play the game to discover what the next paths are.
             if (history.ShallowCopyToRefStruct().IsComplete(Navigation))
             {
                 await pathPlayer(history, probability);
