@@ -28,7 +28,7 @@ namespace ACESim
         public Decision Decision;
         public EvolutionSettings EvolutionSettings;
         public byte[] InformationSetContents;
-        public string InformationSetContentsString => String.Join(",", InformationSetContents.Select(x => $"{x:7}").ToArray());
+        public string InformationSetContentsString => String.Join(",", InformationSetContents.Select(x => $"{x}").ToArray());
         public List<(byte decisionIndex, byte information)> LabeledInformationSet;
         public string InformationSetWithLabels(GameDefinition gd) => String.Join(";", LabeledInformationSet.Select(x => $"{gd.DecisionsExecutionOrder[x.decisionIndex].Name}: {x.information}"));
         public byte[] InformationSetContentsSinceParent => ParentInformationSet == null ? InformationSetContents : InformationSetContents.Skip(ParentInformationSet.InformationSetContents.Length).ToArray();
@@ -106,10 +106,6 @@ namespace ACESim
 
         public InformationSetNode(Decision decision, byte decisionIndex, EvolutionSettings evolutionSettings, int informationSetNodeNumber)
         {
-            if (informationSetNodeNumber == 3)
-            {
-                var DEBUG = 0;
-            }
             Decision = decision;
             DecisionIndex = decisionIndex;
             EvolutionSettings = evolutionSettings;

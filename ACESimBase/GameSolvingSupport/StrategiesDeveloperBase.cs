@@ -29,7 +29,7 @@ namespace ACESim
         public const int MaxNumMainPlayers = 4; // this affects fixed-size stack-allocated buffers // TODO: Set to 2
         public const int MaxPossibleActions = 100; // same
 
-        public InformationSetLookupApproach LookupApproach { get; set; } = InformationSetLookupApproach.CachedGameHistoryOnly;
+        public InformationSetLookupApproach LookupApproach { get; set; } = InformationSetLookupApproach.CachedGameTreeOnly; // DEBUG
 
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => 
@@ -1170,6 +1170,7 @@ namespace ACESim
                 TabbedText.WriteLine("Initializing all game paths...");
                 Stopwatch stopwatch = new Stopwatch();
                 stopwatch.Start();
+                TreeWalk_Tree(new WalkOnly());
                 if (StoreGameStateNodesInLists && GamePlayer.PlayAllPathsIsParallel)
                     throw new NotImplementedException();
                 // slower approach commented out
@@ -1178,7 +1179,7 @@ namespace ACESim
                 //Navigation = Navigation.WithLookupApproach(InformationSetLookupApproach.PlayUnderlyingGame);
                 //await ProcessAllPathsAsync(GetStartOfGameHistoryPoint(), (historyPoint, probability) => ProcessInitializedGameProgressAsync(historyPoint, probability));
                 //Navigation = Navigation.WithLookupApproach(originalLookup);
-                NumInitializedGamePaths = GamePlayer.PlayAllPaths(ProcessInitializedGameProgress);
+                // DEBUG -- maybe not necessary any more NumInitializedGamePaths = GamePlayer.PlayAllPaths(ProcessInitializedGameProgress);
                 // TODO: We could probably make things a lot faster if we used our tree algorithm, but added support for reversing a step in games. That is, it would play the actual game, but would reverse as necessary. 
                 stopwatch.Stop();
                 string parallelString = GamePlayer.PlayAllPathsIsParallel ? " (higher number in parallel)" : "";
