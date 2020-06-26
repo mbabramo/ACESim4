@@ -29,12 +29,12 @@ namespace ACESim
         public const int MaxNumMainPlayers = 4; // this affects fixed-size stack-allocated buffers // TODO: Set to 2
         public const int MaxPossibleActions = 100; // same
 
-        public InformationSetLookupApproach LookupApproach { get; set; } = InformationSetLookupApproach.CachedGameTreeOnly; // DEBUG
+        public InformationSetLookupApproach LookupApproach { get; set; } = InformationSetLookupApproach.CachedGameHistoryOnly; // DEBUG
 
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => 
             AllowSkipEveryPermutationInitialization  
-            && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder && EvolutionSettings.Algorithm != GameApproximationAlgorithm.SequenceForm;
+            && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder && (EvolutionSettings.Algorithm != GameApproximationAlgorithm.SequenceForm || EvolutionSettings.UseAcceleratedBestResponse);
 
         bool TemporarilyDisableFullReports; 
 
