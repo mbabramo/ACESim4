@@ -57,10 +57,12 @@ namespace ACESimBase.GameSolvingAlgorithms
         private void ExportMatrices()
         {
             string path = FolderFinder.GetFolderToWriteTo("Strategies").FullName;
-            SaveMultidimensionalMatrix(path, "A.npy", A);
-            SaveMultidimensionalMatrix(path, "B.npy", B);
-            SaveMultidimensionalMatrix(path, "E.npy", E);
-            SaveMultidimensionalMatrix(path, "F.npy", F);
+            bool convertToSparse = false;
+            double[,] maybeConvert(double[,] x) => convertToSparse ? x.ConvertToSparse() : x;
+            SaveMultidimensionalMatrix(path, "A.npy", maybeConvert(A));
+            SaveMultidimensionalMatrix(path, "B.npy", maybeConvert(B));
+            SaveMultidimensionalMatrix(path, "E.npy", maybeConvert(E));
+            SaveMultidimensionalMatrix(path, "F.npy", maybeConvert(F));
         }
 
         private static void SaveMultidimensionalMatrix(string path, string filename, double[,] original)

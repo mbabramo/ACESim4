@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ACESimBase.Util;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -33,6 +34,8 @@ namespace ACESim
                     }
                 }
             }
+            A.MakeNegative(true);
+            B.MakeNegative(true);
         }
 
         public SequenceFormPayoffsTreeInfo ProcessPredecessor(IGameState predecessor, byte predecessorAction, SequenceFormPayoffsTreeInfo fromPredecessor, int distributorChanceInputs = -1)
