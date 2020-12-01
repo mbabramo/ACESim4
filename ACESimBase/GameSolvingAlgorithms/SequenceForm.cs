@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using NumSharp;
 using System.IO;
+using ACESimBase.GameSolvingSupport;
 
 namespace ACESimBase.GameSolvingAlgorithms
 {
@@ -14,10 +15,12 @@ namespace ACESimBase.GameSolvingAlgorithms
     public partial class SequenceForm : StrategiesDeveloperBase
     {
         double[,] E, F, A, B;
+        bool CreateGambitEFGFile = true;
 
         public SequenceForm(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
         {
-
+            if (EvolutionSettings.DistributeChanceDecisions)
+                throw new Exception("Distributing chance decisions is not supported.");
         }
 
         public override IStrategiesDeveloper DeepCopy()
@@ -36,9 +39,22 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         public override Task<ReportCollection> RunAlgorithm(string optionSetName)
         {
-            CreateConstraintMatrices();
-            CreatePayoffMatrices();
-            ExportMatrices();
+            if (CreateGambitEFGFile)
+            {
+                EFGFileCreator efgCreator = new EFGFileCreator(GameDefinition.OptionSetName, GameDefinition.NonChancePlayerNames);
+                TreeWalk_Tree(efgCreator);
+
+                string efgResult = efgCreator.FileText.ToString();
+                DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
+                var folderFullName = folder.FullName;
+                TextFileCreate.CreateTextFile(Path.Combine(folderFullName, GameDefinition.OptionSetName + ".efg"), efgResult);
+            }
+            else
+            {
+                CreateConstraintMatrices();
+                CreatePayoffMatrices();
+                ExportMatrices();
+            }
 
             ReportCollection reportCollection = new ReportCollection();
 

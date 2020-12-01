@@ -580,7 +580,7 @@ namespace ACESim
         private void AddAbandonOrDefaultDecisions(int b, List<Decision> decisions)
         {
             var pAbandon =
-                new Decision("PAbandon" + (b + 1), "PA" + (b + 1), false, (byte)MyGamePlayers.Plaintiff, new byte[] {(byte) MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Resolution },
+                new Decision("PAbandon" + (b + 1), "PAB" + (b + 1), false, (byte)MyGamePlayers.Plaintiff, new byte[] {(byte) MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Resolution },
                     2, (byte)MyGameDecisions.PAbandon)
                 {
                     CustomByte = (byte)(b + 1),

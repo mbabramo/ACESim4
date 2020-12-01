@@ -18,7 +18,7 @@ namespace ACESim
 
         #region Settings
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.SequenceForm; // use RegretMatching etc. for GeneralizedVanilla
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.SequenceForm; // DEBUG // use RegretMatching etc. for GeneralizedVanilla
 
         public const int VanillaIterations = 1000; // Note: Also used for GeneralizedVanilla, DeepCFR
         public const int VanillaReportEveryNIterations =  VanillaIterations; // DEBUG EffectivelyNever
@@ -45,8 +45,8 @@ namespace ACESim
         public int NumRepetitions = 1;
         public bool SaveToAzureBlob = false;
         public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && UseDistributedProcessingForMultipleOptionsSets; // this should be true if running on the local service fabric or usign ACESimDistributed
-        public string MasterReportNameForDistributedProcessing = "R340"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
-        public bool UseDistributedProcessingForMultipleOptionsSets = true;
+        public string MasterReportNameForDistributedProcessing = "R341"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
+        public bool UseDistributedProcessingForMultipleOptionsSets = false; // DEBUG
         public bool SeparateScenariosWhenUsingDistributedProcessing = true;
         public static bool MaxOneReportPerDistributedProcess = false;
         public bool CombineResultsOfAllOptionSetsAfterExecution = false;
@@ -173,7 +173,7 @@ namespace ACESim
 
                 NumRandomIterationsForSummaryTable = SummaryTableRandomPathsIterations,
                 GenerateReportsByPlaying = true,
-                PrintInformationSets = false, 
+                PrintInformationSets = true,  // DEBUG
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
                 PrintGameTree = false,
                 ActionStrategiesToUseInReporting =

@@ -41,13 +41,14 @@ namespace ACESim
             KlermanEtAl,
             KlermanEtAl_MultipleStrengthPoints,
             KlermanEtAl_Options,
-            KlermanEtAl_DamagesUncertainty
+            KlermanEtAl_DamagesUncertainty,
+            Simple1BR
         }
 
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-            OptionSetChoice optionSetChoice = OptionSetChoice.JustOneOption; // <<-- Choose option set here
+            OptionSetChoice optionSetChoice = OptionSetChoice.Simple1BR; // DEBUG // <<-- Choose option set here
             switch (optionSetChoice)
             {
                 case OptionSetChoice.JustOneOption:
@@ -85,6 +86,9 @@ namespace ACESim
                     break;
                 case OptionSetChoice.KlermanEtAl_DamagesUncertainty:
                     AddKlermanEtAlPermutations(optionSets, MyGameOptionsGenerator.KlermanEtAl_WithDamagesUncertainty);
+                    break;
+                case OptionSetChoice.Simple1BR:
+                    AddSimple1BRGames(optionSets);
                     break;
             }
 
@@ -193,6 +197,21 @@ namespace ACESim
                     optionSets.Add(GetAndTransform("sotrip", name, MyGameOptionsGenerator.Shootout_Triple, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
                 }
             }
+        }
+
+        private void AddSimple1BRGames(List<(string optionSetName, GameOptions options)> optionSets)
+        {
+            for (byte numLiabilityStrengthPoints = 2; numLiabilityStrengthPoints <= 4; numLiabilityStrengthPoints++)
+                for (byte numLiabilitySignals = 2; numLiabilitySignals <= 4; numLiabilitySignals++)
+                    for (byte numOffers = 2; numOffers <= 4; numOffers++)
+                    {
+                        optionSets.Add(GetAndTransform("simple1BR", numLiabilityStrengthPoints.ToString() + "," + numLiabilitySignals.ToString() + "," + numOffers.ToString(), MyGameOptionsGenerator.GetSimple1BROptions, x =>
+                        {
+                            x.NumLiabilityStrengthPoints = numLiabilityStrengthPoints;
+                            x.NumLiabilitySignals = numLiabilitySignals;
+                            x.NumOffers = numOffers;
+                        }, RiskAversion.RiskNeutral));
+                    }
         }
 
         private void AddKlermanEtAlPermutations(List<(string optionSetName, GameOptions options)> optionSets, Func<MyGameOptions> myGameOptionsFunc)

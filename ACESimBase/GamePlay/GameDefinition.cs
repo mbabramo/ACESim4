@@ -18,6 +18,7 @@ namespace ACESim
         public List<PlayerInfo> Players;
 
         public string[] PlayerNames;
+        public IEnumerable<string> NonChancePlayerNames => Players.Where(x => !x.PlayerIsChance).Select(x => x.PlayerName);
 
         /// <summary>
         /// The number of players in the game, including chance (if applicable).

@@ -36,7 +36,7 @@ namespace ACESim
             PerfectInfo,
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.SuperSimple;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom3;
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
@@ -191,6 +191,28 @@ namespace ACESim
             return GetKlermanEtAlOptions(0.5, false, true, true);
         }
 
+        public static MyGameOptions GetSimple1BROptions() => GetSimple1BROptions2(2, 2, 2);
+
+        public static MyGameOptions GetSimple1BROptions2(byte numLiabilityStrengthPoints, byte numLiabilitySignals, byte numOffers)
+        {
+            var options = BaseOptions();
+
+            options.NumLiabilityStrengthPoints = numLiabilityStrengthPoints;
+            options.NumLiabilitySignals = numLiabilitySignals;
+            options.NumOffers = numOffers;
+
+            options.NumDamagesSignals = 1;
+            options.NumDamagesStrengthPoints = 1;
+            options.DamagesMax = options.DamagesMin = 100_000;
+
+            options.NumPotentialBargainingRounds = 1;
+            options.AllowAbandonAndDefaults = false;
+            options.IncludeAgreementToBargainDecisions = false;
+            options.SkipFileAndAnswerDecisions = false;
+
+            return options;
+        }
+
         public static MyGameOptions GetKlermanEtAlOptions(double exogenousProbabilityTrulyLiable, bool useOnlyTwoLiabilityStrengthPoints, bool includeOptions, bool includeDamagesStrengths)
         {
 
@@ -318,9 +340,22 @@ namespace ACESim
 
         public static MyGameOptions Custom3()
         {
-            var options = DamagesUncertainty_2BR();
+            var options = BaseOptions();
 
-            options.CostsMultiplier = 3.0;
+            options.NumOffers = 4;
+
+            options.NumLiabilityStrengthPoints = 4;
+            options.NumLiabilitySignals = 4;
+
+            options.NumDamagesSignals = 1;
+            options.NumDamagesStrengthPoints = 1;
+            options.DamagesMax = options.DamagesMin = 100_000;
+
+            options.NumPotentialBargainingRounds = 1;
+            options.AllowAbandonAndDefaults = false;
+            options.IncludeAgreementToBargainDecisions = false;
+            options.SkipFileAndAnswerDecisions = false;
+
             return options;
         }
 
