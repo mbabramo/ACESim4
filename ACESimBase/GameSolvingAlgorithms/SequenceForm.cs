@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using NumSharp;
 using System.IO;
 using ACESimBase.GameSolvingSupport;
+using System.Diagnostics;
 
 namespace ACESimBase.GameSolvingAlgorithms
 {
@@ -15,7 +16,7 @@ namespace ACESimBase.GameSolvingAlgorithms
     public partial class SequenceForm : StrategiesDeveloperBase
     {
         double[,] E, F, A, B;
-        bool CreateGambitEFGFile = true;
+        bool UseGambit = true;
 
         public SequenceForm(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
         {
@@ -37,9 +38,12 @@ namespace ACESimBase.GameSolvingAlgorithms
                 InformationSetNode.IdentifyNodeRelationships(InformationSets);
         }
 
-        public override Task<ReportCollection> RunAlgorithm(string optionSetName)
+        public override async Task<ReportCollection> RunAlgorithm(string optionSetName)
         {
-            if (CreateGambitEFGFile)
+
+            ReportCollection reportCollection = new ReportCollection();
+
+            if (UseGambit)
             {
                 EFGFileCreator efgCreator = new EFGFileCreator(GameDefinition.OptionSetName, GameDefinition.NonChancePlayerNames);
                 TreeWalk_Tree(efgCreator);
@@ -47,7 +51,55 @@ namespace ACESimBase.GameSolvingAlgorithms
                 string efgResult = efgCreator.FileText.ToString();
                 DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
                 var folderFullName = folder.FullName;
-                TextFileCreate.CreateTextFile(Path.Combine(folderFullName, GameDefinition.OptionSetName + ".efg"), efgResult);
+                string filename = Path.Combine(folderFullName, GameDefinition.OptionSetName + ".efg");
+                TextFileCreate.CreateTextFile(filename, efgResult);
+                Stopwatch s = new Stopwatch();
+                s.Start();
+                string output = RunGambitLCP(filename);
+                Console.WriteLine($"Output for {filename} ({s.ElapsedMilliseconds} ms): {output}");
+
+                string[] result = output.Split("\n\r".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+                if (result.Any())
+                {
+                    string firstResult = result[0];
+                    if (firstResult.StartsWith("NE,"))
+                    {
+                        string numbersOnly = firstResult[3..];
+                        string[] rationalNumbers = numbersOnly.Split(',');
+                        List<double> numbers = new List<double>();
+                        foreach (string rationalNumberString in rationalNumbers)
+                        {
+                            if (rationalNumberString.Contains("/"))
+                            {
+                                string[] fractionComponents = rationalNumberString.Split('/');
+                                double rationalConverted = double.Parse(fractionComponents[0]) / double.Parse(fractionComponents[1]);
+                                numbers.Add(rationalConverted);
+                            }
+                            else
+                            {
+                                numbers.Add(double.Parse(rationalNumberString));
+                            }
+                        }
+                        var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetNodeNumber).ToList();
+                        if (infoSets.Sum(x => x.Decision.NumPossibleActions) != numbers.Count())
+                            throw new Exception();
+                        int totalNumbersProcessed = 0;
+                        for (int i = 0; i < infoSets.Count(); i++)
+                            for (byte a = 1; a <= infoSets[i].Decision.NumPossibleActions; a++)
+                                infoSets[i].SetActionToProbabilityValue(a, numbers[totalNumbersProcessed++], true);
+
+                        var reportResult = await GenerateReports(EvolutionSettings.ReportEveryNIterations ?? 0,
+                            () =>
+                                $"{GameDefinition.OptionSetName}");
+                        reportCollection.Add(reportResult);
+                    }    
+                }
+
+                //// DEBUG
+                //PrintGameTree(); 
+                //foreach (int playerID in new int[] { 0, 1 })
+                //    foreach (var infoSet in InformationSets.Where(x => x.PlayerIndex == playerID))
+                //        Console.WriteLine($"infoset player {playerID + 1} infoSet {infoSet.InformationSetNodeNumber + 1}");
             }
             else
             {
@@ -56,9 +108,29 @@ namespace ACESimBase.GameSolvingAlgorithms
                 ExportMatrices();
             }
 
-            ReportCollection reportCollection = new ReportCollection();
+            return reportCollection;
+        }
 
-            return Task.FromResult(reportCollection);
+        private string RunGambitLCP(string filename)
+        {
+            // Start the child process.
+            Process p = new Process();
+            // Redirect the output stream of the child process.
+            p.StartInfo.UseShellExecute = false;
+            p.StartInfo.RedirectStandardOutput = true;
+            p.StartInfo.FileName = "C:\\Program Files (x86)\\Gambit\\gambit-lcp.exe";
+            // -D gives more detailed info.
+            // -q suppresses the banner
+            // Note that -d is supposed to use decimals instead of rationals, but it doesn't work.
+            p.StartInfo.Arguments = filename + " -q"; 
+            p.Start();
+            // Do not wait for the child process to exit before
+            // reading to the end of its redirected stream.
+            // p.WaitForExit();
+            // Read the output stream first and then wait.
+            string output = p.StandardOutput.ReadToEnd();
+            p.WaitForExit();
+            return output;
         }
 
         private void CreatePayoffMatrices()

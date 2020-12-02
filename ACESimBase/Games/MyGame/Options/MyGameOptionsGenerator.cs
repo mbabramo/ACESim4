@@ -192,6 +192,7 @@ namespace ACESim
         }
 
         public static MyGameOptions GetSimple1BROptions() => GetSimple1BROptions2(2, 2, 2);
+        public static MyGameOptions GetSimple2BROptions() => GetSimple2BROptions2(2, 2, 2);
 
         public static MyGameOptions GetSimple1BROptions2(byte numLiabilityStrengthPoints, byte numLiabilitySignals, byte numOffers)
         {
@@ -209,6 +210,14 @@ namespace ACESim
             options.AllowAbandonAndDefaults = false;
             options.IncludeAgreementToBargainDecisions = false;
             options.SkipFileAndAnswerDecisions = false;
+
+            return options;
+        }
+        public static MyGameOptions GetSimple2BROptions2(byte numLiabilityStrengthPoints, byte numLiabilitySignals, byte numOffers)
+        {
+            var options = GetSimple1BROptions2(numLiabilityStrengthPoints, numLiabilitySignals, numOffers);
+
+            options.NumPotentialBargainingRounds = 2;
 
             return options;
         }

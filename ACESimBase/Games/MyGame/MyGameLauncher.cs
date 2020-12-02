@@ -42,7 +42,8 @@ namespace ACESim
             KlermanEtAl_MultipleStrengthPoints,
             KlermanEtAl_Options,
             KlermanEtAl_DamagesUncertainty,
-            Simple1BR
+            Simple1BR,
+            Simple2BR
         }
 
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
@@ -89,6 +90,9 @@ namespace ACESim
                     break;
                 case OptionSetChoice.Simple1BR:
                     AddSimple1BRGames(optionSets);
+                    break;
+                case OptionSetChoice.Simple2BR:
+                    AddSimple2BRGames(optionSets);
                     break;
             }
 
@@ -206,6 +210,20 @@ namespace ACESim
                     for (byte numOffers = 2; numOffers <= 4; numOffers++)
                     {
                         optionSets.Add(GetAndTransform("simple1BR", numLiabilityStrengthPoints.ToString() + "," + numLiabilitySignals.ToString() + "," + numOffers.ToString(), MyGameOptionsGenerator.GetSimple1BROptions, x =>
+                        {
+                            x.NumLiabilityStrengthPoints = numLiabilityStrengthPoints;
+                            x.NumLiabilitySignals = numLiabilitySignals;
+                            x.NumOffers = numOffers;
+                        }, RiskAversion.RiskNeutral));
+                    }
+        }
+        private void AddSimple2BRGames(List<(string optionSetName, GameOptions options)> optionSets)
+        {
+            for (byte numLiabilityStrengthPoints = 2; numLiabilityStrengthPoints <= 4; numLiabilityStrengthPoints++)
+                for (byte numLiabilitySignals = 2; numLiabilitySignals <= 4; numLiabilitySignals++)
+                    for (byte numOffers = 2; numOffers <= 4; numOffers++)
+                    {
+                        optionSets.Add(GetAndTransform("simple2BR", numLiabilityStrengthPoints.ToString() + "," + numLiabilitySignals.ToString() + "," + numOffers.ToString(), MyGameOptionsGenerator.GetSimple2BROptions, x =>
                         {
                             x.NumLiabilityStrengthPoints = numLiabilityStrengthPoints;
                             x.NumLiabilitySignals = numLiabilitySignals;

@@ -1447,13 +1447,19 @@ namespace ACESim
         {
             for (byte a = 1; a <= NumPossibleActions; a++)
             {
-                NodeInformation[currentProbabilityDimension, a - 1] = strategy[a - 1];
-                NodeInformation[currentProbabilityForOpponentDimension, a - 1] = strategy[a - 1];
-                if (setAverageAndCumulativeStrategy)
-                {
-                    NodeInformation[averageStrategyProbabilityDimension, a - 1] = strategy[a - 1];
-                    NodeInformation[cumulativeStrategyDimension, a - 1] = strategy[a - 1];
-                }
+                double probabilityValue = strategy[a - 1];
+                SetActionToProbabilityValue(a, probabilityValue, setAverageAndCumulativeStrategy);
+            }
+        }
+
+        public void SetActionToProbabilityValue(byte a, double probabilityValue, bool setAverageAndCumulativeStrategy)
+        {
+            NodeInformation[currentProbabilityDimension, a - 1] = probabilityValue;
+            NodeInformation[currentProbabilityForOpponentDimension, a - 1] = probabilityValue;
+            if (setAverageAndCumulativeStrategy)
+            {
+                NodeInformation[averageStrategyProbabilityDimension, a - 1] = probabilityValue;
+                NodeInformation[cumulativeStrategyDimension, a - 1] = probabilityValue;
             }
         }
 
