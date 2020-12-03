@@ -1,7 +1,0 @@
-﻿<ACESim>
-  <defineTemplate name="$DropOrDefaultPointDropOrDefaultInputs">
-    <setting name="$DropOrDefaultPointDropOrDefaultInputs" type="class" subclass="NeverGiveUpInputs" >
-      
-    </setting>
-  </defineTemplate>
-</ACESim>

@@ -1,9 +1,0 @@
-﻿<ACESim>
-  <parentSettingsFile filename="../DropOrDefaultReport.xml"/>
-  <defineTemplate name="$DropOrDefaultPointDropOrDefaultModuleRowsForMainReport">
-    <insertTemplate name="$DropOrDefaultPointDropOrDefaultModuleRowsForMainReportBase"/>
-  </defineTemplate>
-  <defineTemplate name="$DropOrDefaultPointDropOrDefaultModuleColumnsForMainReport">
-    <insertTemplate name="$DropOrDefaultPointDropOrDefaultModuleColumnsForMainReportBase"/>
-  </defineTemplate>
-</ACESim>

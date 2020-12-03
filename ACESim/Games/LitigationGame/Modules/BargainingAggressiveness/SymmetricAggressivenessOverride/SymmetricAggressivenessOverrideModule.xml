@@ -1,7 +1,0 @@
-﻿<ACESim>
-  <parentSettingsFile filename="SymmetricAggressivenessOverrideModuleInputs.xml" />
-  <defineTemplate name="BargainingAggressivenessModule$AggressModNumber">
-    <setting name="SymmetricAggressivenessOverrideModule" type="class" subclass="SymmetricAggressivenessOverrideModule" codeGeneratorName="SymmetricAggressivenessOverrideModule" codeGeneratorOptions="BargainingAggressivenessFindEquilibriumUseComplexMethod: $BargainingAggressivenessFindEquilibriumUseComplexMethod; BargainingAggressivenessFindEquilibriumUseSimpleMethod: $BargainingAggressivenessFindEquilibriumUseSimpleMethod; BargainingAggressivenessFindEquilibriumSimpleMethodRepetitions: $BargainingAggressivenessFindEquilibriumSimpleMethodRepetitions; AggressModNumber: $AggressModNumber; DivideBargainingIntoMinirounds: $DivideBargainingIntoMinirounds; NumBargainingMinirounds: $NumBargainingMinirounds" >
-    </setting>
-  </defineTemplate>
-</ACESim>

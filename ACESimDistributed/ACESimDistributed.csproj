@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <RuntimeIdentifiers>win10-x64;linux-x64</RuntimeIdentifiers>
+    <Configurations>Debug;Release;Release2</Configurations>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ACESimBase\ACESimBase.csproj" />
+  </ItemGroup>
+
+</Project>

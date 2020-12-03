@@ -1,8 +1,0 @@
-﻿<ACESim>
-  <parentSettingsFile filename="IndependentEstimatesInputs.xml" />
-  <parentSettingsFile filename="IndependentEstimatesReport.xml" />
-  <defineTemplate name="$ForecastingTypeForecastingModule">
-    <setting name="IndependentEstimatesModule" type="class" subclass="IndependentEstimatesModule" codeGeneratorName="IndependentEstimatesModule" codeGeneratorOptions="ForecastingType: $ForecastingType; IncludeCombinationDecisions: $PartiesInformationImprovesOverTime; OnlyOneRepetitionNeeded: $OnlyOneRepetitionNeeded" >
-    </setting>
-  </defineTemplate>
-</ACESim>

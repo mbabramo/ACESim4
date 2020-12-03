@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<ACESim>
-  <parentSettingsFile filename="GameDefinitions2D.xml" />
-  <parentSettingsFile filename="GameInputs2d.xml" />
-  <parentSettingsFile filename="../../SharedEvolutionSettings/EvolutionSettingsPolynomial.xml" />
-  <parentSettingsFile filename="ReportAverageScore.xml" />
-  <parentSettingsFile filename="Commands.xml" />
-</ACESim>

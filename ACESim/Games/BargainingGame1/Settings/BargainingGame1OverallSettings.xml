@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<ACESim>
-  <parentSettingsFile filename="BargainingGame1Definitions.xml" />
-  <parentSettingsFile filename="BargainingGame1Inputs.xml" />
-  <parentSettingsFile filename="BargainingGame1EvolutionSettings.xml" />
-  <parentSettingsFile filename="BargainingGame1Report.xml" />
-  <parentSettingsFile filename="BargainingGame1Commands.xml" />
-</ACESim>

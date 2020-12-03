@@ -1,8 +1,0 @@
-﻿<ACESim>
-  <parentSettingsFile filename="DropComparisonInputs.xml" />
-  <parentSettingsFile filename="DropComparisonReport.xml" />
-  <defineTemplate name="$DropOrDefaultPointDropOrDefaultModule">
-    <setting name="DropComparisonModule" type="class" subclass="DropComparisonModule" codeGeneratorName="DropComparisonModule" codeGeneratorOptions="DropOrDefaultPoint: $DropOrDefaultPoint" >
-    </setting>
-  </defineTemplate>
-</ACESim>

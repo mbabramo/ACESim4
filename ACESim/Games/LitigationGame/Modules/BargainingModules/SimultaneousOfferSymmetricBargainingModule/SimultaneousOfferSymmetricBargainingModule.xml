@@ -1,8 +1,0 @@
-﻿<ACESim>
-  <parentSettingsFile filename="SimultaneousOfferSymmetricBargainingInputs.xml" />
-  <parentSettingsFile filename="SimultaneousOfferSymmetricBargainingReport.xml" />
-  <defineTemplate name="BargainingModule">
-    <setting name="SimultaneousOfferSymmetricBargainingModule" type="class" subclass="SimultaneousOfferSymmetricBargainingModule" codeGeneratorName="SimultaneousOfferSymmetricBargainingModule" codeGeneratorOptions="" >
-    </setting>
-  </defineTemplate>
-</ACESim>

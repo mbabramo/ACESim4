@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<ACESim>
-  <parentSettingsFile filename="GameDefinitions1D.xml" />
-  <parentSettingsFile filename="GameInputs1D.xml" />
-  <parentSettingsFile filename="CurveFittingGameSettings.xml" />
-  <parentSettingsFile filename="ReportAverageScore.xml" />
-  <parentSettingsFile filename="Commands.xml" />
-</ACESim>

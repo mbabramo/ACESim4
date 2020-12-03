@@ -1,9 +1,0 @@
-﻿<?xml version="1.0" encoding="utf-8" ?> 
-<ACESim>
-  <defineTemplate name="LitigationCostModuleRowsForMainReportBase">
-  </defineTemplate>
-  <defineTemplate name="LitigationCostModuleColumnsForMainReportBase">
-  </defineTemplate>
-  <defineTemplate name="LitigationCostModuleColumnsForCostReportBase">
-  </defineTemplate>
-</ACESim>

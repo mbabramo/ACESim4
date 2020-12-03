@@ -1,8 +1,0 @@
-﻿<ACESim>
-  <parentSettingsFile filename="FairBargainingInputs.xml" />
-  <parentSettingsFile filename="FairBargainingReport.xml" />
-  <defineTemplate name="BargainingModule">
-    <setting name="FairBargainingModule" type="class" subclass="FairBargainingModule" codeGeneratorName="FairBargainingModule" codeGeneratorOptions="" >
-    </setting>
-  </defineTemplate>
-</ACESim>

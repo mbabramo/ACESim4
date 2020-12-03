@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+
+<ACESim>
+
+    <simulationSettingsAll>
+      <simulationSettings name="SimpleGameV1" simulationName="SimpleGame">
+      </simulationSettings>
+    </simulationSettingsAll>
+    
+</ACESim>
