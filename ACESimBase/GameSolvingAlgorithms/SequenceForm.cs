@@ -56,50 +56,48 @@ namespace ACESimBase.GameSolvingAlgorithms
                 Stopwatch s = new Stopwatch();
                 s.Start();
                 string output = RunGambitLCP(filename);
-                Console.WriteLine($"Output for {filename} ({s.ElapsedMilliseconds} ms): {output}");
+                TabbedText.WriteLine($"Gambit output for {filename} ({s.ElapsedMilliseconds} ms): {output}");
 
                 string[] result = output.Split("\n\r".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
                 if (result.Any())
                 {
-                    string firstResult = result[0];
-                    if (firstResult.StartsWith("NE,"))
+                    int numEquilibria = result.Length;
+                    for (int eqNum = 0; eqNum < result.Length; eqNum++)
                     {
-                        string numbersOnly = firstResult[3..];
-                        string[] rationalNumbers = numbersOnly.Split(',');
-                        List<double> numbers = new List<double>();
-                        foreach (string rationalNumberString in rationalNumbers)
+                        string anEquilibriumString = (string)result[eqNum];
+                        if (anEquilibriumString.StartsWith("NE,"))
                         {
-                            if (rationalNumberString.Contains("/"))
+                            string numbersOnly = anEquilibriumString[3..];
+                            string[] rationalNumbers = numbersOnly.Split(',');
+                            List<double> numbers = new List<double>();
+                            foreach (string rationalNumberString in rationalNumbers)
                             {
-                                string[] fractionComponents = rationalNumberString.Split('/');
-                                double rationalConverted = double.Parse(fractionComponents[0]) / double.Parse(fractionComponents[1]);
-                                numbers.Add(rationalConverted);
+                                if (rationalNumberString.Contains("/"))
+                                {
+                                    string[] fractionComponents = rationalNumberString.Split('/');
+                                    double rationalConverted = double.Parse(fractionComponents[0]) / double.Parse(fractionComponents[1]);
+                                    numbers.Add(rationalConverted);
+                                }
+                                else
+                                {
+                                    numbers.Add(double.Parse(rationalNumberString));
+                                }
                             }
-                            else
-                            {
-                                numbers.Add(double.Parse(rationalNumberString));
-                            }
+                            var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetNodeNumber).ToList();
+                            if (infoSets.Sum(x => x.Decision.NumPossibleActions) != numbers.Count())
+                                throw new Exception();
+                            int totalNumbersProcessed = 0;
+                            for (int i = 0; i < infoSets.Count(); i++)
+                                for (byte a = 1; a <= infoSets[i].Decision.NumPossibleActions; a++)
+                                    infoSets[i].SetActionToProbabilityValue(a, numbers[totalNumbersProcessed++], true);
+
+                            var reportResult = await GenerateReports(EvolutionSettings.ReportEveryNIterations ?? 0,
+                                () =>
+                                    $"{GameDefinition.OptionSetName}{(numEquilibria > 1 ? $"Eq{eqNum + 1}" : "")}");
+                            reportCollection.Add(reportResult);
                         }
-                        var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetNodeNumber).ToList();
-                        if (infoSets.Sum(x => x.Decision.NumPossibleActions) != numbers.Count())
-                            throw new Exception();
-                        int totalNumbersProcessed = 0;
-                        for (int i = 0; i < infoSets.Count(); i++)
-                            for (byte a = 1; a <= infoSets[i].Decision.NumPossibleActions; a++)
-                                infoSets[i].SetActionToProbabilityValue(a, numbers[totalNumbersProcessed++], true);
-
-                        var reportResult = await GenerateReports(EvolutionSettings.ReportEveryNIterations ?? 0,
-                            () =>
-                                $"{GameDefinition.OptionSetName}");
-                        reportCollection.Add(reportResult);
-                    }    
+                    }
                 }
-
-                //// DEBUG
-                //PrintGameTree(); 
-                //foreach (int playerID in new int[] { 0, 1 })
-                //    foreach (var infoSet in InformationSets.Where(x => x.PlayerIndex == playerID))
-                //        Console.WriteLine($"infoset player {playerID + 1} infoSet {infoSet.InformationSetNodeNumber + 1}");
             }
             else
             {

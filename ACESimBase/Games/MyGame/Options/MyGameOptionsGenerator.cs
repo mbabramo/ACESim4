@@ -198,6 +198,8 @@ namespace ACESim
         {
             var options = BaseOptions();
 
+            options.PLiabilityNoiseStdev = options.DLiabilityNoiseStdev = options.CourtLiabilityNoiseStdev = 0.15; // DEBUG
+
             options.NumLiabilityStrengthPoints = numLiabilityStrengthPoints;
             options.NumLiabilitySignals = numLiabilitySignals;
             options.NumOffers = numOffers;

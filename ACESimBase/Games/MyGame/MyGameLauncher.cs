@@ -49,7 +49,7 @@ namespace ACESim
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-            OptionSetChoice optionSetChoice = OptionSetChoice.Simple1BR; // DEBUG // <<-- Choose option set here
+            OptionSetChoice optionSetChoice = OptionSetChoice.Simple2BR; // DEBUG // <<-- Choose option set here
             switch (optionSetChoice)
             {
                 case OptionSetChoice.JustOneOption:
@@ -203,11 +203,15 @@ namespace ACESim
             }
         }
 
+        int maxNumLiabilityStrengthPoints = 4; // DEBUG
+        int maxNumLiabilitySignals = 4; // DEBUG
+        int maxNumOffers = 4; // DEBUG
+
         private void AddSimple1BRGames(List<(string optionSetName, GameOptions options)> optionSets)
         {
-            for (byte numLiabilityStrengthPoints = 2; numLiabilityStrengthPoints <= 4; numLiabilityStrengthPoints++)
-                for (byte numLiabilitySignals = 2; numLiabilitySignals <= 4; numLiabilitySignals++)
-                    for (byte numOffers = 2; numOffers <= 4; numOffers++)
+            for (byte numLiabilityStrengthPoints = 2; numLiabilityStrengthPoints <= maxNumLiabilityStrengthPoints; numLiabilityStrengthPoints++)
+                for (byte numLiabilitySignals = 2; numLiabilitySignals <= maxNumLiabilitySignals; numLiabilitySignals++)
+                    for (byte numOffers = 2; numOffers <= maxNumOffers; numOffers++)
                     {
                         optionSets.Add(GetAndTransform("simple1BR", numLiabilityStrengthPoints.ToString() + "," + numLiabilitySignals.ToString() + "," + numOffers.ToString(), MyGameOptionsGenerator.GetSimple1BROptions, x =>
                         {
@@ -219,9 +223,9 @@ namespace ACESim
         }
         private void AddSimple2BRGames(List<(string optionSetName, GameOptions options)> optionSets)
         {
-            for (byte numLiabilityStrengthPoints = 2; numLiabilityStrengthPoints <= 4; numLiabilityStrengthPoints++)
-                for (byte numLiabilitySignals = 2; numLiabilitySignals <= 4; numLiabilitySignals++)
-                    for (byte numOffers = 2; numOffers <= 4; numOffers++)
+            for (byte numLiabilityStrengthPoints = 2; numLiabilityStrengthPoints <= maxNumLiabilityStrengthPoints; numLiabilityStrengthPoints++)
+                for (byte numLiabilitySignals = 2; numLiabilitySignals <= maxNumLiabilitySignals; numLiabilitySignals++)
+                    for (byte numOffers = 2; numOffers <= maxNumOffers; numOffers++)
                     {
                         optionSets.Add(GetAndTransform("simple2BR", numLiabilityStrengthPoints.ToString() + "," + numLiabilitySignals.ToString() + "," + numOffers.ToString(), MyGameOptionsGenerator.GetSimple2BROptions, x =>
                         {
