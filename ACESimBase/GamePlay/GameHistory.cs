@@ -79,7 +79,10 @@ namespace ACESim
         public void Initialize(bool createArraysForSpans = true)
         {
             if (Initialized)
+            {
+                ResetCache();
                 return;
+            }
             Initialize_Helper(createArraysForSpans);
         }
 
@@ -127,8 +130,13 @@ namespace ACESim
         {
             if (onlyIfNeeded && Buffer.Length > 0)
                 return;
-            Buffer = ArrayPool<byte>.Shared.Rent(GameHistory.TotalBufferSize);
+            bool usePool = true;
+            if (usePool)
+                Buffer = ArrayPool<byte>.Shared.Rent(GameHistory.TotalBufferSize);
+            else
+                Buffer = new byte[GameHistory.TotalBufferSize]; 
             SliceBuffer();
+            ResetCache();
 #if SAFETYCHECKS
             CreatingThreadID = System.Threading.Thread.CurrentThread.ManagedThreadId;
 #endif
@@ -212,6 +220,12 @@ namespace ACESim
         #endregion
 
         #region Cache
+
+        public void ResetCache()
+        {
+            for (int i = 0; i < Cache.Length; i++)
+                Cache[i] = 0;
+        }
 
         public void IncrementItemAtCacheIndex(byte cacheIndexToIncrement, byte incrementBy = 1)
         {
@@ -363,10 +377,10 @@ namespace ACESim
             }
         }
 
-        public byte[] GetCurrentInformationSetForPlayer_Array(byte playerIndex) => GetCurrentInformationSetForPlayer(playerIndex).ToArray();
+        public byte[] GetCurrentInformationSetForPlayer_Array(byte playerIndex, bool addInformationSetTerminator) => GetCurrentInformationSetForPlayer(playerIndex, addInformationSetTerminator).ToArray();
 
 
-        public List<byte> GetCurrentInformationSetForPlayer(byte playerIndex)
+        public List<byte> GetCurrentInformationSetForPlayer(byte playerIndex, bool addInformationSetTerminator)
         {
             List<byte> info = new List<byte>();
             int firstPlayerIndexAction = playerIndex * MaxNumActions;
@@ -380,6 +394,8 @@ namespace ACESim
                         info.Add(ActionsHistory[i]);
                 }
             }
+            if (addInformationSetTerminator)
+                info.Add(InformationSetTerminator);
             return info;
         }
 
@@ -425,7 +441,7 @@ namespace ACESim
 
         public string GetCurrentPlayerInformationString(byte playerIndex)
         {
-            List<byte> informationSetList = GetCurrentInformationSetForPlayer(playerIndex);
+            List<byte> informationSetList = GetCurrentInformationSetForPlayer(playerIndex, false);
             return String.Join(",", informationSetList);
         }
 
@@ -455,8 +471,18 @@ namespace ACESim
                 byte decisionIndex = DecisionIndicesHistory[i];
                 byte actionChosen = ActionsHistory[i];
                 Decision d = decisions[decisionIndex];
-                byte[] informationSet = GetCurrentInformationSetForPlayer_Array(d.PlayerIndex);
-                var labeledInformationSet = GetLabeledCurrentInformationSetForPlayer(d.PlayerIndex);
+                List<(byte decisionIndex, byte information)> labeledInformationSet = GetLabeledCurrentInformationSetForPlayer(d.PlayerIndex).TakeWhile(x =>
+                {
+                    if (x.decisionIndex >= decisionIndex)
+                        return false;
+                    if (x.decisionIndex == decisionIndex - 1 && decisions[decisionIndex - 1].DeferNotificationOfPlayers)
+                        return false;
+                    return true;
+                }
+                ).ToList();
+                var informationSetUnlabeled = labeledInformationSet.Select(x => x.information).ToList();
+                informationSetUnlabeled.Add(InformationSetTerminator);
+                byte[] informationSet = informationSetUnlabeled.ToArray();
                 informationSetHistories.Add(new InformationSetHistory(informationSet, labeledInformationSet, d.PlayerIndex, d.DecisionByteCode, decisionIndex, actionChosen, d.NumPossibleActions));
             }
             return informationSetHistories;

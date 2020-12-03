@@ -29,12 +29,12 @@ namespace ACESim
         public const int MaxNumMainPlayers = 4; // this affects fixed-size stack-allocated buffers // TODO: Set to 2
         public const int MaxPossibleActions = 100; // same
 
-        public InformationSetLookupApproach LookupApproach { get; set; } = InformationSetLookupApproach.CachedGameHistoryOnly;
+        public InformationSetLookupApproach LookupApproach { get; set; } = InformationSetLookupApproach.CachedGameHistoryOnly; // DEBUG
 
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => 
             AllowSkipEveryPermutationInitialization  
-            && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder;
+            && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder && (EvolutionSettings.Algorithm != GameApproximationAlgorithm.SequenceForm || EvolutionSettings.UseAcceleratedBestResponse);
 
         bool TemporarilyDisableFullReports; 
 
@@ -113,11 +113,11 @@ namespace ACESim
             for (int overallScenarioIndex = startingScenarioIndex; overallScenarioIndex < startingScenarioIndex + numScenarios; overallScenarioIndex++)
             {
                 OverallScenarioIndex = overallScenarioIndex;
-                ReinitializeForScenario(overallScenarioIndex, GameDefinition.UseDifferentWarmup);
                 string optionSetInfo = $@"Option set {optionSetName}";
                 string scenarioFullName = optionSetInfo;
                 if (GameDefinition.NumScenarioPermutations > 1)
                 {
+                    ReinitializeForScenario(overallScenarioIndex, GameDefinition.UseDifferentWarmup);
                     scenarioFullName = GameDefinition.GetNameForScenario_WithOpponentWeight();
                     if (anyScenarioOK)
                         optionSetInfo += $" (scenario irrelevant -- loading only)";
@@ -793,7 +793,7 @@ namespace ACESim
                 TabbedText.Write($"Calculating utilities");
             Stopwatch s = new Stopwatch();
             s.Start();
-            bool useAcceleratedBestResponseForCalculation = true; // DEBUG -- if there is a problem, maybe set this to false
+            bool useAcceleratedBestResponseForCalculation = true;
             if (EvolutionSettings.UseAcceleratedBestResponse && useAcceleratedBestResponseForCalculation)
             {
                 var abrResult = ExecuteAcceleratedBestResponse(false);
@@ -1170,25 +1170,23 @@ namespace ACESim
                 TabbedText.WriteLine("Initializing all game paths...");
                 Stopwatch stopwatch = new Stopwatch();
                 stopwatch.Start();
-                if (StoreGameStateNodesInLists && GamePlayer.PlayAllPathsIsParallel)
-                    throw new NotImplementedException();
+                TreeWalk_Tree(new WalkOnly());
                 // slower approach commented out
                 //NumInitializedGamePaths = 0;
                 //var originalLookup = Navigation.LookupApproach;
                 //Navigation = Navigation.WithLookupApproach(InformationSetLookupApproach.PlayUnderlyingGame);
                 //await ProcessAllPathsAsync(GetStartOfGameHistoryPoint(), (historyPoint, probability) => ProcessInitializedGameProgressAsync(historyPoint, probability));
                 //Navigation = Navigation.WithLookupApproach(originalLookup);
-                NumInitializedGamePaths = GamePlayer.PlayAllPaths(ProcessInitializedGameProgress);
+                // old approach commented out (we've now deleted PlayAllPaths after trouble using it)
+                //NumInitializedGamePaths = GamePlayer.PlayAllPaths(ProcessInitializedGameProgress);
                 // TODO: We could probably make things a lot faster if we used our tree algorithm, but added support for reversing a step in games. That is, it would play the actual game, but would reverse as necessary. 
                 stopwatch.Stop();
-                string parallelString = GamePlayer.PlayAllPathsIsParallel ? " (higher number in parallel)" : "";
                 string informationSetsString = StoreGameStateNodesInLists ? $" Total information sets: {InformationSets.Count()} chance nodes: {ChanceNodes.Count()} final nodes: {FinalUtilitiesNodes.Count()}" : "";
-                TabbedText.WriteLine($"... Initialized. Total paths{parallelString}: {NumInitializedGamePaths}{informationSetsString} Initialization milliseconds {stopwatch.ElapsedMilliseconds}");
+                TabbedText.WriteLine($"... {informationSetsString} Initialization milliseconds {stopwatch.ElapsedMilliseconds}");
             }
 
             DistributeChanceDecisions();
             PrepareAcceleratedBestResponse();
-            PrintSameGameResults();
             CalculateMinMax();
 
             return Task.CompletedTask;
@@ -1247,6 +1245,7 @@ namespace ACESim
             //    GameProgressLogger.Tabs++;
             //}
             int i = 1;
+            // use the information set histories to navigate through the game
             foreach (InformationSetHistory informationSetHistory in informationSetHistories)
             {
                 if (GameProgressLogger.DetailedLogging && GameProgressLogger.LoggingOn)
@@ -1446,38 +1445,6 @@ namespace ACESim
                 }
             }
             throw new NotImplementedException();
-        }
-
-        double printProbability = 0.0;
-        bool processIfNotPrinting = false;
-        private void PrintSameGameResults()
-        {
-            //player.PlaySinglePathAndKeepGoing("1,1,1,1,2,1,1", inputs); // use this to trace through a single path
-            if (printProbability == 0 && !processIfNotPrinting)
-                return;
-            GamePlayer.PlayAllPaths(PrintGameProbabilistically);
-        }
-
-        private void PrintGameProbabilistically(GameProgress progress)
-        {
-            bool overridePrint = false;
-            string actionsList = progress.GameHistory.GetActionsAsListString();
-            if (actionsList == "INSERT_PATH_HERE") // use this to print a single path
-            {
-                overridePrint = true;
-            }
-            if (overridePrint || RandomGenerator.NextDouble() < printProbability)
-            {
-                lock (this)
-                {
-                    List<byte> path = progress.GameHistory.GetActionsAsList();
-                    
-                    TabbedText.WriteLine($"{String.Join(",", path)}");
-                    TabbedText.TabIndent();
-                    PrintGenericGameProgress(progress);
-                    TabbedText.TabUnindent();
-                }
-            }
         }
 
         public void PrintGenericGameProgress(GameProgress progress)
@@ -1865,9 +1832,10 @@ namespace ACESim
             TabbedText.WriteLine($"Prepping accelerated best response...");
             Stopwatch s = new Stopwatch();
             s.Start();
+            Br.eak.Add("PREP");
             AcceleratedBestResponsePrep prepWalk = new AcceleratedBestResponsePrep(EvolutionSettings.DistributeChanceDecisions, (byte)NumNonChancePlayers, TraceTreeWalk);
             AcceleratedBestResponsePrepResult = TreeWalk_Tree(prepWalk, new NodeActionsHistory());
-            InformationSetsByDecisionIndex = InformationSets.GroupBy(x => x.DecisionIndex).Select(x => x.ToList()).ToList();
+            InformationSetsByDecisionIndex = InformationSets.GroupBy(x => x.DecisionIndex).OrderBy(x => x.Key).Select(x => x.ToList()).ToList();
             s.Stop();
             TabbedText.WriteLine($"... {s.ElapsedMilliseconds} milliseconds. Total information sets: {InformationSets.Count()}");
         }
@@ -2131,7 +2099,7 @@ namespace ACESim
         private async Task ProcessAllPaths_Recursive(HistoryPointStorable history, Func<HistoryPointStorable, double, Task> pathPlayer, ActionStrategies actionStrategy, double probability, byte action = 0, byte nextDecisionIndex = 0)
         {
             // The last two parameters are included to facilitate debugging.
-            // Note that this method is different from GamePlayer.PlayAllPaths, because it relies on the cached history, rather than needing to play the game to discover what the next paths are.
+            // Note that this method is different from (now deleted) GamePlayer.PlayAllPaths, because it relies on the cached history, rather than needing to play the game to discover what the next paths are.
             if (history.ShallowCopyToRefStruct().IsComplete(Navigation))
             {
                 await pathPlayer(history, probability);
@@ -2865,6 +2833,7 @@ namespace ACESim
 
         public Back TreeWalk_Tree<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, Forward forward = default)
         {
+            // TraceTreeWalk = true; 
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
             return TreeWalk_Node(processor, null, 0, 0, forward, 0, in historyPoint);
         }
@@ -2942,6 +2911,8 @@ namespace ACESim
             }
             return processor.InformationSet_Backward(informationSetNode, fromSuccessors);
         }
+
+        
 
         #endregion
     }

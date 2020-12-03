@@ -31,6 +31,8 @@ namespace ACESim
         [STAThread]
         public static async Task Main(string[] args)
         {
+            GameProgressLogger.LoggingOn = false;
+            GameProgressLogger.DetailedLogging = false;
             await Execute();
             //// the following is supposed to create a large stack, but it either doesn't work (or isn't large enough for our purposes, which seems unlikely)
             //Thread t = new Thread(new ThreadStart(), delegate ()
@@ -87,7 +89,7 @@ namespace ACESim
                     launcher = new AdditiveEvidenceGameLauncher();
                     break;
             }
-            launcher.LaunchSingleOptionsSetOnly = true;
+            launcher.LaunchSingleOptionsSetOnly = false; // DEBUG
             ReportCollection launchResult = await launcher.Launch();
             TextCopy.Clipboard.SetText(launchResult?.standardReport ?? "");
             s.Stop();

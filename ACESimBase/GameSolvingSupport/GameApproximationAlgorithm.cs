@@ -15,5 +15,6 @@ namespace ACESim
         AverageStrategySampling,
         PlaybackOnly,
         DeepCFR,
+        SequenceForm
     }
 }

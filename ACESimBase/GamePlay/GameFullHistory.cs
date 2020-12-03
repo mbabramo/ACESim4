@@ -203,12 +203,12 @@ namespace ACESim
             byte playerIndex = GetHistoryIndex(index + History_PlayerNumber_Offset);
             byte decisionByteCode = GetHistoryIndex(index + History_DecisionByteCode_Offset);
             byte decisionIndex = GetHistoryIndex(index + History_DecisionIndex_Offset);
-            byte[] informationSetForPlayer = new byte[GameHistory.MaxInformationSetLength];
             byte actionChosen = GetHistoryIndex(index + History_Action_Offset);
             byte numPossibleActions = GetHistoryIndex(index + History_NumPossibleActions_Offset);
             bool isTerminalAction = GetHistoryIndex(index + History_NumPiecesOfInformation) == HistoryComplete;
+            byte[] informationSetForPlayer = new byte[GameHistory.MaxInformationSetLength];
+            InformationSetLog.GetPlayerInformationAtPoint(playerIndex, decisionIndex, informationSetForPlayer);
             var informationSetHistory = new InformationSetHistory(informationSetForPlayer, null /* TODO -- not really needed in full history but we could add this */, playerIndex, decisionByteCode, decisionIndex, actionChosen, numPossibleActions);
-            InformationSetLog.GetPlayerInformationAtPoint(playerIndex, decisionIndex, informationSetHistory.InformationSetForPlayer);
             return informationSetHistory;
         }
     }

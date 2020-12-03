@@ -35,9 +35,9 @@ namespace ACESimBase.Util
             NumRowStrategies = rowPlayerUtilities_A.GetLength(0);
             NumColStrategies = rowPlayerUtilities_A.GetLength(1);
             RowPlayerUtilities_A = (double[,]) rowPlayerUtilities_A.Clone();
-            RowPlayerUtilities_A.MakePositive();
+            RowPlayerUtilities_A.MakePositive(false); // ignore zeros is false because the 0's (in contrast to Lemke's algorithm) do not correspond to impossible combinations of sequences
             ColPlayerUtilities_B = (double[,]) colPlayerUtilities_B.Clone();
-            ColPlayerUtilities_B.MakePositive();
+            ColPlayerUtilities_B.MakePositive(false);
             FillTableauxInitially();
         }
 

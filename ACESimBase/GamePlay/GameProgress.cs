@@ -261,6 +261,8 @@ namespace ACESim
 
         private void AdvanceToNextActionPoint(List<ActionGroup> executionGroupsInExecutionOrder)
         {
+            if (CurrentActionPointNumberWithinActionGroup == null)
+                throw new Exception("Invalid action point number");
             CurrentActionPointNumberWithinActionGroup++;
             if (CurrentActionPointNumberWithinActionGroup == executionGroupsInExecutionOrder[(int)CurrentActionGroupNumber].ActionPoints.Count)
             {

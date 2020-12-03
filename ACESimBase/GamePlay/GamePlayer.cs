@@ -25,9 +25,7 @@ namespace ACESim
 
         public List<double> AverageInputs;
 
-        public bool PlayAllPathsIsParallel => DoParallelIfNotDisabled && !DisableParallelForPlayAllPaths;
         public bool DoParallelIfNotDisabled;
-        public bool DisableParallelForPlayAllPaths = true; // it seems this is always faster NOT in parallel right now. Maybe with more processors it will be faster in parallel
 
         // parameterless constructor for serialization
         public GamePlayer()
@@ -54,37 +52,6 @@ namespace ACESim
             (GameProgress gameProgress, IEnumerable<byte> next) = PlayPath(path, true);
         }
 
-        public int PlayAllPaths(Action<GameProgress> actionToTake)
-        {
-            Stopwatch s = new Stopwatch();
-            s.Start();
-            Action<Action<GameProgress>> playPathsFn = DoParallelIfNotDisabled && !DisableParallelForPlayAllPaths ? (Action<Action<GameProgress>>)PlayAllPaths_Parallel : PlayAllPaths_Serial;
-            int numPathsPlayed = 0;
-            playPathsFn(gp =>
-            {
-                actionToTake(gp);
-                System.Threading.Interlocked.Increment(ref numPathsPlayed);
-            });
-            s.Stop();
-            TabbedText.WriteLine("PlayAllPathsTime " + s.ElapsedMilliseconds);
-            return numPathsPlayed;
-        }
-
-        public void PlayAllPaths_Serial(Action<GameProgress> processor)
-        {
-            // This method plays all game paths (without having any advance knowledge of what those game paths are). 
-            IEnumerable<byte> path = new List<byte> { };
-            while (path != null)
-            {
-                (GameProgress gameProgress, IEnumerable<byte> next) = PlayPath(path, true);
-                processor(gameProgress);
-                if (next == null)
-                    path = null;
-                else
-                    path = next;
-            }
-        }
-
 
         private class PathInfo
         {
@@ -96,117 +63,6 @@ namespace ACESim
                 Path = path;
                 LastPathAlreadyExpanded = lastPathAlreadyExpanded ?? -1;
             }
-        }
-
-        public void PlayAllPaths_Parallel(Action<GameProgress> processor)
-        {
-
-            // This method plays all game paths (without having any advance knowledge of what those game paths are). 
-            // It seeks to play them in parallel. This is a little tricky, because we only find out the next path when
-            // we actually go through and play the game. But GetNextDecisionPath tells us not just the path, but
-            // what the last changed decision index is, and thus we can identify a number of additional paths.
-            // For example, we start with () and the game plays (1, 1, 1). Assume three possible actions per decision.
-            // If GetNextDecisionPath says that the next path is (1, 1, 2) or (1, 1, 2, 1), we can post these,
-            // but we can also post (2) and (3). When we post the path, we also associate with it the last
-            // index exhausted (in this case 0). Thus, if (1, 1, 2) eventually leads to (2), we don't post that,
-            // because we know we already have done so.
-
-            // So, when we get the next path, we actually can figure out
-            // a number of paths, and so we post these to a buffer block right away. Only when we process the last
-            // from a set of paths do we look for more paths to process.
-
-            // The buffer block takes paths as inputs.
-            int numPending = 0;
-            var bufferBlock = new BufferBlock<PathInfo>(new DataflowBlockOptions() { BoundedCapacity = 10000000 });
-            // It passes the paths to a worker block that plays the game and produces a GameProgress.
-            var transformBlock = new TransformManyBlock<PathInfo, GameProgress>(
-                thePath => EnumerateIfNotRedundant(ConvertPathInfoToGameProgressAndPlanNextPath(thePath)),
-                 new ExecutionDataflowBlockOptions
-                 {
-                     MaxDegreeOfParallelism = Environment.ProcessorCount
-                 }
-                );
-            var actionBlock = new ActionBlock<GameProgress>(processor,
-                 new ExecutionDataflowBlockOptions
-                 {
-                     MaxDegreeOfParallelism = Environment.ProcessorCount
-                 });
-            IEnumerable<GameProgress> EnumerateIfNotRedundant(GameProgress gp)
-            {
-                // The algorithm will produce some redundancy. For example,
-                // if (1,1,1,1,1) is the first completed game, it will
-                // produce the starting paths (), (1), (1,1), ... (1,1,1,1).
-                // We really only need the last of these.
-                int actionsToPlayCount = gp.ActionsToPlay.Count();
-                int actionsPlayedCount = gp.GameHistory.GetActionsAsList().Count();
-                bool notRedundant = actionsToPlayCount == actionsPlayedCount || (actionsPlayedCount == actionsToPlayCount + 1 && gp.GameHistory.GetActionsAsList().Last() == 1);
-                if (notRedundant)
-                {
-                    yield return gp;
-                }
-            }
-            GameProgress ConvertPathInfoToGameProgressAndPlanNextPath(PathInfo pathToPlay)
-            {
-                //TabbedText.WriteLine($"Playing {String.Join(",", pathToPlay.Path)}");
-                (GameProgress gameProgress, IEnumerable<byte> nextAsEnumerable) = PlayPath(pathToPlay.Path, true);
-                List<byte> next = nextAsEnumerable?.ToList();
-                if (next != null)
-                {
-                    int differentialIndex = pathToPlay.Path.GetIndexOfDifference(next);
-                    bool alreadyPosted = differentialIndex <= pathToPlay.LastPathAlreadyExpanded;
-                    if (!alreadyPosted)
-                    {
-                        int pathToExpand = pathToPlay.LastPathAlreadyExpanded + 1;
-                        byte startingValue = next[pathToExpand];
-                        byte endingValue = GameDefinition.DecisionsExecutionOrder[pathToExpand].NumPossibleActions;
-                        for (byte i = startingValue; i <= endingValue; i++)
-                        {
-                            System.Threading.Interlocked.Increment(ref numPending);
-                            List<byte> next2 = new List<byte>();
-                            for (int j = 0; j < pathToExpand; j++)
-                                next2.Add(next[j]);
-                            next2.Add(i);
-                            //TabbedText.WriteLine($"{String.Join(",", pathToPlay.Path)} => {String.Join(",", next2)}");
-                            bufferBlock.Post(new PathInfo(next2, pathToExpand));
-                        }
-                    }
-                }
-                System.Threading.Interlocked.Decrement(ref numPending);
-                if (numPending == 0)
-                    bufferBlock.Complete();
-                return gameProgress;
-            }
-            bufferBlock.LinkTo(transformBlock, new DataflowLinkOptions()
-            {
-                PropagateCompletion = true
-            });
-            transformBlock.LinkTo(actionBlock, new DataflowLinkOptions()
-            {
-                PropagateCompletion = true
-            });
-
-            PathInfo startingPath = new PathInfo(new List<byte> { }, -1);
-            System.Threading.Interlocked.Increment(ref numPending);
-            bufferBlock.Post(startingPath);
-            Task.WaitAll(bufferBlock.Completion, transformBlock.Completion, actionBlock.Completion);
-            //
-            //int numYielded2 = 0;
-            //bool done = false;
-            //do
-            //{
-            //    Task<bool> t = transformBlock.OutputAvailableAsync();
-            //    t.Wait();
-            //    if (t.Result)
-            //    {
-            //        yield return transformBlock.Receive();
-            //        numYielded2++;
-            //    }
-            //    else
-            //        done = true;
-            //} while (!done);
-            //if (numYielded != numYielded2)
-            //    throw new Exception("Internal error. Parallel processing did not yield all results!");
-            //TabbedText.WriteLine($"Yielded: {numYielded} {numYielded2}");
         }
 
         public (GameProgress progress, IEnumerable<byte> next) PlayPath(IEnumerable<byte> actionsToPlay, bool getNextPath)
@@ -233,7 +89,7 @@ namespace ACESim
             game.PlayPathAndStop(actionsToPlay);
             if (!gameProgress.GameComplete)
                 game.AdvanceToOrCompleteNextStep();
-            while (!game.DecisionNeeded)
+            while (!game.DecisionNeeded && !gameProgress.GameComplete)
                 game.AdvanceToOrCompleteNextStep();
             return (game, gameProgress);
         }

@@ -20,7 +20,13 @@ namespace ACESim
 
         public abstract double GetActionProbability(int action, int distributorChanceInputs = -1);
 
-        public string GetActionProbabilityString(int distributorChanceInputs) => String.Join(",", Enumerable.Range(1, Decision.NumPossibleActions).Select(action => GetActionProbability(action, distributorChanceInputs).ToSignificantFigures(3)));
+        public string GetActionProbabilityString(int distributorChanceInputs) => string.Join(",", GetActionProbabilityStrings(distributorChanceInputs));
+
+        public IEnumerable<string> GetActionProbabilityStrings(int distributorChanceInputs = -1) => GetActionProbabilities(distributorChanceInputs).Select(x => x.ToSignificantFigures(4));
+
+        public IEnumerable<double> GetActionProbabilities(int distributorChanceInputs = -1) => Enumerable.Range(1, Decision.NumPossibleActions).Select(action => GetActionProbability(action, distributorChanceInputs));
+
+        public IEnumerable<decimal> GetActionProbabilitiesDecimal(int distributorChanceInputs = -1) => Enumerable.Range(1, Decision.NumPossibleActions).Select(action => (decimal) GetActionProbability(action, distributorChanceInputs));
 
         public ChanceNode(int chanceNodeNumber)
         {

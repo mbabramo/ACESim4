@@ -13,14 +13,14 @@ namespace ACESim
     [Serializable]
     public class EvolutionSettings
     {
-        public bool DistributeChanceDecisions = true;
-        public bool UnrollAlgorithm = true; 
+        public bool DistributeChanceDecisions = false; // DEBUG -- for sequence form
+        public bool UnrollAlgorithm = true;
         public bool SaveToAzureBlob = false;
         // Note: Many of the below are overridden by launcher.
         public int TotalAvgStrategySamplingCFRIterations = 100000;
         public int TotalProbingCFRIterations = 100000;
         public int TotalIterations = 100000;
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.DeepCFR; // also will be overridden by Launcher
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; // also will be overridden by Launcher
         public double BestResponseTarget => Algorithm switch
         {
             GameApproximationAlgorithm.FictitiousPlay => -1, // 0.00001,
@@ -36,7 +36,7 @@ namespace ACESim
         public int? BestResponseEveryMIterations = 100; // For partial recall games, this is very costly, so consider using EffectivelyNever.
         public int? SuppressBestResponseBeforeIteration = null;
         public bool RememberBestResponseExploitability = true;
-        public bool UseCurrentStrategyForBestResponse = true; // requires accelerated best response
+        public bool UseCurrentStrategyForBestResponse = false; // DEBUG true; // requires accelerated best response
         public bool CalculatePerturbedBestResponseRefinement = false;
         public double PerturbationForBestResponseCalculation = 0.001;
         public int? MiniReportEveryPIterations = 1000;
@@ -55,7 +55,7 @@ namespace ACESim
 
         // CORRELATED EQ SETTINGS -- MUST ALSO SET IN GAME DEFINITION.
         // NOTE: This is separate from correlated equilibrium computed via principal components analysis (see below)
-        public bool ConstructCorrelatedEquilibrium = true; // DEBUG -- TODO enable correlated equilibrium reporting with PCA test. Probably requires copying many strategies into information set.
+        public bool ConstructCorrelatedEquilibrium = false; // TODO enable correlated equilibrium reporting with PCA test. Probably requires copying many strategies into information set.
         public bool ConstructCorrelatedEquilibriumMultipleTimesExPost = true;
         public int MaxNumCorrelatedEquilibriaToConstruct = 125;
         public bool CheckCorrelatedEquilibriumIncompatibilitiesAlongWay = false;
@@ -110,7 +110,7 @@ namespace ACESim
         public bool DeepCFR_SeparateObservationsForIdenticalGameProgressTreeItems = true; // relevant only if UseWeightedData is false; with separate observations, the number of observations is proportional to their frequency in the regression; this takes longer but produces more accurate results
         public int DeepCFR_MaximumTotalObservationsPerIteration = 100_000; // when not using gameprogresstree, after this number of observations, we stop looking for more observations, even if we haven't gotten enough to fill as many iterations as desired in one or more reservoirs (in which case, we rely more on earlier observations)
 
-        public bool PCA_PerformPrincipalComponentAnalysis = true; 
+        public bool PCA_PerformPrincipalComponentAnalysis = false; // DEBUG
         public double PCA_Precision = 1E-5;
         public int PCA_FirstIterationToSaveAsPCAObservation = 11; 
         public int PCA_SavePCAObservationEveryNIterationsAfterFirst = 1;

@@ -580,7 +580,7 @@ namespace ACESim
         private void AddAbandonOrDefaultDecisions(int b, List<Decision> decisions)
         {
             var pAbandon =
-                new Decision("PAbandon" + (b + 1), "PA" + (b + 1), false, (byte)MyGamePlayers.Plaintiff, new byte[] {(byte) MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Resolution },
+                new Decision("PAbandon" + (b + 1), "PAB" + (b + 1), false, (byte)MyGamePlayers.Plaintiff, new byte[] {(byte) MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Resolution },
                     2, (byte)MyGameDecisions.PAbandon)
                 {
                     CustomByte = (byte)(b + 1),
@@ -860,7 +860,7 @@ namespace ACESim
 
         #region Alternative scenarios
 
-        public override bool PlayMultipleScenarios => true;  // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
+        public override bool PlayMultipleScenarios => false;  // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
 
         public override int NumPostWarmupPossibilities => 11; 
         public override int NumWarmupPossibilities => 4; // Note that this can be 0 (indicating that costs multiplier doesn't change). This indicates the variations on the costs multiplier; variations on weight to opponent are below. 

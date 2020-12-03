@@ -36,7 +36,7 @@ namespace ACESim
             PerfectInfo,
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.DamagesUncertainty_2BR;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom3;
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
@@ -152,10 +152,11 @@ namespace ACESim
 
         public static MyGameOptions Custom()
         {
-            var options = DamagesUncertainty_2BR();
+            var options = BothUncertain_1BR();
 
-            options.NumPotentialBargainingRounds = 5;
-            options.CostsMultiplier = 0.25;
+            options.NumDamagesSignals = 2;
+            options.NumLiabilitySignals = 2;
+            options.NumOffers = 2;
             //var options = DamagesUncertainty_1BR();
             //options.NumDamagesSignals = 3;
             //options.NumOffers = 3;
@@ -188,6 +189,39 @@ namespace ACESim
         public static MyGameOptions KlermanEtAl_WithDamagesUncertainty()
         {
             return GetKlermanEtAlOptions(0.5, false, true, true);
+        }
+
+        public static MyGameOptions GetSimple1BROptions() => GetSimple1BROptions2(2, 2, 2);
+        public static MyGameOptions GetSimple2BROptions() => GetSimple2BROptions2(2, 2, 2);
+
+        public static MyGameOptions GetSimple1BROptions2(byte numLiabilityStrengthPoints, byte numLiabilitySignals, byte numOffers)
+        {
+            var options = BaseOptions();
+
+            options.PLiabilityNoiseStdev = options.DLiabilityNoiseStdev = options.CourtLiabilityNoiseStdev = 0.15; // DEBUG
+
+            options.NumLiabilityStrengthPoints = numLiabilityStrengthPoints;
+            options.NumLiabilitySignals = numLiabilitySignals;
+            options.NumOffers = numOffers;
+
+            options.NumDamagesSignals = 1;
+            options.NumDamagesStrengthPoints = 1;
+            options.DamagesMax = options.DamagesMin = 100_000;
+
+            options.NumPotentialBargainingRounds = 1;
+            options.AllowAbandonAndDefaults = false;
+            options.IncludeAgreementToBargainDecisions = false;
+            options.SkipFileAndAnswerDecisions = false;
+
+            return options;
+        }
+        public static MyGameOptions GetSimple2BROptions2(byte numLiabilityStrengthPoints, byte numLiabilitySignals, byte numOffers)
+        {
+            var options = GetSimple1BROptions2(numLiabilityStrengthPoints, numLiabilitySignals, numOffers);
+
+            options.NumPotentialBargainingRounds = 2;
+
+            return options;
         }
 
         public static MyGameOptions GetKlermanEtAlOptions(double exogenousProbabilityTrulyLiable, bool useOnlyTwoLiabilityStrengthPoints, bool includeOptions, bool includeDamagesStrengths)
@@ -317,9 +351,22 @@ namespace ACESim
 
         public static MyGameOptions Custom3()
         {
-            var options = DamagesUncertainty_2BR();
+            var options = BaseOptions();
 
-            options.CostsMultiplier = 3.0;
+            options.NumOffers = 4;
+
+            options.NumLiabilityStrengthPoints = 4;
+            options.NumLiabilitySignals = 4;
+
+            options.NumDamagesSignals = 1;
+            options.NumDamagesStrengthPoints = 1;
+            options.DamagesMax = options.DamagesMin = 100_000;
+
+            options.NumPotentialBargainingRounds = 1;
+            options.AllowAbandonAndDefaults = false;
+            options.IncludeAgreementToBargainDecisions = false;
+            options.SkipFileAndAnswerDecisions = false;
+
             return options;
         }
 
@@ -415,9 +462,9 @@ namespace ACESim
             var options = BaseOptions();
             options.NumDamagesStrengthPoints = 1;
             options.NumDamagesSignals = 1;
-            options.NumLiabilityStrengthPoints = 4;
-            options.NumLiabilitySignals = 4;
-            options.NumOffers = 4;
+            options.NumLiabilityStrengthPoints = 3;
+            options.NumLiabilitySignals = 3;
+            options.NumOffers = 3;
             options.NumPotentialBargainingRounds = 2;
             options.AllowAbandonAndDefaults = false;
             options.SkipFileAndAnswerDecisions = false;

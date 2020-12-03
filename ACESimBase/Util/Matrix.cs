@@ -93,7 +93,7 @@ namespace ACESimBase.Util
         }
 
 
-        public static void MakePositive(this double[,] A)
+        public static void MakePositive(this double[,] A, bool ignoreZeros)
         {
             int rowsA = A.GetLength(0);
             int colsA = A.GetLength(1);
@@ -108,8 +108,53 @@ namespace ACESimBase.Util
             {
                 for (int r = 0; r < rowsA; r++)
                     for (int c = 0; c < colsA; c++)
-                        A[r, c] -= min - 1.0;
+                    {
+                        if (!ignoreZeros || A[r, c] != 0)
+                            A[r, c] -= min - 1.0;
+                    }
             }
+        }
+
+        public static void MakeNegative(this double[,] A, bool ignoreZeros)
+        {
+            int rowsA = A.GetLength(0);
+            int colsA = A.GetLength(1);
+            double max = A[0, 0];
+            for (int r = 0; r < rowsA; r++)
+                for (int c = 0; c < colsA; c++)
+                {
+                    if (A[r, c] > max)
+                        max = A[r, c];
+                }
+            if (max >= 0)
+            {
+                for (int r = 0; r < rowsA; r++)
+                    for (int c = 0; c < colsA; c++)
+                    {
+                        if (!ignoreZeros || A[r, c] != 0)
+                            A[r, c] -= max + 1.0;
+                    }
+            }
+        }
+
+        public static double[,] ConvertToSparse(this double[,] A)
+        {
+            List<double[]> matrixEntries = new List<double[]>();
+            int rowsA = A.GetLength(0);
+            int colsA = A.GetLength(1);
+            for (int r = 0; r < rowsA; r++)
+                for (int c = 0; c < colsA; c++)
+                {
+                    if (A[r, c] != 0)
+                        matrixEntries.Add(new double[] { r, c, A[r, c] });
+                }
+            var result = new double[matrixEntries.Count(), 3];
+            for (int i = 0; i < matrixEntries.Count(); i++)
+                for (int j = 0; j < 3; j++)
+                {
+                    result[i, j] = matrixEntries[i][j];
+                }
+            return result;
         }
 
 

@@ -220,7 +220,7 @@ namespace ACESim
                 return false;
             LeducGameDecisions? d = GetNextPlayerDecision(gameHistory);
             if (d == null)
-                return true;
+                return false;
             if (decision.DecisionByteCode == (byte)LeducGameDecisions.FlopChance)
                 return false;
             bool skip = ((byte)(LeducGameDecisions)d) != decision.DecisionByteCode;
@@ -329,9 +329,13 @@ namespace ACESim
             else if (!player1 && !followup)
             {
                 LeducPlayerChoice p1Choice = (LeducPlayerChoice)GetCachedPlayerChoice(history, true, beforeFlop, false);
+                if (p1Choice >= LeducPlayerChoice.InvalidChoice)
+                    throw new Exception("Internal error");
                 if (p1Choice == LeducPlayerChoice.CallOrCheck)
                     v++; // here, fold was not permissible for p2 based on p1's action
             }
+            if (v >= (byte) LeducPlayerChoice.InvalidChoice)
+                throw new Exception("Internal error");
             return (LeducPlayerChoice)v;
         }
 
