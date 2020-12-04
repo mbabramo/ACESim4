@@ -17,7 +17,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public AdditiveEvidenceGameDefinition AdditiveEvidenceGameDefinition => (AdditiveEvidenceGameDefinition)GameDefinition;
         public AdditiveEvidenceGameOptions AdditiveEvidenceGameOptions => AdditiveEvidenceGameDefinition.Options;
 
-        // Linear bids
+        // Linear bids (if enabled)
         // Each player announces a minimum and a max, so the player's offer equals the minimum + (Max - min) * (party's information - 1).
         // Note that we're assuming here that the party has only one type of information.
 
@@ -89,7 +89,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public double BiasSum_DInfoOnly => dOr0((AdditiveEvidenceGameOptions.Alpha_Both_Bias * AdditiveEvidenceGameOptions.Evidence_Both_Bias + AdditiveEvidenceGameOptions.Alpha_Defendant_Bias * Chance_Defendant_Bias_Continuous), BiasSum_DInfoOnly_Denominator);
         public double BiasSum_DInfoOnly_Denominator => (AdditiveEvidenceGameOptions.Alpha_Both_Bias + AdditiveEvidenceGameOptions.Alpha_Defendant_Bias);
 
-        public double PBestGuess => AdditiveEvidenceGameOptions.Alpha_Quality * (AdditiveEvidenceGameOptions.Alpha_Both_Quality * AdditiveEvidenceGameOptions.Evidence_Both_Quality + AdditiveEvidenceGameOptions.Alpha_Plaintiff_Quality * Chance_Plaintiff_Quality_Continuous + AdditiveEvidenceGameOptions.Alpha_Defendant_Quality * 0.5 + AdditiveEvidenceGameOptions.Alpha_Neither_Quality * 0.5) + AdditiveEvidenceGameOptions.Alpha_Bias * (AdditiveEvidenceGameOptions.Alpha_Both_Bias * AdditiveEvidenceGameOptions.Evidence_Both_Bias + AdditiveEvidenceGameOptions.Alpha_Plaintiff_Bias * Chance_Plaintiff_Bias_Continuous + AdditiveEvidenceGameOptions.Alpha_Defendant_Bias * 0.5 + AdditiveEvidenceGameOptions.Alpha_Neither_Bias * 0.5);
+        public double PBestGuess => AdditiveEvidenceGameOptions.Alpha_Quality * (AdditiveEvidenceGameOptions.Alpha_Both_Quality * AdditiveEvidenceGameOptions.Evidence_Both_Quality + AdditiveEvidenceGameOptions.Alpha_Plaintiff_Quality * Chance_Plaintiff_Quality_Continuous + AdditiveEvidenceGameOptions.Alpha_Defendant_Quality * 0.5 /* best guess of defendant's evidence */ + AdditiveEvidenceGameOptions.Alpha_Neither_Quality * 0.5) + AdditiveEvidenceGameOptions.Alpha_Bias * (AdditiveEvidenceGameOptions.Alpha_Both_Bias * AdditiveEvidenceGameOptions.Evidence_Both_Bias + AdditiveEvidenceGameOptions.Alpha_Plaintiff_Bias * Chance_Plaintiff_Bias_Continuous + AdditiveEvidenceGameOptions.Alpha_Defendant_Bias * 0.5 + AdditiveEvidenceGameOptions.Alpha_Neither_Bias * 0.5);
 
         public double DBestGuess => AdditiveEvidenceGameOptions.Alpha_Quality * (AdditiveEvidenceGameOptions.Alpha_Both_Quality * AdditiveEvidenceGameOptions.Evidence_Both_Quality + AdditiveEvidenceGameOptions.Alpha_Plaintiff_Quality * 0.5 + AdditiveEvidenceGameOptions.Alpha_Defendant_Quality * Chance_Defendant_Quality_Continuous + AdditiveEvidenceGameOptions.Alpha_Neither_Quality * 0.5) + AdditiveEvidenceGameOptions.Alpha_Bias * (AdditiveEvidenceGameOptions.Alpha_Both_Bias * AdditiveEvidenceGameOptions.Evidence_Both_Bias + AdditiveEvidenceGameOptions.Alpha_Plaintiff_Bias * 0.5 + AdditiveEvidenceGameOptions.Alpha_Defendant_Bias * Chance_Defendant_Bias_Continuous + AdditiveEvidenceGameOptions.Alpha_Neither_Bias * 0.5);
 

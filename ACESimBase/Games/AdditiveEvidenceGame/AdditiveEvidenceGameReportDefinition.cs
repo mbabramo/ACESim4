@@ -90,7 +90,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     new SimpleReportFilter("Trial", (GameProgress gp) => AEGP(gp).TrialOccurs),
                     new SimpleReportFilter("Shifting", (GameProgress gp) => AEGP(gp).ShiftingOccurs),
                 };
-                foreach ((string prefix, Func<GameProgress, byte, bool> filter, int n) r in new (string prefix, Func<GameProgress, byte, bool> filter, int n)[]
+                foreach (var r in new (string prefix, Func<GameProgress, byte, bool> filter, int n)[]
                 {
                     ("PQuality", (GameProgress gp, byte s) => AEGP(gp).Chance_Plaintiff_Quality == s, Options.NumQualityAndBiasLevels_PrivateInfo),
                     ("DQuality", (GameProgress gp, byte s) => AEGP(gp).Chance_Defendant_Quality == s, Options.NumQualityAndBiasLevels_PrivateInfo),

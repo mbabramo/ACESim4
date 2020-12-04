@@ -9,7 +9,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
     [Serializable]
     public partial class AdditiveEvidenceGameDefinition : GameDefinition
     {
-        public AdditiveEvidenceGameOptions Options;
+        public AdditiveEvidenceGameOptions Options 
+        { 
+            get; 
+            set; 
+        }
 
         public override string ToString()
         {

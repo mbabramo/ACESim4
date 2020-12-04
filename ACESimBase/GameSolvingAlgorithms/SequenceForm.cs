@@ -45,59 +45,7 @@ namespace ACESimBase.GameSolvingAlgorithms
 
             if (UseGambit)
             {
-                EFGFileCreator efgCreator = new EFGFileCreator(GameDefinition.OptionSetName, GameDefinition.NonChancePlayerNames);
-                TreeWalk_Tree(efgCreator);
-
-                string efgResult = efgCreator.FileText.ToString();
-                DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
-                var folderFullName = folder.FullName;
-                string filename = Path.Combine(folderFullName, GameDefinition.OptionSetName + ".efg");
-                TextFileCreate.CreateTextFile(filename, efgResult);
-                Stopwatch s = new Stopwatch();
-                s.Start();
-                string output = RunGambitLCP(filename);
-                TabbedText.WriteLine($"Gambit output for {filename} ({s.ElapsedMilliseconds} ms): {output}");
-
-                string[] result = output.Split("\n\r".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-                if (result.Any())
-                {
-                    int numEquilibria = result.Length;
-                    for (int eqNum = 0; eqNum < result.Length; eqNum++)
-                    {
-                        string anEquilibriumString = (string)result[eqNum];
-                        if (anEquilibriumString.StartsWith("NE,"))
-                        {
-                            string numbersOnly = anEquilibriumString[3..];
-                            string[] rationalNumbers = numbersOnly.Split(',');
-                            List<double> numbers = new List<double>();
-                            foreach (string rationalNumberString in rationalNumbers)
-                            {
-                                if (rationalNumberString.Contains("/"))
-                                {
-                                    string[] fractionComponents = rationalNumberString.Split('/');
-                                    double rationalConverted = double.Parse(fractionComponents[0]) / double.Parse(fractionComponents[1]);
-                                    numbers.Add(rationalConverted);
-                                }
-                                else
-                                {
-                                    numbers.Add(double.Parse(rationalNumberString));
-                                }
-                            }
-                            var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetNodeNumber).ToList();
-                            if (infoSets.Sum(x => x.Decision.NumPossibleActions) != numbers.Count())
-                                throw new Exception();
-                            int totalNumbersProcessed = 0;
-                            for (int i = 0; i < infoSets.Count(); i++)
-                                for (byte a = 1; a <= infoSets[i].Decision.NumPossibleActions; a++)
-                                    infoSets[i].SetActionToProbabilityValue(a, numbers[totalNumbersProcessed++], true);
-
-                            var reportResult = await GenerateReports(EvolutionSettings.ReportEveryNIterations ?? 0,
-                                () =>
-                                    $"{GameDefinition.OptionSetName}{(numEquilibria > 1 ? $"Eq{eqNum + 1}" : "")}");
-                            reportCollection.Add(reportResult);
-                        }
-                    }
-                }
+                await UseGambitToCalculateEquilibrium(reportCollection);
             }
             else
             {
@@ -107,6 +55,78 @@ namespace ACESimBase.GameSolvingAlgorithms
             }
 
             return reportCollection;
+        }
+
+        private async Task UseGambitToCalculateEquilibrium(ReportCollection reportCollection)
+        {
+            string filename = CreateGambitFile();
+            string output = RunGambit(filename);
+            await ProcessGambitResults(reportCollection, output);
+        }
+
+        private async Task ProcessGambitResults(ReportCollection reportCollection, string output)
+        {
+            string[] result = output.Split("\n\r".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+            if (result.Any())
+            {
+                int numEquilibria = result.Length;
+                for (int eqNum = 0; eqNum < result.Length; eqNum++)
+                {
+                    string anEquilibriumString = (string)result[eqNum];
+                    if (anEquilibriumString.StartsWith("NE,"))
+                    {
+                        string numbersOnly = anEquilibriumString[3..];
+                        string[] rationalNumbers = numbersOnly.Split(',');
+                        List<double> numbers = new List<double>();
+                        foreach (string rationalNumberString in rationalNumbers)
+                        {
+                            if (rationalNumberString.Contains("/"))
+                            {
+                                string[] fractionComponents = rationalNumberString.Split('/');
+                                double rationalConverted = double.Parse(fractionComponents[0]) / double.Parse(fractionComponents[1]);
+                                numbers.Add(rationalConverted);
+                            }
+                            else
+                            {
+                                numbers.Add(double.Parse(rationalNumberString));
+                            }
+                        }
+                        var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetNodeNumber).ToList();
+                        if (infoSets.Sum(x => x.Decision.NumPossibleActions) != numbers.Count())
+                            throw new Exception();
+                        int totalNumbersProcessed = 0;
+                        for (int i = 0; i < infoSets.Count(); i++)
+                            for (byte a = 1; a <= infoSets[i].Decision.NumPossibleActions; a++)
+                                infoSets[i].SetActionToProbabilityValue(a, numbers[totalNumbersProcessed++], true);
+
+                        var reportResult = await GenerateReports(EvolutionSettings.ReportEveryNIterations ?? 0,
+                            () =>
+                                $"{GameDefinition.OptionSetName}{(numEquilibria > 1 ? $"Eq{eqNum + 1}" : "")}");
+                        reportCollection.Add(reportResult);
+                    }
+                }
+            }
+        }
+
+        private string RunGambit(string filename)
+        {
+            Stopwatch s = new Stopwatch();
+            s.Start();
+            string output = RunGambitLCP(filename);
+            TabbedText.WriteLine($"Gambit output for {filename} ({s.ElapsedMilliseconds} ms): {output}");
+            return output;
+        }
+
+        private string CreateGambitFile()
+        {
+            EFGFileCreator efgCreator = new EFGFileCreator(GameDefinition.OptionSetName, GameDefinition.NonChancePlayerNames);
+            TreeWalk_Tree(efgCreator);
+            string efgResult = efgCreator.FileText.ToString();
+            DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
+            var folderFullName = folder.FullName;
+            string filename = Path.Combine(folderFullName, GameDefinition.OptionSetName + ".efg");
+            TextFileCreate.CreateTextFile(filename, efgResult);
+            return filename;
         }
 
         private string RunGambitLCP(string filename)

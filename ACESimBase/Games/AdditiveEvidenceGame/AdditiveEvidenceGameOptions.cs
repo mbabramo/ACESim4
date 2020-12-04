@@ -21,7 +21,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public double Evidence_Both_Bias;
 
         /// <summary>
-        /// The portion of the judgment that is attributable to evidence on actual quality.
+        /// The portion of the judgment that is attributable to evidence on actual quality (whether that evidence is held by one party, both or neither). Evidence that is not related to quality is considered to be bias.
         /// </summary>
         public double Alpha_Quality;
         public double Alpha_Bias => 1.0 - Alpha_Quality;
@@ -49,6 +49,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             return calc;
         }
 
+        // NOTE: These are set in AdditiveEvidenceGameOptionsGenerator
         public byte NumQualityAndBiasLevels_PrivateInfo = 25;
         public byte NumQualityAndBiasLevels_NeitherInfo = 5;
         public byte NumOffers = 25;

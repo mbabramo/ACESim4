@@ -43,8 +43,8 @@ namespace ACESimDistributed
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    MyGameLauncher launcher = new MyGameLauncher();
-                    //AdditiveEvidenceGameLauncher launcher = new AdditiveEvidenceGameLauncher();
+                    //MyGameLauncher launcher = new MyGameLauncher();
+                    AdditiveEvidenceGameLauncher launcher = new AdditiveEvidenceGameLauncher();
 
                     if (launcher.LaunchSingleOptionsSetOnly)
                         throw new Exception("LaunchSingleOptionsSetOnly should only be used with ACESimConsole.");
