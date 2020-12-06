@@ -41,11 +41,11 @@ namespace ACESim
         public bool ParallelizeIndividualExecutionsAlways = false; // Note -- maybe not really working // will always take precedence
 
         public const int StartGameNumber = 1;
-        public bool LaunchSingleOptionsSetOnly = false; // will be automatically set by ACESimConsole
+        public bool LaunchSingleOptionsSetOnly = true; // will be automatically set by ACESimConsole
         public int NumRepetitions = 1;
         public bool SaveToAzureBlob = false;
         public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && UseDistributedProcessingForMultipleOptionsSets; // this should be true if running on the local service fabric or usign ACESimDistributed
-        public string MasterReportNameForDistributedProcessing = "R354"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric. IMPORTANT2: Should delete AceSimDistributed assets before rebuilding.
+        public string MasterReportNameForDistributedProcessing = "R355"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric. IMPORTANT2: Should delete AceSimDistributed assets before rebuilding.
         public bool UseDistributedProcessingForMultipleOptionsSets = false; // DEBUG
         public bool SeparateScenariosWhenUsingDistributedProcessing = true;
         public static bool MaxOneReportPerDistributedProcess = false;

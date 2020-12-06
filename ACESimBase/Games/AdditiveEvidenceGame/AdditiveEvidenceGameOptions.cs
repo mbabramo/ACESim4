@@ -54,7 +54,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public byte NumQualityAndBiasLevels_NeitherInfo = 5;
         public byte NumOffers = 25;
 
-        public double MinOffer = -0.25; // settlements beyond the range of (-0.25, 1.25) have not been observed
+        public double MinOffer = -0.25; // settlements beyond the range of (-0.25, 1.25) have not been observed, but we are allowing offers below 0 and above 1. This is important if fee-shifting is possible.
         public double OfferRange = 1.5; 
 
         public double TrialCost;

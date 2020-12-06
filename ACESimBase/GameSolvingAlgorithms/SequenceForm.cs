@@ -61,12 +61,14 @@ namespace ACESimBase.GameSolvingAlgorithms
         {
             string filename = CreateGambitFile();
             string output = RunGambit(filename);
-            await ProcessGambitResults(reportCollection, output);
+            var results = ProcessGambitResults(reportCollection, output);
+            await SetEquilibria(results);
         }
 
-        private async Task ProcessGambitResults(ReportCollection reportCollection, string output)
+        private <List<List<double>> ProcessGambitResults(ReportCollection reportCollection, string output)
         {
             string[] result = output.Split("\n\r".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+            List<List<double>> resultsAsDoubles = new List<List<double>>();
             if (result.Any())
             {
                 int numEquilibria = result.Length;
@@ -91,20 +93,31 @@ namespace ACESimBase.GameSolvingAlgorithms
                                 numbers.Add(double.Parse(rationalNumberString));
                             }
                         }
-                        var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetNodeNumber).ToList();
-                        if (infoSets.Sum(x => x.Decision.NumPossibleActions) != numbers.Count())
-                            throw new Exception();
-                        int totalNumbersProcessed = 0;
-                        for (int i = 0; i < infoSets.Count(); i++)
-                            for (byte a = 1; a <= infoSets[i].Decision.NumPossibleActions; a++)
-                                infoSets[i].SetActionToProbabilityValue(a, numbers[totalNumbersProcessed++], true);
-
-                        var reportResult = await GenerateReports(EvolutionSettings.ReportEveryNIterations ?? 0,
-                            () =>
-                                $"{GameDefinition.OptionSetName}{(numEquilibria > 1 ? $"Eq{eqNum + 1}" : "")}");
-                        reportCollection.Add(reportResult);
+                        resultsAsDoubles.Add(numbers);
                     }
                 }
+            }
+            return resultsAsDoubles;
+        }
+
+        private async Task SetEquilibria(List<List<double>> equilibria)
+        {
+
+            for (int eqNum = 0; eqNum < equilibria.Count(); eqNum++)
+            {
+                var numbers = equilibria[eqNum];
+                var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetNodeNumber).ToList();
+                if (infoSets.Sum(x => x.Decision.NumPossibleActions) != numbers.Count())
+                    throw new Exception();
+                int totalNumbersProcessed = 0;
+                for (int i = 0; i < infoSets.Count(); i++)
+                    for (byte a = 1; a <= infoSets[i].Decision.NumPossibleActions; a++)
+                        infoSets[i].SetActionToProbabilityValue(a, numbers[totalNumbersProcessed++], true);
+
+                var reportResult = await GenerateReports(EvolutionSettings.ReportEveryNIterations ?? 0,
+                    () =>
+                        $"{GameDefinition.OptionSetName}{(numEquilibria > 1 ? $"Eq{eqNum + 1}" : "")}");
+                reportCollection.Add(reportResult);
             }
         }
 
@@ -140,7 +153,8 @@ namespace ACESimBase.GameSolvingAlgorithms
             // -D gives more detailed info.
             // -q suppresses the banner
             // Note that -d is supposed to use decimals instead of rationals, but it doesn't work.
-            p.StartInfo.Arguments = filename + " -q"; 
+            // -P limits to subgame perfect
+            p.StartInfo.Arguments = filename + " -q -P"; 
             p.Start();
             // Do not wait for the child process to exit before
             // reading to the end of its redirected stream.

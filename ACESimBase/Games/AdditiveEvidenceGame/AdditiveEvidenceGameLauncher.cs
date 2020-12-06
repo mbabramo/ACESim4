@@ -114,8 +114,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         private void AddDariMattiacci_Saraceno_Tests(List<(string optionSetName, GameOptions options)> optionSets, DMSVersion version, bool withOptionNotToPlay, bool feeShifting = true)
         {
             // now, liability and damages only
-                foreach (double? feeShiftingThreshold in feeShifting ? new double?[] { 0, 0.25, 0.50, 0.75, 1.0 } : new double?[] { 0 })
-                    foreach (double costs in new double[] { 0.15, 0.30 }) // DEBUG { 0, 0.15, 0.30, 0.45, 0.60 })
+                foreach (double? feeShiftingThreshold in feeShifting ? new double?[] { 0.50 /* DEBUG  0, 0.25, 0.50, 0.75, 1.0 */ } : new double?[] { 0 })
+                    foreach (double costs in new double[] { 0.30 }) // DEBUG { 0, 0.15, 0.30, 0.45, 0.60 })
                     foreach (double quality in new double[] { 0.20 }) // DEBUG  { 0, 0.20, 0.40, 0.60, 0.80, 1.0 })
                     {
                         string settingsString = $"q{(int) (quality*100)}c{(int) (costs*100)}t{(int)(feeShiftingThreshold*100)}";

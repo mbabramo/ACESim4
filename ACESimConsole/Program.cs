@@ -89,7 +89,7 @@ namespace ACESim
                     launcher = new AdditiveEvidenceGameLauncher();
                     break;
             }
-            launcher.LaunchSingleOptionsSetOnly = false; // DEBUG
+            launcher.LaunchSingleOptionsSetOnly = true; // DEBUG
             ReportCollection launchResult = await launcher.Launch();
             TextCopy.Clipboard.SetText(launchResult?.standardReport ?? "");
             s.Stop();
