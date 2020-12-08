@@ -62,10 +62,10 @@ namespace ACESimBase.GameSolvingAlgorithms
             string filename = CreateGambitFile();
             string output = RunGambit(filename);
             var results = ProcessGambitResults(reportCollection, output);
-            await SetEquilibria(results);
+            await SetEquilibria(results, reportCollection);
         }
 
-        private <List<List<double>> ProcessGambitResults(ReportCollection reportCollection, string output)
+        private List<List<double>> ProcessGambitResults(ReportCollection reportCollection, string output)
         {
             string[] result = output.Split("\n\r".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
             List<List<double>> resultsAsDoubles = new List<List<double>>();
@@ -100,10 +100,10 @@ namespace ACESimBase.GameSolvingAlgorithms
             return resultsAsDoubles;
         }
 
-        private async Task SetEquilibria(List<List<double>> equilibria)
+        private async Task SetEquilibria(List<List<double>> equilibria, ReportCollection reportCollection)
         {
-
-            for (int eqNum = 0; eqNum < equilibria.Count(); eqNum++)
+            int numEquilibria = equilibria.Count();
+            for (int eqNum = 0; eqNum < numEquilibria; eqNum++)
             {
                 var numbers = equilibria[eqNum];
                 var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetNodeNumber).ToList();
