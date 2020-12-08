@@ -2,9 +2,9 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFrameworks>net5.0</TargetFrameworks>
+    <LangVersion>9.0</LangVersion>
     <RuntimeIdentifiers>win10-x64;linux-x64</RuntimeIdentifiers>
-    <Configurations>Debug;Release;Release2</Configurations>
   </PropertyGroup>
 
   <ItemGroup>

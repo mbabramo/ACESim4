@@ -1,10 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp3.0</TargetFrameworks>
-    <LangVersion>8.0</LangVersion>
-    <NoWarn>CA2235</NoWarn>
-    <Configurations>Debug;Release;Release2</Configurations>
+    <TargetFrameworks>net5.0</TargetFrameworks>
+    <LangVersion>9.0</LangVersion>
   </PropertyGroup>
   
   <ItemGroup>
