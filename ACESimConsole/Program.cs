@@ -61,7 +61,8 @@ namespace ACESim
         {
             Stopwatch s = new Stopwatch();
             s.Start();
-            Console.SetBufferSize(1000, 32766);
+            if (OperatingSystem.IsWindows())
+                Console.SetBufferSize(1000, 32766);
 
             string baseOutputDirectory;
             string strategiesPath;
@@ -91,7 +92,7 @@ namespace ACESim
             }
             launcher.LaunchSingleOptionsSetOnly = true; // DEBUG
             ReportCollection launchResult = await launcher.Launch();
-            TextCopy.Clipboard.SetText(launchResult?.standardReport ?? "");
+            TextCopy.ClipboardService.SetText(launchResult?.standardReport ?? "");
             s.Stop();
             TabbedText.WriteLineEvenIfDisabled($"Total runtime {s.Elapsed} ");
             TabbedText.WriteLineEvenIfDisabled("");
@@ -117,7 +118,7 @@ namespace ACESim
                     ConsoleKey.Enter => report ?? launchResult.standardReport, // copy standard report if no other report has been copied.
                     _ => report
                 };
-                TextCopy.Clipboard.SetText(report);
+                TextCopy.ClipboardService.SetText(report);
             } while (key != ConsoleKey.Enter);
         }
     }

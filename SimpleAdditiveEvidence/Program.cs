@@ -64,7 +64,7 @@ namespace SimpleAdditiveEvidence
             TabbedText.WriteLine($"Time {s.ElapsedMilliseconds}");
 
 
-            TextCopy.Clipboard.SetText(TabbedText.AccumulatedText?.ToString() ?? "");
+            TextCopy.ClipboardService.SetText(TabbedText.AccumulatedText?.ToString() ?? "");
         }
 
         private static void VaryFeeShifting(StringBuilder b)

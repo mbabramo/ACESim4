@@ -215,11 +215,12 @@ namespace ACESim
         {
             var regretMatchingTree = new NWayTreeStorageRoot<List<double>>(null, InformationSetTree.Branches.Length, false);
             List<(IGameState storedValue, List<byte> sequenceToHere)> nodes = InformationSetTree.GetAllTreeNodes();
+            int maxLength = nodes.Max(x => x.sequenceToHere.Count() + 1);
+            Span<byte> sequencePointer = stackalloc byte[maxLength];
             foreach (var node in nodes)
             {
                 if (node.storedValue is InformationSetNode tallyNode)
                 {
-                    Span<byte> sequencePointer = stackalloc byte[node.sequenceToHere.Count() + 1];
                     for (int i = 0; i < node.sequenceToHere.Count(); i++)
                         sequencePointer[i] = node.sequenceToHere[i];
                     sequencePointer[node.sequenceToHere.Count()] = 255;

@@ -815,9 +815,9 @@ namespace ACESimBase.Util.ArrayProcessing
             {
                 method.Invoke(null, new object[] { chunk.VirtualStack, OrderedSources, OrderedDestinations, chunk.StartSourceIndices, chunk.StartDestinationIndices });
             }
-            catch (Exception ex)
+            catch
             {
-                throw ex;
+                throw;
             }
         }
 

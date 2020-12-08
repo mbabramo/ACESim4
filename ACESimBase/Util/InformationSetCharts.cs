@@ -40,8 +40,10 @@ namespace ACESimBase.Util
             double[][] proportions = new double[numRows][];
             for (int i = 0; i < numColumns; i++)
                 proportions[i] = new double[numColumns];
+
+            var config = new CsvHelper.Configuration.CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture);
             using (var reader = new StreamReader(fileName))
-            using (var csv = new CsvReader(reader))
+            using (var csv = new CsvReader(reader, config))
             {
                 csv.Read();
                 csv.ReadHeader();

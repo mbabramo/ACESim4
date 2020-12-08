@@ -269,9 +269,9 @@ namespace ACESim
 
         private void VanillaCFR_OptimizeEachPlayer(int iteration, double[] lastUtilities, bool usePruning)
         {
+            Span<double> initialPiValues = stackalloc double[MaxNumMainPlayers];
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
-                Span<double> initialPiValues = stackalloc double[MaxNumMainPlayers];
                 GetInitialPiValues(initialPiValues);
                 if (TraceCFR)
                     TabbedText.WriteLine($"{GameDefinition.OptionSetName} Iteration {iteration} Player {playerBeingOptimized}");

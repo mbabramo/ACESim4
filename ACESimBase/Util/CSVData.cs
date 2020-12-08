@@ -50,7 +50,9 @@ namespace ACESim
         public static double?[,] GetCSVData((string columnName, string expectedText)[][] rowsToFind, string[] columnsToGet, StreamReader reader)
         {
             double?[,] results = new double?[rowsToFind.Length, columnsToGet.Length];
-            using (var csv = new CsvReader(reader))
+
+            var config = new CsvHelper.Configuration.CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture);
+            using (var csv = new CsvReader(reader, config))
             {
                 csv.Read();
                 csv.ReadHeader();

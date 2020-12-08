@@ -121,10 +121,11 @@ namespace ACESimBase.Util
         /// <returns></returns>
         public static string MergeCSV(string csv1, string csv2, List<string> IDColumnNames)
         {
-            using (var csv_r1 = new CsvReader(new StringReader(csv1)))
-            using (var csv_r2 = new CsvReader(new StringReader(csv2)))
+            var config = new CsvHelper.Configuration.CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture);
+            using (var csv_r1 = new CsvReader(new StringReader(csv1), config))
+            using (var csv_r2 = new CsvReader(new StringReader(csv2), config))
             using (var writer = new StringWriter())
-            using (var csv_w = new CsvWriter(writer))
+            using (var csv_w = new CsvWriter(writer, config))
             {
                 csv_r1.Configuration.MissingFieldFound = null;
                 csv_r2.Configuration.MissingFieldFound = null;
