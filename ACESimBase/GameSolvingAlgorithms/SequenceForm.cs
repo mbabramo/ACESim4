@@ -154,7 +154,20 @@ namespace ACESimBase.GameSolvingAlgorithms
             // -q suppresses the banner
             // Note that -d is supposed to use decimals instead of rationals, but it doesn't work.
             // -P limits to subgame perfect
-            p.StartInfo.Arguments = filename + " -q -P"; 
+
+            bool suppressBanner = true;
+            bool subgamePerfectOnly = true;
+            bool useDecimals = true;
+            int numDecimals = 6;
+            string argumentsString = "";
+            if (suppressBanner)
+                argumentsString += " -q";
+            if (subgamePerfectOnly)
+                argumentsString += " -P";
+            if (useDecimals)
+                argumentsString += " " + "-d " + numDecimals.ToString();
+            argumentsString += " " + filename;
+            p.StartInfo.Arguments = argumentsString; 
             p.Start();
             // Do not wait for the child process to exit before
             // reading to the end of its redirected stream.

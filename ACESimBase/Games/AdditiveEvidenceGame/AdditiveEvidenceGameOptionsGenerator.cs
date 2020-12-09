@@ -48,7 +48,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         };
 
         // DEBUG
-        public static byte NumOffers = 10; // having a good number here allows for more precise strategies
+        public static byte NumOffers = 8; // having a good number here allows for more precise strategies // 5/5/3 -> 39 seconds. 6/5/3 -> 2:10, 7/... -> 4:56
         public static byte NumQualityAndBiasLevels_PrivateInfo = 5; // we don't need quite as much here, since it's information that doesn't intersect between players
         public static byte NumQualityAndBiasLevels_NeitherInfo = 3; // still less needed here
 
