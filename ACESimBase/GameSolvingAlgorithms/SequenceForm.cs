@@ -159,7 +159,7 @@ namespace ACESimBase.GameSolvingAlgorithms
     root->father = NULL;
             ";
             s.Append(s2);
-            for (int n = 2; n <= GameNodes.Count(); n++)
+            for (int n = 2; n < GameNodes.Count(); n++)
             {
                 s.AppendLine($@"\tnodes[{n}].father = nodes + {GameNodes[n].ParentNodeID};
                     ");
@@ -173,18 +173,21 @@ namespace ACESimBase.GameSolvingAlgorithms
     z++;");
                 }
             }
-            for (int n = 1; n <= GameNodes.Count(); n++)
+            for (int n = 1; n < GameNodes.Count(); n++)
             {
-                s.AppendLine($"\tnodes[{n}].iset = isets + {InformationSetInfoIndexForGameNode(n)};");
+                if (GameNodes[n].GameState is not FinalUtilitiesNode)
+                    s.AppendLine($"\tnodes[{n}].iset = isets + {InformationSetInfoIndexForGameNode(n)};");
             }
-            for (int n = 2; n <= GameNodes.Count(); n++)
+            for (int n = 2; n < GameNodes.Count(); n++)
             {
-                int informationSetInfoIndexForGameNode = InformationSetInfoIndexForGameNode(n);
-                int parentNodeID = (int) GameNodes[n].ParentNodeID;
-                byte actionAtParent = (byte)GameNodes[n].ActionAtParent;
-                int movesIndex = MapInformationSetAndMoveToMoveIndex[(informationSetInfoIndexForGameNode, actionAtParent)];
-
-                s.AppendLine($"\tnodes[{n}].reachedby = moves + {movesIndex};"); 
+                if (GameNodes[n].GameState is not FinalUtilitiesNode)
+                {
+                    int informationSetInfoIndexForGameNode = InformationSetInfoIndexForGameNode(n);
+                    int parentNodeID = (int)GameNodes[n].ParentNodeID;
+                    byte actionAtParent = (byte)GameNodes[n].ActionAtParent;
+                    int movesIndex = MapInformationSetAndMoveToMoveIndex[(informationSetInfoIndexForGameNode, actionAtParent)];
+                    s.AppendLine($"\tnodes[{n}].reachedby = moves + {movesIndex};");
+                }
             }
             for (int i = 0; i < InformationSetInfos.Count(); i++)
             {
