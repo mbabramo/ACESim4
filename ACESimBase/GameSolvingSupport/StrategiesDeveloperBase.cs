@@ -31,7 +31,7 @@ namespace ACESim
 
         public InformationSetLookupApproach LookupApproach { get; set; } = InformationSetLookupApproach.CachedGameHistoryOnly; // DEBUG
 
-        bool AllowSkipEveryPermutationInitialization = true;
+        public bool AllowSkipEveryPermutationInitialization { get; set;}  = true;
         public bool SkipEveryPermutationInitialization => 
             AllowSkipEveryPermutationInitialization  
             && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder && (EvolutionSettings.Algorithm != GameApproximationAlgorithm.SequenceForm || EvolutionSettings.UseAcceleratedBestResponse);

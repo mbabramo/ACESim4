@@ -19,6 +19,24 @@ namespace ACESim
         public Dictionary<int, double[]> ProbabilitiesForDistributorChanceInputs;
         bool DistributionComplete;
 
+
+        public override (int, int) GetActionProbabilityAsRational(int denominator, int action, int distributorChanceInputs = -1)
+        {
+            var unroundedActionProbability = GetActionProbability(action, distributorChanceInputs);
+            int numerator = (int) Math.Round(unroundedActionProbability * (double)denominator);
+            // simplify fraction
+            for (int i = 2; i <= numerator; i++)
+            {
+                if (numerator % i == 0 && denominator % i == 0)
+                {
+                    numerator /= i;
+                    denominator /= i;
+                    i--; // check same factor again
+                }
+            }
+            return (numerator, denominator);
+        }
+
         /// <summary>
         /// This is used to calculate the uneven chance probabilities given distributor chance inputs. This is called for a distributor chance input decision (e.g., a player's hidden signal) or a distributor chance decision (i.e., a chance decision whose values will differ depending on the value of that hidden signal). It will be called multiple times for the various distributor chance input values, so that the probability increments (for example, from different values of a card hidden to all players) can be added.
         /// </summary>

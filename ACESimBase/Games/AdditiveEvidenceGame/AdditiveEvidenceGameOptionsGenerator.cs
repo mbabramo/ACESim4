@@ -23,13 +23,15 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             Temporary
         }
 
+        // Note: Go to Launcher to change multiple option sets settings.
+
         static AdditiveEvidenceOptionSetChoices AdditiveEvidenceChoice => AdditiveEvidenceOptionSetChoices.Temporary;
 
         public static AdditiveEvidenceGameOptions GetAdditiveEvidenceGameOptions() => AdditiveEvidenceChoice switch
         {
-            AdditiveEvidenceOptionSetChoices.DMS => DariMattiacci_Saraceno(0.5, 0.1, false, false, 0.5, false),
-            AdditiveEvidenceOptionSetChoices.DMS_WithFeeShifting => DariMattiacci_Saraceno(0.40, 0.15, true, false, 0.5, false),
-            AdditiveEvidenceOptionSetChoices.DMS_WithOptionNotToPlay => DariMattiacci_Saraceno(0.90, 0.6, true, false, 0.7, true),
+            AdditiveEvidenceOptionSetChoices.DMS => DariMattiacci_Saraceno_Original(0.5, 0.1, false, false, 0.5, false),
+            AdditiveEvidenceOptionSetChoices.DMS_WithFeeShifting => DariMattiacci_Saraceno_Original(0.40, 0.15, true, false, 0.5, false),
+            AdditiveEvidenceOptionSetChoices.DMS_WithOptionNotToPlay => DariMattiacci_Saraceno_Original(0.90, 0.6, true, false, 0.7, true),
             //AdditiveEvidenceOptionSetChoices.DMS_WithOptionNotToPlay => DariMattiacci_Saraceno(0.05, 1.0, true, false, 0.5, false), // removing option not to play and including fee shifting  -- do we get negative settlements
             //AdditiveEvidenceOptionSetChoices.DMS_WithOptionNotToPlay => DariMattiacci_Saraceno(0.90, 40, true, false, 1.0, true), // very expensive with fee shifting to give incentive not to play, and at this level cases settle --> each party can't be sure whether the other one thinks it has a good hand, and so both parties are eager to settle to avoid the catastrophe of trial. 
             //AdditiveEvidenceOptionSetChoices.DMS_WithOptionNotToPlay => DariMattiacci_Saraceno(0.99, 37, true, false, 1.0, true), // very expensive with fee shifting to give incentive not to play, and at this level D plays a mixed strategy of dropping out about half the time (but since D has virtually no information, it doesn't correlate with D's info)
@@ -48,11 +50,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         };
 
         // DEBUG
-        public static byte NumOffers = 8; // having a good number here allows for more precise strategies // 5/5/3 -> 39 seconds. 6/5/3 -> 2:10, 7/... -> 4:56
+        public static byte NumOffers = 8; // having a good number here allows for more precise strategies // 5/5/3 -> 39 seconds. 6/5/3 -> 2:10, 7/... -> 4:56 8/... -> 4:29 9/... -> 7:53 10/... -> 9:50
         public static byte NumQualityAndBiasLevels_PrivateInfo = 5; // we don't need quite as much here, since it's information that doesn't intersect between players
         public static byte NumQualityAndBiasLevels_NeitherInfo = 3; // still less needed here
 
-        public static AdditiveEvidenceGameOptions DariMattiacci_Saraceno(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay)
+        public static AdditiveEvidenceGameOptions DariMattiacci_Saraceno_Original(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay)
         {
             var options = new AdditiveEvidenceGameOptions()
             {
@@ -84,7 +86,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             return options;
         }
 
-        public static AdditiveEvidenceGameOptions EvenStrength(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay)
+        public static AdditiveEvidenceGameOptions SharedInfoOnQuality_EvenStrengthOnBias(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay)
         {
             var options = new AdditiveEvidenceGameOptions()
             {
@@ -96,7 +98,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 // so Neither_Quality is set automatically to 0
                 Alpha_Both_Bias = 0.0,
             };
-            options.Alpha_Plaintiff_Bias = 0.5; // even strength
+            // Because quality is fixed, parties don't need to estimate that. They do have estimates on bias. 
+            options.Alpha_Plaintiff_Bias = 0.5; // even strength on bias
             options.Alpha_Defendant_Bias = 1.0 - options.Alpha_Plaintiff_Bias;
             // nothing to neither or both with respect to bias
 

@@ -9,6 +9,7 @@ using NumSharp;
 using System.IO;
 using ACESimBase.GameSolvingSupport;
 using System.Diagnostics;
+using ACESim.Util;
 
 namespace ACESimBase.GameSolvingAlgorithms
 {
@@ -17,6 +18,33 @@ namespace ACESimBase.GameSolvingAlgorithms
     {
         double[,] E, F, A, B;
         bool UseGambit = true;
+        bool UseECTA = true; // 2002 code from Stengel -- all rest is for that
+        List<GameNodeRelationship> GameNodes; 
+        List<InformationSetInfo> InformationSetInfos; 
+        public List<int> InformationSetInfosIndexForMoves;
+        public List<int> FirstInformationSetInfosIndexForPlayers; 
+        public List<int> FirstMovesIndexForPlayers;
+        public Dictionary<(int informationSetIndex, int oneBasedMove), int> MapInformationSetAndMoveToMoveIndex;
+
+
+        public record InformationSetInfo(IGameState GameState, int ECTAPlayerID, int Index, int FirstMoveIndex)
+        {
+            public int NumPossibleMoves => GameState.GetNumPossibleActions();
+            public bool IsChance => GameState is ChanceNode;
+            public InformationSetNode InformationSetNode => IsChance ? null : (InformationSetNode)GameState;
+            public ChanceNode ChanceNode => IsChance ? (ChanceNode)GameState : null;
+        }
+        List<FinalUtilitiesNode> Outcomes => GameNodes.Where(x => x.GameState is FinalUtilitiesNode).Select(x => (FinalUtilitiesNode)x.GameState).ToList();
+        int InformationSetInfoIndexForGameNode(int nodeIndex)
+        {
+            GameNodeRelationship gameNode = GameNodes[nodeIndex];
+            var gameState = gameNode.GameState;
+            for (int i = 0; i < InformationSetInfos.Count(); i++)
+                if (gameState == InformationSetInfos[i].GameState)
+                    return i;
+            throw new Exception();
+        }
+
 
         public SequenceForm(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
         {
@@ -32,11 +60,148 @@ namespace ACESimBase.GameSolvingAlgorithms
         }
         public override async Task Initialize()
         {
+            AllowSkipEveryPermutationInitialization = false;
+            StoreGameStateNodesInLists = true;
             await base.Initialize();
             InitializeInformationSets();
             if (!EvolutionSettings.CreateInformationSetCharts) // otherwise this will already have been run
                 InformationSetNode.IdentifyNodeRelationships(InformationSets);
+            if (UseECTA)
+            {
+                DetermineGameNodeRelationships();
+                string codeString = GetECTACodeString();
+            }
         }
+
+        public void DetermineGameNodeRelationships()
+        {
+            if (NumNonChancePlayers != 2)
+                throw new NotImplementedException();
+
+            IGameState rootState = GetGameState(GetStartOfGameHistoryPoint());
+            GameNodeRelationshipsFinder finder = new GameNodeRelationshipsFinder(rootState);
+            TreeWalk_Tree(finder, 0);
+
+            GameNodes = finder.Relationships;
+            var reordered = GameNodes.OrderByDescending(x => x.GameState is ChanceNode)
+                .ThenByDescending(x => x.GameState is InformationSetNode)
+                .ThenByDescending(x => x.GameState is FinalUtilitiesNode)
+                .ThenByDescending(x => (x.GameState as InformationSetNode)?.PlayerIndex ?? 0)
+                .ThenBy(x => x.NodeID)
+                .ThenBy(x => x.ActionAtParent)
+                .ToList();
+            // record map of original ID to new one-based ID given new order
+            Dictionary<int, int> originalIDToRevised = new Dictionary<int, int>();
+            for (int i = 0; i < reordered.Count(); i++)
+            {
+                originalIDToRevised[reordered[i].NodeID] = i + 1; // note that our revised numbering system is 1-based (we just skip 0)
+            }
+            // now, fix IDs
+            for (int i = 0; i < reordered.Count(); i++)
+            {
+                reordered[i] = reordered[i] with
+                {
+                    NodeID = originalIDToRevised[reordered[i].NodeID],
+                    ParentNodeID = reordered[i].ParentNodeID is int originalParentID ? originalIDToRevised[originalParentID] : null
+                };
+            }
+            GameNodes = reordered;
+
+            var chanceInformationSets = GameNodes.Where(x => x.GameState is ChanceNode).Select(x => (ChanceNode)x.GameState).DistinctBy(x => x.ChanceNodeNumber).ToList();
+            var playerInformationSets = GameNodes.Where(x => x.GameState is InformationSetNode).Select(x => (InformationSetNode)x.GameState).DistinctBy(x => x.InformationSetNodeNumber).OrderBy(x => PlayerIDToECTA(((InformationSetNode)x).PlayerIndex)).ToList();
+            InformationSetInfos = new List<InformationSetInfo>();
+            int index = 0;
+            foreach (var chanceInformationSet in chanceInformationSets)
+                InformationSetInfos.Add(new InformationSetInfo(chanceInformationSet, 0, index++, -1));
+            foreach (var playerInformationSet in playerInformationSets)
+                InformationSetInfos.Add(new InformationSetInfo(playerInformationSet, PlayerIDToECTA(playerInformationSet.PlayerIndex), index++, -1));
+            InformationSetInfosIndexForMoves = new List<int>();
+            FirstInformationSetInfosIndexForPlayers = new List<int>();
+            FirstMovesIndexForPlayers = new List<int>();
+            MapInformationSetAndMoveToMoveIndex = new Dictionary<(int informationSetIndex, int oneBasedMove), int>();
+            int lastPlayerID = -1;
+            for (int i = 0; i < InformationSetInfos.Count; i++)
+            {
+                InformationSetInfo informationSetInfo = InformationSetInfos[i];
+                InformationSetInfos[i] = informationSetInfo with
+                {
+                    FirstMoveIndex = InformationSetInfosIndexForMoves.Count()
+                };
+                if (lastPlayerID != informationSetInfo.ECTAPlayerID)
+                {
+                    lastPlayerID++;
+                    FirstInformationSetInfosIndexForPlayers.Add(informationSetInfo.Index);
+                    FirstMovesIndexForPlayers.Add(InformationSetInfosIndexForMoves.Count());
+                }
+                for (int move = 1; move <= informationSetInfo.NumPossibleMoves; move++)
+                {
+                    MapInformationSetAndMoveToMoveIndex[(informationSetInfo.Index, move)] = InformationSetInfosIndexForMoves.Count();
+                    InformationSetInfosIndexForMoves.Add(informationSetInfo.Index);
+                }
+            }
+        }
+
+        public string GetECTACodeString()
+        {
+            var outcomes = Outcomes;
+            StringBuilder s = new StringBuilder();
+            string s2 = $@"\tOutcome z;
+    alloctree({GameNodes.Count()},{InformationSetInfos.Count()},{InformationSetInfosIndexForMoves.Count()},{outcomes.Count});
+    firstiset[0] = isets;
+    firstiset[1] = isets + {FirstInformationSetInfosIndexForPlayers[1]};
+    firstiset[2] = isets + {FirstInformationSetInfosIndexForPlayers[2]};
+    firstmove[0] = moves;
+    firstMove[1] = moves + {FirstMovesIndexForPlayers[1]};
+    firstMove[2] = moves + {FirstMovesIndexForPlayers[2]};
+                
+    // root node is at index 1 (index 0 is skipped)
+    root = nodes + ROOT;
+    root->father = NULL;
+            ";
+            s.Append(s2);
+            for (int n = 2; n <= GameNodes.Count(); n++)
+            {
+                s.AppendLine($@"\tnodes[{n}].father = nodes + {GameNodes[n].ParentNodeID};
+                    ");
+                if (GameNodes[n].GameState is FinalUtilitiesNode outcome)
+                {
+                    s.AppendLine($@"nodes[{n}].terminal = 1;
+    nodes[i].outcome = z;
+    z->whichnode = nodes + {n};
+    z->pay[0] = ratfromi(pay[0][{n}]);
+    z->pay[1] = ratfromi(pay[1][{n}]);
+    z++;");
+                }
+            }
+            for (int n = 1; n <= GameNodes.Count(); n++)
+            {
+                s.AppendLine($"\tnodes[{n}].iset = isets + {InformationSetInfoIndexForGameNode(n)};");
+            }
+            for (int n = 2; n <= GameNodes.Count(); n++)
+            {
+                int informationSetInfoIndexForGameNode = InformationSetInfoIndexForGameNode(n);
+                int parentNodeID = (int) GameNodes[n].ParentNodeID;
+                byte actionAtParent = (byte)GameNodes[n].ActionAtParent;
+                int movesIndex = MapInformationSetAndMoveToMoveIndex[(informationSetInfoIndexForGameNode, actionAtParent)];
+
+                s.AppendLine($"\tnodes[{n}].reachedby = moves + {movesIndex};"); 
+            }
+            for (int i = 0; i < InformationSetInfos.Count(); i++)
+            {
+                s.AppendLine($@"\tisets[{i}].player = {InformationSetInfos[i].ECTAPlayerID};
+    isets[{i}].move0 = moves + {MapInformationSetAndMoveToMoveIndex[(i, 1)]};
+    isets[{i}].nmoves = {InformationSetInfos[i].NumPossibleMoves};");
+            }
+
+            return s.ToString();
+        }
+
+        private int PlayerIDToECTA(int playerID) => playerID switch
+        {
+            0 => 1,
+            1 => 2,
+            _ => 0, // chance players (we're assuming a two-player game)
+        };
 
         public override async Task<ReportCollection> RunAlgorithm(string optionSetName)
         {
@@ -102,22 +267,36 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         private async Task SetEquilibria(List<List<double>> equilibria, ReportCollection reportCollection)
         {
+            bool useCorrelatedEquilibrium = true;
             int numEquilibria = equilibria.Count();
             for (int eqNum = 0; eqNum < numEquilibria; eqNum++)
             {
+                bool isLast = eqNum == numEquilibria - 1;
                 var numbers = equilibria[eqNum];
                 var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetNodeNumber).ToList();
                 if (infoSets.Sum(x => x.Decision.NumPossibleActions) != numbers.Count())
                     throw new Exception();
                 int totalNumbersProcessed = 0;
                 for (int i = 0; i < infoSets.Count(); i++)
+                {
                     for (byte a = 1; a <= infoSets[i].Decision.NumPossibleActions; a++)
+                    {
                         infoSets[i].SetActionToProbabilityValue(a, numbers[totalNumbersProcessed++], true);
+                    }
+                    if (useCorrelatedEquilibrium)
+                        infoSets[i].RecordProbabilitiesAsPastValues();
+                }
+                if (useCorrelatedEquilibrium)
+                    EvolutionSettings.ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.CorrelatedEquilibrium };
+                
 
-                var reportResult = await GenerateReports(EvolutionSettings.ReportEveryNIterations ?? 0,
-                    () =>
-                        $"{GameDefinition.OptionSetName}{(numEquilibria > 1 ? $"Eq{eqNum + 1}" : "")}");
-                reportCollection.Add(reportResult);
+                if (!useCorrelatedEquilibrium || isLast)
+                {
+                    var reportResult = await GenerateReports(EvolutionSettings.ReportEveryNIterations ?? 0,
+                        () =>
+                            $"{GameDefinition.OptionSetName}{(numEquilibria > 1 && !useCorrelatedEquilibrium ? $"Eq{eqNum + 1}" : "")}");
+                    reportCollection.Add(reportResult);
+                }
             }
         }
 

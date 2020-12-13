@@ -12,6 +12,7 @@ namespace ACESim
     {
         public int ChanceNodeNumber;
         public int GetNodeNumber() => ChanceNodeNumber;
+        public int GetNumPossibleActions() => Decision.NumPossibleActions;
         public Decision Decision;
         public byte DecisionIndex;
         public byte PlayerNum => Decision.PlayerIndex;
@@ -19,6 +20,8 @@ namespace ACESim
         public bool CriticalNode => Decision.CriticalNode;
 
         public abstract double GetActionProbability(int action, int distributorChanceInputs = -1);
+
+        public abstract (int, int) GetActionProbabilityAsRational(int denominator, int action, int distributorChanceInputs = -1);
 
         public string GetActionProbabilityString(int distributorChanceInputs) => string.Join(",", GetActionProbabilityStrings(distributorChanceInputs));
 

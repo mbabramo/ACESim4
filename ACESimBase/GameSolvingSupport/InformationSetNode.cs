@@ -25,6 +25,7 @@ namespace ACESim
         public int InformationSetNodeNumber; // could delete this once things are working, but may be useful in testing scenarios
 
         public int GetNodeNumber() => InformationSetNodeNumber;
+        public int GetNumPossibleActions() => Decision.NumPossibleActions;
         public Decision Decision;
         public EvolutionSettings EvolutionSettings;
         public byte[] InformationSetContents;

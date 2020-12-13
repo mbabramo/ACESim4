@@ -10,5 +10,7 @@ namespace ACESim
     {
         GameStateTypeEnum GetGameStateType();
         int GetNodeNumber();
+        int GetNumPossibleActions();
+
     }
 }
