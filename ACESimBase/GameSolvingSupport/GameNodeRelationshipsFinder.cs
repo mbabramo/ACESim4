@@ -23,9 +23,12 @@ namespace ACESimBase.GameSolvingSupport
 
         public int ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, int fromPredecessor, int distributorChanceInputs)
         {
-            int id = Relationships.Count();
+            int id = 0;
             if (predecessorAction != 0) // i.e., this is not the root, which we already added with nulls for parent and predecessor action
+            {
+                id = Relationships.Count();
                 Relationships.Add(new GameNodeRelationship(id, chanceNode, fromPredecessor, predecessorAction));
+            }
             return id;
         }
 

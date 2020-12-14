@@ -25,6 +25,7 @@ namespace ACESim
         public int InformationSetNodeNumber; // could delete this once things are working, but may be useful in testing scenarios
 
         public int GetNodeNumber() => InformationSetNodeNumber;
+        public int? AltNodeNumber { get; set; }
         public int GetNumPossibleActions() => Decision.NumPossibleActions;
         public Decision Decision;
         public EvolutionSettings EvolutionSettings;
@@ -200,7 +201,7 @@ namespace ACESim
 
         public override string ToString()
         {
-            return $"Information set {InformationSetNodeNumber} ({Decision.Name}): DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetCurrentProbabilitiesAsString()} {GetBestResponseStringIfAvailable()}Average {GetAverageStrategiesAsString()} Regrets {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()} InformationSetContents {String.Join(";", LabeledInformationSet)}";
+            return $"Information set {(AltNodeNumber ?? GetNodeNumber())} {Decision.Name} ({Decision.Abbreviation}): DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetCurrentProbabilitiesAsString()} {GetBestResponseStringIfAvailable()}Average {GetAverageStrategiesAsString()} Regrets {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()} InformationSetContents {String.Join(";", LabeledInformationSet)}";
         }
 
         public string GetBestResponseStringIfAvailable()

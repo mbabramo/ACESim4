@@ -83,6 +83,8 @@ namespace ACESimBase.GameSolvingAlgorithms
             TreeWalk_Tree(finder, 0);
 
             GameNodes = finder.Relationships;
+            var originalOrder = GameNodes.ToList();
+
             var reordered = GameNodes.OrderByDescending(x => x.GameState is ChanceNode)
                 .ThenByDescending(x => x.GameState is InformationSetNode)
                 .ThenByDescending(x => x.GameState is FinalUtilitiesNode)
@@ -115,6 +117,9 @@ namespace ACESimBase.GameSolvingAlgorithms
                 InformationSetInfos.Add(new InformationSetInfo(chanceInformationSet, 0, index++, -1));
             foreach (var playerInformationSet in playerInformationSets)
                 InformationSetInfos.Add(new InformationSetInfo(playerInformationSet, PlayerIDToECTA(playerInformationSet.PlayerIndex), index++, -1));
+            for (int i = 0; i < InformationSetInfos.Count(); i++)
+                InformationSetInfos[i].GameState.AltNodeNumber = i; // set the alt node number so that we can match the numbering scheme expected of our ECTA code
+
             InformationSetInfosIndexForMoves = new List<int>();
             FirstInformationSetInfosIndexForPlayers = new List<int>();
             FirstMovesIndexForPlayers = new List<int>();
@@ -130,14 +135,43 @@ namespace ACESimBase.GameSolvingAlgorithms
                 if (lastPlayerID != informationSetInfo.ECTAPlayerID)
                 {
                     lastPlayerID++;
-                    FirstInformationSetInfosIndexForPlayers.Add(informationSetInfo.Index);
+                    // The first move for a player is the empty sequence. We'll represent that by -1. We'll add the first non-empty move below.
+                    InformationSetInfosIndexForMoves.Add(-1);
                     FirstMovesIndexForPlayers.Add(InformationSetInfosIndexForMoves.Count());
+                    FirstInformationSetInfosIndexForPlayers.Add(informationSetInfo.Index);
                 }
                 for (int move = 1; move <= informationSetInfo.NumPossibleMoves; move++)
                 {
                     MapInformationSetAndMoveToMoveIndex[(informationSetInfo.Index, move)] = InformationSetInfosIndexForMoves.Count();
-                    InformationSetInfosIndexForMoves.Add(informationSetInfo.Index);
+                    InformationSetInfosIndexForMoves.Add(informationSetInfo.Index); // Here's where we add the move.
                 }
+            }
+
+            Dictionary<int, int> nodeDepth = new Dictionary<int, int>();
+
+            // printing
+            int depth = 0;
+            StringBuilder s = new StringBuilder();
+            for (int i = 0; i < originalOrder.Count(); i++)
+            {
+                bool isFirstWithParent = true, isLastWithParent = true;
+                for (int j = 0; j < i; j++)
+                    if (originalOrder[j].ParentNodeID == originalOrder[i].ParentNodeID)
+                        isFirstWithParent = false;
+                for (int j = i + 1; j < originalOrder.Count(); j++)
+                    if (originalOrder[j].ParentNodeID == originalOrder[i].ParentNodeID)
+                        isLastWithParent = false;
+
+                if (i != 0 && isFirstWithParent)
+                    depth++;
+
+                for (int j = 0; j < 5 * depth; j++)
+                    s.Append(" ");
+                s.AppendLine(originalOrder[i].ToString());
+
+                if (i != 0 && isLastWithParent)
+                    depth--;
+
             }
         }
 

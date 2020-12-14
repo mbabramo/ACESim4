@@ -12,6 +12,7 @@ namespace ACESim
     {
         public int ChanceNodeNumber;
         public int GetNodeNumber() => ChanceNodeNumber;
+        public int? AltNodeNumber { get; set; }
         public int GetNumPossibleActions() => Decision.NumPossibleActions;
         public Decision Decision;
         public byte DecisionIndex;

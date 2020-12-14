@@ -24,7 +24,7 @@ namespace ACESim
 
         public override string ToString()
         {
-            return $"Chance player {PlayerNum} for decision {DecisionByteCode} => Equal probabilities {EachProbability}";
+            return $"{Decision.Abbreviation} (Info set {AltNodeNumber ?? ChanceNodeNumber}): Chance player {PlayerNum} for decision {DecisionByteCode} => Equal probabilities {EachProbability}";
         }
     }
 }

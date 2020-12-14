@@ -31,6 +31,7 @@ namespace ACESim
         public List<FloatSet> AllScenarioCustomResult;
         public int FinalUtilitiesNodeNumber;
         public int GetNodeNumber() => FinalUtilitiesNodeNumber;
+        public int? AltNodeNumber { get; set; }
         public int GetNumPossibleActions() => 0;
 
         public FinalUtilitiesNode(List<double[]> allScenarioUtilities, List<FloatSet> customResults, int finalUtilitiesNodeNumber)

@@ -10,6 +10,7 @@ namespace ACESim
     {
         GameStateTypeEnum GetGameStateType();
         int GetNodeNumber();
+        int? AltNodeNumber { get; set; } // used by SequenceForm to align node numbers with external code
         int GetNumPossibleActions();
 
     }
