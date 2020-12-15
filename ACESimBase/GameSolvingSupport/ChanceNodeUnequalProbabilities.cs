@@ -20,21 +20,21 @@ namespace ACESim
         bool DistributionComplete;
 
 
-        public override (int, int) GetActionProbabilityAsRational(int denominator, int action, int distributorChanceInputs = -1)
+        public override (int, int) GetActionProbabilityAsRational(int denominatorToUseForUnequalProbabilities, int action, int distributorChanceInputs = -1)
         {
             var unroundedActionProbability = GetActionProbability(action, distributorChanceInputs);
-            int numerator = (int) Math.Round(unroundedActionProbability * (double)denominator);
+            int numerator = (int) Math.Round(unroundedActionProbability * (double)denominatorToUseForUnequalProbabilities);
             // simplify fraction
             for (int i = 2; i <= numerator; i++)
             {
-                if (numerator % i == 0 && denominator % i == 0)
+                if (numerator % i == 0 && denominatorToUseForUnequalProbabilities % i == 0)
                 {
                     numerator /= i;
-                    denominator /= i;
+                    denominatorToUseForUnequalProbabilities /= i;
                     i--; // check same factor again
                 }
             }
-            return (numerator, denominator);
+            return (numerator, denominatorToUseForUnequalProbabilities);
         }
 
         /// <summary>

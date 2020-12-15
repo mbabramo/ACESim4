@@ -15,7 +15,7 @@ namespace ACESim
         }
 
         public override double GetActionProbability(int action, int distributorChanceInputs = -1) => EachProbability;
-        public override (int, int) GetActionProbabilityAsRational(int denominator, int action, int distributorChanceInputs = -1) => (1, Decision.NumPossibleActions);
+        public override (int, int) GetActionProbabilityAsRational(int denominatorToUseForUnequalProbabilities, int action, int distributorChanceInputs = -1) => (1, Decision.NumPossibleActions);
 
         public override bool AllProbabilitiesEqual()
         {

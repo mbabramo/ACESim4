@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.GameSolvingSupport
 {
-    public record GameNodeRelationship(int NodeID, IGameState GameState, int? ParentNodeID, byte? ActionAtParent)
+    public record GameNodeRelationship(int NodeID, IGameState GameState, int? ParentNodeID, byte? ActionAtParent, int? OriginalNodeID = null)
     {
         public int PlayerID => GameState switch
         {
@@ -18,7 +18,7 @@ namespace ACESimBase.GameSolvingSupport
 
         public override string ToString()
         {
-            return $"{NodeID} (P{ParentNodeID} -> {ActionAtParent}): {GameState}";
+            return $"{NodeID} {(OriginalNodeID == null ? "" : $"(orig {OriginalNodeID}) ")}(P{ParentNodeID} -> {ActionAtParent}): {GameState}";
         }
     }
 }

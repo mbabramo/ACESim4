@@ -22,7 +22,7 @@ namespace ACESim
 
         public abstract double GetActionProbability(int action, int distributorChanceInputs = -1);
 
-        public abstract (int, int) GetActionProbabilityAsRational(int denominator, int action, int distributorChanceInputs = -1);
+        public abstract (int, int) GetActionProbabilityAsRational(int denominatorToUseForUnequalProbabilities, int action, int distributorChanceInputs = -1);
 
         public string GetActionProbabilityString(int distributorChanceInputs) => string.Join(",", GetActionProbabilityStrings(distributorChanceInputs));
 
