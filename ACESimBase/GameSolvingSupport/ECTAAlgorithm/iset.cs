@@ -15,7 +15,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 		/* autoname possible                                                */
 		public char[] name = new char[Treedef.NAMECHARS]; // name of iset
 		/* will be generated                                                */
-		public int? seqin; // sequence leading to that iset
+		public int seqin; // sequence leading to that iset
 		/* for NF computation                                               */
 		public int ncontin; // how many strategy-type continuations
 		public int prefact; // multiplyer for later parallel isets

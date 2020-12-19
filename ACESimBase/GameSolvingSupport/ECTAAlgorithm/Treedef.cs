@@ -62,7 +62,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             bool isnotok = false;
             int pl;
             node u;
-            move seq;
+            int seq;
 
             /* set  nseqs[], nisets[]               */
             for (pl = 0; pl < PLAYERS; pl++)
@@ -73,44 +73,44 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
             /* set seqin for all isets to NULL      */
             foreach (var h in isets)
-                h.seqin = null;
+                h.seqin = -1;
 
             for (pl = 0; pl < PLAYERS; pl++)
-                root.defseq[pl] = moves[firstmove[pl]];
-            root.iset.seqin = firstmove[root.iset.player];
+                root.defseq[pl] = firstmove[pl];
+            isets[root.iset].seqin = firstmove[isets[root.iset].player];
 
             for (int i = 2; i < nodes.Length; i++)
             {
                 u = nodes[i];
-                if (u.fatherIndex(nodes) >= i)
+                if (u.father >= i)
                 /* tree is not topologically sorted     */
                 {
                     isnotok = true;
                     printf("tree not topologically sorted: father %d ",
-                        u.fatherIndex(nodes));
+                        u.father);
                     printf("is larger than node %d itself.\n", i);
                 }
 
                 /* update sequence triple, new only for move leading to  u  */
                 for (pl = 0; pl < PLAYERS; pl++)
-                    u.defseq[pl] = u.father.defseq[pl];
-                u.defseq[u.reachedby.atiset.player] = u.reachedby;
+                    u.defseq[pl] = nodes[u.father].defseq[pl];
+                u.defseq[isets[moves[u.reachedby].atiset].player] = u.reachedby;
 
                 /* update sequence for iset, check perfect recall           */
                 if (!(u.terminal))
                 {
-                    var h = u.iset;
+                    var h = isets[u.iset];
                     seq = u.defseq[h.player];
-                    if (h.seqin == null)
-                        h.seqin = moveIndex(seq);
-                    else if (seq != moves[(int) h.seqin])
+                    if (h.seqin == -1)
+                        h.seqin = seq;
+                    else if (seq != (int) h.seqin)
                     /* not the same as last sequence leading to info set    */
                     {
                         isnotok = true;
                         /* need output routines for isets, moves, later         */
-                        printf("imperfect recall in info set no. %d ", u.isetIndex(isets));
+                        printf("imperfect recall in info set no. %d ", u.iset);
                         printf("named %s\n", h.name);
-                        printf("different sequences no. %d,", moveIndex(seq));
+                        printf("different sequences no. %d,", seq);
                         printf(" %d\n", h.seqin);
                     }
                 }       /* end of "u decision node"     */
@@ -190,7 +190,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 s = sprintf("()");
             }
             else 
-                s= sprintf("%s%d", c.atiset.name,  moveIndex(c) - c.atiset.move0);
+                s= sprintf("%s%d", isets[c.atiset].name,  moveIndex(c) - isets[c.atiset].move0);
             return s.Length;
         }       /* end of  int movetoa (c, pl, *s)      */
 
@@ -207,7 +207,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 s = sprintf(".");
                 return s.Length;
             }
-            len = seqtoa(moves[(int) seq.atiset.seqin], pl, ref s);       /* recursive call       */
+            len = seqtoa(moves[isets[seq.atiset].seqin], pl, ref s);       /* recursive call       */
             string s2 = null;
             int s2len = movetoa(seq, pl, ref s2);
             s = s + s2;
@@ -248,20 +248,20 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 u = nodes[uindex];
                 colipr(uindex);
                 colipr(u.terminal ? 1 : 0);
-                colipr(u.isetIndex(isets));
-                colipr(u.fatherIndex(nodes));
-                colipr(u.reachedByIndex(moves));
-                colipr(u.outcomeIndex(outcomes));
+                colipr(u.iset);
+                colipr(u.father);
+                colipr(u.reachedby);
+                colipr(u.outcome);
                 for (pl = 1; pl < PLAYERS; pl++)
                     if (u.terminal)
                     {
-                        rattoa(u.outcome.pay[pl - 1], ref s);
+                        rattoa(outcomes[u.outcome].pay[pl - 1], ref s);
                         colpr(s);
                     }
                     else
                         colpr("");
                 for (pl = 0; pl < PLAYERS; pl++)
-                    colipr(moveIndex(u.defseq[pl]));
+                    colipr(u.defseq[pl]);
             }
             colout();
             printf("\n");
@@ -331,7 +331,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 colpr(s);
                 seqtoa(c, pl - 1, ref s); 
                 colpr(s);
-                colipr(isetIndex(c.atiset));
+                colipr(c.atiset);
                 rattoa(c.behavprob, ref s); 
                 colpr(s);
                 rattoa(c.realprob, ref s); 
@@ -354,7 +354,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 {
                     c = moves[cindex];
                     c.behavprob.num = 1;
-                    c.behavprob.den = c.atiset.nmoves;
+                    c.behavprob.den = isets[c.atiset].nmoves;
                 }
         }
 
@@ -483,11 +483,11 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             {
                 z = outcomes[zindex];
                 node u = z.whichnode;
-                i = moveIndex(u.defseq[1]) - firstmove[1]; 
-                j = moveIndex(u.defseq[2]) - firstmove[2];
+                i = u.defseq[1] - firstmove[1]; 
+                j = u.defseq[2] - firstmove[2];
                 for (pl = 1; pl < PLAYERS; pl++)
                     sfpay[i][j][pl - 1] = ratadd(sfpay[i][j][pl - 1],
-                        ratmult(u.defseq[0].realprob, z.pay[pl - 1]));
+                        ratmult(moves[u.defseq[0]].realprob, z.pay[pl - 1]));
             }
             /* sf constraint matrices, sparse fill  */
             for (pl = 1; pl < PLAYERS; pl++)
@@ -496,7 +496,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 for (i = 0; i < nisets[pl]; i++)
                     sfconstr[pl][i + 1][(int) isets[firstiset[pl] + i].seqin - firstmove[pl]] = -1;
                 for (j = 1; j < nseqs[pl]; j++)
-                    sfconstr[pl][isetIndex(moves[firstmove[pl] + j].atiset) - firstiset[pl] + 1][j] = 1;
+                    sfconstr[pl][moves[firstmove[pl] + j].atiset - firstiset[pl] + 1][j] = 1;
             }
         }       /* end of  gensf()              */
 
@@ -727,7 +727,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             for (int cindex = firstmove[pl] + 1; cindex < lastmoveindex; cindex++)
             {
                 c = moves[cindex];
-                c.realprob = ratmult(c.behavprob, moves[(int)c.atiset.seqin].realprob);
+                c.realprob = ratmult(c.behavprob, moves[isets[(int)c.atiset].seqin].realprob);
             }
         }
 
