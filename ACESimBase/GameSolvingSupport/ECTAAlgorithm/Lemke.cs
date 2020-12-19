@@ -17,37 +17,37 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         static int n;   /* LCP dimension as used here   */
 
         /* LCP input    */
-        Rat[][] lcpM;
-        Rat[] rhsq;
-        Rat[] vecd;
-        int lcpdim = 0; /* set in setlcp                */
+        public Rat[][] lcpM;
+        public Rat[] rhsq;
+        public Rat[] vecd;
+        public int lcpdim = 0; /* set in setlcp                */
 
         /* LCP result   */
-        Rat[] solz;
-        int pivotcount;
+        public Rat[] solz;
+        public int pivotcount;
 
         /* tableau:    */
-        static Multiprecision[][] A;                 /* tableau                              */
-        static int[] bascobas;          /* VARS  -> ROWCOL                      */
-        static int[] whichvar;          /* ROWCOL -> VARS, inverse of bascobas  */
+        public static Multiprecision[][] A;                 /* tableau                              */
+        public static int[] bascobas;          /* VARS  -> ROWCOL                      */
+        public static int[] whichvar;          /* ROWCOL -> VARS, inverse of bascobas  */
 
         /* used for tableau:    */
-        int Z(int i)
+        public int Z(int i)
         {
             return i;
         }
-        int W(int i)
+        public int W(int i)
         {
             return i + n;
         }
         /* VARS   = 0..2n = Z(0) .. Z(n) W(1) .. W(n)           */
         /* ROWCOL = 0..2n,  0 .. n-1: tabl rows (basic vars)    */
         /*                  n .. 2n:  tabl cols  0..n (cobasic) */
-        int RHS()
+        public int RHS()
         {
             return n + 1;
         }
-        int TABCOL(int v)
+        public int TABCOL(int v)
         {
             return bascobas[v] - n;
         }
@@ -59,27 +59,27 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 		 * scfa[Z(1..n)] for cols of  M
 		 * result variables to be multiplied with these
 		 */
-        static Multiprecision[] scfa;
+        public static Multiprecision[] scfa;
 
-        static Multiprecision det = new Multiprecision();                        /* determinant                  */
+        public static Multiprecision det = new Multiprecision();                        /* determinant                  */
 
-        static int[] lextested, lexcomparisons;/* statistics for lexminvar     */
+        public static int[] lextested, lexcomparisons;/* statistics for lexminvar     */
 
-        static int[] leavecand;
+        public static int[] leavecand;
         /* should be local to lexminvar but defined globally for economy    */
 
-        const int MAXLCPDIM = 2000;       /* max LCP dimension                       */
-        const int INFOSTRINGLENGTH = 8;   /* string naming vars, e.g. "z0", "w187"   */
-        const int LCPSTRL = 60;          /* length of string containing LCP entry   */
+        public const int MAXLCPDIM = 2000;       /* max LCP dimension                       */
+        public const int INFOSTRINGLENGTH = 8;   /* string naming vars, e.g. "z0", "w187"   */
+        public const int LCPSTRL = 60;          /* length of string containing LCP entry   */
 
         /*------------------ error message ----------------*/
-        void errexit(string info)
+        public void errexit(string info)
         {
             throw new Exception($"Error {info}. Lemke terminated unsuccessfully.");
         }
 
         /*------------------ memory allocation -------------------------*/
-        void setlcp(int newn)
+        public void setlcp(int newn)
         {
             if (newn < 1 || newn > MAXLCPDIM)
             {
@@ -116,7 +116,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         /* asserts that  d >= 0  and not  q >= 0  (o/w trivial sol) 
 		 * and that q[i] < 0  implies  d[i] > 0
 		 */
-        void isqdok()
+        public void isqdok()
         {
             int i;
             bool isqpos = true;
@@ -143,7 +143,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         }       /* end of  isqdok()     */
 
         /* ------------------- tableau setup ------------------ */
-        void inittablvars()
+        public void inittablvars()
         /* init tableau variables:                      */
         /* Z(0)...Z(n)  nonbasic,  W(1)...W(n) basic    */
         {
@@ -160,7 +160,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             }
         }       /* end of inittablvars()        */
 
-        void filltableau()
+        public void filltableau()
         /* fill tableau from  M, q, d   */
         {
             int i, j;
@@ -201,7 +201,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         }       /* end of filltableau()         */
 
         /* ---------------- output routines ------------------- */
-        void outlcp()
+        public void outlcp()
         /* output the LCP as given      */
         {
             int i, j;
@@ -236,7 +236,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             colout();
         }
 
-        int vartoa(int v, ref string s)
+        public int vartoa(int v, ref string s)
         /* create string  s  representing  v  in  VARS,  e.g. "w2"    */
         /* return value is length of that string                      */
         {
@@ -248,7 +248,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         }
 
 
-        void outtabl()
+        public void outtabl()
         /* output the current tableau, column-adjusted                  */
         {
             int i, j;
@@ -301,7 +301,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         }       /* end of  outtabl()                                    */
 
         /* output the current basic solution            */
-        void outsol()
+        public void outsol()
         {
             string s = null;
             string smp = null;
@@ -366,7 +366,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 		 * gives a warning if conversion to ordinary rational fails
 		 * and returns 1, otherwise 0
 		 */
-        bool notokcopysol()
+        public bool notokcopysol()
         {
             bool notok = false;
             int i, row;
@@ -396,7 +396,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         } /* end of copysol                     */
 
         /* --------------- test output and exception routines ---------------- */
-        void assertbasic(int v, string info)
+        public void assertbasic(int v, string info)
         /* assert that  v  in VARS is a basic variable         */
         /* otherwise error printing  info  where               */
         {
@@ -408,7 +408,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             }
         }
 
-        void assertcobasic(int v, string info)
+        public void assertcobasic(int v, string info)
         /* assert that  v  in VARS is a cobasic variable       */
         /* otherwise error printing  info  where               */
         {
@@ -420,7 +420,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             }
         }
 
-        void docupivot(int leave, int enter)
+        public void docupivot(int leave, int enter)
         /* leave, enter in  VARS.  Documents the current pivot. */
         /* Asserts  leave  is basic and  enter is cobasic.      */
         {
@@ -446,7 +446,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             throw new Exception("Ray termination; current basis, not an LCP solution");
         }
 
-        void testtablvars()
+        public void testtablvars()
         /* test tableau variables: error => msg only, continue  */
         {
             int i, j;
@@ -471,7 +471,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         /* complement of  v  in VARS, error if  v==Z(0).
          * this is  W(i) for Z(i)  and vice versa, i=1...n
          */
-        int complement(int v)
+        public int complement(int v)
         {
             if (v == Z(0))
                 errexit("Attempt to find complement of z0.");
@@ -480,7 +480,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
         /* initialize statistics for minimum ratio test
          */
-        void initstatistics()
+        public void initstatistics()
         {
             int i;
             for (i = 0; i <= n; i++)
@@ -489,7 +489,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
         /* output statistics of minimum ratio test
          */
-        void outstatistics()
+        public void outstatistics()
         {
             int i;
             string s = null;
@@ -536,7 +536,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
          * basis, but the lex-minratio test is performed fully,
          * so the returned value might not be the index of  z0
          */
-        int lexminvar(int enter, ref bool z0leave)
+        public int lexminvar(int enter, ref bool z0leave)
         {
             int col, i, j, testcol;
             int numcand;
@@ -619,7 +619,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         }       /* end of lexminvar (col, *z0leave);                        */
 
 
-        void negcol(int col)
+        public void negcol(int col)
         /* negate tableau column  col   */
         {
             int i;
@@ -627,7 +627,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 changesign(A[i][col]);
         }
 
-        void negrow(int row)
+        public void negrow(int row)
         /* negate tableau row.  Used in  pivot()        */
         {
             int j;
@@ -641,7 +641,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
          * afterwards tableau normalized with positive determinant
          * and updated tableau variables
          */
-        void pivot(int leave, int enter)
+        public void pivot(int leave, int enter)
         {
             int row, col, i, j;
             bool nonzero, negpiv;
@@ -686,7 +686,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         }       /* end of  pivot (leave, enter)                         */
 
         /* ------------------------------------------------------------ */
-        void runlemke(Flagsrunlemke flags)
+        public void runlemke(Flagsrunlemke flags)
         {
             int leave, enter;
             bool z0leave = false;

@@ -11,11 +11,11 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 		/* given                    */
 		public int player; // 0: chance player
 		public int nmoves;
-		public move move0;
+		public int move0;
 		/* autoname possible                                                */
 		public char[] name = new char[Treedef.NAMECHARS]; // name of iset
 		/* will be generated                                                */
-		public move seqin; // sequence leading to that iset
+		public int? seqin; // sequence leading to that iset
 		/* for NF computation                                               */
 		public int ncontin; // how many strategy-type continuations
 		public int prefact; // multiplyer for later parallel isets

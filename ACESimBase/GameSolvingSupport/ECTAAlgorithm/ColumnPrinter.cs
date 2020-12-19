@@ -86,6 +86,8 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 			prline(buf, posinbuf, currcol);
 		}
 
+		public static void colpr(char[] c) => colpr(new string(c));
+
 		/* store string  s  into the current column,
 		 * updating column width
 		 */
