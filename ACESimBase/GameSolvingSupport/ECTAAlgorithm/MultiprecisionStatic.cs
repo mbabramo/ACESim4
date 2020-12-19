@@ -5,14 +5,14 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 {
     public static class MultiprecisionStatic
     {
-		const int NEG = -1;
-		const int POS = 1;
-		const int ONE = 1;
-		const int TWO = 2;
-		const int ZERO = 0;
-		static int digits = 40;
-		static int record_digits;
-		const int DEFAULT_DIGITS = 100;
+		public const int NEG = -1;
+		public const int POS = 1;
+		public const int ONE = 1;
+		public const int TWO = 2;
+		public const int ZERO = 0;
+		public static int digits = 40;
+		public static int record_digits;
+		public const int DEFAULT_DIGITS = 100;
 		public const int MAX_DIGITS = 40;
 
 
@@ -186,6 +186,14 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 				pos = strcpy_formatted(s, pos, FORMAT, x[i]);
 			}
 			return pos;
+		}
+
+		public static int mptoa(int[] x, ref string s)
+        {
+			char[] smp = new char[MultiprecisionStatic.Dig2Dec(MAX_DIGITS) + 2];
+			int result = mptoa(x, smp);
+			s = new string(smp);
+			return result;
 		}
 
 		internal static uint gcd_maxspval = MAXD;
