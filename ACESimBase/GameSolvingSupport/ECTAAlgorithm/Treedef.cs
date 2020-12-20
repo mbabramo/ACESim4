@@ -77,8 +77,8 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             /* set  nseqs[], nisets[]               */
             for (pl = 0; pl < PLAYERS; pl++)
             {
-                nseqs[pl] = firstmove[pl + 1] - firstmove[pl];
-                nisets[pl] = firstiset[pl + 1] - firstiset[pl];
+                nseqs[pl] = (pl + 1 == PLAYERS ? moves.Length : firstmove[pl + 1]) - firstmove[pl];
+                nisets[pl] = (pl + 1 == PLAYERS ? isets.Length : firstiset[pl + 1]) - firstiset[pl];
             }
 
             /* set seqin for all isets to NULL      */
@@ -469,8 +469,11 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             sfpay = CreateJaggedArray<Payvec[][]>(nseqs[1], nseqs[2]);
             for (i = 0; i < nseqs[1]; i++)
                 for (j = 0; j < nseqs[2]; j++)
+                {
+                    sfpay[i][j] = new Payvec();
                     for (pl = 1; pl < PLAYERS; pl++)
                         sfpay[i][j][pl - 1] = ratfromi(0);
+                }
             /* constraint matrices, any number of players           */
             /* sfconstr[0] stays unused                             */
             for (pl = 1; pl < PLAYERS; pl++)

@@ -135,7 +135,19 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 			for (j = 0; j < cols; j++)
 			{
 				string s = getstring(buf, sindex);
-				printf("%*s", colwidth[j] * widthsign[j], s);
+				int totalWidth = colwidth[j] * widthsign[j];
+				bool leftJustify = totalWidth < 0;
+				if (leftJustify)
+                {
+					totalWidth = 0 - totalWidth;
+                }
+				else
+					for (int i = 0; i < totalWidth - s.Length; i++)
+						Console.Write(" ");
+				Console.Write(s);
+				if (leftJustify)
+					for (int i = 0; i < totalWidth - s.Length; i++)
+						Console.Write(" ");
 				sindex += s.Length + 1;
 				if (j < cols - 1) // avoid trailing blanks in line
 				{

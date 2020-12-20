@@ -99,6 +99,9 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             }
             /* tableau          */
             A = CreateJaggedArray<Multiprecision[][]>(n, n + 2);
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < n + 2; j++)
+                    A[i][j] = new Multiprecision();
             scfa = new Multiprecision[n + 2];
             for (int i = 0; i < n + 2; i++)
                 scfa[i] = new Multiprecision();

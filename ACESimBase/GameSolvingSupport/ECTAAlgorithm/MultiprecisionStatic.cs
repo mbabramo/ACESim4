@@ -74,25 +74,22 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
  */
 		public static bool mptoi(int[] a, ref int result, int bcomplain)
 		{
-			char[] smp = new char[((MAX_DIGITS) * BASE_DIG) + 2]; // string to print  mp  into
-
-			mptoa(a, smp);
+			
 			try
 			{
-				decimal stringResult = Convert.ToDecimal(smp);
-				if (result >= int.MaxValue || result <= int.MinValue)
+				result = 0;
+				int placeValue = 1;
+				int digits = length(a);
+				for (int i = 1; i <= digits - 1; i++)
 				{
-					if (bcomplain != 0)
-					{
-						throw new Exception($"Long integer overflow");
-					}
-					return true; // overflow
+					result += a[i] * placeValue;
+					placeValue *= BASE;
 				}
-				else
+				if (sign(a) == NEG)
 				{
-					result = (int)stringResult;
-					return false;
+					result = 0 - result;
 				}
+				return false;
 			}
 			catch
             {
@@ -180,9 +177,10 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 			{
 				s[pos++] = '-';
 			}
-			for (i = length(x) - 1; i >= 1; i--)
+			pos = strcpy_formatted(s, pos, "%u", x[length(x) - 1]);
+			for (i = length(x) - 2; i >= 1; i--)
 			{
-				s[pos++] = ToChar(Math.Abs(x[i]));
+				pos = strcpy_formatted(s, pos, FORMAT, x[i]);
 			}
 			return pos;
 		}
