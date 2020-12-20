@@ -13,6 +13,7 @@ using System.Runtime.Serialization;
 using System.Diagnostics;
 using ACESim.Util;
 using ACESimBase.Games.AdditiveEvidenceGame;
+using ACESimBase.GameSolvingSupport.ECTAAlgorithm;
 
 namespace ACESim
 {
@@ -31,6 +32,8 @@ namespace ACESim
         [STAThread]
         public static async Task Main(string[] args)
         {
+            new ETCAMain().main(); // DEBUG
+
             GameProgressLogger.LoggingOn = false;
             GameProgressLogger.DetailedLogging = false;
             await Execute();

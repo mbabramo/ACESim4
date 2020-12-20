@@ -180,13 +180,17 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 			{
 				s[pos++] = '-';
 			}
-			pos = strcpy_formatted(s, pos, "%u", x[length(x) - 1]);
-			for (i = length(x) - 2; i >= 1; i--)
+			for (i = length(x) - 1; i >= 1; i--)
 			{
-				pos = strcpy_formatted(s, pos, FORMAT, x[i]);
+				s[pos++] = ToChar(Math.Abs(x[i]));
 			}
 			return pos;
 		}
+
+		public static char ToChar(int digit)
+        {
+			return Convert.ToChar(digit + (int) ('0'));
+        }
 
 		public static int mptoa(int[] x, ref string s)
         {

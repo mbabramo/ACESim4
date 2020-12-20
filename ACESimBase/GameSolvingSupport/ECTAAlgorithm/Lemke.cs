@@ -91,9 +91,17 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             rhsq = new Rat[n];
             vecd = new Rat[n];
             solz = new Rat[n];
+            for (int i = 0; i < n; i++)
+            {
+                rhsq[i] = new Rat();
+                vecd[i] = new Rat();
+                solz[i] = new Rat();
+            }
             /* tableau          */
             A = CreateJaggedArray<Multiprecision[][]>(n, n + 2);
             scfa = new Multiprecision[n + 2];
+            for (int i = 0; i < n + 2; i++)
+                scfa[i] = new Multiprecision();
             bascobas = new int[2 * n + 1];
             whichvar = new int[2 * n + 1];
             lextested = new int[n + 1];

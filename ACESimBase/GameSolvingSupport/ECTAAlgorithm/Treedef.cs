@@ -33,8 +33,8 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
         public int lastnode;
         public int lastoutcome;
-        public int[] firstiset = new int[PLAYERS];
-        public int[] firstmove = new int[PLAYERS];
+        public int[] firstiset = new int[PLAYERS + 1];
+        public int[] firstmove = new int[PLAYERS + 1];
 
         public int[] nseqs = new int[3];
         public int[] nisets = new int[3];
@@ -54,9 +54,17 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         public void alloctree(int nn, int ni, int nm, int no)
         {
             nodes = new node[nn];
+            for (int i = 0; i < nn; i++)
+                nodes[i] = new node();
             isets = new iset[ni];
+            for (int i = 0; i < ni; i++)
+                isets[i] = new iset();
             moves = new move[nm];
+            for (int i = 0; i < nm; i++)
+                moves[i] = new move();
             outcomes = new outcome[no];
+            for (int i = 0; i < no; i++)
+                outcomes[i] = new outcome();
         }       /* end of alloctree(nn, ni, nm, no)             */
 
         public bool genseqin()
@@ -174,7 +182,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                     h.name[digits] = '\0';
                     for (j = digits - 1; j >= 0; j--)
                     {
-                        h.name[j] = an1[pl + (i1 % anbase)];
+                        h.name[j] = (char) (an1[pl] + (i1 % anbase));
                         i1 /= anbase;
                     }
                 }
@@ -2226,7 +2234,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             z.whichnode = 238;
             z.pay[0] = ratfromi(pay[0][152]);
             z.pay[1] = ratfromi(pay[1][152]);
-            z = outcomes[++zindex];
+            zindex++;
             nodes[1].iset = 0;
             nodes[2].iset = 1;
             nodes[3].iset = 3;
