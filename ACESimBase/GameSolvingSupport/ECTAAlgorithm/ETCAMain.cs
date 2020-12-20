@@ -184,7 +184,6 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
             bool bheadfirst = false;/* headers first (multiple games)       */
             bool bgame = false;     /* output the raw game tree (-g option) */
-            int c;
 
             flemke.maxcount = 0;
             flemke.bdocupivot = false;
@@ -236,7 +235,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
 
             printf("Solving example from BvS/Elzen/Talman\n");
-            tracingexample();
+            t.tracingexample();
 
             t.genseqin();
             t.autoname();

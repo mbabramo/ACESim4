@@ -9,6 +9,6 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
     public class outcome
     {
         public Rat[] pay = new Rat[] { new Rat(), new Rat() };
-        public node whichnode;
+        public int whichnode;
     }
 }
