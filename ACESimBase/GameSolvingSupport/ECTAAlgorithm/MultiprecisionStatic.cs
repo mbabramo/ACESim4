@@ -18,11 +18,12 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
 
 		// constants for 32-bit integers (can change later to 64-bit)
-		static string FORMAT = $"%4.4u"; // for printf
+		static string FORMAT = $"%4.4u"; // for tabbedtextf
 		const int MAXD = int.MaxValue;
 		const int BASE = 10000;
 		const int BASE_DIG = 4;
 		
+
 
 		public static bool positive(int[] a)
 		{
@@ -125,50 +126,50 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 		public static void prat(char[] name, int[] Nt, int[] Dt)
 		{
 			int i;
-			printf("%s", name);
+			tabbedtextf("%s", name);
 			if (sign(Nt) == NEG)
 			{
-				printf("-");
+				tabbedtextf("-");
 			}
-			printf("%u", Nt[length(Nt) - 1]);
+			tabbedtextf("%u", Nt[length(Nt) - 1]);
 			for (i = length(Nt) - 2; i >= 1; i--)
 			{
-				printf(FORMAT, Nt[i]);
+				tabbedtextf(FORMAT, Nt[i]);
 			}
 			if (!(Dt[0] == 2 && Dt[1] == 1)) // rational
 			{
-				printf("/");
+				tabbedtextf("/");
 				if (sign(Dt) == NEG)
 				{
-					printf("-");
+					tabbedtextf("-");
 				}
-				printf("%u", Dt[length(Dt) - 1]);
+				tabbedtextf("%u", Dt[length(Dt) - 1]);
 				for (i = length(Dt) - 2; i >= 1; i--)
 				{
-					printf(FORMAT, Dt[i]);
+					tabbedtextf(FORMAT, Dt[i]);
 				}
 			}
-			printf(" ");
+			tabbedtextf(" ");
 		}
 
 		/* normalize mp after computation                              */
 		public static void pmp(char[] name, int[] a)
 		{
 			int i;
-			printf("%s", name);
+			tabbedtextf("%s", name);
 			if (sign(a) == NEG)
 			{
-				printf("-");
+				tabbedtextf("-");
 			}
-			printf("%u", a[length(a) - 1]);
+			tabbedtextf("%u", a[length(a) - 1]);
 			for (i = length(a) - 2; i >= 1; i--)
 			{
-				printf(FORMAT, a[i]);
+				tabbedtextf(FORMAT, a[i]);
 			}
 		}
 
 		/* a = least common multiple of a, b; b is preserved           */
-		public static int mptoa(int[] x, char[] s)
+		public static int mptoa_old_DEBUG2(int[] x, char[] s)
 		/* convert mp integer to string, returning length              */
 		/* s  must be sufficiently long to contain result              */
 		{
@@ -194,7 +195,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 		public static int mptoa_old_DEBUG(int[] x, ref string s)
         {
 			char[] smp = new char[MultiprecisionStatic.Dig2Dec(MAX_DIGITS) + 2];
-			int result = mptoa(x, smp);
+			int result = mptoa_old_DEBUG2(x, smp);
 			s = new string(smp);
 			return result;
 		}
@@ -210,6 +211,10 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 			for (int i = length(x) - 2; i >= 1; i--)
 				sb.Append(x[i]);
 			s = sb.ToString();
+			if (s == "-2412")
+            {
+				var DEBUG = 0;
+            }
 			return s.Length;
 		}
 
@@ -698,7 +703,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 				}
 				if (cy != 0)
 				{
-					printf("divide error");
+					tabbedtextf("divide error");
 				}
 				for (i = lb - 1; i >= 1; i--)
 				{

@@ -102,7 +102,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 			{
 				int cc = currcol;
 				colout();
-				printf("\n-----output reset-----\n\n");
+				Console.Write("\n-----output reset-----\n\n");
 				colset(ncols);
 				for (j = 0; j < cc; j++)
 				{
@@ -155,11 +155,11 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 				sindex += s.Length + 1;
 				if (j < cols - 1) // avoid trailing blanks in line
 				{
-					printf(" "); // more sophisticated spacing possible
+					Console.Write(" "); // more sophisticated spacing possible
 				}
 				else
 				{
-					printf("\n"); // in loop to prevent newline if 0 cols
+					Console.Write("\n"); // in loop to prevent newline if 0 cols
 				}
 			}
 			return sindex;

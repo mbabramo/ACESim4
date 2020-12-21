@@ -100,9 +100,9 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 /* tree is not topologically sorted     */
                 {
                     isnotok = true;
-                    printf("tree not topologically sorted: father %d ",
+                    tabbedtextf("tree not topologically sorted: father %d ",
                         u.father);
-                    printf("is larger than node %d itself.\n", i);
+                    tabbedtextf("is larger than node %d itself.\n", i);
                 }
 
                 /* update sequence triple, new only for move leading to  u  */
@@ -122,10 +122,10 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                     {
                         isnotok = true;
                         /* need output routines for isets, moves, later         */
-                        printf("imperfect recall in info set no. %d ", u.iset);
-                        printf("named %s\n", h.name);
-                        printf("different sequences no. %d,", seq);
-                        printf(" %d\n", h.seqin);
+                        tabbedtextf("imperfect recall in info set no. %d ", u.iset);
+                        tabbedtextf("named %s\n", h.name);
+                        tabbedtextf("different sequences no. %d,", seq);
+                        tabbedtextf(" %d\n", h.seqin);
                     }
                 }       /* end of "u decision node"     */
             }           /* end of "for all nodes u"     */
@@ -151,8 +151,8 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 if (bprint)     /* comment to stdout    */
                 {
                     rattoa(maxpay[pm], s);
-                    printf("Player %d's maximum payoff is %s , ", pm + 1, s);
-                    printf("normalize to -1.\n");
+                    tabbedtextf("Player %d's maximum payoff is %s , ", pm + 1, s);
+                    tabbedtextf("normalize to -1.\n");
                 }
                 addtopay[pm] = ratneg(ratadd(maxpay[pm], ratfromi(1)));
                 for (int zindex = 0; zindex < outcomes.Length; zindex++)
@@ -175,8 +175,8 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                     ;
                 if (digits >= NAMECHARS)
                 {
-                    printf("Too many isets (%d) of player %d.  ", nisets[pl], pl);
-                    printf("change NAMECHARS to %d or larger\n", digits + 1);
+                    tabbedtextf("Too many isets (%d) of player %d.  ", nisets[pl], pl);
+                    tabbedtextf("change NAMECHARS to %d or larger\n", digits + 1);
                     throw new Exception("Digits exceeds namechars");
                 }
                 for (i = 0; i < nisets[pl]; i++)
@@ -278,7 +278,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                     colipr(u.defseq[pl]);
             }
             colout();
-            printf("\n");
+            tabbedtextf("\n");
             /* printing isets       */
             colset(8);
             colleft(0);
@@ -312,7 +312,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 colipr(h.prefact);
             }
             colout();
-            printf("\n");
+            tabbedtextf("\n");
             /* printing moves       */
             colset(9);
             colleft(0);
@@ -462,7 +462,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         {
             int pl;
 
-            printf("------Prior behavior strategies player 1, 2:\n");
+            tabbedtextf("------Prior behavior strategies player 1, 2:\n");
             for (pl = 1; pl < PLAYERS; pl++)
             {
                 behavtorealprob(pl);
@@ -638,18 +638,18 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                     if (rprob.num != 0)
                     {
                         movetoa(c, pl, ref s);
-                        printf(" %s", s);
+                        tabbedtextf(" %s", s);
                         bprob = ratdiv(rprob, rplan[(int) h.seqin - firstmove[pl]]);
                         if (!ratiseq(bprob, ratfromi(1)))
                         {
                             rattoa(bprob, ref s);
-                            printf(":%s", s);
+                            tabbedtextf(":%s", s);
                         }
                     }
                 }
             }
             if (bnewline)
-                printf("\n");
+                tabbedtextf("\n");
         }
 
         void outbehavstrat_moves(int pl, Rat[] rplan, int offset, bool bnewline)
@@ -667,24 +667,24 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 {
                     c = moves[cindex];
                     rprob = rplan[offset + cindex - firstmove[pl]];
-                    printf("%d", rprob.num);
-                    printf("/");
-                    printf("%d", rprob.den);
+                    tabbedtextf("%d", rprob.num);
+                    tabbedtextf("/");
+                    tabbedtextf("%d", rprob.den);
                     if (hindex != firstiset[pl + 1] - 1 || i != h.nmoves - 1)
                     {
-                        printf(",");
+                        tabbedtextf(",");
                     }
                 }
             }
             if (bnewline)
-                printf("\n");
+                tabbedtextf("\n");
         }
 
         void sfprint()
         {
             string s = null;
             int i, j, k;
-            printf("SF payoffs and constraints:\n");
+            tabbedtextf("SF payoffs and constraints:\n");
 
             colset(nseqs[2] + 2 + nisets[1]);
             colleft(0);
@@ -829,17 +829,17 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
             offset = nseqs[1] + 1 + nisets[2];
             /*  non-sparse printing
-            printf("Equilibrium realization plan player 1:\n");
+            tabbedtextf("Equilibrium realization plan player 1:\n");
             outrealplan(1, solz);
-            printf("Equilibrium realization plan player 2:\n");
+            tabbedtextf("Equilibrium realization plan player 2:\n");
             outrealplan(2, solz + offset); */
             if (bshortequil)
-                printf("BEQ>%4d<1>", docuseed);
+                tabbedtextf("BEQ>%4d<1>", docuseed);
             else
-                printf("......Equilibrium behavior strategies player 1, 2:\n");
+                tabbedtextf("......Equilibrium behavior strategies player 1, 2:\n");
             outbehavstrat_moves(1, Lemke.solz, 0, !bshortequil); /* remove _moves for original code */
             if (bshortequil)
-                printf(" <2>");
+                tabbedtextf(" <2>");
             outbehavstrat_moves(2, Lemke.solz, offset, true);  /* remove _moves for original code */
         }
 

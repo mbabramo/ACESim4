@@ -1,4 +1,5 @@
 ﻿#region Usings
+using ACESim;
 using System;
 using System.IO;
 using System.Text;
@@ -242,6 +243,11 @@ namespace ACESimBase.Util
 		public static void printf(string Format, params object[] Parameters)
 		{
 			Console.Write(sprintf(Format, Parameters));
+		}
+
+		public static void tabbedtextf(string Format, params object[] Parameters)
+		{
+			TabbedText.Write(sprintf(Format, Parameters));
 		}
 		#endregion
 		#region fprintf

@@ -53,7 +53,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             long elapsedMilliseconds = swatch.ElapsedMilliseconds;
             if (bprint)
             {
-                printf($"time elapsed {elapsedMilliseconds:4} millisecs \n");
+                tabbedtextf($"time elapsed {elapsedMilliseconds:4} millisecs \n");
             }
 
             swatch.Reset();
@@ -65,13 +65,13 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         void infotree()
         {
             int pl;
-            printf("\nGame tree has %d nodes, ", t.lastnode - Treedef.rootindex);
-            printf("of which %d are terminal nodes.\n", t.lastoutcome);
+            tabbedtextf("\nGame tree has %d nodes, ", t.lastnode - Treedef.rootindex);
+            tabbedtextf("of which %d are terminal nodes.\n", t.lastoutcome);
             for (pl = 0; pl < Treedef.PLAYERS; pl++)
             {
-                printf("    Player %d has ", pl);
-                printf("%3d information sets, ", t.firstiset[pl + 1] - t.firstiset[pl]);
-                printf("%3d moves in total\n", t.firstmove[pl + 1] - t.firstmove[pl] - 1);
+                tabbedtextf("    Player %d has ", pl);
+                tabbedtextf("%3d information sets, ", t.firstiset[pl + 1] - t.firstiset[pl]);
+                tabbedtextf("%3d moves in total\n", t.firstmove[pl + 1] - t.firstmove[pl] - 1);
             }
         }
 
@@ -81,36 +81,36 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             int pl;
 
             lcpsize = t.nseqs[1] + t.nisets[2] + 1 + t.nseqs[2] + t.nisets[1] + 1;
-            printf("Sequence form LCP dimension is %d\n", lcpsize);
+            tabbedtextf("Sequence form LCP dimension is %d\n", lcpsize);
             for (pl = 1; pl < Treedef.PLAYERS; pl++)
             {
-                printf("    Player %d has ", pl);
-                printf("%3d sequences, ", t.nseqs[pl]);
-                printf("subject to %3d constraints\n", t.nisets[pl] + 1);
+                tabbedtextf("    Player %d has ", pl);
+                tabbedtextf("%3d sequences, ", t.nseqs[pl]);
+                tabbedtextf("subject to %3d constraints\n", t.nisets[pl] + 1);
             }
         }
 
         /* give header columns for result information via  inforesult(...)      */
         void inforesultheader()
         {
-            printf("PRIOR/PAY| ");
-            printf("SEQUENCE FORM        mixiset");
-            printf("\n");
-            printf("Seed/seed| ");
-            printf("pivot %%n [secs] digs pl1 pl2");
-            printf("\n");
+            tabbedtextf("PRIOR/PAY| ");
+            tabbedtextf("SEQUENCE FORM        mixiset");
+            tabbedtextf("\n");
+            tabbedtextf("Seed/seed| ");
+            tabbedtextf("pivot %%n [secs] digs pl1 pl2");
+            tabbedtextf("\n");
         }
 
         /* info about results for game with  priorseed  and  (payoff) seed */
         void inforesult(int priorseed, int seed)
         {
             string formatstring = "%4d %3.0f %6.2f  %3d %3d %3d";
-            printf("%4d/%4d| ", priorseed, seed);
-            printf(formatstring, pivots,
+            tabbedtextf("%4d/%4d| ", priorseed, seed);
+            tabbedtextf(formatstring, pivots,
                     (double)pivots * 100.0 / (double)lcpsize,
                 (double)timeused / CLOCKUNITSPERSECOND,
                 mpdigits, eqsize[1], eqsize[2]);
-            printf("\n");
+            tabbedtextf("\n");
         }
 
         /* summary info about results for  m  games     */
@@ -119,18 +119,18 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             double mm = (double)m;
             string formatstring = "%6.1f %3.0f %6.2f %4.1f %3.1f %3.1f";
 
-            printf("---------| AVERAGES over  %d  games:\n", m);
+            tabbedtextf("---------| AVERAGES over  %d  games:\n", m);
             if (m > REPEATHEADER)
                 inforesultheader();
-            printf("         ");
-            printf(formatstring, (double)sumpivots / mm,
+            tabbedtextf("         ");
+            tabbedtextf(formatstring, (double)sumpivots / mm,
                     (double)sumpivots * 100.0 /
                         (double)(lcpsize * mm),
                 (double)sumtimeused / (CLOCKUNITSPERSECOND * mm),
                 (double)summpdigits / mm,
                     (double)sumeqsize[1] / mm,
                     (double)sumeqsize[2] / mm);
-            printf("\n");
+            tabbedtextf("\n");
         }
 
         /* process game for evaluation
@@ -146,7 +146,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             int pl;
 
             if (bcomment)
-                printf("Generating and solving sequence form.\n");
+                tabbedtextf("Generating and solving sequence form.\n");
             t.sflcp();
 
             t.covvector();
@@ -179,6 +179,8 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
         public int main()
         {
+            tabbedtextf("C# TRANSLATION OF ECTA"); // DEBUG
+
             int multipriors = 0;         /* parameter for    -M option  */
             int seed = 0;      /* payoff seed for bintree  (-s option) */
 
@@ -216,27 +218,27 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
             /* options are parsed and flags set */
             /* document the set options         */
-            printf("Options chosen,              [ ] = default:\n");
-            printf("    Multiple priors     %4d [1],  option -M #\n", multipriors);
-            printf("    Accuracy prior      %4d [%d], option -A #\n",
+            tabbedtextf("Options chosen,              [ ] = default:\n");
+            tabbedtextf("    Multiple priors     %4d [1],  option -M #\n", multipriors);
+            tabbedtextf("    Accuracy prior      %4d [%d], option -A #\n",
                 fprior.accuracy, DEFAULTACCURACY);
-            printf("    Seed prior           %3d [0],  ",
+            tabbedtextf("    Seed prior           %3d [0],  ",
                     fprior.seed);
-            printf("    Output prior           %s [N],  option -O\n",
+            tabbedtextf("    Output prior           %s [N],  option -O\n",
                     boutprior ? "Y" : "N");
-            printf("    game output            %s [N],  option -g\n",
+            tabbedtextf("    game output            %s [N],  option -g\n",
                 bgame ? "Y" : "N");
-            printf("    comment LCP pivs & sol %s [N],  option -c\n",
+            tabbedtextf("    comment LCP pivs & sol %s [N],  option -c\n",
                     bcomment ? "Y" : "N");
-            printf("    output LCP             %s [N],  option -o\n",
+            tabbedtextf("    output LCP             %s [N],  option -o\n",
                     boutlcp ? "Y" : "N");
-            printf("    degeneracy statistics  %s [N],  option -d\n",
+            tabbedtextf("    degeneracy statistics  %s [N],  option -d\n",
                 flemke.blexstats ? "Y" : "N");
-            printf("    tableaus               %s [N],  option -t\n",
+            tabbedtextf("    tableaus               %s [N],  option -t\n",
                 flemke.bouttabl ? "Y" : "N");
 
 
-            printf("Solving example from BvS/Elzen/Talman\n");
+            tabbedtextf("Solving example from BvS/Elzen/Talman\n");
             t.tracingexample();
 
             t.genseqin();

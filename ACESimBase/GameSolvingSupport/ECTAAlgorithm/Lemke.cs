@@ -148,7 +148,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             }   /* end of  for(i=...)   */
             if (isqpos)
             {
-                printf("No need to start Lemke since  q>=0. Trivial solution z = 0.");
+                tabbedtextf("No need to start Lemke since  q>=0. Trivial solution z = 0.");
                 return;
             }
         }       /* end of  isqdok()     */
@@ -191,6 +191,11 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 /* fill in col  j  of  A    */
                 for (i = 0; i < n; i++)
                 {
+                    DEBUGJ++;
+                    if (DEBUGJ == 10)
+                    {
+                        int DEBUGK = 0;
+                    }
                     den = (j == 0) ? vecd[i].den :
                       (j == RHS()) ? rhsq[i].den : lcpM[i][j - 1].den;
                     num = (j == 0) ? vecd[i].num :
@@ -203,13 +208,17 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                     copy(tmp3, scfa[j]);
                     divint(tmp3, tmp, tmp2);        /* divint modifies 1st argument */
                     itomp(num, tmp);
-                    mulint(tmp2, tmp, A[i][j]);
+                    var c = new Multiprecision();
+                    mulint(tmp2, tmp, c);
+                    setinA(i, j, c);
                 }
             }   /* end of  for(j=...)   */
             inittablvars();
             itomp(ONE, det);
             changesign(det);
         }       /* end of filltableau()         */
+
+        static int DEBUGJ = 0;
 
         /* ---------------- output routines ------------------- */
         public void outlcp()
@@ -219,7 +228,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             Rat a;
             string s = null;
 
-            printf("LCP dimension: %d\n", n);
+            tabbedtextf("LCP dimension: %d\n", n);
             colset(n + 2);
             for (j = 0; j < n; j++)
                 colpr("");
@@ -268,7 +277,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             //char[] s = new char[INFOSTRINGLENGTH];
             //char[] smp = new char[MultiprecisionStatic.Dig2Dec(MAX_DIGITS) + 2];       /* string to print  mp  into    */
             mptoa(det, ref smp);
-            printf("Determinant: %s\n", smp);
+            tabbedtextf("Determinant: %s\n", smp);
             colset(n + 3);
             colleft(0);
             colpr("var");                   /* headers describing variables */
@@ -300,6 +309,10 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 colpr(s);
                 for (j = 0; j <= n + 1; j++)
                 {
+                    if (i == 9 && j == 0)
+                    {
+                        int DEBUGX = 0;
+                    }
                     mptoa(A[i][j], ref smp);
                     if (smp == "0")
                         colpr(".");
@@ -308,7 +321,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 }
             }
             colout();
-            printf("-----------------end of tableau-----------------\n");
+            tabbedtextf("-----------------end of tableau-----------------\n");
         }       /* end of  outtabl()                                    */
 
         /* output the current basic solution            */
@@ -392,12 +405,12 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                     reduce(num, den);
                     if (mptoi(num, ref (solz[i - 1].num), 1))
                     {
-                        printf($"(Numerator of z{i} overflown)\n");
+                        tabbedtextf($"(Numerator of z{i} overflown)\n");
                         notok = true;
                     }
                     if (mptoi(den, ref (solz[i - 1].den), 1))
                     {
-                        printf($"(Denominator of z{i} overflown)\n");
+                        tabbedtextf($"(Denominator of z{i} overflown)\n");
                         notok = true;
                     }
                 }
@@ -441,18 +454,18 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             assertcobasic(enter, "docupivot");
 
             vartoa(leave, ref s);
-            printf("leaving: %-4s ", s);
+            tabbedtextf("leaving: %-4s ", s);
             vartoa(enter, ref s);
-            printf("entering: %s\n", s);
+            tabbedtextf("entering: %s\n", s);
         }       /* end of  docupivot    */
 
         void raytermination(int enter)
         {
             string s = null;
             vartoa(enter, ref s);
-            printf($"Ray termination when trying to enter {s}\n");
+            tabbedtextf($"Ray termination when trying to enter {s}\n");
             outtabl();
-            printf("Current basis, not an LCP solution:\n");
+            tabbedtextf("Current basis, not an LCP solution:\n");
             outsol();
             throw new Exception("Ray termination; current basis, not an LCP solution");
         }
@@ -465,12 +478,12 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 if (bascobas[whichvar[i]] != i || whichvar[bascobas[i]] != i)
                 /* found an inconsistency, print everything             */
                 {
-                    printf("Inconsistent tableau variables:\n");
+                    tabbedtextf("Inconsistent tableau variables:\n");
                     for (j = 0; j <= 2 * n; j++)
                     {
-                        printf("var j:%3d bascobas:%3d whichvar:%3d ",
+                        tabbedtextf("var j:%3d bascobas:%3d whichvar:%3d ",
                             j, bascobas[j], whichvar[j]);
-                        printf(" b[w[j]]==j: %1d  w[b[j]]==j: %1d\n",
+                        tabbedtextf(" b[w[j]]==j: %1d  w[b[j]]==j: %1d\n",
                             bascobas[whichvar[j]] == j, whichvar[bascobas[j]] == j);
                     }
                     break;
@@ -635,7 +648,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         {
             int i;
             for (i = 0; i < n; i++)
-                changesign(A[i][col]);
+                changesigninA(i, col);
         }
 
         public void negrow(int row)
@@ -644,7 +657,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             int j;
             for (j = 0; j <= n + 1; j++)
                 if (!zero(A[row][j]))
-                    changesign(A[row][j]);
+                    changesigninA(row, j);
         }
 
         /* leave, enter in  VARS  defining  row, col  of  A
@@ -680,13 +693,17 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                                 mulint(A[i][col], A[row][j], tmp2);
                                 linint(tmp1, 1, tmp2, negpiv ? 1 : -1);
                             }
-                            divint(tmp1, det, A[i][j]);
+                            Multiprecision c = new Multiprecision();
+                            divint(tmp1, det, c);
+                            setinA(i, j, c);
                         }
                     /* row  i  has been dealt with, update  A[i][col]  safely   */
                     if (nonzero && !negpiv)
-                        changesign(A[i][col]);
+                        changesigninA(i, col);
                 }       /* end of  for (i=...)                              */
-            copy(A[row][col], det);
+            Multiprecision temp = new Multiprecision();
+            copy(temp, det);
+            setinA(row, col, temp);
             if (negpiv)
                 negrow(row);
             copy(det, pivelt);      /* by construction always positive      */
@@ -695,6 +712,25 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             bascobas[leave] = col + n; whichvar[col + n] = leave;
             bascobas[enter] = row; whichvar[row] = enter;
         }       /* end of  pivot (leave, enter)                         */
+
+
+        void changesigninA(int i, int j)
+        {
+            if (i == 9 && j == 0)
+            {
+                int DEBUG = 0;
+            }
+            changesign(A[i][j]);
+        }
+
+        void setinA(int i, int j, Multiprecision value)
+        {
+            if (i == 9 && j == 0)
+            {
+                int DEBUG = 0;
+            }
+            copy(A[i][j], value);
+        }
 
         /* ------------------------------------------------------------ */
         public void runlemke(Flagsrunlemke flags)
@@ -706,14 +742,14 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             initstatistics();
 
             isqdok();
-            /*  printf("LCP seems OK.\n");      */
+            /*  tabbedtextf("LCP seems OK.\n");      */
 
             filltableau();
-            /*  printf("Tableau filled.\n");    */
+            /*  tabbedtextf("Tableau filled.\n");    */
 
             if (flags.binitabl)
             {
-                printf("After filltableau:\n");
+                tabbedtextf("After filltableau:\n");
                 outtabl();
             }
 
@@ -726,7 +762,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
             if (flags.bouttabl)
             {
-                printf("After negcol:\n");
+                tabbedtextf("After negcol:\n");
                 outtabl();
             }
             while (true)       /* main loop of complementary pivoting                  */
@@ -743,7 +779,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 leave = lexminvar(enter, ref z0leave);
                 if (pivotcount++ == flags.maxcount)
                 {
-                    printf("------- stop after %d pivoting steps --------\n",
+                    tabbedtextf("------- stop after %d pivoting steps --------\n",
                    flags.maxcount);
                     break;
                 }
@@ -751,7 +787,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
             if (flags.binitabl)
             {
-                printf("Final tableau:\n");
+                tabbedtextf("Final tableau:\n");
                 outtabl();
             }
             if (flags.boutsol)
