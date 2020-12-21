@@ -63,17 +63,10 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 			return s.Length;
 		}
 
-		/* compute a*ka+b*kb --> a                                     */
-		public static void lcm(BigInteger a, BigInteger b)
+		public static void lcm(ref BigInteger a, BigInteger b)
 		/* a = least common multiple of a, b; b is preserved */
 		{
-			BigInteger u = 0;
-			BigInteger v = 0;
-			copy(ref u, a);
-			copy(ref v, b);
-			gcd(u, v);
-			divint(a, u, ref v); 
-			mulint(v, b, ref a);
+			a = (a * b) / BigInteger.GreatestCommonDivisor(a, b);
 		}
 		public static bool greater(BigInteger a, BigInteger b)
 		{

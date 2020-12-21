@@ -188,8 +188,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 {
                     den = (j == 0) ? vecd[i].Denominator :
                       (j == RHS()) ? rhsq[i].Denominator : lcpM[i][j - 1].Denominator;
-                    tmp = den;
-                    lcm(scfa[j], tmp);
+                    lcm(ref scfa[j], den);
                 }
                 /* fill in col  j  of  A    */
                 for (i = 0; i < n; i++)

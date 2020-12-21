@@ -443,13 +443,11 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 					 */
                         if (a.Numerator == 0)
                         {
-                            a.Numerator = 1;
-                            a.Denominator = flags.accuracy;
+                            a = 1 / flags.accuracy;
                         }
                         else if (a.Denominator == 1)    /* "else" for pure strategy	*/
                         {
-                            a.Numerator = flags.accuracy - 1;
-                            a.Denominator = flags.accuracy;
+                            a = flags.accuracy - 1 / flags.accuracy;
                         }
                         moves[h.move0].behavprob = a;
                         moves[h.move0 + 1].behavprob = ratadd(ratfromi(1), ratneg(a));
@@ -2626,32 +2624,23 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             isets[14].nmoves = 3;
             // move 0 is empty sequence for player 0
             moves[1].atiset = 0;
-            moves[1].behavprob.Numerator = 1;
-            moves[1].behavprob.Denominator = 3;
+            moves[1].behavprob = 1/3;
             moves[2].atiset = 0;
-            moves[2].behavprob.Numerator = 1;
-            moves[2].behavprob.Denominator = 3;
+            moves[2].behavprob = 1/3;
             moves[3].atiset = 0;
-            moves[3].behavprob.Numerator = 1;
-            moves[3].behavprob.Denominator = 3;
+            moves[3].behavprob = 1/3;
             moves[4].atiset = 1;
-            moves[4].behavprob.Numerator = 1;
-            moves[4].behavprob.Denominator = 3;
+            moves[4].behavprob = 1/3;
             moves[5].atiset = 1;
-            moves[5].behavprob.Numerator = 1;
-            moves[5].behavprob.Denominator = 3;
+            moves[5].behavprob = 1/3;
             moves[6].atiset = 1;
-            moves[6].behavprob.Numerator = 1;
-            moves[6].behavprob.Denominator = 3;
+            moves[6].behavprob = 1/3;
             moves[7].atiset = 2;
-            moves[7].behavprob.Numerator = 1;
-            moves[7].behavprob.Denominator = 3;
+            moves[7].behavprob = 1/3;
             moves[8].atiset = 2;
-            moves[8].behavprob.Numerator = 1;
-            moves[8].behavprob.Denominator = 3;
+            moves[8].behavprob = 1/3;
             moves[9].atiset = 2;
-            moves[9].behavprob.Numerator = 1;
-            moves[9].behavprob.Denominator = 3;
+            moves[9].behavprob = 1/3;
             // move 10 is empty sequence for player 1
             moves[11].atiset = 3;
             moves[12].atiset = 3;
