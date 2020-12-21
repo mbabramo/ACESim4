@@ -9,6 +9,8 @@ using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.MultiprecisionStatic;
 using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.ColumnPrinter;
 using static ACESimBase.Util.CPrint;
 using JetBrains.Annotations;
+using Rationals;
+using System.Numerics;
 
 namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 {
@@ -18,17 +20,17 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         static int n;   /* LCP dimension as used here   */
 
         /* LCP input    */
-        public Rat[][] lcpM;
-        public Rat[] rhsq;
-        public Rat[] vecd;
+        public Rational[][] lcpM;
+        public Rational[] rhsq;
+        public Rational[] vecd;
         public int lcpdim = 0; /* set in setlcp                */
 
         /* LCP result   */
-        public Rat[] solz;
+        public Rational[] solz;
         public int pivotcount;
 
         /* tableau:    */
-        public static Multiprecision[][] A;                 /* tableau                              */
+        public static BigInteger[][] A;                 /* tableau                              */
         public static int[] bascobas;          /* VARS  -> ROWCOL                      */
         public static int[] whichvar;          /* ROWCOL -> VARS, inverse of bascobas  */
 
@@ -60,9 +62,9 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 		 * scfa[Z(1..n)] for cols of  M
 		 * result variables to be multiplied with these
 		 */
-        public static Multiprecision[] scfa;
+        public static BigInteger[] scfa;
 
-        public static Multiprecision det = new Multiprecision();                        /* determinant                  */
+        public static BigInteger det = new BigInteger();                        /* determinant                  */
 
         public static int[] lextested, lexcomparisons;/* statistics for lexminvar     */
 
@@ -88,24 +90,24 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             }
             n = lcpdim = newn;
             /* LCP input/output data    */
-            lcpM = CreateJaggedArray<Rat[][]>(n, n);
-            rhsq = new Rat[n];
-            vecd = new Rat[n];
-            solz = new Rat[n];
+            lcpM = CreateJaggedArray<Rational[][]>(n, n);
+            rhsq = new Rational[n];
+            vecd = new Rational[n];
+            solz = new Rational[n];
             for (int i = 0; i < n; i++)
             {
-                rhsq[i] = new Rat();
-                vecd[i] = new Rat();
-                solz[i] = new Rat();
+                rhsq[i] = new Rational();
+                vecd[i] = new Rational();
+                solz[i] = new Rational();
             }
             /* tableau          */
-            A = CreateJaggedArray<Multiprecision[][]>(n, n + 2);
+            A = CreateJaggedArray<BigInteger[][]>(n, n + 2);
             for (int i = 0; i < n; i++)
                 for (int j = 0; j < n + 2; j++)
-                    A[i][j] = new Multiprecision();
-            scfa = new Multiprecision[n + 2];
+                    A[i][j] = new BigInteger();
+            scfa = new BigInteger[n + 2];
             for (int i = 0; i < n + 2; i++)
-                scfa[i] = new Multiprecision();
+                scfa[i] = new BigInteger();
             bascobas = new int[2 * n + 1];
             whichvar = new int[2 * n + 1];
             lextested = new int[n + 1];
@@ -115,7 +117,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             /* initialize all LCP entries to zero       */
             {
                 int i, j;
-                Rat zero = ratfromi(0);
+                Rational zero = ratfromi(0);
                 for (i = 0; i < n; i++)
                 {
                     for (j = 0; j < n; j++)
@@ -134,16 +136,16 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             bool isqpos = true;
             for (i = 0; i < n; i++)
             {
-                if (vecd[i].num < 0)
+                if (vecd[i].Numerator < 0)
                 {
-                    throw new Exception($"Covering vector  d[{i + 1}] = {vecd[i].num}/{vecd[i].den} negative\n");
+                    throw new Exception($"Covering vector  d[{i + 1}] = {vecd[i]} negative\n");
                 }
-                else if (rhsq[i].num < 0)
+                else if (rhsq[i].Numerator < 0)
                 {
                     isqpos = false;
-                    if (vecd[i].num == 0)
+                    if (vecd[i].Numerator == 0)
                     {
-                        throw new Exception($"Covering vector  d[{i + 1}] = 0  where  q[{i + 1}] = {rhsq[i].num}/{rhsq[i].den}  is negative. Cannot start Lemke");
+                        throw new Exception($"Covering vector  d[{i + 1}] = 0  where  q[{i + 1}] = {rhsq[i]}  is negative. Cannot start Lemke");
                     }
                 }
             }   /* end of  for(i=...)   */
@@ -176,36 +178,35 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         /* fill tableau from  M, q, d   */
         {
             int i, j;
-            long den, num;
-            Multiprecision tmp = new Multiprecision(), tmp2 = new Multiprecision(), tmp3 = new Multiprecision();
+            BigInteger den, num;
+            BigInteger tmp, tmp2, tmp3;
             for (j = 0; j <= n + 1; j++)
             {
                 /* compute lcm  scfa[j]  of denominators for  col  j  of  A         */
-                itomp(MultiprecisionStatic.ONE, scfa[j]);
+                scfa[j] = 1;
                 for (i = 0; i < n; i++)
                 {
-                    den = (j == 0) ? vecd[i].den :
-                      (j == RHS()) ? rhsq[i].den : lcpM[i][j - 1].den;
-                    itomp(den, tmp);
+                    den = (j == 0) ? vecd[i].Denominator :
+                      (j == RHS()) ? rhsq[i].Denominator : lcpM[i][j - 1].Denominator;
+                    tmp = den;
                     lcm(scfa[j], tmp);
                 }
                 /* fill in col  j  of  A    */
                 for (i = 0; i < n; i++)
                 {
-                    den = (j == 0) ? vecd[i].den :
-                      (j == RHS()) ? rhsq[i].den : lcpM[i][j - 1].den;
-                    num = (j == 0) ? vecd[i].num :
-                      (j == RHS()) ? rhsq[i].num : lcpM[i][j - 1].num;
+                    den = (j == 0) ? vecd[i].Denominator :
+                      (j == RHS()) ? rhsq[i].Denominator : lcpM[i][j - 1].Denominator;
+                    num = (j == 0) ? vecd[i].Numerator :
+                      (j == RHS()) ? rhsq[i].Numerator : lcpM[i][j - 1].Numerator;
                     /* cols 0..n of  A  contain LHS cobasic cols of  Ax = b     */
                     /* where the system is here         -Iw + dz_0 + Mz = -q    */
                     /* cols of  q  will be negated after first min ratio test   */
                     /* A[i][j] = num * (scfa[j] / den),  fraction is integral       */
-                    itomp(den, tmp);
-                    copy(tmp3, scfa[j]);
-                    divint(tmp3, tmp, tmp2);        /* divint modifies 1st argument */
-                    itomp(num, tmp);
-                    var c = new Multiprecision();
-                    mulint(tmp2, tmp, c);
+                    tmp = den;
+                    tmp2 = scfa[j] / tmp;
+                    tmp = num;
+                    BigInteger c = 0;
+                    mulint(tmp2, tmp, ref c);
                     setinA(i, j, c);
                 }
             }   /* end of  for(j=...)   */
@@ -219,7 +220,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         /* output the LCP as given      */
         {
             int i, j;
-            Rat a;
+            Rational a;
             string s = null;
 
             tabbedtextf("LCP dimension: %d\n", n);
@@ -234,7 +235,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 for (j = 0; j < n; j++)
                 {
                     a = lcpM[i][j];
-                    if (a.num == 0)
+                    if (a.Numerator == 0)
                         colpr(".");
                     else
                     {
@@ -323,7 +324,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             //char smp[2 * DIG2DEC(MAX_DIGITS) + 4];
             /* string to print 2 mp's  into                 */
             int i, row, pos;
-            Multiprecision num = new Multiprecision(), den = new Multiprecision();
+            BigInteger num = 0, den = 0;
 
             colset(n + 2);    /* column printing to see complementarity of  w  and  z */
 
@@ -348,12 +349,15 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 {
                     if (i <= n)       /* printing Z(i)        */
                         /* value of  Z(i):  scfa[Z(i)]*rhs[row] / (scfa[RHS()]*det)   */
-                        mulint(scfa[Z(i)], A[row][RHS()], num);
+                        mulint(scfa[Z(i)], A[row][RHS()], ref num);
                     else            /* printing W(i-n)      */
                         /* value of  W(i-n)  is  rhs[row] / (scfa[RHS()]*det)         */
-                        copy(num, A[row][RHS()]);
-                    mulint(det, scfa[RHS()], den);
-                    reduce(num, den);
+                        copy(ref num, A[row][RHS()]);
+                    mulint(det, scfa[RHS()], ref den);
+                    Rational r = (num / den);
+                    r = r.CanonicalForm;
+                    num = r.Numerator;
+                    den = r.Denominator;
                     pos = mptoa(num, ref smp);
                     if (!one(den))  /* add the denominator  */
                     {
@@ -384,29 +388,14 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         {
             bool notok = false;
             int i, row;
-            Multiprecision num = new Multiprecision(), den = new Multiprecision();
+            BigInteger num = 0, den = 0;
 
             for (i = 1; i <= n; i++)
                 if ((row = bascobas[i]) < n)  /*  i  is a basic variable */
                 {
                     /* value of  Z(i):  scfa[Z(i)]*rhs[row] / (scfa[RHS()]*det)   */
-                    mulint(scfa[Z(i)], A[row][RHS()], num);
-                    mulint(det, scfa[RHS()], den);
-                    reduce(num, den);
-                    long num2 = solz[i - 1].num;
-                    long den2 = solz[i - 1].den;
-                    if (mptoi(num, out num2, 1))
-                    {
-                        tabbedtextf($"(Numerator of z{i} overflown)\n");
-                        notok = true;
-                    }
-                    if (mptoi(den, out den2, 1))
-                    {
-                        tabbedtextf($"(Denominator of z{i} overflown)\n");
-                        notok = true;
-                    }
-                    solz[i - 1].num = num2;
-                    solz[i - 1].den = den2;
+                    mulint(scfa[Z(i)], A[row][RHS()], ref num);
+                    mulint(det, scfa[RHS()], ref den);
                 }
                 else            /* i is nonbasic    */
                     solz[i - 1] = ratfromi(0);
@@ -664,12 +653,12 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         {
             int row, col, i, j;
             bool nonzero, negpiv;
-            Multiprecision pivelt = new Multiprecision(), tmp1 = new Multiprecision(), tmp2 = new Multiprecision();
+            BigInteger pivelt = 0, tmp1 = 0, tmp2 = 0;
 
             row = bascobas[leave];
             col = TABCOL(enter);
 
-            copy(pivelt, A[row][col]);     /* pivelt anyhow later new determinant  */
+            copy(ref pivelt, A[row][col]);     /* pivelt anyhow later new determinant  */
             negpiv = negative(pivelt);
             if (negpiv)
                 changesign(pivelt);
@@ -682,15 +671,14 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                         /*  A[i,j] =
                            (A[i,j] A[row,col] - A[i,col] A[row,j])/ det     */
                         {
-                            if (pivotnum == 14 && j == 24)
-                            {
-                                int DEBUG = 0;
-                            }
-                            mulint(A[i][j], pivelt, tmp1);
+                            mulint(A[i][j], pivelt, ref tmp1);
                             if (nonzero)
                             {
-                                mulint(A[i][col], A[row][j], tmp2);
-                                linint(tmp1, 1, tmp2, negpiv ? 1 : -1);
+                                mulint(A[i][col], A[row][j], ref tmp2);
+                                if (negpiv)
+                                    tmp1 = tmp1 + tmp2;
+                                else
+                                    tmp1 = tmp1 - tmp2;
                             }
                             Multiprecision c = new Multiprecision();
                             divint(tmp1, det, c);
@@ -701,16 +689,12 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                     if (nonzero && !negpiv)
                         changesigninA(i, col);
                 }       /* end of  for (i=...)                              */
-            Multiprecision temp = new Multiprecision();
-            copy(temp, det);
+            BigInteger temp = 0;
+            copy(ref temp, det);
             setinA(row, col, temp);
             if (negpiv)
                 negrow(row);
-            copy(det, pivelt);      /* by construction always positive      */
-            if (det.ToString() == "2324522934")
-            {
-                var DEBUG = 0;
-            }
+            copy(ref det, pivelt);      /* by construction always positive      */
 
             /* update tableau variables                                     */
             bascobas[leave] = col + n; whichvar[col + n] = leave;
@@ -724,9 +708,9 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             changesign(A[i][j]);
         }
 
-        void setinA(int i, int j, Multiprecision value)
+        void setinA(int i, int j, BigInteger value)
         {
-            copy(A[i][j], value);
+            copy(ref A[i][j], value);
         }
 
         /* ------------------------------------------------------------ */

@@ -421,7 +421,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                         }
                         for (int i = 0; i < h.nmoves; i++)
                         {
-                            Rat a = new Rat();
+                            Rational a = new Rational();
                             a.num = moves[h.move0 + i].behavprob.num;
                             a.den = denominator;
                             moves[h.move0 + i].behavprob = a;
@@ -432,7 +432,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                     }
                     else
                     {
-                        Rat a;
+                        Rational a;
                         double x;
 
                         x = RandomGenerator.NextDouble();
@@ -566,7 +566,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             Lemke.rhsq[nseqs[1] + nisets[2] + 1 + nseqs[2]] = ratneg(ratfromi(1));
         }
 
-        void realplanfromprob(int pl, Rat[] rplan)
+        void realplanfromprob(int pl, Rational[] rplan)
         {
             int i;
 
@@ -574,7 +574,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 rplan[i] = moves[firstmove[pl] + i].realprob;
         }
 
-        public int propermixisets(int pl, Rat[] rplan, int offset)
+        public int propermixisets(int pl, Rational[] rplan, int offset)
         {
             int mix = 0;
             int i;
@@ -600,7 +600,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             return mix;
         }
 
-        void outrealplan(int pl, Rat[] rplan)
+        void outrealplan(int pl, Rational[] rplan)
         {
             int i;
             string s = null;
@@ -619,13 +619,13 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             colout();
         }
 
-        void outbehavstrat(int pl, Rat[] rplan, bool bnewline)
+        void outbehavstrat(int pl, Rational[] rplan, bool bnewline)
         {
             string s = null;
             int i;
             move c;
             iset h;
-            Rat rprob, bprob;
+            Rational rprob, bprob;
 
             for (int hindex = firstiset[pl]; hindex < firstiset[pl + 1]; hindex++)
             {
@@ -652,12 +652,12 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 tabbedtextf("\n");
         }
 
-        void outbehavstrat_moves(int pl, Rat[] rplan, int offset, bool bnewline)
+        void outbehavstrat_moves(int pl, Rational[] rplan, int offset, bool bnewline)
         {
             int i;
             move c;
             iset h;
-            Rat rprob;
+            Rational rprob;
 
             for (int hindex = firstiset[pl]; hindex < firstiset[pl + 1]; hindex++)
             {
@@ -742,14 +742,14 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
         /* SFNF */
 
-        public Rat[][] realplan = new Rat[PLAYERS][];
+        public Rational[][] realplan = new Rational[PLAYERS][];
 
-        public void allocrealplan(Rat[][] realpl)
+        public void allocrealplan(Rational[][] realpl)
         {
             int pl;
 
             for (pl = 0; pl < PLAYERS; pl++)
-                realpl[pl] = new Rat[nseqs[pl]];
+                realpl[pl] = new Rational[nseqs[pl]];
         }
 
         public void behavtorealprob(int pl)
@@ -766,7 +766,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
         void payratmatcpy(Payvec[][] frommatr, int plminusone, bool bnegate,
                 bool btranspfrommatr, int nfromrows, int nfromcols,
-                Rat[][] targetmatr, int targrowoffset, int targcoloffset)
+                Rational[][] targetmatr, int targrowoffset, int targcoloffset)
         {
             int i, j;
             for (i = 0; i < nfromrows; i++)
@@ -781,7 +781,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
         void intratmatcpy(int[][] frommatr, bool bnegate,
                 bool btranspfrommatr, int nfromrows, int nfromcols,
-                Rat[][] targetmatr, int targrowoffset, int targcoloffset)
+                Rational[][] targetmatr, int targrowoffset, int targcoloffset)
         {
             int i, j;
             for (i = 0; i < nfromrows; i++)

@@ -8,7 +8,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 {
     public class outcome
     {
-        public Rat[] pay = new Rat[] { new Rat(), new Rat() };
+        public Rational[] pay = new Rational[] { new Rational(), new Rational() };
         public int whichnode;
     }
 }

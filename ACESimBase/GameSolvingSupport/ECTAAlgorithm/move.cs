@@ -9,8 +9,8 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
     public class move
 	{
 		public int atiset = -1; // where this move emanates from
-		public Rat behavprob = new Rat(); // behavior probability
-		public Rat realprob = new Rat(); // realization probability
+		public Rational behavprob = new Rational(); // behavior probability
+		public Rational realprob = new Rational(); // realization probability
 		public int redsfcol; // column of reduced sequence form
 		/* for NF computation                                               */
 		public int ncompat; // number of compatible partial strats

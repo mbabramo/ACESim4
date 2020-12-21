@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Rationals;
+using System;
 using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.MultiprecisionStatic;
 using static ACESimBase.Util.CPrint;
 
@@ -6,185 +7,66 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 {
     public static class RatStatic
     {
-        public static Rat ratadd(Rat a, Rat b)
+        public static Rational ratadd(Rational a, Rational b)
         {
-            /*
-            a.num = a.num * b.den + a.den * b.num;
-            a.den *= b.den;
-            return ratreduce(a);
-            */
-
-            Multiprecision num, den, x, y;
-            num = new Multiprecision();
-            den = new Multiprecision();
-            x = new Multiprecision();
-            y = new Multiprecision();
-
-            itomp(a.num, num);
-            itomp(a.den, den);
-            itomp(b.num, x);
-            itomp(b.den, y);
-            mulint(y, num, num);
-            mulint(den, x, x);
-            linint(num, 1, x, 1);
-            mulint(y, den, den);
-            reduce(num, den);
-            long num2 = a.num;
-            long den2 = a.den;
-            mptoi(num, out num2, 1);
-            mptoi(den, out den2, 1);
-            a.num = num2;
-            a.den = den2;
-            return a;
+            return a + b;
         }
 
-        public static Rat ratdiv(Rat a, Rat b)
+        public static Rational ratdiv(Rational a, Rational b)
         {
-            return ratmult(a, ratinv(b));
+            return a / b;
         }
 
-        public static Rat ratfromi(int i)
+        public static Rational ratfromi(int i)
         {
-            Rat tmp = new Rat();
-            tmp.num = i;
-            tmp.den = 1;
-            return tmp;
+            return i;
         }
 
-        public static long ratgcd(long a, long b)
+        public static Rational ratinv(Rational a)
         {
-            long c;
-            if (a < 0) a = -a;
-            if (b < 0) b = -b;
-            if (a < b) { c = a; a = b; b = c; }
-            while (b != 0)
-            {
-                c = a % b;
-                a = b;
-                b = c;
-            }
-            return a;
+            
+            return 1 / a;
+        }
+        public static bool ratiseq(Rational a, Rational b)
+        {
+            return a == b;
         }
 
-        public static Rat ratinv(Rat a)
+        public static bool ratgreat(Rational a, Rational b)
         {
-            long x;
-
-            x = a.num;
-            a.num = a.den;
-            a.den = x;
-            return a;
-        }
-        public static bool ratiseq(Rat a, Rat b)
-        {
-            return (a.num == b.num && a.den == b.den);
+            return a > b;
         }
 
-        public static bool ratgreat(Rat a, Rat b)
+        public static Rational ratmult(Rational a, Rational b)
         {
-            Rat c = ratadd(a, ratneg(b));
-            return (c.num > 0);
+            return (a * b).CanonicalForm;
         }
 
-        public static Rat ratmult(Rat a, Rat b)
+        public static Rational ratneg(Rational a)
         {
-            long x;
-
-            /* avoid overflow in intermediate product by cross-cancelling first
-             */
-            x = a.num;
-            a.num = b.num;
-            b.num = x;
-            a = ratreduce(a);
-            b = ratreduce(b);
-            a.num *= b.num;
-            a.den *= b.den;
-            return ratreduce(a);        /* a  or  b  might be non-normalized    s*/
+            return -a;
         }
 
-        public static Rat ratneg(Rat a)
-        /* returns -a                                           */
+        public static Rational ratreduce(Rational a)
         {
-            a.num = -a.num;
-            return a;
+            return a.CanonicalForm;
         }
 
-        public static Rat ratreduce(Rat a)
+        public static int rattoa(Rational r, char[] s)
         {
-            if (a.num == 0)
-                a.den = 1;
-            else
-            {
-                long div;
-                if (a.den < 0)
-                {
-                    a.den = -a.den;
-                    a.num = -a.num;
-                }
-                div = ratgcd(a.den, a.num);
-                a.num = a.num / div;
-                a.den = a.den / div;
-            }
-            return a;
-        }
-
-        public static int rattoa(Rat r, char[] s)
-        {
-            int l, a;
-            l = strcpy_formatted(s, 0, "%d", r.num);
-            if (r.den != 1)
-            {
-                a = strcpy_formatted(s, l, "/%d", r.den);
-                l += a + 1;
-            }
-            return l;
-        }
-        public static int rattoa(Rat r, ref string s)
-        {
-            s = sprintf("%d", r.num);
-            if (r.den != 1)
-            {
-                string s2 = sprintf("/%d", r.den);
-                s += s2;
-            }
+            s = r.ToString().ToCharArray();
             return s.Length;
         }
 
-        public static double rattodouble(Rat a)
+        public static int rattoa(Rational r, ref string s)
         {
-            return (double)a.num / (double)a.den;
+            s = r.ToString();
+            return s.Length;
         }
 
-        public static Rat contfract(double x, int accuracy)
+        public static Rational contfract(double x, int accuracy)
         {
-            int n0, n1, d0, d1;
-            double xfl, nnext, dnext;
-            Rat result = new Rat();
-
-            xfl = Math.Floor(x);
-            n0 = 1;
-            d0 = 0;
-            n1 = (int)xfl;
-            d1 = 1;
-
-            while (true)
-            {
-                if (x < xfl + 0.5 / int.MaxValue)    /* next inverse too large */
-                    break;
-                x = 1 / (x - xfl);
-                xfl = Math.Floor(x);
-                dnext = d1 * xfl + d0;
-                nnext = n1 * xfl + n0;
-                if (dnext > accuracy || nnext > int.MaxValue || nnext < int.MaxValue)
-                    break;
-                d0 = d1;
-                d1 = (int)dnext;
-                n0 = n1;
-                n1 = (int)nnext;
-            }
-            result.num = n1;
-            result.den = d1;
-            return result;
+            return Rational.Approximate(x, 1.0 / (double)accuracy);
         }
     }
 }

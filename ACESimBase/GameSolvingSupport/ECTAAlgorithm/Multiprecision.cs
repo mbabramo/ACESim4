@@ -1,29 +1,29 @@
 ﻿using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.MultiprecisionStatic;
 
 namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 {
+    // DEBUG: Should be able to eliminate this.
     public class Multiprecision
     {
-		public long[] Values;
+		public BigInteger BigInt;
 
-		public Multiprecision(long[] values = null)
+		public Multiprecision(BigInteger? values = null)
         {
-			Values = values ?? new long[MultiprecisionStatic.MAX_DIGITS + 1];
+            BigInt = values ?? new BigInteger();
         }
 
-		public static implicit operator Multiprecision(long[] d) => new Multiprecision(d);
-		public static implicit operator long[](Multiprecision b) => b.Values;
+		public static implicit operator Multiprecision(BigInteger d) => new Multiprecision(d);
+		public static implicit operator BigInteger(Multiprecision b) => b.BigInt;
 
         public override string ToString()
         {
-            string s = null;
-            MultiprecisionStatic.mptoa(Values, ref s);
-            return s;
+            return BigInt.ToString();
         }
     }
 }

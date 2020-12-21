@@ -8,13 +8,13 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 {
 	public class Payvec
 	{
-		public Rat[] Values;
+		public Rational[] Values;
 
-		public Payvec(Rat[] values = null)
+		public Payvec(Rational[] values = null)
 		{
-			Values = values ?? new Rat[2] { new Rat(), new Rat() };
+			Values = values ?? new Rational[2] { new Rational(), new Rational() };
 		}
-		public Rat this[int index]
+		public Rational this[int index]
 		{
 			get => Values[index];
 			set
@@ -23,7 +23,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             }
 		}
 
-		public static implicit operator Payvec(Rat[] d) => new Payvec(d);
-		public static implicit operator Rat[](Payvec b) => b.Values;
+		public static implicit operator Payvec(Rational[] d) => new Payvec(d);
+		public static implicit operator Rational[](Payvec b) => b.Values;
 	}
 }
