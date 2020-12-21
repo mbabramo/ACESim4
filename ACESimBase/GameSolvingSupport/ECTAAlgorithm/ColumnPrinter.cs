@@ -113,6 +113,10 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 			}
 			if (colwidth[currcol] < w)
 			{
+				if (w > 20)
+                {
+					var DEBUG = 0;
+                }
 				colwidth[currcol] = w;
 			}
 			strcpy(buf, posinbuf, s);

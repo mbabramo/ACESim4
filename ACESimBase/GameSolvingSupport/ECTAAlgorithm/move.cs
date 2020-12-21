@@ -8,7 +8,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 {
     public class move
 	{
-		public int atiset; // where this move emanates from
+		public int atiset = -1; // where this move emanates from
 		public Rat behavprob = new Rat(); // behavior probability
 		public Rat realprob = new Rat(); // realization probability
 		public int redsfcol; // column of reduced sequence form

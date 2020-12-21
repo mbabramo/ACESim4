@@ -70,8 +70,8 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             for (pl = 0; pl < Treedef.PLAYERS; pl++)
             {
                 printf("    Player %d has ", pl);
-                printf("%3d information sets, ", (pl + 1 == Treedef.PLAYERS ? t.isets.Length : t.firstiset[pl + 1]) - t.firstiset[pl]);
-                printf("%3d moves in total\n", (pl + 1 == Treedef.PLAYERS ? t.moves.Length : t.firstmove[pl + 1]) - t.firstmove[pl] - 1);
+                printf("%3d information sets, ", t.firstiset[pl + 1] - t.firstiset[pl]);
+                printf("%3d moves in total\n", t.firstmove[pl + 1] - t.firstmove[pl] - 1);
             }
         }
 
@@ -186,11 +186,13 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             bool bgame = false;     /* output the raw game tree (-g option) */
 
             flemke.maxcount = 0;
-            flemke.bdocupivot = false;
+
+            // DEBUG
+            flemke.bdocupivot = true;
             flemke.binitabl = false;
-            flemke.bouttabl = false;
-            flemke.boutsol = false;
-            flemke.blexstats = false;
+            flemke.bouttabl = true;
+            flemke.boutsol = true;
+            flemke.blexstats = true;
 
             fprior.seed = 0;
             fprior.accuracy = DEFAULTACCURACY;

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using static ACESimBase.Util.CPrint;
 
 namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
@@ -190,13 +191,28 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 			return Convert.ToChar(digit + (int) ('0'));
         }
 
-		public static int mptoa(int[] x, ref string s)
+		public static int mptoa_old_DEBUG(int[] x, ref string s)
         {
 			char[] smp = new char[MultiprecisionStatic.Dig2Dec(MAX_DIGITS) + 2];
 			int result = mptoa(x, smp);
 			s = new string(smp);
 			return result;
 		}
+
+		public static int mptoa(int[] x, ref string s)
+        {
+			StringBuilder sb = new StringBuilder();
+			if (sign(x) == NEG)
+			{
+				sb.Append('-');
+			}
+			sb.Append(x[length(x) - 1].ToString());
+			for (int i = length(x) - 2; i >= 1; i--)
+				sb.Append(x[i]);
+			s = sb.ToString();
+			return s.Length;
+		}
+
 
 		internal static uint gcd_maxspval = MAXD;
 		internal static int gcd_maxsplen;

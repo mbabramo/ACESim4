@@ -702,6 +702,7 @@ namespace ACESimBase.Util
 		{
 			for (int i = 0; i < s.Length; i++)
 				buf[posinbuf + i] = s[i];
+			buf[posinbuf + s.Length] = '\0';
 		}
 
 

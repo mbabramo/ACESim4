@@ -13,7 +13,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 		public int nmoves;
 		public int move0;
 		/* autoname possible                                                */
-		public char[] name = new char[Treedef.NAMECHARS]; // name of iset
+		public string name = ""; // name of iset
 		/* will be generated                                                */
 		public int seqin; // sequence leading to that iset
 		/* for NF computation                                               */
