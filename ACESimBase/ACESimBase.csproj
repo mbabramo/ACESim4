@@ -5,6 +5,10 @@
     <LangVersion>9.0</LangVersion>
     <NoWarn>SYSLIB0011</NoWarn>
   </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net5.0|AnyCPU'">
+    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
+  </PropertyGroup>
   
   <ItemGroup>
     <PackageReference Include="alglib.net" Version="3.16.0" />

@@ -80,17 +80,20 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 			
 			try
 			{
-				result = 0;
-				long placeValue = 1;
-				int digits = length(a);
-				for (int i = 1; i <= digits - 1; i++)
+				checked
 				{
-					result += a[i] * placeValue;
-					placeValue *= BASE;
-				}
-				if (sign(a) == NEG)
-				{
-					result = 0 - result;
+					result = 0;
+					long placeValue = 1;
+					int digits = length(a);
+					for (int i = 1; i <= digits - 1; i++)
+					{
+						result += a[i] * placeValue;
+						placeValue *= BASE;
+					}
+					if (sign(a) == NEG)
+					{
+						result = 0 - result;
+					}
 				}
 				return false;
 			}
@@ -122,57 +125,6 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 				storelength(a, i + 1);
 			}
 		}
-
-		/* print the long precision integer a                          */
-		public static void prat(char[] name, long[] Nt, long[] Dt)
-		{
-			int i;
-			tabbedtextf("%s", name);
-			if (sign(Nt) == NEG)
-			{
-				tabbedtextf("-");
-			}
-			tabbedtextf("%u", Nt[length(Nt) - 1]);
-			for (i = length(Nt) - 2; i >= 1; i--)
-			{
-				tabbedtextf(FORMAT, Nt[i]);
-			}
-			if (!(Dt[0] == 2 && Dt[1] == 1)) // rational
-			{
-				tabbedtextf("/");
-				if (sign(Dt) == NEG)
-				{
-					tabbedtextf("-");
-				}
-				tabbedtextf("%u", Dt[length(Dt) - 1]);
-				for (i = length(Dt) - 2; i >= 1; i--)
-				{
-					tabbedtextf(FORMAT, Dt[i]);
-				}
-			}
-			tabbedtextf(" ");
-		}
-
-		/* normalize mp after computation                              */
-		public static void pmp(char[] name, long[] a)
-		{
-			int i;
-			tabbedtextf("%s", name);
-			if (sign(a) == NEG)
-			{
-				tabbedtextf("-");
-			}
-			tabbedtextf("%u", a[length(a) - 1]);
-			for (i = length(a) - 2; i >= 1; i--)
-			{
-				tabbedtextf(FORMAT, a[i]);
-			}
-		}
-
-		public static char ToChar(int digit)
-        {
-			return Convert.ToChar(digit + (int) ('0'));
-        }
 
 		public static int mptoa(long[] x, ref string s)
         {
