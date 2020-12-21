@@ -175,7 +175,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         /* fill tableau from  M, q, d   */
         {
             int i, j;
-            int den, num;
+            long den, num;
             Multiprecision tmp = new Multiprecision(), tmp2 = new Multiprecision(), tmp3 = new Multiprecision();
             for (j = 0; j <= n + 1; j++)
             {
@@ -392,8 +392,8 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                     mulint(scfa[Z(i)], A[row][RHS()], num);
                     mulint(det, scfa[RHS()], den);
                     reduce(num, den);
-                    int num2 = solz[i - 1].num;
-                    int den2 = solz[i - 1].den;
+                    long num2 = solz[i - 1].num;
+                    long den2 = solz[i - 1].den;
                     if (mptoi(num, out num2, 1))
                     {
                         tabbedtextf($"(Numerator of z{i} overflown)\n");

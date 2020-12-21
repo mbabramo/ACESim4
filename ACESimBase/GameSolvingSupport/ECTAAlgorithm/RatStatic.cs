@@ -29,8 +29,8 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             linint(num, 1, x, 1);
             mulint(y, den, den);
             reduce(num, den);
-            int num2 = a.num;
-            int den2 = a.den;
+            long num2 = a.num;
+            long den2 = a.den;
             mptoi(num, out num2, 1);
             mptoi(den, out den2, 1);
             a.num = num2;
@@ -51,9 +51,9 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             return tmp;
         }
 
-        public static int ratgcd(int a, int b)
+        public static long ratgcd(long a, long b)
         {
-            int c;
+            long c;
             if (a < 0) a = -a;
             if (b < 0) b = -b;
             if (a < b) { c = a; a = b; b = c; }
@@ -68,7 +68,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
         public static Rat ratinv(Rat a)
         {
-            int x;
+            long x;
 
             x = a.num;
             a.num = a.den;
@@ -88,7 +88,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
         public static Rat ratmult(Rat a, Rat b)
         {
-            int x;
+            long x;
 
             /* avoid overflow in intermediate product by cross-cancelling first
              */
@@ -115,7 +115,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 a.den = 1;
             else
             {
-                int div;
+                long div;
                 if (a.den < 0)
                 {
                     a.den = -a.den;

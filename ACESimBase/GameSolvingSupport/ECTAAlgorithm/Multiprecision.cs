@@ -9,14 +9,14 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 {
     public class Multiprecision
     {
-		public int[] Values;
+		public long[] Values;
 
-		public Multiprecision(int[] values = null)
+		public Multiprecision(long[] values = null)
         {
-			Values = values ?? new int[MultiprecisionStatic.MAX_DIGITS + 1];
+			Values = values ?? new long[MultiprecisionStatic.MAX_DIGITS + 1];
         }
 
-		public static implicit operator Multiprecision(int[] d) => new Multiprecision(d);
-		public static implicit operator int[](Multiprecision b) => b.Values;
+		public static implicit operator Multiprecision(long[] d) => new Multiprecision(d);
+		public static implicit operator long[](Multiprecision b) => b.Values;
 	}
 }

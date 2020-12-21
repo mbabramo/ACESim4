@@ -7,8 +7,8 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 {
     public struct Rat
     {
-        private int _num, _den;
-        public int num
+        private long _num, _den;
+        public long num
         {
             get
             {
@@ -19,7 +19,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 _num = value;
             }
         }
-        public int den
+        public long den
         {
             get
             {

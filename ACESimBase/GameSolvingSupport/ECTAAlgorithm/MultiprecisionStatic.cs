@@ -26,39 +26,39 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 		
 
 
-		public static bool positive(int[] a)
+		public static bool positive(long[] a)
 		{
 			return (((a)[0] < 2 || ((a)[0] == 2 && (a)[1] == 0)) ? false : true);
 		}
-		public static bool negative(int[] a)
+		public static bool negative(long[] a)
 		{
 			return (((a)[0] > -2 || ((a)[0] == -2 && (a)[1] == 0)) ? false : true);
 		}
-		public static int length(int[] a)
+		public static int length(long[] a)
 		{
-			return (((a)[0] > 0) ? (a)[0] : -(a)[0]);
+			return (((a)[0] > 0) ? (int) (a)[0] : (int) -(a)[0]);
 		}
-		public static int sign(int[] a)
+		public static int sign(long[] a)
 		{
 			return (((a)[0] < 0) ? NEG : POS);
 		}
-		public static bool zero(int[] a)
+		public static bool zero(long[] a)
 		{
 			return ((((a)[0] == 2 || (a)[0] == -2) && (a)[1] == 0) ? true : false);
 		}
-		public static bool one(int[] a)
+		public static bool one(long[] a)
 		{
 			return (((a)[0] == 2 && (a)[1] == 1) ? true : false);
 		}
-		public static void storesign(int[] a, int sa)
+		public static void storesign(long[] a, int sa)
 		{
 			a[0] = ((a)[0] > 0) ? (sa) * ((a)[0]) : -(sa) * ((a)[0]);
 		}
-		public static void changesign(int[] a)
+		public static void changesign(long[] a)
 		{
 			a[0] = -(a)[0];
 		}
-		public static void storelength(int[] a, int la)
+		public static void storelength(long[] a, int la)
 		{
 			a[0] = ((a)[0] > 0) ? (la) : -(la);
 		}
@@ -75,7 +75,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
  * bcomplain:     give warning to stdout if overflow in conversion.
  * return value:  set to 1 if overflow, o/w 0
  */
-		public static bool mptoi(int[] a, out int result, int bcomplain)
+		public static bool mptoi(long[] a, out long result, int bcomplain)
 		{
 			
 			try
@@ -100,7 +100,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             }
 		}
 		/* tests if a > b and returns (true=POS)                       */
-		public static void itomp(int @in, int[] a)
+		public static void itomp(long @in, long[] a)
 		{
 			int i;
 			a[0] = 2; // initialize to zero
@@ -124,7 +124,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 		}
 
 		/* print the long precision integer a                          */
-		public static void prat(char[] name, int[] Nt, int[] Dt)
+		public static void prat(char[] name, long[] Nt, long[] Dt)
 		{
 			int i;
 			tabbedtextf("%s", name);
@@ -154,7 +154,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 		}
 
 		/* normalize mp after computation                              */
-		public static void pmp(char[] name, int[] a)
+		public static void pmp(char[] name, long[] a)
 		{
 			int i;
 			tabbedtextf("%s", name);
@@ -174,9 +174,9 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 			return Convert.ToChar(digit + (int) ('0'));
         }
 
-		public static int mptoa(int[] x, ref string s)
+		public static int mptoa(long[] x, ref string s)
         {
-			int result = 0;
+			long result = 0;
 			mptoi(x, out result, 0);
 			s = result.ToString();
 			return s.Length;
@@ -187,11 +187,11 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 		internal static int gcd_maxsplen;
 		internal static bool gcd_firstime = true;
 
-		public static void gcd(int[] u, int[] v)
+		public static void gcd(long[] u, long[] v)
 		{
-			int[] r = new int[MAX_DIGITS + 1];
-			int ul;
-			int vl;
+			long[] r = new long[MAX_DIGITS + 1];
+			long ul;
+			long vl;
 			int i;
 
 			if (gcd_firstime) // initialize constants
@@ -276,12 +276,12 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 			vl %= ul;
 			goto qu;
 		}
-		public static void reduce(int[] Na, int[] Da)
+		public static void reduce(long[] Na, long[] Da)
 		{
-			int[] Nb = new int[MAX_DIGITS + 1];
-			int[] Db = new int[MAX_DIGITS + 1];
-			int[] Nc = new int[MAX_DIGITS + 1];
-			int[] Dc = new int[MAX_DIGITS + 1];
+			long[] Nb = new long[MAX_DIGITS + 1];
+			long[] Db = new long[MAX_DIGITS + 1];
+			long[] Nc = new long[MAX_DIGITS + 1];
+			long[] Dc = new long[MAX_DIGITS + 1];
 			copy(Nb, Na);
 			copy(Db, Da);
 			storesign(Nb, POS);
@@ -294,18 +294,18 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 		}
 
 		/* compute a*ka+b*kb --> a                                     */
-		public static void lcm(int[] a, int[] b)
+		public static void lcm(long[] a, long[] b)
 		/* a = least common multiple of a, b; b is preserved */
 		{
-			int[] u = new int[MAX_DIGITS + 1];
-			int[] v = new int[MAX_DIGITS + 1];
+			long[] u = new long[MAX_DIGITS + 1];
+			long[] v = new long[MAX_DIGITS + 1];
 			copy(u, a);
 			copy(v, b);
 			gcd(u, v);
 			divint(a, u, v); // v=a/u   a contains remainder = 0
 			mulint(v, b, a);
 		}
-		public static bool greater(int[] a, int[] b)
+		public static bool greater(long[] a, long[] b)
 		{
 			int i;
 
@@ -347,7 +347,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 		}
 
 		/* +1 if Na*Nb > Nc*Nd, -1 if Na*Nb < Nc*Nd else 0             */
-		public static void copy(int[] a, int[] b)
+		public static void copy(long[] a, long[] b)
 		{
 			int i;
 			for (i = 0; i <= length(b); i++)
@@ -357,7 +357,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 		}
 
 		/* convert integer i to multiple precision with base BASE      */
-		public static void linint(int[] a, int ka, int[] b, int kb)
+		public static void linint(long[] a, int ka, long[] b, int kb)
 		{
 			int i;
 			int la;
@@ -388,9 +388,9 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 		} // end of linint
 
 		/* multiply two integers a*b --> c                             */
-		public static void normalize(int[] a)
+		public static void normalize(long[] a)
 		{
-			int cy;
+			long cy;
 			int i;
 			int la;
 			la = length(a);
@@ -439,7 +439,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 			}
 		}
 
-		public static void mulint(int[] a, int[] b, int[] c)
+		public static void mulint(long[] a, long[] b, long[] c)
 		/***Handbook of Algorithms and Data Structures, p239  ***/
 		{
 			int nlength;
@@ -477,13 +477,13 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 			normalize(c);
 		}
 
-		public static int comprod(int[] Na, int[] Nb, int[] Nc, int[] Nd)
+		public static int comprod(long[] Na, long[] Nb, long[] Nc, long[] Nd)
 		/* +1 if Na*Nb > Nc*Nd  */
 		/* -1 if Na*Nb < Nc*Nd  */
 		/*  0 if Na*Nb = Nc*Nd  */
 		{
-			int[] mc = new int[MAX_DIGITS + 1];
-			int[] md = new int[MAX_DIGITS + 1];
+			long[] mc = new long[MAX_DIGITS + 1];
+			long[] md = new long[MAX_DIGITS + 1];
 			mulint(Na, Nb, mc);
 			mulint(Nc, Nd, md);
 			linint(mc, ONE, md, -ONE);
@@ -497,20 +497,20 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 			}
 			return (0);
 		}
-		public static void divint(int[] a, int[] b, int[] c)
+		public static void divint(long[] a, long[] b, long[] c)
 		/* c=a/b, a contains remainder on return */
 		{
-			int cy;
+			long cy;
 			int la;
 			int lb;
 			int lc;
-			int d1;
-			int s;
-			int t;
+			long d1;
+			long s;
+			long t;
 			int sig;
 			int i;
 			int j;
-			int qh;
+			long qh;
 
 			/*  figure out and save sign, do everything with positive numbers*/
 			sig = sign(a) * sign(b);
