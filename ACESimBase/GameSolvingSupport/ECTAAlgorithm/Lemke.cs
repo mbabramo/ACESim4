@@ -179,7 +179,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         {
             int i, j;
             BigInteger den, num;
-            BigInteger tmp, tmp2, tmp3;
+            BigInteger tmp, tmp2;
             for (j = 0; j <= n + 1; j++)
             {
                 /* compute lcm  scfa[j]  of denominators for  col  j  of  A         */

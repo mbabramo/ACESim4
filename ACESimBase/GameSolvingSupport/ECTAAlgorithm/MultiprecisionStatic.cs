@@ -13,17 +13,6 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 		public const int ONE = 1;
 		public const int TWO = 2;
 		public const int ZERO = 0;
-		public static int digits = 40;
-		public static int record_digits;
-		public const int DEFAULT_DIGITS = 100;
-		public const int MAX_DIGITS = 40;
-
-
-		// constants for 32-bit integers (can change later to 64-bit)
-		static string FORMAT = $"%4.4u"; // for tabbedtextf
-		const int MAXD = int.MaxValue;
-		const int BASE = 10000;
-		const int BASE_DIG = 4;
 		
 
 

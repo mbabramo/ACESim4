@@ -27,9 +27,6 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         static bool bcomment = false;      /* complementary pivoting steps */
         static bool bequil = true;        /* output equilibrium           */
         static bool bshortequil = false;   /* output equilibrium shortly   */
-        static bool binterface = false;     /* interface with enumeration	*/
-        /* GAMBIT interface file, option parameter	*/
-        static char[] gintfname= "dummyname".ToArray();
         static Flagsrunlemke flemke;
 
         static long timeused, sumtimeused;
@@ -157,7 +154,6 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             sumtimeused += timeused =
             stopwatch(false);
             sumpivots += pivots = t.Lemke.pivotcount;
-            summpdigits += mpdigits = MultiprecisionStatic.MAX_DIGITS;
             /* equilibrium size     */
             offset = 0;
             for (pl = 1; pl < Treedef.PLAYERS; pl++)
