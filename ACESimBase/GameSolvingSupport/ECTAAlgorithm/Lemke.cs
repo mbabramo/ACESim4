@@ -403,16 +403,20 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                     mulint(scfa[Z(i)], A[row][RHS()], num);
                     mulint(det, scfa[RHS()], den);
                     reduce(num, den);
-                    if (mptoi(num, ref (solz[i - 1].num), 1))
+                    int num2 = solz[i - 1].num;
+                    int den2 = solz[i - 1].den;
+                    if (mptoi(num, out num2, 1))
                     {
                         tabbedtextf($"(Numerator of z{i} overflown)\n");
                         notok = true;
                     }
-                    if (mptoi(den, ref (solz[i - 1].den), 1))
+                    if (mptoi(den, out den2, 1))
                     {
                         tabbedtextf($"(Denominator of z{i} overflown)\n");
                         notok = true;
                     }
+                    solz[i - 1].num = num2;
+                    solz[i - 1].den = den2;
                 }
                 else            /* i is nonbasic    */
                     solz[i - 1] = ratfromi(0);

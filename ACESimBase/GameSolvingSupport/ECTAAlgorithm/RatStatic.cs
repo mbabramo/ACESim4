@@ -6,7 +6,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 {
     public static class RatStatic
     {
-
+        static int DEBUGM = 0;
         public static Rat ratadd(Rat a, Rat b)
         {
             /*
@@ -21,6 +21,12 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             x = new Multiprecision();
             y = new Multiprecision();
 
+            DEBUGM++;
+            if (DEBUGM == 1078)
+            {
+                int DEBUG = 0;
+            }
+
             itomp(a.num, num);
             itomp(a.den, den);
             itomp(b.num, x);
@@ -30,8 +36,12 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             linint(num, 1, x, 1);
             mulint(y, den, den);
             reduce(num, den);
-            mptoi(num, ref a.num, 1);
-            mptoi(den, ref a.den, 1);
+            int num2 = a.num;
+            int den2 = a.den;
+            mptoi(num, out num2, 1);
+            mptoi(den, out den2, 1);
+            a.num = num2;
+            a.den = den2;
             return a;
         }
 
@@ -42,7 +52,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
         public static Rat ratfromi(int i)
         {
-            Rat tmp;
+            Rat tmp = new Rat();
             tmp.num = i;
             tmp.den = 1;
             return tmp;
@@ -156,7 +166,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         {
             int n0, n1, d0, d1;
             double xfl, nnext, dnext;
-            Rat result;
+            Rat result = new Rat();
 
             xfl = Math.Floor(x);
             n0 = 1;

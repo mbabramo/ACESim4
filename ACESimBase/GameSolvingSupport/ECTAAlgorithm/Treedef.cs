@@ -421,7 +421,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                         }
                         for (int i = 0; i < h.nmoves; i++)
                         {
-                            Rat a;
+                            Rat a = new Rat();
                             a.num = moves[h.move0 + i].behavprob.num;
                             a.den = denominator;
                             moves[h.move0 + i].behavprob = a;

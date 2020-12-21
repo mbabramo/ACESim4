@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ICSharpCode.SharpZipLib.Zip;
+using System;
 using System.Text;
 using static ACESimBase.Util.CPrint;
 
@@ -74,7 +75,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
  * bcomplain:     give warning to stdout if overflow in conversion.
  * return value:  set to 1 if overflow, o/w 0
  */
-		public static bool mptoi(int[] a, ref int result, int bcomplain)
+		public static bool mptoi(int[] a, out int result, int bcomplain)
 		{
 			
 			try
@@ -200,22 +201,29 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 			return result;
 		}
 
+		static int DEBUGZ = 0;
+
 		public static int mptoa(int[] x, ref string s)
         {
-			StringBuilder sb = new StringBuilder();
-			if (sign(x) == NEG)
-			{
-				sb.Append('-');
-			}
-			sb.Append(x[length(x) - 1].ToString());
-			for (int i = length(x) - 2; i >= 1; i--)
-				sb.Append(x[i]);
-			s = sb.ToString();
-			if (s == "-2412")
-            {
-				var DEBUG = 0;
-            }
+			int result = 0;
+			mptoi(x, out result, 0);
+			s = result.ToString();
 			return s.Length;
+			//DEBUGZ++;
+			//StringBuilder sb = new StringBuilder();
+			//if (sign(x) == NEG)
+			//{
+			//	sb.Append('-');
+			//}
+			//sb.Append(x[length(x) - 1].ToString());
+			//for (int i = length(x) - 2; i >= 1; i--)
+			//	sb.Append(x[i]);
+			//s = sb.ToString();
+			//if (s == "-2412")
+   //         {
+			//	var DEBUG = 0;
+   //         }
+			//return s.Length;
 		}
 
 
