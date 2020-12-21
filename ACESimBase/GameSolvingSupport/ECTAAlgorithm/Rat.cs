@@ -17,7 +17,6 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             set
             {
                 _num = value;
-                CheckForMatchDEBUG();
             }
         }
         public int den
@@ -29,7 +28,6 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             set
             {
                 _den = value; 
-                CheckForMatchDEBUG();
             }
         }
 
@@ -39,14 +37,6 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             if (den != 1)
                 return s + "/" + den.ToString();
             return s;
-        }
-
-        public void CheckForMatchDEBUG()
-        {
-            if (_num == 10643 && _den == 162)
-            {
-                var DEBUG = 0;
-            }
         }
     }
 }

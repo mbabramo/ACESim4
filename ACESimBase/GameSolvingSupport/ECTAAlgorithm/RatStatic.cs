@@ -6,7 +6,6 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 {
     public static class RatStatic
     {
-        static int DEBUGM = 0;
         public static Rat ratadd(Rat a, Rat b)
         {
             /*
@@ -20,12 +19,6 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             den = new Multiprecision();
             x = new Multiprecision();
             y = new Multiprecision();
-
-            DEBUGM++;
-            if (DEBUGM == 1078)
-            {
-                int DEBUG = 0;
-            }
 
             itomp(a.num, num);
             itomp(a.den, den);

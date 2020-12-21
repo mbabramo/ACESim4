@@ -179,7 +179,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
         public int main()
         {
-            tabbedtextf("C# TRANSLATION OF ECTA"); // DEBUG
+            tabbedtextf("C# TRANSLATION OF ECTA\n"); // DEBUG
 
             int multipriors = 0;         /* parameter for    -M option  */
             int seed = 0;      /* payoff seed for bintree  (-s option) */
@@ -189,7 +189,6 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
             flemke.maxcount = 0;
 
-            // DEBUG
             flemke.bdocupivot = true;
             flemke.binitabl = false;
             flemke.bouttabl = true;
@@ -261,7 +260,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             /* multiple priors 	*/
             bgame = true; 
             boutprior = true; 
-            multipriors = 10; // DEBUGX
+            multipriors = 1;
             for (priorcount = 0; priorcount < multipriors; priorcount++)
             {
                 t.genprior(fprior);

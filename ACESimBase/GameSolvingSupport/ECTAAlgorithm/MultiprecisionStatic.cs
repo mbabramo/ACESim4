@@ -169,39 +169,10 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 			}
 		}
 
-		/* a = least common multiple of a, b; b is preserved           */
-		public static int mptoa_old_DEBUG2(int[] x, char[] s)
-		/* convert mp integer to string, returning length              */
-		/* s  must be sufficiently long to contain result              */
-		{
-			int i;
-			int pos = 0;
-			if (sign(x) == NEG)
-			{
-				s[pos++] = '-';
-			}
-			pos = strcpy_formatted(s, pos, "%u", x[length(x) - 1]);
-			for (i = length(x) - 2; i >= 1; i--)
-			{
-				pos = strcpy_formatted(s, pos, FORMAT, x[i]);
-			}
-			return pos;
-		}
-
 		public static char ToChar(int digit)
         {
 			return Convert.ToChar(digit + (int) ('0'));
         }
-
-		public static int mptoa_old_DEBUG(int[] x, ref string s)
-        {
-			char[] smp = new char[MultiprecisionStatic.Dig2Dec(MAX_DIGITS) + 2];
-			int result = mptoa_old_DEBUG2(x, smp);
-			s = new string(smp);
-			return result;
-		}
-
-		static int DEBUGZ = 0;
 
 		public static int mptoa(int[] x, ref string s)
         {
@@ -209,21 +180,6 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 			mptoi(x, out result, 0);
 			s = result.ToString();
 			return s.Length;
-			//DEBUGZ++;
-			//StringBuilder sb = new StringBuilder();
-			//if (sign(x) == NEG)
-			//{
-			//	sb.Append('-');
-			//}
-			//sb.Append(x[length(x) - 1].ToString());
-			//for (int i = length(x) - 2; i >= 1; i--)
-			//	sb.Append(x[i]);
-			//s = sb.ToString();
-			//if (s == "-2412")
-   //         {
-			//	var DEBUG = 0;
-   //         }
-			//return s.Length;
 		}
 
 

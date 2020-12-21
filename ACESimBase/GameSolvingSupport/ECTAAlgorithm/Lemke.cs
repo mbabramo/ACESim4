@@ -191,11 +191,6 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 /* fill in col  j  of  A    */
                 for (i = 0; i < n; i++)
                 {
-                    DEBUGJ++;
-                    if (DEBUGJ == 10)
-                    {
-                        int DEBUGK = 0;
-                    }
                     den = (j == 0) ? vecd[i].den :
                       (j == RHS()) ? rhsq[i].den : lcpM[i][j - 1].den;
                     num = (j == 0) ? vecd[i].num :
@@ -217,8 +212,6 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             itomp(ONE, det);
             changesign(det);
         }       /* end of filltableau()         */
-
-        static int DEBUGJ = 0;
 
         /* ---------------- output routines ------------------- */
         public void outlcp()
@@ -309,10 +302,6 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 colpr(s);
                 for (j = 0; j <= n + 1; j++)
                 {
-                    if (i == 9 && j == 0)
-                    {
-                        int DEBUGX = 0;
-                    }
                     mptoa(A[i][j], ref smp);
                     if (smp == "0")
                         colpr(".");
@@ -720,19 +709,11 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
         void changesigninA(int i, int j)
         {
-            if (i == 9 && j == 0)
-            {
-                int DEBUG = 0;
-            }
             changesign(A[i][j]);
         }
 
         void setinA(int i, int j, Multiprecision value)
         {
-            if (i == 9 && j == 0)
-            {
-                int DEBUG = 0;
-            }
             copy(A[i][j], value);
         }
 
