@@ -680,10 +680,9 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                                 else
                                     tmp1 = tmp1 - tmp2;
                             }
-                            Multiprecision c = new Multiprecision();
-                            divint(tmp1, det, c);
+                            BigInteger c = 0;
+                            divint(tmp1, det, ref c);
                             setinA(i, j, c);
-                            var DEBUG2 = c.ToString();
                         }
                     /* row  i  has been dealt with, update  A[i][col]  safely   */
                     if (nonzero && !negpiv)

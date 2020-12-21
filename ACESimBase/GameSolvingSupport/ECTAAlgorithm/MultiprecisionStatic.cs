@@ -67,13 +67,13 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 		public static void lcm(BigInteger a, BigInteger b)
 		/* a = least common multiple of a, b; b is preserved */
 		{
-			BigInteger u = new long[MAX_DIGITS + 1];
-			BigInteger v = new long[MAX_DIGITS + 1];
-			copy(u, a);
-			copy(v, b);
+			BigInteger u = 0;
+			BigInteger v = 0;
+			copy(ref u, a);
+			copy(ref v, b);
 			gcd(u, v);
-			divint(a, u, v); // v=a/u   a contains remainder = 0
-			mulint(v, b, a);
+			divint(a, u, ref v); 
+			mulint(v, b, ref a);
 		}
 		public static bool greater(BigInteger a, BigInteger b)
 		{
@@ -113,189 +113,9 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 		}
 
 		public static void divint(BigInteger a, BigInteger b, ref BigInteger c)
-		/* c=a/b, a contains remainder on return */
-		{
-			long cy;
-			int la;
-			int lb;
-			int lc;
-			long d1;
-			long s;
-			long t;
-			int sig;
-			int i;
-			int j;
-			long qh;
-
-			/*  figure out and save sign, do everything with positive numbers*/
-			sig = sign(a) * sign(b);
-
-			la = length(a);
-			lb = length(b);
-			lc = la - lb + 2;
-			if (la < lb)
-			{
-				storelength(c, TWO);
-				storesign(c, POS);
-				c[1] = 0;
-				normalize(c);
-				return;
-			}
-			for (i = 1; i < lc; i++)
-			{
-				c[i] = 0;
-			}
-			storelength(c, lc);
-			storesign(c, (sign(a) == sign(b)) ? POS : NEG);
-
-			/******************************/
-			/* division by a single word: */
-			/*  do it directly            */
-			/******************************/
-
-			if (lb == 2)
-			{
-				cy = 0;
-				t = b[1];
-				for (i = la - 1; i > 0; i--)
-				{
-					cy = cy * BASE + a[i];
-					a[i] = 0;
-					cy -= (c[i] = cy / t) * t;
-				}
-				a[1] = cy;
-				storesign(a, (cy == 0) ? POS : sign(a));
-				storelength(a, TWO);
-				/*      set sign of c to sig  (**mod**)            */
-				storesign(c, sig);
-				normalize(c);
-				return;
-			}
-			else
-			{
-				/* mp's are actually DIGITS+1 in length, so if length of a or b = */
-				/* DIGITS, there will still be room after normalization. */
-				/****************************************************/
-				/* Step D1 - normalize numbers so b > floor(BASE/2) */
-				d1 = BASE / (b[lb - 1] + 1);
-				if (d1 > 1)
-				{
-					cy = 0;
-					for (i = 1; i < la; i++)
-					{
-						cy = (a[i] = a[i] * d1 + cy) / BASE;
-						a[i] %= BASE;
-					}
-					a[i] = cy;
-					cy = 0;
-					for (i = 1; i < lb; i++)
-					{
-						cy = (b[i] = b[i] * d1 + cy) / BASE;
-						b[i] %= BASE;
-					}
-					b[i] = cy;
-				}
-				else
-				{
-					a[la] = 0; // if la or lb = DIGITS this won't work
-					b[lb] = 0;
-				}
-				/*********************************************/
-				/* Steps D2 & D7 - start and end of the loop */
-				for (j = 0; j <= la - lb; j++)
-				{
-					/*************************************/
-					/* Step D3 - determine trial divisor */
-					if (a[la - j] == b[lb - 1])
-					{
-						qh = BASE - 1;
-					}
-					else
-					{
-						s = (a[la - j] * BASE + a[la - j - 1]);
-						qh = s / b[lb - 1];
-						while (qh * b[lb - 2] > (s - qh * b[lb - 1]) * BASE + a[la - j - 2])
-						{
-							qh--;
-						}
-					}
-					/*******************************************************/
-					/* Step D4 - divide through using qh as quotient digit */
-					cy = 0;
-					for (i = 1; i <= lb; i++)
-					{
-						s = qh * b[i] + cy;
-						a[la - j - lb + i] -= s % BASE;
-						cy = s / BASE;
-						if (a[la - j - lb + i] < 0)
-						{
-							a[la - j - lb + i] += BASE;
-							cy++;
-						}
-					}
-					/*****************************************************/
-					/* Step D6 - adjust previous step if qh is 1 too big */
-					if (cy != 0)
-					{
-						qh--;
-						cy = 0;
-						for (i = 1; i <= lb; i++) // add a back in
-						{
-							a[la - j - lb + i] += b[i] + cy;
-							cy = a[la - j - lb + i] / BASE;
-							a[la - j - lb + i] %= BASE;
-						}
-					}
-					/***********************************************************************/
-					/* Step D5 - write final value of qh.  Saves calculating array indices */
-					/* to do it here instead of before D6 */
-
-					c[la - lb - j + 1] = qh;
-
-				}
-				/**********************************************************************/
-				/* Step D8 - unnormalize a and b to get correct remainder and divisor */
-
-				for (i = lc; c[i - 1] == 0 && i > 2; i--)
-				{
-					; // strip excess 0's from quotient
-				}
-				storelength(c, i);
-				if (i == 2 && c[1] == 0)
-				{
-					storesign(c, POS);
-				}
-				cy = 0;
-				for (i = lb - 1; i >= 1; i--)
-				{
-					cy = (a[i] += cy * BASE) % d1;
-					a[i] /= d1;
-				}
-				for (i = la; a[i - 1] == 0 && i > 2; i--)
-				{
-					; // strip excess 0's from quotient
-				}
-				storelength(a, i);
-				if (i == 2 && a[1] == 0)
-				{
-					storesign(a, POS);
-				}
-				if (cy != 0)
-				{
-					tabbedtextf("divide error");
-				}
-				for (i = lb - 1; i >= 1; i--)
-				{
-					cy = (b[i] += cy * BASE) % d1;
-					b[i] /= d1;
-				}
-			}
-		}
-
-		static void digits_overflow(int numdigits)
-		{
-			throw new Exception("Overflow at digits " + Dig2Dec(digits));
-		}
+        {
+			c = a / b;
+        }
 
 
 	}

@@ -9,6 +9,7 @@ using static ACESimBase.Util.CPrint;
 using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.RatStatic;
 using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.ColumnPrinter;
 using static ACESim.ArrayFormConversionExtension;
+using Rationals;
 
 namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 {
@@ -384,8 +385,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 for (int cindex = firstmove[pl] + 1; cindex < firstmove[pl + 1]; cindex++)
                 {
                     c = moves[cindex];
-                    c.behavprob.num = 1;
-                    c.behavprob.den = isets[c.atiset].nmoves;
+                    c.behavprob = 1 / isets[c.atiset].nmoves;
                 }
         }
 
@@ -422,8 +422,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                         for (int i = 0; i < h.nmoves; i++)
                         {
                             Rational a = new Rational();
-                            a.num = moves[h.move0 + i].behavprob.num;
-                            a.den = denominator;
+                            a = moves[h.move0 + i].behavprob.Numerator / denominator;
                             moves[h.move0 + i].behavprob = a;
                         }
                         //Original code:
@@ -442,15 +441,15 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 					 * in which case we have a random pure strategy
 					 * because this statement flips 0 to 1 and vice versa
 					 */
-                        if (a.num == 0)
+                        if (a.Numerator == 0)
                         {
-                            a.num = 1;
-                            a.den = flags.accuracy;
+                            a.Numerator = 1;
+                            a.Denominator = flags.accuracy;
                         }
-                        else if (a.den == 1)    /* "else" for pure strategy	*/
+                        else if (a.Denominator == 1)    /* "else" for pure strategy	*/
                         {
-                            a.num = flags.accuracy - 1;
-                            a.den = flags.accuracy;
+                            a.Numerator = flags.accuracy - 1;
+                            a.Denominator = flags.accuracy;
                         }
                         moves[h.move0].behavprob = a;
                         moves[h.move0 + 1].behavprob = ratadd(ratfromi(1), ratneg(a));
@@ -588,7 +587,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 for (int cindex = h.move0; i < h.nmoves; cindex++, i++)
                 {
                     c = moves[cindex];
-                    if (rplan[offset + cindex - firstmove[pl]].num != 0 &&
+                    if (rplan[offset + cindex - firstmove[pl]].Numerator != 0 &&
                         !ratiseq(rplan[offset + cindex - firstmove[pl]],
                                   rplan[offset + (int) h.seqin - firstmove[pl]]))
                     {
@@ -635,7 +634,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 {
                     c = moves[cindex];
                     rprob = rplan[cindex - firstmove[pl]];
-                    if (rprob.num != 0)
+                    if (rprob.Numerator != 0)
                     {
                         movetoa(c, pl, ref s);
                         tabbedtextf(" %s", s);
@@ -667,9 +666,9 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 {
                     c = moves[cindex];
                     rprob = rplan[offset + cindex - firstmove[pl]];
-                    tabbedtextf("%d", rprob.num);
+                    tabbedtextf("%d", rprob.Numerator);
                     tabbedtextf("/");
-                    tabbedtextf("%d", rprob.den);
+                    tabbedtextf("%d", rprob.Denominator);
                     if (hindex != firstiset[pl + 1] - 1 || i != h.nmoves - 1)
                     {
                         tabbedtextf(",");
@@ -2627,32 +2626,32 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             isets[14].nmoves = 3;
             // move 0 is empty sequence for player 0
             moves[1].atiset = 0;
-            moves[1].behavprob.num = 1;
-            moves[1].behavprob.den = 3;
+            moves[1].behavprob.Numerator = 1;
+            moves[1].behavprob.Denominator = 3;
             moves[2].atiset = 0;
-            moves[2].behavprob.num = 1;
-            moves[2].behavprob.den = 3;
+            moves[2].behavprob.Numerator = 1;
+            moves[2].behavprob.Denominator = 3;
             moves[3].atiset = 0;
-            moves[3].behavprob.num = 1;
-            moves[3].behavprob.den = 3;
+            moves[3].behavprob.Numerator = 1;
+            moves[3].behavprob.Denominator = 3;
             moves[4].atiset = 1;
-            moves[4].behavprob.num = 1;
-            moves[4].behavprob.den = 3;
+            moves[4].behavprob.Numerator = 1;
+            moves[4].behavprob.Denominator = 3;
             moves[5].atiset = 1;
-            moves[5].behavprob.num = 1;
-            moves[5].behavprob.den = 3;
+            moves[5].behavprob.Numerator = 1;
+            moves[5].behavprob.Denominator = 3;
             moves[6].atiset = 1;
-            moves[6].behavprob.num = 1;
-            moves[6].behavprob.den = 3;
+            moves[6].behavprob.Numerator = 1;
+            moves[6].behavprob.Denominator = 3;
             moves[7].atiset = 2;
-            moves[7].behavprob.num = 1;
-            moves[7].behavprob.den = 3;
+            moves[7].behavprob.Numerator = 1;
+            moves[7].behavprob.Denominator = 3;
             moves[8].atiset = 2;
-            moves[8].behavprob.num = 1;
-            moves[8].behavprob.den = 3;
+            moves[8].behavprob.Numerator = 1;
+            moves[8].behavprob.Denominator = 3;
             moves[9].atiset = 2;
-            moves[9].behavprob.num = 1;
-            moves[9].behavprob.den = 3;
+            moves[9].behavprob.Numerator = 1;
+            moves[9].behavprob.Denominator = 3;
             // move 10 is empty sequence for player 1
             moves[11].atiset = 3;
             moves[12].atiset = 3;
