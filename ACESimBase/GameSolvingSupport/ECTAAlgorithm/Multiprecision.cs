@@ -18,5 +18,12 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
 		public static implicit operator Multiprecision(long[] d) => new Multiprecision(d);
 		public static implicit operator long[](Multiprecision b) => b.Values;
-	}
+
+        public override string ToString()
+        {
+            string s = null;
+            MultiprecisionStatic.mptoa(Values, ref s);
+            return s;
+        }
+    }
 }

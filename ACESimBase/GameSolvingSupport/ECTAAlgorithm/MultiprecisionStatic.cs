@@ -81,7 +81,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 			try
 			{
 				result = 0;
-				int placeValue = 1;
+				long placeValue = 1;
 				int digits = length(a);
 				for (int i = 1; i <= digits - 1; i++)
 				{

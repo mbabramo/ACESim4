@@ -8,6 +8,7 @@ using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.RatStatic;
 using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.MultiprecisionStatic;
 using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.ColumnPrinter;
 using static ACESimBase.Util.CPrint;
+using JetBrains.Annotations;
 
 namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 {
@@ -658,6 +659,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
          * afterwards tableau normalized with positive determinant
          * and updated tableau variables
          */
+        int pivotnum = 0;
         public void pivot(int leave, int enter)
         {
             int row, col, i, j;
@@ -680,6 +682,10 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                         /*  A[i,j] =
                            (A[i,j] A[row,col] - A[i,col] A[row,j])/ det     */
                         {
+                            if (pivotnum == 14 && j == 24)
+                            {
+                                int DEBUG = 0;
+                            }
                             mulint(A[i][j], pivelt, tmp1);
                             if (nonzero)
                             {
@@ -689,6 +695,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                             Multiprecision c = new Multiprecision();
                             divint(tmp1, det, c);
                             setinA(i, j, c);
+                            var DEBUG2 = c.ToString();
                         }
                     /* row  i  has been dealt with, update  A[i][col]  safely   */
                     if (nonzero && !negpiv)
@@ -700,10 +707,15 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             if (negpiv)
                 negrow(row);
             copy(det, pivelt);      /* by construction always positive      */
+            if (det.ToString() == "2324522934")
+            {
+                var DEBUG = 0;
+            }
 
             /* update tableau variables                                     */
             bascobas[leave] = col + n; whichvar[col + n] = leave;
             bascobas[enter] = row; whichvar[row] = enter;
+            pivotnum++;
         }       /* end of  pivot (leave, enter)                         */
 
 
