@@ -256,7 +256,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             /* multiple priors 	*/
             bgame = true; 
             boutprior = true; 
-            multipriors = 1;
+            multipriors = 4;
             for (priorcount = 0; priorcount < multipriors; priorcount++)
             {
                 t.genprior(fprior);

@@ -427,13 +427,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                         for (int i = 0; i < h.nmoves; i++)
                         {
                             Rational a = new Rational();
-                            a = moves[h.move0 + i].behavprob.Numerator / denominator;
-                            if (moves[h.move0 + i].behavprob.Numerator != 0 && a == 0)
-                                throw new Exception("DEBUG");
-                            if (h.move0 + 1 == 1)
-                            {
-                                var DEBUG = 0;
-                            }
+                            a = moves[h.move0 + i].behavprob.Numerator / (Rational) denominator;
                             moves[h.move0 + i].behavprob = a;
                         }
                         //Original code:
