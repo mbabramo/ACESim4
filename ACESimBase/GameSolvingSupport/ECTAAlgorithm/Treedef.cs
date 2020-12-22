@@ -409,55 +409,24 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 for (int hindex = firstiset[pl]; hindex < firstiset[pl + 1]; hindex++)
                 {
                     h = isets[hindex];
-                    if (h.nmoves > 2)
+                    // We must create fractions that add up to 1 (each greater than 0).
+                    // So, we'll just take random numbers from 1 to 10, use those for numerators
+                    // and the sum for a denominator.
+                    BigInteger denominator = 0;
+                    for (int i = 0; i < h.nmoves; i++)
                     {
-                        // We must create fractions that add up to 1 (each greater than 0).
-                        // So, we'll just take random numbers from 1 to 10, use those for numerators
-                        // and the sum for a denominator.
-                        BigInteger denominator = 0;
-                        for (int i = 0; i < h.nmoves; i++)
-                        {
-                            double maxValue = 9;
-                            BigInteger numerator = (BigInteger) (1 + (int) Math.Floor(maxValue * RandomGenerator.NextDouble()));
-                            moves[h.move0 + i].behavprob = (Rational) numerator; // store value so that we remember it
-                            if (moves[h.move0 + i].behavprob == 0)
-                                throw new Exception("DEBUG");
-                            denominator += numerator;
-                        }
-                        for (int i = 0; i < h.nmoves; i++)
-                        {
-                            Rational a = new Rational();
-                            a = moves[h.move0 + i].behavprob.Numerator / (Rational) denominator;
-                            moves[h.move0 + i].behavprob = a;
-                        }
-                        //Original code:
-                        //fprintf(stderr, "Sorry, only binary info sets so far.\n") ; 
-                        //exit(1) ;
-                    }
-                    else
-                    {
-                        Rational a;
-                        double x;
-
-                        x = RandomGenerator.NextDouble();
-                        a = contfract(x, flags.accuracy);
-                        /* make sure to get a properly mixed prior,
-						 * unless  flags.accuracy == 1,
-					 * in which case we have a random pure strategy
-					 * because this statement flips 0 to 1 and vice versa
-					 */
-                        if (a.Numerator == 0)
-                        {
-                            a = 1 / (Rational) flags.accuracy;
-                        }
-                        else if (a.Denominator == 1)    /* "else" for pure strategy	*/
-                        {
-                            a = flags.accuracy - 1 / (Rational) flags.accuracy;
-                        }
-                        moves[h.move0].behavprob = a;
-                        moves[h.move0 + 1].behavprob = ratadd(ratfromi(1), ratneg(a));
-                        if (moves[h.move0 + 1].behavprob == 0)
+                        double maxValue = 9;
+                        BigInteger numerator = (BigInteger)(1 + (int)Math.Floor(maxValue * RandomGenerator.NextDouble()));
+                        moves[h.move0 + i].behavprob = (Rational)numerator; // store value so that we remember it
+                        if (moves[h.move0 + i].behavprob == 0)
                             throw new Exception("DEBUG");
+                        denominator += numerator;
+                    }
+                    for (int i = 0; i < h.nmoves; i++)
+                    {
+                        Rational a = new Rational();
+                        a = moves[h.move0 + i].behavprob.Numerator / (Rational)denominator;
+                        moves[h.move0 + i].behavprob = a;
                     }
                 }
         }
