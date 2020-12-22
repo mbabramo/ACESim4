@@ -6,15 +6,13 @@ using static ACESimBase.Util.CPrint;
 
 namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 {
-    public static class MultiprecisionStatic
+    public static class BigIntegerOperations
     {
 		public const int NEG = -1;
 		public const int POS = 1;
 		public const int ONE = 1;
 		public const int TWO = 2;
 		public const int ZERO = 0;
-		
-
 
 		public static bool positive(BigInteger a)
 		{

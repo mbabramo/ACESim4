@@ -1,7 +1,7 @@
 ﻿using Rationals;
 using System;
 using System.Linq;
-using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.MultiprecisionStatic;
+using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.BigIntegerOperations;
 using static ACESimBase.Util.CPrint;
 
 namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm

@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using static ACESim.ArrayFormConversionExtension;
 using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.RatStatic;
-using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.MultiprecisionStatic;
+using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.BigIntegerOperations;
 using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.ColumnPrinter;
 using static ACESimBase.Util.CPrint;
 using JetBrains.Annotations;
@@ -262,7 +262,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         }
 
 
-        public void outtabl()
+        public void outtableau()
         /* output the current tableau, column-adjusted                  */
         {
             int i, j;
@@ -446,7 +446,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             string s = null;
             vartoa(enter, ref s);
             tabbedtextf($"Ray termination when trying to enter {s}\n");
-            outtabl();
+            outtableau();
             tabbedtextf("Current basis, not an LCP solution:\n");
             outsol();
             throw new Exception("Ray termination; current basis, not an LCP solution");
@@ -726,10 +726,10 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             filltableau();
             /*  tabbedtextf("Tableau filled.\n");    */
 
-            if (flags.binitabl)
+            if (flags.outputInitialTableau)
             {
                 tabbedtextf("After filltableau:\n");
-                outtabl();
+                outtableau();
             }
 
             /* z0 enters the basis to obtain lex-feasible solution      */
@@ -739,21 +739,21 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             /* now give the entering q-col its correct sign             */
             negcol(RHS());
 
-            if (flags.bouttabl)
+            if (flags.outputTableaux)
             {
                 tabbedtextf("After negcol:\n");
-                outtabl();
+                outtableau();
             }
             while (true)       /* main loop of complementary pivoting                  */
             {
                 testtablvars();
-                if (flags.bdocupivot)
+                if (flags.outputPivotingSteps)
                     docupivot(leave, enter);
                 pivot(leave, enter);
                 if (z0leave)
                     break;  /* z0 will have value 0 but may still be basic. Amend?  */
-                if (flags.bouttabl)
-                    outtabl();
+                if (flags.outputTableaux)
+                    outtableau();
                 enter = complement(leave);
                 leave = lexminvar(enter, ref z0leave);
                 if (pivotcount++ == flags.maxcount)
@@ -764,14 +764,14 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 }
             }
 
-            if (flags.binitabl)
+            if (flags.outputInitialTableau)
             {
                 tabbedtextf("Final tableau:\n");
-                outtabl();
+                outtableau();
             }
-            if (flags.boutsol)
+            if (flags.outputSolution)
                 outsol();
-            if (flags.blexstats)
+            if (flags.outputLexStats)
                 outstatistics();
 
             notokcopysol();
