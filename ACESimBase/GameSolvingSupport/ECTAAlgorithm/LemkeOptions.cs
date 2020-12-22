@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 {
-    public struct Flagsrunlemke
+    public struct LemkeOptions
     {
-        public int maxcount;   /* max no. of iterations, infinity if 0         */
+        public int maxPivotSteps;   /* max no. of iterations, infinity if 0         */
         public bool outputPivotingSteps;   /* Y/N  document pivot step                     */
         public bool outputInitialTableau;    /* Y/N  output entire tableau at beginning/end  */
         public bool outputTableaux;   /* Y/N  output entire tableau at each step      */

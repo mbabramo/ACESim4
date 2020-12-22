@@ -6,7 +6,7 @@ using static ACESimBase.Util.CPrint;
 
 namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 {
-    public static class RatStatic
+    public static class RationalOperations
     {
         public static Rational ratadd(Rational a, Rational b)
         {

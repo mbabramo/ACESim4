@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using static ACESim.ArrayFormConversionExtension;
-using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.RatStatic;
+using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.RationalOperations;
 using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.BigIntegerOperations;
 using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.ColumnPrinter;
 using static ACESimBase.Util.CPrint;
@@ -712,7 +712,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         }
 
         /* ------------------------------------------------------------ */
-        public void runlemke(Flagsrunlemke flags)
+        public void runlemke(LemkeOptions flags)
         {
             int leave, enter;
             bool z0leave = false;
@@ -756,10 +756,10 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                     outtableau();
                 enter = complement(leave);
                 leave = lexminvar(enter, ref z0leave);
-                if (pivotcount++ == flags.maxcount)
+                if (pivotcount++ == flags.maxPivotSteps)
                 {
                     tabbedtextf("------- stop after %d pivoting steps --------\n",
-                   flags.maxcount);
+                   flags.maxPivotSteps);
                     break;
                 }
             }

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using static ACESimBase.Util.CPrint;
-using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.RatStatic;
+using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.RationalOperations;
 using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.ColumnPrinter;
 using static ACESim.ArrayFormConversionExtension;
 
@@ -13,42 +13,30 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 {
     public class ETCAMain
     {
-
-
-
-        const int MAXACCURACY = 1000;
-        const int DEFAULTACCURACY = 23;
-        const int FIRSTPRIORSEED = 500;
-
-
-
         int multipriors = 0;         /* parameter for    -M option  */
         int seed = 0;      /* payoff seed for bintree  (-s option) */
 
-        bool outputPivotResults = false;
-        bool outputPivotHeaderFirst = false;/* headers first (multiple games)       */
-
-        const int REPEATHEADER = 20;   /* repeat header if more games than this */
-        bool outputRawTree = false;     /* output the raw game tree (-g option) */
-        bool outputInitialTableau = false;
-        bool outputTableaux = false;
-        bool ourputLCP = false;       /* output LCP  */
-        bool outputPrior = false;     /* output prior */
-        bool outputPivotingSteps = false;      /* complementary pivoting steps */
-        bool outputEquilibrium = true;        /* output equilibrium           */
-        bool outputEquilibriumShort = false;   /* output equilibrium shortly   */
-        bool outputSolution = false;
-        bool outputLexStats = false; /* output lexical ordering statistics */
+        public bool outputPivotResults = false;
+        public bool outputPivotHeaderFirst = false;/* headers first (multiple games)       */
+        public bool outputAverageResults = false;
+        public bool outputRawTree = false;     /* output the raw game tree (-g option) */
+        public bool outputInitialTableau = false;
+        public bool outputTableaux = false;
+        public bool ourputLCP = false;       /* output LCP  */
+        public bool outputPrior = false;     /* output prior */
+        public bool outputPivotingSteps = false;      /* complementary pivoting steps */
+        public bool outputEquilibrium = true;        /* output equilibrium           */
+        public bool outputEquilibriumShort = false;   /* output equilibrium shortly   */
+        public bool outputSolution = false;
+        public bool outputLexStats = false; /* output lexical ordering statistics */
 
         /* global variables for generating and documenting computation  */
-        Flagsprior fprior;
-        Flagsrunlemke flemke;
+        LemkeOptions lemkeOptions;
 
         long timeused, sumtimeused;
         int pivots, sumpivots;
         int lcpsize;
         int[] eqsize = new int[Treedef.PLAYERS], sumeqsize = new int[Treedef.PLAYERS];
-        bool[] agreenfsf = new bool[Treedef.PLAYERS];
 
         Stopwatch swatch = new Stopwatch();
         Treedef t = new Treedef();
@@ -127,12 +115,12 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         /* summary info about results for  m  games     */
         void infosumresult(int m)
         {
+            if (!outputAverageResults)
+                return;
             double mm = (double)m;
             string formatstring = "%6.1f %3.0f %6.2f %3.1f %3.1f";
 
             tabbedtextf("---------| AVERAGES over  %d  games:\n", m);
-            if (m > REPEATHEADER)
-                inforesultheader();
             tabbedtextf("         ");
             tabbedtextf(formatstring, (double)sumpivots / mm,
                     (double)sumpivots * 100.0 /
@@ -163,7 +151,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             if (ourputLCP)
                 t.Lemke.outlcp();
             stopwatch(false);
-            t.Lemke.runlemke(flemke);
+            t.Lemke.runlemke(lemkeOptions);
             sumtimeused += timeused = stopwatch(false);
             sumpivots += pivots = t.Lemke.pivotcount;
             /* equilibrium size     */
@@ -183,24 +171,18 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
         public int main()
         {
-            tabbedtextf("C# TRANSLATION OF ECTA\n"); // DEBUG
-
-            flemke.maxcount = 0;
-
-            flemke.outputPivotingSteps = outputPivotingSteps;
-            flemke.outputInitialTableau = outputInitialTableau;
-            flemke.outputTableaux = outputTableaux;
-            flemke.outputSolution = outputSolution;
-            flemke.outputLexStats = outputLexStats;
-
-            fprior.seed = 0;
-            fprior.accuracy = DEFAULTACCURACY;
+            lemkeOptions.maxPivotSteps = 0; // no limit
+            lemkeOptions.outputPivotingSteps = outputPivotingSteps;
+            lemkeOptions.outputInitialTableau = outputInitialTableau;
+            lemkeOptions.outputTableaux = outputTableaux;
+            lemkeOptions.outputSolution = outputSolution;
+            lemkeOptions.outputLexStats = outputLexStats;
 
             /* parse options    */
             if (outputPivotingSteps)
             {
-                flemke.outputPivotingSteps = true;
-                flemke.outputSolution = true;
+                lemkeOptions.outputPivotingSteps = true;
+                lemkeOptions.outputSolution = true;
             }
 
 
@@ -219,7 +201,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
             /* process games                    */
             int gamecount = 0;
-            int startprior = fprior.seed;
+            int priorSeed = 0;
 
             t.allocrealplan(t.realplan);
             if (outputPivotResults && outputPivotHeaderFirst) /* otherwise the header is garbled by LCP output */
@@ -229,7 +211,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             multipriors = 20;
             for (priorcount = 0; priorcount < multipriors; priorcount++)
             {
-                t.genprior(fprior);
+                t.genprior(priorSeed);
                 if (outputRawTree)
                     t.rawtreeprint();
                 if (outputPrior)
@@ -237,8 +219,8 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 processgame(seed + gamecount);
                 if (outputPivotResults && !outputPivotHeaderFirst)
                     inforesultheader();
-                infopivotresult(fprior.seed, seed + gamecount);
-                fprior.seed++;
+                infopivotresult(priorSeed, seed + gamecount);
+                priorSeed++;
             }
             if (multipriors > 1)    /* give averages */
                 infosumresult(multipriors);
