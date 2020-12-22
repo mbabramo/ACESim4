@@ -17,7 +17,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
     public class Lemke
     {
 
-        static int n;   /* LCP dimension as used here   */
+        int n;   /* LCP dimension as used here   */
 
         /* LCP input    */
         public Rational[][] lcpM;
@@ -30,9 +30,9 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         public int pivotcount;
 
         /* tableau:    */
-        public static BigInteger[][] A;                 /* tableau                              */
-        public static int[] bascobas;          /* VARS  -> ROWCOL                      */
-        public static int[] whichvar;          /* ROWCOL -> VARS, inverse of bascobas  */
+        public BigInteger[][] A;                 /* tableau                              */
+        public int[] bascobas;          /* VARS  -> ROWCOL                      */
+        public int[] whichvar;          /* ROWCOL -> VARS, inverse of bascobas  */
 
         /* used for tableau:    */
         public int Z(int i)
@@ -62,13 +62,13 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 		 * scfa[Z(1..n)] for cols of  M
 		 * result variables to be multiplied with these
 		 */
-        public static BigInteger[] scfa;
+        public BigInteger[] scfa;
 
-        public static BigInteger det = new BigInteger();                        /* determinant                  */
+        public BigInteger det = new BigInteger();                        /* determinant                  */
 
-        public static int[] lextested, lexcomparisons;/* statistics for lexminvar     */
+        public int[] lextested, lexcomparisons;/* statistics for lexminvar     */
 
-        public static int[] leavecand;
+        public int[] leavecand;
         /* should be local to lexminvar but defined globally for economy    */
 
         public const int MAXLCPDIM = 2000;       /* max LCP dimension                       */
