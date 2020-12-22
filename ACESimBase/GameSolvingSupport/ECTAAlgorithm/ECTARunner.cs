@@ -11,7 +11,7 @@ using static ACESim.ArrayFormConversionExtension;
 
 namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 {
-    public class ETCAMain
+    public class ECTARunner
     {
         int multipriors = 0;         /* parameter for    -M option  */
         int seed = 0;      /* payoff seed for bintree  (-s option) */
@@ -22,12 +22,12 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         public bool outputRawTree = false;     /* output the raw game tree (-g option) */
         public bool outputInitialTableau = false;
         public bool outputTableaux = false;
-        public bool ourputLCP = false;       /* output LCP  */
+        public bool outputLCP = false;       /* output LCP  */
         public bool outputPrior = false;     /* output prior */
         public bool outputPivotingSteps = false;      /* complementary pivoting steps */
         public bool outputEquilibrium = true;        /* output equilibrium           */
         public bool outputEquilibriumShort = false;   /* output equilibrium shortly   */
-        public bool outputSolution = false;
+        public bool outputLCPSolution = false;
         public bool outputLexStats = false; /* output lexical ordering statistics */
 
         /* global variables for generating and documenting computation  */
@@ -39,7 +39,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         int[] eqsize = new int[Treedef.PLAYERS], sumeqsize = new int[Treedef.PLAYERS];
 
         Stopwatch swatch = new Stopwatch();
-        Treedef t = new Treedef();
+        public Treedef t = new Treedef();
 
         /* returns processor SCLOCKUNITS since the last call to
          * stopwatch() and prints them to stdout if  bprint==1
@@ -148,10 +148,10 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             t.sflcp();
 
             t.covvector();
-            if (ourputLCP)
-                t.Lemke.outlcp();
+            if (outputLCP)
+                t.Lemke.OutputLCP();
             stopwatch(false);
-            t.Lemke.runlemke(lemkeOptions);
+            t.Lemke.RunLemke(lemkeOptions);
             sumtimeused += timeused = stopwatch(false);
             sumpivots += pivots = t.Lemke.pivotcount;
             /* equilibrium size     */
@@ -169,13 +169,13 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 t.showeq(outputEquilibriumShort, docuseed);
         }
 
-        public int main()
+        public int Execute()
         {
             lemkeOptions.maxPivotSteps = 0; // no limit
             lemkeOptions.outputPivotingSteps = outputPivotingSteps;
             lemkeOptions.outputInitialTableau = outputInitialTableau;
             lemkeOptions.outputTableaux = outputTableaux;
-            lemkeOptions.outputSolution = outputSolution;
+            lemkeOptions.outputSolution = outputLCPSolution;
             lemkeOptions.outputLexStats = outputLexStats;
 
             /* parse options    */
@@ -188,7 +188,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
 
             tabbedtextf("Solving example from BvS/Elzen/Talman\n");
-            t.tracingexample();
+            t.examplegame();
 
             t.genseqin();
             t.autoname();

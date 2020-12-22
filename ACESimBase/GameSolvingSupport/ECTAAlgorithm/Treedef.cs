@@ -16,7 +16,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 {
     public class Treedef
     {
-        public Lemke Lemke = new Lemke();
+        public Lemke Lemke;
 
         public const int PLAYERS = 3;
         public const int NAMECHARS = 8;
@@ -510,7 +510,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             int i;
 
             gensf();
-            Lemke.setlcp(nseqs[1] + nisets[2] + 1 + nseqs[2] + nisets[1] + 1);
+            Lemke = new Lemke(nseqs[1] + nisets[2] + 1 + nseqs[2] + nisets[1] + 1);
             /* fill  M  */
             /* -A       */
             payratmatcpy(sfpay, 0, true, false, nseqs[1], nseqs[2],
@@ -829,7 +829,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         /* EXAMPLE */
 
 
-        public void tracingexample()
+        public void examplegame()
         {
             int[][] pay = new int[2][] { new int[153]
                 { 0, 1000, 125, 312, 500, 47, 109, 172, 500, 688, 47, 109, 172, 47, 109, 172, 875, 0, 1000, 125, 312, 500, 117, 180, 242, 500, 688, 117, 180, 242, 117, 180, 242, 875, 0, 1000, 125, 312, 500, 188, 250, 562, 500, 688, 188, 250, 562, 188, 250, 562, 875, 0, 1000, 125, 312, 500, 117, 180, 242, 500, 688, 117, 180, 242, 117, 180, 242, 875, 0, 1000, 125, 312, 500, 188, 250, 562, 500, 688, 188, 250, 562, 188, 250, 562, 875, 0, 1000, 125, 312, 500, 508, 570, 633, 500, 688, 508, 570, 633, 508, 570, 633, 875, 0, 1000, 125, 312, 500, 188, 250, 562, 500, 688, 188, 250, 562, 188, 250, 562, 875, 0, 1000, 125, 312, 500, 508, 570, 633, 500, 688, 508, 570, 633, 508, 570, 633, 875, 0, 1000, 125, 312, 500, 578, 641, 703, 500, 688, 578, 641, 703, 578, 641, 703, 875 }, new int[153]

@@ -32,7 +32,12 @@ namespace ACESim
         [STAThread]
         public static async Task Main(string[] args)
         {
-            new ETCAMain().main(); // DEBUG
+            var ecta = new ECTARunner();
+            ecta.outputPrior = false;
+            ecta.outputLCPSolution = false;
+            ecta.outputPivotingSteps = false;
+            ecta.outputPivotResults = true;
+            ecta.Execute(); // DEBUG
 
             GameProgressLogger.LoggingOn = false;
             GameProgressLogger.DetailedLogging = false;

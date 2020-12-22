@@ -17,7 +17,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
     public class Lemke
     {
 
-        int n;   /* LCP dimension as used here   */
+        int n;   /* LCP (Linear Complementarity Problem) dimension as used here   */
 
         /* LCP input    */
         public Rational[][] lcpM;
@@ -82,7 +82,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         }
 
         /*------------------ memory allocation -------------------------*/
-        public void setlcp(int newn)
+        public Lemke(int newn)
         {
             if (newn < 1 || newn > MAXLCPDIM)
             {
@@ -130,7 +130,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         /* asserts that  d >= 0  and not  q >= 0  (o/w trivial sol) 
 		 * and that q[i] < 0  implies  d[i] > 0
 		 */
-        public void isqdok()
+        public void ConfirmCoveringVectorOK()
         {
             int i;
             bool isqpos = true;
@@ -157,7 +157,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         }       /* end of  isqdok()     */
 
         /* ------------------- tableau setup ------------------ */
-        public void inittablvars()
+        public void InitializeTableauVariables()
         /* init tableau variables:                      */
         /* Z(0)...Z(n)  nonbasic,  W(1)...W(n) basic    */
         {
@@ -174,7 +174,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             }
         }       /* end of inittablvars()        */
 
-        public void filltableau()
+        public void FillTableau()
         /* fill tableau from  M, q, d   */
         {
             int i, j;
@@ -206,16 +206,16 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                     tmp = num;
                     BigInteger c = 0;
                     mulint(tmp2, tmp, ref c);
-                    setinA(i, j, c);
+                    SetValueInA(i, j, c);
                 }
             }   /* end of  for(j=...)   */
-            inittablvars();
+            InitializeTableauVariables();
             det = (BigInteger)ONE;
             changesign(ref det);
         }       /* end of filltableau()         */
 
         /* ---------------- output routines ------------------- */
-        public void outlcp()
+        public void OutputLCP()
         /* output the LCP as given      */
         {
             int i, j;
@@ -250,7 +250,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             colout();
         }
 
-        public int vartoa(int v, ref string s)
+        public int VariableToString(int v, ref string s)
         /* create string  s  representing  v  in  VARS,  e.g. "w2"    */
         /* return value is length of that string                      */
         {
@@ -261,8 +261,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             return s.Length;
         }
 
-
-        public void outtableau()
+        public void OutputTableau()
         /* output the current tableau, column-adjusted                  */
         {
             int i, j;
@@ -281,7 +280,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                     colpr("RHS()");
                 else
                 {
-                    vartoa(whichvar[j + n], ref s);
+                    VariableToString(whichvar[j + n], ref s);
                     colpr(s);
                 }
             }
@@ -299,7 +298,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             colnl();
             for (i = 0; i < n; i++)             /* print row  i                 */
             {
-                vartoa(whichvar[i], ref s);
+                VariableToString(whichvar[i], ref s);
                 colpr(s);
                 for (j = 0; j <= n + 1; j++)
                 {
@@ -315,7 +314,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         }       /* end of  outtabl()                                    */
 
         /* output the current basic solution            */
-        public void outsol()
+        public void OutputSolution()
         {
             string s = null;
             string smp = null;
@@ -332,10 +331,10 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             {
                 if (bascobas[Z(i)] < n)
                     /*  Z(i) is a basic variable        */
-                    vartoa(Z(i), ref s);
+                    VariableToString(Z(i), ref s);
                 else if (i > 0 && bascobas[W(i)] < n)
                     /*  Z(i) is a basic variable        */
-                    vartoa(W(i), ref s);
+                    VariableToString(W(i), ref s);
                 else
                     s = "  ";
                 colpr(s);
@@ -379,12 +378,9 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
         /* current basic solution turned into  solz [0..n-1]
 		 * note that Z(1)..Z(n)  become indices  0..n-1
-		 * gives a warning if conversion to ordinary rational fails
-		 * and returns 1, otherwise 0
 		 */
-        public bool notokcopysol()
+        public void TransformBasicSolution()
         {
-            bool notok = false;
             int i, row;
             BigInteger num = 0, den = 0;
 
@@ -398,61 +394,60 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 }
                 else            /* i is nonbasic    */
                     solz[i - 1] = ratfromi(0);
-            return notok;
         } /* end of copysol                     */
 
         /* --------------- test output and exception routines ---------------- */
-        public void assertbasic(int v, string info)
+        public void AssertVariableIsBasic(int v)
         /* assert that  v  in VARS is a basic variable         */
         /* otherwise error printing  info  where               */
         {
             string s = null;
             if (bascobas[v] >= n)
             {
-                vartoa(v, ref s);
-                throw new Exception($"{info}: Cobasic variable {s} should be basic.\n");
+                VariableToString(v, ref s);
+                throw new Exception($"Cobasic variable {s} should be basic.\n");
             }
         }
 
-        public void assertcobasic(int v, string info)
+        public void AssertVariableIsCobasic(int v)
         /* assert that  v  in VARS is a cobasic variable       */
         /* otherwise error printing  info  where               */
         {
             string s = null;
             if (TABCOL(v) < 0)
             {
-                vartoa(v, ref s);
-                throw new Exception($"{info}: Basic variable {s} should be cobasic.\n");
+                VariableToString(v, ref s);
+                throw new Exception($"Basic variable {s} should be cobasic.\n");
             }
         }
 
-        public void docupivot(int leave, int enter)
+        public void OutputPivotLeaveAndEnter(int leave, int enter)
         /* leave, enter in  VARS.  Documents the current pivot. */
         /* Asserts  leave  is basic and  enter is cobasic.      */
         {
             string s = null;
 
-            assertbasic(leave, "docupivot");
-            assertcobasic(enter, "docupivot");
+            AssertVariableIsBasic(leave);
+            AssertVariableIsCobasic(enter);
 
-            vartoa(leave, ref s);
+            VariableToString(leave, ref s);
             tabbedtextf("leaving: %-4s ", s);
-            vartoa(enter, ref s);
+            VariableToString(enter, ref s);
             tabbedtextf("entering: %s\n", s);
         }       /* end of  docupivot    */
 
-        void raytermination(int enter)
+        void ThrowRayTerminationException(int enter)
         {
             string s = null;
-            vartoa(enter, ref s);
+            VariableToString(enter, ref s);
             tabbedtextf($"Ray termination when trying to enter {s}\n");
-            outtableau();
+            OutputTableau();
             tabbedtextf("Current basis, not an LCP solution:\n");
-            outsol();
+            OutputSolution();
             throw new Exception("Ray termination; current basis, not an LCP solution");
         }
 
-        public void testtablvars()
+        public void TestTableauVariables()
         /* test tableau variables: error => msg only, continue  */
         {
             int i, j;
@@ -477,7 +472,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         /* complement of  v  in VARS, error if  v==Z(0).
          * this is  W(i) for Z(i)  and vice versa, i=1...n
          */
-        public int complement(int v)
+        public int ComplementOfVariable(int v)
         {
             if (v == Z(0))
                 errexit("Attempt to find complement of z0.");
@@ -486,7 +481,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
         /* initialize statistics for minimum ratio test
          */
-        public void initstatistics()
+        public void InitMinRatioTestStatistics()
         {
             int i;
             for (i = 0; i <= n; i++)
@@ -495,7 +490,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
         /* output statistics of minimum ratio test
          */
-        public void outstatistics()
+        public void OutputMinRatioTestStatistics()
         {
             int i;
             string s = null;
@@ -542,12 +537,12 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
          * basis, but the lex-minratio test is performed fully,
          * so the returned value might not be the index of  z0
          */
-        public int lexminvar(int enter, ref bool z0leave)
+        public int GetLeavingVariable(int enter, ref bool z0leave)
         {
             int col, i, j, testcol;
             int numcand;
 
-            assertcobasic(enter, "Lexminvar");
+            AssertVariableIsCobasic(enter);
             col = TABCOL(enter);
             numcand = 0;
             /* leavecand [0..numcand-1] = candidates (rows) for leaving var */
@@ -558,7 +553,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                     leavecand[numcand++] = i;
             }
             if (numcand == 0)
-                raytermination(enter);
+                ThrowRayTerminationException(enter);
             if (numcand == 1)
             {
                 lextested[0] += 1;
@@ -625,21 +620,21 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         }       /* end of lexminvar (col, *z0leave);                        */
 
 
-        public void negcol(int col)
+        public void NegateTableauColumn(int col)
         /* negate tableau column  col   */
         {
             int i;
             for (i = 0; i < n; i++)
-                changesigninA(i, col);
+                ChangeSignInA(i, col);
         }
 
-        public void negrow(int row)
+        public void NegateTableauRow(int row)
         /* negate tableau row.  Used in  pivot()        */
         {
             int j;
             for (j = 0; j <= n + 1; j++)
                 if (!zero(A[row][j]))
-                    changesigninA(row, j);
+                    ChangeSignInA(row, j);
         }
 
         /* leave, enter in  VARS  defining  row, col  of  A
@@ -648,7 +643,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
          * and updated tableau variables
          */
         int pivotnum = 0;
-        public void pivot(int leave, int enter)
+        public void Pivot(int leave, int enter)
         {
             int row, col, i, j;
             bool nonzero, negpiv;
@@ -681,17 +676,17 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                             }
                             BigInteger c = 0;
                             divint(tmp1, det, ref c);
-                            setinA(i, j, c);
+                            SetValueInA(i, j, c);
                         }
                     /* row  i  has been dealt with, update  A[i][col]  safely   */
                     if (nonzero && !negpiv)
-                        changesigninA(i, col);
+                        ChangeSignInA(i, col);
                 }       /* end of  for (i=...)                              */
             BigInteger temp = 0;
             copy(ref temp, det);
-            setinA(row, col, temp);
+            SetValueInA(row, col, temp);
             if (negpiv)
-                negrow(row);
+                NegateTableauRow(row);
             copy(ref det, pivelt);      /* by construction always positive      */
 
             /* update tableau variables                                     */
@@ -701,61 +696,61 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         }       /* end of  pivot (leave, enter)                         */
 
 
-        void changesigninA(int i, int j)
+        void ChangeSignInA(int i, int j)
         {
             changesign(ref A[i][j]);
         }
 
-        void setinA(int i, int j, BigInteger value)
+        void SetValueInA(int i, int j, BigInteger value)
         {
             copy(ref A[i][j], value);
         }
 
         /* ------------------------------------------------------------ */
-        public void runlemke(LemkeOptions flags)
+        public void RunLemke(LemkeOptions flags)
         {
             int leave, enter;
             bool z0leave = false;
 
             pivotcount = 1;
-            initstatistics();
+            InitMinRatioTestStatistics();
 
-            isqdok();
+            ConfirmCoveringVectorOK();
             /*  tabbedtextf("LCP seems OK.\n");      */
 
-            filltableau();
+            FillTableau();
             /*  tabbedtextf("Tableau filled.\n");    */
 
             if (flags.outputInitialTableau)
             {
                 tabbedtextf("After filltableau:\n");
-                outtableau();
+                OutputTableau();
             }
 
             /* z0 enters the basis to obtain lex-feasible solution      */
             enter = Z(0);
-            leave = lexminvar(enter, ref z0leave);
+            leave = GetLeavingVariable(enter, ref z0leave);
 
             /* now give the entering q-col its correct sign             */
-            negcol(RHS());
+            NegateTableauColumn(RHS());
 
             if (flags.outputTableaux)
             {
                 tabbedtextf("After negcol:\n");
-                outtableau();
+                OutputTableau();
             }
             while (true)       /* main loop of complementary pivoting                  */
             {
-                testtablvars();
+                TestTableauVariables();
                 if (flags.outputPivotingSteps)
-                    docupivot(leave, enter);
-                pivot(leave, enter);
+                    OutputPivotLeaveAndEnter(leave, enter);
+                Pivot(leave, enter);
                 if (z0leave)
                     break;  /* z0 will have value 0 but may still be basic. Amend?  */
                 if (flags.outputTableaux)
-                    outtableau();
-                enter = complement(leave);
-                leave = lexminvar(enter, ref z0leave);
+                    OutputTableau();
+                enter = ComplementOfVariable(leave);
+                leave = GetLeavingVariable(enter, ref z0leave);
                 if (pivotcount++ == flags.maxPivotSteps)
                 {
                     tabbedtextf("------- stop after %d pivoting steps --------\n",
@@ -767,14 +762,14 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             if (flags.outputInitialTableau)
             {
                 tabbedtextf("Final tableau:\n");
-                outtableau();
+                OutputTableau();
             }
-            if (flags.outputSolution)
-                outsol();
             if (flags.outputLexStats)
-                outstatistics();
+                OutputMinRatioTestStatistics();
+            if (flags.outputSolution)
+                OutputSolution();
 
-            notokcopysol();
+            TransformBasicSolution();
         }
 
 

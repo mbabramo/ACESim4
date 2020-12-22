@@ -10,6 +10,8 @@ using System.IO;
 using ACESimBase.GameSolvingSupport;
 using System.Diagnostics;
 using ACESim.Util;
+using ACESimBase.GameSolvingSupport.ECTAAlgorithm;
+using Rationals;
 
 namespace ACESimBase.GameSolvingAlgorithms
 {
@@ -264,6 +266,87 @@ namespace ACESimBase.GameSolvingAlgorithms
             VerifyPerfectRecall();
         }
 
+        public void SetupECTA()
+        {
+            int[][] pay = new int[2][];
+            pay[0] = Outcomes.Select(x => (int) Math.Round(x.Utilities[0] * ECTA_MultiplyOutcomesByThisBeforeRounding)).ToArray();
+            pay[1] = Outcomes.Select(x => (int)Math.Round(x.Utilities[1] * ECTA_MultiplyOutcomesByThisBeforeRounding)).ToArray();
+
+            ECTARunner ecta = new ECTARunner();
+            var t = ecta.t;
+            t.alloctree(GameNodes.Count(),InformationSetInfos.Count(),MoveIndexToInfoSetIndex.Count(), Outcomes.Count);
+
+            t.firstiset[0] = 0;
+            t.firstiset[1] = FirstInformationSetInfosIndexForPlayers[1];
+            t.firstiset[2] = FirstInformationSetInfosIndexForPlayers[2];
+            t.firstmove[0] = 0;
+            t.firstmove[1] = FirstMovesIndexForPlayers[1];
+            t.firstmove[2] = FirstMovesIndexForPlayers[2];
+
+            int zindex = 0;
+            var z = t.outcomes[0];
+
+            int firstOutcome = -1;
+            t.nodes[Treedef.rootindex].father = -1;
+            for (int n = 2; n < t.nodes.Length; n++)
+            {
+                t.nodes[n].father = n - 1;
+                if (GameNodes[n].GameState is FinalUtilitiesNode outcome)
+                {
+                    if (firstOutcome == -1)
+                        firstOutcome = n;
+                    t.nodes[n].terminal = true;
+                    t.nodes[n].outcome = zindex;
+                    z.whichnode = n;
+                    z.pay[0] = (Rational) pay[0][0];
+                    z.pay[1] = (Rational) pay[1][0];
+                    z = t.outcomes[++zindex];
+                }
+            }
+                
+            for (int n = 1; n < GameNodes.Count(); n++)
+            {
+                if (GameNodes[n].GameState is not FinalUtilitiesNode)
+                    t.nodes[n].iset = InformationSetInfoIndexForGameNode(n);
+            }
+            for (int n = 2; n < GameNodes.Count(); n++)
+            {
+                int movesIndex = GetIndexOfMoveLeadingToNode(n);
+                t.nodes[n].reachedby = movesIndex;
+            }
+            for (int i = 0; i < InformationSetInfos.Count(); i++)
+            {
+                t.isets[i].player = InformationSetInfos[i].ECTAPlayerID;
+                t.isets[i].move0 = MoveIndexFromInfoSetIndexAndMoveWithinInfoSet[(i, 1)];
+                t.isets[i].nmoves = InformationSetInfos[i].NumPossibleMoves;
+            }
+
+            int playerIndexForMove = -1;
+            for (int moveIndex = 0; moveIndex < MoveIndexToInfoSetIndex.Count(); moveIndex++)
+            {
+                int infoSetIndex = MoveIndexToInfoSetIndex[moveIndex];
+                if (infoSetIndex == -1)
+                {
+                    playerIndexForMove++;
+                    // move moveIndex is empty sequence for player playerIndexForMove
+                }
+                else
+                {
+                    t.moves[moveIndex].atiset = infoSetIndex;
+                    if (playerIndexForMove == 0)
+                    {
+                        // chance player
+                        var chance = InformationSetInfos[infoSetIndex].ChanceNode;
+                        int moveIndexForFirstMove = MoveIndexFromInfoSetIndexAndMoveWithinInfoSet[(infoSetIndex, 1)];
+                        int moveNumber = moveIndex - moveIndexForFirstMove + 1;
+                        var rational = chance.GetActionProbabilityAsRational(ECTA_MultiplyOutcomesByThisBeforeRounding, moveNumber);
+                        t.moves[moveIndex].behavprob = rational.Item1 / (Rational) rational.Item2;
+                    }
+                }
+            }
+        }
+
+        // DEBUG -- can delete following
         // The goal here is to generate some string code that we can then paste into the ECTA C++ code from Github.
         public string GetECTACodeString()
         {
