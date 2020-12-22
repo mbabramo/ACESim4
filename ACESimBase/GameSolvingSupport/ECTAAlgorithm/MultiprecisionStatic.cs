@@ -36,12 +36,12 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 		{
 			return a == 1;
 		}
-		public static void changesign(BigInteger a)
+		public static void changesign(ref BigInteger a)
 		{
 			a = -a;
 		}
 
-		public static void itomp(long i, BigInteger a)
+		public static void itomp(long i, ref BigInteger a)
 		{
 			a = i;
 		}

@@ -210,8 +210,8 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 }
             }   /* end of  for(j=...)   */
             inittablvars();
-            itomp(ONE, det);
-            changesign(det);
+            det = (BigInteger)ONE;
+            changesign(ref det);
         }       /* end of filltableau()         */
 
         /* ---------------- output routines ------------------- */
@@ -353,8 +353,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                         /* value of  W(i-n)  is  rhs[row] / (scfa[RHS()]*det)         */
                         copy(ref num, A[row][RHS()]);
                     mulint(det, scfa[RHS()], ref den);
-                    Rational r = (num / den);
-                    r = r.CanonicalForm;
+                    Rational r = (num / (Rational) den).CanonicalForm;
                     num = r.Numerator;
                     den = r.Denominator;
                     pos = mptoa(num, ref smp);
@@ -395,6 +394,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                     /* value of  Z(i):  scfa[Z(i)]*rhs[row] / (scfa[RHS()]*det)   */
                     mulint(scfa[Z(i)], A[row][RHS()], ref num);
                     mulint(det, scfa[RHS()], ref den);
+                    solz[i - 1] = ((Rational) (num / den)).CanonicalForm;
                 }
                 else            /* i is nonbasic    */
                     solz[i - 1] = ratfromi(0);
@@ -660,7 +660,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             copy(ref pivelt, A[row][col]);     /* pivelt anyhow later new determinant  */
             negpiv = negative(pivelt);
             if (negpiv)
-                changesign(pivelt);
+                changesign(ref pivelt);
             for (i = 0; i < n; i++)
                 if (i != row)               /*  A[row][..]  remains unchanged       */
                 {
@@ -703,7 +703,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
         void changesigninA(int i, int j)
         {
-            changesign(A[i][j]);
+            changesign(ref A[i][j]);
         }
 
         void setinA(int i, int j, BigInteger value)

@@ -1,5 +1,6 @@
 ﻿using Rationals;
 using System;
+using System.Linq;
 using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.MultiprecisionStatic;
 using static ACESimBase.Util.CPrint;
 
@@ -9,12 +10,12 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
     {
         public static Rational ratadd(Rational a, Rational b)
         {
-            return a + b;
+            return (a + b).CanonicalForm;
         }
 
         public static Rational ratdiv(Rational a, Rational b)
         {
-            return a / b;
+            return (a / b).CanonicalForm;
         }
 
         public static Rational ratfromi(int i)
@@ -25,7 +26,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         public static Rational ratinv(Rational a)
         {
             
-            return 1 / a;
+            return (1 / a).CanonicalForm;
         }
         public static bool ratiseq(Rational a, Rational b)
         {
@@ -54,19 +55,26 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
         public static int rattoa(Rational r, char[] s)
         {
-            s = r.ToString().ToCharArray();
+            string s2 = null;
+            rattoa(r, ref s2);
+            s = s2.ToArray();
             return s.Length;
         }
 
         public static int rattoa(Rational r, ref string s)
         {
-            s = r.ToString();
+            if (r.Denominator == 1)
+                s = r.Numerator.ToString();
+            else if (r.Denominator == 0)
+                s = $"{r.Numerator}/{r.Denominator}"; // show illegal div by 0
+            else
+                s = r.ToString();
             return s.Length;
         }
 
         public static Rational contfract(double x, int accuracy)
         {
-            return Rational.Approximate(x, 1.0 / (double)accuracy);
+            return Rational.Approximate(x, 1.0 / (double)accuracy).CanonicalForm;
         }
     }
 }

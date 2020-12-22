@@ -340,8 +340,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                         int moveIndexForFirstMove = MoveIndexFromInfoSetIndexAndMoveWithinInfoSet[(infoSetIndex, 1)];
                         int moveNumber = moveIndex - moveIndexForFirstMove + 1;
                         var rational = chance.GetActionProbabilityAsRational(ECTA_MultiplyOutcomesByThisBeforeRounding, moveNumber);
-                        s.AppendLine($@"    moves[{moveIndex}].behavprob.num = {rational.Item1};
-    moves[{moveIndex}].behavprob.den = {rational.Item2};");
+                        s.AppendLine($@"    moves[{moveIndex}].behavprob = {rational.Item1} / (Rational) {rational.Item2};");
                     }
                 }
             }

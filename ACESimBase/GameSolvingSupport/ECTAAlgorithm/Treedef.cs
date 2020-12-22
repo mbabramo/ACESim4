@@ -10,6 +10,7 @@ using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.RatStatic;
 using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.ColumnPrinter;
 using static ACESim.ArrayFormConversionExtension;
 using Rationals;
+using System.Numerics;
 
 namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 {
@@ -385,7 +386,9 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 for (int cindex = firstmove[pl] + 1; cindex < firstmove[pl + 1]; cindex++)
                 {
                     c = moves[cindex];
-                    c.behavprob = 1 / isets[c.atiset].nmoves;
+                    c.behavprob = 1 / (Rational) isets[c.atiset].nmoves;
+                    if (c.behavprob == 0)
+                        throw new Exception("DEBUG");
                 }
         }
 
@@ -411,18 +414,26 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                         // We must create fractions that add up to 1 (each greater than 0).
                         // So, we'll just take random numbers from 1 to 10, use those for numerators
                         // and the sum for a denominator.
-                        int denominator = 0;
+                        BigInteger denominator = 0;
                         for (int i = 0; i < h.nmoves; i++)
                         {
                             double maxValue = 9;
-                            int numerator = 1 + (int) Math.Floor(maxValue * RandomGenerator.NextDouble());
-                            moves[h.move0 + i].behavprob = ratfromi(numerator); // store value so that we remember it
+                            BigInteger numerator = (BigInteger) (1 + (int) Math.Floor(maxValue * RandomGenerator.NextDouble()));
+                            moves[h.move0 + i].behavprob = (Rational) numerator; // store value so that we remember it
+                            if (moves[h.move0 + i].behavprob == 0)
+                                throw new Exception("DEBUG");
                             denominator += numerator;
                         }
                         for (int i = 0; i < h.nmoves; i++)
                         {
                             Rational a = new Rational();
                             a = moves[h.move0 + i].behavprob.Numerator / denominator;
+                            if (moves[h.move0 + i].behavprob.Numerator != 0 && a == 0)
+                                throw new Exception("DEBUG");
+                            if (h.move0 + 1 == 1)
+                            {
+                                var DEBUG = 0;
+                            }
                             moves[h.move0 + i].behavprob = a;
                         }
                         //Original code:
@@ -443,14 +454,16 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 					 */
                         if (a.Numerator == 0)
                         {
-                            a = 1 / flags.accuracy;
+                            a = 1 / (Rational) flags.accuracy;
                         }
                         else if (a.Denominator == 1)    /* "else" for pure strategy	*/
                         {
-                            a = flags.accuracy - 1 / flags.accuracy;
+                            a = flags.accuracy - 1 / (Rational) flags.accuracy;
                         }
                         moves[h.move0].behavprob = a;
                         moves[h.move0 + 1].behavprob = ratadd(ratfromi(1), ratneg(a));
+                        if (moves[h.move0 + 1].behavprob == 0)
+                            throw new Exception("DEBUG");
                     }
                 }
         }
@@ -664,9 +677,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 {
                     c = moves[cindex];
                     rprob = rplan[offset + cindex - firstmove[pl]];
-                    tabbedtextf("%d", rprob.Numerator);
-                    tabbedtextf("/");
-                    tabbedtextf("%d", rprob.Denominator);
+                    TabbedText.Write(rprob.ToString());
                     if (hindex != firstiset[pl + 1] - 1 || i != h.nmoves - 1)
                     {
                         tabbedtextf(",");
@@ -804,11 +815,25 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             /* covering vector  = -rhsq */
             for (i = 0; i < Lemke.lcpdim; i++)
                 Lemke.vecd[i] = ratneg(Lemke.rhsq[i]);
+
+            //// DEBUG
+            //for (i = 0; i < Lemke.lcpM.Length; i++)
+            //{
+            //    for (j = 0; j < Lemke.lcpM[i].Length; j++)
+            //    {
+            //        TabbedText.Write(Lemke.lcpM[i][j] + ", ");
+            //    }
+            //    TabbedText.WriteLine("");
+            //}
+
             /* first blockrow += -Aq    */
             for (i = 0; i < dim1; i++)
                 for (j = 0; j < dim2; j++)
+                {
                     Lemke.vecd[i] = ratadd(Lemke.vecd[i], ratmult(Lemke.lcpM[i][offset + j],
                               moves[firstmove[2] + j].realprob));
+                    // TabbedText.WriteLine($"{Lemke.vecd[i]} {Lemke.lcpM[i][offset + j]} {moves[firstmove[2] + j].realprob.Numerator} {moves[firstmove[2] + j].realprob.Denominator}"); // DEBUG
+                }
             /* RSF yet to be done*/
             /* third blockrow += -B\T p */
             for (i = offset; i < offset + dim2; i++)
@@ -2624,23 +2649,23 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             isets[14].nmoves = 3;
             // move 0 is empty sequence for player 0
             moves[1].atiset = 0;
-            moves[1].behavprob = 1/3;
+            moves[1].behavprob = 1/(Rational)3;
             moves[2].atiset = 0;
-            moves[2].behavprob = 1/3;
+            moves[2].behavprob = 1 / (Rational)3;
             moves[3].atiset = 0;
-            moves[3].behavprob = 1/3;
+            moves[3].behavprob = 1 / (Rational)3;
             moves[4].atiset = 1;
-            moves[4].behavprob = 1/3;
+            moves[4].behavprob = 1 / (Rational)3;
             moves[5].atiset = 1;
-            moves[5].behavprob = 1/3;
+            moves[5].behavprob = 1 / (Rational)3;
             moves[6].atiset = 1;
-            moves[6].behavprob = 1/3;
+            moves[6].behavprob = 1 / (Rational)3;
             moves[7].atiset = 2;
-            moves[7].behavprob = 1/3;
+            moves[7].behavprob = 1 / (Rational)3;
             moves[8].atiset = 2;
-            moves[8].behavprob = 1/3;
+            moves[8].behavprob = 1 / (Rational)3;
             moves[9].atiset = 2;
-            moves[9].behavprob = 1/3;
+            moves[9].behavprob = 1 / (Rational)3;
             // move 10 is empty sequence for player 1
             moves[11].atiset = 3;
             moves[12].atiset = 3;
