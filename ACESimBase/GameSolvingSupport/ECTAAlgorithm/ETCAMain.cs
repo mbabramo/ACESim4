@@ -13,29 +13,42 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 {
     public class ETCAMain
     {
-        const int MINLEVEL = 1;
-        const int MAXLEVEL = 10;
-        const int FILENAMELENGTH = 50;
-        const double CLOCKUNITSPERSECOND = 1000.0;
-        const string SCLOCKUNITS = "millisecs";
+
+
+
+        const int MAXACCURACY = 1000;
+        const int DEFAULTACCURACY = 23;
+        const int FIRSTPRIORSEED = 500;
+
+
+
+        int multipriors = 0;         /* parameter for    -M option  */
+        int seed = 0;      /* payoff seed for bintree  (-s option) */
+
+        bool outputPivotResults = false;
+        bool outputPivotHeaderFirst = false;/* headers first (multiple games)       */
+
         const int REPEATHEADER = 20;   /* repeat header if more games than this */
+        bool outputRawTree = false;     /* output the raw game tree (-g option) */
+        bool outputInitialTableau = false;
+        bool outputTableaux = false;
+        bool ourputLCP = false;       /* output LCP  */
+        bool outputPrior = false;     /* output prior */
+        bool outputPivotingSteps = false;      /* complementary pivoting steps */
+        bool outputEquilibrium = true;        /* output equilibrium           */
+        bool outputEquilibriumShort = false;   /* output equilibrium shortly   */
+        bool outputSolution = false;
+        bool outputLexStats = false; /* output lexical ordering statistics */
 
         /* global variables for generating and documenting computation  */
-        static Flagsprior fprior;
-        static bool boutlcp = false;       /* output LCP       (-o option) */
-        static bool boutprior = false;     /* output prior     (-O option) */
-        static bool bcomment = false;      /* complementary pivoting steps */
-        static bool bequil = true;        /* output equilibrium           */
-        static bool bshortequil = false;   /* output equilibrium shortly   */
-        static Flagsrunlemke flemke;
+        Flagsprior fprior;
+        Flagsrunlemke flemke;
 
-        static long timeused, sumtimeused;
-        static int pivots, sumpivots;
-        static int lcpsize;
-        static int mpdigits, summpdigits;
-        static int[] eqsize = new int[Treedef.PLAYERS], sumeqsize = new int[Treedef.PLAYERS];
-        static bool[] agreenfsf = new bool[Treedef.PLAYERS];
-
+        long timeused, sumtimeused;
+        int pivots, sumpivots;
+        int lcpsize;
+        int[] eqsize = new int[Treedef.PLAYERS], sumeqsize = new int[Treedef.PLAYERS];
+        bool[] agreenfsf = new bool[Treedef.PLAYERS];
 
         Stopwatch swatch = new Stopwatch();
         Treedef t = new Treedef();
@@ -94,19 +107,20 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             tabbedtextf("SEQUENCE FORM        mixiset");
             tabbedtextf("\n");
             tabbedtextf("Seed/seed| ");
-            tabbedtextf("pivot %%n [secs] digs pl1 pl2");
+            tabbedtextf("pivot %%n [secs]");
             tabbedtextf("\n");
         }
 
         /* info about results for game with  priorseed  and  (payoff) seed */
-        void inforesult(int priorseed, int seed)
+        void infopivotresult(int priorseed, int seed)
         {
-            string formatstring = "%4d %3.0f %6.2f  %3d %3d %3d";
+            if (!outputPivotResults)
+                return;
+            string formatstring = "%4d %3.0f %6.2f";
             tabbedtextf("%4d/%4d| ", priorseed, seed);
             tabbedtextf(formatstring, pivots,
                     (double)pivots * 100.0 / (double)lcpsize,
-                (double)timeused / CLOCKUNITSPERSECOND,
-                mpdigits, eqsize[1], eqsize[2]);
+                (double)timeused / 1000);
             tabbedtextf("\n");
         }
 
@@ -114,7 +128,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         void infosumresult(int m)
         {
             double mm = (double)m;
-            string formatstring = "%6.1f %3.0f %6.2f %4.1f %3.1f %3.1f";
+            string formatstring = "%6.1f %3.0f %6.2f %3.1f %3.1f";
 
             tabbedtextf("---------| AVERAGES over  %d  games:\n", m);
             if (m > REPEATHEADER)
@@ -123,8 +137,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             tabbedtextf(formatstring, (double)sumpivots / mm,
                     (double)sumpivots * 100.0 /
                         (double)(lcpsize * mm),
-                (double)sumtimeused / (CLOCKUNITSPERSECOND * mm),
-                (double)summpdigits / mm,
+                (double)sumtimeused / (1000 * mm),
                     (double)sumeqsize[1] / mm,
                     (double)sumeqsize[2] / mm);
             tabbedtextf("\n");
@@ -142,17 +155,16 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             int offset;
             int pl;
 
-            if (bcomment)
+            if (outputPivotingSteps)
                 tabbedtextf("Generating and solving sequence form.\n");
             t.sflcp();
 
             t.covvector();
-            if (boutlcp)
+            if (ourputLCP)
                 t.Lemke.outlcp();
             stopwatch(false);
             t.Lemke.runlemke(flemke);
-            sumtimeused += timeused =
-            stopwatch(false);
+            sumtimeused += timeused = stopwatch(false);
             sumpivots += pivots = t.Lemke.pivotcount;
             /* equilibrium size     */
             offset = 0;
@@ -165,72 +177,32 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 sumeqsize[pl] +=
                     eqsize[pl] = equilsize;
             }
-            if (bequil)
-                t.showeq(bshortequil, docuseed);
+            if (outputEquilibrium)
+                t.showeq(outputEquilibriumShort, docuseed);
         }
-
-        const int MAXACCURACY = 1000;
-        const int DEFAULTACCURACY = 23;
-        const int FIRSTPRIORSEED = 500;
 
         public int main()
         {
             tabbedtextf("C# TRANSLATION OF ECTA\n"); // DEBUG
 
-            int multipriors = 0;         /* parameter for    -M option  */
-            int seed = 0;      /* payoff seed for bintree  (-s option) */
-
-            bool bheadfirst = false;/* headers first (multiple games)       */
-            bool bgame = false;     /* output the raw game tree (-g option) */
-
             flemke.maxcount = 0;
 
-            flemke.bdocupivot = true;
-            flemke.binitabl = false;
-            flemke.bouttabl = true;
-            flemke.boutsol = true;
-            flemke.blexstats = true;
+            flemke.outputPivotingSteps = outputPivotingSteps;
+            flemke.outputInitialTableau = outputInitialTableau;
+            flemke.outputTableaux = outputTableaux;
+            flemke.outputSolution = outputSolution;
+            flemke.outputLexStats = outputLexStats;
 
             fprior.seed = 0;
             fprior.accuracy = DEFAULTACCURACY;
 
             /* parse options    */
-            /* options have been input, amend extras	*/
-            if (multipriors > 0)
+            if (outputPivotingSteps)
             {
-                /* this would exclude the centroid for multiple priors
-                    if ( fprior.seed == 0)
-                        fprior.seed = 1 ; 
-                */
-            }
-            else
-                multipriors = 1;
-            if (bcomment)
-            {
-                flemke.bdocupivot = true;
-                flemke.boutsol = true;
+                flemke.outputPivotingSteps = true;
+                flemke.outputSolution = true;
             }
 
-            /* options are parsed and flags set */
-            /* document the set options         */
-            tabbedtextf("Options chosen,              [ ] = default:\n");
-            tabbedtextf("    Multiple priors     %4d [1],  option -M #\n", multipriors);
-            tabbedtextf("    Accuracy prior      %4d [%d], option -A #\n",
-                fprior.accuracy, DEFAULTACCURACY);
-            tabbedtextf("    Seed prior           %3d [0],  ",
-                    fprior.seed);
-            tabbedtextf("    Output prior           %s [N],  option -O\n",
-                    boutprior ? "Y" : "N");
-            tabbedtextf("    game output            %s [N],  option -g\n",
-                bgame ? "Y" : "N");
-            tabbedtextf("    comment LCP pivs & sol %s [N],  option -c\n",
-                    bcomment ? "Y" : "N");
-            tabbedtextf("    output LCP             %s [N],  option -o\n",
-                    boutlcp ? "Y" : "N");
-            tabbedtextf("    degeneracy statistics  %s [N],  option -d\n",
-                flemke.blexstats ? "Y" : "N");
-            tabbedtextf("    tableaus               %s [N],  option -t\n",
-                flemke.bouttabl ? "Y" : "N");
 
 
             tabbedtextf("Solving example from BvS/Elzen/Talman\n");
@@ -238,7 +210,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
             t.genseqin();
             t.autoname();
-            t.maxpayminusone(bcomment);
+            t.maxpayminusone(outputPivotingSteps);
 
             /* game tree is defined, give headline information  */
             infotree(); // INFO
@@ -250,24 +222,22 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             int startprior = fprior.seed;
 
             t.allocrealplan(t.realplan);
-            if (bheadfirst) /* otherwise the header is garbled by LCP output */
+            if (outputPivotResults && outputPivotHeaderFirst) /* otherwise the header is garbled by LCP output */
                 inforesultheader();
             int priorcount;
             /* multiple priors 	*/
-            bgame = true; 
-            boutprior = true; 
-            multipriors = 4;
+            multipriors = 20;
             for (priorcount = 0; priorcount < multipriors; priorcount++)
             {
                 t.genprior(fprior);
-                if (bgame)
+                if (outputRawTree)
                     t.rawtreeprint();
-                if (boutprior)
+                if (outputPrior)
                     t.outprior();
                 processgame(seed + gamecount);
-                if (!bheadfirst)
+                if (outputPivotResults && !outputPivotHeaderFirst)
                     inforesultheader();
-                inforesult(fprior.seed, seed + gamecount);
+                infopivotresult(fprior.seed, seed + gamecount);
                 fprior.seed++;
             }
             if (multipriors > 1)    /* give averages */
