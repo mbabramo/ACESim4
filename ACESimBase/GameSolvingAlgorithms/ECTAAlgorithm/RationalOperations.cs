@@ -1,10 +1,10 @@
 ﻿using Rationals;
 using System;
 using System.Linq;
-using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.BigIntegerOperations;
+using static ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm.BigIntegerOperations;
 using static ACESimBase.Util.CPrint;
 
-namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
+namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
     public static class RationalOperations
     {

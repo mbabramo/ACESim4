@@ -13,7 +13,7 @@ using System.Runtime.Serialization;
 using System.Diagnostics;
 using ACESim.Util;
 using ACESimBase.Games.AdditiveEvidenceGame;
-using ACESimBase.GameSolvingSupport.ECTAAlgorithm;
+using ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm;
 
 namespace ACESim
 {

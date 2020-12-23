@@ -10,7 +10,7 @@ using System.IO;
 using ACESimBase.GameSolvingSupport;
 using System.Diagnostics;
 using ACESim.Util;
-using ACESimBase.GameSolvingSupport.ECTAAlgorithm;
+using ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm;
 using Rationals;
 using JetBrains.Annotations;
 

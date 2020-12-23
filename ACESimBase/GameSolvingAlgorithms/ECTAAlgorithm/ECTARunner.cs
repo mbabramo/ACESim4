@@ -5,12 +5,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using static ACESimBase.Util.CPrint;
-using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.RationalOperations;
-using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.ColumnPrinter;
+using static ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm.RationalOperations;
+using static ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm.ColumnPrinter;
 using static ACESim.ArrayFormConversionExtension;
 using Rationals;
 
-namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
+namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
     public class ECTARunner
     {

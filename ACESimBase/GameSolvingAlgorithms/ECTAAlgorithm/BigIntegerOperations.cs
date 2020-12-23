@@ -4,7 +4,7 @@ using System.Numerics;
 using System.Text;
 using static ACESimBase.Util.CPrint;
 
-namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
+namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
     public static class BigIntegerOperations
     {

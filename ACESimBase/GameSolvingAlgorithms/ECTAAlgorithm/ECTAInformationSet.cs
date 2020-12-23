@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
+namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
 	public class ECTAInformationSet // information set
 	{

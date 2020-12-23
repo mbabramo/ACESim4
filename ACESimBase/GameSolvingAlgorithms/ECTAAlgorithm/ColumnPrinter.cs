@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using static ACESimBase.Util.CPrint;
 
-namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
+namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
 	/// <summary>
 	/// A fairly literal conversion of the column printing routines from the ECTA code. It takes advantage of the CPrint static class to emulate C printing functions. These ultimately call Console.Write.
