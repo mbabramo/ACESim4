@@ -353,10 +353,10 @@ namespace ACESim
         {
             var options = BaseOptions();
 
-            options.NumOffers = 4;
+            options.NumOffers = 2;
 
-            options.NumLiabilityStrengthPoints = 4;
-            options.NumLiabilitySignals = 4;
+            options.NumLiabilityStrengthPoints = 2;
+            options.NumLiabilitySignals = 3;
 
             options.NumDamagesSignals = 1;
             options.NumDamagesStrengthPoints = 1;

@@ -78,7 +78,7 @@ namespace ACESim
         public int TriggerIncreaseOverTime = 45;
 
         public bool GenerateReportsByPlaying;
-        public int NumRandomIterationsForSummaryTable = 10000;
+        public int NumRandomIterationsForSummaryTable = 1000; // overridden by Launcher.SummaryTableRandomPathsIterations
         public bool PrintGameTree = false; // Note: Value here overridden in launcher
         public bool PrintInformationSets = false; // Note: Value here overridden in launcher
         public bool AnalyzeInformationSets = false; 
@@ -86,7 +86,7 @@ namespace ACESim
         public bool PrintNonChanceInformationSetsOnly = true;
         public List<ActionStrategies> ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.CurrentProbability }; // CORRELATED EQ SETTING
         public int GameNumber = 0; // does not copy over to Launcher
-        internal int NumRandomIterationsForUtilityCalculation = 10000;
+        internal int NumRandomIterationsForUtilityCalculation = 1000;
         internal bool SuppressReportDisplayOnScreen;
 
         public static bool PruneOnOpponentStrategy = true; // NOTE: In general sum games, this seemed to cause difficulties at one point, because some of the player's own information sets may not be visited, as a result of pruning on opponents' sets. Also, note that this cannot be used with symmetric games.

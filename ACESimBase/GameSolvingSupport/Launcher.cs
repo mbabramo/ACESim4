@@ -30,7 +30,7 @@ namespace ACESim
         public const bool AlwaysSuppressDisplayReportOnScreen = false; // DEBUG
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever;
         public const bool UseRandomPathsForReporting = true;
-        public const int SummaryTableRandomPathsIterations = 10_000;
+        public const int SummaryTableRandomPathsIterations = 1_000;
         public const int ProbingIterations = 20_000_000;
 
         public int MaxParallelDepth = 3;
