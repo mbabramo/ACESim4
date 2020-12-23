@@ -1763,7 +1763,11 @@ namespace ACESim
 
             public double[] BestResponseUtilities;
             public double[] UtilitiesOverall;
-            public double[] BestResponseImprovement;
+            public double[] BestResponseImprovement
+            {
+                get;
+                set;
+            }
             public FloatSet CustomResult;
 
             public double[] MinScore, MaxScore, ScoreRange;

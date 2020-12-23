@@ -440,9 +440,20 @@ namespace ACESimBase.GameSolvingAlgorithms
                 int totalNumbersProcessed = 0;
                 for (int i = 0; i < infoSets.Count(); i++)
                 {
+                    double total = 0;
                     for (byte a = 1; a <= infoSets[i].Decision.NumPossibleActions; a++)
                     {
-                        infoSets[i].SetActionToProbabilityValue(a, numbers[totalNumbersProcessed++], true);
+                        total += numbers[totalNumbersProcessed++];
+                        infoSets[i].SetActionToProbabilityValue(a, total, true);
+                    }
+                    if (total == 0)
+                    {
+                        // This information set cannot be reached. Use even probabilities.
+                        double p = 1.0 / (double)infoSets[i].Decision.NumPossibleActions;
+                        for (byte a = 1; a <= infoSets[i].Decision.NumPossibleActions; a++)
+                        {
+                            infoSets[i].SetActionToProbabilityValue(a, p, true);
+                        }
                     }
                     if (useCorrelatedEquilibrium)
                         infoSets[i].RecordProbabilitiesAsPastValues();

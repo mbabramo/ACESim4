@@ -84,6 +84,8 @@ namespace ACESim
                     var averageStrategies = AverageStrategyValues[node];
                     for (byte action = 1; action <= informationSet.NumPossibleActions; action++)
                     {
+                        if (double.IsNaN(averageStrategies[action - 1]))
+                            throw new Exception();
                         informationSet.NodeInformation[InformationSetNode.averageStrategyProbabilityDimension, action - 1] = averageStrategies[action - 1];
                     }
                 }

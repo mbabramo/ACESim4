@@ -170,6 +170,8 @@ namespace ACESimBase.GameSolvingSupport
         {
             double bestResponseUtility = GetBestResponseUtilityAfterPathToSuccessor(playerIndex);
             double overallUtility = GetUtilityAfterPathToSuccessor(playerIndex);
+            if (double.IsNaN(overallUtility))
+                throw new Exception("DEBUG");
             FloatSet customResult = GetCustomResultAfterPathToSuccessor(playerIndex);
             double pathProbability = GetProbabilityOfPath(useCurrentStrategyForPathProbability);
             double bestResponseValue = pathProbability * bestResponseUtility;
@@ -194,7 +196,8 @@ namespace ACESimBase.GameSolvingSupport
                     default: throw new NotSupportedException();
                 }
             }
-
+            if (double.IsNaN(pathProbability))
+                throw new Exception();
             return pathProbability;
         }
 
@@ -263,11 +266,15 @@ namespace ACESimBase.GameSolvingSupport
             {
                 case FinalUtilitiesNode f:
                     utility = f.Utilities[playerIndex];
+                    if (double.IsNaN(utility))
+                        throw new Exception("DEBUG");
                     break;
                 case InformationSetNode i:
                     if (playerIndex != i.PlayerIndex)
                         throw new Exception();
                     utility = i.AverageStrategyResultsForPathFromPredecessor[i.NumVisitsFromPredecessorToGetAverageStrategy]; // that is, return the average strategy result for the predecessor, on the assumption that the paths from the predecessor are being visited in order to make this request.
+                    if (double.IsNaN(utility))
+                        throw new Exception("DEBUG");
                     i.NumVisitsFromPredecessorToGetAverageStrategy++;
                     if (i.NumVisitsFromPredecessorToGetAverageStrategy == i.AverageStrategyResultsForPathFromPredecessor.Length)
                         i.NumVisitsFromPredecessorToGetAverageStrategy = 0;

@@ -32,17 +32,6 @@ namespace ACESim
         [STAThread]
         public static async Task Main(string[] args)
         {
-            //var ecta = new ECTARunner();
-            //ecta.outputPrior = false;
-            //ecta.outputGameTreeSetup = true;
-            //ecta.outputInitialTableau = true;
-            //ecta.outputLCP = true;
-            //ecta.outputLCPSolution = false;
-            //ecta.outputPivotingSteps = true;
-            //ecta.outputPivotResults = true;
-            //ecta.numPriors = 1;
-            //ecta.Execute(t => t.examplegame()); // DEBUG
-
             GameProgressLogger.LoggingOn = false;
             GameProgressLogger.DetailedLogging = false;
             await Execute();

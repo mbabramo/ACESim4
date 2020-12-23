@@ -217,7 +217,7 @@ namespace ACESim
             ResetNodeInformation(totalDimensions, NumPossibleActions);
             BackupNodeInformation = null;
             double probability = 1.0 / (double)NumPossibleActions;
-            if (double.IsNaN(probability))
+            if (double.IsNaN(probability) || NumPossibleActions == 0)
                 throw new Exception();
             BestResponseAction = 1;
             for (int a = 1; a <= NumPossibleActions; a++)
@@ -498,6 +498,8 @@ namespace ACESim
                 double bestResponseProbability = (BestResponseAction == action) ? 1.0 : 0.0;
                 // double difference = bestResponseProbability - currentAverageStrategyProbability;
                 double successorValue = (1.0 - weightOnBestResponse) * currentAverageStrategyProbability + weightOnBestResponse * bestResponseProbability;
+                if (double.IsNaN(successorValue))
+                    throw new Exception();
                 NodeInformation[cumulativeStrategyDimension, action - 1] = NodeInformation[averageStrategyProbabilityDimension, action - 1] = successorValue;
                 total += successorValue;
             }
@@ -515,6 +517,8 @@ namespace ACESim
                 double currentAverageStrategyProbability = GetAverageStrategy(action);
                 double bestResponseProbability = (BestResponseAction == action) ? 1.0 : 0.0;
                 NodeInformation[cumulativeStrategyDimension, action - 1] = NodeInformation[averageStrategyProbabilityDimension, action - 1] = bestResponseProbability;
+                if (double.IsNaN(bestResponseProbability))
+                    throw new Exception();
                 total += bestResponseProbability;
             }
             if (Math.Abs(total - 1.0) > 1E-8)
@@ -534,7 +538,10 @@ namespace ACESim
             double remainingAfterPerturbation = 1.0 - totalPerturbation;
             for (byte action = 1; action <= NumPossibleActions; action++)
             {
-                NodeInformation[averageStrategyProbabilityDimension, action - 1] = minValueForEachAction + NodeInformation[averageStrategyProbabilityDimension, action - 1] * remainingAfterPerturbation;
+                double v = minValueForEachAction + NodeInformation[averageStrategyProbabilityDimension, action - 1] * remainingAfterPerturbation;
+                if (double.IsNaN(v))
+                    throw new Exception();
+                NodeInformation[averageStrategyProbabilityDimension, action - 1] = v;
                 if (includeCumulativeStrategy)
                     NodeInformation[cumulativeStrategyDimension, action - 1] = NodeInformation[averageStrategyProbabilityDimension, action - 1];
             }
@@ -1020,7 +1027,8 @@ namespace ACESim
                 else
                     total += v;
             }
-
+            if (total == 0)
+                throw new Exception();
             for (byte a = 1; a <= NumPossibleActions; a++)
                 NodeInformation[probabilityDimension, a - 1] /= total;
         }
@@ -1034,7 +1042,7 @@ namespace ACESim
             for (byte a = 1; a <= NumPossibleActions; a++)
             {
                 double p = initialProbabilityFunc(a);
-                if (double.IsNaN(p))
+                if (double.IsNaN(p) || double.IsNaN(setBelowThresholdTo))
                     throw new Exception();
                 if ((!usePrunabilityInsteadOfThreshold && p <= probabilityThreshold) || (usePrunabilityInsteadOfThreshold && PrunableActions != null && PrunableActions[a - 1].consideredForPruning && PrunableActions[a - 1].prunable))
                     p = setBelowThresholdTo;
@@ -1113,7 +1121,12 @@ namespace ACESim
         {
             CreateBackup();
             for (byte a = 1; a <= NumPossibleActions; a++)
-                NodeInformation[averageStrategyProbabilityDimension, a - 1] = PastValues[pastValueIndex][a - 1];
+            {
+                double v = PastValues[pastValueIndex][a - 1];
+                NodeInformation[averageStrategyProbabilityDimension, a - 1] = v;
+                if (double.IsNaN(v))
+                    throw new Exception();
+            }
         }
 
         #endregion
@@ -1197,7 +1210,10 @@ namespace ACESim
 
         public double GetAverageStrategy(byte action)
         {
-            return NodeInformation[averageStrategyProbabilityDimension, action - 1];
+            var result = NodeInformation[averageStrategyProbabilityDimension, action - 1];
+            if (double.IsNaN(result))
+                throw new Exception();
+            return result;
         }
 
         public void GetAverageStrategyProbabilities(Span<double> probabilitiesToSet)
@@ -1456,6 +1472,8 @@ namespace ACESim
 
         public void SetActionToProbabilityValue(byte a, double probabilityValue, bool setAverageAndCumulativeStrategy)
         {
+            if (double.IsNaN(probabilityValue))
+                throw new Exception();
             NodeInformation[currentProbabilityDimension, a - 1] = probabilityValue;
             NodeInformation[currentProbabilityForOpponentDimension, a - 1] = probabilityValue;
             if (setAverageAndCumulativeStrategy)
@@ -1522,6 +1540,8 @@ namespace ACESim
             if (reallocated > 0)
             {
                 double multiplyBy = 1.0 / (1.0 - reallocated);
+                if (double.IsNaN(multiplyBy))
+                    throw new Exception();
                 for (byte action = 1; action < NumPossibleActions; action++)
                     NodeInformation[averageStrategyProbabilityDimension, action - 1] *= multiplyBy;
             }
@@ -1540,6 +1560,8 @@ namespace ACESim
             if (secondHighest.value < minProbabilitySecondBest)
             {
                 double reallocation = minProbabilitySecondBest - secondHighest.value;
+                if (double.IsNaN(reallocation))
+                    throw new Exception();
                 NodeInformation[averageStrategyProbabilityDimension, highest.index] -= reallocation;
                 NodeInformation[averageStrategyProbabilityDimension, secondHighest.index] += reallocation;
             }
@@ -1589,7 +1611,11 @@ namespace ACESim
                     {
                         total += PastValues[p][a - 1];
                     }
-                    NodeInformation[averageStrategyProbabilityDimension, a - 1] = (total / (double)(LastPastValueIndexRecorded + 1));
+
+                    double v = (total / (double)(LastPastValueIndexRecorded + 1));
+                    NodeInformation[averageStrategyProbabilityDimension, a - 1] = v;
+                    if (double.IsNaN(v))
+                        throw new Exception();
                 }
         }
         public void SetCurrentAndAverageStrategyToPastValue(int pastValueIndex, byte? playerMatchRequirement = null)
