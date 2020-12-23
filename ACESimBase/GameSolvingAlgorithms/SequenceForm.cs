@@ -290,26 +290,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             ecta.numPriors = 1;
             Rational[] results = ecta.Execute(t => SetupECTA(t));
             List<List<double>> equilibria = new List<List<double>>();
-            List<double> equilibrium = null;
-            for (int i = 0; i < results.Length; i++)
-            {
-                var (informationSetIndex, oneBasedMove) = NonChanceValidMoveIndexToInfoSetIndexAndMoveWithinInfoSet[i];
-                var originalInformationSetNode = InformationSetInfos[informationSetIndex].InformationSetNode;
-                if (oneBasedMove == 1)
-                {
-                    if (equilibrium != null)
-                    {
-                        double probsSumMinus1 = equilibrium.Sum() - 1;
-                        if (Math.Abs(probsSumMinus1) > 0.0001)
-                            throw new Exception("Probabilities don't add up to 1.");
-                        equilibrium[equilibrium.Count - 1] -= probsSumMinus1; // make it add up to exactly 1
-                        equilibria.Add(equilibrium);
-                    }
-                    equilibrium = new List<double>();
-                }
-                equilibrium.Add((double) results[i]);
-            }
-            equilibria.Add(equilibrium);
+            equilibria.Add(results.Select(x => (double) x).ToList());
             await SetEquilibria(equilibria, reportCollection);
         }
 
