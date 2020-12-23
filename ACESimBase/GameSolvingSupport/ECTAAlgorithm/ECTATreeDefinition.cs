@@ -183,11 +183,14 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 {
                     i1 = i;
                     h = isets[firstiset[pl] + i];
-                    h.name = "";
-                    for (j = digits - 1; j >= 0; j--)
+                    if (h.name == null || h.name == "")
                     {
-                        h.name += (char) (an1[pl] + (i1 % anbase));
-                        i1 /= anbase;
+                        h.name = "";
+                        for (j = digits - 1; j >= 0; j--)
+                        {
+                            h.name += (char)(an1[pl] + (i1 % anbase));
+                            i1 /= anbase;
+                        }
                     }
                 }
             }

@@ -199,6 +199,11 @@ namespace ACESim
             return $"Information set {InformationSetNodeNumber}: Probabilities {GetCurrentProbabilitiesAsString()} {GetBestResponseStringIfAvailable()}";
         }
 
+        public string ToStringWithoutValues()
+        {
+            return $"ISet {GetNodeNumber()} Alt {AltNodeNumber} {Decision.Name} ({Decision.Abbreviation})";
+        }
+
         public override string ToString()
         {
             return $"Information set {(AltNodeNumber ?? GetNodeNumber())} {Decision.Name} ({Decision.Abbreviation}): DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetCurrentProbabilitiesAsString()} {GetBestResponseStringIfAvailable()}Average {GetAverageStrategiesAsString()} Regrets {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()} InformationSetContents {String.Join(";", LabeledInformationSet)}";

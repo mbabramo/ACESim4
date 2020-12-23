@@ -20,6 +20,8 @@ namespace ACESim
         public byte DecisionByteCode => Decision.DecisionByteCode;
         public bool CriticalNode => Decision.CriticalNode;
 
+        public string ShortString() => $"Chance {ChanceNodeNumber} Alt {AltNodeNumber} {Decision.Name} ({Decision.Abbreviation})";
+
         public abstract double GetActionProbability(int action, int distributorChanceInputs = -1);
 
         public abstract (int, int) GetActionProbabilityAsRational(int denominatorToUseForUnequalProbabilities, int action, int distributorChanceInputs = -1);

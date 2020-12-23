@@ -20,7 +20,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         public bool outputPivotResults = false;
         public bool outputPivotHeaderFirst = false;
         public bool outputAverageResults = false;
-        public bool outputGameTreeSetup = false;     
+        public bool outputGameTreeSetup = true;     
         public bool outputInitialTableau = false;
         public bool outputTableaux = false;
         public bool outputLCP = false;   
