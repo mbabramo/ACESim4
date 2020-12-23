@@ -14,6 +14,20 @@ namespace ACESim
         {
         }
 
+
+        public override ChanceNode DeepCopy()
+        {
+            return new ChanceNodeUnequalProbabilities(ChanceNodeNumber)
+            {
+                Probabilities = Probabilities.ToArray(),
+                ProbabilitiesForDistributorChanceInputs = new Dictionary<int, double[]>(ProbabilitiesForDistributorChanceInputs),
+                DistributionComplete = DistributionComplete,
+                AltNodeNumber = AltNodeNumber,
+                Decision = Decision,
+                DecisionIndex = DecisionIndex
+            };
+        }
+
         public double[] Probabilities;
         // The remaining settings are for distributed chance actions.
         public Dictionary<int, double[]> ProbabilitiesForDistributorChanceInputs;

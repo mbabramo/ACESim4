@@ -14,6 +14,17 @@ namespace ACESim
         {
         }
 
+        public override ChanceNode DeepCopy()
+        {
+            return new ChanceNodeEqualProbabilities(ChanceNodeNumber)
+            {
+                EachProbability = EachProbability,
+                AltNodeNumber = AltNodeNumber,
+                Decision = Decision,
+                DecisionIndex = DecisionIndex
+            };
+        }
+
         public override double GetActionProbability(int action, int distributorChanceInputs = -1) => EachProbability;
         public override (int, int) GetActionProbabilityAsRational(int denominatorToUseForUnequalProbabilities, int action, int distributorChanceInputs = -1) => (1, Decision.NumPossibleActions);
 

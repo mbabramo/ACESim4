@@ -94,6 +94,7 @@ namespace ACESim
         {
             GameDefinition gameDefinition = GetGameDefinition();
             gameDefinition.Setup(options);
+            DEBUGInformAllChancePlayers(gameDefinition); // DEBUG -- see if this makes different chance sets
             gameDefinition.OptionSetName = optionSetName;
             if (GameProgressLogger.LoggingOn)
                 gameDefinition.PrintOutOrderingInformation();
@@ -104,6 +105,19 @@ namespace ACESim
             NWayTreeStorageRoot<IGameState>.ParallelEnabled = evolutionSettings.ParallelOptimization;
             var developer = GetStrategiesDeveloper(starterStrategies, evolutionSettings, gameDefinition);
             return developer;
+        }
+
+        public void DEBUGInformAllChancePlayers(GameDefinition gameDefinition)
+        {
+            foreach (var decision in gameDefinition.DecisionsExecutionOrder)
+            {
+                var playersToInform = decision.PlayersToInform ?? new byte[0];
+                int numPlayers = gameDefinition.Players.Count();
+                List<byte> revisedPlayersToInform = playersToInform.Where(x => x <= 1).ToList();
+                for (int i = 2; i < numPlayers; i++)
+                    revisedPlayersToInform.Add((byte)i);
+                decision.PlayersToInform = revisedPlayersToInform.ToArray();
+            }
         }
 
         public IStrategiesDeveloper GetStrategiesDeveloper(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition)
