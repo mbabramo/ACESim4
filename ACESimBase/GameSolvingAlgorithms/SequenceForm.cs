@@ -443,8 +443,9 @@ namespace ACESimBase.GameSolvingAlgorithms
                     double total = 0;
                     for (byte a = 1; a <= infoSets[i].Decision.NumPossibleActions; a++)
                     {
-                        total += numbers[totalNumbersProcessed++];
-                        infoSets[i].SetActionToProbabilityValue(a, total, true);
+                        double v = numbers[totalNumbersProcessed++];
+                        total += v;
+                        infoSets[i].SetActionToProbabilityValue(a, v, true);
                     }
                     if (total == 0)
                     {
