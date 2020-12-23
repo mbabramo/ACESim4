@@ -14,7 +14,7 @@ using System.Numerics;
 
 namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 {
-    public class Treedef
+    public class ECTATreeDefinition
     {
         public Lemke Lemke;
 
@@ -119,7 +119,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                     seq = u.defseq[h.player];
                     if (h.seqin == -1)
                         h.seqin = seq;
-                    else if (seq != (int) h.seqin)
+                    else if (seq != (int) h.seqin && h.player != 0)
                     /* not the same as last sequence leading to info set    */
                     {
                         isnotok = true;
@@ -152,9 +152,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 }
                 if (bprint)     /* comment to stdout    */
                 {
-                    rattoa(maxpay[pm], s);
-                    tabbedtextf("Player %d's maximum payoff is %s , ", pm + 1, s);
-                    tabbedtextf("normalize to -1.\n");
+                    TabbedText.WriteLine($"Player {pm}'s maximum payoff is {maxpay[pm]}, normalized to -1");
                 }
                 addtopay[pm] = ratneg(ratadd(maxpay[pm], ratfromi(1)));
                 for (int zindex = 0; zindex < outcomes.Length; zindex++)
@@ -231,7 +229,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         }       /* end of  int seqtoa (seq, pl, *s)     */
 
 
-        public void rawtreeprint()
+        public void outputGameTree()
         {
             string s = null;
             int pl;
@@ -382,7 +380,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         {
             move c;
             int pl;
-            for (pl = 1; pl < Treedef.PLAYERS; pl++)
+            for (pl = 1; pl < ECTATreeDefinition.PLAYERS; pl++)
                 for (int cindex = firstmove[pl] + 1; cindex < firstmove[pl + 1]; cindex++)
                 {
                     c = moves[cindex];
@@ -621,6 +619,36 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             }
             if (bnewline)
                 tabbedtextf("\n");
+        }
+
+        private IEnumerable<Rational> GetPlayerMoves(int pl, Rational[] rplan, int offset)
+        {
+            int i;
+            move c;
+            iset h;
+            Rational rprob;
+            for (int hindex = firstiset[pl]; hindex < firstiset[pl + 1]; hindex++)
+            {
+                h = isets[hindex];
+                i = 0;
+                for (int cindex = h.move0; i < h.nmoves; cindex++, i++)
+                {
+                    c = moves[cindex];
+                    rprob = rplan[offset + cindex - firstmove[pl]];
+                    yield return rprob;
+
+                }
+            }
+        }
+
+        public IEnumerable<Rational> GetPlayerMoves()
+        {
+
+            int offset = nseqs[1] + 1 + nisets[2];
+            foreach (Rational r in GetPlayerMoves(1, Lemke.solz, 0))
+                yield return r;
+            foreach (Rational r in GetPlayerMoves(2, Lemke.solz, offset))
+                yield return r;
         }
 
         void outbehavstrat_moves(int pl, Rational[] rplan, int offset, bool bnewline)

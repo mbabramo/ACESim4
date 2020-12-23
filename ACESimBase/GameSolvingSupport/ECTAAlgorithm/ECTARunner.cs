@@ -8,27 +8,28 @@ using static ACESimBase.Util.CPrint;
 using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.RationalOperations;
 using static ACESimBase.GameSolvingSupport.ECTAAlgorithm.ColumnPrinter;
 using static ACESim.ArrayFormConversionExtension;
+using Rationals;
 
 namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 {
     public class ECTARunner
     {
-        int multipriors = 0;         /* parameter for    -M option  */
-        int seed = 0;      /* payoff seed for bintree  (-s option) */
+        public int numPriors = 0;      
+        public int seed = 0;     
 
         public bool outputPivotResults = false;
-        public bool outputPivotHeaderFirst = false;/* headers first (multiple games)       */
+        public bool outputPivotHeaderFirst = false;
         public bool outputAverageResults = false;
-        public bool outputRawTree = false;     /* output the raw game tree (-g option) */
+        public bool outputGameTreeSetup = false;     
         public bool outputInitialTableau = false;
         public bool outputTableaux = false;
-        public bool outputLCP = false;       /* output LCP  */
-        public bool outputPrior = false;     /* output prior */
-        public bool outputPivotingSteps = false;      /* complementary pivoting steps */
-        public bool outputEquilibrium = true;        /* output equilibrium           */
-        public bool outputEquilibriumShort = false;   /* output equilibrium shortly   */
+        public bool outputLCP = false;   
+        public bool outputPrior = false;   
+        public bool outputPivotingSteps = false;  
+        public bool outputEquilibrium = true;    
+        public bool outputEquilibriumShort = false; 
         public bool outputLCPSolution = false;
-        public bool outputLexStats = false; /* output lexical ordering statistics */
+        public bool outputLexStats = false; 
 
         /* global variables for generating and documenting computation  */
         LemkeOptions lemkeOptions;
@@ -36,12 +37,12 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         long timeused, sumtimeused;
         int pivots, sumpivots;
         int lcpsize;
-        int[] eqsize = new int[Treedef.PLAYERS], sumeqsize = new int[Treedef.PLAYERS];
+        int[] eqsize = new int[ECTATreeDefinition.PLAYERS], sumeqsize = new int[ECTATreeDefinition.PLAYERS];
 
         Stopwatch swatch = new Stopwatch();
-        public Treedef t = new Treedef();
+        public ECTATreeDefinition t = new ECTATreeDefinition();
 
-        /* returns processor SCLOCKUNITS since the last call to
+        /* returns milliseconds since the last call to
          * stopwatch() and prints them to stdout if  bprint==1
          */
         long stopwatch(bool bprint)
@@ -63,9 +64,9 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         void infotree()
         {
             int pl;
-            tabbedtextf("\nGame tree has %d nodes, ", t.lastnode - Treedef.rootindex);
+            tabbedtextf("\nGame tree has %d nodes, ", t.lastnode - ECTATreeDefinition.rootindex);
             tabbedtextf("of which %d are terminal nodes.\n", t.lastoutcome);
-            for (pl = 0; pl < Treedef.PLAYERS; pl++)
+            for (pl = 0; pl < ECTATreeDefinition.PLAYERS; pl++)
             {
                 tabbedtextf("    Player %d has ", pl);
                 tabbedtextf("%3d information sets, ", t.firstiset[pl + 1] - t.firstiset[pl]);
@@ -80,7 +81,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
             lcpsize = t.nseqs[1] + t.nisets[2] + 1 + t.nseqs[2] + t.nisets[1] + 1;
             tabbedtextf("Sequence form LCP dimension is %d\n", lcpsize);
-            for (pl = 1; pl < Treedef.PLAYERS; pl++)
+            for (pl = 1; pl < ECTATreeDefinition.PLAYERS; pl++)
             {
                 tabbedtextf("    Player %d has ", pl);
                 tabbedtextf("%3d sequences, ", t.nseqs[pl]);
@@ -156,7 +157,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             sumpivots += pivots = t.Lemke.pivotcount;
             /* equilibrium size     */
             offset = 0;
-            for (pl = 1; pl < Treedef.PLAYERS; pl++)
+            for (pl = 1; pl < ECTATreeDefinition.PLAYERS; pl++)
             {
                 equilsize = t.propermixisets(pl, t.Lemke.solz, offset);
                 /* the next is  offset  for player 2 */
@@ -169,7 +170,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 t.showeq(outputEquilibriumShort, docuseed);
         }
 
-        public int Execute()
+        public Rational[] Execute(Action<ECTATreeDefinition> setup)
         {
             lemkeOptions.maxPivotSteps = 0; // no limit
             lemkeOptions.outputPivotingSteps = outputPivotingSteps;
@@ -185,10 +186,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 lemkeOptions.outputSolution = true;
             }
 
-
-
-            tabbedtextf("Solving example from BvS/Elzen/Talman\n");
-            t.examplegame();
+            setup(t);
 
             t.genseqin();
             t.autoname();
@@ -208,12 +206,11 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 inforesultheader();
             int priorcount;
             /* multiple priors 	*/
-            multipriors = 20;
-            for (priorcount = 0; priorcount < multipriors; priorcount++)
+            for (priorcount = 0; priorcount < numPriors; priorcount++)
             {
                 t.genprior(priorSeed);
-                if (outputRawTree)
-                    t.rawtreeprint();
+                if (outputGameTreeSetup)
+                    t.outputGameTree();
                 if (outputPrior)
                     t.outprior();
                 processgame(seed + gamecount);
@@ -222,9 +219,11 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
                 infopivotresult(priorSeed, seed + gamecount);
                 priorSeed++;
             }
-            if (multipriors > 1)    /* give averages */
-                infosumresult(multipriors);
-            return 0;
+            if (numPriors > 1)    /* give averages */
+                infosumresult(numPriors);
+
+            var equilibriumProbabilities = t.GetPlayerMoves().ToArray(); // probabilities for each non-chance player, ordered by player, information set, and then action.
+            return equilibriumProbabilities;
         }
     }
 }
