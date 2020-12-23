@@ -26,7 +26,7 @@ namespace ACESimBase.GameSolvingAlgorithms
         }
         SequenceFormApproach Approach = SequenceFormApproach.ECTA;
 
-        bool ProduceEFGFileWithoutGambit = true;
+        bool ProduceEFGFile = true;
 
 
         public SequenceForm(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
@@ -60,7 +60,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             if (Approach == SequenceFormApproach.ECTA)
             {
                 await ExecuteECTA(reportCollection);
-                if (ProduceEFGFileWithoutGambit)
+                if (ProduceEFGFile)
                     await UseGambitToCalculateEquilibrium(null, true);
             }
             else if (Approach == SequenceFormApproach.Gambit)
@@ -104,18 +104,16 @@ namespace ACESimBase.GameSolvingAlgorithms
         {
             DetermineGameNodeRelationships();
             var ecta = new ECTARunner();
-            ecta.outputPrior = false;
+            ecta.numPriors = 10;
+            ecta.outputPrior = true;
             ecta.outputGameTreeSetup = true;
             ecta.outputInitialTableau = false;
             ecta.outputLCP = false;
             ecta.outputLCPSolution = false;
             ecta.outputPivotingSteps = false;
-            ecta.outputPivotResults = true;
+            ecta.outputPivotResults = false;
             ecta.outputEquilibrium = true;
-            ecta.numPriors = 1;
-            Rational[] results = ecta.Execute(t => SetupECTA(t));
-            List<List<double>> equilibria = new List<List<double>>();
-            equilibria.Add(results.Select(x => (double)x).ToList());
+            List<List<double>> equilibria = ecta.Execute_ReturningDoubles(t => SetupECTA(t));
             await SetEquilibria(equilibria, reportCollection);
         }
 
@@ -124,7 +122,6 @@ namespace ACESimBase.GameSolvingAlgorithms
             if (NumNonChancePlayers != 2)
                 throw new NotImplementedException();
 
-            bool printRelationships = false;
 
             IGameState rootState = GetGameState(GetStartOfGameHistoryPoint());
             GameNodeRelationshipsFinder finder = new GameNodeRelationshipsFinder(rootState);
@@ -142,7 +139,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 .ThenBy(x => x.ActionAtParent)
                 .ToList();
             var chanceInformationSets = orderedByPlayer.Where(x => x != null && x.GameState is ChanceNode).Select(x => (ChanceNode)x.GameState).DistinctBy(x => x.ChanceNodeNumber).ToList();
-            var playerInformationSets = orderedByPlayer.Where(x => x != null && x.GameState is InformationSetNode).Select(x => (InformationSetNode)x.GameState).DistinctBy(x => x.InformationSetNodeNumber).OrderBy(x => PlayerIDToECTA(((InformationSetNode)x).PlayerIndex)).ThenBy(x => x.InformationSetNodeNumber).ToList(); 
+            var playerInformationSets = orderedByPlayer.Where(x => x != null && x.GameState is InformationSetNode).Select(x => (InformationSetNode)x.GameState).DistinctBy(x => x.InformationSetNodeNumber).OrderBy(x => PlayerIDToECTA(((InformationSetNode)x).PlayerIndex)).ThenBy(x => x.InformationSetNodeNumber).ToList();
             InformationSetInfos = new List<InformationSetInfo>();
             int index = 0;
             foreach (var chanceInformationSet in chanceInformationSets)
@@ -208,6 +205,14 @@ namespace ACESimBase.GameSolvingAlgorithms
                 }
             }
 
+            PrintRelationships(originalOrder);
+
+            VerifyPerfectRecall();
+        }
+
+        private void PrintRelationships(List<GameNodeRelationship> originalOrder)
+        {
+            bool printRelationships = true; // DEBUG
             // printing
             if (printRelationships)
             {
@@ -230,8 +235,6 @@ namespace ACESimBase.GameSolvingAlgorithms
                 for (int i = 1; i < GameNodes.Count(); i++)
                     revisedOrder.AppendLine(GameNodes[i].ToString());
             }
-
-            VerifyPerfectRecall();
         }
 
         public void SetupECTA(ECTATreeDefinition t)
@@ -457,7 +460,8 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         private async Task SetEquilibria(List<List<double>> equilibria, ReportCollection reportCollection)
         {
-            bool useCorrelatedEquilibrium = true;
+            const bool useCorrelatedEquilibriumIfPossible = true;
+            bool useCorrelatedEquilibrium = useCorrelatedEquilibriumIfPossible && equilibria.Count() > 1;
             int numEquilibria = equilibria.Count();
             for (int eqNum = 0; eqNum < numEquilibria; eqNum++)
             {

@@ -9,6 +9,7 @@ using static ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm.RationalOperations;
 using static ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm.ColumnPrinter;
 using static ACESim.ArrayFormConversionExtension;
 using Rationals;
+using ACESim;
 
 namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
@@ -170,7 +171,9 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 t.showeq(outputEquilibriumShort, docuseed);
         }
 
-        public Rational[] Execute(Action<ECTATreeDefinition> setup)
+        public List<List<double>> Execute_ReturningDoubles(Action<ECTATreeDefinition> setup) => Execute(setup).Select(x => x.Select(y => (double)y).ToList()).ToList();
+
+        public List<Rational[]> Execute(Action<ECTATreeDefinition> setup)
         {
             lemkeOptions.maxPivotSteps = 0; // no limit
             lemkeOptions.outputPivotingSteps = outputPivotingSteps;
@@ -178,13 +181,14 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             lemkeOptions.outputTableaux = outputTableaux;
             lemkeOptions.outputSolution = outputLCPSolution;
             lemkeOptions.outputLexStats = outputLexStats;
-
             /* parse options    */
             if (outputPivotingSteps)
             {
                 lemkeOptions.outputPivotingSteps = true;
                 lemkeOptions.outputSolution = true;
             }
+
+            List<Rational[]> equilibria = new List<Rational[]>();
 
             setup(t);
 
@@ -218,12 +222,25 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     inforesultheader();
                 infopivotresult(priorSeed, seed + gamecount);
                 priorSeed++;
+                var equilibriumProbabilities = t.GetPlayerMoves().ToArray(); // probabilities for each non-chance player, ordered by player, information set, and then action.
+                equilibria.Add(equilibriumProbabilities);
+                outputGameTreeSetup = false;
             }
             if (numPriors > 1)    /* give averages */
                 infosumresult(numPriors);
 
-            var equilibriumProbabilities = t.GetPlayerMoves().ToArray(); // probabilities for each non-chance player, ordered by player, information set, and then action.
-            return equilibriumProbabilities;
+            bool distinctEquilibriaOnly = true;
+            if (distinctEquilibriaOnly)
+            {
+                var distinctEquilibria = new List<Rational[]>();
+                foreach (var eq in equilibria)
+                    if (!distinctEquilibria.Any(e2 => e2.SequenceEqual(eq)))
+                        distinctEquilibria.Add(eq);
+                equilibria = distinctEquilibria;
+                TabbedText.WriteLine($"Number distinct equilibria {equilibria.Count}");
+            }
+
+            return equilibria;
         }
     }
 }

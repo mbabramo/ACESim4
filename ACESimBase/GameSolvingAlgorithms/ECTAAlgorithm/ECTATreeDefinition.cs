@@ -572,7 +572,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             return mix;
         }
 
-        void outrealplan(int pl, Rational[] rplan)
+        void outrealplan(int pl, Rational[] rplan, int offset)
         {
             int i;
             string s = null;
@@ -585,7 +585,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             }
             for (i = 0; i < nseqs[pl]; i++)
             {
-                rattoa(rplan[i], ref s);
+                rattoa(rplan[i + offset], ref s);
                 colpr(s);
             }
             colout();
@@ -842,11 +842,13 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 
 
             offset = nseqs[1] + 1 + nisets[2];
-            /*  non-sparse printing
-            tabbedtextf("Equilibrium realization plan player 1:\n");
-            outrealplan(1, solz);
-            tabbedtextf("Equilibrium realization plan player 2:\n");
-            outrealplan(2, solz + offset); */
+            if (!bshortequil)
+            {
+                tabbedtextf("Equilibrium realization plan player 1:\n");
+                outrealplan(1, Lemke.solz, 0);
+                tabbedtextf("Equilibrium realization plan player 2:\n");
+                outrealplan(2, Lemke.solz, offset);
+            }
             if (bshortequil)
                 tabbedtextf("BEQ>%4d<1>", docuseed);
             else

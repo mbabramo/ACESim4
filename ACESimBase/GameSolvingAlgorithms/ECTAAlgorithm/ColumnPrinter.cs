@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ACESim;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -142,19 +143,19 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 }
 				else
 					for (int i = 0; i < totalWidth - s.Length; i++)
-						Console.Write(" ");
-				Console.Write(s);
+						TabbedText.Write(" ");
+				TabbedText.Write(s);
 				if (leftJustify)
 					for (int i = 0; i < totalWidth - s.Length; i++)
-						Console.Write(" ");
+						TabbedText.Write(" ");
 				sindex += s.Length + 1;
 				if (j < cols - 1) // avoid trailing blanks in line
 				{
-					Console.Write(" "); // more sophisticated spacing possible
+					TabbedText.Write(" "); // more sophisticated spacing possible
 				}
 				else
 				{
-					Console.Write("\n"); // in loop to prevent newline if 0 cols
+					TabbedText.Write("\n"); // in loop to prevent newline if 0 cols
 				}
 			}
 			return sindex;
