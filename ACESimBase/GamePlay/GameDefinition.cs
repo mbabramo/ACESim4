@@ -458,6 +458,24 @@ namespace ACESim
             return false;
         }
 
+
+        /// <summary>
+        /// If there are multiple chance players, then some algorithms will not require each chance player's information set to know of each other chance decision.
+        /// But some algorithms do -- e.g., the ECTA sequence form algorithm requires a single chance player, who must have perfect recall of all chance decisions.
+        /// </summary>
+        public void MakeAllChanceDecisionsKnowAllChanceActions()
+        {
+            foreach (var decision in DecisionsExecutionOrder.Where(x => x.IsChance))
+            {
+                var playersToInform = decision.PlayersToInform ?? new byte[0];
+                int numPlayers = Players.Count();
+                List<byte> revisedPlayersToInform = playersToInform.Where(x => x <= 1).ToList();
+                for (int i = 2; i < numPlayers; i++)
+                    revisedPlayersToInform.Add((byte)i);
+                decision.PlayersToInform = revisedPlayersToInform.ToArray();
+            }
+        }
+
         /// <summary>
         /// Specifies whether the game is a two-player symmetric game. In such a game, for each player 0 information set, there is a corresponding player 1 information set, but some information actions and decisions may appear in reverse. Final utilities will also be exactly reversed; that is the utilities player 0 earns in a particular resolution information set is the same as what player 1 earns in the corresponding resolution information set. In a symmetric game, both players must make all their decisions simultaneously, each without knowing the decision of the other. 
         /// </summary>

@@ -44,6 +44,7 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         public override async Task Initialize()
         {
+            GameDefinition.MakeAllChanceDecisionsKnowAllChanceActions(); // since there is just one chance player, each chance (and resolution) player must know all other chance decisions for ECTA algorithm to work properly
             AllowSkipEveryPermutationInitialization = false;
             StoreGameStateNodesInLists = true;
             await base.Initialize();
