@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 {
-	public class node
+	public class ECTANode
 	{
 		public bool terminal; // 0: decision node / 1: terminal node
 		public int iset = -1; // which information set

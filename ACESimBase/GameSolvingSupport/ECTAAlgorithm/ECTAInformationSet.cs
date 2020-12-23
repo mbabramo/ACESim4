@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 {
-	public class iset // information set
+	public class ECTAInformationSet // information set
 	{
 		/* given                    */
 		public int player; // 0: chance player

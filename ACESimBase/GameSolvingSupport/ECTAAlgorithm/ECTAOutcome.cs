@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 {
-    public class outcome
+    public class ECTAOutcome
     {
         public Rational[] pay = new Rational[] { new Rational(), new Rational() };
         public int whichnode;

@@ -26,12 +26,12 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         public const int MAXSTRL = 100;
         public char[] an1 = new char[] { '!', 'A', 'a' };
         public char[] an2 = new char[] { '/', 'Z', 'z' };
-        public node[] nodes;
+        public ECTANode[] nodes;
         public const int rootindex = 1;
-        public node root => nodes[rootindex];
-        public iset[] isets;
-        public move[] moves;
-        public outcome[] outcomes;
+        public ECTANode root => nodes[rootindex];
+        public ECTAInformationSet[] isets;
+        public ECTAMove[] moves;
+        public ECTAOutcome[] outcomes;
 
         public int lastnode;
         public int lastoutcome;
@@ -41,28 +41,28 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         public int[] nseqs = new int[3];
         public int[] nisets = new int[3];
 
-        public Payvec maxpay = new Payvec();
+        public ECTAPayVector maxpay = new ECTAPayVector();
 
 
-        public int moveIndex(move move) => moves.Select((item, index) => (item, index)).First(x => x.item == move).index;
-        public int isetIndex(iset iset) => isets.Select((item, index) => (item, index)).First(x => x.item == iset).index;
-        public int outcomeIndex(outcome outcome) => outcomes.Select((item, index) => (item, index)).First(x => x.item == outcome).index;
+        public int moveIndex(ECTAMove move) => moves.Select((item, index) => (item, index)).First(x => x.item == move).index;
+        public int isetIndex(ECTAInformationSet iset) => isets.Select((item, index) => (item, index)).First(x => x.item == iset).index;
+        public int outcomeIndex(ECTAOutcome outcome) => outcomes.Select((item, index) => (item, index)).First(x => x.item == outcome).index;
 
         public void alloctree(int nn, int ni, int nm, int no)
         {
-            nodes = new node[nn];
+            nodes = new ECTANode[nn];
             for (int i = 0; i < nn; i++)
-                nodes[i] = new node();
+                nodes[i] = new ECTANode();
             lastnode = nn;
-            isets = new iset[ni];
+            isets = new ECTAInformationSet[ni];
             for (int i = 0; i < ni; i++)
-                isets[i] = new iset();
-            moves = new move[nm];
+                isets[i] = new ECTAInformationSet();
+            moves = new ECTAMove[nm];
             for (int i = 0; i < nm; i++)
-                moves[i] = new move();
-            outcomes = new outcome[no];
+                moves[i] = new ECTAMove();
+            outcomes = new ECTAOutcome[no];
             for (int i = 0; i < no; i++)
-                outcomes[i] = new outcome();
+                outcomes[i] = new ECTAOutcome();
             lastoutcome = no;
         }       /* end of alloctree(nn, ni, nm, no)        */
 
@@ -70,7 +70,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         {
             bool isnotok = false;
             int pl;
-            node u;
+            ECTANode u;
             int seq;
 
 
@@ -138,8 +138,8 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         {
             char[] s = new char[MAXSTRL];
             int pm;
-            outcome z;
-            Payvec addtopay = new Payvec();
+            ECTAOutcome z;
+            ECTAPayVector addtopay = new ECTAPayVector();
 
             for (pm = 0; pm < PLAYERS - 1; pm++)
             {
@@ -166,7 +166,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         public void autoname()
         {
             int pl, anbase, max, digits, i, i1, j;
-            iset h;
+            ECTAInformationSet h;
 
             for (pl = 0; pl < PLAYERS; pl++)    /* name isets of player pl      */
             {
@@ -193,7 +193,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             }
         }       /* end of  autoname()   */
 
-        int movetoa(move c, int pl, ref string s)
+        int movetoa(ECTAMove c, int pl, ref string s)
         {
             if (c == null)
             {
@@ -208,7 +208,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             return s.Length;
         }       /* end of  int movetoa (c, pl, *s)      */
 
-        int seqtoa(move seq, int pl, ref string s)
+        int seqtoa(ECTAMove seq, int pl, ref string s)
         {
             int len;
             if (seq == null)
@@ -233,9 +233,9 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         {
             string s = null;
             int pl;
-            node u;
-            iset h;
-            move c;
+            ECTANode u;
+            ECTAInformationSet h;
+            ECTAMove c;
 
             /* printing nodes       */
             colset(6 + PLAYERS - 1 + PLAYERS);
@@ -378,7 +378,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
         public void gencentroid()
         {
-            move c;
+            ECTAMove c;
             int pl;
             for (pl = 1; pl < ECTATreeDefinition.PLAYERS; pl++)
                 for (int cindex = firstmove[pl] + 1; cindex < firstmove[pl + 1]; cindex++)
@@ -393,7 +393,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         public void genprior(int seed)
         {
             int pl;
-            iset h;
+            ECTAInformationSet h;
 
             if (0 == seed)
             {
@@ -443,7 +443,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         /* SEQUENCE FORM */
 
 
-        Payvec[][] sfpay;
+        ECTAPayVector[][] sfpay;
         int[][][] sfconstr = new int[PLAYERS][][];
 
         int oldnseqs1 = 0;
@@ -456,11 +456,11 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
             /* payoff matrices, two players only here, init to pay 0        */
             oldnseqs1 = nseqs[1];
-            sfpay = CreateJaggedArray<Payvec[][]>(nseqs[1], nseqs[2]);
+            sfpay = CreateJaggedArray<ECTAPayVector[][]>(nseqs[1], nseqs[2]);
             for (i = 0; i < nseqs[1]; i++)
                 for (j = 0; j < nseqs[2]; j++)
                 {
-                    sfpay[i][j] = new Payvec();
+                    sfpay[i][j] = new ECTAPayVector();
                     for (pl = 1; pl < PLAYERS; pl++)
                         sfpay[i][j][pl - 1] = ratfromi(0);
                 }
@@ -476,7 +476,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         void gensf()
         {
             int pl, i, j;
-            outcome z = null;
+            ECTAOutcome z = null;
             allocsf();
 
             behavtorealprob(0);     /* get realization probabilities of leaves      */
@@ -485,7 +485,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             for (int zindex = 0; zindex < outcomes.Length; zindex++)
             {
                 z = outcomes[zindex];
-                node u = nodes[z.whichnode];
+                ECTANode u = nodes[z.whichnode];
                 i = u.defseq[1] - firstmove[1]; 
                 j = u.defseq[2] - firstmove[2];
                 for (pl = 1; pl < PLAYERS; pl++)
@@ -547,8 +547,8 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         {
             int mix = 0;
             int i;
-            move c;
-            iset h;
+            ECTAMove c;
+            ECTAInformationSet h;
 
             for (int hindex = firstiset[pl]; hindex < firstiset[pl + 1]; hindex++)
             {
@@ -592,8 +592,8 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         {
             string s = null;
             int i;
-            move c;
-            iset h;
+            ECTAMove c;
+            ECTAInformationSet h;
             Rational rprob, bprob;
 
             for (int hindex = firstiset[pl]; hindex < firstiset[pl + 1]; hindex++)
@@ -624,8 +624,8 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         private IEnumerable<Rational> GetPlayerMoves(int pl, Rational[] rplan, int offset)
         {
             int i;
-            move c;
-            iset h;
+            ECTAMove c;
+            ECTAInformationSet h;
             Rational rprob;
             for (int hindex = firstiset[pl]; hindex < firstiset[pl + 1]; hindex++)
             {
@@ -654,8 +654,8 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
         void outbehavstrat_moves(int pl, Rational[] rplan, int offset, bool bnewline)
         {
             int i;
-            move c;
-            iset h;
+            ECTAMove c;
+            ECTAInformationSet h;
             Rational rprob;
 
             for (int hindex = firstiset[pl]; hindex < firstiset[pl + 1]; hindex++)
@@ -751,7 +751,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 
         public void behavtorealprob(int pl)
         {
-            move c;
+            ECTAMove c;
             int lastmoveindex = firstmove[pl + 1];
             moves[firstmove[pl]].realprob = ratfromi(1);  /* empty seq has probability 1  */
             for (int cindex = firstmove[pl] + 1; cindex < lastmoveindex; cindex++)
@@ -761,7 +761,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             }
         }
 
-        void payratmatcpy(Payvec[][] frommatr, int plminusone, bool bnegate,
+        void payratmatcpy(ECTAPayVector[][] frommatr, int plminusone, bool bnegate,
                 bool btranspfrommatr, int nfromrows, int nfromcols,
                 Rational[][] targetmatr, int targrowoffset, int targcoloffset)
         {
@@ -872,7 +872,7 @@ namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
             firstmove[2] = 26;
 
             int zindex = 0;
-            outcome z = outcomes[zindex];
+            ECTAOutcome z = outcomes[zindex];
 
             // root node is at index 1 (index 0 is skipped)
             nodes[rootindex].father = -1;

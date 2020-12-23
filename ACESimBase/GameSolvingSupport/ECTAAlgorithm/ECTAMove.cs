@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.GameSolvingSupport.ECTAAlgorithm
 {
-    public class move
+    public class ECTAMove
 	{
 		public int atiset = -1; // where this move emanates from
 		public Rational behavprob = new Rational(); // behavior probability
