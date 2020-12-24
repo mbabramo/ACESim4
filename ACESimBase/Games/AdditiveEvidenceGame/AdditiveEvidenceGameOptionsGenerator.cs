@@ -120,6 +120,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public static AdditiveEvidenceGameOptions Biasless(double quality, double pPortionOfPrivateInfo /* set to quality to be like the original DMS model in this respect */, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, double alphaBothQuality, bool withOptionNotToPlay)
         {
+            // Note: Biasless refers to the idea that all of the information that the adjudicator sums up to produce a result actually counts as quality. In the original DMS model, half of the information that the adjudicator sums up is bias rather than quality. 
             var options = new AdditiveEvidenceGameOptions()
             {
                 Evidence_Both_Quality = quality,
