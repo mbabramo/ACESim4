@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,9 +7,9 @@ using ACESim.Util;
 
 namespace ACESim
 {
-    public static class MyGameOptionsGenerator
+    public static class LitigGameOptionsGenerator
     {
-        public enum MyGameOptionSetChoices
+        public enum LitigGameOptionSetChoices
         {
             Custom,
             Custom2,
@@ -36,38 +36,38 @@ namespace ACESim
             PerfectInfo,
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom3;
+        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.Custom3;
 
-        public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
+        public static LitigGameOptions GetLitigGameOptions() => LitigGameChoice switch
         {
-            MyGameOptionSetChoices.Custom => Custom(),
-            MyGameOptionSetChoices.Custom2 => Custom2(),
-            MyGameOptionSetChoices.Custom3 => Custom3(),
-            MyGameOptionSetChoices.LiabilityUncertainty_1BR => LiabilityUncertainty_1BR(),
-            MyGameOptionSetChoices.LiabilityUncertainty_2BR => LiabilityUncertainty_2BR(),
-            MyGameOptionSetChoices.LiabilityUncertainty_3BR => LiabilityUncertainty_3BR(),
-            MyGameOptionSetChoices.DamagesUncertainty_1BR => DamagesUncertainty_1BR(),
-            MyGameOptionSetChoices.DamagesUncertainty_2BR => DamagesUncertainty_2BR(),
-            MyGameOptionSetChoices.DamagesUncertainty_3BR => DamagesUncertainty_3BR(),
-            MyGameOptionSetChoices.BothUncertain_1BR => BothUncertain_1BR(),
-            MyGameOptionSetChoices.BothUncertain_2BR => BothUncertain_2BR(),
-            MyGameOptionSetChoices.BothUncertain_3BR => BothUncertain_3BR(),
-            MyGameOptionSetChoices.Shootout => Shootout(),
-            MyGameOptionSetChoices.Shootout_Triple => Shootout_Triple(),
-            MyGameOptionSetChoices.Shootout_AllRounds => Shootout_AllRounds(),
-            MyGameOptionSetChoices.Shootout_IncludingAbandoment => Shootout_IncludingAbandoment(),
-            MyGameOptionSetChoices.Shootout_AllRoundsIncludingAbandoment => Shootout_AllRoundsIncludingAbandoment(),
-            MyGameOptionSetChoices.SuperSimple => SuperSimple(),
-            MyGameOptionSetChoices.Faster => Faster(),
-            MyGameOptionSetChoices.Fast => Fast(),
-            MyGameOptionSetChoices.Usual => BothUncertain_2BR(),
-            MyGameOptionSetChoices.Ambitious => Ambitious(),
-            MyGameOptionSetChoices.PerfectInfo => PerfectInformation(courtIsPerfectToo: false),
+            LitigGameOptionSetChoices.Custom => Custom(),
+            LitigGameOptionSetChoices.Custom2 => Custom2(),
+            LitigGameOptionSetChoices.Custom3 => Custom3(),
+            LitigGameOptionSetChoices.LiabilityUncertainty_1BR => LiabilityUncertainty_1BR(),
+            LitigGameOptionSetChoices.LiabilityUncertainty_2BR => LiabilityUncertainty_2BR(),
+            LitigGameOptionSetChoices.LiabilityUncertainty_3BR => LiabilityUncertainty_3BR(),
+            LitigGameOptionSetChoices.DamagesUncertainty_1BR => DamagesUncertainty_1BR(),
+            LitigGameOptionSetChoices.DamagesUncertainty_2BR => DamagesUncertainty_2BR(),
+            LitigGameOptionSetChoices.DamagesUncertainty_3BR => DamagesUncertainty_3BR(),
+            LitigGameOptionSetChoices.BothUncertain_1BR => BothUncertain_1BR(),
+            LitigGameOptionSetChoices.BothUncertain_2BR => BothUncertain_2BR(),
+            LitigGameOptionSetChoices.BothUncertain_3BR => BothUncertain_3BR(),
+            LitigGameOptionSetChoices.Shootout => Shootout(),
+            LitigGameOptionSetChoices.Shootout_Triple => Shootout_Triple(),
+            LitigGameOptionSetChoices.Shootout_AllRounds => Shootout_AllRounds(),
+            LitigGameOptionSetChoices.Shootout_IncludingAbandoment => Shootout_IncludingAbandoment(),
+            LitigGameOptionSetChoices.Shootout_AllRoundsIncludingAbandoment => Shootout_AllRoundsIncludingAbandoment(),
+            LitigGameOptionSetChoices.SuperSimple => SuperSimple(),
+            LitigGameOptionSetChoices.Faster => Faster(),
+            LitigGameOptionSetChoices.Fast => Fast(),
+            LitigGameOptionSetChoices.Usual => BothUncertain_2BR(),
+            LitigGameOptionSetChoices.Ambitious => Ambitious(),
+            LitigGameOptionSetChoices.PerfectInfo => PerfectInformation(courtIsPerfectToo: false),
             _ => throw new Exception()
         };
 
 
-        public static void NormalizeToDamages(MyGameOptions o)
+        public static void NormalizeToDamages(LitigGameOptions o)
         {
             double divideBy = o.DamagesMax;
             o.PInitialWealth /= divideBy;
@@ -83,9 +83,9 @@ namespace ACESim
                 o.RoundSpecificBargainingCosts = o.RoundSpecificBargainingCosts.Select(x => (x.pCosts / divideBy, x.dCosts / divideBy)).ToArray();
         }
 
-        public static MyGameOptions BaseOptions()
+        public static LitigGameOptions BaseOptions()
         {
-            var options = new MyGameOptions()
+            var options = new LitigGameOptions()
             {
                 PInitialWealth = 1000000,
                 DInitialWealth = 1000000,
@@ -97,7 +97,7 @@ namespace ACESim
                 NumDamagesSignals = 5,
                 NumOffers = 5,
                 IncludeEndpointsForOffers = false,
-                MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
+                LitigGameDisputeGenerator = new LitigGameExogenousDisputeGenerator()
                 {
                     ExogenousProbabilityTrulyLiable = 0.5,
                     StdevNoiseToProduceLiabilityStrength = 0.5
@@ -138,9 +138,9 @@ namespace ACESim
                 FirstRowOnly = false,
 
                 WarmStartThroughIteration = null,
-                WarmStartOptions = MyGameWarmStartOptions.NoWarmStart
+                WarmStartOptions = LitigGameWarmStartOptions.NoWarmStart
             };
-            // options.AdditionalTableOverrides = new List<(Func<Decision, GameProgress, byte>, string)>() { (MyGameActionsGenerator.GamePlaysOutToTrial, "GamePlaysOutToTrial") };
+            // options.AdditionalTableOverrides = new List<(Func<Decision, GameProgress, byte>, string)>() { (LitigGameActionsGenerator.GamePlaysOutToTrial, "GamePlaysOutToTrial") };
             options.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.PInitialWealth };
             options.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.DInitialWealth };
             //options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth };
@@ -150,7 +150,7 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions Custom()
+        public static LitigGameOptions Custom()
         {
             var options = BothUncertain_1BR();
 
@@ -170,31 +170,31 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions KlermanEtAl()
+        public static LitigGameOptions KlermanEtAl()
         {
             return GetKlermanEtAlOptions(0.5, true, false, false);
         }
 
-        public static MyGameOptions KlermanEtAl_MultipleStrengthPoints()
+        public static LitigGameOptions KlermanEtAl_MultipleStrengthPoints()
         {
             return GetKlermanEtAlOptions(0.5, false, false, false);
         }
 
 
-        public static MyGameOptions KlermanEtAl_WithOptions()
+        public static LitigGameOptions KlermanEtAl_WithOptions()
         {
             return GetKlermanEtAlOptions(0.5, false, true, false);
         }
 
-        public static MyGameOptions KlermanEtAl_WithDamagesUncertainty()
+        public static LitigGameOptions KlermanEtAl_WithDamagesUncertainty()
         {
             return GetKlermanEtAlOptions(0.5, false, true, true);
         }
 
-        public static MyGameOptions GetSimple1BROptions() => GetSimple1BROptions2(2, 2, 2);
-        public static MyGameOptions GetSimple2BROptions() => GetSimple2BROptions2(2, 2, 2);
+        public static LitigGameOptions GetSimple1BROptions() => GetSimple1BROptions2(2, 2, 2);
+        public static LitigGameOptions GetSimple2BROptions() => GetSimple2BROptions2(2, 2, 2);
 
-        public static MyGameOptions GetSimple1BROptions2(byte numLiabilityStrengthPoints, byte numLiabilitySignals, byte numOffers)
+        public static LitigGameOptions GetSimple1BROptions2(byte numLiabilityStrengthPoints, byte numLiabilitySignals, byte numOffers)
         {
             var options = BaseOptions();
 
@@ -215,7 +215,7 @@ namespace ACESim
 
             return options;
         }
-        public static MyGameOptions GetSimple2BROptions2(byte numLiabilityStrengthPoints, byte numLiabilitySignals, byte numOffers)
+        public static LitigGameOptions GetSimple2BROptions2(byte numLiabilityStrengthPoints, byte numLiabilitySignals, byte numOffers)
         {
             var options = GetSimple1BROptions2(numLiabilityStrengthPoints, numLiabilitySignals, numOffers);
 
@@ -224,7 +224,7 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions GetKlermanEtAlOptions(double exogenousProbabilityTrulyLiable, bool useOnlyTwoLiabilityStrengthPoints, bool includeOptions, bool includeDamagesStrengths)
+        public static LitigGameOptions GetKlermanEtAlOptions(double exogenousProbabilityTrulyLiable, bool useOnlyTwoLiabilityStrengthPoints, bool includeOptions, bool includeDamagesStrengths)
         {
 
             var options = LiabilityUncertainty_1BR();
@@ -244,7 +244,7 @@ namespace ACESim
                 options.AllowAbandonAndDefaults = true;
                 options.PFilingCost = options.DAnswerCost = 0.30; // higher values so we can see effect of dropping out
             }
-            options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
+            options.LitigGameDisputeGenerator = new LitigGameExogenousDisputeGenerator()
             {
                 ExogenousProbabilityTrulyLiable = exogenousProbabilityTrulyLiable,
                 StdevNoiseToProduceLiabilityStrength = 0.4
@@ -260,7 +260,7 @@ namespace ACESim
             if (useOnlyTwoLiabilityStrengthPoints)
             {
                 options.NumLiabilityStrengthPoints = 2;
-                options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
+                options.LitigGameDisputeGenerator = new LitigGameExogenousDisputeGenerator()
                 {
                     ExogenousProbabilityTrulyLiable = exogenousProbabilityTrulyLiable,
                     StdevNoiseToProduceLiabilityStrength = 0.001
@@ -273,7 +273,7 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions Custom2()
+        public static LitigGameOptions Custom2()
         {
             // make it symmetric
             var options = DamagesUncertainty_2BR();
@@ -289,13 +289,13 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions DamagesUncertainty_1BR()
+        public static LitigGameOptions DamagesUncertainty_1BR()
         {
             var options = BaseOptions();
 
             options.NumLiabilityStrengthPoints = 1; // Note: same with 2 br -- higher strength will be 100% of the time, b/c of ExogenousProbabilityTrulyLiable
             options.NumLiabilitySignals = 1;
-            options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
+            options.LitigGameDisputeGenerator = new LitigGameExogenousDisputeGenerator()
             {
                 ExogenousProbabilityTrulyLiable = 1.0,
                 StdevNoiseToProduceLiabilityStrength = 0.001
@@ -309,14 +309,14 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions DamagesUncertainty_2BR()
+        public static LitigGameOptions DamagesUncertainty_2BR()
         {
             var options = DamagesUncertainty_1BR();
             options.NumPotentialBargainingRounds = 2;
 
             return options;
         }
-        public static MyGameOptions DamagesUncertainty_3BR()
+        public static LitigGameOptions DamagesUncertainty_3BR()
         {
             var options = DamagesUncertainty_1BR();
             options.NumPotentialBargainingRounds = 3;
@@ -324,7 +324,7 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions LiabilityUncertainty_1BR()
+        public static LitigGameOptions LiabilityUncertainty_1BR()
         {
             var options = BaseOptions();
 
@@ -341,7 +341,7 @@ namespace ACESim
         }
 
 
-        public static MyGameOptions LiabilityUncertainty_2BR()
+        public static LitigGameOptions LiabilityUncertainty_2BR()
         {
             var options = LiabilityUncertainty_1BR();
             options.NumPotentialBargainingRounds = 2;
@@ -349,7 +349,7 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions Custom3()
+        public static LitigGameOptions Custom3()
         {
             var options = BaseOptions();
 
@@ -373,7 +373,7 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions Shootout()
+        public static LitigGameOptions Shootout()
         {
             var options = BaseOptions();
             options.ShootoutSettlements = true;
@@ -384,7 +384,7 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions Shootout_Triple()
+        public static LitigGameOptions Shootout_Triple()
         {
             var options = BaseOptions();
             options.ShootoutSettlements = true;
@@ -395,7 +395,7 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions Shootout_AllRounds()
+        public static LitigGameOptions Shootout_AllRounds()
         {
             var options = BaseOptions();
             options.ShootoutSettlements = true;
@@ -406,7 +406,7 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions Shootout_IncludingAbandoment()
+        public static LitigGameOptions Shootout_IncludingAbandoment()
         {
             var options = BaseOptions();
             options.ShootoutSettlements = true;
@@ -417,7 +417,7 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions Shootout_AllRoundsIncludingAbandoment()
+        public static LitigGameOptions Shootout_AllRoundsIncludingAbandoment()
         {
             var options = BaseOptions();
             options.ShootoutSettlements = true;
@@ -428,7 +428,7 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions LiabilityUncertainty_3BR()
+        public static LitigGameOptions LiabilityUncertainty_3BR()
         {
             var options = LiabilityUncertainty_1BR();
 
@@ -437,7 +437,7 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions SuperSimple()
+        public static LitigGameOptions SuperSimple()
         {
             var options = BaseOptions();
             options.NumDamagesStrengthPoints = 1;
@@ -448,7 +448,7 @@ namespace ACESim
             options.NumPotentialBargainingRounds = 1;
             options.AllowAbandonAndDefaults = false;
             options.SkipFileAndAnswerDecisions = true; // set to true to make game fully symmetrical
-            //options.MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
+            //options.LitigGameDisputeGenerator = new LitigGameEqualQualityProbabilitiesDisputeGenerator()
             //{
             //    ProbabilityTrulyLiable_LiabilityStrength75 = 0.75,
             //    ProbabilityTrulyLiable_LiabilityStrength90 = 0.90,
@@ -460,7 +460,7 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions Faster()
+        public static LitigGameOptions Faster()
         {
             var options = BaseOptions();
             options.NumDamagesStrengthPoints = 1;
@@ -478,7 +478,7 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions Fast()
+        public static LitigGameOptions Fast()
         {
             var options = BaseOptions();
             options.NumDamagesStrengthPoints = 4;
@@ -497,14 +497,14 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions BothUncertain_2BR()
+        public static LitigGameOptions BothUncertain_2BR()
         {
             var options = BaseOptions();
 
             return options;
         }
 
-        public static MyGameOptions BothUncertain_3BR()
+        public static LitigGameOptions BothUncertain_3BR()
         {
             var options = BaseOptions();
             options.NumPotentialBargainingRounds = 3;
@@ -512,7 +512,7 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions BothUncertain_1BR()
+        public static LitigGameOptions BothUncertain_1BR()
         {
             var options = BaseOptions();
             options.NumPotentialBargainingRounds = 1;
@@ -520,7 +520,7 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions Ambitious()
+        public static LitigGameOptions Ambitious()
         {
             var options = BaseOptions();
             options.NumDamagesStrengthPoints = 5;
@@ -533,7 +533,7 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions PerfectInformation(bool courtIsPerfectToo)
+        public static LitigGameOptions PerfectInformation(bool courtIsPerfectToo)
         {
             var options = BaseOptions();
             options.PLiabilityNoiseStdev = 0.001;
@@ -545,7 +545,7 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions DamagesShootout()
+        public static LitigGameOptions DamagesShootout()
         {
             var options = DamagesUncertainty_2BR();
             options.ShootoutSettlements = true;
@@ -555,7 +555,7 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions LiabilityShootout()
+        public static LitigGameOptions LiabilityShootout()
         {
             var options = LiabilityUncertainty_2BR();
             options.ShootoutSettlements = true;

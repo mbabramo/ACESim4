@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -16,19 +16,19 @@ namespace ACESimTest
         [TestMethod]
         public void TrialCostsMultiplierWorks()
         {
-            MyGameRunningSideBets sideBets = new MyGameRunningSideBets()
+            LitigGameRunningSideBets sideBets = new LitigGameRunningSideBets()
             {
                 TrialCostsMultiplierAsymptote = 3.0,
                 TrialCostsMultiplierWithDoubleStakes = 1.3,
                 ValueOfChip = 50_000
             };
-            MyGameDefinition gameDefinition = new MyGameDefinition()
+            LitigGameDefinition gameDefinition = new LitigGameDefinition()
             {
-                Options = new MyGameOptions()
+                Options = new LitigGameOptions()
                 {
                     DamagesMin = 100_000,
                     DamagesMax = 100_000,
-                    MyGameRunningSideBets = sideBets
+                    LitigGameRunningSideBets = sideBets
                 }
             };
             sideBets.Setup(gameDefinition);
@@ -38,19 +38,19 @@ namespace ACESimTest
             sideBets.GetTrialCostsMultiplier(gameDefinition, 2).Should().BeApproximately(1.3, 0.001);
             sideBets.GetTrialCostsMultiplier(gameDefinition, 999).Should().BeApproximately(3.0, 0.1);
 
-            sideBets = new MyGameRunningSideBets()
+            sideBets = new LitigGameRunningSideBets()
             {
                 TrialCostsMultiplierAsymptote = 1.0,
                 TrialCostsMultiplierWithDoubleStakes = 1.0,
                 ValueOfChip = 50_000
             };
-            gameDefinition = new MyGameDefinition()
+            gameDefinition = new LitigGameDefinition()
             {
-                Options = new MyGameOptions()
+                Options = new LitigGameOptions()
                 {
                     DamagesMin = 100_000,
                     DamagesMax = 100_000,
-                    MyGameRunningSideBets = sideBets
+                    LitigGameRunningSideBets = sideBets
                 }
             };
             sideBets.Setup(gameDefinition);

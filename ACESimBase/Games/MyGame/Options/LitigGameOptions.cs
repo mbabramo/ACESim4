@@ -6,20 +6,20 @@ using System.Linq;
 namespace ACESim
 {
     [Serializable]
-    public class MyGameOptions : GameOptions
+    public class LitigGameOptions : GameOptions
     {
         /// <summary>
         /// The generator of disputes (e.g., contract, tort, etc.), determining the litigation quality. If null, then there is an equal probability of each litigation quality outcome.
         /// </summary>
-        public IMyGameDisputeGenerator MyGameDisputeGenerator;
+        public ILitigGameDisputeGenerator LitigGameDisputeGenerator;
         /// <summary>
         /// This can generate some additional decisions before trial. If null, none are generated.
         /// </summary>
-        public IMyGamePretrialDecisionGenerator MyGamePretrialDecisionGeneratorGenerator;
+        public ILitigGamePretrialDecisionGenerator LitigGamePretrialDecisionGeneratorGenerator;
         /// <summary>
         /// This allows for making side bets in each bargaining round, if not null.
         /// </summary>
-        public MyGameRunningSideBets MyGameRunningSideBets;
+        public LitigGameRunningSideBets LitigGameRunningSideBets;
 
         /// <summary>
         /// The number of different liability quality levels that a case can have, with the lowest levels reflecting the lowest probability of liability. Parties obtain estimates of the liability level.
@@ -73,7 +73,7 @@ namespace ACESim
         /// <summary>
         /// This can be used to set the strategy to be used when optimizing the opponent for a certain number of iterations.
         /// </summary>
-        public MyGameWarmStartOptions WarmStartOptions;
+        public LitigGameWarmStartOptions WarmStartOptions;
         /// <summary>
         /// The number of iterations to warm start for
         /// </summary>
@@ -230,7 +230,7 @@ namespace ACESim
                 NumDamagesSignals = 3;
         }
 
-        public bool IsSymmetric() => MyGameDisputeGenerator.SupportsSymmetry() && BargainingRoundsSimultaneous && SkipFileAndAnswerDecisions /* Note: If changing this, must ensure PFilingCost == DAnswerCost */ && PLiabilityNoiseStdev == DLiabilityNoiseStdev && PDamagesNoiseStdev == DDamagesNoiseStdev && PTrialCosts == DTrialCosts && PTrialCosts_Original == DTrialCosts_Original && PInitialWealth + DamagesMax == DInitialWealth && (NumLiabilityStrengthPoints == 1 || NumDamagesStrengthPoints == 1) /* If BOTH liability and damages are uncertain, then suppose there is a 50% chance of liability and a 50% chance of high or zero damages; in this case, there is a 25% expectation of damages, so the game is not symmetric, as the defendant in effect has two ways to win */;
+        public bool IsSymmetric() => LitigGameDisputeGenerator.SupportsSymmetry() && BargainingRoundsSimultaneous && SkipFileAndAnswerDecisions /* Note: If changing this, must ensure PFilingCost == DAnswerCost */ && PLiabilityNoiseStdev == DLiabilityNoiseStdev && PDamagesNoiseStdev == DDamagesNoiseStdev && PTrialCosts == DTrialCosts && PTrialCosts_Original == DTrialCosts_Original && PInitialWealth + DamagesMax == DInitialWealth && (NumLiabilityStrengthPoints == 1 || NumDamagesStrengthPoints == 1) /* If BOTH liability and damages are uncertain, then suppose there is a 50% chance of liability and a 50% chance of high or zero damages; in this case, there is a 25% expectation of damages, so the game is not symmetric, as the defendant in effect has two ways to win */;
 
         public override string ToString()
         {

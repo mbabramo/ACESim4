@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -23,7 +23,7 @@ namespace ACESim
         {
             Leduc,
             MultiRoundCooperation,
-            MyGame,
+            LitigGame,
             AdditiveEvidenceGame
         }
 
@@ -80,10 +80,10 @@ namespace ACESim
                     strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
                     launcher = new MultiRoundCooperationGameLauncher();
                     break;
-                case AvailableGames.MyGame:
-                    baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\MyGame";
+                case AvailableGames.LitigGame:
+                    baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\LitigGame";
                     strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
-                    launcher = new MyGameLauncher();
+                    launcher = new LitigGameLauncher();
                     break;
                 case AvailableGames.AdditiveEvidenceGame:
                     baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\AdditiveEvidenceGame";

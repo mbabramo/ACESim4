@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,7 +6,7 @@ using System.Text;
 namespace ACESim
 {
     [Serializable]
-    public class MyGameFactory : IGameFactory
+    public class LitigGameFactory : IGameFactory
     {
         /// <summary>
         /// Perform any general initialization. One might create information that can then be passed on to the game class.
@@ -31,7 +31,7 @@ namespace ACESim
             bool restartFromBeginningOfGame,
             bool fullHistoryRequired)
         {
-            return new MyGame(strategies, progress, gameDefinition, recordReportInfo, restartFromBeginningOfGame, fullHistoryRequired);
+            return new LitigGame(strategies, progress, gameDefinition, recordReportInfo, restartFromBeginningOfGame, fullHistoryRequired);
         }
 
         /// <summary>
@@ -41,7 +41,7 @@ namespace ACESim
         /// <returns></returns>
         public GameProgress CreateNewGameProgress(bool fullHistoryRequired, IterationID iterationID)
         {
-            GameProgress gameProgress = new MyGameProgress(fullHistoryRequired)  { IterationID = iterationID };
+            GameProgress gameProgress = new LitigGameProgress(fullHistoryRequired)  { IterationID = iterationID };
             return gameProgress;
         }
 
@@ -51,7 +51,7 @@ namespace ACESim
         /// <returns></returns>
         public Type GetGameDefinitionType()
         {
-            return typeof(MyGameDefinition);
+            return typeof(LitigGameDefinition);
         }
     }
 }

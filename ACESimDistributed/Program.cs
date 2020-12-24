@@ -1,4 +1,4 @@
-﻿using ACESim;
+using ACESim;
 using ACESim.Util;
 using ACESimBase.Games.AdditiveEvidenceGame;
 using System;
@@ -43,7 +43,7 @@ namespace ACESimDistributed
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    //MyGameLauncher launcher = new MyGameLauncher();
+                    //LitigGameLauncher launcher = new LitigGameLauncher();
                     AdditiveEvidenceGameLauncher launcher = new AdditiveEvidenceGameLauncher();
 
                     if (launcher.LaunchSingleOptionsSetOnly)

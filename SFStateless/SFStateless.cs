@@ -51,7 +51,7 @@ namespace SFStateless
 
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    MyGameLauncher launcher = new MyGameLauncher();
+                    LitigGameLauncher launcher = new LitigGameLauncher();
 
                     await launcher.ParticipateInDistributedProcessing(
                         launcher.MasterReportNameForDistributedProcessing,

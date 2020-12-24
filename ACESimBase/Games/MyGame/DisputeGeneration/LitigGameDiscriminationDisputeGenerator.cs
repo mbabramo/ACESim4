@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace ACESim
 {
     [Serializable]
-    public class MyGameDiscriminationDisputeGenerator : IMyGameDisputeGenerator
+    public class LitigGameDiscriminationDisputeGenerator : ILitigGameDisputeGenerator
     {
         public string GetGeneratorName() => "Discrimination";
         // Defendant businessperson must decide whether to fire employee. Defendant may or may not have a taste for racism. Plaintiff may or may not be a good worker. We assume that there is a social cost when a good employee is fired, and a social cost when a bad employee is not fired. Our goal is thus to make the employer with a taste for discrimination act as much as possible as an employer without such a taste would act in the absence of a legal regime.
@@ -32,7 +32,7 @@ namespace ACESim
 
         private double[] ProbabilityLiabilityStrength_StrongPlaintiffCase, ProbabilityLiabilityStrength_MediumPlaintiffCase, ProbabilityLiabilityStrength_PoorPlaintiffCase;
 
-        public void Setup(MyGameDefinition myGameDefinition)
+        public void Setup(LitigGameDefinition myGameDefinition)
         {
             myGameDefinition.Options.NumLiabilityStrengthPoints = 9; // always
             myGameDefinition.Options.NumDamagesStrengthPoints = 1;
@@ -66,13 +66,13 @@ namespace ACESim
             }
         }
 
-        public void GetActionsSetup(MyGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate)
+        public void GetActionsSetup(LitigGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate)
         {
             prePrimaryChanceActions = 8;
             primaryActions = 2;
             postPrimaryChanceActions = 0;
-            prePrimaryPlayersToInform = new byte[] { (byte)MyGamePlayers.Resolution, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.LiabilityStrengthChance };
-            primaryPlayersToInform = new byte[] { (byte)MyGamePlayers.Resolution, (byte)MyGamePlayers.LiabilityStrengthChance };
+            prePrimaryPlayersToInform = new byte[] { (byte)LitigGamePlayers.Resolution, (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.LiabilityStrengthChance };
+            primaryPlayersToInform = new byte[] { (byte)LitigGamePlayers.Resolution, (byte)LitigGamePlayers.LiabilityStrengthChance };
             postPrimaryPlayersToInform = null;
             prePrimaryUnevenChance = true;
             postPrimaryUnevenChance = true; // irrelevant
@@ -82,7 +82,7 @@ namespace ACESim
         }
 
         readonly double[] WealthEffects_NoAppropriation = new double[] { 0, 0 };
-        public double[] GetLitigationIndependentWealthEffects(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
+        public double[] GetLitigationIndependentWealthEffects(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             var peopleStatus = ConvertPrePrimaryChance(disputeGeneratorActions.PrePrimaryChanceAction);
             if (disputeGeneratorActions.PrimaryAction == 1) 
@@ -101,7 +101,7 @@ namespace ACESim
             }
         }
 
-        public double GetLitigationIndependentSocialWelfare(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
+        public double GetLitigationIndependentSocialWelfare(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             var peopleStatus = ConvertPrePrimaryChance(disputeGeneratorActions.PrePrimaryChanceAction);
             if (disputeGeneratorActions.PrimaryAction == 1)
@@ -120,12 +120,12 @@ namespace ACESim
             }
         }
 
-        public bool PotentialDisputeArises(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
+        public bool PotentialDisputeArises(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             return disputeGeneratorActions.PrimaryAction == 1; // only a dispute if employee is fired
         }
 
-        public double[] GetLiabilityStrengthProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
+        public double[] GetLiabilityStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             var peopleStatus = ConvertPrePrimaryChance(disputeGeneratorActions.PrePrimaryChanceAction);
             if (peopleStatus.badEmployee == false && peopleStatus.employerTasteForDiscrimination > 0)
@@ -136,30 +136,30 @@ namespace ACESim
                 return ProbabilityLiabilityStrength_MediumPlaintiffCase;
         }
 
-        public double[] GetDamagesStrengthProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions) => new double[] { 1.0 };
+        public double[] GetDamagesStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions) => new double[] { 1.0 };
 
-        public bool IsTrulyLiable(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
+        public bool IsTrulyLiable(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
         {
             var peopleStatus = ConvertPrePrimaryChance(disputeGeneratorActions.PrePrimaryChanceAction);
             return disputeGeneratorActions.PrimaryAction == 1 /* fired */ && peopleStatus.badEmployee == false;
         }
 
-        public bool MarkComplete(MyGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction)
+        public bool MarkComplete(LitigGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction)
         {
             return primaryAction == 2;
         }
 
-        public bool MarkComplete(MyGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction, byte postPrimaryAction)
+        public bool MarkComplete(LitigGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction, byte postPrimaryAction)
         {
             throw new NotImplementedException();
         }
 
-        public double[] GetPrePrimaryChanceProbabilities(MyGameDefinition myGameDefinition)
+        public double[] GetPrePrimaryChanceProbabilities(LitigGameDefinition myGameDefinition)
         {
             return new double[] { ProbabilityGoodEmployee * ProbabilityGoodEmployer, ProbabilityGoodEmployee * ProbabilityLowTasteDiscrimination, ProbabilityGoodEmployee * ProbabilityMediumTasteDiscrimination, ProbabilityGoodEmployee * ProbabilityHighTasteDiscrimination, ProbabilityBadEmployee * ProbabilityGoodEmployer, ProbabilityBadEmployee * ProbabilityLowTasteDiscrimination, ProbabilityBadEmployee * ProbabilityMediumTasteDiscrimination, ProbabilityBadEmployee * ProbabilityHighTasteDiscrimination };
         }
 
-        public double[] GetPostPrimaryChanceProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
+        public double[] GetPostPrimaryChanceProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             throw new NotImplementedException(); // no post primary chance function
         }

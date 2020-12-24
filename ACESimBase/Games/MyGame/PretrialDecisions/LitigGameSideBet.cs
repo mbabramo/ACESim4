@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace ACESim
 {
     [Serializable]
-    public class MyGameSideBet : IMyGamePretrialDecisionGenerator
+    public class LitigGameSideBet : ILitigGamePretrialDecisionGenerator
     {
         /// <summary>
         /// The multiplier of damages that a party who is challenged to a side bet must pay if the challenged party loses. This will generally be less than or equal to the damages multiple that the challenger must pay. If a party is a challenger and is challenged, then both parties will be treated as challengers.
@@ -18,19 +18,19 @@ namespace ACESim
         /// </summary>
         public double DamagesMultipleForChallengerToPay;
 
-        public void Setup(MyGameDefinition myGameDefinition)
+        public void Setup(LitigGameDefinition myGameDefinition)
         {
         }
 
-        public void GetActionsSetup(MyGameDefinition myGameDefinition, out byte pActions, out byte dActions, out byte[] playersToInformOfPAction, out byte[] playersToInformOfDAction)
+        public void GetActionsSetup(LitigGameDefinition myGameDefinition, out byte pActions, out byte dActions, out byte[] playersToInformOfPAction, out byte[] playersToInformOfDAction)
         {
             pActions = 2; // 1 = yes, challenge D to a sidebet; 2 = no
             dActions = 2; // 1 = yes, challenge P to a sidebet; 2 = no
-            playersToInformOfPAction = new byte[] {(byte) MyGamePlayers.Resolution};
-            playersToInformOfDAction = new byte[] {(byte) MyGamePlayers.Resolution};
+            playersToInformOfPAction = new byte[] {(byte) LitigGamePlayers.Resolution};
+            playersToInformOfDAction = new byte[] {(byte) LitigGamePlayers.Resolution};
         }
 
-        public void ProcessAction(MyGameDefinition myGameDefinition, MyGameProgress myGameProgress, bool pAction, byte action)
+        public void ProcessAction(LitigGameDefinition myGameDefinition, LitigGameProgress myGameProgress, bool pAction, byte action)
         {
             if (pAction)
                 myGameProgress.PretrialActions.PAction = action;
@@ -38,7 +38,7 @@ namespace ACESim
                 myGameProgress.PretrialActions.DAction = action;
         }
 
-        public void GetEffectOnPlayerWelfare(MyGameDefinition myGameDefinition, bool trialOccurs, bool pWinsAtTrial, double damagesAlleged, MyGamePretrialActions pretrialActions, out double effectOnP, out double effectOnD)
+        public void GetEffectOnPlayerWelfare(LitigGameDefinition myGameDefinition, bool trialOccurs, bool pWinsAtTrial, double damagesAlleged, LitigGamePretrialActions pretrialActions, out double effectOnP, out double effectOnD)
         {
             if (trialOccurs && (pretrialActions.PAction == 1 || pretrialActions.DAction == 1))
             { // we have a side-bet challenge to process

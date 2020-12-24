@@ -1,4 +1,4 @@
-﻿using ACESim;
+using ACESim;
 using ACESimBase.GameSolvingSupport;
 using static ACESim.SummaryStatistics;
 using ACESimBase.Util;
@@ -1276,7 +1276,7 @@ namespace ACESim
             //var playAgain = false;
             //if (playAgain)
             //{
-            //    MyGameProgress p = (MyGameProgress) GamePlayer.PlayPathAndStop(historyPoint.GetActionsToHere(Navigation));
+            //    LitigGameProgress p = (LitigGameProgress) GamePlayer.PlayPathAndStop(historyPoint.GetActionsToHere(Navigation));
             //}
         }
 

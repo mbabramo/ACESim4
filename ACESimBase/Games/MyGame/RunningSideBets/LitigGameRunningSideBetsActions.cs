@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace ACESim
 {
     [Serializable]
-    public struct MyGameRunningSideBetsActions
+    public struct LitigGameRunningSideBetsActions
     {
         public List<(byte PAction, byte DAction)> ActionsEachBargainingRound; // an action is 1 more than the number of chips bet
         public List<(double PMixedness, double DMixedness)> MixednessEachBargainingRound; // an action is 1 more than the number of chips bet

@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace ACESim
 {
-    public partial class MyGameDefinition
+    public partial class LitigGameDefinition
     {
 
         // TODO: Getting parties' probability estimates. Right now, we know the parties' signals at various times and we can thus look at the distribution of those signals, including the possibility of separating into subsets of cases(e.g., truly liable or much more narrowly, cases in which the defendant has a signal of 6 and the plaintiff has given a particular offer). But we might also like to know more specifically the distribution of litigation quality estimates at various points.For any given information set, we should be able to calculate the actual litigation quality at each information set. That is, we would look at the game history and get a cached index with the litigation quality and then increment an array item held at the information set.Thus, we can imbue the distribution of signals with meaning given the point in the game. We could use a similar approach to estimate the other party's signals or anything else that might vary.
@@ -34,7 +34,7 @@ namespace ACESim
             if (Options.IncludeCourtSuccessReport)
             {
                 var courtSuccessReport = GetCourtSuccessReport();
-                courtSuccessReport.ActionsOverride = MyGameActionsGenerator.GamePlaysOutToTrial;
+                courtSuccessReport.ActionsOverride = LitigGameActionsGenerator.GamePlaysOutToTrial;
                 reports.Add(courtSuccessReport);
             }
             if (Options.IncludeSignalsReport)
@@ -342,7 +342,7 @@ namespace ACESim
             }
 
             return new SimpleReportDefinition(
-                "MyGameReport",
+                "LitigGameReport",
                 null,
                 rows,
                 colItems
@@ -545,7 +545,7 @@ namespace ACESim
                     columnItems,
                     false // reportResponseToOffer --> right now we're reporting only one report
                 )
-                {ActionsOverride = MyGameActionsGenerator.GamePlaysOutToTrial};
+                {ActionsOverride = LitigGameActionsGenerator.GamePlaysOutToTrial};
         }
 
         private SimpleReportDefinition GetSignalsReport(int bargainingRound, bool reportResponseToOffer)

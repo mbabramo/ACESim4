@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -10,7 +10,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace ACESimTest
 {
     [TestClass]
-    public class MyGameTests
+    public class LitigGameTests
     {
         public enum HowToSimulateBargainingFailure
         {
@@ -88,23 +88,23 @@ namespace ACESimTest
 
         }
 
-        private static void GetInformationSetStrings(MyGameProgress myGameProgress, out string pInformationSet,
+        private static void GetInformationSetStrings(LitigGameProgress myGameProgress, out string pInformationSet,
             out string dInformationSet, out string resolutionSet)
         {
-            pInformationSet = myGameProgress.GameFullHistory.InformationSetLog.GetPlayerInformationAtPointString((byte) MyGamePlayers.Plaintiff, null);
-            dInformationSet = myGameProgress.GameFullHistory.InformationSetLog.GetPlayerInformationAtPointString((byte) MyGamePlayers.Defendant, null);
-            resolutionSet = myGameProgress.GameFullHistory.InformationSetLog.GetPlayerInformationAtPointString((byte) MyGamePlayers.Resolution, null);
-            string pInformationSet2 = myGameProgress.GameHistory.GetCurrentPlayerInformationString((byte) MyGamePlayers.Plaintiff);
-            string dInformationSet2 = myGameProgress.GameHistory.GetCurrentPlayerInformationString((byte) MyGamePlayers.Defendant);
-            string resolutionSet2 = myGameProgress.GameHistory.GetCurrentPlayerInformationString((byte) MyGamePlayers.Resolution);
+            pInformationSet = myGameProgress.GameFullHistory.InformationSetLog.GetPlayerInformationAtPointString((byte) LitigGamePlayers.Plaintiff, null);
+            dInformationSet = myGameProgress.GameFullHistory.InformationSetLog.GetPlayerInformationAtPointString((byte) LitigGamePlayers.Defendant, null);
+            resolutionSet = myGameProgress.GameFullHistory.InformationSetLog.GetPlayerInformationAtPointString((byte) LitigGamePlayers.Resolution, null);
+            string pInformationSet2 = myGameProgress.GameHistory.GetCurrentPlayerInformationString((byte) LitigGamePlayers.Plaintiff);
+            string dInformationSet2 = myGameProgress.GameHistory.GetCurrentPlayerInformationString((byte) LitigGamePlayers.Defendant);
+            string resolutionSet2 = myGameProgress.GameHistory.GetCurrentPlayerInformationString((byte) LitigGamePlayers.Resolution);
             pInformationSet.Should().Be(pInformationSet2);
             dInformationSet.Should().Be(dInformationSet2);
             resolutionSet.Should().Be(resolutionSet2);
         }
 
-        private MyGameOptions GetGameOptions(bool allowDamagesVariation, bool allowAbandonAndDefaults, byte numBargainingRounds, bool roundSpecificBargainingCosts, bool simultaneousBargainingRounds, bool simultaneousOffersUltimatelyRevealed, LoserPaysPolicy loserPaysPolicy, HowToSimulateBargainingFailure simulatingBargainingFailure, SideBetChallenges sideBetChallenges, RunningSideBetChallenges runningSideBetChallenges, ShootoutSettings shootout)
+        private LitigGameOptions GetGameOptions(bool allowDamagesVariation, bool allowAbandonAndDefaults, byte numBargainingRounds, bool roundSpecificBargainingCosts, bool simultaneousBargainingRounds, bool simultaneousOffersUltimatelyRevealed, LoserPaysPolicy loserPaysPolicy, HowToSimulateBargainingFailure simulatingBargainingFailure, SideBetChallenges sideBetChallenges, RunningSideBetChallenges runningSideBetChallenges, ShootoutSettings shootout)
         {
-            var options = new MyGameOptions
+            var options = new LitigGameOptions
             {
                 PInitialWealth = InitialWealth,
                 DInitialWealth = InitialWealth,
@@ -116,7 +116,7 @@ namespace ACESimTest
                 NumDamagesSignals = allowDamagesVariation ? NumDamagesSignals : (byte) 0,
                 NumOffers = NumOffers,
                 IncludeEndpointsForOffers = true,
-                MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator
+                LitigGameDisputeGenerator = new LitigGameEqualQualityProbabilitiesDisputeGenerator
                 {
                     ProbabilityTrulyLiable_LiabilityStrength75 = 0.75,
                     ProbabilityTrulyLiable_LiabilityStrength90 = 0.90,
@@ -134,8 +134,8 @@ namespace ACESimTest
                 PTrialCosts = PTrialCosts,
                 DTrialCosts = DTrialCosts,
                 RegretAversion = RegretAversion,
-                MyGamePretrialDecisionGeneratorGenerator = sideBetChallenges == SideBetChallenges.NoChallengesAllowed ? null : new MyGameSideBet {DamagesMultipleForChallengedToPay = DamagesMultipleForChallengedToPay, DamagesMultipleForChallengerToPay = DamagesMultipleForChallengerToPay},
-                MyGameRunningSideBets = runningSideBetChallenges == RunningSideBetChallenges.None ? null : new MyGameRunningSideBets {MaxChipsPerRound = MaxChipsPerRound, ValueOfChip = ValueOfChip, TrialCostsMultiplierAsymptote = 1.0},
+                LitigGamePretrialDecisionGeneratorGenerator = sideBetChallenges == SideBetChallenges.NoChallengesAllowed ? null : new LitigGameSideBet {DamagesMultipleForChallengedToPay = DamagesMultipleForChallengedToPay, DamagesMultipleForChallengerToPay = DamagesMultipleForChallengerToPay},
+                LitigGameRunningSideBets = runningSideBetChallenges == RunningSideBetChallenges.None ? null : new LitigGameRunningSideBets {MaxChipsPerRound = MaxChipsPerRound, ValueOfChip = ValueOfChip, TrialCostsMultiplierAsymptote = 1.0},
                 ShootoutSettlements = shootout != ShootoutSettings.None,
                 ShootoutsApplyAfterAbandonment = shootout == ShootoutSettings.ApplyAfterAbandonment || shootout == ShootoutSettings.ApplyAfterAbandonment_AverageAllRounds,
                 ShootoutStrength = 1.5,
@@ -321,7 +321,7 @@ namespace ACESimTest
         }
 
         private (double? bestRejectedOfferToP, double? bestRejectedOfferToD) GetBestOffers(
-            List<(byte offerMove, byte bargainingRoundNumber, bool isOfferToP)> offers, MyGameOptions options)
+            List<(byte offerMove, byte bargainingRoundNumber, bool isOfferToP)> offers, LitigGameOptions options)
         {
             (double? bestRejectedOfferToP, double? bestRejectedOfferToD) bestOffers = (null, null);
             foreach (var offer in offers)
@@ -504,53 +504,53 @@ namespace ACESimTest
                 var dMove = bargainingRoundMove.dMove;
                 if (simulatingBargainingFailure != HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain)
                 {
-                    bargaining.Add(((byte) MyGameDecisions.PAgreeToBargain, b, pMove == null ? (byte) 2 : (byte) 1));
-                    bargaining.Add(((byte) MyGameDecisions.DAgreeToBargain, b, dMove == null ? (byte) 2 : (byte) 1));
+                    bargaining.Add(((byte) LitigGameDecisions.PAgreeToBargain, b, pMove == null ? (byte) 2 : (byte) 1));
+                    bargaining.Add(((byte) LitigGameDecisions.DAgreeToBargain, b, dMove == null ? (byte) 2 : (byte) 1));
                 }
                 if (pMove != null && dMove != null)
                     if (simultaneousBargainingRounds)
                     {
-                        bargaining.Add(((byte) MyGameDecisions.POffer, b, (byte) pMove));
-                        bargaining.Add(((byte) MyGameDecisions.DOffer, b, (byte) dMove));
+                        bargaining.Add(((byte) LitigGameDecisions.POffer, b, (byte) pMove));
+                        bargaining.Add(((byte) LitigGameDecisions.DOffer, b, (byte) dMove));
                     }
                     else
                     {
                         if (b % 2 == 1)
                         {
-                            bargaining.Add(((byte) MyGameDecisions.POffer, b, (byte) pMove));
-                            bargaining.Add(((byte) MyGameDecisions.DResponse, b, (byte) dMove));
+                            bargaining.Add(((byte) LitigGameDecisions.POffer, b, (byte) pMove));
+                            bargaining.Add(((byte) LitigGameDecisions.DResponse, b, (byte) dMove));
                         }
                         else
                         {
-                            bargaining.Add(((byte) MyGameDecisions.DOffer, b, (byte) dMove));
-                            bargaining.Add(((byte) MyGameDecisions.PResponse, b, (byte) pMove));
+                            bargaining.Add(((byte) LitigGameDecisions.DOffer, b, (byte) dMove));
+                            bargaining.Add(((byte) LitigGameDecisions.PResponse, b, (byte) pMove));
                         }
                     }
-                bargaining.Add(((byte) MyGameDecisions.PAbandon, b, pReadyToAbandonRound == b ? (byte) 1 : (byte) 2));
-                bargaining.Add(((byte) MyGameDecisions.DDefault, b, dReadyToDefaultRound == b ? (byte) 1 : (byte) 2));
+                bargaining.Add(((byte) LitigGameDecisions.PAbandon, b, pReadyToAbandonRound == b ? (byte) 1 : (byte) 2));
+                bargaining.Add(((byte) LitigGameDecisions.DDefault, b, dReadyToDefaultRound == b ? (byte) 1 : (byte) 2));
             }
             var actionsToPlay = DefineActions.ForTest(
                 new List<(byte decision, byte action)>
                 {
-                    ((byte) MyGameDecisions.PostPrimaryActionChance, 17), // irrelevant -- just determines probability truly liable
-                    ((byte) MyGameDecisions.PFile, pFiles ? (byte) 1 : (byte) 2),
-                    ((byte) MyGameDecisions.DAnswer, dAnswers ? (byte) 1 : (byte) 2),
-                    ((byte) MyGameDecisions.LiabilityStrength, liabilityStrength),
-                    ((byte) MyGameDecisions.PLiabilitySignal, pLiabilitySignal),
-                    ((byte) MyGameDecisions.DLiabilitySignal, dLiabilitySignal),
-                    ((byte) MyGameDecisions.DamagesStrength, damagesStrength),
-                    ((byte) MyGameDecisions.PDamagesSignal, pDamagesSignal),
-                    ((byte) MyGameDecisions.DDamagesSignal, dDamagesSignal),
-                    ((byte) MyGameDecisions.PreBargainingRound, (byte) 1 /* only action -- dummy decision */),
-                    ((byte) MyGameDecisions.MutualGiveUp, mutualGiveUpResult), // we'll only reach this if both try to give up, so it won't be called in multiple bargaining rounds
-                    ((byte) MyGameDecisions.PostBargainingRound, 1 /* only action */),
+                    ((byte) LitigGameDecisions.PostPrimaryActionChance, 17), // irrelevant -- just determines probability truly liable
+                    ((byte) LitigGameDecisions.PFile, pFiles ? (byte) 1 : (byte) 2),
+                    ((byte) LitigGameDecisions.DAnswer, dAnswers ? (byte) 1 : (byte) 2),
+                    ((byte) LitigGameDecisions.LiabilityStrength, liabilityStrength),
+                    ((byte) LitigGameDecisions.PLiabilitySignal, pLiabilitySignal),
+                    ((byte) LitigGameDecisions.DLiabilitySignal, dLiabilitySignal),
+                    ((byte) LitigGameDecisions.DamagesStrength, damagesStrength),
+                    ((byte) LitigGameDecisions.PDamagesSignal, pDamagesSignal),
+                    ((byte) LitigGameDecisions.DDamagesSignal, dDamagesSignal),
+                    ((byte) LitigGameDecisions.PreBargainingRound, (byte) 1 /* only action -- dummy decision */),
+                    ((byte) LitigGameDecisions.MutualGiveUp, mutualGiveUpResult), // we'll only reach this if both try to give up, so it won't be called in multiple bargaining rounds
+                    ((byte) LitigGameDecisions.PostBargainingRound, 1 /* only action */),
                     // Notice that the chip actions are 1 more than the number of chips
-                    ((byte) MyGameDecisions.PChips, runningSideBetChallenges == RunningSideBetChallenges.None ? (byte) 0 : (runningSideBetChallenges == RunningSideBetChallenges.DChallenges2P1 ? (byte) 2 : (byte) 3)),
-                    ((byte) MyGameDecisions.DChips, runningSideBetChallenges == RunningSideBetChallenges.None ? (byte) 0 : (runningSideBetChallenges == RunningSideBetChallenges.DChallenges2P1 ? (byte) 3 : (byte) 2)),
-                    ((byte) MyGameDecisions.PPretrialAction, sideBetChallenges == SideBetChallenges.PChallenges || sideBetChallenges == SideBetChallenges.BothChallenge ? (byte) 1 : (byte) 2),
-                    ((byte) MyGameDecisions.DPretrialAction, sideBetChallenges == SideBetChallenges.DChallenges || sideBetChallenges == SideBetChallenges.BothChallenge ? (byte) 1 : (byte) 2),
-                    ((byte) MyGameDecisions.CourtDecisionLiability, courtLiabilityResult),
-                    ((byte) MyGameDecisions.CourtDecisionDamages, courtDamagesResult)
+                    ((byte) LitigGameDecisions.PChips, runningSideBetChallenges == RunningSideBetChallenges.None ? (byte) 0 : (runningSideBetChallenges == RunningSideBetChallenges.DChallenges2P1 ? (byte) 2 : (byte) 3)),
+                    ((byte) LitigGameDecisions.DChips, runningSideBetChallenges == RunningSideBetChallenges.None ? (byte) 0 : (runningSideBetChallenges == RunningSideBetChallenges.DChallenges2P1 ? (byte) 3 : (byte) 2)),
+                    ((byte) LitigGameDecisions.PPretrialAction, sideBetChallenges == SideBetChallenges.PChallenges || sideBetChallenges == SideBetChallenges.BothChallenge ? (byte) 1 : (byte) 2),
+                    ((byte) LitigGameDecisions.DPretrialAction, sideBetChallenges == SideBetChallenges.DChallenges || sideBetChallenges == SideBetChallenges.BothChallenge ? (byte) 1 : (byte) 2),
+                    ((byte) LitigGameDecisions.CourtDecisionLiability, courtLiabilityResult),
+                    ((byte) LitigGameDecisions.CourtDecisionDamages, courtDamagesResult)
                 },
                 bargaining
             );
@@ -637,7 +637,7 @@ namespace ACESimTest
             bool dAnswers = pFiles && dReadyToDefaultRound != 0;
             var actionsToPlay = GetPlayerActions(pFiles, dAnswers, liabilityStrength, PLiabilitySignal,
                 DLiabilitySignal, damagesStrength, PDamagesSignal,  DDamagesSignal, bargainingRoundMoves: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed: simultaneousOffersUltimatelyRevealed, pReadyToAbandonRound: pReadyToAbandonRound, dReadyToDefaultRound: dReadyToDefaultRound, mutualGiveUpResult: mutualGiveUpResult, simulatingBargainingFailure: simulatingBargainingFailure, sideBetChallenges: SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges: runningSideBetChallenges);
-            var myGameProgress = MyGameLauncher.PlayMyGameOnce(options, actionsToPlay);
+            var myGameProgress = LitigGameLauncher.PlayLitigGameOnce(options, actionsToPlay);
             VerifyInformationSetUniqueness(myGameProgress, options);
 
             bool pWins = pReadyToAbandonRound == null && dReadyToDefaultRound != null ||
@@ -721,7 +721,7 @@ namespace ACESimTest
             resolutionSet.Should().Be(expectedResolutionSet);
         }
 
-        private static void CalculateBargainingRoundExpenses(byte numActualRounds, MyGameOptions options, out double pBargainingRoundExpenses, out double dBargainingRoundExpenses)
+        private static void CalculateBargainingRoundExpenses(byte numActualRounds, LitigGameOptions options, out double pBargainingRoundExpenses, out double dBargainingRoundExpenses)
         {
             pBargainingRoundExpenses = 0;
             dBargainingRoundExpenses = 0;
@@ -739,7 +739,7 @@ namespace ACESimTest
             }
         }
 
-        private void GetExpensesAfterFeeShifting(MyGameOptions options, bool loserPaysAfterAbandonmentRequired, bool pWins, double pInitialExpenses, double dInitialExpenses, out double pExpenses, out double dExpenses)
+        private void GetExpensesAfterFeeShifting(LitigGameOptions options, bool loserPaysAfterAbandonmentRequired, bool pWins, double pInitialExpenses, double dInitialExpenses, out double pExpenses, out double dExpenses)
         {
             if (options.LoserPays && (!loserPaysAfterAbandonmentRequired || options.LoserPaysAfterAbandonment))
             {
@@ -811,7 +811,7 @@ namespace ACESimTest
             var bestOffers = GetBestOffers(offers, options);
             var actionsToPlay = GetPlayerActions(true, true, LiabilityStrength, PLiabilitySignal,
                 DLiabilitySignal, DamagesStrength, PDamagesSignal, DDamagesSignal, simulatingBargainingFailure, bargainingRoundMoves: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed: simultaneousOffersUltimatelyRevealed, sideBetChallenges: SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges: runningSideBetChallenges);
-            var myGameProgress = MyGameLauncher.PlayMyGameOnce(options, actionsToPlay);
+            var myGameProgress = LitigGameLauncher.PlayLitigGameOnce(options, actionsToPlay);
             VerifyInformationSetUniqueness(myGameProgress, options);
 
             double settlementProportion = EquallySpaced.GetLocationOfEquallySpacedPoint(ValueWhenCaseSettles - 1, NumOffers, true);
@@ -900,7 +900,7 @@ namespace ACESimTest
                 damagesIfAwarded = minDamages + damagesProportionWithVariation * (DamagesAlleged - minDamages);
             }
             var actions = GetPlayerActions(true, true, LiabilityStrength, PLiabilitySignal, DLiabilitySignal, DamagesStrength, PDamagesSignal, DDamagesSignal, simulatingBargainingFailure, sideBetChallenges, runningSideBetChallenges, bargainingMoves, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, null, null, 0, courtLiabilityResult, courtDamagesResultIfAllowVariation);
-            var myGameProgress = MyGameLauncher.PlayMyGameOnce(options, actions);
+            var myGameProgress = LitigGameLauncher.PlayLitigGameOnce(options, actions);
             myGameProgress.GameComplete.Should().BeTrue();
             VerifyInformationSetUniqueness(myGameProgress, options);
 
@@ -954,7 +954,7 @@ namespace ACESimTest
             resolutionSet.Should().Be(expectedResolutionSet);
         }
 
-        private static double GetShootoutTransferAmount(MyGameOptions options, List<(byte offerMove, byte bargainingRoundNumber, bool isOfferToP)> offers, double resolutionForShootout)
+        private static double GetShootoutTransferAmount(LitigGameOptions options, List<(byte offerMove, byte bargainingRoundNumber, bool isOfferToP)> offers, double resolutionForShootout)
         {
             double shootoutsTransferToP = 0;
             if (options.ShootoutSettlements && offers != null && offers.Any())
@@ -986,7 +986,7 @@ namespace ACESimTest
             return shootoutsTransferToP;
         }
 
-        private static void CheckFinalWelfare(MyGameProgress myGameProgress, double pFinalWealthExpected, double dFinalWealthExpected, ValueTuple<double?, double?> bestOffers)
+        private static void CheckFinalWelfare(LitigGameProgress myGameProgress, double pFinalWealthExpected, double dFinalWealthExpected, ValueTuple<double?, double?> bestOffers)
         {
             myGameProgress.PFinalWealth.Should().Be(pFinalWealthExpected);
             myGameProgress.DFinalWealth.Should().Be(dFinalWealthExpected);
@@ -1000,13 +1000,13 @@ namespace ACESimTest
             myGameProgress.DWelfare.Should().Be(dRegretAversionAdjustedWealth);
         }
 
-        private static void VerifyInformationSetUniqueness(MyGameProgress myGameProgress, MyGameOptions options)
+        private static void VerifyInformationSetUniqueness(LitigGameProgress myGameProgress, LitigGameOptions options)
         {
             var informationSetHistoriesIndices = myGameProgress.GameFullHistory.GetInformationSetHistoryItems_OverallIndices(myGameProgress).ToList();
             var playerAndInformation = informationSetHistoriesIndices.Select(x => myGameProgress.GameFullHistory.GetInformationSetHistory_OverallIndex(x).GetPlayerAndInformationSetAsList()).ToList();
             if (playerAndInformation.Count() != playerAndInformation.Distinct().Count())
             {
-                MyGameDefinition gameDefinition = new MyGameDefinition();
+                LitigGameDefinition gameDefinition = new LitigGameDefinition();
                 gameDefinition.Setup(options);
                 List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
                 var playerAndInformation2 = informationSetHistoriesIndices.Select(x => (myGameProgress.GameFullHistory.GetInformationSetHistory_OverallIndex(x).PlayerIndex, String.Join(",", myGameProgress.GameFullHistory.GetInformationSetHistory_OverallIndex(x).GetInformationSetForPlayerAsList()), gameDefinition.DecisionPointsExecutionOrder[myGameProgress.GameFullHistory.GetInformationSetHistory_OverallIndex(x).DecisionIndex].Name, gameDefinition.DecisionPointsExecutionOrder[myGameProgress.GameFullHistory.GetInformationSetHistory_OverallIndex(x).DecisionIndex].Decision.NumPossibleActions)).Where(x => x.Item4 != 1).ToList();

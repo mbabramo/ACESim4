@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -23,7 +23,7 @@ namespace ACESim
             NumPlayers = (byte)Players.Count();
             DecisionsExecutionOrder = GetDecisionsList();
 
-            IGameFactory gameFactory = new MyGameFactory();
+            IGameFactory gameFactory = new LitigGameFactory();
             Initialize(gameFactory);
         }
 

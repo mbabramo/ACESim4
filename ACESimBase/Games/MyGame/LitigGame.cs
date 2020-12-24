@@ -1,4 +1,4 @@
-﻿using ACESim.Util;
+using ACESim.Util;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
@@ -11,12 +11,12 @@ namespace ACESim
     /// <summary>
     /// A dummy Game subclass to show a basic Game implementation.
     /// </summary>
-    public class MyGame : Game
+    public class LitigGame : Game
     {
-        public MyGameDefinition MyDefinition => (MyGameDefinition)GameDefinition;
-        public MyGameProgress MyProgress => (MyGameProgress)Progress;
+        public LitigGameDefinition MyDefinition => (LitigGameDefinition)GameDefinition;
+        public LitigGameProgress MyProgress => (LitigGameProgress)Progress;
 
-        public MyGame(List<Strategy> strategies,
+        public LitigGame(List<Strategy> strategies,
             GameProgress progress,
             GameDefinition gameDefinition,
             bool recordReportInfo,
@@ -35,69 +35,69 @@ namespace ACESim
         {
             switch (currentDecisionByteCode)
             {
-                case (byte)MyGameDecisions.PrePrimaryActionChance:
+                case (byte)LitigGameDecisions.PrePrimaryActionChance:
                     MyProgress.DisputeGeneratorActions.PrePrimaryChanceAction = action;
                     break;
-                case (byte)MyGameDecisions.PrimaryAction:
+                case (byte)LitigGameDecisions.PrimaryAction:
                     MyProgress.DisputeGeneratorActions.PrimaryAction = action;
-                    if (MyDefinition.CheckCompleteAfterPrimaryAction && MyDefinition.Options.MyGameDisputeGenerator.MarkComplete(MyDefinition, MyProgress.DisputeGeneratorActions.PrePrimaryChanceAction, MyProgress.DisputeGeneratorActions.PrimaryAction))
+                    if (MyDefinition.CheckCompleteAfterPrimaryAction && MyDefinition.Options.LitigGameDisputeGenerator.MarkComplete(MyDefinition, MyProgress.DisputeGeneratorActions.PrePrimaryChanceAction, MyProgress.DisputeGeneratorActions.PrimaryAction))
                         MyProgress.GameComplete = true;
                     break;
-                case (byte)MyGameDecisions.PostPrimaryActionChance:
+                case (byte)LitigGameDecisions.PostPrimaryActionChance:
                     MyProgress.DisputeGeneratorActions.PostPrimaryChanceAction = action;
-                    if (MyDefinition.CheckCompleteAfterPostPrimaryAction && MyDefinition.Options.MyGameDisputeGenerator.MarkComplete(MyDefinition, MyProgress.DisputeGeneratorActions.PrePrimaryChanceAction, MyProgress.DisputeGeneratorActions.PrimaryAction, MyProgress.DisputeGeneratorActions.PostPrimaryChanceAction))
+                    if (MyDefinition.CheckCompleteAfterPostPrimaryAction && MyDefinition.Options.LitigGameDisputeGenerator.MarkComplete(MyDefinition, MyProgress.DisputeGeneratorActions.PrePrimaryChanceAction, MyProgress.DisputeGeneratorActions.PrimaryAction, MyProgress.DisputeGeneratorActions.PostPrimaryChanceAction))
                         MyProgress.GameComplete = true;
                     break;
-                case (byte)MyGameDecisions.LiabilityStrength:
+                case (byte)LitigGameDecisions.LiabilityStrength:
                     MyProgress.LiabilityStrengthDiscrete = action;
                 break;
-                case (byte)MyGameDecisions.PLiabilitySignal:
+                case (byte)LitigGameDecisions.PLiabilitySignal:
                     MyProgress.PLiabilitySignalDiscrete = action;
                     GameProgressLogger.Log(() => $"P: Liability Strength {MyProgress.LiabilityStrengthDiscrete} => signal {MyProgress.PLiabilitySignalDiscrete}");
                 break;
-                case (byte)MyGameDecisions.DLiabilitySignal:
+                case (byte)LitigGameDecisions.DLiabilitySignal:
                     MyProgress.DLiabilitySignalDiscrete = action;
                     GameProgressLogger.Log(() => $"D: Liability Strength {MyProgress.LiabilityStrengthDiscrete} => signal {MyProgress.DLiabilitySignalDiscrete}");
                     break;
-                case (byte)MyGameDecisions.DamagesStrength:
+                case (byte)LitigGameDecisions.DamagesStrength:
                     MyProgress.DamagesStrengthDiscrete = action;
                     break;
-                case (byte)MyGameDecisions.PDamagesSignal:
+                case (byte)LitigGameDecisions.PDamagesSignal:
                     MyProgress.PDamagesSignalDiscrete = action;
                     GameProgressLogger.Log(() => $"P: Damages Strength {MyProgress.DamagesStrengthDiscrete} => signal {MyProgress.PDamagesSignalDiscrete}");
                     break;
-                case (byte)MyGameDecisions.DDamagesSignal:
+                case (byte)LitigGameDecisions.DDamagesSignal:
                     MyProgress.DDamagesSignalDiscrete = action;
                     GameProgressLogger.Log(() => $"D: Damages Strength {MyProgress.DamagesStrengthDiscrete} => signal {MyProgress.DDamagesSignalDiscrete}");
                     break;
-                case (byte)MyGameDecisions.PFile:
+                case (byte)LitigGameDecisions.PFile:
                     MyProgress.PFiles = action == 1;
                     if (!MyProgress.PFiles)
                         MyProgress.GameComplete = true;
                     break;
-                case (byte)MyGameDecisions.DAnswer:
+                case (byte)LitigGameDecisions.DAnswer:
                     MyProgress.DAnswers = action == 1;
                     if (!MyProgress.DAnswers)
                         MyProgress.GameComplete = true;
                     break;
-                case (byte)MyGameDecisions.PreBargainingRound:
+                case (byte)LitigGameDecisions.PreBargainingRound:
                     if (MyDefinition.Options.SkipFileAndAnswerDecisions)
                     {
                         MyProgress.PFiles = MyProgress.DAnswers = true;
                     }
                     break;
-                case (byte)MyGameDecisions.PAgreeToBargain:
+                case (byte)LitigGameDecisions.PAgreeToBargain:
                     MyProgress.AddPAgreesToBargain(action == 1);
                     break;
-                case (byte)MyGameDecisions.DAgreeToBargain:
+                case (byte)LitigGameDecisions.DAgreeToBargain:
                     MyProgress.AddDAgreesToBargain(action == 1);
                     break;
-                case (byte)MyGameDecisions.POffer:
+                case (byte)LitigGameDecisions.POffer:
                     double offer = GetOfferBasedOnAction(action, true, MyDefinition.Options.IncludeEndpointsForOffers);
                     MyProgress.AddOffer(true, offer);
                     MyProgress.AddOfferMixedness(true, MyProgress.Mixedness);
                 break;
-                case (byte)MyGameDecisions.DOffer:
+                case (byte)LitigGameDecisions.DOffer:
                     offer = GetOfferBasedOnAction(action, false, MyDefinition.Options.IncludeEndpointsForOffers);
                     MyProgress.AddOffer(false, offer);
                     MyProgress.AddOfferMixedness(false, MyProgress.Mixedness);
@@ -106,25 +106,25 @@ namespace ACESim
                         MyProgress.ConcludeMainPortionOfBargainingRound(MyDefinition);
                     }
                     break;
-                case (byte)MyGameDecisions.PResponse:
+                case (byte)LitigGameDecisions.PResponse:
                     MyProgress.AddResponse(true, action == 1); // 1 == accept, 2 == reject
                     MyProgress.ConcludeMainPortionOfBargainingRound(MyDefinition);
                     break;
-                case (byte)MyGameDecisions.DResponse:
+                case (byte)LitigGameDecisions.DResponse:
                     MyProgress.AddResponse(false, action == 1); // 1 == accept, 2 == reject
                     MyProgress.ConcludeMainPortionOfBargainingRound(MyDefinition);
                     break;
-                case (byte)MyGameDecisions.PChips:
+                case (byte)LitigGameDecisions.PChips:
                     MyProgress.RunningSideBetsActions.TemporaryStoragePMixedness = MyProgress.Mixedness;
                     // don't do anything else yet -- the decision specifies that the action should be stored in the cache
                     break;
-                case (byte)MyGameDecisions.DChips:
-                    MyDefinition.Options.MyGameRunningSideBets.SaveRunningSideBets(MyDefinition, MyProgress, action);
+                case (byte)LitigGameDecisions.DChips:
+                    MyDefinition.Options.LitigGameRunningSideBets.SaveRunningSideBets(MyDefinition, MyProgress, action);
                     break;
-                case (byte)MyGameDecisions.PAbandon:
+                case (byte)LitigGameDecisions.PAbandon:
                     MyProgress.PReadyToAbandon = action == 1;
                     break;
-                case (byte)MyGameDecisions.DDefault:
+                case (byte)LitigGameDecisions.DDefault:
                     MyProgress.DReadyToAbandon = action == 1;
                     if (MyProgress.PReadyToAbandon ^ MyProgress.DReadyToAbandon)
                     {
@@ -136,7 +136,7 @@ namespace ACESim
                         MyProgress.BargainingRoundsComplete++;
                     }
                     break;
-                case (byte)MyGameDecisions.MutualGiveUp:
+                case (byte)LitigGameDecisions.MutualGiveUp:
                     // both trying to give up simultaneously! revise with a coin flip
                     MyProgress.BothReadyToGiveUp = true;
                     MyProgress.PAbandons = action == 1;
@@ -144,16 +144,16 @@ namespace ACESim
                     MyProgress.BargainingRoundsComplete++;
                     MyProgress.GameComplete = true;
                     break;
-                case (byte)MyGameDecisions.PostBargainingRound:
+                case (byte)LitigGameDecisions.PostBargainingRound:
                     MyProgress.BargainingRoundsComplete++;
                     break;
-                case (byte)MyGameDecisions.PPretrialAction:
-                    MyDefinition.Options.MyGamePretrialDecisionGeneratorGenerator.ProcessAction(MyDefinition, MyProgress, true, action);
+                case (byte)LitigGameDecisions.PPretrialAction:
+                    MyDefinition.Options.LitigGamePretrialDecisionGeneratorGenerator.ProcessAction(MyDefinition, MyProgress, true, action);
                     break;
-                case (byte)MyGameDecisions.DPretrialAction:
-                    MyDefinition.Options.MyGamePretrialDecisionGeneratorGenerator.ProcessAction(MyDefinition, MyProgress, false, action);
+                case (byte)LitigGameDecisions.DPretrialAction:
+                    MyDefinition.Options.LitigGamePretrialDecisionGeneratorGenerator.ProcessAction(MyDefinition, MyProgress, false, action);
                     break;
-                case (byte)MyGameDecisions.CourtDecisionLiability:
+                case (byte)LitigGameDecisions.CourtDecisionLiability:
                     MyProgress.TrialOccurs = true;
                     MyProgress.PWinsAtTrial = MyDefinition.Options.NumLiabilitySignals == 1 /* IMPORTANT: This highlights that when there is only one liability signal, the court ALWAYS finds liability */ || 
                         action == 2; 
@@ -173,7 +173,7 @@ namespace ACESim
                     }
                     //System.Diagnostics.TabbedText.WriteLine($"Quality {MyProgress.LiabilityStrengthUniform} Court noise action {action} => {courtNoiseNormalDraw} => signal {courtLiabilitySignal} PWins {MyProgress.PWinsAtTrial}");
                     break;
-                case (byte)MyGameDecisions.CourtDecisionDamages:
+                case (byte)LitigGameDecisions.CourtDecisionDamages:
                     double damagesProportion = ConvertActionToUniformDistributionDraw(action, true);
                     if (MyDefinition.Options.NumDamagesSignals == 1)
                         damagesProportion = 1.0;
@@ -207,7 +207,7 @@ namespace ACESim
             return offer;
         }
 
-        public class MyGameOutcome
+        public class LitigGameOutcome
         {
             public double PChangeWealth;
             public double DChangeWealth;
@@ -221,11 +221,11 @@ namespace ACESim
             public byte NumChips;
         }
 
-        public static MyGameOutcome CalculateGameOutcome(MyGameDefinition gameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions, MyGamePretrialActions pretrialActions, MyGameRunningSideBetsActions runningSideBetActions, double pInitialWealth, double dInitialWealth, bool pFiles, bool pAbandons, bool dAnswers, bool dDefaults, double? settlementValue, bool pWinsAtTrial, double? damagesAwarded, byte bargainingRoundsComplete, double? pFinalWealthWithBestOffer, double? dFinalWealthWithBestOffer, List<double> pOffers, List<bool> pResponses, List<double> dOffers, List<bool> dResponses)
+        public static LitigGameOutcome CalculateGameOutcome(LitigGameDefinition gameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions, LitigGamePretrialActions pretrialActions, LitigGameRunningSideBetsActions runningSideBetActions, double pInitialWealth, double dInitialWealth, bool pFiles, bool pAbandons, bool dAnswers, bool dDefaults, double? settlementValue, bool pWinsAtTrial, double? damagesAwarded, byte bargainingRoundsComplete, double? pFinalWealthWithBestOffer, double? dFinalWealthWithBestOffer, List<double> pOffers, List<bool> pResponses, List<double> dOffers, List<bool> dResponses)
         {
-            MyGameOutcome outcome = new MyGameOutcome();
+            LitigGameOutcome outcome = new LitigGameOutcome();
 
-            double[] changeWealthOutsideLitigation = gameDefinition.Options.MyGameDisputeGenerator.GetLitigationIndependentWealthEffects(gameDefinition, disputeGeneratorActions);
+            double[] changeWealthOutsideLitigation = gameDefinition.Options.LitigGameDisputeGenerator.GetLitigationIndependentWealthEffects(gameDefinition, disputeGeneratorActions);
             double pWealthAfterPrimaryConduct = pInitialWealth + changeWealthOutsideLitigation[0];
             double dWealthAfterPrimaryConduct = dInitialWealth + changeWealthOutsideLitigation[1];
 
@@ -255,23 +255,23 @@ namespace ACESim
                 outcome.PWinsAtTrial = pWinsAtTrial;
             }
 
-            if (gameDefinition.Options.MyGamePretrialDecisionGeneratorGenerator != null)
+            if (gameDefinition.Options.LitigGamePretrialDecisionGeneratorGenerator != null)
             {
-                gameDefinition.Options.MyGamePretrialDecisionGeneratorGenerator.GetEffectOnPlayerWelfare(gameDefinition, outcome.TrialOccurs, pWinsAtTrial, gameDefinition.Options.DamagesMax, pretrialActions, out double effectOnP, out double effectOnD);
+                gameDefinition.Options.LitigGamePretrialDecisionGeneratorGenerator.GetEffectOnPlayerWelfare(gameDefinition, outcome.TrialOccurs, pWinsAtTrial, gameDefinition.Options.DamagesMax, pretrialActions, out double effectOnP, out double effectOnD);
                 outcome.PChangeWealth += effectOnP;
                 outcome.DChangeWealth += effectOnD;
             }
 
             double trialCostsMultiplier = 1.0;
-            if (gameDefinition.Options.MyGameRunningSideBets != null)
+            if (gameDefinition.Options.LitigGameRunningSideBets != null)
             {
                 byte? roundOfAbandonment = (pAbandons || dDefaults) ? (byte?)bargainingRoundsComplete : null;
-                gameDefinition.Options.MyGameRunningSideBets.GetEffectOnPlayerWelfare(gameDefinition, roundOfAbandonment, pAbandons, dDefaults, outcome.TrialOccurs, pWinsAtTrial, runningSideBetActions, out double effectOnP, out double effectOnD, out byte totalChipsThatCount);
+                gameDefinition.Options.LitigGameRunningSideBets.GetEffectOnPlayerWelfare(gameDefinition, roundOfAbandonment, pAbandons, dDefaults, outcome.TrialOccurs, pWinsAtTrial, runningSideBetActions, out double effectOnP, out double effectOnD, out byte totalChipsThatCount);
                 outcome.PChangeWealth += effectOnP;
                 outcome.DChangeWealth += effectOnD;
                 outcome.NumChips = totalChipsThatCount;
                 if (outcome.TrialOccurs)
-                    trialCostsMultiplier = gameDefinition.Options.MyGameRunningSideBets.GetTrialCostsMultiplier(gameDefinition, totalChipsThatCount);
+                    trialCostsMultiplier = gameDefinition.Options.LitigGameRunningSideBets.GetTrialCostsMultiplier(gameDefinition, totalChipsThatCount);
             }
 
             if (gameDefinition.Options.ShootoutSettlements)

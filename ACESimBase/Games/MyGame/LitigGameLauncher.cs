@@ -1,4 +1,4 @@
-﻿using ACESim.Util;
+using ACESim.Util;
 using ACESimBase;
 using ACESimBase.GameSolvingSupport;
 using System;
@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
-    public class MyGameLauncher : Launcher
+    public class LitigGameLauncher : Launcher
     {
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
@@ -24,9 +24,9 @@ namespace ACESim
         public double[] CostsMultipliers = new double[] { 1.0 }; // 0.1, 0.25, 0.5, 1.0, 1.5, 2.0, 4.0 };
         public double StdevPlayerNoise = 0.3; // baseline is 0.3
 
-        public override GameDefinition GetGameDefinition() => new MyGameDefinition();
+        public override GameDefinition GetGameDefinition() => new LitigGameDefinition();
 
-        public override GameOptions GetSingleGameOptions() => MyGameOptionsGenerator.GetMyGameOptions();
+        public override GameOptions GetSingleGameOptions() => LitigGameOptionsGenerator.GetLitigGameOptions();
 
         private enum OptionSetChoice
         {
@@ -53,7 +53,7 @@ namespace ACESim
             switch (optionSetChoice)
             {
                 case OptionSetChoice.JustOneOption:
-                    AddSingle(optionSets, MyGameOptionsGenerator.DamagesUncertainty_2BR(), "singleoptionset");
+                    AddSingle(optionSets, LitigGameOptionsGenerator.DamagesUncertainty_2BR(), "singleoptionset");
                     break;
                 case OptionSetChoice.Fast:
                     AddFast(optionSets);
@@ -77,16 +77,16 @@ namespace ACESim
                     AddBluffingOptionsSets(optionSets);
                     break;
                 case OptionSetChoice.KlermanEtAl:
-                    AddKlermanEtAlPermutations(optionSets, MyGameOptionsGenerator.KlermanEtAl);
+                    AddKlermanEtAlPermutations(optionSets, LitigGameOptionsGenerator.KlermanEtAl);
                     break;
                 case OptionSetChoice.KlermanEtAl_MultipleStrengthPoints:
-                    AddKlermanEtAlPermutations(optionSets, MyGameOptionsGenerator.KlermanEtAl_MultipleStrengthPoints);
+                    AddKlermanEtAlPermutations(optionSets, LitigGameOptionsGenerator.KlermanEtAl_MultipleStrengthPoints);
                     break;
                 case OptionSetChoice.KlermanEtAl_Options:
-                    AddKlermanEtAlPermutations(optionSets, MyGameOptionsGenerator.KlermanEtAl_WithOptions);
+                    AddKlermanEtAlPermutations(optionSets, LitigGameOptionsGenerator.KlermanEtAl_WithOptions);
                     break;
                 case OptionSetChoice.KlermanEtAl_DamagesUncertainty:
-                    AddKlermanEtAlPermutations(optionSets, MyGameOptionsGenerator.KlermanEtAl_WithDamagesUncertainty);
+                    AddKlermanEtAlPermutations(optionSets, LitigGameOptionsGenerator.KlermanEtAl_WithDamagesUncertainty);
                     break;
                 case OptionSetChoice.Simple1BR:
                     AddSimple1BRGames(optionSets);
@@ -115,8 +115,8 @@ namespace ACESim
             {
                 foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("basecosts", 1.0) })
                 {
-                    optionSets.Add(GetAndTransform("noshootout", name, MyGameOptionsGenerator.BothUncertain_2BR, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                    optionSets.Add(GetAndTransform("shootout", name, MyGameOptionsGenerator.Shootout, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                    optionSets.Add(GetAndTransform("noshootout", name, LitigGameOptionsGenerator.BothUncertain_2BR, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                    optionSets.Add(GetAndTransform("shootout", name, LitigGameOptionsGenerator.Shootout, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
                 }
             }
         }
@@ -125,10 +125,10 @@ namespace ACESim
         {
             void Helper(List<(string optionSetName, GameOptions options)> optionSets, string optionSetNamePrefix, Action<EvolutionSettings> modifyEvolutionSettings)
             {
-                optionSets.Add(GetAndTransform(optionSetNamePrefix + "damages_unc", "basecosts", MyGameOptionsGenerator.DamagesUncertainty_1BR, x => { x.CostsMultiplier = 1.0; x.ModifyEvolutionSettings = modifyEvolutionSettings; }, RiskAversion.RiskNeutral));
-                //optionSets.Add(GetAndTransform(optionSetNamePrefix + "damages_unc2BR", "basecosts", MyGameOptionsGenerator.DamagesUncertainty_2BR, x => { x.CostsMultiplier = 1.0; x.ModifyEvolutionSettings = modifyEvolutionSettings; }, false));
-                optionSets.Add(GetAndTransform(optionSetNamePrefix + "liability_unc", "basecosts", MyGameOptionsGenerator.LiabilityUncertainty_1BR, x => { x.CostsMultiplier = 1.0; x.ModifyEvolutionSettings = modifyEvolutionSettings; }, RiskAversion.RiskNeutral));
-                //optionSets.Add(GetAndTransform(optionSetNamePrefix + "liability_unc2BR", "basecosts", MyGameOptionsGenerator.LiabilityUncertainty_2BR, x => { x.CostsMultiplier = 1.0; x.ModifyEvolutionSettings = modifyEvolutionSettings; }, false));
+                optionSets.Add(GetAndTransform(optionSetNamePrefix + "damages_unc", "basecosts", LitigGameOptionsGenerator.DamagesUncertainty_1BR, x => { x.CostsMultiplier = 1.0; x.ModifyEvolutionSettings = modifyEvolutionSettings; }, RiskAversion.RiskNeutral));
+                //optionSets.Add(GetAndTransform(optionSetNamePrefix + "damages_unc2BR", "basecosts", LitigGameOptionsGenerator.DamagesUncertainty_2BR, x => { x.CostsMultiplier = 1.0; x.ModifyEvolutionSettings = modifyEvolutionSettings; }, false));
+                optionSets.Add(GetAndTransform(optionSetNamePrefix + "liability_unc", "basecosts", LitigGameOptionsGenerator.LiabilityUncertainty_1BR, x => { x.CostsMultiplier = 1.0; x.ModifyEvolutionSettings = modifyEvolutionSettings; }, RiskAversion.RiskNeutral));
+                //optionSets.Add(GetAndTransform(optionSetNamePrefix + "liability_unc2BR", "basecosts", LitigGameOptionsGenerator.LiabilityUncertainty_2BR, x => { x.CostsMultiplier = 1.0; x.ModifyEvolutionSettings = modifyEvolutionSettings; }, false));
             }
             Helper(optionSets, "BRD", es =>
             {
@@ -151,12 +151,12 @@ namespace ACESim
         private void AddVariousUncertainties(List<(string optionSetName, GameOptions options)> optionSets)
         {
 
-            optionSets.Add(GetAndTransform("damages_unc", "basecosts", MyGameOptionsGenerator.DamagesUncertainty_1BR, x => { x.CostsMultiplier = 1.0; }, RiskAversion.RiskNeutral));
-            optionSets.Add(GetAndTransform("damages_unc2BR", "basecosts", MyGameOptionsGenerator.DamagesUncertainty_2BR, x => { x.CostsMultiplier = 1.0; }, RiskAversion.RiskNeutral));
-            optionSets.Add(GetAndTransform("liability_unc", "basecosts", MyGameOptionsGenerator.LiabilityUncertainty_1BR, x => { x.CostsMultiplier = 1.0; }, RiskAversion.RiskNeutral));
-            optionSets.Add(GetAndTransform("liability_unc2BR", "basecosts", MyGameOptionsGenerator.LiabilityUncertainty_2BR, x => { x.CostsMultiplier = 1.0; }, RiskAversion.RiskNeutral));
-            optionSets.Add(GetAndTransform("both_unc", "basecosts", MyGameOptionsGenerator.BothUncertain_1BR, x => { x.CostsMultiplier = 1.0; }, RiskAversion.RiskNeutral));
-            optionSets.Add(GetAndTransform("both_unc2BR", "basecosts", MyGameOptionsGenerator.BothUncertain_2BR, x => { x.CostsMultiplier = 1.0; }, RiskAversion.RiskNeutral));
+            optionSets.Add(GetAndTransform("damages_unc", "basecosts", LitigGameOptionsGenerator.DamagesUncertainty_1BR, x => { x.CostsMultiplier = 1.0; }, RiskAversion.RiskNeutral));
+            optionSets.Add(GetAndTransform("damages_unc2BR", "basecosts", LitigGameOptionsGenerator.DamagesUncertainty_2BR, x => { x.CostsMultiplier = 1.0; }, RiskAversion.RiskNeutral));
+            optionSets.Add(GetAndTransform("liability_unc", "basecosts", LitigGameOptionsGenerator.LiabilityUncertainty_1BR, x => { x.CostsMultiplier = 1.0; }, RiskAversion.RiskNeutral));
+            optionSets.Add(GetAndTransform("liability_unc2BR", "basecosts", LitigGameOptionsGenerator.LiabilityUncertainty_2BR, x => { x.CostsMultiplier = 1.0; }, RiskAversion.RiskNeutral));
+            optionSets.Add(GetAndTransform("both_unc", "basecosts", LitigGameOptionsGenerator.BothUncertain_1BR, x => { x.CostsMultiplier = 1.0; }, RiskAversion.RiskNeutral));
+            optionSets.Add(GetAndTransform("both_unc2BR", "basecosts", LitigGameOptionsGenerator.BothUncertain_2BR, x => { x.CostsMultiplier = 1.0; }, RiskAversion.RiskNeutral));
 
         }
 
@@ -170,7 +170,7 @@ namespace ACESim
             RiskAversion riskAverse = RiskAversion.RiskNeutral;
             foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("basecosts", 1.0), ("highcosts", 3.0) })
             {
-                optionSets.Add(GetAndTransform("fast1", name, MyGameOptionsGenerator.SuperSimple, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                optionSets.Add(GetAndTransform("fast1", name, LitigGameOptionsGenerator.SuperSimple, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
             }
         }
 
@@ -179,9 +179,9 @@ namespace ACESim
             RiskAversion riskAverse = RiskAversion.RiskNeutral;
             foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("basecosts", 1.0), ("highcosts", 3.0) })
             {
-                optionSets.Add(GetAndTransform("noshootout", name, MyGameOptionsGenerator.BothUncertain_2BR, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                optionSets.Add(GetAndTransform("shootout", name, MyGameOptionsGenerator.Shootout, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                optionSets.Add(GetAndTransform("sotrip", name, MyGameOptionsGenerator.Shootout_Triple, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                optionSets.Add(GetAndTransform("noshootout", name, LitigGameOptionsGenerator.BothUncertain_2BR, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                optionSets.Add(GetAndTransform("shootout", name, LitigGameOptionsGenerator.Shootout, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                optionSets.Add(GetAndTransform("sotrip", name, LitigGameOptionsGenerator.Shootout_Triple, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
             }
         }
 
@@ -191,14 +191,14 @@ namespace ACESim
             {
                 foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("lowcosts", 1.0 / 3.0), ("basecosts", 1.0), ("highcosts", 3.0) })
                 {
-                    //optionSets.Add(GetAndTransform("liab", name, MyGameOptionsGenerator.LiabilityUncertainty_2BR, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                    //optionSets.Add(GetAndTransform("dam", name, MyGameOptionsGenerator.DamagesUncertainty_2BR, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                    optionSets.Add(GetAndTransform("noshootout", name, MyGameOptionsGenerator.BothUncertain_2BR, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                    optionSets.Add(GetAndTransform("shootout", name, MyGameOptionsGenerator.Shootout, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                    optionSets.Add(GetAndTransform("soallrounds", name, MyGameOptionsGenerator.Shootout_AllRounds, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                    optionSets.Add(GetAndTransform("soabandon", name, MyGameOptionsGenerator.Shootout_IncludingAbandoment, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                    optionSets.Add(GetAndTransform("soallraban", name, MyGameOptionsGenerator.Shootout_AllRoundsIncludingAbandoment, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                    optionSets.Add(GetAndTransform("sotrip", name, MyGameOptionsGenerator.Shootout_Triple, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                    //optionSets.Add(GetAndTransform("liab", name, LitigGameOptionsGenerator.LiabilityUncertainty_2BR, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                    //optionSets.Add(GetAndTransform("dam", name, LitigGameOptionsGenerator.DamagesUncertainty_2BR, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                    optionSets.Add(GetAndTransform("noshootout", name, LitigGameOptionsGenerator.BothUncertain_2BR, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                    optionSets.Add(GetAndTransform("shootout", name, LitigGameOptionsGenerator.Shootout, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                    optionSets.Add(GetAndTransform("soallrounds", name, LitigGameOptionsGenerator.Shootout_AllRounds, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                    optionSets.Add(GetAndTransform("soabandon", name, LitigGameOptionsGenerator.Shootout_IncludingAbandoment, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                    optionSets.Add(GetAndTransform("soallraban", name, LitigGameOptionsGenerator.Shootout_AllRoundsIncludingAbandoment, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                    optionSets.Add(GetAndTransform("sotrip", name, LitigGameOptionsGenerator.Shootout_Triple, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
                 }
             }
         }
@@ -213,7 +213,7 @@ namespace ACESim
                 for (byte numLiabilitySignals = 2; numLiabilitySignals <= maxNumLiabilitySignals; numLiabilitySignals++)
                     for (byte numOffers = 2; numOffers <= maxNumOffers; numOffers++)
                     {
-                        optionSets.Add(GetAndTransform("simple1BR", numLiabilityStrengthPoints.ToString() + "," + numLiabilitySignals.ToString() + "," + numOffers.ToString(), MyGameOptionsGenerator.GetSimple1BROptions, x =>
+                        optionSets.Add(GetAndTransform("simple1BR", numLiabilityStrengthPoints.ToString() + "," + numLiabilitySignals.ToString() + "," + numOffers.ToString(), LitigGameOptionsGenerator.GetSimple1BROptions, x =>
                         {
                             x.NumLiabilityStrengthPoints = numLiabilityStrengthPoints;
                             x.NumLiabilitySignals = numLiabilitySignals;
@@ -227,7 +227,7 @@ namespace ACESim
                 for (byte numLiabilitySignals = 2; numLiabilitySignals <= maxNumLiabilitySignals; numLiabilitySignals++)
                     for (byte numOffers = 2; numOffers <= maxNumOffers; numOffers++)
                     {
-                        optionSets.Add(GetAndTransform("simple2BR", numLiabilityStrengthPoints.ToString() + "," + numLiabilitySignals.ToString() + "," + numOffers.ToString(), MyGameOptionsGenerator.GetSimple2BROptions, x =>
+                        optionSets.Add(GetAndTransform("simple2BR", numLiabilityStrengthPoints.ToString() + "," + numLiabilitySignals.ToString() + "," + numOffers.ToString(), LitigGameOptionsGenerator.GetSimple2BROptions, x =>
                         {
                             x.NumLiabilityStrengthPoints = numLiabilityStrengthPoints;
                             x.NumLiabilitySignals = numLiabilitySignals;
@@ -236,7 +236,7 @@ namespace ACESim
                     }
         }
 
-        private void AddKlermanEtAlPermutations(List<(string optionSetName, GameOptions options)> optionSets, Func<MyGameOptions> myGameOptionsFunc)
+        private void AddKlermanEtAlPermutations(List<(string optionSetName, GameOptions options)> optionSets, Func<LitigGameOptions> myGameOptionsFunc)
         {
             foreach (double exogProb in new double[] { 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95 })
             {
@@ -245,7 +245,7 @@ namespace ACESim
                     x.IncludeCourtSuccessReport = false;
                     x.IncludeSignalsReport = false;
                     x.FirstRowOnly = true;
-                    ((MyGameExogenousDisputeGenerator)x.MyGameDisputeGenerator).ExogenousProbabilityTrulyLiable = exogProb;
+                    ((LitigGameExogenousDisputeGenerator)x.LitigGameDisputeGenerator).ExogenousProbabilityTrulyLiable = exogProb;
                 }, RiskAversion.RiskNeutral));
             }
         }
@@ -257,25 +257,25 @@ namespace ACESim
                 // different levels of costs, same for both parties
                 foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("basecosts", 1.0), ("lowcosts", 1.0 / 3.0), ("highcosts", 3) })
                 {
-                    optionSets.Add(GetAndTransform("noshootout", name, MyGameOptionsGenerator.BothUncertain_2BR, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                    optionSets.Add(GetAndTransform("shootout", name, MyGameOptionsGenerator.Shootout, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                    optionSets.Add(GetAndTransform("noshootout", name, LitigGameOptionsGenerator.BothUncertain_2BR, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                    optionSets.Add(GetAndTransform("shootout", name, LitigGameOptionsGenerator.Shootout, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
                 }
                 // try lowering all costs dramatically except trial costs
                 foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("lowpretrialcosts", 1.0 / 10.0) })
                 {
-                    optionSets.Add(GetAndTransform("noshootout", name, MyGameOptionsGenerator.BothUncertain_2BR, x => { x.CostsMultiplier = costsMultiplier; x.PTrialCosts *= 1.0 / costsMultiplier; x.DTrialCosts *= 1.0 / costsMultiplier;  }, riskAverse));
-                    optionSets.Add(GetAndTransform("shootout", name, MyGameOptionsGenerator.Shootout, x => { x.CostsMultiplier = costsMultiplier; x.PTrialCosts *= 1.0 / costsMultiplier; x.DTrialCosts *= 1.0 / costsMultiplier; }, riskAverse));
+                    optionSets.Add(GetAndTransform("noshootout", name, LitigGameOptionsGenerator.BothUncertain_2BR, x => { x.CostsMultiplier = costsMultiplier; x.PTrialCosts *= 1.0 / costsMultiplier; x.DTrialCosts *= 1.0 / costsMultiplier;  }, riskAverse));
+                    optionSets.Add(GetAndTransform("shootout", name, LitigGameOptionsGenerator.Shootout, x => { x.CostsMultiplier = costsMultiplier; x.PTrialCosts *= 1.0 / costsMultiplier; x.DTrialCosts *= 1.0 / costsMultiplier; }, riskAverse));
                 }
                 // Now, we'll do asymmetric trial costs. We assume that other costs are the same. This might make sense in the event that trial has a publicity cost for one party. 
                 //foreach ((string name, double dCostsMultiplier) in new (string name, double dCostsMultiplier)[] { ("phighcost", 0.5), ("dhighcost", 2.0) })
                 //{
-                //    Action<MyGameOptions> transform = x =>
+                //    Action<LitigGameOptions> transform = x =>
                 //    {
                 //        x.DTrialCosts *= dCostsMultiplier;
                 //        x.PTrialCosts /= dCostsMultiplier;
                 //    };
-                //    optionSets.Add(GetAndTransform("noshootout", name, MyGameOptionsGenerator.Usual, transform, riskAverse));
-                //    optionSets.Add(GetAndTransform("shootout", name, MyGameOptionsGenerator.Shootout, transform, riskAverse));
+                //    optionSets.Add(GetAndTransform("noshootout", name, LitigGameOptionsGenerator.Usual, transform, riskAverse));
+                //    optionSets.Add(GetAndTransform("shootout", name, LitigGameOptionsGenerator.Shootout, transform, riskAverse));
                 //}
             }
             // now, add a set with regular and asymmetric risk aversion
@@ -283,8 +283,8 @@ namespace ACESim
             {
                 foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("basecosts", 1.0) })
                 {
-                    optionSets.Add(GetAndTransform("noshootout", name, MyGameOptionsGenerator.BothUncertain_2BR, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                    optionSets.Add(GetAndTransform("shootout", name, MyGameOptionsGenerator.Shootout, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                    optionSets.Add(GetAndTransform("noshootout", name, LitigGameOptionsGenerator.BothUncertain_2BR, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                    optionSets.Add(GetAndTransform("shootout", name, LitigGameOptionsGenerator.Shootout, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
                 }
             }
 
@@ -295,7 +295,7 @@ namespace ACESim
                 {
                     foreach ((string infoName, double pInfoChange, double dInfoChange) in new (string infoName, double pInfoChange, double dInfoChange)[] { ("betterinfo", 0.5, 0.5), ("worseinfo", 2.0, 2.0), ("dbetterinfo", 2.0, 0.5) })
                     {
-                        Action<MyGameOptions> transform = x =>
+                        Action<LitigGameOptions> transform = x =>
                         {
                             x.CostsMultiplier = costsMultiplier;
                             x.PDamagesNoiseStdev *= pInfoChange;
@@ -303,8 +303,8 @@ namespace ACESim
                             x.DDamagesNoiseStdev *= dInfoChange;
                             x.DLiabilityNoiseStdev *= dInfoChange;
                         };
-                        optionSets.Add(GetAndTransform("noshootout", infoName + "-" + name, MyGameOptionsGenerator.BothUncertain_2BR, transform, riskAverse));
-                        optionSets.Add(GetAndTransform("shootout", infoName + "-" + name, MyGameOptionsGenerator.Shootout, transform, riskAverse));
+                        optionSets.Add(GetAndTransform("noshootout", infoName + "-" + name, LitigGameOptionsGenerator.BothUncertain_2BR, transform, riskAverse));
+                        optionSets.Add(GetAndTransform("shootout", infoName + "-" + name, LitigGameOptionsGenerator.Shootout, transform, riskAverse));
                     }
                 }
             }
@@ -314,11 +314,11 @@ namespace ACESim
             {
                 foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("basecosts", 1.0) })
                 {
-                    Action<MyGameOptions> transform = x => { };
-                    optionSets.Add(GetAndTransform("dam-noshootout", name, MyGameOptionsGenerator.DamagesUncertainty_2BR, transform, riskAverse));
-                    optionSets.Add(GetAndTransform("dam-shootout", name, MyGameOptionsGenerator.DamagesShootout, transform, riskAverse)); 
-                    optionSets.Add(GetAndTransform("liab-noshootout", name, MyGameOptionsGenerator.LiabilityUncertainty_2BR, transform, riskAverse));
-                    optionSets.Add(GetAndTransform("liab-shootout", name, MyGameOptionsGenerator.LiabilityShootout, transform, riskAverse));
+                    Action<LitigGameOptions> transform = x => { };
+                    optionSets.Add(GetAndTransform("dam-noshootout", name, LitigGameOptionsGenerator.DamagesUncertainty_2BR, transform, riskAverse));
+                    optionSets.Add(GetAndTransform("dam-shootout", name, LitigGameOptionsGenerator.DamagesShootout, transform, riskAverse)); 
+                    optionSets.Add(GetAndTransform("liab-noshootout", name, LitigGameOptionsGenerator.LiabilityUncertainty_2BR, transform, riskAverse));
+                    optionSets.Add(GetAndTransform("liab-shootout", name, LitigGameOptionsGenerator.LiabilityShootout, transform, riskAverse));
                 }
             }
         }
@@ -331,9 +331,9 @@ namespace ACESim
             DOnlyRiskAverse
         }
 
-        (string optionSetName, MyGameOptions options) GetAndTransform(string baseName, string suffix, Func<MyGameOptions> baseOptionsFn, Action<MyGameOptions> transform, RiskAversion riskAversion)
+        (string optionSetName, LitigGameOptions options) GetAndTransform(string baseName, string suffix, Func<LitigGameOptions> baseOptionsFn, Action<LitigGameOptions> transform, RiskAversion riskAversion)
         {
-            MyGameOptions g = baseOptionsFn();
+            LitigGameOptions g = baseOptionsFn();
             transform(g);
             string suffix2 = suffix;
             if (riskAversion == RiskAversion.RiskAverse)
@@ -364,14 +364,14 @@ namespace ACESim
 
         public void AddBluffingOptionsSets(List<(string optionSetName, GameOptions options)> optionSets)
         {
-            MyGameOptions GetBluffingBase(bool hiddenOffers, bool onlyTwoRounds = false, bool liabilityAlsoUncertain = false, bool cfrPlus = false, double? costsMultiplier = null, bool pRiskAversion = false, bool dRiskAversion = false, double pNoiseMultiplier = 1.0, double dNoiseMultiplier = 1.0)
+            LitigGameOptions GetBluffingBase(bool hiddenOffers, bool onlyTwoRounds = false, bool liabilityAlsoUncertain = false, bool cfrPlus = false, double? costsMultiplier = null, bool pRiskAversion = false, bool dRiskAversion = false, double pNoiseMultiplier = 1.0, double dNoiseMultiplier = 1.0)
             {
-                MyGameOptions options = (onlyTwoRounds, liabilityAlsoUncertain) switch
+                LitigGameOptions options = (onlyTwoRounds, liabilityAlsoUncertain) switch
                 {
-                    (false, false) => MyGameOptionsGenerator.DamagesUncertainty_3BR(),
-                    (false, true) => MyGameOptionsGenerator.BothUncertain_3BR(),
-                    (true, false) => MyGameOptionsGenerator.DamagesUncertainty_2BR(),
-                    (true, true) => MyGameOptionsGenerator.BothUncertain_2BR(),
+                    (false, false) => LitigGameOptionsGenerator.DamagesUncertainty_3BR(),
+                    (false, true) => LitigGameOptionsGenerator.BothUncertain_3BR(),
+                    (true, false) => LitigGameOptionsGenerator.DamagesUncertainty_2BR(),
+                    (true, true) => LitigGameOptionsGenerator.BothUncertain_2BR(),
                 };
                 options.SkipFileAndAnswerDecisions = true;
                 options.AllowAbandonAndDefaults = false;
@@ -438,20 +438,20 @@ namespace ACESim
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
 
-            List<IMyGameDisputeGenerator> disputeGenerators;
+            List<ILitigGameDisputeGenerator> disputeGenerators;
 
             if (TestDisputeGeneratorVariations)
-                disputeGenerators = new List<IMyGameDisputeGenerator>()
+                disputeGenerators = new List<ILitigGameDisputeGenerator>()
                 {
-                    new MyGameNegligenceDisputeGenerator(),
-                    new MyGameAppropriationDisputeGenerator(),
-                    new MyGameContractDisputeGenerator(),
-                    new MyGameDiscriminationDisputeGenerator(),
+                    new LitigGameNegligenceDisputeGenerator(),
+                    new LitigGameAppropriationDisputeGenerator(),
+                    new LitigGameContractDisputeGenerator(),
+                    new LitigGameDiscriminationDisputeGenerator(),
                 };
             else
-                disputeGenerators = new List<IMyGameDisputeGenerator>()
+                disputeGenerators = new List<ILitigGameDisputeGenerator>()
                 {
-                    new MyGameExogenousDisputeGenerator()
+                    new LitigGameExogenousDisputeGenerator()
                     {
                         ExogenousProbabilityTrulyLiable = 0.5,
                         StdevNoiseToProduceLiabilityStrength = 0.5
@@ -459,9 +459,9 @@ namespace ACESim
                 };
 
             foreach (double costMultiplier in CostsMultipliers)
-                foreach (IMyGameDisputeGenerator d in disputeGenerators)
+                foreach (ILitigGameDisputeGenerator d in disputeGenerators)
                 {
-                    var options = MyGameOptionsGenerator.BaseOptions();
+                    var options = LitigGameOptionsGenerator.BaseOptions();
                     options.PLiabilityNoiseStdev = options.DLiabilityNoiseStdev = StdevPlayerNoise;
                     options.CostsMultiplier = costMultiplier;
                     if (HigherRiskAversion)
@@ -478,7 +478,7 @@ namespace ACESim
                         if (DRiskAverse)
                             options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth };
                     }
-                    options.MyGameDisputeGenerator = d;
+                    options.LitigGameDisputeGenerator = d;
                     string generatorName = d.GetGeneratorName();
                     string fullName = generatorName;
                     if (costMultiplier != 1)
@@ -488,15 +488,15 @@ namespace ACESim
             return optionSets;
         }
 
-        private List<(string optionSetName, GameOptions options)> GetOptionsVariations(string description, Func<MyGameOptions> initialOptionsFunc)
+        private List<(string optionSetName, GameOptions options)> GetOptionsVariations(string description, Func<LitigGameOptions> initialOptionsFunc)
         {
             var list = new List<(string optionSetName, GameOptions options)>();
-            MyGameOptions options;
+            LitigGameOptions options;
 
             if (!LimitToAmerican)
             {
                 options = initialOptionsFunc();
-                options.MyGameRunningSideBets = new MyGameRunningSideBets()
+                options.LitigGameRunningSideBets = new LitigGameRunningSideBets()
                 {
                     MaxChipsPerRound = 2,
                     ValueOfChip = 50000,
@@ -510,7 +510,7 @@ namespace ACESim
             if (IncludeRunningSideBetVariations)
             {
                 options = initialOptionsFunc();
-                options.MyGameRunningSideBets = new MyGameRunningSideBets()
+                options.LitigGameRunningSideBets = new LitigGameRunningSideBets()
                 {
                     MaxChipsPerRound = 2,
                     ValueOfChip = 50000,
@@ -521,7 +521,7 @@ namespace ACESim
                 list.Add((description + " RunSideEscap", options));
 
                 options = initialOptionsFunc();
-                options.MyGameRunningSideBets = new MyGameRunningSideBets()
+                options.LitigGameRunningSideBets = new LitigGameRunningSideBets()
                 {
                     MaxChipsPerRound = 2,
                     ValueOfChip = 100000,
@@ -532,7 +532,7 @@ namespace ACESim
                 list.Add((description + " RunSideLarge", options));
 
                 options = initialOptionsFunc();
-                options.MyGameRunningSideBets = new MyGameRunningSideBets()
+                options.LitigGameRunningSideBets = new LitigGameRunningSideBets()
                 {
                     MaxChipsPerRound = 2,
                     ValueOfChip = 50000,
@@ -559,10 +559,10 @@ namespace ACESim
         }
 
         // The following is used by the test classes
-        public static MyGameProgress PlayMyGameOnce(MyGameOptions options,
+        public static LitigGameProgress PlayLitigGameOnce(LitigGameOptions options,
             Func<Decision, GameProgress, byte> actionsOverride)
         {
-            MyGameDefinition gameDefinition = new MyGameDefinition();
+            LitigGameDefinition gameDefinition = new LitigGameDefinition();
             gameDefinition.Setup(options);
             List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
 
@@ -570,17 +570,17 @@ namespace ACESim
                 gameDefinition.PrintOutOrderingInformation();
 
             bool useDirectGamePlayer = false; // potentially useful to test directgameplayer, but slower
-            MyGameProgress gameProgress = null;
+            LitigGameProgress gameProgress = null;
             if (useDirectGamePlayer)
             {
-                gameProgress = (MyGameProgress) new MyGameFactory().CreateNewGameProgress(true, new IterationID());
+                gameProgress = (LitigGameProgress) new LitigGameFactory().CreateNewGameProgress(true, new IterationID());
                 DirectGamePlayer directGamePlayer = new DeepCFRDirectGamePlayer(DeepCFRMultiModelMode.DecisionSpecific, gameDefinition, gameProgress, true, false, default);
-                gameProgress = (MyGameProgress) directGamePlayer.PlayWithActionsOverride(actionsOverride);
+                gameProgress = (LitigGameProgress) directGamePlayer.PlayWithActionsOverride(actionsOverride);
             }
             else
             {
                 GamePlayer gamePlayer = new GamePlayer(starterStrategies, false, gameDefinition, true);
-                gameProgress = (MyGameProgress)gamePlayer.PlayUsingActionOverride(actionsOverride);
+                gameProgress = (LitigGameProgress)gamePlayer.PlayUsingActionOverride(actionsOverride);
             }
 
             return gameProgress;

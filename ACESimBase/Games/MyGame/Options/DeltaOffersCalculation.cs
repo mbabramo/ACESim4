@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,7 +11,7 @@ namespace ACESim
     {
         double[] Deltas;
 
-        public DeltaOffersCalculation(MyGameDefinition myDefinition)
+        public DeltaOffersCalculation(LitigGameDefinition myDefinition)
         {
             Deltas = new double[myDefinition.Options.NumOffers];
             // Suppose we have 9 offers. Then the first four are negative offers, the fifth is zero, and the next four are positive offers. 

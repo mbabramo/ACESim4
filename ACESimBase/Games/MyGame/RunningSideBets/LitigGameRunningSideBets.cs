@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace ACESim
 {
     [Serializable]
-    public class MyGameRunningSideBets
+    public class LitigGameRunningSideBets
     {
         /// <summary>
         /// The value of a single chip.
@@ -32,7 +32,7 @@ namespace ACESim
         public double TrialCostsMultiplierWithDoubleStakes = 1.3;
 
 
-        public void Setup(MyGameDefinition myGameDefinition)
+        public void Setup(LitigGameDefinition myGameDefinition)
         {
             // We need the agreement to bargain decisions, since we have a settlement, chips are returned to the players. We could change that, but that would require identifying a "winner" of the settlement.
             myGameDefinition.Options.IncludeAgreementToBargainDecisions = true;
@@ -40,7 +40,7 @@ namespace ACESim
             myGameDefinition.Options.AllowAbandonAndDefaults = true;
         }
 
-        public void SaveRunningSideBets(MyGameDefinition myGameDefinition, MyGameProgress myGameProgress, byte dAction)
+        public void SaveRunningSideBets(LitigGameDefinition myGameDefinition, LitigGameProgress myGameProgress, byte dAction)
         {
             // We will be storing the plaintiff's action in the cache. So we can now modify game progress.
             byte pAction = myGameProgress.GameHistory.GetCacheItemAtIndex(myGameDefinition.GameHistoryCacheIndex_PChipsAction);
@@ -53,9 +53,9 @@ namespace ACESim
             myGameProgress.RunningSideBetsActions.MixednessEachBargainingRound.Add((myGameProgress.RunningSideBetsActions.TemporaryStoragePMixedness, myGameProgress.Mixedness));
         }
 
-        public void GetEffectOnPlayerWelfare(MyGameDefinition myGameDefinition, byte? roundOfAbandonment, bool pAbandons, bool dDefaults, bool trialOccurs, bool pWinsAtTrial, MyGameRunningSideBetsActions runningSideBetsActions, out double effectOnP, out double effectOnD, out byte totalChipsThatCount)
+        public void GetEffectOnPlayerWelfare(LitigGameDefinition myGameDefinition, byte? roundOfAbandonment, bool pAbandons, bool dDefaults, bool trialOccurs, bool pWinsAtTrial, LitigGameRunningSideBetsActions runningSideBetsActions, out double effectOnP, out double effectOnD, out byte totalChipsThatCount)
         {
-            totalChipsThatCount = runningSideBetsActions.GetTotalChipsThatCount(roundOfAbandonment, pAbandons, myGameDefinition.Options.MyGameRunningSideBets.CountAllChipsInAbandoningRound);
+            totalChipsThatCount = runningSideBetsActions.GetTotalChipsThatCount(roundOfAbandonment, pAbandons, myGameDefinition.Options.LitigGameRunningSideBets.CountAllChipsInAbandoningRound);
             if (totalChipsThatCount > 0 && (pAbandons || dDefaults || trialOccurs))
             {
                 double transferToP = totalChipsThatCount * ValueOfChip;
@@ -71,7 +71,7 @@ namespace ACESim
             }
         }
 
-        public double GetTrialCostsMultiplier(MyGameDefinition gameDefinition, double totalChipsThatCount)
+        public double GetTrialCostsMultiplier(LitigGameDefinition gameDefinition, double totalChipsThatCount)
         {
             if (TrialCostsMultiplierAsymptote == 1.0)
                 return 1.0;

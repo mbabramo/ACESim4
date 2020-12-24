@@ -1,4 +1,4 @@
-﻿using JetBrains.Annotations;
+using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,15 +8,15 @@ using System.Text;
 namespace ACESim
 {
     [Serializable]
-    public class MyGameProgress : GameProgress
+    public class LitigGameProgress : GameProgress
     {
-        public MyGameProgress(bool fullHistoryRequired) : base(fullHistoryRequired)
+        public LitigGameProgress(bool fullHistoryRequired) : base(fullHistoryRequired)
         {
 
         }
 
-        public MyGameDefinition MyGameDefinition => (MyGameDefinition)GameDefinition;
-        public MyGameOptions MyGameOptions => MyGameDefinition.Options;
+        public LitigGameDefinition LitigGameDefinition => (LitigGameDefinition)GameDefinition;
+        public LitigGameOptions LitigGameOptions => LitigGameDefinition.Options;
 
         public bool DisputeArises;
         public bool PFiles, DAnswers, PReadyToAbandon, DReadyToAbandon, BothReadyToGiveUp, PAbandons, DDefaults;
@@ -34,9 +34,9 @@ namespace ACESim
         public bool PWinsAtTrial;
         public bool DWinsAtTrial => TrialOccurs && !PWinsAtTrial;
 
-        public MyGameDisputeGeneratorActions DisputeGeneratorActions;
-        public MyGamePretrialActions PretrialActions;
-        public MyGameRunningSideBetsActions RunningSideBetsActions;
+        public LitigGameDisputeGeneratorActions DisputeGeneratorActions;
+        public LitigGamePretrialActions PretrialActions;
+        public LitigGameRunningSideBetsActions RunningSideBetsActions;
 
         public double DamagesAwarded;
 
@@ -65,7 +65,7 @@ namespace ACESim
         public List<double> POfferMixedness;
         public List<double> DOfferMixedness;
 
-        public class MyGameProgress_PostGameInfo
+        public class LitigGameProgress_PostGameInfo
         {
             public double? LiabilityStrengthUniform;
             public double PLiabilitySignalUniform;
@@ -82,8 +82,8 @@ namespace ACESim
             public bool IsTrulyLiable;
         }
 
-        public MyGameProgress_PostGameInfo _PostGameInfo;
-        public MyGameProgress_PostGameInfo PostGameInfo
+        public LitigGameProgress_PostGameInfo _PostGameInfo;
+        public LitigGameProgress_PostGameInfo PostGameInfo
         {
             get
             {
@@ -91,11 +91,11 @@ namespace ACESim
                 {
                     if (!GameComplete)
                         throw new Exception("Accessing post-game info prematurely.");
-                    lock (this) // this is only place we lock on MyGameProgress, so no danger from lock(this)
+                    lock (this) // this is only place we lock on LitigGameProgress, so no danger from lock(this)
                     {
                         if (_PostGameInfo == null)
                         {
-                            _PostGameInfo = new MyGameProgress_PostGameInfo();
+                            _PostGameInfo = new LitigGameProgress_PostGameInfo();
                             CalculatePostGameInfo();
                         }
                     }
@@ -146,11 +146,11 @@ namespace ACESim
         public bool DDoesntDefaultInRound(byte round) => PDoesntAbandonInRound(round) && !(DDefaults && BargainingRoundsComplete == round);
         public bool BothPlayersHaveCompletedRoundWithOfferResponse => POffers?.Count() == DResponses?.Count() && DOffers?.Count() == PResponses?.Count();
 
-        public bool PAgreesToBargainInRound(int bargainingRoundNum) => !MyGameOptions.IncludeAgreementToBargainDecisions || ((PAgreesToBargain?.Count() ?? 0) >= bargainingRoundNum && PAgreesToBargain[bargainingRoundNum - 1]);
-        public bool DAgreesToBargainInRound(int bargainingRoundNum) => !MyGameOptions.IncludeAgreementToBargainDecisions || ((DAgreesToBargain?.Count() ?? 0) >= bargainingRoundNum && DAgreesToBargain[bargainingRoundNum - 1]);
+        public bool PAgreesToBargainInRound(int bargainingRoundNum) => !LitigGameOptions.IncludeAgreementToBargainDecisions || ((PAgreesToBargain?.Count() ?? 0) >= bargainingRoundNum && PAgreesToBargain[bargainingRoundNum - 1]);
+        public bool DAgreesToBargainInRound(int bargainingRoundNum) => !LitigGameOptions.IncludeAgreementToBargainDecisions || ((DAgreesToBargain?.Count() ?? 0) >= bargainingRoundNum && DAgreesToBargain[bargainingRoundNum - 1]);
         public bool BothAgreeToBargainInRound(int bargainingRoundNum) => PAgreesToBargainInRound(bargainingRoundNum) && DAgreesToBargainInRound(bargainingRoundNum);
 
-        public void ConcludeMainPortionOfBargainingRound(MyGameDefinition gameDefinition)
+        public void ConcludeMainPortionOfBargainingRound(LitigGameDefinition gameDefinition)
         {
             bool playersMovingSimultaneously = gameDefinition.Options.BargainingRoundsSimultaneous;
             bool pGoesFirstIfNotSimultaneous = playersMovingSimultaneously || gameDefinition.Options.PGoesFirstIfNotSimultaneous[BargainingRoundsComplete];
@@ -166,13 +166,13 @@ namespace ACESim
             {
                 if (playersMovingSimultaneously || !pGoesFirstIfNotSimultaneous)
                 { // defendant has made an offer this round
-                    var pMissedOpportunity = MyGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, gameDefinition.Options.PInitialWealth, gameDefinition.Options.DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, (double) DLastOffer * (double)gameDefinition.Options.DamagesMax, true /* ignored */, 0, (byte) (BargainingRoundsComplete + 1), null, null, POffers, PResponses, DOffers, DResponses);
+                    var pMissedOpportunity = LitigGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, gameDefinition.Options.PInitialWealth, gameDefinition.Options.DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, (double) DLastOffer * (double)gameDefinition.Options.DamagesMax, true /* ignored */, 0, (byte) (BargainingRoundsComplete + 1), null, null, POffers, PResponses, DOffers, DResponses);
                     if (pMissedOpportunity.PFinalWealth > PFinalWealthWithBestOffer || PFinalWealthWithBestOffer == null)
                         PFinalWealthWithBestOffer = pMissedOpportunity.PFinalWealth;
                 }
                 if (playersMovingSimultaneously || pGoesFirstIfNotSimultaneous)
                 { // plaintiff has made an offer this round
-                    var dMissedOpportunity = MyGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, gameDefinition.Options.PInitialWealth, gameDefinition.Options.DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, (double)PLastOffer * (double)gameDefinition.Options.DamagesMax, true /* ignored */, 0, (byte)(BargainingRoundsComplete + 1), null, null, POffers, PResponses, DOffers, DResponses);
+                    var dMissedOpportunity = LitigGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, gameDefinition.Options.PInitialWealth, gameDefinition.Options.DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, (double)PLastOffer * (double)gameDefinition.Options.DamagesMax, true /* ignored */, 0, (byte)(BargainingRoundsComplete + 1), null, null, POffers, PResponses, DOffers, DResponses);
                     if (dMissedOpportunity.DFinalWealth > DFinalWealthWithBestOffer || DFinalWealthWithBestOffer == null)
                         DFinalWealthWithBestOffer = dMissedOpportunity.DFinalWealth;
                 }
@@ -269,16 +269,16 @@ namespace ACESim
         {
             // assumes that a settlement has been reached
             if (playersMovingSimultaneously)
-                SettlementValue = (PLastOffer + DLastOffer) * (double)MyGameDefinition.Options.DamagesMax / 2.0;
+                SettlementValue = (PLastOffer + DLastOffer) * (double)LitigGameDefinition.Options.DamagesMax / 2.0;
             else if (pGoesFirstIfNotSimultaneous)
-                SettlementValue = PLastOffer * (double)MyGameDefinition.Options.DamagesMax;
+                SettlementValue = PLastOffer * (double)LitigGameDefinition.Options.DamagesMax;
             else
-                SettlementValue = DLastOffer * (double)MyGameDefinition.Options.DamagesMax;
+                SettlementValue = DLastOffer * (double)LitigGameDefinition.Options.DamagesMax;
         }
 
         public override GameProgress DeepCopy()
         {
-            MyGameProgress copy = new MyGameProgress(FullHistoryRequired);
+            LitigGameProgress copy = new LitigGameProgress(FullHistoryRequired);
 
             // copy.GameComplete = this.GameComplete;
             base.CopyFieldInfo(copy);
@@ -426,9 +426,9 @@ namespace ACESim
 
         public void CalculateGameOutcome()
         {
-            MyGameDefinition gameDefinition = (MyGameDefinition)GameDefinition;
-            var outcome = MyGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, gameDefinition.Options.PInitialWealth, gameDefinition.Options.DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, SettlementValue, PWinsAtTrial, DamagesAwarded, BargainingRoundsComplete, PFinalWealthWithBestOffer, DFinalWealthWithBestOffer, POffers, PResponses, DOffers, DResponses);
-            DisputeArises = gameDefinition.Options.MyGameDisputeGenerator.PotentialDisputeArises(gameDefinition, DisputeGeneratorActions);
+            LitigGameDefinition gameDefinition = (LitigGameDefinition)GameDefinition;
+            var outcome = LitigGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, gameDefinition.Options.PInitialWealth, gameDefinition.Options.DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, SettlementValue, PWinsAtTrial, DamagesAwarded, BargainingRoundsComplete, PFinalWealthWithBestOffer, DFinalWealthWithBestOffer, POffers, PResponses, DOffers, DResponses);
+            DisputeArises = gameDefinition.Options.LitigGameDisputeGenerator.PotentialDisputeArises(gameDefinition, DisputeGeneratorActions);
             PChangeWealth = outcome.PChangeWealth;
             DChangeWealth = outcome.DChangeWealth;
             PFinalWealth = outcome.PFinalWealth;
@@ -441,25 +441,25 @@ namespace ACESim
 
         private void CalculatePostGameInfo()
         {
-            LiabilityStrengthUniform = Game.ConvertActionToUniformDistributionDraw(LiabilityStrengthDiscrete, MyGameDefinition.Options.NumLiabilityStrengthPoints, false);
+            LiabilityStrengthUniform = Game.ConvertActionToUniformDistributionDraw(LiabilityStrengthDiscrete, LitigGameDefinition.Options.NumLiabilityStrengthPoints, false);
             // If one or both parties have perfect information, then they can get their information about litigation quality now, since they don't need a signal. Note that we also specify in the game definition that the litigation quality should become part of their information set.
-            if (MyGameDefinition.Options.PLiabilityNoiseStdev == 0)
+            if (LitigGameDefinition.Options.PLiabilityNoiseStdev == 0)
                 PLiabilitySignalUniform = (double)LiabilityStrengthUniform;
-            if (MyGameDefinition.Options.DLiabilityNoiseStdev == 0)
+            if (LitigGameDefinition.Options.DLiabilityNoiseStdev == 0)
                 DLiabilitySignalUniform = (double)LiabilityStrengthUniform;
-            PLiabilitySignalUniform = MyGameDefinition.Options.NumLiabilitySignals == 1 ? 0.5 : PLiabilitySignalDiscrete * (1.0 / MyGameDefinition.Options.NumLiabilitySignals);
-            DLiabilitySignalUniform = MyGameDefinition.Options.NumLiabilitySignals == 1 ? 0.5 : DLiabilitySignalDiscrete * (1.0 / MyGameDefinition.Options.NumLiabilitySignals);
-            DamagesStrengthUniform = Game.ConvertActionToUniformDistributionDraw(DamagesStrengthDiscrete, MyGameDefinition.Options.NumDamagesStrengthPoints, true /* include endpoints so that we can have possibility of max or min damages */);
+            PLiabilitySignalUniform = LitigGameDefinition.Options.NumLiabilitySignals == 1 ? 0.5 : PLiabilitySignalDiscrete * (1.0 / LitigGameDefinition.Options.NumLiabilitySignals);
+            DLiabilitySignalUniform = LitigGameDefinition.Options.NumLiabilitySignals == 1 ? 0.5 : DLiabilitySignalDiscrete * (1.0 / LitigGameDefinition.Options.NumLiabilitySignals);
+            DamagesStrengthUniform = Game.ConvertActionToUniformDistributionDraw(DamagesStrengthDiscrete, LitigGameDefinition.Options.NumDamagesStrengthPoints, true /* include endpoints so that we can have possibility of max or min damages */);
             // If one or both parties have perfect information, then they can get their information about litigation quality now, since they don't need a signal. Note that we also specify in the game definition that the litigation quality should become part of their information set.
-            if (MyGameDefinition.Options.PDamagesNoiseStdev == 0)
+            if (LitigGameDefinition.Options.PDamagesNoiseStdev == 0)
                 PDamagesSignalUniform = (double)DamagesStrengthUniform;
-            if (MyGameDefinition.Options.DDamagesNoiseStdev == 0)
+            if (LitigGameDefinition.Options.DDamagesNoiseStdev == 0)
                 DDamagesSignalUniform = (double)DamagesStrengthUniform;
-            PDamagesSignalUniform = MyGameDefinition.Options.NumDamagesSignals == 1 ? 0.5 : PDamagesSignalDiscrete * (1.0 / MyGameDefinition.Options.NumDamagesSignals);
-            DDamagesSignalUniform = MyGameDefinition.Options.NumDamagesSignals == 1 ? 0.5 : DDamagesSignalDiscrete * (1.0 / MyGameDefinition.Options.NumDamagesSignals);
+            PDamagesSignalUniform = LitigGameDefinition.Options.NumDamagesSignals == 1 ? 0.5 : PDamagesSignalDiscrete * (1.0 / LitigGameDefinition.Options.NumDamagesSignals);
+            DDamagesSignalUniform = LitigGameDefinition.Options.NumDamagesSignals == 1 ? 0.5 : DDamagesSignalDiscrete * (1.0 / LitigGameDefinition.Options.NumDamagesSignals);
 
             TotalExpensesIncurred = 0 - PChangeWealth - DChangeWealth;
-            PreDisputeSharedWelfare = MyGameDefinition.Options.MyGameDisputeGenerator.GetLitigationIndependentSocialWelfare(MyGameDefinition, DisputeGeneratorActions);
+            PreDisputeSharedWelfare = LitigGameDefinition.Options.LitigGameDisputeGenerator.GetLitigationIndependentSocialWelfare(LitigGameDefinition, DisputeGeneratorActions);
             if (!DisputeArises)
             {
                 FalseNegativeShortfall = 0;
@@ -467,17 +467,17 @@ namespace ACESim
                 return;
             }
             double correctDamagesIfTrulyLiable;
-            if (MyGameDefinition.Options.NumDamagesStrengthPoints <= 1)
-                correctDamagesIfTrulyLiable = (double)MyGameDefinition.Options.DamagesMax;
+            if (LitigGameDefinition.Options.NumDamagesStrengthPoints <= 1)
+                correctDamagesIfTrulyLiable = (double)LitigGameDefinition.Options.DamagesMax;
             else
-                correctDamagesIfTrulyLiable = (double)(MyGameDefinition.Options.DamagesMin + DamagesStrengthUniform * (MyGameDefinition.Options.DamagesMax - MyGameDefinition.Options.DamagesMin));
+                correctDamagesIfTrulyLiable = (double)(LitigGameDefinition.Options.DamagesMin + DamagesStrengthUniform * (LitigGameDefinition.Options.DamagesMax - LitigGameDefinition.Options.DamagesMin));
             double falseNegativeShortfallIfTrulyLiable = Math.Max(0, correctDamagesIfTrulyLiable - PChangeWealth); // how much plaintiff's payment fell short (if at all)
             double falsePositiveExpendituresIfNotTrulyLiable = Math.Max(0, 0 - DChangeWealth); // how much defendant's payment was excessive (if at all), in the condition in which the defendant is NOT truly liable. In this case, the defendant ideally would pay 0.
             double falsePositiveExpendituresIfTrulyLiable = Math.Max(0, 0 - correctDamagesIfTrulyLiable - DChangeWealth); // how much defendant's payment was excessive (if at all), in the condition in which the defendant is truly liable. In this case, the defendant ideally would pay the correct amount of damages. E.g., if correct damages are 100 and defendant pays out 150 (including costs), then change in wealth is -150, we have -100 - -150, so we have 50.
-            if (!MyGameDefinition.Options.MyGameDisputeGenerator.PotentialDisputeArises(MyGameDefinition, DisputeGeneratorActions))
+            if (!LitigGameDefinition.Options.LitigGameDisputeGenerator.PotentialDisputeArises(LitigGameDefinition, DisputeGeneratorActions))
                 IsTrulyLiable = false;
             else
-                IsTrulyLiable = MyGameDefinition.Options.MyGameDisputeGenerator.IsTrulyLiable(MyGameDefinition, DisputeGeneratorActions, this);
+                IsTrulyLiable = LitigGameDefinition.Options.LitigGameDisputeGenerator.IsTrulyLiable(LitigGameDefinition, DisputeGeneratorActions, this);
             if (IsTrulyLiable)
             {
                 FalseNegativeShortfall = falseNegativeShortfallIfTrulyLiable;

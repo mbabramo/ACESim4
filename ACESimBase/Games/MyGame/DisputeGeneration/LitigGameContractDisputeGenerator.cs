@@ -1,4 +1,4 @@
-﻿using ACESim.Util;
+using ACESim.Util;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace ACESim
 {
     [Serializable]
-    public class MyGameContractDisputeGenerator : IMyGameDisputeGenerator
+    public class LitigGameContractDisputeGenerator : ILitigGameDisputeGenerator
     {
         public string GetGeneratorName() => "Contract";
         // Explanation: Potential defendant has a binary choice to take a certain action that will produce some benefit for itself and a standard cost for its opponent. The postulated contractual rule is that the defendant may take the action, without paying compensation, if the benefit is at least as great as the cost; that is, the contract is written to allow actions that increase joint welfare. The litigation quality should on average be in the middle of the range when benefit is equal to cost and more favorable to the plaintiff when there is a lower benefit. However, the actual litigation quality may vary somewhat from this level, as a noise term will be added. We assume for simplicity that at the time it makes its decision, the defendant has no separate estimate of litigation quality other than the benefit that it knows that it will receive.
@@ -37,7 +37,7 @@ namespace ACESim
             return MinBenefitOfActionToDefendant + (MaxBenefitOfActionToDefendant - MinBenefitOfActionToDefendant) * BenefitOfActionToDefendant_Proportion(benefitLevel);
         }
 
-        public void Setup(MyGameDefinition myGameDefinition)
+        public void Setup(LitigGameDefinition myGameDefinition)
         {
             // We need to determine the probability of different liability strengths 
             ProbabilityLiabilityStrength = new double[NumBenefitLevels][];
@@ -51,13 +51,13 @@ namespace ACESim
             }
         }
 
-        public void GetActionsSetup(MyGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate)
+        public void GetActionsSetup(LitigGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate)
         {
             prePrimaryChanceActions = NumBenefitLevels;
             primaryActions = 2;
             postPrimaryChanceActions = 0; 
-            prePrimaryPlayersToInform = new byte[] {(byte) MyGamePlayers.Defendant, (byte)MyGamePlayers.LiabilityStrengthChance }; 
-            primaryPlayersToInform = new byte[] {(byte) MyGamePlayers.Resolution, (byte)MyGamePlayers.LiabilityStrengthChance }; 
+            prePrimaryPlayersToInform = new byte[] {(byte) LitigGamePlayers.Defendant, (byte)LitigGamePlayers.LiabilityStrengthChance }; 
+            primaryPlayersToInform = new byte[] {(byte) LitigGamePlayers.Resolution, (byte)LitigGamePlayers.LiabilityStrengthChance }; 
             postPrimaryPlayersToInform = null;
             prePrimaryUnevenChance = false; 
             postPrimaryUnevenChance = true; // irrelevant
@@ -67,7 +67,7 @@ namespace ACESim
         }
 
         readonly double[] WealthEffects_NoBenefitTaken = new double[] { 0, 0 };
-        public double[] GetLitigationIndependentWealthEffects(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
+        public double[] GetLitigationIndependentWealthEffects(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             if (disputeGeneratorActions.PrimaryAction == 2)
             {
@@ -80,46 +80,46 @@ namespace ACESim
             }
         }
 
-        public double GetLitigationIndependentSocialWelfare(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
+        public double GetLitigationIndependentSocialWelfare(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             if (disputeGeneratorActions.PrimaryAction == 2)
                 return 0;
             return BenefitOfActionToDefendant_Level(disputeGeneratorActions.PrePrimaryChanceAction) - CostOfActionOnPlaintiff;
         }
 
-        public double[] GetLiabilityStrengthProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
+        public double[] GetLiabilityStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             return ProbabilityLiabilityStrength[disputeGeneratorActions.PrePrimaryChanceAction - 1];
         }
 
-        public double[] GetDamagesStrengthProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions) => new double[] { 1.0 };
+        public double[] GetDamagesStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions) => new double[] { 1.0 };
 
-        public bool IsTrulyLiable(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
+        public bool IsTrulyLiable(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
         {
             return GetLitigationIndependentSocialWelfare(myGameDefinition, disputeGeneratorActions) < 0;
         }
 
-        public bool PotentialDisputeArises(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
+        public bool PotentialDisputeArises(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             return disputeGeneratorActions.PrimaryAction == 1; // defendant has taken benefit, so there is something to sue over
         }
 
-        public bool MarkComplete(MyGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction)
+        public bool MarkComplete(LitigGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction)
         {
             return primaryAction == 2;
         }
 
-        public bool MarkComplete(MyGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction, byte postPrimaryAction)
+        public bool MarkComplete(LitigGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction, byte postPrimaryAction)
         {
             throw new NotImplementedException();
         }
 
-        public double[] GetPrePrimaryChanceProbabilities(MyGameDefinition myGameDefinition)
+        public double[] GetPrePrimaryChanceProbabilities(LitigGameDefinition myGameDefinition)
         {
             throw new NotImplementedException(); // even probabiltiies
         }
 
-        public double[] GetPostPrimaryChanceProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
+        public double[] GetPostPrimaryChanceProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             throw new NotImplementedException(); // no post primary chance function
         }

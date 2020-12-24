@@ -1,4 +1,4 @@
-﻿using ACESim.Util;
+using ACESim.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace ACESim
 {
     [Serializable]
-    public class MyGameEqualQualityProbabilitiesDisputeGenerator : IMyGameDisputeGenerator
+    public class LitigGameEqualQualityProbabilitiesDisputeGenerator : ILitigGameDisputeGenerator
     {
 
         public string GetGeneratorName() => "EqualQual";
@@ -29,19 +29,19 @@ namespace ACESim
         /// </summary>
         private double Curvature;
 
-        public void Setup(MyGameDefinition myGameDefinition)
+        public void Setup(LitigGameDefinition myGameDefinition)
         {
             Curvature = MonotonicCurve.CalculateCurvatureForThreePoints(0.5, 0.5, 0.75, ProbabilityTrulyLiable_LiabilityStrength75, 0.9, ProbabilityTrulyLiable_LiabilityStrength90);
         }
 
-        public void GetActionsSetup(MyGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate)
+        public void GetActionsSetup(LitigGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate)
         {
             prePrimaryChanceActions = 0;
             primaryActions = 0;
             postPrimaryChanceActions = NumPointsToDetermineTrulyLiable; 
-            prePrimaryPlayersToInform = null; // new byte[] {(byte) MyGamePlayers.Defendant }; // if we did have a pre-primary chance, we must notify defendant
-            primaryPlayersToInform = null; // new byte[] {(byte) MyGamePlayers.Resolution}; // not relevant for this dispute generator
-            postPrimaryPlayersToInform = new byte[] { (byte)MyGamePlayers.LiabilityStrengthChance }; // NOTE: The post-primary chance decision affects only our measurement of "is truly liable"; thus, it doesn't affect resolution probabilities and doesn't need to be included here.
+            prePrimaryPlayersToInform = null; // new byte[] {(byte) LitigGamePlayers.Defendant }; // if we did have a pre-primary chance, we must notify defendant
+            primaryPlayersToInform = null; // new byte[] {(byte) LitigGamePlayers.Resolution}; // not relevant for this dispute generator
+            postPrimaryPlayersToInform = new byte[] { (byte)LitigGamePlayers.LiabilityStrengthChance }; // NOTE: The post-primary chance decision affects only our measurement of "is truly liable"; thus, it doesn't affect resolution probabilities and doesn't need to be included here.
             prePrimaryUnevenChance = true; // though not used
             postPrimaryUnevenChance = false; // we use even chance probabilities on number of poitns to determine truly liable
             litigationQualityUnevenChance = false; // we use even chance probabilities on litigation quality
@@ -49,59 +49,59 @@ namespace ACESim
             postPrimaryChanceCanTerminate = false;
         }
 
-        public double GetLitigationIndependentSocialWelfare(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
+        public double GetLitigationIndependentSocialWelfare(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             return 0;
         }
 
         double[] NoWealthEffects = new double[] { 0, 0 };
-        public double[] GetLitigationIndependentWealthEffects(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
+        public double[] GetLitigationIndependentWealthEffects(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             return NoWealthEffects;
         }
 
-        public double[] GetLiabilityStrengthProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
+        public double[] GetLiabilityStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             throw new NotImplementedException(); // we use even chance probabilities
         }
 
-        public double[] GetDamagesStrengthProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions) => new double[] { 1.0 };
+        public double[] GetDamagesStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions) => new double[] { 1.0 };
 
-        public bool IsTrulyLiable(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
+        public bool IsTrulyLiable(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
         {
-            MyGameProgress myGameProgress = (MyGameProgress) gameProgress;
+            LitigGameProgress myGameProgress = (LitigGameProgress) gameProgress;
             double liabilityStrengthUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(myGameProgress.LiabilityStrengthDiscrete - 1 /* make it zero-based */, myGameDefinition.Options.NumLiabilityStrengthPoints, false); 
             double probabilityTrulyLiable = MonotonicCurve.CalculateYValueForX(0, 1.0, Curvature, (double)liabilityStrengthUniform);
             double randomValue = EquallySpaced.GetLocationOfEquallySpacedPoint(disputeGeneratorActions.PostPrimaryChanceAction - 1, NumPointsToDetermineTrulyLiable, false);
             return probabilityTrulyLiable >= randomValue;
         }
 
-        public void ModifyOptions(ref MyGameOptions myGameOptions)
+        public void ModifyOptions(ref LitigGameOptions myGameOptions)
         {
             // nothing to modify
         }
 
-        public bool PotentialDisputeArises(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
+        public bool PotentialDisputeArises(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             return true;
         }
 
-        public bool MarkComplete(MyGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction)
+        public bool MarkComplete(LitigGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction)
         {
             throw new NotImplementedException();
         }
 
-        public bool MarkComplete(MyGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction, byte postPrimaryAction)
+        public bool MarkComplete(LitigGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction, byte postPrimaryAction)
         {
             throw new NotImplementedException();
         }
 
-        public double[] GetPrePrimaryChanceProbabilities(MyGameDefinition myGameDefinition)
+        public double[] GetPrePrimaryChanceProbabilities(LitigGameDefinition myGameDefinition)
         {
             throw new NotImplementedException(); // no pre primary chance function
         }
 
-        public double[] GetPostPrimaryChanceProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
+        public double[] GetPostPrimaryChanceProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             throw new NotImplementedException(); // we use even chance probabilities
         }
