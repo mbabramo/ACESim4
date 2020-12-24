@@ -119,15 +119,17 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     seq = u.defseq[h.player];
                     if (h.seqin == -1)
                         h.seqin = seq;
-                    else if (seq != (int) h.seqin && h.player != 0)
+                    else if (seq != (int) h.seqin)
                     /* not the same as last sequence leading to info set    */
                     {
                         isnotok = true;
-                        /* need output routines for isets, moves, later         */
-                        tabbedtextf("imperfect recall in info set no. %d ", u.iset);
-                        tabbedtextf("named %s\n", h.name);
-                        tabbedtextf("different sequences no. %d,", seq);
-                        tabbedtextf(" %d\n", h.seqin);
+                        // Important note: The chance player MUST have perfect recall of all chance decisions. 
+                        throw new Exception($"Imperfect recall in information set {u.iset} named {h.name}; different sequences no {seq} and {h.seqin}");
+                        ///* need output routines for isets, moves, later         */
+                        //tabbedtextf("imperfect recall in info set no. %d ", u.iset);
+                        //tabbedtextf("named %s\n", h.name);
+                        //tabbedtextf("different sequences no. %d,", seq);
+                        //tabbedtextf(" %d\n", h.seqin);
                     }
                 }       /* end of "u decision node"     */
             }           /* end of "for all nodes u"     */
@@ -836,27 +838,24 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         }
 
 
-        public void showeq(bool bshortequil, int docuseed)
+        public void showeq(bool outputRealizationPlan)
         {
             int offset;
 
 
             offset = nseqs[1] + 1 + nisets[2];
-            if (!bshortequil)
+            if (outputRealizationPlan)
             {
                 tabbedtextf("Equilibrium realization plan player 1:\n");
                 outrealplan(1, Lemke.solz, 0);
+                tabbedtextf("\n");
                 tabbedtextf("Equilibrium realization plan player 2:\n");
                 outrealplan(2, Lemke.solz, offset);
             }
-            if (bshortequil)
-                tabbedtextf("BEQ>%4d<1>", docuseed);
-            else
-                tabbedtextf("......Equilibrium behavior strategies player 1, 2:\n");
-            outbehavstrat_moves(1, Lemke.solz, 0, !bshortequil); /* remove _moves for original code */
-            if (bshortequil)
-                tabbedtextf(" <2>");
-            outbehavstrat_moves(2, Lemke.solz, offset, true);  /* remove _moves for original code */
+            tabbedtextf("......Equilibrium behavior strategies player 1, 2:\n");
+            outbehavstrat_moves(1, Lemke.solz, 0, outputRealizationPlan); 
+            tabbedtextf("\n");
+            outbehavstrat_moves(2, Lemke.solz, offset, true);  
         }
 
         /* EXAMPLE */

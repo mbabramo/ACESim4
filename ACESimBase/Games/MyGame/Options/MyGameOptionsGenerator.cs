@@ -353,16 +353,16 @@ namespace ACESim
         {
             var options = BaseOptions();
 
-            options.NumOffers = 2;
+            options.NumOffers = 5;
 
-            options.NumLiabilityStrengthPoints = 2;
-            options.NumLiabilitySignals = 3;
+            options.NumLiabilityStrengthPoints = 5;
+            options.NumLiabilitySignals = 5;
 
             options.NumDamagesSignals = 1;
             options.NumDamagesStrengthPoints = 1;
             options.DamagesMax = options.DamagesMin = 100_000;
 
-            options.NumPotentialBargainingRounds = 1;
+            options.NumPotentialBargainingRounds = 2;
             options.AllowAbandonAndDefaults = false;
             options.IncludeAgreementToBargainDecisions = false;
             options.SkipFileAndAnswerDecisions = false;

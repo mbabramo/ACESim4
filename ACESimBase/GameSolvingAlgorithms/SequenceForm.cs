@@ -104,15 +104,16 @@ namespace ACESimBase.GameSolvingAlgorithms
         {
             DetermineGameNodeRelationships();
             var ecta = new ECTARunner();
-            ecta.numPriors = 10;
-            ecta.outputPrior = true;
-            ecta.outputGameTreeSetup = true;
+            ecta.numPriors = EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria;
+            ecta.outputPrior = false;
+            ecta.outputGameTreeSetup = false;
             ecta.outputInitialTableau = false;
             ecta.outputLCP = false;
             ecta.outputLCPSolution = false;
             ecta.outputPivotingSteps = false;
             ecta.outputPivotResults = false;
             ecta.outputEquilibrium = true;
+            ecta.outputRealizationPlan = false;
             List<List<double>> equilibria = ecta.Execute_ReturningDoubles(t => SetupECTA(t));
             await SetEquilibria(equilibria, reportCollection);
         }
@@ -218,7 +219,7 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         private void PrintRelationships(List<GameNodeRelationship> originalOrder)
         {
-            bool printRelationships = true; // DEBUG
+            bool printRelationships = false;
             // printing
             if (printRelationships)
             {
@@ -573,7 +574,6 @@ namespace ACESimBase.GameSolvingAlgorithms
                         double v = numbers[totalNumbersProcessed++];
                         total += v;
                         infoSets[i].SetActionToProbabilityValue(a, v, true);
-                        Console.WriteLine($"{infoSets[i].ToStringWithoutValues()}: {v}"); // DEBUG
                     }
                     if (total == 0)
                     {

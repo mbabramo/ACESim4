@@ -28,7 +28,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         public bool outputPrior = false;   
         public bool outputPivotingSteps = false;  
         public bool outputEquilibrium = true;    
-        public bool outputEquilibriumShort = false; 
+        public bool outputRealizationPlan = false; 
         public bool outputLCPSolution = false;
         public bool outputLexStats = false; 
 
@@ -168,7 +168,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     eqsize[pl] = equilsize;
             }
             if (outputEquilibrium)
-                t.showeq(outputEquilibriumShort, docuseed);
+                t.showeq(outputRealizationPlan);
         }
 
         public List<List<double>> Execute_ReturningDoubles(Action<ECTATreeDefinition> setup) => Execute(setup).Select(x => x.Select(y => (double)y).ToList()).ToList();
