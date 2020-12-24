@@ -23,11 +23,11 @@ namespace ACESim
         public const int VanillaIterations = 1000; // Note: Also used for GeneralizedVanilla, DeepCFR
         public const int VanillaReportEveryNIterations =  VanillaIterations; // DEBUG EffectivelyNever
         public int? SuppressReportBeforeIteration = null;
-        public const int VanillaBestResponseEveryMIterations = VanillaIterations; // DEBUG EffectivelyNever
+        public const int VanillaBestResponseEveryMIterations = VanillaIterations; 
         public int? SuppressBestResponseBeforeIteration = null; 
         public const bool CalculatePerturbedBestResponseRefinement = true;
         public const int MiniReportEveryPIterations = EffectivelyNever;
-        public const bool AlwaysSuppressDisplayReportOnScreen = false; // DEBUG
+        public const bool AlwaysSuppressDisplayReportOnScreen = false; 
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever;
         public const bool UseRandomPathsForReporting = true;
         public const int SummaryTableRandomPathsIterations = 1_000;
@@ -35,7 +35,7 @@ namespace ACESim
 
         public int MaxParallelDepth = 3;
         public bool ParallelizeOptionSets = false; // run multiple option sets at same time on computer (in which case each individually will be run not in parallel)
-        public bool ParallelizeIndividualExecutions = false; // DEBUG // only if !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing)
+        public bool ParallelizeIndividualExecutions = false; // only if !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing)
         public bool DynamicSetParallelIfPossible = false; 
         public bool DynamicSetParallel => DistributedProcessing && DynamicSetParallelIfPossible;
         public bool ParallelizeIndividualExecutionsAlways = false; // Note -- maybe not really working // will always take precedence
@@ -45,8 +45,8 @@ namespace ACESim
         public int NumRepetitions = 1;
         public bool SaveToAzureBlob = false;
         public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && UseDistributedProcessingForMultipleOptionsSets; // this should be true if running on the local service fabric or usign ACESimDistributed
-        public string MasterReportNameForDistributedProcessing = "R361"; // ******* IMPORTANT: (1) Delete bin/obj in AceSimDistributed before building. (2) Must update this (or delete the Coordinator) when deploying service fabric. 
-        public bool UseDistributedProcessingForMultipleOptionsSets = false; // DEBUG
+        public string MasterReportNameForDistributedProcessing = "R362"; // ******* IMPORTANT: (1) Delete bin/obj in AceSimDistributed before building. (2) Must update this (or delete the Coordinator) when deploying service fabric. 
+        public bool UseDistributedProcessingForMultipleOptionsSets = false; 
         public bool SeparateScenariosWhenUsingDistributedProcessing = true;
         public static bool MaxOneReportPerDistributedProcess = false;
         public bool CombineResultsOfAllOptionSetsAfterExecution = false;
