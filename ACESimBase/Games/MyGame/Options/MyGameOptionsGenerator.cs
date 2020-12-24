@@ -353,7 +353,7 @@ namespace ACESim
         {
             var options = BaseOptions();
 
-            options.NumOffers = 5;
+            options.NumOffers = 10;
 
             options.NumLiabilityStrengthPoints = 5;
             options.NumLiabilitySignals = 5;
@@ -362,7 +362,10 @@ namespace ACESim
             options.NumDamagesStrengthPoints = 1;
             options.DamagesMax = options.DamagesMin = 100_000;
 
-            options.NumPotentialBargainingRounds = 2;
+            options.PerPartyCostsLeadingUpToBargainingRound = 0;
+            options.PTrialCosts = options.DTrialCosts = 25_000;
+
+            options.NumPotentialBargainingRounds = 1;
             options.AllowAbandonAndDefaults = false;
             options.IncludeAgreementToBargainDecisions = false;
             options.SkipFileAndAnswerDecisions = false;
