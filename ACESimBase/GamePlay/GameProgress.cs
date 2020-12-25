@@ -416,16 +416,20 @@ namespace ACESim
             int numInitializedScenarios = gameDefinition.NumScenariosToInitialize;
             for (int s = 0; s < numInitializedScenarios; s++)
             {
-                bool warmupVersion = s >= gameDefinition.NumPostWarmupPossibilities;
-                if (warmupVersion)
-                    gameDefinition.ChangeOptionsBasedOnScenario(null, s - gameDefinition.NumPostWarmupPossibilities);
-                else
-                    gameDefinition.ChangeOptionsBasedOnScenario(s, null);
+                if (numInitializedScenarios > 1)
+                {
+                    bool warmupVersion = s >= gameDefinition.NumPostWarmupPossibilities;
+                    if (warmupVersion)
+                        gameDefinition.ChangeOptionsBasedOnScenario(null, s - gameDefinition.NumPostWarmupPossibilities);
+                    else
+                        gameDefinition.ChangeOptionsBasedOnScenario(s, null);
+                }
                 if (s > 0)
                     RecalculateGameOutcome();
                 alternativeScenarios.Add(GetNonChancePlayerUtilities());
             }
-            gameDefinition.ChangeOptionsToCurrentScenario();
+            if (numInitializedScenarios > 1)
+                gameDefinition.ChangeOptionsToCurrentScenario();
             return alternativeScenarios;
         }
 
@@ -440,16 +444,20 @@ namespace ACESim
             int numScenarios = gameDefinition.NumScenariosToInitialize;
             for (int s = 0; s < numScenarios; s++)
             {
-                bool warmupVersion = s >= gameDefinition.NumPostWarmupPossibilities;
-                if (warmupVersion)
-                    gameDefinition.ChangeOptionsBasedOnScenario(null, s - gameDefinition.NumPostWarmupPossibilities);
-                else
-                    gameDefinition.ChangeOptionsBasedOnScenario(s, null);
-                if (s > 0)
-                    RecalculateGameOutcome();
+                if (numScenarios > 1)
+                {
+                    bool warmupVersion = s >= gameDefinition.NumPostWarmupPossibilities;
+                    if (warmupVersion)
+                        gameDefinition.ChangeOptionsBasedOnScenario(null, s - gameDefinition.NumPostWarmupPossibilities);
+                    else
+                        gameDefinition.ChangeOptionsBasedOnScenario(s, null);
+                    if (s > 0)
+                        RecalculateGameOutcome();
+                }
                 alternativeScenarios.Add(GetCustomResult());
             }
-            gameDefinition.ChangeOptionsToCurrentScenario();
+            if (numScenarios > 1)
+                gameDefinition.ChangeOptionsToCurrentScenario();
             return alternativeScenarios;
         }
 

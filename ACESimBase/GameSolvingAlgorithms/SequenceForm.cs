@@ -31,8 +31,9 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         public SequenceForm(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
         {
-            if (EvolutionSettings.DistributeChanceDecisions)
-                throw new Exception("Distributing chance decisions is not supported.");
+            // DEBUG
+            //if (EvolutionSettings.DistributeChanceDecisions)
+            //    throw new Exception("Distributing chance decisions is not supported.");
         }
 
         public override IStrategiesDeveloper DeepCopy()
@@ -47,7 +48,6 @@ namespace ACESimBase.GameSolvingAlgorithms
             GameDefinition.MakeAllChanceDecisionsKnowAllChanceActions(); // since there is just one chance player, each chance (and resolution) player must know all other chance decisions for ECTA algorithm to work properly
             AllowSkipEveryPermutationInitialization = false;
             StoreGameStateNodesInLists = true;
-            EvolutionSettings.DistributeChanceDecisions = true; // DEBUG
             await base.Initialize();
             PrintGameTree(); // DEBUG
             InitializeInformationSets();

@@ -46,7 +46,7 @@ namespace ACESimBase.GameSolvingSupport
             {
                 Level++;
                 AppendTabs();
-                FileText.AppendLine($"c \"C:{chanceNode.Decision.Abbreviation};Node{chanceNode.ChanceNodeNumber + 1}\" {chanceNode.ChanceNodeNumber + 1} \"\" {GetChanceActionsList(chanceNode.GetActionProbabilitiesDecimal())} 0");
+                FileText.AppendLine($"c \"C:{chanceNode.Decision.Abbreviation};Node{chanceNode.ChanceNodeNumber + 1}\" {chanceNode.ChanceNodeNumber + 1} \"\" {GetChanceActionsList(chanceNode.GetActionProbabilitiesDecimal(distributorChanceInputs))} 0");
             }
             return true; // ignored
         }

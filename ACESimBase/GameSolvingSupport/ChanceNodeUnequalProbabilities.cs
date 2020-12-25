@@ -30,7 +30,11 @@ namespace ACESim
 
         public double[] Probabilities;
         // The remaining settings are for distributed chance actions.
-        public Dictionary<int, double[]> ProbabilitiesForDistributorChanceInputs;
+        public Dictionary<int, double[]> ProbabilitiesForDistributorChanceInputs
+        {
+            get;
+            set;
+        }
         bool DistributionComplete;
 
 

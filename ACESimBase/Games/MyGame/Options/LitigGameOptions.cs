@@ -110,7 +110,11 @@ namespace ACESim
         /// <summary>
         /// A multiplier applied to all costs figures below. This makes it straightforward to change the overall level of costs without changing every option individually.
         /// </summary>
-        public double CostsMultiplier;
+        public double CostsMultiplier
+        {
+            get;
+            set;
+        }
         /// <summary>
         /// Costs that the plaintiff must pay if the case goes to trial.
         /// </summary>
