@@ -9,6 +9,8 @@ namespace ACESim
 
     public static class NormalDistributionCalculation
     {
+        public static double PortionOfNormalDistributionBetween(double lowStdevs, double highStdevs) => CumulativeNormalDistribution(highStdevs) - CumulativeNormalDistribution(lowStdevs);
+
         public static double CumulativeNormalDistribution(double x)
         {
             // constants

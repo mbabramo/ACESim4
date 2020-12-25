@@ -13,7 +13,26 @@ namespace ACESim.Util
         public double StdevOfNormalDistribution;
         public double? StdevOfNormalDistributionForCutoffPoints;
         public int NumSignals;
-        public bool UseEndpoints;
+        public bool SourcePointsIncludeExtremes;
+
+        public double MapSourceTo0To1(int sourceValue)
+        {
+            return EquallySpaced.GetLocationOfEquallySpacedPoint(sourceValue - 1, NumPointsInSourceUniformDistribution, SourcePointsIncludeExtremes);
+        }
+
+        public (double bottomOfRange, double topOfRange) MapSignalToRangeIn0To1(int signalValue)
+        {
+            double middleOfRange = EquallySpaced.GetLocationOfMidpoint(signalValue - 1, NumSignals);
+            double widthOfRange = 1.0 / (double)NumSignals;
+            double halfWidth = widthOfRange / 2.0;
+            return (middleOfRange - halfWidth, middleOfRange + halfWidth);
+
+        }
+
+        private double MapTo0To1(bool sourceDistribution, int value)
+        {
+            return EquallySpaced.GetLocationOfEquallySpacedPoint(value, sourceDistribution ? NumPointsInSourceUniformDistribution : NumSignals, sourceDistribution && SourcePointsIncludeExtremes);
+        }
 
         public override int GetHashCode()
         {
@@ -25,7 +44,7 @@ namespace ACESim.Util
                 if (StdevOfNormalDistributionForCutoffPoints != null)
                     hash = (hash * 29) + StdevOfNormalDistributionForCutoffPoints.GetHashCode();
                 hash = (hash * 17) + NumSignals.GetHashCode();
-                hash = (hash * 23) + UseEndpoints.GetHashCode();
+                hash = (hash * 23) + SourcePointsIncludeExtremes.GetHashCode();
                 return hash;
             }
         }
@@ -33,7 +52,7 @@ namespace ACESim.Util
         public override bool Equals(object obj)
         {
             DiscreteValueSignalParameters other = (DiscreteValueSignalParameters)obj;
-            return NumPointsInSourceUniformDistribution == other.NumPointsInSourceUniformDistribution && StdevOfNormalDistribution == other.StdevOfNormalDistribution && NumSignals == other.NumSignals && UseEndpoints == other.UseEndpoints && StdevOfNormalDistributionForCutoffPoints == other.StdevOfNormalDistributionForCutoffPoints;
+            return NumPointsInSourceUniformDistribution == other.NumPointsInSourceUniformDistribution && StdevOfNormalDistribution == other.StdevOfNormalDistribution && NumSignals == other.NumSignals && SourcePointsIncludeExtremes == other.SourcePointsIncludeExtremes && StdevOfNormalDistributionForCutoffPoints == other.StdevOfNormalDistributionForCutoffPoints;
         }
 
         public static bool operator ==(DiscreteValueSignalParameters left, DiscreteValueSignalParameters right)

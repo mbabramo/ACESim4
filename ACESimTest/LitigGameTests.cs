@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using ACESim;
 using ACESim.Util;
+using ACESimBase.Util;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -74,18 +75,57 @@ namespace ACESimTest
         private (double pCosts, double dCosts)[] RoundSpecificBargainingCosts =  new (double pCosts, double dCosts)[] { (10, 20), (30, 40), (50, 60) };
 
         [TestMethod]
-        public void DiscreteValueSignals()
+        public void DiscreteValueSignals_MoreNoiseObscuresTrueValues()
         {
-            double stdevOfNormalDistribution_TrulyLiable = 0.4;
-            int numLiabilityStrengthPoints = 100;
-            int numLiabilitySignals = 50;
-            double stdevOfNormalDistribution_LiabilityNoise = 0.1;
-            DiscreteValueSignalParameters liabilityParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = 2, NumSignals = numLiabilityStrengthPoints, StdevOfNormalDistribution = stdevOfNormalDistribution_TrulyLiable, StdevOfNormalDistributionForCutoffPoints = 0.5, UseEndpoints = true };
-            double[] probabilitiesLiabilityStrength_TrulyLiable = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(2, liabilityParams);
-            double[] probabilitiesLiabilityStrength_TrulyNotLiable = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(1, liabilityParams);
-            double[] probabilityTrulyLiable_LiabilityStrength = probabilitiesLiabilityStrength_TrulyLiable.Zip(probabilitiesLiabilityStrength_TrulyNotLiable, (tl, tnl) => tl / (tl + tnl)).ToArray();
-            DiscreteValueSignalParameters pParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = numLiabilityStrengthPoints, NumSignals = numLiabilitySignals, StdevOfNormalDistribution = stdevOfNormalDistribution_LiabilityNoise, UseEndpoints = false };
+            int numTrueValues = 2;
+            int numSignals = 5;
+            var minimalNoise = Helper(0.02);
+            var mediumNoise = Helper(0.25);
+            var highNoise = Helper(1.0);
+            var veryHighNoise = Helper(10.0);
+            // now, assume the lowest liability strength
+            mediumNoise[0].Should().BeGreaterThan(minimalNoise[0]);
+            highNoise[0].Should().BeGreaterThan(mediumNoise[0]);
+            veryHighNoise[0].Should().BeGreaterThan(0.49);
+            veryHighNoise[0].Should().BeLessThan(0.50);
 
+            double[] Helper(double noise)
+            {
+                DiscreteValueSignalParameters dvsParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = numTrueValues, NumSignals = numSignals, StdevOfNormalDistribution = noise, StdevOfNormalDistributionForCutoffPoints = null, SourcePointsIncludeExtremes = true };
+                double[] probabilitiesSignal_HigherTrueValue = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(2, dvsParams);
+                Math.Abs(probabilitiesSignal_HigherTrueValue.Sum() - 1.0).Should().BeLessThan(0.0001);
+                double[] probabilitiesSignal_LowerTrueValue = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(1, dvsParams);
+                Math.Abs(probabilitiesSignal_LowerTrueValue.Sum() - 1.0).Should().BeLessThan(0.0001);
+                double[] probabilityHigherTrueValue_signalStrength = probabilitiesSignal_HigherTrueValue.Zip(probabilitiesSignal_LowerTrueValue, (tl, tnl) => tl / (tl + tnl)).ToArray();
+                return probabilityHigherTrueValue_signalStrength;
+            }
+        }
+
+        [TestMethod]
+        public void DiscreteValueSignals_ManyQualityStrengths()
+        {
+            int numTrueValues = 20;
+            int numSignals = 50;
+            var minimalNoise = Helper(0.02);
+            var mediumNoise = Helper(0.25);
+            var highNoise = Helper(1.0);
+            var veryHighNoise = Helper(10.0);
+            // now, assume the lowest liability strength
+            mediumNoise[0].Should().BeGreaterThan(minimalNoise[0]);
+            highNoise[0].Should().BeGreaterThan(mediumNoise[0]);
+            veryHighNoise[0].Should().BeGreaterThan(0.49);
+            veryHighNoise[0].Should().BeLessThan(0.50);
+
+            double[] Helper(double noise)
+            {
+                DiscreteValueSignalParameters dvsParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = numTrueValues, NumSignals = numSignals, StdevOfNormalDistribution = noise, StdevOfNormalDistributionForCutoffPoints = null, SourcePointsIncludeExtremes = false };
+                double[] probabilitiesSignal_HigherTrueValue = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(numTrueValues, dvsParams);
+                Math.Abs(probabilitiesSignal_HigherTrueValue.Sum() - 1.0).Should().BeLessThan(0.0001);
+                double[] probabilitiesSignal_LowerTrueValue = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(1, dvsParams);
+                Math.Abs(probabilitiesSignal_LowerTrueValue.Sum() - 1.0).Should().BeLessThan(0.0001);
+                double[] probabilityHigherTrueValue_signalStrength = probabilitiesSignal_HigherTrueValue.Zip(probabilitiesSignal_LowerTrueValue, (tl, tnl) => (tl == 0 && tnl == 0) ? 1 : tl / (tl + tnl)).ToArray();
+                return probabilityHigherTrueValue_signalStrength;
+            }
         }
 
         private static void GetInformationSetStrings(LitigGameProgress myGameProgress, out string pInformationSet,

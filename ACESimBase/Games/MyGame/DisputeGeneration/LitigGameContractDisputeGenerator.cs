@@ -1,4 +1,5 @@
 using ACESim.Util;
+using ACESimBase.Util;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -41,7 +42,7 @@ namespace ACESim
         {
             // We need to determine the probability of different liability strengths 
             ProbabilityLiabilityStrength = new double[NumBenefitLevels][];
-            DiscreteValueSignalParameters dsParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = NumBenefitLevels, NumSignals = myGameDefinition.Options.NumLiabilityStrengthPoints, StdevOfNormalDistribution = StdevNoiseToProduceLiabilityStrength, UseEndpoints = true };
+            DiscreteValueSignalParameters dsParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = NumBenefitLevels, NumSignals = myGameDefinition.Options.NumLiabilityStrengthPoints, StdevOfNormalDistribution = StdevNoiseToProduceLiabilityStrength, SourcePointsIncludeExtremes = true };
             for (byte a = 1; a <= NumBenefitLevels; a++)
             {
                 // When the benefit to the defendant is low, then the plaintiff has a good claim -- defendant is only allowed to take the benefit when it is high.

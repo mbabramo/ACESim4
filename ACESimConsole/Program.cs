@@ -27,7 +27,7 @@ namespace ACESim
             AdditiveEvidenceGame
         }
 
-        public static AvailableGames GameToPlay = AvailableGames.AdditiveEvidenceGame; 
+        public static AvailableGames GameToPlay = AvailableGames.LitigGame; 
 
         [STAThread]
         public static async Task Main(string[] args)
