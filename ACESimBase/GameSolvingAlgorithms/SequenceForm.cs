@@ -26,7 +26,7 @@ namespace ACESimBase.GameSolvingAlgorithms
         }
         SequenceFormApproach Approach = SequenceFormApproach.ECTA;
 
-        bool ProduceEFGFile = false;
+        bool ProduceEFGFile = true; // DEBUG
 
 
         public SequenceForm(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
@@ -47,7 +47,9 @@ namespace ACESimBase.GameSolvingAlgorithms
             GameDefinition.MakeAllChanceDecisionsKnowAllChanceActions(); // since there is just one chance player, each chance (and resolution) player must know all other chance decisions for ECTA algorithm to work properly
             AllowSkipEveryPermutationInitialization = false;
             StoreGameStateNodesInLists = true;
+            EvolutionSettings.DistributeChanceDecisions = true; // DEBUG
             await base.Initialize();
+            PrintGameTree(); // DEBUG
             InitializeInformationSets();
             if (!EvolutionSettings.CreateInformationSetCharts) // otherwise this will already have been run
                 InformationSetNode.IdentifyNodeRelationships(InformationSets);
@@ -60,9 +62,9 @@ namespace ACESimBase.GameSolvingAlgorithms
 
             if (Approach == SequenceFormApproach.ECTA)
             {
-                await ExecuteECTA(reportCollection);
                 if (ProduceEFGFile)
                     await UseGambitToCalculateEquilibrium(null, true);
+                await ExecuteECTA(reportCollection);
             }
             else if (Approach == SequenceFormApproach.Gambit)
             {

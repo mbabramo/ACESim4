@@ -354,9 +354,9 @@ namespace ACESim
         {
             var options = BaseOptions();
 
-            options.NumOffers = 5;
-            options.NumLiabilityStrengthPoints = 5;
-            options.NumLiabilitySignals = 5;
+            options.NumOffers = 2; // DEBUG 5;
+            options.NumLiabilityStrengthPoints = 2; // DEBUG 5;
+            options.NumLiabilitySignals = 2; // DEBUG 5;
 
             options.NumDamagesSignals = 1;
             options.NumDamagesStrengthPoints = 1;
