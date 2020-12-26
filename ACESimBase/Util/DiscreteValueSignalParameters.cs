@@ -11,7 +11,7 @@ namespace ACESim.Util
     {
         public int NumPointsInSourceUniformDistribution;
         public double StdevOfNormalDistribution;
-        public double? StdevOfNormalDistributionForCutoffPoints;
+        public double? StdevOfNormalDistributionForCutoffPoints; // DEBUG -- eliminate when eliminating DiscreteValueSignalOld
         public int NumSignals;
         public bool SourcePointsIncludeExtremes;
 

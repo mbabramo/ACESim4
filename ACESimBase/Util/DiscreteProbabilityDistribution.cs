@@ -105,8 +105,7 @@ namespace ACESimBase.Util
         /// <returns></returns>
         private static bool AdvanceIndexTracker(int[] dimensions, int[] indexTracker)
         {
-
-            for (int i = dimensions.Length - 1; i >= 0; i++)
+            for (int i = dimensions.Length - 1; i >= 0; i--)
             {
                 indexTracker[i]++;
                 if (indexTracker[i] == dimensions[i])
@@ -119,6 +118,33 @@ namespace ACESimBase.Util
                     break;
             }
             return false;
+        }
+
+
+        /// <summary>
+        /// Calculate the probability of all possible values in some column (the distribution column) given a particular value in some other column (the fixed column).
+        /// </summary>
+        /// <param name="flattenedProbabilities"></param>
+        /// <param name="dimensions"></param>
+        /// <param name="distributionColumnIndex"></param>
+        /// <param name="fixedColumnIndex"></param>
+        /// <param name="fixedColumnValue"></param>
+        /// <returns></returns>
+        public static double[] CalculateProbabilitiesFromMap(double[] flattenedProbabilities, int[] dimensions, int distributionColumnIndex, int? fixedColumnIndex = null, int? fixedColumnValue = null)
+        {
+            int numValuesVariableColumn = dimensions[distributionColumnIndex];
+            double[] results = new double[numValuesVariableColumn];
+            int?[] numeratorIndices = new int?[dimensions.Length];
+            int?[] denominatorIndices = new int?[dimensions.Length];
+            if (fixedColumnIndex != null)
+            denominatorIndices[(int) fixedColumnIndex] = fixedColumnValue;
+            int[] currentIndexTracker = new int[dimensions.Length];
+            for (int i = 0; i < numValuesVariableColumn; i++)
+            {
+                numeratorIndices[distributionColumnIndex] = i;
+                results[i] = CalculateProbabilityFromMap(flattenedProbabilities, dimensions, numeratorIndices, denominatorIndices, currentIndexTracker);
+            }
+            return results;
         }
 
         /// <summary>
@@ -157,14 +183,13 @@ namespace ACESimBase.Util
                         combinedNumeratorProbability += flattenedProbabilities[probabilitiesIndex];
                 }
                 done = AdvanceIndexTracker(dimensions, currentIndexTracker);
+                probabilitiesIndex++;
             }
             return combinedNumeratorProbability / combinedDenominatorProbability;
         }
 
         public static double[] BuildProbabilityMapBasedOnDiscreteValueSignals(int[] dimensions, double[] domainProbabilities, int startIndex, List<(int sourceSignalIndex, bool sourceIncludesExtremes, double stdev)> producingExtraDimensions)
         {
-            if (startIndex + producingExtraDimensions.Count() + 1 != dimensions.Length)
-                throw new ArgumentException();
             double[] crossProductProbabilities = null;
             for (int d = 1; d < dimensions.Length; d++)
             {
@@ -184,7 +209,7 @@ namespace ACESimBase.Util
                 crossProductProbabilities = BuildProbabilityMap((int domainIndex, int rangeIndex) =>
                 {
                     int discreteValueSignalIndex = incomingCrossProducts[domainIndex][instruction.sourceSignalIndex];
-                    double probability = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(discreteValueSignalIndex, dvsParams)[rangeIndex];
+                    double probability = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(discreteValueSignalIndex + 1 /* DiscreteValueSignal expects 1-based action */, dvsParams)[rangeIndex];
                     return probability;
                 }, dimensions[d], domainProbabilities);
                 domainProbabilities = crossProductProbabilities;

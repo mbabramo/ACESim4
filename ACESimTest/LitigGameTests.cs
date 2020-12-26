@@ -6,6 +6,8 @@ using ACESim;
 using ACESim.Util;
 using ACESimBase.Util;
 using FluentAssertions;
+using JetBrains.Annotations;
+using MathNet.Numerics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ACESimTest
@@ -126,6 +128,59 @@ namespace ACESimTest
                 double[] probabilityHigherTrueValue_signalStrength = probabilitiesSignal_HigherTrueValue.Zip(probabilitiesSignal_LowerTrueValue, (tl, tnl) => (tl == 0 && tnl == 0) ? 1 : tl / (tl + tnl)).ToArray();
                 return probabilityHigherTrueValue_signalStrength;
             }
+        }
+
+        [TestMethod]
+        public void DiscreteSignalsProbabilityMap()
+        {
+            int[] dimensions = new int[] { 2, 5 }; // 2 true values => 5 litigation quality levels 
+            double[] prior = new double[] { 0.3, 0.7 };
+            double[] probabilities = DiscreteProbabilityDistribution.BuildProbabilityMapBasedOnDiscreteValueSignals(dimensions, prior, 1, new List<(int sourceSignalIndex, bool sourceIncludesExtremes, double stdev)>()
+            {
+                (0 /* taking from two initial values */, true /* which map onto extreme values of 0 and 1 */, 0.2 /* adding noise */), // produce 5 litigation quality levels based on 2 initial levels
+            });
+            var qualityWhenTrueValueIs0 = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 1, 0, 0);
+            var qualityWhenTrueValueIs1 = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 1, 0, 1);
+            var trueValueWhenQualityIs2 = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 0, 1, 2); // should be essentially equal to prior distribution
+            trueValueWhenQualityIs2[0].Should().BeApproximately(prior[0], 0.0001);
+            var trueValueWhenQualityIs3 = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 0, 1, 3); 
+            var trueValueWhenQualityIs4 = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 0, 1, 4); // should be very high probability of high true quality
+            trueValueWhenQualityIs4[1].Should().BeGreaterThan(0.95);
+            int[][] crossProducts = DiscreteProbabilityDistribution.GetCrossProductsOfDiscreteRanges(dimensions);
+            var zipped = crossProducts.Zip(probabilities).ToList();
+        }
+
+        [TestMethod]
+        public void DiscreteSignalsProbabilityMap_MultipleLevels()
+        {
+            int[] dimensions = new int[] { 2, 5, 10, 10, 2 }; // 2 true values => 5 litigation quality levels => 10 signal levels for plaintiff and defendant, 2 for judge
+            double[] prior = new double[] { 0.3, 0.7 };
+            double[] probabilities = DiscreteProbabilityDistribution.BuildProbabilityMapBasedOnDiscreteValueSignals(dimensions, prior, 1, new List<(int sourceSignalIndex, bool sourceIncludesExtremes, double stdev)>()
+            {
+                (0 /* taking from two initial values */, true /* which map onto extreme values of 0 and 1 */, 0.25 /* adding noise */), // produce 5 litigation quality levels based on 2 initial levels
+                (1 /* values just produced */, false /* from zero to one but excluding extremes */, 0.5 /* adding noise */), // produce 10 signals based on 5 initial levels
+                (1 /* values just produced */, false /* from zero to one but excluding extremes */, 0.1 /* low noise */), // produce 10 signals based on 5 initial levels
+                (1 /* values just produced */, false /* from zero to one but excluding extremes */, 0.3 /* medium noise */), // produce 2 signals based on 5 initial levels
+            });
+            int[][] crossProducts = DiscreteProbabilityDistribution.GetCrossProductsOfDiscreteRanges(dimensions);
+
+            // now do things in reverse to make sure we get back to the beginning
+            var unconditionalPartySignal = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 2);
+            var highTrueValueAsAFunctionOfPartySignal = Enumerable.Range(0, 10).Select(x => DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 0, 2, x)[1]).ToArray();
+            double probabilityTrueValue = Enumerable.Range(0, 10).Sum(x => unconditionalPartySignal[x] * highTrueValueAsAFunctionOfPartySignal[x]);
+            probabilityTrueValue.Should().BeApproximately(prior[1], 0.0001);
+
+            // some other calculations (unverified)
+            var qualityWhenTrueValueIs0 = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 1, 0, 0);
+            var partySignalWhenQualityIs0 = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 2, 1, 0); // note that most extreme signal may be less likely because a 0 quality variable corresponds to something > 0
+            var partySignalWhenTrueValueIs0 = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 2, 0, 0);
+            var trueValueWhenPartySignalIs7 = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 0, 2, 7);
+            var courtDecisionWhenTrueValueIs0 = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 4, 0, 0);
+            var courtDecisionWhenTrueValueIs1 = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 4, 0, 1);
+
+            // Note: The court signal makes it a non-Bayesian decisionmaker. It doesn't take into account the prior probabilities that the true value is 0 or 1. It's just a signal. But we could work back from the signal to figure out the probability of the true value. If the court uses this approach, then the court is a Bayesian decisionmaker (but still ignores the party signals). 
+            var trueValueGivenCourtSignalOf0 = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 0, 4, 0);
+            var trueValueGivenCourtSignalOf1 = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 0, 4, 1);
         }
 
         private static void GetInformationSetStrings(LitigGameProgress myGameProgress, out string pInformationSet,
