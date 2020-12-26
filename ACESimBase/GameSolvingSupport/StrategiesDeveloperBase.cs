@@ -1166,30 +1166,33 @@ namespace ACESim
             GameHistoryTree = new NWayTreeStorageInternal<IGameState>(null, GameDefinition.DecisionsExecutionOrder.First().NumPossibleActions);
 
             if (!SkipEveryPermutationInitialization)
-            {
-                TabbedText.WriteLine("Initializing all game paths...");
-                Stopwatch stopwatch = new Stopwatch();
-                stopwatch.Start();
-                TreeWalk_Tree(new WalkOnly());
-                // slower approach commented out
-                //NumInitializedGamePaths = 0;
-                //var originalLookup = Navigation.LookupApproach;
-                //Navigation = Navigation.WithLookupApproach(InformationSetLookupApproach.PlayUnderlyingGame);
-                //await ProcessAllPathsAsync(GetStartOfGameHistoryPoint(), (historyPoint, probability) => ProcessInitializedGameProgressAsync(historyPoint, probability));
-                //Navigation = Navigation.WithLookupApproach(originalLookup);
-                // old approach commented out (we've now deleted PlayAllPaths after trouble using it)
-                //NumInitializedGamePaths = GamePlayer.PlayAllPaths(ProcessInitializedGameProgress);
-                // TODO: We could probably make things a lot faster if we used our tree algorithm, but added support for reversing a step in games. That is, it would play the actual game, but would reverse as necessary. 
-                stopwatch.Stop();
-                string informationSetsString = StoreGameStateNodesInLists ? $" Total information sets: {InformationSets.Count()} chance nodes: {ChanceNodes.Count()} final nodes: {FinalUtilitiesNodes.Count()}" : "";
-                TabbedText.WriteLine($"... {informationSetsString} Initialization milliseconds {stopwatch.ElapsedMilliseconds}");
-            }
+                InitializeAllGamePaths();
 
             DistributeChanceDecisions();
             PrepareAcceleratedBestResponse();
             CalculateMinMax();
 
             return Task.CompletedTask;
+        }
+
+        public void InitializeAllGamePaths()
+        {
+            TabbedText.WriteLine("Initializing all game paths...");
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+            TreeWalk_Tree(new WalkOnly());
+            // slower approach commented out
+            //NumInitializedGamePaths = 0;
+            //var originalLookup = Navigation.LookupApproach;
+            //Navigation = Navigation.WithLookupApproach(InformationSetLookupApproach.PlayUnderlyingGame);
+            //await ProcessAllPathsAsync(GetStartOfGameHistoryPoint(), (historyPoint, probability) => ProcessInitializedGameProgressAsync(historyPoint, probability));
+            //Navigation = Navigation.WithLookupApproach(originalLookup);
+            // old approach commented out (we've now deleted PlayAllPaths after trouble using it)
+            //NumInitializedGamePaths = GamePlayer.PlayAllPaths(ProcessInitializedGameProgress);
+            // TODO: We could probably make things a lot faster if we used our tree algorithm, but added support for reversing a step in games. That is, it would play the actual game, but would reverse as necessary. 
+            stopwatch.Stop();
+            string informationSetsString = StoreGameStateNodesInLists ? $" Total information sets: {InformationSets.Count()} chance nodes: {ChanceNodes.Count()} final nodes: {FinalUtilitiesNodes.Count()}" : "";
+            TabbedText.WriteLine($"... {informationSetsString} Initialization milliseconds {stopwatch.ElapsedMilliseconds}");
         }
 
         public void CalculateMinMax()
@@ -2514,7 +2517,11 @@ namespace ACESim
                     correspondingNode = unequal; // this must be the flattened one
                     chanceNodeAggregationDictionary[key] = unequal;
                 }
-                //TabbedText.WriteLine($"Registering decision {decision.Name} with probability {piChance}: distributor chance inputs {distributorChanceInputs} key {key} probabilities to distribute: {String.Join(",", probabilities)}");
+                if (chanceNode.Decision.ToString().Contains("CourtLiability"))
+                {
+                    var DEBUG = 0;
+                }
+                TabbedText.WriteLine($"Registering decision {decision.Name} with probability {piChance}: distributor chance inputs {distributorChanceInputs} key {key} probabilities to distribute: {String.Join(",", probabilities)}"); // DEBUG -- Uncomment this
                 correspondingNode.RegisterProbabilityForDistributorChanceInput(piChance, distributorChanceInputs, probabilities);
                 if (decision.DistributorChanceDecision)
                 {

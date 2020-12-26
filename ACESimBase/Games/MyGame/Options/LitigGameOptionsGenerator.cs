@@ -371,10 +371,10 @@ namespace ACESim
             options.LoserPays = false;
             options.LoserPaysMultiple = 1.0;
 
-            options.SkipFileAndAnswerDecisions = false;
+            options.SkipFileAndAnswerDecisions = true; // DEBUG
             options.NumPotentialBargainingRounds = 1;
             options.IncludeAgreementToBargainDecisions = false;
-            options.AllowAbandonAndDefaults = true;
+            options.AllowAbandonAndDefaults = false; // DEBUG
 
             return options;
         }

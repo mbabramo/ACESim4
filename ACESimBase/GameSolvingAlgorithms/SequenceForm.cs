@@ -45,11 +45,12 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         public override async Task Initialize()
         {
+            // DEBUG if (EvolutionSettings.DistributeChanceDecisions)
+                //throw new NotImplementedException(); // The problem right now is that the next line sets things up so that each 
             GameDefinition.MakeAllChanceDecisionsKnowAllChanceActions(); // since there is just one chance player, each chance (and resolution) player must know all other chance decisions for ECTA algorithm to work properly
             AllowSkipEveryPermutationInitialization = false;
             StoreGameStateNodesInLists = true;
             await base.Initialize();
-            PrintGameTree(); // DEBUG
             InitializeInformationSets();
             if (!EvolutionSettings.CreateInformationSetCharts) // otherwise this will already have been run
                 InformationSetNode.IdentifyNodeRelationships(InformationSets);
@@ -333,7 +334,12 @@ namespace ACESimBase.GameSolvingAlgorithms
                         // chance player
                         var chance = InformationSetInfos[infoSetIndex].ChanceNode;
                         var rational = chance.GetActionProbabilityAsRational(1000, moveNumber);
-                        t.moves[moveIndex].behavprob = rational.Item1 / (Rational) rational.Item2;
+                        if (chance.Decision.DistributedChanceDecision && EvolutionSettings.DistributeChanceDecisions)
+                        {
+                            t.moves[moveIndex].behavprob = moveNumber == 1 ? (Rational)1 : (Rational)0;
+                        }
+                        else
+                            t.moves[moveIndex].behavprob = rational.Item1 / (Rational) rational.Item2;
                     }
                 }
             }
@@ -556,6 +562,15 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         private async Task SetEquilibria(List<List<double>> equilibria, ReportCollection reportCollection)
         {
+            //if (EvolutionSettings.DistributeChanceDecisions)
+            //{ // DEBUG
+            //    EvolutionSettings.DistributeChanceDecisions = false;
+            //    GameHistoryTree = null;
+            //    InitializeAllGamePaths();
+            //    PrintGameTree();
+            //    GameHistoryTree = null;
+            //    EvolutionSettings.DistributeChanceDecisions = true;
+            //}
             const bool useCorrelatedEquilibriumIfPossible = true;
             bool useCorrelatedEquilibrium = useCorrelatedEquilibriumIfPossible && equilibria.Count() > 1;
             int numEquilibria = equilibria.Count();
@@ -621,7 +636,7 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         private string CreateGambitFile()
         {
-            EFGFileCreator efgCreator = new EFGFileCreator(GameDefinition.OptionSetName, GameDefinition.NonChancePlayerNames);
+            EFGFileCreator efgCreator = new EFGFileCreator(GameDefinition.OptionSetName, GameDefinition.NonChancePlayerNames, EvolutionSettings.DistributeChanceDecisions);
             TreeWalk_Tree(efgCreator);
             string efgResult = efgCreator.FileText.ToString();
             DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");

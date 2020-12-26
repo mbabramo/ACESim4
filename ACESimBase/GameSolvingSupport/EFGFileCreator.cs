@@ -11,11 +11,13 @@ namespace ACESimBase.GameSolvingSupport
     {
         public StringBuilder FileText = new StringBuilder();
         int Level = 0;
+        bool DistributeChanceDecisions;
 
 
-        public EFGFileCreator(string gameName, IEnumerable<string> playerNames)
+        public EFGFileCreator(string gameName, IEnumerable<string> playerNames, bool distributeChanceDecisions)
         {
             FileText.AppendLine($"EFG 2 R \"{gameName}\" {{ {String.Join(" ", playerNames.Select(x => $"\"{x}\""))} }} ");
+            DistributeChanceDecisions = distributeChanceDecisions;
         }
 
         int numDecimalPlaces = 4;
@@ -46,7 +48,19 @@ namespace ACESimBase.GameSolvingSupport
             {
                 Level++;
                 AppendTabs();
-                FileText.AppendLine($"c \"C:{chanceNode.Decision.Abbreviation};Node{chanceNode.ChanceNodeNumber + 1}\" {chanceNode.ChanceNodeNumber + 1} \"\" {GetChanceActionsList(chanceNode.GetActionProbabilitiesDecimal(distributorChanceInputs))} 0");
+                string chanceActionsList;
+                if (DistributeChanceDecisions && chanceNode.Decision.DistributedChanceDecision)
+                {
+                    chanceActionsList = "{ \"1\" 1.000 }";
+                }
+                else
+                    chanceActionsList = GetChanceActionsList(chanceNode.GetActionProbabilitiesDecimal(distributorChanceInputs));
+                FileText.AppendLine($"c \"C:{chanceNode.Decision.Abbreviation};Node{chanceNode.ChanceNodeNumber + 1}\" {chanceNode.ChanceNodeNumber + 1} \"\" {chanceActionsList} 0");
+                if (distributorChanceInputs == 8)
+                {
+                    var DEBUG = 0;
+                }
+                TabbedText.WriteLine($"{chanceNode.Decision} {chanceNode.ChanceNodeNumber} distributor chance inputs {distributorChanceInputs} probabilities {String.Join(",", chanceNode.GetActionProbabilitiesDecimal(distributorChanceInputs))}"); // DEBUG
             }
             return true; // ignored
         }
