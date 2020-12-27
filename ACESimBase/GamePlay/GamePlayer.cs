@@ -99,6 +99,8 @@ namespace ACESim
             GameProgress gameProgress = StartingProgress.DeepCopy();
             Game game = GameDefinition.GameFactory.CreateNewGame(Strategies, gameProgress, GameDefinition, false, true, true);
             game.AdvanceToOrCompleteNextStep();
+            while (GameDefinition.SkipDecision(game.CurrentDecision, gameProgress.GameHistory))
+                game.AdvanceToOrCompleteNextStep();
             return (game, gameProgress);
         }
 
