@@ -156,7 +156,7 @@ namespace ACESim
                 case (byte)LitigGameDecisions.CourtDecisionLiability:
                     MyProgress.TrialOccurs = true;
                     MyProgress.PWinsAtTrial = MyDefinition.Options.NumLiabilitySignals == 1 /* IMPORTANT: This highlights that when there is only one liability signal, the court ALWAYS finds liability */ || 
-                        action == 2; 
+                        action == 2 /* signal must be the HIGH value for plaintiff to win */; 
                     if (MyProgress.PWinsAtTrial == false)
                     {
                         MyProgress.DamagesAwarded = 0;

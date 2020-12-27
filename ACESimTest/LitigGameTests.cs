@@ -135,7 +135,7 @@ namespace ACESimTest
         {
             int[] dimensions = new int[] { 2, 5 }; // 2 true values => 5 litigation quality levels 
             double[] prior = new double[] { 0.3, 0.7 };
-            double[] probabilities = DiscreteProbabilityDistribution.BuildProbabilityMapBasedOnDiscreteValueSignals(dimensions, prior, 1, new List<(int sourceSignalIndex, bool sourceIncludesExtremes, double stdev)>()
+            double[] probabilities = DiscreteProbabilityDistribution.BuildProbabilityMapBasedOnDiscreteValueSignals(dimensions, prior, new List<(int sourceSignalIndex, bool sourceIncludesExtremes, double stdev)>()
             {
                 (0 /* taking from two initial values */, true /* which map onto extreme values of 0 and 1 */, 0.2 /* adding noise */), // produce 5 litigation quality levels based on 2 initial levels
             });
@@ -155,7 +155,7 @@ namespace ACESimTest
         {
             int[] dimensions = new int[] { 2, 5, 10, 10, 2 }; // 2 true values => 5 litigation quality levels => 10 signal levels for plaintiff and defendant, 2 for judge
             double[] prior = new double[] { 0.3, 0.7 };
-            double[] probabilities = DiscreteProbabilityDistribution.BuildProbabilityMapBasedOnDiscreteValueSignals(dimensions, prior, 1, new List<(int sourceSignalIndex, bool sourceIncludesExtremes, double stdev)>()
+            double[] probabilities = DiscreteProbabilityDistribution.BuildProbabilityMapBasedOnDiscreteValueSignals(dimensions, prior, new List<(int sourceSignalIndex, bool sourceIncludesExtremes, double stdev)>()
             {
                 (0 /* taking from two initial values */, true /* which map onto extreme values of 0 and 1 */, 0.25 /* adding noise */), // produce 5 litigation quality levels based on 2 initial levels
                 (1 /* values just produced */, false /* from zero to one but excluding extremes */, 0.5 /* adding noise */), // produce 10 signals based on 5 initial levels
@@ -170,6 +170,10 @@ namespace ACESimTest
             double probabilityTrueValue = Enumerable.Range(0, 10).Sum(x => unconditionalPartySignal[x] * highTrueValueAsAFunctionOfPartySignal[x]);
             probabilityTrueValue.Should().BeApproximately(prior[1], 0.0001);
 
+            // figure out the probability distribution of one party's signals given the other party's.
+            var secondProbabilitySignalsGivenThirdPartySignals = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 2, 3);
+            var thirdProbabilitySignalsGivenSecondPartySignals = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 3, 2);
+
             // some other calculations (unverified)
             var qualityWhenTrueValueIs0 = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 1, 0, 0);
             var partySignalWhenQualityIs0 = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 2, 1, 0); // note that most extreme signal may be less likely because a 0 quality variable corresponds to something > 0
@@ -178,9 +182,71 @@ namespace ACESimTest
             var courtDecisionWhenTrueValueIs0 = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 4, 0, 0);
             var courtDecisionWhenTrueValueIs1 = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 4, 0, 1);
 
+            double[][] courtDecisionGivenPartySignals = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 4, new List<int> { 2, 3 });
+            (courtDecisionGivenPartySignals[99][1] > courtDecisionGivenPartySignals[0][1]).Should().BeTrue();
+
             // Note: The court signal makes it a non-Bayesian decisionmaker. It doesn't take into account the prior probabilities that the true value is 0 or 1. It's just a signal. But we could work back from the signal to figure out the probability of the true value. If the court uses this approach, then the court is a Bayesian decisionmaker (but still ignores the party signals). 
             var trueValueGivenCourtSignalOf0 = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 0, 4, 0);
             var trueValueGivenCourtSignalOf1 = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 0, 4, 1);
+        }
+
+        [TestMethod]
+        public void DiscreteSignalsProbabilityMap_Calculators()
+        {
+            double priorTrueValue0 = 0.3;
+            int plaintiffsSignal = 6;
+            int defendantsSignal = 9;
+            int courtSignal = 1;
+            int litigationQuality = 4;
+            double[] defendantsSignalDistribution;
+            double[] courtSignalDistribution;
+            double[] litigationQualityDistribution;
+            double[] trueValueDistribution;
+
+            BuildCalculators();
+            defendantsSignalDistribution[8].Should().BeGreaterThan(defendantsSignalDistribution[1]);
+            courtSignalDistribution[1].Should().BeGreaterThan(0.50);
+            litigationQualityDistribution[4].Should().BeGreaterThan(litigationQualityDistribution[0]);
+            trueValueDistribution[1].Should().BeGreaterThan(0.95); // we've stacked the deck to a high value with high signals by plaintiff, defendant, and court, plus a prior distribution in favor of high true quality.
+
+            priorTrueValue0 = 0.5;
+            plaintiffsSignal = 5;
+            defendantsSignal = 4;
+            BuildCalculators();
+            courtSignalDistribution[1].Should().BeApproximately(0.50, 0.0001);
+
+            void BuildCalculators()
+            {
+                int[] dimensions = new int[] { 2, 5, 10, 10, 2 }; // 2 true values => 5 litigation quality levels => 10 signal levels for plaintiff and defendant, 2 for judge
+                double[] prior = new double[] { priorTrueValue0, 1.0 - priorTrueValue0 };
+                var producingExtraDimensions = new List<(int sourceSignalIndex, bool sourceIncludesExtremes, double stdev)>()
+                {
+                    (0 /* taking from two initial values */, true /* which map onto extreme values of 0 and 1 */, 0.25 /* adding noise */), // produce 5 litigation quality levels based on 2 initial levels
+                    (1 /* values just produced */, false /* from zero to one but excluding extremes */, 0.1 /* low noise */), // produce 10 signals based on 5 initial levels
+                    (1 /* values just produced */, false /* from zero to one but excluding extremes */, 0.1 /* low noise */), // produce 10 signals based on 5 initial levels
+                    (1 /* values just produced */, false /* from zero to one but excluding extremes */, 0.3 /* medium noise */), // produce 2 signals based on 5 initial levels
+                };
+                    int trueValueVariableIndex = 0;
+                    int litigationQualityVariableIndex = 1;
+                    int plaintiffSignalVariableIndex = 2;
+                    int defendantSignalVariableIndex = 3;
+                    int courtDecisionVariableIndex = 4;
+                    var calculatorsToProduce = new List<(int distributionVariableIndex, List<int> fixedVariableIndices)>()
+                {
+                    (defendantSignalVariableIndex, new List<int>() { plaintiffSignalVariableIndex }), // defendant's signal based on plaintiff's signal
+                    (courtDecisionVariableIndex, new List<int>() { plaintiffSignalVariableIndex, defendantSignalVariableIndex}), // court liability based on plaintiff's and defendant's signals
+                    (litigationQualityVariableIndex, new List<int>() { plaintiffSignalVariableIndex, defendantSignalVariableIndex, courtDecisionVariableIndex }), // litigation quality based on all of above
+                    (trueValueVariableIndex, new List<int>() { plaintiffSignalVariableIndex, defendantSignalVariableIndex, courtDecisionVariableIndex, litigationQualityVariableIndex, }) // true value based on all of the above
+                };
+
+                var calculators = DiscreteProbabilityDistribution.GetProbabilityMapCalculators(dimensions, prior, producingExtraDimensions, calculatorsToProduce);
+
+                int calculatorIndex = 0;
+                defendantsSignalDistribution = calculators[calculatorIndex++](new List<int>() { plaintiffsSignal });
+                courtSignalDistribution = calculators[calculatorIndex++](new List<int>() { plaintiffsSignal, defendantsSignal });
+                litigationQualityDistribution = calculators[calculatorIndex++](new List<int>() { plaintiffsSignal, defendantsSignal, courtSignal });
+                trueValueDistribution = calculators[calculatorIndex++](new List<int>() { plaintiffsSignal, defendantsSignal, courtSignal, litigationQuality });
+            }
         }
 
         private static void GetInformationSetStrings(LitigGameProgress myGameProgress, out string pInformationSet,
