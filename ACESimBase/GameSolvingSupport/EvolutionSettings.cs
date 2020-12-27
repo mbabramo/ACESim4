@@ -89,7 +89,7 @@ namespace ACESim
         internal int NumRandomIterationsForUtilityCalculation = 1000;
         internal bool SuppressReportDisplayOnScreen;
 
-        public int SequenceFormNumPriorsToUseToGenerateEquilibria = 100; // DEBUG // Potentially we may end up with this many equilibria, but often different priors lead to the same equilibrium
+        public int SequenceFormNumPriorsToUseToGenerateEquilibria = 10; // DEBUG // Potentially we may end up with this many equilibria, but often different priors lead to the same equilibrium
 
         public static bool PruneOnOpponentStrategy = true; // NOTE: In general sum games, this seemed to cause difficulties at one point, because some of the player's own information sets may not be visited, as a result of pruning on opponents' sets. Also, note that this cannot be used with symmetric games.
         public static double PruneOnOpponentStrategyThreshold = 1E-4; // NOTE: This is the probability for this action, not the cumulative probability. Meanwhile, this is not looked at directly during the generalized tree walk. This value affects only the updating of the information sets, by setting pruned probability to the smallest value possible (a positive value about 1). Pruning will then happen in turn in the tree walk.
@@ -112,7 +112,7 @@ namespace ACESim
         public bool DeepCFR_SeparateObservationsForIdenticalGameProgressTreeItems = true; // relevant only if UseWeightedData is false; with separate observations, the number of observations is proportional to their frequency in the regression; this takes longer but produces more accurate results
         public int DeepCFR_MaximumTotalObservationsPerIteration = 100_000; // when not using gameprogresstree, after this number of observations, we stop looking for more observations, even if we haven't gotten enough to fill as many iterations as desired in one or more reservoirs (in which case, we rely more on earlier observations)
 
-        public bool PCA_PerformPrincipalComponentAnalysis = false; // DEBUG
+        public bool PCA_PerformPrincipalComponentAnalysis = false; 
         public double PCA_Precision = 1E-5;
         public int PCA_FirstIterationToSaveAsPCAObservation = 11; 
         public int PCA_SavePCAObservationEveryNIterationsAfterFirst = 1;

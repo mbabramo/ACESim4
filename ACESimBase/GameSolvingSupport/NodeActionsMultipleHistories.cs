@@ -73,7 +73,7 @@ namespace ACESimBase.GameSolvingSupport
             {
                 var (bestResponseValue, utilityValue, customResult) = pathToSuccessorForAction.GetProbabilityAdjustedUtilityOfPath(playerIndex, useCurrentStrategyForPathProbabilities);
                 if (double.IsNaN(utilityValue))
-                    throw new Exception("DEBUG");
+                    throw new Exception();
                 cumulativeBestResponseValue += bestResponseValue;
                 cumulativeUtilityValue += utilityValue;
                 cumulativeCustomResult = cumulativeCustomResult.Plus(customResult);

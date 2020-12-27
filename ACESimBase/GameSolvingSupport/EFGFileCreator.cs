@@ -56,11 +56,7 @@ namespace ACESimBase.GameSolvingSupport
                 else
                     chanceActionsList = GetChanceActionsList(chanceNode.GetActionProbabilitiesDecimal(distributorChanceInputs));
                 FileText.AppendLine($"c \"C:{chanceNode.Decision.Abbreviation};Node{chanceNode.ChanceNodeNumber + 1}\" {chanceNode.ChanceNodeNumber + 1} \"\" {chanceActionsList} 0");
-                if (distributorChanceInputs == 8)
-                {
-                    var DEBUG = 0;
-                }
-                TabbedText.WriteLine($"{chanceNode.Decision} {chanceNode.ChanceNodeNumber} distributor chance inputs {distributorChanceInputs} probabilities {String.Join(",", chanceNode.GetActionProbabilitiesDecimal(distributorChanceInputs))}"); // DEBUG
+                // TabbedText.WriteLine($"{chanceNode.Decision} {chanceNode.ChanceNodeNumber} distributor chance inputs {distributorChanceInputs} probabilities {String.Join(",", chanceNode.GetActionProbabilitiesDecimal(distributorChanceInputs))}"); // DEBUG
             }
             return true; // ignored
         }

@@ -93,7 +93,7 @@ namespace ACESimTest
 
             double[] Helper(double noise)
             {
-                DiscreteValueSignalParameters dvsParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = numTrueValues, NumSignals = numSignals, StdevOfNormalDistribution = noise, StdevOfNormalDistributionForCutoffPoints = null, SourcePointsIncludeExtremes = true };
+                DiscreteValueSignalParameters dvsParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = numTrueValues, NumSignals = numSignals, StdevOfNormalDistribution = noise, SourcePointsIncludeExtremes = true };
                 double[] probabilitiesSignal_HigherTrueValue = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(2, dvsParams);
                 Math.Abs(probabilitiesSignal_HigherTrueValue.Sum() - 1.0).Should().BeLessThan(0.0001);
                 double[] probabilitiesSignal_LowerTrueValue = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(1, dvsParams);
@@ -120,7 +120,7 @@ namespace ACESimTest
 
             double[] Helper(double noise)
             {
-                DiscreteValueSignalParameters dvsParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = numTrueValues, NumSignals = numSignals, StdevOfNormalDistribution = noise, StdevOfNormalDistributionForCutoffPoints = null, SourcePointsIncludeExtremes = false };
+                DiscreteValueSignalParameters dvsParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = numTrueValues, NumSignals = numSignals, StdevOfNormalDistribution = noise, SourcePointsIncludeExtremes = false };
                 double[] probabilitiesSignal_HigherTrueValue = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(numTrueValues, dvsParams);
                 Math.Abs(probabilitiesSignal_HigherTrueValue.Sum() - 1.0).Should().BeLessThan(0.0001);
                 double[] probabilitiesSignal_LowerTrueValue = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(1, dvsParams);
@@ -333,7 +333,6 @@ namespace ACESimTest
 
         private string ConstructExpectedResolutionSet(byte liabilityStrength, bool allowDamagesVariation, byte damagesStrength, bool pFiles, bool dAnswers, HowToSimulateBargainingFailure simulatingBargainingFailure, List<(byte? pMove, byte? dMove)> bargainingRounds, bool simultaneousBargainingRounds, bool simultaneousOffersUltimatelyRevealed, bool settlementReachedInLastRoundCompleted, bool allowAbandonAndDefault, bool pReadyToAbandonLastRound, bool dReadyToDefaultLastRound, bool ifBothDefaultPlaintiffLoses, bool caseGoesToTrial, byte liabilityResultAtTrial, byte damagesResultIfAllowVariation, SideBetChallenges sideBetChallenges, RunningSideBetChallenges runningSideBetChallenges)
         {
-            // DEBUG -- we might not add liability strength and damages strength to resolution set.
             var l = new List<byte> {liabilityStrength};
             if (allowDamagesVariation)
                 l.Add(damagesStrength);

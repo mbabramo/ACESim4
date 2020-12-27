@@ -11,7 +11,6 @@ namespace ACESim.Util
     {
         public int NumPointsInSourceUniformDistribution;
         public double StdevOfNormalDistribution;
-        public double? StdevOfNormalDistributionForCutoffPoints; // DEBUG -- eliminate when eliminating DiscreteValueSignalOld
         public int NumSignals;
         public bool SourcePointsIncludeExtremes;
 
@@ -41,8 +40,6 @@ namespace ACESim.Util
                 int hash = 13;
                 hash = (hash * 7) + NumPointsInSourceUniformDistribution.GetHashCode();
                 hash = (hash * 11) + StdevOfNormalDistribution.GetHashCode();
-                if (StdevOfNormalDistributionForCutoffPoints != null)
-                    hash = (hash * 29) + StdevOfNormalDistributionForCutoffPoints.GetHashCode();
                 hash = (hash * 17) + NumSignals.GetHashCode();
                 hash = (hash * 23) + SourcePointsIncludeExtremes.GetHashCode();
                 return hash;
@@ -52,7 +49,7 @@ namespace ACESim.Util
         public override bool Equals(object obj)
         {
             DiscreteValueSignalParameters other = (DiscreteValueSignalParameters)obj;
-            return NumPointsInSourceUniformDistribution == other.NumPointsInSourceUniformDistribution && StdevOfNormalDistribution == other.StdevOfNormalDistribution && NumSignals == other.NumSignals && SourcePointsIncludeExtremes == other.SourcePointsIncludeExtremes && StdevOfNormalDistributionForCutoffPoints == other.StdevOfNormalDistributionForCutoffPoints;
+            return NumPointsInSourceUniformDistribution == other.NumPointsInSourceUniformDistribution && StdevOfNormalDistribution == other.StdevOfNormalDistribution && NumSignals == other.NumSignals && SourcePointsIncludeExtremes == other.SourcePointsIncludeExtremes;
         }
 
         public static bool operator ==(DiscreteValueSignalParameters left, DiscreteValueSignalParameters right)

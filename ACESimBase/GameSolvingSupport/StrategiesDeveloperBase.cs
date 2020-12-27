@@ -2527,11 +2527,7 @@ namespace ACESim
                     correspondingNode = unequal; // this must be the flattened one
                     chanceNodeAggregationDictionary[key] = unequal;
                 }
-                if (chanceNode.Decision.ToString().Contains("CourtLiability"))
-                {
-                    var DEBUG = 0;
-                }
-                TabbedText.WriteLine($"Registering decision {decision.Name} with probability {piChance}: distributor chance inputs {distributorChanceInputs} key {key} probabilities to distribute: {String.Join(",", probabilities)}"); // DEBUG -- Uncomment this
+                // TabbedText.WriteLine($"Registering decision {decision.Name} with probability {piChance}: distributor chance inputs {distributorChanceInputs} key {key} probabilities to distribute: {String.Join(",", probabilities)}");
                 correspondingNode.RegisterProbabilityForDistributorChanceInput(piChance, distributorChanceInputs, probabilities);
                 if (decision.DistributorChanceDecision)
                 {

@@ -26,14 +26,11 @@ namespace ACESimBase.GameSolvingAlgorithms
         }
         SequenceFormApproach Approach = SequenceFormApproach.ECTA;
 
-        bool ProduceEFGFile = true; // DEBUG
+        bool ProduceEFGFile = true;
 
 
         public SequenceForm(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
         {
-            // DEBUG
-            //if (EvolutionSettings.DistributeChanceDecisions)
-            //    throw new Exception("Distributing chance decisions is not supported.");
         }
 
         public override IStrategiesDeveloper DeepCopy()
@@ -45,8 +42,6 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         public override async Task Initialize()
         {
-            // DEBUG if (EvolutionSettings.DistributeChanceDecisions)
-                //throw new NotImplementedException(); // The problem right now is that the next line sets things up so that each 
             GameDefinition.MakeAllChanceDecisionsKnowAllChanceActions(); // since there is just one chance player, each chance (and resolution) player must know all other chance decisions for ECTA algorithm to work properly
             AllowSkipEveryPermutationInitialization = false;
             StoreGameStateNodesInLists = true;
@@ -211,7 +206,7 @@ namespace ACESimBase.GameSolvingAlgorithms
 
             PrintRelationships(originalOrder);
 
-            bool produceCCode = true; // DEBUG
+            bool produceCCode = false;
             if (produceCCode)
             {
                 string ectaCodeInC = GetECTACodeInC();

@@ -203,15 +203,15 @@ namespace ACESim
             }
         }
 
-        int maxNumLiabilityStrengthPoints = 4; // DEBUG
-        int maxNumLiabilitySignals = 4; // DEBUG
-        int maxNumOffers = 4; // DEBUG
+        int Simple1BR_maxNumLiabilityStrengthPoints = 4; 
+        int Simple1BR_maxNumLiabilitySignals = 4; 
+        int Simple1BR_maxNumOffers = 4; 
 
         private void AddSimple1BRGames(List<(string optionSetName, GameOptions options)> optionSets)
         {
-            for (byte numLiabilityStrengthPoints = 2; numLiabilityStrengthPoints <= maxNumLiabilityStrengthPoints; numLiabilityStrengthPoints++)
-                for (byte numLiabilitySignals = 2; numLiabilitySignals <= maxNumLiabilitySignals; numLiabilitySignals++)
-                    for (byte numOffers = 2; numOffers <= maxNumOffers; numOffers++)
+            for (byte numLiabilityStrengthPoints = 2; numLiabilityStrengthPoints <= Simple1BR_maxNumLiabilityStrengthPoints; numLiabilityStrengthPoints++)
+                for (byte numLiabilitySignals = 2; numLiabilitySignals <= Simple1BR_maxNumLiabilitySignals; numLiabilitySignals++)
+                    for (byte numOffers = 2; numOffers <= Simple1BR_maxNumOffers; numOffers++)
                     {
                         optionSets.Add(GetAndTransform("simple1BR", numLiabilityStrengthPoints.ToString() + "," + numLiabilitySignals.ToString() + "," + numOffers.ToString(), LitigGameOptionsGenerator.GetSimple1BROptions, x =>
                         {
@@ -223,9 +223,9 @@ namespace ACESim
         }
         private void AddSimple2BRGames(List<(string optionSetName, GameOptions options)> optionSets)
         {
-            for (byte numLiabilityStrengthPoints = 2; numLiabilityStrengthPoints <= maxNumLiabilityStrengthPoints; numLiabilityStrengthPoints++)
-                for (byte numLiabilitySignals = 2; numLiabilitySignals <= maxNumLiabilitySignals; numLiabilitySignals++)
-                    for (byte numOffers = 2; numOffers <= maxNumOffers; numOffers++)
+            for (byte numLiabilityStrengthPoints = 2; numLiabilityStrengthPoints <= Simple1BR_maxNumLiabilityStrengthPoints; numLiabilityStrengthPoints++)
+                for (byte numLiabilitySignals = 2; numLiabilitySignals <= Simple1BR_maxNumLiabilitySignals; numLiabilitySignals++)
+                    for (byte numOffers = 2; numOffers <= Simple1BR_maxNumOffers; numOffers++)
                     {
                         optionSets.Add(GetAndTransform("simple2BR", numLiabilityStrengthPoints.ToString() + "," + numLiabilitySignals.ToString() + "," + numOffers.ToString(), LitigGameOptionsGenerator.GetSimple2BROptions, x =>
                         {
