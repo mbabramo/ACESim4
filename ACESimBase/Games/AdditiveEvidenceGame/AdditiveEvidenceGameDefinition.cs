@@ -20,6 +20,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         {
 
         }
+
         public override void Setup(GameOptions options)
         {
             base.Setup(options);

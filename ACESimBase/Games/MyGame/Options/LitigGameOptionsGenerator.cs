@@ -102,7 +102,7 @@ namespace ACESim
                     ExogenousProbabilityTrulyLiable = 0.5,
                     StdevNoiseToProduceLiabilityStrength = 0.5
                 },
-                InvertChanceDecisions = true, // DEBUG
+                InvertChanceDecisions = false,
                 SkipFileAndAnswerDecisions = false, 
                 PFilingCost = 5000,
                 DAnswerCost = 5000,
@@ -355,9 +355,11 @@ namespace ACESim
         {
             var options = BaseOptions();
 
-            options.NumOffers = 2; // DEBUG 5;
-            options.NumLiabilityStrengthPoints = 2; // DEBUG 5;
-            options.NumLiabilitySignals = 2; // DEBUG 5;
+            options.InvertChanceDecisions = false; // DEBUG
+
+            options.NumOffers = 2;
+            options.NumLiabilityStrengthPoints = 2;
+            options.NumLiabilitySignals = 3;
 
             options.NumDamagesSignals = 1;
             options.NumDamagesStrengthPoints = 1;

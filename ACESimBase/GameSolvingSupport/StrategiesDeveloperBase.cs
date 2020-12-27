@@ -1840,6 +1840,8 @@ namespace ACESim
         {
             if (!EvolutionSettings.UseAcceleratedBestResponse)
                 return;
+            var originalInvertChanceDecisions = GameDefinition.GameOptions.InvertChanceDecisions; // DEBUG
+            GameDefinition.GameOptions.InvertChanceDecisions = originalInvertChanceDecisions; // DEBUG
             TabbedText.WriteLine($"Prepping accelerated best response...");
             Stopwatch s = new Stopwatch();
             s.Start();
@@ -1849,10 +1851,13 @@ namespace ACESim
             InformationSetsByDecisionIndex = InformationSets.GroupBy(x => x.DecisionIndex).OrderBy(x => x.Key).Select(x => x.ToList()).ToList();
             s.Stop();
             TabbedText.WriteLine($"... {s.ElapsedMilliseconds} milliseconds. Total information sets: {InformationSets.Count()}");
+            GameDefinition.GameOptions.InvertChanceDecisions = originalInvertChanceDecisions; // DEBUG
         }
 
         private (double bestResponseResult, double utilityResult, FloatSet customResult)[] ExecuteAcceleratedBestResponse(bool determineWhetherReachable)
         {
+            var originalInvertChanceDecisions = GameDefinition.GameOptions.InvertChanceDecisions; // DEBUG
+            GameDefinition.GameOptions.InvertChanceDecisions = originalInvertChanceDecisions; // DEBUG
             // index through information sets by decision (note that i is not the same as the actual decision index). First, calculate reach probabilities going forward. Second, calculate best response values going backward.
             bool parallelize = EvolutionSettings.ParallelOptimization;
             ResetWeightOnOpponentsUtilityToZero();
@@ -1860,6 +1865,7 @@ namespace ACESim
             CalculateBestResponseValuesAndReachability(determineWhetherReachable, parallelize);
             (double bestResponseResult, double utilityResult, FloatSet customResult)[] result = CompleteAcceleratedBestResponse();
             ResetWeightOnOpponentsUtilityToCurrentWeight();
+            GameDefinition.GameOptions.InvertChanceDecisions = originalInvertChanceDecisions; // DEBUG
             return result;
         }
 

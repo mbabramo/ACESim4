@@ -78,7 +78,7 @@ namespace ACESim
         public int TriggerIncreaseOverTime = 45;
 
         public bool GenerateReportsByPlaying;
-        public int NumRandomIterationsForSummaryTable = 1000; // overridden by Launcher.SummaryTableRandomPathsIterations
+        public int NumRandomIterationsForSummaryTable = 10_000; // overridden by Launcher.SummaryTableRandomPathsIterations
         public bool PrintGameTree = false; // Note: Value here overridden in launcher
         public bool PrintInformationSets = false; // Note: Value here overridden in launcher
         public bool AnalyzeInformationSets = false; 

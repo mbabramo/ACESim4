@@ -239,7 +239,9 @@ namespace ACESim
         public override string ToString()
         {
             return 
-$@"NumOffers {NumOffers} IncludeEndpointsForOffers {IncludeEndpointsForOffers}  
+$@"LitigationGame Options
+InvertChanceDecisions {InvertChanceDecisions}
+NumOffers {NumOffers} IncludeEndpointsForOffers {IncludeEndpointsForOffers}  
 NumPotentialBargainingRounds {NumPotentialBargainingRounds}  BargainingRoundsSimultaneous {BargainingRoundsSimultaneous} SimultaneousOffersUltimatelyRevealed {SimultaneousOffersUltimatelyRevealed} 
 NumLiabilityStrengthPoints {NumLiabilityStrengthPoints} NumLiabilitySignals {NumLiabilitySignals} PLiabilityNoiseStdev {PLiabilityNoiseStdev} DLiabilityNoiseStdev {DLiabilityNoiseStdev} CourtLiabilityNoiseStdev {CourtLiabilityNoiseStdev} 
 NumDamagesStrengthPoints {NumDamagesStrengthPoints} NumDamagesSignals {NumDamagesSignals} PDamagesNoiseStdev {PDamagesNoiseStdev} DDamagesNoiseStdev {DDamagesNoiseStdev} CourtDamagesNoiseStdev {CourtDamagesNoiseStdev} 
