@@ -110,6 +110,8 @@ namespace ACESim
         {
             TabbedText.WriteLine($"Using {evolutionSettings.Algorithm}"); // may differ from default algorithm if ModifyEvolutionSettings is set for game options
             TabbedText.WriteLine($"Game: {gameDefinition}");
+            if (gameDefinition.GameOptions.InvertChanceDecisions)
+                TabbedText.WriteLine("Inverting chance decisions");
             switch (evolutionSettings.Algorithm)
             {
                 case GameApproximationAlgorithm.Vanilla:

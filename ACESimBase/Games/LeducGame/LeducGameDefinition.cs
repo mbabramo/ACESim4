@@ -12,7 +12,7 @@ namespace ACESim
     {
         #region Properties and initialization
 
-        public LeducGameOptions Options;
+        public LeducGameOptions Options => (LeducGameOptions)GameOptions;
         public byte MaxNumActionsPerPlayer_IncludingFoldAndAllBets => Options.OneBetSizeOnly ? (byte) 3 : (byte) 7;
         LeducGameProgress LeducGP(GameProgress gp) => gp as LeducGameProgress;
         LeducGameState LeducGameState(GameProgress gp) => LeducGP(gp).GameState;
@@ -23,7 +23,7 @@ namespace ACESim
         }
         public override void Setup(GameOptions options)
         {
-            Options = (LeducGameOptions) options;
+            base.Setup(options);
             Players = GetPlayersList();
             PlayerNames = Players.Select(x => x.PlayerName).ToArray();
             NumPlayers = (byte)Players.Count();

@@ -19,6 +19,7 @@ namespace ACESim
 
         public override void Setup(GameOptions options)
         {
+            base.Setup(options);
             Players = GetPlayersList();
             NumPlayers = (byte)Players.Count();
             DecisionsExecutionOrder = GetDecisionsList();

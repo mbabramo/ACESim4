@@ -16,6 +16,7 @@ using ACESim.Util;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Runtime.CompilerServices;
 using System.Net.Http.Headers;
+using Microsoft.Extensions.Options;
 
 namespace ACESim
 {
@@ -1710,6 +1711,8 @@ namespace ACESim
         string ActionStrategyLastReport;
         public async Task<ReportCollection> GenerateReportsByPlaying(bool useRandomPaths)
         {
+            bool originallyInverting = GameDefinition.GameOptions.InvertChanceDecisions;
+            GameDefinition.GameOptions.InvertChanceDecisions = false;
             Func<GamePlayer, Func<Decision, GameProgress, byte>, List<SimpleReportDefinition>, Task> reportGenerator;
             if (useRandomPaths)
             {
@@ -1723,6 +1726,7 @@ namespace ACESim
             }
             var reports = await GenerateReportsByPlaying(reportGenerator);
             PrintReportsToScreenIfNotSuppressed(reports);
+            GameDefinition.GameOptions.InvertChanceDecisions = originallyInverting;
             return reports;
         }
 

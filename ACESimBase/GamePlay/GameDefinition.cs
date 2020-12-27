@@ -12,6 +12,7 @@ namespace ACESim
     public class GameDefinition
     {
         public string OptionSetName;
+        public GameOptions GameOptions;
 
         public IGameFactory GameFactory;
 
@@ -95,7 +96,7 @@ namespace ACESim
 
         public virtual void Setup(GameOptions gameOptions)
         {
-
+            GameOptions = gameOptions;
         }
 
         private void InitializeModularGame()

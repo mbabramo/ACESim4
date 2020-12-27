@@ -9,11 +9,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
     [Serializable]
     public partial class AdditiveEvidenceGameDefinition : GameDefinition
     {
-        public AdditiveEvidenceGameOptions Options 
-        { 
-            get; 
-            set; 
-        }
+        public AdditiveEvidenceGameOptions Options => (AdditiveEvidenceGameOptions)GameOptions;
 
         public override string ToString()
         {
@@ -26,7 +22,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         }
         public override void Setup(GameOptions options)
         {
-            Options = (AdditiveEvidenceGameOptions)options;
+            base.Setup(options);
             FurtherOptionsSetup();
 
             Players = GetPlayersList();

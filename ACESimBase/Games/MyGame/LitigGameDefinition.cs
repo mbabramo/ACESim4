@@ -14,7 +14,7 @@ namespace ACESim
     {
         #region Construction and setup
 
-        public LitigGameOptions Options;
+        public LitigGameOptions Options => (LitigGameOptions)GameOptions;
 
         public override string ToString()
         {
@@ -29,7 +29,7 @@ namespace ACESim
         {
             if (options == null)
                 throw new Exception("Options cannot be null.");
-            Options = (LitigGameOptions) options;
+            base.Setup(options);
             FurtherOptionsSetup();
 
             Players = GetPlayersList();

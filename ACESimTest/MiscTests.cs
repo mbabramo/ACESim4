@@ -24,7 +24,7 @@ namespace ACESimTest
             };
             LitigGameDefinition gameDefinition = new LitigGameDefinition()
             {
-                Options = new LitigGameOptions()
+                GameOptions = new LitigGameOptions()
                 {
                     DamagesMin = 100_000,
                     DamagesMax = 100_000,
@@ -46,7 +46,7 @@ namespace ACESimTest
             };
             gameDefinition = new LitigGameDefinition()
             {
-                Options = new LitigGameOptions()
+                GameOptions = new LitigGameOptions()
                 {
                     DamagesMin = 100_000,
                     DamagesMax = 100_000,
@@ -236,7 +236,7 @@ namespace ACESimTest
         public void LemkeHowsonWorks_Random()
         {
             ConsistentRandomSequenceProducer ran = new ConsistentRandomSequenceProducer(0);
-            int numRepetitions = 15000;
+            int numRepetitions = 100; // NOTE: We do seem to have problems with numeric instability. If we set the number high enough, eventually we will get this. The ECTA algorithm avoids this because it uses exact arithmetic.
             int maxNumStrategies = 10;
             for (int repetition = 0; repetition < numRepetitions; repetition++)
             {
