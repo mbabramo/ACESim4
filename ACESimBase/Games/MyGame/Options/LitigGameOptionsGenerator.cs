@@ -91,7 +91,7 @@ namespace ACESim
                 DInitialWealth = 1000000,
                 DamagesMin = 0_000,
                 DamagesMax = 100_000,
-                NumLiabilityStrengthPoints = 5, 
+                NumLiabilityStrengthPoints = 5,
                 NumLiabilitySignals = 5,
                 NumDamagesStrengthPoints = 5,
                 NumDamagesSignals = 5,
@@ -102,6 +102,7 @@ namespace ACESim
                     ExogenousProbabilityTrulyLiable = 0.5,
                     StdevNoiseToProduceLiabilityStrength = 0.5
                 },
+                InvertChanceDecisions = true, // DEBUG
                 SkipFileAndAnswerDecisions = false, 
                 PFilingCost = 5000,
                 DAnswerCost = 5000,

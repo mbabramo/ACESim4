@@ -251,6 +251,13 @@ namespace ACESimBase.Util
             return combinedNumeratorProbability / combinedDenominatorProbability;
         }
 
+        public static double[] GetUnconditionalProbabilities(int[] dimensions, double[] domainProbabilities, List<(int sourceSignalIndex, bool sourceIncludesExtremes, double stdev)> producingExtraDimensions, int distributionVariableIndex)
+        {
+            double[] flattenedProbabilities = BuildProbabilityMapBasedOnDiscreteValueSignals(dimensions, domainProbabilities, producingExtraDimensions);
+            double[] results = CalculateProbabilitiesFromMap(flattenedProbabilities, dimensions, distributionVariableIndex);
+            return results;
+        }
+
         public static double[] BuildProbabilityMapBasedOnDiscreteValueSignals(int[] dimensions, double[] domainProbabilities, List<(int sourceSignalIndex, bool sourceIncludesExtremes, double stdev)> producingExtraDimensions)
         {
             double[] crossProductProbabilities = null;

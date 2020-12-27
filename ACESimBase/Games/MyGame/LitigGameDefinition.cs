@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using ACESim.Util;
@@ -705,49 +706,81 @@ namespace ACESim
             else if (decisionByteCode == (byte) LitigGameDecisions.LiabilityStrength)
             {
                 var myGameProgress = ((LitigGameProgress) gameProgress);
-                var probabilities = Options.LitigGameDisputeGenerator.GetLiabilityStrengthProbabilities(this, myGameProgress.DisputeGeneratorActions);
+                double[] probabilities;
+                if (Options.InvertChanceDecisions)
+                    throw new Exception("Should not be called"); // Note: Could update this to call the appropriate dispute generator method, so long as this is called after everything else
+                else
+                    probabilities = Options.LitigGameDisputeGenerator.GetLiabilityStrengthProbabilities(this, myGameProgress.DisputeGeneratorActions);
                 return probabilities;
             }
             else if (decisionByteCode == (byte)LitigGameDecisions.PLiabilitySignal)
             {
                 var myGameProgress = ((LitigGameProgress)gameProgress);
-                var probabilities = GetPLiabilitySignalProbabilities(myGameProgress.LiabilityStrengthDiscrete);
+                double[] probabilities;
+                if (Options.InvertChanceDecisions)
+                    probabilities = Options.LitigGameDisputeGenerator.InvertedCalculations_GetPLiabilitySignalProbabilities();
+                else
+                    probabilities = GetPLiabilitySignalProbabilities(myGameProgress.LiabilityStrengthDiscrete);
                 return probabilities;
             }
             else if (decisionByteCode == (byte)LitigGameDecisions.DLiabilitySignal)
             {
                 var myGameProgress = ((LitigGameProgress)gameProgress);
-                var probabilities = GetDLiabilitySignalProbabilities(myGameProgress.LiabilityStrengthDiscrete);
-                return probabilities;
-            }
-            else if (decisionByteCode == (byte)LitigGameDecisions.CourtDecisionLiability)
-            {
-                var myGameProgress = ((LitigGameProgress)gameProgress);
-                var probabilities = GetCLiabilitySignalProbabilities(myGameProgress.LiabilityStrengthDiscrete);
+                double[] probabilities;
+                if (Options.InvertChanceDecisions)
+                    probabilities = Options.LitigGameDisputeGenerator.InvertedCalculations_GetDLiabilitySignalProbabilities(myGameProgress.PLiabilitySignalDiscrete);
+                else
+                    probabilities = GetDLiabilitySignalProbabilities(myGameProgress.LiabilityStrengthDiscrete);
                 return probabilities;
             }
             else if (decisionByteCode == (byte)LitigGameDecisions.DamagesStrength)
             {
                 var myGameProgress = ((LitigGameProgress)gameProgress);
-                var probabilities = Options.LitigGameDisputeGenerator.GetDamagesStrengthProbabilities(this, myGameProgress.DisputeGeneratorActions);
+                double[] probabilities;
+                if (Options.InvertChanceDecisions)
+                    throw new Exception("Should not be called"); // Note: Could update this to call the appropriate dispute generator method, so long as this is called after everything else
+                else
+                    probabilities = Options.LitigGameDisputeGenerator.GetDamagesStrengthProbabilities(this, myGameProgress.DisputeGeneratorActions);
                 return probabilities;
             }
             else if (decisionByteCode == (byte)LitigGameDecisions.PDamagesSignal)
             {
                 var myGameProgress = ((LitigGameProgress)gameProgress);
-                var probabilities = GetPDamagesSignalProbabilities(myGameProgress.DamagesStrengthDiscrete);
+                double[] probabilities;
+                if (Options.InvertChanceDecisions)
+                    probabilities = Options.LitigGameDisputeGenerator.InvertedCalculations_GetPDamagesSignalProbabilities();
+                else
+                    probabilities = GetPDamagesSignalProbabilities(myGameProgress.DamagesStrengthDiscrete);
                 return probabilities;
             }
             else if (decisionByteCode == (byte)LitigGameDecisions.DDamagesSignal)
             {
                 var myGameProgress = ((LitigGameProgress)gameProgress);
-                var probabilities = GetDDamagesSignalProbabilities(myGameProgress.DamagesStrengthDiscrete);
+                double[] probabilities;
+                if (Options.InvertChanceDecisions)
+                    probabilities = Options.LitigGameDisputeGenerator.InvertedCalculations_GetDDamagesSignalProbabilities(myGameProgress.PDamagesSignalDiscrete);
+                else
+                    probabilities = GetDDamagesSignalProbabilities(myGameProgress.DamagesStrengthDiscrete);
+                return probabilities;
+            }
+            else if (decisionByteCode == (byte)LitigGameDecisions.CourtDecisionLiability)
+            {
+                var myGameProgress = ((LitigGameProgress)gameProgress);
+                double[] probabilities;
+                if (Options.InvertChanceDecisions)
+                    probabilities = Options.LitigGameDisputeGenerator.InvertedCalculations_GetCLiabilitySignalProbabilities(myGameProgress.PLiabilitySignalDiscrete, myGameProgress.DLiabilitySignalDiscrete);
+                else
+                    probabilities = GetCLiabilitySignalProbabilities(myGameProgress.LiabilityStrengthDiscrete);
                 return probabilities;
             }
             else if (decisionByteCode == (byte)LitigGameDecisions.CourtDecisionDamages)
             {
                 var myGameProgress = ((LitigGameProgress)gameProgress);
-                var probabilities = GetCDamagesSignalProbabilities(myGameProgress.DamagesStrengthDiscrete);
+                double[] probabilities;
+                if (Options.InvertChanceDecisions)
+                    probabilities = Options.LitigGameDisputeGenerator.InvertedCalculations_GetCDamagesSignalProbabilities(myGameProgress.PDamagesSignalDiscrete, myGameProgress.DDamagesSignalDiscrete);
+                else
+                    probabilities = GetCDamagesSignalProbabilities(myGameProgress.DamagesStrengthDiscrete);
                 return probabilities;
             }
             else
@@ -757,6 +790,8 @@ namespace ACESim
         public override bool SkipDecision(Decision decision, in GameHistory gameHistory)
         {
             byte decisionByteCode = decision.DecisionByteCode;
+            if (Options.InvertChanceDecisions && decisionByteCode is (byte)LitigGameDecisions.PrePrimaryActionChance or (byte)LitigGameDecisions.PrimaryAction or (byte)LitigGameDecisions.PostPrimaryActionChance or (byte)LitigGameDecisions.LiabilityStrength or (byte)LitigGameDecisions.DamagesStrength)
+                return true;
             if (decisionByteCode == (byte) LitigGameDecisions.MutualGiveUp)
             {
                 bool pTryingToGiveUp = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PReadyToAbandon) == 1;
