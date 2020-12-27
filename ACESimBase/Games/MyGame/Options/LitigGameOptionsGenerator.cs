@@ -357,9 +357,9 @@ namespace ACESim
 
             options.InvertChanceDecisions = true; // DEBUG
 
-            options.NumOffers = 3;
-            options.NumLiabilityStrengthPoints = 3;
-            options.NumLiabilitySignals = 3;
+            options.NumOffers = 10;
+            options.NumLiabilityStrengthPoints = 10;
+            options.NumLiabilitySignals = 10;
 
             options.NumDamagesSignals = 1;
             options.NumDamagesStrengthPoints = 1;
@@ -374,7 +374,7 @@ namespace ACESim
             options.LoserPays = false;
             options.LoserPaysMultiple = 1.0;
 
-            options.SkipFileAndAnswerDecisions = true; // DEBUG
+            options.SkipFileAndAnswerDecisions = false;
             options.NumPotentialBargainingRounds = 1;
             options.IncludeAgreementToBargainDecisions = false;
             options.AllowAbandonAndDefaults = false; // DEBUG

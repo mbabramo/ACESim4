@@ -579,7 +579,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                     throw new Exception();
                 int totalNumbersProcessed = 0;
                 for (int i = 0; i < infoSets.Count(); i++)
-                {
+                { 
                     double total = 0;
                     for (byte a = 1; a <= infoSets[i].Decision.NumPossibleActions; a++)
                     {
