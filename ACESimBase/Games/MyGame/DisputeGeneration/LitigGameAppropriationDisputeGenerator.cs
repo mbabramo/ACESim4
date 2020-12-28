@@ -26,8 +26,10 @@ namespace ACESim
 
         private double[][] ProbabilityLiabilityStrengthForNoiseLevel_TrulyLiable, ProbabilityLiabilityStrengthForNoiseLevel_TrulyNotLiable;
 
+        public LitigGameDefinition LitigGameDefinition { get; set; }
         public void Setup(LitigGameDefinition myGameDefinition)
         {
+            LitigGameDefinition = myGameDefinition;
             // We need to determine the probability of different litigation qualities 
             ProbabilityLiabilityStrengthForNoiseLevel_TrulyLiable = new double[NumSystemicRandomnessLevels][];
             ProbabilityLiabilityStrengthForNoiseLevel_TrulyNotLiable = new double[NumSystemicRandomnessLevels][];

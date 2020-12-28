@@ -38,8 +38,10 @@ namespace ACESim
             return MinBenefitOfActionToDefendant + (MaxBenefitOfActionToDefendant - MinBenefitOfActionToDefendant) * BenefitOfActionToDefendant_Proportion(benefitLevel);
         }
 
+        public LitigGameDefinition LitigGameDefinition { get; set; }
         public void Setup(LitigGameDefinition myGameDefinition)
         {
+            LitigGameDefinition = myGameDefinition;
             // We need to determine the probability of different liability strengths 
             ProbabilityLiabilityStrength = new double[NumBenefitLevels][];
             DiscreteValueSignalParameters dsParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = NumBenefitLevels, NumSignals = myGameDefinition.Options.NumLiabilityStrengthPoints, StdevOfNormalDistribution = StdevNoiseToProduceLiabilityStrength, SourcePointsIncludeExtremes = true };

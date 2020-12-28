@@ -27,24 +27,26 @@ namespace ACESim
         private double[] ProbabilityOfTrulyLiableValues, ProbabilitiesLiabilityStrength_TrulyNotLiable, ProbabilitiesLiabilityStrength_TrulyLiable;
         private double[] ProbabilityOfDamagesStrengthValues;
 
-        public void Setup(LitigGameDefinition myGameDefinition)
+        public LitigGameDefinition LitigGameDefinition { get; set; }
+        public void Setup(LitigGameDefinition litigGameDefinition)
         {
+            LitigGameDefinition = litigGameDefinition;
             ProbabilityOfTrulyLiableValues = new double[] { 1.0 - ExogenousProbabilityTrulyLiable, ExogenousProbabilityTrulyLiable };
             // A case is assigned a "true" value of 1 (should not be liable) or 2 (should be liable).
             // Based on the litigation quality noise parameter, we then collect a distribution of possible realized values, on the assumption
             // that the true values are equally likely. We then break this distribution into evenly sized buckets (based on a separate standard
             // deviation value) to get cutoff points.
             // Given this approach, the exogenous probability has no effect on ProbabilitiesLiabilityStrength_TrulyNotLiable and ProbabilitiesLiabilityStrength_TrulyLiable; both of these are conditional on whether a case is liable or not.
-           DiscreteValueSignalParameters liabilityParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = 2, NumSignals = myGameDefinition.Options.NumLiabilityStrengthPoints, StdevOfNormalDistribution = StdevNoiseToProduceLiabilityStrength, SourcePointsIncludeExtremes = true };
+           DiscreteValueSignalParameters liabilityParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = 2, NumSignals = litigGameDefinition.Options.NumLiabilityStrengthPoints, StdevOfNormalDistribution = StdevNoiseToProduceLiabilityStrength, SourcePointsIncludeExtremes = true };
             ProbabilitiesLiabilityStrength_TrulyNotLiable = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(1, liabilityParams);
             ProbabilitiesLiabilityStrength_TrulyLiable = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(2, liabilityParams);
 
             // damages is simpler -- each damages level is equally likely. A case's damages strength is assumed to be equal to the true damages value. Of course, parties may still misestimate the damages strength.
-            ProbabilityOfDamagesStrengthValues = new double[myGameDefinition.Options.NumDamagesStrengthPoints];
-            for (int i = 0; i < myGameDefinition.Options.NumDamagesStrengthPoints; i++)
-                ProbabilityOfDamagesStrengthValues[i] = 1.0 / (double)myGameDefinition.Options.NumDamagesStrengthPoints;
+            ProbabilityOfDamagesStrengthValues = new double[litigGameDefinition.Options.NumDamagesStrengthPoints];
+            for (int i = 0; i < litigGameDefinition.Options.NumDamagesStrengthPoints; i++)
+                ProbabilityOfDamagesStrengthValues[i] = 1.0 / (double)litigGameDefinition.Options.NumDamagesStrengthPoints;
 
-            SetupInverted(myGameDefinition);
+            SetupInverted(litigGameDefinition);
         }
 
 
@@ -140,9 +142,9 @@ namespace ACESim
 
         // The following indices are for our inverted calculations
         const int trueLiabilityIndex = 0, liabilityStrengthIndex = 1, pLiabilitySignalIndex = 2, dLiabilitySignalIndex = 3, cLiabilitySignalIndex = 4;
-        const int dLiabilitySignalCalculatorIndex = 0, cLiabilitySignalCalculatorIndex = 1, liabilityStrengthCalculatorIndex = 2, trueLiabilityCalculatorIndex = 3;
+        const int dLiabilitySignalCalculatorIndex = 0, cLiabilitySignalCalculatorIndex = 1, liabilityStrengthCalculatorIndex = 2, trueLiabilityCalculatorIndex = 3, liabilityStrengthWithoutTrialCalculatorIndex = 4, trueLiabilityWithoutTrialCalculatorIndex = 5;
         const int damagesStrengthIndex = 0, pDamagesSignalIndex = 1, dDamagesSignalIndex = 2, cDamagesSignalIndex = 3;
-        const int dDamagesSignalCalculatorIndex = 0, cDamagesSignalCalculatorIndex = 1, damagesStrengthCalculatorIndex = 2;
+        const int dDamagesSignalCalculatorIndex = 0, cDamagesSignalCalculatorIndex = 1, damagesStrengthCalculatorIndex = 2, damagesStrengthWithoutTrialCalculatorIndex = 3;
         double[] pLiabilitySignalProbabilitiesUnconditional = null, pDamagesSignalProbabilitiesUnconditional = null;
         List<Func<List<int>, double[]>> LiabilityCalculators = null, DamagesCalculators = null;
 
@@ -170,7 +172,9 @@ namespace ACESim
                     (dLiabilitySignalIndex, new List<int>() { pLiabilitySignalIndex }), // defendant's signal based on plaintiff's signal
                     (cLiabilitySignalIndex, new List<int>() { pLiabilitySignalIndex, dLiabilitySignalIndex}), // court liability based on plaintiff's and defendant's signals
                     (liabilityStrengthIndex, new List<int>() { pLiabilitySignalIndex, dLiabilitySignalIndex, cLiabilitySignalIndex }), // liability strength based on all of above
-                    (trueLiabilityIndex, new List<int>() { pLiabilitySignalIndex, dLiabilitySignalIndex, cLiabilitySignalIndex, liabilityStrengthIndex, }) // true value based on all of the above
+                    (trueLiabilityIndex, new List<int>() { pLiabilitySignalIndex, dLiabilitySignalIndex, cLiabilitySignalIndex, liabilityStrengthIndex, }), // true value based on all of the above
+                    (liabilityStrengthWithoutTrialCalculatorIndex, new List<int>() { pLiabilitySignalIndex, dLiabilitySignalIndex, }), // liability strength based on everything but court info
+                    (trueLiabilityWithoutTrialCalculatorIndex, new List<int>() { pLiabilitySignalIndex, dLiabilitySignalIndex, liabilityStrengthIndex, }) // true value based on everything but court info
                 };
             LiabilityCalculators = DiscreteProbabilityDistribution.GetProbabilityMapCalculators(liabilityDimensions, liabilityPrior, liabilitySignalsProducer, liabilityCalculatorsToProduce);
 
@@ -189,6 +193,7 @@ namespace ACESim
                     (dDamagesSignalIndex, new List<int>() { pDamagesSignalIndex }), // defendant's signal based on plaintiff's signal
                     (cDamagesSignalIndex, new List<int>() { pDamagesSignalIndex, dDamagesSignalIndex}), // court damages based on plaintiff's and defendant's signals
                     (damagesStrengthIndex, new List<int>() { pDamagesSignalIndex, dDamagesSignalIndex, cDamagesSignalIndex }), // damages strength based on all of above
+                    (damagesStrengthWithoutTrialCalculatorIndex, new List<int>() { pDamagesSignalIndex, dDamagesSignalIndex }), // damages strength when no trial has occurred
                 };
             DamagesCalculators = DiscreteProbabilityDistribution.GetProbabilityMapCalculators(damagesDimensions, damagesPrior, damagesSignalsProducer, damagesCalculatorsToProduce);
         }
@@ -196,15 +201,13 @@ namespace ACESim
         public double[] InvertedCalculations_GetPLiabilitySignalProbabilities() => pLiabilitySignalProbabilitiesUnconditional;
         public double[] InvertedCalculations_GetDLiabilitySignalProbabilities(int pLiabilitySignal) => LiabilityCalculators[dLiabilitySignalCalculatorIndex](new List<int>() { pLiabilitySignal - 1});
         public double[] InvertedCalculations_GetCLiabilitySignalProbabilities(int pLiabilitySignal, int dLiabilitySignal) => LiabilityCalculators[cLiabilitySignalCalculatorIndex](new List<int>() { pLiabilitySignal - 1, dLiabilitySignal - 1 });
-        public double[] InvertedCalculations_GetLiabilityStrengthProbabilities(int pLiabilitySignal, int dLiabilitySignal, int cLiabilitySignal) => LiabilityCalculators[liabilityStrengthCalculatorIndex](new List<int>() { pLiabilitySignal - 1, dLiabilitySignal - 1, cLiabilitySignal - 1});
-        public double[] InvertedCalculations_GetLiabilityTrueValueProbabilities(int pLiabilitySignal, int dLiabilitySignal, int cLiabilitySignal, int liabilityStrength) => LiabilityCalculators[trueLiabilityCalculatorIndex](new List<int>() { pLiabilitySignal - 1, dLiabilitySignal - 1, cLiabilitySignal - 1, liabilityStrength - 1 });
+        public double[] InvertedCalculations_GetLiabilityStrengthProbabilities(int pLiabilitySignal, int dLiabilitySignal, int? cLiabilitySignal) => cLiabilitySignal is int cLiabilitySignalNotNull ? LiabilityCalculators[liabilityStrengthCalculatorIndex](new List<int>() { pLiabilitySignal - 1, dLiabilitySignal - 1, cLiabilitySignalNotNull - 1}) : LiabilityCalculators[liabilityStrengthWithoutTrialCalculatorIndex](new List<int>() { pLiabilitySignal - 1, dLiabilitySignal - 1 });
+        public double[] InvertedCalculations_GetLiabilityTrueValueProbabilities(int pLiabilitySignal, int dLiabilitySignal, int? cLiabilitySignal, int liabilityStrength) => cLiabilitySignal is int cLiabilitySignalNotNull ? LiabilityCalculators[trueLiabilityCalculatorIndex](new List<int>() { pLiabilitySignal - 1, dLiabilitySignal - 1, cLiabilitySignalNotNull - 1, liabilityStrength - 1 }) : LiabilityCalculators[trueLiabilityWithoutTrialCalculatorIndex](new List<int>() { pLiabilitySignal - 1, dLiabilitySignal - 1, liabilityStrength - 1 });
 
         public double[] InvertedCalculations_GetPDamagesSignalProbabilities() => pDamagesSignalProbabilitiesUnconditional;
         public double[] InvertedCalculations_GetDDamagesSignalProbabilities(int pDamagesSignal) => DamagesCalculators[dDamagesSignalCalculatorIndex](new List<int>() { pDamagesSignal - 1 });
         public double[] InvertedCalculations_GetCDamagesSignalProbabilities(int pDamagesSignal, int dDamagesSignal) => DamagesCalculators[cDamagesSignalCalculatorIndex](new List<int>() { pDamagesSignal - 1, dDamagesSignal - 1});
-        public double[] InvertedCalculations_GetDamagesStrengthProbabilities(int pDamagesSignal, int dDamagesSignal, int cDamagesSignal) => DamagesCalculators[liabilityStrengthCalculatorIndex](new List<int>() { pDamagesSignal - 1, dDamagesSignal - 1, cDamagesSignal - 1 });
-
-        Debug; // OK, so we are generating the correct equilibrium with both sequence form and with regret matching. But the reporting is wrong for regret matching. The game tree skips the liability signal decision, because it wasn't played during the game. That doesn't occur with the sequence form game approach. Maybe the solution is to generate the entire game tree and not skip decisions. Instead, just change the probabilities so that we always go along one path (1.0, 0.0). Then, we can change the probabilities back. 
+        public double[] InvertedCalculations_GetDamagesStrengthProbabilities(int pDamagesSignal, int dDamagesSignal, int? cDamagesSignal) => cDamagesSignal is int cDamagesSignalNotNull ? DamagesCalculators[liabilityStrengthCalculatorIndex](new List<int>() { pDamagesSignal - 1, dDamagesSignal - 1, cDamagesSignalNotNull - 1 }) : DamagesCalculators[liabilityStrengthWithoutTrialCalculatorIndex](new List<int>() { pDamagesSignal - 1, dDamagesSignal - 1 });
 
     }
 }

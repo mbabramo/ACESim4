@@ -45,12 +45,14 @@ namespace ACESim
         public byte DLiabilityNoiseDiscrete;
         public byte PLiabilitySignalDiscrete;
         public byte DLiabilitySignalDiscrete;
+        public byte CLiabilitySignalDiscrete;
 
         public byte DamagesStrengthDiscrete;
         public byte PDamagesNoiseDiscrete;
         public byte DDamagesNoiseDiscrete;
         public byte PDamagesSignalDiscrete;
         public byte DDamagesSignalDiscrete;
+        public byte CDamagesSignalDiscrete;
 
         public double  PChangeWealth;
         public double  DChangeWealth;
@@ -290,6 +292,7 @@ namespace ACESim
             copy.DLiabilitySignalDiscrete = DLiabilitySignalDiscrete;
             copy.PLiabilitySignalDiscrete = PLiabilitySignalDiscrete;
             copy.DLiabilitySignalDiscrete = DLiabilitySignalDiscrete;
+            copy.CLiabilitySignalDiscrete = CLiabilitySignalDiscrete;
 
             copy.DamagesStrengthDiscrete = DamagesStrengthDiscrete;
             copy.PDamagesNoiseDiscrete = PDamagesNoiseDiscrete;
@@ -298,6 +301,7 @@ namespace ACESim
             copy.DDamagesSignalDiscrete = DDamagesSignalDiscrete;
             copy.PDamagesSignalDiscrete = PDamagesSignalDiscrete;
             copy.DDamagesSignalDiscrete = DDamagesSignalDiscrete;
+            copy.CDamagesSignalDiscrete = DDamagesSignalDiscrete;
 
             copy.PFiles = PFiles;
             copy.DAnswers = DAnswers;

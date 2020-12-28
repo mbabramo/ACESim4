@@ -9,7 +9,8 @@ namespace ACESim
 {
     public interface ILitigGameDisputeGenerator
     {
-        void Setup(LitigGameDefinition myGameDefinition);
+        LitigGameDefinition LitigGameDefinition { get; set; }
+        void Setup(LitigGameDefinition litigGameDefinition);
         void GetActionsSetup(LitigGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate);
         bool PotentialDisputeArises(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions);
         bool MarkComplete(LitigGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction); 
@@ -54,13 +55,14 @@ namespace ACESim
         double[] InvertedCalculations_GetPLiabilitySignalProbabilities() => throw new NotImplementedException();
         double[] InvertedCalculations_GetDLiabilitySignalProbabilities(int pLiabilitySignal) => throw new NotImplementedException();
         double[] InvertedCalculations_GetCLiabilitySignalProbabilities(int pLiabilitySignal, int dLiabilitySignal) => throw new NotImplementedException();
-        double[] InvertedCalculations_GetLiabilityStrengthProbabilities(int pLiabilitySignal, int dLiabilitySignal, int cLiabilitySignal) => throw new NotImplementedException();
-        double[] InvertedCalculations_GetLiabilityTrueValueProbabilities(int pLiabilitySignal, int dLiabilitySignal, int cLiabilitySignal, int liabilityStrength) => throw new NotImplementedException();
+        double[] InvertedCalculations_GetLiabilityStrengthProbabilities(int pLiabilitySignal, int dLiabilitySignal, int? cLiabilitySignal) => throw new NotImplementedException();
+        double[] InvertedCalculations_GetLiabilityTrueValueProbabilities(int pLiabilitySignal, int dLiabilitySignal, int? cLiabilitySignal, int liabilityStrength) => throw new NotImplementedException();
 
         double[] InvertedCalculations_GetPDamagesSignalProbabilities() => throw new NotImplementedException();
         double[] InvertedCalculations_GetDDamagesSignalProbabilities(int pDamagesSignal) => throw new NotImplementedException();
         double[] InvertedCalculations_GetCDamagesSignalProbabilities(int pDamagesSignal, int dDamagesSignal) => throw new NotImplementedException();
-        double[] InvertedCalculations_GetDamagesStrengthProbabilities(int pDamagesSignal, int dDamagesSignal, int cDamagesSignal) => throw new NotImplementedException();
+        double[] InvertedCalculations_GetDamagesStrengthProbabilities(int pDamagesSignal, int dDamagesSignal, int? cDamagesSignal) => throw new NotImplementedException();
+
 
 
 

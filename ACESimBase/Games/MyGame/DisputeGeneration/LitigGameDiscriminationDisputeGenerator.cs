@@ -32,8 +32,10 @@ namespace ACESim
 
         private double[] ProbabilityLiabilityStrength_StrongPlaintiffCase, ProbabilityLiabilityStrength_MediumPlaintiffCase, ProbabilityLiabilityStrength_PoorPlaintiffCase;
 
+        public LitigGameDefinition LitigGameDefinition { get; set; }
         public void Setup(LitigGameDefinition myGameDefinition)
         {
+            LitigGameDefinition = myGameDefinition;
             myGameDefinition.Options.NumLiabilityStrengthPoints = 9; // always
             myGameDefinition.Options.NumDamagesStrengthPoints = 1;
             ProbabilityLiabilityStrength_StrongPlaintiffCase = new double[] {0.0, 0.0, 0.0, 0.0, 0.2, 0.2, 0.2, 0.2, 0.2,};

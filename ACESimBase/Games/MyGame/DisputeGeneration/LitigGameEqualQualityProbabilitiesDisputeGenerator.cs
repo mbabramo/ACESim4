@@ -29,8 +29,10 @@ namespace ACESim
         /// </summary>
         private double Curvature;
 
+        public LitigGameDefinition LitigGameDefinition { get; set; }
         public void Setup(LitigGameDefinition myGameDefinition)
         {
+            LitigGameDefinition = myGameDefinition;
             Curvature = MonotonicCurve.CalculateCurvatureForThreePoints(0.5, 0.5, 0.75, ProbabilityTrulyLiable_LiabilityStrength75, 0.9, ProbabilityTrulyLiable_LiabilityStrength90);
         }
 
