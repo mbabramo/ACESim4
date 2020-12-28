@@ -62,8 +62,16 @@ namespace ACESim
             {
                 _GameComplete = value;
             }
-
         }
+        public bool GameCompleteExceptInvertedChanceDecisions;
+        public void GameMostlyComplete(bool invertedChanceDecisionsStillPending)
+        {
+            if (invertedChanceDecisionsStillPending)
+                GameCompleteExceptInvertedChanceDecisions = true;
+            else
+                GameComplete = true;
+        }
+
         public bool HaveAdvancedToFirstStep;
         public int? CurrentActionGroupNumber;
         public int? CurrentActionPointNumberWithinActionGroup;
@@ -212,6 +220,7 @@ namespace ACESim
             ActionsToPlay = null;
             ActionsToPlayIndex = -1;
             GameComplete = false;
+            GameCompleteExceptInvertedChanceDecisions = false;
             HaveAdvancedToFirstStep = false;
             CurrentActionGroupNumber = null;
             CurrentActionPointNumberWithinActionGroup = null;
@@ -340,6 +349,7 @@ namespace ACESim
             copy.ActionsToPlay = ActionsToPlay?.ToList(); 
             copy.ActionsToPlayIndex = ActionsToPlayIndex;
             copy.GameComplete = this.GameComplete;
+            copy.GameCompleteExceptInvertedChanceDecisions = this.GameCompleteExceptInvertedChanceDecisions;
             copy.HaveAdvancedToFirstStep = this.HaveAdvancedToFirstStep;
             copy.CurrentActionGroupNumber = this.CurrentActionGroupNumber;
             copy.CurrentActionPointNumberWithinActionGroup = this.CurrentActionPointNumberWithinActionGroup;

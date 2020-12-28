@@ -80,6 +80,11 @@ namespace ACESim
 
         private bool DecisionsSetFromModules = false; // have we initialized this yet
 
+        /// <summary>
+        /// This will be set temporarily to true during reporting.
+        /// </summary>
+        public bool ReportingMode;
+
         public virtual void Initialize(IGameFactory gameFactory)
         {
             if (DecisionsSetFromModules)
@@ -381,7 +386,7 @@ namespace ACESim
             return null; // subclass should define if needed
         }
 
-        public virtual bool ShouldMarkGameHistoryComplete(Decision currentDecision, in GameHistory gameHistory, byte actionChosen)
+        public virtual bool ShouldMarkGameHistoryComplete(Decision currentDecision, ref GameHistory gameHistory, byte actionChosen)
         {
             // Entirely subclass. During full game play, the game marks the game complete as necessary, and this automatically calls
             // the game history. But during cached game play (without using a game tree), we must determine whether the game is complete

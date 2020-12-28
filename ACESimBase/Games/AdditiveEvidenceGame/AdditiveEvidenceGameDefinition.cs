@@ -241,7 +241,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 CanTerminateGame = true, // must note even though it's the last decision
             });
         }
-        public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, in GameHistory gameHistory, byte actionChosen)
+        public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, ref GameHistory gameHistory, byte actionChosen)
         {
             // IMPORTANT: Any decision that can terminate the game should be listed as CanTerminateGame = true. 
             // Second, the game should set Progress.GameComplete to true when this termination occurs. 

@@ -691,6 +691,8 @@ namespace ACESim
 
         public override double[] GetUnevenChanceActionProbabilities(byte decisionByteCode, GameProgress gameProgress)
         {
+            Debug; // change order in which the primary actions occur so that they occur after the game if we're inverting chance decisions.
+            // Also, make primary chance an uneven chance action, because we need to be able to just return 
             if (decisionByteCode == (byte)LitigGameDecisions.PrePrimaryActionChance)
             {
                 var myGameProgress = ((LitigGameProgress)gameProgress);
@@ -708,7 +710,12 @@ namespace ACESim
                 var myGameProgress = ((LitigGameProgress) gameProgress);
                 double[] probabilities;
                 if (Options.InvertChanceDecisions)
-                    throw new Exception("Should not be called"); // Note: Could update this to call the appropriate dispute generator method, so long as this is called after everything else
+                {
+                    if (ReportingMode)
+                        probabilities = Options.LitigGameDisputeGenerator.InvertedCalculations_GetLiabilityStrengthProbabilities(myGameProgress.PLiabilityNoiseDiscrete, myGameProgress.DLiabilitySignalDiscrete, myGameProgress.TrialOccurs ? myGameProgress.CLiabilitySignalDiscrete : null);
+                    else
+                        probabilities = InvertedCalculations_LiabilityStrengthProbabilities_FirstOnly();
+                }
                 else
                     probabilities = Options.LitigGameDisputeGenerator.GetLiabilityStrengthProbabilities(this, myGameProgress.DisputeGeneratorActions);
                 return probabilities;
@@ -738,7 +745,12 @@ namespace ACESim
                 var myGameProgress = ((LitigGameProgress)gameProgress);
                 double[] probabilities;
                 if (Options.InvertChanceDecisions)
-                    throw new Exception("Should not be called"); // Note: Could update this to call the appropriate dispute generator method, so long as this is called after everything else
+                {
+                    if (ReportingMode)
+                        probabilities = Options.LitigGameDisputeGenerator.InvertedCalculations_GetDamagesStrengthProbabilities(myGameProgress.PDamagesNoiseDiscrete, myGameProgress.DDamagesSignalDiscrete, myGameProgress.TrialOccurs ? myGameProgress.CDamagesSignalDiscrete : null);
+                    else
+                        probabilities = InvertedCalculations_DamagesStrengthProbabilities_FirstOnly();
+                }
                 else
                     probabilities = Options.LitigGameDisputeGenerator.GetDamagesStrengthProbabilities(this, myGameProgress.DisputeGeneratorActions);
                 return probabilities;
@@ -790,8 +802,8 @@ namespace ACESim
         public override bool SkipDecision(Decision decision, in GameHistory gameHistory)
         {
             byte decisionByteCode = decision.DecisionByteCode;
-            if (Options.InvertChanceDecisions && decisionByteCode is (byte)LitigGameDecisions.PrePrimaryActionChance or (byte)LitigGameDecisions.PrimaryAction or (byte)LitigGameDecisions.PostPrimaryActionChance or (byte)LitigGameDecisions.LiabilityStrength or (byte)LitigGameDecisions.DamagesStrength)
-                return true;
+            if (Options.InvertChanceDecisions && gameHistory.CompleteExceptInverted && !(decisionByteCode is (byte)LitigGameDecisions.PrePrimaryActionChance or (byte)LitigGameDecisions.PrimaryAction or (byte)LitigGameDecisions.PostPrimaryActionChance or (byte)LitigGameDecisions.LiabilityStrength or (byte)LitigGameDecisions.DamagesStrength))
+                return true; // When inverting chance, we note that we are complete except inverted in GameProgress. But we also note it in GameHistory, so that when this function is called (which can occur when there is no GameProgress object), we know to skip decisions after the game is effectively complete, until we get to the dispute generator decisions. 
             if (decisionByteCode == (byte) LitigGameDecisions.MutualGiveUp)
             {
                 bool pTryingToGiveUp = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PReadyToAbandon) == 1;
@@ -814,14 +826,53 @@ namespace ACESim
             }
             return false;
         }
-        
-        public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, in GameHistory gameHistory, byte actionChosen)
+
+        // Inverted Calculations first only -- when we're developing the strategy (but not reporting) then we can just play a single action on the liability strength and damages strength decisions.
+
+        double[] _InvertedCalculations_LiabilityStrengthProbabilities_FirstOnly;
+        double[] InvertedCalculations_LiabilityStrengthProbabilities_FirstOnly()
+        {
+            if (_InvertedCalculations_LiabilityStrengthProbabilities_FirstOnly == null)
+            {
+                _InvertedCalculations_LiabilityStrengthProbabilities_FirstOnly = new double[Options.NumLiabilityStrengthPoints];
+                _InvertedCalculations_LiabilityStrengthProbabilities_FirstOnly[0] = 1.0; // all other possibilities 0
+            }
+            return _InvertedCalculations_LiabilityStrengthProbabilities_FirstOnly;
+        }
+
+        double[] _InvertedCalculations_DamagesStrengthProbabilities_FirstOnly;
+        double[] InvertedCalculations_DamagesStrengthProbabilities_FirstOnly()
+        {
+            if (_InvertedCalculations_DamagesStrengthProbabilities_FirstOnly == null)
+            {
+                _InvertedCalculations_DamagesStrengthProbabilities_FirstOnly = new double[Options.NumDamagesStrengthPoints];
+                _InvertedCalculations_DamagesStrengthProbabilities_FirstOnly[0] = 1.0; // all other possibilities 0
+            }
+            return _InvertedCalculations_DamagesStrengthProbabilities_FirstOnly;
+        }
+
+        public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, ref GameHistory gameHistory, byte actionChosen)
         {
             if (!currentDecision.CanTerminateGame)
                 return false;
 
             byte decisionByteCode = currentDecision.DecisionByteCode;
+            bool effectivelyComplete = IsEffectivelyComplete(ref gameHistory, actionChosen, decisionByteCode);
 
+            if (GameOptions.InvertChanceDecisions)
+            {
+                if (decisionByteCode == (byte)LitigGameDecisions.PostPrimaryActionChance)
+                    return true;
+                if (effectivelyComplete)
+                    gameHistory.CompleteExceptInverted = true;
+                return false;
+            }
+            else
+                return effectivelyComplete;
+        }
+
+        private bool IsEffectivelyComplete(ref GameHistory gameHistory, byte actionChosen, byte decisionByteCode)
+        {
             switch (decisionByteCode)
             {
                 case (byte)LitigGameDecisions.CourtDecisionLiability:
