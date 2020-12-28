@@ -154,6 +154,7 @@ namespace ACESim
                     MyDefinition.Options.LitigGamePretrialDecisionGeneratorGenerator.ProcessAction(MyDefinition, MyProgress, false, action);
                     break;
                 case (byte)LitigGameDecisions.CourtDecisionLiability:
+                    MyProgress.CLiabilitySignalDiscrete = action;
                     MyProgress.TrialOccurs = true;
                     MyProgress.PWinsAtTrial = MyDefinition.Options.NumLiabilitySignals == 1 /* IMPORTANT: This highlights that when there is only one liability signal, the court ALWAYS finds liability */ || 
                         action == 2 /* signal must be the HIGH value for plaintiff to win */; 
@@ -174,6 +175,7 @@ namespace ACESim
                     //System.Diagnostics.TabbedText.WriteLine($"Quality {MyProgress.LiabilityStrengthUniform} Court noise action {action} => {courtNoiseNormalDraw} => signal {courtLiabilitySignal} PWins {MyProgress.PWinsAtTrial}");
                     break;
                 case (byte)LitigGameDecisions.CourtDecisionDamages:
+                    MyProgress.CDamagesSignalDiscrete = action;
                     double damagesProportion = ConvertActionToUniformDistributionDraw(action, true);
                     if (MyDefinition.Options.NumDamagesSignals == 1)
                         damagesProportion = 1.0;

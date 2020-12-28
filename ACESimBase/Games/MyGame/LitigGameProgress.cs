@@ -45,14 +45,14 @@ namespace ACESim
         public byte DLiabilityNoiseDiscrete;
         public byte PLiabilitySignalDiscrete;
         public byte DLiabilitySignalDiscrete;
-        public byte CLiabilitySignalDiscrete;
+        public byte? CLiabilitySignalDiscrete;
 
         public byte DamagesStrengthDiscrete;
         public byte PDamagesNoiseDiscrete;
         public byte DDamagesNoiseDiscrete;
         public byte PDamagesSignalDiscrete;
         public byte DDamagesSignalDiscrete;
-        public byte CDamagesSignalDiscrete;
+        public byte? CDamagesSignalDiscrete;
 
         public double  PChangeWealth;
         public double  DChangeWealth;
