@@ -237,13 +237,13 @@ namespace ACESim
                     playersKnowingDamagesStrength.ToArray(), Options.NumDamagesStrengthPoints, (byte)LitigGameDecisions.DamagesStrength)
                 { StoreActionInGameCacheItem = GameHistoryCacheIndex_DamagesStrength, IsReversible = true, UnevenChanceActions = litigationQualityUnevenChance, Unroll_Parallelize = disputeGenerator.GetDamagesStrengthUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetDamagesStrengthUnrollSettings().unrollIdentical, DistributedChanceDecision = true, SymmetryMap = (disputeGenerator.GetDamagesStrengthUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision) });
         }
-        
+
         private void AddLiabilitySignalsDecisions(List<Decision> decisions)
         {
             // Plaintiff and defendant signals. If a player has perfect information, then no signal is needed.
             if (Options.PLiabilityNoiseStdev != 0)
                 decisions.Add(new Decision("PlaintiffLiabilitySignal", "PLS", true, (byte)LitigGamePlayers.PLiabilitySignalChance,
-                    new byte[] {(byte) LitigGamePlayers.Plaintiff},
+                    Options.InvertChanceDecisions ? new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte) LitigGamePlayers.DLiabilitySignalChance, (byte) LitigGamePlayers.CourtLiabilityChance } : new byte[] {(byte) LitigGamePlayers.Plaintiff},
                     Options.NumLiabilitySignals, (byte)LitigGameDecisions.PLiabilitySignal, unevenChanceActions: true)
                 {
                     IsReversible = true,
@@ -256,7 +256,7 @@ namespace ACESim
                 });
             if (Options.DLiabilityNoiseStdev != 0)
                 decisions.Add(new Decision("DefendantLiabilitySignal", "DLS", true, (byte)LitigGamePlayers.DLiabilitySignalChance,
-                    new byte[] { (byte)LitigGamePlayers.Defendant },
+                    Options.InvertChanceDecisions ? new byte[] { (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.CourtLiabilityChance } : new byte[] { (byte)LitigGamePlayers.Defendant },
                     Options.NumLiabilitySignals, (byte)LitigGameDecisions.DLiabilitySignal, unevenChanceActions: true)
                 {
                     IsReversible = true,
@@ -299,7 +299,7 @@ namespace ACESim
             // Plaintiff and defendant signals. If a player has perfect information, then no signal is needed.
             if (Options.PDamagesNoiseStdev != 0)
                 decisions.Add(new Decision("PlaintiffDamagesSignal", "PDS", true, (byte)LitigGamePlayers.PDamagesSignalChance,
-                    new byte[] { (byte)LitigGamePlayers.Plaintiff },
+                    Options.InvertChanceDecisions ? new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.DDamagesSignalChance, (byte)LitigGamePlayers.CourtDamagesChance} : new byte[] { (byte)LitigGamePlayers.Plaintiff },
                     Options.NumDamagesSignals, (byte)LitigGameDecisions.PDamagesSignal, unevenChanceActions: true)
                 {
                     IsReversible = true,
@@ -312,7 +312,7 @@ namespace ACESim
                 });
             if (Options.DDamagesNoiseStdev != 0)
                 decisions.Add(new Decision("DefendantDamagesSignal", "DDS", true, (byte)LitigGamePlayers.DDamagesSignalChance,
-                    new byte[] { (byte)LitigGamePlayers.Defendant },
+                    Options.InvertChanceDecisions ? new byte[] { (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.CourtDamagesChance } : new byte[] { (byte)LitigGamePlayers.Defendant },
                     Options.NumDamagesSignals, (byte)LitigGameDecisions.DDamagesSignal, unevenChanceActions: true)
                 {
                     IsReversible = true,
