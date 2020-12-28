@@ -63,7 +63,7 @@ namespace ACESim
         double[] InvertedCalculations_GetDamagesStrengthProbabilities(byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal) => throw new NotImplementedException();
 
         // Note: When we extend this to other dispute generators, we're going to need to be able to work further backwards to whether a potential dispute arises. That is, we're only going to actually optimize decisions given that a dispute arises. So, the dispute generator will need to be able to report on how often does a potential dispute arises, and then work backwards from the absence of a dispute to the conditions that could have led to the absence of a dispute. Then, we might like to report on those conditions. 
-        (bool trulyLiable, byte liabilityStrength, byte damagesStrength) InvertedCalculations_WorkBackwardsFromSignals(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, double randomSeed) => throw new NotImplementedException();
+        (bool trulyLiable, byte liabilityStrength, byte damagesStrength) InvertedCalculations_WorkBackwardsFromSignals(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, int randomSeed) => throw new NotImplementedException();
 
 
 

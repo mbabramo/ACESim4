@@ -557,15 +557,6 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         private async Task SetEquilibria(List<List<double>> equilibria, ReportCollection reportCollection)
         {
-            //if (EvolutionSettings.DistributeChanceDecisions)
-            //{ // DEBUG
-            //    EvolutionSettings.DistributeChanceDecisions = false;
-            //    GameHistoryTree = null;
-            //    InitializeAllGamePaths();
-            //    PrintGameTree();
-            //    GameHistoryTree = null;
-            //    EvolutionSettings.DistributeChanceDecisions = true;
-            //}
             const bool useCorrelatedEquilibriumIfPossible = true;
             bool useCorrelatedEquilibrium = useCorrelatedEquilibriumIfPossible && equilibria.Count() > 1;
             int numEquilibria = equilibria.Count();

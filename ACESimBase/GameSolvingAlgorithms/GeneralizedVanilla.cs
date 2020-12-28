@@ -891,7 +891,6 @@ namespace ACESim
             }
             await base.Initialize();
             InitializeInformationSets();
-            PrintGameTree(); // DEBUG
             if (EvolutionSettings.UnrollAlgorithm)
             {
                 Unroll_CreateUnrolledCommandList();

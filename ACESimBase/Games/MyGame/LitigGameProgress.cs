@@ -445,33 +445,34 @@ namespace ACESim
 
         private void CalculatePostGameInfo()
         {
-            if (LitigGameDefinition.Options.InvertChanceDecisions)
+            LitigGameOptions o = LitigGameDefinition.Options;
+            if (o.InvertChanceDecisions)
             {
-                (IsTrulyLiable, LiabilityStrengthDiscrete, DamagesStrengthDiscrete) = LitigGameDefinition.Options.LitigGameDisputeGenerator.InvertedCalculations_WorkBackwardsFromSignals(PLiabilitySignalDiscrete, DLiabilitySignalDiscrete, CLiabilitySignalDiscrete, PDamagesSignalDiscrete, DDamagesSignalDiscrete, CDamagesSignalDiscrete, (double) IterationID.IterationNumber);
+                (IsTrulyLiable, LiabilityStrengthDiscrete, DamagesStrengthDiscrete) = o.LitigGameDisputeGenerator.InvertedCalculations_WorkBackwardsFromSignals(o.NumLiabilitySignals == 1 ? 1 : PLiabilitySignalDiscrete, o.NumLiabilitySignals == 1 ? 1 : DLiabilitySignalDiscrete, o.NumLiabilitySignals == 1 ? 1 : CLiabilitySignalDiscrete, o.NumDamagesSignals == 1 ? 1 : PDamagesSignalDiscrete, o.NumDamagesSignals == 1 ? 1 : DDamagesSignalDiscrete, o.NumDamagesSignals == 1 ? 1 : CDamagesSignalDiscrete, IterationID.IterationNumIntUnchecked);
             }
             else
             {
-                if (!LitigGameDefinition.Options.LitigGameDisputeGenerator.PotentialDisputeArises(LitigGameDefinition, DisputeGeneratorActions))
+                if (!o.LitigGameDisputeGenerator.PotentialDisputeArises(LitigGameDefinition, DisputeGeneratorActions))
                     IsTrulyLiable = false;
                 else
-                    IsTrulyLiable = LitigGameDefinition.Options.LitigGameDisputeGenerator.IsTrulyLiable(LitigGameDefinition, DisputeGeneratorActions, this);
+                    IsTrulyLiable = o.LitigGameDisputeGenerator.IsTrulyLiable(LitigGameDefinition, DisputeGeneratorActions, this);
             }
-            LiabilityStrengthUniform = Game.ConvertActionToUniformDistributionDraw(LiabilityStrengthDiscrete, LitigGameDefinition.Options.NumLiabilityStrengthPoints, false);
+            LiabilityStrengthUniform = Game.ConvertActionToUniformDistributionDraw(LiabilityStrengthDiscrete, o.NumLiabilityStrengthPoints, false);
             // If one or both parties have perfect information, then they can get their information about litigation quality now, since they don't need a signal. Note that we also specify in the game definition that the litigation quality should become part of their information set.
-            if (LitigGameDefinition.Options.PLiabilityNoiseStdev == 0)
+            if (o.PLiabilityNoiseStdev == 0)
                 PLiabilitySignalUniform = (double)LiabilityStrengthUniform;
-            if (LitigGameDefinition.Options.DLiabilityNoiseStdev == 0)
+            if (o.DLiabilityNoiseStdev == 0)
                 DLiabilitySignalUniform = (double)LiabilityStrengthUniform;
-            PLiabilitySignalUniform = LitigGameDefinition.Options.NumLiabilitySignals == 1 ? 0.5 : PLiabilitySignalDiscrete * (1.0 / LitigGameDefinition.Options.NumLiabilitySignals);
-            DLiabilitySignalUniform = LitigGameDefinition.Options.NumLiabilitySignals == 1 ? 0.5 : DLiabilitySignalDiscrete * (1.0 / LitigGameDefinition.Options.NumLiabilitySignals);
-            DamagesStrengthUniform = Game.ConvertActionToUniformDistributionDraw(DamagesStrengthDiscrete, LitigGameDefinition.Options.NumDamagesStrengthPoints, true /* include endpoints so that we can have possibility of max or min damages */);
+            PLiabilitySignalUniform = o.NumLiabilitySignals == 1 ? 0.5 : PLiabilitySignalDiscrete * (1.0 / o.NumLiabilitySignals);
+            DLiabilitySignalUniform = o.NumLiabilitySignals == 1 ? 0.5 : DLiabilitySignalDiscrete * (1.0 / o.NumLiabilitySignals);
+            DamagesStrengthUniform = Game.ConvertActionToUniformDistributionDraw(DamagesStrengthDiscrete, o.NumDamagesStrengthPoints, true /* include endpoints so that we can have possibility of max or min damages */);
             // If one or both parties have perfect information, then they can get their information about litigation quality now, since they don't need a signal. Note that we also specify in the game definition that the litigation quality should become part of their information set.
-            if (LitigGameDefinition.Options.PDamagesNoiseStdev == 0)
+            if (o.PDamagesNoiseStdev == 0)
                 PDamagesSignalUniform = (double)DamagesStrengthUniform;
-            if (LitigGameDefinition.Options.DDamagesNoiseStdev == 0)
+            if (o.DDamagesNoiseStdev == 0)
                 DDamagesSignalUniform = (double)DamagesStrengthUniform;
-            PDamagesSignalUniform = LitigGameDefinition.Options.NumDamagesSignals == 1 ? 0.5 : PDamagesSignalDiscrete * (1.0 / LitigGameDefinition.Options.NumDamagesSignals);
-            DDamagesSignalUniform = LitigGameDefinition.Options.NumDamagesSignals == 1 ? 0.5 : DDamagesSignalDiscrete * (1.0 / LitigGameDefinition.Options.NumDamagesSignals);
+            PDamagesSignalUniform = o.NumDamagesSignals == 1 ? 0.5 : PDamagesSignalDiscrete * (1.0 / o.NumDamagesSignals);
+            DDamagesSignalUniform = o.NumDamagesSignals == 1 ? 0.5 : DDamagesSignalDiscrete * (1.0 / o.NumDamagesSignals);
 
             TotalExpensesIncurred = 0 - PChangeWealth - DChangeWealth;
             if (!DisputeArises)
@@ -481,10 +482,10 @@ namespace ACESim
                 return;
             }
             double correctDamagesIfTrulyLiable;
-            if (LitigGameDefinition.Options.NumDamagesStrengthPoints <= 1)
-                correctDamagesIfTrulyLiable = (double)LitigGameDefinition.Options.DamagesMax;
+            if (o.NumDamagesStrengthPoints <= 1)
+                correctDamagesIfTrulyLiable = (double)o.DamagesMax;
             else
-                correctDamagesIfTrulyLiable = (double)(LitigGameDefinition.Options.DamagesMin + DamagesStrengthUniform * (LitigGameDefinition.Options.DamagesMax - LitigGameDefinition.Options.DamagesMin));
+                correctDamagesIfTrulyLiable = (double)(o.DamagesMin + DamagesStrengthUniform * (o.DamagesMax - o.DamagesMin));
             double falseNegativeShortfallIfTrulyLiable = Math.Max(0, correctDamagesIfTrulyLiable - PChangeWealth); // how much plaintiff's payment fell short (if at all)
             double falsePositiveExpendituresIfNotTrulyLiable = Math.Max(0, 0 - DChangeWealth); // how much defendant's payment was excessive (if at all), in the condition in which the defendant is NOT truly liable. In this case, the defendant ideally would pay 0.
             double falsePositiveExpendituresIfTrulyLiable = Math.Max(0, 0 - correctDamagesIfTrulyLiable - DChangeWealth); // how much defendant's payment was excessive (if at all), in the condition in which the defendant is truly liable. In this case, the defendant ideally would pay the correct amount of damages. E.g., if correct damages are 100 and defendant pays out 150 (including costs), then change in wealth is -150, we have -100 - -150, so we have 50.
@@ -498,7 +499,7 @@ namespace ACESim
                 FalseNegativeShortfall = 0;
                 FalsePositiveExpenditures = falsePositiveExpendituresIfNotTrulyLiable;
             }
-            PreDisputeSharedWelfare = LitigGameDefinition.Options.LitigGameDisputeGenerator.GetLitigationIndependentSocialWelfare(LitigGameDefinition, DisputeGeneratorActions);
+            PreDisputeSharedWelfare = o.LitigGameDisputeGenerator.GetLitigationIndependentSocialWelfare(LitigGameDefinition, DisputeGeneratorActions);
         }
 
         public override void RecalculateGameOutcome()

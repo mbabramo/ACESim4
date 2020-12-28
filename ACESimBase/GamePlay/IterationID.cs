@@ -10,6 +10,8 @@ namespace ACESim
     {
         public long IterationNumber;
 
+        public int IterationNumIntUnchecked => unchecked ( (int) IterationNumber );
+
         public IterationID()
         {
         }

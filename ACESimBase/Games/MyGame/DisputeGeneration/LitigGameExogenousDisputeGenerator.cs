@@ -174,8 +174,8 @@ namespace ACESim
                     (cLiabilitySignalIndex, new List<int>() { pLiabilitySignalIndex, dLiabilitySignalIndex}), // court liability based on plaintiff's and defendant's signals
                     (liabilityStrengthIndex, new List<int>() { pLiabilitySignalIndex, dLiabilitySignalIndex, cLiabilitySignalIndex }), // liability strength based on all of above
                     (trueLiabilityIndex, new List<int>() { pLiabilitySignalIndex, dLiabilitySignalIndex, cLiabilitySignalIndex, liabilityStrengthIndex, }), // true value based on all of the above
-                    (liabilityStrengthWithoutTrialCalculatorIndex, new List<int>() { pLiabilitySignalIndex, dLiabilitySignalIndex, }), // liability strength based on everything but court info
-                    (trueLiabilityWithoutTrialCalculatorIndex, new List<int>() { pLiabilitySignalIndex, dLiabilitySignalIndex, liabilityStrengthIndex, }) // true value based on everything but court info
+                    (liabilityStrengthIndex, new List<int>() { pLiabilitySignalIndex, dLiabilitySignalIndex, }), // liability strength based on everything but court info
+                    (trueLiabilityIndex, new List<int>() { pLiabilitySignalIndex, dLiabilitySignalIndex, liabilityStrengthIndex, }) // true value based on everything but court info
                 };
             LiabilityCalculators = DiscreteProbabilityDistribution.GetProbabilityMapCalculators(liabilityDimensions, liabilityPrior, liabilitySignalsProducer, liabilityCalculatorsToProduce);
 
@@ -212,9 +212,9 @@ namespace ACESim
 
         // Additional implementations. This dispute generator calculates 
         public double[] InvertedCalculations_GetLiabilityTrueValueProbabilities(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte liabilityStrength) => cLiabilitySignal is byte cLiabilitySignalNotNull ? LiabilityCalculators[trueLiabilityCalculatorIndex](new List<int>() { pLiabilitySignal - 1, dLiabilitySignal - 1, cLiabilitySignalNotNull - 1, liabilityStrength - 1 }) : LiabilityCalculators[trueLiabilityWithoutTrialCalculatorIndex](new List<int>() { pLiabilitySignal - 1, dLiabilitySignal - 1, liabilityStrength - 1 });
-        public (bool trulyLiable, byte liabilityStrength, byte damagesStrength) InvertedCalculations_WorkBackwardsFromSignals(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, double randomSeed)
+        public (bool trulyLiable, byte liabilityStrength, byte damagesStrength) InvertedCalculations_WorkBackwardsFromSignals(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, int randomSeed)
         {
-            Random r = new Random((int)(randomSeed * int.MaxValue));
+            Random r = new Random(randomSeed);
             double[] liabilityStrengthProbabilities = InvertedCalculations_GetLiabilityStrengthProbabilities(pLiabilitySignal, dLiabilitySignal, cLiabilitySignal);
             byte liabilityStrength = ArrayUtilities.ChooseIndex_OneBasedByte(liabilityStrengthProbabilities, r.NextDouble());
             double[] trulyLiableProbabilities = InvertedCalculations_GetLiabilityTrueValueProbabilities(pLiabilitySignal, dLiabilitySignal, cLiabilitySignal, liabilityStrength);
