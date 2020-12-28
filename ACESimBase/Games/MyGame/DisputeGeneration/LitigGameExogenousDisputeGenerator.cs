@@ -87,6 +87,7 @@ namespace ACESim
 
         public double[] GetDamagesStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions) => ProbabilityOfDamagesStrengthValues;
 
+        
         public bool IsTrulyLiable(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
         {
             return disputeGeneratorActions.PostPrimaryChanceAction == 2;
@@ -198,16 +199,73 @@ namespace ACESim
             DamagesCalculators = DiscreteProbabilityDistribution.GetProbabilityMapCalculators(damagesDimensions, damagesPrior, damagesSignalsProducer, damagesCalculatorsToProduce);
         }
 
+        // Interface implementations
         public double[] InvertedCalculations_GetPLiabilitySignalProbabilities() => pLiabilitySignalProbabilitiesUnconditional;
-        public double[] InvertedCalculations_GetDLiabilitySignalProbabilities(int pLiabilitySignal) => LiabilityCalculators[dLiabilitySignalCalculatorIndex](new List<int>() { pLiabilitySignal - 1});
-        public double[] InvertedCalculations_GetCLiabilitySignalProbabilities(int pLiabilitySignal, int dLiabilitySignal) => LiabilityCalculators[cLiabilitySignalCalculatorIndex](new List<int>() { pLiabilitySignal - 1, dLiabilitySignal - 1 });
-        public double[] InvertedCalculations_GetLiabilityStrengthProbabilities(int pLiabilitySignal, int dLiabilitySignal, int? cLiabilitySignal) => cLiabilitySignal is int cLiabilitySignalNotNull ? LiabilityCalculators[liabilityStrengthCalculatorIndex](new List<int>() { pLiabilitySignal - 1, dLiabilitySignal - 1, cLiabilitySignalNotNull - 1}) : LiabilityCalculators[liabilityStrengthWithoutTrialCalculatorIndex](new List<int>() { pLiabilitySignal - 1, dLiabilitySignal - 1 });
-        public double[] InvertedCalculations_GetLiabilityTrueValueProbabilities(int pLiabilitySignal, int dLiabilitySignal, int? cLiabilitySignal, int liabilityStrength) => cLiabilitySignal is int cLiabilitySignalNotNull ? LiabilityCalculators[trueLiabilityCalculatorIndex](new List<int>() { pLiabilitySignal - 1, dLiabilitySignal - 1, cLiabilitySignalNotNull - 1, liabilityStrength - 1 }) : LiabilityCalculators[trueLiabilityWithoutTrialCalculatorIndex](new List<int>() { pLiabilitySignal - 1, dLiabilitySignal - 1, liabilityStrength - 1 });
+        public double[] InvertedCalculations_GetDLiabilitySignalProbabilities(byte pLiabilitySignal) => LiabilityCalculators[dLiabilitySignalCalculatorIndex](new List<int>() { pLiabilitySignal - 1});
+        public double[] InvertedCalculations_GetCLiabilitySignalProbabilities(byte pLiabilitySignal, byte dLiabilitySignal) => LiabilityCalculators[cLiabilitySignalCalculatorIndex](new List<int>() { pLiabilitySignal - 1, dLiabilitySignal - 1 });
 
         public double[] InvertedCalculations_GetPDamagesSignalProbabilities() => pDamagesSignalProbabilitiesUnconditional;
-        public double[] InvertedCalculations_GetDDamagesSignalProbabilities(int pDamagesSignal) => DamagesCalculators[dDamagesSignalCalculatorIndex](new List<int>() { pDamagesSignal - 1 });
-        public double[] InvertedCalculations_GetCDamagesSignalProbabilities(int pDamagesSignal, int dDamagesSignal) => DamagesCalculators[cDamagesSignalCalculatorIndex](new List<int>() { pDamagesSignal - 1, dDamagesSignal - 1});
-        public double[] InvertedCalculations_GetDamagesStrengthProbabilities(int pDamagesSignal, int dDamagesSignal, int? cDamagesSignal) => cDamagesSignal is int cDamagesSignalNotNull ? DamagesCalculators[liabilityStrengthCalculatorIndex](new List<int>() { pDamagesSignal - 1, dDamagesSignal - 1, cDamagesSignalNotNull - 1 }) : DamagesCalculators[liabilityStrengthWithoutTrialCalculatorIndex](new List<int>() { pDamagesSignal - 1, dDamagesSignal - 1 });
+        public double[] InvertedCalculations_GetDDamagesSignalProbabilities(byte pDamagesSignal) => DamagesCalculators[dDamagesSignalCalculatorIndex](new List<int>() { pDamagesSignal - 1 });
+        public double[] InvertedCalculations_GetCDamagesSignalProbabilities(byte pDamagesSignal, byte dDamagesSignal) => DamagesCalculators[cDamagesSignalCalculatorIndex](new List<int>() { pDamagesSignal - 1, dDamagesSignal - 1}); 
+        public double[] InvertedCalculations_GetLiabilityStrengthProbabilities(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal) => cLiabilitySignal is byte cLiabilitySignalNotNull ? LiabilityCalculators[liabilityStrengthCalculatorIndex](new List<int>() { pLiabilitySignal - 1, dLiabilitySignal - 1, cLiabilitySignalNotNull - 1 }) : LiabilityCalculators[liabilityStrengthWithoutTrialCalculatorIndex](new List<int>() { pLiabilitySignal - 1, dLiabilitySignal - 1 });
+        public double[] InvertedCalculations_GetDamagesStrengthProbabilities(byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal) => cDamagesSignal is byte cDamagesSignalNotNull ? DamagesCalculators[liabilityStrengthCalculatorIndex](new List<int>() { pDamagesSignal - 1, dDamagesSignal - 1, cDamagesSignalNotNull - 1 }) : DamagesCalculators[liabilityStrengthWithoutTrialCalculatorIndex](new List<int>() { pDamagesSignal - 1, dDamagesSignal - 1 });
+
+        // Additional implementations. This dispute generator calculates 
+        public double[] InvertedCalculations_GetLiabilityTrueValueProbabilities(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte liabilityStrength) => cLiabilitySignal is byte cLiabilitySignalNotNull ? LiabilityCalculators[trueLiabilityCalculatorIndex](new List<int>() { pLiabilitySignal - 1, dLiabilitySignal - 1, cLiabilitySignalNotNull - 1, liabilityStrength - 1 }) : LiabilityCalculators[trueLiabilityWithoutTrialCalculatorIndex](new List<int>() { pLiabilitySignal - 1, dLiabilitySignal - 1, liabilityStrength - 1 });
+        public (bool trulyLiable, byte liabilityStrength, byte damagesStrength) InvertedCalculations_WorkBackwardsFromSignals(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, double randomSeed)
+        {
+            Random r = new Random((int)(randomSeed * int.MaxValue));
+            double[] liabilityStrengthProbabilities = InvertedCalculations_GetLiabilityStrengthProbabilities(pLiabilitySignal, dLiabilitySignal, cLiabilitySignal);
+            byte liabilityStrength = ArrayUtilities.ChooseIndex_OneBasedByte(liabilityStrengthProbabilities, r.NextDouble());
+            double[] trulyLiableProbabilities = InvertedCalculations_GetLiabilityTrueValueProbabilities(pLiabilitySignal, dLiabilitySignal, cLiabilitySignal, liabilityStrength);
+            byte trulyLiableIndex = ArrayUtilities.ChooseIndex_OneBasedByte(trulyLiableProbabilities, r.NextDouble());
+            bool trulyLiable = trulyLiableIndex == 2;
+            double[] damagesStrengthProbabilities = InvertedCalculations_GetDamagesStrengthProbabilities(pDamagesSignal, dDamagesSignal, cDamagesSignal);
+            byte damagesStrength = ArrayUtilities.ChooseIndex_OneBasedByte(damagesStrengthProbabilities, r.NextDouble());
+            return (trulyLiable, liabilityStrength, damagesStrength);
+        }
+
+        public List<(GameProgress progress, double weight)> InvertedCalculations_GenerateAllConsistentGameProgresses(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, LitigGameProgress gameProgress)
+        {
+            List<(GameProgress progress, double weight)> withLiabilityStrength = new List<(GameProgress progress, double weight)>();
+            double[] liabilityStrengthProbabilities = InvertedCalculations_GetLiabilityStrengthProbabilities(pLiabilitySignal, dLiabilitySignal, cLiabilitySignal);
+            for (byte p = 1; p <= liabilityStrengthProbabilities.Length; p++)
+            {
+                double probability = liabilityStrengthProbabilities[p - 1];
+                var copy = gameProgress.DeepCopy();
+                copy.LiabilityStrengthDiscrete = p;
+                withLiabilityStrength.Add((copy, probability));
+            }
+
+            List<(GameProgress progress, double weight)> withTrulyLiable = new List<(GameProgress progress, double weight)>();
+            foreach (var gp in withLiabilityStrength)
+            {
+                double[] trulyLiableProbabilities = InvertedCalculations_GetLiabilityTrueValueProbabilities(pLiabilitySignal, dLiabilitySignal, cLiabilitySignal, ((LitigGameProgress)gp.progress).LiabilityStrengthDiscrete);
+                for (byte p = 1; p <= trulyLiableProbabilities.Length; p++)
+                {
+                    double probability = trulyLiableProbabilities[p - 1];
+                    var copy = (LitigGameProgress) gp.progress.DeepCopy();
+                    copy.IsTrulyLiable = p == 2;
+                    withTrulyLiable.Add((copy, probability));
+                }
+            }
+
+            List<(GameProgress progress, double weight)> withDamagesStrength = new List<(GameProgress progress, double weight)>();
+            foreach (var gp in withTrulyLiable)
+            {
+                double[] damagesStrengthProbabilities = InvertedCalculations_GetDamagesStrengthProbabilities(pLiabilitySignal, dLiabilitySignal, cLiabilitySignal);
+                for (byte p = 1; p <= damagesStrengthProbabilities.Length; p++)
+                {
+                    double probability = damagesStrengthProbabilities[p - 1];
+                    var copy = (LitigGameProgress)gp.progress.DeepCopy();
+                    copy.DamagesStrengthDiscrete = p;
+                    withTrulyLiable.Add((copy, probability));
+                }
+            }
+
+            return withDamagesStrength;
+        }
+
 
     }
 }

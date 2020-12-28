@@ -13,7 +13,7 @@ namespace ACESim
         void Setup(LitigGameDefinition litigGameDefinition);
         void GetActionsSetup(LitigGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate);
         bool PotentialDisputeArises(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions);
-        bool MarkComplete(LitigGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction); 
+        bool MarkComplete(LitigGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction);
         bool MarkComplete(LitigGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction, byte postPrimaryAction);
         bool IsTrulyLiable(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress);
         double[] GetPrePrimaryChanceProbabilities(LitigGameDefinition myGameDefinition);
@@ -53,15 +53,17 @@ namespace ACESim
         // Finally, the game will request that the dispute 
 
         double[] InvertedCalculations_GetPLiabilitySignalProbabilities() => throw new NotImplementedException();
-        double[] InvertedCalculations_GetDLiabilitySignalProbabilities(int pLiabilitySignal) => throw new NotImplementedException();
-        double[] InvertedCalculations_GetCLiabilitySignalProbabilities(int pLiabilitySignal, int dLiabilitySignal) => throw new NotImplementedException();
-        double[] InvertedCalculations_GetLiabilityStrengthProbabilities(int pLiabilitySignal, int dLiabilitySignal, int? cLiabilitySignal) => throw new NotImplementedException();
-        double[] InvertedCalculations_GetLiabilityTrueValueProbabilities(int pLiabilitySignal, int dLiabilitySignal, int? cLiabilitySignal, int liabilityStrength) => throw new NotImplementedException();
+        double[] InvertedCalculations_GetDLiabilitySignalProbabilities(byte pLiabilitySignal) => throw new NotImplementedException();
+        double[] InvertedCalculations_GetCLiabilitySignalProbabilities(byte pLiabilitySignal, byte dLiabilitySignal) => throw new NotImplementedException();
 
         double[] InvertedCalculations_GetPDamagesSignalProbabilities() => throw new NotImplementedException();
-        double[] InvertedCalculations_GetDDamagesSignalProbabilities(int pDamagesSignal) => throw new NotImplementedException();
-        double[] InvertedCalculations_GetCDamagesSignalProbabilities(int pDamagesSignal, int dDamagesSignal) => throw new NotImplementedException();
-        double[] InvertedCalculations_GetDamagesStrengthProbabilities(int pDamagesSignal, int dDamagesSignal, int? cDamagesSignal) => throw new NotImplementedException();
+        double[] InvertedCalculations_GetDDamagesSignalProbabilities(byte pDamagesSignal) => throw new NotImplementedException();
+        double[] InvertedCalculations_GetCDamagesSignalProbabilities(byte pDamagesSignal, byte dDamagesSignal) => throw new NotImplementedException();
+        double[] InvertedCalculations_GetLiabilityStrengthProbabilities(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal) => throw new NotImplementedException();
+        double[] InvertedCalculations_GetDamagesStrengthProbabilities(byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal) => throw new NotImplementedException();
+
+        // Note: When we extend this to other dispute generators, we're going to need to be able to work further backwards to whether a potential dispute arises. That is, we're only going to actually optimize decisions given that a dispute arises. So, the dispute generator will need to be able to report on how often does a potential dispute arises, and then work backwards from the absence of a dispute to the conditions that could have led to the absence of a dispute. Then, we might like to report on those conditions. 
+        (bool trulyLiable, byte liabilityStrength, byte damagesStrength) InvertedCalculations_WorkBackwardsFromSignals(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, double randomSeed) => throw new NotImplementedException();
 
 
 

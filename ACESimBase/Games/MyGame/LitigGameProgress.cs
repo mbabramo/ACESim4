@@ -278,7 +278,7 @@ namespace ACESim
                 SettlementValue = DLastOffer * (double)LitigGameDefinition.Options.DamagesMax;
         }
 
-        public override GameProgress DeepCopy()
+        public override LitigGameProgress DeepCopy()
         {
             LitigGameProgress copy = new LitigGameProgress(FullHistoryRequired);
 
@@ -445,6 +445,17 @@ namespace ACESim
 
         private void CalculatePostGameInfo()
         {
+            if (LitigGameDefinition.Options.InvertChanceDecisions)
+            {
+                (IsTrulyLiable, LiabilityStrengthDiscrete, DamagesStrengthDiscrete) = LitigGameDefinition.Options.LitigGameDisputeGenerator.InvertedCalculations_WorkBackwardsFromSignals(PLiabilitySignalDiscrete, DLiabilitySignalDiscrete, CLiabilitySignalDiscrete, PDamagesSignalDiscrete, DDamagesSignalDiscrete, CDamagesSignalDiscrete, (double) IterationID.IterationNumber);
+            }
+            else
+            {
+                if (!LitigGameDefinition.Options.LitigGameDisputeGenerator.PotentialDisputeArises(LitigGameDefinition, DisputeGeneratorActions))
+                    IsTrulyLiable = false;
+                else
+                    IsTrulyLiable = LitigGameDefinition.Options.LitigGameDisputeGenerator.IsTrulyLiable(LitigGameDefinition, DisputeGeneratorActions, this);
+            }
             LiabilityStrengthUniform = Game.ConvertActionToUniformDistributionDraw(LiabilityStrengthDiscrete, LitigGameDefinition.Options.NumLiabilityStrengthPoints, false);
             // If one or both parties have perfect information, then they can get their information about litigation quality now, since they don't need a signal. Note that we also specify in the game definition that the litigation quality should become part of their information set.
             if (LitigGameDefinition.Options.PLiabilityNoiseStdev == 0)
@@ -463,7 +474,6 @@ namespace ACESim
             DDamagesSignalUniform = LitigGameDefinition.Options.NumDamagesSignals == 1 ? 0.5 : DDamagesSignalDiscrete * (1.0 / LitigGameDefinition.Options.NumDamagesSignals);
 
             TotalExpensesIncurred = 0 - PChangeWealth - DChangeWealth;
-            PreDisputeSharedWelfare = LitigGameDefinition.Options.LitigGameDisputeGenerator.GetLitigationIndependentSocialWelfare(LitigGameDefinition, DisputeGeneratorActions);
             if (!DisputeArises)
             {
                 FalseNegativeShortfall = 0;
@@ -478,10 +488,6 @@ namespace ACESim
             double falseNegativeShortfallIfTrulyLiable = Math.Max(0, correctDamagesIfTrulyLiable - PChangeWealth); // how much plaintiff's payment fell short (if at all)
             double falsePositiveExpendituresIfNotTrulyLiable = Math.Max(0, 0 - DChangeWealth); // how much defendant's payment was excessive (if at all), in the condition in which the defendant is NOT truly liable. In this case, the defendant ideally would pay 0.
             double falsePositiveExpendituresIfTrulyLiable = Math.Max(0, 0 - correctDamagesIfTrulyLiable - DChangeWealth); // how much defendant's payment was excessive (if at all), in the condition in which the defendant is truly liable. In this case, the defendant ideally would pay the correct amount of damages. E.g., if correct damages are 100 and defendant pays out 150 (including costs), then change in wealth is -150, we have -100 - -150, so we have 50.
-            if (!LitigGameDefinition.Options.LitigGameDisputeGenerator.PotentialDisputeArises(LitigGameDefinition, DisputeGeneratorActions))
-                IsTrulyLiable = false;
-            else
-                IsTrulyLiable = LitigGameDefinition.Options.LitigGameDisputeGenerator.IsTrulyLiable(LitigGameDefinition, DisputeGeneratorActions, this);
             if (IsTrulyLiable)
             {
                 FalseNegativeShortfall = falseNegativeShortfallIfTrulyLiable;
@@ -492,6 +498,7 @@ namespace ACESim
                 FalseNegativeShortfall = 0;
                 FalsePositiveExpenditures = falsePositiveExpendituresIfNotTrulyLiable;
             }
+            PreDisputeSharedWelfare = LitigGameDefinition.Options.LitigGameDisputeGenerator.GetLitigationIndependentSocialWelfare(LitigGameDefinition, DisputeGeneratorActions);
         }
 
         public override void RecalculateGameOutcome()
