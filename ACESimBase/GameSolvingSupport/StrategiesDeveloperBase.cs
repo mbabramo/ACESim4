@@ -2135,7 +2135,7 @@ namespace ACESim
             }
             ActionProbabilityUtilities.GetActionProbabilitiesAtHistoryPoint(gameState, actionStrategy, 0 /* ignored */, probabilities, numPossibleActions, null, Navigation);
 
-            bool includeZeroProbabilityActions = true; // may be relevant for counts
+            bool includeZeroProbabilityActions = false; // may be relevant for counts
             bool roundOffPlayerActionsNearZeroOrOne = false; // This is not a good way to do it, because it won't necessarily add up correctly. Better to change it in the information set nodes directly, using the RoundOffProbabilities function.
 
             await Parallelizer.GoAsync(EvolutionSettings.ParallelOptimization, 1, (byte)(numPossibleActions + 1), async (action) =>

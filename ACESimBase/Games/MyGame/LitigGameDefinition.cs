@@ -217,25 +217,28 @@ namespace ACESim
             disputeGenerator.GetActionsSetup(this, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate);
             CheckCompleteAfterPrimaryAction = primaryActionCanTerminate;
             CheckCompleteAfterPostPrimaryAction = postPrimaryChanceCanTerminate;
-            if (prePrimaryChanceActions > 0)
+            if (!Options.InvertChanceDecisions)
             {
-                decisions.Add(new Decision("PrePrimaryChanceActions", "PrePrimary", true, (byte) LitigGamePlayers.PrePrimaryChance, prePrimaryPlayersToInform, prePrimaryChanceActions, (byte) LitigGameDecisions.PrePrimaryActionChance) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PrePrimaryChance, IsReversible = true, UnevenChanceActions = prePrimaryUnevenChance, Unroll_Parallelize = disputeGenerator.GetPrePrimaryUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetPrePrimaryUnrollSettings().unrollIdentical, DistributedChanceDecision = true, SymmetryMap = (disputeGenerator.GetPrePrimaryUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision) });
-            }
-            if (primaryActions > 0)
-            {
-                decisions.Add(new Decision("PrimaryActions", "Primary", true, (byte) LitigGamePlayers.PrePrimaryChance /* there is no primary chance player */, primaryPlayersToInform, primaryActions, (byte) LitigGameDecisions.PrimaryAction) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PrimaryAction, IsReversible = true, CanTerminateGame = primaryActionCanTerminate, Unroll_Parallelize = disputeGenerator.GetPrimaryUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetPrimaryUnrollSettings().unrollIdentical, DistributedChanceDecision = true, SymmetryMap = (disputeGenerator.GetPrimaryUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision) });
-            }
-            if (postPrimaryChanceActions > 0)
-            {
-                decisions.Add(new Decision("PostPrimaryChanceActions", "PostPrimary", true, (byte) LitigGamePlayers.PostPrimaryChance, postPrimaryPlayersToInform, postPrimaryChanceActions, (byte) LitigGameDecisions.PostPrimaryActionChance) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PostPrimaryChance, IsReversible = true, UnevenChanceActions = postPrimaryUnevenChance, CanTerminateGame = postPrimaryChanceCanTerminate, Unroll_Parallelize = disputeGenerator.GetPostPrimaryUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetPostPrimaryUnrollSettings().unrollIdentical, DistributedChanceDecision = true, SymmetryMap = (disputeGenerator.GetPostPrimaryUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision) });
-            }
-            decisions.Add(new Decision("LiabilityStrength", "LiabStr", true, (byte)LitigGamePlayers.LiabilityStrengthChance,
-                    playersKnowingLiabilityStrength.ToArray(), Options.NumLiabilityStrengthPoints, (byte)LitigGameDecisions.LiabilityStrength)
+                if (prePrimaryChanceActions > 0)
+                {
+                    decisions.Add(new Decision("PrePrimaryChanceActions", "PrePrimary", true, (byte)LitigGamePlayers.PrePrimaryChance, prePrimaryPlayersToInform, prePrimaryChanceActions, (byte)LitigGameDecisions.PrePrimaryActionChance) { StoreActionInGameCacheItem = GameHistoryCacheIndex_PrePrimaryChance, IsReversible = true, UnevenChanceActions = prePrimaryUnevenChance, Unroll_Parallelize = disputeGenerator.GetPrePrimaryUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetPrePrimaryUnrollSettings().unrollIdentical, DistributedChanceDecision = true, SymmetryMap = (disputeGenerator.GetPrePrimaryUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision) });
+                }
+                if (primaryActions > 0)
+                {
+                    decisions.Add(new Decision("PrimaryActions", "Primary", true, (byte)LitigGamePlayers.PrePrimaryChance /* there is no primary chance player */, primaryPlayersToInform, primaryActions, (byte)LitigGameDecisions.PrimaryAction) { StoreActionInGameCacheItem = GameHistoryCacheIndex_PrimaryAction, IsReversible = true, CanTerminateGame = primaryActionCanTerminate, Unroll_Parallelize = disputeGenerator.GetPrimaryUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetPrimaryUnrollSettings().unrollIdentical, DistributedChanceDecision = true, SymmetryMap = (disputeGenerator.GetPrimaryUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision) });
+                }
+                if (postPrimaryChanceActions > 0)
+                {
+                    decisions.Add(new Decision("PostPrimaryChanceActions", "PostPrimary", true, (byte)LitigGamePlayers.PostPrimaryChance, postPrimaryPlayersToInform, postPrimaryChanceActions, (byte)LitigGameDecisions.PostPrimaryActionChance) { StoreActionInGameCacheItem = GameHistoryCacheIndex_PostPrimaryChance, IsReversible = true, UnevenChanceActions = postPrimaryUnevenChance, CanTerminateGame = postPrimaryChanceCanTerminate, Unroll_Parallelize = disputeGenerator.GetPostPrimaryUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetPostPrimaryUnrollSettings().unrollIdentical, DistributedChanceDecision = true, SymmetryMap = (disputeGenerator.GetPostPrimaryUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision) });
+                }
+                decisions.Add(new Decision("LiabilityStrength", "LiabStr", true, (byte)LitigGamePlayers.LiabilityStrengthChance,
+                        playersKnowingLiabilityStrength.ToArray(), Options.NumLiabilityStrengthPoints, (byte)LitigGameDecisions.LiabilityStrength)
                 { StoreActionInGameCacheItem = GameHistoryCacheIndex_LiabilityStrength, IsReversible = true, UnevenChanceActions = litigationQualityUnevenChance, Unroll_Parallelize = disputeGenerator.GetLiabilityStrengthUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetLiabilityStrengthUnrollSettings().unrollIdentical, DistributedChanceDecision = true, SymmetryMap = (disputeGenerator.GetLiabilityStrengthUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision) });
-            if (Options.NumDamagesStrengthPoints > 1)
-                decisions.Add(new Decision("DamagesStrength", "DamStr", true, (byte)LitigGamePlayers.DamagesStrengthChance,
-                    playersKnowingDamagesStrength.ToArray(), Options.NumDamagesStrengthPoints, (byte)LitigGameDecisions.DamagesStrength)
-                { StoreActionInGameCacheItem = GameHistoryCacheIndex_DamagesStrength, IsReversible = true, UnevenChanceActions = litigationQualityUnevenChance, Unroll_Parallelize = disputeGenerator.GetDamagesStrengthUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetDamagesStrengthUnrollSettings().unrollIdentical, DistributedChanceDecision = true, SymmetryMap = (disputeGenerator.GetDamagesStrengthUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision) });
+                if (Options.NumDamagesStrengthPoints > 1)
+                    decisions.Add(new Decision("DamagesStrength", "DamStr", true, (byte)LitigGamePlayers.DamagesStrengthChance,
+                        playersKnowingDamagesStrength.ToArray(), Options.NumDamagesStrengthPoints, (byte)LitigGameDecisions.DamagesStrength)
+                    { StoreActionInGameCacheItem = GameHistoryCacheIndex_DamagesStrength, IsReversible = true, UnevenChanceActions = litigationQualityUnevenChance, Unroll_Parallelize = disputeGenerator.GetDamagesStrengthUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetDamagesStrengthUnrollSettings().unrollIdentical, DistributedChanceDecision = true, SymmetryMap = (disputeGenerator.GetDamagesStrengthUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision) });
+            }
         }
 
         private void AddLiabilitySignalsDecisions(List<Decision> decisions)
@@ -791,7 +794,7 @@ namespace ACESim
         {
             byte decisionByteCode = decision.DecisionByteCode;
             if (Options.InvertChanceDecisions && decisionByteCode is (byte)LitigGameDecisions.PrePrimaryActionChance or (byte)LitigGameDecisions.PrimaryAction or (byte)LitigGameDecisions.PostPrimaryActionChance or (byte)LitigGameDecisions.LiabilityStrength or (byte)LitigGameDecisions.DamagesStrength)
-                return true;
+                throw new Exception("DEBUG");
             if (decisionByteCode == (byte) LitigGameDecisions.MutualGiveUp)
             {
                 bool pTryingToGiveUp = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PReadyToAbandon) == 1;
