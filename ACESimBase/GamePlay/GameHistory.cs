@@ -39,7 +39,6 @@ namespace ACESim
 
         public bool Initialized;
         public bool Complete;
-        public bool CompleteExceptInverted;
         public byte NextActionsAndDecisionsHistoryIndex;
         public byte LastDecisionIndexAdded;
         public byte HighestCacheIndex; // not necessarily sequentially added
@@ -65,7 +64,7 @@ namespace ACESim
 
         public bool Matches(GameHistory other)
         {
-            var basics = Initialized == other.Initialized && Complete == other.Complete && CompleteExceptInverted == other.CompleteExceptInverted  && NextActionsAndDecisionsHistoryIndex == other.NextActionsAndDecisionsHistoryIndex && LastDecisionIndexAdded == other.LastDecisionIndexAdded && PreviousNotificationDeferred == other.PreviousNotificationDeferred && DeferredAction == other.DeferredAction && DeferredPlayerNumber == other.DeferredPlayerNumber && ((DeferredPlayersToInform == null && other.DeferredPlayersToInform == null) || DeferredPlayersToInform.SequenceEqual(other.DeferredPlayersToInform));
+            var basics = Initialized == other.Initialized && Complete == other.Complete && NextActionsAndDecisionsHistoryIndex == other.NextActionsAndDecisionsHistoryIndex && LastDecisionIndexAdded == other.LastDecisionIndexAdded && PreviousNotificationDeferred == other.PreviousNotificationDeferred && DeferredAction == other.DeferredAction && DeferredPlayerNumber == other.DeferredPlayerNumber && ((DeferredPlayersToInform == null && other.DeferredPlayersToInform == null) || DeferredPlayersToInform.SequenceEqual(other.DeferredPlayersToInform));
             if (!basics)
                 return false;
             if (!GetActionsAsList().SequenceEqual(other.GetActionsAsList())) // will ignore info after items in span
@@ -160,7 +159,6 @@ namespace ACESim
             GameHistory result = new GameHistory()
             {
                 Complete = Complete,
-                CompleteExceptInverted = CompleteExceptInverted,
                 NextActionsAndDecisionsHistoryIndex = NextActionsAndDecisionsHistoryIndex,
                 Initialized = Initialized,
                 PreviousNotificationDeferred = PreviousNotificationDeferred,

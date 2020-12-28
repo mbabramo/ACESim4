@@ -73,12 +73,12 @@ namespace ACESim
                 case (byte)LitigGameDecisions.PFile:
                     MyProgress.PFiles = action == 1;
                     if (!MyProgress.PFiles)
-                        MyProgress.GameMostlyComplete(GameDefinition.GameOptions.InvertChanceDecisions);
+                        MyProgress.GameComplete = true;
                     break;
                 case (byte)LitigGameDecisions.DAnswer:
                     MyProgress.DAnswers = action == 1;
                     if (!MyProgress.DAnswers)
-                        MyProgress.GameMostlyComplete(GameDefinition.GameOptions.InvertChanceDecisions);
+                        MyProgress.GameComplete = true;
                     break;
                 case (byte)LitigGameDecisions.PreBargainingRound:
                     if (MyDefinition.Options.SkipFileAndAnswerDecisions)
@@ -132,7 +132,7 @@ namespace ACESim
                         MyProgress.PAbandons = MyProgress.PReadyToAbandon;
                         MyProgress.DDefaults = MyProgress.DReadyToAbandon;
                         MyProgress.TrialOccurs = false;
-                        MyProgress.GameMostlyComplete(GameDefinition.GameOptions.InvertChanceDecisions);
+                        MyProgress.GameComplete = true;
                         MyProgress.BargainingRoundsComplete++;
                     }
                     break;
@@ -142,7 +142,7 @@ namespace ACESim
                     MyProgress.PAbandons = action == 1;
                     MyProgress.DDefaults = !MyProgress.PAbandons;
                     MyProgress.BargainingRoundsComplete++;
-                    MyProgress.GameMostlyComplete(GameDefinition.GameOptions.InvertChanceDecisions);
+                    MyProgress.GameComplete = true;
                     break;
                 case (byte)LitigGameDecisions.PostBargainingRound:
                     MyProgress.BargainingRoundsComplete++;
@@ -155,13 +155,12 @@ namespace ACESim
                     break;
                 case (byte)LitigGameDecisions.CourtDecisionLiability:
                     MyProgress.TrialOccurs = true;
-                    MyProgress.CLiabilitySignalDiscrete = action;
                     MyProgress.PWinsAtTrial = MyDefinition.Options.NumLiabilitySignals == 1 /* IMPORTANT: This highlights that when there is only one liability signal, the court ALWAYS finds liability */ || 
                         action == 2 /* signal must be the HIGH value for plaintiff to win */; 
                     if (MyProgress.PWinsAtTrial == false)
                     {
                         MyProgress.DamagesAwarded = 0;
-                        MyProgress.GameMostlyComplete(GameDefinition.GameOptions.InvertChanceDecisions);
+                        MyProgress.GameComplete = true;
                     }
                     else
                     {
@@ -169,18 +168,17 @@ namespace ACESim
                         if (!courtWouldDecideDamages)
                         {
                             MyProgress.DamagesAwarded = (double)MyDefinition.Options.DamagesMax;
-                            MyProgress.GameMostlyComplete(GameDefinition.GameOptions.InvertChanceDecisions);
+                            MyProgress.GameComplete = true;
                         }
                     }
                     //System.Diagnostics.TabbedText.WriteLine($"Quality {MyProgress.LiabilityStrengthUniform} Court noise action {action} => {courtNoiseNormalDraw} => signal {courtLiabilitySignal} PWins {MyProgress.PWinsAtTrial}");
                     break;
                 case (byte)LitigGameDecisions.CourtDecisionDamages:
                     double damagesProportion = ConvertActionToUniformDistributionDraw(action, true);
-                    MyProgress.CDamagesSignalDiscrete = action;
                     if (MyDefinition.Options.NumDamagesSignals == 1)
                         damagesProportion = 1.0;
                     MyProgress.DamagesAwarded = (double) (MyDefinition.Options.DamagesMin + (MyDefinition.Options.DamagesMax - MyDefinition.Options.DamagesMin) * damagesProportion);
-                    MyProgress.GameMostlyComplete(GameDefinition.GameOptions.InvertChanceDecisions);
+                    MyProgress.GameComplete = true;
                     break;
                 default:
                     throw new NotImplementedException();
