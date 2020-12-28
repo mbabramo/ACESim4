@@ -506,5 +506,12 @@ namespace ACESim
         {
             CalculateGameOutcome();
         }
+        public override List<(GameProgress progress, double weight)> InvertedCalculations_GenerateAllConsistentGameProgresses(double initialWeight)
+        {
+            var o = LitigGameOptions;
+            var multiplied = o.LitigGameDisputeGenerator.InvertedCalculations_GenerateAllConsistentGameProgresses(o.NumLiabilitySignals == 1 ? 1 : PLiabilitySignalDiscrete, o.NumLiabilitySignals == 1 ? 1 : DLiabilitySignalDiscrete, o.NumLiabilitySignals == 1 ? 1 : CLiabilitySignalDiscrete, o.NumDamagesSignals == 1 ? 1 : PDamagesSignalDiscrete, o.NumDamagesSignals == 1 ? 1 : DDamagesSignalDiscrete, o.NumDamagesSignals == 1 ? 1 : CDamagesSignalDiscrete, this);
+            var results = multiplied.Select(x => (x.progress, x.weight * initialWeight)).ToList();
+            return results;
+        }
     }
 }

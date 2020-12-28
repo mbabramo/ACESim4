@@ -2038,7 +2038,7 @@ namespace ACESim
             // start Task Parallel Library consumer/producer pattern
             // we'll set up step1, step2, and step3 (but not in that order, since step 1 triggers step 2)
             var step2_buffer = new BufferBlock<Tuple<GameProgress, double>>(new DataflowBlockOptions { BoundedCapacity = 10000 });
-            var step3_consumer = AddGameProgressToReports(step2_buffer, simpleReportDefinitions);
+            var step3_consumer = AddGameProgressToReports(step2_buffer, simpleReportDefinitions, false);
             await PlayMultipleIterationsForReporting(player, EvolutionSettings.NumRandomIterationsForSummaryTable, actionOverride, step2_buffer);
             step2_buffer.Complete(); // tell consumer nothing more to be produced
             await step3_consumer; // wait until all have been processed
@@ -2304,7 +2304,7 @@ namespace ACESim
             // start Task Parallel Library consumer/producer pattern
             // we'll set up step1, step2, and step3 (but not in that order, since step 1 triggers step 2)
             var step2_buffer = new BufferBlock<Tuple<GameProgress, double>>(new DataflowBlockOptions { BoundedCapacity = 10_000 });
-            var step3_consumer = AddGameProgressToReports(step2_buffer, simpleReportDefinitions);
+            var step3_consumer = AddGameProgressToReports(step2_buffer, simpleReportDefinitions, true);
             async Task step1_playPath(HistoryPointStorable completedGame, double probabilityOfPath)
             {
                 // play each path and then asynchronously consume the result, including the probability of the game path
@@ -2333,7 +2333,7 @@ namespace ACESim
             //        throw new Exception("Imperfect sampling.");
         }
 
-        async Task AddGameProgressToReports(ISourceBlock<Tuple<GameProgress, double>> source, List<SimpleReportDefinition> simpleReportDefinitions)
+        async Task AddGameProgressToReports(ISourceBlock<Tuple<GameProgress, double>> source, List<SimpleReportDefinition> simpleReportDefinitions, bool multiplyGameProgressesIfInvertingChanceDecisions)
         {
             int simpleReportDefinitionsCount = simpleReportDefinitions.Count();
             while (await source.OutputAvailableAsync())
@@ -2341,7 +2341,12 @@ namespace ACESim
                 Tuple<GameProgress, double> toProcess = source.Receive();
                 if (toProcess.Item2 > 0) // probability
                 {
-                    foreach ((GameProgress theProgress, double weight) in toProcess.Item1.GetGameProgressIncludingAnySplits())
+                    IEnumerable<(GameProgress progress, double weight)> weightedProgresses = toProcess.Item1.GetGameProgressIncludingAnySplits();
+                    if (GameDefinition.GameOptions.InvertChanceDecisions && multiplyGameProgressesIfInvertingChanceDecisions)
+                    {
+                        weightedProgresses = weightedProgresses.SelectMany(x => x.progress.InvertedCalculations_GenerateAllConsistentGameProgresses(x.weight));
+                    }
+                    foreach ((GameProgress theProgress, double weight) in weightedProgresses)
                     {
                         for (int i = 0; i < simpleReportDefinitionsCount; i++)
                         {

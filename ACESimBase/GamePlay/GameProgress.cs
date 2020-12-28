@@ -465,6 +465,10 @@ namespace ACESim
         {
         }
 
+        public virtual List<(GameProgress progress, double weight)> InvertedCalculations_GenerateAllConsistentGameProgresses(double initialWeight)
+        {
+            return new List<(GameProgress progress, double weight)>() { (this, initialWeight) };
+        }
 
     }
 }
