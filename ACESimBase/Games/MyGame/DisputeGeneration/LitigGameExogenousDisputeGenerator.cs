@@ -4,6 +4,7 @@ using ACESimBase.Util;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -202,6 +203,8 @@ namespace ACESim
         public double[] InvertedCalculations_GetDDamagesSignalProbabilities(int pDamagesSignal) => DamagesCalculators[dDamagesSignalCalculatorIndex](new List<int>() { pDamagesSignal - 1 });
         public double[] InvertedCalculations_GetCDamagesSignalProbabilities(int pDamagesSignal, int dDamagesSignal) => DamagesCalculators[cDamagesSignalCalculatorIndex](new List<int>() { pDamagesSignal - 1, dDamagesSignal - 1});
         public double[] InvertedCalculations_GetDamagesStrengthProbabilities(int pDamagesSignal, int dDamagesSignal, int cDamagesSignal) => DamagesCalculators[liabilityStrengthCalculatorIndex](new List<int>() { pDamagesSignal - 1, dDamagesSignal - 1, cDamagesSignal - 1 });
+
+        Debug; // OK, so we are generating the correct equilibrium with both sequence form and with regret matching. But the reporting is wrong for regret matching. The game tree skips the liability signal decision, because it wasn't played during the game. That doesn't occur with the sequence form game approach. Maybe the solution is to generate the entire game tree and not skip decisions. Instead, just change the probabilities so that we always go along one path (1.0, 0.0). Then, we can change the probabilities back. 
 
     }
 }
