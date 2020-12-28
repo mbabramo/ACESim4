@@ -18,7 +18,7 @@ namespace ACESim
 
         #region Settings
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; // DEBUG // use RegretMatching etc. for GeneralizedVanilla
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.SequenceForm; // DEBUG // use RegretMatching etc. for GeneralizedVanilla
 
         public const int VanillaIterations = 1000; // Note: Also used for GeneralizedVanilla, DeepCFR
         public const int VanillaReportEveryNIterations =  VanillaIterations; // DEBUG EffectivelyNever
@@ -521,7 +521,14 @@ namespace ACESim
                 logAction("Writing report to blob");
                 if (result.csvReports.Any())
                 {
-                    AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), masterReportNamePlusOptionSet + ".csv", true, result.csvReports.FirstOrDefault(), SaveToAzureBlob); // we write to a blob in case this times out and also to allow individual report to be taken out
+                    for (int c = 0; c < result.csvReports.Count; c++)
+                    {
+                        string reportName = masterReportNamePlusOptionSet ?? "results";
+                        if (result.ReportNames.Count() > c && result.ReportNames[c] is (not null) and string reportName2)
+                            reportName += "-" + reportName2;
+
+                        AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), reportName + ".csv", true, result.csvReports[c], SaveToAzureBlob); // we write to a blob in case this times out and also to allow individual report to be taken out
+                    }
                 }
                 logAction("Report written to blob");
                 return result;

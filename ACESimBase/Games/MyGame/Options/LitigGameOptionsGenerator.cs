@@ -355,11 +355,11 @@ namespace ACESim
         {
             var options = BaseOptions();
 
-            options.InvertChanceDecisions = false; // DEBUG
+            options.InvertChanceDecisions = true; // DEBUG
 
-            options.NumOffers = 4;
-            options.NumLiabilityStrengthPoints = 4;
-            options.NumLiabilitySignals = 4;
+            options.NumOffers = 10;
+            options.NumLiabilityStrengthPoints = 10;
+            options.NumLiabilitySignals = 5;
 
             options.NumDamagesSignals = 1;
             options.NumDamagesStrengthPoints = 1;
@@ -375,7 +375,7 @@ namespace ACESim
             options.LoserPaysMultiple = 1.0;
 
             options.SkipFileAndAnswerDecisions = false;
-            options.NumPotentialBargainingRounds = 3;
+            options.NumPotentialBargainingRounds = 1;
             options.IncludeAgreementToBargainDecisions = false;
             options.AllowAbandonAndDefaults = false; // DEBUG
 

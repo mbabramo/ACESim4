@@ -13,7 +13,7 @@ namespace ACESim
     [Serializable]
     public class EvolutionSettings
     {
-        public bool DistributeChanceDecisions = true; 
+        public bool DistributeChanceDecisions = false; // NOTE: Use InvertChanceDecisions instead; it's much simpler and seems to produce slightly better performance.
         public bool UnrollAlgorithm = true;
         public bool SaveToAzureBlob = false;
         // Note: Many of the below are overridden by launcher.

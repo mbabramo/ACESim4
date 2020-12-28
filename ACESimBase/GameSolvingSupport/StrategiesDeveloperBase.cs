@@ -144,7 +144,9 @@ namespace ACESim
                         ReduceToCorrelatedEquilibrium_BasedOnPredeterminedIncompatibilities();
                 }
                 else
-                    reportCollection.Add(reportToAddToCollection); // if constructing correlated equilibrium, we ignore the interim reports
+                {
+                    reportCollection.Add(reportToAddToCollection, false, true); // if constructing correlated equilibrium, we ignore the interim reports
+                }
             }
             if (restrictToScenarioIndex == null)
                 await RecoverSavedPCAModelDataAndPerformAnalysis(reportCollection, masterReportName); // i.e., we've gone through all scenarios all at once (if there are more than one) and so now we should perform PCA. If we are distributing the scenarios across processes, then we will execute this through a later task instead.
@@ -255,7 +257,7 @@ namespace ACESim
             else
                 ReduceToCorrelatedEquilibrium_DeterminingIncompatibilitiesNow();
             ReportCollection reportCollection = new ReportCollection();
-            await CompleteMainReports(reportCollection, new List<ActionStrategies>() { ActionStrategies.CorrelatedEquilibrium });
+            await CompleteMainReports(() => "correq", reportCollection, new List<ActionStrategies>() { ActionStrategies.CorrelatedEquilibrium });
             return reportCollection;
         }
 
@@ -1678,13 +1680,13 @@ namespace ACESim
             {
                 Br.eak.Add("Report");
                 var actionStrategiesToUse = EvolutionSettings.ActionStrategiesToUseInReporting;
-                await CompleteMainReports(reportCollection, actionStrategiesToUse);
+                await CompleteMainReports(prefaceFn, reportCollection, actionStrategiesToUse);
                 RecallBestOverTime();
                 Br.eak.Remove("Report");
             }
         }
 
-        private async Task CompleteMainReports(ReportCollection reportCollection, List<ActionStrategies> actionStrategiesToUse)
+        private async Task CompleteMainReports(Func<string> prefaceFn, ReportCollection reportCollection, List<ActionStrategies> actionStrategiesToUse)
         {
             ActionStrategies previous = ActionStrategy;
             if (EvolutionSettings.RoundOffLowProbabilitiesBeforeReporting)
@@ -1702,7 +1704,11 @@ namespace ACESim
                     if (EvolutionSettings.GenerateReportsByPlaying)
                     {
                         var result = await GenerateReportsByPlaying(useRandomPaths);
-                        reportCollection.Add(result);
+                        reportCollection.Add(result, false, true);
+                        string reportName = prefaceFn();
+                        if (actionStrategiesToUse.Count() > 1)
+                            reportName += "-" + actionStrategy.ToString();
+                        reportCollection.AddName(reportName);
                     }
                 }
             ActionStrategy = previous;

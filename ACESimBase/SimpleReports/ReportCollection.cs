@@ -14,6 +14,7 @@ namespace ACESim
         public List<string> csvReports;
         public bool MultipleCSV => csvReports.Count() > 1;
         public List<string> IDColumnNames = new List<string>() { "OptionSet", "Filter", "Repetition", "Simulation" };
+        public List<string> ReportNames = new List<string>();
 
         public ReportCollection()
         {
@@ -33,7 +34,12 @@ namespace ACESim
             csvReports = csvs;
         }
 
-        public void Add(string standard, string csv, bool integrateCSVReportsIfPossible = true)
+        public void AddName(string name)
+        {
+            ReportNames.Add(name);
+        }
+
+        public void Add(string standard, string csv, bool integrateCSVReportsIfPossible = true, bool ifNotIntegratingAlwaysMakeSeparateReport = false)
         {
             standardReport += standard;
             if (integrateCSVReportsIfPossible)
@@ -42,10 +48,10 @@ namespace ACESim
                 IntegrateCSVReports(thisReport, csv);
             }
             else
-                AddCSVIntoExistingMatchOrAsSeparateReport(csv);
+                AddCSVIntoExistingMatchOrAsSeparateReport(csv, ifNotIntegratingAlwaysMakeSeparateReport);
         }
 
-        public void Add(ReportCollection other, bool integrateCSVReportsIfPossible = true)
+        public void Add(ReportCollection other, bool integrateCSVReportsIfPossible = true, bool ifNotIntegratingAlwaysMakeSeparateReport = false)
         {
             standardReport += other.standardReport;
             if (integrateCSVReportsIfPossible && !MultipleCSV && !other.MultipleCSV)
@@ -57,7 +63,9 @@ namespace ACESim
             else
             {
                 foreach (string csv in other.csvReports)
-                    AddCSVIntoExistingMatchOrAsSeparateReport(csv);
+                    AddCSVIntoExistingMatchOrAsSeparateReport(csv, ifNotIntegratingAlwaysMakeSeparateReport);
+                foreach (string reportName in other.ReportNames)
+                    AddName(reportName);
             }
         }
 
@@ -91,8 +99,13 @@ namespace ACESim
             }
         }
 
-        private void AddCSVIntoExistingMatchOrAsSeparateReport(string csv)
+        private void AddCSVIntoExistingMatchOrAsSeparateReport(string csv, bool alwaysSeparateReport)
         {
+            if (alwaysSeparateReport)
+            {
+                csvReports.Add(csv);
+                return;
+            }
             if (csv == null || csv == "")
                 return;
             string firstLineNew = FirstLine(csv);

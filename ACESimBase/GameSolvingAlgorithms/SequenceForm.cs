@@ -557,11 +557,13 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         private async Task SetEquilibria(List<List<double>> equilibria, ReportCollection reportCollection)
         {
-            const bool useCorrelatedEquilibriumIfPossible = true;
-            bool useCorrelatedEquilibrium = useCorrelatedEquilibriumIfPossible && equilibria.Count() > 1;
+            bool includeCorrelatedEquilibriumReport = true; // useCorrelatedEquilibriumIfPossible && equilibria.Count() > 1;
+            bool includeReportForFirstEquilibrium = true;
+            bool includeReportForEachEquilibrium = true;
             int numEquilibria = equilibria.Count();
             for (int eqNum = 0; eqNum < numEquilibria; eqNum++)
             {
+                bool isFirst = eqNum == 0;
                 bool isLast = eqNum == numEquilibria - 1;
                 var numbers = equilibria[eqNum];
                 var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetNodeNumber).ToList();
@@ -594,20 +596,26 @@ namespace ACESimBase.GameSolvingAlgorithms
                             }
                         }
                     }
-                    if (useCorrelatedEquilibrium)
+                    if (includeCorrelatedEquilibriumReport)
                         infoSets[i].RecordProbabilitiesAsPastValues();
                 }
-                if (useCorrelatedEquilibrium)
-                    EvolutionSettings.ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.CorrelatedEquilibrium };
-                
-
-                if (!useCorrelatedEquilibrium || isLast)
+                if ((includeReportForFirstEquilibrium && isFirst) || includeReportForEachEquilibrium)
                 {
+                    EvolutionSettings.ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.CurrentProbability }; // will use latest equilibrium
                     var reportResult = await GenerateReports(EvolutionSettings.ReportEveryNIterations ?? 0,
                         () =>
-                            $"{GameDefinition.OptionSetName}{(numEquilibria > 1 && !useCorrelatedEquilibrium ? $"Eq{eqNum + 1}" : "")}");
-                    reportCollection.Add(reportResult);
+                            $"{GameDefinition.OptionSetName}{(numEquilibria > 1 ? $"Eq{eqNum + 1}" : "")}");
+                    reportCollection.Add(reportResult, false, true);
                 }
+                if (includeCorrelatedEquilibriumReport && isLast)
+                {
+                    EvolutionSettings.ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.CorrelatedEquilibrium };
+                    var reportResult = await GenerateReports(EvolutionSettings.ReportEveryNIterations ?? 0,
+                        () =>
+                            $"{GameDefinition.OptionSetName}{("Corr")}");
+                    reportCollection.Add(reportResult, false, true);
+                }
+
             }
         }
 
