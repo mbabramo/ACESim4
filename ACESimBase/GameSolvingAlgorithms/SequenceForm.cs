@@ -599,7 +599,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                     if (includeCorrelatedEquilibriumReport)
                         infoSets[i].RecordProbabilitiesAsPastValues();
                 }
-                if ((includeReportForFirstEquilibrium && isFirst) || includeReportForEachEquilibrium)
+                if (numEquilibria > 1 /* if just 1 eq, then correlated will be exactly the same */ && ((includeReportForFirstEquilibrium && isFirst) || includeReportForEachEquilibrium))
                 {
                     EvolutionSettings.ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.CurrentProbability }; // will use latest equilibrium
                     var reportResult = await GenerateReports(EvolutionSettings.ReportEveryNIterations ?? 0,
@@ -609,6 +609,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 }
                 if (includeCorrelatedEquilibriumReport && isLast)
                 {
+                    // DEBUG: Must verify that this is actually the correlated equilibrium result. Numbers should be exact averages on cells including all observations. 
                     EvolutionSettings.ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.CorrelatedEquilibrium };
                     var reportResult = await GenerateReports(EvolutionSettings.ReportEveryNIterations ?? 0,
                         () =>
