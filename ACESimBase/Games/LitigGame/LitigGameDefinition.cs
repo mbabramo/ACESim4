@@ -793,8 +793,6 @@ namespace ACESim
         public override bool SkipDecision(Decision decision, in GameHistory gameHistory)
         {
             byte decisionByteCode = decision.DecisionByteCode;
-            if (Options.InvertChanceDecisions && decisionByteCode is (byte)LitigGameDecisions.PrePrimaryActionChance or (byte)LitigGameDecisions.PrimaryAction or (byte)LitigGameDecisions.PostPrimaryActionChance or (byte)LitigGameDecisions.LiabilityStrength or (byte)LitigGameDecisions.DamagesStrength)
-                throw new Exception("DEBUG");
             if (decisionByteCode == (byte) LitigGameDecisions.MutualGiveUp)
             {
                 bool pTryingToGiveUp = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PReadyToAbandon) == 1;

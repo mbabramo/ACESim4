@@ -199,7 +199,7 @@ namespace ACESim
         {
             var options = BaseOptions();
 
-            options.PLiabilityNoiseStdev = options.DLiabilityNoiseStdev = options.CourtLiabilityNoiseStdev = 0.15; // DEBUG
+            options.PLiabilityNoiseStdev = options.DLiabilityNoiseStdev = options.CourtLiabilityNoiseStdev = 0.15; 
 
             options.NumLiabilityStrengthPoints = numLiabilityStrengthPoints;
             options.NumLiabilitySignals = numLiabilitySignals;
@@ -355,7 +355,7 @@ namespace ACESim
         {
             var options = BaseOptions();
 
-            options.InvertChanceDecisions = true; // DEBUG
+            options.InvertChanceDecisions = true; 
 
             options.NumOffers = 2;
             options.NumLiabilityStrengthPoints = 2;

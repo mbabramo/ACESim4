@@ -302,9 +302,6 @@ namespace ACESim
             copy.DLiabilitySignalDiscrete = DLiabilitySignalDiscrete;
             copy.CLiabilitySignalDiscrete = CLiabilitySignalDiscrete;
 
-            if (copy.LiabilityStrengthDiscrete != LiabilityStrengthDiscrete)
-                throw new Exception("DEBUG");
-
             copy.DamagesStrengthDiscrete = DamagesStrengthDiscrete;
             copy.PDamagesNoiseDiscrete = PDamagesNoiseDiscrete;
             copy.DDamagesNoiseDiscrete = DDamagesNoiseDiscrete;
@@ -312,8 +309,6 @@ namespace ACESim
             copy.DDamagesSignalDiscrete = DDamagesSignalDiscrete;
             copy.CDamagesSignalDiscrete = DDamagesSignalDiscrete;
 
-            if (copy.LiabilityStrengthDiscrete != LiabilityStrengthDiscrete)
-                throw new Exception("DEBUG");
             copy.PChangeWealth = PChangeWealth;
             copy.DChangeWealth = DChangeWealth;
             copy.PFinalWealthWithBestOffer = PFinalWealthWithBestOffer;
@@ -328,9 +323,6 @@ namespace ACESim
                 copy.POfferMixedness = POfferMixedness.ToList();
             if (DOfferMixedness != null)
                 copy.DOfferMixedness = DOfferMixedness.ToList();
-
-            if (copy.LiabilityStrengthDiscrete != LiabilityStrengthDiscrete)
-                throw new Exception("DEBUG");
 
             // We don't need to copy the PostGameInfo, because that's automatically created
 

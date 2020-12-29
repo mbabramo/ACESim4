@@ -2348,7 +2348,6 @@ namespace ACESim
                     }
                     foreach ((GameProgress theProgress, double weight) in weightedProgresses)
                     {
-                        TabbedText.WriteLine($"{weight}: {((LitigGameProgress)theProgress).LiabilityStrengthDiscrete}");
                         for (int i = 0; i < simpleReportDefinitionsCount; i++)
                         {
                             ReportsBeingGenerated[i]?.ProcessGameProgress(theProgress, toProcess.Item2 * weight);
