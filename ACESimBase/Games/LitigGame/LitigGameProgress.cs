@@ -1,3 +1,4 @@
+using ACESimBase.Games.LitigGame;
 using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
@@ -39,6 +40,7 @@ namespace ACESim
         public LitigGamePretrialActions PretrialActions;
         public LitigGameRunningSideBetsActions RunningSideBetsActions;
 
+        public bool IsTrulyLiable;
         public byte LiabilityStrengthDiscrete;
         public byte PLiabilityNoiseDiscrete;
         public byte DLiabilityNoiseDiscrete;
@@ -66,22 +68,7 @@ namespace ACESim
         public List<double> POfferMixedness;
         public List<double> DOfferMixedness;
 
-        public class LitigGameProgress_PostGameInfo
-        {
-            public double? LiabilityStrengthUniform;
-            public double PLiabilitySignalUniform;
-            public double DLiabilitySignalUniform;
-            public double? DamagesStrengthUniform;
-            public double PDamagesSignalUniform;
-            public double DDamagesSignalUniform;
-
-            public double FalsePositiveExpenditures;
-            public double FalseNegativeShortfall;
-            public double TotalExpensesIncurred;
-            public double PreDisputeSharedWelfare;
-
-            public bool IsTrulyLiable;
-        }
+        public object lockObj = new object();
 
         public LitigGameProgress_PostGameInfo _PostGameInfo;
         public LitigGameProgress_PostGameInfo PostGameInfo
@@ -92,7 +79,7 @@ namespace ACESim
                 {
                     if (!GameComplete)
                         throw new Exception("Accessing post-game info prematurely.");
-                    lock (this) // this is only place we lock on LitigGameProgress, so no danger from lock(this)
+                    lock (lockObj) // this is only place we lock on LitigGameProgress, so no danger from lock(this)
                     {
                         if (_PostGameInfo == null)
                         {
@@ -116,8 +103,6 @@ namespace ACESim
         public double FalseNegativeShortfall { get => PostGameInfo.FalseNegativeShortfall; set { PostGameInfo.FalseNegativeShortfall = value; } }
         public double TotalExpensesIncurred { get => PostGameInfo.TotalExpensesIncurred; set { PostGameInfo.TotalExpensesIncurred = value; } }
         public double PreDisputeSharedWelfare { get => PostGameInfo.PreDisputeSharedWelfare; set { PostGameInfo.PreDisputeSharedWelfare = value; } }
-
-        public bool IsTrulyLiable { get => PostGameInfo.IsTrulyLiable; set { PostGameInfo.IsTrulyLiable = value; } }
 
 
         public override string ToString()
@@ -309,12 +294,16 @@ namespace ACESim
             copy.PretrialActions = PretrialActions;
             copy.RunningSideBetsActions = RunningSideBetsActions;
 
+            copy.IsTrulyLiable = IsTrulyLiable;
             copy.LiabilityStrengthDiscrete = LiabilityStrengthDiscrete;
             copy.PLiabilityNoiseDiscrete = PLiabilityNoiseDiscrete;
             copy.DLiabilityNoiseDiscrete = DLiabilityNoiseDiscrete;
             copy.PLiabilitySignalDiscrete = PLiabilitySignalDiscrete;
             copy.DLiabilitySignalDiscrete = DLiabilitySignalDiscrete;
             copy.CLiabilitySignalDiscrete = CLiabilitySignalDiscrete;
+
+            if (copy.LiabilityStrengthDiscrete != LiabilityStrengthDiscrete)
+                throw new Exception("DEBUG");
 
             copy.DamagesStrengthDiscrete = DamagesStrengthDiscrete;
             copy.PDamagesNoiseDiscrete = PDamagesNoiseDiscrete;
@@ -323,6 +312,8 @@ namespace ACESim
             copy.DDamagesSignalDiscrete = DDamagesSignalDiscrete;
             copy.CDamagesSignalDiscrete = DDamagesSignalDiscrete;
 
+            if (copy.LiabilityStrengthDiscrete != LiabilityStrengthDiscrete)
+                throw new Exception("DEBUG");
             copy.PChangeWealth = PChangeWealth;
             copy.DChangeWealth = DChangeWealth;
             copy.PFinalWealthWithBestOffer = PFinalWealthWithBestOffer;
@@ -338,20 +329,10 @@ namespace ACESim
             if (DOfferMixedness != null)
                 copy.DOfferMixedness = DOfferMixedness.ToList();
 
-            if (GameComplete)
-            {
-                copy.LiabilityStrengthUniform = LiabilityStrengthUniform;
-                copy.PLiabilitySignalUniform = PLiabilitySignalUniform;
-                copy.DLiabilitySignalUniform = DLiabilitySignalUniform;
-                copy.DamagesStrengthUniform = DamagesStrengthUniform;
-                copy.PDamagesSignalUniform = PDamagesSignalUniform;
-                copy.DDamagesSignalUniform = DDamagesSignalUniform;
-                copy.FalsePositiveExpenditures = FalsePositiveExpenditures;
-                copy.FalseNegativeShortfall = FalseNegativeShortfall;
-                copy.TotalExpensesIncurred = TotalExpensesIncurred;
-                copy.PreDisputeSharedWelfare = PreDisputeSharedWelfare;
-                copy.IsTrulyLiable = IsTrulyLiable;
-            }
+            if (copy.LiabilityStrengthDiscrete != LiabilityStrengthDiscrete)
+                throw new Exception("DEBUG");
+
+            // We don't need to copy the PostGameInfo, because that's automatically created
 
             return copy;
         }
@@ -443,8 +424,9 @@ namespace ACESim
         public void CalculateGameOutcome()
         {
             LitigGameDefinition gameDefinition = (LitigGameDefinition)GameDefinition;
+            LitigGameOptions options = LitigGameDefinition.Options;
             var outcome = LitigGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, gameDefinition.Options.PInitialWealth, gameDefinition.Options.DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, SettlementValue, PWinsAtTrial, DamagesAwarded, BargainingRoundsComplete, PFinalWealthWithBestOffer, DFinalWealthWithBestOffer, POffers, PResponses, DOffers, DResponses);
-            DisputeArises = gameDefinition.Options.LitigGameDisputeGenerator.PotentialDisputeArises(gameDefinition, DisputeGeneratorActions);
+            DisputeArises = options.LitigGameDisputeGenerator.PotentialDisputeArises(gameDefinition, DisputeGeneratorActions);
             PChangeWealth = outcome.PChangeWealth;
             DChangeWealth = outcome.DChangeWealth;
             PFinalWealth = outcome.PFinalWealth;
@@ -453,16 +435,14 @@ namespace ACESim
             DWelfare = outcome.DWelfare;
             TrialOccurs = outcome.TrialOccurs;
             NumChips = outcome.NumChips;
+
+            (IsTrulyLiable, LiabilityStrengthDiscrete, DamagesStrengthDiscrete) = options.LitigGameDisputeGenerator.InvertedCalculations_WorkBackwardsFromSignals(options.NumLiabilitySignals == 1 ? 1 : PLiabilitySignalDiscrete, options.NumLiabilitySignals == 1 ? 1 : DLiabilitySignalDiscrete, options.NumLiabilitySignals == 1 ? 1 : CLiabilitySignalDiscrete, options.NumDamagesSignals == 1 ? 1 : PDamagesSignalDiscrete, options.NumDamagesSignals == 1 ? 1 : DDamagesSignalDiscrete, options.NumDamagesSignals == 1 ? 1 : CDamagesSignalDiscrete, IterationID.IterationNumIntUnchecked);
         }
 
-        private void CalculatePostGameInfo()
+        public void CalculatePostGameInfo()
         {
             LitigGameOptions o = LitigGameDefinition.Options;
-            if (o.InvertChanceDecisions)
-            {
-                (IsTrulyLiable, LiabilityStrengthDiscrete, DamagesStrengthDiscrete) = o.LitigGameDisputeGenerator.InvertedCalculations_WorkBackwardsFromSignals(o.NumLiabilitySignals == 1 ? 1 : PLiabilitySignalDiscrete, o.NumLiabilitySignals == 1 ? 1 : DLiabilitySignalDiscrete, o.NumLiabilitySignals == 1 ? 1 : CLiabilitySignalDiscrete, o.NumDamagesSignals == 1 ? 1 : PDamagesSignalDiscrete, o.NumDamagesSignals == 1 ? 1 : DDamagesSignalDiscrete, o.NumDamagesSignals == 1 ? 1 : CDamagesSignalDiscrete, IterationID.IterationNumIntUnchecked);
-            }
-            else
+            if (!o.InvertChanceDecisions)
             {
                 if (!o.LitigGameDisputeGenerator.PotentialDisputeArises(LitigGameDefinition, DisputeGeneratorActions))
                     IsTrulyLiable = false;
