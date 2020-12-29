@@ -243,7 +243,7 @@ namespace ACESim
                 double[] trulyLiableProbabilities = InvertedCalculations_GetLiabilityTrueValueProbabilities(pLiabilitySignal, dLiabilitySignal, cLiabilitySignal, ((LitigGameProgress)gp.progress).LiabilityStrengthDiscrete);
                 for (byte p = 1; p <= trulyLiableProbabilities.Length; p++)
                 {
-                    double probability = trulyLiableProbabilities[p - 1];
+                    double probability = trulyLiableProbabilities[p - 1] * gp.weight;
                     var copy = (LitigGameProgress) gp.progress.DeepCopy();
                     copy.IsTrulyLiable = p == 2;
                     withTrulyLiable.Add((copy, probability));
@@ -259,7 +259,7 @@ namespace ACESim
                     double probability = damagesStrengthProbabilities[p - 1];
                     var copy = (LitigGameProgress)gp.progress.DeepCopy();
                     copy.DamagesStrengthDiscrete = p;
-                    withDamagesStrength.Add((copy, probability));
+                    withDamagesStrength.Add((copy, probability * gp.weight));
                 }
             }
 

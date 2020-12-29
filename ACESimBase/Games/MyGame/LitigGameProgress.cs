@@ -32,13 +32,12 @@ namespace ACESim
         public double? SettlementValue;
         public bool TrialOccurs;
         public bool PWinsAtTrial;
+        public double DamagesAwarded;
         public bool DWinsAtTrial => TrialOccurs && !PWinsAtTrial;
 
         public LitigGameDisputeGeneratorActions DisputeGeneratorActions;
         public LitigGamePretrialActions PretrialActions;
         public LitigGameRunningSideBetsActions RunningSideBetsActions;
-
-        public double DamagesAwarded;
 
         public byte LiabilityStrengthDiscrete;
         public byte PLiabilityNoiseDiscrete;
@@ -284,23 +283,6 @@ namespace ACESim
             // copy.GameComplete = this.GameComplete;
             base.CopyFieldInfo(copy);
             copy.DisputeArises = DisputeArises;
-            copy.LiabilityStrengthDiscrete = LiabilityStrengthDiscrete;
-            copy.PLiabilityNoiseDiscrete = PLiabilityNoiseDiscrete;
-            copy.DLiabilityNoiseDiscrete = DLiabilityNoiseDiscrete;
-            copy.PLiabilitySignalDiscrete = PLiabilitySignalDiscrete;
-            copy.DLiabilitySignalDiscrete = DLiabilitySignalDiscrete;
-            copy.PLiabilitySignalDiscrete = PLiabilitySignalDiscrete;
-            copy.DLiabilitySignalDiscrete = DLiabilitySignalDiscrete;
-            copy.CLiabilitySignalDiscrete = CLiabilitySignalDiscrete;
-
-            copy.DamagesStrengthDiscrete = DamagesStrengthDiscrete;
-            copy.PDamagesNoiseDiscrete = PDamagesNoiseDiscrete;
-            copy.DDamagesNoiseDiscrete = DDamagesNoiseDiscrete;
-            copy.PDamagesSignalDiscrete = PDamagesSignalDiscrete;
-            copy.DDamagesSignalDiscrete = DDamagesSignalDiscrete;
-            copy.PDamagesSignalDiscrete = PDamagesSignalDiscrete;
-            copy.DDamagesSignalDiscrete = DDamagesSignalDiscrete;
-            copy.CDamagesSignalDiscrete = DDamagesSignalDiscrete;
 
             copy.PFiles = PFiles;
             copy.DAnswers = DAnswers;
@@ -309,6 +291,7 @@ namespace ACESim
             copy.BothReadyToGiveUp = BothReadyToGiveUp;
             copy.PAbandons = PAbandons;
             copy.DDefaults = DDefaults;
+
             copy.BargainingRoundsComplete = BargainingRoundsComplete;
             copy.PAgreesToBargain = PAgreesToBargain?.ToList();
             copy.DAgreesToBargain = DAgreesToBargain?.ToList();
@@ -321,9 +304,24 @@ namespace ACESim
             copy.TrialOccurs = TrialOccurs;
             copy.PWinsAtTrial = PWinsAtTrial;
             copy.DamagesAwarded = DamagesAwarded;
+
             copy.DisputeGeneratorActions = DisputeGeneratorActions;
             copy.PretrialActions = PretrialActions;
             copy.RunningSideBetsActions = RunningSideBetsActions;
+
+            copy.LiabilityStrengthDiscrete = LiabilityStrengthDiscrete;
+            copy.PLiabilityNoiseDiscrete = PLiabilityNoiseDiscrete;
+            copy.DLiabilityNoiseDiscrete = DLiabilityNoiseDiscrete;
+            copy.PLiabilitySignalDiscrete = PLiabilitySignalDiscrete;
+            copy.DLiabilitySignalDiscrete = DLiabilitySignalDiscrete;
+            copy.CLiabilitySignalDiscrete = CLiabilitySignalDiscrete;
+
+            copy.DamagesStrengthDiscrete = DamagesStrengthDiscrete;
+            copy.PDamagesNoiseDiscrete = PDamagesNoiseDiscrete;
+            copy.DDamagesNoiseDiscrete = DDamagesNoiseDiscrete;
+            copy.PDamagesSignalDiscrete = PDamagesSignalDiscrete;
+            copy.DDamagesSignalDiscrete = DDamagesSignalDiscrete;
+            copy.CDamagesSignalDiscrete = DDamagesSignalDiscrete;
 
             copy.PChangeWealth = PChangeWealth;
             copy.DChangeWealth = DChangeWealth;
@@ -339,6 +337,21 @@ namespace ACESim
                 copy.POfferMixedness = POfferMixedness.ToList();
             if (DOfferMixedness != null)
                 copy.DOfferMixedness = DOfferMixedness.ToList();
+
+            if (GameComplete)
+            {
+                copy.LiabilityStrengthUniform = LiabilityStrengthUniform;
+                copy.PLiabilitySignalUniform = PLiabilitySignalUniform;
+                copy.DLiabilitySignalUniform = DLiabilitySignalUniform;
+                copy.DamagesStrengthUniform = DamagesStrengthUniform;
+                copy.PDamagesSignalUniform = PDamagesSignalUniform;
+                copy.DDamagesSignalUniform = DDamagesSignalUniform;
+                copy.FalsePositiveExpenditures = FalsePositiveExpenditures;
+                copy.FalseNegativeShortfall = FalseNegativeShortfall;
+                copy.TotalExpensesIncurred = TotalExpensesIncurred;
+                copy.PreDisputeSharedWelfare = PreDisputeSharedWelfare;
+                copy.IsTrulyLiable = IsTrulyLiable;
+            }
 
             return copy;
         }
