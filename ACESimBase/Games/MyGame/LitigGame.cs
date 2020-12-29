@@ -33,7 +33,6 @@ namespace ACESim
 
         public override void UpdateGameProgressFollowingAction(byte currentDecisionByteCode, byte action)
         {
-            TabbedText.WriteLine($"{(LitigGameDecisions)currentDecisionByteCode}: {action}");
             switch (currentDecisionByteCode)
             {
                 case (byte)LitigGameDecisions.PrePrimaryActionChance:

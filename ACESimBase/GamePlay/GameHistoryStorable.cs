@@ -97,6 +97,12 @@ namespace ACESim
                 DeferredPlayersToInform = DeferredPlayersToInform,  // this does not need to be duplicated because it is set in gamedefinition and not changed
                 LastDecisionIndexAdded = LastDecisionIndexAdded,
                 Buffer = Buffer,
+                HighestCacheIndex = HighestCacheIndex,
+                ActionsHistory = ActionsHistory,
+                Cache = Cache,
+                DecisionIndicesHistory = DecisionIndicesHistory,
+                DecisionsDeferred = DecisionsDeferred,
+                InformationSetMembership = InformationSetMembership,
 #if SAFETYCHECKS
                 CreatingThreadID = CreatingThreadID
 #endif

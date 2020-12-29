@@ -355,7 +355,7 @@ namespace ACESim
         {
             var options = BaseOptions();
 
-            options.InvertChanceDecisions = true; // DEBUG
+            options.InvertChanceDecisions = false; // DEBUG
 
             options.NumOffers = 2;
             options.NumLiabilityStrengthPoints = 2;

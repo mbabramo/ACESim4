@@ -158,10 +158,9 @@ namespace ACESim
             bool pGoesFirstIfNotSimultaneous = playersMovingSimultaneously || gameDefinition.Options.PGoesFirstIfNotSimultaneous[BargainingRoundsComplete];
             CaseSettles = SettlementReached(playersMovingSimultaneously, pGoesFirstIfNotSimultaneous);
             if (CaseSettles)
-                SetSettlementValue(playersMovingSimultaneously, pGoesFirstIfNotSimultaneous);
-            if (CaseSettles)
-            {
-                BargainingRoundsComplete++;
+                {
+                    SetSettlementValue(playersMovingSimultaneously, pGoesFirstIfNotSimultaneous);
+                    BargainingRoundsComplete++;
                 GameComplete = true;
             }
             else
