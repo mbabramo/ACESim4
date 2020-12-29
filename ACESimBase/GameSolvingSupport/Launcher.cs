@@ -175,7 +175,7 @@ namespace ACESim
                 GenerateReportsByPlaying = true,
                 PrintInformationSets = false, 
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
-                PrintGameTree = true, // DEBUG
+                PrintGameTree = false,
                 ActionStrategiesToUseInReporting =
                  new List<ActionStrategies>() {
                      //ActionStrategies.CorrelatedEquilibrium,

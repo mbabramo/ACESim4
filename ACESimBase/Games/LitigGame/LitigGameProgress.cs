@@ -428,7 +428,8 @@ namespace ACESim
             TrialOccurs = outcome.TrialOccurs;
             NumChips = outcome.NumChips;
 
-            (IsTrulyLiable, LiabilityStrengthDiscrete, DamagesStrengthDiscrete) = options.LitigGameDisputeGenerator.InvertedCalculations_WorkBackwardsFromSignals(options.NumLiabilitySignals == 1 ? 1 : PLiabilitySignalDiscrete, options.NumLiabilitySignals == 1 ? 1 : DLiabilitySignalDiscrete, options.NumLiabilitySignals == 1 ? 1 : CLiabilitySignalDiscrete, options.NumDamagesSignals == 1 ? 1 : PDamagesSignalDiscrete, options.NumDamagesSignals == 1 ? 1 : DDamagesSignalDiscrete, options.NumDamagesSignals == 1 ? 1 : CDamagesSignalDiscrete, IterationID.IterationNumIntUnchecked);
+            if (options.InvertChanceDecisions)
+                (IsTrulyLiable, LiabilityStrengthDiscrete, DamagesStrengthDiscrete) = options.LitigGameDisputeGenerator.InvertedCalculations_WorkBackwardsFromSignals(options.NumLiabilitySignals == 1 ? 1 : PLiabilitySignalDiscrete, options.NumLiabilitySignals == 1 ? 1 : DLiabilitySignalDiscrete, options.NumLiabilitySignals == 1 ? 1 : CLiabilitySignalDiscrete, options.NumDamagesSignals == 1 ? 1 : PDamagesSignalDiscrete, options.NumDamagesSignals == 1 ? 1 : DDamagesSignalDiscrete, options.NumDamagesSignals == 1 ? 1 : CDamagesSignalDiscrete, IterationID.IterationNumIntUnchecked);
         }
 
         public void CalculatePostGameInfo()
