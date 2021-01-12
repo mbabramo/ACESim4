@@ -132,6 +132,7 @@ namespace ACESim
                 case (byte)LitigGameDecisions.MutualGiveUp:
                     if (!MyProgress.GameComplete)
                     {
+                        Br.eak.IfAdded("GameTree"); // DEBUG
                         // both trying to give up simultaneously! revise with a coin flip
                         MyProgress.BothReadyToGiveUp = true;
                         MyProgress.PAbandons = action == 1;
@@ -150,6 +151,8 @@ namespace ACESim
                     MyDefinition.Options.LitigGamePretrialDecisionGeneratorGenerator.ProcessAction(MyDefinition, MyProgress, false, action);
                     break;
                 case (byte)LitigGameDecisions.CourtDecisionLiability:
+
+                    Br.eak.IfAdded("GameTree"); // DEBUG
                     MyProgress.CLiabilitySignalDiscrete = action;
                     MyProgress.TrialOccurs = true;
                     MyProgress.PWinsAtTrial = MyDefinition.Options.NumLiabilitySignals == 1 /* IMPORTANT: This highlights that when there is only one liability signal, the court ALWAYS finds liability */ || 

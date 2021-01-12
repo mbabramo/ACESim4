@@ -209,6 +209,8 @@ namespace ACESim
             //{
             //    Debug.WriteLine($"RESOLUTION: {decision} {action}");
             //} 
+            if (decision.Name == "PAbandon1")
+                Br.eak.IfAdded("GameTree"); // DEBUG
             gameHistory.AddToHistory(decision.DecisionByteCode, decisionIndex, decision.PlayerIndex, action, decision.NumPossibleActions, decision.PlayersToInform, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, gameProgress, decision.DeferNotificationOfPlayers, false);
             if (decision.RequiresCustomInformationSetManipulation)
                 gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, action, ref gameHistory, gameProgress);

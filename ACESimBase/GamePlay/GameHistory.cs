@@ -166,6 +166,7 @@ namespace ACESim
                 DeferredPlayerNumber = DeferredPlayerNumber,
                 DeferredPlayersToInform = DeferredPlayersToInform, // this does not need to be duplicated because it is set in gamedefinition and not changed
                 LastDecisionIndexAdded = LastDecisionIndexAdded,
+                HighestCacheIndex = HighestCacheIndex
             };
             if (!IsEmpty)
             {
@@ -183,6 +184,7 @@ namespace ACESim
                 for (int i = 0; i < GameHistory.SizeInBytes_BitArrayForDecisionsDeferred; i++)
                     result.DecisionsDeferred[i] = DecisionsDeferred[i];
             }
+            var DEBUG = result.ToString();
             return result;
         }
 
@@ -343,6 +345,7 @@ namespace ACESim
 
         public void MarkComplete(GameProgress gameProgress = null)
         {
+            Br.eak.IfAdded("GameTree"); // DEBUG
             Complete = true;
             if (gameProgress != null && gameProgress.FullHistoryRequired && !gameProgress.GameFullHistory.IsComplete())
                 gameProgress.GameFullHistory.MarkComplete();
