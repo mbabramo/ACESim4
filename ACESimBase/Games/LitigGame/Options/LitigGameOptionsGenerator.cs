@@ -356,11 +356,12 @@ namespace ACESim
         {
             var options = BaseOptions();
 
-            options.InvertChanceDecisions = true; 
+            options.InvertChanceDecisions = true;
 
-            options.NumOffers = 4;
-            options.NumLiabilityStrengthPoints = 4;
-            options.NumLiabilitySignals = 4;
+            // DEBUG
+            options.NumOffers = 2;
+            options.NumLiabilityStrengthPoints = 2;
+            options.NumLiabilitySignals = 2;
 
             options.NumDamagesSignals = 1;
             options.NumDamagesStrengthPoints = 1;
