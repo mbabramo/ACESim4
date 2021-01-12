@@ -380,7 +380,7 @@ namespace ACESim
             options.NumPotentialBargainingRounds = 1;
             options.IncludeAgreementToBargainDecisions = false;
             options.AllowAbandonAndDefaults = true;
-            options.PredeterminedAbandonAndDefaults = true; // DEFAULT
+            options.PredeterminedAbandonAndDefaults = false; // DEFAULT
 
             return options;
         }

@@ -49,6 +49,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             InitializeInformationSets();
             if (!EvolutionSettings.CreateInformationSetCharts) // otherwise this will already have been run
                 InformationSetNode.IdentifyNodeRelationships(InformationSets);
+            PrintGameTree(); // DEBUG
         }
 
         public override async Task<ReportCollection> RunAlgorithm(string optionSetName)
