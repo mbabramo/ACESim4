@@ -30,7 +30,7 @@ namespace ACESim
         public const int MaxNumMainPlayers = 4; // this affects fixed-size stack-allocated buffers // TODO: Set to 2
         public const int MaxPossibleActions = 100; // same
 
-        public InformationSetLookupApproach LookupApproach { get; set; } = InformationSetLookupApproach.CachedGameHistoryOnly; // DEBUG
+        public InformationSetLookupApproach LookupApproach { get; set; } = InformationSetLookupApproach.CachedGameHistoryOnly;
 
         public bool AllowSkipEveryPermutationInitialization { get; set;}  = true;
         public bool SkipEveryPermutationInitialization => 
@@ -1385,8 +1385,6 @@ namespace ACESim
 
         public void PrintGameTree()
         {
-            Br.eak.Add("GameTree"); // DEBUG
-            //Navigation = Navigation.WithLookupApproach(InformationSetLookupApproach.PlayGameDirectly); // DEBUG
             bool original = TraceTreeWalk;
             TraceTreeWalk = true;
             TreeWalk_Tree(new WalkOnly());
@@ -2862,10 +2860,6 @@ namespace ACESim
         {
             if (TraceTreeWalk)
                 TabbedText.TabIndent();
-            if (Br.eak.Contains("GameTree"))
-            {
-                var DEBUG = 0;
-            }
             IGameState gameState = GetGameState(in historyPoint);
             Back b = default;
             switch (gameState)
@@ -2900,10 +2894,6 @@ namespace ACESim
             List<Back> fromSuccessors = new List<Back>();
             for (byte action = 1; action <= numPossibleActionsToExplore; action++)
             {
-                if (Br.eak.Contains("GameTree") && chanceNode.Decision.Name == "PostBargainingRound1")
-                {
-                    var DEBUG = 0;
-                }
                 if (TraceTreeWalk)
                     TabbedText.WriteLine($"{chanceNode.Decision.Name} (C{chanceNode.ChanceNodeNumber}): {action} ({chanceNode.GetActionProbabilityString(distributorChanceInputs)})");
                 bool isDistributorChanceInputDecision = EvolutionSettings.DistributeChanceDecisions && chanceNode.Decision.DistributorChanceInputDecision;
@@ -2930,14 +2920,6 @@ namespace ACESim
                 TabbedText.WriteLine($"{informationSetNode}");
             for (byte action = 1; action <= numPossibleActionsToExplore; action++)
             {
-                if (Br.eak.Contains("GameTree") && informationSetNode.Decision.Name == "PAbandon1")
-                {
-                    var DEBUG = 0;
-                }
-                if (Br.eak.Contains("GameTree") && informationSetNode.Decision.Name == "DefendantOffer1")
-                {
-                    var DEBUG = 0;
-                }
                 if (TraceTreeWalk)
                     TabbedText.WriteLine($"{informationSetNode.Decision.Name} ({informationSetNode.InformationSetNodeNumber}): {action} (best response value = {informationSetNode.BestResponseOptions?[action - 1]}{(informationSetNode.LastBestResponseValue == action ? "*" : "")})");
                 if (informationSetNode.Decision.DistributorChanceInputDecision)

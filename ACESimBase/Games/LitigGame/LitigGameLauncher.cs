@@ -49,7 +49,7 @@ namespace ACESim
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-            OptionSetChoice optionSetChoice = OptionSetChoice.Simple2BR; // DEBUG // <<-- Choose option set here
+            OptionSetChoice optionSetChoice = OptionSetChoice.Simple2BR;  // <<-- Choose option set here
             switch (optionSetChoice)
             {
                 case OptionSetChoice.JustOneOption:

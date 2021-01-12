@@ -18,10 +18,10 @@ namespace ACESim
 
         #region Settings
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.SequenceForm; // DEBUG // use RegretMatching etc. for GeneralizedVanilla
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.SequenceForm;  // use RegretMatching etc. for GeneralizedVanilla
 
         public const int VanillaIterations = 1000; // Note: Also used for GeneralizedVanilla, DeepCFR
-        public const int VanillaReportEveryNIterations =  VanillaIterations; // DEBUG EffectivelyNever
+        public const int VanillaReportEveryNIterations =  VanillaIterations; // EffectivelyNever
         public int? SuppressReportBeforeIteration = null;
         public const int VanillaBestResponseEveryMIterations = VanillaIterations; 
         public int? SuppressBestResponseBeforeIteration = null; 
@@ -29,7 +29,7 @@ namespace ACESim
         public const int MiniReportEveryPIterations = EffectivelyNever;
         public const bool AlwaysSuppressDisplayReportOnScreen = false; 
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever;
-        public const bool UseRandomPathsForReporting = false; // DEBUG
+        public const bool UseRandomPathsForReporting = false; 
         public const int SummaryTableRandomPathsIterations = 1_000;
         public const int ProbingIterations = 20_000_000;
 

@@ -307,7 +307,7 @@ namespace ACESimTest
                 PerPartyCostsLeadingUpToBargainingRound = PerRoundBargainingCost,
                 RoundSpecificBargainingCosts = roundSpecificBargainingCosts ? RoundSpecificBargainingCosts : null,
                 AllowAbandonAndDefaults = allowAbandonAndDefaults,
-                PredeterminedAbandonAndDefaults = false, // DEBUG
+                PredeterminedAbandonAndDefaults = false,
                 DeltaOffersOptions = new DeltaOffersOptions
                 {
                     SubsequentOffersAreDeltas = false,

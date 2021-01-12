@@ -49,7 +49,6 @@ namespace ACESimBase.GameSolvingAlgorithms
             InitializeInformationSets();
             if (!EvolutionSettings.CreateInformationSetCharts) // otherwise this will already have been run
                 InformationSetNode.IdentifyNodeRelationships(InformationSets);
-            PrintGameTree(); // DEBUG
         }
 
         public override async Task<ReportCollection> RunAlgorithm(string optionSetName)
@@ -610,7 +609,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 }
                 if (includeCorrelatedEquilibriumReport && isLast)
                 {
-                    // DEBUG: Must verify that this is actually the correlated equilibrium result. Numbers should be exact averages on cells including all observations. 
+                    // DEBUG: Must verify that this is actually the correlated equilibrium result. Numbers should be exact averages on cells including all observations. It seems to be giving an error, so maybe it's not.
                     EvolutionSettings.ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.CorrelatedEquilibrium };
                     var reportResult = await GenerateReports(EvolutionSettings.ReportEveryNIterations ?? 0,
                         () =>
