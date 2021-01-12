@@ -106,6 +106,10 @@ namespace ACESim
         /// If true, then a plaintiff can abandon the litigation or a defendant can decide to default immediately after a bargaining round. If both do so, then a coin is flipped to decide who has done so.
         /// </summary>
         public bool AllowAbandonAndDefaults;
+        /// <summary>
+        /// If true, and AllowAbandonAndDefaults is true, then the decision whether to abandon/default is made at the beginning of the bargaining round rather than at the end of the bargaining round. This can greatly reduce the number of information sets in a one bargaining round game, at the expense of reducing the incentive to try to bluff the other player into giving up.
+        /// </summary>
+        public bool PredeterminedAbandonAndDefaults;
 
         /// <summary>
         /// A multiplier applied to all costs figures below. This makes it straightforward to change the overall level of costs without changing every option individually.

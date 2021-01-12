@@ -103,16 +103,16 @@ namespace ACESim
                     MyProgress.AddOfferMixedness(false, MyProgress.Mixedness);
                     if (MyDefinition.Options.BargainingRoundsSimultaneous || MyDefinition.Options.PGoesFirstIfNotSimultaneous[MyProgress.BargainingRoundsComplete])
                     {
-                        MyProgress.ConcludeMainPortionOfBargainingRound(MyDefinition);
+                        ConcludeMainPortionOfBargainingRound();
                     }
                     break;
                 case (byte)LitigGameDecisions.PResponse:
                     MyProgress.AddResponse(true, action == 1); // 1 == accept, 2 == reject
-                    MyProgress.ConcludeMainPortionOfBargainingRound(MyDefinition);
+                    ConcludeMainPortionOfBargainingRound();
                     break;
                 case (byte)LitigGameDecisions.DResponse:
                     MyProgress.AddResponse(false, action == 1); // 1 == accept, 2 == reject
-                    MyProgress.ConcludeMainPortionOfBargainingRound(MyDefinition);
+                    ConcludeMainPortionOfBargainingRound();
                     break;
                 case (byte)LitigGameDecisions.PChips:
                     MyProgress.RunningSideBetsActions.TemporaryStoragePMixedness = MyProgress.Mixedness;
@@ -126,23 +126,19 @@ namespace ACESim
                     break;
                 case (byte)LitigGameDecisions.DDefault:
                     MyProgress.DReadyToAbandon = action == 1;
-                    if (MyProgress.PReadyToAbandon ^ MyProgress.DReadyToAbandon)
-                    {
-                        // exactly one party gives up
-                        MyProgress.PAbandons = MyProgress.PReadyToAbandon;
-                        MyProgress.DDefaults = MyProgress.DReadyToAbandon;
-                        MyProgress.TrialOccurs = false;
-                        MyProgress.GameComplete = true;
-                        MyProgress.BargainingRoundsComplete++;
-                    }
+                    if (!MyDefinition.Options.PredeterminedAbandonAndDefaults)
+                        CheckOnePartyGivesUp();
                     break;
                 case (byte)LitigGameDecisions.MutualGiveUp:
-                    // both trying to give up simultaneously! revise with a coin flip
-                    MyProgress.BothReadyToGiveUp = true;
-                    MyProgress.PAbandons = action == 1;
-                    MyProgress.DDefaults = !MyProgress.PAbandons;
-                    MyProgress.BargainingRoundsComplete++;
-                    MyProgress.GameComplete = true;
+                    if (!MyProgress.GameComplete)
+                    {
+                        // both trying to give up simultaneously! revise with a coin flip
+                        MyProgress.BothReadyToGiveUp = true;
+                        MyProgress.PAbandons = action == 1;
+                        MyProgress.DDefaults = !MyProgress.PAbandons;
+                        MyProgress.BargainingRoundsComplete++;
+                        MyProgress.GameComplete = true;
+                    }
                     break;
                 case (byte)LitigGameDecisions.PostBargainingRound:
                     MyProgress.BargainingRoundsComplete++;
@@ -184,6 +180,26 @@ namespace ACESim
                     break;
                 default:
                     throw new NotImplementedException();
+            }
+        }
+
+        private void ConcludeMainPortionOfBargainingRound()
+        {
+            MyProgress.ConcludeMainPortionOfBargainingRound(MyDefinition);
+            if (!MyProgress.GameComplete && MyDefinition.Options.PredeterminedAbandonAndDefaults && MyDefinition.Options.AllowAbandonAndDefaults)
+                CheckOnePartyGivesUp();
+        }
+
+        private void CheckOnePartyGivesUp()
+        {
+            if (MyProgress.PReadyToAbandon ^ MyProgress.DReadyToAbandon)
+            {
+                // exactly one party gives up
+                MyProgress.PAbandons = MyProgress.PReadyToAbandon;
+                MyProgress.DDefaults = MyProgress.DReadyToAbandon;
+                MyProgress.TrialOccurs = false;
+                MyProgress.GameComplete = true;
+                MyProgress.BargainingRoundsComplete++;
             }
         }
 

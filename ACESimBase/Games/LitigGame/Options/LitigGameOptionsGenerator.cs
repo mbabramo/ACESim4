@@ -120,6 +120,7 @@ namespace ACESim
                 PerPartyCostsLeadingUpToBargainingRound = 15_000,
                 RoundSpecificBargainingCosts = null,
                 AllowAbandonAndDefaults = true, 
+                PredeterminedAbandonAndDefaults = false,
                 LoserPays = false,
                 LoserPaysMultiple = 1.0,
                 LoserPaysAfterAbandonment = false,
@@ -377,7 +378,8 @@ namespace ACESim
             options.SkipFileAndAnswerDecisions = false;
             options.NumPotentialBargainingRounds = 1;
             options.IncludeAgreementToBargainDecisions = false;
-            options.AllowAbandonAndDefaults = false; // DEBUG
+            options.AllowAbandonAndDefaults = true;
+            options.PredeterminedAbandonAndDefaults = true; // DEFAULT
 
             return options;
         }

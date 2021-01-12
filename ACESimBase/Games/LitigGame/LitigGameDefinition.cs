@@ -173,12 +173,14 @@ namespace ACESim
             for (int b = 0; b < Options.NumPotentialBargainingRounds; b++)
             {
                 AddPreBargainingRoundDummyDecision(b, decisions);
+                if (Options.AllowAbandonAndDefaults)
+                    AddAbandonOrDefaultDecisions(b, decisions, true);
                 AddDecisionsForBargainingRound(b, decisions);
                 if (Options.AllowAbandonAndDefaults)
                 {
                     if (Options.LitigGameRunningSideBets != null)
                         AddRunningSideBetDecisions(b, decisions);
-                    AddAbandonOrDefaultDecisions(b, decisions);
+                    AddAbandonOrDefaultDecisions(b, decisions, false);
                 }
                 AddPostBargainingRoundDummyDecision(b, decisions);
             }
@@ -582,43 +584,59 @@ namespace ACESim
             decisions.Add(dRSideBet);
         }
 
-        private void AddAbandonOrDefaultDecisions(int b, List<Decision> decisions)
+        private void AddAbandonOrDefaultDecisions(int b, List<Decision> decisions, bool predetermining)
         {
-            var pAbandon =
-                new Decision("PAbandon" + (b + 1), "PAB" + (b + 1), false, (byte)LitigGamePlayers.Plaintiff, new byte[] {(byte) LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.Resolution },
-                    2, (byte)LitigGameDecisions.PAbandon)
-                {
-                    CustomByte = (byte)(b + 1),
-                    CanTerminateGame = false, // we always must look at whether D is defaulting too. 
-                    StoreActionInGameCacheItem = GameHistoryCacheIndex_PReadyToAbandon,
-                    IsReversible = true,
-                    SymmetryMap = (SymmetryMapInput.SameInfo, SymmetryMapOutput.SameAction)
-                };
-            decisions.Add(pAbandon);
+            bool includePlayerDecisions;
+            bool includeChanceDecision;
+            if (Options.PredeterminedAbandonAndDefaults)
+            {
+                includePlayerDecisions = predetermining;
+                includeChanceDecision = !predetermining;
+            }
+            else
+            {
+                includePlayerDecisions = includeChanceDecision = !predetermining;
+            }
+            if (includePlayerDecisions)
+            {
+                var pAbandon =
+                    new Decision("PAbandon" + (b + 1), "PAB" + (b + 1), false, (byte)LitigGamePlayers.Plaintiff, new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.BothGiveUpChance, (byte)LitigGamePlayers.Resolution },
+                        2, (byte)LitigGameDecisions.PAbandon)
+                    {
+                        CustomByte = (byte)(b + 1),
+                        CanTerminateGame = false, // we always must look at whether D is defaulting too. 
+                        StoreActionInGameCacheItem = GameHistoryCacheIndex_PReadyToAbandon,
+                        IsReversible = true,
+                        SymmetryMap = (SymmetryMapInput.SameInfo, SymmetryMapOutput.SameAction)
+                    };
+                decisions.Add(pAbandon);
 
-            var dDefault =
-                new Decision("DDefault" + (b + 1), "DD" + (b + 1), false, (byte)LitigGamePlayers.Defendant, new byte[] { (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.Resolution },
-                    2, (byte)LitigGameDecisions.DDefault)
-                {
-                    CustomByte = (byte)(b + 1),
-                    CanTerminateGame = true, // if either but not both has given up, game terminates
-                    StoreActionInGameCacheItem = GameHistoryCacheIndex_DReadyToAbandon,
-                    IsReversible = true,
-                    SymmetryMap = (SymmetryMapInput.SameInfo, SymmetryMapOutput.SameAction)
-                };
-            decisions.Add(dDefault);
-
-            var bothGiveUp =
-                new Decision("MutualGiveUp" + (b + 1), "MGU" + (b + 1), true, (byte)LitigGamePlayers.BothGiveUpChance, new byte[] { (byte)LitigGamePlayers.Resolution },
-                    2, (byte)LitigGameDecisions.MutualGiveUp, unevenChanceActions: false)
-                {
-                    CustomByte = (byte)(b + 1),
-                    CanTerminateGame = true, // if this decision is needed, then both have given up, and the decision always terminates the game
-                    CriticalNode = true, // always play out both sides of this coin flip
-                    IsReversible = true,
-                    SymmetryMap = (SymmetryMapInput.NotInInformationSet, SymmetryMapOutput.ChanceDecision)
-                };
-            decisions.Add(bothGiveUp);
+                var dDefault =
+                    new Decision("DDefault" + (b + 1), "DD" + (b + 1), false, (byte)LitigGamePlayers.Defendant, new byte[] { (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.BothGiveUpChance, (byte)LitigGamePlayers.Resolution },
+                        2, (byte)LitigGameDecisions.DDefault)
+                    {
+                        CustomByte = (byte)(b + 1),
+                        CanTerminateGame = !Options.PredeterminedAbandonAndDefaults, // if either but not both has given up, game terminates, unless we're predetermining abandon and defaults, in which case we still have to go through offers
+                        StoreActionInGameCacheItem = GameHistoryCacheIndex_DReadyToAbandon,
+                        IsReversible = true,
+                        SymmetryMap = (SymmetryMapInput.SameInfo, SymmetryMapOutput.SameAction)
+                    };
+                decisions.Add(dDefault);
+            }
+            if (includeChanceDecision)
+            {
+                var bothGiveUp =
+                    new Decision("MutualGiveUp" + (b + 1), "MGU" + (b + 1), true, (byte)LitigGamePlayers.BothGiveUpChance, new byte[] { (byte)LitigGamePlayers.Resolution },
+                        2, (byte)LitigGameDecisions.MutualGiveUp, unevenChanceActions: false)
+                    {
+                        CustomByte = (byte)(b + 1),
+                        CanTerminateGame = true, // if this decision is needed, then both have given up, and the decision always terminates the game
+                        CriticalNode = true, // always play out both sides of this coin flip
+                        IsReversible = true,
+                        SymmetryMap = (SymmetryMapInput.NotInInformationSet, SymmetryMapOutput.ChanceDecision)
+                    };
+                decisions.Add(bothGiveUp);
+            }
         }
 
         private void AddPreBargainingRoundDummyDecision(int b, List<Decision> decisions)
@@ -868,6 +886,8 @@ namespace ACESim
                         return true; // defendant's hasn't answered
                     break;
                 case (byte)LitigGameDecisions.DDefault:
+                    if (Options.PredeterminedAbandonAndDefaults)
+                        return false; // we need to wait for the bargaining round
                     bool pTryingToGiveUp = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PReadyToAbandon) == 1;
                     bool dTryingToGiveUp = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DReadyToAbandon) == 1;
                     if (pTryingToGiveUp ^ dTryingToGiveUp) // i.e., one but not both parties try to default
