@@ -146,7 +146,7 @@ namespace ACESimTest
             var trueValueWhenQualityIs3 = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 0, 1, 3); 
             var trueValueWhenQualityIs4 = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 0, 1, 4); // should be very high probability of high true quality
             trueValueWhenQualityIs4[1].Should().BeGreaterThan(0.95);
-            int[][] crossProducts = DiscreteProbabilityDistribution.GetCrossProductsOfDiscreteRanges(dimensions);
+            int[][] crossProducts = DiscreteProbabilityDistribution.GetAllPermutations(dimensions);
             var zipped = crossProducts.Zip(probabilities).ToList();
         }
 
@@ -162,7 +162,7 @@ namespace ACESimTest
                 (1 /* values just produced */, false /* from zero to one but excluding extremes */, 0.1 /* low noise */), // produce 10 signals based on 5 initial levels
                 (1 /* values just produced */, false /* from zero to one but excluding extremes */, 0.3 /* medium noise */), // produce 2 signals based on 5 initial levels
             });
-            int[][] crossProducts = DiscreteProbabilityDistribution.GetCrossProductsOfDiscreteRanges(dimensions);
+            int[][] crossProducts = DiscreteProbabilityDistribution.GetAllPermutations(dimensions);
 
             // now do things in reverse to make sure we get back to the beginning
             var unconditionalPartySignal = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 2);
@@ -171,8 +171,8 @@ namespace ACESimTest
             probabilityTrueValue.Should().BeApproximately(prior[1], 0.0001);
 
             // figure out the probability distribution of one party's signals given the other party's.
-            var secondProbabilitySignalsGivenThirdPartySignals = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 2, 3);
-            var thirdProbabilitySignalsGivenSecondPartySignals = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 3, 2);
+            var secondProbabilitySignalsGivenThirdPartySignals = DiscreteProbabilityDistribution.CalculateConditionalProbabilities(probabilities, dimensions, 2, 3);
+            var thirdProbabilitySignalsGivenSecondPartySignals = DiscreteProbabilityDistribution.CalculateConditionalProbabilities(probabilities, dimensions, 3, 2);
 
             // some other calculations (unverified)
             var qualityWhenTrueValueIs0 = DiscreteProbabilityDistribution.CalculateProbabilitiesFromMap(probabilities, dimensions, 1, 0, 0);
