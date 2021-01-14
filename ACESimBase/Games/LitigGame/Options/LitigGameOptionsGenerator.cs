@@ -359,7 +359,7 @@ namespace ACESim
             options.InvertChanceDecisions = true;
 
             // DEBUG
-            options.NumOffers = 10;
+            options.NumOffers = 15;
             options.NumLiabilityStrengthPoints = 5;
             options.NumLiabilitySignals = 5;
 
@@ -368,7 +368,7 @@ namespace ACESim
             options.PInitialWealth = options.DInitialWealth = 10.0;
             options.DamagesMin = 0.0;
             options.DamagesMax = 1.0;
-            options.PTrialCosts = options.DTrialCosts = 0.15;
+            options.PTrialCosts = options.DTrialCosts = 0.25;
             options.PFilingCost = options.DAnswerCost = 0.10;
             options.PerPartyCostsLeadingUpToBargainingRound = 0;
             options.CostsMultiplier = 1;

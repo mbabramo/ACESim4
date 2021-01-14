@@ -50,7 +50,7 @@ namespace ACESim
         // and so the dispute generation module must ensure that it has the correct probability distribution for the defendant's signals given the plaintiff signal.
         // This can be handled easily by using the DiscreteProbabilityDistribution class.
         // Then, the game will request of the dispute generator the court signals, for each of liability and damages, dependent on the player signals for liability and damages.
-        // Finally, the game will request that the dispute 
+        // Finally, the game will request that the dispute generator provide information on liability strength and damages strength, and finally on true liability.
 
         double[] InvertedCalculations_GetPLiabilitySignalProbabilities() => throw new NotImplementedException();
         double[] InvertedCalculations_GetDLiabilitySignalProbabilities(byte pLiabilitySignal) => throw new NotImplementedException();
