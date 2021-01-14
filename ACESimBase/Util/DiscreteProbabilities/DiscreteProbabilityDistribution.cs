@@ -8,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ACESimBase.Util
+namespace ACESimBase.Util.DiscreteProbabilities
 {
 
     /// <summary>
@@ -169,70 +169,7 @@ namespace ACESimBase.Util
             double[] results = CalculateProbabilitiesFromMap(probabilityMap, dimensions, distributionVariableIndex);
             return results;
         }
-
-        public abstract class VariableProductionInstruction
-        {
-            public int[] Dimensions;
-            public int TargetIndex;
-            public int[][] IncomingPermutations;
-            public int NumRangeElements;
-            public VariableProductionInstruction(int[] dimensions, int targetIndex)
-            {
-                Dimensions = dimensions;
-                TargetIndex = targetIndex;
-                NumRangeElements = Dimensions[TargetIndex];
-                int[] incomingDimensions = Dimensions.Take(TargetIndex).ToArray();
-                if (incomingDimensions.Length != 0)
-                    IncomingPermutations = GetAllPermutations(incomingDimensions);
-            }
-
-            public abstract double GetConditionalProbability(int domainIndex, int rangeIndex);
-        }
-
-        public class IndependentVariableProductionInstruction : VariableProductionInstruction
-        {
-            double[] Probabilities;
-
-            public IndependentVariableProductionInstruction(int[] Dimensions, int TargetIndex, double[] probabilities) : base(Dimensions, TargetIndex)
-            {
-                Probabilities = probabilities ?? Enumerable.Range(0, NumRangeElements).Select(x => 1.0 / (double)NumRangeElements).ToArray();
-            }
-
-            public override double GetConditionalProbability(int domainIndex, int rangeIndex)
-            {
-                return Probabilities[rangeIndex];
-            }
-        }
-
-        public class DiscreteValueParametersVariableProductionInstruction : VariableProductionInstruction
-        {
-            private DiscreteValueSignalParameters DVSParams;
-            public int SourceSignalIndex;
-            public bool SourceIncludesExtremes;
-            public double Stdev;
-
-            public DiscreteValueParametersVariableProductionInstruction(int[] dimensions, int sourceSignalIndex, bool sourceIncludesExtremes, double stdev, int targetIndex) : base(dimensions, targetIndex)
-            {
-                SourceSignalIndex = sourceSignalIndex;
-                SourceIncludesExtremes = sourceIncludesExtremes;
-                Stdev = stdev;
-                int numSourceElements = Dimensions[SourceSignalIndex]; // this is the number of items in the source signal, but note that the domainIndex in GetConditionalProbability refers to the permutation index, and this will be more if there are other variables too.
-                DVSParams = new DiscreteValueSignalParameters()
-                {
-                    NumPointsInSourceUniformDistribution = numSourceElements,
-                    NumSignals = NumRangeElements,
-                    SourcePointsIncludeExtremes = SourceIncludesExtremes,
-                    StdevOfNormalDistribution = Stdev
-                };
-            }
-
-            public override double GetConditionalProbability(int domainIndex, int rangeIndex)
-            {
-                int discreteValueSignalIndex = IncomingPermutations[domainIndex][SourceSignalIndex];
-                double probability = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(discreteValueSignalIndex + 1 /* DiscreteValueSignal expects 1-based action */, DVSParams)[rangeIndex];
-                return probability;
-            }
-        }
+        
 
         public static List<VariableProductionInstruction> GetDiscreteSignalVariableProductionInstructions(int[] dimensions, double[] domainProbabilities, List<(int sourceSignalIndex, bool sourceIncludesExtremes, double stdev)> discreteSignalInstructions)
         {
@@ -259,35 +196,6 @@ namespace ACESimBase.Util
             var instructions = GetDiscreteSignalVariableProductionInstructions(dimensions, domainProbabilities, discreteSignalProductionInstructions);
             var results = BuildProbabilityMapBasedOnVariableProductionInstructions(dimensions, instructions);
             return results;
-        }
-
-        public static double[] DEBUGOldBuildProbabilityMapBasedOnDiscreteValueSignals(int[] dimensions, double[] domainProbabilities, List<(int sourceSignalIndex, bool sourceIncludesExtremes, double stdev)> variableProductionInstructions)
-        {
-            double[] permutationProbabilities = null;
-            for (int d = 1; d < dimensions.Length; d++)
-            {
-                int[] incomingDimensions = dimensions.Take(d).ToArray();
-                int[][] incomingPermutations = GetAllPermutations(incomingDimensions);
-                int[] outgoingDimensions = dimensions.Take(d + 1).ToArray();
-                var instruction = variableProductionInstructions[d - 1];
-                int numDomainElements = dimensions[instruction.sourceSignalIndex];
-                int numRangeElements = dimensions[d];
-                DiscreteValueSignalParameters dvsParams = new DiscreteValueSignalParameters()
-                {
-                    NumPointsInSourceUniformDistribution = numDomainElements,
-                    NumSignals = numRangeElements,
-                    SourcePointsIncludeExtremes = instruction.sourceIncludesExtremes,
-                    StdevOfNormalDistribution = instruction.stdev
-                };
-                permutationProbabilities = BuildProbabilityMap((int domainIndex, int rangeIndex) =>
-                {
-                    int discreteValueSignalIndex = incomingPermutations[domainIndex][instruction.sourceSignalIndex];
-                    double probability = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(discreteValueSignalIndex + 1 /* DiscreteValueSignal expects 1-based action */, dvsParams)[rangeIndex];
-                    return probability;
-                }, dimensions[d], domainProbabilities);
-                domainProbabilities = permutationProbabilities;
-            }
-            return permutationProbabilities;
         }
 
         public static double[] BuildProbabilityMapBasedOnVariableProductionInstructions(int[] dimensions, List<VariableProductionInstruction> variableProductionInstructions)

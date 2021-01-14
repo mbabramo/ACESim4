@@ -1,5 +1,7 @@
 using ACESim.Util;
+using ACESim.Util.DiscreteProbabilities;
 using ACESimBase.Util;
+using ACESimBase.Util.DiscreteProbabilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;

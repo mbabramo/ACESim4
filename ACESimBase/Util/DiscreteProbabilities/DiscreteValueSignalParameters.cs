@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ACESim.Util
+namespace ACESim.Util.DiscreteProbabilities
 {
     [Serializable]
     public struct DiscreteValueSignalParameters

@@ -4,8 +4,10 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using ACESim.Util;
+using ACESim.Util.DiscreteProbabilities;
 using ACESimBase.GameSolvingSupport;
 using ACESimBase.Util;
+using ACESimBase.Util.DiscreteProbabilities;
 
 namespace ACESim
 {

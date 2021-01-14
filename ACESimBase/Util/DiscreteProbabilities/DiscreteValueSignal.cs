@@ -1,12 +1,13 @@
 ﻿using ACESim;
 using ACESim.Util;
+using ACESim.Util.DiscreteProbabilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ACESimBase.Util
+namespace ACESimBase.Util.DiscreteProbabilities
 {
     public static class DiscreteValueSignal
     {
