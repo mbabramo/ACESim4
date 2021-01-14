@@ -128,13 +128,13 @@ namespace ACESimBase.Util.DiscreteProbabilities
         /// <param name="variableProductionInstructions">A set of instructions for how to produce later variables from earlier variables</param>
         /// <param name="calculatorsToProduce">The set of variables for which to calculate distributions, along with any variables earlier in the list whose values should be taken into account in calculating these values. The indices are all indices within dimensions.</param>
         /// <returns></returns>
-        public static List<Func<List<int>, double[]>> GetProbabilityMapCalculators(int[] dimensions, double[] domainProbabilities, List<(int sourceSignalIndex, bool sourceIncludesExtremes, double stdev)> variableProductionInstructions, List<(int distributionVariableIndex, List<int> fixedVariableIndices)> calculatorsToProduce)
+        public static List<Func<List<int>, double[]>> GetProbabilityMapCalculators(int[] dimensions, List<VariableProductionInstruction> variableProductionInstructions, List<(int distributionVariableIndex, List<int> fixedVariableIndices)> calculatorsToProduce)
         {
-            double[] crossProductProbabilities = BuildProbabilityMapBasedOnDiscreteValueSignals(dimensions, domainProbabilities, variableProductionInstructions);
+            double[] crossProductProbabilities = BuildProbabilityMap(dimensions, variableProductionInstructions);
             List<Func<List<int>, double[]>> calculatorsList = new List<Func<List<int>, double[]>>();
             foreach (var calculatorToProduce in calculatorsToProduce)
             {
-                calculatorsList.Add(GetProbabilityMapCalculator(dimensions, domainProbabilities, variableProductionInstructions, calculatorToProduce.distributionVariableIndex, calculatorToProduce.fixedVariableIndices));
+                calculatorsList.Add(GetProbabilityMapCalculator(dimensions, variableProductionInstructions, calculatorToProduce.distributionVariableIndex, calculatorToProduce.fixedVariableIndices));
             }
             return calculatorsList;
         }
@@ -143,14 +143,13 @@ namespace ACESimBase.Util.DiscreteProbabilities
         /// Produces a single calculator for calculating the probability distribution of a discrete variable (the distribution variable) given specification of a set of other variables.
         /// </summary>
         /// <param name="dimensions">The number of possible values for each variable</param>
-        /// <param name="domainProbabilities">The exogenous probability distribution for the initial variable</param>
         /// <param name="variableProductionInstructions">A set of instructions for how to produce later variables from earlier variables. The source signal index is 0 for the initial variable (the one specified in domain probabilities) and 1 or greater for the variables specified in variableProductionInstructions. This should thus have one fewer element than dimensions.</param>
         /// <param name="distributionVariableIndex">The index of the distribution variable within dimensions</param>
         /// <param name="fixedVariableIndices">The indices of the fixed variable within dimensions</param>
         /// <returns>A calculator that transforms realized values of the variables specified in fixedVariablesIndices into probabilities of different values of the distribution variable</returns>
-        public static Func<List<int>, double[]> GetProbabilityMapCalculator(int[] dimensions, double[] domainProbabilities, List<(int sourceSignalIndex, bool sourceIncludesExtremes, double stdev)> variableProductionInstructions, int distributionVariableIndex, List<int> fixedVariableIndices)
+        public static Func<List<int>, double[]> GetProbabilityMapCalculator(int[] dimensions, List<VariableProductionInstruction> variableProductionInstructions, int distributionVariableIndex, List<int> fixedVariableIndices)
         {
-            double[] crossProductProbabilities = BuildProbabilityMapBasedOnDiscreteValueSignals(dimensions, domainProbabilities, variableProductionInstructions);
+            double[] crossProductProbabilities = BuildProbabilityMap(dimensions, variableProductionInstructions);
             Func<List<int>, double[]> calculator = GetProbabilityMapCalculator(crossProductProbabilities, dimensions, distributionVariableIndex, fixedVariableIndices);
             return calculator;
         }
@@ -163,42 +162,14 @@ namespace ACESimBase.Util.DiscreteProbabilities
         /// <param name="variableProductionInstructions">A set of instructions for how to produce later variables from earlier variables. The source signal index is 0 for the initial variable (the one specified in domain probabilities) and 1 or greater for the variables specified in variableProductionInstructions. This should thus have one fewer element than dimensions.</param>
         /// <param name="distributionVariableIndex">The index within dimensions of the variable for which unconditional probabilities are sought. </param>
         /// <returns></returns>
-        public static double[] GetUnconditionalProbabilities(int[] dimensions, double[] domainProbabilities, List<(int sourceSignalIndex, bool sourceIncludesExtremes, double stdev)> variableProductionInstructions, int distributionVariableIndex)
+        public static double[] GetUnconditionalProbabilities(int[] dimensions, List<VariableProductionInstruction> variableProductionInstructions, int distributionVariableIndex)
         {
-            double[] probabilityMap = BuildProbabilityMapBasedOnDiscreteValueSignals(dimensions, domainProbabilities, variableProductionInstructions);
+            double[] probabilityMap = BuildProbabilityMap(dimensions, variableProductionInstructions);
             double[] results = CalculateProbabilitiesFromMap(probabilityMap, dimensions, distributionVariableIndex);
             return results;
         }
-        
 
-        public static List<VariableProductionInstruction> GetDiscreteSignalVariableProductionInstructions(int[] dimensions, double[] domainProbabilities, List<(int sourceSignalIndex, bool sourceIncludesExtremes, double stdev)> discreteSignalInstructions)
-        {
-            List<VariableProductionInstruction> instructions = new List<VariableProductionInstruction>();
-            instructions.Add(new IndependentVariableProductionInstruction(dimensions, 0, domainProbabilities));
-            for (int targetIndex = 1; targetIndex <= discreteSignalInstructions.Count(); targetIndex++)
-            {
-                var instruction = discreteSignalInstructions[targetIndex - 1];
-                DiscreteValueParametersVariableProductionInstruction productionInstruction = new DiscreteValueParametersVariableProductionInstruction(dimensions, instruction.sourceSignalIndex, instruction.sourceIncludesExtremes, instruction.stdev, targetIndex);
-                instructions.Add(productionInstruction);
-            }
-            return instructions;
-        }
-
-        /// <summary>
-        /// Determines the probability of each instance of cross-product indices, given initial probabilities for one variable and instructions for producing another variable.
-        /// </summary>
-        /// <param name="dimensions">The number of possible values for each variable</param>
-        /// <param name="domainProbabilities">The exogenous probability distribution for the initial variable</param>
-        /// <param name="discreteSignalProductionInstructions">A set of instructions for how to produce later variables from earlier variables. This should have one fewer element than dimensions.</param>
-        /// <returns>The probability of each instance of cross-product indices</returns>
-        public static double[] BuildProbabilityMapBasedOnDiscreteValueSignals(int[] dimensions, double[] domainProbabilities, List<(int sourceSignalIndex, bool sourceIncludesExtremes, double stdev)> discreteSignalProductionInstructions)
-        {
-            var instructions = GetDiscreteSignalVariableProductionInstructions(dimensions, domainProbabilities, discreteSignalProductionInstructions);
-            var results = BuildProbabilityMapBasedOnVariableProductionInstructions(dimensions, instructions);
-            return results;
-        }
-
-        public static double[] BuildProbabilityMapBasedOnVariableProductionInstructions(int[] dimensions, List<VariableProductionInstruction> variableProductionInstructions)
+        public static double[] BuildProbabilityMap(int[] dimensions, List<VariableProductionInstruction> variableProductionInstructions)
         {
             double[] permutationProbabilities = null;
             for (int d = 0; d < dimensions.Length; d++)

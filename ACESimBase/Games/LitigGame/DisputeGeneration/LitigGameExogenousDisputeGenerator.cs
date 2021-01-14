@@ -161,15 +161,16 @@ namespace ACESim
             const int numCourtLiabilitySignals = 2;
             int[] liabilityDimensions = new int[] { numTrueLiabilityValues, o.NumLiabilityStrengthPoints, o.NumLiabilitySignals, o.NumLiabilitySignals, numCourtLiabilitySignals };
             double[] liabilityPrior = ProbabilityOfTrulyLiableValues;
-            var liabilitySignalsProducer = new List<(int sourceSignalIndex, bool sourceIncludesExtremes, double stdev)>()
+
+            List<VariableProductionInstruction> liabilitySignalsInstructions = new List<VariableProductionInstruction>()
                 {
-                    // true liability is given by the prior
-                    /* liability strength */ (trueLiabilityIndex /* taking from two initial values */, true /* which map onto extreme values of 0 and 1 */, StdevNoiseToProduceLiabilityStrength /* adding noise */), 
-                    /* p liability signal */ (liabilityStrengthIndex /* liability strength */, false /* from zero to one but excluding extremes */, o.PLiabilityNoiseStdev /* noise */),
-                    /* d liability signal */ (liabilityStrengthIndex /* liability strength */, false /* from zero to one but excluding extremes */, o.DLiabilityNoiseStdev /* noise */),
-                    /* c liability signal */ (liabilityStrengthIndex /* liability strength */, false /* from zero to one but excluding extremes */, o.CourtLiabilityNoiseStdev /* noise */),
+                    new IndependentVariableProductionInstruction(liabilityDimensions, 0, liabilityPrior), // true liability is given by the prior
+                    new DiscreteValueParametersVariableProductionInstruction(liabilityDimensions, trueLiabilityIndex /* taking from two initial values */, true /* which map onto extreme values of 0 and 1 */, StdevNoiseToProduceLiabilityStrength /* adding noise */, 1), /* liability strength */
+                    new DiscreteValueParametersVariableProductionInstruction(liabilityDimensions, liabilityStrengthIndex /* liability strength */, false /* from zero to one but excluding extremes */, o.PLiabilityNoiseStdev /* noise */, 2),  /* p liability signal */ 
+                    new DiscreteValueParametersVariableProductionInstruction(liabilityDimensions, liabilityStrengthIndex /* liability strength */, false /* from zero to one but excluding extremes */, o.DLiabilityNoiseStdev /* noise */, 3),  /* d liability signal */
+                    new DiscreteValueParametersVariableProductionInstruction(liabilityDimensions, liabilityStrengthIndex /* liability strength */, false /* from zero to one but excluding extremes */, o.CourtLiabilityNoiseStdev /* noise */, 4),  /* c liability signal */
                 };
-            pLiabilitySignalProbabilitiesUnconditional = DiscreteProbabilityDistribution.GetUnconditionalProbabilities(liabilityDimensions, liabilityPrior, liabilitySignalsProducer, pLiabilitySignalIndex);
+            pLiabilitySignalProbabilitiesUnconditional = DiscreteProbabilityDistribution.GetUnconditionalProbabilities(liabilityDimensions, liabilitySignalsInstructions, pLiabilitySignalIndex);
             var liabilityCalculatorsToProduce = new List<(int distributionVariableIndex, List<int> fixedVariableIndices)>()
                 {
                     (dLiabilitySignalIndex, new List<int>() { pLiabilitySignalIndex }), // defendant's signal based on plaintiff's signal
@@ -179,18 +180,19 @@ namespace ACESim
                     (liabilityStrengthIndex, new List<int>() { pLiabilitySignalIndex, dLiabilitySignalIndex, }), // liability strength based on everything but court info
                     (trueLiabilityIndex, new List<int>() { pLiabilitySignalIndex, dLiabilitySignalIndex, liabilityStrengthIndex, }) // true value based on everything but court info
                 };
-            LiabilityCalculators = DiscreteProbabilityDistribution.GetProbabilityMapCalculators(liabilityDimensions, liabilityPrior, liabilitySignalsProducer, liabilityCalculatorsToProduce);
+            LiabilityCalculators = DiscreteProbabilityDistribution.GetProbabilityMapCalculators(liabilityDimensions, liabilitySignalsInstructions, liabilityCalculatorsToProduce);
 
             int[] damagesDimensions = new int[] { o.NumDamagesStrengthPoints, o.NumDamagesSignals, o.NumDamagesSignals, o.NumDamagesSignals };
             double[] damagesPrior = Enumerable.Range(0, o.NumDamagesStrengthPoints).Select(x => 1.0 / o.NumDamagesStrengthPoints).ToArray();
-            var damagesSignalsProducer = new List<(int sourceSignalIndex, bool sourceIncludesExtremes, double stdev)>()
+
+            List<VariableProductionInstruction> damagesSignalsInstructions = new List<VariableProductionInstruction>()
                 {
-                    // damages strength is given by the prior
-                    /* p damages signal */ (damagesStrengthIndex /* damages strength */, false /* from zero to one but excluding extremes */, o.PDamagesNoiseStdev /* noise */),
-                    /* d damages signal */ (damagesStrengthIndex /* damages strength */, false /* from zero to one but excluding extremes */, o.DDamagesNoiseStdev /* noise */),
-                    /* c damages signal */ (damagesStrengthIndex /* damages strength */, false /* from zero to one but excluding extremes */, o.CourtDamagesNoiseStdev /* noise */),
+                    new IndependentVariableProductionInstruction(damagesDimensions, 0, damagesPrior), // damages strength is given by the prior
+                    new DiscreteValueParametersVariableProductionInstruction(damagesDimensions, damagesStrengthIndex /* damages strength */, false /* from zero to one but excluding extremes */, o.PDamagesNoiseStdev /* noise */, 1),  /* p damages signal */ 
+                    new DiscreteValueParametersVariableProductionInstruction(damagesDimensions, damagesStrengthIndex /* damages strength */, false /* from zero to one but excluding extremes */, o.DDamagesNoiseStdev /* noise */, 2),  /* d damages signal */
+                    new DiscreteValueParametersVariableProductionInstruction(damagesDimensions, damagesStrengthIndex /* damages strength */, false /* from zero to one but excluding extremes */, o.CourtDamagesNoiseStdev /* noise */, 3),  /* c damages signal */
                 };
-            pDamagesSignalProbabilitiesUnconditional = DiscreteProbabilityDistribution.GetUnconditionalProbabilities(damagesDimensions, damagesPrior, damagesSignalsProducer, pDamagesSignalIndex);
+            pDamagesSignalProbabilitiesUnconditional = DiscreteProbabilityDistribution.GetUnconditionalProbabilities(damagesDimensions, damagesSignalsInstructions, pDamagesSignalIndex);
             var damagesCalculatorsToProduce = new List<(int distributionVariableIndex, List<int> fixedVariableIndices)>()
                 {
                     (dDamagesSignalIndex, new List<int>() { pDamagesSignalIndex }), // defendant's signal based on plaintiff's signal
@@ -198,7 +200,7 @@ namespace ACESim
                     (damagesStrengthIndex, new List<int>() { pDamagesSignalIndex, dDamagesSignalIndex, cDamagesSignalIndex }), // damages strength based on all of above
                     (damagesStrengthIndex, new List<int>() { pDamagesSignalIndex, dDamagesSignalIndex }), // damages strength when no trial has occurred
                 };
-            DamagesCalculators = DiscreteProbabilityDistribution.GetProbabilityMapCalculators(damagesDimensions, damagesPrior, damagesSignalsProducer, damagesCalculatorsToProduce);
+            DamagesCalculators = DiscreteProbabilityDistribution.GetProbabilityMapCalculators(damagesDimensions, damagesSignalsInstructions, damagesCalculatorsToProduce);
         }
 
         // Interface implementations
