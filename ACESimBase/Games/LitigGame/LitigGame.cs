@@ -153,8 +153,27 @@ namespace ACESim
 
                     MyProgress.CLiabilitySignalDiscrete = action;
                     MyProgress.TrialOccurs = true;
-                    MyProgress.PWinsAtTrial = MyDefinition.Options.NumLiabilitySignals == 1 /* IMPORTANT: This highlights that when there is only one liability signal, the court ALWAYS finds liability */ || 
-                        action == 2 /* signal must be the HIGH value for plaintiff to win */; 
+                    MyProgress.PWinsAtTrial = false;
+                    if (MyDefinition.Options.NumLiabilitySignals == 1)
+                        MyProgress.PWinsAtTrial = true; /* IMPORTANT: This highlights that when there is only one liability signal, the court ALWAYS finds liability */
+                    else
+                    {
+                        if (MyDefinition.Options.LoserPays && MyDefinition.Options.LoserPaysOnlyLargeMarginOfVictory)
+                        {
+                            MyProgress.PWinsAtTrial = action > (int) Math.Round((MyDefinition.Options.NumLiabilitySignals + 1.0) / 2.0); // e.g., if we have three signals, then we need the one-based action to be greater than 4 / 2 = 2, because the midpoint (2) is not enough. If we have four signals, then we need to be a 3 or 4, not a 1 or 2, when action is one-based
+                            double courtLiabilitySignal = Game.ConvertActionToUniformDistributionDraw(action, MyDefinition.Options.NumLiabilitySignals, false);
+                            if (MyProgress.PWinsAtTrial)
+                            {
+                                MyProgress.WinIsByLargeMargin = courtLiabilitySignal >= MyDefinition.Options.LoserPaysMarginOfVictoryThreshold;
+                            }
+                            else
+                            {
+                                MyProgress.WinIsByLargeMargin = courtLiabilitySignal <= 1.0 - MyDefinition.Options.LoserPaysMarginOfVictoryThreshold;
+                            }
+                        }
+                        else
+                            MyProgress.PWinsAtTrial = action == 2 /* signal must be the HIGH value for plaintiff to win */;
+                    }
                     if (MyProgress.PWinsAtTrial == false)
                     {
                         MyProgress.DamagesAwarded = 0;
@@ -240,7 +259,7 @@ namespace ACESim
             public byte NumChips;
         }
 
-        public static LitigGameOutcome CalculateGameOutcome(LitigGameDefinition gameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions, LitigGamePretrialActions pretrialActions, LitigGameRunningSideBetsActions runningSideBetActions, double pInitialWealth, double dInitialWealth, bool pFiles, bool pAbandons, bool dAnswers, bool dDefaults, double? settlementValue, bool pWinsAtTrial, double? damagesAwarded, byte bargainingRoundsComplete, double? pFinalWealthWithBestOffer, double? dFinalWealthWithBestOffer, List<double> pOffers, List<bool> pResponses, List<double> dOffers, List<bool> dResponses)
+        public static LitigGameOutcome CalculateGameOutcome(LitigGameDefinition gameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions, LitigGamePretrialActions pretrialActions, LitigGameRunningSideBetsActions runningSideBetActions, double pInitialWealth, double dInitialWealth, bool pFiles, bool pAbandons, bool dAnswers, bool dDefaults, double? settlementValue, bool pWinsAtTrial, bool largeMarginAtTrial, double? damagesAwarded, byte bargainingRoundsComplete, double? pFinalWealthWithBestOffer, double? dFinalWealthWithBestOffer, List<double> pOffers, List<bool> pResponses, List<double> dOffers, List<bool> dResponses)
         {
             LitigGameOutcome outcome = new LitigGameOutcome();
 
@@ -379,7 +398,9 @@ namespace ACESim
             }
             if (gameDefinition.Options.LoserPays)
             {
-                loserPaysApplies = (outcome.TrialOccurs || (gameDefinition.Options.LoserPaysAfterAbandonment && (pAbandons || dDefaults)));
+                loserPaysApplies = ((outcome.TrialOccurs && (!gameDefinition.Options.LoserPaysOnlyLargeMarginOfVictory || largeMarginAtTrial)) 
+                    || 
+                    (gameDefinition.Options.LoserPaysAfterAbandonment && (pAbandons || dDefaults)));
                 // NOTE: If punishPlaintiffUnderRule68, then plaintiff has won and usually would be entitled to fee shifting, but because of Rule 68, now defendant is entitled to fee shifting. So, loser pays still applies.
             }
             else

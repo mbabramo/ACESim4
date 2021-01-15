@@ -34,7 +34,7 @@ namespace ACESim
         PostBargainingRound, // dummy chance decision -- gives us chance to perform some processing
         PPretrialAction,
         DPretrialAction,
-        CourtDecisionLiability, // with processed signals: 1 = defendant wins, 2 = plaintiff wins
+        CourtDecisionLiability, // with processed signals: 1 = defendant wins, 2 = plaintiff wins (unless using margin of victory)
         CourtDecisionDamages,
         SubdividableOffer,
     }

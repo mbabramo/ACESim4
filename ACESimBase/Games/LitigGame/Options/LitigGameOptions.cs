@@ -169,6 +169,15 @@ namespace ACESim
         /// </summary>
         public bool Rule68;
         /// <summary>
+        /// If loser pays, that will be only if there is a large margin of victory.
+        /// </summary>
+        public bool LoserPaysOnlyLargeMarginOfVictory;
+        /// <summary>
+        /// The threshold for triggering fee shifting in favor of the plaintiff, with fee shifting in favor of the defendant mirroring on the other side of the probability spectrum.
+        /// This will apply to the court's estimate of liability strength.
+        /// </summary>
+        public double LoserPaysMarginOfVictoryThreshold;
+        /// <summary>
         /// If true, "shootout settlements" apply. That is, where settlement fails, plaintiff buys from defendant at midpoint of offer price right to double damages (if ShootoutStrength == 1.0).
         /// </summary>
         public bool ShootoutSettlements;
