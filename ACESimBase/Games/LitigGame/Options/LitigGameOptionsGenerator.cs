@@ -391,7 +391,7 @@ namespace ACESim
             options.ShootoutSettlements = true;
             options.ShootoutsApplyAfterAbandonment = false;
             options.ShootoutStrength = 1.0;
-            options.ShootoutsAverageAllRounds = false;
+            options.ShootoutOfferValueIsAveraged = false;
 
             return options;
         }
@@ -402,7 +402,7 @@ namespace ACESim
             options.ShootoutSettlements = true;
             options.ShootoutsApplyAfterAbandonment = false;
             options.ShootoutStrength = 3.0;
-            options.ShootoutsAverageAllRounds = false;
+            options.ShootoutOfferValueIsAveraged = false;
 
             return options;
         }
@@ -413,7 +413,7 @@ namespace ACESim
             options.ShootoutSettlements = true;
             options.ShootoutsApplyAfterAbandonment = false;
             options.ShootoutStrength = 1.0;
-            options.ShootoutsAverageAllRounds = true;
+            options.ShootoutOfferValueIsAveraged = true;
 
             return options;
         }
@@ -424,7 +424,7 @@ namespace ACESim
             options.ShootoutSettlements = true;
             options.ShootoutsApplyAfterAbandonment = true;
             options.ShootoutStrength = 1.0;
-            options.ShootoutsAverageAllRounds = false;
+            options.ShootoutOfferValueIsAveraged = false;
 
             return options;
         }
@@ -435,7 +435,7 @@ namespace ACESim
             options.ShootoutSettlements = true;
             options.ShootoutsApplyAfterAbandonment = true;
             options.ShootoutStrength = 1.0;
-            options.ShootoutsAverageAllRounds = true;
+            options.ShootoutOfferValueIsAveraged = true;
 
             return options;
         }
@@ -563,7 +563,7 @@ namespace ACESim
             options.ShootoutSettlements = true;
             options.ShootoutsApplyAfterAbandonment = false;
             options.ShootoutStrength = 1.0;
-            options.ShootoutsAverageAllRounds = false;
+            options.ShootoutOfferValueIsAveraged = false;
             return options;
         }
 
@@ -573,7 +573,7 @@ namespace ACESim
             options.ShootoutSettlements = true;
             options.ShootoutsApplyAfterAbandonment = false;
             options.ShootoutStrength = 1.0;
-            options.ShootoutsAverageAllRounds = false;
+            options.ShootoutOfferValueIsAveraged = false;
             return options;
         }
     }

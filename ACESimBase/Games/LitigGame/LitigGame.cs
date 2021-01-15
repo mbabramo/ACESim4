@@ -299,29 +299,29 @@ namespace ACESim
                     throw new NotSupportedException(); // shootout settlements require bargaining
                 bool abandoned = (pAbandons || dDefaults);
                 bool abandonedAfterLastRound = abandoned && bargainingRoundsComplete == gameDefinition.Options.NumPotentialBargainingRounds;
-                bool applyShootout = outcome.TrialOccurs || (abandonedAfterLastRound && gameDefinition.Options.ShootoutsApplyAfterAbandonment) || (abandoned && gameDefinition.Options.ShootoutsApplyAfterAbandonment && gameDefinition.Options.ShootoutsAverageAllRounds);
+                bool applyShootout = outcome.TrialOccurs || (abandonedAfterLastRound && gameDefinition.Options.ShootoutsApplyAfterAbandonment) || (abandoned && gameDefinition.Options.ShootoutsApplyAfterAbandonment && gameDefinition.Options.ShootoutOfferValueIsAveraged);
                 if (applyShootout)
                 {
-                    double shootoutPrice;
+                    double shootoutOffer;
                     if (gameDefinition.Options.BargainingRoundsSimultaneous)
                     {
-                        if (gameDefinition.Options.ShootoutsAverageAllRounds)
+                        if (gameDefinition.Options.ShootoutOfferValueIsAveraged)
                         {
                             double averagePOffer = pOffers.Average();
                             double averageDOffer = dOffers.Average();
-                            shootoutPrice = (averagePOffer + averageDOffer) / 2.0;
+                            shootoutOffer = (averagePOffer + averageDOffer) / 2.0;
                         }
                         else
                         {
                             double lastPOffer = pOffers.Last();
                             double lastDOffer = dOffers.Last();
-                            shootoutPrice = (lastPOffer + lastDOffer) / 2.0;
+                            shootoutOffer = (lastPOffer + lastDOffer) / 2.0;
                         }
                     }
                     else
                     {
                         List<double> applicableOffers = new List<double>();
-                        if (gameDefinition.Options.ShootoutsAverageAllRounds)
+                        if (gameDefinition.Options.ShootoutOfferValueIsAveraged)
                         {
                             if (pOffers != null)
                                 applicableOffers.AddRange(pOffers);
@@ -335,10 +335,10 @@ namespace ACESim
                             if (dOffers != null && dOffers.Any())
                                 applicableOffers.Add(dOffers.Last());
                         }
-                        shootoutPrice = applicableOffers.Average();
+                        shootoutOffer = applicableOffers.Average();
                     }
                     double shootoutStrength = gameDefinition.Options.ShootoutStrength;
-                    double costToP = shootoutPrice * gameDefinition.Options.DamagesMax * shootoutStrength;
+                    double costToP = shootoutOffer * gameDefinition.Options.DamagesMax * shootoutStrength;
                     double extraDamages = (dDefaults ? gameDefinition.Options.DamagesMax : (damagesAwarded ?? 0)) * shootoutStrength;
                     double netBenefitToP = extraDamages - costToP;
                     outcome.PChangeWealth += netBenefitToP;
@@ -367,12 +367,33 @@ namespace ACESim
             double pCostsInitiallyIncurred = pFilingCostIncurred + pBargainingCostsIncurred + pTrialCostsIncurred;
             double dCostsInitiallyIncurred = dAnswerCostIncurred + dBargainingCostsIncurred + dTrialCostsIncurred;
             double pEffectOfExpenses = 0, dEffectOfExpenses = 0;
-            bool loserPaysApplies = gameDefinition.Options.LoserPays && (outcome.TrialOccurs || (gameDefinition.Options.LoserPaysAfterAbandonment && (pAbandons || dDefaults)));
+            bool loserPaysApplies = false;
+            bool punishPlaintiffUnderRule68 = false;
+            if (gameDefinition.Options.Rule68 && outcome.TrialOccurs && outcome.PWinsAtTrial)
+            {
+                if (dOffers != null && dOffers.Any())
+                { // there might not be offers if there was a refusal to bargain or if plaintiff is giving an offer and defendant is replying
+                    double rule68Offer = dOffers.Last();
+                    punishPlaintiffUnderRule68 = rule68Offer >= damagesAwarded; // NOTE: We are saying punish plaintiff if amount ends up being equal
+                }
+            }
+            if (gameDefinition.Options.LoserPays)
+            {
+                loserPaysApplies = (outcome.TrialOccurs || (gameDefinition.Options.LoserPaysAfterAbandonment && (pAbandons || dDefaults)));
+                // NOTE: If punishPlaintiffUnderRule68, then plaintiff has won and usually would be entitled to fee shifting, but because of Rule 68, now defendant is entitled to fee shifting. So, loser pays still applies.
+            }
+            else
+            {
+                if (punishPlaintiffUnderRule68)
+                { // plaintiff has won but still has to pay the defendant's fees.
+                    loserPaysApplies = true;
+                }
+            }
             if (loserPaysApplies)
             { // British Rule and it applies (contested litigation and no settlement)
                 double loserPaysMultiple = gameDefinition.Options.LoserPaysMultiple;
                 bool pLoses = (outcome.TrialOccurs && !pWinsAtTrial) || pAbandons;
-                if (pLoses)
+                if (pLoses || punishPlaintiffUnderRule68)
                 {
                     pEffectOfExpenses -= pCostsInitiallyIncurred + loserPaysMultiple * dCostsInitiallyIncurred;
                     dEffectOfExpenses -= dCostsInitiallyIncurred - loserPaysMultiple * dCostsInitiallyIncurred;

@@ -165,6 +165,10 @@ namespace ACESim
         /// </summary>
         public bool LoserPaysAfterAbandonment;
         /// <summary>
+        /// If true, then if LoserPays is true, plaintiff wins, and plaintiff receives less than defendant's offer. 
+        /// </summary>
+        public bool Rule68;
+        /// <summary>
         /// If true, "shootout settlements" apply. That is, where settlement fails, plaintiff buys from defendant at midpoint of offer price right to double damages (if ShootoutStrength == 1.0).
         /// </summary>
         public bool ShootoutSettlements;
@@ -174,9 +178,9 @@ namespace ACESim
         /// </summary>
         public bool ShootoutsApplyAfterAbandonment;
         /// <summary>
-        /// If true, then the shootout depends on an average of all rounds, not just the last round
+        /// If true, then the shootout (or other offer-of-judgment rule dependent on an offer) depends on an average of all rounds, not just the last round
         /// </summary>
-        public bool ShootoutsAverageAllRounds;
+        public bool ShootoutOfferValueIsAveraged;
         /// <summary>
         /// The proportion of extra damages that the plaintiff buys after a failed shootout round. This strength is also multiplied by the midpoint of the settlement offers to determine the price that the plaintiff must pay for the damages.
         /// </summary>
@@ -244,16 +248,18 @@ namespace ACESim
         public override string ToString()
         {
             return 
-$@"LitigationGame Options
+$@"LitigationGame
 InvertChanceDecisions {InvertChanceDecisions}
-NumOffers {NumOffers} IncludeEndpointsForOffers {IncludeEndpointsForOffers}  
+NumOffers {NumOffers} {(IncludeEndpointsForOffers ? "(Includes endpoints)" : "")}  
 NumPotentialBargainingRounds {NumPotentialBargainingRounds}  BargainingRoundsSimultaneous {BargainingRoundsSimultaneous} SimultaneousOffersUltimatelyRevealed {SimultaneousOffersUltimatelyRevealed} 
 NumLiabilityStrengthPoints {NumLiabilityStrengthPoints} NumLiabilitySignals {NumLiabilitySignals} PLiabilityNoiseStdev {PLiabilityNoiseStdev} DLiabilityNoiseStdev {DLiabilityNoiseStdev} CourtLiabilityNoiseStdev {CourtLiabilityNoiseStdev} 
 NumDamagesStrengthPoints {NumDamagesStrengthPoints} NumDamagesSignals {NumDamagesSignals} PDamagesNoiseStdev {PDamagesNoiseStdev} DDamagesNoiseStdev {DDamagesNoiseStdev} CourtDamagesNoiseStdev {CourtDamagesNoiseStdev} 
-SkipFileAndAnswerDecisions {SkipFileAndAnswerDecisions} IncludeAgreementToBargainDecisions {IncludeAgreementToBargainDecisions} DeltaOffersOptions {DeltaOffersOptions} 
+SkipFileAndAnswerDecisions {SkipFileAndAnswerDecisions} AllowAbandonAndDefaults {AllowAbandonAndDefaults} PredeterminedAbandonAndDefaults {PredeterminedAbandonAndDefaults} IncludeAgreementToBargainDecisions {IncludeAgreementToBargainDecisions} DeltaOffersOptions {DeltaOffersOptions} 
 CostsMultiplier {CostsMultiplier} PTrialCosts {PTrialCosts} DTrialCosts {DTrialCosts} PFilingCost {PFilingCost} DAnswerCost {DAnswerCost} {(RoundSpecificBargainingCosts == null ? $"PerPartyCostsLeadingUpToBargainingRound {PerPartyCostsLeadingUpToBargainingRound}" : $"RoundSpecificBargainingCosts {String.Join(",", RoundSpecificBargainingCosts)}")} 
-LoserPays {LoserPays} LoserPaysMultiple {LoserPaysMultiple} LoserPaysAfterAbandonment {LoserPaysAfterAbandonment} 
-ShootoutSettlements {ShootoutSettlements} ShootoutStrength {ShootoutStrength} ShootoutsAverageAllRounds {ShootoutsAverageAllRounds} ShootoutsApplyAfterAbandonment {ShootoutsApplyAfterAbandonment}
+{(LoserPays ? $@"LoserPays: Multiple {LoserPaysMultiple} AfterAbandonment {LoserPaysAfterAbandonment}
+" : $"")}
+{(ShootoutSettlements ? $@"ShootoutSettlements ShootoutStrength {ShootoutStrength} ShootoutOfferValueIsAveraged {ShootoutOfferValueIsAveraged} ShootoutsApplyAfterAbandonment {ShootoutsApplyAfterAbandonment}
+" : "")}
 PInitialWealth {PInitialWealth} DInitialWealth {DInitialWealth} 
 DamagesMin {DamagesMin} DamagesMax {DamagesMax} 
 RegretAversion {RegretAversion} 
