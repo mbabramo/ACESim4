@@ -419,6 +419,10 @@ namespace ACESim
         {
             LitigGameDefinition gameDefinition = (LitigGameDefinition)GameDefinition;
             LitigGameOptions options = LitigGameDefinition.Options;
+            if (Br.eak.Contains("DEBUG"))
+            {
+                var DEBUG = 0;
+            }
             var outcome = LitigGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, gameDefinition.Options.PInitialWealth, gameDefinition.Options.DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, SettlementValue, PWinsAtTrial, WinIsByLargeMargin, DamagesAwarded, BargainingRoundsComplete, PFinalWealthWithBestOffer, DFinalWealthWithBestOffer, POffers, PResponses, DOffers, DResponses);
             DisputeArises = options.LitigGameDisputeGenerator.PotentialDisputeArises(gameDefinition, DisputeGeneratorActions);
             PChangeWealth = outcome.PChangeWealth;
