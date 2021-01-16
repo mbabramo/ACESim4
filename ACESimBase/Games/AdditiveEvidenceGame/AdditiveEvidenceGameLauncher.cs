@@ -28,7 +28,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             Temporary,
         }
 
-        public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
+        public override List<GameOptions> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
             OptionSetChoice optionSetChoice = OptionSetChoice.All;
@@ -85,7 +85,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 foreach (var optionSet in optionSets)
                     optionSet.options.Simplify();
 
-            return optionSets;
+            return optionSets.Select(x => x.options.WithName(x.optionSetName)).ToList();
         }
 
         enum DMSVersion

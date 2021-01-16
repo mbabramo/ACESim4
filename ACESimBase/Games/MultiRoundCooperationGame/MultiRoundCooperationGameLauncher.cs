@@ -13,9 +13,9 @@ namespace ACESim
     {
         public override GameDefinition GetGameDefinition() => new MultiRoundCooperationGameDefinition();
 
-        public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
+        public override List<GameOptions> GetOptionsSets()
         {
-            return new List<(string optionSetName, GameOptions options)>() { ("CoopReport", GetSingleGameOptions()) };
+            return new List<GameOptions>() { GetSingleGameOptions().WithName("CoopReport") };
         }
 
         public override GameOptions GetSingleGameOptions()

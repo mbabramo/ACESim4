@@ -19,9 +19,9 @@ namespace ACESim
             return new LeducGameOptions() { OneBetSizeOnly = true };
         }
 
-        public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
+        public override List<GameOptions> GetOptionsSets()
         {
-            List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>() { ("Report", GetSingleGameOptions()) };
+            List<GameOptions> optionSets = new List<GameOptions>() { GetSingleGameOptions().WithName("Report") };
 
             
             return optionSets;

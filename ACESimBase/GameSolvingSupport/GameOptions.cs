@@ -10,6 +10,12 @@ namespace ACESim
 
         public string Name;
 
+        public GameOptions WithName(string name)
+        {
+            Name = name;
+            return this;
+        }
+
         // This can be used to modify evolution settings for a particular game options in a game options set.
         public Action<EvolutionSettings> ModifyEvolutionSettings;
 

@@ -59,7 +59,7 @@ namespace ACESim
         public abstract GameDefinition GetGameDefinition();
 
         public abstract GameOptions GetSingleGameOptions();
-        public abstract List<(string optionSetName, GameOptions options)> GetOptionsSets();
+        public abstract List<GameOptions> GetOptionsSets();
 
         #endregion
 
@@ -328,7 +328,7 @@ namespace ACESim
                 evolutionSettings.TotalIterations = 1;
                 bool originalPerformPrincipalComponentAnalysis = evolutionSettings.PCA_PerformPrincipalComponentAnalysis;
                 evolutionSettings.PCA_PerformPrincipalComponentAnalysis = false;
-                await developer.DevelopStrategies(firstOptionSet.optionSetName, -1 /* it doesn't matter what scenario we do, because the real action is where we perform analysis below */, MasterReportNameForDistributedProcessing);
+                await developer.DevelopStrategies(firstOptionSet.Name, -1 /* it doesn't matter what scenario we do, because the real action is where we perform analysis below */, MasterReportNameForDistributedProcessing);
                 evolutionSettings.TotalIterations = totalIterations;
                 evolutionSettings.PCA_PerformPrincipalComponentAnalysis = originalPerformPrincipalComponentAnalysis;
                 ReportCollection reportCollection = new ReportCollection();
@@ -338,7 +338,7 @@ namespace ACESim
 
         private void InitializeTaskCoordinatorIfNecessary(string masterReportName)
         {
-            List<(string optionSetName, GameOptions options)> optionSets = GetOptionsSets();
+            List<GameOptions> optionSets = GetOptionsSets();
             int optionSetsCount = optionSets.Count();
             int? scenarios = null;
             if (DistributedProcessing && SeparateScenariosWhenUsingDistributedProcessing)
@@ -377,8 +377,7 @@ namespace ACESim
                 if (LastDeveloperOnThread.ContainsKey(currentThreadID) && LastDeveloperOnThread[currentThreadID].optionSetIndex == optionSetIndex)
                     return LastDeveloperOnThread[currentThreadID].developer;
                 var optionSet = GetOptionsSets()[optionSetIndex];
-                var options = optionSet.options;
-                LastDeveloperOnThread[currentThreadID] = (optionSetIndex, GetInitializedDeveloper(options, optionSet.optionSetName));
+                LastDeveloperOnThread[currentThreadID] = (optionSetIndex, GetInitializedDeveloper(optionSet, optionSet.Name));
                 var result = LastDeveloperOnThread[currentThreadID].developer;
                 if (!SaveLastDeveloperOnThread)
                     LastDeveloperOnThread = new Dictionary<int, (int optionSetIndex, IStrategiesDeveloper developer)>();
@@ -400,10 +399,10 @@ namespace ACESim
             ReportCollection reportCollection = new ReportCollection();
             if (results == null)
             { // load all the Azure blobs to get the results to combine; this is useful if we haven't done all the results consecutively
-                List<(string optionSetName, GameOptions options)> optionSets = GetOptionsSets();
+                List<GameOptions> optionSets = GetOptionsSets();
                 foreach (var optionSet in optionSets)
                 {
-                    string masterReportNamePlusOptionSet = $"{masterReportName} {optionSet.optionSetName}";
+                    string masterReportNamePlusOptionSet = $"{masterReportName} {optionSet.Name}";
                     string csvResult = AzureBlob.GetBlobText("results", masterReportNamePlusOptionSet + ".csv");
                     reportCollection.Add("", csvResult);
                 }
@@ -419,8 +418,7 @@ namespace ACESim
         {
             bool includeFirstLine = optionSetIndex == 0;
             var optionSet = GetOptionsSets()[optionSetIndex];
-            var options = optionSet.options;
-            var optionSetName = optionSet.optionSetName;
+            var optionSetName = optionSet.Name;
             return CombineResultsOfRepetitionsOfOptionSets(masterReportName, optionSetName, includeFirstLine, null);
         }
 
@@ -454,14 +452,14 @@ namespace ACESim
         {
             string masterReportName = DateTime.Now.ToString("yyyy-MM-dd HH-mm"); // avoid colons and slashes
 
-            List<(string optionSetName, GameOptions options)> optionSets = GetOptionsSets();
+            List<GameOptions> optionSets = GetOptionsSets();
             int numRepetitionsPerOptionSet = NumRepetitions;
             ReportCollection results = new ReportCollection();
 
             async Task SingleOptionSetAction(long index)
             {
                 var optionSet = optionSets[(int)index];
-                TabbedText.WriteLine($"Option set {index} of {optionSets.Count()}: {optionSet.optionSetName}");
+                TabbedText.WriteLine($"Option set {index} of {optionSets.Count()}: {optionSet.Name}");
                 var optionSetResults = await ProcessSingleOptionSet(masterReportName, (int)index, true);
                 lock (LocalOptionSetsLock)
                     results.Add(optionSetResults);
@@ -481,8 +479,7 @@ namespace ACESim
         {
             bool includeFirstLine = optionSetIndex == 0;
             var optionSet = GetOptionsSets()[optionSetIndex];
-            var options = optionSet.options;
-            return await ProcessSingleOptionSetLocally(options, masterReportName, optionSet.optionSetName, includeFirstLine, addOptionSetColumns);
+            return await ProcessSingleOptionSetLocally(optionSet, masterReportName, optionSet.Name, includeFirstLine, addOptionSetColumns);
         }
 
         private async Task<ReportCollection> ProcessSingleOptionSetLocally(GameOptions options, string masterReportName, string optionSetName, bool includeFirstLine, bool addOptionSetColumns)
@@ -502,10 +499,10 @@ namespace ACESim
         {
             if (logAction == null)
                 logAction = s => Debug.WriteLine(s);
-            List<(string optionSetName, GameOptions options)> optionSets = GetOptionsSets();
-            var options = optionSets[optionSetIndex].options;
-            var result = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSets[optionSetIndex].optionSetName, repetition, addOptionSetColumns, developer, restrictToScenarioIndex, logAction);
-            return (result, optionSets[optionSetIndex].optionSetName);
+            List<GameOptions> optionSets = GetOptionsSets();
+            var options = optionSets[optionSetIndex];
+            var result = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSets[optionSetIndex].Name, repetition, addOptionSetColumns, developer, restrictToScenarioIndex, logAction);
+            return (result, optionSets[optionSetIndex].Name);
         }
 
         private async Task<ReportCollection> GetSingleRepetitionReportAndSave(string masterReportName, GameOptions options, string optionSetName, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer, int? restrictToScenarioIndex, Action<string> logAction = null)
@@ -571,7 +568,7 @@ namespace ACESim
 
         public async Task<string> ProcessAllOptionSetsOnAzureFunctions()
         {
-            List<(string optionSetName, GameOptions options)> optionSets = GetOptionsSets();
+            List<GameOptions> optionSets = GetOptionsSets();
             int numRepetitionsPerOptionSet = NumRepetitions;
 
             TabbedText.WriteLine($"Number of option sets: {optionSets.Count} repetitions {numRepetitionsPerOptionSet} => {optionSets.Count * numRepetitionsPerOptionSet}");
@@ -604,9 +601,9 @@ namespace ACESim
         public async Task<string> ProcessSingleOptionSet_AzureFunctions(int optionSetIndex, string azureBlobReportName)
         {
             bool includeFirstLine = optionSetIndex == 0;
-            List<(string optionSetName, GameOptions options)> optionSets = GetOptionsSets();
-            var options = optionSets[optionSetIndex].options;
-            string optionSetName = optionSets[optionSetIndex].optionSetName;
+            List<GameOptions> optionSets = GetOptionsSets();
+            var options = optionSets[optionSetIndex];
+            string optionSetName = optionSets[optionSetIndex].Name;
             int numRepetitionsPerOptionSet = NumRepetitions;
             var developer = GetInitializedDeveloper(options, optionSetName);
             developer.EvolutionSettings.GameNumber = StartGameNumber;
@@ -669,9 +666,17 @@ namespace ACESim
 
         #region Build option sets
 
-        public List<GameOptions> ApplyTransformations(Func<LitigGameOptions> optionsFn, List<Func<GameOptions, GameOptions>> transforms)
+        public T GetAndTransform<T>(T options, string suffix, Action<T> transform) where T : GameOptions
         {
-            List<GameOptions> result = new List<GameOptions>();
+            T g = options;
+            transform(g);
+            g.Name = g.Name + suffix;
+            return g;
+        }
+
+        public List<T> ApplyTransformations<T>(Func<T> optionsFn, List<Func<T, T>> transforms) where T : GameOptions
+        {
+            List<T> result = new List<T>();
             foreach (var transform in transforms)
             {
                 var transformed = transform(optionsFn());
@@ -680,10 +685,10 @@ namespace ACESim
             return result;
         }
 
-        public List<GameOptions> ApplyPermutationsOfTransformations(Func<GameOptions> optionsFn, List<List<Func<GameOptions, GameOptions>>> transformLists)
+        public List<T> ApplyPermutationsOfTransformations<T>(Func<T> optionsFn, List<List<Func<T, T>>> transformLists) where T : GameOptions
         {
-            List<GameOptions> result = new List<GameOptions>();
-            List<List<Func<GameOptions, GameOptions>>> permutationsOfTransforms = PermutationMaker.GetPermutationsOfItems(transformLists);
+            List<T> result = new List<T>();
+            List<List<Func<T, T>>> permutationsOfTransforms = PermutationMaker.GetPermutationsOfItems(transformLists);
             foreach (var permutation in permutationsOfTransforms)
             {
                 var options = optionsFn();

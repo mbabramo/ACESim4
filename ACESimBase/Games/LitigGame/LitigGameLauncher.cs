@@ -47,14 +47,14 @@ namespace ACESim
             FeeShiftingArticle,
         }
 
-        public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
+        public override List<GameOptions> GetOptionsSets()
         {
-            List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
+            List<GameOptions> optionSets = new List<GameOptions>();
             OptionSetChoice optionSetChoice = OptionSetChoice.Simple2BR;  // <<-- Choose option set here
             switch (optionSetChoice)
             {
                 case OptionSetChoice.JustOneOption:
-                    AddSingle(optionSets, LitigGameOptionsGenerator.DamagesUncertainty_2BR(), "singleoptionset");
+                    AddToOptionsListWithName(optionSets, "singleoptionset", LitigGameOptionsGenerator.DamagesUncertainty_2BR());
                     break;
                 case OptionSetChoice.Fast:
                     AddFast(optionSets);
@@ -97,18 +97,18 @@ namespace ACESim
                     break;
             }
 
-            optionSets = optionSets.OrderBy(x => x.optionSetName).ToList();
+            optionSets = optionSets.OrderBy(x => x.Name).ToList();
 
             bool simplify = false; // Enable for debugging purposes to speed up execution without going all the way to "fast" option
             if (simplify)
                 foreach (var optionSet in optionSets)
-                    optionSet.options.Simplify();
+                    optionSet.Simplify();
 
             return optionSets;
         }
 
 
-        private void AddCustom2(List<(string optionSetName, GameOptions options)> optionSets)
+        private void AddCustom2(List<GameOptions> optionSets)
         {
 
             // now, liability and damages only
@@ -122,9 +122,9 @@ namespace ACESim
             }
         }
 
-        private void AddWithVariedAlgorithms(List<(string optionSetName, GameOptions options)> optionSets)
+        private void AddWithVariedAlgorithms(List<GameOptions> optionSets)
         {
-            void Helper(List<(string optionSetName, GameOptions options)> optionSets, string optionSetNamePrefix, Action<EvolutionSettings> modifyEvolutionSettings)
+            void Helper(List<GameOptions> optionSets, string optionSetNamePrefix, Action<EvolutionSettings> modifyEvolutionSettings)
             {
                 optionSets.Add(GetAndTransformWithRiskAversion(optionSetNamePrefix + "damages_unc", "basecosts", LitigGameOptionsGenerator.DamagesUncertainty_1BR, x => { x.CostsMultiplier = 1.0; x.ModifyEvolutionSettings = modifyEvolutionSettings; }, RiskAversion.RiskNeutral));
                 //optionSets.Add(GetAndTransform(optionSetNamePrefix + "damages_unc2BR", "basecosts", LitigGameOptionsGenerator.DamagesUncertainty_2BR, x => { x.CostsMultiplier = 1.0; x.ModifyEvolutionSettings = modifyEvolutionSettings; }, false));
@@ -149,7 +149,7 @@ namespace ACESim
             });
         }
 
-        private void AddVariousUncertainties(List<(string optionSetName, GameOptions options)> optionSets)
+        private void AddVariousUncertainties(List<GameOptions> optionSets)
         {
 
             optionSets.Add(GetAndTransformWithRiskAversion("damages_unc", "basecosts", LitigGameOptionsGenerator.DamagesUncertainty_1BR, x => { x.CostsMultiplier = 1.0; }, RiskAversion.RiskNeutral));
@@ -161,12 +161,7 @@ namespace ACESim
 
         }
 
-        private void AddSingle(List<(string optionSetName, GameOptions options)> optionSets, GameOptions options, string optionSetName)
-        {
-            optionSets.Add((optionSetName, options));
-        }
-
-        private void AddFast(List<(string optionSetName, GameOptions options)> optionSets)
+        private void AddFast(List<GameOptions> optionSets)
         {
             RiskAversion riskAverse = RiskAversion.RiskNeutral;
             foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("basecosts", 1.0), ("highcosts", 3.0) })
@@ -175,7 +170,7 @@ namespace ACESim
             }
         }
 
-        private void AddShootoutMainPermutatio(List<(string optionSetName, GameOptions options)> optionSets)
+        private void AddShootoutMainPermutatio(List<GameOptions> optionSets)
         {
             RiskAversion riskAverse = RiskAversion.RiskNeutral;
             foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("basecosts", 1.0), ("highcosts", 3.0) })
@@ -186,7 +181,7 @@ namespace ACESim
             }
         }
 
-        private void AddShootoutPermutations(List<(string optionSetName, GameOptions options)> optionSets)
+        private void AddShootoutPermutations(List<GameOptions> optionSets)
         {
             foreach (RiskAversion riskAverse in new RiskAversion[] { RiskAversion.RiskNeutral, RiskAversion.RiskAverse })
             {
@@ -208,7 +203,7 @@ namespace ACESim
         int Simple1BR_maxNumLiabilitySignals = 4; 
         int Simple1BR_maxNumOffers = 4; 
 
-        private void AddSimple1BRGames(List<(string optionSetName, GameOptions options)> optionSets)
+        private void AddSimple1BRGames(List<GameOptions> optionSets)
         {
             for (byte numLiabilityStrengthPoints = 2; numLiabilityStrengthPoints <= Simple1BR_maxNumLiabilityStrengthPoints; numLiabilityStrengthPoints++)
                 for (byte numLiabilitySignals = 2; numLiabilitySignals <= Simple1BR_maxNumLiabilitySignals; numLiabilitySignals++)
@@ -222,7 +217,7 @@ namespace ACESim
                         }, RiskAversion.RiskNeutral));
                     }
         }
-        private void AddSimple2BRGames(List<(string optionSetName, GameOptions options)> optionSets)
+        private void AddSimple2BRGames(List<GameOptions> optionSets)
         {
             for (byte numLiabilityStrengthPoints = 2; numLiabilityStrengthPoints <= Simple1BR_maxNumLiabilityStrengthPoints; numLiabilityStrengthPoints++)
                 for (byte numLiabilitySignals = 2; numLiabilitySignals <= Simple1BR_maxNumLiabilitySignals; numLiabilitySignals++)
@@ -237,7 +232,7 @@ namespace ACESim
                     }
         }
 
-        private void AddKlermanEtAlPermutations(List<(string optionSetName, GameOptions options)> optionSets, Func<LitigGameOptions> myGameOptionsFunc)
+        private void AddKlermanEtAlPermutations(List<GameOptions> optionSets, Func<LitigGameOptions> myGameOptionsFunc)
         {
             foreach (double exogProb in new double[] { 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95 })
             {
@@ -251,7 +246,7 @@ namespace ACESim
             }
         }
 
-        private void AddShootoutGameVariations(List<(string optionSetName, GameOptions options)> optionSets)
+        private void AddShootoutGameVariations(List<GameOptions> optionSets)
         {
             foreach (RiskAversion riskAverse in new RiskAversion[] { RiskAversion.RiskNeutral })
             {
@@ -332,14 +327,7 @@ namespace ACESim
             DOnlyRiskAverse
         }
 
-        (string optionSetName, LitigGameOptions options) GetAndTransform(string baseName, LitigGameOptions options, string suffix, Action<LitigGameOptions> transform)
-        {
-            LitigGameOptions g = options;
-            transform(g);
-            return (baseName + suffix, g);
-        }
-
-        public void AddBluffingOptionsSets(List<(string optionSetName, GameOptions options)> optionSets)
+        public void AddBluffingOptionsSets(List<GameOptions> optionSets)
         {
             LitigGameOptions GetBluffingBase(bool hiddenOffers, bool onlyTwoRounds = false, bool liabilityAlsoUncertain = false, bool cfrPlus = false, double? costsMultiplier = null, bool pRiskAversion = false, bool dRiskAversion = false, double pNoiseMultiplier = 1.0, double dNoiseMultiplier = 1.0)
             {
@@ -377,43 +365,43 @@ namespace ACESim
                 return options;
             }
 
-            optionSets.Add(("baseline", GetBluffingBase(false)));
-            optionSets.Add(("baseline-hidden", GetBluffingBase(true)));
+            AddToOptionsListWithName(optionSets, "baseline", GetBluffingBase(false));
+            AddToOptionsListWithName(optionSets, "baseline-hidden", GetBluffingBase(true));
 
-            optionSets.Add(("twobr", GetBluffingBase(false, onlyTwoRounds: true)));
-            optionSets.Add(("twobr-hidden", GetBluffingBase(true, onlyTwoRounds: true)));
+            AddToOptionsListWithName(optionSets, "twobr", GetBluffingBase(false, onlyTwoRounds: true));
+            AddToOptionsListWithName(optionSets, "twobr-hidden", GetBluffingBase(true, onlyTwoRounds: true));
 
-            optionSets.Add(("bothunc", GetBluffingBase(false, liabilityAlsoUncertain: true)));
-            optionSets.Add(("bothunc-hidden", GetBluffingBase(true, liabilityAlsoUncertain: true)));
+            AddToOptionsListWithName(optionSets, "bothunc", GetBluffingBase(false, liabilityAlsoUncertain: true));
+            AddToOptionsListWithName(optionSets, "bothunc-hidden", GetBluffingBase(true, liabilityAlsoUncertain: true));
 
-            optionSets.Add(("cfrplus", GetBluffingBase(false, cfrPlus: true)));
-            optionSets.Add(("cfrplus-hidden", GetBluffingBase(true, cfrPlus: true)));
+            AddToOptionsListWithName(optionSets, "cfrplus", GetBluffingBase(false, cfrPlus: true));
+            AddToOptionsListWithName(optionSets, "cfrplus-hidden", GetBluffingBase(true, cfrPlus: true));
 
-            optionSets.Add(("locost", GetBluffingBase(false, costsMultiplier: 1.0 / 3.0)));
-            optionSets.Add(("locost-hidden", GetBluffingBase(true, costsMultiplier: 1.0 / 3.0)));
-            optionSets.Add(("hicost", GetBluffingBase(false, costsMultiplier: 3.0)));
-            optionSets.Add(("hicost-hidden", GetBluffingBase(true, costsMultiplier: 3.0)));
+            AddToOptionsListWithName(optionSets, "locost", GetBluffingBase(false, costsMultiplier: 1.0 / 3.0));
+            AddToOptionsListWithName(optionSets, "locost-hidden", GetBluffingBase(true, costsMultiplier: 1.0 / 3.0));
+            AddToOptionsListWithName(optionSets, "hicost", GetBluffingBase(false, costsMultiplier: 3.0));
+            AddToOptionsListWithName(optionSets, "hicost-hidden", GetBluffingBase(true, costsMultiplier: 3.0));
 
-            optionSets.Add(("pra", GetBluffingBase(false, pRiskAversion: true)));
-            optionSets.Add(("pra-hidden", GetBluffingBase(true, pRiskAversion: true)));
-            optionSets.Add(("dra", GetBluffingBase(false, dRiskAversion: true)));
-            optionSets.Add(("dra-hidden", GetBluffingBase(true, dRiskAversion: true)));
-            optionSets.Add(("bra", GetBluffingBase(false, pRiskAversion: true, dRiskAversion: true)));
-            optionSets.Add(("bra-hidden", GetBluffingBase(true, pRiskAversion: true, dRiskAversion: true)));
+            AddToOptionsListWithName(optionSets, "pra", GetBluffingBase(false, pRiskAversion: true));
+            AddToOptionsListWithName(optionSets, "pra-hidden", GetBluffingBase(true, pRiskAversion: true));
+            AddToOptionsListWithName(optionSets, "dra", GetBluffingBase(false, dRiskAversion: true));
+            AddToOptionsListWithName(optionSets, "dra-hidden", GetBluffingBase(true, dRiskAversion: true));
+            AddToOptionsListWithName(optionSets, "bra", GetBluffingBase(false, pRiskAversion: true, dRiskAversion: true));
+            AddToOptionsListWithName(optionSets, "bra-hidden", GetBluffingBase(true, pRiskAversion: true, dRiskAversion: true));
 
-            optionSets.Add(("goodinf", GetBluffingBase(false, pNoiseMultiplier: 0.5, dNoiseMultiplier: 0.5 )));
-            optionSets.Add(("goodinf-hidden", GetBluffingBase(true, pNoiseMultiplier: 0.5, dNoiseMultiplier: 0.5))); 
-            optionSets.Add(("badinf", GetBluffingBase(false, pNoiseMultiplier: 2.0, dNoiseMultiplier: 2.0)));
-            optionSets.Add(("badinf-hidden", GetBluffingBase(true, pNoiseMultiplier: 2.0, dNoiseMultiplier: 2.0)));
-            optionSets.Add(("pgdbinf", GetBluffingBase(false, pNoiseMultiplier: 0.5, dNoiseMultiplier: 2.0)));
-            optionSets.Add(("pgdbinf-hidden", GetBluffingBase(true, pNoiseMultiplier: 0.5, dNoiseMultiplier: 2.0)));
-            optionSets.Add(("pbdginf", GetBluffingBase(false, pNoiseMultiplier: 2.0, dNoiseMultiplier: 0.5)));
-            optionSets.Add(("pbdginf-hidden", GetBluffingBase(true, pNoiseMultiplier: 2.0, dNoiseMultiplier: 0.5)));
+            AddToOptionsListWithName(optionSets, "goodinf", GetBluffingBase(false, pNoiseMultiplier: 0.5, dNoiseMultiplier: 0.5 ));
+            AddToOptionsListWithName(optionSets, "goodinf-hidden", GetBluffingBase(true, pNoiseMultiplier: 0.5, dNoiseMultiplier: 0.5)); 
+            AddToOptionsListWithName(optionSets, "badinf", GetBluffingBase(false, pNoiseMultiplier: 2.0, dNoiseMultiplier: 2.0));
+            AddToOptionsListWithName(optionSets, "badinf-hidden", GetBluffingBase(true, pNoiseMultiplier: 2.0, dNoiseMultiplier: 2.0));
+            AddToOptionsListWithName(optionSets, "pgdbinf", GetBluffingBase(false, pNoiseMultiplier: 0.5, dNoiseMultiplier: 2.0));
+            AddToOptionsListWithName(optionSets, "pgdbinf-hidden", GetBluffingBase(true, pNoiseMultiplier: 0.5, dNoiseMultiplier: 2.0));
+            AddToOptionsListWithName(optionSets, "pbdginf", GetBluffingBase(false, pNoiseMultiplier: 2.0, dNoiseMultiplier: 0.5));
+            AddToOptionsListWithName(optionSets, "pbdginf-hidden", GetBluffingBase(true, pNoiseMultiplier: 2.0, dNoiseMultiplier: 0.5));
         }
 
-        public List<(string optionSetName, GameOptions options)> GetOptionsSets2()
+        public List<GameOptions> GetOptionsSets2()
         {
-            List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
+            List<GameOptions> optionSets = new List<GameOptions>();
 
             List<ILitigGameDisputeGenerator> disputeGenerators;
 
@@ -465,9 +453,9 @@ namespace ACESim
             return optionSets;
         }
 
-        private List<(string optionSetName, GameOptions options)> GetOptionsVariations(string description, Func<LitigGameOptions> initialOptionsFunc)
+        private List<GameOptions> GetOptionsVariations(string description, Func<LitigGameOptions> initialOptionsFunc)
         {
-            var list = new List<(string optionSetName, GameOptions options)>();
+            var list = new List<GameOptions>();
             LitigGameOptions options;
 
             if (!LimitToAmerican)
@@ -481,7 +469,7 @@ namespace ACESim
                     TrialCostsMultiplierAsymptote = 3.0,
                     TrialCostsMultiplierWithDoubleStakes = 1.3,
                 };
-                list.Add((description + " RunSide", options));
+                AddToOptionsListWithName(list, description + " RunSide", options);
             }
 
             if (IncludeRunningSideBetVariations)
@@ -495,7 +483,7 @@ namespace ACESim
                     TrialCostsMultiplierAsymptote = 3.0,
                     TrialCostsMultiplierWithDoubleStakes = 1.3,
                 };
-                list.Add((description + " RunSideEscap", options));
+                AddToOptionsListWithName(list, description + " RunSideEscap", options);
 
                 options = initialOptionsFunc();
                 options.LitigGameRunningSideBets = new LitigGameRunningSideBets()
@@ -506,7 +494,7 @@ namespace ACESim
                     TrialCostsMultiplierAsymptote = 3.0,
                     TrialCostsMultiplierWithDoubleStakes = 1.3,
                 };
-                list.Add((description + " RunSideLarge", options));
+                AddToOptionsListWithName(list, description + " RunSideLarge", options);
 
                 options = initialOptionsFunc();
                 options.LitigGameRunningSideBets = new LitigGameRunningSideBets()
@@ -516,7 +504,7 @@ namespace ACESim
                     TrialCostsMultiplierAsymptote = 3.0,
                     TrialCostsMultiplierWithDoubleStakes = 2.0,
                 };
-                list.Add((description + " RunSideExp", options));
+                AddToOptionsListWithName(list, description + " RunSideExp", options);
             }
 
             if (!LimitToAmerican)
@@ -526,13 +514,19 @@ namespace ACESim
                 options.LoserPaysMultiple = 1.0;
                 options.LoserPaysAfterAbandonment = false;
                 options.IncludeAgreementToBargainDecisions = true; // with the British rule, one might not want to make an offer at all
-                list.Add((description + " British", options));
+                AddToOptionsListWithName(list, description + " British", options);
             }
 
             options = initialOptionsFunc();
-            list.Add((description + " American", options));
+            AddToOptionsListWithName(list, description + " American", options);
 
             return list;
+        }
+
+        void AddToOptionsListWithName(List<GameOptions> list, string name, GameOptions options)
+        {
+            options.Name = name;
+            list.Add(options);
         }
 
         // The following is used by the test classes
@@ -565,61 +559,62 @@ namespace ACESim
 
         #region Transformation methods 
 
-        List<Func<GameOptions, GameOptions>> RiskAversionTransformations() => new List<Func<GameOptions, GameOptions>>() { GetAndTransform_RiskAverse, GetAndTransform_RiskAverse, GetAndTransform_RiskAverse, GetAndTransform_RiskAverse };
+        List<Func<LitigGameOptions, LitigGameOptions>> RiskAversionTransformations() => new List<Func<LitigGameOptions, LitigGameOptions>>() { GetAndTransform_RiskAverse, GetAndTransform_RiskAverse, GetAndTransform_RiskAverse, GetAndTransform_RiskAverse };
 
-        LitigGameOptions GetAndTransform_RiskAverse(GameOptions options) => GetAndTransform(options.Name, (LitigGameOptions) options, "-ra", g =>
+        LitigGameOptions GetAndTransform_RiskAverse(LitigGameOptions options) => GetAndTransform(options, "-ra", g =>
         {
             g.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.PInitialWealth, Alpha = 10 * 0.000001 };
             g.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.DInitialWealth, Alpha = 10 * 0.000001 };
-        }).options;
+        });
 
-        LitigGameOptions GetAndTransform_RiskNeutral(GameOptions options) => GetAndTransform(options.Name, (LitigGameOptions)options, "-rn", g =>
+        LitigGameOptions GetAndTransform_RiskNeutral(LitigGameOptions options) => GetAndTransform(options, "-rn", g =>
         {
             g.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = g.PInitialWealth };
             g.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = g.DInitialWealth };
-        }).options;
-        LitigGameOptions GetAndTransform_POnlyRiskAverse(GameOptions options) => GetAndTransform(options.Name, (LitigGameOptions)options, "-ara", g =>
+        });
+        LitigGameOptions GetAndTransform_POnlyRiskAverse(LitigGameOptions options) => GetAndTransform(options, "-ara", g =>
         {
             g.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.PInitialWealth, Alpha = 10 * 0.000001 };
             g.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = g.DInitialWealth };
-        }).options;
-        LitigGameOptions GetAndTransform_DOnlyRiskAverse(GameOptions options) => GetAndTransform(options.Name, (LitigGameOptions)options, "-dara", g =>
+        });
+        LitigGameOptions GetAndTransform_DOnlyRiskAverse(LitigGameOptions options) => GetAndTransform(options, "-dara", g =>
         {
             g.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = g.PInitialWealth };
             g.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.DInitialWealth, Alpha = 10 * 0.000001 };
-        }).options;
+        });
 
 
 
-        (string optionSetName, LitigGameOptions options) GetAndTransformWithRiskAversion(string baseName, string suffix, Func<LitigGameOptions> baseOptionsFn, Action<LitigGameOptions> transform, RiskAversion riskAversion)
+        GameOptions GetAndTransformWithRiskAversion(string baseName, string suffix, Func<LitigGameOptions> baseOptionsFn, Action<LitigGameOptions> transform, RiskAversion riskAversion)
         {
-            LitigGameOptions g = baseOptionsFn();
-            transform(g);
-            string suffix2 = suffix;
+            LitigGameOptions o = baseOptionsFn();
+            transform(o);
+            string nameRevised = baseName;
             if (riskAversion == RiskAversion.RiskAverse)
             {
-                g.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.PInitialWealth, Alpha = 10 * 0.000001 };
-                g.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.DInitialWealth, Alpha = 10 * 0.000001 };
-                suffix2 += "-ra";
+                o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = 10 * 0.000001 };
+                o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = 10 * 0.000001 };
+                nameRevised += "-ra";
             }
             else if (riskAversion == RiskAversion.RiskNeutral)
             {
-                g.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = g.PInitialWealth };
-                g.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = g.DInitialWealth };
+                o.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = o.PInitialWealth };
+                o.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = o.DInitialWealth };
             }
             else if (riskAversion == RiskAversion.POnlyRiskAverse)
             {
-                g.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.PInitialWealth, Alpha = 10 * 0.000001 };
-                g.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = g.DInitialWealth };
-                suffix2 += "-ara";
+                o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = 10 * 0.000001 };
+                o.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = o.DInitialWealth };
+                nameRevised += "-ara";
             }
             else if (riskAversion == RiskAversion.DOnlyRiskAverse)
             {
-                g.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = g.PInitialWealth };
-                g.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.DInitialWealth, Alpha = 10 * 0.000001 };
-                suffix2 += "-dara";
+                o.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = o.PInitialWealth };
+                o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = 10 * 0.000001 };
+                nameRevised += "-dara";
             }
-            return (baseName + suffix2, g);
+            o.Name = nameRevised;
+            return o;
         }
 
         #endregion
