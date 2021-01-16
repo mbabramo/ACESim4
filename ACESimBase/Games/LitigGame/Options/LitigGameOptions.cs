@@ -173,6 +173,10 @@ namespace ACESim
         /// </summary>
         public bool LoserPaysOnlyLargeMarginOfVictory;
         /// <summary>
+        /// The number of liability signals for the court (generally 2, but as many as there are liability signals if using the margin of victory)
+        /// </summary>
+        public int NumCourtLiabilitySignals => LoserPays && LoserPaysOnlyLargeMarginOfVictory ? (NumLiabilitySignals % 2 == 0 ? NumLiabilitySignals : NumLiabilitySignals - 1) : 2;
+        /// <summary>
         /// The threshold for triggering fee shifting in favor of the plaintiff, with fee shifting in favor of the defendant mirroring on the other side of the probability spectrum.
         /// This will apply to the court's estimate of liability strength.
         /// </summary>

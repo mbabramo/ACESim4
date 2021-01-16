@@ -158,7 +158,7 @@ namespace ACESim
                 return;
 
             const int numTrueLiabilityValues = 2;
-            int numCourtLiabilitySignals = o.LoserPays && o.LoserPaysOnlyLargeMarginOfVictory ? o.NumLiabilitySignals : 2;
+            int numCourtLiabilitySignals = o.NumCourtLiabilitySignals;
             int[] liabilityDimensions = new int[] { numTrueLiabilityValues, o.NumLiabilityStrengthPoints, o.NumLiabilitySignals, o.NumLiabilitySignals, numCourtLiabilitySignals };
             double[] liabilityPrior = ProbabilityOfTrulyLiableValues;
 
