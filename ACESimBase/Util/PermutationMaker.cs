@@ -47,5 +47,25 @@ namespace ACESim
                         l[i]--;
             return setOfLists;
         }
+
+        public static List<List<T>> GetPermutationsOfItems<T>(List<List<T>> lists)
+        {
+            List<int> counts = lists.Select(x => x.Count()).ToList();
+            List<List<int>> indicesInCorrespondingLists = GetPermutations(counts); // one-based indices
+            List<List<T>> result = new List<List<T>>();
+            foreach (List<int> indexList in indicesInCorrespondingLists)
+            {
+                List<T> correspondingItems = new List<T>();
+                for (int i = 0; i < indicesInCorrespondingLists.Count(); i++)
+                {
+                    List<T> listToPickFrom = lists[i];
+                    int indexInList = indexList[i] - 1;
+                    T item = listToPickFrom[indexInList];
+                    correspondingItems.Add(item);
+                }
+                result.Add(correspondingItems);
+            }
+            return result;
+        }
     }
 }

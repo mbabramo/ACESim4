@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -351,20 +352,51 @@ namespace ACESim
             return options;
         }
 
-        // DEBUG3
         public static LitigGameOptions Custom3()
         {
             var options = BaseOptions();
 
             options.InvertChanceDecisions = true;
 
-            // DEBUG
             options.NumOffers = 15;
             options.NumLiabilityStrengthPoints = 5;
             options.NumLiabilitySignals = 5;
 
             options.NumDamagesSignals = 1;
             options.NumDamagesStrengthPoints = 1;
+            options.PInitialWealth = options.DInitialWealth = 10.0;
+            options.DamagesMin = 0.0;
+            options.DamagesMax = 1.0;
+            options.PTrialCosts = options.DTrialCosts = 0.25;
+            options.PFilingCost = options.DAnswerCost = 0.10;
+            options.PerPartyCostsLeadingUpToBargainingRound = 0;
+            options.CostsMultiplier = 1;
+
+            options.LoserPays = false;
+            options.LoserPaysMultiple = 1.0;
+
+            options.SkipFileAndAnswerDecisions = false;
+            options.NumPotentialBargainingRounds = 1;
+            options.IncludeAgreementToBargainDecisions = false;
+            options.AllowAbandonAndDefaults = true;
+            options.PredeterminedAbandonAndDefaults = true;
+
+            return options;
+        }
+
+        public static LitigGameOptions FeeShiftingArticleBase()
+        {
+            var options = BaseOptions();
+
+            options.InvertChanceDecisions = true;
+
+            options.NumOffers = 15;
+            options.NumLiabilityStrengthPoints = 5;
+            options.NumLiabilitySignals = 5;
+
+            options.NumDamagesSignals = 1;
+            options.NumDamagesStrengthPoints = 1;
+
             options.PInitialWealth = options.DInitialWealth = 10.0;
             options.DamagesMin = 0.0;
             options.DamagesMax = 1.0;

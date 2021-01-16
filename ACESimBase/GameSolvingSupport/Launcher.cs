@@ -666,5 +666,35 @@ namespace ACESim
             // return await t;
         }
         #endregion
+
+        #region Build option sets
+
+        public List<GameOptions> ApplyTransformations(Func<LitigGameOptions> optionsFn, List<Func<GameOptions, GameOptions>> transforms)
+        {
+            List<GameOptions> result = new List<GameOptions>();
+            foreach (var transform in transforms)
+            {
+                var transformed = transform(optionsFn());
+                result.Add(transformed);
+            }
+            return result;
+        }
+
+        public List<GameOptions> ApplyPermutationsOfTransformations(Func<GameOptions> optionsFn, List<List<Func<GameOptions, GameOptions>>> transformLists)
+        {
+            List<GameOptions> result = new List<GameOptions>();
+            List<List<Func<GameOptions, GameOptions>>> permutationsOfTransforms = PermutationMaker.GetPermutationsOfItems(transformLists);
+            foreach (var permutation in permutationsOfTransforms)
+            {
+                var options = optionsFn();
+                foreach (var transform in permutation)
+                {
+                    options = transform(options);
+                }
+                result.Add(options);
+            }
+            return result;
+        }
+        #endregion
     }
 }
