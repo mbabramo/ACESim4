@@ -71,6 +71,15 @@ namespace ACESim
         public const double NumStandardDeviationsForPrincipalComponentStrategy = 0.0001;
         public const double InverseNumStandardDeviationsForPrincipalComponentStrategy = 1.0 / NumStandardDeviationsForPrincipalComponentStrategy;
 
+        /// <summary>
+        /// By default, each weighted game progress is used to process a number of reports. However, it is not remembered.
+        /// Remembering can be useful so that we can then run a correlated equilibrium report combining all of the earlier reports.
+        /// It might also be useful if the GameProgresses are to be saved somewhere.
+        /// If doing this, one should remember to reset all of the game progresses after they are no longer needed.
+        /// </summary>
+        public bool SaveWeightedGameProgressesAfterEachReport = false;
+        public List<(GameProgress theProgress, double weight)> SavedWeightedGameProgresses = new List<(GameProgress theProgress, double weight)>();
+
         public StrategiesDeveloperBase(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition)
         {
             Navigation = Navigation.WithGameStateFunction(GetGameState);
@@ -2241,9 +2250,9 @@ namespace ACESim
         /// <summary>
         /// This is an alternative method of building reports from game progresses, if a set of game progresses already exists.
         /// </summary>
-        /// <param name="gameProgresses"></param>
+        /// <param name="weightedGameProgresses"></param>
         /// <returns></returns>
-        public ReportCollection GenerateReportsFromGameProgressEnumeration(IEnumerable<GameProgress> gameProgresses)
+        public ReportCollection GenerateReportsFromGameProgressEnumeration(IEnumerable<(GameProgress progress, double weight)> weightedGameProgresses)
         {
             var simpleReportDefinitions = GetSimpleReportDefinitions();
             int simpleReportDefinitionsCount = simpleReportDefinitions.Count();
@@ -2254,11 +2263,11 @@ namespace ACESim
                 int initialParallelDepth = Parallelizer.ParallelDepth;
                 ReportsBeingGenerated[i] = new SimpleReport(simpleReportDefinitions[i], simpleReportDefinitions[i].DivideColumnFiltersByImmediatelyEarlierReport ? ReportsBeingGenerated[i - 1] : null);
             }
-            foreach (GameProgress p in gameProgresses)
+            foreach ((GameProgress progress, double weight) in weightedGameProgresses)
             {
                 for (int i = 0; i < simpleReportDefinitionsCount; i++)
                 {
-                    ReportsBeingGenerated[i].ProcessGameProgress(p, 1.0);
+                    ReportsBeingGenerated[i].ProcessGameProgress(progress, weight);
                 }
             }
 
@@ -2270,6 +2279,8 @@ namespace ACESim
 
             return reportCollection;
         }
+
+        public ReportCollection GenerateReportsFromGameProgressEnumeration(IEnumerable<GameProgress> gameProgresses) => GenerateReportsFromGameProgressEnumeration(gameProgresses.Select(x => (x, 1.0)));
 
         public List<SimpleReportDefinition> GetSimpleReportDefinitions()
         {
@@ -2339,22 +2350,36 @@ namespace ACESim
             while (await source.OutputAvailableAsync())
             {
                 Tuple<GameProgress, double> toProcess = source.Receive();
-                if (toProcess.Item2 > 0) // probability
+                double pathProbability = toProcess.Item2;
+                if (pathProbability > 0) // probability
                 {
-                    IEnumerable<(GameProgress progress, double weight)> weightedProgresses = toProcess.Item1.GetGameProgressIncludingAnySplits();
+                    IEnumerable<(GameProgress progress, double splitWeight)> weightedProgresses = toProcess.Item1.GetGameProgressIncludingAnySplits(); // splits occur ex post after the game to transform a single outcome into multiple possible sources
                     if (GameDefinition.GameOptions.InvertChanceDecisions && multiplyGameProgressesIfInvertingChanceDecisions)
                     {
-                        weightedProgresses = weightedProgresses.SelectMany(x => x.progress.InvertedCalculations_GenerateAllConsistentGameProgresses(x.weight));
+                        weightedProgresses = weightedProgresses.SelectMany(x => x.progress.InvertedCalculations_GenerateAllConsistentGameProgresses(x.splitWeight));
                     }
-                    foreach ((GameProgress theProgress, double weight) in weightedProgresses)
+                    foreach ((GameProgress theProgress, double splitWeight) in weightedProgresses)
                     {
+                        if (SaveWeightedGameProgressesAfterEachReport)
+                        {
+                            SavedWeightedGameProgresses.Add((theProgress, pathProbability * splitWeight));
+                        }
                         for (int i = 0; i < simpleReportDefinitionsCount; i++)
                         {
-                            ReportsBeingGenerated[i]?.ProcessGameProgress(theProgress, toProcess.Item2 * weight);
+                            ReportsBeingGenerated[i]?.ProcessGameProgress(theProgress, pathProbability * splitWeight);
                         }
                     }
                 }
             }
+        }
+
+        public ReportCollection GenerateReportFromSavedWeightedGameProgresses(bool clearSaved)
+        {
+            var result = GenerateReportsFromGameProgressEnumeration(SavedWeightedGameProgresses);
+            if (clearSaved)
+                SavedWeightedGameProgresses = new List<(GameProgress theProgress, double weight)>();
+            return result;
+
         }
 
         private double[] GetBestResponseImprovements_RandomPaths()

@@ -167,8 +167,6 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 sumeqsize[pl] +=
                     eqsize[pl] = equilsize;
             }
-            if (outputEquilibrium)
-                t.showeq(outputRealizationPlan);
         }
 
         public List<List<double>> Execute_ReturningDoubles(Action<ECTATreeDefinition> setup) => Execute(setup).Select(x => x.Select(y => (double)y).ToList()).ToList();
@@ -212,6 +210,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             /* multiple priors 	*/
             for (priorcount = 0; priorcount < numPriors; priorcount++)
             {
+                TabbedText.WriteLine($"Prior {priorcount + 1} of {numPriors}");
                 t.genprior(priorSeed);
                 if (outputGameTreeSetup)
                     t.outputGameTree();
@@ -223,7 +222,16 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 infopivotresult(priorSeed, seed + gamecount);
                 priorSeed++;
                 var equilibriumProbabilities = t.GetPlayerMoves().ToArray(); // probabilities for each non-chance player, ordered by player, information set, and then action.
-                equilibria.Add(equilibriumProbabilities);
+                int? sameAsEquilibrium = equilibria.Select((item, index) => ((Rational[] item, int index)?) (item, index)).FirstOrDefault(x => x != null && x.Value.item.SequenceEqual(equilibriumProbabilities))?.index;
+                if (sameAsEquilibrium != null)
+                    TabbedText.WriteLine($"Same as equilibrium {sameAsEquilibrium + 1}"); // note that equilibria are one-indexed
+                else
+                {
+                    equilibria.Add(equilibriumProbabilities);
+                    TabbedText.WriteLine($"Equilibrium {equilibria.Count()}");
+                    if (outputEquilibrium)
+                        t.showeq(outputRealizationPlan);
+                }
                 outputGameTreeSetup = false;
             }
             if (numPriors > 1)    /* give averages */
