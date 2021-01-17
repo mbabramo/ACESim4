@@ -112,7 +112,18 @@ namespace ACESimBase.GameSolvingAlgorithms
             ecta.outputPivotResults = false;
             ecta.outputEquilibrium = true;
             ecta.outputRealizationPlan = false;
-            List<List<double>> equilibria = ecta.Execute_ReturningDoubles(t => SetupECTA(t));
+            bool usePresetEquilibria = true; // use this as a shortcut to replay some equilibrium // DEBUG
+            List<List<double>> equilibria = null; 
+            if (usePresetEquilibria)
+            {
+                List<double> eq = new List<double> {
+                    0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                    1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                };
+                equilibria = new List<List<double>>() { eq };
+            }
+            else
+                ecta.Execute_ReturningDoubles(t => SetupECTA(t));
             await GenerateReportsFromEquilibria(equilibria, reportCollection);
         }
 
@@ -244,15 +255,13 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         public void SetupECTA(ECTATreeDefinition t)
         {
-            // We need to convert payoffs to integers with some desired range (e.g., 0 to 1,000,000). A greater range produces greater precision. Note that ECTA will further change the payoffs so that they're all negative.
-            const int desiredTopOfRange = 10_000;
             int[] ConvertedToDesiredRange(IEnumerable<double> original)
             {
                 var origMax = original.Max();
                 var origMin = original.Min();
                 var range = origMax - origMin;
                 var fromZeroToOne = original.Select(x => (x - origMin) / range);
-                return fromZeroToOne.Select(x => (int)Math.Round(x * desiredTopOfRange)).ToArray();
+                return fromZeroToOne.Select(x => (int)Math.Round(x * EvolutionSettings.SequenceFormTopOfUtilityRange)).ToArray();
             }
 
             int[][] pay = new int[2][];
@@ -632,8 +641,11 @@ namespace ACESimBase.GameSolvingAlgorithms
                 bool isLast = eqNum == numEquilibria - 1;
                 var actionProbabilities = equilibria[eqNum];
                 if (infoSets.Sum(x => x.Decision.NumPossibleActions) != actionProbabilities.Count())
-                    throw new Exception();
-                await ProcessEquilibrium(reportCollection, includeCorrelatedEquilibriumReport, includeReportForFirstEquilibrium, includeReportForEachEquilibrium, numEquilibria, infoSets, eqNum, isFirst, isLast, actionProbabilities);
+                {
+                    TabbedText.WriteLine($"Equilibrium {eqNum + 1}: mismatch in number of possible actions; skipping"); // Not sure why this would happen.
+                }
+                else
+                    await ProcessEquilibrium(reportCollection, includeCorrelatedEquilibriumReport, includeReportForFirstEquilibrium, includeReportForEachEquilibrium, numEquilibria, infoSets, eqNum, isFirst, isLast, actionProbabilities);
             }
         }
 
@@ -681,19 +693,25 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         private async Task AddReportForEquilibrium(ReportCollection reportCollection, int numEquilibria, int eqNum)
         {
+            Stopwatch s = new Stopwatch();
+            s.Start();
             EvolutionSettings.ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.CurrentProbability }; // will use latest equilibrium
             var reportResult = await GenerateReports(EvolutionSettings.ReportEveryNIterations ?? 0,
                 () =>
                     $"{GameDefinition.OptionSetName}{(EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria > 1 ? $"Eq{eqNum + 1}" : "")}");
             reportCollection.Add(reportResult, false, true);
+            TabbedText.WriteLine($"Elapsed milliseconds generating report: {s.ElapsedMilliseconds}");
         }
 
         private void AddCorrelatedEquilibriumReport(ReportCollection reportCollection)
         {
+            Stopwatch s = new Stopwatch();
+            s.Start();
             var reportResult = GenerateReportFromSavedWeightedGameProgresses(true);
             reportResult.AddName($"{GameDefinition.OptionSetName}{("Corr")}");
             PrintReportsToScreenIfNotSuppressed(reportResult);
             reportCollection.Add(reportResult, false, true);
+            TabbedText.WriteLine($"Elapsed milliseconds generating report: {s.ElapsedMilliseconds}");
         }
 
         #endregion

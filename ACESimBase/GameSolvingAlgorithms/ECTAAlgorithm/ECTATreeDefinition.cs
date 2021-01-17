@@ -404,7 +404,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 return;
             }
             /* generate random priors for all information sets	*/
-            RandomGeneratorInstanceManager.Reset(false, true); // move to next arbitrary seed
+            RandomGeneratorInstanceManager.Reset(seed);
             // srand(FIRSTPRIORSEED + flags.seed);
             for (pl = 1; pl < PLAYERS; pl++)
                 for (int hindex = firstiset[pl]; hindex < firstiset[pl + 1]; hindex++)

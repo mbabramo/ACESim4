@@ -210,6 +210,8 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             /* multiple priors 	*/
             for (priorcount = 0; priorcount < numPriors; priorcount++)
             {
+                Stopwatch s = new Stopwatch();
+                s.Start();
                 TabbedText.WriteLine($"Prior {priorcount + 1} of {numPriors}");
                 t.genprior(priorSeed);
                 if (outputGameTreeSetup)
@@ -233,6 +235,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                         t.showeq(outputRealizationPlan);
                 }
                 outputGameTreeSetup = false;
+                TabbedText.WriteLine($"Elapsed milliseconds prior {priorcount + 1}: {s.ElapsedMilliseconds}");
             }
             if (numPriors > 1)    /* give averages */
                 infosumresult(numPriors);

@@ -102,6 +102,13 @@ namespace ACESim
         [ThreadStatic]
         private static Random _local;
 
+        public static void Reset(int seedToUse)
+        {
+            arbitrarySeed = seedToUse;
+            _global = new Random(arbitrarySeed);
+            _local = null;
+        }
+
         public static void Reset(bool useDateTimeThisTime, bool moveToNextArbitrarySeed)
         {
             if (moveToNextArbitrarySeed)
