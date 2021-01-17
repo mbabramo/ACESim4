@@ -300,7 +300,7 @@ namespace ACESim
                 yield return (this, 1.0);
                 yield break;
             }
-            var results = CompleteSplitExPostForReporting();
+            List<GameProgress> results = CompleteSplitExPostForReporting();
             double weight = 1.0 / ((double)results.Count());
             foreach (var result in results)
                 yield return (result, weight);

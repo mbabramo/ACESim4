@@ -56,7 +56,7 @@ namespace ACESim
             foreach (List<int> indexList in indicesInCorrespondingLists)
             {
                 List<T> correspondingItems = new List<T>();
-                for (int i = 0; i < indicesInCorrespondingLists.Count(); i++)
+                for (int i = 0; i < indexList.Count(); i++)
                 {
                     List<T> listToPickFrom = lists[i];
                     int indexInList = indexList[i] - 1;

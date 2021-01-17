@@ -296,7 +296,10 @@ namespace ACESimBase.Util.DiscreteProbabilities
                 done = AdvanceToNextPermutation(dimensions, currentIndexTracker);
                 probabilitiesIndex++;
             }
-            return combinedNumeratorProbability / combinedDenominatorProbability;
+            if (combinedNumeratorProbability == 0)
+                return 0;
+            var result = combinedNumeratorProbability / combinedDenominatorProbability;
+            return result;
         }
 
     }

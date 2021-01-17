@@ -232,6 +232,8 @@ namespace ACESim
             lock (theLock)
             {
                 double nextSumOfWeights = sumOfWeights + w;
+                if (double.IsNaN(w))
+                    throw new Exception("Invalid weight");
                 n++;
                 if (n == 1)
                     Min = Max = item;

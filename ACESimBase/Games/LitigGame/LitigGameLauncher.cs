@@ -21,7 +21,9 @@ namespace ACESim
         public bool TestDisputeGeneratorVariations = false;
         public bool IncludeRunningSideBetVariations = false;
         public bool LimitToAmerican = true;
-        public double[] CostsMultipliers = new double[] { 1.0 }; // 0.1, 0.25, 0.5, 1.0, 1.5, 2.0, 4.0 };
+        public double[] CostsMultipliers = new double[] { 1.0, 0.1, 0.25, 0.5, 2.0, 4.0, 10.0 };
+        public double[] RelativeCostsMultipliers = new double[] { 1.0, 0.5, 2.0 };
+        public (double pNoiseMultiplier, double dNoiseMultiplier)[] AccuracyMultipliers = new (double pNoiseMultiplier, double dNoiseMultiplier)[] { (1.0, 1.0), (0.50, 0.50), (2.0, 2.0), (0.25, 1.0), (1.0, 0.25) };
         public double StdevPlayerNoise = 0.3; // baseline is 0.3
 
         public override GameDefinition GetGameDefinition() => new LitigGameDefinition();
@@ -46,12 +48,13 @@ namespace ACESim
             Simple2BR,
             FeeShiftingArticle,
         }
+        OptionSetChoice OptionSetChosen = OptionSetChoice.FeeShiftingArticle;  // <<-- Choose option set here
 
         public override List<GameOptions> GetOptionsSets()
         {
             List<GameOptions> optionSets = new List<GameOptions>();
-            OptionSetChoice optionSetChoice = OptionSetChoice.Simple2BR;  // <<-- Choose option set here
-            switch (optionSetChoice)
+            
+            switch (OptionSetChosen)
             {
                 case OptionSetChoice.JustOneOption:
                     AddToOptionsListWithName(optionSets, "singleoptionset", LitigGameOptionsGenerator.DamagesUncertainty_2BR());
@@ -567,14 +570,17 @@ namespace ACESim
             List<List<Func<LitigGameOptions, LitigGameOptions>>> transformations = new List<List<Func<LitigGameOptions, LitigGameOptions>>>()
             {
                 CostsMultiplierTransformations(),
-                RiskAversionTransformations()
+                RiskAversionTransformations(),
+                PRelativeCostsTransformations(),
+                AccuracyMultipliersTransformations(),
             };
-            var gameOptions = ApplyPermutationsOfTransformations(() => LitigGameOptionsGenerator.FeeShiftingArticleBase(), transformations);
+            var gameOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions) LitigGameOptionsGenerator.FeeShiftingArticleBase().WithName("FSA"), transformations);
+            if (gameOptions.Count() != gameOptions.Select(x => x.Name).Distinct().Count())
+                throw new Exception();
             options.AddRange(gameOptions);
         }
 
         #region Transformation methods 
-
 
         List<Func<LitigGameOptions, LitigGameOptions>> CostsMultiplierTransformations()
         {
@@ -584,7 +590,43 @@ namespace ACESim
             return results;
         }
 
-        List<Func<LitigGameOptions, LitigGameOptions>> RiskAversionTransformations() => new List<Func<LitigGameOptions, LitigGameOptions>>() { GetAndTransform_RiskAverse, GetAndTransform_RiskAverse, GetAndTransform_RiskAverse, GetAndTransform_RiskAverse };
+        LitigGameOptions GetAndTransform_CostsMultiplier(LitigGameOptions options, double multiplier) => GetAndTransform(options, "-cm" + multiplier, g =>
+        {
+            g.CostsMultiplier = multiplier;
+        });
+
+        List<Func<LitigGameOptions, LitigGameOptions>> PRelativeCostsTransformations()
+        {
+            List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
+            foreach (double multiplier in RelativeCostsMultipliers)
+                results.Add(o => GetAndTransform_PRelativeCosts(o, multiplier));
+            return results;
+        }
+
+        LitigGameOptions GetAndTransform_PRelativeCosts(LitigGameOptions options, double multiplier) => GetAndTransform(options, "-rc" + multiplier, g =>
+        {
+            // Note: Currently, this does not affect per-round bargaining costs (not relevant in fee shifting article anyway).
+            g.PFilingCost = g.DAnswerCost * multiplier;
+            g.PTrialCosts = g.DTrialCosts * multiplier;
+        });
+
+        List<Func<LitigGameOptions, LitigGameOptions>> AccuracyMultipliersTransformations()
+        {
+            List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
+            foreach ((double pNoiseMultiplier, double dNoiseMultiplier) in AccuracyMultipliers)
+                results.Add(o => GetAndTransform_Accuracy(o, pNoiseMultiplier, dNoiseMultiplier));
+            return results;
+        }
+
+        LitigGameOptions GetAndTransform_Accuracy(LitigGameOptions options, double pNoiseMultiplier, double dNoiseMultiplier) => GetAndTransform(options, "-ns" + pNoiseMultiplier + "," + dNoiseMultiplier, g =>
+        {
+            g.PDamagesNoiseStdev *= pNoiseMultiplier;
+            g.PLiabilityNoiseStdev *= pNoiseMultiplier;
+            g.DDamagesNoiseStdev *= dNoiseMultiplier;
+            g.DLiabilityNoiseStdev *= dNoiseMultiplier;
+        });
+
+        List<Func<LitigGameOptions, LitigGameOptions>> RiskAversionTransformations() => new List<Func<LitigGameOptions, LitigGameOptions>>() { GetAndTransform_RiskAverse, GetAndTransform_RiskNeutral, GetAndTransform_POnlyRiskAverse, GetAndTransform_DOnlyRiskAverse };
 
         LitigGameOptions GetAndTransform_RiskAverse(LitigGameOptions options) => GetAndTransform(options, "-ra", g =>
         {
@@ -606,11 +648,6 @@ namespace ACESim
         {
             g.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = g.PInitialWealth };
             g.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.DInitialWealth, Alpha = 10 * 0.000001 };
-        });
-
-        LitigGameOptions GetAndTransform_CostsMultiplier(LitigGameOptions options, double multiplier) => GetAndTransform(options, "-ra", g =>
-        {
-            g.CostsMultiplier = multiplier;
         });
 
 

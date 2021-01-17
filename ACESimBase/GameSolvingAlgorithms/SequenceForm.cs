@@ -26,7 +26,7 @@ namespace ACESimBase.GameSolvingAlgorithms
         }
         SequenceFormApproach Approach = SequenceFormApproach.ECTA;
 
-        bool ProduceEFGFile = true;
+        bool ProduceEFGFile = false;
 
 
         public SequenceForm(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
@@ -245,7 +245,7 @@ namespace ACESimBase.GameSolvingAlgorithms
         public void SetupECTA(ECTATreeDefinition t)
         {
             // We need to convert payoffs to integers with some desired range (e.g., 0 to 1,000,000). A greater range produces greater precision. Note that ECTA will further change the payoffs so that they're all negative.
-            const int desiredTopOfRange = 1000; // DEBUG 10_000
+            const int desiredTopOfRange = 10_000;
             int[] ConvertedToDesiredRange(IEnumerable<double> original)
             {
                 var origMax = original.Max();
@@ -618,7 +618,7 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         private async Task GenerateReportsFromEquilibria(List<List<double>> equilibria, ReportCollection reportCollection)
         {
-            bool includeCorrelatedEquilibriumReport = true; // useCorrelatedEquilibriumIfPossible && equilibria.Count() > 1;
+            bool includeCorrelatedEquilibriumReport = false; // DEBUG
             if (includeCorrelatedEquilibriumReport)
                 SaveWeightedGameProgressesAfterEachReport = true;
             bool includeReportForFirstEquilibrium = true;

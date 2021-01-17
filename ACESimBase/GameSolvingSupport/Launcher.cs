@@ -520,6 +520,8 @@ namespace ACESim
                 {
                     for (int c = 0; c < result.csvReports.Count; c++)
                     {
+                        if (c == 0 && result.ReportNames[c].Contains(optionSetName))
+                            masterReportNamePlusOptionSet = masterReportName; // remove the redundancy
                         string reportName = masterReportNamePlusOptionSet ?? "results";
                         if (result.ReportNames.Count() > c && result.ReportNames[c] is (not null) and string reportName2)
                             reportName += "-" + reportName2;
