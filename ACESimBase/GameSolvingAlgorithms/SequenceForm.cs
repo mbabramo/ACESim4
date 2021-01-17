@@ -112,7 +112,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             ecta.outputPivotResults = false;
             ecta.outputEquilibrium = true;
             ecta.outputRealizationPlan = false;
-            bool usePresetEquilibria = true; // use this as a shortcut to replay some equilibrium // DEBUG
+            bool usePresetEquilibria = false; // use this as a shortcut to replay some equilibrium
             List<List<double>> equilibria = null; 
             if (usePresetEquilibria)
             {
@@ -123,7 +123,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 equilibria = new List<List<double>>() { eq };
             }
             else
-                ecta.Execute_ReturningDoubles(t => SetupECTA(t));
+                equilibria = ecta.Execute_ReturningDoubles(t => SetupECTA(t));
             await GenerateReportsFromEquilibria(equilibria, reportCollection);
         }
 
@@ -643,6 +643,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 if (infoSets.Sum(x => x.Decision.NumPossibleActions) != actionProbabilities.Count())
                 {
                     TabbedText.WriteLine($"Equilibrium {eqNum + 1}: mismatch in number of possible actions; skipping"); // Not sure why this would happen.
+                    throw new Exception("MISMATCH DEBUG");
                 }
                 else
                     await ProcessEquilibrium(reportCollection, includeCorrelatedEquilibriumReport, includeReportForFirstEquilibrium, includeReportForEachEquilibrium, numEquilibria, infoSets, eqNum, isFirst, isLast, actionProbabilities);

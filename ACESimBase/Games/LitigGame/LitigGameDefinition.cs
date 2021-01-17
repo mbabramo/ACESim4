@@ -875,6 +875,13 @@ namespace ACESim
                     byte defendantOffer = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DOffer);
                     if (defendantOffer >= plaintiffOffer)
                         return true;
+                    if (Options.AllowAbandonAndDefaults && Options.PredeterminedAbandonAndDefaults)
+                    {
+                        bool pTryingToGiveUp2 = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PReadyToAbandon) == 1;
+                        bool dTryingToGiveUp2 = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DReadyToAbandon) == 1;
+                        if (pTryingToGiveUp2 ^ dTryingToGiveUp2)
+                            return true; // exactly one trying to give up in last bargaining round
+                    }
                     break;
                 case (byte)LitigGameDecisions.PrimaryAction:
                     return Options.LitigGameDisputeGenerator.MarkComplete(this, gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PrePrimaryChance), gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PrimaryAction));

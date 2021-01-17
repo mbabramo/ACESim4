@@ -2160,19 +2160,12 @@ namespace ACESim
                 }
                 if (includeZeroProbabilityActions || actionProbability > 0)
                 {
-                    if (DEBUGCOUNT == 69)
-                    {
-                        var DEBUGQ = 0;
-                    }
-                    int atTime = DEBUGCOUNT++;
                     var nextHistoryPoint = historyPoint.DeepCopyToRefStruct().GetBranch(Navigation, actionByte, GameDefinition.DecisionsExecutionOrder[nextDecisionIndex], nextDecisionIndex).ToStorable(); // Note that we couldn't use switch-to-branch approach here because all threads are sharing historyPoint variable. So, we make a separate copy for each thread. TODO: If it's not parallel, then we could try something with SwitchToBranch. This isn't a super-critical loop, though.
                     double nextProbability = probability * actionProbability;
                     await ProcessAllPaths_Recursive(nextHistoryPoint, completedGameProcessor, actionStrategy, nextProbability, actionByte, nextDecisionIndex);
                 }
             });
         }
-
-        static int DEBUGCOUNT = 0;
 
         public double[] GetAverageUtilities()
         {
@@ -2244,7 +2237,6 @@ namespace ACESim
             {
                 int initialParallelDepth = Parallelizer.ParallelDepth;
                 ReportsBeingGenerated[i] = new SimpleReport(simpleReportDefinitions[i], simpleReportDefinitions[i].DivideColumnFiltersByImmediatelyEarlierReport ? ReportsBeingGenerated[i - 1] : null);
-               GamePlayer.PlayPath(new byte[] { 4, 4, 1, 1, 1, 2, 1, 15, 6, 1, 1 }, true); // DEBUG SUPERDEBUG
                 await generator(GamePlayer, simpleReportDefinitions[i].ActionsOverride, simpleReportDefinitions);
                 ReportCollection result = ReportsBeingGenerated[i].BuildReport();
                 reportCollection.Add(result);

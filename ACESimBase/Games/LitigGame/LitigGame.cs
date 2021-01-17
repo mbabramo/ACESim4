@@ -207,8 +207,8 @@ namespace ACESim
         private void ConcludeMainPortionOfBargainingRound()
         {
             MyProgress.ConcludeMainPortionOfBargainingRound(MyDefinition);
-            if (!MyProgress.GameComplete && MyDefinition.Options.PredeterminedAbandonAndDefaults && MyDefinition.Options.AllowAbandonAndDefaults)
-                CheckOnePartyGivesUp();
+            if (!MyProgress.GameComplete && MyDefinition.Options.PredeterminedAbandonAndDefaults && MyDefinition.Options.AllowAbandonAndDefaults) 
+                CheckOnePartyGivesUp(); // note that this could be any bargaining round -- we haven't limited allow abandon and defaults to the last round
         }
 
         private void CheckOnePartyGivesUp()
