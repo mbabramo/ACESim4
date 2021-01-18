@@ -644,8 +644,8 @@ namespace ACESimBase.GameSolvingAlgorithms
                 var actionProbabilities = equilibria[eqNum];
                 if (infoSets.Sum(x => x.Decision.NumPossibleActions) != actionProbabilities.Count())
                 {
-                    TabbedText.WriteLine($"Equilibrium {eqNum + 1}: mismatch in number of possible actions; skipping"); // Not sure why this would happen.
-                    throw new Exception("MISMATCH DEBUG");
+                    TabbedText.WriteLine($"Equilibrium {eqNum + 1}: mismatch in number of possible actions; skipping"); // Should not happen
+                    throw new Exception("Unexpected mismatch");
                 }
                 else
                     await ProcessEquilibrium(reportCollection, includeCorrelatedEquilibriumReport, includeReportForFirstEquilibrium, includeReportForEachEquilibrium, numEquilibria, infoSets, eqNum, isFirst, isLast, actionProbabilities);

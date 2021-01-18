@@ -27,7 +27,7 @@ namespace ACESim
         public int? SuppressBestResponseBeforeIteration = null; 
         public const bool CalculatePerturbedBestResponseRefinement = true;
         public const int MiniReportEveryPIterations = EffectivelyNever;
-        public const bool AlwaysSuppressDisplayReportOnScreen = true; // DEBUG
+        public const bool AlwaysSuppressDisplayReportOnScreen = true; 
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever;
         public const bool UseRandomPathsForReporting = false; 
         public const int SummaryTableRandomPathsIterations = 1_000;
@@ -175,7 +175,7 @@ namespace ACESim
                 GenerateReportsByPlaying = true,
                 PrintInformationSets = false, 
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
-                PrintGameTree = true,
+                PrintGameTree = false,
                 ActionStrategiesToUseInReporting =
                  new List<ActionStrategies>() {
                      //ActionStrategies.CorrelatedEquilibrium,
