@@ -315,6 +315,10 @@ namespace ACESim
                     return; // no best response data available
                 double ratio = NodeInformation[bestResponseNumeratorDimension, action - 1] / denominator;
                 BestResponseOptions[action - 1] = ratio;
+                if (ratio == 3.194998480345558) // 0.78395757732967786 / 0.2453702504562344
+                {
+                    var DEBUG = 0;
+                }
                 if (action == 1 || ratio > bestRatio)
                 {
                     best = action;
@@ -338,6 +342,10 @@ namespace ACESim
         public void IncrementBestResponse(int action, double piInverse, double expectedValue)
         {
             NodeInformation[bestResponseNumeratorDimension, action - 1] += piInverse * expectedValue;
+            if (0.78395757732967786 == NodeInformation[bestResponseNumeratorDimension, action - 1])
+            {
+                var DEBUG = 0;
+            }
             NodeInformation[bestResponseDenominatorDimension, action - 1] += piInverse;
             BestResponseDeterminedFromIncrements = false;
         }
@@ -345,6 +353,10 @@ namespace ACESim
         public void SetBestResponse_NumeratorAndDenominator(int action, double numerator, double denominator)
         {
             NodeInformation[bestResponseNumeratorDimension, action - 1] = numerator;
+            if (0.78395757732967786 == NodeInformation[bestResponseNumeratorDimension, action - 1])
+            {
+                var DEBUG = 0;
+            }
             NodeInformation[bestResponseDenominatorDimension, action - 1] = denominator;
             BestResponseDeterminedFromIncrements = false;
         }
@@ -367,7 +379,18 @@ namespace ACESim
         /// </summary>
         public List<List<NodeActionsMultipleHistories>> PathsToSuccessors;
         public (bool consideredForPruning, bool prunable)[] PrunableActions;
-        public double LastBestResponseValue => BestResponseOptions?[BestResponseAction - 1] ?? 0; 
+        public double LastBestResponseValue
+        {
+            get
+            {
+                var result = BestResponseOptions?[BestResponseAction - 1] ?? 0;
+                if (PlayerIndex == 1 && InformationSetNodeNumber == 19)
+                {
+                    var DEBUG = 0;
+                }
+                return result;
+            }
+        }
         public double[] BestResponseOptions; // one per action for this player
         public double[] AverageStrategyResultsForPathFromPredecessor;
         public FloatSet[] CustomResultForPathFromPredecessor;
@@ -459,6 +482,11 @@ namespace ACESim
                     accumulatedBestResponseDenominatorDenominator += opponentsReachProbabilityForPath;
                 }
                 BestResponseOptions[action - 1] = accumulatedBestResponseDenominatorDenominator == 0 ? 0 : accumulatedBestResponseNumerator / accumulatedBestResponseDenominatorDenominator;
+
+                if (BestResponseOptions[action - 1] == 3.194998480345558)
+                {
+                    var DEBUG = 0;
+                }
                 if (action == 1 || BestResponseOptions[action - 1] > LastBestResponseValue)
                 {
                     BestResponseAction = action;

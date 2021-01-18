@@ -101,6 +101,8 @@ namespace ACESim
                 opponentsActionStrategy, distributorChanceInputs);
         }
 
+        int DEBUGCount = 0;
+
         private double GEBRPass2_DecisionNode(in HistoryPoint historyPoint, byte playerIndex, byte depthToTarget,
             byte depthSoFar, double inversePi, ActionStrategies opponentsActionStrategy, int distributorChanceInputs)
         {
@@ -195,6 +197,11 @@ namespace ACESim
                     {
                         TabbedText.WriteLine($"action {action} for playerMakingDecision {playerMakingDecision}...");
                         TabbedText.TabIndent();
+                    }
+                    int DEBUGCount2 = DEBUGCount++;
+                    if (DEBUGCount2 == 2362)
+                    {
+                        var DEBUG = 0;
                     }
                     double expectedValue;
                     if (Navigation.LookupApproach != InformationSetLookupApproach.PlayGameDirectly && historyPoint.BranchingIsReversible(Navigation, informationSet.Decision))

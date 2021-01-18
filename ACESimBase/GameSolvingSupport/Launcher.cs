@@ -175,7 +175,7 @@ namespace ACESim
                 GenerateReportsByPlaying = true,
                 PrintInformationSets = false, 
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
-                PrintGameTree = false,
+                PrintGameTree = true,
                 ActionStrategiesToUseInReporting =
                  new List<ActionStrategies>() {
                      //ActionStrategies.CorrelatedEquilibrium,
@@ -293,6 +293,7 @@ namespace ACESim
             string optionSetName = null;
             if (taskToDo.TaskType == "Optimize")
             {
+                taskToDo.ID = 1831; // DEBUG
                 IStrategiesDeveloper developer = GetDeveloper(taskToDo.ID);
                 (reportCollection, optionSetName) = await GetSingleRepetitionReportAndSave(masterReportName, taskToDo.ID, taskToDo.Repetition, true, developer, taskToDo.RestrictToScenarioIndex, logAction);
             }
