@@ -580,11 +580,14 @@ namespace ACESim
 
         void AddFeeShiftingArticleGames(List<GameOptions> options)
         {
-
-            List<List<Func<LitigGameOptions, LitigGameOptions>>> transformations = new List<List<Func<LitigGameOptions, LitigGameOptions>>>()
+            bool useAllPermutationsOfTransformations = false;
+            List<List<Func<LitigGameOptions, LitigGameOptions>>> allTransformations = new List<List<Func<LitigGameOptions, LitigGameOptions>>>()
             {
+                // Can always choose any of these:
+                FeeShiftingModeTransformations(),
                 CostsMultiplierTransformations(),
                 FeeShiftingMultiplierTransformations(),
+                // And then can vary ONE of these:
                 PRelativeCostsTransformations(),
                 NoiseTransformations(),
                 RiskAversionTransformations(),
@@ -593,7 +596,22 @@ namespace ACESim
                 NoiseToProduceCaseStrengthTransformations(),
                 LiabilityVsDamagesTransformations()
             };
-            var gameOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions) LitigGameOptionsGenerator.FeeShiftingArticleBase().WithName("FSA"), transformations);
+            const int numCritical = 3; // critical transformations are all interacted with one another and then with each of the other transformations
+            List<List<Func<LitigGameOptions, LitigGameOptions>>> criticalTransformations = allTransformations.Take(numCritical).ToList();
+            List<List<Func<LitigGameOptions, LitigGameOptions>>> noncriticalTransformations = allTransformations.Skip(numCritical).ToList();
+            List<List<Func<LitigGameOptions, LitigGameOptions>>> transformations = useAllPermutationsOfTransformations ? allTransformations : criticalTransformations;
+            List<LitigGameOptions> gameOptions = new List<LitigGameOptions>(); // ApplyPermutationsOfTransformations(() => (LitigGameOptions) LitigGameOptionsGenerator.FeeShiftingArticleBase().WithName("FSA"), transformations);
+            if (!useAllPermutationsOfTransformations)
+            {
+                // We still want the non-critical transformations, just not permuted with the others.
+                foreach (var noncriticalTransformation in noncriticalTransformations)
+                {
+                    List<List<Func<LitigGameOptions, LitigGameOptions>>> transformLists = criticalTransformations.ToList();
+                    transformLists.Add(noncriticalTransformation);
+                    var additionalOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.FeeShiftingArticleBase().WithName("FSA"), transformLists);
+                    gameOptions.AddRange(additionalOptions);
+                }
+            }
             if (gameOptions.Count() != gameOptions.Select(x => x.Name).Distinct().Count())
                 throw new Exception();
             options.AddRange(gameOptions);
