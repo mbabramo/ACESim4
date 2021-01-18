@@ -1,0 +1,51 @@
+
+Percentage Complete 0.1298139333621809% of 2311
+Task to do: Optimize 513 0 Started:1/18/2021 2:57:48 PM Complete:False
+Updated status (total 43 milliseconds)
+Using SequenceForm
+Game: LitigationGame
+InvertChanceDecisions True
+NumOffers 2   
+NumPotentialBargainingRounds 1  BargainingRoundsSimultaneous True SimultaneousOffersUltimatelyRevealed True 
+NumLiabilityStrengthPoints 2 NumLiabilitySignals 4 PLiabilityNoiseStdev 0.05 DLiabilityNoiseStdev 0.05 CourtLiabilityNoiseStdev 0.15 
+NumDamagesStrengthPoints 1 NumDamagesSignals 1 PDamagesNoiseStdev 0.05 DDamagesNoiseStdev 0.05 CourtDamagesNoiseStdev 0.15 
+SkipFileAndAnswerDecisions False AllowAbandonAndDefaults True PredeterminedAbandonAndDefaults True IncludeAgreementToBargainDecisions False DeltaOffersOptions N/A 
+CostsMultiplier 2 PTrialCosts 0.25 DTrialCosts 0.25 PFilingCost 0.1 DAnswerCost 0.1 PerPartyCostsLeadingUpToBargainingRound 0 
+PInitialWealth 25 DInitialWealth 25 
+DamagesMin 0 DamagesMax 1 
+RegretAversion 0 
+PUtilityCalculator Risk neutral DUtilityCalculator Risk neutral 
+WarmStartOptions NoWarmStart for  iterations
+Initializing all game paths...
+...  Total information sets: 32 chance nodes: 69 final nodes: 320 Initialization milliseconds 29
+Calculating min-max...
+... complete 4 milliseconds
+Option set FSA-feeAm-costsm2-fsm0.5-ns0.5,0.5
+
+Game tree has 661 nodes, of which 320 are terminal nodes.
+    Player 0 has  69 information sets, 116 moves in total
+    Player 1 has  16 information sets,  32 moves in total
+    Player 2 has  16 information sets,  32 moves in total
+Sequence form LCP dimension is 100
+    Player 1 has  33 sequences, subject to  17 constraints
+    Player 2 has  33 sequences, subject to  17 constraints
+Prior 1 of 1
+Equilibrium 1
+......Equilibrium behavior strategies player 1, 2:
+1,0,0,1,0,0,1,0,1,0,0,1,0,0,1,0,1,0,0,1,0,0,0,1,1,0,0,1,0,0,0,1
+1,0,0,1,0,0,1,0,1,0,0,1,0,0,1,0,1,0,0,1,0,0,0,1,1,0,0,1,0,0,0,1
+Elapsed milliseconds prior 1: 204
+Number distinct equilibria 1
+
+FSA-feeAm-costsm2-fsm0.5-ns0.5,0.5
+Result using all paths playing CurrentProbability
+Best iteration 1000 best exploitability 2.3481308605756996E-06
+Scenario index 0 Name: Option set FSA-feeAm-costsm2-fsm0.5-ns0.5,0.5
+Avg BR: 2.3481308605756996E-06 Perturbed refinement: 1 Custom: 1, 1, 0.000429, 0.000214
+U(P0): 25.299785533893555 BR vs. False 25.299789276227028 BRimp: 2.49E-06
+U(P1): 24.299785533694642 BR vs. False 24.2997892760283 BRimp: 2.2E-06
+Total best response calculation time: 16 milliseconds
+
+
+Elapsed milliseconds generating report: 127
+Elapsed milliseconds generating report: 199
