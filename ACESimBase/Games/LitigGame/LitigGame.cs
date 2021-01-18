@@ -193,6 +193,8 @@ namespace ACESim
                     break;
                 case (byte)LitigGameDecisions.CourtDecisionDamages:
                     MyProgress.CDamagesSignalDiscrete = action;
+                    if (action == 0)
+                        throw new Exception("DEBUG");
                     double damagesProportion = ConvertActionToUniformDistributionDraw(action, true);
                     if (MyDefinition.Options.NumDamagesSignals == 1)
                         damagesProportion = 1.0;

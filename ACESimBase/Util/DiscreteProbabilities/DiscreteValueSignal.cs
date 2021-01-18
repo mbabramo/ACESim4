@@ -36,7 +36,7 @@ namespace ACESimBase.Util.DiscreteProbabilities
 
         private static double[] CalculateProbabilitiesOfDiscreteSignals(int sourceValue, DiscreteValueSignalParameters dsParams)
         {
-            double[] density = Enumerable.Range(1, dsParams.NumSignals).Select(signal => GetDensity(dsParams.MapSourceTo0To1(sourceValue), dsParams.MapSignalToRangeIn0To1(signal), dsParams.StdevOfNormalDistribution)).ToArray();
+            double[] density = Enumerable.Range(1, dsParams.NumSignals).Select(signal => GetDensity(dsParams.MapSourceTo0To1(sourceValue), dsParams.MapSignalToRangeIn0To1(signal), Math.Max(dsParams.StdevOfNormalDistribution, 1E-50))).ToArray();
             double densitySum = density.Sum();
             double[] relativeDensity = density.Select(d => d / densitySum).ToArray();
             return relativeDensity;
@@ -47,6 +47,8 @@ namespace ACESimBase.Util.DiscreteProbabilities
             double lowStdev = (range.bottomOfRange - trueValue) / stdev;
             double highStdev = (range.topOfRange - trueValue) / stdev;
             double result = NormalDistributionCalculation.PortionOfNormalDistributionBetween(lowStdev, highStdev);
+            //if (result < 1E-50)
+            //    result = 1E-50; // make sure it's not quite zero
             return result;
         }
     }

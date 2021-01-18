@@ -261,6 +261,8 @@ namespace ACESimBase.GameSolvingAlgorithms
                 var origMin = original.Min();
                 var range = origMax - origMin;
                 var fromZeroToOne = original.Select(x => (x - origMin) / range);
+                if (fromZeroToOne.Any(x => double.IsNaN(x)))
+                    throw new Exception();
                 return fromZeroToOne.Select(x => (int)Math.Round(x * EvolutionSettings.SequenceFormTopOfUtilityRange)).ToArray();
             }
 
@@ -627,7 +629,7 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         private async Task GenerateReportsFromEquilibria(List<List<double>> equilibria, ReportCollection reportCollection)
         {
-            bool includeCorrelatedEquilibriumReport = false; // DEBUG
+            bool includeCorrelatedEquilibriumReport = true;
             if (includeCorrelatedEquilibriumReport)
                 SaveWeightedGameProgressesAfterEachReport = true;
             bool includeReportForFirstEquilibrium = true;

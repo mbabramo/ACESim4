@@ -270,10 +270,8 @@ NumDamagesStrengthPoints {NumDamagesStrengthPoints} NumDamagesSignals {NumDamage
 SkipFileAndAnswerDecisions {SkipFileAndAnswerDecisions} AllowAbandonAndDefaults {AllowAbandonAndDefaults} PredeterminedAbandonAndDefaults {PredeterminedAbandonAndDefaults} IncludeAgreementToBargainDecisions {IncludeAgreementToBargainDecisions} DeltaOffersOptions {DeltaOffersOptions} 
 CostsMultiplier {CostsMultiplier} PTrialCosts {PTrialCosts} DTrialCosts {DTrialCosts} PFilingCost {PFilingCost} DAnswerCost {DAnswerCost} {(RoundSpecificBargainingCosts == null ? $"PerPartyCostsLeadingUpToBargainingRound {PerPartyCostsLeadingUpToBargainingRound}" : $"RoundSpecificBargainingCosts {String.Join(",", RoundSpecificBargainingCosts)}")} 
 {(LoserPays ? $@"LoserPays: Multiple {LoserPaysMultiple} AfterAbandonment {LoserPaysAfterAbandonment}
-" : $"")}
-{(ShootoutSettlements ? $@"ShootoutSettlements ShootoutStrength {ShootoutStrength} ShootoutOfferValueIsAveraged {ShootoutOfferValueIsAveraged} ShootoutsApplyAfterAbandonment {ShootoutsApplyAfterAbandonment}
-" : "")}
-PInitialWealth {PInitialWealth} DInitialWealth {DInitialWealth} 
+" : $"")}{(ShootoutSettlements ? $@"ShootoutSettlements ShootoutStrength {ShootoutStrength} ShootoutOfferValueIsAveraged {ShootoutOfferValueIsAveraged} ShootoutsApplyAfterAbandonment {ShootoutsApplyAfterAbandonment}
+" : "")}PInitialWealth {PInitialWealth} DInitialWealth {DInitialWealth} 
 DamagesMin {DamagesMin} DamagesMax {DamagesMax} 
 RegretAversion {RegretAversion} 
 PUtilityCalculator {PUtilityCalculator} DUtilityCalculator {DUtilityCalculator} 

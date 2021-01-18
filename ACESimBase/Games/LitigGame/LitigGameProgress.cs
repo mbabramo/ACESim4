@@ -309,7 +309,7 @@ namespace ACESim
             copy.DDamagesNoiseDiscrete = DDamagesNoiseDiscrete;
             copy.PDamagesSignalDiscrete = PDamagesSignalDiscrete;
             copy.DDamagesSignalDiscrete = DDamagesSignalDiscrete;
-            copy.CDamagesSignalDiscrete = DDamagesSignalDiscrete;
+            copy.CDamagesSignalDiscrete = CDamagesSignalDiscrete;
 
             copy.PChangeWealth = PChangeWealth;
             copy.DChangeWealth = DChangeWealth;

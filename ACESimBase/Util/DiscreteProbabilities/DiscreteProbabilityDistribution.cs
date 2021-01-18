@@ -179,7 +179,8 @@ namespace ACESimBase.Util.DiscreteProbabilities
                 int[] outgoingDimensions = dimensions.Take(d + 1).ToArray();
                 var instruction = variableProductionInstructions[d];
 
-                permutationProbabilities = BuildProbabilityMap((int domainIndex, int rangeIndex) => instruction.GetConditionalProbability(domainIndex, rangeIndex), dimensions[d], permutationProbabilities);
+                var nextPermutationProbabilities = BuildProbabilityMap((int domainIndex, int rangeIndex) => instruction.GetConditionalProbability(domainIndex, rangeIndex), dimensions[d], permutationProbabilities);
+                permutationProbabilities = nextPermutationProbabilities;
             }
             return permutationProbabilities;
         }
