@@ -578,6 +578,8 @@ namespace ACESim
         }
 
 
+        public override string MasterReportNameForDistributedProcessing => "FS001"; // ******* IMPORTANT: (1) Delete bin/obj in AceSimDistributed. Make sure that the correct Launcher is set in ACESimDistributed Program.cs. (2) Must update this (or delete the Coordinator) when deploying service fabric. 
+
         void AddFeeShiftingArticleGames(List<GameOptions> options)
         {
             bool useAllPermutationsOfTransformations = false;
@@ -609,12 +611,11 @@ namespace ACESim
                     List<List<Func<LitigGameOptions, LitigGameOptions>>> transformLists = criticalTransformations.ToList();
                     transformLists.Add(noncriticalTransformation);
                     var additionalOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.FeeShiftingArticleBase().WithName("FSA"), transformLists);
-                    gameOptions.AddRange(additionalOptions);
+                    options.AddRange(additionalOptions);
                 }
             }
-            if (gameOptions.Count() != gameOptions.Select(x => x.Name).Distinct().Count())
+            if (options.Count() != options.Select(x => x.Name).Distinct().Count())
                 throw new Exception();
-            options.AddRange(gameOptions);
         }
 
         #region Transformation methods 
