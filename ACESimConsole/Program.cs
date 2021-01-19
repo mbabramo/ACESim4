@@ -27,7 +27,8 @@ namespace ACESim
             AdditiveEvidenceGame
         }
 
-        public static AvailableGames GameToPlay = AvailableGames.LitigGame; 
+        public static AvailableGames GameToPlay = AvailableGames.LitigGame;  // DEBUG
+        public static bool LaunchSingleOptionsSetOnly = false;
 
         [STAThread]
         public static async Task Main(string[] args)
@@ -91,7 +92,7 @@ namespace ACESim
                     launcher = new AdditiveEvidenceGameLauncher();
                     break;
             }
-            launcher.LaunchSingleOptionsSetOnly = false; // DEBUG
+            launcher.LaunchSingleOptionsSetOnly = LaunchSingleOptionsSetOnly;
             ReportCollection launchResult = await launcher.Launch();
             TextCopy.ClipboardService.SetText(launchResult?.standardReport ?? "");
             s.Stop();

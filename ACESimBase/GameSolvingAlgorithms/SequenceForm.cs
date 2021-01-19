@@ -26,7 +26,7 @@ namespace ACESimBase.GameSolvingAlgorithms
         }
         SequenceFormApproach Approach = SequenceFormApproach.ECTA;
 
-        bool ProduceEFGFile = true; // DEBUG
+        bool ProduceEFGFile = false; 
 
 
         public SequenceForm(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
@@ -117,8 +117,9 @@ namespace ACESimBase.GameSolvingAlgorithms
             if (usePresetEquilibria)
             {
                 List<double> eq = new List<double> {
-                    0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                    1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                    1,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+
+
                 };
                 equilibria = new List<List<double>>() { eq };
             }
@@ -253,18 +254,19 @@ namespace ACESimBase.GameSolvingAlgorithms
             }
         }
 
+        int[] ConvertedToDesiredRange(IEnumerable<double> original)
+        {
+            var origMax = original.Max();
+            var origMin = original.Min();
+            var range = origMax - origMin;
+            var fromZeroToOne = original.Select(x => (x - origMin) / range);
+            if (fromZeroToOne.Any(x => double.IsNaN(x)))
+                throw new Exception();
+            return fromZeroToOne.Select(x => (int)Math.Round(x * EvolutionSettings.SequenceFormTopOfUtilityRange)).ToArray();
+        }
+
         public void SetupECTA(ECTATreeDefinition t)
         {
-            int[] ConvertedToDesiredRange(IEnumerable<double> original)
-            {
-                var origMax = original.Max();
-                var origMin = original.Min();
-                var range = origMax - origMin;
-                var fromZeroToOne = original.Select(x => (x - origMin) / range);
-                if (fromZeroToOne.Any(x => double.IsNaN(x)))
-                    throw new Exception();
-                return fromZeroToOne.Select(x => (int)Math.Round(x * EvolutionSettings.SequenceFormTopOfUtilityRange)).ToArray();
-            }
 
             int[][] pay = new int[2][];
             pay[0] = ConvertedToDesiredRange(Outcomes.Select(x => x.Utilities[0]));
@@ -432,12 +434,14 @@ namespace ACESimBase.GameSolvingAlgorithms
         // This is to generate code that can be pasted into the original C code
         public string GetECTACodeInC()
         {
-            const int ECTA_MultiplyOutcomesByThisBeforeRounding = 1;
+            const int ECTA_MultiplyOutcomesByThisBeforeRounding = 10_000;
             var outcomes = Outcomes;
+            var player0Rounded = ConvertedToDesiredRange(outcomes.Select(x => x.Utilities[0]));
+            var player1Rounded = ConvertedToDesiredRange(outcomes.Select(x => x.Utilities[1]));
             StringBuilder s = new StringBuilder();
             string s1 = $@"    int pay[2][{outcomes.Count}] = {{ 
-        {{ {String.Join(", ", outcomes.Select(x => Math.Round(x.Utilities[0] * ECTA_MultiplyOutcomesByThisBeforeRounding)))} }},
-        {{ {String.Join(", ", outcomes.Select(x => Math.Round(x.Utilities[1] * ECTA_MultiplyOutcomesByThisBeforeRounding)))} }} 
+        {{ {String.Join(", ", player0Rounded)} }},
+        {{ {String.Join(", ", player1Rounded)} }} 
     }};";
             s.AppendLine(s1);
             string s2 = $@"    alloctree({GameNodes.Count()},{InformationSetInfos.Count()},{MoveIndexToInfoSetIndex.Count()},{outcomes.Count});
@@ -698,7 +702,7 @@ namespace ACESimBase.GameSolvingAlgorithms
         {
             Stopwatch s = new Stopwatch();
             s.Start();
-            EvolutionSettings.ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.CurrentProbability }; // will use latest equilibrium
+            EvolutionSettings.ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.CurrentProbability }; // will use latest equilibrium 
             var reportResult = await GenerateReports(EvolutionSettings.ReportEveryNIterations ?? 0,
                 () =>
                     $"{GameDefinition.OptionSetName}{(EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria > 1 ? $"Eq{eqNum + 1}" : "")}");

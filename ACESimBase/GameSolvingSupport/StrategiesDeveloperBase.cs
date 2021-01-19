@@ -1876,6 +1876,22 @@ namespace ACESim
         }
 
 
+
+        private void PrintEquilibrium(bool bestResponseForPlayer0, bool bestResponseForPlayer1)
+        {
+            List<double> equilibrium = new List<double>();
+            var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetNodeNumber).ToList();
+            foreach (var infoSet in infoSets)
+            {
+                bool useBestResponse = (infoSet.PlayerIndex == 0) ? bestResponseForPlayer0 : bestResponseForPlayer1;
+                equilibrium.AddRange(useBestResponse ? infoSet.GetBestResponseProbabilities() : infoSet.GetCurrentProbabilitiesAsArray());
+            }
+            string s = String.Join(",", equilibrium);
+            TabbedText.WriteLine($"Best responses? {bestResponseForPlayer0}, {bestResponseForPlayer1}");
+            TabbedText.WriteLine(s);
+        }
+
+
         public (double exploitability, double[] utilities) CalculateBestResponseAndGetFitnessAndUtilities()
         {
             // gets the best response for whichever population member's actions have been copied to information set
@@ -1992,6 +2008,7 @@ namespace ACESim
             {
                 if (EvolutionSettings.UseCurrentStrategyForBestResponse)
                     throw new NotSupportedException("Must use the accelerated best response to use current strategy.");
+
                 var calculator = new UtilitiesAndCustomResultTreeCalculation(EvolutionSettings.DistributeChanceDecisions, false);
                 (Status.UtilitiesOverall, Status.CustomResult) = TreeWalk_Tree(calculator, true);
                 Status.BestResponseImprovement = new double[NumNonChancePlayers];
@@ -2001,6 +2018,7 @@ namespace ACESim
                     Status.BestResponseUtilities[playerBeingOptimized] = bestResponse;
                     Status.BestResponseImprovement[playerBeingOptimized] = bestResponse - Status.UtilitiesOverall[playerBeingOptimized];
                 }
+
             }
             s.Stop();
 

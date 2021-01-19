@@ -335,6 +335,18 @@ namespace ACESim
                     probabilities[a - 1] = 0;
         }
 
+        public double[] GetBestResponseProbabilities()
+        {
+            double[] probabilities = new double[NumPossibleActions];
+            int bestResponse = BestResponseAction;
+            for (int a = 1; a <= NumPossibleActions; a++)
+                if (a == bestResponse)
+                    probabilities[a - 1] = 1.0;
+                else
+                    probabilities[a - 1] = 0;
+            return probabilities;
+        }
+
         public void IncrementBestResponse(int action, double piInverse, double expectedValue)
         {
             NodeInformation[bestResponseNumeratorDimension, action - 1] += piInverse * expectedValue;
