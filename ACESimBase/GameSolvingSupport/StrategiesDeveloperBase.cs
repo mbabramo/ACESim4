@@ -1921,6 +1921,43 @@ namespace ACESim
             return utilities;
         }
 
+        public double[] GetMaximumUtilitiesFromPurifiedStrategies()
+        {
+            return NonChancePlayersEnumerable().Select(x => GetUtilitiesForPurifiedStrategies(x).Max()).ToArray();
+        }
+
+        public IEnumerable<byte> NonChancePlayersEnumerable()
+        {
+            return Enumerable.Range(0, NumNonChancePlayers).Select(x => (byte) x);
+        }
+
+        public List<double> GetUtilitiesForPurifiedStrategies(byte playerIndex)
+        {
+            List<double> result = new List<double>();
+            foreach (var informationSet in InformationSets.Where(x => x.PlayerIndex == playerIndex))
+            {
+                for (int i = 0; i < informationSet.NumPossibleActions; i++)
+                {
+                    double[] probabilities = new double[informationSet.NumPossibleActions];
+                    probabilities[i] = 1.0;
+                    double[] utilities = GetUtilitiesChangingInformationSet(informationSet, probabilities);
+                    result.Add(utilities[playerIndex]);
+                }
+            }
+            return result;
+        }
+
+        public double[] GetUtilitiesChangingInformationSet(InformationSetNode node, double[] probabilities)
+        {
+            var originalProbabilities = node.GetCurrentProbabilitiesAsArray();
+            node.SetCurrentProbabilities(probabilities);
+            //ExecuteAcceleratedBestResponse(false);
+            //double[] utilities = Status.UtilitiesOverall.ToArray();
+            double[] utilities = GetAverageUtilities(false);
+            node.SetCurrentProbabilities(originalProbabilities);
+            return utilities;
+        }
+
         public void CalculateReachProbabilitiesAndPrunability(bool parallelize)
         {
             for (int i = 0; i < InformationSetsByDecisionIndex.Count; i++)
@@ -2185,16 +2222,16 @@ namespace ACESim
             });
         }
 
-        public double[] GetAverageUtilities()
+        public double[] GetAverageUtilities(bool useRegretMatchingProbabilities = true)
         {
             double[] cumulated = new double[NumNonChancePlayers];
             Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, InformationSets, ChanceNodes, FinalUtilitiesNodes, GetGameState, EvolutionSettings);
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
-            GetAverageUtilities_Helper(in historyPoint, cumulated, 1.0);
+            GetAverageUtilities_Helper(in historyPoint, cumulated, 1.0, useRegretMatchingProbabilities);
             return cumulated;
         }
 
-        public void GetAverageUtilities_Helper(in HistoryPoint historyPoint, double[] cumulated, double prob)
+        public void GetAverageUtilities_Helper(in HistoryPoint historyPoint, double[] cumulated, double prob, bool useRegretMatchingProbabilities)
         {
             IGameState gameState = historyPoint.GetGameStatePrerecorded(Navigation);
             if (gameState is FinalUtilitiesNode finalUtilities)
@@ -2211,7 +2248,7 @@ namespace ACESim
                     if (actionProb > 0)
                     {
                         HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
-                        GetAverageUtilities_Helper(in nextHistoryPoint, cumulated, prob * actionProb);
+                        GetAverageUtilities_Helper(in nextHistoryPoint, cumulated, prob * actionProb, useRegretMatchingProbabilities);
                     }
                 }
             }
@@ -2219,13 +2256,16 @@ namespace ACESim
             {
                 byte numPossibilities = GameDefinition.DecisionsExecutionOrder[informationSet.DecisionIndex].NumPossibleActions;
                 Span<double> actionProbabilities = stackalloc double[numPossibilities];
-                informationSet.GetRegretMatchingProbabilities(actionProbabilities);
+                if (useRegretMatchingProbabilities)
+                    informationSet.GetRegretMatchingProbabilities(actionProbabilities);
+                else
+                    informationSet.GetCurrentProbabilities(actionProbabilities);
                 for (byte action = 1; action <= numPossibilities; action++)
                 {
                     if (actionProbabilities[action - 1] > 0)
                     {
                         HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
-                        GetAverageUtilities_Helper(in nextHistoryPoint, cumulated, prob * actionProbabilities[action - 1]);
+                        GetAverageUtilities_Helper(in nextHistoryPoint, cumulated, prob * actionProbabilities[action - 1], useRegretMatchingProbabilities);
                     }
                 }
             }

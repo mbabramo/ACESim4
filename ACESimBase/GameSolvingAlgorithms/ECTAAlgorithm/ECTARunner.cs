@@ -169,7 +169,12 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             }
         }
 
-        public List<List<double>> Execute_ReturningDoubles(Action<ECTATreeDefinition> setup) => Execute(setup).Select(x => x.Select(y => (double)y).ToList()).ToList();
+        public List<List<double>> Execute_ReturningDoubles(Action<ECTATreeDefinition> setup)
+        {
+            var results = Execute(setup).ToList();
+            var asDoubles = results.Select(x => x.Select(y => (double)y).ToList()).ToList();
+            return asDoubles;
+        }
 
         public List<Rational[]> Execute(Action<ECTATreeDefinition> setup)
         {

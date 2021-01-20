@@ -12,7 +12,7 @@ namespace ACESim
 {
     public class LitigGameLauncher : Launcher
     {
-        public override string MasterReportNameForDistributedProcessing => "FS008"; // ******* IMPORTANT: (1) Delete bin/obj in AceSimDistributed. Make sure that the correct Launcher is set in ACESimDistributed Program.cs. (2) Must update this (or delete the Coordinator) when deploying service fabric. 
+        public override string MasterReportNameForDistributedProcessing => "FS020"; // ******* IMPORTANT: (1) Delete bin/obj in AceSimDistributed. Make sure that the correct Launcher is set in ACESimDistributed Program.cs. (2) Must update this (or delete the Coordinator) when deploying service fabric. 
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
 
@@ -609,11 +609,12 @@ namespace ACESim
                     List<List<Func<LitigGameOptions, LitigGameOptions>>> transformLists = criticalTransformations.ToList();
                     transformLists.Add(noncriticalTransformation);
                     var additionalOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.FeeShiftingArticleBase().WithName("FSA"), transformLists);
-                    options.AddRange(additionalOptions);
+                    gameOptions.AddRange(additionalOptions);
                 }
             }
-            if (options.Count() != options.Select(x => x.Name).Distinct().Count())
+            if (gameOptions.Count() != gameOptions.Select(x => x.Name).Distinct().Count())
                 throw new Exception();
+            options.AddRange(gameOptions);
         }
 
         #region Transformation methods 

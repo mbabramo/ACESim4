@@ -1293,6 +1293,7 @@ namespace ACESim
         public void GetCurrentProbabilities(Span<double> probabilitiesToSet)
         {
             bool done = false;
+            int i = 0;
             while (!done)
             { // without this outer loop, there is a risk that when using parallel code, our probabilities will not add up to 1
                 double total = 0;
@@ -1301,7 +1302,9 @@ namespace ACESim
                     probabilitiesToSet[a - 1] = NodeInformation[currentProbabilityDimension, a - 1];
                     total += probabilitiesToSet[a - 1];
                 }
-                done = Math.Abs(1.0 - total) < 1E-7;
+                done = Math.Abs(1.0 - total) < 1E-4;
+                if (i++ > 100)
+                    throw new Exception();
             }
         }
 
@@ -1314,6 +1317,16 @@ namespace ACESim
             for (int a = 0; a < NumPossibleActions; a++)
                 array[a] = actionProbabilities[a];
             return array;
+        }
+
+        public void SetCurrentProbabilities(double[] probabilities)
+        {
+            double[] array = new double[NumPossibleActions];
+
+            Span<double> actionProbabilities = stackalloc double[NumPossibleActions];
+            GetCurrentProbabilities(actionProbabilities);
+            for (int index = 0; index < NumPossibleActions; index++)
+                NodeInformation[currentProbabilityDimension, index] = probabilities[index];
         }
 
         #endregion

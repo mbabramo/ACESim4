@@ -746,7 +746,9 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     OutputPivotLeaveAndEnter(leave, enter);
                 Pivot(leave, enter);
                 if (z0leave)
+                {
                     break;  /* z0 will have value 0 but may still be basic. Amend?  */
+                }
                 if (flags.outputTableaux)
                     OutputTableau();
                 enter = ComplementOfVariable(leave);
@@ -771,10 +773,5 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 
             TransformBasicSolution();
         }
-
-
-
-
-
     }
 }

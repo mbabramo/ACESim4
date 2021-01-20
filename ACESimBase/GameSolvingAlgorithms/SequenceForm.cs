@@ -13,6 +13,7 @@ using ACESim.Util;
 using ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm;
 using Rationals;
 using JetBrains.Annotations;
+using NumSharp.Utilities;
 
 namespace ACESimBase.GameSolvingAlgorithms
 {
@@ -24,9 +25,9 @@ namespace ACESimBase.GameSolvingAlgorithms
             Gambit,
             ECTA
         }
-        SequenceFormApproach Approach = SequenceFormApproach.ECTA;
+        SequenceFormApproach Approach = SequenceFormApproach.Gambit; // DEBUG
 
-        bool ProduceEFGFile = false; 
+        bool ProduceEFGFile = true; 
 
 
         public SequenceForm(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
@@ -117,7 +118,12 @@ namespace ACESimBase.GameSolvingAlgorithms
             if (usePresetEquilibria)
             {
                 List<double> eq = new List<double> {
-                    1,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+
+                    //1,0,0.522862,0.477138,1,0,0.975029,0.0249706,1,0,0.522862,0.477138,1,0,0.975029,0.0249706,1,0,0,1,0,1,0,1,1,0,0,1,0,1,0,1,1,0,0,1,1,0,1,0,1,0,0.500793,0.499207,1,0,1,0,1,0,0.5,0.5,0,1,0,1,1,0,0.5,0.5,0,1,0,1
+
+                    1,0,0,1,1/2,1/2,0,1,1,0,0,1,1/2,1/2,1139690000.0/1152971127.0,13281127.0/1152971127.0,1,0,0,1,1.0/2.0,1.0/2.0,0,1,1,0,0,1,1.0/2.0,1.0/2.0,0,1,1,0,0,1,1.0/2.0,1.0/2.0,1,0,1,0,13513.0/26983.0,13470.0/26983.0,1,0,1,0,1,0,0,1,1.0/2.0,1.0/2.0,0,1,1,0,0,1,1.0/2.0,1.0/2.0,0,1
+
+                    //1,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 
 
                 };
@@ -529,7 +535,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             string filename = CreateGambitFile();
             if (!onlyCreateGambitFile)
             {
-                string output = RunGambit(filename);
+                string output = await RunGambit(filename);
                 var results = ProcessGambitResults(reportCollection, output);
                 await GenerateReportsFromEquilibria(results, reportCollection);
             }
@@ -570,11 +576,11 @@ namespace ACESimBase.GameSolvingAlgorithms
             return resultsAsDoubles;
         }
 
-        private string RunGambit(string filename)
+        private async Task<string> RunGambit(string filename)
         {
             Stopwatch s = new Stopwatch();
             s.Start();
-            string output = RunGambitLCP(filename);
+            string output = await CreateGambitProcess(filename);
             TabbedText.WriteLine($"Gambit output for {filename} ({s.ElapsedMilliseconds} ms): {output}");
             return output;
         }
@@ -591,39 +597,78 @@ namespace ACESimBase.GameSolvingAlgorithms
             return filename;
         }
 
-        private string RunGambitLCP(string filename)
+        private async Task<string> CreateGambitProcess(string filename)
         {
             // Start the child process.
             Process p = new Process();
             // Redirect the output stream of the child process.
             p.StartInfo.UseShellExecute = false;
             p.StartInfo.RedirectStandardOutput = true;
-            p.StartInfo.FileName = "C:\\Program Files (x86)\\Gambit\\gambit-lcp.exe";
             // -D gives more detailed info.
             // -q suppresses the banner
             // Note that -d is supposed to use decimals instead of rationals, but it doesn't work.
             // -P limits to subgame perfect
 
-            bool suppressBanner = true;
-            bool subgamePerfectOnly = true;
             bool useDecimals = false;
             int numDecimals = 6;
             string argumentsString = "";
-            if (suppressBanner)
-                argumentsString += " -q";
-            if (subgamePerfectOnly)
-                argumentsString += " -P";
+            bool useLCP = true; 
+            if (useLCP)
+            {
+                p.StartInfo.FileName = "C:\\Program Files (x86)\\Gambit\\gambit-lcp.exe";
+                bool suppressBanner = false;
+                bool subgamePerfectOnly = false; // DEBUG
+                if (suppressBanner)
+                    argumentsString += " -q";
+                if (subgamePerfectOnly)
+                    argumentsString += " -P";
+            }
+            else
+            {
+                p.StartInfo.FileName = "C:\\Program Files (x86)\\Gambit\\gambit-logit.exe";
+            }
             if (useDecimals)
                 argumentsString += " " + "-d " + numDecimals.ToString();
             argumentsString += " " + filename;
-            p.StartInfo.Arguments = argumentsString; 
-            p.Start();
+            p.StartInfo.Arguments = argumentsString;
+            p.StartInfo.RedirectStandardOutput = true; 
+
             // Do not wait for the child process to exit before
             // reading to the end of its redirected stream.
             // p.WaitForExit();
             // Read the output stream first and then wait.
-            string output = p.StandardOutput.ReadToEnd();
-            p.WaitForExit();
+
+            string output = null;
+            DateTime? nashEquilibriumFound = null;
+            bool done = false;
+
+            p.OutputDataReceived += new DataReceivedEventHandler(NetOutputDataHandler);
+            p.Start();
+            p.BeginOutputReadLine();
+
+            void NetOutputDataHandler(object sendingProcess, DataReceivedEventArgs outLine)
+            {
+                string? data = outLine.Data;
+                if (data != null)
+                {
+                    TabbedText.WriteLine(data);
+                    output += data;
+                }
+            }
+
+            while (!done)
+            {
+                if (output != null)
+                {
+                    if (nashEquilibriumFound == null && output.Contains("NE,"))
+                        nashEquilibriumFound = DateTime.Now;
+                    bool processHasCompleted = p.HasExited;
+                    done = processHasCompleted || (nashEquilibriumFound is DateTime foundTime && DateTime.Now > foundTime + TimeSpan.FromSeconds(1));
+                    if (!done)
+                        await Task.Delay(100);
+                }
+            }
+            p.Kill(true); // don't wait for rest of equilibria
             return output;
         }
 
@@ -688,6 +733,13 @@ namespace ACESimBase.GameSolvingAlgorithms
                 if (includeCorrelatedEquilibriumReport)
                     infoSet.RecordProbabilitiesAsPastValues();
             }
+
+            // DEBUG
+            double[] utils = GetAverageUtilities(false);
+            double[] maxPurifiedUtils = GetMaximumUtilitiesFromPurifiedStrategies();
+            if (Enumerable.Range(0, NumNonChancePlayers).Any(p => maxPurifiedUtils[p] > utils[p] + 0.001))
+                TabbedText.WriteLine($"Maximum not achieved {String.Join(",", utils)} vs. {String.Join(",", maxPurifiedUtils)}"); // DEBUG
+
             if ((includeReportForFirstEquilibrium && isFirst) || includeReportForEachEquilibrium)
             {
                 await AddReportForEquilibrium(reportCollection, numEquilibria, eqNum);
