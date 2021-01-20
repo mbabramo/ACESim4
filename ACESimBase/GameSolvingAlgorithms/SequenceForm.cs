@@ -25,7 +25,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             Gambit,
             ECTA
         }
-        SequenceFormApproach Approach = SequenceFormApproach.Gambit; // DEBUG
+        SequenceFormApproach Approach = SequenceFormApproach.Gambit; 
 
         bool ProduceEFGFile = true; 
 
@@ -734,11 +734,10 @@ namespace ACESimBase.GameSolvingAlgorithms
                     infoSet.RecordProbabilitiesAsPastValues();
             }
 
-            // DEBUG
-            double[] utils = GetAverageUtilities(false);
-            double[] maxPurifiedUtils = GetMaximumUtilitiesFromPurifiedStrategies();
-            if (Enumerable.Range(0, NumNonChancePlayers).Any(p => maxPurifiedUtils[p] > utils[p] + 0.001))
-                TabbedText.WriteLine($"Maximum not achieved {String.Join(",", utils)} vs. {String.Join(",", maxPurifiedUtils)}"); // DEBUG
+            //double[] utils = GetAverageUtilities(false);
+            //double[] maxPurifiedUtils = GetMaximumUtilitiesFromPurifiedStrategies();
+            //if (Enumerable.Range(0, NumNonChancePlayers).Any(p => maxPurifiedUtils[p] > utils[p] + 0.001))
+            //    TabbedText.WriteLine($"Maximum not achieved {String.Join(",", utils)} vs. {String.Join(",", maxPurifiedUtils)}"); // DEBUG
 
             if ((includeReportForFirstEquilibrium && isFirst) || includeReportForEachEquilibrium)
             {

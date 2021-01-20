@@ -293,7 +293,6 @@ namespace ACESim
             string optionSetName = null;
             if (taskToDo.TaskType == "Optimize")
             {
-                taskToDo.ID = 2099; // SUPERDEBUG
                 IStrategiesDeveloper developer = GetDeveloper(taskToDo.ID);
                 (reportCollection, optionSetName) = await GetSingleRepetitionReportAndSave(masterReportName, taskToDo.ID, taskToDo.Repetition, true, developer, taskToDo.RestrictToScenarioIndex, logAction);
             }
