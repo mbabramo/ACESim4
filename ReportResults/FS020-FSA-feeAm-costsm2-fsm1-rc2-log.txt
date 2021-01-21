@@ -1,0 +1,38 @@
+
+Percentage Complete 14.755517092167892% of 2311
+Task to do: Optimize 372 0 Started:1/20/2021 2:58:44 AM Complete:False
+Updated status (total 54 milliseconds)
+Using SequenceForm
+Game: LitigationGame
+InvertChanceDecisions True
+NumOffers 10   
+NumPotentialBargainingRounds 1  BargainingRoundsSimultaneous True SimultaneousOffersUltimatelyRevealed True 
+NumLiabilityStrengthPoints 5 NumLiabilitySignals 5 PLiabilityNoiseStdev 0.1 DLiabilityNoiseStdev 0.1 CourtLiabilityNoiseStdev 0.15 
+NumDamagesStrengthPoints 1 NumDamagesSignals 1 PDamagesNoiseStdev 0.1 DDamagesNoiseStdev 0.1 CourtDamagesNoiseStdev 0.15 
+SkipFileAndAnswerDecisions False AllowAbandonAndDefaults True PredeterminedAbandonAndDefaults True IncludeAgreementToBargainDecisions False DeltaOffersOptions N/A 
+CostsMultiplier 2 PTrialCosts 0.5 DTrialCosts 0.25 PFilingCost 0.2 DAnswerCost 0.1 PerPartyCostsLeadingUpToBargainingRound 0 
+PInitialWealth 25 DInitialWealth 25 
+DamagesMin 0 DamagesMax 1 
+RegretAversion 0 
+PUtilityCalculator Risk neutral DUtilityCalculator Risk neutral 
+WarmStartOptions NoWarmStart for  iterations
+Initializing all game paths...
+...  Total information sets: 40 chance nodes: 106 final nodes: 12300 Initialization milliseconds 481
+Calculating min-max...
+... complete 64 milliseconds
+Option set FSA-feeAm-costsm2-fsm1-rc2
+NE,1,0,0,1,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,0,0,0,0,1,0,0,0,0,0,1,0,0,1,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,0,0,0,0,1,0,0,0,0,0,1,0,0,1,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,0,0,0,0,1,0,0,0,0,0,1,0,233596055413/1115098400000,881502344587/1115098400000,0,0,0,0,0,1,0,0,0,0,0,0,0,0,559014393587/881502344587,322487951000/881502344587,0,0,0,0,1,0,0,1,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,0,0,0,0,0,1,0,0,0,0,1,0,0,1,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,0,0,0,0,1,0,0,0,0,0,1,0,0,1,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,0,0,0,0,1,0,0,0,0,0,1,0,124599/465400,340801/465400,0,0,0,0,1,0,0,0,0,0,0,0,0,0,130600/340801,210201/340801,0,0,0,0,1,0,0,1,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,0,0,0,0,0,1,0,0,0,0,1,0,0,1,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,0,0,0,0,0,1,0,0,0,0
+Gambit output for C:\Users\Admin\Documents\GitHub\ACESim4\ReportResults\FSA-feeAm-costsm2-fsm1-rc2.efg (3079322 ms): NE,1,0,0,1,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,0,0,0,0,1,0,0,0,0,0,1,0,0,1,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,0,0,0,0,1,0,0,0,0,0,1,0,0,1,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,0,0,0,0,1,0,0,0,0,0,1,0,233596055413/1115098400000,881502344587/1115098400000,0,0,0,0,0,1,0,0,0,0,0,0,0,0,559014393587/881502344587,322487951000/881502344587,0,0,0,0,1,0,0,1,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,0,0,0,0,0,1,0,0,0,0,1,0,0,1,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,0,0,0,0,1,0,0,0,0,0,1,0,0,1,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,0,0,0,0,1,0,0,0,0,0,1,0,124599/465400,340801/465400,0,0,0,0,1,0,0,0,0,0,0,0,0,0,130600/340801,210201/340801,0,0,0,0,1,0,0,1,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,0,0,0,0,0,1,0,0,0,0,1,0,0,1,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,1/10,0,0,0,0,0,1,0,0,0,0
+
+FSA-feeAm-costsm2-fsm1-rc2
+Result using all paths playing CurrentProbability
+Best iteration 1000 best exploitability 2.163155845296923E-06
+Scenario index 0 Name: Option set FSA-feeAm-costsm2-fsm1-rc2
+Avg BR: 2.163155845296923E-06 Perturbed refinement: 0.48 Custom: 1, 1, 0.0081, 0.00571
+U(P0): 25.082715292056054 BR vs. False 25.08271740414372 BRimp: 1.15E-06
+U(P1): 24.305133425954676 BR vs. False 24.305138860300083 BRimp: 3.18E-06
+Total best response calculation time: 132 milliseconds
+
+
+Elapsed milliseconds generating report: 467
+Elapsed milliseconds generating report: 466

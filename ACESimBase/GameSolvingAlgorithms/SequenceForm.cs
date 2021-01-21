@@ -57,15 +57,17 @@ namespace ACESimBase.GameSolvingAlgorithms
 
             ReportCollection reportCollection = new ReportCollection();
 
+            string filename = null;
+            if (ProduceEFGFile)
+                filename = CreateGambitFile();
+
             if (Approach == SequenceFormApproach.ECTA)
             {
-                if (ProduceEFGFile)
-                    await UseGambitToCalculateEquilibrium(null, true);
                 await ExecuteECTA(reportCollection);
             }
             else if (Approach == SequenceFormApproach.Gambit)
             {
-                await UseGambitToCalculateEquilibrium(reportCollection, false);
+                await UseGambitToCalculateEquilibrium(reportCollection, filename);
             }
 
             return reportCollection;
@@ -530,15 +532,11 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         #region Gambit
 
-        private async Task UseGambitToCalculateEquilibrium(ReportCollection reportCollection, bool onlyCreateGambitFile)
+        private async Task UseGambitToCalculateEquilibrium(ReportCollection reportCollection, string filename)
         {
-            string filename = CreateGambitFile();
-            if (!onlyCreateGambitFile)
-            {
-                string output = await RunGambit(filename);
-                var results = ProcessGambitResults(reportCollection, output);
-                await GenerateReportsFromEquilibria(results, reportCollection);
-            }
+            string output = await RunGambit(filename);
+            var results = ProcessGambitResults(reportCollection, output);
+            await GenerateReportsFromEquilibria(results, reportCollection);
         }
 
         private List<List<double>> ProcessGambitResults(ReportCollection reportCollection, string output)
