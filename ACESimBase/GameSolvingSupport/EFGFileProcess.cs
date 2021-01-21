@@ -12,7 +12,7 @@ namespace ACESimBase.GameSolvingSupport
     /// <summary>
     ///  A class for reading information from EFG files. 
     /// </summary>
-    public class EFGProcess
+    public class EFGFileProcess
     {
         public List<InformationSet> InformationSets = new List<InformationSet>();
 
@@ -50,33 +50,47 @@ namespace ACESimBase.GameSolvingSupport
 
             public IEnumerable<InformationSet> EnumerateInformationSets(bool includeThis = false, bool topDown = true) => EnumerateNodes(includeThis, topDown).Select(x => x.GetInformationSet()).Where(x => x != null);
 
-            /// <summary>
-            /// Set the PlayersReceivingInformation field of each information set node. Initially, assume that each action is added to every subsequent information set.
-            /// Then, continue removing actions from child information sets that don't cut any information sets. 
-            /// </summary>
-            public void SetPlayersReceivingInformation()
+
+            public void AddActionsToDescendants()
             {
-                foreach (var informationSetNode in EnumerateInformationSetNodes(true, true))
+                // We need to figure out which information sets below each node should receive information about the action taken at the node.
+                // If the same information set appears below the node for more than one action at the node, that must mean that the node doesn't
+                // receive the information -- which means that the player doesn't receive the information. 
+                var informationSet = GetInformationSet();
+                if (ChildNodes != null)
                 {
-                    informationSetNode.AddActionsToDescendants();
-                }
-                bool someRemoved = false;
-                do
-                {
-                    someRemoved = false;
-                    foreach (var informationSetNode in EnumerateInformationSetNodes(true, false))
-                    {
-                        var informationSet = informationSetNode.InformationSet;
-                        foreach (int playerNumber in informationSet.PlayersReceivingInfo)
+                    var informationSetsForChildren = ChildNodes.Select(x => x.EnumerateInformationSets(true, true)).ToList();
+                    HashSet<int> allPlayers = new HashSet<int>();
+                    HashSet<int> playersAppearingMultipleTimes = new HashSet<int>();
+                    for (int i = 0; i < ChildNodes.Length; i++)
+                        for (int j = i + 1; j < ChildNodes.Length; j++)
                         {
-                            if (!informationSetNode.InformationSetCutsInformationSetsOfPlayer(playerNumber))
-                            {
-                                someRemoved = true;
-                                informationSetNode.RemoveActionFromDescendants(playerNumber);
-                            }
+                            var iInformationSets = informationSetsForChildren[i];
+                            var jInformationSets = informationSetsForChildren[j];
+                            foreach (var iInformationSet in iInformationSets)
+                                foreach (var jInformationSet in jInformationSets)
+                                {
+                                    if (iInformationSet == jInformationSet)
+                                        playersAppearingMultipleTimes.Add(iInformationSet.PlayerNumber);
+                                    allPlayers.Add(iInformationSet.PlayerNumber);
+                                }
+                        }
+                    informationSet.PlayersReceivingInfo = new HashSet<int>(allPlayers.Except(playersAppearingMultipleTimes));
+                    if (informationSet.PlayersReceivingInfo.Any())
+                    {
+                        for (int i = 0; i < ChildNodes.Length; i++)
+                        {
+                            int action = i + 1;
+                            var information = new Information(informationSet.InformationSetNumber, informationSet.PlayerNumber, action);
+                            var informationSetsForChild = informationSetsForChildren[0];
+                            foreach (var informationSetForChild in informationSetsForChild)
+                                if (informationSet.PlayersReceivingInfo.Contains(informationSetForChild.InformationSetNumber))
+                                {
+                                    informationSetForChild.InformationSetContents.Add(information);
+                                }
                         }
                     }
-                } while (someRemoved);
+                }
             }
 
         }
@@ -106,99 +120,6 @@ namespace ACESimBase.GameSolvingSupport
             public override InformationSet GetInformationSet() => InformationSet;
             public override int NumChildNodes => InformationSet.NumActions;
 
-            private IEnumerable<(InformationSet, InformationSet)> EnumeratePairsOfChildInformationSets()
-            {
-                foreach (InformationSet informationSet in EnumerateInformationSets())
-                    foreach (InformationSet informationSet2 in EnumerateInformationSets())
-                        yield return (informationSet, informationSet2);
-            }
-            private IEnumerable<(InformationSet, InformationSet)> EnumerateMatchingPairsOfChildInformationSets() => EnumeratePairsOfChildInformationSets().Where(x => x.Item1.PlayerNumber == x.Item2.PlayerNumber && x.Item1.NumActions == x.Item2.NumActions);
-
-            private IEnumerable<(InformationSet, InformationSet)> EnumerateMatchingPairsOfChildInformationSetsWithOneDifference(int informationSetNumber, int playerNumber)
-            {
-                foreach (var candidatePair in EnumeratePairsOfChildInformationSets())
-                {
-                    var info1Contents = candidatePair.Item1.InformationSetContents.ToList();
-                    var info2Contents = candidatePair.Item2.InformationSetContents.ToList();
-                    Information info1 = info1Contents.FirstOrDefault(x => x.informationSetNumber == informationSetNumber && x.playerNumber == playerNumber);
-                    Information info2 = info1Contents.FirstOrDefault(x => x.informationSetNumber == informationSetNumber && x.playerNumber == playerNumber);
-                    if (info1 != null && info2 != null && info1.oneBasedAction != info2.oneBasedAction)
-                    {
-                        var remainingContents1 = info1Contents.Where(x => x != info1).ToList();
-                        var remainingContents2 = info2Contents.Where(x => x != info2).ToList();
-                        bool remainderMatches = remainingContents1.SequenceEqual(remainingContents2);
-                        if (remainderMatches)
-                            yield return candidatePair;
-                    }
-                }
-            }
-
-            public bool InformationSetCutsInformationSetsOfPlayer(int playerNumber) => EnumerateMatchingPairsOfChildInformationSetsWithOneDifference(InformationSet.InformationSetNumber, playerNumber).Any();
-
-            public List<int> PlayersOnBranch() => EnumerateInformationSets().Select(x => x.PlayerNumber).OrderBy(x => x).Distinct().ToList();
-
-            public void AddInformationToSelfAndDescendants(Information info, InformationSet source)
-            {
-                foreach (var infoSet in EnumerateInformationSets(true))
-                {
-                    infoSet.InformationSetContents.Add(info);
-                    source.PlayersReceivingInfo.Add(infoSet.PlayerNumber);
-                }
-            }
-
-            public void RemoveInformationFromSelfAndDescendants(Information info, InformationSet source, int playerNumber)
-            {
-                foreach (var infoSet in EnumerateInformationSets(true))
-                {
-                    if (playerNumber == infoSet.PlayerNumber)
-                    {
-                        infoSet.InformationSetContents.Remove(info);
-                        source.PlayersReceivingInfo.Remove(infoSet.PlayerNumber);
-                    }
-                }
-            }
-            public void AddActionsToDescendants()
-            {
-
-                var informationSet = GetInformationSet();
-                if (ChildNodes != null)
-                {
-                    var informationSetsForChildren = ChildNodes.Select(x => x.EnumerateInformationSets(false, true)).ToList();
-                    HashSet<int> allPlayers = new HashSet<int>();
-                    HashSet<int> playersAppearingMultipleTimes = new HashSet<int>();
-                    for (int i = 0; i < ChildNodes.Length; i++)
-                        for (int j = i + 1; j < ChildNodes.Length; j++)
-                        {
-                            var iInformationSets = informationSetsForChildren[i];
-                            var jInformationSets = informationSetsForChildren[j];
-                            foreach (var iInformationSet in iInformationSets)
-                                foreach (var jInformationSet in jInformationSets)
-                                {
-                                    if (iInformationSet == jInformationSet)
-                                        playersAppearingMultipleTimes.Add(iInformationSet.PlayerNumber);
-                                    allPlayers.Add(iInformationSet.PlayerNumber);
-                                }
-                        }
-                    List<int> playersReceivingInformation = allPlayers.Except(playersAppearingMultipleTimes).OrderBy(x => x).ToList();
-                    for (int action = 1; action <= ChildNodes.Length; action++)
-                    {
-                        var childNode = ChildNodes[action - 1] as InformationSetEFGNode;
-                        if (childNode != null)
-                            childNode.AddInformationToSelfAndDescendants(new Information(informationSet.InformationSetNumber, informationSet.PlayerNumber, action), informationSet);
-                    }
-                }
-            }
-            public void RemoveActionFromDescendants(int playerOwningInformationSetsToRemoveFrom)
-            {
-                var informationSet = GetInformationSet();
-                if (ChildNodes != null)
-                    for (int action = 1; action <= ChildNodes.Length; action++)
-                    {
-                        var childNode = ChildNodes[action - 1] as InformationSetEFGNode;
-                        if (childNode != null)
-                            childNode.RemoveInformationFromSelfAndDescendants(new Information(informationSet.InformationSetNumber, informationSet.PlayerNumber, action), informationSet, playerOwningInformationSetsToRemoveFrom);
-                    }
-            }
         }
 
         public class OutcomeEFGNode : EFGFileNode
@@ -212,7 +133,7 @@ namespace ACESimBase.GameSolvingSupport
             var list = GetEFGFileNodesList(sourcefileText);
             int listIndex = 0;
             var tree = list[0].CreateTree(list, ref listIndex);
-            tree.SetPlayersReceivingInformation();
+            tree.AddActionsToDescendants();
             return tree;
         }
 
@@ -248,7 +169,7 @@ namespace ACESimBase.GameSolvingSupport
 
             InformationSet GetOrCreateInformationSet(int playerNumber, int informationSetNumber, string informationSetName, List<string> actionNames, List<double> probabilities = null)
             {
-                bool alwaysCreateNewInformationSet = true;
+                bool alwaysCreateNewInformationSet = false;
                 var informationSet = InformationSets.FirstOrDefault(x => x.InformationSetNumber == informationSetNumber && x.PlayerNumber == playerNumber);
                 if (alwaysCreateNewInformationSet || informationSet == null)
                 {

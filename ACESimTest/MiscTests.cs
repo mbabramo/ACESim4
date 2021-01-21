@@ -372,7 +372,7 @@ t """" 3 ""Outcome 3"" {{ 4.000000 5.000000 }}
 t """" 4 ""Outcome 4"" {{ 4.000000 1.000000 }}
 ";
 
-            EFGProcess process = new EFGProcess();
+            EFGFileProcess process = new EFGFileProcess();
             var tree1 = process.GetEFGFileNodesTree(playerDoesntKnowChance);
             tree1.GetInformationSet().PlayersReceivingInfo.Count().Should().Be(0);
 
@@ -387,7 +387,7 @@ t """" 3 ""Outcome 3"" {{ 4.000000 5.000000 }}
 t """" 4 ""Outcome 4"" {{ 4.000000 1.000000 }}
 "; // difference is that set player information set has a different number
 
-            process = new EFGProcess();
+            process = new EFGFileProcess();
             var tree2 = process.GetEFGFileNodesTree(playerKnowsChance);
             tree2.GetInformationSet().PlayersReceivingInfo.Count().Should().Be(1);
         }
@@ -430,7 +430,7 @@ p """" 2 2 ""(2,2)"" {{ ""h"" ""l"" }} 0
 t """" 15 ""Outcome 15"" {{ 0.000000 4.000000 }}
 t """" 16 ""Outcome 16"" {{ 10.000000 0.000000 }}
 ";
-            EFGProcess process = new EFGProcess();
+            EFGFileProcess process = new EFGFileProcess();
             var result = process.GetEFGFileNodesTree(exampleGame);
         }
     }
