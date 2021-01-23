@@ -61,16 +61,18 @@ namespace ACESimBase.Games.EFGFileGame
                 ChildNodes = new EFGFileNode[NumChildNodes];
             var informationSet = GetInformationSet();
             if (informationSet != null)
+            { 
                 informationSet.NodesWithInformationSet.Add((EFGFileInformationSetNode)this);
-            for (int childIndex = 0; childIndex < NumChildNodes; childIndex++)
-            {
-                indexInAllNodes++;
-                EFGFileNode childNode = allNodes[indexInAllNodes];
-                childNode.PreviousMoves.Add(new EFGFileGameMove(informationSet.InformationSetNumber, informationSet.PlayerNumber, childIndex + 1));
-                ChildNodes[childIndex] = childNode.CreateTree(allNodes, ref indexInAllNodes);
+                for (int childIndex = 0; childIndex < NumChildNodes; childIndex++)
+                {
+                    indexInAllNodes++;
+                    EFGFileNode childNode = allNodes[indexInAllNodes];
+                    childNode.PreviousMoves.Add(new EFGFileGameMove(informationSet.InformationSetNumber, informationSet.PlayerNumber, childIndex + 1));
+                    ChildNodes[childIndex] = childNode.CreateTree(allNodes, ref indexInAllNodes);
+                }
+                informationSet.CanTerminateGame = ChildNodes.Any(x => x is EFGFileOutcomeNode);
+                informationSet.AlwaysTerminatesGame = ChildNodes.All(x => x is EFGFileOutcomeNode);
             }
-            informationSet.CanTerminateGame = ChildNodes.Any(x => x is EFGFileOutcomeNode);
-            informationSet.AlwaysTerminatesGame = ChildNodes.All(x => x is EFGFileOutcomeNode);
             return this;
         }
 
@@ -111,8 +113,8 @@ namespace ACESimBase.Games.EFGFileGame
                     bool earlierPrecedesButDoesNotCutThroughSomeLaterInformationSet = false;
                     foreach (var informationSet2 in informationSets.Where(x => x.PlayerNumber == playerNumberForLaterInformationSet))
                     {
-                        var (isCutByEarlierInformationSet, followsButIsNotCutByEarlierInformationSet) = informationSet2.RelationshipToPotentiallyEarlierInformationSet(informationSet1.InformationSetNumber);
-                        if (isCutByEarlierInformationSet)
+                        var (isApparentlyCutByEarlierInformationSet, followsButIsNotCutByEarlierInformationSet) = informationSet2.RelationshipToPotentiallyEarlierInformationSet(informationSet1.InformationSetNumber);
+                        if (isApparentlyCutByEarlierInformationSet)
                             earlierCutsThroughSomeLaterInformationSet = true;
                         if (followsButIsNotCutByEarlierInformationSet)
                             earlierPrecedesButDoesNotCutThroughSomeLaterInformationSet = true;

@@ -360,9 +360,9 @@ namespace ACESimTest
         }
 
         [TestMethod]
-        public void EFGProcess_PlayersReceivingInformation()
+        public void EFGProcess_PlayersReceivingInformation_PlayerDoesntKnowChanceDecision()
         {
-            string playerDoesntKnowChance = $@"
+            string playerDoesntKnowChanceGame = $@"
 EFG 2 R ""Sample"" {{ ""Player 1"" ""Player 2"" }}
 c ""ROOT"" 1 ""(0,1)"" {{ ""1G"" 0.500000 ""1B"" 0.500000 }} 0
 p """" 1 1 """" {{ ""L"" ""R"" }} 0
@@ -374,10 +374,14 @@ t """" 4 ""Outcome 4"" {{ 4.000000 1.000000 }}
 ";
 
             EFGFileReader process = new EFGFileReader();
-            var tree1 = process.GetEFGFileNodesTree(playerDoesntKnowChance);
+            var tree1 = process.GetEFGFileNodesTree(playerDoesntKnowChanceGame);
             tree1.GetInformationSet().PlayersToInform.Count().Should().Be(0);
+        }
 
-            string playerKnowsChance = $@"
+        [TestMethod]
+        public void EFGProcess_PlayersReceivingInformation_PlayerKnowsChanceDecision()
+        {
+            string playerKnowsChanceGame = $@"
 EFG 2 R ""Sample"" {{ ""Player 1"" ""Player 2"" }}
 c ""ROOT"" 1 ""(0,1)"" {{ ""1G"" 0.500000 ""1B"" 0.500000 }} 0
 p """" 1 1 """" {{ ""L"" ""R"" }} 0
@@ -388,12 +392,12 @@ t """" 3 ""Outcome 3"" {{ 4.000000 5.000000 }}
 t """" 4 ""Outcome 4"" {{ 4.000000 1.000000 }}
 "; // difference is that set player information set has a different number
 
-            process = new EFGFileReader();
-            var tree2 = process.GetEFGFileNodesTree(playerKnowsChance);
+            var process = new EFGFileReader();
+            var tree2 = process.GetEFGFileNodesTree(playerKnowsChanceGame);
             tree2.GetInformationSet().PlayersToInform.Count().Should().Be(1);
         }
 
-            [TestMethod]
+        [TestMethod]
         public void EFGProcess_Overall()
         {
 
