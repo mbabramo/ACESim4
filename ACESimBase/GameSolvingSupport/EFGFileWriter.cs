@@ -7,14 +7,14 @@ using System.Text;
 
 namespace ACESimBase.GameSolvingSupport
 {
-    public class EFGFileCreator : ITreeNodeProcessor<bool, bool> // bools are ignored
+    public class EFGFileWriter : ITreeNodeProcessor<bool, bool> // bools are ignored
     {
         public StringBuilder FileText = new StringBuilder();
         int Level = 0;
         bool DistributeChanceDecisions;
 
 
-        public EFGFileCreator(string gameName, IEnumerable<string> playerNames, bool distributeChanceDecisions)
+        public EFGFileWriter(string gameName, IEnumerable<string> playerNames, bool distributeChanceDecisions)
         {
             FileText.AppendLine($"EFG 2 R \"{gameName}\" {{ {String.Join(" ", playerNames.Select(x => $"\"{x}\""))} }} ");
             DistributeChanceDecisions = distributeChanceDecisions;

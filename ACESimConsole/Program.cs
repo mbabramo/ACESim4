@@ -14,6 +14,7 @@ using System.Diagnostics;
 using ACESim.Util;
 using ACESimBase.Games.AdditiveEvidenceGame;
 using ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm;
+using ACESimBase.Games.EFGFileGame;
 
 namespace ACESim
 {
@@ -21,13 +22,14 @@ namespace ACESim
     {
         public enum AvailableGames
         {
+            EFGFileGame,
             Leduc,
             MultiRoundCooperation,
             LitigGame,
             AdditiveEvidenceGame
         }
 
-        public static AvailableGames GameToPlay = AvailableGames.LitigGame;  
+        public static AvailableGames GameToPlay = AvailableGames.EFGFileGame;  
         public static bool LaunchSingleOptionsSetOnly = false;
 
         [STAThread]
@@ -71,6 +73,11 @@ namespace ACESim
             Launcher launcher = null;
             switch (GameToPlay)
             {
+                case AvailableGames.EFGFileGame:
+                    baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\EFGFileGame";
+                    strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
+                    launcher = new EFGFileGameLauncher();
+                    break;
                 case AvailableGames.Leduc:
                     baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\LeducGame";
                     strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
@@ -91,6 +98,7 @@ namespace ACESim
                     strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
                     launcher = new AdditiveEvidenceGameLauncher();
                     break;
+
             }
             launcher.LaunchSingleOptionsSetOnly = LaunchSingleOptionsSetOnly;
             ReportCollection launchResult = await launcher.Launch();

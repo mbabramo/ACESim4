@@ -43,7 +43,7 @@ namespace ACESim
         public byte[] PlayersToInformOfOccurrenceOnly;
 
         /// <summary>
-        /// If true, then players will be informed only after the next decision in the game. This is useful when two players "simultaneously" make decisions, i.e., the second player should not know of the first player's decision until after the second player makes a decision.
+        /// If true, then players will be informed only after the next decision in the game. This is useful when two players "simultaneously" make decisions, i.e., the second player should not know of the first player's decision until after the second player makes a decision. We don't currently include the capability of deferring notifications longer than this.
         /// </summary>
         public bool DeferNotificationOfPlayers;
 

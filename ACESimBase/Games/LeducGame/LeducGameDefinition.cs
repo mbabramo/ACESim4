@@ -21,6 +21,7 @@ namespace ACESim
         {
 
         }
+
         public override void Setup(GameOptions options)
         {
             base.Setup(options);

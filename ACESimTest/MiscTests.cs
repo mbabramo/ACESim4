@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using ACESim;
 using ACESim.Util;
+using ACESimBase.Games.EFGFileGame;
 using ACESimBase.GameSolvingSupport;
 using ACESimBase.Util;
 using FluentAssertions;
@@ -372,9 +373,9 @@ t """" 3 ""Outcome 3"" {{ 4.000000 5.000000 }}
 t """" 4 ""Outcome 4"" {{ 4.000000 1.000000 }}
 ";
 
-            EFGFileProcess process = new EFGFileProcess();
+            EFGFileReader process = new EFGFileReader();
             var tree1 = process.GetEFGFileNodesTree(playerDoesntKnowChance);
-            tree1.GetInformationSet().PlayersReceivingInfo.Count().Should().Be(0);
+            tree1.GetInformationSet().PlayersToInform.Count().Should().Be(0);
 
             string playerKnowsChance = $@"
 EFG 2 R ""Sample"" {{ ""Player 1"" ""Player 2"" }}
@@ -387,9 +388,9 @@ t """" 3 ""Outcome 3"" {{ 4.000000 5.000000 }}
 t """" 4 ""Outcome 4"" {{ 4.000000 1.000000 }}
 "; // difference is that set player information set has a different number
 
-            process = new EFGFileProcess();
+            process = new EFGFileReader();
             var tree2 = process.GetEFGFileNodesTree(playerKnowsChance);
-            tree2.GetInformationSet().PlayersReceivingInfo.Count().Should().Be(1);
+            tree2.GetInformationSet().PlayersToInform.Count().Should().Be(1);
         }
 
             [TestMethod]
@@ -430,7 +431,7 @@ p """" 2 2 ""(2,2)"" {{ ""h"" ""l"" }} 0
 t """" 15 ""Outcome 15"" {{ 0.000000 4.000000 }}
 t """" 16 ""Outcome 16"" {{ 10.000000 0.000000 }}
 ";
-            EFGFileProcess process = new EFGFileProcess();
+            EFGFileReader process = new EFGFileReader();
             var result = process.GetEFGFileNodesTree(exampleGame);
         }
     }

@@ -585,7 +585,7 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         private string CreateGambitFile()
         {
-            EFGFileCreator efgCreator = new EFGFileCreator(GameDefinition.OptionSetName, GameDefinition.NonChancePlayerNames, EvolutionSettings.DistributeChanceDecisions);
+            EFGFileWriter efgCreator = new EFGFileWriter(GameDefinition.OptionSetName, GameDefinition.NonChancePlayerNames, EvolutionSettings.DistributeChanceDecisions);
             TreeWalk_Tree(efgCreator);
             string efgResult = efgCreator.FileText.ToString();
             DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
