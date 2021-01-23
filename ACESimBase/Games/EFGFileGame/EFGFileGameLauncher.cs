@@ -27,11 +27,27 @@ namespace ACESimBase.Games.EFGFileGame
         }
 
         // The following is used by the test classes
-        public EFGFileGameProgress PlayEFGFileGameOnce(GameOptions options,
+        public (EFGFileGame game, EFGFileGameProgress progress) PlayEFGGameMoves(GameOptions options, string sourceText,
+            List<byte> actions)
+        {
+            EFGFileGameDefinition gameDefinition = new EFGFileGameDefinition();
+            gameDefinition.Setup(options, sourceText);
+            List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
+
+            if (GameProgressLogger.LoggingOn)
+                gameDefinition.PrintOutOrderingInformation();
+
+            GamePlayer gamePlayer = new GamePlayer(starterStrategies, false, gameDefinition, true);
+            var result = gamePlayer.PlayPathAndMaybeStop(actions, true);
+
+            return ((EFGFileGame) result.game, (EFGFileGameProgress) result.gameProgress);
+        }
+
+        public EFGFileGameProgress PlayEFGFileGameOnce(GameOptions options, string sourceText,
             Func<Decision, GameProgress, byte> actionsOverride)
         {
             EFGFileGameDefinition gameDefinition = new EFGFileGameDefinition();
-            gameDefinition.Setup(options);
+            gameDefinition.Setup(options, sourceText);
             List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
 
             if (GameProgressLogger.LoggingOn)

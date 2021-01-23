@@ -24,6 +24,15 @@ namespace ACESimBase.Games.EFGFileGame
             CompleteSetup();
         }
 
+        public void Setup(GameOptions gameOptions, string sourceText)
+        {
+            if (gameOptions == null)
+                throw new Exception("Options cannot be null.");
+            base.Setup(gameOptions);
+            SourceText = sourceText;
+            CompleteSetup();
+        }
+
         public void CompleteSetup()
         {
             FileReader = new EFGFileReader(SourceText);
@@ -92,7 +101,7 @@ namespace ACESimBase.Games.EFGFileGame
 
         public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, in GameHistory gameHistory, byte actionChosen)
         {
-            var actionsSoFar = gameHistory.ActionsHistory.ToArray().ToList();
+            var actionsSoFar = gameHistory.GetActionsAsList();
             actionsSoFar.Add(actionChosen);
             var node = GetEFGFileNode(actionsSoFar);
             return node is EFGFileOutcomeNode;
@@ -100,7 +109,7 @@ namespace ACESimBase.Games.EFGFileGame
 
         public override bool SkipDecision(Decision decision, in GameHistory gameHistory)
         {
-            var actionsSoFar = gameHistory.ActionsHistory.ToArray().ToList();
+            var actionsSoFar = gameHistory.GetActionsAsList();
             var node = (EFGFileInformationSetNode) GetEFGFileNode(actionsSoFar);
             var informationSet = node.GetInformationSet();
             return decision.DecisionByteCode != informationSet.DecisionByteCode;

@@ -82,15 +82,18 @@ namespace ACESim
             return (progress, nextActionsToPlayList.AsEnumerable());
         }
 
-        public (Game game, GameProgress gameProgress) PlayPathAndStop(List<byte> actionsToPlay)
+        public (Game game, GameProgress gameProgress) PlayPathAndMaybeStop(List<byte> actionsToPlay, bool stopAfter)
         {
             GameProgress gameProgress = StartingProgress.DeepCopy();
             Game game = GameDefinition.GameFactory.CreateNewGame(Strategies, gameProgress, GameDefinition, false, true, true);
             game.PlayPathAndStop(actionsToPlay);
-            if (!gameProgress.GameComplete)
-                game.AdvanceToOrCompleteNextStep();
-            while (!game.DecisionNeeded && !gameProgress.GameComplete)
-                game.AdvanceToOrCompleteNextStep();
+            if (!stopAfter)
+            {
+                if (!gameProgress.GameComplete)
+                    game.AdvanceToOrCompleteNextStep();
+                while (!game.DecisionNeeded && !gameProgress.GameComplete)
+                    game.AdvanceToOrCompleteNextStep();
+            }
             return (game, gameProgress);
         }
 

@@ -126,7 +126,7 @@ namespace ACESimBase.Games.EFGFileGame
             Decision lastDecisionAdded = null;
             List<EFGFileInformationSetID> informationSetIDsAdded = new List<EFGFileInformationSetID>();
             int lastNumInputs = -1;
-            byte decisionByteCode = 0;
+            int decisionByteCode = -1; 
             foreach (EFGFileInformationSetID informationSetID in orderedInformationSetNumbers)
             {
                 var informationSet = InformationSets.Single(x => x.InformationSetID.Equals(informationSetID));
@@ -134,6 +134,7 @@ namespace ACESimBase.Games.EFGFileGame
                 int numOutputs = informationSet.NumActions;
                 if (lastDecisionAdded == null || lastNumInputs != numInputs || lastDecisionAdded.NumPossibleActions != numOutputs || informationSet.ImmediatelyPrecedingInformationSets().Any(x => x.Equals(informationSetIDsAdded.Last())))
                 {
+                    decisionByteCode++;
                     lastDecisionAdded = new Decision()
                     {
                         Abbreviation = "D" + decisionByteCode.ToString(),
@@ -149,14 +150,14 @@ namespace ACESimBase.Games.EFGFileGame
                         UnevenChanceActions = informationSet is EFGFileChanceInformationSet,
                         IsAlwaysPlayersLastDecision = false, // may not be so, but it doesn't matter
                         DecisionTypeCode = decisionByteCode.ToString(),
-                        DecisionByteCode = decisionByteCode,
+                        DecisionByteCode = (byte) decisionByteCode,
                         InformationSetAbbreviations = informationSet.InformationSetContents.Select(x => $"P{x.playerNumber}I{x.informationSetNumber}").ToList(),
                     };
                     Decisions.Add(lastDecisionAdded);
                     informationSetIDsAdded.Add(informationSetID);
                     lastNumInputs = numInputs;
                 }
-                informationSet.DecisionByteCode = decisionByteCode++;
+                informationSet.DecisionByteCode = (byte) decisionByteCode; // do not increment
             }
             NumDecisionsPerPlayer = players.Select(x => Decisions.Count(y => y.PlayerIndex == x)).ToList();
         }

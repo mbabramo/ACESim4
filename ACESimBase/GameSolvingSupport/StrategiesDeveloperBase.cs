@@ -1323,7 +1323,7 @@ namespace ACESim
             }
             else
             {
-                (game, gameProgress) = GamePlayer.PlayPathAndStop(actionsSoFar);
+                (game, gameProgress) = GamePlayer.PlayPathAndMaybeStop(actionsSoFar, false); // should this really be false?
             }
             byte playerIndex = game.CurrentDecision?.PlayerIndex ?? 0;
             byte[] informationSetForPlayer = new byte[GameHistory.MaxInformationSetLength];

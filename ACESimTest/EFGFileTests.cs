@@ -16,10 +16,38 @@ namespace ACESimTest
         [TestMethod]
         public void EFGProcess_CorrectNumberOfDecisions()
         {
-            string bayesEFG = "EFG 2 R \"General Bayes game, one stage\" { \"Player 1\" \"Player 2\" }\r\n\"\"\r\n\r\nc \"\" 1 \"(0,1)\" { \"1G\" 1/2 \"1B\" 1/2 } 0\r\nc \"\" 2 \"(0,2)\" { \"2g\" 1/2 \"2b\" 1/2 } 0\r\np \"\" 1 1 \"(1,1)\" { \"H\" \"L\" } 0\r\np \"\" 2 1 \"(2,1)\" { \"h\" \"l\" } 0\r\nt \"\" 1 \"Outcome 1\" { 10, 2 }\r\nt \"\" 2 \"Outcome 2\" { 0, 10 }\r\np \"\" 2 1 \"(2,1)\" { \"h\" \"l\" } 0\r\nt \"\" 3 \"Outcome 3\" { 2, 4 }\r\nt \"\" 4 \"Outcome 4\" { 4, 0 }\r\np \"\" 1 1 \"(1,1)\" { \"H\" \"L\" } 0\r\np \"\" 2 2 \"(2,2)\" { \"h\" \"l\" } 0\r\nt \"\" 5 \"Outcome 5\" { 10, 2 }\r\nt \"\" 6 \"Outcome 6\" { 0, 10 }\r\np \"\" 2 2 \"(2,2)\" { \"h\" \"l\" } 0\r\nt \"\" 7 \"Outcome 7\" { 2, 4 }\r\nt \"\" 8 \"Outcome 8\" { 4, 0 }\r\nc \"\" 3 \"(0,3)\" { \"2g\" 1/2 \"2b\" 1/2 } 0\r\np \"\" 1 2 \"(1,2)\" { \"H\" \"L\" } 0\r\np \"\" 2 1 \"(2,1)\" { \"h\" \"l\" } 0\r\nt \"\" 9 \"Outcome 9\" { 4, 2 }\r\nt \"\" 10 \"Outcome 10\" { 2, 10 }\r\np \"\" 2 1 \"(2,1)\" { \"h\" \"l\" } 0\r\nt \"\" 11 \"Outcome 11\" { 0, 4 }\r\nt \"ROOT\" 12 \"Outcome 12\" { 10, 2 }\r\np \"\" 1 2 \"(1,2)\" { \"H\" \"L\" } 0\r\np \"\" 2 2 \"(2,2)\" { \"h\" \"l\" } 0\r\nt \"\" 13 \"Outcome 13\" { 4, 2 }\r\nt \"\" 14 \"Outcome 14\" { 2, 10 }\r\np \"\" 2 2 \"(2,2)\" { \"h\" \"l\" } 0\r\nt \"\" 15 \"Outcome 15\" { 0, 4 }\r\nt \"\" 16 \"Outcome 16\" { 10, 0 }";
+            string bayesEFG = GetBayesEFGSource();
 
             EFGFileReader process = new EFGFileReader(bayesEFG);
             process.Decisions.Count().Should().Be(4);
+        }
+
+        private static string GetBayesEFGSource()
+        {
+            return "EFG 2 R \"General Bayes game, one stage\" { \"Player 1\" \"Player 2\" }\r\n\"\"\r\n\r\nc \"\" 1 \"(0,1)\" { \"1G\" 1/2 \"1B\" 1/2 } 0\r\nc \"\" 2 \"(0,2)\" { \"2g\" 1/2 \"2b\" 1/2 } 0\r\np \"\" 1 1 \"(1,1)\" { \"H\" \"L\" } 0\r\np \"\" 2 1 \"(2,1)\" { \"h\" \"l\" } 0\r\nt \"\" 1 \"Outcome 1\" { 10, 2 }\r\nt \"\" 2 \"Outcome 2\" { 0, 10 }\r\np \"\" 2 1 \"(2,1)\" { \"h\" \"l\" } 0\r\nt \"\" 3 \"Outcome 3\" { 2, 4 }\r\nt \"\" 4 \"Outcome 4\" { 4, 0 }\r\np \"\" 1 1 \"(1,1)\" { \"H\" \"L\" } 0\r\np \"\" 2 2 \"(2,2)\" { \"h\" \"l\" } 0\r\nt \"\" 5 \"Outcome 5\" { 10, 2 }\r\nt \"\" 6 \"Outcome 6\" { 0, 10 }\r\np \"\" 2 2 \"(2,2)\" { \"h\" \"l\" } 0\r\nt \"\" 7 \"Outcome 7\" { 2, 4 }\r\nt \"\" 8 \"Outcome 8\" { 4, 0 }\r\nc \"\" 3 \"(0,3)\" { \"2g\" 1/2 \"2b\" 1/2 } 0\r\np \"\" 1 2 \"(1,2)\" { \"H\" \"L\" } 0\r\np \"\" 2 1 \"(2,1)\" { \"h\" \"l\" } 0\r\nt \"\" 9 \"Outcome 9\" { 4, 2 }\r\nt \"\" 10 \"Outcome 10\" { 2, 10 }\r\np \"\" 2 1 \"(2,1)\" { \"h\" \"l\" } 0\r\nt \"\" 11 \"Outcome 11\" { 0, 4 }\r\nt \"ROOT\" 12 \"Outcome 12\" { 10, 2 }\r\np \"\" 1 2 \"(1,2)\" { \"H\" \"L\" } 0\r\np \"\" 2 2 \"(2,2)\" { \"h\" \"l\" } 0\r\nt \"\" 13 \"Outcome 13\" { 4, 2 }\r\nt \"\" 14 \"Outcome 14\" { 2, 10 }\r\np \"\" 2 2 \"(2,2)\" { \"h\" \"l\" } 0\r\nt \"\" 15 \"Outcome 15\" { 0, 4 }\r\nt \"\" 16 \"Outcome 16\" { 10, 0 }";
+        }
+
+        [TestMethod]
+        public void EFGProcess_BayesGame_Outcomes()
+        {
+            string bayesEFG = GetBayesEFGSource();
+            EFGFileGameLauncher launcher = new EFGFileGameLauncher();
+            EFGFileGameOptions options = new EFGFileGameOptions();
+            List<byte> actionsToTake = new List<byte>() { 1 };
+            var result = launcher.PlayEFGGameMoves(options, bayesEFG, actionsToTake);
+            result.progress.GameComplete.Should().BeFalse();
+            actionsToTake = new List<byte>() { 1, 2, 1 };
+            result = launcher.PlayEFGGameMoves(options, bayesEFG, actionsToTake);
+            result.progress.GameComplete.Should().BeFalse();
+            actionsToTake = new List<byte>() { 1, 1, 1, 1 };
+            result = launcher.PlayEFGGameMoves(options, bayesEFG, actionsToTake);
+            result.progress.GameComplete.Should().BeTrue();
+            result.progress.GetNonChancePlayerUtilities().Should().BeEquivalentTo(new List<double> { 10, 2 });
+            actionsToTake = new List<byte>() { 1, 2, 1, 2 };
+            Br.eak.Add("DEBUGq");
+            result = launcher.PlayEFGGameMoves(options, bayesEFG, actionsToTake);
+            result.progress.GameComplete.Should().BeTrue();
+            result.progress.GetNonChancePlayerUtilities().Should().BeEquivalentTo(new List<double> { 0, 10 });
         }
 
         [TestMethod]
