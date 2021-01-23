@@ -16,7 +16,7 @@ namespace ACESimBase.Games.EFGFileGame
 
         public override GameOptions GetSingleGameOptions()
         {
-            return new EFGFileGameOptions() {  };
+            return new EFGFileGameOptions() { EFGFileName = "C:\\Users\\Admin\\Documents\\GitHub\\ACESim4\\ACESimBase\\Games\\EFGFileGame\\bayes1a.efg"  };
         }
 
         public override List<GameOptions> GetOptionsSets()

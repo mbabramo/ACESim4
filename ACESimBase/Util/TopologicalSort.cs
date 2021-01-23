@@ -10,13 +10,13 @@ namespace ACESimBase.Util
     {
         #region Static access
 
-        public static T[] GetTopologicalSortItems<T>(List<Field<T>> fields)
+        public static T[] GetTopologicalSortItems<T>(List<TopologicalSorterConstraint<T>> fields)
         {
             var results = getTopologicalSortOrder<T>(fields);
-            return results.Select(x => fields[x].Item).ToArray();
+            return results.Select(x => fields[x].Item).Reverse().ToArray();
         }
 
-        private static int[] getTopologicalSortOrder<T>(List<Field<T>> fields)
+        private static int[] getTopologicalSortOrder<T>(List<TopologicalSorterConstraint<T>> fields)
         {
             TopologicalSorter g = new TopologicalSorter(fields.Count);
             Dictionary<T, int> _indexes = new Dictionary<T, int>();
@@ -45,10 +45,15 @@ namespace ACESimBase.Util
 
         }
 
-        public class Field<T>
+        public class TopologicalSorterConstraint<T>
         {
             public T Item { get; set; }
             public T[] EarlierItems { get; set; }
+
+            public override string ToString()
+            {
+                return $"{Item} follows {(EarlierItems == null ? "nothing" : String.Join(",", EarlierItems))}";
+            }
         }
 
         #endregion

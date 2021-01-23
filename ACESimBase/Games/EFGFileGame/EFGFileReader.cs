@@ -74,7 +74,7 @@ namespace ACESimBase.Games.EFGFileGame
             allPlayers.AddRange(chancePlayers);
             Dictionary<int, int> map = new Dictionary<int, int>();
             for (int i = 0; i < allPlayers.Count(); i++)
-                map[i] = allPlayers[i];
+                map[allPlayers[i]] = i;
             foreach (var informationSet in InformationSets)
             {
                 informationSet.PlayerNumber = map[informationSet.PlayerNumber];
@@ -91,26 +91,48 @@ namespace ACESimBase.Games.EFGFileGame
             List<int> players = InformationSets.Select(x => x.PlayerNumber).Distinct().OrderBy(x => x).ToList();
             PlayerInfo = players.Select(x => new ACESim.PlayerInfo(PlayerNames[x], (byte) x, PlayerNames[x] != "Chance", true)).ToList();
             // Now, we need to create the decision list. We can do a topological sort of information sets -- that is, get a sorting based on knowledge like information set x precedes information set y. 
+            // One type of contraint is that a "grandchild" information set must follow any "child" information set.
             // Then, we can look to see whether there is a consecutive set of information sets with the same player and the same inputs and outputs. That constitutes a decision. 
-            List<TopologicalSorter.Field<int>> constraints = new List<TopologicalSorter.Field<int>>();
-            foreach (var informationSet in InformationSets)
+            List<TopologicalSorter.TopologicalSorterConstraint<EFGFileInformationSetID>> constraints = new List<TopologicalSorter.TopologicalSorterConstraint<EFGFileInformationSetID>>();
+            for (int i = 0; i < InformationSets.Count; i++)
             {
-                var dependencies = informationSet.ImmediatelyPrecedingInformationSets();
-                if (!dependencies.Any())
-                    dependencies = null;
-                constraints.Add(new TopologicalSorter.Field<int>() { Item = informationSet.InformationSetNumber, EarlierItems = dependencies.ToArray() });
+                EFGFileInformationSet informationSet = InformationSets[i];
+                var predecessors = informationSet.ImmediatelyPrecedingInformationSets();
+                if (!predecessors.Any())
+                    predecessors = null;
+                constraints.Add(new TopologicalSorter.TopologicalSorterConstraint<EFGFileInformationSetID>() { Item = informationSet.InformationSetID, EarlierItems = predecessors?.ToArray() });
+                var successors = informationSet.ChildrenAndGrandChildrenInformationSets();
+                foreach (var grandchild in successors.grandchildren)
+                    constraints.Add(new TopologicalSorter.TopologicalSorterConstraint<EFGFileInformationSetID>() { Item = grandchild, EarlierItems = successors.children.ToArray() });
             }
-            int[] orderedInformationSetNumbers = TopologicalSorter.GetTopologicalSortItems(constraints);
+            // We need to integrate the constraints, so each item appears only once
+            var integratedConstraints = new List<TopologicalSorter.TopologicalSorterConstraint<EFGFileInformationSetID>>();
+            foreach (var constraint in constraints)
+            {
+                var existing = integratedConstraints.FirstOrDefault(x => x.Item.Equals(constraint.Item));
+                if (existing == null)
+                    integratedConstraints.Add(constraint);
+                else
+                {
+                    var earlier = existing.EarlierItems.ToList();
+                    foreach (var additionalEarlier in constraint.EarlierItems)
+                        if (!earlier.Any(x => x.Equals(additionalEarlier)))
+                            earlier.Add(additionalEarlier);
+                    existing.EarlierItems = earlier.ToArray();
+                }
+            }
+            EFGFileInformationSetID[] orderedInformationSetNumbers = TopologicalSorter.GetTopologicalSortItems(integratedConstraints);
             Decisions = new List<Decision>();
             Decision lastDecisionAdded = null;
+            List<EFGFileInformationSetID> informationSetIDsAdded = new List<EFGFileInformationSetID>();
             int lastNumInputs = -1;
             byte decisionByteCode = 0;
-            foreach (int informationSetNumber in orderedInformationSetNumbers)
+            foreach (EFGFileInformationSetID informationSetID in orderedInformationSetNumbers)
             {
-                var informationSet = InformationSets.Single(x => x.InformationSetNumber == informationSetNumber);
+                var informationSet = InformationSets.Single(x => x.InformationSetID.Equals(informationSetID));
                 int numInputs = informationSet.InformationSetContents.Count();
                 int numOutputs = informationSet.NumActions;
-                if (lastDecisionAdded == null || lastNumInputs != numInputs || lastDecisionAdded.NumPossibleActions != numOutputs)
+                if (lastDecisionAdded == null || lastNumInputs != numInputs || lastDecisionAdded.NumPossibleActions != numOutputs || informationSet.ImmediatelyPrecedingInformationSets().Any(x => x.Equals(informationSetIDsAdded.Last())))
                 {
                     lastDecisionAdded = new Decision()
                     {
@@ -131,7 +153,8 @@ namespace ACESimBase.Games.EFGFileGame
                         InformationSetAbbreviations = informationSet.InformationSetContents.Select(x => $"P{x.playerNumber}I{x.informationSetNumber}").ToList(),
                     };
                     Decisions.Add(lastDecisionAdded);
-                    lastNumInputs = numOutputs;
+                    informationSetIDsAdded.Add(informationSetID);
+                    lastNumInputs = numInputs;
                 }
                 informationSet.DecisionByteCode = decisionByteCode++;
             }
@@ -172,7 +195,8 @@ namespace ACESimBase.Games.EFGFileGame
                 for (int indexInStrings = 0; indexInStrings < asStrings.Count; indexInStrings += 2)
                 {
                     names.Add(asStrings[indexInStrings]);
-                    numbers.Add(Convert.ToDouble(asStrings[indexInStrings + 1]));
+                    string rationalNumberString = asStrings[indexInStrings + 1];
+                    numbers.Add(RationalStringToDouble(rationalNumberString));
                 }
                 return (names, numbers);
             }
@@ -277,7 +301,7 @@ namespace ACESimBase.Games.EFGFileGame
 
         private List<List<string>> GetCommandsHelper (string sourcefileText)
         {
-            List<string> ungrouped = sourcefileText.Split("\r\n").SelectMany(x => Regex.Split(x, "(?<=^[^\"]*(?:\"[^\"]*\"[^\"]*)*) (?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)")).ToList(); // sourcefileText.Split(null).ToList();
+            List<string> ungrouped = sourcefileText.Split(new char[] { '\r', '\n'}, StringSplitOptions.RemoveEmptyEntries).SelectMany(x => Regex.Split(x, "(?<=^[^\"]*(?:\"[^\"]*\"[^\"]*)*) (?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)")).ToList(); // sourcefileText.Split(null).ToList();
             while (ungrouped[0] == "")
                 ungrouped.RemoveAt(0);
             ungrouped = ungrouped.Select(x => x.StartsWith("\r\n") ? x.Substring(2) : x).ToList();
@@ -296,6 +320,21 @@ namespace ACESimBase.Games.EFGFileGame
             if (currentLine.Any())
                 results.Add(currentLine);
             return results;
+        }
+
+
+        public static double RationalStringToDouble(string rationalNumberString)
+        {
+            if (rationalNumberString.Contains("/"))
+            {
+                string[] fractionComponents = rationalNumberString.Split('/');
+                double rationalConverted = double.Parse(fractionComponents[0]) / double.Parse(fractionComponents[1]);
+                return rationalConverted;
+            }
+            else
+            {
+                return double.Parse(rationalNumberString);
+            }
         }
     }
 }

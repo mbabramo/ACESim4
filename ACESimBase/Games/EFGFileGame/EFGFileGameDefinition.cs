@@ -17,7 +17,15 @@ namespace ACESimBase.Games.EFGFileGame
 
         public override void Setup(GameOptions gameOptions)
         {
+            if (gameOptions == null)
+                throw new Exception("Options cannot be null.");
+            base.Setup(gameOptions);
             SourceText = System.IO.File.ReadAllText(Options.EFGFileName);
+            CompleteSetup();
+        }
+
+        public void CompleteSetup()
+        {
             FileReader = new EFGFileReader(SourceText);
             Players = FileReader.PlayerInfo;
             _ResolutionPlayerNumber = (byte)(Players.Max(x => x.PlayerIndex) + 1);

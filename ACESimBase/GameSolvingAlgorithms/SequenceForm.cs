@@ -14,6 +14,7 @@ using ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm;
 using Rationals;
 using JetBrains.Annotations;
 using NumSharp.Utilities;
+using ACESimBase.Games.EFGFileGame;
 
 namespace ACESimBase.GameSolvingAlgorithms
 {
@@ -556,16 +557,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                         List<double> numbers = new List<double>();
                         foreach (string rationalNumberString in rationalNumbers)
                         {
-                            if (rationalNumberString.Contains("/"))
-                            {
-                                string[] fractionComponents = rationalNumberString.Split('/');
-                                double rationalConverted = double.Parse(fractionComponents[0]) / double.Parse(fractionComponents[1]);
-                                numbers.Add(rationalConverted);
-                            }
-                            else
-                            {
-                                numbers.Add(double.Parse(rationalNumberString));
-                            }
+                            numbers.Add(EFGFileReader.RationalStringToDouble(rationalNumberString));
                         }
                         resultsAsDoubles.Add(numbers);
                     }

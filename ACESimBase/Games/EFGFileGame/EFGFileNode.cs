@@ -55,6 +55,27 @@ namespace ACESimBase.Games.EFGFileGame
             }
         }
 
+        public override string ToString()
+        {
+            StringBuilder b = new StringBuilder();
+            BuildString(b, 0);
+            return b.ToString();
+        }
+
+        public void BuildString(StringBuilder b, int level)
+        {
+            for (int i = 0; i < level; i++)
+                b.Append("     ");
+            var informationSet = GetInformationSet();
+            if (informationSet != null)
+                b.AppendLine(informationSet.InformationSetID.ToString());
+            else
+                b.AppendLine(String.Join(",", ((EFGFileOutcomeNode)this).Values));
+            if (ChildNodes != null)
+                foreach (var childNode in ChildNodes)
+                    childNode.BuildString(b, level + 1);
+        }
+
         public EFGFileNode CreateTree(List<EFGFileNode> allNodes, ref int indexInAllNodes)
         {
             if (NumChildNodes > 0)
@@ -67,6 +88,8 @@ namespace ACESimBase.Games.EFGFileGame
                 {
                     indexInAllNodes++;
                     EFGFileNode childNode = allNodes[indexInAllNodes];
+                    foreach (var previousMove in PreviousMoves)
+                        childNode.PreviousMoves.Add(previousMove);
                     childNode.PreviousMoves.Add(new EFGFileGameMove(informationSet.InformationSetNumber, informationSet.PlayerNumber, childIndex + 1));
                     ChildNodes[childIndex] = childNode.CreateTree(allNodes, ref indexInAllNodes);
                 }
@@ -113,7 +136,7 @@ namespace ACESimBase.Games.EFGFileGame
                     bool earlierPrecedesButDoesNotCutThroughSomeLaterInformationSet = false;
                     foreach (var informationSet2 in informationSets.Where(x => x.PlayerNumber == playerNumberForLaterInformationSet))
                     {
-                        var (isApparentlyCutByEarlierInformationSet, followsButIsNotCutByEarlierInformationSet) = informationSet2.RelationshipToPotentiallyEarlierInformationSet(informationSet1.InformationSetNumber);
+                        var (isApparentlyCutByEarlierInformationSet, followsButIsNotCutByEarlierInformationSet) = informationSet2.RelationshipToPotentiallyEarlierInformationSet(informationSet1.InformationSetID);
                         if (isApparentlyCutByEarlierInformationSet)
                             earlierCutsThroughSomeLaterInformationSet = true;
                         if (followsButIsNotCutByEarlierInformationSet)
@@ -130,14 +153,14 @@ namespace ACESimBase.Games.EFGFileGame
                 var informationSet = node.GetInformationSet();
                 if (informationSet.PlayersToInform.Any())
                 {
-                    for (int i = 0; i < ChildNodes.Length; i++)
+                    for (int i = 0; i < node.ChildNodes.Length; i++)
                     {
                         int action = i + 1;
                         var information = new EFGFileGameMove(informationSet.InformationSetNumber, informationSet.PlayerNumber, action);
-                        var informationSetsForChild = ChildNodes[i].EnumerateInformationSets(false, true);
+                        var informationSetsForChild = node.ChildNodes[i].EnumerateInformationSets(true, true);
                         foreach (var informationSetForChild in informationSetsForChild)
                         {
-                            if (informationSet.PlayersToInform.Contains(informationSetForChild.InformationSetNumber))
+                            if (informationSet.PlayersToInform.Contains(informationSetForChild.PlayerNumber))
                             {
                                 informationSetForChild.InformationSetContents.Add(information);
                             }
