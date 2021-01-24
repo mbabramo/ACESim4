@@ -44,7 +44,6 @@ namespace ACESimTest
             result.progress.GameComplete.Should().BeTrue();
             result.progress.GetNonChancePlayerUtilities().Should().BeEquivalentTo(new List<double> { 10, 2 });
             actionsToTake = new List<byte>() { 1, 2, 1, 2 };
-            Br.eak.Add("DEBUGq");
             result = launcher.PlayEFGGameMoves(options, bayesEFG, actionsToTake);
             result.progress.GameComplete.Should().BeTrue();
             result.progress.GetNonChancePlayerUtilities().Should().BeEquivalentTo(new List<double> { 0, 10 });

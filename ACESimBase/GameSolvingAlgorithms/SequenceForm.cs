@@ -26,7 +26,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             Gambit,
             ECTA
         }
-        SequenceFormApproach Approach = SequenceFormApproach.ECTA; // DEBUG
+        SequenceFormApproach Approach = SequenceFormApproach.ECTA; 
 
         bool ProduceEFGFile = true; 
 
@@ -49,7 +49,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             StoreGameStateNodesInLists = true;
             await base.Initialize();
             InitializeInformationSets();
-            PrintGameTree(); // DEBUG
+            //PrintGameTree();
             if (!EvolutionSettings.CreateInformationSetCharts) // otherwise this will already have been run
                 InformationSetNode.IdentifyNodeRelationships(InformationSets);
         }
@@ -238,7 +238,7 @@ namespace ACESimBase.GameSolvingAlgorithms
 
             PrintRelationships(originalOrder);
 
-            bool produceCCode = true; // DEBUG
+            bool produceCCode = false; 
             if (produceCCode)
             {
                 string ectaCodeInC = GetECTACodeInC();
@@ -618,7 +618,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             {
                 p.StartInfo.FileName = "C:\\Program Files (x86)\\Gambit\\gambit-lcp.exe";
                 bool suppressBanner = false;
-                bool subgamePerfectOnly = false; // DEBUG
+                bool subgamePerfectOnly = false; // note: it's much faster if we constrain to subgame perfect
                 if (suppressBanner)
                     argumentsString += " -q";
                 if (subgamePerfectOnly)
@@ -738,7 +738,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             //double[] utils = GetAverageUtilities(false);
             //double[] maxPurifiedUtils = GetMaximumUtilitiesFromPurifiedStrategies();
             //if (Enumerable.Range(0, NumNonChancePlayers).Any(p => maxPurifiedUtils[p] > utils[p] + 0.001))
-            //    TabbedText.WriteLine($"Maximum not achieved {String.Join(",", utils)} vs. {String.Join(",", maxPurifiedUtils)}"); // DEBUG
+            //    TabbedText.WriteLine($"Maximum not achieved {String.Join(",", utils)} vs. {String.Join(",", maxPurifiedUtils)}"); 
 
             if ((includeReportForFirstEquilibrium && isFirst) || includeReportForEachEquilibrium)
             {

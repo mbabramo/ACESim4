@@ -98,11 +98,8 @@ namespace ACESimBase.Games.EFGFileGame
         {
         }
 
-        static int DEBUG = 0;
-
         public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, in GameHistory gameHistory, byte actionChosen)
         {
-            DEBUG++;
             var actionsSoFar = gameHistory.GetActionsAsList();
             // actionsSoFar.Add(actionChosen); -- action is already added
             var node = GetEFGFileNode(actionsSoFar);

@@ -176,14 +176,6 @@ namespace ACESim
             Decision currentDecision = CurrentDecision;
             if (PreparationPhase)
             {
-                if (Br.eak.Contains("DEBUGq"))
-                {
-                    DEBUG++;
-                    if (DEBUG == 4)
-                    {
-                        var DEBUG2 = 0;
-                    }
-                }
                 DecisionNeeded = DecisionIsNeeded(currentDecision, Progress);
             }
             else if (DecisionNeeded)
@@ -191,8 +183,6 @@ namespace ACESim
                 MakeDecision(currentDecision);
             }
         }
-
-        static int DEBUG = 0;
 
         private void MakeDecision(Decision currentDecision)
         {
