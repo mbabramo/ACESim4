@@ -22,14 +22,14 @@ namespace ACESim
     {
         public enum AvailableGames
         {
-            EFGFileGame,
-            Leduc,
-            MultiRoundCooperation,
-            LitigGame,
-            AdditiveEvidenceGame
+            SelectEFGFileGame,
+            SelectLeducGame,
+            SelectMultiRoundCooperationGame,
+            SelectLitigGame,
+            SelectAdditiveEvidenceGame
         }
 
-        public static AvailableGames GameToPlay = AvailableGames.EFGFileGame;  
+        public static AvailableGames GameToPlay = AvailableGames.SelectLitigGame;  
         public static bool LaunchSingleOptionsSetOnly = false;
 
         [STAThread]
@@ -73,27 +73,27 @@ namespace ACESim
             Launcher launcher = null;
             switch (GameToPlay)
             {
-                case AvailableGames.EFGFileGame:
+                case AvailableGames.SelectEFGFileGame:
                     baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\EFGFileGame";
                     strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
                     launcher = new EFGFileGameLauncher();
                     break;
-                case AvailableGames.Leduc:
+                case AvailableGames.SelectLeducGame:
                     baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\LeducGame";
                     strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
                     launcher = new LeducGameLauncher();
                     break;
-                case AvailableGames.MultiRoundCooperation:
+                case AvailableGames.SelectMultiRoundCooperationGame:
                     baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\MultiRoundCooperationGame";
                     strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
                     launcher = new MultiRoundCooperationGameLauncher();
                     break;
-                case AvailableGames.LitigGame:
+                case AvailableGames.SelectLitigGame:
                     baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\LitigGame";
                     strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
                     launcher = new LitigGameLauncher();
                     break;
-                case AvailableGames.AdditiveEvidenceGame:
+                case AvailableGames.SelectAdditiveEvidenceGame:
                     baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\AdditiveEvidenceGame";
                     strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
                     launcher = new AdditiveEvidenceGameLauncher();
