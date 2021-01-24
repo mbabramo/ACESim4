@@ -109,24 +109,30 @@ namespace ACESimBase.GameSolvingAlgorithms
             var ecta = new ECTARunner();
             ecta.numPriors = EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria;
 
-            ecta.outputPrior = true;
-            ecta.outputGameTreeSetup = true;
-            ecta.outputInitialTableau = true;
-            ecta.outputLCP = true;
-            ecta.outputLCPSolution = true;
-            ecta.outputPivotingSteps = true;
-            ecta.outputPivotResults = true;
+            ecta.outputPrior = false;
+            ecta.outputGameTreeSetup = false;
+            ecta.outputInitialTableau = false;
+            ecta.outputLCP = false;
+            ecta.outputLCPSolution = false;
+            ecta.outputPivotingSteps = false;
+            ecta.outputPivotResults = false;
             ecta.outputEquilibrium = true;
-            ecta.outputRealizationPlan = true;
-            //ecta.outputPrior = false;
-            //ecta.outputGameTreeSetup = false;
-            //ecta.outputInitialTableau = false;
-            //ecta.outputLCP = false;
-            //ecta.outputLCPSolution = false;
-            //ecta.outputPivotingSteps = false;
-            //ecta.outputPivotResults = false;
-            //ecta.outputEquilibrium = true;
-            //ecta.outputRealizationPlan = false;
+            ecta.outputRealizationPlan = false;
+
+            bool outputAll = false;
+            if (outputAll)
+            {
+                ecta.outputPrior = true;
+                ecta.outputGameTreeSetup = true;
+                ecta.outputInitialTableau = true;
+                ecta.outputLCP = true;
+                ecta.outputLCPSolution = true;
+                ecta.outputPivotingSteps = true;
+                ecta.outputPivotResults = true;
+                ecta.outputEquilibrium = true;
+                ecta.outputRealizationPlan = true;
+            }
+
             bool usePresetEquilibria = false; // use this as a shortcut to replay some equilibrium
             List<List<double>> equilibria = null; 
             if (usePresetEquilibria)
