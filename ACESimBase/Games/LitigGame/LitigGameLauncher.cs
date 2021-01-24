@@ -133,6 +133,8 @@ namespace ACESim
                 foreach (var optionSet in optionSets)
                     optionSet.Simplify();
 
+            var optionSetNames = optionSets.Select(x => x.Name).OrderBy(x => x).Distinct().ToList();
+
             return optionSets;
         }
 
@@ -578,37 +580,71 @@ namespace ACESim
             return gameProgress;
         }
 
-        void AddFeeShiftingArticleGames(List<GameOptions> options)
+        public void AddFeeShiftingArticleGames(List<GameOptions> options)
         {
             bool useAllPermutationsOfTransformations = false;
+            bool includeBaselineValueForNoncritical = false; // By setting this to false, we avoid repeating the baseline value for noncritical transformations, which would produce redundant options sets.
+            GetAddFeeShiftingArticleGames_Helper(options, useAllPermutationsOfTransformations, includeBaselineValueForNoncritical);
+        }
+
+        /// <summary>
+        /// Return the name that a set of fee-shifting article options was run under -- taking into account that we avoid repeating redundant options sets.
+        /// </summary>
+        /// <returns></returns>
+        public Dictionary<string, string> GetFeeShiftingArticleNameMap()
+        {
+            List<GameOptions> withRedundancies = new List<GameOptions>();
+            GetAddFeeShiftingArticleGames_Helper(withRedundancies, false, true);
+            List<GameOptions> withoutRedundancies = new List<GameOptions>();
+            GetAddFeeShiftingArticleGames_Helper(withoutRedundancies, false, false);
+            Dictionary<string, string> result = new Dictionary<string, string>();
+            foreach (var gameOptions in withRedundancies)
+            {
+                string runAsName = gameOptions.Name;
+                while (!withoutRedundancies.Any(x => x.Name == runAsName))
+                {
+                    var lastIndex = runAsName.LastIndexOf('-');
+                    runAsName = runAsName.Substring(0, lastIndex);
+                }
+                result[gameOptions.Name] = runAsName;
+            }
+            return result;
+        }
+
+        private void GetAddFeeShiftingArticleGames_Helper(List<GameOptions> options, bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical)
+        {
+            const int numCritical = 3; // critical transformations are all interacted with one another and then with each of the other transformations
             List<List<Func<LitigGameOptions, LitigGameOptions>>> allTransformations = new List<List<Func<LitigGameOptions, LitigGameOptions>>>()
             {
                 // Can always choose any of these:
-                FeeShiftingModeTransformations(),
-                CostsMultiplierTransformations(),
-                FeeShiftingMultiplierTransformations(),
+                FeeShiftingModeTransformations(true),
+                CostsMultiplierTransformations(true),
+                FeeShiftingMultiplierTransformations(true),
                 // And then can vary ONE of these:
-                PRelativeCostsTransformations(),
-                NoiseTransformations(),
-                RiskAversionTransformations(),
-                AllowAbandonAndDefaultsTransformations(),
-                ProbabilityTrulyLiableTransformations(),
-                NoiseToProduceCaseStrengthTransformations(),
-                LiabilityVsDamagesTransformations()
+                PRelativeCostsTransformations(includeBaselineValueForNoncritical),
+                NoiseTransformations(includeBaselineValueForNoncritical),
+                RiskAversionTransformations(includeBaselineValueForNoncritical),
+                AllowAbandonAndDefaultsTransformations(includeBaselineValueForNoncritical),
+                ProbabilityTrulyLiableTransformations(includeBaselineValueForNoncritical),
+                NoiseToProduceCaseStrengthTransformations(includeBaselineValueForNoncritical),
+                LiabilityVsDamagesTransformations(includeBaselineValueForNoncritical)
             };
-            const int numCritical = 3; // critical transformations are all interacted with one another and then with each of the other transformations
             List<List<Func<LitigGameOptions, LitigGameOptions>>> criticalTransformations = allTransformations.Take(numCritical).ToList();
             List<List<Func<LitigGameOptions, LitigGameOptions>>> noncriticalTransformations = allTransformations.Skip(numCritical).ToList();
             List<List<Func<LitigGameOptions, LitigGameOptions>>> transformations = useAllPermutationsOfTransformations ? allTransformations : criticalTransformations;
             List<LitigGameOptions> gameOptions = new List<LitigGameOptions>(); // ApplyPermutationsOfTransformations(() => (LitigGameOptions) LitigGameOptionsGenerator.FeeShiftingArticleBase().WithName("FSA"), transformations);
             if (!useAllPermutationsOfTransformations)
             {
+                var noncriticalTransformationPlusNoTransformation = new List<List<Func<LitigGameOptions, LitigGameOptions>>>();
+                noncriticalTransformationPlusNoTransformation.Insert(0, null);
                 // We still want the non-critical transformations, just not permuted with the others.
                 foreach (var noncriticalTransformation in noncriticalTransformations)
                 {
                     List<List<Func<LitigGameOptions, LitigGameOptions>>> transformLists = criticalTransformations.ToList();
-                    transformLists.Add(noncriticalTransformation);
+                    if (noncriticalTransformation != null)
+                        transformLists.Add(noncriticalTransformation);
                     var additionalOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.FeeShiftingArticleBase().WithName("FSA"), transformLists);
+                    var optionSetNames = additionalOptions.Select(x => x.Name).OrderBy(x => x).ToList();
                     gameOptions.AddRange(additionalOptions);
                 }
             }
@@ -619,10 +655,10 @@ namespace ACESim
 
         #region Transformation methods 
 
-        List<Func<LitigGameOptions, LitigGameOptions>> FeeShiftingModeTransformations()
+        List<Func<LitigGameOptions, LitigGameOptions>> FeeShiftingModeTransformations(bool includeBaselineValue)
         {
             List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
-            foreach (FeeShiftingMode mode in FeeShiftingModes)
+            foreach (FeeShiftingMode mode in FeeShiftingModes.Skip(includeBaselineValue ? 1 : 0))
                 results.Add(o => GetAndTransform_FeeShiftingMode(o, mode));
             return results;
         }
@@ -662,10 +698,10 @@ namespace ACESim
             }
         });
 
-        List<Func<LitigGameOptions, LitigGameOptions>> CostsMultiplierTransformations()
+        List<Func<LitigGameOptions, LitigGameOptions>> CostsMultiplierTransformations(bool includeBaselineValue)
         {
             List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
-            foreach (double multiplier in CostsMultipliers)
+            foreach (double multiplier in CostsMultipliers.Skip(includeBaselineValue ? 1 : 0))
                 results.Add(o => GetAndTransform_CostsMultiplier(o, multiplier));
             return results;
         }
@@ -675,10 +711,10 @@ namespace ACESim
             g.CostsMultiplier = multiplier;
         });
 
-        List<Func<LitigGameOptions, LitigGameOptions>> FeeShiftingMultiplierTransformations()
+        List<Func<LitigGameOptions, LitigGameOptions>> FeeShiftingMultiplierTransformations(bool includeBaselineValue)
         {
             List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
-            foreach (double multiplier in FeeShiftingMultipliers)
+            foreach (double multiplier in FeeShiftingMultipliers.Skip(includeBaselineValue ? 1 : 0))
                 results.Add(o => GetAndTransform_FeeShiftingMultiplier(o, multiplier));
             return results;
         }
@@ -688,10 +724,10 @@ namespace ACESim
             g.LoserPaysMultiple = multiplier;
         });
 
-        List<Func<LitigGameOptions, LitigGameOptions>> PRelativeCostsTransformations()
+        List<Func<LitigGameOptions, LitigGameOptions>> PRelativeCostsTransformations(bool includeBaselineValue)
         {
             List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
-            foreach (double multiplier in RelativeCostsMultipliers)
+            foreach (double multiplier in RelativeCostsMultipliers.Skip(includeBaselineValue ? 1 : 0))
                 results.Add(o => GetAndTransform_PRelativeCosts(o, multiplier));
             return results;
         }
@@ -703,10 +739,10 @@ namespace ACESim
             g.PTrialCosts = g.DTrialCosts * pRelativeCosts;
         });
 
-        List<Func<LitigGameOptions, LitigGameOptions>> NoiseTransformations()
+        List<Func<LitigGameOptions, LitigGameOptions>> NoiseTransformations(bool includeBaselineValue)
         {
             List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
-            foreach ((double pNoiseMultiplier, double dNoiseMultiplier) in AccuracyMultipliers)
+            foreach ((double pNoiseMultiplier, double dNoiseMultiplier) in AccuracyMultipliers.Skip(includeBaselineValue ? 1 : 0))
                 results.Add(o => GetAndTransform_Noise(o, pNoiseMultiplier, dNoiseMultiplier));
             return results;
         }
@@ -719,7 +755,7 @@ namespace ACESim
             g.DLiabilityNoiseStdev *= dNoiseMultiplier;
         });
 
-        List<Func<LitigGameOptions, LitigGameOptions>> RiskAversionTransformations() => new List<Func<LitigGameOptions, LitigGameOptions>>() { GetAndTransform_RiskAverse, GetAndTransform_RiskNeutral, GetAndTransform_POnlyRiskAverse, GetAndTransform_DOnlyRiskAverse };
+        List<Func<LitigGameOptions, LitigGameOptions>> RiskAversionTransformations(bool includeBaselineValue) => new List<Func<LitigGameOptions, LitigGameOptions>>() { GetAndTransform_RiskNeutral, GetAndTransform_RiskAverse,  GetAndTransform_POnlyRiskAverse, GetAndTransform_DOnlyRiskAverse }.Skip(includeBaselineValue ? 1 : 0).ToList();
 
         LitigGameOptions GetAndTransform_RiskAverse(LitigGameOptions options) => GetAndTransform(options, "-ra", g =>
         {
@@ -742,10 +778,10 @@ namespace ACESim
             g.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = g.PInitialWealth };
             g.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.DInitialWealth, Alpha = 10 * 0.000001 };
         });
-        List<Func<LitigGameOptions, LitigGameOptions>> AllowAbandonAndDefaultsTransformations()
+        List<Func<LitigGameOptions, LitigGameOptions>> AllowAbandonAndDefaultsTransformations(bool includeBaselineValue)
         {
             List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
-            foreach (bool allowAbandonAndDefaults in new[] { true, false })
+            foreach (bool allowAbandonAndDefaults in new[] { true, false }.Skip(includeBaselineValue ? 1 : 0))
                 results.Add(o => GetAndTransform_AllowAbandonAndDefaults(o, allowAbandonAndDefaults));
             return results;
         }
@@ -754,10 +790,10 @@ namespace ACESim
         {
             g.AllowAbandonAndDefaults = allowAbandonAndDefaults;
         });
-        List<Func<LitigGameOptions, LitigGameOptions>> ProbabilityTrulyLiableTransformations()
+        List<Func<LitigGameOptions, LitigGameOptions>> ProbabilityTrulyLiableTransformations(bool includeBaselineValue)
         {
             List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
-            foreach (double probability in ProbabilitiesTrulyLiable)
+            foreach (double probability in ProbabilitiesTrulyLiable.Skip(includeBaselineValue ? 1 : 0))
                 results.Add(o => GetAndTransform_ProbabilityTrulyLiable(o, probability));
             return results;
         }
@@ -767,10 +803,10 @@ namespace ACESim
             ((LitigGameExogenousDisputeGenerator)g.LitigGameDisputeGenerator).ExogenousProbabilityTrulyLiable = probability;
         });
 
-        List<Func<LitigGameOptions, LitigGameOptions>> NoiseToProduceCaseStrengthTransformations()
+        List<Func<LitigGameOptions, LitigGameOptions>> NoiseToProduceCaseStrengthTransformations(bool includeBaselineValue)
         {
             List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
-            foreach (double noise in StdevsNoiseToProduceLiabilityStrength)
+            foreach (double noise in StdevsNoiseToProduceLiabilityStrength.Skip(includeBaselineValue ? 1 : 0))
                 results.Add(o => GetAndTransform_NoiseToProduceCaseStrength(o, noise));
             return results;
         }
@@ -779,10 +815,10 @@ namespace ACESim
         {
             ((LitigGameExogenousDisputeGenerator)g.LitigGameDisputeGenerator).StdevNoiseToProduceLiabilityStrength = noise;
         });
-        List<Func<LitigGameOptions, LitigGameOptions>> LiabilityVsDamagesTransformations()
+        List<Func<LitigGameOptions, LitigGameOptions>> LiabilityVsDamagesTransformations(bool includeBaselineValue)
         {
             List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
-            foreach (bool liabilityIsUncertain in new[] { true, false })
+            foreach (bool liabilityIsUncertain in new[] { true, false }.Skip(includeBaselineValue ? 1 : 0))
                 results.Add(o => GetAndTransform_LiabilityVsDamages(o, liabilityIsUncertain));
             return results;
         }
