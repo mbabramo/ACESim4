@@ -704,7 +704,35 @@ namespace ACESimBase.GameSolvingAlgorithms
                     throw new Exception("Unexpected mismatch");
                 }
                 else
-                    await ProcessEquilibrium(reportCollection, includeCorrelatedEquilibriumReport, includeReportForFirstEquilibrium, includeReportForEachEquilibrium, numEquilibria, infoSets, eqNum, isFirst, isLast, actionProbabilities);
+                {
+                    var numActionsPerSet = infoSets.Select(x => x.Decision.NumPossibleActions).ToList();
+                    int actionProbabilitiesIndex = 0;
+                    foreach (var infoSet in infoSets)
+                    {
+                        int initialActionProbabilitiesIndex = actionProbabilitiesIndex;
+                        double total = 0;
+                        for (int i = 0; i < infoSet.NumPossibleActions; i++)
+                            total += actionProbabilities[actionProbabilitiesIndex++];
+                        if (Math.Abs(total - 1.0) > 0.000001 && true)
+                        {
+                            // Fix degeneracy
+                            //throw new Exception("Probabilities do not add up to 1");
+                            if (total <= 0)
+                            {
+                                for (int i = 0; i < infoSet.NumPossibleActions; i++)
+                                    actionProbabilities[initialActionProbabilitiesIndex + i] = 1.0 / (double)infoSet.NumPossibleActions;
+                            }
+                            else
+                            {
+                                double multiplier = 1.0 / total;
+                                for (int i = 0; i < infoSet.NumPossibleActions; i++)
+                                    actionProbabilities[initialActionProbabilitiesIndex + i] *= multiplier;
+                            }
+                        }
+                    }
+
+                }
+                await ProcessEquilibrium(reportCollection, includeCorrelatedEquilibriumReport, includeReportForFirstEquilibrium, includeReportForEachEquilibrium, numEquilibria, infoSets, eqNum, isFirst, isLast, actionProbabilities);
             }
         }
 

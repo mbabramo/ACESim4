@@ -1052,8 +1052,8 @@ namespace ACESim
                 else
                     total += v;
             }
-            if (total == 0)
-                throw new Exception();
+            if (Math.Abs(total - 1) > 1E-6 && false /* DEBUG */)
+                throw new Exception($"Probabilities add up to {total} instead of 1");
             for (byte a = 1; a <= NumPossibleActions; a++)
                 NodeInformation[probabilityDimension, a - 1] /= total;
         }

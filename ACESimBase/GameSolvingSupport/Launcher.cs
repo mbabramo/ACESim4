@@ -261,7 +261,12 @@ namespace ACESim
                     TabbedText.WriteLineEvenIfDisabled($"");
                     TabbedText.WriteLineEvenIfDisabled($"Percentage Complete {100.0 * taskCoordinator.ProportionComplete}% of {taskCoordinator.IndividualTaskCount}");
                     if (taskToDo != null)
+                    {
+                        int? alwaysDoTaskID = null; // 2209; // set this to a task to replay a particular task over and over
+                        if (alwaysDoTaskID != null)
+                            taskToDo.ID = (int)alwaysDoTaskID;
                         TabbedText.WriteLineEvenIfDisabled($"Task to do: {taskToDo}");
+                    }
                     return taskCoordinator;
                 }, SaveToAzureBlob);
                 TabbedText.WriteLine($"Updated status (total {s.ElapsedMilliseconds} milliseconds)");
