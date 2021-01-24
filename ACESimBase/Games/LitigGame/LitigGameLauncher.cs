@@ -584,7 +584,7 @@ namespace ACESim
         {
             bool useAllPermutationsOfTransformations = false;
             bool includeBaselineValueForNoncritical = false; // By setting this to false, we avoid repeating the baseline value for noncritical transformations, which would produce redundant options sets.
-            GetAddFeeShiftingArticleGames_Helper(options, useAllPermutationsOfTransformations, includeBaselineValueForNoncritical);
+            GetFeeShiftingArticleGames_Helper(options, useAllPermutationsOfTransformations, includeBaselineValueForNoncritical);
         }
 
         /// <summary>
@@ -594,9 +594,9 @@ namespace ACESim
         public Dictionary<string, string> GetFeeShiftingArticleNameMap()
         {
             List<GameOptions> withRedundancies = new List<GameOptions>();
-            GetAddFeeShiftingArticleGames_Helper(withRedundancies, false, true);
+            GetFeeShiftingArticleGames_Helper(withRedundancies, false, true);
             List<GameOptions> withoutRedundancies = new List<GameOptions>();
-            GetAddFeeShiftingArticleGames_Helper(withoutRedundancies, false, false);
+            GetFeeShiftingArticleGames_Helper(withoutRedundancies, false, false);
             Dictionary<string, string> result = new Dictionary<string, string>();
             foreach (var gameOptions in withRedundancies)
             {
@@ -611,8 +611,16 @@ namespace ACESim
             return result;
         }
 
-        private void GetAddFeeShiftingArticleGames_Helper(List<GameOptions> options, bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical)
+        private void GetFeeShiftingArticleGames_Helper(List<GameOptions> options, bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical)
         {
+            var gamesSets = GetFeeShiftingArticleGamesSets(useAllPermutationsOfTransformations, includeBaselineValueForNoncritical); // each is a set with noncritical
+            var eachGameIndependently = gamesSets.SelectMany(x => x).ToList();
+            options.AddRange(eachGameIndependently);
+        }
+
+        private List<List<LitigGameOptions>> GetFeeShiftingArticleGamesSets(bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical)
+        {
+            List<List<LitigGameOptions>> result = new List<List<LitigGameOptions>>();
             const int numCritical = 3; // critical transformations are all interacted with one another and then with each of the other transformations
             List<List<Func<LitigGameOptions, LitigGameOptions>>> allTransformations = new List<List<Func<LitigGameOptions, LitigGameOptions>>>()
             {
@@ -645,12 +653,10 @@ namespace ACESim
                         transformLists.Add(noncriticalTransformation);
                     var additionalOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.FeeShiftingArticleBase().WithName("FSA"), transformLists);
                     var optionSetNames = additionalOptions.Select(x => x.Name).OrderBy(x => x).ToList();
-                    gameOptions.AddRange(additionalOptions);
+                    result.Add(additionalOptions);
                 }
             }
-            if (gameOptions.Count() != gameOptions.Select(x => x.Name).Distinct().Count())
-                throw new Exception();
-            options.AddRange(gameOptions);
+            return result;
         }
 
         #region Transformation methods 
