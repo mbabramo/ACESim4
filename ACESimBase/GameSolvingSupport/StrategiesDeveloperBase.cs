@@ -2943,10 +2943,17 @@ namespace ACESim
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
             return TreeWalk_Node(processor, null, 0, 0, forward, 0, in historyPoint);
         }
+
+        static int DEBUG = 0;
         public Back TreeWalk_Node<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, Forward forward, int distributorChanceInputs, in HistoryPoint historyPoint)
         {
             if (TraceTreeWalk)
                 TabbedText.TabIndent();
+            DEBUG++;
+            if (DEBUG == 172)
+            {
+                var DEBUG2 = 0;
+            }
             IGameState gameState = GetGameState(in historyPoint);
             Back b = default;
             switch (gameState)

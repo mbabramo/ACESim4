@@ -26,7 +26,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             Gambit,
             ECTA
         }
-        SequenceFormApproach Approach = SequenceFormApproach.Gambit; 
+        SequenceFormApproach Approach = SequenceFormApproach.ECTA; // DEBUG
 
         bool ProduceEFGFile = true; 
 
@@ -49,6 +49,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             StoreGameStateNodesInLists = true;
             await base.Initialize();
             InitializeInformationSets();
+            PrintGameTree(); // DEBUG
             if (!EvolutionSettings.CreateInformationSetCharts) // otherwise this will already have been run
                 InformationSetNode.IdentifyNodeRelationships(InformationSets);
         }
@@ -427,7 +428,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 int firstNodeIndex = group.First();
                 var informationSet = InformationSetInfos[InformationSetInfoIndexForGameNode(firstNodeIndex)];
                 var ectaPlayerID = informationSet.ECTAPlayerID;
-                bool verifyChancePlayer = false;
+                bool verifyChancePlayer = true;
                 if (ectaPlayerID == 0 && !verifyChancePlayer)
                     continue;
                 List<int> sequence = GetSequenceOfMovesLeadingToNode(firstNodeIndex, ectaPlayerID);

@@ -143,11 +143,22 @@ namespace ACESimBase.Games.EFGFileGame
                             earlierPrecedesButDoesNotCutThroughSomeLaterInformationSet = true;
                     }
                     if (earlierCutsThroughSomeLaterInformationSet)
+                    {
                         informationSet1.PlayersToInform.Add(playerNumberForLaterInformationSet);
-                    if (earlierPrecedesButDoesNotCutThroughSomeLaterInformationSet)
-                        informationSet1.DeferNotificationOfPlayers = true;
+                        if (earlierPrecedesButDoesNotCutThroughSomeLaterInformationSet)
+                        {
+                            informationSet1.PlayersToDeferNotificationFor.Add(playerNumberForLaterInformationSet);
+                            informationSet1.DeferNotificationOfPlayers = true;
+                        }
+                    }
                 }
             }
+            // Look for problem. If there are some informed players for whom we want to defer notification and some players
+            // for whom we don't want to defer notification, then we have a problem. We would also have a problem if we want to 
+            // defer notification for more than one decision, but we haven't accounted for that yet.
+            if (informationSets.Any(x => x.PlayersToInform.Any(y => x.PlayersToDeferNotificationFor.Contains(y)) && x.PlayersToInform.Any(y => !x.PlayersToDeferNotificationFor.Contains(y))))
+                throw new Exception("Deferring notification for only some players not supported.");
+            // Build information set contents.
             foreach (var node in EnumerateInformationSetNodes(true, true))
             {
                 var informationSet = node.GetInformationSet();

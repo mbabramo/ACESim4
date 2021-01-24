@@ -17,6 +17,7 @@ namespace ACESimBase.Games.EFGFileGame
         public List<string> ActionNames;
         public List<EFGFileGameMove> InformationSetContents = new List<EFGFileGameMove>();
         public HashSet<int> PlayersToInform = new HashSet<int>();
+        public HashSet<int> PlayersToDeferNotificationFor = new HashSet<int>();
         public bool DeferNotificationOfPlayers = false;
         public HashSet<EFGFileInformationSetNode> NodesWithInformationSet = new HashSet<EFGFileInformationSetNode>();
         internal bool CanTerminateGame;
