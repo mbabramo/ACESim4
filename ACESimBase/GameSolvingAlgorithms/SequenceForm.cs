@@ -26,7 +26,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             Gambit,
             ECTA
         }
-        SequenceFormApproach Approach = SequenceFormApproach.Gambit; // DEBUG
+        SequenceFormApproach Approach = SequenceFormApproach.ECTA; // DEBUG
 
         bool ProduceEFGFile = true; 
 
@@ -108,15 +108,25 @@ namespace ACESimBase.GameSolvingAlgorithms
             DetermineGameNodeRelationships();
             var ecta = new ECTARunner();
             ecta.numPriors = EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria;
-            ecta.outputPrior = false;
-            ecta.outputGameTreeSetup = false;
-            ecta.outputInitialTableau = false;
-            ecta.outputLCP = false;
-            ecta.outputLCPSolution = false;
-            ecta.outputPivotingSteps = false;
-            ecta.outputPivotResults = false;
+
+            ecta.outputPrior = true;
+            ecta.outputGameTreeSetup = true;
+            ecta.outputInitialTableau = true;
+            ecta.outputLCP = true;
+            ecta.outputLCPSolution = true;
+            ecta.outputPivotingSteps = true;
+            ecta.outputPivotResults = true;
             ecta.outputEquilibrium = true;
-            ecta.outputRealizationPlan = false;
+            ecta.outputRealizationPlan = true;
+            //ecta.outputPrior = false;
+            //ecta.outputGameTreeSetup = false;
+            //ecta.outputInitialTableau = false;
+            //ecta.outputLCP = false;
+            //ecta.outputLCPSolution = false;
+            //ecta.outputPivotingSteps = false;
+            //ecta.outputPivotResults = false;
+            //ecta.outputEquilibrium = true;
+            //ecta.outputRealizationPlan = false;
             bool usePresetEquilibria = false; // use this as a shortcut to replay some equilibrium
             List<List<double>> equilibria = null; 
             if (usePresetEquilibria)
@@ -228,7 +238,7 @@ namespace ACESimBase.GameSolvingAlgorithms
 
             PrintRelationships(originalOrder);
 
-            bool produceCCode = false;
+            bool produceCCode = true; // DEBUG
             if (produceCCode)
             {
                 string ectaCodeInC = GetECTACodeInC();

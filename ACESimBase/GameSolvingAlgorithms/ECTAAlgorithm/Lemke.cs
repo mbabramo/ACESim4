@@ -390,7 +390,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     /* value of  Z(i):  scfa[Z(i)]*rhs[row] / (scfa[RHS()]*det)   */
                     mulint(scfa[Z(i)], A[row][RHS()], ref num);
                     mulint(det, scfa[RHS()], ref den);
-                    solz[i - 1] = ((Rational) (num / den)).CanonicalForm;
+                    solz[i - 1] = ((Rational) num / (Rational) den).CanonicalForm;
                 }
                 else            /* i is nonbasic    */
                     solz[i - 1] = ratfromi(0);
