@@ -183,7 +183,10 @@ namespace ACESimBase.Games.EFGFileGame
                 currentIndex++;
                 while (line[currentIndex] != "}")
                 {
-                    items.Add(line[currentIndex]);
+                    string item = line[currentIndex];
+                    if (item.StartsWith('\"') && item.EndsWith('\"'))
+                        item = item.Substring(1, item.Length - 2);
+                    items.Add(item);
                     currentIndex++;
                 }
                 return items;
@@ -199,7 +202,10 @@ namespace ACESimBase.Games.EFGFileGame
                 List<double> numbers = new List<double>();
                 for (int indexInStrings = 0; indexInStrings < asStrings.Count; indexInStrings += 2)
                 {
-                    names.Add(asStrings[indexInStrings]);
+                    string item = asStrings[indexInStrings];
+                    if (item.StartsWith('\"') && item.EndsWith('\"'))
+                        item = item.Substring(1, item.Length - 2);
+                    names.Add(item);
                     string rationalNumberString = asStrings[indexInStrings + 1];
                     numbers.Add(RationalStringToDouble(rationalNumberString));
                 }

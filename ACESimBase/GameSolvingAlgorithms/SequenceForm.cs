@@ -26,7 +26,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             Gambit,
             ECTA
         }
-        SequenceFormApproach Approach = SequenceFormApproach.ECTA; // DEBUG
+        SequenceFormApproach Approach = SequenceFormApproach.Gambit; // DEBUG
 
         bool ProduceEFGFile = true; 
 
