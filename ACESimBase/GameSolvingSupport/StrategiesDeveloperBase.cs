@@ -1070,7 +1070,11 @@ namespace ACESim
         /// </summary>
         public NWayTreeStorageInternal<IGameState> GameHistoryTree;
 
-        public byte NumNonChancePlayers;
+        public byte NumNonChancePlayers
+        {
+            get;
+            set;
+        }
         public byte NumChancePlayers; // note that chance players MUST be indexed after nonchance players in the player list
 
         public int NumInitializedGamePaths = 0; // Because of how PlayAllPaths works, this will be much higher for parallel implementations

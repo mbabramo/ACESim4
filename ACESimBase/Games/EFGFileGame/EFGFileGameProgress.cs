@@ -51,9 +51,9 @@ namespace ACESimBase.Games.EFGFileGame
             double[] outcomes = GetNonChancePlayerUtilities();
             return new FloatSet(
                 (float)outcomes[0],
-                (float)(outcomes?[1] ?? 0),
-                (float)(outcomes?[2] ?? 0),
-                (float)(outcomes?[3] ?? 0)
+                (float)(outcomes.Length > 1 ? (float)outcomes[1] : (float)0),
+                (float)(outcomes.Length > 2 ? (float)outcomes[2] : (float)0),
+                (float)(outcomes.Length > 3 ? (float)outcomes[3] : (float)0)
                 );
         }
         public override void RecalculateGameOutcome()

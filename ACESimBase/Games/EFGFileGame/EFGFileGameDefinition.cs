@@ -37,8 +37,7 @@ namespace ACESimBase.Games.EFGFileGame
         {
             FileReader = new EFGFileReader(SourceText);
             Players = FileReader.PlayerInfo;
-            _ResolutionPlayerNumber = (byte)(Players.Max(x => x.PlayerIndex) + 1);
-            Players.Add(new PlayerInfo("Resolution", _ResolutionPlayerNumber, false, true));
+            _ResolutionPlayerNumber = (byte)(Players.Max(x => x.PlayerIndex));
             PlayerNames = Players.Select(x => x.PlayerName).ToArray();
             NumPlayers = (byte)Players.Count();
             DecisionsExecutionOrder = FileReader.Decisions;
@@ -99,10 +98,13 @@ namespace ACESimBase.Games.EFGFileGame
         {
         }
 
+        static int DEBUG = 0;
+
         public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, in GameHistory gameHistory, byte actionChosen)
         {
+            DEBUG++;
             var actionsSoFar = gameHistory.GetActionsAsList();
-            actionsSoFar.Add(actionChosen);
+            // actionsSoFar.Add(actionChosen); -- action is already added
             var node = GetEFGFileNode(actionsSoFar);
             return node is EFGFileOutcomeNode;
         }

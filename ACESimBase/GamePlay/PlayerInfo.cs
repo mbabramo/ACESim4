@@ -22,11 +22,11 @@ namespace ACESim
 
         }
 
-        public PlayerInfo(string playerName, byte playerNumber, bool playerIsChance, bool highestIsBest)
+        public PlayerInfo(string playerName, byte playerNumber, bool playerIsChanceOrResolution, bool highestIsBest)
         {
             PlayerName = playerName;
             PlayerIndex = playerNumber;
-            PlayerIsChance = playerIsChance;
+            PlayerIsChance = playerIsChanceOrResolution;
             HighestIsBest = highestIsBest;
         }
 

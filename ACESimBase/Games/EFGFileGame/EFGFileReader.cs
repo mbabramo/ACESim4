@@ -33,7 +33,7 @@ namespace ACESimBase.Games.EFGFileGame
         {
             EFGTreeRoot = GetEFGFileNodesTree(sourcefileText);
             MoveChanceToEnd();
-            DeterminePlayerDecisions();
+            SetPlayerInfoAndDecisions();
         }
 
         public bool IsComplete(IEnumerable<int> actions)
@@ -86,10 +86,14 @@ namespace ACESimBase.Games.EFGFileGame
             }
         }
 
-        public void DeterminePlayerDecisions()
+        public void SetPlayerInfoAndDecisions()
         {
             List<int> players = InformationSets.Select(x => x.PlayerNumber).Distinct().OrderBy(x => x).ToList();
-            PlayerInfo = players.Select(x => new ACESim.PlayerInfo(PlayerNames[x], (byte) x, PlayerNames[x] != "Chance", true)).ToList();
+            PlayerInfo = players.Select(x => new ACESim.PlayerInfo(PlayerNames[x], (byte) x, PlayerNames[x] is "Chance" or "Resolution", true)).ToList();
+            // Add the resolution player. Every information set should information the resolution player.
+            PlayerInfo.Add(new PlayerInfo("Resolution", (byte) PlayerInfo.Count(), true, true));
+            foreach (var informationSet in InformationSets)
+                informationSet.PlayersToInform.Add(PlayerInfo.Count() - 1);
             // Now, we need to create the decision list. We can do a topological sort of information sets -- that is, get a sorting based on knowledge like information set x precedes information set y. 
             // One type of contraint is that a "grandchild" information set must follow any "child" information set.
             // Then, we can look to see whether there is a consecutive set of information sets with the same player and the same inputs and outputs. That constitutes a decision. 
