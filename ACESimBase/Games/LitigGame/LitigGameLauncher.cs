@@ -665,7 +665,7 @@ namespace ACESim
         List<Func<LitigGameOptions, LitigGameOptions>> FeeShiftingModeTransformations(bool includeBaselineValue)
         {
             List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
-            foreach (FeeShiftingMode mode in FeeShiftingModes.Skip(includeBaselineValue ? 1 : 0))
+            foreach (FeeShiftingMode mode in FeeShiftingModes.Skip(includeBaselineValue ? 0 : 1))
                 results.Add(o => GetAndTransform_FeeShiftingMode(o, mode));
             return results;
         }
@@ -708,7 +708,7 @@ namespace ACESim
         List<Func<LitigGameOptions, LitigGameOptions>> CostsMultiplierTransformations(bool includeBaselineValue)
         {
             List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
-            foreach (double multiplier in CostsMultipliers.Skip(includeBaselineValue ? 1 : 0))
+            foreach (double multiplier in CostsMultipliers.Skip(includeBaselineValue ? 0 : 1))
                 results.Add(o => GetAndTransform_CostsMultiplier(o, multiplier));
             return results;
         }
@@ -721,7 +721,7 @@ namespace ACESim
         List<Func<LitigGameOptions, LitigGameOptions>> FeeShiftingMultiplierTransformations(bool includeBaselineValue)
         {
             List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
-            foreach (double multiplier in FeeShiftingMultipliers.Skip(includeBaselineValue ? 1 : 0))
+            foreach (double multiplier in FeeShiftingMultipliers.Skip(includeBaselineValue ? 0 : 1))
                 results.Add(o => GetAndTransform_FeeShiftingMultiplier(o, multiplier));
             return results;
         }
@@ -734,7 +734,7 @@ namespace ACESim
         List<Func<LitigGameOptions, LitigGameOptions>> PRelativeCostsTransformations(bool includeBaselineValue)
         {
             List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
-            foreach (double multiplier in RelativeCostsMultipliers.Skip(includeBaselineValue ? 1 : 0))
+            foreach (double multiplier in RelativeCostsMultipliers.Skip(includeBaselineValue ? 0 : 1))
                 results.Add(o => GetAndTransform_PRelativeCosts(o, multiplier));
             return results;
         }
@@ -749,7 +749,7 @@ namespace ACESim
         List<Func<LitigGameOptions, LitigGameOptions>> NoiseTransformations(bool includeBaselineValue)
         {
             List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
-            foreach ((double pNoiseMultiplier, double dNoiseMultiplier) in AccuracyMultipliers.Skip(includeBaselineValue ? 1 : 0))
+            foreach ((double pNoiseMultiplier, double dNoiseMultiplier) in AccuracyMultipliers.Skip(includeBaselineValue ? 0 : 1))
                 results.Add(o => GetAndTransform_Noise(o, pNoiseMultiplier, dNoiseMultiplier));
             return results;
         }
@@ -762,7 +762,7 @@ namespace ACESim
             g.DLiabilityNoiseStdev *= dNoiseMultiplier;
         });
 
-        List<Func<LitigGameOptions, LitigGameOptions>> RiskAversionTransformations(bool includeBaselineValue) => new List<Func<LitigGameOptions, LitigGameOptions>>() { GetAndTransform_RiskNeutral, GetAndTransform_RiskAverse,  GetAndTransform_POnlyRiskAverse, GetAndTransform_DOnlyRiskAverse }.Skip(includeBaselineValue ? 1 : 0).ToList();
+        List<Func<LitigGameOptions, LitigGameOptions>> RiskAversionTransformations(bool includeBaselineValue) => new List<Func<LitigGameOptions, LitigGameOptions>>() { GetAndTransform_RiskNeutral, GetAndTransform_RiskAverse,  GetAndTransform_POnlyRiskAverse, GetAndTransform_DOnlyRiskAverse }.Skip(includeBaselineValue ? 0 : 1).ToList();
 
         LitigGameOptions GetAndTransform_RiskAverse(LitigGameOptions options) => GetAndTransform(options, "-ra", g =>
         {
@@ -788,7 +788,7 @@ namespace ACESim
         List<Func<LitigGameOptions, LitigGameOptions>> AllowAbandonAndDefaultsTransformations(bool includeBaselineValue)
         {
             List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
-            foreach (bool allowAbandonAndDefaults in new[] { true, false }.Skip(includeBaselineValue ? 1 : 0))
+            foreach (bool allowAbandonAndDefaults in new[] { true, false }.Skip(includeBaselineValue ? 0 : 1))
                 results.Add(o => GetAndTransform_AllowAbandonAndDefaults(o, allowAbandonAndDefaults));
             return results;
         }
@@ -800,7 +800,7 @@ namespace ACESim
         List<Func<LitigGameOptions, LitigGameOptions>> ProbabilityTrulyLiableTransformations(bool includeBaselineValue)
         {
             List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
-            foreach (double probability in ProbabilitiesTrulyLiable.Skip(includeBaselineValue ? 1 : 0))
+            foreach (double probability in ProbabilitiesTrulyLiable.Skip(includeBaselineValue ? 0 : 1))
                 results.Add(o => GetAndTransform_ProbabilityTrulyLiable(o, probability));
             return results;
         }
@@ -813,7 +813,7 @@ namespace ACESim
         List<Func<LitigGameOptions, LitigGameOptions>> NoiseToProduceCaseStrengthTransformations(bool includeBaselineValue)
         {
             List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
-            foreach (double noise in StdevsNoiseToProduceLiabilityStrength.Skip(includeBaselineValue ? 1 : 0))
+            foreach (double noise in StdevsNoiseToProduceLiabilityStrength.Skip(includeBaselineValue ? 0 : 1))
                 results.Add(o => GetAndTransform_NoiseToProduceCaseStrength(o, noise));
             return results;
         }
@@ -825,7 +825,7 @@ namespace ACESim
         List<Func<LitigGameOptions, LitigGameOptions>> LiabilityVsDamagesTransformations(bool includeBaselineValue)
         {
             List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
-            foreach (bool liabilityIsUncertain in new[] { true, false }.Skip(includeBaselineValue ? 1 : 0))
+            foreach (bool liabilityIsUncertain in new[] { true, false }.Skip(includeBaselineValue ? 0 : 1))
                 results.Add(o => GetAndTransform_LiabilityVsDamages(o, liabilityIsUncertain));
             return results;
         }
