@@ -644,9 +644,10 @@ namespace ACESim
             if (!useAllPermutationsOfTransformations)
             {
                 var noncriticalTransformationPlusNoTransformation = new List<List<Func<LitigGameOptions, LitigGameOptions>>>();
-                noncriticalTransformationPlusNoTransformation.Insert(0, null);
+                noncriticalTransformationPlusNoTransformation.Add(null);
+                noncriticalTransformationPlusNoTransformation.AddRange(noncriticalTransformations);
                 // We still want the non-critical transformations, just not permuted with the others.
-                foreach (var noncriticalTransformation in noncriticalTransformations)
+                foreach (var noncriticalTransformation in noncriticalTransformationPlusNoTransformation)
                 {
                     List<List<Func<LitigGameOptions, LitigGameOptions>>> transformLists = criticalTransformations.ToList();
                     if (noncriticalTransformation != null)

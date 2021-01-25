@@ -10,6 +10,11 @@ namespace ACESimDistributed
 {
     class Program
     {
+        public static Launcher GetLauncher()
+        {
+            return new LitigGameLauncher();
+        }
+
         public async static Task Main(string[] args)
         {
             // set processor affinity via argument
@@ -25,13 +30,18 @@ namespace ACESimDistributed
             string dateTimeString = DateTime.Now.ToString("yyyy-mm-dd-hh-mm");
             string processID = "p" + Process.GetCurrentProcess().Id;
             CancellationToken cancellationToken = new CancellationToken();
-            string containerName = "results";
+            var launcher = GetLauncher();
+            bool useAzure = launcher.SaveToAzureBlob;
+            string containerName = "results"; // for azure
+            string path = useAzure ? null : Launcher.ReportFolder();
             string fileName = "log" + "-" + processID + "-" + dateTimeString;
-            AzureBlob.SerializeObject(containerName, fileName, true, "Starting");
+
+            
+            AzureBlob.SerializeToFileOrAzure("Starting", path, containerName, fileName, useAzure);
 
             void LogMessage(string text)
             {
-                string original = AzureBlob.GetSerializedObject(containerName, fileName) as string ?? "";
+                string original = AzureBlob.GetSerializedObjectFromFileOrAzure(path, containerName, fileName, useAzure) as string ?? "";
                 string revised = original + "\r\n" + text;
                 AzureBlob.SerializeObject(containerName, fileName, true, revised);
                 Console.WriteLine(text);
@@ -43,8 +53,7 @@ namespace ACESimDistributed
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    LitigGameLauncher launcher = new LitigGameLauncher();
-                    //AdditiveEvidenceGameLauncher launcher = new AdditiveEvidenceGameLauncher();
+                    launcher = GetLauncher(); // relaunch
 
                     if (launcher.LaunchSingleOptionsSetOnly)
                         throw new Exception("LaunchSingleOptionsSetOnly should only be used with ACESimConsole.");
