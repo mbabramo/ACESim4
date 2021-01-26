@@ -23,7 +23,7 @@ namespace LitigCharts
             string fileSuffix = "Corr";
             string path = @"C:\Users\Admin\Documents\GitHub\ACESim4\ReportResults";
             List<List<string>> outputLines = null;
-            foreach (var gameOptionsSet in gameOptionsSets)
+            foreach (var gameOptionsSet in gameOptionsSets.Where(x => map[x.Name] == x.Name)) // for this aggregation, we want only one copy of each report, so we exclude the redundant names that include the baseline values for a noncritical set
             {
                 if (outputLines == null)
                 {
