@@ -30,7 +30,7 @@ namespace ACESim
         }
 
         public static AvailableGames GameToPlay = AvailableGames.SelectLitigGame;  
-        public static bool LaunchSingleOptionsSetOnly = false;
+        public static bool LaunchSingleOptionsSetOnly = true;
 
         [STAThread]
         public static async Task Main(string[] args)

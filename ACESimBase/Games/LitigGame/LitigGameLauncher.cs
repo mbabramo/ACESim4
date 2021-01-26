@@ -22,16 +22,16 @@ namespace ACESim
         public bool TestDisputeGeneratorVariations = false;
         public bool IncludeRunningSideBetVariations = false;
         public bool LimitToAmerican = true;
-        public FeeShiftingMode[] FeeShiftingModes = new[] { FeeShiftingMode.American, FeeShiftingMode.English, FeeShiftingMode.Rule68, FeeShiftingMode.MarginOfVictory60, FeeShiftingMode.MarginOfVictory80 };
+        public FeeShiftingRule[] FeeShiftingModes = new[] { FeeShiftingRule.American, FeeShiftingRule.English, FeeShiftingRule.Rule68, FeeShiftingRule.MarginOfVictory60, FeeShiftingRule.MarginOfVictory80 };
         public double[] CostsMultipliers = new double[] { 1.0, 0.1, 0.25, 0.5, 2.0, 4.0, 10.0 };
         public double[] RelativeCostsMultipliers = new double[] { 1.0, 0.5, 2.0 };
         public double[] FeeShiftingMultipliers = new double[] { 1.0, 0.5, 2.0 };
         public double[] ProbabilitiesTrulyLiable = new double[] { 0.5, 0.1, 0.9 };
-        public double[] StdevsNoiseToProduceLiabilityStrength = new double[] { 0.5, 0, 1.0 };
+        public double[] StdevsNoiseToProduceLiabilityStrength = new double[] { 0.35, 0, 0.70 };
         public (double pNoiseMultiplier, double dNoiseMultiplier)[] AccuracyMultipliers = new (double pNoiseMultiplier, double dNoiseMultiplier)[] { (1.0, 1.0), (0.50, 0.50), (2.0, 2.0), (0.25, 1.0), (1.0, 0.25) };
         public double StdevPlayerNoise = 0.3; // baseline is 0.3
 
-        public enum FeeShiftingMode
+        public enum FeeShiftingRule
         {
             American,
             English,
@@ -385,6 +385,8 @@ namespace ACESim
                     options.DLiabilityNoiseStdev *= dNoiseMultiplier;
                     options.DDamagesNoiseStdev *= dNoiseMultiplier;
                 }
+                options.CourtLiabilityNoiseStdev = Math.Min(options.PLiabilityNoiseStdev, options.DLiabilityNoiseStdev);
+                options.CourtDamagesNoiseStdev = Math.Min(options.PDamagesNoiseStdev, options.DDamagesNoiseStdev);
                 return options;
             }
 
@@ -653,7 +655,26 @@ namespace ACESim
                     if (noncriticalTransformation != null)
                         transformLists.Add(noncriticalTransformation);
                     var additionalOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.FeeShiftingArticleBase().WithName("FSA"), transformLists);
-                    var optionSetNames = additionalOptions.Select(x => x.Name).OrderBy(x => x).ToList();
+                    List<(string, object)> defaultNonCriticalValues = new List<(string, object)>()
+                    {
+                        ("Fee Shifting Rule", "American"),
+                        ("Costs Multiplier", "1"),
+                        ("Fee Shifting Multiplier", "1"),
+                        ("Relative Costs", "1"),
+                        ("P Noise Multiplier", "1"),
+                        ("D Noise Multiplier", "1"),
+                        ("Risk Aversion", "Both Risk Neutral"),
+                        ("Allow Abandon And Defaults", "true"),
+                        ("Probability Truly Liable", "0.5"),
+                        ("Noise To Produce Case Strength", "0.35"),
+                        ("Issue", "Liability"),
+                    };
+                    foreach (var optionSet in additionalOptions)
+                        foreach (var defaultPair in defaultNonCriticalValues)
+                            if (!optionSet.VariableSettings.ContainsKey(defaultPair.Item1))
+                                optionSet.VariableSettings[defaultPair.Item1] = defaultPair.Item2;
+                    
+                    //var optionSetNames = additionalOptions.Select(x => x.Name).OrderBy(x => x).ToList();
                     result.Add(additionalOptions);
                 }
             }
@@ -665,44 +686,45 @@ namespace ACESim
         List<Func<LitigGameOptions, LitigGameOptions>> FeeShiftingModeTransformations(bool includeBaselineValue)
         {
             List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
-            foreach (FeeShiftingMode mode in FeeShiftingModes.Skip(includeBaselineValue ? 0 : 1))
+            foreach (FeeShiftingRule mode in FeeShiftingModes.Skip(includeBaselineValue ? 0 : 1))
                 results.Add(o => GetAndTransform_FeeShiftingMode(o, mode));
             return results;
         }
 
-        LitigGameOptions GetAndTransform_FeeShiftingMode(LitigGameOptions options, FeeShiftingMode mode) => GetAndTransform(options, "-fee" + mode switch
+        LitigGameOptions GetAndTransform_FeeShiftingMode(LitigGameOptions options, FeeShiftingRule mode) => GetAndTransform(options, "-fee" + mode switch
         {
-            FeeShiftingMode.American => "Am",
-            FeeShiftingMode.English => "En",
-            FeeShiftingMode.Rule68 => "R68",
-            FeeShiftingMode.Rule68English => "R68Eng",
-            FeeShiftingMode.MarginOfVictory60 => "Mar60",
-            FeeShiftingMode.MarginOfVictory80 => "Mar80",
+            FeeShiftingRule.American => "Am",
+            FeeShiftingRule.English => "En",
+            FeeShiftingRule.Rule68 => "R68",
+            FeeShiftingRule.Rule68English => "R68Eng",
+            FeeShiftingRule.MarginOfVictory60 => "Mar60",
+            FeeShiftingRule.MarginOfVictory80 => "Mar80",
             _ => throw new NotImplementedException()
         }
         , g =>
         {
             switch (mode)
             {
-                case FeeShiftingMode.American:
+                case FeeShiftingRule.American:
                     break;
-                case FeeShiftingMode.English:
+                case FeeShiftingRule.English:
                     g.LoserPays = true;
                     break;
-                case FeeShiftingMode.Rule68:
+                case FeeShiftingRule.Rule68:
                     g.Rule68 = true; 
                     break;
-                case FeeShiftingMode.MarginOfVictory60:
+                case FeeShiftingRule.MarginOfVictory60:
                     g.LoserPays = true;
                     g.LoserPaysOnlyLargeMarginOfVictory = true;
                     g.LoserPaysMarginOfVictoryThreshold = 0.6;
                     break;
-                case FeeShiftingMode.MarginOfVictory80:
+                case FeeShiftingRule.MarginOfVictory80:
                     g.LoserPays = true;
                     g.LoserPaysOnlyLargeMarginOfVictory = true;
                     g.LoserPaysMarginOfVictoryThreshold = 0.8;
                     break;
             }
+            g.VariableSettings["Fee Shifting Rule"] = mode.ToString();
         });
 
         List<Func<LitigGameOptions, LitigGameOptions>> CostsMultiplierTransformations(bool includeBaselineValue)
@@ -716,6 +738,7 @@ namespace ACESim
         LitigGameOptions GetAndTransform_CostsMultiplier(LitigGameOptions options, double multiplier) => GetAndTransform(options, "-costsm" + multiplier, g =>
         {
             g.CostsMultiplier = multiplier;
+            g.VariableSettings["Costs Multiplier"] = multiplier;
         });
 
         List<Func<LitigGameOptions, LitigGameOptions>> FeeShiftingMultiplierTransformations(bool includeBaselineValue)
@@ -729,6 +752,7 @@ namespace ACESim
         LitigGameOptions GetAndTransform_FeeShiftingMultiplier(LitigGameOptions options, double multiplier) => GetAndTransform(options, "-fsm" + multiplier, g =>
         {
             g.LoserPaysMultiple = multiplier;
+            g.VariableSettings["Fee Shifting Multiplier"] = multiplier;
         });
 
         List<Func<LitigGameOptions, LitigGameOptions>> PRelativeCostsTransformations(bool includeBaselineValue)
@@ -744,6 +768,7 @@ namespace ACESim
             // Note: Currently, this does not affect per-round bargaining costs (not relevant in fee shifting article anyway).
             g.PFilingCost = g.DAnswerCost * pRelativeCosts;
             g.PTrialCosts = g.DTrialCosts * pRelativeCosts;
+            g.VariableSettings["Relative Costs"] = pRelativeCosts;
         });
 
         List<Func<LitigGameOptions, LitigGameOptions>> NoiseTransformations(bool includeBaselineValue)
@@ -760,6 +785,9 @@ namespace ACESim
             g.PLiabilityNoiseStdev *= pNoiseMultiplier;
             g.DDamagesNoiseStdev *= dNoiseMultiplier;
             g.DLiabilityNoiseStdev *= dNoiseMultiplier;
+
+            g.VariableSettings["P Noise Multiplier"] = pNoiseMultiplier;
+            g.VariableSettings["D Noise Multiplier"] = dNoiseMultiplier;
         });
 
         List<Func<LitigGameOptions, LitigGameOptions>> RiskAversionTransformations(bool includeBaselineValue) => new List<Func<LitigGameOptions, LitigGameOptions>>() { GetAndTransform_RiskNeutral, GetAndTransform_RiskAverse,  GetAndTransform_POnlyRiskAverse, GetAndTransform_DOnlyRiskAverse }.Skip(includeBaselineValue ? 0 : 1).ToList();
@@ -768,22 +796,26 @@ namespace ACESim
         {
             g.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.PInitialWealth, Alpha = 10 * 0.000001 };
             g.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.DInitialWealth, Alpha = 10 * 0.000001 };
+            g.VariableSettings["Risk Aversion"] = "Both Risk Averse";
         });
 
         LitigGameOptions GetAndTransform_RiskNeutral(LitigGameOptions options) => GetAndTransform(options, "-rn", g =>
         {
             g.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = g.PInitialWealth };
             g.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = g.DInitialWealth };
+            g.VariableSettings["Risk Aversion"] = "Both Risk Neutral";
         });
         LitigGameOptions GetAndTransform_POnlyRiskAverse(LitigGameOptions options) => GetAndTransform(options, "-ara", g =>
         {
             g.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.PInitialWealth, Alpha = 10 * 0.000001 };
             g.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = g.DInitialWealth };
+            g.VariableSettings["Risk Aversion"] = "P Risk Averse";
         });
         LitigGameOptions GetAndTransform_DOnlyRiskAverse(LitigGameOptions options) => GetAndTransform(options, "-dara", g =>
         {
             g.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = g.PInitialWealth };
             g.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.DInitialWealth, Alpha = 10 * 0.000001 };
+            g.VariableSettings["Risk Aversion"] = "D Risk Averse";
         });
         List<Func<LitigGameOptions, LitigGameOptions>> AllowAbandonAndDefaultsTransformations(bool includeBaselineValue)
         {
@@ -796,6 +828,7 @@ namespace ACESim
         LitigGameOptions GetAndTransform_AllowAbandonAndDefaults(LitigGameOptions options, bool allowAbandonAndDefaults) => GetAndTransform(options, "-aban" + allowAbandonAndDefaults, g =>
         {
             g.AllowAbandonAndDefaults = allowAbandonAndDefaults;
+            g.VariableSettings["Allow Abandon And Defaults"] = allowAbandonAndDefaults;
         });
         List<Func<LitigGameOptions, LitigGameOptions>> ProbabilityTrulyLiableTransformations(bool includeBaselineValue)
         {
@@ -808,6 +841,8 @@ namespace ACESim
         LitigGameOptions GetAndTransform_ProbabilityTrulyLiable(LitigGameOptions options, double probability) => GetAndTransform(options, "-ptl" + probability, g =>
         {
             ((LitigGameExogenousDisputeGenerator)g.LitigGameDisputeGenerator).ExogenousProbabilityTrulyLiable = probability;
+
+            g.VariableSettings["Probability Truly Liable"] = probability;
         });
 
         List<Func<LitigGameOptions, LitigGameOptions>> NoiseToProduceCaseStrengthTransformations(bool includeBaselineValue)
@@ -821,6 +856,7 @@ namespace ACESim
         LitigGameOptions GetAndTransform_NoiseToProduceCaseStrength(LitigGameOptions options, double noise) => GetAndTransform(options, "-casens" + noise, g =>
         {
             ((LitigGameExogenousDisputeGenerator)g.LitigGameDisputeGenerator).StdevNoiseToProduceLiabilityStrength = noise;
+            g.VariableSettings["Noise To Produce Case Strength"] = noise;
         });
         List<Func<LitigGameOptions, LitigGameOptions>> LiabilityVsDamagesTransformations(bool includeBaselineValue)
         {
@@ -839,6 +875,8 @@ namespace ACESim
                 g.NumLiabilityStrengthPoints = 1;
                 g.NumLiabilitySignals = 1;
             }
+
+            g.VariableSettings["Issue"] = liabilityIsUncertain ? "Liability" : "Damages";
         });
 
 

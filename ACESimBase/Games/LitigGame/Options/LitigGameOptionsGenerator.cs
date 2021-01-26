@@ -35,9 +35,10 @@ namespace ACESim
             Usual,
             Ambitious,
             PerfectInfo,
+            FeeShiftingArticleBase,
         }
 
-        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.Custom3;
+        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.FeeShiftingArticleBase;
 
         public static LitigGameOptions GetLitigGameOptions() => LitigGameChoice switch
         {
@@ -64,6 +65,7 @@ namespace ACESim
             LitigGameOptionSetChoices.Usual => BothUncertain_2BR(),
             LitigGameOptionSetChoices.Ambitious => Ambitious(),
             LitigGameOptionSetChoices.PerfectInfo => PerfectInformation(courtIsPerfectToo: false),
+            LitigGameOptionSetChoices.FeeShiftingArticleBase => FeeShiftingArticleBase(),
             _ => throw new Exception()
         };
 
@@ -388,16 +390,16 @@ namespace ACESim
         {
             var options = BaseOptions();
 
-            options.InvertChanceDecisions = true;
+            options.InvertChanceDecisions = true; 
 
-            options.NumOffers = 10; // DEBUG
+            options.NumOffers = 10; 
             options.NumLiabilityStrengthPoints = 5;
             options.NumLiabilitySignals = 5; 
 
             options.NumDamagesSignals = 1;
             options.NumDamagesStrengthPoints = 1;
 
-            options.PInitialWealth = options.DInitialWealth = 25.0;
+            options.PInitialWealth = options.DInitialWealth = 10.0;
             options.DamagesMin = 0.0;
             options.DamagesMax = 1.0;
             options.PTrialCosts = options.DTrialCosts = 0.25;
@@ -407,6 +409,17 @@ namespace ACESim
 
             options.LoserPays = false;
             options.LoserPaysMultiple = 1.0;
+
+
+            options.LitigGameDisputeGenerator = new LitigGameExogenousDisputeGenerator()
+            {
+                ExogenousProbabilityTrulyLiable = 0.5,
+                StdevNoiseToProduceLiabilityStrength = 0.35,
+            };
+
+            options.PLiabilityNoiseStdev = 0.2;
+            options.DLiabilityNoiseStdev = 0.2;
+            options.CourtLiabilityNoiseStdev = Math.Min(options.PLiabilityNoiseStdev, options.DLiabilityNoiseStdev);
 
             options.SkipFileAndAnswerDecisions = false;
             options.NumPotentialBargainingRounds = 1;

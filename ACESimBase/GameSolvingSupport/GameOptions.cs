@@ -21,6 +21,11 @@ namespace ACESim
 
         public bool InvertChanceDecisions { get; set; }
 
+        /// <summary>
+        /// If the launcher creates many different versions of game options, it can set the value of options here. This can make it easier to combine different game options into reports afterwards.
+        /// </summary>
+        public Dictionary<string, object> VariableSettings = new Dictionary<string, object>();
+
         public virtual void Simplify()
         {
 
