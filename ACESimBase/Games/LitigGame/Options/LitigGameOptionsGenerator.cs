@@ -392,10 +392,9 @@ namespace ACESim
 
             options.InvertChanceDecisions = true; 
 
-            // DEBUG
-            options.NumOffers = 10;  // 10
-            options.NumLiabilityStrengthPoints = 2; // 5
-            options.NumLiabilitySignals = 3; // 5
+            options.NumOffers = 10;
+            options.NumLiabilityStrengthPoints = 5;
+            options.NumLiabilitySignals = 5;
 
             options.NumDamagesSignals = 1;
             options.NumDamagesStrengthPoints = 1;
@@ -408,11 +407,10 @@ namespace ACESim
             options.PerPartyCostsLeadingUpToBargainingRound = 0;
             options.CostsMultiplier = 1;
 
-            options.LoserPays = true; // DEBUG
+            options.LoserPays = false;
             options.LoserPaysMultiple = 1.0;
-            options.LoserPaysMarginOfVictoryThreshold = 1.5; // DEBUG
-            options.LoserPaysOnlyLargeMarginOfVictory = true; // DEBUG
-
+            options.LoserPaysMarginOfVictoryThreshold = 0.8; 
+            options.LoserPaysOnlyLargeMarginOfVictory = false; 
 
             options.LitigGameDisputeGenerator = new LitigGameExogenousDisputeGenerator()
             {
