@@ -29,7 +29,11 @@ namespace ACESim
         public List<double[]> AllScenarioUtilities;
         public FloatSet CustomResult => AllScenarioCustomResult[CurrentInitializedScenarioIndex];
         public List<FloatSet> AllScenarioCustomResult;
-        public int FinalUtilitiesNodeNumber;
+        public int FinalUtilitiesNodeNumber
+        {
+            get;
+            set;
+        }
         public int GetNodeNumber() => FinalUtilitiesNodeNumber;
         public int? AltNodeNumber { get; set; }
         public int GetNumPossibleActions() => 0;

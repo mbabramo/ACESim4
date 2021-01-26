@@ -31,6 +31,8 @@ namespace ACESim
         {
         }
 
+        static int DEBUGX = 0;
+
         public override void UpdateGameProgressFollowingAction(byte currentDecisionByteCode, byte action)
         {
             switch (currentDecisionByteCode)
@@ -157,23 +159,38 @@ namespace ACESim
                         MyProgress.PWinsAtTrial = true; /* IMPORTANT: This highlights that when there is only one liability signal, the court ALWAYS finds liability */
                     else
                     {
+                        if (DEBUGX == 1)
+                        {
+                            var DEBUGY = 0;
+                        }
                         if (MyDefinition.Options.LoserPays && MyDefinition.Options.LoserPaysOnlyLargeMarginOfVictory)
                         {
-                            MyProgress.PWinsAtTrial = action > (MyDefinition.Options.NumLiabilitySignals + 1.0) / 2.0; // e.g., If we have four signals, then we need to be a 3 or 4, not a 1 or 2, when action is one-based (comparison will be to 2.5)
+                            MyProgress.PWinsAtTrial = action > (MyDefinition.Options.NumCourtLiabilitySignals + 1.0) / 2.0; // e.g., If we have four signals, then we need to be a 3 or 4, not a 1 or 2, when action is one-based (comparison will be to 2.5)
                             //if there were an odd number (not currently allowed)
-                            //    MyProgress.PWinsAtTrial = action > (MyDefinition.Options.NumLiabilitySignals + 1) / 2; // e.g., if we have three signals, then we need the one-based action to be greater than 4 / 2 = 2, because the midpoint (2) is not enough. If we have four signals, then we need to be a 3 or 4, not a 1 or 2, when action is one-based
-                            double courtLiabilitySignal = Game.ConvertActionToUniformDistributionDraw(action, MyDefinition.Options.NumLiabilitySignals, false);
+                            //    MyProgress.PWinsAtTrial = action > (MyDefinition.Options.NumCourtLiabilitySignals + 1) / 2; // e.g., if we have three signals, then we need the one-based action to be greater than 4 / 2 = 2, because the midpoint (2) is not enough. If we have four signals, then we need to be a 3 or 4, not a 1 or 2, when action is one-based
+                            double courtLiabilitySignal = Game.ConvertActionToUniformDistributionDraw(action, MyDefinition.Options.NumCourtLiabilitySignals, false);
                             if (MyProgress.PWinsAtTrial)
                             {
                                 MyProgress.WinIsByLargeMargin = courtLiabilitySignal >= MyDefinition.Options.LoserPaysMarginOfVictoryThreshold;
+                                if (MyProgress.WinIsByLargeMargin)
+                                {
+                                    var DEBUG = true;
+                                    throw new Exception();
+                                }
                             }
-                            else
+                            else if (MyProgress.DWinsAtTrial)
                             {
                                 MyProgress.WinIsByLargeMargin = courtLiabilitySignal <= 1.0 - MyDefinition.Options.LoserPaysMarginOfVictoryThreshold;
+                                if (MyProgress.WinIsByLargeMargin)
+                                {
+                                    var DEBUG = true;
+                                    throw new Exception();
+                                }
                             }
                         }
                         else
                             MyProgress.PWinsAtTrial = action == 2 /* signal must be the HIGH value for plaintiff to win */;
+                        DEBUGX++;
                     }
                     if (MyProgress.PWinsAtTrial == false)
                     {
@@ -399,9 +416,14 @@ namespace ACESim
             }
             if (gameDefinition.Options.LoserPays)
             {
+                bool DEBUG = ((outcome.TrialOccurs && (!gameDefinition.Options.LoserPaysOnlyLargeMarginOfVictory))
+                    ||
+                    (gameDefinition.Options.LoserPaysAfterAbandonment && (pAbandons || dDefaults)));
                 loserPaysApplies = ((outcome.TrialOccurs && (!gameDefinition.Options.LoserPaysOnlyLargeMarginOfVictory || largeMarginAtTrial)) 
                     || 
                     (gameDefinition.Options.LoserPaysAfterAbandonment && (pAbandons || dDefaults)));
+                if (DEBUG != loserPaysApplies || loserPaysApplies)
+                    throw new Exception();
                 // NOTE: If punishPlaintiffUnderRule68, then plaintiff has won and usually would be entitled to fee shifting, but because of Rule 68, now defendant is entitled to fee shifting. So, loser pays still applies.
             }
             else
