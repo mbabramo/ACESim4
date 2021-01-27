@@ -404,10 +404,11 @@ namespace ACESim
             options.DamagesMax = 1.0;
             options.PTrialCosts = options.DTrialCosts = 0.15;
             options.PFilingCost = options.DAnswerCost = 0.15;
+            options.PFilingCost_PortionSavedIfDDoesntAnswer = 0;
             options.PerPartyCostsLeadingUpToBargainingRound = 0;
             options.CostsMultiplier = 1.0;
 
-            options.LoserPays = false;
+            options.LoserPays = false; 
             options.LoserPaysMultiple = 1.0;
             options.LoserPaysMarginOfVictoryThreshold = 0.8; 
             options.LoserPaysOnlyLargeMarginOfVictory = false; 

@@ -141,6 +141,10 @@ namespace ACESim
         /// </summary>
         public double PFilingCost;
         /// <summary>
+        /// The portion of the filing cost that is saved if the defendant doesn't answer. If non-zero, this changes the meaning of "filing cost" into "litigation cost up to first bargaining round," with some of that borne in filing and some of it borne only if the defendant doesn't answer.
+        /// </summary>
+        public double PFilingCost_PortionSavedIfDDoesntAnswer = 0;
+        /// <summary>
         /// Cost that the defendant must pay for answering
         /// </summary>
         public double DAnswerCost;

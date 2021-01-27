@@ -173,7 +173,7 @@ namespace ACESim
 
                 NumRandomIterationsForSummaryTable = SummaryTableRandomPathsIterations,
                 GenerateReportsByPlaying = true,
-                PrintInformationSets = false, 
+                PrintInformationSets = false,  
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
                 PrintGameTree = false, 
                 ActionStrategiesToUseInReporting =
@@ -525,7 +525,7 @@ namespace ACESim
                 {
                     for (int c = 0; c < result.csvReports.Count; c++)
                     {
-                        if (c == 0 && result.ReportNames[c].Contains(optionSetName))
+                        if (c == 0 && result.ReportNames != null && result.ReportNames.Count() > c && result.ReportNames[c].Contains(optionSetName))
                             masterReportNamePlusOptionSet = masterReportName; // remove the redundancy
                         string reportName = masterReportNamePlusOptionSet ?? "results";
                         if (result.ReportNames.Count() > c && result.ReportNames[c] is (not null) and string reportName2)

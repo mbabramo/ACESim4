@@ -367,7 +367,13 @@ namespace ACESim
             }
 
             double costsMultiplier = gameDefinition.Options.CostsMultiplier;
-            double pFilingCostIncurred = pFiles ? gameDefinition.Options.PFilingCost * costsMultiplier : 0;
+            double pFilingCostIncurred = 0;
+            if (pFiles)
+            {
+                pFilingCostIncurred = gameDefinition.Options.PFilingCost * costsMultiplier;
+                if (!dAnswers)
+                    pFilingCostIncurred -= pFilingCostIncurred * gameDefinition.Options.PFilingCost_PortionSavedIfDDoesntAnswer;
+            }
             double dAnswerCostIncurred = dAnswers ? gameDefinition.Options.DAnswerCost * costsMultiplier : 0;
             double pTrialCostsIncurred = outcome.TrialOccurs ? gameDefinition.Options.PTrialCosts * costsMultiplier * trialCostsMultiplier : 0;
             double dTrialCostsIncurred = outcome.TrialOccurs ? gameDefinition.Options.DTrialCosts * costsMultiplier * trialCostsMultiplier : 0;
