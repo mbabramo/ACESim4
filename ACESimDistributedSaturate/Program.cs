@@ -1,4 +1,5 @@
-﻿using System;
+﻿using LitigCharts;
+using System;
 using System.Diagnostics;
 using System.IO;
 

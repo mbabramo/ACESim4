@@ -504,7 +504,7 @@ namespace ControlExcel
         static void Main(string[] args)
         {
             //SocialWelfareComparisonGraph();
-            OffersGraph(); // needs work and more data
+            //OffersGraph(); // needs work and more data
             //DistributionAtStageGraph();
             //CompletionStageGraph();
             //ErrorAllocationGraph();

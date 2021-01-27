@@ -25,13 +25,13 @@ namespace ACESim
 
         // Fee shifting article
         public bool IncludeNonCriticalTransformations = false; // DEBUG
-        public FeeShiftingRule[] FeeShiftingModes = new[] { FeeShiftingRule.American, FeeShiftingRule.English, FeeShiftingRule.Rule68, FeeShiftingRule.Rule68English, FeeShiftingRule.MarginOfVictory60, FeeShiftingRule.MarginOfVictory80 };
-        public double[] CostsMultipliers = new double[] { 1.0, 0.125, 0.25, 0.5, 2.0, 4.0, 8.0 };
+        public FeeShiftingRule[] FeeShiftingModes = new[] { FeeShiftingRule.American, FeeShiftingRule.English }; // DEBUG , FeeShiftingRule.Rule68, FeeShiftingRule.Rule68English, FeeShiftingRule.MarginOfVictory60, FeeShiftingRule.MarginOfVictory80 };
+        public double[] CostsMultipliers = new double[] { 1.0, 0.5, 2.0 }; // DEBUG 0.125, 0.25, 0.5, 2.0, 4.0, 8.0 };
         public double[] RelativeCostsMultipliers = new double[] { 1.0, 0.5, 2.0 };
         public double[] FeeShiftingMultipliers = new double[] { 1.0, 0.5, 2.0, 4.0 };
         public double[] ProbabilitiesTrulyLiable = new double[] { 0.5, 0.1, 0.9 };
         public double[] StdevsNoiseToProduceLiabilityStrength = new double[] { 0.35, 0, 0.70 };
-        public (double pNoiseMultiplier, double dNoiseMultiplier)[] AccuracyMultipliers = new (double pNoiseMultiplier, double dNoiseMultiplier)[] { (1.0, 1.0), (0.50, 0.50), (2.0, 2.0), (2.0, 0.5), (0.5, 2.0) }; // , (0.25, 0.25), (0.25, 1.0), (1.0, 0.25) };
+        public (double pNoiseMultiplier, double dNoiseMultiplier)[] AccuracyMultipliers = new (double pNoiseMultiplier, double dNoiseMultiplier)[] { (1.0, 1.0), (0.50, 0.50), (2.0, 2.0) }; // DEBUG (2.0, 0.5), (0.5, 2.0) }; // , (0.25, 0.25), (0.25, 1.0), (1.0, 0.25) };
 
         public enum FeeShiftingRule
         {
@@ -625,16 +625,16 @@ namespace ACESim
         public List<List<LitigGameOptions>> GetFeeShiftingArticleGamesSets(bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical)
         {
             List<List<LitigGameOptions>> result = new List<List<LitigGameOptions>>();
-            const int numCritical = 3; // critical transformations are all interacted with one another and then with each of the other transformations
+            const int numCritical = 4; // critical transformations are all interacted with one another and then with each of the other transformations
             List<List<Func<LitigGameOptions, LitigGameOptions>>> allTransformations = new List<List<Func<LitigGameOptions, LitigGameOptions>>>()
             {
                 // Can always choose any of these:
                 FeeShiftingModeTransformations(true),
                 CostsMultiplierTransformations(true),
                 FeeShiftingMultiplierTransformations(true),
+                NoiseTransformations(true),
                 // And then can vary ONE of these:
                 PRelativeCostsTransformations(includeBaselineValueForNoncritical),
-                NoiseTransformations(includeBaselineValueForNoncritical),
                 RiskAversionTransformations(includeBaselineValueForNoncritical),
                 AllowAbandonAndDefaultsTransformations(includeBaselineValueForNoncritical),
                 ProbabilityTrulyLiableTransformations(includeBaselineValueForNoncritical),
