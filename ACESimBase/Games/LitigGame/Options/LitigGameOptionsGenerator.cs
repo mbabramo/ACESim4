@@ -402,12 +402,12 @@ namespace ACESim
             options.PInitialWealth = options.DInitialWealth = 10.0;
             options.DamagesMin = 0.0;
             options.DamagesMax = 1.0;
-            options.PTrialCosts = options.DTrialCosts = 0.25;
-            options.PFilingCost = options.DAnswerCost = 0.10;
+            options.PTrialCosts = options.DTrialCosts = 0.15;
+            options.PFilingCost = options.DAnswerCost = 0.15;
             options.PerPartyCostsLeadingUpToBargainingRound = 0;
-            options.CostsMultiplier = 1;
+            options.CostsMultiplier = 1.0; 
 
-            options.LoserPays = false;
+            options.LoserPays = false; 
             options.LoserPaysMultiple = 1.0;
             options.LoserPaysMarginOfVictoryThreshold = 0.8; 
             options.LoserPaysOnlyLargeMarginOfVictory = false; 
@@ -418,8 +418,8 @@ namespace ACESim
                 StdevNoiseToProduceLiabilityStrength = 0.35,
             };
 
-            options.PLiabilityNoiseStdev = 0.2;
-            options.DLiabilityNoiseStdev = 0.2;
+            options.PLiabilityNoiseStdev = 0.1;
+            options.DLiabilityNoiseStdev = 0.1;
             options.CourtLiabilityNoiseStdev = Math.Min(options.PLiabilityNoiseStdev, options.DLiabilityNoiseStdev);
 
             options.SkipFileAndAnswerDecisions = false;

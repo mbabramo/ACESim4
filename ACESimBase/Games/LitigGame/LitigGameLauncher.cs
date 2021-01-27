@@ -22,14 +22,16 @@ namespace ACESim
         public bool TestDisputeGeneratorVariations = false;
         public bool IncludeRunningSideBetVariations = false;
         public bool LimitToAmerican = true;
-        public FeeShiftingRule[] FeeShiftingModes = new[] { FeeShiftingRule.American, FeeShiftingRule.English, FeeShiftingRule.Rule68, FeeShiftingRule.MarginOfVictory60, FeeShiftingRule.MarginOfVictory80 };
-        public double[] CostsMultipliers = new double[] { 1.0, 0.1, 0.25, 0.5, 2.0, 4.0, 10.0 };
+
+        // Fee shifting article
+        public bool IncludeNonCriticalTransformations = false; // DEBUG
+        public FeeShiftingRule[] FeeShiftingModes = new[] { FeeShiftingRule.American, FeeShiftingRule.English, FeeShiftingRule.Rule68, FeeShiftingRule.Rule68English, FeeShiftingRule.MarginOfVictory60, FeeShiftingRule.MarginOfVictory80 };
+        public double[] CostsMultipliers = new double[] { 1.0, 0.125, 0.25, 0.5, 2.0, 4.0, 8.0 };
         public double[] RelativeCostsMultipliers = new double[] { 1.0, 0.5, 2.0 };
-        public double[] FeeShiftingMultipliers = new double[] { 1.0, 0.5, 2.0 };
+        public double[] FeeShiftingMultipliers = new double[] { 1.0, 0.5, 2.0, 4.0 };
         public double[] ProbabilitiesTrulyLiable = new double[] { 0.5, 0.1, 0.9 };
         public double[] StdevsNoiseToProduceLiabilityStrength = new double[] { 0.35, 0, 0.70 };
-        public (double pNoiseMultiplier, double dNoiseMultiplier)[] AccuracyMultipliers = new (double pNoiseMultiplier, double dNoiseMultiplier)[] { (1.0, 1.0), (0.50, 0.50), (2.0, 2.0), (0.25, 1.0), (1.0, 0.25) };
-        public double StdevPlayerNoise = 0.3; // baseline is 0.3
+        public (double pNoiseMultiplier, double dNoiseMultiplier)[] AccuracyMultipliers = new (double pNoiseMultiplier, double dNoiseMultiplier)[] { (1.0, 1.0), (0.50, 0.50), (2.0, 2.0), (2.0, 0.5), (0.5, 2.0) }; // , (0.25, 0.25), (0.25, 1.0), (1.0, 0.25) };
 
         public enum FeeShiftingRule
         {
@@ -452,7 +454,7 @@ namespace ACESim
                 foreach (ILitigGameDisputeGenerator d in disputeGenerators)
                 {
                     var options = LitigGameOptionsGenerator.BaseOptions();
-                    options.PLiabilityNoiseStdev = options.DLiabilityNoiseStdev = StdevPlayerNoise;
+                    options.PLiabilityNoiseStdev = options.DLiabilityNoiseStdev = 0.3;
                     options.CostsMultiplier = costMultiplier;
                     if (HigherRiskAversion)
                     {
@@ -640,7 +642,7 @@ namespace ACESim
                 LiabilityVsDamagesTransformations(includeBaselineValueForNoncritical)
             };
             List<List<Func<LitigGameOptions, LitigGameOptions>>> criticalTransformations = allTransformations.Take(numCritical).ToList();
-            List<List<Func<LitigGameOptions, LitigGameOptions>>> noncriticalTransformations = allTransformations.Skip(numCritical).ToList();
+            List<List<Func<LitigGameOptions, LitigGameOptions>>> noncriticalTransformations = allTransformations.Skip(IncludeNonCriticalTransformations ? numCritical : allTransformations.Count()).ToList();
             List<List<Func<LitigGameOptions, LitigGameOptions>>> transformations = useAllPermutationsOfTransformations ? allTransformations : criticalTransformations;
             List<LitigGameOptions> gameOptions = new List<LitigGameOptions>(); // ApplyPermutationsOfTransformations(() => (LitigGameOptions) LitigGameOptionsGenerator.FeeShiftingArticleBase().WithName("FSA"), transformations);
             if (!useAllPermutationsOfTransformations)
