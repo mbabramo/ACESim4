@@ -624,6 +624,53 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 tabbedtextf("\n");
         }
 
+        public void MakePlayerMovesStrictlyMixed(Rational[] allMoveProbabilities, Rational minValue)
+        {
+
+            int offset = nseqs[1] + 1 + nisets[2];
+            MakePlayerMovesStrictlyMixed(1, allMoveProbabilities, 0, minValue);
+            MakePlayerMovesStrictlyMixed(2, allMoveProbabilities, offset, minValue);
+        }
+
+        private void MakePlayerMovesStrictlyMixed(int pl, Rational[] allMoveProbabilities, int offset, Rational minValue)
+        {
+            int indexInAllMovesArray = 0;
+            int moveIndexInInformationSet;
+            ECTAMove c;
+            ECTAInformationSet h;
+            for (int hindex = firstiset[pl]; hindex < firstiset[pl + 1]; hindex++)
+            {
+                h = isets[hindex];
+                Rational total = 0;
+                Rational totalAboveMinValue = 0;
+                moveIndexInInformationSet = 0;
+                for (int cindex = h.move0; moveIndexInInformationSet < h.nmoves; cindex++, moveIndexInInformationSet++)
+                {
+                    c = moves[cindex];
+                    c.behavprob = allMoveProbabilities[indexInAllMovesArray++];
+                    if (c.behavprob < minValue)
+                        c.behavprob = minValue;
+                    total += c.behavprob;
+                    if (c.behavprob > minValue)
+                        totalAboveMinValue += (c.behavprob - minValue).CanonicalForm;
+                }
+                Rational excess = total - (Rational)1;
+                indexInAllMovesArray = 0;
+                moveIndexInInformationSet = 0;
+                for (int cindex = h.move0; moveIndexInInformationSet < h.nmoves; cindex++, moveIndexInInformationSet++)
+                {
+                    c = moves[cindex];
+                    if (c.behavprob > minValue)
+                    {
+                        var proportionOfExcess = (c.behavprob - minValue) / totalAboveMinValue;
+                        c.behavprob -= excess * proportionOfExcess;
+                        c.behavprob = c.behavprob.CanonicalForm;
+                    }
+                    allMoveProbabilities[indexInAllMovesArray++] = c.behavprob;
+                }
+            }
+        }
+
         private IEnumerable<Rational> GetPlayerMoves(int pl, Rational[] rplan, int offset)
         {
             int i;
@@ -644,14 +691,19 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             }
         }
 
-        public IEnumerable<Rational> GetPlayerMoves()
+        public IEnumerable<Rational> GetPlayerMovesFromSolution()
         {
-
             int offset = nseqs[1] + 1 + nisets[2];
             foreach (Rational r in GetPlayerMoves(1, Lemke.solz, 0))
                 yield return r;
             foreach (Rational r in GetPlayerMoves(2, Lemke.solz, offset))
                 yield return r;
+        }
+
+        public void SetInitialPlayerMoves(IEnumerable<Rational> probabilities)
+        {
+            foreach (var zipped in probabilities.Zip(moves))
+                zipped.Second.behavprob = zipped.First;
         }
 
         void outbehavstrat_moves(int pl, Rational[] rplan, int offset, bool bnewline)

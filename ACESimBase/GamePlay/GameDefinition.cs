@@ -523,6 +523,11 @@ namespace ACESim
         public List<List<int>> AllScenarioPermutations;
         public int[] PostWarmupScenarioIndices; // the indices in AllScenarioPermutations corresponding to the first scenario for each post-warmup possibility
 
+        public virtual void SwitchToAlternativeOptions(bool changeToAlternate)
+        {
+
+        }
+
         public (int indexInPostWarmupScenarios, int? indexInWarmupScenarios, double weightOnOpponentsStrategyP0, double weightOnOpponentsStrategyOtherPlayers) GetScenarioIndexAndWeightValues(int overallScenarioIndex, bool warmupPhase)
         {
             // e.g., suppose we have two postwarmup scenarios and three warmup scenarios, multiplied by five weight options.

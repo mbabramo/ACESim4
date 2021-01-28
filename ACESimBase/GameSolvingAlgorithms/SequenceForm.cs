@@ -100,6 +100,26 @@ namespace ACESimBase.GameSolvingAlgorithms
                 else
                     return InformationSetNode.ToStringWithoutValues();
             }
+
+            public double[] GetProbabilities()
+            {
+                return InformationSetNode?.GetCurrentProbabilitiesAsArray() ?? ChanceNode.GetActionProbabilities().ToArray();
+            }
+
+            public Rational[] GetProbabilitiesAsRationals()
+            {
+                var results = GetProbabilities().Select(x => (int)(x * 10_000)).Select(x => (Rational)x / (Rational)10_000).ToArray();
+                // make numbers add up to exactly 1
+                Rational total = 0;
+                for (int i = 0; i < results.Length; i++)
+                {
+                    if (i < results.Length - 1)
+                        total += results[i];
+                    else
+                        results[i] = (Rational)1 - total;
+                }
+                return results;
+            }
         }
         List<FinalUtilitiesNode> Outcomes => GameNodes.Where(x => x != null && x.GameState is FinalUtilitiesNode).Select(x => (FinalUtilitiesNode)x.GameState).ToList();
 
@@ -134,24 +154,41 @@ namespace ACESimBase.GameSolvingAlgorithms
             }
 
             bool usePresetEquilibria = false; // use this as a shortcut to replay some equilibrium
-            List<List<double>> equilibria = null; 
+            List<double[]> equilibria = null;
             if (usePresetEquilibria)
             {
-                List<double> eq = new List<double> {
-
+                double[] eq = new double[] {
                     //1,0,0.522862,0.477138,1,0,0.975029,0.0249706,1,0,0.522862,0.477138,1,0,0.975029,0.0249706,1,0,0,1,0,1,0,1,1,0,0,1,0,1,0,1,1,0,0,1,1,0,1,0,1,0,0.500793,0.499207,1,0,1,0,1,0,0.5,0.5,0,1,0,1,1,0,0.5,0.5,0,1,0,1
 
                     1,0,0,1,1/2,1/2,0,1,1,0,0,1,1/2,1/2,1139690000.0/1152971127.0,13281127.0/1152971127.0,1,0,0,1,1.0/2.0,1.0/2.0,0,1,1,0,0,1,1.0/2.0,1.0/2.0,0,1,1,0,0,1,1.0/2.0,1.0/2.0,1,0,1,0,13513.0/26983.0,13470.0/26983.0,1,0,1,0,1,0,0,1,1.0/2.0,1.0/2.0,0,1,1,0,0,1,1.0/2.0,1.0/2.0,0,1
 
                     //1,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-
-
                 };
-                equilibria = new List<List<double>>() { eq };
+                equilibria = new List<double[]>() { eq };
             }
             else
-                equilibria = ecta.Execute_ReturningDoubles(t => SetupECTA(t));
+            {
+                bool updateScenarios = false; // Doesn't work right now
+                Action<int, ECTATreeDefinition> scenarioUpdater = updateScenarios ? ScenarioUpdater() : null;
+                var results = ecta.Execute_ReturningRationalsAndDoubles(t => SetupECTA(t), scenarioUpdater);
+                equilibria = results.doubles;
+            }
             await GenerateReportsFromEquilibria(equilibria, reportCollection);
+        }
+
+        private Action<int, ECTATreeDefinition> ScenarioUpdater()
+        {
+            return (index, treeDefinition) =>
+            {
+                ChangeScenarioForSubsequentPrior(index);
+                UpdateECTAOutcomes(treeDefinition);
+            };
+        }
+
+        private void ChangeScenarioForSubsequentPrior(int i)
+        {
+            if (i != 0)
+                ReinitializeForScenario(i, false);
         }
 
         public void DetermineGameNodeRelationships()
@@ -293,12 +330,9 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         public void SetupECTA(ECTATreeDefinition t)
         {
+            int[][] pay = GetOutcomesForECTA();
 
-            int[][] pay = new int[2][];
-            pay[0] = ConvertedToDesiredRange(Outcomes.Select(x => x.Utilities[0]));
-            pay[1] = ConvertedToDesiredRange(Outcomes.Select(x => x.Utilities[1]));
-
-            t.alloctree(GameNodes.Count(),InformationSetInfos.Count(),MoveIndexToInfoSetIndex.Count(), Outcomes.Count);
+            t.alloctree(GameNodes.Count(), InformationSetInfos.Count(), MoveIndexToInfoSetIndex.Count(), Outcomes.Count);
 
             t.firstiset[0] = 0;
             t.firstiset[1] = FirstInformationSetInfosIndexForPlayers[1];
@@ -314,7 +348,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             t.nodes[ECTATreeDefinition.rootindex].father = -1;
             for (int n = 2; n < t.nodes.Length; n++)
             {
-                t.nodes[n].father = (int) GameNodes[n].ParentNodeID;
+                t.nodes[n].father = (int)GameNodes[n].ParentNodeID;
                 if (GameNodes[n].GameState is FinalUtilitiesNode outcome)
                 {
                     if (firstOutcome == -1)
@@ -322,13 +356,13 @@ namespace ACESimBase.GameSolvingAlgorithms
                     t.nodes[n].terminal = true;
                     t.nodes[n].outcome = zindex;
                     z.whichnode = n;
-                    z.pay[0] = (Rational) pay[0][zindex];
-                    z.pay[1] = (Rational) pay[1][zindex];
+                    z.pay[0] = (Rational)pay[0][zindex];
+                    z.pay[1] = (Rational)pay[1][zindex];
                     if (zindex < t.outcomes.Length - 1)
                         z = t.outcomes[++zindex];
                 }
             }
-                
+
             for (int n = 1; n < GameNodes.Count(); n++)
             {
                 if (GameNodes[n].GameState is not FinalUtilitiesNode)
@@ -373,10 +407,42 @@ namespace ACESimBase.GameSolvingAlgorithms
                             t.moves[moveIndex].behavprob = moveNumber == 1 ? (Rational)1 : (Rational)0;
                         }
                         else
-                            t.moves[moveIndex].behavprob = rational.Item1 / (Rational) rational.Item2;
+                            t.moves[moveIndex].behavprob = rational.Item1 / (Rational)rational.Item2;
                     }
                 }
             }
+        }
+
+
+        public void UpdateECTAOutcomes(ECTATreeDefinition t)
+        {
+            int[][] pay = GetOutcomesForECTA();
+
+            int zindex = 0;
+            var z = t.outcomes[0];
+
+            int firstOutcome = -1;
+            for (int n = 2; n < t.nodes.Length; n++)
+            {
+                if (GameNodes[n].GameState is FinalUtilitiesNode outcome)
+                {
+                    if (firstOutcome == -1)
+                        firstOutcome = n;
+                    t.nodes[n].outcome = zindex;
+                    z.pay[0] = (Rational)pay[0][zindex];
+                    z.pay[1] = (Rational)pay[1][zindex];
+                    if (zindex < t.outcomes.Length - 1)
+                        z = t.outcomes[++zindex];
+                }
+            }
+        }
+
+        private int[][] GetOutcomesForECTA()
+        {
+            int[][] pay = new int[2][];
+            pay[0] = ConvertedToDesiredRange(Outcomes.Select(x => x.Utilities[0]));
+            pay[1] = ConvertedToDesiredRange(Outcomes.Select(x => x.Utilities[1]));
+            return pay;
         }
 
         private int PlayerIDToECTA(int playerID) => playerID switch
@@ -557,10 +623,10 @@ namespace ACESimBase.GameSolvingAlgorithms
             await GenerateReportsFromEquilibria(results, reportCollection);
         }
 
-        private List<List<double>> ProcessGambitResults(ReportCollection reportCollection, string output)
+        private List<double[]> ProcessGambitResults(ReportCollection reportCollection, string output)
         {
             string[] result = output.Split("\n\r".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-            List<List<double>> resultsAsDoubles = new List<List<double>>();
+            List<double[]> resultsAsDoubles = new List<double[]>();
             if (result.Any())
             {
                 int numEquilibria = result.Length;
@@ -576,7 +642,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                         {
                             numbers.Add(EFGFileReader.RationalStringToDouble(rationalNumberString));
                         }
-                        resultsAsDoubles.Add(numbers);
+                        resultsAsDoubles.Add(numbers.ToArray());
                     }
                 }
             }
@@ -683,7 +749,7 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         #region Equilibria and reporting
 
-        private async Task GenerateReportsFromEquilibria(List<List<double>> equilibria, ReportCollection reportCollection)
+        private async Task GenerateReportsFromEquilibria(List<double[]> equilibria, ReportCollection reportCollection)
         {
             bool includeCorrelatedEquilibriumReport = true;
             if (includeCorrelatedEquilibriumReport)
@@ -736,8 +802,9 @@ namespace ACESimBase.GameSolvingAlgorithms
             }
         }
 
-        private async Task ProcessEquilibrium(ReportCollection reportCollection, bool includeCorrelatedEquilibriumReport, bool includeReportForFirstEquilibrium, bool includeReportForEachEquilibrium, int numEquilibria, List<InformationSetNode> infoSets, int eqNum, bool isFirst, bool isLast, List<double> actionProbabilities)
+        private async Task ProcessEquilibrium(ReportCollection reportCollection, bool includeCorrelatedEquilibriumReport, bool includeReportForFirstEquilibrium, bool includeReportForEachEquilibrium, int numEquilibria, List<InformationSetNode> infoSets, int eqNum, bool isFirst, bool isLast, double[] actionProbabilities)
         {
+
             int totalNumbersProcessed = 0;
             for (int i = 0; i < infoSets.Count(); i++)
             {
@@ -768,6 +835,8 @@ namespace ACESimBase.GameSolvingAlgorithms
                 if (includeCorrelatedEquilibriumReport)
                     infoSet.RecordProbabilitiesAsPastValues();
             }
+
+            CheckOutOfEquilibrium();
 
             //double[] utils = GetAverageUtilities(false);
             //double[] maxPurifiedUtils = GetMaximumUtilitiesFromPurifiedStrategies();

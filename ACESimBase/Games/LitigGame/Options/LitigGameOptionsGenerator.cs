@@ -408,7 +408,7 @@ namespace ACESim
             options.PerPartyCostsLeadingUpToBargainingRound = 0;
             options.CostsMultiplier = 1.0;
 
-            options.LoserPays = false; 
+            options.LoserPays = false;  
             options.LoserPaysMultiple = 1.0;
             options.LoserPaysMarginOfVictoryThreshold = 0.8; 
             options.LoserPaysOnlyLargeMarginOfVictory = false; 

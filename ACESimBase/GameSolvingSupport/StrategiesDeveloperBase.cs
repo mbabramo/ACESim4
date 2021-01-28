@@ -120,21 +120,20 @@ namespace ACESim
                 startingScenarioIndex = restriction;
                 numScenarios = 1;
             }
-            for (int overallScenarioIndex = startingScenarioIndex; overallScenarioIndex < startingScenarioIndex + numScenarios; overallScenarioIndex++)
+            for (OverallScenarioIndex = startingScenarioIndex; OverallScenarioIndex < startingScenarioIndex + numScenarios; OverallScenarioIndex++)
             {
-                OverallScenarioIndex = overallScenarioIndex;
                 string optionSetInfo = $@"Option set {optionSetName}";
                 string scenarioFullName = optionSetInfo;
                 if (GameDefinition.NumScenarioPermutations > 1)
                 {
-                    ReinitializeForScenario(overallScenarioIndex, GameDefinition.UseDifferentWarmup);
+                    ReinitializeForScenario(OverallScenarioIndex, GameDefinition.UseDifferentWarmup);
                     scenarioFullName = GameDefinition.GetNameForScenario_WithOpponentWeight();
                     if (anyScenarioOK)
                         optionSetInfo += $" (scenario irrelevant -- loading only)";
                     else
-                        optionSetInfo += $" (scenario index {overallScenarioIndex} (total scenarios: {GameDefinition.NumScenarioPermutations}) = {scenarioFullName})";
+                        optionSetInfo += $" (scenario index {OverallScenarioIndex} (total scenarios: {GameDefinition.NumScenarioPermutations}) = {scenarioFullName})";
                 }
-                Status.ScenarioIndex = overallScenarioIndex;
+                Status.ScenarioIndex = OverallScenarioIndex;
                 Status.ScenarioName = scenarioFullName;
 
                 TabbedText.WriteLineEvenIfDisabled(optionSetInfo);
@@ -148,8 +147,8 @@ namespace ACESim
                 }
                 else if (constructCorrelatedEquilibrium)
                 { // if doing correlated eq & PCA, we just save PCA data.
-                    RememberScenarioForCorrelatedEquilibrium(overallScenarioIndex);
-                    if ((overallScenarioIndex + 1) % EvolutionSettings.ReduceCorrelatedEquilibriumEveryNScenariosIfCheckingAlongWay == 0 && EvolutionSettings.CheckCorrelatedEquilibriumIncompatibilitiesAlongWay)
+                    RememberScenarioForCorrelatedEquilibrium(OverallScenarioIndex);
+                    if ((OverallScenarioIndex + 1) % EvolutionSettings.ReduceCorrelatedEquilibriumEveryNScenariosIfCheckingAlongWay == 0 && EvolutionSettings.CheckCorrelatedEquilibriumIncompatibilitiesAlongWay)
                         ReduceToCorrelatedEquilibrium_BasedOnPredeterminedIncompatibilities();
                 }
                 else
@@ -1390,10 +1389,39 @@ namespace ACESim
             }
         }
 
-        public void AnalyzeInformationSets()
+        public void AnalyzeInformationSetsPastValues()
         {
             foreach (var infoSet in InformationSets)
                 infoSet.PastValuesAnalyze();
+        }
+
+        private void CheckOutOfEquilibrium()
+        {
+            if (EvolutionSettings.IdentifyOutOfEquilibriumInformationSets == false)
+                return;
+
+            Navigation = Navigation.WithLookupApproach(InformationSetLookupApproach.PlayGameDirectly);
+            GameDefinition.SwitchToAlternativeOptions(true);
+            CalculateUtilitiesAtEachInformationSet utilitiesCalculator = new CalculateUtilitiesAtEachInformationSet();
+            TreeWalk_Tree(utilitiesCalculator);
+            foreach (var informationSet in InformationSets)
+            {
+                var (utilities, utilitiesAtSuccessors, reachProbability) = utilitiesCalculator.GetUtilitiesAndReachProbability(informationSet.GetNodeNumber());
+                int p = informationSet.PlayerIndex;
+                var utilityForPlayer = utilities[p];
+                var utilityFromEachAction = utilitiesAtSuccessors.Select(x => x[p]).ToArray();
+                bool outOfEquilibrium = false;
+                for (int i = 0; i < utilityFromEachAction.Count(); i++)
+                {
+                    if (utilityFromEachAction[i] > utilityForPlayer + 1E-5)
+                    {
+                        outOfEquilibrium = true;
+                    }
+                }
+                if (outOfEquilibrium)
+                    TabbedText.WriteLine($"Out of equilibrium: {informationSet} Utilities from actions: {String.Join(",", utilityFromEachAction)}");
+            }
+            GameDefinition.SwitchToAlternativeOptions(false);
         }
 
         public void PrintGameTree()
@@ -1656,7 +1684,7 @@ namespace ACESim
                 if (EvolutionSettings.PrintInformationSets)
                     PrintInformationSets();
                 if (EvolutionSettings.AnalyzeInformationSets)
-                    AnalyzeInformationSets();
+                    AnalyzeInformationSetsPastValues();
                 TabbedText.ShowConsoleProgressString();
             }
 
@@ -2935,7 +2963,7 @@ namespace ACESim
 
         #region General tree walk
 
-        static bool TraceTreeWalk = false; 
+        public static bool TraceTreeWalk = false; 
 
         public Back TreeWalk_Tree<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, Forward forward = default)
         {

@@ -169,15 +169,23 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             }
         }
 
-        public List<List<double>> Execute_ReturningDoubles(Action<ECTATreeDefinition> setup)
+        public (List<Rational[]> rationals, List<double[]> doubles) Execute_ReturningRationalsAndDoubles(Action<ECTATreeDefinition> setup, Action<int, ECTATreeDefinition> updateActionWhenTracingPathOfEquilibrium)
         {
-            var results = Execute(setup).ToList();
-            var asDoubles = results.Select(x => x.Select(y => (double)y).ToList()).ToList();
-            return asDoubles;
+            var asRationals = Execute(setup, updateActionWhenTracingPathOfEquilibrium).ToList();
+            var asDoubles = asRationals.Select(x => x.Select(y => (double)y).ToArray()).ToList();
+            return (asRationals, asDoubles);
         }
 
-        public List<Rational[]> Execute(Action<ECTATreeDefinition> setup)
+        /// <summary>
+        /// Execute the algorithm, potentially multiple times.
+        /// </summary>
+        /// <param name="setup"></param>
+        /// <param name="updateActionWhenTracingPathOfEquilibrium">Tracing path of an equilibrium means that we use the results of one run to seed the next, but then change the outcomes. The action receives a parameter indicating the index and then changes the outcomes appropriately.</param>
+        /// <returns></returns>
+        public List<Rational[]> Execute(Action<ECTATreeDefinition> setup, Action<int, ECTATreeDefinition> updateActionWhenTracingPathOfEquilibrium)
         {
+            bool tracingEquilibrium = updateActionWhenTracingPathOfEquilibrium != null;
+
             lemkeOptions.maxPivotSteps = 0; // no limit
             lemkeOptions.outputPivotingSteps = outputPivotingSteps;
             lemkeOptions.outputInitialTableau = outputInitialTableau;
@@ -211,14 +219,21 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             t.allocrealplan(t.realplan);
             if (outputPivotResults && outputPivotHeaderFirst) /* otherwise the header is garbled by LCP output */
                 inforesultheader();
-            int priorcount;
+            int priorcount; 
+            Rational[] equilibriumProbabilities = null;
             /* multiple priors 	*/
             for (priorcount = 0; priorcount < numPriors; priorcount++)
             {
                 Stopwatch s = new Stopwatch();
                 s.Start();
                 TabbedText.WriteLine($"Prior {priorcount + 1} of {numPriors}");
-                t.genprior(priorSeed);
+                if (priorcount == 0 || !tracingEquilibrium)
+                    t.genprior(priorSeed);
+                else
+                {
+                    t.MakePlayerMovesStrictlyMixed(equilibriumProbabilities, (Rational)1 / (Rational)1_000);
+                    updateActionWhenTracingPathOfEquilibrium(priorcount, t);
+                }
                 if (outputGameTreeSetup)
                     t.outputGameTree();
                 if (outputPrior)
@@ -228,7 +243,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     inforesultheader();
                 infopivotresult(priorSeed, seed + gamecount);
                 priorSeed++;
-                var equilibriumProbabilities = t.GetPlayerMoves().ToArray(); // probabilities for each non-chance player, ordered by player, information set, and then action.
+                equilibriumProbabilities = t.GetPlayerMovesFromSolution().ToArray(); // probabilities for each non-chance player, ordered by player, information set, and then action.
                 int? sameAsEquilibrium = equilibria.Select((item, index) => ((Rational[] item, int index)?) (item, index)).FirstOrDefault(x => x != null && x.Value.item.SequenceEqual(equilibriumProbabilities))?.index;
                 if (sameAsEquilibrium != null)
                     TabbedText.WriteLine($"Same as equilibrium {sameAsEquilibrium + 1}"); // note that equilibria are one-indexed
