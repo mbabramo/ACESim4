@@ -919,8 +919,8 @@ namespace ACESim
             g.DDamagesNoiseStdev *= dNoiseMultiplier;
             g.DLiabilityNoiseStdev *= dNoiseMultiplier;
 
-            g.VariableSettings["P Noise Multiplier"] = pNoiseMultiplier;
-            g.VariableSettings["D Noise Multiplier"] = dNoiseMultiplier;
+            g.VariableSettings["Noise Multiplier P"] = pNoiseMultiplier;
+            g.VariableSettings["Noise Multiplier D"] = dNoiseMultiplier;
         });
 
         List<Func<LitigGameOptions, LitigGameOptions>> RiskAversionTransformations(bool includeBaselineValue) => new List<Func<LitigGameOptions, LitigGameOptions>>() { GetAndTransform_RiskNeutral, GetAndTransform_RiskAverse,  GetAndTransform_POnlyRiskAverse, GetAndTransform_DOnlyRiskAverse }.Skip(includeBaselineValue ? 0 : 1).ToList();
