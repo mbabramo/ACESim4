@@ -317,17 +317,6 @@ namespace ACESimBase.GameSolvingAlgorithms
             }
         }
 
-        int[] ConvertedToDesiredRange(IEnumerable<double> original)
-        {
-            var origMax = original.Max();
-            var origMin = original.Min();
-            var range = origMax - origMin;
-            var fromZeroToOne = original.Select(x => (x - origMin) / range);
-            if (fromZeroToOne.Any(x => double.IsNaN(x)))
-                throw new Exception();
-            return fromZeroToOne.Select(x => (int)Math.Round(x * EvolutionSettings.SequenceFormTopOfUtilityRange)).ToArray();
-        }
-
         public void SetupECTA(ECTATreeDefinition t)
         {
             int[][] pay = GetOutcomesForECTA();
@@ -440,8 +429,8 @@ namespace ACESimBase.GameSolvingAlgorithms
         private int[][] GetOutcomesForECTA()
         {
             int[][] pay = new int[2][];
-            pay[0] = ConvertedToDesiredRange(Outcomes.Select(x => x.Utilities[0]));
-            pay[1] = ConvertedToDesiredRange(Outcomes.Select(x => x.Utilities[1]));
+            pay[0] = ConvertToIntegralUtilities(Outcomes.Select(x => x.Utilities[0]));
+            pay[1] = ConvertToIntegralUtilities(Outcomes.Select(x => x.Utilities[1]));
             return pay;
         }
 
@@ -528,8 +517,8 @@ namespace ACESimBase.GameSolvingAlgorithms
         {
             const int ECTA_MultiplyOutcomesByThisBeforeRounding = 10_000;
             var outcomes = Outcomes;
-            var player0Rounded = ConvertedToDesiredRange(outcomes.Select(x => x.Utilities[0]));
-            var player1Rounded = ConvertedToDesiredRange(outcomes.Select(x => x.Utilities[1]));
+            var player0Rounded = ConvertToIntegralUtilities(outcomes.Select(x => x.Utilities[0]));
+            var player1Rounded = ConvertToIntegralUtilities(outcomes.Select(x => x.Utilities[1]));
             StringBuilder s = new StringBuilder();
             string s1 = $@"    int pay[2][{outcomes.Count}] = {{ 
         {{ {String.Join(", ", player0Rounded)} }},
@@ -836,7 +825,8 @@ namespace ACESimBase.GameSolvingAlgorithms
                     infoSet.RecordProbabilitiesAsPastValues();
             }
 
-            CheckOutOfEquilibrium();
+            if (EvolutionSettings.IdentifyPressureOnInformationSets)
+                IdentifyPressureOnInformationSets(true, true);
 
             //double[] utils = GetAverageUtilities(false);
             //double[] maxPurifiedUtils = GetMaximumUtilitiesFromPurifiedStrategies();

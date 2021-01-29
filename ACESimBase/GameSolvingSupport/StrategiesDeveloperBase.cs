@@ -17,6 +17,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Runtime.CompilerServices;
 using System.Net.Http.Headers;
 using Microsoft.Extensions.Options;
+using NeuralNetworkNET.APIs.Datasets;
 
 namespace ACESim
 {
@@ -1395,14 +1396,28 @@ namespace ACESim
                 infoSet.PastValuesAnalyze();
         }
 
-        private void CheckOutOfEquilibrium()
+        public void IdentifyPressureOnInformationSets(bool convertToDiscreteNumberOfUtilityLevels, bool testSwitchToAlternativeGameOptions)
         {
-            if (EvolutionSettings.IdentifyOutOfEquilibriumInformationSets == false)
-                return;
+            if (testSwitchToAlternativeGameOptions)
+            {
+                GameDefinition.SwitchToAlternativeOptions(true);
 
+                DoInformationSetPressureAnalysis(convertToDiscreteNumberOfUtilityLevels);
+
+                GameDefinition.SwitchToAlternativeOptions(false);
+            }
+        }
+
+        private void DoInformationSetPressureAnalysis(bool convertToDiscreteNumberOfUtilityLevels)
+        {
+            var originalNavigation = Navigation;
             Navigation = Navigation.WithLookupApproach(InformationSetLookupApproach.PlayGameDirectly);
-            GameDefinition.SwitchToAlternativeOptions(true);
             CalculateUtilitiesAtEachInformationSet utilitiesCalculator = new CalculateUtilitiesAtEachInformationSet();
+            if (convertToDiscreteNumberOfUtilityLevels)
+            {
+                utilitiesCalculator.LimitUtilitiesToNPlus1DiscreteValues = EvolutionSettings.MaxIntegralUtility;
+                utilitiesCalculator.MinMaxUtilityValues = Enumerable.Range(0, NumNonChancePlayers).Select(x => (FinalUtilitiesNodes.Min(y => y.Utilities[x]), FinalUtilitiesNodes.Max(y => y.Utilities[x]))).ToArray();
+            }
             TreeWalk_Tree(utilitiesCalculator);
             foreach (var informationSet in InformationSets)
             {
@@ -1418,10 +1433,32 @@ namespace ACESim
                         outOfEquilibrium = true;
                     }
                 }
-                if (outOfEquilibrium) 
+                if (outOfEquilibrium)
                     TabbedText.WriteLine($"Out of equilibrium: {informationSet} Utilities from actions: {String.Join(",", utilityFromEachAction)}");
             }
-            GameDefinition.SwitchToAlternativeOptions(false);
+            Navigation = originalNavigation;
+        }
+
+        public int[] ConvertToIntegralUtilities(IEnumerable<double> original)
+        {
+            var origMax = original.Max();
+            var origMin = original.Min();
+            return original.Select(x => ConvertToIntegralValue(x, origMin, origMax, EvolutionSettings.MaxIntegralUtility)).ToArray();
+        }
+
+        public static int ConvertToIntegralValue(double value, double min, double max, int maxIntegralValue)
+        {
+            double range = max - min;
+            double fromZeroToOne = (value - min) / range;
+            int intValue = (int)Math.Round(fromZeroToOne * maxIntegralValue);
+            return intValue;
+        }
+
+        public static double ConvertToDiscreteDoubleValue(double value, double min, double max, int numDiscreteValuesOverMin)
+        {
+            int integralValue = ConvertToIntegralValue(value, min, max, numDiscreteValuesOverMin);
+            double interval = (max - min) / (double)numDiscreteValuesOverMin;
+            return min + integralValue * interval;
         }
 
         public void PrintGameTree()

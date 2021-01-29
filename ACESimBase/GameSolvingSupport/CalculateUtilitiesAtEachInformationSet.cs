@@ -15,6 +15,9 @@ namespace ACESimBase.GameSolvingSupport
         Dictionary<int, double[]> WeightedUtilitiesAtInformationSet = new Dictionary<int, double[]>();
         Dictionary<int, List<double[]>> WeightedUtilitiesAtInformationSetSuccessors = new Dictionary<int, List<double[]>>();
 
+        public int? LimitUtilitiesToNPlus1DiscreteValues;
+        public (double min, double max)[] MinMaxUtilityValues;
+
         public (double[] utilities, List<double[]> utilitiesAtSuccessors, double reachProbability) GetUtilitiesAndReachProbability(int informationSetNodeNumber)
         {
             double reachProbability = ProbabilityOfReachingInformationSet[informationSetNodeNumber];
@@ -98,7 +101,15 @@ namespace ACESimBase.GameSolvingSupport
 
         public double[] FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, double fromPredecessor)
         {
-            return finalUtilities.Utilities;
+            var utilities = finalUtilities.Utilities;
+            if (LimitUtilitiesToNPlus1DiscreteValues != null)
+            {
+                for (int p = 0; p < utilities.Length; p++)
+                {
+                    utilities[p] = StrategiesDeveloperBase.ConvertToDiscreteDoubleValue(utilities[p], MinMaxUtilityValues[p].min, MinMaxUtilityValues[p].max, (int)LimitUtilitiesToNPlus1DiscreteValues);
+                }
+            }
+            return utilities;
         }
     }
 }
