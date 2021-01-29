@@ -1418,7 +1418,7 @@ namespace ACESim
                         outOfEquilibrium = true;
                     }
                 }
-                if (outOfEquilibrium)
+                if (outOfEquilibrium) 
                     TabbedText.WriteLine($"Out of equilibrium: {informationSet} Utilities from actions: {String.Join(",", utilityFromEachAction)}");
             }
             GameDefinition.SwitchToAlternativeOptions(false);
