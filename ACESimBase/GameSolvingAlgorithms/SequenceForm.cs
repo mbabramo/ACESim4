@@ -831,12 +831,12 @@ namespace ACESimBase.GameSolvingAlgorithms
                 for (int i = 0; i < crossInformationSetEffects.Count(); i++)
                 {
                     var effectOfInformationSetChange = crossInformationSetEffects[i];
-                    if (effectOfInformationSetChange != null && effectOfInformationSetChange.Any(x => x != null))
+                    if (effectOfInformationSetChange.actionPromotedInOtherInformationSets != null && effectOfInformationSetChange.actionPromotedInOtherInformationSets.Any(x => x != null))
                     {
-                        TabbedText.WriteLine($"Change from highest action in information set {InformationSets[i]}:");
-                        for (int j = 0; j < effectOfInformationSetChange.Length; j++)
+                        TabbedText.WriteLine($"Change toward action {effectOfInformationSetChange.sourceAction} in information set {InformationSets[i]}:");
+                        for (int j = 0; j < effectOfInformationSetChange.actionPromotedInOtherInformationSets.Length; j++)
                         {
-                            int? effectOnJ = effectOfInformationSetChange[j];
+                            int? effectOnJ = effectOfInformationSetChange.actionPromotedInOtherInformationSets[j];
                             if (effectOnJ != null)
                             {
                                 TabbedText.WriteLine($"--> move to action {effectOnJ} in information set {InformationSets[j]}");

@@ -1396,16 +1396,16 @@ namespace ACESim
                 infoSet.PastValuesAnalyze();
         }
 
-        public void IdentifyPressureOnInformationSets(bool convertToDiscreteNumberOfUtilityLevels, bool testSwitchToAlternativeGameOptions, bool calculatePressureBetweenInformationSets, bool considerOnlyInformationSetsAffectedByAlternativeGameOptions, out List<int?[]> effectOfReductionOfMostPopularActionInEachInformationSetOnOtherInformationSets)
+        public void IdentifyPressureOnInformationSets(bool convertToDiscreteNumberOfUtilityLevels, bool testSwitchToAlternativeGameOptions, bool calculatePressureBetweenInformationSets, bool considerOnlyInformationSetsAffectedByAlternativeGameOptions, out List<(int sourceAction, int?[] actionPromotedInOtherInformationSets)> effectOfChanges)
         {
-            List<int> indicesOfAffectedInformationSets = new List<int>();
+            List<(int indexOfAffectedSet, int pushingTowardAction)> indicesOfAffectedInformationSets = new List<(int indexOfAffectedSet, int pushingTowardAction)>();
             if (testSwitchToAlternativeGameOptions)
             {
                 TabbedText.WriteLine("");
                 TabbedText.WriteLine("Switching to alternative options:");
                 GameDefinition.SwitchToAlternativeOptions(true);
-                int?[] result = DoInformationSetPressureAnalysis(convertToDiscreteNumberOfUtilityLevels, true);
-                indicesOfAffectedInformationSets = result.Select((item, index) => (item, index)).Where(x => x.item != null).Select(x => x.index).ToList();
+                int?[] result = DoInformationSetPressureAnalysis(convertToDiscreteNumberOfUtilityLevels, true, 0.01);
+                indicesOfAffectedInformationSets = result.Select((item, index) => (item, index)).Where(x => x.item != null).Select(x => (x.index, (int) x.item)).ToList();
                 GameDefinition.SwitchToAlternativeOptions(false);
             }
 
@@ -1413,43 +1413,67 @@ namespace ACESim
 
             if (calculatePressureBetweenInformationSets)
             {
-                effectOfReductionOfMostPopularActionInEachInformationSetOnOtherInformationSets = new List<int?[]>();
+                effectOfChanges = new List<(int sourceAction, int?[] actionPromotedInOtherInformationSets)>();
                 for (int informationSetIndex = 0; informationSetIndex < InformationSets.Count; informationSetIndex++)
                 {
 
-                    if (considerOnlyInformationSetsAffectedByAlternativeGameOptions && !indicesOfAffectedInformationSets.Contains(informationSetIndex))
-                        effectOfReductionOfMostPopularActionInEachInformationSetOnOtherInformationSets.Add(null);
+                    if (considerOnlyInformationSetsAffectedByAlternativeGameOptions && !indicesOfAffectedInformationSets.Any(x => x.indexOfAffectedSet == informationSetIndex))
+                        effectOfChanges.Add((0, null));
                     else
                     {
+                        int pushingTowardAction = indicesOfAffectedInformationSets.First(x => x.indexOfAffectedSet == informationSetIndex).pushingTowardAction;
                         InformationSetNode informationSetToChange = InformationSets[informationSetIndex];
                         double[] originalProbabilities = informationSetToChange.GetCurrentProbabilitiesAsArray();
-                        int indexWithHighestValue = originalProbabilities.Select((item, index) => (item, index)).OrderByDescending(x => x.item).First().index;
-                        const double probabilityToReallocate = 0.01;
-                        double probabilitiesExceptingIndexWithHighestValue = 1.0 - originalProbabilities[indexWithHighestValue];
-                        double[] replacementProbabilities = originalProbabilities.ToArray();
-                        for (int i = 0; i < replacementProbabilities.Length; i++)
+                        double probabilityMassToReallocate = 0.001;
+                        if (originalProbabilities[pushingTowardAction - 1] < 1 - probabilityMassToReallocate)
                         {
-                            if (i == indexWithHighestValue)
-                                replacementProbabilities[i] -= probabilityToReallocate;
-                            else
-                            {
-                                double proportion = (probabilitiesExceptingIndexWithHighestValue == 0) ? 1.0 / ((double) replacementProbabilities.Length - 1.0) : replacementProbabilities[i] / probabilitiesExceptingIndexWithHighestValue;
-                                replacementProbabilities[i] += probabilityToReallocate * proportion;
-                            }
+                            double[] replacementProbabilities = ReallocateProbabilityMass(originalProbabilities, probabilityMassToReallocate, pushingTowardAction - 1);
+                            informationSetToChange.SetCurrentProbabilities(replacementProbabilities);
+                            //TabbedText.WriteLine($"Effect of changing information set {InformationSets[informationSetIndex]}"); 
+                            int?[] effectOnOtherInformationSets = DoInformationSetPressureAnalysis(convertToDiscreteNumberOfUtilityLevels, false, probabilityMassToReallocate, informationSetIndex);
+                            effectOfChanges.Add((pushingTowardAction, effectOnOtherInformationSets));
+                            informationSetToChange.SetCurrentProbabilities(originalProbabilities);
                         }
-                        informationSetToChange.SetCurrentProbabilities(replacementProbabilities);
-                        //TabbedText.WriteLine($"Effect of changing information set {InformationSets[informationSetIndex]}"); 
-                        int?[] effectOnOtherInformationSets = DoInformationSetPressureAnalysis(convertToDiscreteNumberOfUtilityLevels, false, informationSetIndex);
-                        effectOfReductionOfMostPopularActionInEachInformationSetOnOtherInformationSets.Add(effectOnOtherInformationSets);
-                        informationSetToChange.SetCurrentProbabilities(originalProbabilities);
                     }
                 }
             }
             else
-                effectOfReductionOfMostPopularActionInEachInformationSetOnOtherInformationSets = null;
+                effectOfChanges = null;
         }
 
-        private int?[] DoInformationSetPressureAnalysis(bool convertToDiscreteNumberOfUtilityLevels, bool report, int? skipInformationSetIndex = null)
+        /// <summary>
+        /// Reallocates probability to a particular index in an array, removing it proportionately from all other indices. 
+        /// </summary>
+        /// <param name="originalProbabilities">The original probabilities</param>
+        /// <param name="probabilityToReallocate">The anmount to reallocate. If negative, then probability mass is removed from the index.</param>
+        /// <param name="indexToReallocateTo">The index</param>
+        /// <returns></returns>
+        private static double[] ReallocateProbabilityMass(double[] originalProbabilities, double probabilityToReallocate, int indexToReallocateTo)
+        {
+            double probabilitiesExceptingIndexWithHighestValue = 1.0 - originalProbabilities[indexToReallocateTo];
+            double[] replacementProbabilities = originalProbabilities.ToArray();
+            for (int i = 0; i < replacementProbabilities.Length; i++)
+            {
+                if (i == indexToReallocateTo)
+                    replacementProbabilities[i] += probabilityToReallocate;
+                else
+                {
+                    double proportion = (probabilitiesExceptingIndexWithHighestValue == 0) ? 1.0 / ((double)replacementProbabilities.Length - 1.0) : replacementProbabilities[i] / probabilitiesExceptingIndexWithHighestValue;
+                    replacementProbabilities[i] -= probabilityToReallocate * proportion;
+                }
+            }
+
+            return replacementProbabilities;
+        }
+
+        private static double[] ReallocateProbabilityMassFromHighestProbabilityAction(double[] originalProbabilities, double probabilityToReallocate)
+        {
+            int indexWithHighestValue = originalProbabilities.Select((item, index) => (item, index)).OrderByDescending(x => x.item).First().index;
+            double[] replacementProbabilities = ReallocateProbabilityMass(originalProbabilities, 0 - probabilityToReallocate, indexWithHighestValue);
+            return replacementProbabilities;
+        }
+
+        private int?[] DoInformationSetPressureAnalysis(bool convertToDiscreteNumberOfUtilityLevels, bool report, double sourceChangeMagnitude, int? skipInformationSetIndex = null)
         {
             var originalNavigation = Navigation;
             Navigation = Navigation.WithLookupApproach(InformationSetLookupApproach.PlayGameDirectly);
@@ -1482,12 +1506,12 @@ namespace ACESim
                         indexWithLargestIncrease = i;
                     }
                 }
-                outOfEquilibrium = largestIncrease > 1E-5;
+                outOfEquilibrium = largestIncrease > 1E-15;
                 if (outOfEquilibrium)
                 {
                     actionBecomingMorePopularAtEachInformationSet[informationSetIndex] = indexWithLargestIncrease + 1;
                     if (report)
-                        TabbedText.WriteLine($"--> move to action {actionBecomingMorePopularAtEachInformationSet[informationSetIndex]} in {informationSet}"); // Utilities from actions: {String.Join(",", utilityFromEachAction)}");
+                        TabbedText.WriteLine($"--> move to action {actionBecomingMorePopularAtEachInformationSet[informationSetIndex]} at rate {largestIncrease / sourceChangeMagnitude} in {informationSet}"); // Utilities from actions: {String.Join(",", utilityFromEachAction)}");
                 }
             }
             Navigation = originalNavigation;
