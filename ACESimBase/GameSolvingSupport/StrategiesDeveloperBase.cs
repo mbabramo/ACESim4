@@ -1403,7 +1403,7 @@ namespace ACESim
             {
                 TabbedText.WriteLine("");
                 TabbedText.WriteLine("Switching to alternative options:");
-                // DEBUG GameDefinition.SwitchToAlternativeOptions(true);
+                GameDefinition.SwitchToAlternativeOptions(true);
                 int?[] result = DoInformationSetPressureAnalysis(convertToDiscreteNumberOfUtilityLevels, true, 0.01);
                 indicesOfAffectedInformationSets = result.Select((item, index) => (item, index)).Where(x => x.item != null).Select(x => (x.index, (int) x.item)).ToList();
                 GameDefinition.SwitchToAlternativeOptions(false);
@@ -1424,11 +1424,11 @@ namespace ACESim
                         int pushingTowardAction = indicesOfAffectedInformationSets.First(x => x.indexOfAffectedSet == informationSetIndex).pushingTowardAction;
                         InformationSetNode informationSetToChange = InformationSets[informationSetIndex];
                         double[] originalProbabilities = informationSetToChange.GetCurrentProbabilitiesAsArray();
-                        double probabilityMassToReallocate = 0; // DEBUG
+                        double probabilityMassToReallocate = 0.001; 
                         if (originalProbabilities[pushingTowardAction - 1] < 1 - probabilityMassToReallocate)
                         {
                             double[] replacementProbabilities = ReallocateProbabilityMass(originalProbabilities, probabilityMassToReallocate, pushingTowardAction - 1);
-                            TabbedText.WriteLine($"Effect of changing information set {InformationSets[informationSetIndex]} to probabilities {String.Join(",", replacementProbabilities)}"); // DEBUG
+                            //TabbedText.WriteLine($"Effect of changing information set {InformationSets[informationSetIndex]} to probabilities {String.Join(",", replacementProbabilities)}"); 
                             informationSetToChange.SetCurrentProbabilities(replacementProbabilities);
                             int?[] effectOnOtherInformationSets = DoInformationSetPressureAnalysis(convertToDiscreteNumberOfUtilityLevels, true /* DEBUG */, probabilityMassToReallocate, informationSetIndex);
                             effectOfChanges.Add((pushingTowardAction, effectOnOtherInformationSets));

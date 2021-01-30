@@ -38,7 +38,7 @@ namespace ACESimBase.GameSolvingAlgorithms
         /// not done, the best response improvement might be something like 1E-6, because the best response is using the real
         /// non-rounded-off game. 
         /// </summary>
-        bool ChangeUtilitiesToIntegers = true; // DEBUG
+        bool ChangeUtilitiesToIntegers = false; 
 
         public SequenceForm(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
         {
@@ -246,11 +246,6 @@ namespace ACESimBase.GameSolvingAlgorithms
                         if (total != 1)
                         {
                             // Fix degeneracy
-                            //throw new Exception("Probabilities do not add up to 1");
-                            if (infoSet.GetNodeNumber() == 5)
-                            {
-                                var DEBUG = 0;
-                            }
                             if (total <= 0)
                             {
                                 for (int i = 0; i < infoSet.NumPossibleActions; i++)

@@ -87,10 +87,6 @@ namespace ACESimBase.GameSolvingSupport
 
         public Rational[] InformationSet_Backward(InformationSetNode informationSet, IEnumerable<Rational[]> fromSuccessors)
         {
-            if (informationSet.GetNodeNumber() == 5)
-            {
-                var DEBUG = 0;
-            }
             Rational reachProbability = probabilitiesToInformationSet.Pop();
             List<Rational> nextActionProbabilities = PlayerProbabilities[(informationSet.PlayerIndex, informationSet.GetNodeNumber())].ToList();
             Rational[] utilities = AggregateUtilitiesFromSuccessors(fromSuccessors, nextActionProbabilities);
@@ -111,22 +107,8 @@ namespace ACESimBase.GameSolvingSupport
                 prerecordedUtilitiesAtSuccessors[s] = prerecordedUtilitiesAtSuccessor.Zip(reachWeightedUtilitiesAtSuccessor, (x, y) => x + y).ToArray();
             }
             WeightedUtilitiesAtInformationSetSuccessors[informationSet.GetNodeNumber()] = prerecordedUtilitiesAtSuccessors;
-            //TabbedText.WriteLine($"{((double)reachProbability).ToString()}");
-            //TabbedText.TabIndent(); // DEBUG
-            //foreach (var DEBUG in prerecordedUtilitiesAtSuccessors)
-            //    TabbedText.WriteLine(String.Join(",", DEBUG.Select(x => (double)x))); // DEBUG
-            //TabbedText.TabUnindent(); // DEBUG
-
-            TabbedText.WriteLine($"{++DEBUG}");
-            if (DEBUG == 3)
-            {
-                var DEBUGY = 0;
-            }
-            //foreach (var successor in fromSuccessors)
-            //    TabbedText.WriteLine(String.Join(",", successor.Select(x => (double) x))); // DEBUG
             return utilities;
         }
-        int DEBUG = 0;
 
         public Rational[] ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<Rational[]> fromSuccessors, int distributorChanceInputs)
         {

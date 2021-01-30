@@ -718,7 +718,7 @@ namespace ACESim
         public override double[] GetUnevenChanceActionProbabilities(byte decisionByteCode, GameProgress gameProgress)
         {
             double[] results = GetUnevenChanceActionProbabilities_Helper(decisionByteCode, gameProgress);
-            bool roundOff = false; // DEBUG
+            bool roundOff = false;
             if (roundOff)
             {
                 const int maxDigits = 5;

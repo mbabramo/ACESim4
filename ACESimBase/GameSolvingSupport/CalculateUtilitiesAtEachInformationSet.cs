@@ -27,10 +27,6 @@ namespace ACESimBase.GameSolvingSupport
         public void VerifyPerfectEquilibrium(InformationSetNode informationSetNode)
         {
             int informationSetNodeNumber = informationSetNode.GetNodeNumber();
-            if (informationSetNodeNumber == 16)
-            {
-                var DEBUG = 0;
-            }
             var (utilities, utilitiesAtSuccessors, reachProbability) = GetUtilitiesAndReachProbability(informationSetNodeNumber);
             int i = informationSetNode.PlayerIndex;
             int numSuccessors = utilitiesAtSuccessors.Count();
@@ -98,10 +94,6 @@ namespace ACESimBase.GameSolvingSupport
                     informationSet.GetNodeNumber(),
                     fromSuccessors.Select(x => utilities.Select(x => (double)0).ToArray()).ToList());
             var fromSuccessorsList = fromSuccessors.ToList();
-            if (informationSet.InformationSetNodeNumber == 0)
-            {
-                var DEBUG = 0;
-            }
             for (int s = 0; s < fromSuccessorsList.Count(); s++)
             {
                 double[] prerecordedUtilitiesAtSuccessor = prerecordedUtilitiesAtSuccessors[s];
