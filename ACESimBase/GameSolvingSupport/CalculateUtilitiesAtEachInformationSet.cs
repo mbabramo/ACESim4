@@ -15,9 +15,6 @@ namespace ACESimBase.GameSolvingSupport
         Dictionary<int, double[]> WeightedUtilitiesAtInformationSet = new Dictionary<int, double[]>();
         Dictionary<int, List<double[]>> WeightedUtilitiesAtInformationSetSuccessors = new Dictionary<int, List<double[]>>();
 
-        public int? LimitUtilitiesToNPlus1DiscreteValues;
-        public (double min, double max)[] MinMaxUtilityValues;
-
         public void VerifyPerfectEquilibrium(List<InformationSetNode> informationSetNodes)
         {
             foreach (var informationSetNode in informationSetNodes)
@@ -128,13 +125,6 @@ namespace ACESimBase.GameSolvingSupport
         public double[] FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, double fromPredecessor)
         {
             var utilities = finalUtilities.Utilities;
-            if (LimitUtilitiesToNPlus1DiscreteValues != null)
-            {
-                for (int p = 0; p < utilities.Length; p++)
-                {
-                    utilities[p] = StrategiesDeveloperBase.ConvertToDiscreteDoubleValue(utilities[p], MinMaxUtilityValues[p].min, MinMaxUtilityValues[p].max, (int)LimitUtilitiesToNPlus1DiscreteValues);
-                }
-            }
             return utilities;
         }
     }

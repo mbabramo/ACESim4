@@ -1397,7 +1397,7 @@ namespace ACESim
                 infoSet.PastValuesAnalyze();
         }
 
-        public void IdentifyPressureOnInformationSets(bool convertToDiscreteNumberOfUtilityLevels, bool testSwitchToAlternativeGameOptions, bool calculatePressureBetweenInformationSets, bool considerOnlyInformationSetsAffectedByAlternativeGameOptions, out List<(int sourceAction, int?[] actionPromotedInOtherInformationSets)> effectOfChanges)
+        public void IdentifyPressureOnInformationSets(bool testSwitchToAlternativeGameOptions, bool calculatePressureBetweenInformationSets, bool considerOnlyInformationSetsAffectedByAlternativeGameOptions, out List<(int sourceAction, int?[] actionPromotedInOtherInformationSets)> effectOfChanges)
         {
             List<(int indexOfAffectedSet, int pushingTowardAction)> indicesOfAffectedInformationSets = new List<(int indexOfAffectedSet, int pushingTowardAction)>();
             if (testSwitchToAlternativeGameOptions)
@@ -1405,7 +1405,7 @@ namespace ACESim
                 TabbedText.WriteLine("");
                 TabbedText.WriteLine("Switching to alternative options:");
                 GameDefinition.SwitchToAlternativeOptions(true);
-                int?[] result = DoInformationSetPressureAnalysis(convertToDiscreteNumberOfUtilityLevels, true, 0.01);
+                int?[] result = DoInformationSetPressureAnalysis(true, 0.01);
                 indicesOfAffectedInformationSets = result.Select((item, index) => (item, index)).Where(x => x.item != null).Select(x => (x.index, (int) x.item)).ToList();
                 GameDefinition.SwitchToAlternativeOptions(false);
             }
@@ -1429,9 +1429,9 @@ namespace ACESim
                         if (originalProbabilities[pushingTowardAction - 1] < 1 - probabilityMassToReallocate)
                         {
                             double[] replacementProbabilities = ReallocateProbabilityMass(originalProbabilities, probabilityMassToReallocate, pushingTowardAction - 1);
-                            //TabbedText.WriteLine($"Effect of changing information set {InformationSets[informationSetIndex]} to probabilities {String.Join(",", replacementProbabilities)}"); 
+                            TabbedText.WriteLine($"Effect of changing information set {InformationSets[informationSetIndex]} to probabilities {String.Join(",", replacementProbabilities)}"); 
                             informationSetToChange.SetCurrentProbabilities(replacementProbabilities);
-                            int?[] effectOnOtherInformationSets = DoInformationSetPressureAnalysis(convertToDiscreteNumberOfUtilityLevels, true /* DEBUG */, probabilityMassToReallocate, informationSetIndex);
+                            int?[] effectOnOtherInformationSets = DoInformationSetPressureAnalysis(true, probabilityMassToReallocate, informationSetIndex);
                             effectOfChanges.Add((pushingTowardAction, effectOnOtherInformationSets));
                             informationSetToChange.SetCurrentProbabilities(originalProbabilities);
                         }
@@ -1476,16 +1476,11 @@ namespace ACESim
             return replacementProbabilities;
         }
 
-        private int?[] DoInformationSetPressureAnalysis(bool convertToDiscreteNumberOfUtilityLevels, bool report, double sourceChangeMagnitude, int? skipInformationSetIndex = null)
+        private int?[] DoInformationSetPressureAnalysis(bool report, double sourceChangeMagnitude, int? skipInformationSetIndex = null)
         {
             var originalNavigation = Navigation;
             Navigation = Navigation.WithLookupApproach(InformationSetLookupApproach.PlayGameDirectly);
             CalculateUtilitiesAtEachInformationSet utilitiesCalculator = new CalculateUtilitiesAtEachInformationSet();
-            if (convertToDiscreteNumberOfUtilityLevels)
-            {
-                utilitiesCalculator.LimitUtilitiesToNPlus1DiscreteValues = EvolutionSettings.MaxIntegralUtility;
-                utilitiesCalculator.MinMaxUtilityValues = Enumerable.Range(0, NumNonChancePlayers).Select(x => (FinalUtilitiesNodes.Min(y => y.Utilities[x]), FinalUtilitiesNodes.Max(y => y.Utilities[x]))).ToArray();
-            }
             TreeWalk_Tree(utilitiesCalculator);
             int?[] actionBecomingMorePopularAtEachInformationSet = new int?[InformationSets.Count()];
             for (int informationSetIndex = 0; informationSetIndex < InformationSets.Count; informationSetIndex++)
@@ -1497,7 +1492,6 @@ namespace ACESim
                 int p = informationSet.PlayerIndex;
                 var utilityForPlayer = utilities[p];
                 var utilityFromEachAction = utilitiesAtSuccessors.Select(x => x[p]).ToArray();
-                bool outOfEquilibrium = false;
                 double largestIncrease = 0;
                 int indexWithLargestIncrease = 0;
                 for (int i = 0; i < utilityFromEachAction.Count(); i++)
@@ -1509,27 +1503,28 @@ namespace ACESim
                         indexWithLargestIncrease = i;
                     }
                 }
-                outOfEquilibrium = largestIncrease > 1E-15;
-                if (outOfEquilibrium)
+                double rate = largestIncrease / (sourceChangeMagnitude == 0 ? 1 : sourceChangeMagnitude);
+                bool nonZeroPressure = rate > 1E-10;
+                if (nonZeroPressure)
                 {
                     actionBecomingMorePopularAtEachInformationSet[informationSetIndex] = indexWithLargestIncrease + 1;
                     if (report)
-                        TabbedText.WriteLine($"--> move to action {actionBecomingMorePopularAtEachInformationSet[informationSetIndex]} at rate {largestIncrease / (sourceChangeMagnitude == 0 ? 1 : sourceChangeMagnitude)} in {informationSet}"); // Utilities from actions: {String.Join(",", utilityFromEachAction)}");
+                        TabbedText.WriteLine($"--> move to action {actionBecomingMorePopularAtEachInformationSet[informationSetIndex]} at rate {rate} in {informationSet}"); // Utilities from actions: {String.Join(",", utilityFromEachAction)}");
                 }
             }
             Navigation = originalNavigation;
             return actionBecomingMorePopularAtEachInformationSet;
         }
 
-        public void SetFinalUtilitiesToIntegralValues()
+        public void SetFinalUtilitiesToRoundedOffValues()
         {
+            Rational[][] utilities = GetUtilitiesAsRationals();
             for (int p = 0; p < NumNonChancePlayers; p++)
             {
                 var values = FinalUtilitiesNodes.Select(x => x.Utilities[p]).ToList();
-                int[] integralUtilities = ConvertToIntegralUtilities(values);
                 for (int i = 0; i < FinalUtilitiesNodes.Count(); i++)
                 {
-                    FinalUtilitiesNodes[i].Utilities[p] = integralUtilities[i];
+                    FinalUtilitiesNodes[i].Utilities[p] = (double) utilities[p][i];
                 }
             }
         }
@@ -1538,7 +1533,7 @@ namespace ACESim
         {
             int numDecimalPointsForMinAndMax = EvolutionSettings.RoundOffChanceDigits;
             (double min, double max)[] minmax = Enumerable.Range(0, NumNonChancePlayers).Select(p => (FinalUtilitiesNodes.Min(x => x.Utilities[p]), FinalUtilitiesNodes.Max(x => x.Utilities[p]))).ToArray();
-            int[][] integralUtilities = GetUtilitiesAsIntegers();
+            int[][] integralUtilities = ConvertToIntegralUtilities();
             Rational[][] rationalUtilities = new Rational[NumNonChancePlayers][];
             for (int p = 0; p < NumNonChancePlayers; p++)
             {
@@ -1552,7 +1547,7 @@ namespace ACESim
             return rationalUtilities;
         }
 
-        public int[][] GetUtilitiesAsIntegers()
+        public int[][] ConvertToIntegralUtilities()
         {
             List<int[]> finalUtilitiesForPlayer = new List<int[]>();
             for (int p = 0; p < NumNonChancePlayers; p++)

@@ -31,15 +31,6 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         bool ProduceEFGFile = true;
 
-        /// <summary>
-        /// Setting this to TRUE means that the game itself will have utilities changed to integral values, thus causing
-        /// the game to match the rounded-off version of the game for which equilibria are produced here.
-        /// Doing this should (and in testing does) result in the best response calculation giving a result of 0; when this is
-        /// not done, the best response improvement might be something like 1E-6, because the best response is using the real
-        /// non-rounded-off game. 
-        /// </summary>
-        bool ChangeUtilitiesToIntegers = false; 
-
         public SequenceForm(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
         {
         }
@@ -58,8 +49,8 @@ namespace ACESimBase.GameSolvingAlgorithms
             StoreGameStateNodesInLists = true;
             await base.Initialize();
             InitializeInformationSets();
-            if (ChangeUtilitiesToIntegers)
-                SetFinalUtilitiesToIntegralValues();
+            if (Approach == SequenceFormApproach.ECTA)
+                SetFinalUtilitiesToRoundedOffValues(); // because this is an exact algorithm that uses integral pivoting, we have only a discrete number of utility points. This ensures that the utilities are at the precise discrete points that correspond to the integral values we will use.
             //PrintGameTree();
             if (!EvolutionSettings.CreateInformationSetCharts) // otherwise this will already have been run
                 InformationSetNode.IdentifyNodeRelationships(InformationSets);
@@ -219,7 +210,6 @@ namespace ACESimBase.GameSolvingAlgorithms
             }
             Dictionary<int, Rational[]> utilities = new Dictionary<int, Rational[]>();
 
-            Debug;
             Rational[][] rationalUtilities = GetUtilitiesAsRationals().TransposeRowsAndColumns();
             for (int finalUtilitiesNodesIndex = 0; finalUtilitiesNodesIndex < FinalUtilitiesNodes.Count; finalUtilitiesNodesIndex++)
             {
@@ -539,16 +529,8 @@ namespace ACESimBase.GameSolvingAlgorithms
         private int[][] GetOutcomesForECTA()
         {
             int[][] pay = new int[2][];
-            if (ChangeUtilitiesToIntegers)
-            {
-                pay[0] = Outcomes.Select(x => (int) x.Utilities[0]).ToArray();
-                pay[1] = Outcomes.Select(x => (int) x.Utilities[1]).ToArray();
-            }
-            else
-            {
-                pay[0] = ConvertToIntegralUtilities(Outcomes.Select(x => x.Utilities[0]));
-                pay[1] = ConvertToIntegralUtilities(Outcomes.Select(x => x.Utilities[1]));
-            }
+            pay[0] = ConvertToIntegralUtilities(Outcomes.Select(x => x.Utilities[0]));
+            pay[1] = ConvertToIntegralUtilities(Outcomes.Select(x => x.Utilities[1]));
             return pay;
         }
 
@@ -945,8 +927,9 @@ namespace ACESimBase.GameSolvingAlgorithms
 
             if (EvolutionSettings.IdentifyPressureOnInformationSets)
             {
-                IdentifyPressureOnInformationSets(!ChangeUtilitiesToIntegers, true, true, true, out var crossInformationSetEffects);
-                if (crossInformationSetEffects != null)
+                IdentifyPressureOnInformationSets(true, true, true, out var crossInformationSetEffects);
+                bool report = false;
+                if (crossInformationSetEffects != null && report)
                 {
                     for (int i = 0; i < crossInformationSetEffects.Count(); i++)
                     {
