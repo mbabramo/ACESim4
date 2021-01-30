@@ -409,7 +409,7 @@ namespace ACESim
             options.CostsMultiplier = 1.0;
 
             options.LoserPays = false;  
-            options.LoserPaysMultiple = 1.0;
+            options.LoserPaysMultiple = 0; 
             options.LoserPaysMarginOfVictoryThreshold = 0.8; 
             options.LoserPaysOnlyLargeMarginOfVictory = false; 
 

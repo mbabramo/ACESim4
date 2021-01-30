@@ -8,6 +8,7 @@ using ACESim.Util.DiscreteProbabilities;
 using ACESimBase.GameSolvingSupport;
 using ACESimBase.Util;
 using ACESimBase.Util.DiscreteProbabilities;
+using JetBrains.Annotations;
 
 namespace ACESim
 {
@@ -1090,19 +1091,20 @@ namespace ACESim
             return warmupResult;
         }
 
-        public override void SwitchToAlternativeOptions(bool changeToAlternate)
+        public override double SwitchToAlternativeOptions(bool changeToAlternate)
         {
+            double magnitudeOfChange = 0.01;
             // This is for a test in the sequence form algorithm, to see what will be out of equilibrium when the settings change.
             if (changeToAlternate)
             {
                 Options.LoserPays = true;
-                Options.LoserPaysMultiple = 0.01;
+                Options.LoserPaysMultiple += magnitudeOfChange;
             }
             else
             {
-                Options.LoserPays = false;
-                Options.LoserPaysMultiple = 1.0;
+                Options.LoserPaysMultiple -= magnitudeOfChange;
             }
+            return magnitudeOfChange;
         }
 
 

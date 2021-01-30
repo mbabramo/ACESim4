@@ -191,7 +191,8 @@ namespace ACESimBase.GameSolvingAlgorithms
                 bool updateScenarios = false; // Doesn't work right now
                 Action<int, ECTATreeDefinition> scenarioUpdater = updateScenarios ? ScenarioUpdater() : null;
                 var results = ecta.Execute_ReturningRationalsAndDoubles(t => SetupECTA(t), scenarioUpdater);
-                ConfirmExactEquilibria(results.rationals);
+                if (EvolutionSettings.ConfirmExactEquilibria)
+                    ConfirmExactEquilibria(results.rationals);
                 equilibria = results.doubles;
             }
             await GenerateReportsFromEquilibria(equilibria, reportCollection);
@@ -199,7 +200,8 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         public void ConfirmExactEquilibria(List<Rational[]> equilibria)
         {
-
+            Stopwatch s = new Stopwatch();
+            s.Start();
             int numEquilibria = equilibria.Count();
             var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetNodeNumber).ToList();
             var infoSetNames = infoSets.Select(x => x.ToStringWithoutValues()).ToArray();
@@ -273,6 +275,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 CalculateRationalUtilitiesAtEachInformationSet calc = new CalculateRationalUtilitiesAtEachInformationSet(chanceProbabilities, playerProbabilities, utilities);
                 TreeWalk_Tree(calc);
                 calc.VerifyPerfectEquilibrium(InformationSets);
+                TabbedText.WriteLine($"Perfect equilibrium confirmed {s.ElapsedMilliseconds} ms");
             }
         }
 

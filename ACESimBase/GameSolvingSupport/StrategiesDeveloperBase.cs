@@ -1404,8 +1404,13 @@ namespace ACESim
             {
                 TabbedText.WriteLine("");
                 TabbedText.WriteLine("Switching to alternative options:");
-                GameDefinition.SwitchToAlternativeOptions(true);
-                int?[] result = DoInformationSetPressureAnalysis(true, 0.01);
+                double switchMagnitude = GameDefinition.SwitchToAlternativeOptions(true);
+                if (switchMagnitude == 0)
+                {
+                    effectOfChanges = null;
+                    return;
+                }
+                int?[] result = DoInformationSetPressureAnalysis(true, switchMagnitude);
                 indicesOfAffectedInformationSets = result.Select((item, index) => (item, index)).Where(x => x.item != null).Select(x => (x.index, (int) x.item)).ToList();
                 GameDefinition.SwitchToAlternativeOptions(false);
             }
