@@ -1396,19 +1396,60 @@ namespace ACESim
                 infoSet.PastValuesAnalyze();
         }
 
-        public void IdentifyPressureOnInformationSets(bool convertToDiscreteNumberOfUtilityLevels, bool testSwitchToAlternativeGameOptions)
+        public void IdentifyPressureOnInformationSets(bool convertToDiscreteNumberOfUtilityLevels, bool testSwitchToAlternativeGameOptions, bool calculatePressureBetweenInformationSets, bool considerOnlyInformationSetsAffectedByAlternativeGameOptions, out List<int?[]> effectOfReductionOfMostPopularActionInEachInformationSetOnOtherInformationSets)
         {
+            List<int> indicesOfAffectedInformationSets = new List<int>();
             if (testSwitchToAlternativeGameOptions)
             {
+                TabbedText.WriteLine("");
+                TabbedText.WriteLine("Switching to alternative options:");
                 GameDefinition.SwitchToAlternativeOptions(true);
-
-                DoInformationSetPressureAnalysis(convertToDiscreteNumberOfUtilityLevels);
-
+                int?[] result = DoInformationSetPressureAnalysis(convertToDiscreteNumberOfUtilityLevels, true);
+                indicesOfAffectedInformationSets = result.Select((item, index) => (item, index)).Where(x => x.item != null).Select(x => x.index).ToList();
                 GameDefinition.SwitchToAlternativeOptions(false);
             }
+
+            TabbedText.WriteLine("");
+
+            if (calculatePressureBetweenInformationSets)
+            {
+                effectOfReductionOfMostPopularActionInEachInformationSetOnOtherInformationSets = new List<int?[]>();
+                for (int informationSetIndex = 0; informationSetIndex < InformationSets.Count; informationSetIndex++)
+                {
+
+                    if (considerOnlyInformationSetsAffectedByAlternativeGameOptions && !indicesOfAffectedInformationSets.Contains(informationSetIndex))
+                        effectOfReductionOfMostPopularActionInEachInformationSetOnOtherInformationSets.Add(null);
+                    else
+                    {
+                        InformationSetNode informationSetToChange = InformationSets[informationSetIndex];
+                        double[] originalProbabilities = informationSetToChange.GetCurrentProbabilitiesAsArray();
+                        int indexWithHighestValue = originalProbabilities.Select((item, index) => (item, index)).OrderByDescending(x => x.item).First().index;
+                        const double probabilityToReallocate = 0.01;
+                        double probabilitiesExceptingIndexWithHighestValue = 1.0 - originalProbabilities[indexWithHighestValue];
+                        double[] replacementProbabilities = originalProbabilities.ToArray();
+                        for (int i = 0; i < replacementProbabilities.Length; i++)
+                        {
+                            if (i == indexWithHighestValue)
+                                replacementProbabilities[i] -= probabilityToReallocate;
+                            else
+                            {
+                                double proportion = (probabilitiesExceptingIndexWithHighestValue == 0) ? 1.0 / ((double) replacementProbabilities.Length - 1.0) : replacementProbabilities[i] / probabilitiesExceptingIndexWithHighestValue;
+                                replacementProbabilities[i] += probabilityToReallocate * proportion;
+                            }
+                        }
+                        informationSetToChange.SetCurrentProbabilities(replacementProbabilities);
+                        //TabbedText.WriteLine($"Effect of changing information set {InformationSets[informationSetIndex]}"); 
+                        int?[] effectOnOtherInformationSets = DoInformationSetPressureAnalysis(convertToDiscreteNumberOfUtilityLevels, false, informationSetIndex);
+                        effectOfReductionOfMostPopularActionInEachInformationSetOnOtherInformationSets.Add(effectOnOtherInformationSets);
+                        informationSetToChange.SetCurrentProbabilities(originalProbabilities);
+                    }
+                }
+            }
+            else
+                effectOfReductionOfMostPopularActionInEachInformationSetOnOtherInformationSets = null;
         }
 
-        private void DoInformationSetPressureAnalysis(bool convertToDiscreteNumberOfUtilityLevels)
+        private int?[] DoInformationSetPressureAnalysis(bool convertToDiscreteNumberOfUtilityLevels, bool report, int? skipInformationSetIndex = null)
         {
             var originalNavigation = Navigation;
             Navigation = Navigation.WithLookupApproach(InformationSetLookupApproach.PlayGameDirectly);
@@ -1419,24 +1460,38 @@ namespace ACESim
                 utilitiesCalculator.MinMaxUtilityValues = Enumerable.Range(0, NumNonChancePlayers).Select(x => (FinalUtilitiesNodes.Min(y => y.Utilities[x]), FinalUtilitiesNodes.Max(y => y.Utilities[x]))).ToArray();
             }
             TreeWalk_Tree(utilitiesCalculator);
-            foreach (var informationSet in InformationSets)
+            int?[] actionBecomingMorePopularAtEachInformationSet = new int?[InformationSets.Count()];
+            for (int informationSetIndex = 0; informationSetIndex < InformationSets.Count; informationSetIndex++)
             {
+                if (informationSetIndex == skipInformationSetIndex)
+                    continue;
+                InformationSetNode informationSet = InformationSets[informationSetIndex];
                 var (utilities, utilitiesAtSuccessors, reachProbability) = utilitiesCalculator.GetUtilitiesAndReachProbability(informationSet.GetNodeNumber());
                 int p = informationSet.PlayerIndex;
                 var utilityForPlayer = utilities[p];
                 var utilityFromEachAction = utilitiesAtSuccessors.Select(x => x[p]).ToArray();
                 bool outOfEquilibrium = false;
+                double largestIncrease = 0;
+                int indexWithLargestIncrease = 0;
                 for (int i = 0; i < utilityFromEachAction.Count(); i++)
                 {
-                    if (utilityFromEachAction[i] > utilityForPlayer + 1E-5)
+                    double utilityImprovement = utilityFromEachAction[i] - utilityForPlayer;
+                    if (utilityImprovement > largestIncrease)
                     {
-                        outOfEquilibrium = true;
+                        largestIncrease = utilityImprovement;
+                        indexWithLargestIncrease = i;
                     }
                 }
+                outOfEquilibrium = largestIncrease > 1E-5;
                 if (outOfEquilibrium)
-                    TabbedText.WriteLine($"Out of equilibrium: {informationSet} Utilities from actions: {String.Join(",", utilityFromEachAction)}");
+                {
+                    actionBecomingMorePopularAtEachInformationSet[informationSetIndex] = indexWithLargestIncrease + 1;
+                    if (report)
+                        TabbedText.WriteLine($"--> move to action {actionBecomingMorePopularAtEachInformationSet[informationSetIndex]} in {informationSet}"); // Utilities from actions: {String.Join(",", utilityFromEachAction)}");
+                }
             }
             Navigation = originalNavigation;
+            return actionBecomingMorePopularAtEachInformationSet;
         }
 
         public int[] ConvertToIntegralUtilities(IEnumerable<double> original)

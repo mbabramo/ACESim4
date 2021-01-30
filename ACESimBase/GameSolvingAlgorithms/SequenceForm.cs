@@ -826,7 +826,25 @@ namespace ACESimBase.GameSolvingAlgorithms
             }
 
             if (EvolutionSettings.IdentifyPressureOnInformationSets)
-                IdentifyPressureOnInformationSets(true, true);
+            {
+                IdentifyPressureOnInformationSets(true, true, true, true, out var crossInformationSetEffects);
+                for (int i = 0; i < crossInformationSetEffects.Count(); i++)
+                {
+                    var effectOfInformationSetChange = crossInformationSetEffects[i];
+                    if (effectOfInformationSetChange != null && effectOfInformationSetChange.Any(x => x != null))
+                    {
+                        TabbedText.WriteLine($"Change from highest action in information set {InformationSets[i]}:");
+                        for (int j = 0; j < effectOfInformationSetChange.Length; j++)
+                        {
+                            int? effectOnJ = effectOfInformationSetChange[j];
+                            if (effectOnJ != null)
+                            {
+                                TabbedText.WriteLine($"--> move to action {effectOnJ} in information set {InformationSets[j]}");
+                            }
+                        };
+                    }
+                }
+            }
 
             //double[] utils = GetAverageUtilities(false);
             //double[] maxPurifiedUtils = GetMaximumUtilitiesFromPurifiedStrategies();
