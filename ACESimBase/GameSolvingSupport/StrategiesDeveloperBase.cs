@@ -18,6 +18,7 @@ using System.Runtime.CompilerServices;
 using System.Net.Http.Headers;
 using Microsoft.Extensions.Options;
 using NeuralNetworkNET.APIs.Datasets;
+using Rationals;
 
 namespace ACESim
 {
@@ -1531,6 +1532,34 @@ namespace ACESim
                     FinalUtilitiesNodes[i].Utilities[p] = integralUtilities[i];
                 }
             }
+        }
+
+        public Rational[][] GetUtilitiesAsRationals()
+        {
+            int numDecimalPointsForMinAndMax = EvolutionSettings.RoundOffChanceDigits;
+            (double min, double max)[] minmax = Enumerable.Range(0, NumNonChancePlayers).Select(p => (FinalUtilitiesNodes.Min(x => x.Utilities[p]), FinalUtilitiesNodes.Max(x => x.Utilities[p]))).ToArray();
+            int[][] integralUtilities = GetUtilitiesAsIntegers();
+            Rational[][] rationalUtilities = new Rational[NumNonChancePlayers][];
+            for (int p = 0; p < NumNonChancePlayers; p++)
+            {
+                double min = Math.Round(minmax[p].min * EvolutionSettings.MaxIntegralUtility);
+                double max = Math.Round(minmax[p].max * EvolutionSettings.MaxIntegralUtility);
+                Rational minRational = (((Rational)(int)min) / (Rational) EvolutionSettings.MaxIntegralUtility).CanonicalForm;
+                Rational maxRational = (((Rational)(int)max) / (Rational) EvolutionSettings.MaxIntegralUtility).CanonicalForm;
+                Rational range = (maxRational - minRational).CanonicalForm;
+                rationalUtilities[p] = integralUtilities[p].Select(x => minRational + range * ((Rational)x)/((Rational)EvolutionSettings.MaxIntegralUtility)).Select(x => x.CanonicalForm).ToArray();
+            }
+            return rationalUtilities;
+        }
+
+        public int[][] GetUtilitiesAsIntegers()
+        {
+            List<int[]> finalUtilitiesForPlayer = new List<int[]>();
+            for (int p = 0; p < NumNonChancePlayers; p++)
+            {
+                finalUtilitiesForPlayer.Add(ConvertToIntegralUtilities(FinalUtilitiesNodes.Select(x => x.Utilities[p])));
+            }
+            return finalUtilitiesForPlayer.ToArray();
         }
 
         public int[] ConvertToIntegralUtilities(IEnumerable<double> original)

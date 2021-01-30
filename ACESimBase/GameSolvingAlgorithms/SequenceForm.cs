@@ -217,6 +217,16 @@ namespace ACESimBase.GameSolvingAlgorithms
             {
                 chanceProbabilities[chanceNode.ChanceNode.GetNodeNumber()] = chanceNode.GetProbabilitiesAsRationals();
             }
+            Dictionary<int, Rational[]> utilities = new Dictionary<int, Rational[]>();
+
+            Debug;
+            Rational[][] rationalUtilities = GetUtilitiesAsRationals().TransposeRowsAndColumns();
+            for (int finalUtilitiesNodesIndex = 0; finalUtilitiesNodesIndex < FinalUtilitiesNodes.Count; finalUtilitiesNodesIndex++)
+            {
+                FinalUtilitiesNode finalUtilitiesNode = FinalUtilitiesNodes[finalUtilitiesNodesIndex];
+                utilities[finalUtilitiesNode.GetNodeNumber()] = rationalUtilities[finalUtilitiesNodesIndex];
+            }
+
             for (int eqNum = 0; eqNum < numEquilibria; eqNum++)
             {
                 Dictionary<(int playerIndex, int nodeIndex), Rational[]> playerProbabilities = new Dictionary<(int playerIndex, int nodeIndex), Rational[]>();
@@ -270,7 +280,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                         playerProbabilities[(infoSet.PlayerIndex, infoSet.GetNodeNumber())] = asArray;
                     }
                 }
-                CalculateRationalUtilitiesAtEachInformationSet calc = new CalculateRationalUtilitiesAtEachInformationSet(chanceProbabilities, playerProbabilities);
+                CalculateRationalUtilitiesAtEachInformationSet calc = new CalculateRationalUtilitiesAtEachInformationSet(chanceProbabilities, playerProbabilities, utilities);
                 TreeWalk_Tree(calc);
                 calc.VerifyPerfectEquilibrium(InformationSets);
             }

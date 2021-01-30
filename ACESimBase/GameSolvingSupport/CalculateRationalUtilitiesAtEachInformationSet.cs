@@ -17,12 +17,14 @@ namespace ACESimBase.GameSolvingSupport
         Dictionary<int, List<Rational[]>> WeightedUtilitiesAtInformationSetSuccessors = new Dictionary<int, List<Rational[]>>();
         Dictionary<int, Rational[]> ChanceProbabilities;
         Dictionary<(int playerIndex, int nodeIndex), Rational[]> PlayerProbabilities;
+        Dictionary<int, Rational[]> Utilities;
         HashSet<int> InformationSetNodeNumbers = new HashSet<int>();
 
-        public CalculateRationalUtilitiesAtEachInformationSet(Dictionary<int, Rational[]> chanceProbabilities, Dictionary<(int playerIndex, int nodeIndex), Rational[]> playerProbabilities)
+        public CalculateRationalUtilitiesAtEachInformationSet(Dictionary<int, Rational[]> chanceProbabilities, Dictionary<(int playerIndex, int nodeIndex), Rational[]> playerProbabilities, Dictionary<int, Rational[]> utilities)
         {
             ChanceProbabilities = chanceProbabilities;
             PlayerProbabilities = playerProbabilities;
+            Utilities = utilities;
         }
 
         public void VerifyPerfectEquilibrium(List<InformationSetNode> informationSetNodes)
@@ -136,7 +138,7 @@ namespace ACESimBase.GameSolvingSupport
 
         public Rational[] FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, Rational fromPredecessor)
         {
-            var rational = finalUtilities.Utilities.Select(x => (Rational)((int)x)).ToArray();
+            var rational = Utilities[finalUtilities.GetNodeNumber()].ToArray();
             return rational;
         }
     }
