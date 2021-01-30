@@ -1428,9 +1428,9 @@ namespace ACESim
                         if (originalProbabilities[pushingTowardAction - 1] < 1 - probabilityMassToReallocate)
                         {
                             double[] replacementProbabilities = ReallocateProbabilityMass(originalProbabilities, probabilityMassToReallocate, pushingTowardAction - 1);
+                            TabbedText.WriteLine($"Effect of changing information set {InformationSets[informationSetIndex]} to probabilities {String.Join(",", replacementProbabilities)}"); // DEBUG
                             informationSetToChange.SetCurrentProbabilities(replacementProbabilities);
-                            //TabbedText.WriteLine($"Effect of changing information set {InformationSets[informationSetIndex]}"); 
-                            int?[] effectOnOtherInformationSets = DoInformationSetPressureAnalysis(convertToDiscreteNumberOfUtilityLevels, false, probabilityMassToReallocate, informationSetIndex);
+                            int?[] effectOnOtherInformationSets = DoInformationSetPressureAnalysis(convertToDiscreteNumberOfUtilityLevels, true /* DEBUG */, probabilityMassToReallocate, informationSetIndex);
                             effectOfChanges.Add((pushingTowardAction, effectOnOtherInformationSets));
                             informationSetToChange.SetCurrentProbabilities(originalProbabilities);
                         }
