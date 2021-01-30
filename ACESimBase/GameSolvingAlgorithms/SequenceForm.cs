@@ -15,6 +15,7 @@ using Rationals;
 using JetBrains.Annotations;
 using NumSharp.Utilities;
 using ACESimBase.Games.EFGFileGame;
+using Microsoft.Azure.Storage;
 
 namespace ACESimBase.GameSolvingAlgorithms
 {
@@ -28,8 +29,16 @@ namespace ACESimBase.GameSolvingAlgorithms
         }
         SequenceFormApproach Approach = SequenceFormApproach.ECTA; 
 
-        bool ProduceEFGFile = true; 
+        bool ProduceEFGFile = true;
 
+        /// <summary>
+        /// Setting this to TRUE means that the game itself will have utilities changed to integral values, thus causing
+        /// the game to match the rounded-off version of the game for which equilibria are produced here.
+        /// Doing this should (and in testing does) result in the best response calculation giving a result of 0; when this is
+        /// not done, the best response improvement might be something like 1E-6, because the best response is using the real
+        /// non-rounded-off game. 
+        /// </summary>
+        bool ChangeUtilitiesToIntegers = true; // DEBUG
 
         public SequenceForm(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
         {
@@ -49,6 +58,8 @@ namespace ACESimBase.GameSolvingAlgorithms
             StoreGameStateNodesInLists = true;
             await base.Initialize();
             InitializeInformationSets();
+            if (ChangeUtilitiesToIntegers)
+                SetFinalUtilitiesToIntegralValues();
             //PrintGameTree();
             if (!EvolutionSettings.CreateInformationSetCharts) // otherwise this will already have been run
                 InformationSetNode.IdentifyNodeRelationships(InformationSets);
@@ -86,7 +97,7 @@ namespace ACESimBase.GameSolvingAlgorithms
         public List<(int informationSetIndex, int oneBasedMove)> NonChanceValidMoveIndexToInfoSetIndexAndMoveWithinInfoSet;
 
 
-        public record InformationSetInfo(IGameState GameState, int ECTAPlayerID, int Index, int FirstMoveIndex)
+        public record InformationSetInfo(IGameState GameState, int ECTAPlayerID, int Index, int FirstMoveIndex, int MaxIntegralUtility)
         {
             public int NumPossibleMoves => GameState.GetNumPossibleActions();
             public bool IsChance => GameState is ChanceNode;
@@ -108,15 +119,33 @@ namespace ACESimBase.GameSolvingAlgorithms
 
             public Rational[] GetProbabilitiesAsRationals()
             {
-                var results = GetProbabilities().Select(x => (int)(x * 10_000)).Select(x => (Rational)x / (Rational)10_000).ToArray();
+                if (ChanceNode is ChanceNodeEqualProbabilities equalProbabilitiesChance)
+                {
+                    int numPossibilities = equalProbabilitiesChance.GetNumPossibleActions();
+                    Rational eachProbability = (Rational)1 / (Rational)numPossibilities;
+                    return Enumerable.Range(0, numPossibilities).Select(x => eachProbability).ToArray();
+                }
+                var results = GetProbabilities().Select(x => (int)(x * MaxIntegralUtility)).Select(x => (Rational)x / (Rational)MaxIntegralUtility).ToArray();
                 // make numbers add up to exactly 1
                 Rational total = 0;
                 for (int i = 0; i < results.Length; i++)
                 {
                     if (i < results.Length - 1)
+                    {
+                        results[i] = results[i].CanonicalForm;
                         total += results[i];
+                        total = total.CanonicalForm;
+                    }
                     else
-                        results[i] = (Rational)1 - total;
+                        results[i] = ((Rational)1 - total).CanonicalForm;
+                }
+                if (ChanceNode is ChanceNodeUnequalProbabilities unequalProbabilitiesChance)
+                {
+                    // adjust the chance node probabilities so that they exactly match the rational numbers
+                    for (int i = 0; i < results.Length; i++)
+                    {
+                        unequalProbabilitiesChance.Probabilities[i] = (double) results[i];
+                    }
                 }
                 return results;
             }
@@ -171,9 +200,74 @@ namespace ACESimBase.GameSolvingAlgorithms
                 bool updateScenarios = false; // Doesn't work right now
                 Action<int, ECTATreeDefinition> scenarioUpdater = updateScenarios ? ScenarioUpdater() : null;
                 var results = ecta.Execute_ReturningRationalsAndDoubles(t => SetupECTA(t), scenarioUpdater);
+                ConfirmExactEquilibria(results.rationals);
                 equilibria = results.doubles;
             }
             await GenerateReportsFromEquilibria(equilibria, reportCollection);
+        }
+
+        public void ConfirmExactEquilibria(List<Rational[]> equilibria)
+        {
+
+            int numEquilibria = equilibria.Count();
+            var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetNodeNumber).ToList();
+            var infoSetNames = infoSets.Select(x => x.ToStringWithoutValues()).ToArray();
+            Dictionary<int, Rational[]> chanceProbabilities = new Dictionary<int, Rational[]>();
+            foreach (var chanceNode in InformationSetInfos.Where(x => x.IsChance))
+            {
+                chanceProbabilities[chanceNode.ChanceNode.GetNodeNumber()] = chanceNode.GetProbabilitiesAsRationals();
+            }
+            for (int eqNum = 0; eqNum < numEquilibria; eqNum++)
+            {
+                Dictionary<(int playerIndex, int nodeIndex), Rational[]> playerProbabilities = new Dictionary<(int playerIndex, int nodeIndex), Rational[]>();
+                bool isFirst = eqNum == 0;
+                bool isLast = eqNum == numEquilibria - 1;
+                var actionProbabilities = equilibria[eqNum];
+                if (infoSets.Sum(x => x.Decision.NumPossibleActions) != actionProbabilities.Count())
+                {
+                    TabbedText.WriteLine($"Equilibrium {eqNum + 1}: mismatch in number of possible actions; skipping"); // Should not happen
+                    throw new Exception("Unexpected mismatch");
+                }
+                else
+                {
+                    var numActionsPerSet = infoSets.Select(x => x.Decision.NumPossibleActions).ToList();
+                    int actionProbabilitiesIndex = 0;
+                    foreach (var infoSet in infoSets)
+                    {
+                        Rational[] asArray = new Rational[infoSet.NumPossibleActions];
+                        int initialActionProbabilitiesIndex = actionProbabilitiesIndex;
+                        Rational total = 0;
+                        for (int i = 0; i < infoSet.NumPossibleActions; i++)
+                        {
+                            var probability = actionProbabilities[actionProbabilitiesIndex++];
+                            asArray[i] = probability;
+                            total += probability;
+                        }
+                        if (total != 1)
+                        {
+                            // Fix degeneracy
+                            //throw new Exception("Probabilities do not add up to 1");
+                            if (total <= 0)
+                            {
+                                for (int i = 0; i < infoSet.NumPossibleActions; i++)
+                                    actionProbabilities[initialActionProbabilitiesIndex + i] = (Rational) 1 / (Rational)infoSet.NumPossibleActions;
+                            }
+                            else
+                            {
+                                Rational multiplier = (Rational) 1 / (Rational) total;
+                                for (int i = 0; i < infoSet.NumPossibleActions; i++)
+                                    actionProbabilities[initialActionProbabilitiesIndex + i] *= multiplier;
+                            }
+                        }
+                        //if (total != 1)
+                        //    throw new Exception("Confirmation failed.");
+                        playerProbabilities[(infoSet.PlayerIndex, infoSet.GetNodeNumber())] = asArray;
+                    }
+                }
+                CalculateRationalUtilitiesAtEachInformationSet calc = new CalculateRationalUtilitiesAtEachInformationSet(chanceProbabilities, playerProbabilities);
+                TreeWalk_Tree(calc);
+                calc.VerifyPerfectEquilibrium(InformationSets);
+            }
         }
 
         private Action<int, ECTATreeDefinition> ScenarioUpdater()
@@ -217,9 +311,9 @@ namespace ACESimBase.GameSolvingAlgorithms
             InformationSetInfos = new List<InformationSetInfo>();
             int index = 0;
             foreach (var chanceInformationSet in chanceInformationSets)
-                InformationSetInfos.Add(new InformationSetInfo(chanceInformationSet, 0, index++, -1));
+                InformationSetInfos.Add(new InformationSetInfo(chanceInformationSet, 0, index++, -1, EvolutionSettings.MaxIntegralUtility));
             foreach (var playerInformationSet in playerInformationSets)
-                InformationSetInfos.Add(new InformationSetInfo(playerInformationSet, PlayerIDToECTA(playerInformationSet.PlayerIndex), index++, -1));
+                InformationSetInfos.Add(new InformationSetInfo(playerInformationSet, PlayerIDToECTA(playerInformationSet.PlayerIndex), index++, -1, EvolutionSettings.MaxIntegralUtility));
             for (int i = 0; i < InformationSetInfos.Count(); i++)
                 InformationSetInfos[i].GameState.AltNodeNumber = i; // set the alt node number so that we can match the numbering scheme expected of our ECTA code
 
@@ -390,13 +484,13 @@ namespace ACESimBase.GameSolvingAlgorithms
                     {
                         // chance player
                         var chance = InformationSetInfos[infoSetIndex].ChanceNode;
-                        var rational = chance.GetActionProbabilityAsRational(1000, moveNumber);
+                        var rational = InformationSetInfos[infoSetIndex].GetProbabilitiesAsRationals()[moveNumber - 1];
                         if (chance.Decision.DistributedChanceDecision && EvolutionSettings.DistributeChanceDecisions)
                         {
                             t.moves[moveIndex].behavprob = moveNumber == 1 ? (Rational)1 : (Rational)0;
                         }
                         else
-                            t.moves[moveIndex].behavprob = rational.Item1 / (Rational)rational.Item2;
+                            t.moves[moveIndex].behavprob = rational;
                     }
                 }
             }
@@ -429,8 +523,16 @@ namespace ACESimBase.GameSolvingAlgorithms
         private int[][] GetOutcomesForECTA()
         {
             int[][] pay = new int[2][];
-            pay[0] = ConvertToIntegralUtilities(Outcomes.Select(x => x.Utilities[0]));
-            pay[1] = ConvertToIntegralUtilities(Outcomes.Select(x => x.Utilities[1]));
+            if (ChangeUtilitiesToIntegers)
+            {
+                pay[0] = Outcomes.Select(x => (int) x.Utilities[0]).ToArray();
+                pay[1] = Outcomes.Select(x => (int) x.Utilities[1]).ToArray();
+            }
+            else
+            {
+                pay[0] = ConvertToIntegralUtilities(Outcomes.Select(x => x.Utilities[0]));
+                pay[1] = ConvertToIntegralUtilities(Outcomes.Select(x => x.Utilities[1]));
+            }
             return pay;
         }
 
@@ -512,7 +614,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             }
         }
 
-        // This is to generate code that can be pasted into the original C code
+        // This is to generate code that can be pasted into the original C code. This was used to ensure that the results were the same (when used with simple games where integral overflow did not occur).
         public string GetECTACodeInC()
         {
             const int ECTA_MultiplyOutcomesByThisBeforeRounding = 10_000;
@@ -827,21 +929,24 @@ namespace ACESimBase.GameSolvingAlgorithms
 
             if (EvolutionSettings.IdentifyPressureOnInformationSets)
             {
-                IdentifyPressureOnInformationSets(true, true, true, true, out var crossInformationSetEffects);
-                for (int i = 0; i < crossInformationSetEffects.Count(); i++)
+                IdentifyPressureOnInformationSets(!ChangeUtilitiesToIntegers, true, true, true, out var crossInformationSetEffects);
+                if (crossInformationSetEffects != null)
                 {
-                    var effectOfInformationSetChange = crossInformationSetEffects[i];
-                    if (effectOfInformationSetChange.actionPromotedInOtherInformationSets != null && effectOfInformationSetChange.actionPromotedInOtherInformationSets.Any(x => x != null))
+                    for (int i = 0; i < crossInformationSetEffects.Count(); i++)
                     {
-                        TabbedText.WriteLine($"Change toward action {effectOfInformationSetChange.sourceAction} in information set {InformationSets[i]}:");
-                        for (int j = 0; j < effectOfInformationSetChange.actionPromotedInOtherInformationSets.Length; j++)
+                        var effectOfInformationSetChange = crossInformationSetEffects[i];
+                        if (effectOfInformationSetChange.actionPromotedInOtherInformationSets != null && effectOfInformationSetChange.actionPromotedInOtherInformationSets.Any(x => x != null))
                         {
-                            int? effectOnJ = effectOfInformationSetChange.actionPromotedInOtherInformationSets[j];
-                            if (effectOnJ != null)
+                            TabbedText.WriteLine($"Change toward action {effectOfInformationSetChange.sourceAction} in information set {InformationSets[i]}:");
+                            for (int j = 0; j < effectOfInformationSetChange.actionPromotedInOtherInformationSets.Length; j++)
                             {
-                                TabbedText.WriteLine($"--> move to action {effectOnJ} in information set {InformationSets[j]}");
-                            }
-                        };
+                                int? effectOnJ = effectOfInformationSetChange.actionPromotedInOtherInformationSets[j];
+                                if (effectOnJ != null)
+                                {
+                                    TabbedText.WriteLine($"--> move to action {effectOnJ} in information set {InformationSets[j]}");
+                                }
+                            };
+                        }
                     }
                 }
             }

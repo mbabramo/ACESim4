@@ -1403,7 +1403,7 @@ namespace ACESim
             {
                 TabbedText.WriteLine("");
                 TabbedText.WriteLine("Switching to alternative options:");
-                GameDefinition.SwitchToAlternativeOptions(true);
+                // DEBUG GameDefinition.SwitchToAlternativeOptions(true);
                 int?[] result = DoInformationSetPressureAnalysis(convertToDiscreteNumberOfUtilityLevels, true, 0.01);
                 indicesOfAffectedInformationSets = result.Select((item, index) => (item, index)).Where(x => x.item != null).Select(x => (x.index, (int) x.item)).ToList();
                 GameDefinition.SwitchToAlternativeOptions(false);
@@ -1424,7 +1424,7 @@ namespace ACESim
                         int pushingTowardAction = indicesOfAffectedInformationSets.First(x => x.indexOfAffectedSet == informationSetIndex).pushingTowardAction;
                         InformationSetNode informationSetToChange = InformationSets[informationSetIndex];
                         double[] originalProbabilities = informationSetToChange.GetCurrentProbabilitiesAsArray();
-                        double probabilityMassToReallocate = 0.001;
+                        double probabilityMassToReallocate = 0; // DEBUG
                         if (originalProbabilities[pushingTowardAction - 1] < 1 - probabilityMassToReallocate)
                         {
                             double[] replacementProbabilities = ReallocateProbabilityMass(originalProbabilities, probabilityMassToReallocate, pushingTowardAction - 1);
@@ -1450,6 +1450,8 @@ namespace ACESim
         /// <returns></returns>
         private static double[] ReallocateProbabilityMass(double[] originalProbabilities, double probabilityToReallocate, int indexToReallocateTo)
         {
+            if (probabilityToReallocate == 0)
+                return originalProbabilities.ToArray();
             double probabilitiesExceptingIndexWithHighestValue = 1.0 - originalProbabilities[indexToReallocateTo];
             double[] replacementProbabilities = originalProbabilities.ToArray();
             for (int i = 0; i < replacementProbabilities.Length; i++)
@@ -1484,6 +1486,7 @@ namespace ACESim
                 utilitiesCalculator.MinMaxUtilityValues = Enumerable.Range(0, NumNonChancePlayers).Select(x => (FinalUtilitiesNodes.Min(y => y.Utilities[x]), FinalUtilitiesNodes.Max(y => y.Utilities[x]))).ToArray();
             }
             TreeWalk_Tree(utilitiesCalculator);
+            utilitiesCalculator.VerifyPerfectEquilibrium(InformationSets); // DEBUG
             int?[] actionBecomingMorePopularAtEachInformationSet = new int?[InformationSets.Count()];
             for (int informationSetIndex = 0; informationSetIndex < InformationSets.Count; informationSetIndex++)
             {
@@ -1511,11 +1514,24 @@ namespace ACESim
                 {
                     actionBecomingMorePopularAtEachInformationSet[informationSetIndex] = indexWithLargestIncrease + 1;
                     if (report)
-                        TabbedText.WriteLine($"--> move to action {actionBecomingMorePopularAtEachInformationSet[informationSetIndex]} at rate {largestIncrease / sourceChangeMagnitude} in {informationSet}"); // Utilities from actions: {String.Join(",", utilityFromEachAction)}");
+                        TabbedText.WriteLine($"--> move to action {actionBecomingMorePopularAtEachInformationSet[informationSetIndex]} at rate {largestIncrease / (sourceChangeMagnitude == 0 ? 1 : sourceChangeMagnitude)} in {informationSet}"); // Utilities from actions: {String.Join(",", utilityFromEachAction)}");
                 }
             }
             Navigation = originalNavigation;
             return actionBecomingMorePopularAtEachInformationSet;
+        }
+
+        public void SetFinalUtilitiesToIntegralValues()
+        {
+            for (int p = 0; p < NumNonChancePlayers; p++)
+            {
+                var values = FinalUtilitiesNodes.Select(x => x.Utilities[p]).ToList();
+                int[] integralUtilities = ConvertToIntegralUtilities(values);
+                for (int i = 0; i < FinalUtilitiesNodes.Count(); i++)
+                {
+                    FinalUtilitiesNodes[i].Utilities[p] = integralUtilities[i];
+                }
+            }
         }
 
         public int[] ConvertToIntegralUtilities(IEnumerable<double> original)

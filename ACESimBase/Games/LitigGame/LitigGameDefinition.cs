@@ -717,6 +717,19 @@ namespace ACESim
 
         public override double[] GetUnevenChanceActionProbabilities(byte decisionByteCode, GameProgress gameProgress)
         {
+            double[] results = GetUnevenChanceActionProbabilities_Helper(decisionByteCode, gameProgress);
+            bool roundOff = false; // DEBUG
+            if (roundOff)
+            {
+                const int maxDigits = 5;
+                results = results.Select(x => Math.Round(x, maxDigits)).ToArray();
+                results[results.Length - 1] = 1.0 - (results.Sum() - results[results.Length - 1]);
+            }
+            return results;
+        }
+
+        private double[] GetUnevenChanceActionProbabilities_Helper(byte decisionByteCode, GameProgress gameProgress)
+        {
             if (decisionByteCode == (byte)LitigGameDecisions.PrePrimaryActionChance)
             {
                 var myGameProgress = ((LitigGameProgress)gameProgress);

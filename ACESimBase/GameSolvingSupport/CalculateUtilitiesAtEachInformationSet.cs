@@ -18,6 +18,36 @@ namespace ACESimBase.GameSolvingSupport
         public int? LimitUtilitiesToNPlus1DiscreteValues;
         public (double min, double max)[] MinMaxUtilityValues;
 
+        public void VerifyPerfectEquilibrium(List<InformationSetNode> informationSetNodes)
+        {
+            foreach (var informationSetNode in informationSetNodes)
+                VerifyPerfectEquilibrium(informationSetNode);
+        }
+
+        public void VerifyPerfectEquilibrium(InformationSetNode informationSetNode)
+        {
+            int informationSetNodeNumber = informationSetNode.GetNodeNumber();
+            if (informationSetNodeNumber == 16)
+            {
+                var DEBUG = 0;
+            }
+            var (utilities, utilitiesAtSuccessors, reachProbability) = GetUtilitiesAndReachProbability(informationSetNodeNumber);
+            int i = informationSetNode.PlayerIndex;
+            int numSuccessors = utilitiesAtSuccessors.Count();
+            for (int successorIndex = 0; successorIndex < numSuccessors; successorIndex++)
+            {
+                double[] actionProbabilities = informationSetNode.GetCurrentProbabilitiesAsArray();
+                double actionProbability = actionProbabilities[successorIndex];
+                if (actionProbability != 0)
+                { // this is an action played with positive probability
+                    const double tolerance = 1E-5;
+                    double absDifference = Math.Abs(utilities[i] - utilitiesAtSuccessors[successorIndex][i]);
+                    if (absDifference > tolerance)
+                        throw new Exception($"Information set {informationSetNodeNumber} Verification of equal utilities failed.");
+                }
+            }
+        }
+
         public (double[] utilities, List<double[]> utilitiesAtSuccessors, double reachProbability) GetUtilitiesAndReachProbability(int informationSetNodeNumber)
         {
             double reachProbability = ProbabilityOfReachingInformationSet[informationSetNodeNumber];
@@ -68,6 +98,10 @@ namespace ACESimBase.GameSolvingSupport
                     informationSet.GetNodeNumber(),
                     fromSuccessors.Select(x => utilities.Select(x => (double)0).ToArray()).ToList());
             var fromSuccessorsList = fromSuccessors.ToList();
+            if (informationSet.InformationSetNodeNumber == 0)
+            {
+                var DEBUG = 0;
+            }
             for (int s = 0; s < fromSuccessorsList.Count(); s++)
             {
                 double[] prerecordedUtilitiesAtSuccessor = prerecordedUtilitiesAtSuccessors[s];
