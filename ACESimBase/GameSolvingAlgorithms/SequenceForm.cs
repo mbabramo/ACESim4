@@ -247,16 +247,27 @@ namespace ACESimBase.GameSolvingAlgorithms
                         {
                             // Fix degeneracy
                             //throw new Exception("Probabilities do not add up to 1");
+                            if (infoSet.GetNodeNumber() == 5)
+                            {
+                                var DEBUG = 0;
+                            }
                             if (total <= 0)
                             {
                                 for (int i = 0; i < infoSet.NumPossibleActions; i++)
-                                    actionProbabilities[initialActionProbabilitiesIndex + i] = (Rational) 1 / (Rational)infoSet.NumPossibleActions;
+                                {
+                                    actionProbabilities[initialActionProbabilitiesIndex + i] = (Rational)1 / (Rational)infoSet.NumPossibleActions;
+                                    asArray[i] = actionProbabilities[initialActionProbabilitiesIndex + i];
+                                }
+
                             }
                             else
                             {
                                 Rational multiplier = (Rational) 1 / (Rational) total;
                                 for (int i = 0; i < infoSet.NumPossibleActions; i++)
+                                {
                                     actionProbabilities[initialActionProbabilitiesIndex + i] *= multiplier;
+                                    asArray[i] = actionProbabilities[initialActionProbabilitiesIndex + i];
+                                }
                             }
                         }
                         //if (total != 1)

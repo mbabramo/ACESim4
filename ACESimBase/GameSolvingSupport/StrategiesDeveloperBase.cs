@@ -1486,7 +1486,6 @@ namespace ACESim
                 utilitiesCalculator.MinMaxUtilityValues = Enumerable.Range(0, NumNonChancePlayers).Select(x => (FinalUtilitiesNodes.Min(y => y.Utilities[x]), FinalUtilitiesNodes.Max(y => y.Utilities[x]))).ToArray();
             }
             TreeWalk_Tree(utilitiesCalculator);
-            utilitiesCalculator.VerifyPerfectEquilibrium(InformationSets); // DEBUG
             int?[] actionBecomingMorePopularAtEachInformationSet = new int?[InformationSets.Count()];
             for (int informationSetIndex = 0; informationSetIndex < InformationSets.Count; informationSetIndex++)
             {
