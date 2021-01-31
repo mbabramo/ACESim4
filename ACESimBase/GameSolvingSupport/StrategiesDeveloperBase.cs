@@ -82,6 +82,9 @@ namespace ACESim
         public bool SaveWeightedGameProgressesAfterEachReport = false;
         public List<(GameProgress theProgress, double weight)> SavedWeightedGameProgresses = new List<(GameProgress theProgress, double weight)>();
 
+
+        public Rational[][] UtilitiesAsRationals;
+
         public StrategiesDeveloperBase(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition)
         {
             Navigation = Navigation.WithGameStateFunction(GetGameState);
@@ -1523,36 +1526,46 @@ namespace ACESim
 
         public void SetFinalUtilitiesToRoundedOffValues()
         {
-            Rational[][] utilities = GetUtilitiesAsRationals();
+            UtilitiesAsRationals = GetUtilitiesAsRationals();
             for (int p = 0; p < NumNonChancePlayers; p++)
             {
                 var values = FinalUtilitiesNodes.Select(x => x.Utilities[p]).ToList();
                 for (int i = 0; i < FinalUtilitiesNodes.Count(); i++)
                 {
-                    FinalUtilitiesNodes[i].Utilities[p] = (double) utilities[p][i];
+                    FinalUtilitiesNodes[i].Utilities[p] = (double) UtilitiesAsRationals[p][i];
                 }
             }
+            // Confirm that after setting the utilities, reloading the utilities as rationals leads to the same result
+            var utilities2 = GetUtilitiesAsRationals();
+            for (int p = 0; p < NumNonChancePlayers; p++)
+                if (!UtilitiesAsRationals[p].SequenceEqual(utilities2[p]))
+                    throw new Exception();
         }
 
         public Rational[][] GetUtilitiesAsRationals()
         {
             int numDecimalPointsForMinAndMax = EvolutionSettings.RoundOffChanceDigits;
             (double min, double max)[] minmax = Enumerable.Range(0, NumNonChancePlayers).Select(p => (FinalUtilitiesNodes.Min(x => x.Utilities[p]), FinalUtilitiesNodes.Max(x => x.Utilities[p]))).ToArray();
-            int[][] integralUtilities = ConvertToIntegralUtilities();
+            int[][] integralUtilities = GetUtilitiesAsIntegers();
+            return ConvertToRationalUtilities(minmax, integralUtilities);
+        }
+
+        private Rational[][] ConvertToRationalUtilities((double min, double max)[] minmax, int[][] integralUtilities)
+        {
             Rational[][] rationalUtilities = new Rational[NumNonChancePlayers][];
             for (int p = 0; p < NumNonChancePlayers; p++)
             {
                 double min = Math.Round(minmax[p].min * EvolutionSettings.MaxIntegralUtility);
                 double max = Math.Round(minmax[p].max * EvolutionSettings.MaxIntegralUtility);
-                Rational minRational = (((Rational)(int)min) / (Rational) EvolutionSettings.MaxIntegralUtility).CanonicalForm;
-                Rational maxRational = (((Rational)(int)max) / (Rational) EvolutionSettings.MaxIntegralUtility).CanonicalForm;
+                Rational minRational = (((Rational)(int)min) / (Rational)EvolutionSettings.MaxIntegralUtility).CanonicalForm;
+                Rational maxRational = (((Rational)(int)max) / (Rational)EvolutionSettings.MaxIntegralUtility).CanonicalForm;
                 Rational range = (maxRational - minRational).CanonicalForm;
-                rationalUtilities[p] = integralUtilities[p].Select(x => minRational + range * ((Rational)x)/((Rational)EvolutionSettings.MaxIntegralUtility)).Select(x => x.CanonicalForm).ToArray();
+                rationalUtilities[p] = integralUtilities[p].Select(x => minRational + range * ((Rational)x) / ((Rational)EvolutionSettings.MaxIntegralUtility)).Select(x => x.CanonicalForm).ToArray();
             }
             return rationalUtilities;
         }
 
-        public int[][] ConvertToIntegralUtilities()
+        public int[][] GetUtilitiesAsIntegers()
         {
             List<int[]> finalUtilitiesForPlayer = new List<int[]>();
             for (int p = 0; p < NumNonChancePlayers; p++)

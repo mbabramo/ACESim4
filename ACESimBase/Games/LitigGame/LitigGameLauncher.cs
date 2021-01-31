@@ -918,6 +918,8 @@ namespace ACESim
             g.PLiabilityNoiseStdev *= pNoiseMultiplier;
             g.DDamagesNoiseStdev *= dNoiseMultiplier;
             g.DLiabilityNoiseStdev *= dNoiseMultiplier;
+            g.CourtLiabilityNoiseStdev = Math.Min(g.PLiabilityNoiseStdev, g.DLiabilityNoiseStdev);
+            g.CourtDamagesNoiseStdev = Math.Min(g.PDamagesNoiseStdev, g.DDamagesNoiseStdev);
 
             g.VariableSettings["Noise Multiplier P"] = pNoiseMultiplier;
             g.VariableSettings["Noise Multiplier D"] = dNoiseMultiplier;

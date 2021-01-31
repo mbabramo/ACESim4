@@ -1,5 +1,6 @@
 ﻿using ACESim;
 using JetBrains.Annotations;
+using Microsoft.FSharp.Core;
 using Rationals;
 using System;
 using System.Collections.Generic;
@@ -27,28 +28,39 @@ namespace ACESimBase.GameSolvingSupport
             Utilities = utilities;
         }
 
-        public void VerifyPerfectEquilibrium(List<InformationSetNode> informationSetNodes)
+        public bool VerifyPerfectEquilibrium(List<InformationSetNode> informationSetNodes)
         {
+            bool perfect = true;
             foreach (var informationSetNode in informationSetNodes)
-                VerifyPerfectEquilibrium(informationSetNode);
+                perfect = perfect && VerifyPerfectEquilibrium(informationSetNode);
+            return perfect;
         }
 
-        public void VerifyPerfectEquilibrium(InformationSetNode informationSetNode)
+        public bool VerifyPerfectEquilibrium(InformationSetNode informationSetNode)
         {
             int informationSetNodeNumber = informationSetNode.GetNodeNumber();
             var (utilities, utilitiesAtSuccessors, reachProbability) = GetUtilitiesAndReachProbability(informationSetNodeNumber);
             int i = informationSetNode.PlayerIndex;
             int numSuccessors = utilitiesAtSuccessors.Count();
+            bool perfect = true;
             for (int successorIndex = 0; successorIndex < numSuccessors; successorIndex++)
             {
                 Rational[] actionProbabilities = PlayerProbabilities[(informationSetNode.PlayerIndex, informationSetNode.GetNodeNumber())];
                 Rational actionProbability = actionProbabilities[successorIndex];
                 if (actionProbability != 0)
                 { // this is an action played with positive probability
+                    bool throwOnFail = false;
                     if (utilities[i] != utilitiesAtSuccessors[successorIndex][i])
-                        throw new Exception($"Information set {informationSetNodeNumber} Verification of equal utilities failed.");
+                    {
+                        string matchFailure = $"Information set {informationSetNodeNumber} Verification of equal utilities failed. {utilities[i]} != {utilitiesAtSuccessors[successorIndex][i]}";
+                        TabbedText.WriteLine(matchFailure);
+                        if (throwOnFail)
+                            throw new Exception(matchFailure);
+                        perfect = false;
+                    }
                 }
             }
+            return perfect;
         }
 
         public (Rational[] utilities, List<Rational[]> utilitiesAtSuccessors, Rational reachProbability) GetUtilitiesAndReachProbability(int informationSetNodeNumber)

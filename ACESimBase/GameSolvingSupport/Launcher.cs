@@ -23,7 +23,7 @@ namespace ACESim
         public const int VanillaIterations = 1000; // Note: Also used for GeneralizedVanilla, DeepCFR
         public const int VanillaReportEveryNIterations =  VanillaIterations; // EffectivelyNever
         public int? SuppressReportBeforeIteration = null;
-        public const int VanillaBestResponseEveryMIterations = EffectivelyNever; // VanillaIterations; 
+        public const int VanillaBestResponseEveryMIterations = VanillaIterations;
         public int? SuppressBestResponseBeforeIteration = null; 
         public const bool CalculatePerturbedBestResponseRefinement = true;
         public const int MiniReportEveryPIterations = EffectivelyNever;
@@ -262,7 +262,7 @@ namespace ACESim
                     TabbedText.WriteLineEvenIfDisabled($"Percentage Complete {100.0 * taskCoordinator.ProportionComplete}% of {taskCoordinator.IndividualTaskCount}");
                     if (taskToDo != null)
                     {
-                        int? alwaysDoTaskID = null; // 2209; // set this to a task to replay a particular task over and over
+                        int? alwaysDoTaskID = null; // set this to a task to replay a particular task over and over
                         if (alwaysDoTaskID != null)
                             taskToDo.ID = (int)alwaysDoTaskID;
                         TabbedText.WriteLineEvenIfDisabled($"Task to do: {taskToDo}");
@@ -280,7 +280,14 @@ namespace ACESim
                     else
                     {
                         logAction($"Beginning task {taskToDo.TaskType} (ID {taskToDo.ID})");
-                        await CompleteIndividualTask(masterReportName, taskToDo, logAction);
+                        try
+                        {
+                            await CompleteIndividualTask(masterReportName, taskToDo, logAction);
+                        }
+                        catch (Exception ex)
+                        {
+                            AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), $"FAILURE {taskToDo.TaskType} ID {taskToDo.ID}.txt", true, TabbedText.AccumulatedText.ToString(), SaveToAzureBlob);
+                        }
                         logAction($"Completed task {taskToDo.TaskType} (ID {taskToDo.ID})");
                         taskCompleted = taskToDo;
                     }
@@ -553,6 +560,7 @@ namespace ACESim
             if (i > 0)
                 developer.Reinitialize();
             ReportCollection reportCollection = new ReportCollection();
+            int retriesRemaining = 3;
         retry:
             try
             {
@@ -563,7 +571,10 @@ namespace ACESim
                 logAction(e.Message + e.StackTrace);
                 TabbedText.WriteLine($"Error: {e}");
                 TabbedText.WriteLine(e.StackTrace);
-                goto retry;
+                retriesRemaining--;
+                if (retriesRemaining >= 0)
+                    goto retry;
+                throw new Exception("Repeated failures");
             }
             string singleRepetitionReport = addOptionSetColumns ? SimpleReportMerging.AddCSVReportInformationColumns(reportCollection.csvReports.FirstOrDefault(), optionSetName, reportIteration, i == 0) : reportCollection.csvReports.FirstOrDefault(); 
             return reportCollection;

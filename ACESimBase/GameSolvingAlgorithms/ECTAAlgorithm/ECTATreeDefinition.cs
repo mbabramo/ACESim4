@@ -425,7 +425,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     {
                         Rational a = new Rational();
                         a = moves[h.move0 + i].behavprob.Numerator / (Rational)denominator;
-                        moves[h.move0 + i].behavprob = a;
+                        moves[h.move0 + i].behavprob = a.CanonicalForm;
                     }
                 }
         }

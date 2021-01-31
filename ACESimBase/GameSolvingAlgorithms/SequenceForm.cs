@@ -192,16 +192,14 @@ namespace ACESimBase.GameSolvingAlgorithms
                 Action<int, ECTATreeDefinition> scenarioUpdater = updateScenarios ? ScenarioUpdater() : null;
                 var results = ecta.Execute_ReturningRationalsAndDoubles(t => SetupECTA(t), scenarioUpdater);
                 if (EvolutionSettings.ConfirmExactEquilibria)
-                    ConfirmExactEquilibria(results.rationals);
+                    VerifyPerfectEquilibria(results.rationals);
                 equilibria = results.doubles;
             }
             await GenerateReportsFromEquilibria(equilibria, reportCollection);
         }
 
-        public void ConfirmExactEquilibria(List<Rational[]> equilibria)
+        public void VerifyPerfectEquilibria(List<Rational[]> equilibria)
         {
-            Stopwatch s = new Stopwatch();
-            s.Start();
             int numEquilibria = equilibria.Count();
             var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetNodeNumber).ToList();
             var infoSetNames = infoSets.Select(x => x.ToStringWithoutValues()).ToArray();
@@ -212,19 +210,24 @@ namespace ACESimBase.GameSolvingAlgorithms
             }
             Dictionary<int, Rational[]> utilities = new Dictionary<int, Rational[]>();
 
-            Rational[][] rationalUtilities = GetUtilitiesAsRationals().TransposeRowsAndColumns();
+            Rational[][] rationalUtilities = UtilitiesAsRationals.TransposeRowsAndColumns();
             for (int finalUtilitiesNodesIndex = 0; finalUtilitiesNodesIndex < FinalUtilitiesNodes.Count; finalUtilitiesNodesIndex++)
             {
                 FinalUtilitiesNode finalUtilitiesNode = FinalUtilitiesNodes[finalUtilitiesNodesIndex];
                 utilities[finalUtilitiesNode.GetNodeNumber()] = rationalUtilities[finalUtilitiesNodesIndex];
             }
 
+            List<int> imperfect = new List<int>();
+
             for (int eqNum = 0; eqNum < numEquilibria; eqNum++)
             {
+                Stopwatch s = new Stopwatch();
+                s.Start();
                 Dictionary<(int playerIndex, int nodeIndex), Rational[]> playerProbabilities = new Dictionary<(int playerIndex, int nodeIndex), Rational[]>();
                 bool isFirst = eqNum == 0;
                 bool isLast = eqNum == numEquilibria - 1;
                 var actionProbabilities = equilibria[eqNum];
+                bool degeneracyExists = false;
                 if (infoSets.Sum(x => x.Decision.NumPossibleActions) != actionProbabilities.Count())
                 {
                     TabbedText.WriteLine($"Equilibrium {eqNum + 1}: mismatch in number of possible actions; skipping"); // Should not happen
@@ -248,6 +251,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                         if (total != 1)
                         {
                             // Fix degeneracy
+                            degeneracyExists = true;
                             if (total <= 0)
                             {
                                 for (int i = 0; i < infoSet.NumPossibleActions; i++)
@@ -259,23 +263,48 @@ namespace ACESimBase.GameSolvingAlgorithms
                             }
                             else
                             {
-                                Rational multiplier = (Rational) 1 / (Rational) total;
-                                for (int i = 0; i < infoSet.NumPossibleActions; i++)
+                                // It appears that when it's imperfect (always only very slightly), there is always a degeneracy of this sort. 
+                                // Neither of these approaches makes it go away; nor does using the approach used where total <= 0.
+                                int numNonZero = asArray.Count(x => x > 0);
+                                if (numNonZero == 1)
                                 {
-                                    actionProbabilities[initialActionProbabilitiesIndex + i] *= multiplier;
-                                    asArray[i] = actionProbabilities[initialActionProbabilitiesIndex + i];
+                                    int nonZeroIndex = asArray.Select((item, index) => (item, index)).First(x => x.item > 0).index;
+                                    Rational amountToDistribute = ((Rational)1) - asArray[nonZeroIndex];
+                                    Rational eachOtherItem = (amountToDistribute / ((Rational)(asArray.Length - 1))).CanonicalForm;
+                                    for (int i = 0; i < infoSet.NumPossibleActions; i++)
+                                    {
+                                        if (i != nonZeroIndex)
+                                            asArray[i] = eachOtherItem;
+                                    }
+                                }
+                                else
+                                {
+                                    Rational multiplier = (Rational)1 / (Rational)total;
+                                    for (int i = 0; i < infoSet.NumPossibleActions; i++)
+                                    {
+                                        actionProbabilities[initialActionProbabilitiesIndex + i] *= multiplier;
+                                        asArray[i] = actionProbabilities[initialActionProbabilitiesIndex + i].CanonicalForm;
+                                    }
                                 }
                             }
                         }
-                        //if (total != 1)
-                        //    throw new Exception("Confirmation failed.");
                         playerProbabilities[(infoSet.PlayerIndex, infoSet.GetNodeNumber())] = asArray;
                     }
                 }
                 CalculateRationalUtilitiesAtEachInformationSet calc = new CalculateRationalUtilitiesAtEachInformationSet(chanceProbabilities, playerProbabilities, utilities);
                 TreeWalk_Tree(calc);
-                calc.VerifyPerfectEquilibrium(InformationSets);
-                TabbedText.WriteLine($"Perfect equilibrium confirmed {s.ElapsedMilliseconds} ms");
+                bool perfect = calc.VerifyPerfectEquilibrium(InformationSets);
+                TabbedText.WriteLine($"Perfect equilibrium {(!perfect ? "not " : "")}confirmed {s.ElapsedMilliseconds} ms");
+                if (!perfect)
+                    imperfect.Add(eqNum);
+            }
+            bool eliminateImperfectIfPossible = true;
+            if (eliminateImperfectIfPossible && imperfect.Count() > 0 && imperfect.Count() < numEquilibria)
+            {
+                // narrow down to perfect equilibrium -- in observation, the imperfection is only in a very late decimal place when converted to double
+                imperfect.Reverse();
+                foreach (int eqNum in imperfect)
+                    equilibria.RemoveAt(eqNum);
             }
         }
 
