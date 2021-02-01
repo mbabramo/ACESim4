@@ -203,6 +203,12 @@ namespace ACESimBase.Util.DiscreteProbabilities
                 var result = probabilitiesForEachPossibleValueOfFixedVariables[crossProductIndex];
                 if (result.All(x => x == 0))
                 {
+                    // This can occur if the combination of the fixed variables is so unlikely that every probability estimate
+                    // is less than the smallest value that can be represented with a double. Ideally in this circumstance,
+                    // we would redo the calculations with arbitrary precision arithmetic to determine the relative probabilities.
+                    // But in practice, this will have effectively 0 influence on any meaningful calculations (e.g., this scenario
+                    // will be buried on an effectively unreachable part of the game tree), so we take a shortcut here of just
+                    // setting each probability to the same value. 
                     double eachVal = 1.0 / (double) result.Length;
                     for (int i = 0; i < result.Length; i++)
                         result[i] = eachVal;
