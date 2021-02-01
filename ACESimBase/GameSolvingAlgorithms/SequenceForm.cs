@@ -159,7 +159,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             ecta.outputEquilibrium = true;
             ecta.outputRealizationPlan = false;
 
-            bool outputAll = false;
+            bool outputAll = true; // DEBUG
             if (outputAll)
             {
                 ecta.outputPrior = true;

@@ -8,11 +8,6 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
     public static class BigIntegerOperations
     {
-		public const int NEG = -1;
-		public const int POS = 1;
-		public const int ONE = 1;
-		public const int TWO = 2;
-		public const int ZERO = 0;
 
 		public static bool positive(BigInteger a)
 		{
@@ -22,39 +17,37 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 		{
 			return a < 0;
 		}
-		public static int sign(BigInteger a)
-		{
-			return negative(a) ? NEG : POS;
-		}
+
 		public static bool zero(BigInteger a)
 		{
 			return a == 0;
 		}
+
 		public static bool one(BigInteger a)
 		{
 			return a == 1;
 		}
+
 		public static void changesign(ref BigInteger a)
 		{
 			a = -a;
 		}
 
-		public static void itomp(long i, ref BigInteger a)
-		{
-			a = i;
-		}
-
-		public static int mptoa(BigInteger x, ref string s)
+		public static string ToStringForTable(this BigInteger x)
         {
-			s = x.ToString();
-			return s.Length;
-		}
+			string s = x.ToString();
+			if (s.Length > 8)
+				return x.ToString("E5");
+			else
+				return s;
+        }
 
 		public static void lcm(ref BigInteger a, BigInteger b)
 		/* a = least common multiple of a, b; b is preserved */
 		{
 			a = (a * b) / BigInteger.GreatestCommonDivisor(a, b);
 		}
+
 		public static bool greater(BigInteger a, BigInteger b)
 		{
 			return a > b;
@@ -74,9 +67,6 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 
 		// compare products
 		public static int comprod(BigInteger Na, BigInteger Nb, BigInteger Nc, BigInteger Nd)
-		/* +1 if Na*Nb > Nc*Nd  */
-		/* -1 if Na*Nb < Nc*Nd  */
-		/*  0 if Na*Nb = Nc*Nd  */
 		{
 			BigInteger mc = Na * Nb;
 			BigInteger md = Nc * Nd;
@@ -96,7 +86,5 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         {
 			c = a / b;
         }
-
-
 	}
 }

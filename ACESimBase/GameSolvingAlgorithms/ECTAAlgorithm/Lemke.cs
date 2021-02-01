@@ -210,7 +210,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 }
             }   /* end of  for(j=...)   */
             InitializeTableauVariables();
-            det = (BigInteger)ONE;
+            det = (BigInteger)1;
             changesign(ref det);
         }       /* end of filltableau()         */
 
@@ -269,7 +269,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             string smp = null;
             //char[] s = new char[INFOSTRINGLENGTH];
             //char[] smp = new char[MultiprecisionStatic.Dig2Dec(MAX_DIGITS) + 2];       /* string to print  mp  into    */
-            mptoa(det, ref smp);
+            smp = det.ToStringForTable();
             tabbedtextf("Determinant: %s\n", smp);
             colset(n + 3);
             colleft(0);
@@ -288,11 +288,11 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             for (j = 0; j <= n + 1; j++)
             {
                 if (j == RHS())
-                    mptoa(scfa[RHS()], ref smp);
+                    smp = scfa[RHS()].ToStringForTable();
                 else if (whichvar[j + n] > n) /* col  j  is some  W           */
                     smp = sprintf("1");
                 else                        /* col  j  is some  Z:  scfa    */
-                    mptoa(scfa[whichvar[j + n]], ref smp);
+                    smp = scfa[whichvar[j + n]].ToStringForTable();
                 colpr(smp);
             }
             colnl();
@@ -302,7 +302,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 colpr(s);
                 for (j = 0; j <= n + 1; j++)
                 {
-                    mptoa(A[i][j], ref smp);
+                    smp = A[i][j].ToStringForTable();
                     if (smp == "0")
                         colpr(".");
                     else
@@ -355,13 +355,25 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     Rational r = (num / (Rational) den).CanonicalForm;
                     num = r.Numerator;
                     den = r.Denominator;
-                    pos = mptoa(num, ref smp);
+                    smp = num.ToStringForTable();
+                    pos = smp.Length;
                     if (!one(den))  /* add the denominator  */
                     {
-                        smp += "/";
-                        string denstring = null;
-                        mptoa(den, ref denstring);
-                        smp += denstring;
+                        bool formatAsDoubles = true;
+                        if (formatAsDoubles)
+                        {
+                            double d = (double)r;
+                            smp = d.ToString();
+                            if (smp.Length > 8)
+                                smp = d.ToString("E5");
+                        }
+                        else
+                        {
+                            smp += "/";
+                            string denstring = null;
+                            denstring = den.ToStringForTable();
+                            smp += denstring;
+                        }
                     }
                     colpr(smp);
                 }
