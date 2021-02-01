@@ -28,15 +28,15 @@ namespace ACESimBase.GameSolvingSupport
             Utilities = utilities;
         }
 
-        public bool VerifyPerfectEquilibrium(List<InformationSetNode> informationSetNodes)
+        public bool VerifyPerfectEquilibrium(List<InformationSetNode> informationSetNodes, bool throwOnFail)
         {
             bool perfect = true;
             foreach (var informationSetNode in informationSetNodes)
-                perfect = perfect && VerifyPerfectEquilibrium(informationSetNode);
+                perfect = perfect && VerifyPerfectEquilibrium(informationSetNode, throwOnFail);
             return perfect;
         }
 
-        public bool VerifyPerfectEquilibrium(InformationSetNode informationSetNode)
+        public bool VerifyPerfectEquilibrium(InformationSetNode informationSetNode, bool throwOnFail)
         {
             int informationSetNodeNumber = informationSetNode.GetNodeNumber();
             var (utilities, utilitiesAtSuccessors, reachProbability) = GetUtilitiesAndReachProbability(informationSetNodeNumber);
@@ -49,7 +49,6 @@ namespace ACESimBase.GameSolvingSupport
                 Rational actionProbability = actionProbabilities[successorIndex];
                 if (actionProbability != 0)
                 { // this is an action played with positive probability
-                    bool throwOnFail = false;
                     if (utilities[i] != utilitiesAtSuccessors[successorIndex][i])
                     {
                         string matchFailure = $"Information set {informationSetNodeNumber} Verification of equal utilities failed. {utilities[i]} != {utilitiesAtSuccessors[successorIndex][i]}";

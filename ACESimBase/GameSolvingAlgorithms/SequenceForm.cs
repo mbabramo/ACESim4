@@ -191,7 +191,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 bool updateScenarios = false; // Doesn't work right now
                 Action<int, ECTATreeDefinition> scenarioUpdater = updateScenarios ? ScenarioUpdater() : null;
                 var results = ecta.Execute_ReturningRationalsAndDoubles(t => SetupECTA(t), scenarioUpdater);
-                if (EvolutionSettings.ConfirmExactEquilibria)
+                if (EvolutionSettings.ConfirmPerfectEquilibria)
                     VerifyPerfectEquilibria(results.rationals);
                 equilibria = results.doubles;
             }
@@ -265,26 +265,11 @@ namespace ACESimBase.GameSolvingAlgorithms
                             {
                                 // It appears that when it's imperfect (always only very slightly), there is always a degeneracy of this sort. 
                                 // Neither of these approaches makes it go away; nor does using the approach used where total <= 0.
-                                int numNonZero = asArray.Count(x => x > 0);
-                                if (numNonZero == 1)
+                                Rational multiplier = (Rational)1 / (Rational)total;
+                                for (int i = 0; i < infoSet.NumPossibleActions; i++)
                                 {
-                                    int nonZeroIndex = asArray.Select((item, index) => (item, index)).First(x => x.item > 0).index;
-                                    Rational amountToDistribute = ((Rational)1) - asArray[nonZeroIndex];
-                                    Rational eachOtherItem = (amountToDistribute / ((Rational)(asArray.Length - 1))).CanonicalForm;
-                                    for (int i = 0; i < infoSet.NumPossibleActions; i++)
-                                    {
-                                        if (i != nonZeroIndex)
-                                            asArray[i] = eachOtherItem;
-                                    }
-                                }
-                                else
-                                {
-                                    Rational multiplier = (Rational)1 / (Rational)total;
-                                    for (int i = 0; i < infoSet.NumPossibleActions; i++)
-                                    {
-                                        actionProbabilities[initialActionProbabilitiesIndex + i] *= multiplier;
-                                        asArray[i] = actionProbabilities[initialActionProbabilitiesIndex + i].CanonicalForm;
-                                    }
+                                    actionProbabilities[initialActionProbabilitiesIndex + i] *= multiplier;
+                                    asArray[i] = actionProbabilities[initialActionProbabilitiesIndex + i].CanonicalForm;
                                 }
                             }
                         }
@@ -293,7 +278,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 }
                 CalculateRationalUtilitiesAtEachInformationSet calc = new CalculateRationalUtilitiesAtEachInformationSet(chanceProbabilities, playerProbabilities, utilities);
                 TreeWalk_Tree(calc);
-                bool perfect = calc.VerifyPerfectEquilibrium(InformationSets);
+                bool perfect = calc.VerifyPerfectEquilibrium(InformationSets, EvolutionSettings.ThrowIfNotPerfectEquilibrium);
                 TabbedText.WriteLine($"Perfect equilibrium {(!perfect ? "not " : "")}confirmed {s.ElapsedMilliseconds} ms");
                 if (!perfect)
                     imperfect.Add(eqNum);

@@ -1536,10 +1536,11 @@ namespace ACESim
                 }
             }
             // Confirm that after setting the utilities, reloading the utilities as rationals leads to the same result
-            var utilities2 = GetUtilitiesAsRationals();
-            for (int p = 0; p < NumNonChancePlayers; p++)
-                if (!UtilitiesAsRationals[p].SequenceEqual(utilities2[p]))
-                    throw new Exception();
+            // DEBUG
+            //var utilities2 = GetUtilitiesAsRationals();
+            //for (int p = 0; p < NumNonChancePlayers; p++)
+            //    if (!UtilitiesAsRationals[p].SequenceEqual(utilities2[p]))
+            //        throw new Exception();
         }
 
         public Rational[][] GetUtilitiesAsRationals()
@@ -1547,7 +1548,38 @@ namespace ACESim
             int numDecimalPointsForMinAndMax = EvolutionSettings.RoundOffChanceDigits;
             (double min, double max)[] minmax = Enumerable.Range(0, NumNonChancePlayers).Select(p => (FinalUtilitiesNodes.Min(x => x.Utilities[p]), FinalUtilitiesNodes.Max(x => x.Utilities[p]))).ToArray();
             int[][] integralUtilities = GetUtilitiesAsIntegers();
-            return ConvertToRationalUtilities(minmax, integralUtilities);
+            // MakeIntegralUtilitiesDistinct(integralUtilities);
+            var rationalUtilities = ConvertToRationalUtilities(minmax, integralUtilities);
+            return rationalUtilities;
+        }
+
+        /// <summary>
+        /// Perturbs the utilities so that each outcome has a distinct utility.
+        /// </summary>
+        /// <param name="integralUtilities"></param>
+        public void MakeIntegralUtilitiesDistinct(int[][] integralUtilities)
+        {
+            for (int p = 0; p < NumNonChancePlayers; p++)
+            {
+                int[] utilitiesForPlayer = integralUtilities[p];
+                HashSet<int> utilitiesUsed = new HashSet<int>();
+                for (int uIndex = 0; uIndex < utilitiesForPlayer.Length; uIndex++)
+                {
+                    int utility = utilitiesForPlayer[uIndex];
+                    int distance = 0;
+                    int utilityPlusDistance = utility;
+                    while (utilityPlusDistance >= EvolutionSettings.MaxIntegralUtility || utilityPlusDistance < 0 || utilitiesUsed.Contains(utilityPlusDistance))
+                    {
+                        // try negative and positive values
+                        distance = 0 - distance;
+                        if (distance >= 0)
+                            distance++;
+                        utilityPlusDistance = utility + distance;
+                    }
+                    utilitiesUsed.Add(utilityPlusDistance);
+                    utilitiesForPlayer[uIndex] = utilityPlusDistance;
+                }
+            }
         }
 
         private Rational[][] ConvertToRationalUtilities((double min, double max)[] minmax, int[][] integralUtilities)
