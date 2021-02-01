@@ -200,7 +200,14 @@ namespace ACESimBase.Util.DiscreteProbabilities
             double[] GetValueFromFixedVariableValues(List<int> values)
             {
                 int crossProductIndex = GetIndexOfPermutation(selectedDimensions, values);
-                return probabilitiesForEachPossibleValueOfFixedVariables[crossProductIndex];
+                var result = probabilitiesForEachPossibleValueOfFixedVariables[crossProductIndex];
+                if (result.All(x => x == 0))
+                {
+                    double eachVal = 1.0 / (double) result.Length;
+                    for (int i = 0; i < result.Length; i++)
+                        result[i] = eachVal;
+                }
+                return result;
             }
             return GetValueFromFixedVariableValues;
         }

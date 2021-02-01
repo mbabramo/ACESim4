@@ -15,7 +15,7 @@ namespace LitigCharts
         static void Main(string[] args)
         {
             //KlermanData.Execute();
-            FeeShiftingData.Execute();
+            FeeShiftingData.ExecuteMain();
         }
 
         

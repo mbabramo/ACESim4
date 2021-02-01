@@ -394,7 +394,7 @@ namespace ACESim
 
             options.NumOffers = 10; 
             options.NumLiabilityStrengthPoints = 10;
-            options.NumLiabilitySignals = 10;
+            options.NumLiabilitySignals = 5;
 
             options.NumDamagesSignals = 1;
             options.NumDamagesStrengthPoints = 1;
