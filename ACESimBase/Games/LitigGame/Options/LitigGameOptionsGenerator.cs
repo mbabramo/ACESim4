@@ -392,10 +392,10 @@ namespace ACESim
 
             options.InvertChanceDecisions = true; 
 
-            // DEBUG
-            options.NumOffers = 5; 
-            options.NumLiabilityStrengthPoints = 5;
-            options.NumLiabilitySignals = 5;
+            // DEBUG -- note: had problem with 5, 5, 5
+            options.NumOffers = 2; 
+            options.NumLiabilityStrengthPoints = 2;
+            options.NumLiabilitySignals = 2;
 
             options.NumDamagesSignals = 1;
             options.NumDamagesStrengthPoints = 1;

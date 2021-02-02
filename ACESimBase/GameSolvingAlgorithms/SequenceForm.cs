@@ -159,7 +159,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             ecta.outputEquilibrium = true;
             ecta.outputRealizationPlan = true; // DEBUG
 
-            bool outputAll = false;
+            bool outputAll = true; // DEBUG
             if (outputAll)
             {
                 ecta.outputPrior = true;
@@ -438,14 +438,14 @@ namespace ACESimBase.GameSolvingAlgorithms
         {
             int[][] pay = GetOutcomesForECTA();
 
-            t.alloctree(GameNodes.Count(), InformationSetInfos.Count(), MoveIndexToInfoSetIndex.Count(), Outcomes.Count);
+            t.allocateTree(GameNodes.Count(), InformationSetInfos.Count(), MoveIndexToInfoSetIndex.Count(), Outcomes.Count);
 
-            t.firstiset[0] = 0;
-            t.firstiset[1] = FirstInformationSetInfosIndexForPlayers[1];
-            t.firstiset[2] = FirstInformationSetInfosIndexForPlayers[2];
-            t.firstmove[0] = 0;
-            t.firstmove[1] = FirstMovesIndexForPlayers[1];
-            t.firstmove[2] = FirstMovesIndexForPlayers[2];
+            t.firstInformationSet[0] = 0;
+            t.firstInformationSet[1] = FirstInformationSetInfosIndexForPlayers[1];
+            t.firstInformationSet[2] = FirstInformationSetInfosIndexForPlayers[2];
+            t.firstMove[0] = 0;
+            t.firstMove[1] = FirstMovesIndexForPlayers[1];
+            t.firstMove[2] = FirstMovesIndexForPlayers[2];
 
             int zindex = 0;
             var z = t.outcomes[0];
@@ -461,7 +461,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                         firstOutcome = n;
                     t.nodes[n].terminal = true;
                     t.nodes[n].outcome = zindex;
-                    z.whichnode = n;
+                    z.nodeIndex = n;
                     z.pay[0] = (Rational)pay[0][zindex];
                     z.pay[1] = (Rational)pay[1][zindex];
                     if (zindex < t.outcomes.Length - 1)
@@ -477,16 +477,16 @@ namespace ACESimBase.GameSolvingAlgorithms
             for (int n = 2; n < GameNodes.Count(); n++)
             {
                 int movesIndex = GetIndexOfMoveLeadingToNode(n);
-                t.nodes[n].reachedby = movesIndex;
+                t.nodes[n].moveAtFather = movesIndex;
             }
             for (int i = 0; i < InformationSetInfos.Count(); i++)
             {
                 InformationSetInfo iinfo = InformationSetInfos[i];
                 var orignode = iinfo.InformationSetNode;
-                t.isets[i].player = iinfo.ECTAPlayerID;
-                t.isets[i].move0 = MoveIndexFromInfoSetIndexAndMoveWithinInfoSet[(i, 1)];
-                t.isets[i].nmoves = iinfo.NumPossibleMoves;
-                t.isets[i].name = iinfo.ToString();
+                t.informationSets[i].playerIndex = iinfo.ECTAPlayerID;
+                t.informationSets[i].firstMoveIndex = MoveIndexFromInfoSetIndexAndMoveWithinInfoSet[(i, 1)];
+                t.informationSets[i].numMoves = iinfo.NumPossibleMoves;
+                t.informationSets[i].name = iinfo.ToString();
             }
 
             int playerIndexForMove = -1;
@@ -502,7 +502,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 {
                     int moveIndexForFirstMove = MoveIndexFromInfoSetIndexAndMoveWithinInfoSet[(infoSetIndex, 1)];
                     int moveNumber = moveIndex - moveIndexForFirstMove + 1;
-                    t.moves[moveIndex].atiset = infoSetIndex;
+                    t.moves[moveIndex].priorInformationSet = infoSetIndex;
                     if (playerIndexForMove == 0)
                     {
                         // chance player
@@ -510,10 +510,10 @@ namespace ACESimBase.GameSolvingAlgorithms
                         var rational = InformationSetInfos[infoSetIndex].GetProbabilitiesAsRationals()[moveNumber - 1];
                         if (chance.Decision.DistributedChanceDecision && EvolutionSettings.DistributeChanceDecisions)
                         {
-                            t.moves[moveIndex].behavprob = moveNumber == 1 ? (Rational)1 : (Rational)0;
+                            t.moves[moveIndex].behavioralProbability = moveNumber == 1 ? (Rational)1 : (Rational)0;
                         }
                         else
-                            t.moves[moveIndex].behavprob = rational;
+                            t.moves[moveIndex].behavioralProbability = rational;
                     }
                 }
             }

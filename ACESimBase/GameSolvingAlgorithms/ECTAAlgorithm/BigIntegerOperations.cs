@@ -8,6 +8,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
     public static class BigIntegerOperations
     {
+		public static bool AbbreviateBigIntegers = true;
 
 		public static bool positive(BigInteger a)
 		{
@@ -36,7 +37,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 		public static string ToStringForTable(this BigInteger x)
         {
 			string s = x.ToString();
-			if (s.Length > 8)
+			if (s.Length > 8 && AbbreviateBigIntegers)
 				return x.ToString("E5");
 			else
 				return s;

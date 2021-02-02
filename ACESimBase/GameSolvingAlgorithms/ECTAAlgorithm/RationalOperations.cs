@@ -8,73 +8,61 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
     public static class RationalOperations
     {
-        public static Rational ratadd(Rational a, Rational b)
+        public static Rational Add(Rational a, Rational b)
         {
             return (a + b).CanonicalForm;
         }
 
-        public static Rational ratdiv(Rational a, Rational b)
+        public static Rational Divide(Rational a, Rational b)
         {
             return (a / b).CanonicalForm;
         }
 
-        public static Rational ratfromi(int i)
+        public static Rational FromInteger(int i)
         {
             return i;
         }
 
-        public static Rational ratinv(Rational a)
+        public static Rational Invert(Rational a)
         {
             
-            return (1 / a).CanonicalForm;
+            return Rational.Invert(a).CanonicalForm;
         }
-        public static bool ratiseq(Rational a, Rational b)
+        public static bool Equality(Rational a, Rational b)
         {
             return a == b;
         }
 
-        public static bool ratgreat(Rational a, Rational b)
+        public static bool GreaterThan(Rational a, Rational b)
         {
             return a > b;
         }
 
-        public static Rational ratmult(Rational a, Rational b)
+        public static Rational Multiply(Rational a, Rational b)
         {
             return (a * b).CanonicalForm;
         }
 
-        public static Rational ratneg(Rational a)
+        public static Rational Negate(Rational a)
         {
             return -a;
         }
 
-        public static Rational ratreduce(Rational a)
+        public static Rational Reduce(Rational a)
         {
             return a.CanonicalForm;
         }
 
-        public static int rattoa(Rational r, char[] s)
+        public static string ToNumericString(Rational r)
         {
-            string s2 = null;
-            rattoa(r, ref s2);
-            s = s2.ToArray();
-            return s.Length;
-        }
-
-        public static int rattoa(Rational r, ref string s)
-        {
+            string s;
             if (r.Denominator == 1)
                 s = r.Numerator.ToString();
             else if (r.Denominator == 0)
                 s = $"{r.Numerator}/{r.Denominator}"; // show illegal div by 0
             else
                 s = r.ToString();
-            return s.Length;
-        }
-
-        public static Rational contfract(double x, int accuracy)
-        {
-            return Rational.Approximate(x, 1.0 / (double)accuracy).CanonicalForm;
+            return s;
         }
     }
 }

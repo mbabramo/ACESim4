@@ -118,7 +118,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             /* initialize all LCP entries to zero       */
             {
                 int i, j;
-                Rational zero = ratfromi(0);
+                Rational zero = FromInteger(0);
                 for (i = 0; i < n; i++)
                 {
                     for (j = 0; j < n; j++)
@@ -239,13 +239,13 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                         colpr(".");
                     else
                     {
-                        rattoa(a, ref s);
+                        s = ToNumericString(a);
                         colpr(s);
                     }
                 }
-                rattoa(vecd[i], ref s);
+                s = ToNumericString(vecd[i]);
                 colpr(s);
-                rattoa(rhsq[i], ref s);
+                s = ToNumericString(rhsq[i]); 
                 colpr(s);
             }
             colout();
@@ -365,7 +365,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                         {
                             double d = (double)r;
                             smp = d.ToString();
-                            if (smp.Length > 8)
+                            if (smp.Length > 8 && BigIntegerOperations.AbbreviateBigIntegers)
                                 smp = d.ToString("E5");
                         }
                         else
@@ -411,7 +411,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     solz[i - 1] = ((Rational)num / (Rational)den).CanonicalForm;
                 }
                 else            /* i is nonbasic    */
-                    solz[i - 1] = ratfromi(0);
+                    solz[i - 1] = FromInteger(0);
             }
         } /* end of copysol                     */
 

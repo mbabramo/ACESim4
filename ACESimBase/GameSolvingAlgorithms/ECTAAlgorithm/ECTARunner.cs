@@ -70,8 +70,8 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             for (pl = 0; pl < ECTATreeDefinition.PLAYERS; pl++)
             {
                 tabbedtextf("    Player %d has ", pl);
-                tabbedtextf("%3d information sets, ", t.firstiset[pl + 1] - t.firstiset[pl]);
-                tabbedtextf("%3d moves in total\n", t.firstmove[pl + 1] - t.firstmove[pl] - 1);
+                tabbedtextf("%3d information sets, ", t.firstInformationSet[pl + 1] - t.firstInformationSet[pl]);
+                tabbedtextf("%3d moves in total\n", t.firstMove[pl + 1] - t.firstMove[pl] - 1);
             }
         }
 
@@ -80,13 +80,13 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         {
             int pl;
 
-            lcpsize = t.nseqs[1] + t.nisets[2] + 1 + t.nseqs[2] + t.nisets[1] + 1;
+            lcpsize = t.numSequences[1] + t.numInfoSets[2] + 1 + t.numSequences[2] + t.numInfoSets[1] + 1;
             tabbedtextf("Sequence form LCP dimension is %d\n", lcpsize);
             for (pl = 1; pl < ECTATreeDefinition.PLAYERS; pl++)
             {
                 tabbedtextf("    Player %d has ", pl);
-                tabbedtextf("%3d sequences, ", t.nseqs[pl]);
-                tabbedtextf("subject to %3d constraints\n", t.nisets[pl] + 1);
+                tabbedtextf("%3d sequences, ", t.numSequences[pl]);
+                tabbedtextf("subject to %3d constraints\n", t.numInfoSets[pl] + 1);
             }
         }
 
@@ -147,7 +147,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 
             if (outputPivotingSteps)
                 tabbedtextf("Generating and solving sequence form.\n");
-            t.sflcp();
+            t.generateSequenceFormLCP();
 
             t.covvector();
             if (outputLCP)
@@ -162,7 +162,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             {
                 equilsize = t.propermixisets(pl, t.Lemke.solz, offset);
                 /* the next is  offset  for player 2 */
-                offset = t.nseqs[1] + 1 + t.nisets[2];
+                offset = t.numSequences[1] + 1 + t.numInfoSets[2];
 
                 sumeqsize[pl] +=
                     eqsize[pl] = equilsize;
@@ -203,9 +203,9 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 
             setup(t);
 
-            t.genseqin();
-            t.autoname();
-            t.maxpayminusone(outputPivotingSteps);
+            t.generateSequence();
+            t.autonameInformationSets();
+            t.normalizeMaxPayoutToNegative1(outputPivotingSteps);
 
             /* game tree is defined, give headline information  */
             infotree(); // INFO
@@ -216,7 +216,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             int gamecount = 0;
             int priorSeed = 0;
 
-            t.allocrealplan(t.realplan);
+            t.allocateRealizationPlan();
             if (outputPivotResults && outputPivotHeaderFirst) /* otherwise the header is garbled by LCP output */
                 inforesultheader();
             int priorcount; 

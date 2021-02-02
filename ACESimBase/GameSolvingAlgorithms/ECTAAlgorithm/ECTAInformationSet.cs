@@ -9,16 +9,16 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 	public class ECTAInformationSet // information set
 	{
 		/* given                    */
-		public int player; // 0: chance player
-		public int nmoves;
-		public int move0;
+		public int playerIndex; // 0: chance player
+		public int numMoves;
+		public int firstMoveIndex;
 		/* autoname possible                                                */
 		public string name = ""; // name of iset
 		/* will be generated                                                */
-		public int seqin; // sequence leading to that iset
-		/* for NF computation                                               */
-		public int ncontin; // how many strategy-type continuations
-		public int prefact; // multiplyer for later parallel isets
+		/// <summary>
+		/// The sequence leading to the information set. This is represented by the index of the last move by the player who owns this information set. This will always be the same in a game of perfect recall.
+		/// </summary>
+		public int sequence; 
 	}
 
 }

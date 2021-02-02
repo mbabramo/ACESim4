@@ -10,6 +10,6 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
     public class ECTAOutcome
     {
         public Rational[] pay = new Rational[] { new Rational(), new Rational() };
-        public int whichnode;
+        public int nodeIndex;
     }
 }
