@@ -149,7 +149,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 tabbedtextf("Generating and solving sequence form.\n");
             t.generateSequenceFormLCP();
 
-            t.covvector();
+            t.calculateCoveringVectorD();
             if (outputLCP)
                 t.Lemke.OutputLCP();
             stopwatch(false);
@@ -252,7 +252,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     equilibria.Add(equilibriumProbabilities);
                     TabbedText.WriteLine($"Equilibrium {equilibria.Count()}");
                     if (outputEquilibrium)
-                        t.showeq(outputRealizationPlan);
+                        t.showEquilibrium(outputRealizationPlan);
                 }
                 outputGameTreeSetup = false;
                 TabbedText.WriteLine($"Elapsed milliseconds prior {priorcount + 1}: {s.ElapsedMilliseconds}");

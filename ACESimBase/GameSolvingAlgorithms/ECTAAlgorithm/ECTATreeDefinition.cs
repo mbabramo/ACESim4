@@ -836,6 +836,11 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 realizationPlan[pl] = new Rational[numSequences[pl]];
         }
 
+        /// <summary>
+        /// Sets realization probabilities for a player (including chance player) by multiplying the realization probability of the sequence
+        /// excluding the move by the behavioral probability of the move.
+        /// </summary>
+        /// <param name="pl"></param>
         public void behavioralToRealizationProbability(int pl)
         {
             ECTAMove c;
@@ -844,10 +849,21 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             for (int cindex = firstMove[pl] + 1; cindex < lastmoveindex; cindex++)
             {
                 c = moves[cindex];
-                ECTAInformationSet informationSet = informationSets[(int)c.priorInformationSet];
-                int sequence = informationSet.sequence;
-                c.realizationProbability = Multiply(c.behavioralProbability, moves[sequence].realizationProbability);
+                int sequenceUpToMove = GetPriorSequence(c);
+                c.realizationProbability = Multiply(c.behavioralProbability, moves[sequenceUpToMove].realizationProbability);
             }
+        }
+
+        public int GetPriorSequence(ECTAMove c)
+        {
+            ECTAInformationSet priorInformationSet = GetPriorInformationSet(c);
+            int sequenceUpToMove = priorInformationSet.sequence;
+            return sequenceUpToMove;
+        }
+
+        public ECTAInformationSet GetPriorInformationSet(ECTAMove c)
+        {
+            return informationSets[(int)c.priorInformationSet];
         }
 
         void copySequenceFormPayoutsForPlayer(ECTAPayVector[][] sourceMatrix, int playerIndexMinus1, bool negate,
@@ -870,7 +886,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 Rational[][] targetMatrix, int targetRowOffset, int targetColOffset)
         {
             int i, j;
-            for (i = 0; i < numColsInSourceMatrix; i++)
+            for (i = 0; i < numRowsInSourceMatrix; i++)
                 for (j = 0; j < numColsInSourceMatrix; j++)
                     if (transpose)
                         targetMatrix[j + targetRowOffset][i + targetColOffset]
@@ -880,38 +896,50 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                         = FromInteger(negate ? -sourceMatrix[i][j] : sourceMatrix[i][j]);
         }
 
-        public void covvector()
+        public void calculateCoveringVectorD()
         {
-            int i, j, dim1, dim2, offset;
+            /* The covering vector looks like this (with the number of rows indicated in the left column, and the contents of each entry within the table row listed on the right)
+             * 
+                +-----------------+-------------+
+                |    Num rows     |  Contents   |
+                +-----------------+-------------+
+                | Sequences 1     | -rhsq – Aq  |
+                | Infosets 2 (+1) | -rhsq       |
+                | Sequence 2      | -rhsq -B^Tp |
+                | Infosets1       | -rhsq       |
+                +-----------------+-------------+
+            */
+
+            int i, j, numSequences1, numSequences2, offsetToStartOfPlayer2Sequences;
 
             behavioralToRealizationProbability(1);
             behavioralToRealizationProbability(2);
 
-            dim1 = numSequences[1];
-            dim2 = numSequences[2];
-            offset = dim1 + 1 + numInfoSets[2];
+            numSequences1 = numSequences[1];
+            numSequences2 = numSequences[2];
+            offsetToStartOfPlayer2Sequences = numSequences1 + 1 + numInfoSets[2];
             /* covering vector  = -rhsq */
             for (i = 0; i < Lemke.lcpdim; i++)
-                Lemke.vecd[i] = Negate(Lemke.rhsq[i]);
+                Lemke.coveringVectorD[i] = Negate(Lemke.rhsq[i]);
 
             /* first blockrow += -Aq    */
-            for (i = 0; i < dim1; i++)
-                for (j = 0; j < dim2; j++)
+            for (i = 0; i < numSequences1; i++)
+                for (j = 0; j < numSequences2; j++)
                 {
-                    Lemke.vecd[i] = Add(Lemke.vecd[i], Multiply(Lemke.lcpM[i][offset + j],
-                              moves[firstMove[2] + j].realizationProbability));
+                    Lemke.coveringVectorD[i] = Add(Lemke.coveringVectorD[i], Multiply(Lemke.lcpM[i][offsetToStartOfPlayer2Sequences + j] /* Aij, which is offset horizontally in the LCP */,
+                              moves[firstMove[2] + j].realizationProbability /* qj, i.e. the realization probability of player 2's sequence */));
                 }
             /* RSF yet to be done*/
             /* third blockrow += -B\T p */
-            for (i = offset; i < offset + dim2; i++)
-                for (j = 0; j < dim1; j++)
-                    Lemke.vecd[i] = Add(Lemke.vecd[i], Multiply(Lemke.lcpM[i][j],
-                              moves[firstMove[1] + j].realizationProbability));
+            for (i = offsetToStartOfPlayer2Sequences; i < offsetToStartOfPlayer2Sequences + numSequences2; i++)
+                for (j = 0; j < numSequences1; j++)
+                    Lemke.coveringVectorD[i] = Add(Lemke.coveringVectorD[i], Multiply(Lemke.lcpM[i][j], /* B^Tij, which is offset vertically in the LCP */
+                              moves[firstMove[1] + j].realizationProbability)); /* pj, i.e. the realization probability of player 1's sequence */
             /* RSF yet to be done*/
         }
 
 
-        public void showeq(bool outputRealizationPlan)
+        public void showEquilibrium(bool outputRealizationPlan)
         {
             int offset;
 
@@ -934,7 +962,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         /* EXAMPLE */
 
 
-        public void examplegame()
+        public void setupExampleGame()
         {
             int[][] pay = new int[2][] { new int[153]
                 { 0, 1000, 125, 312, 500, 47, 109, 172, 500, 688, 47, 109, 172, 47, 109, 172, 875, 0, 1000, 125, 312, 500, 117, 180, 242, 500, 688, 117, 180, 242, 117, 180, 242, 875, 0, 1000, 125, 312, 500, 188, 250, 562, 500, 688, 188, 250, 562, 188, 250, 562, 875, 0, 1000, 125, 312, 500, 117, 180, 242, 500, 688, 117, 180, 242, 117, 180, 242, 875, 0, 1000, 125, 312, 500, 188, 250, 562, 500, 688, 188, 250, 562, 188, 250, 562, 875, 0, 1000, 125, 312, 500, 508, 570, 633, 500, 688, 508, 570, 633, 508, 570, 633, 875, 0, 1000, 125, 312, 500, 188, 250, 562, 500, 688, 188, 250, 562, 188, 250, 562, 875, 0, 1000, 125, 312, 500, 508, 570, 633, 500, 688, 508, 570, 633, 508, 570, 633, 875, 0, 1000, 125, 312, 500, 578, 641, 703, 500, 688, 578, 641, 703, 578, 641, 703, 875 }, new int[153]
