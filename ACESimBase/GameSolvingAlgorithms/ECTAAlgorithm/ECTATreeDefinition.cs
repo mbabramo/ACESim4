@@ -611,8 +611,6 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             for (i = 0; i < numSequences[pl]; i++)
             {
                 s = sequenceToString(moves[firstMove[pl] + i], pl);
-                if (s.Contains("141"))
-                { var DEBUG = 0;  }
                 colpr(s);
             }
             for (i = 0; i < numSequences[pl]; i++)

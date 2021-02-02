@@ -23,7 +23,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         /* LCP input    */
         public Rational[][] lcpM;
         public Rational[] rhsq;
-        public Rational[] vecd;
+        public Rational[] coveringVectorD;
         public int lcpdim = 0; /* set in setlcp                */
 
         /* LCP result   */
@@ -31,11 +31,22 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         public int pivotcount;
 
         /* tableau:    */
-        public BigInteger[][] A;                 /* tableau                              */
-        public int[] bascobas;          /* VARS  -> ROWCOL                      */
-        public int[] whichvar;          /* ROWCOL -> VARS, inverse of bascobas  */
+        public BigInteger[][] Tableau;        /* tableau                              */
 
         /* used for tableau:    */
+        /* We keep track of which variables are basic and which are cobasic. */
+        /* Note that basic variables correspond to tableau rows, and cobasic variables correspond to tableau columns */
+        /* We start as follows, with Z representing the basic variables: */
+        /* 0..2n = Z(0) .. Z(n) W(1) .. W(n)           */
+        /* 0..2n,  0 .. n-1: tabl rows (basic vars)    */
+        /*         n .. 2n:  tabl cols  0..n (cobasic) */
+        public int[] variableIndexToBasicCobasicIndex;     /* given a variable at index i, shows where that variable is located in the list of basic then cobasic variables                      */
+        public int[] basicCobasicIndexToVariable;          /* inverse of variableIndexToBasicCobasicIndex  */
+        public int TableauRow(int variableIndexOfBasicVariable) => variableIndexToBasicCobasicIndex[variableIndexOfBasicVariable];
+        public int TableauColumn(int variableIndexOfCobasicVariable) => variableIndexToBasicCobasicIndex[variableIndexOfCobasicVariable] - n;
+        private bool VariableIsBasic(int v) => variableIndexToBasicCobasicIndex[v] < n;
+        private bool VariableIsCobasic(int v) => variableIndexToBasicCobasicIndex[v] >= n;
+
         public int Z(int i)
         {
             return i;
@@ -44,33 +55,26 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         {
             return i + n;
         }
-        /* VARS   = 0..2n = Z(0) .. Z(n) W(1) .. W(n)           */
-        /* ROWCOL = 0..2n,  0 .. n-1: tabl rows (basic vars)    */
-        /*                  n .. 2n:  tabl cols  0..n (cobasic) */
         public int RHS()
         {
             return n + 1;
         }
-        public int TABCOL(int v)
-        {
-            return bascobas[v] - n;
-        }
+
         /*  v in VARS, v cobasic:  TABCOL(v) is v's tableau col */
-        /*  v  basic:  TABCOL(v) < 0,  TABCOL(v)+n   is v's row */
+        /*  v  basic:  TABCOL(v) < 0 (i.e., basicCobasic[v] < n),  TABCOL(v)+n   is v's row */
 
         /* scale factors for variables z
 		 * scfa[Z(0)]   for  d,  scfa[RHS()] for  q
 		 * scfa[Z(1..n)] for cols of  M
 		 * result variables to be multiplied with these
 		 */
-        public BigInteger[] scfa;
+        public BigInteger[] scaleFactors;
 
-        public BigInteger det = new BigInteger();                        /* determinant                  */
+        public BigInteger determinant = new BigInteger();                        /* determinant                  */
 
-        public int[] lextested, lexcomparisons;/* statistics for lexminvar     */
+        public int[] lexTested, lexComparisons;/* statistics for lexminvar     */
 
-        public int[] leavecand;
-        /* should be local to lexminvar but defined globally for economy    */
+        public int[] leaveCandidates; /* should be local to lexminvar but defined globally for economy    */
 
         public const int MAXLCPDIM = 2000;       /* max LCP dimension                       */
         public const int INFOSTRINGLENGTH = 8;   /* string naming vars, e.g. "z0", "w187"   */
@@ -93,27 +97,27 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             /* LCP input/output data    */
             lcpM = CreateJaggedArray<Rational[][]>(n, n);
             rhsq = new Rational[n];
-            vecd = new Rational[n];
+            coveringVectorD = new Rational[n];
             solz = new Rational[n];
             for (int i = 0; i < n; i++)
             {
                 rhsq[i] = new Rational();
-                vecd[i] = new Rational();
+                coveringVectorD[i] = new Rational();
                 solz[i] = new Rational();
             }
             /* tableau          */
-            A = CreateJaggedArray<BigInteger[][]>(n, n + 2);
+            Tableau = CreateJaggedArray<BigInteger[][]>(n, n + 2);
             for (int i = 0; i < n; i++)
                 for (int j = 0; j < n + 2; j++)
-                    A[i][j] = new BigInteger();
-            scfa = new BigInteger[n + 2];
+                    Tableau[i][j] = new BigInteger();
+            scaleFactors = new BigInteger[n + 2];
             for (int i = 0; i < n + 2; i++)
-                scfa[i] = new BigInteger();
-            bascobas = new int[2 * n + 1];
-            whichvar = new int[2 * n + 1];
-            lextested = new int[n + 1];
-            lexcomparisons = new int[n + 1];
-            leavecand = new int[n];
+                scaleFactors[i] = new BigInteger();
+            variableIndexToBasicCobasicIndex = new int[2 * n + 1];
+            basicCobasicIndexToVariable = new int[2 * n + 1];
+            lexTested = new int[n + 1];
+            lexComparisons = new int[n + 1];
+            leaveCandidates = new int[n];
             /* should be local to lexminvar but allocated here for economy  */
             /* initialize all LCP entries to zero       */
             {
@@ -123,7 +127,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 {
                     for (j = 0; j < n; j++)
                         lcpM[i][j] = zero;
-                    vecd[i] = rhsq[i] = zero;
+                    coveringVectorD[i] = rhsq[i] = zero;
                 }
             }
         } /* end of  setlcp(newn)       */
@@ -134,23 +138,23 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         public void ConfirmCoveringVectorOK()
         {
             int i;
-            bool isqpos = true;
+            bool trivialSolutionExists = true;
             for (i = 0; i < n; i++)
             {
-                if (vecd[i].Numerator < 0)
+                if (coveringVectorD[i].Numerator < 0)
                 {
-                    throw new Exception($"Covering vector  d[{i + 1}] = {vecd[i]} negative\n");
+                    throw new Exception($"Covering vector  d[{i + 1}] = {coveringVectorD[i]} negative\n");
                 }
                 else if (rhsq[i].Numerator < 0)
                 {
-                    isqpos = false;
-                    if (vecd[i].Numerator == 0)
+                    trivialSolutionExists = false;
+                    if (coveringVectorD[i].Numerator == 0)
                     {
                         throw new Exception($"Covering vector  d[{i + 1}] = 0  where  q[{i + 1}] = {rhsq[i]}  is negative. Cannot start Lemke");
                     }
                 }
             }   /* end of  for(i=...)   */
-            if (isqpos)
+            if (trivialSolutionExists)
             {
                 tabbedtextf("No need to start Lemke since  q>=0. Trivial solution z = 0.");
                 return;
@@ -165,13 +169,13 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             int i;
             for (i = 0; i <= n; i++)
             {
-                bascobas[Z(i)] = n + i;
-                whichvar[n + i] = Z(i);
+                variableIndexToBasicCobasicIndex[Z(i)] = n + i;
+                basicCobasicIndexToVariable[n + i] = Z(i);
             }
             for (i = 1; i <= n; i++)
             {
-                bascobas[W(i)] = i - 1;
-                whichvar[i - 1] = W(i);
+                variableIndexToBasicCobasicIndex[W(i)] = i - 1;
+                basicCobasicIndexToVariable[i - 1] = W(i);
             }
         }       /* end of inittablvars()        */
 
@@ -184,26 +188,26 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             for (j = 0; j <= n + 1; j++)
             {
                 /* compute lcm  scfa[j]  of denominators for  col  j  of  A         */
-                scfa[j] = 1;
+                scaleFactors[j] = 1;
                 for (i = 0; i < n; i++)
                 {
-                    den = (j == 0) ? vecd[i].Denominator :
+                    den = (j == 0) ? coveringVectorD[i].Denominator :
                       (j == RHS()) ? rhsq[i].Denominator : lcpM[i][j - 1].Denominator;
-                    lcm(ref scfa[j], den);
+                    lcm(ref scaleFactors[j], den);
                 }
                 /* fill in col  j  of  A    */
                 for (i = 0; i < n; i++)
                 {
-                    den = (j == 0) ? vecd[i].Denominator :
+                    den = (j == 0) ? coveringVectorD[i].Denominator :
                       (j == RHS()) ? rhsq[i].Denominator : lcpM[i][j - 1].Denominator;
-                    num = (j == 0) ? vecd[i].Numerator :
+                    num = (j == 0) ? coveringVectorD[i].Numerator :
                       (j == RHS()) ? rhsq[i].Numerator : lcpM[i][j - 1].Numerator;
                     /* cols 0..n of  A  contain LHS cobasic cols of  Ax = b     */
                     /* where the system is here         -Iw + dz_0 + Mz = -q    */
                     /* cols of  q  will be negated after first min ratio test   */
                     /* A[i][j] = num * (scfa[j] / den),  fraction is integral       */
                     tmp = den;
-                    tmp2 = scfa[j] / tmp;
+                    tmp2 = scaleFactors[j] / tmp;
                     tmp = num;
                     BigInteger c = 0;
                     mulint(tmp2, tmp, ref c);
@@ -211,8 +215,8 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 }
             }   /* end of  for(j=...)   */
             InitializeTableauVariables();
-            det = (BigInteger)1;
-            changesign(ref det);
+            determinant = (BigInteger)1;
+            changesign(ref determinant);
         }       /* end of filltableau()         */
 
         /* ---------------- output routines ------------------- */
@@ -243,7 +247,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                         colpr(s);
                     }
                 }
-                s = ToNumericString(vecd[i]);
+                s = ToNumericString(coveringVectorD[i]);
                 colpr(s);
                 s = ToNumericString(rhsq[i]); 
                 colpr(s);
@@ -270,7 +274,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             string smp = null;
             //char[] s = new char[INFOSTRINGLENGTH];
             //char[] smp = new char[MultiprecisionStatic.Dig2Dec(MAX_DIGITS) + 2];       /* string to print  mp  into    */
-            smp = det.ToStringForTable();
+            smp = determinant.ToStringForTable();
             tabbedtextf("Determinant: %s\n", smp);
             colset(n + 3);
             colleft(0);
@@ -281,7 +285,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     colpr("RHS()");
                 else
                 {
-                    VariableToString(whichvar[j + n], ref s);
+                    VariableToString(basicCobasicIndexToVariable[j + n], ref s);
                     colpr(s);
                 }
             }
@@ -289,21 +293,21 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             for (j = 0; j <= n + 1; j++)
             {
                 if (j == RHS())
-                    smp = scfa[RHS()].ToStringForTable();
-                else if (whichvar[j + n] > n) /* col  j  is some  W           */
+                    smp = scaleFactors[RHS()].ToStringForTable();
+                else if (basicCobasicIndexToVariable[j + n] > n) /* col  j  is some  W           */
                     smp = sprintf("1");
                 else                        /* col  j  is some  Z:  scfa    */
-                    smp = scfa[whichvar[j + n]].ToStringForTable();
+                    smp = scaleFactors[basicCobasicIndexToVariable[j + n]].ToStringForTable();
                 colpr(smp);
             }
             colnl();
             for (i = 0; i < n; i++)             /* print row  i                 */
             {
-                VariableToString(whichvar[i], ref s);
+                VariableToString(basicCobasicIndexToVariable[i], ref s);
                 colpr(s);
                 for (j = 0; j <= n + 1; j++)
                 {
-                    smp = A[i][j].ToStringForTable();
+                    smp = Tableau[i][j].ToStringForTable();
                     if (smp == "0")
                         colpr(".");
                     else
@@ -330,10 +334,10 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             colpr("basis=");
             for (i = 0; i <= n; i++)
             {
-                if (bascobas[Z(i)] < n)
+                if (variableIndexToBasicCobasicIndex[Z(i)] < n)
                     /*  Z(i) is a basic variable        */
                     VariableToString(Z(i), ref s);
-                else if (i > 0 && bascobas[W(i)] < n)
+                else if (i > 0 && variableIndexToBasicCobasicIndex[W(i)] < n)
                     /*  Z(i) is a basic variable        */
                     VariableToString(W(i), ref s);
                 else
@@ -344,15 +348,15 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             colpr("z=");
             for (i = 0; i <= 2 * n; i++)
             {
-                if ((row = bascobas[i]) < n)  /*  i  is a basic variable           */
+                if ((row = variableIndexToBasicCobasicIndex[i]) < n)  /*  i  is a basic variable           */
                 {
                     if (i <= n)       /* printing Z(i)        */
                         /* value of  Z(i):  scfa[Z(i)]*rhs[row] / (scfa[RHS()]*det)   */
-                        mulint(scfa[Z(i)], A[row][RHS()], ref num);
+                        mulint(scaleFactors[Z(i)], Tableau[row][RHS()], ref num);
                     else            /* printing W(i-n)      */
                         /* value of  W(i-n)  is  rhs[row] / (scfa[RHS()]*det)         */
-                        copy(ref num, A[row][RHS()]);
-                    mulint(det, scfa[RHS()], ref den);
+                        copy(ref num, Tableau[row][RHS()]);
+                    mulint(determinant, scaleFactors[RHS()], ref den);
                     Rational r = ((Rational) num / (Rational) den).CanonicalForm;
                     num = r.Numerator;
                     den = r.Denominator;
@@ -399,15 +403,11 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 
             for (i = 1; i <= n; i++)
             {
-                if (i == 145)
-                {
-                    var DEBUG = 0;
-                }
-                if ((row = bascobas[i]) < n)  /*  i  is a basic variable */
+                if ((row = TableauRow(i)) < n)  /*  i  is a basic variable */
                 {
                     /* value of  Z(i):  scfa[Z(i)]*rhs[row] / (scfa[RHS()]*det)   */
-                    mulint(scfa[Z(i)], A[row][RHS()], ref num);
-                    mulint(det, scfa[RHS()], ref den);
+                    mulint(scaleFactors[Z(i)], Tableau[row][RHS()], ref num);
+                    mulint(determinant, scaleFactors[RHS()], ref den);
                     solz[i - 1] = ((Rational)num / (Rational)den).CanonicalForm;
                 }
                 else            /* i is nonbasic    */
@@ -421,33 +421,25 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         /* otherwise error printing  info  where               */
         {
             string s = null;
-            if (VariableIsBasic(v))
+            if (VariableIsCobasic(v))
             {
                 VariableToString(v, ref s);
                 throw new Exception($"Cobasic variable {s} should be basic.\n");
             }
         }
 
-        private bool VariableIsBasic(int v)
-        {
-            return bascobas[v] >= n;
-        }
+
 
         public void AssertVariableIsCobasic(int v)
         /* assert that  v  in VARS is a cobasic variable       */
         /* otherwise error printing  info  where               */
         {
             string s = null;
-            if (VariableIsCobasic(v))
+            if (VariableIsBasic(v))
             {
                 VariableToString(v, ref s);
                 throw new Exception($"Basic variable {s} should be cobasic.\n");
             }
-        }
-
-        private bool VariableIsCobasic(int v)
-        {
-            return TABCOL(v) < 0;
         }
 
         public void OutputPivotLeaveAndEnter(int leave, int enter)
@@ -477,20 +469,20 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         }
 
         public void TestTableauVariables()
-        /* test tableau variables: error => msg only, continue  */
+        /* test tableau variables to make sure that inverse functions work as expected: error => msg only, continue  */
         {
             int i, j;
             for (i = 0; i <= 2 * n; i++)  /* check if somewhere tableauvars wrong */
-                if (bascobas[whichvar[i]] != i || whichvar[bascobas[i]] != i)
+                if (variableIndexToBasicCobasicIndex[basicCobasicIndexToVariable[i]] != i || basicCobasicIndexToVariable[variableIndexToBasicCobasicIndex[i]] != i)
                 /* found an inconsistency, print everything             */
                 {
                     tabbedtextf("Inconsistent tableau variables:\n");
                     for (j = 0; j <= 2 * n; j++)
                     {
                         tabbedtextf("var j:%3d bascobas:%3d whichvar:%3d ",
-                            j, bascobas[j], whichvar[j]);
+                            j, variableIndexToBasicCobasicIndex[j], basicCobasicIndexToVariable[j]);
                         tabbedtextf(" b[w[j]]==j: %1d  w[b[j]]==j: %1d\n",
-                            bascobas[whichvar[j]] == j, whichvar[bascobas[j]] == j);
+                            variableIndexToBasicCobasicIndex[basicCobasicIndexToVariable[j]] == j, basicCobasicIndexToVariable[variableIndexToBasicCobasicIndex[j]] == j);
                     }
                     break;
                 }
@@ -514,7 +506,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         {
             int i;
             for (i = 0; i <= n; i++)
-                lextested[i] = lexcomparisons[i] = 0;
+                lexTested[i] = lexComparisons[i] = 0;
         }
 
         /* output statistics of minimum ratio test
@@ -532,15 +524,15 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             colnl();
             colpr("times tested");
             for (i = 0; i <= n; i++)
-                colipr(lextested[i]);
+                colipr(lexTested[i]);
             colpr("% times tested");
-            if (lextested[0] > 0)
+            if (lexTested[0] > 0)
             {
                 colpr("100");
                 for (i = 1; i <= n; i++)
                 {
                     s = sprintf("%2.0f",
-                            (double)lextested[i] * 100.0 / (double)lextested[0]);
+                            (double)lexTested[i] * 100.0 / (double)lexTested[0]);
                     colpr(s);
                 }
             }
@@ -548,10 +540,10 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 colnl();
             colpr("avg comparisons");
             for (i = 0; i <= n; i++)
-                if (lextested[i] > 0)
+                if (lexTested[i] > 0)
                 {
                     s = sprintf("%1.1f",
-                        (double)lexcomparisons[i] / (double)lextested[i]);
+                        (double)lexComparisons[i] / (double)lexTested[i]);
                     colpr(s);
                 }
                 else
@@ -572,22 +564,22 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             int numcand;
 
             AssertVariableIsCobasic(enter);
-            col = TABCOL(enter);
+            col = TableauColumn(enter);
             numcand = 0;
             /* leavecand [0..numcand-1] = candidates (rows) for leaving var */
             /* start with  leavecand = { i | A[i][col] > 0 }                        */
             for (i = 0; i < n; i++)
             {
-                if (positive(A[i][col]))
-                    leavecand[numcand++] = i;
+                if (positive(Tableau[i][col]))
+                    leaveCandidates[numcand++] = i;
             }
             if (numcand == 0)
                 ThrowRayTerminationException(enter);
             if (numcand == 1)
             {
-                lextested[0] += 1;
-                lexcomparisons[0] += 1;
-                z0leave = (leavecand[0] == bascobas[Z(0)]);
+                lexTested[0] += 1;
+                lexComparisons[0] += 1;
+                z0leave = (leaveCandidates[0] == variableIndexToBasicCobasicIndex[Z(0)]);
             }
             for (j = 0; numcand > 1; j++)
             /* as long as there is more than one leaving candidate perform
@@ -598,10 +590,10 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             {
                 if (j > n)    /* impossible, perturbed RHS() should have full rank  */
                     errexit("lex-minratio test failed");
-                lextested[j] += 1;
-                lexcomparisons[j] += numcand;
+                lexTested[j] += 1;
+                lexComparisons[j] += numcand;
 
-                testcol = (j == 0) ? RHS() : TABCOL(W(j));
+                testcol = (j == 0) ? RHS() : TableauColumn(W(j));
                 if (testcol != col)       /* otherwise nothing will change      */
                 {
                     if (testcol >= 0)
@@ -613,14 +605,14 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                         for (i = 1; i < numcand; i++)
                         /* investigate remaining candidates                         */
                         {
-                            sgn = comprod(A[leavecand[0]][testcol], A[leavecand[i]][col],
-                                      A[leavecand[i]][testcol], A[leavecand[0]][col]);
+                            sgn = comprod(Tableau[leaveCandidates[0]][testcol], Tableau[leaveCandidates[i]][col],
+                                      Tableau[leaveCandidates[i]][testcol], Tableau[leaveCandidates[0]][col]);
                             /* sign of  A[l_0,t] / A[l_0,col] - A[l_i,t] / A[l_i,col]   */
                             /* note only positive entries of entering column considered */
                             if (sgn == 0)         /* new ratio is the same as before      */
-                                leavecand[++newnum] = leavecand[i];
+                                leaveCandidates[++newnum] = leaveCandidates[i];
                             else if (sgn == 1)    /* new smaller ratio detected           */
-                                leavecand[newnum = 0] = leavecand[i];
+                                leaveCandidates[newnum = 0] = leaveCandidates[i];
                         }
                         numcand = newnum + 1;
                     }
@@ -628,9 +620,9 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                         /* testcol < 0: W(j) basic, Eliminate its row from leavecand    */
                         /* since testcol is the  jth  unit column                       */
                         for (i = 0; i < numcand; i++)
-                            if (leavecand[i] == bascobas[W(j)])
+                            if (leaveCandidates[i] == variableIndexToBasicCobasicIndex[W(j)])
                             {
-                                leavecand[i] = leavecand[--numcand];
+                                leaveCandidates[i] = leaveCandidates[--numcand];
                                 /* shuffling of leavecand allowed       */
                                 break;
                             }
@@ -639,13 +631,13 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 if (j == 0)
                     /* seek  z0  among the first-col leaving candidates     */
                     for (i = 0; i < numcand; i++)
-                        if ((z0leave = (leavecand[i] == bascobas[Z(0)])))
+                        if ((z0leave = (leaveCandidates[i] == variableIndexToBasicCobasicIndex[Z(0)])))
                             break;
                 /* alternative, to force z0 leaving the basis:
                  * return whichvar[leavecand[i]];
                  */
             }       /* end of  for ( ... numcand > 1 ... )   */
-            return whichvar[leavecand[0]];
+            return basicCobasicIndexToVariable[leaveCandidates[0]];
         }       /* end of lexminvar (col, *z0leave);                        */
 
 
@@ -654,7 +646,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         {
             int i;
             for (i = 0; i < n; i++)
-                ChangeSignInA(i, col);
+                ChangeSignInTableau(i, col);
         }
 
         public void NegateTableauRow(int row)
@@ -662,8 +654,8 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         {
             int j;
             for (j = 0; j <= n + 1; j++)
-                if (!zero(A[row][j]))
-                    ChangeSignInA(row, j);
+                if (!zero(Tableau[row][j]))
+                    ChangeSignInTableau(row, j);
         }
 
         /* leave, enter in  VARS  defining  row, col  of  A
@@ -678,61 +670,63 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             bool nonzero, negpiv;
             BigInteger pivelt = 0, tmp1 = 0, tmp2 = 0;
 
-            row = bascobas[leave];
-            col = TABCOL(enter);
+            row = TableauRow(leave);
+            col = TableauColumn(enter);
 
-            copy(ref pivelt, A[row][col]);     /* pivelt anyhow later new determinant  */
+            copy(ref pivelt, Tableau[row][col]);     /* pivelt anyhow later new determinant  */
             negpiv = negative(pivelt);
             if (negpiv)
                 changesign(ref pivelt);
             for (i = 0; i < n; i++)
                 if (i != row)               /*  A[row][..]  remains unchanged       */
                 {
-                    nonzero = !zero(A[i][col]);
+                    nonzero = !zero(Tableau[i][col]);
                     for (j = 0; j <= n + 1; j++)      /*  assume here RHS()==n+1        */
                         if (j != col)
                         /*  A[i,j] =
                            (A[i,j] A[row,col] - A[i,col] A[row,j])/ det     */
                         {
-                            mulint(A[i][j], pivelt, ref tmp1);
+                            mulint(Tableau[i][j], pivelt, ref tmp1);
                             if (nonzero)
                             {
-                                mulint(A[i][col], A[row][j], ref tmp2);
+                                mulint(Tableau[i][col], Tableau[row][j], ref tmp2);
                                 if (negpiv)
                                     tmp1 = tmp1 + tmp2;
                                 else
                                     tmp1 = tmp1 - tmp2;
                             }
                             BigInteger c = 0;
-                            divint(tmp1, det, ref c);
+                            divint(tmp1, determinant, ref c);
                             SetValueInA(i, j, c);
                         }
                     /* row  i  has been dealt with, update  A[i][col]  safely   */
                     if (nonzero && !negpiv)
-                        ChangeSignInA(i, col);
+                        ChangeSignInTableau(i, col);
                 }       /* end of  for (i=...)                              */
             BigInteger temp = 0;
-            copy(ref temp, det);
+            copy(ref temp, determinant);
             SetValueInA(row, col, temp);
             if (negpiv)
                 NegateTableauRow(row);
-            copy(ref det, pivelt);      /* by construction always positive      */
+            copy(ref determinant, pivelt);      /* by construction always positive      */
 
             /* update tableau variables                                     */
-            bascobas[leave] = col + n; whichvar[col + n] = leave;
-            bascobas[enter] = row; whichvar[row] = enter;
+            variableIndexToBasicCobasicIndex[leave] = col + n; 
+            basicCobasicIndexToVariable[col + n] = leave;
+            variableIndexToBasicCobasicIndex[enter] = row; 
+            basicCobasicIndexToVariable[row] = enter;
             pivotnum++;
         }       /* end of  pivot (leave, enter)                         */
 
 
-        void ChangeSignInA(int i, int j)
+        void ChangeSignInTableau(int i, int j)
         {
-            changesign(ref A[i][j]);
+            changesign(ref Tableau[i][j]);
         }
 
         void SetValueInA(int i, int j, BigInteger value)
         {
-            copy(ref A[i][j], value);
+            copy(ref Tableau[i][j], value);
         }
 
         /* ------------------------------------------------------------ */
@@ -776,7 +770,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 Pivot(leave, enter);
                 if (z0leave)
                 {
-                    if (!VariableIsBasic(leave))
+                    if (!VariableIsCobasic(leave))
                     {
                         TabbedText.WriteLine($"Leaving variable is not basic.");
                     }
