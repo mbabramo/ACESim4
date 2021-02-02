@@ -11,6 +11,7 @@ using static ACESimBase.Util.CPrint;
 using JetBrains.Annotations;
 using Rationals;
 using System.Numerics;
+using ACESim;
 
 namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
@@ -352,7 +353,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                         /* value of  W(i-n)  is  rhs[row] / (scfa[RHS()]*det)         */
                         copy(ref num, A[row][RHS()]);
                     mulint(det, scfa[RHS()], ref den);
-                    Rational r = (num / (Rational) den).CanonicalForm;
+                    Rational r = ((Rational) num / (Rational) den).CanonicalForm;
                     num = r.Numerator;
                     den = r.Denominator;
                     smp = num.ToStringForTable();
@@ -397,15 +398,21 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             BigInteger num = 0, den = 0;
 
             for (i = 1; i <= n; i++)
+            {
+                if (i == 145)
+                {
+                    var DEBUG = 0;
+                }
                 if ((row = bascobas[i]) < n)  /*  i  is a basic variable */
                 {
                     /* value of  Z(i):  scfa[Z(i)]*rhs[row] / (scfa[RHS()]*det)   */
                     mulint(scfa[Z(i)], A[row][RHS()], ref num);
                     mulint(det, scfa[RHS()], ref den);
-                    solz[i - 1] = ((Rational) num / (Rational) den).CanonicalForm;
+                    solz[i - 1] = ((Rational)num / (Rational)den).CanonicalForm;
                 }
                 else            /* i is nonbasic    */
                     solz[i - 1] = ratfromi(0);
+            }
         } /* end of copysol                     */
 
         /* --------------- test output and exception routines ---------------- */
@@ -414,11 +421,16 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         /* otherwise error printing  info  where               */
         {
             string s = null;
-            if (bascobas[v] >= n)
+            if (VariableIsBasic(v))
             {
                 VariableToString(v, ref s);
                 throw new Exception($"Cobasic variable {s} should be basic.\n");
             }
+        }
+
+        private bool VariableIsBasic(int v)
+        {
+            return bascobas[v] >= n;
         }
 
         public void AssertVariableIsCobasic(int v)
@@ -426,11 +438,16 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         /* otherwise error printing  info  where               */
         {
             string s = null;
-            if (TABCOL(v) < 0)
+            if (VariableIsCobasic(v))
             {
                 VariableToString(v, ref s);
                 throw new Exception($"Basic variable {s} should be cobasic.\n");
             }
+        }
+
+        private bool VariableIsCobasic(int v)
+        {
+            return TABCOL(v) < 0;
         }
 
         public void OutputPivotLeaveAndEnter(int leave, int enter)
@@ -759,12 +776,17 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 Pivot(leave, enter);
                 if (z0leave)
                 {
+                    if (!VariableIsBasic(leave))
+                    {
+                        TabbedText.WriteLine($"Leaving variable is not basic.");
+                    }
                     break;  /* z0 will have value 0 but may still be basic. Amend?  */
                 }
                 if (flags.outputTableaux)
                     OutputTableau();
                 enter = ComplementOfVariable(leave);
                 leave = GetLeavingVariable(enter, ref z0leave);
+
                 if (pivotcount++ == flags.maxPivotSteps)
                 {
                     tabbedtextf("------- stop after %d pivoting steps --------\n",

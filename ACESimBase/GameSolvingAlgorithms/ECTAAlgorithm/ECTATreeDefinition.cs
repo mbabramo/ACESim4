@@ -389,7 +389,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 for (int cindex = firstmove[pl] + 1; cindex < firstmove[pl + 1]; cindex++)
                 {
                     c = moves[cindex];
-                    c.behavprob = 1 / (Rational) isets[c.atiset].nmoves;
+                    c.behavprob = (Rational) 1 / (Rational) isets[c.atiset].nmoves;
                 }
         }
 
@@ -401,6 +401,13 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             if (0 == seed)
             {
                 gencentroid();
+                var isetsDEBUG = isets.Where(x => x.name.Contains("Alt 141")).First();
+                //moves[isetsDEBUG.move0 + 0].behavprob = ((Rational)197) / (Rational)1000;
+                //moves[isetsDEBUG.move0 + 1].behavprob = ((Rational)199) / (Rational)1000;
+                //moves[isetsDEBUG.move0 + 2].behavprob = ((Rational)200) / (Rational)1000;
+                //moves[isetsDEBUG.move0 + 3].behavprob = ((Rational)201) / (Rational)1000;
+                //moves[isetsDEBUG.move0 + 4].behavprob = ((Rational)203) / (Rational)1000;
+
                 return;
             }
             /* generate random priors for all information sets	*/
@@ -581,10 +588,16 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             for (i = 0; i < nseqs[pl]; i++)
             {
                 seqtoa(moves[firstmove[pl] + i], pl, ref s);
+                if (s.Contains("141"))
+                { var DEBUG = 0;  }
                 colpr(s);
             }
             for (i = 0; i < nseqs[pl]; i++)
             {
+                if (i == 52)
+                {
+                    var DEBUG = 0;
+                }
                 rattoa(rplan[i + offset], ref s);
                 colpr(s);
             }

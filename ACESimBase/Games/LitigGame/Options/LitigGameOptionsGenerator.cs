@@ -393,9 +393,9 @@ namespace ACESim
             options.InvertChanceDecisions = true; 
 
             // DEBUG
-            options.NumOffers = 3; 
-            options.NumLiabilityStrengthPoints = 2;
-            options.NumLiabilitySignals = 3;
+            options.NumOffers = 5; 
+            options.NumLiabilityStrengthPoints = 5;
+            options.NumLiabilitySignals = 5;
 
             options.NumDamagesSignals = 1;
             options.NumDamagesStrengthPoints = 1;
@@ -407,12 +407,12 @@ namespace ACESim
             options.PFilingCost = options.DAnswerCost = 0.15;
             options.PFilingCost_PortionSavedIfDDoesntAnswer = 0;
             options.PerPartyCostsLeadingUpToBargainingRound = 0;
-            options.CostsMultiplier = 0.5; // DEBUG 1.0;
+            options.CostsMultiplier =  1.0;
 
             options.LoserPays = false; 
             options.LoserPaysMultiple = 0;
-            options.LoserPaysMarginOfVictoryThreshold = 0.6; // DEBUG 0.8; 
-            options.LoserPaysOnlyLargeMarginOfVictory = true; // DEBUG false; 
+            options.LoserPaysMarginOfVictoryThreshold = 0.8; 
+            options.LoserPaysOnlyLargeMarginOfVictory = false; 
 
             options.LitigGameDisputeGenerator = new LitigGameExogenousDisputeGenerator()
             {
@@ -420,8 +420,8 @@ namespace ACESim
                 StdevNoiseToProduceLiabilityStrength = 0.35,
             };
 
-            options.PLiabilityNoiseStdev = 0.1; // DEBUG 0.2;
-            options.DLiabilityNoiseStdev = 0.1; // DEBUG 0.2;
+            options.PLiabilityNoiseStdev =  0.2;
+            options.DLiabilityNoiseStdev = 0.2;
             options.CourtLiabilityNoiseStdev = Math.Min(options.PLiabilityNoiseStdev, options.DLiabilityNoiseStdev);
 
             options.SkipFileAndAnswerDecisions = false;

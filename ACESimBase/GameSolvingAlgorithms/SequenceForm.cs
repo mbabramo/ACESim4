@@ -157,9 +157,9 @@ namespace ACESimBase.GameSolvingAlgorithms
             ecta.outputPivotingSteps = false;
             ecta.outputPivotResults = false;
             ecta.outputEquilibrium = true;
-            ecta.outputRealizationPlan = false;
+            ecta.outputRealizationPlan = true; // DEBUG
 
-            bool outputAll = true; // DEBUG
+            bool outputAll = false;
             if (outputAll)
             {
                 ecta.outputPrior = true;
@@ -263,7 +263,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                             }
                             else
                             {
-                                // It appears that when it's imperfect (always only very slightly), there is always a degeneracy of this sort. 
+                                // It appears that when the equilibrium is imperfect (always only very slightly), there is always a degeneracy of this sort. 
                                 // Neither of these approaches makes it go away; nor does using the approach used where total <= 0.
                                 Rational multiplier = (Rational)1 / (Rational)total;
                                 for (int i = 0; i < infoSet.NumPossibleActions; i++)
@@ -885,9 +885,9 @@ namespace ACESimBase.GameSolvingAlgorithms
                         double total = 0;
                         for (int i = 0; i < infoSet.NumPossibleActions; i++)
                             total += actionProbabilities[actionProbabilitiesIndex++];
-                        if (Math.Abs(total - 1.0) > 0.000001 && true)
+                        bool fixDegeneracy = true; 
+                        if (fixDegeneracy && Math.Abs(total - 1.0) > 0.000001)
                         {
-                            // Fix degeneracy
                             //throw new Exception("Probabilities do not add up to 1");
                             if (total <= 0)
                             {
@@ -924,7 +924,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 }
                 if (total == 0)
                 {
-                    bool setArbitraryActionTo1 = true;
+                    bool setArbitraryActionTo1 = false;
                     bool firstAction = false;
                     if (setArbitraryActionTo1)
                         infoSet.SetActionToProbabilityValue(firstAction ? 1 : infoSet.Decision.NumPossibleActions, 1.0, true);

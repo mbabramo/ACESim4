@@ -1304,7 +1304,7 @@ namespace ACESim
                 }
                 done = Math.Abs(1.0 - total) < 1E-4;
                 if (i++ > 100)
-                    throw new Exception();
+                    return; // DEBUG throw new Exception("Probabilities don't add up to 1");
             }
         }
 
