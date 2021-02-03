@@ -60,9 +60,6 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             return n + 1;
         }
 
-        /*  v in VARS, v cobasic:  TABCOL(v) is v's tableau col */
-        /*  v  basic:  TABCOL(v) < 0 (i.e., basicCobasic[v] < n),  TABCOL(v)+n   is v's row */
-
         /* scale factors for variables z
 		 * scfa[Z(0)]   for  d,  scfa[RHS()] for  q
 		 * scfa[Z(1..n)] for cols of  M
@@ -188,7 +185,6 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 
             int i, j;
             BigInteger den, num;
-            BigInteger tmp, tmp2;
             for (j = 0; j <= n + 1; j++)
             {
                 // We copy the LCP into the tableau, which has the same number of rows as the LCP but two extra columns.
@@ -799,13 +795,13 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 if (flags.outputPivotingSteps)
                     OutputPivotLeaveAndEnter(leaveBasis, enterBasis);
                 Pivot(leaveBasis, enterBasis);
-                if (z0leave)
+                if (VariableIsBasic(leaveBasis))
                 {
-                    /* z0 will have value 0 but may still be basic. Amend?  */
-                    if (VariableIsBasic(leaveBasis))
-                    {
-                        throw new Exception($"Leaving variable is basic."); // DEBUG
-                    }
+                    throw new Exception($"Leaving variable is basic."); // DEBUG
+                }
+                if (z0leave || pivotcount == 13 /* DEBUG */)
+                {
+                    /* z0 will have value 0 but may still be basic. Amend?  */ // DEBUG
                     break;  
                 }
                 if (flags.outputTableauxAfterPivots)
@@ -819,6 +815,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                    flags.maxPivotSteps);
                     break;
                 }
+                
             }
 
             if (flags.outputInitialAndFinalTableaux)

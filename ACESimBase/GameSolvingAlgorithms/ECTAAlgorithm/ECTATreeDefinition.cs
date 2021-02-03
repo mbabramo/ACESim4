@@ -701,7 +701,39 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             }
         }
 
-        private IEnumerable<Rational> GetPlayerMoves(int pl, Rational[] rplan, int offset)
+        public IEnumerable<Rational> GetInformationSetProbabilitySums(int pl, Rational[] rplan, int offset)
+        {
+            foreach (List<Rational> informationSetProbabilities in GetInformationSetProbabilities(pl, rplan, offset))
+            {
+                Rational total = 0;
+                foreach (Rational r in informationSetProbabilities)
+                    total = total + r;
+                yield return total;
+            }
+        }
+
+        public IEnumerable<List<Rational>> GetInformationSetProbabilities(int pl, Rational[] rplan, int offset)
+        {
+            int i;
+            ECTAMove c;
+            ECTAInformationSet h;
+            Rational rprob;
+            for (int hindex = firstInformationSet[pl]; hindex < firstInformationSet[pl + 1]; hindex++)
+            {
+                h = informationSets[hindex];
+                i = 0;
+                List<Rational> moveProbabilities = new List<Rational>();
+                for (int cindex = h.firstMoveIndex; i < h.numMoves; cindex++, i++)
+                {
+                    c = moves[cindex];
+                    rprob = rplan[offset + cindex - firstMove[pl]];
+                    moveProbabilities.Add(rprob);
+                }
+                yield return moveProbabilities;
+            }
+        }
+
+        private IEnumerable<Rational> GetPlayerMoveProbabilities(int pl, Rational[] rplan, int offset)
         {
             int i;
             ECTAMove c;
@@ -724,9 +756,9 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         public IEnumerable<Rational> GetPlayerMovesFromSolution()
         {
             int offset = numSequences[1] + 1 + numInfoSets[2];
-            foreach (Rational r in GetPlayerMoves(1, Lemke.solz, 0))
+            foreach (Rational r in GetPlayerMoveProbabilities(1, Lemke.solz, 0))
                 yield return r;
-            foreach (Rational r in GetPlayerMoves(2, Lemke.solz, offset))
+            foreach (Rational r in GetPlayerMoveProbabilities(2, Lemke.solz, offset))
                 yield return r;
         }
 

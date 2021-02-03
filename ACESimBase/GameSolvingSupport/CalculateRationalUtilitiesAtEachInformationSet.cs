@@ -49,9 +49,11 @@ namespace ACESimBase.GameSolvingSupport
                 Rational actionProbability = actionProbabilities[successorIndex];
                 if (actionProbability != 0)
                 { // this is an action played with positive probability
-                    if (utilities[i] != utilitiesAtSuccessors[successorIndex][i])
+                    Rational utility = utilities[i];
+                    Rational utilityAtSuccessor = utilitiesAtSuccessors[successorIndex][i];
+                    if (utility != utilityAtSuccessor)
                     {
-                        string matchFailure = $"Information set {informationSetNodeNumber} Verification of equal utilities failed. {utilities[i]} != {utilitiesAtSuccessors[successorIndex][i]}";
+                        string matchFailure = $"Verification of equal utilities failed. {(double) utility} != {(double) utilityAtSuccessor} (i.e., {utility} != {utilityAtSuccessor}) at {informationSetNode}";
                         TabbedText.WriteLine(matchFailure);
                         if (throwOnFail)
                             throw new Exception(matchFailure);

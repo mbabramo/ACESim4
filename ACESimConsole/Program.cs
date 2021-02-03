@@ -29,7 +29,7 @@ namespace ACESim
             SelectAdditiveEvidenceGame
         }
 
-        public static AvailableGames GameToPlay = AvailableGames.SelectEFGFileGame;   // DEBUG
+        public static AvailableGames GameToPlay = AvailableGames.SelectEFGFileGame; // DEBUG SelectLitigGame;
         public static bool LaunchSingleOptionsSetOnly = true;
 
         [STAThread]

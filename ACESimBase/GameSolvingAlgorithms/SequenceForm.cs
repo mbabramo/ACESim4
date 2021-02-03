@@ -49,7 +49,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             StoreGameStateNodesInLists = true;
             await base.Initialize();
             InitializeInformationSets();
-            PrintGameTree(); // DEBUG
+            //PrintGameTree(); 
             if (Approach == SequenceFormApproach.ECTA)
                 SetFinalUtilitiesToRoundedOffValues(); // because this is an exact algorithm that uses integral pivoting, we have only a discrete number of utility points. This ensures that the utilities are at the precise discrete points that correspond to the integral values we will use.
             //PrintGameTree();
@@ -157,11 +157,11 @@ namespace ACESimBase.GameSolvingAlgorithms
             ecta.outputPivotingSteps = false;
             ecta.outputTableauxAfterPivots = false;
             ecta.outputPivotResults = false;
-            ecta.outputLCPSolution = false;
+            ecta.outputLCPSolution = true; // DEBUG
             ecta.outputEquilibrium = true;
-            ecta.outputRealizationPlan = false; 
+            ecta.outputRealizationPlan = true; // DEBUG
 
-            bool outputAll = true; // DEBUG
+            bool outputAll = false; // DEBUG
             if (outputAll)
             {
                 ecta.outputPrior = true;
