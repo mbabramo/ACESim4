@@ -1547,9 +1547,9 @@ namespace ACESim
         {
             int numDecimalPointsForMinAndMax = EvolutionSettings.RoundOffChanceDigits;
             (double min, double max)[] minmax = Enumerable.Range(0, NumNonChancePlayers).Select(p => (FinalUtilitiesNodes.Min(x => x.Utilities[p]), FinalUtilitiesNodes.Max(x => x.Utilities[p]))).ToArray();
-            int[][] integralUtilities = GetUtilitiesAsIntegers();
+            int[][] integralUtilities = GetUtilitiesAsIntegers(out bool rangeConverted);
             // MakeIntegralUtilitiesDistinct(integralUtilities);
-            var rationalUtilities = ConvertToRationalUtilities(minmax, integralUtilities);
+            var rationalUtilities = ConvertToRationalUtilities(rangeConverted ? minmax : null, integralUtilities);
             return rationalUtilities;
         }
 
@@ -1584,6 +1584,8 @@ namespace ACESim
 
         private Rational[][] ConvertToRationalUtilities((double min, double max)[] minmax, int[][] integralUtilities)
         {
+            if (minmax == null)
+                return integralUtilities.Select(x => x.Select(y => (Rational)y).ToArray()).ToArray();
             Rational[][] rationalUtilities = new Rational[NumNonChancePlayers][];
             for (int p = 0; p < NumNonChancePlayers; p++)
             {
@@ -1597,18 +1599,27 @@ namespace ACESim
             return rationalUtilities;
         }
 
-        public int[][] GetUtilitiesAsIntegers()
+        public int[][] GetUtilitiesAsIntegers(out bool rangeConverted)
         {
+            rangeConverted = !(Enumerable.Range(0, NumNonChancePlayers).All(p => FinalUtilitiesNodes.All(fun => (double)(int)fun.Utilities[p] == fun.Utilities[p])));
+
             List<int[]> finalUtilitiesForPlayer = new List<int[]>();
             for (int p = 0; p < NumNonChancePlayers; p++)
             {
-                finalUtilitiesForPlayer.Add(ConvertToIntegralUtilities(FinalUtilitiesNodes.Select(x => x.Utilities[p])));
+                int[] integralUtilities;
+                if (rangeConverted)
+                    integralUtilities = ConvertToIntegralUtilities(FinalUtilitiesNodes.Select(x => x.Utilities[p]));
+                else
+                    integralUtilities = FinalUtilitiesNodes.Select(x => (int)x.Utilities[p]).ToArray();
+                finalUtilitiesForPlayer.Add(integralUtilities);
             }
             return finalUtilitiesForPlayer.ToArray();
         }
 
         public int[] ConvertToIntegralUtilities(IEnumerable<double> original)
         {
+            if (original.All(x => (double)(int)x == x))
+                return original.Select(x => (int)x).ToArray();
             var origMax = original.Max();
             var origMin = original.Min();
             return original.Select(x => ConvertToIntegralValue(x, origMin, origMax, EvolutionSettings.MaxIntegralUtility)).ToArray();

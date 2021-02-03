@@ -10,8 +10,8 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
     {
         public int maxPivotSteps;   /* max no. of iterations, infinity if 0         */
         public bool outputPivotingSteps;   /* Y/N  document pivot step                     */
-        public bool outputInitialTableau;    /* Y/N  output entire tableau at beginning/end  */
-        public bool outputTableaux;   /* Y/N  output entire tableau at each step      */
+        public bool outputInitialAndFinalTableaux;    /* Y/N  output entire tableau at beginning/end  */
+        public bool outputTableauxAfterPivots;   /* Y/N  output entire tableau at each step      */
         public bool outputSolution;   /* Y/N  output solution                         */
         public bool outputLexStats;   /* Y/N  statistics on lexminratio tests         */
     }

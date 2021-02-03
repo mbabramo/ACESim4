@@ -8,7 +8,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
     public static class BigIntegerOperations
     {
-		public static bool AbbreviateBigIntegers = true;
+		public static bool AbbreviateBigIntegers = false; // DEBUG
 
 		public static bool IsPositive(BigInteger a)
 		{

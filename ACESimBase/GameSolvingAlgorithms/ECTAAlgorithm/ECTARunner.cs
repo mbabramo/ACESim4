@@ -22,8 +22,8 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         public bool outputPivotHeaderFirst = false;
         public bool outputAverageResults = false;
         public bool outputGameTreeSetup = true;     
-        public bool outputInitialTableau = false;
-        public bool outputTableaux = false;
+        public bool outputInitialAndFinalTableaux = false;
+        public bool outputTableauxAfterPivots = false;
         public bool outputLCP = false;   
         public bool outputPrior = false;   
         public bool outputPivotingSteps = false;  
@@ -188,8 +188,8 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 
             lemkeOptions.maxPivotSteps = 0; // no limit
             lemkeOptions.outputPivotingSteps = outputPivotingSteps;
-            lemkeOptions.outputInitialTableau = outputInitialTableau;
-            lemkeOptions.outputTableaux = outputTableaux;
+            lemkeOptions.outputInitialAndFinalTableaux = outputInitialAndFinalTableaux;
+            lemkeOptions.outputTableauxAfterPivots = outputTableauxAfterPivots;
             lemkeOptions.outputSolution = outputLCPSolution;
             lemkeOptions.outputLexStats = outputLexStats;
             /* parse options    */

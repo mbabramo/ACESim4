@@ -196,6 +196,13 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 // This is followed by a column for each column of the LCP,
                 // and finally a column for the right hand side. 
 
+                // Each row of the tableau represents a basic variable -- i.e., a variable that can take a value of other than 0.
+                // Each column of the tableau represents a cobasic variable -- i.e., a variable that takes a value of 0. 
+                // When z0 enters the basis initially, it will thus disappear from the column list (replaced by its complement),
+                // and it will replace its complement in the row list. 
+                // When z0 leaves the basis at the end of all pivoting steps, it will thus be cobasic and represented by
+                // a column of the tableau.
+
                 // Here, we scale up each column so that it can be represented by an integer. This would
                 // not be necessary if we were using floating point numbers.
 
@@ -218,11 +225,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     /* where the system is here         -Iw + dz_0 + Mz = -q    */
                     /* cols of  q  will be negated after first min ratio test   */
                     /* A[i][j] = num * (scaleFactors[j] / den),  fraction is integral       */
-                    tmp = den;
-                    tmp2 = scaleFactors[j] / tmp;
-                    tmp = num;
-                    BigInteger c = 0;
-                    c = Multiply(tmp2, tmp);
+                    BigInteger c = Divide(Multiply(num, scaleFactors[j]), den);
                     SetValueInTableau(i, j, c);
                 }
             }   /* end of  for(j=...)   */
@@ -288,8 +291,6 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             string smp = null;
             //char[] s = new char[INFOSTRINGLENGTH];
             //char[] smp = new char[MultiprecisionStatic.Dig2Dec(MAX_DIGITS) + 2];       /* string to print  mp  into    */
-            smp = determinant.ToStringForTable();
-            tabbedtextf("Determinant: %s\n", smp);
             colset(n + 3);
             colleft(0);
             colpr("var");                   /* headers describing variables */
@@ -329,6 +330,8 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 }
             }
             colout();
+            smp = determinant.ToStringForTable();
+            tabbedtextf("Determinant: %s\n", smp);
             tabbedtextf("-----------------end of tableau-----------------\n");
         }       /* end of  outtabl()                                    */
 
@@ -378,12 +381,11 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     pos = smp.Length;
                     if (!IsOne(den))  /* add the denominator  */
                     {
-                        bool formatAsDoubles = true;
-                        if (formatAsDoubles)
+                        if (BigIntegerOperations.AbbreviateBigIntegers)
                         {
                             double d = (double)r;
                             smp = d.ToString();
-                            if (smp.Length > 8 && BigIntegerOperations.AbbreviateBigIntegers)
+                            if (smp.Length > 8)
                                 smp = d.ToString("E5");
                         }
                         else
@@ -466,6 +468,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             AssertVariableIsCobasic(enter);
 
             VariableToString(leave, ref s);
+            tabbedtextf("pivotcount %s ", pivotcount);
             tabbedtextf("leaving: %-4s ", s);
             VariableToString(enter, ref s);
             tabbedtextf("entering: %s\n", s);
@@ -687,8 +690,8 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             bool nonzero, negativePivot;
             BigInteger pivotValue = 0, tableauEntry = 0, pivotProduct = 0;
 
-            row = TableauRow(leave);
-            col = TableauColumn(enter);
+            row = TableauRow(leave); // the rows correspond to the basic variables
+            col = TableauColumn(enter); // the columns correspond to the cobasic variables
 
             pivotValue = Tableau[row][col];     /* pivelt anyhow later new determinant  */
             negativePivot = IsNegative(pivotValue);
@@ -702,12 +705,19 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     for (j = 0; j <= n + 1; j++)      /*  assume here RHS()==n+1        */
                     {
                         if (j != col)
-                        /*  A[i,j] =
+                        /*  Where i != row and j != col, A[i,j] =
                            (A[i,j] A[row,col] - A[i,col] A[row,j])/ det     */
+                        /* The result of this operation is that the pivot row and column remain the same in absolute value, */
+                        /* except for the pivot cell itself. */ 
                         {
+                            // 1. Multiply every cell by the pivot value (the value in the specified row and column)
                             tableauEntry = Multiply(Tableau[i][j], pivotValue);
                             if (nonzero)
                             {
+                                // 2. Add to each cell (for a negative pivot) or subtract from each cell (for a positive
+                                // pivot) the product of the value in the pivot column (same row) and the value in the 
+                                // pivot row (same column). The row/column operations here amount to multiplying the
+                                // pivot 
                                 BigInteger sameColumnInPivotRow = Tableau[row][j];
                                 pivotProduct = Multiply(sameRowInPivotColumn, sameColumnInPivotRow);
                                 if (negativePivot)
@@ -715,6 +725,8 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                                 else
                                     tableauEntry = tableauEntry - pivotProduct;
                             }
+                            if (tableauEntry % determinant != 0)
+                                throw new Exception("Internal error. Every tableau entry should be divisible by determinant.");
                             tableauEntry = Divide(tableauEntry, determinant);
                             SetValueInTableau(i, j, tableauEntry);
                         }
@@ -750,7 +762,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         /* ------------------------------------------------------------ */
         public void RunLemke(LemkeOptions flags)
         {
-            int leave, enter;
+            int leaveBasis, enterBasis;
             bool z0leave = false;
 
             pivotcount = 1;
@@ -762,43 +774,44 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             FillTableau();
             /*  tabbedtextf("Tableau filled.\n");    */
 
-            if (flags.outputInitialTableau)
+            if (flags.outputInitialAndFinalTableaux)
             {
                 tabbedtextf("After filltableau:\n");
                 OutputTableau();
             }
 
             /* z0 enters the basis to obtain lex-feasible solution      */
-            enter = Z(0);
-            leave = GetLeavingVariable(enter, ref z0leave);
+            /* note that entering the basis means it is no longer listed as a column on the tableau */
+            enterBasis = Z(0);
+            leaveBasis = GetLeavingVariable(enterBasis, ref z0leave);
 
-            /* now give the entering q-col its correct sign             */
+            /* now give the entering q-col (the last column, i.e. the right-hand side, of the tableau) its correct sign             */
             NegateTableauColumn(RHS());
 
-            if (flags.outputTableaux)
+            if (flags.outputTableauxAfterPivots)
             {
-                tabbedtextf("After negcol:\n");
+                tabbedtextf("After negating entering column (right-hand side):\n");
                 OutputTableau();
             }
             while (true)       /* main loop of complementary pivoting                  */
             {
                 TestTableauVariables();
                 if (flags.outputPivotingSteps)
-                    OutputPivotLeaveAndEnter(leave, enter);
-                Pivot(leave, enter);
+                    OutputPivotLeaveAndEnter(leaveBasis, enterBasis);
+                Pivot(leaveBasis, enterBasis);
                 if (z0leave)
                 {
                     /* z0 will have value 0 but may still be basic. Amend?  */
-                    if (VariableIsBasic(leave))
+                    if (VariableIsBasic(leaveBasis))
                     {
                         throw new Exception($"Leaving variable is basic."); // DEBUG
                     }
                     break;  
                 }
-                if (flags.outputTableaux)
+                if (flags.outputTableauxAfterPivots)
                     OutputTableau();
-                enter = ComplementOfVariable(leave);
-                leave = GetLeavingVariable(enter, ref z0leave);
+                enterBasis = ComplementOfVariable(leaveBasis);
+                leaveBasis = GetLeavingVariable(enterBasis, ref z0leave);
 
                 if (pivotcount++ == flags.maxPivotSteps)
                 {
@@ -808,7 +821,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 }
             }
 
-            if (flags.outputInitialTableau)
+            if (flags.outputInitialAndFinalTableaux)
             {
                 tabbedtextf("Final tableau:\n");
                 OutputTableau();
