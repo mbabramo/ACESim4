@@ -146,7 +146,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 
             for (playerIndex = 0; playerIndex < PLAYERS - 1; playerIndex++)
             {
-                maxpay[playerIndex] = MINUSINFTY;
+                maxpay[playerIndex] = ExactValue.FromInteger(MINUSINFTY);
                 for (int zindex = 0; zindex < outcomes.Length; zindex++)
                 {
                     z = outcomes[zindex];
@@ -394,7 +394,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 for (int cindex = firstMove[pl] + 1; cindex < firstMove[pl + 1]; cindex++)
                 {
                     c = moves[cindex];
-                    c.behavioralProbability = ExactValue.One().DividedBy((ExactValue) informationSets[c.priorInformationSet].numMoves);
+                    c.behavioralProbability = ExactValue.One().DividedBy(ExactValue.FromInteger(informationSets[c.priorInformationSet].numMoves));
                 }
         }
 
@@ -425,11 +425,11 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     // We must create fractions that add up to 1 (each greater than 0).
                     // So, we'll just take random numbers from 1 to 10, use those for numerators
                     // and the sum for a denominator.
-                    ExactValue denominator = 0;
+                    ExactValue denominator = ExactValue.Zero();
                     for (int i = 0; i < h.numMoves; i++)
                     {
                         double maxValue = 9;
-                        ExactValue numerator = (ExactValue)(1 + (int)Math.Floor(maxValue * RandomGenerator.NextDouble()));
+                        ExactValue numerator = ExactValue.FromInteger((1 + (int)Math.Floor(maxValue * RandomGenerator.NextDouble())));
                         moves[h.firstMoveIndex + i].behavioralProbability = (ExactValue)numerator; // store value so that we remember it
                         denominator = denominator.Plus(numerator);
                     }
@@ -647,7 +647,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 {
                     c = moves[cindex];
                     rprob = rplan[cindex - firstMove[pl]];
-                    if (rprob.IsNotEqualTo(0))
+                    if (rprob.IsNotEqualTo(ExactValue.Zero()))
                     {
                         s = moveToString(c, pl);
                         tabbedtextf(" %s", s);
@@ -681,8 +681,8 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             for (int hindex = firstInformationSet[pl]; hindex < firstInformationSet[pl + 1]; hindex++)
             {
                 h = informationSets[hindex];
-                ExactValue total = 0;
-                ExactValue totalAboveMinValue = 0;
+                ExactValue total = ExactValue.Zero();
+                ExactValue totalAboveMinValue = ExactValue.Zero();
                 moveIndexInInformationSet = 0;
                 for (int cindex = h.firstMoveIndex; moveIndexInInformationSet < h.numMoves; cindex++, moveIndexInInformationSet++)
                 {
@@ -694,7 +694,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     if (c.behavioralProbability.IsGreaterThan(minValue))
                         totalAboveMinValue = totalAboveMinValue.Plus(c.behavioralProbability.Minus(minValue));
                 }
-                ExactValue excess = total.Minus((ExactValue)1);
+                ExactValue excess = total.Minus(ExactValue.One());
                 indexInAllMovesArray = 0;
                 moveIndexInInformationSet = 0;
                 for (int cindex = h.firstMoveIndex; moveIndexInInformationSet < h.numMoves; cindex++, moveIndexInInformationSet++)
@@ -714,7 +714,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         {
             foreach (List<ExactValue> informationSetProbabilities in GetInformationSetProbabilities(pl, rplan, offset))
             {
-                ExactValue total = 0;
+                ExactValue total = ExactValue.Zero();
                 foreach (ExactValue r in informationSetProbabilities)
                     total = total.Plus(r);
                 yield return total;
@@ -929,10 +929,10 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 for (j = 0; j < numColsInSourceMatrix; j++)
                     if (transpose)
                         targetMatrix[j + targetRowOffset][i + targetColOffset]
-                        = new ExactValue(negate ? -sourceMatrix[i][j] : sourceMatrix[i][j]);
+                        = ExactValue.FromInteger(negate ? -sourceMatrix[i][j] : sourceMatrix[i][j]);
                     else
                         targetMatrix[i + targetRowOffset][j + targetColOffset]
-                        = new ExactValue(negate ? -sourceMatrix[i][j] : sourceMatrix[i][j]);
+                        = ExactValue.FromInteger(negate ? -sourceMatrix[i][j] : sourceMatrix[i][j]);
         }
 
         public void calculateCoveringVectorD()

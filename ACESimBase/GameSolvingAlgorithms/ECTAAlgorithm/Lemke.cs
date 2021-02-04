@@ -136,14 +136,14 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             bool trivialSolutionExists = true;
             for (i = 0; i < n; i++)
             {
-                if (coveringVectorD[i].IsLessThan(0))
+                if (coveringVectorD[i].IsLessThan(ExactValue.Zero()))
                 {
                     throw new Exception($"Covering vector  d[{i + 1}] = {coveringVectorD[i]} negative\n");
                 }
-                else if (rhsq[i].IsLessThan(0))
+                else if (rhsq[i].IsLessThan(ExactValue.Zero()))
                 {
                     trivialSolutionExists = false;
-                    if (coveringVectorD[i].IsEqualTo(0))
+                    if (coveringVectorD[i].IsEqualTo(ExactValue.Zero()))
                     {
                         throw new Exception($"Covering vector  d[{i + 1}] = 0  where  q[{i + 1}] = {rhsq[i]}  is negative. Cannot start Lemke");
                     }
@@ -201,7 +201,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 // not be necessary if we were using floating point numbers.
 
                 /* compute lcm  scaleFactors[j]  of denominators for  col  j  of  A         */
-                scaleFactors[j] = 1;
+                scaleFactors[j] = ExactValue.One();
                 for (i = 0; i < n; i++)
                 {
                     den = (j == 0) ? coveringVectorD[i].Denominator :
@@ -226,8 +226,8 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 
             InitializeTableauVariables();
 
-            determinant = (ExactValue)1;
-            determinant.ChangeSign();
+            determinant = ExactValue.One();
+            determinant = determinant.Negated();
         }       /* end of filltableau()         */
 
         /* ---------------- output routines ------------------- */
@@ -250,7 +250,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 for (j = 0; j < n; j++)
                 {
                     a = lcpM[i][j];
-                    if (a.Numerator.IsEqualTo(0))
+                    if (a.Numerator.IsEqualTo(ExactValue.Zero()))
                         colpr(".");
                     else
                     {
@@ -338,7 +338,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             //char smp[2 * DIG2DEC(MAX_DIGITS) + 4];
             /* string to print 2 mp's  into                 */
             int i, row, pos;
-            ExactValue num = 0, den = 0;
+            ExactValue num = ExactValue.Zero(), den = ExactValue.Zero();
 
             colset(n + 2);    /* column printing to see complementarity of  w  and  z */
 
@@ -409,7 +409,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         public void TransformBasicSolution()
         {
             int i, row;
-            ExactValue num = 0, den = 0;
+            ExactValue num = ExactValue.Zero(), den = ExactValue.Zero();
 
             for (i = 1; i <= n; i++)
             {
@@ -619,9 +619,9 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                                       (Tableau[leaveCandidates[i]][testcol].Times(Tableau[leaveCandidates[0]][col]));
                             /* observe sign of  A[l_0,t] / A[l_0,col] - A[l_i,t] / A[l_i,col]   */
                             /* note only positive entries of entering column considered */
-                            if (productComparison.IsEqualTo(0))         /* new ratio is the same as before      */
+                            if (productComparison.IsEqualTo(ExactValue.Zero()))         /* new ratio is the same as before      */
                                 leaveCandidates[++newnum] = leaveCandidates[i];
-                            else if (productComparison.IsGreaterThan(0))    /* new smaller ratio detected           */
+                            else if (productComparison.IsGreaterThan(ExactValue.Zero()))    /* new smaller ratio detected           */
                                 leaveCandidates[newnum = 0] = leaveCandidates[i];
                         }
                         numCandidates = newnum + 1;
@@ -682,7 +682,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         {
             int row, col, i, j;
             bool nonzero, negativePivot;
-            ExactValue pivotValue = 0, tableauEntry = 0, pivotProduct = 0;
+            ExactValue pivotValue = ExactValue.Zero(), tableauEntry = ExactValue.Zero(), pivotProduct = ExactValue.Zero();
 
             row = TableauRow(leave); // the rows correspond to the basic variables
             col = TableauColumn(enter); // the columns correspond to the cobasic variables
@@ -690,7 +690,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             pivotValue = Tableau[row][col];     /* pivelt anyhow later new determinant  */
             negativePivot = (pivotValue).IsNegative();
             if (negativePivot)
-                pivotValue.ChangeSign(); /* negativePivot also affects how pivoting is done (see below) */
+                pivotValue = pivotValue.Negated(); /* negativePivot also affects how pivoting is done (see below) */
             for (i = 0; i < n; i++)
                 if (i != row)               /*  A[row][..]  remains unchanged       */
                 {
@@ -743,7 +743,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 
         void ChangeSignInTableau(int i, int j)
         {
-            Tableau[i][j].ChangeSign();
+            Tableau[i][j] = Tableau[i][j].Negated();
         }
 
         void SetValueInTableau(int i, int j, ExactValue value)

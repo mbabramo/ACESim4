@@ -8,33 +8,21 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.GameSolvingSupport
 {
-    public struct ExactValue
+    public readonly struct ExactValue
     {
 		public static bool AbbreviateExactValues = false;
 
-        private Rational V;
+        private readonly Rational V;
 
 		public ExactValue(Rational v)
 		{
 			V = v;
 		}
 
-		public ExactValue(BigInteger v)
-        {
-			V = v;
-        }
-
-		public ExactValue(int v)
-        {
-			V = v;
-        }
-
-		public static ExactValue Zero() => new ExactValue(0);
-		public static ExactValue One() => new ExactValue(1);
-		public static ExactValue FromInteger(int i) => new ExactValue(i);
-
-		public static implicit operator ExactValue(BigInteger b) => new ExactValue(b);
-		public static implicit operator ExactValue(int b) => new ExactValue(b);
+		public static ExactValue Zero() => ExactValue.FromInteger(0);
+		public static ExactValue One() => ExactValue.FromInteger(1);
+		public static ExactValue FromInteger(int i) => new ExactValue((Rational) i);
+		public static ExactValue FromRational(Rational r) => new ExactValue(r);
 
 		public static implicit operator ExactValue(Rational b) => new ExactValue(b);
 
@@ -57,20 +45,10 @@ namespace ACESimBase.GameSolvingSupport
 			return V.IsOne;
 		}
 
-		public void ChangeSign()
-		{
-			V = -V;
-		}
-
-		public void ChangeToCanonicalForm()
-        {
-			V = V.CanonicalForm;
-		}
-
 		public ExactValue CanonicalForm => V.CanonicalForm;
 
-		public ExactValue Numerator => V.Numerator;
-		public ExactValue Denominator => V.Denominator;
+		public ExactValue Numerator => ExactValue.FromRational(V.Numerator);
+		public ExactValue Denominator => ExactValue.FromRational(V.Denominator);
 		public double AsDouble => (double)V;
 		public Rational AsRational => V;
 		public bool IsExact => true;
@@ -105,7 +83,7 @@ namespace ACESimBase.GameSolvingSupport
 		{
 			if (V.Denominator != 1 || b.V.Denominator != 1)
 				throw new Exception("LeastCommonMultiple operation not available.");
-			var result = Times(b).DividedBy(BigInteger.GreatestCommonDivisor(V.Numerator, b.V.Numerator));
+			var result = Times(b).DividedBy((Rational) BigInteger.GreatestCommonDivisor(V.Numerator, b.V.Numerator));
 			return result.CanonicalForm;
 		}
 
