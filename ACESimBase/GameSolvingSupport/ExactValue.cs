@@ -10,7 +10,7 @@ namespace ACESimBase.GameSolvingSupport
 {
     public readonly struct ExactValue : MaybeExact<ExactValue>
     {
-        public static bool AbbreviateExactValues = false;
+        public const bool AbbreviateValues = false;
 
         private readonly Rational V;
 
@@ -19,13 +19,13 @@ namespace ACESimBase.GameSolvingSupport
             V = (Rational)i;
         }
 
+        public ExactValue(Rational r)
+        {
+            V = r;
+        }
+
         public MaybeExact<ExactValue> NewValueFromInteger(int i) => new ExactValue(i);
         public MaybeExact<ExactValue> NewValueFromRational(Rational r) => new ExactValue(r);
-
-        public ExactValue(Rational v)
-        {
-            V = v;
-        }
 
         public static MaybeExact<ExactValue> Zero() => ExactValue.FromInteger(0);
         public static MaybeExact<ExactValue> One() => ExactValue.FromInteger(1);
@@ -69,7 +69,7 @@ namespace ACESimBase.GameSolvingSupport
             if (V.Denominator == 1)
             {
                 s = V.ToString();
-                if (s.Length > 8 && AbbreviateExactValues)
+                if (s.Length > 8 && AbbreviateValues)
                     return V.ToString("E5");
                 else
                     return s;
@@ -90,7 +90,7 @@ namespace ACESimBase.GameSolvingSupport
             if (V.Denominator != 1 || b.AsRational.Denominator != 1)
                 throw new Exception("LeastCommonMultiple operation not available.");
             var result = Times(b).DividedBy(MaybeExact<ExactValue>.FromRational((Rational)BigInteger.GreatestCommonDivisor(V.Numerator, b.AsRational.Numerator)));
-            return result.CanonicalForm;
+            return result;
         }
 
         public bool IsGreaterThan(MaybeExact<ExactValue> b)

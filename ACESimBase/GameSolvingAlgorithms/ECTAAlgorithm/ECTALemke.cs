@@ -375,7 +375,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     pos = smp.Length;
                     if (!(den.IsOne()))  /* add the denominator  */
                     {
-                        if (ExactValue.AbbreviateExactValues)
+                        if (ExactValue.AbbreviateValues)
                         {
                             double d = r.AsDouble;
                             smp = d.ToString();

@@ -437,7 +437,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     {
                         MaybeExact<T> a =  MaybeExact<T>.Zero();
                         a = moves[h.firstMoveIndex + i].behavioralProbability.Numerator.DividedBy(denominator);
-                        moves[h.firstMoveIndex + i].behavioralProbability = a.CanonicalForm;
+                        moves[h.firstMoveIndex + i].behavioralProbability = a;
                     }
                 }
         }

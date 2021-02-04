@@ -6,7 +6,6 @@ namespace ACESimBase.GameSolvingSupport
     {
         double AsDouble { get; }
         Rational AsRational { get; }
-        MaybeExact<T> CanonicalForm { get; }
         MaybeExact<T> Denominator { get; }
         bool IsExact { get; }
         MaybeExact<T> Numerator { get; }
