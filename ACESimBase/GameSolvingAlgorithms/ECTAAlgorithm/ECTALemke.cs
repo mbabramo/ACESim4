@@ -13,23 +13,23 @@ using ACESimBase.GameSolvingSupport;
 
 namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
-    public class ECTALemke
+    public class ECTALemke<T> where T : MaybeExact<T>, new()
     {
 
         int n;   /* LCP (Linear Complementarity Problem) dimension as used here   */
 
         /* LCP input    */
-        public ExactValue[][] lcpM;
-        public ExactValue[] rhsq;
-        public ExactValue[] coveringVectorD;
+        public MaybeExact<T>[][] lcpM;
+        public MaybeExact<T>[] rhsq;
+        public MaybeExact<T>[] coveringVectorD;
         public int lcpdim = 0; /* set in setlcp                */
 
         /* LCP result   */
-        public ExactValue[] solz;
+        public MaybeExact<T>[] solz;
         public int pivotcount;
 
         /* tableau:    */
-        public ExactValue[][] Tableau;        /* tableau                              */
+        public MaybeExact<T>[][] Tableau;        /* tableau                              */
 
         /* used for tableau:    */
         /* We keep track of which variables are basic and which are cobasic. */
@@ -63,9 +63,9 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 		 * scfa[Z(1..n)] for cols of  M
 		 * result variables to be multiplied with these
 		 */
-        public ExactValue[] scaleFactors;
+        public MaybeExact<T>[] scaleFactors;
 
-        public ExactValue determinant = new ExactValue();                        /* determinant                  */
+        public MaybeExact<T> determinant = MaybeExact<T>.Zero();                        /* determinant                  */
 
         public int[] lexTested, lexComparisons;/* statistics for lexminvar     */
 
@@ -90,24 +90,24 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             }
             n = lcpdim = newn;
             /* LCP input/output data    */
-            lcpM = CreateJaggedArray<ExactValue[][]>(n, n);
-            rhsq = new ExactValue[n];
-            coveringVectorD = new ExactValue[n];
-            solz = new ExactValue[n];
+            lcpM = CreateJaggedArray<MaybeExact<T>[][]>(n, n);
+            rhsq = new MaybeExact<T>[n];
+            coveringVectorD = new MaybeExact<T>[n];
+            solz = new MaybeExact<T>[n];
             for (int i = 0; i < n; i++)
             {
-                rhsq[i] = new ExactValue();
-                coveringVectorD[i] = new ExactValue();
-                solz[i] = new ExactValue();
+                rhsq[i] =  MaybeExact<T>.Zero();
+                coveringVectorD[i] =  MaybeExact<T>.Zero();
+                solz[i] =  MaybeExact<T>.Zero();
             }
             /* tableau          */
-            Tableau = CreateJaggedArray<ExactValue[][]>(n, n + 2);
+            Tableau = CreateJaggedArray<MaybeExact<T>[][]>(n, n + 2);
             for (int i = 0; i < n; i++)
                 for (int j = 0; j < n + 2; j++)
-                    Tableau[i][j] = new ExactValue();
-            scaleFactors = new ExactValue[n + 2];
+                    Tableau[i][j] =  MaybeExact<T>.Zero();
+            scaleFactors = new MaybeExact<T>[n + 2];
             for (int i = 0; i < n + 2; i++)
-                scaleFactors[i] = new ExactValue();
+                scaleFactors[i] =  MaybeExact<T>.Zero();
             variableIndexToBasicCobasicIndex = new int[2 * n + 1];
             basicCobasicIndexToVariable = new int[2 * n + 1];
             lexTested = new int[n + 1];
@@ -117,7 +117,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             /* initialize all LCP entries to zero       */
             {
                 int i, j;
-                ExactValue zero = ExactValue.Zero();
+                MaybeExact<T> zero = MaybeExact<T>.Zero();
                 for (i = 0; i < n; i++)
                 {
                     for (j = 0; j < n; j++)
@@ -136,14 +136,14 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             bool trivialSolutionExists = true;
             for (i = 0; i < n; i++)
             {
-                if (coveringVectorD[i].IsLessThan(ExactValue.Zero()))
+                if (coveringVectorD[i].IsLessThan(MaybeExact<T>.Zero()))
                 {
                     throw new Exception($"Covering vector  d[{i + 1}] = {coveringVectorD[i]} negative\n");
                 }
-                else if (rhsq[i].IsLessThan(ExactValue.Zero()))
+                else if (rhsq[i].IsLessThan(MaybeExact<T>.Zero()))
                 {
                     trivialSolutionExists = false;
-                    if (coveringVectorD[i].IsEqualTo(ExactValue.Zero()))
+                    if (coveringVectorD[i].IsEqualTo(MaybeExact<T>.Zero()))
                     {
                         throw new Exception($"Covering vector  d[{i + 1}] = 0  where  q[{i + 1}] = {rhsq[i]}  is negative. Cannot start Lemke");
                     }
@@ -179,10 +179,10 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         {
 
             // DEBUG TODO: When generalizing our numeric types, we need to have a generic with two types -- one for the LCP 
-            // and one for the tableau. Here, ExactValue is for the LCP and then ExactValue is for the tableau.
+            // and one for the tableau. Here, T is for the LCP and then T is for the tableau.
 
             int i, j;
-            ExactValue den, num;
+            MaybeExact<T> den, num;
             for (j = 0; j <= n + 1; j++)
             {
                 // We copy the LCP into the tableau, which has the same number of rows as the LCP but two extra columns.
@@ -201,7 +201,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 // not be necessary if we were using floating point numbers.
 
                 /* compute lcm  scaleFactors[j]  of denominators for  col  j  of  A         */
-                scaleFactors[j] = ExactValue.One();
+                scaleFactors[j] = MaybeExact<T>.One();
                 for (i = 0; i < n; i++)
                 {
                     den = (j == 0) ? coveringVectorD[i].Denominator :
@@ -219,14 +219,14 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     /* where the system is here         -Iw + dz_0 + Mz = -q    */
                     /* cols of  q  will be negated after first min ratio test   */
                     /* A[i][j] = num * (scaleFactors[j] / den),  fraction is integral       */
-                    ExactValue c = num.Times(scaleFactors[j]).DividedBy(den);
+                    MaybeExact<T> c = num.Times(scaleFactors[j]).DividedBy(den);
                     SetValueInTableau(i, j, c);
                 }
             }   /* end of  for(j=...)   */
 
             InitializeTableauVariables();
 
-            determinant = ExactValue.One();
+            determinant = MaybeExact<T>.One();
             determinant = determinant.Negated();
         }       /* end of filltableau()         */
 
@@ -235,7 +235,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         /* output the LCP as given      */
         {
             int i, j;
-            ExactValue a;
+            MaybeExact<T> a;
             string s = null;
 
             tabbedtextf("LCP dimension: %d\n", n);
@@ -250,7 +250,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 for (j = 0; j < n; j++)
                 {
                     a = lcpM[i][j];
-                    if (a.Numerator.IsEqualTo(ExactValue.Zero()))
+                    if (a.Numerator.IsEqualTo(MaybeExact<T>.Zero()))
                         colpr(".");
                     else
                     {
@@ -338,7 +338,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             //char smp[2 * DIG2DEC(MAX_DIGITS) + 4];
             /* string to print 2 mp's  into                 */
             int i, row, pos;
-            ExactValue num = ExactValue.Zero(), den = ExactValue.Zero();
+            MaybeExact<T> num = MaybeExact<T>.Zero(), den = MaybeExact<T>.Zero();
 
             colset(n + 2);    /* column printing to see complementarity of  w  and  z */
 
@@ -368,7 +368,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                         /* value of  W(i-n)  is  rhs[row] / (scfa[RHS()]*det)         */
                         num = Tableau[row][RHS()];
                     den = determinant.Times(scaleFactors[RHS()]);
-                    ExactValue r = num.DividedBy(den);
+                    MaybeExact<T> r = num.DividedBy(den);
                     num = r.Numerator;
                     den = r.Denominator;
                     smp = num.ToString();
@@ -409,7 +409,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         public void TransformBasicSolution()
         {
             int i, row;
-            ExactValue num = ExactValue.Zero(), den = ExactValue.Zero();
+            MaybeExact<T> num = MaybeExact<T>.Zero(), den = MaybeExact<T>.Zero();
 
             for (i = 1; i <= n; i++)
             {
@@ -421,7 +421,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     solz[i - 1] = num.DividedBy(den);
                 }
                 else            /* i is nonbasic    */
-                    solz[i - 1] = ExactValue.Zero();
+                    solz[i - 1] = MaybeExact<T>.Zero();
             }
         } /* end of copysol                     */
 
@@ -619,9 +619,9 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                                       (Tableau[leaveCandidates[i]][testcol].Times(Tableau[leaveCandidates[0]][col]));
                             /* observe sign of  A[l_0,t] / A[l_0,col] - A[l_i,t] / A[l_i,col]   */
                             /* note only positive entries of entering column considered */
-                            if (productComparison.IsEqualTo(ExactValue.Zero()))         /* new ratio is the same as before      */
+                            if (productComparison.IsEqualTo(MaybeExact<T>.Zero()))         /* new ratio is the same as before      */
                                 leaveCandidates[++newnum] = leaveCandidates[i];
-                            else if (productComparison.IsGreaterThan(ExactValue.Zero()))    /* new smaller ratio detected           */
+                            else if (productComparison.IsGreaterThan(MaybeExact<T>.Zero()))    /* new smaller ratio detected           */
                                 leaveCandidates[newnum = 0] = leaveCandidates[i];
                         }
                         numCandidates = newnum + 1;
@@ -682,7 +682,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         {
             int row, col, i, j;
             bool nonzero, negativePivot;
-            ExactValue pivotValue = ExactValue.Zero(), tableauEntry = ExactValue.Zero(), pivotProduct = ExactValue.Zero();
+            MaybeExact<T> pivotValue = MaybeExact<T>.Zero(), tableauEntry = MaybeExact<T>.Zero(), pivotProduct = MaybeExact<T>.Zero();
 
             row = TableauRow(leave); // the rows correspond to the basic variables
             col = TableauColumn(enter); // the columns correspond to the cobasic variables
@@ -694,7 +694,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             for (i = 0; i < n; i++)
                 if (i != row)               /*  A[row][..]  remains unchanged       */
                 {
-                    ExactValue sameRowInPivotColumn = Tableau[i][col];
+                    MaybeExact<T> sameRowInPivotColumn = Tableau[i][col];
                     nonzero = !(sameRowInPivotColumn.IsZero());
                     for (j = 0; j <= n + 1; j++)      /*  assume here RHS()==n+1        */
                     {
@@ -712,7 +712,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                                 // pivot) the product of the value in the pivot column (same row) and the value in the 
                                 // pivot row (same column). The row/column operations here amount to multiplying the
                                 // pivot 
-                                ExactValue sameColumnInPivotRow = Tableau[row][j];
+                                MaybeExact<T> sameColumnInPivotRow = Tableau[row][j];
                                 pivotProduct = sameRowInPivotColumn.Times(sameColumnInPivotRow);
                                 if (negativePivot)
                                     tableauEntry = tableauEntry.Plus(pivotProduct);
@@ -746,7 +746,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             Tableau[i][j] = Tableau[i][j].Negated();
         }
 
-        void SetValueInTableau(int i, int j, ExactValue value)
+        void SetValueInTableau(int i, int j, MaybeExact<T> value)
         {
             Tableau[i][j] = value;
         }

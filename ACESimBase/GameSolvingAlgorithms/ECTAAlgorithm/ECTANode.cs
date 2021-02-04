@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ACESimBase.GameSolvingSupport;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
-	public class ECTANode
+	public class ECTANode<T> where T : MaybeExact<T>, new()
 	{
 		public bool terminal; // 0: decision node / 1: terminal node
 		public int iset = -1; // which information set

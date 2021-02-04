@@ -13,7 +13,7 @@ using Rationals;
 
 namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
-    public class ECTARunner
+    public class ECTARunner<T> where T : MaybeExact<T>, new()
     {
         public int numPriors = 0;      
         public int seed = 0;     
@@ -38,10 +38,10 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         long timeused, sumtimeused;
         int pivots, sumpivots;
         int lcpsize;
-        int[] eqsize = new int[ECTATreeDefinition.PLAYERS], sumeqsize = new int[ECTATreeDefinition.PLAYERS];
+        int[] eqsize = new int[ECTATreeDefinition<T>.PLAYERS], sumeqsize = new int[ECTATreeDefinition<T>.PLAYERS];
 
         Stopwatch swatch = new Stopwatch();
-        public ECTATreeDefinition t = new ECTATreeDefinition();
+        public ECTATreeDefinition<T> t = new ECTATreeDefinition<T>();
 
         /* returns milliseconds since the last call to
          * stopwatch() and prints them to stdout if  bprint==1
@@ -65,9 +65,9 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         void infotree()
         {
             int pl;
-            tabbedtextf("\nGame tree has %d nodes, ", t.lastnode - ECTATreeDefinition.rootindex);
+            tabbedtextf("\nGame tree has %d nodes, ", t.lastnode - ECTATreeDefinition<T>.rootindex);
             tabbedtextf("of which %d are terminal nodes.\n", t.lastoutcome);
-            for (pl = 0; pl < ECTATreeDefinition.PLAYERS; pl++)
+            for (pl = 0; pl < ECTATreeDefinition<T>.PLAYERS; pl++)
             {
                 tabbedtextf("    Player %d has ", pl);
                 tabbedtextf("%3d information sets, ", t.firstInformationSet[pl + 1] - t.firstInformationSet[pl]);
@@ -82,7 +82,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 
             lcpsize = t.numSequences[1] + t.numInfoSets[2] + 1 + t.numSequences[2] + t.numInfoSets[1] + 1;
             tabbedtextf("Sequence form LCP dimension is %d\n", lcpsize);
-            for (pl = 1; pl < ECTATreeDefinition.PLAYERS; pl++)
+            for (pl = 1; pl < ECTATreeDefinition<T>.PLAYERS; pl++)
             {
                 tabbedtextf("    Player %d has ", pl);
                 tabbedtextf("%3d sequences, ", t.numSequences[pl]);
@@ -158,7 +158,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             sumpivots += pivots = t.Lemke.pivotcount;
             /* equilibrium size     */
             offset = 0;
-            for (pl = 1; pl < ECTATreeDefinition.PLAYERS; pl++)
+            for (pl = 1; pl < ECTATreeDefinition<T>.PLAYERS; pl++)
             {
                 equilsize = t.propermixisets(pl, t.Lemke.solz, offset);
                 /* the next is  offset  for player 2 */
@@ -169,11 +169,11 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             }
         }
 
-        public (List<Rational[]> rationals, List<double[]> doubles) Execute_ReturningExactValuesAndDoubles(Action<ECTATreeDefinition> setup, Action<int, ECTATreeDefinition> updateActionWhenTracingPathOfEquilibrium)
+        public (List<Rational[]> rationals, List<double[]> doubles) Execute_ReturningRationalsAndDoubles(Action<ECTATreeDefinition<T>> setup, Action<int, ECTATreeDefinition<T>> updateActionWhenTracingPathOfEquilibrium)
         {
-            List<ExactValue[]> asPotentiallyExactValue = Execute(setup, updateActionWhenTracingPathOfEquilibrium);
-            var asRationals = asPotentiallyExactValue.Select(x => x.Select(y => y.AsRational).ToArray()).ToList();
-            var asDoubles = asPotentiallyExactValue.Select(x => x.Select(y => y.AsDouble).ToArray()).ToList();
+            List<MaybeExact<T>[]> asPotentiallyExact = Execute(setup, updateActionWhenTracingPathOfEquilibrium);
+            var asRationals = asPotentiallyExact.Select(x => x.Select(y => y.AsRational).ToArray()).ToList();
+            var asDoubles = asPotentiallyExact.Select(x => x.Select(y => y.AsDouble).ToArray()).ToList();
             return (asRationals, asDoubles);
         }
 
@@ -183,7 +183,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         /// <param name="setup"></param>
         /// <param name="updateActionWhenTracingPathOfEquilibrium">Tracing path of an equilibrium means that we use the results of one run to seed the next, but then change the outcomes. The action receives a parameter indicating the index and then changes the outcomes appropriately.</param>
         /// <returns></returns>
-        public List<ExactValue[]> Execute(Action<ECTATreeDefinition> setup, Action<int, ECTATreeDefinition> updateActionWhenTracingPathOfEquilibrium)
+        public List<MaybeExact<T>[]> Execute(Action<ECTATreeDefinition<T>> setup, Action<int, ECTATreeDefinition<T>> updateActionWhenTracingPathOfEquilibrium)
         {
             bool tracingEquilibrium = updateActionWhenTracingPathOfEquilibrium != null;
 
@@ -200,7 +200,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 lemkeOptions.outputSolution = true;
             }
 
-            List<ExactValue[]> equilibria = new List<ExactValue[]>();
+            List<MaybeExact<T>[]> equilibria = new List<MaybeExact<T>[]>();
 
             setup(t);
 
@@ -221,7 +221,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             if (outputPivotResults && outputPivotHeaderFirst) /* otherwise the header is garbled by LCP output */
                 inforesultheader();
             int priorcount; 
-            ExactValue[] equilibriumProbabilities = null;
+            MaybeExact<T>[] equilibriumProbabilities = null;
             /* multiple priors 	*/
             for (priorcount = 0; priorcount < numPriors; priorcount++)
             {
@@ -232,7 +232,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     t.genprior(priorSeed);
                 else
                 {
-                    t.MakePlayerMovesStrictlyMixed(equilibriumProbabilities, ExactValue.One().DividedBy(ExactValue.FromInteger(1_000)));
+                    t.MakePlayerMovesStrictlyMixed(equilibriumProbabilities, MaybeExact<T>.One().DividedBy(MaybeExact<T>.FromInteger(1_000)));
                     updateActionWhenTracingPathOfEquilibrium(priorcount, t);
                 }
                 if (outputGameTreeSetup)
@@ -245,7 +245,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 infopivotresult(priorSeed, seed + gamecount);
                 priorSeed++;
                 equilibriumProbabilities = t.GetPlayerMovesFromSolution().ToArray(); // probabilities for each non-chance player, ordered by player, information set, and then action.
-                int? sameAsEquilibrium = equilibria.Select((item, index) => ((ExactValue[] item, int index)?) (item, index)).FirstOrDefault(x => x != null && x.Value.item.SequenceEqual(equilibriumProbabilities))?.index;
+                int? sameAsEquilibrium = equilibria.Select((item, index) => ((MaybeExact<T>[] item, int index)?) (item, index)).FirstOrDefault(x => x != null && x.Value.item.SequenceEqual(equilibriumProbabilities))?.index;
                 if (sameAsEquilibrium != null)
                     TabbedText.WriteLine($"Same as equilibrium {sameAsEquilibrium + 1}"); // note that equilibria are one-indexed
                 else
@@ -264,7 +264,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             bool distinctEquilibriaOnly = true;
             if (distinctEquilibriaOnly)
             {
-                var distinctEquilibria = new List<ExactValue[]>();
+                var distinctEquilibria = new List<MaybeExact<T>[]>();
                 foreach (var eq in equilibria)
                     if (!distinctEquilibria.Any(e2 => e2.SequenceEqual(eq)))
                         distinctEquilibria.Add(eq);

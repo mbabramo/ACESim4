@@ -147,7 +147,7 @@ namespace ACESimBase.GameSolvingAlgorithms
         public async Task ExecuteECTA(ReportCollection reportCollection)
         {
             DetermineGameNodeRelationships();
-            var ecta = new ECTARunner();
+            var ecta = new ECTARunner<ExactValue>();
             ecta.numPriors = EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria;
 
             ecta.outputPrior = false;
@@ -192,8 +192,8 @@ namespace ACESimBase.GameSolvingAlgorithms
             else
             {
                 bool updateScenarios = false; // Doesn't work right now
-                Action<int, ECTATreeDefinition> scenarioUpdater = updateScenarios ? ScenarioUpdater() : null;
-                var results = ecta.Execute_ReturningExactValuesAndDoubles(t => SetupECTA(t), scenarioUpdater);
+                Action<int, ECTATreeDefinition<ExactValue>> scenarioUpdater = updateScenarios ? ScenarioUpdater() : null;
+                var results = ecta.Execute_ReturningRationalsAndDoubles(t => SetupECTA(t), scenarioUpdater);
                 if (EvolutionSettings.ConfirmPerfectEquilibria)
                     VerifyPerfectEquilibria(results.rationals);
                 equilibria = results.doubles;
@@ -294,7 +294,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             }
         }
 
-        private Action<int, ECTATreeDefinition> ScenarioUpdater()
+        private Action<int, ECTATreeDefinition<ExactValue>> ScenarioUpdater()
         {
             return (index, treeDefinition) =>
             {
@@ -435,7 +435,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             }
         }
 
-        public void SetupECTA(ECTATreeDefinition t)
+        public void SetupECTA(ECTATreeDefinition<ExactValue> t)
         {
             int[][] pay = GetOutcomesForECTA();
 
@@ -471,7 +471,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             var z = t.outcomes[0];
 
             int firstOutcome = -1;
-            t.nodes[ECTATreeDefinition.rootindex].father = -1;
+            t.nodes[ECTATreeDefinition<ExactValue>.rootindex].father = -1;
             for (int n = 2; n < t.nodes.Length; n++)
             {
                 t.nodes[n].father = (int)GameNodes[n].ParentNodeID;
@@ -482,8 +482,8 @@ namespace ACESimBase.GameSolvingAlgorithms
                     t.nodes[n].terminal = true;
                     t.nodes[n].outcome = zindex;
                     z.nodeIndex = n;
-                    z.pay[0] = (Rational)pay[0][zindex];
-                    z.pay[1] = (Rational)pay[1][zindex];
+                    z.pay[0] = MaybeExact<ExactValue>.FromInteger(pay[0][zindex]);
+                    z.pay[1] = MaybeExact<ExactValue>.FromInteger(pay[1][zindex]);
                     if (zindex < t.outcomes.Length - 1)
                         z = t.outcomes[++zindex];
                 }
@@ -529,17 +529,17 @@ namespace ACESimBase.GameSolvingAlgorithms
                         var rational = InformationSetInfos[infoSetIndex].GetProbabilitiesAsRationals()[moveNumber - 1];
                         if (chance.Decision.DistributedChanceDecision && EvolutionSettings.DistributeChanceDecisions)
                         {
-                            t.moves[moveIndex].behavioralProbability = moveNumber == 1 ? (Rational)1 : (Rational)0;
+                            t.moves[moveIndex].behavioralProbability = moveNumber == 1 ? MaybeExact<ExactValue>.One() : MaybeExact<ExactValue>.Zero();
                         }
                         else
-                            t.moves[moveIndex].behavioralProbability = rational;
+                            t.moves[moveIndex].behavioralProbability = MaybeExact<ExactValue>.FromRational(rational);
                     }
                 }
             }
         }
 
 
-        public void UpdateECTAOutcomes(ECTATreeDefinition t)
+        public void UpdateECTAOutcomes(ECTATreeDefinition<ExactValue> t)
         {
             int[][] pay = GetOutcomesForECTA();
 
@@ -554,8 +554,8 @@ namespace ACESimBase.GameSolvingAlgorithms
                     if (firstOutcome == -1)
                         firstOutcome = n;
                     t.nodes[n].outcome = zindex;
-                    z.pay[0] = (Rational)pay[0][zindex];
-                    z.pay[1] = (Rational)pay[1][zindex];
+                    z.pay[0] = MaybeExact<ExactValue>.FromInteger(pay[0][zindex]);
+                    z.pay[1] = MaybeExact<ExactValue>.FromInteger(pay[1][zindex]);
                     if (zindex < t.outcomes.Length - 1)
                         z = t.outcomes[++zindex];
                 }

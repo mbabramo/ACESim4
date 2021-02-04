@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
-    public class ECTAOutcome
+    public class ECTAOutcome<T> where T : MaybeExact<T>, new()
     {
-        public ExactValue[] pay = new ExactValue[] { new ExactValue(), new ExactValue() };
+        public MaybeExact<T>[] pay = new MaybeExact<T>[] {  MaybeExact<T>.Zero(),  MaybeExact<T>.Zero() };
         public int nodeIndex;
     }
 }
