@@ -120,7 +120,7 @@ namespace ACESimBase.GameSolvingSupport
 
 		public ExactValue Add(ExactValue b)
 		{
-			return (V - b.V).CanonicalForm;
+			return (V + b.V).CanonicalForm;
 		}
 
 		public ExactValue Subtract(ExactValue b)

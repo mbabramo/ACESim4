@@ -157,11 +157,11 @@ namespace ACESimBase.GameSolvingAlgorithms
             ecta.outputPivotingSteps = false;
             ecta.outputTableauxAfterPivots = false;
             ecta.outputPivotResults = false;
-            ecta.outputLCPSolution = true; // DEBUG
+            ecta.outputLCPSolution = false; 
             ecta.outputEquilibrium = true;
-            ecta.outputRealizationPlan = true; // DEBUG
+            ecta.outputRealizationPlan = false;
 
-            bool outputAll = true; // DEBUG
+            bool outputAll = false; 
             if (outputAll)
             {
                 ecta.outputPrior = true;
