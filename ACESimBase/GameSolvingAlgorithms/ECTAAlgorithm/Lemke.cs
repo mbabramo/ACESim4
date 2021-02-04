@@ -4,14 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using static ACESim.ArrayFormConversionExtension;
-using static ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm.RationalOperations;
-using static ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm.BigIntegerOperations;
+using static ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm.ExactValueOperations;
 using static ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm.ColumnPrinter;
 using static ACESimBase.Util.CPrint;
 using JetBrains.Annotations;
-using Rationals;
 using System.Numerics;
 using ACESim;
+using ACESimBase.GameSolvingSupport;
 
 namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
@@ -21,17 +20,17 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         int n;   /* LCP (Linear Complementarity Problem) dimension as used here   */
 
         /* LCP input    */
-        public Rational[][] lcpM;
-        public Rational[] rhsq;
-        public Rational[] coveringVectorD;
+        public ExactValue[][] lcpM;
+        public ExactValue[] rhsq;
+        public ExactValue[] coveringVectorD;
         public int lcpdim = 0; /* set in setlcp                */
 
         /* LCP result   */
-        public Rational[] solz;
+        public ExactValue[] solz;
         public int pivotcount;
 
         /* tableau:    */
-        public BigInteger[][] Tableau;        /* tableau                              */
+        public ExactValue[][] Tableau;        /* tableau                              */
 
         /* used for tableau:    */
         /* We keep track of which variables are basic and which are cobasic. */
@@ -65,9 +64,9 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 		 * scfa[Z(1..n)] for cols of  M
 		 * result variables to be multiplied with these
 		 */
-        public BigInteger[] scaleFactors;
+        public ExactValue[] scaleFactors;
 
-        public BigInteger determinant = new BigInteger();                        /* determinant                  */
+        public ExactValue determinant = new ExactValue();                        /* determinant                  */
 
         public int[] lexTested, lexComparisons;/* statistics for lexminvar     */
 
@@ -92,24 +91,24 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             }
             n = lcpdim = newn;
             /* LCP input/output data    */
-            lcpM = CreateJaggedArray<Rational[][]>(n, n);
-            rhsq = new Rational[n];
-            coveringVectorD = new Rational[n];
-            solz = new Rational[n];
+            lcpM = CreateJaggedArray<ExactValue[][]>(n, n);
+            rhsq = new ExactValue[n];
+            coveringVectorD = new ExactValue[n];
+            solz = new ExactValue[n];
             for (int i = 0; i < n; i++)
             {
-                rhsq[i] = new Rational();
-                coveringVectorD[i] = new Rational();
-                solz[i] = new Rational();
+                rhsq[i] = new ExactValue();
+                coveringVectorD[i] = new ExactValue();
+                solz[i] = new ExactValue();
             }
             /* tableau          */
-            Tableau = CreateJaggedArray<BigInteger[][]>(n, n + 2);
+            Tableau = CreateJaggedArray<ExactValue[][]>(n, n + 2);
             for (int i = 0; i < n; i++)
                 for (int j = 0; j < n + 2; j++)
-                    Tableau[i][j] = new BigInteger();
-            scaleFactors = new BigInteger[n + 2];
+                    Tableau[i][j] = new ExactValue();
+            scaleFactors = new ExactValue[n + 2];
             for (int i = 0; i < n + 2; i++)
-                scaleFactors[i] = new BigInteger();
+                scaleFactors[i] = new ExactValue();
             variableIndexToBasicCobasicIndex = new int[2 * n + 1];
             basicCobasicIndexToVariable = new int[2 * n + 1];
             lexTested = new int[n + 1];
@@ -119,7 +118,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             /* initialize all LCP entries to zero       */
             {
                 int i, j;
-                Rational zero = FromInteger(0);
+                ExactValue zero = ExactValue.Zero();
                 for (i = 0; i < n; i++)
                 {
                     for (j = 0; j < n; j++)
@@ -138,11 +137,11 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             bool trivialSolutionExists = true;
             for (i = 0; i < n; i++)
             {
-                if (coveringVectorD[i] < 0)
+                if (coveringVectorD[i].LessThan(0))
                 {
                     throw new Exception($"Covering vector  d[{i + 1}] = {coveringVectorD[i]} negative\n");
                 }
-                else if (rhsq[i] < 0)
+                else if (rhsq[i].LessThan(0))
                 {
                     trivialSolutionExists = false;
                     if (coveringVectorD[i] == 0)
@@ -181,10 +180,10 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         {
 
             // DEBUG TODO: When generalizing our numeric types, we need to have a generic with two types -- one for the LCP 
-            // and one for the tableau. Here, Rational is for the LCP and then BigInteger is for the tableau.
+            // and one for the tableau. Here, ExactValue is for the LCP and then ExactValue is for the tableau.
 
             int i, j;
-            BigInteger den, num;
+            ExactValue den, num;
             for (j = 0; j <= n + 1; j++)
             {
                 // We copy the LCP into the tableau, which has the same number of rows as the LCP but two extra columns.
@@ -221,14 +220,14 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     /* where the system is here         -Iw + dz_0 + Mz = -q    */
                     /* cols of  q  will be negated after first min ratio test   */
                     /* A[i][j] = num * (scaleFactors[j] / den),  fraction is integral       */
-                    BigInteger c = Divide(Multiply(num, scaleFactors[j]), den);
+                    ExactValue c = Divide(Multiply(num, scaleFactors[j]), den);
                     SetValueInTableau(i, j, c);
                 }
             }   /* end of  for(j=...)   */
 
             InitializeTableauVariables();
 
-            determinant = (BigInteger)1;
+            determinant = (ExactValue)1;
             ChangeSign(ref determinant);
         }       /* end of filltableau()         */
 
@@ -237,7 +236,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         /* output the LCP as given      */
         {
             int i, j;
-            Rational a;
+            ExactValue a;
             string s = null;
 
             tabbedtextf("LCP dimension: %d\n", n);
@@ -256,13 +255,13 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                         colpr(".");
                     else
                     {
-                        s = ToNumericString(a);
+                        s = a.ToString();
                         colpr(s);
                     }
                 }
-                s = ToNumericString(coveringVectorD[i]);
+                s = coveringVectorD[i].ToString();
                 colpr(s);
-                s = ToNumericString(rhsq[i]); 
+                s = rhsq[i].ToString(); 
                 colpr(s);
             }
             colout();
@@ -340,7 +339,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             //char smp[2 * DIG2DEC(MAX_DIGITS) + 4];
             /* string to print 2 mp's  into                 */
             int i, row, pos;
-            BigInteger num = 0, den = 0;
+            ExactValue num = 0, den = 0;
 
             colset(n + 2);    /* column printing to see complementarity of  w  and  z */
 
@@ -370,16 +369,16 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                         /* value of  W(i-n)  is  rhs[row] / (scfa[RHS()]*det)         */
                         num = Tableau[row][RHS()];
                     den = Multiply(determinant, scaleFactors[RHS()]);
-                    Rational r = ((Rational) num / (Rational) den).CanonicalForm;
+                    ExactValue r = ((ExactValue) num / (ExactValue) den).CanonicalForm;
                     num = r.Numerator;
                     den = r.Denominator;
                     smp = num.ToStringForTable();
                     pos = smp.Length;
                     if (!IsOne(den))  /* add the denominator  */
                     {
-                        if (BigIntegerOperations.AbbreviateBigIntegers)
+                        if (ExactValueOperations.AbbreviateExactValues)
                         {
-                            double d = (double)r;
+                            double d = r.AsDouble;
                             smp = d.ToString();
                             if (smp.Length > 8)
                                 smp = d.ToString("E5");
@@ -411,7 +410,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         public void TransformBasicSolution()
         {
             int i, row;
-            BigInteger num = 0, den = 0;
+            ExactValue num = 0, den = 0;
 
             for (i = 1; i <= n; i++)
             {
@@ -420,10 +419,10 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     /* value of  Z(i):  scfa[Z(i)]*rhs[row] / (scfa[RHS()]*det)   */
                     num = Multiply(scaleFactors[Z(i)], Tableau[row][RHS()]);
                     den = Multiply(determinant, scaleFactors[RHS()]);
-                    solz[i - 1] = ((Rational)num / (Rational)den).CanonicalForm;
+                    solz[i - 1] = ((ExactValue)num / (ExactValue)den).CanonicalForm;
                 }
                 else            /* i is nonbasic    */
-                    solz[i - 1] = FromInteger(0);
+                    solz[i - 1] = ExactValue.Zero();
             }
         } /* end of copysol                     */
 
@@ -623,7 +622,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                             /* note only positive entries of entering column considered */
                             if (productComparison == 0)         /* new ratio is the same as before      */
                                 leaveCandidates[++newnum] = leaveCandidates[i];
-                            else if (productComparison > 0)    /* new smaller ratio detected           */
+                            else if (productComparison.GreaterThan(0))    /* new smaller ratio detected           */
                                 leaveCandidates[newnum = 0] = leaveCandidates[i];
                         }
                         numCandidates = newnum + 1;
@@ -684,7 +683,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         {
             int row, col, i, j;
             bool nonzero, negativePivot;
-            BigInteger pivotValue = 0, tableauEntry = 0, pivotProduct = 0;
+            ExactValue pivotValue = 0, tableauEntry = 0, pivotProduct = 0;
 
             row = TableauRow(leave); // the rows correspond to the basic variables
             col = TableauColumn(enter); // the columns correspond to the cobasic variables
@@ -696,7 +695,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             for (i = 0; i < n; i++)
                 if (i != row)               /*  A[row][..]  remains unchanged       */
                 {
-                    BigInteger sameRowInPivotColumn = Tableau[i][col];
+                    ExactValue sameRowInPivotColumn = Tableau[i][col];
                     nonzero = !IsZero(sameRowInPivotColumn);
                     for (j = 0; j <= n + 1; j++)      /*  assume here RHS()==n+1        */
                     {
@@ -714,15 +713,13 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                                 // pivot) the product of the value in the pivot column (same row) and the value in the 
                                 // pivot row (same column). The row/column operations here amount to multiplying the
                                 // pivot 
-                                BigInteger sameColumnInPivotRow = Tableau[row][j];
+                                ExactValue sameColumnInPivotRow = Tableau[row][j];
                                 pivotProduct = Multiply(sameRowInPivotColumn, sameColumnInPivotRow);
                                 if (negativePivot)
                                     tableauEntry = tableauEntry + pivotProduct;
                                 else
                                     tableauEntry = tableauEntry - pivotProduct;
                             }
-                            if (tableauEntry % determinant != 0)
-                                throw new Exception("Internal error. Every tableau entry should be divisible by determinant.");
                             tableauEntry = Divide(tableauEntry, determinant);
                             SetValueInTableau(i, j, tableauEntry);
                         }
@@ -750,7 +747,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             ChangeSign(ref Tableau[i][j]);
         }
 
-        void SetValueInTableau(int i, int j, BigInteger value)
+        void SetValueInTableau(int i, int j, ExactValue value)
         {
             Tableau[i][j] = value;
         }
@@ -799,7 +796,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 {
                     throw new Exception($"Leaving variable is basic."); // DEBUG
                 }
-                if (z0leave || pivotcount == 3 /* DEBUG */)
+                if (z0leave)
                 {
                     /* z0 will have value 0 but may still be basic. Amend?  */ // DEBUG
                     break;  

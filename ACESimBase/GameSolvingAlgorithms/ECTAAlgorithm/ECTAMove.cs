@@ -1,4 +1,4 @@
-﻿using Rationals;
+﻿using ACESimBase.GameSolvingSupport;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,8 +10,8 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
     public class ECTAMove
 	{
 		public int priorInformationSet = -1; // where this move emanates from
-		public Rational behavioralProbability = new Rational(); // behavior probability
-		public Rational realizationProbability = new Rational(); // realization probability
+		public ExactValue behavioralProbability = new ExactValue(); // behavior probability
+		public ExactValue realizationProbability = new ExactValue(); // realization probability
 		public int redsfcol; // column of reduced sequence form
 		/* for NF computation                                               */
 		public int ncompat; // number of compatible partial strats

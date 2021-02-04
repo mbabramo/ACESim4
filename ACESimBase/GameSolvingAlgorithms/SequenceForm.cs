@@ -193,7 +193,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             {
                 bool updateScenarios = false; // Doesn't work right now
                 Action<int, ECTATreeDefinition> scenarioUpdater = updateScenarios ? ScenarioUpdater() : null;
-                var results = ecta.Execute_ReturningRationalsAndDoubles(t => SetupECTA(t), scenarioUpdater);
+                var results = ecta.Execute_ReturningExactValuesAndDoubles(t => SetupECTA(t), scenarioUpdater);
                 if (EvolutionSettings.ConfirmPerfectEquilibria)
                     VerifyPerfectEquilibria(results.rationals);
                 equilibria = results.doubles;

@@ -1,4 +1,4 @@
-﻿using Rationals;
+﻿using ACESimBase.GameSolvingSupport;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,13 +9,13 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
 	public class ECTAPayVector
 	{
-		public Rational[] Values;
+		public ExactValue[] Values;
 
-		public ECTAPayVector(Rational[] values = null)
+		public ECTAPayVector(ExactValue[] values = null)
 		{
-			Values = values ?? new Rational[2] { new Rational(), new Rational() };
+			Values = values ?? new ExactValue[2] { new ExactValue(), new ExactValue() };
 		}
-		public Rational this[int index]
+		public ExactValue this[int index]
 		{
 			get => Values[index];
 			set
@@ -24,7 +24,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             }
 		}
 
-		public static implicit operator ECTAPayVector(Rational[] d) => new ECTAPayVector(d);
-		public static implicit operator Rational[](ECTAPayVector b) => b.Values;
+		public static implicit operator ECTAPayVector(ExactValue[] d) => new ECTAPayVector(d);
+		public static implicit operator ExactValue[](ECTAPayVector b) => b.Values;
 	}
 }

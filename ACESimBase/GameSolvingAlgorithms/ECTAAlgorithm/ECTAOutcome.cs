@@ -1,4 +1,4 @@
-﻿using Rationals;
+﻿using ACESimBase.GameSolvingSupport;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +9,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
     public class ECTAOutcome
     {
-        public Rational[] pay = new Rational[] { new Rational(), new Rational() };
+        public ExactValue[] pay = new ExactValue[] { new ExactValue(), new ExactValue() };
         public int nodeIndex;
     }
 }
