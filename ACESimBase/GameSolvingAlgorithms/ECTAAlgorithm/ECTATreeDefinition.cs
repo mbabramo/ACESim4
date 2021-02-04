@@ -150,18 +150,18 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 for (int zindex = 0; zindex < outcomes.Length; zindex++)
                 {
                     z = outcomes[zindex];
-                    if (z.pay[playerIndex].GreaterThan(maxpay[playerIndex]))
+                    if (z.pay[playerIndex].IsGreaterThan(maxpay[playerIndex]))
                         maxpay[playerIndex] = z.pay[playerIndex];
                 }
                 if (bprint)     /* comment to stdout    */
                 {
                     TabbedText.WriteLine($"Player {playerIndex}'s maximum payoff is {maxpay[playerIndex]}, normalized to -1");
                 }
-                addtopay[playerIndex] = (maxpay[playerIndex].Add(ExactValue.One())).Negated();
+                addtopay[playerIndex] = (maxpay[playerIndex].Plus(ExactValue.One())).Negated();
                 for (int zindex = 0; zindex < outcomes.Length; zindex++)
                 {
                     z = outcomes[zindex];
-                    z.pay[playerIndex] = z.pay[playerIndex].Add(addtopay[playerIndex]);
+                    z.pay[playerIndex] = z.pay[playerIndex].Plus(addtopay[playerIndex]);
                 }
             }
         }
@@ -394,7 +394,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 for (int cindex = firstMove[pl] + 1; cindex < firstMove[pl + 1]; cindex++)
                 {
                     c = moves[cindex];
-                    c.behavioralProbability = ExactValue.One().Divide((ExactValue) informationSets[c.priorInformationSet].numMoves);
+                    c.behavioralProbability = ExactValue.One().DividedBy((ExactValue) informationSets[c.priorInformationSet].numMoves);
                 }
         }
 
@@ -431,12 +431,12 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                         double maxValue = 9;
                         ExactValue numerator = (ExactValue)(1 + (int)Math.Floor(maxValue * RandomGenerator.NextDouble()));
                         moves[h.firstMoveIndex + i].behavioralProbability = (ExactValue)numerator; // store value so that we remember it
-                        denominator += numerator;
+                        denominator = denominator.Plus(numerator);
                     }
                     for (int i = 0; i < h.numMoves; i++)
                     {
                         ExactValue a = new ExactValue();
-                        a = moves[h.firstMoveIndex + i].behavioralProbability.Numerator / (ExactValue)denominator;
+                        a = moves[h.firstMoveIndex + i].behavioralProbability.Numerator.DividedBy(denominator);
                         moves[h.firstMoveIndex + i].behavioralProbability = a.CanonicalForm;
                     }
                 }
@@ -500,8 +500,8 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 player1SequenceIndex = node.sequenceForPlayer[1] - firstMove[1]; 
                 player2SequenceIndex = node.sequenceForPlayer[2] - firstMove[2];
                 for (pl = 1; pl < PLAYERS; pl++)
-                    sequenceFormPayouts[player1SequenceIndex][player2SequenceIndex][pl - 1] = sequenceFormPayouts[player1SequenceIndex][player2SequenceIndex][pl - 1].Add(
-                        moves[node.sequenceForPlayer[0]].realizationProbability.Multiply(z.pay[pl - 1]));
+                    sequenceFormPayouts[player1SequenceIndex][player2SequenceIndex][pl - 1] = sequenceFormPayouts[player1SequenceIndex][player2SequenceIndex][pl - 1].Plus(
+                        moves[node.sequenceForPlayer[0]].realizationProbability.Times(z.pay[pl - 1]));
             }
             /* sf constraint matrices, sparse fill (everything else is 0's  */
             for (pl = 1; pl < PLAYERS; pl++)
@@ -600,8 +600,8 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 for (int cindex = h.firstMoveIndex; i < h.numMoves; cindex++, i++)
                 {
                     c = moves[cindex];
-                    if (rplan[offset + cindex - firstMove[pl]] != ExactValue.Zero() &&
-                        !(rplan[offset + cindex - firstMove[pl]].Equality(
+                    if (rplan[offset + cindex - firstMove[pl]].IsNotEqualTo(ExactValue.Zero()) &&
+                        !(rplan[offset + cindex - firstMove[pl]].IsEqualTo(
                                   rplan[offset + (int) h.sequence - firstMove[pl]])))
                     {
                         mix++;
@@ -647,12 +647,12 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 {
                     c = moves[cindex];
                     rprob = rplan[cindex - firstMove[pl]];
-                    if (rprob != 0)
+                    if (rprob.IsNotEqualTo(0))
                     {
                         s = moveToString(c, pl);
                         tabbedtextf(" %s", s);
-                        bprob = rprob.Divide(rplan[(int) h.sequence - firstMove[pl]]);
-                        if (!bprob.Equality(ExactValue.One()))
+                        bprob = rprob.DividedBy(rplan[(int) h.sequence - firstMove[pl]]);
+                        if (!bprob.IsEqualTo(ExactValue.One()))
                         {
                             s = (bprob).ToString();
                             tabbedtextf(":%s", s);
@@ -688,23 +688,22 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 {
                     c = moves[cindex];
                     c.behavioralProbability = allMoveProbabilities[indexInAllMovesArray++];
-                    if (c.behavioralProbability.LessThan(minValue))
+                    if (c.behavioralProbability.IsLessThan(minValue))
                         c.behavioralProbability = minValue;
-                    total += c.behavioralProbability;
-                    if (c.behavioralProbability.GreaterThan(minValue))
-                        totalAboveMinValue += (c.behavioralProbability - minValue).CanonicalForm;
+                    total = total.Plus(c.behavioralProbability);
+                    if (c.behavioralProbability.IsGreaterThan(minValue))
+                        totalAboveMinValue = totalAboveMinValue.Plus(c.behavioralProbability.Minus(minValue));
                 }
-                ExactValue excess = total - (ExactValue)1;
+                ExactValue excess = total.Minus((ExactValue)1);
                 indexInAllMovesArray = 0;
                 moveIndexInInformationSet = 0;
                 for (int cindex = h.firstMoveIndex; moveIndexInInformationSet < h.numMoves; cindex++, moveIndexInInformationSet++)
                 {
                     c = moves[cindex];
-                    if (c.behavioralProbability.GreaterThan(minValue))
+                    if (c.behavioralProbability.IsGreaterThan(minValue))
                     {
-                        var proportionOfExcess = (c.behavioralProbability - minValue) / totalAboveMinValue;
-                        c.behavioralProbability -= excess * proportionOfExcess;
-                        c.behavioralProbability = c.behavioralProbability.CanonicalForm;
+                        var proportionOfExcess = (c.behavioralProbability.Minus(minValue)).DividedBy(totalAboveMinValue);
+                        c.behavioralProbability = c.behavioralProbability.Minus(excess.Times(proportionOfExcess));
                     }
                     allMoveProbabilities[indexInAllMovesArray++] = c.behavioralProbability;
                 }
@@ -717,7 +716,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             {
                 ExactValue total = 0;
                 foreach (ExactValue r in informationSetProbabilities)
-                    total = total + r;
+                    total = total.Plus(r);
                 yield return total;
             }
         }
@@ -890,7 +889,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             {
                 c = moves[cindex];
                 int sequenceUpToMove = GetPriorSequence(c);
-                c.realizationProbability = c.behavioralProbability.Multiply(moves[sequenceUpToMove].realizationProbability);
+                c.realizationProbability = c.behavioralProbability.Times(moves[sequenceUpToMove].realizationProbability);
             }
         }
 
@@ -961,14 +960,14 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             for (i = 0; i < numSequences[1]; i++)
                 for (j = 0; j < numSequences[2]; j++)
                 {
-                    Lemke.coveringVectorD[i] = (Lemke.coveringVectorD[i]).Add(Lemke.lcpM[i][offsetToStartOfPlayer2Sequences + j] /* Aij, which is offset horizontally in the LCP */.Multiply(
+                    Lemke.coveringVectorD[i] = (Lemke.coveringVectorD[i]).Plus(Lemke.lcpM[i][offsetToStartOfPlayer2Sequences + j] /* Aij, which is offset horizontally in the LCP */.Times(
                               moves[firstMove[2] + j].realizationProbability /* qj, i.e. the realization probability of player 2's sequence */));
                 }
             /* RSF yet to be done*/
             /* third blockrow += -B\T p */
             for (i = offsetToStartOfPlayer2Sequences; i < offsetToStartOfPlayer2Sequences + numSequences[2]; i++)
                 for (j = 0; j < numSequences[1]; j++)
-                    Lemke.coveringVectorD[i] = (Lemke.coveringVectorD[i]).Add(Lemke.lcpM[i][j].Multiply( /* B^Tij, which is offset vertically in the LCP */
+                    Lemke.coveringVectorD[i] = (Lemke.coveringVectorD[i]).Plus(Lemke.lcpM[i][j].Times( /* B^Tij, which is offset vertically in the LCP */
                               moves[firstMove[1] + j].realizationProbability)); /* pj, i.e. the realization probability of player 1's sequence */
             /* RSF yet to be done*/
         }
@@ -2778,23 +2777,23 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             informationSets[14].numMoves = 3;
             // move 0 is empty sequence for player 0
             moves[1].priorInformationSet = 0;
-            moves[1].behavioralProbability = 1/(ExactValue)3;
+            moves[1].behavioralProbability = ExactValue.One().DividedBy(ExactValue.FromInteger(3));
             moves[2].priorInformationSet = 0;
-            moves[2].behavioralProbability = 1 / (ExactValue)3;
+            moves[2].behavioralProbability = ExactValue.One().DividedBy(ExactValue.FromInteger(3));
             moves[3].priorInformationSet = 0;
-            moves[3].behavioralProbability = 1 / (ExactValue)3;
+            moves[3].behavioralProbability = ExactValue.One().DividedBy(ExactValue.FromInteger(3));
             moves[4].priorInformationSet = 1;
-            moves[4].behavioralProbability = 1 / (ExactValue)3;
+            moves[4].behavioralProbability = ExactValue.One().DividedBy(ExactValue.FromInteger(3));
             moves[5].priorInformationSet = 1;
-            moves[5].behavioralProbability = 1 / (ExactValue)3;
+            moves[5].behavioralProbability = ExactValue.One().DividedBy(ExactValue.FromInteger(3));
             moves[6].priorInformationSet = 1;
-            moves[6].behavioralProbability = 1 / (ExactValue)3;
+            moves[6].behavioralProbability = ExactValue.One().DividedBy(ExactValue.FromInteger(3));
             moves[7].priorInformationSet = 2;
-            moves[7].behavioralProbability = 1 / (ExactValue)3;
+            moves[7].behavioralProbability = ExactValue.One().DividedBy(ExactValue.FromInteger(3));
             moves[8].priorInformationSet = 2;
-            moves[8].behavioralProbability = 1 / (ExactValue)3;
+            moves[8].behavioralProbability = ExactValue.One().DividedBy(ExactValue.FromInteger(3));
             moves[9].priorInformationSet = 2;
-            moves[9].behavioralProbability = 1 / (ExactValue)3;
+            moves[9].behavioralProbability = ExactValue.One().DividedBy(ExactValue.FromInteger(3));
             // move 10 is empty sequence for player 1
             moves[11].priorInformationSet = 3;
             moves[12].priorInformationSet = 3;

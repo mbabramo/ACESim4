@@ -136,14 +136,14 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             bool trivialSolutionExists = true;
             for (i = 0; i < n; i++)
             {
-                if (coveringVectorD[i].LessThan(0))
+                if (coveringVectorD[i].IsLessThan(0))
                 {
                     throw new Exception($"Covering vector  d[{i + 1}] = {coveringVectorD[i]} negative\n");
                 }
-                else if (rhsq[i].LessThan(0))
+                else if (rhsq[i].IsLessThan(0))
                 {
                     trivialSolutionExists = false;
-                    if (coveringVectorD[i] == 0)
+                    if (coveringVectorD[i].IsEqualTo(0))
                     {
                         throw new Exception($"Covering vector  d[{i + 1}] = 0  where  q[{i + 1}] = {rhsq[i]}  is negative. Cannot start Lemke");
                     }
@@ -219,7 +219,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     /* where the system is here         -Iw + dz_0 + Mz = -q    */
                     /* cols of  q  will be negated after first min ratio test   */
                     /* A[i][j] = num * (scaleFactors[j] / den),  fraction is integral       */
-                    ExactValue c = num.Multiply(scaleFactors[j]).Divide(den);
+                    ExactValue c = num.Times(scaleFactors[j]).DividedBy(den);
                     SetValueInTableau(i, j, c);
                 }
             }   /* end of  for(j=...)   */
@@ -250,7 +250,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 for (j = 0; j < n; j++)
                 {
                     a = lcpM[i][j];
-                    if (a.Numerator == 0)
+                    if (a.Numerator.IsEqualTo(0))
                         colpr(".");
                     else
                     {
@@ -363,12 +363,12 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 {
                     if (i <= n)       /* printing Z(i)        */
                         /* value of  Z(i):  scfa[Z(i)]*rhs[row] / (scfa[RHS()]*det)   */
-                        num = scaleFactors[Z(i)].Multiply(Tableau[row][RHS()]);
+                        num = scaleFactors[Z(i)].Times(Tableau[row][RHS()]);
                     else            /* printing W(i-n)      */
                         /* value of  W(i-n)  is  rhs[row] / (scfa[RHS()]*det)         */
                         num = Tableau[row][RHS()];
-                    den = determinant.Multiply(scaleFactors[RHS()]);
-                    ExactValue r = ((ExactValue) num / (ExactValue) den).CanonicalForm;
+                    den = determinant.Times(scaleFactors[RHS()]);
+                    ExactValue r = num.DividedBy(den);
                     num = r.Numerator;
                     den = r.Denominator;
                     smp = num.ToString();
@@ -416,9 +416,9 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 if ((row = TableauRow(i)) < n)  /*  i  is a basic variable */
                 {
                     /* value of  Z(i):  scfa[Z(i)]*rhs[row] / (scfa[RHS()]*det)   */
-                    num = scaleFactors[Z(i)].Multiply(Tableau[row][RHS()]);
-                    den = determinant.Multiply(scaleFactors[RHS()]);
-                    solz[i - 1] = ((ExactValue)num / (ExactValue)den).CanonicalForm;
+                    num = scaleFactors[Z(i)].Times(Tableau[row][RHS()]);
+                    den = determinant.Times(scaleFactors[RHS()]);
+                    solz[i - 1] = num.DividedBy(den);
                 }
                 else            /* i is nonbasic    */
                     solz[i - 1] = ExactValue.Zero();
@@ -615,13 +615,13 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                         for (i = 1; i < numCandidates; i++)
                         /* investigate remaining candidates                         */
                         {
-                            var productComparison = Tableau[leaveCandidates[0]][testcol] * Tableau[leaveCandidates[i]][col] -
-                                      Tableau[leaveCandidates[i]][testcol] * Tableau[leaveCandidates[0]][col];
+                            var productComparison = (Tableau[leaveCandidates[0]][testcol].Times(Tableau[leaveCandidates[i]][col])).Minus
+                                      (Tableau[leaveCandidates[i]][testcol].Times(Tableau[leaveCandidates[0]][col]));
                             /* observe sign of  A[l_0,t] / A[l_0,col] - A[l_i,t] / A[l_i,col]   */
                             /* note only positive entries of entering column considered */
-                            if (productComparison == 0)         /* new ratio is the same as before      */
+                            if (productComparison.IsEqualTo(0))         /* new ratio is the same as before      */
                                 leaveCandidates[++newnum] = leaveCandidates[i];
-                            else if (productComparison.GreaterThan(0))    /* new smaller ratio detected           */
+                            else if (productComparison.IsGreaterThan(0))    /* new smaller ratio detected           */
                                 leaveCandidates[newnum = 0] = leaveCandidates[i];
                         }
                         numCandidates = newnum + 1;
@@ -705,7 +705,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                         /* except for the pivot cell itself. */ 
                         {
                             // 1. Multiply every cell by the pivot value (the value in the specified row and column)
-                            tableauEntry = Tableau[i][j].Multiply(pivotValue);
+                            tableauEntry = Tableau[i][j].Times(pivotValue);
                             if (nonzero)
                             {
                                 // 2. Add to each cell (for a negative pivot) or subtract from each cell (for a positive
@@ -713,13 +713,13 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                                 // pivot row (same column). The row/column operations here amount to multiplying the
                                 // pivot 
                                 ExactValue sameColumnInPivotRow = Tableau[row][j];
-                                pivotProduct = sameRowInPivotColumn.Multiply(sameColumnInPivotRow);
+                                pivotProduct = sameRowInPivotColumn.Times(sameColumnInPivotRow);
                                 if (negativePivot)
-                                    tableauEntry = tableauEntry + pivotProduct;
+                                    tableauEntry = tableauEntry.Plus(pivotProduct);
                                 else
-                                    tableauEntry = tableauEntry - pivotProduct;
+                                    tableauEntry = tableauEntry.Minus(pivotProduct);
                             }
-                            tableauEntry = tableauEntry.Divide(determinant);
+                            tableauEntry = tableauEntry.DividedBy(determinant);
                             SetValueInTableau(i, j, tableauEntry);
                         }
                     }

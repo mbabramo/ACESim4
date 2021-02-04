@@ -232,7 +232,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     t.genprior(priorSeed);
                 else
                 {
-                    t.MakePlayerMovesStrictlyMixed(equilibriumProbabilities, (ExactValue)1 / (ExactValue)1_000);
+                    t.MakePlayerMovesStrictlyMixed(equilibriumProbabilities, ExactValue.One().DividedBy(ExactValue.FromInteger(1_000)));
                     updateActionWhenTracingPathOfEquilibrium(priorcount, t);
                 }
                 if (outputGameTreeSetup)

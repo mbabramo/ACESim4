@@ -75,7 +75,8 @@ namespace ACESimBase.GameSolvingSupport
 		public Rational AsRational => V;
 		public bool IsExact => true;
 
-		public bool Equality(ExactValue b) => V == b.V;
+		public bool IsEqualTo(ExactValue b) => V == b.V;
+		public bool IsNotEqualTo(ExactValue b) => V != b.V;
 
 		public override string ToString()
 		{
@@ -104,70 +105,45 @@ namespace ACESimBase.GameSolvingSupport
 		{
 			if (V.Denominator != 1 || b.V.Denominator != 1)
 				throw new Exception("LeastCommonMultiple operation not available.");
-			var result = Multiply(b).Divide(BigInteger.GreatestCommonDivisor(V.Numerator, b.V.Numerator));
+			var result = Times(b).DividedBy(BigInteger.GreatestCommonDivisor(V.Numerator, b.V.Numerator));
 			return result.CanonicalForm;
 		}
 
-		public bool GreaterThan(ExactValue b)
+		public bool IsGreaterThan(ExactValue b)
 		{
 			return V > b.V;
 		}
 
-		public bool LessThan(ExactValue b)
+		public bool IsLessThan(ExactValue b)
 		{
 			return V < b.V;
 		}
 
-		public ExactValue Add(ExactValue b)
+		public ExactValue Plus(ExactValue b)
 		{
 			return (V + b.V).CanonicalForm;
 		}
 
-		public ExactValue Subtract(ExactValue b)
+		public ExactValue Minus(ExactValue b)
 		{
 			return (V - b.V).CanonicalForm;
 		}
 
-		public ExactValue Negated() => Zero().Subtract(this);
+		public ExactValue Negated() => Zero().Minus(this);
 
-		public ExactValue Multiply(ExactValue b)
+		public ExactValue Times(ExactValue b)
 		{
 			return (V * b.V).CanonicalForm;
 		}
 
-		public ExactValue Divide(ExactValue b)
+		public ExactValue DividedBy(ExactValue b)
 		{
 			return (V / b.V).CanonicalForm;
 		}
-
-		public static ExactValue operator +(ExactValue a) => a;
-		public static ExactValue operator -(ExactValue a) => a.Negated();
-
-        public override bool Equals(object obj)
-        {
-			return this == (ExactValue)obj;
-        }
 
         public override int GetHashCode()
         {
             return V.GetHashCode();
         }
-
-        public static bool operator ==(ExactValue a, ExactValue b)
-			=> a.Equality(b);
-		public static bool operator !=(ExactValue a, ExactValue b)
-			=> !a.Equality(b);
-
-		public static ExactValue operator +(ExactValue a, ExactValue b)
-			=> a.Add(b);
-
-		public static ExactValue operator -(ExactValue a, ExactValue b)
-			=> a.Subtract(b);
-
-		public static ExactValue operator *(ExactValue a, ExactValue b)
-			=> a.Multiply(b);
-
-		public static ExactValue operator /(ExactValue a, ExactValue b)
-			=> a.Divide(b);
 	}
 }
