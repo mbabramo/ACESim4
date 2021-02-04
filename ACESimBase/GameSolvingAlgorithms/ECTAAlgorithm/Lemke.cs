@@ -138,14 +138,14 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             bool trivialSolutionExists = true;
             for (i = 0; i < n; i++)
             {
-                if (coveringVectorD[i].Numerator < 0)
+                if (coveringVectorD[i] < 0)
                 {
                     throw new Exception($"Covering vector  d[{i + 1}] = {coveringVectorD[i]} negative\n");
                 }
-                else if (rhsq[i].Numerator < 0)
+                else if (rhsq[i] < 0)
                 {
                     trivialSolutionExists = false;
-                    if (coveringVectorD[i].Numerator == 0)
+                    if (coveringVectorD[i] == 0)
                     {
                         throw new Exception($"Covering vector  d[{i + 1}] = 0  where  q[{i + 1}] = {rhsq[i]}  is negative. Cannot start Lemke");
                     }
@@ -799,7 +799,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 {
                     throw new Exception($"Leaving variable is basic."); // DEBUG
                 }
-                if (z0leave || pivotcount == 9999 /* DEBUG */)
+                if (z0leave || pivotcount == 3 /* DEBUG */)
                 {
                     /* z0 will have value 0 but may still be basic. Amend?  */ // DEBUG
                     break;  

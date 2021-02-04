@@ -601,7 +601,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 for (int cindex = h.firstMoveIndex; i < h.numMoves; cindex++, i++)
                 {
                     c = moves[cindex];
-                    if (rplan[offset + cindex - firstMove[pl]].Numerator != 0 &&
+                    if (rplan[offset + cindex - firstMove[pl]] != 0 &&
                         !Equality(rplan[offset + cindex - firstMove[pl]],
                                   rplan[offset + (int) h.sequence - firstMove[pl]]))
                     {
@@ -648,7 +648,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 {
                     c = moves[cindex];
                     rprob = rplan[cindex - firstMove[pl]];
-                    if (rprob.Numerator != 0)
+                    if (rprob != 0)
                     {
                         s = moveToString(c, pl);
                         tabbedtextf(" %s", s);

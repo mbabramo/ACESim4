@@ -16,6 +16,13 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 			V = v;
         }
 
+		public BigIntegerWrapper(int v)
+        {
+			V = v;
+        }
+
+		public static implicit operator BigIntegerWrapper(BigInteger b) => new BigIntegerWrapper(b);
+
 		public bool IsPositive()
 		{
 			return V > 0;
@@ -56,21 +63,29 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 			return new BigIntegerWrapper(result);
 		}
 
-		public static bool GreaterThan(BigInteger a, BigInteger b)
+		public bool GreaterThan(BigIntegerWrapper b)
 		{
-			return a > b;
+			return V > b.V;
+		}
+
+		public BigIntegerWrapper Add(BigIntegerWrapper b)
+		{
+			return (V - b.V);
+		}
+		public BigIntegerWrapper Subtract(BigIntegerWrapper b)
+		{
+			return (V - b.V);
+		}
+
+		public BigIntegerWrapper Multiply(BigIntegerWrapper b)
+		{
+			return (V * b.V);
 		}
 
 
-		public static BigInteger Multiply(BigInteger a, BigInteger b)
+		public BigIntegerWrapper Divide(BigIntegerWrapper b)
 		{
-			return (a * b);
-		}
-
-
-		public static BigInteger Divide(BigInteger a, BigInteger b)
-		{
-			return a / b;
+			return V / b.V;
 		}
 	}
 }
