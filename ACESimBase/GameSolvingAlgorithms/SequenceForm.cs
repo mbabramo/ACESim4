@@ -68,7 +68,7 @@ namespace ACESimBase.GameSolvingAlgorithms
 
             if (Approach == SequenceFormApproach.ECTA)
             {
-                await ExecuteECTA<ExactValue>(reportCollection);
+                await ExecuteECTA<ExactValue>(reportCollection); // DEBUG
             }
             else if (Approach == SequenceFormApproach.Gambit)
             {
@@ -154,7 +154,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             ecta.outputGameTreeSetup = false;
             ecta.outputLCP = false;
             ecta.outputInitialAndFinalTableaux = false;
-            ecta.outputPivotingSteps = false;
+            ecta.outputPivotingSteps = true; // DEBUG
             ecta.outputTableauxAfterPivots = false;
             ecta.outputPivotResults = false;
             ecta.outputLCPSolution = false; 
@@ -194,7 +194,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 bool updateScenarios = false; // Doesn't work right now
                 Action<int, ECTATreeDefinition<T>> scenarioUpdater = updateScenarios ? ScenarioUpdater<T>() : null;
                 var results = ecta.Execute_ReturningRationalsAndDoubles(t => SetupECTA(t), scenarioUpdater);
-                if (EvolutionSettings.ConfirmPerfectEquilibria)
+                if (EvolutionSettings.ConfirmPerfectEquilibria && false /* DEBUG */)
                     VerifyPerfectEquilibria(results.rationals);
                 equilibria = results.doubles;
             }

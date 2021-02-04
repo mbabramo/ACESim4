@@ -10,7 +10,7 @@ namespace ACESimBase.GameSolvingSupport
 {
     public readonly struct InexactValue : MaybeExact<InexactValue>
     {
-        public static double Tolerance = 1E-15;
+        public static double Tolerance = 1E-10;
 
         private readonly double V;
 
