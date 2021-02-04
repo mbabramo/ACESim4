@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using static ACESim.ArrayFormConversionExtension;
-using static ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm.ExactValueOperations;
 using static ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm.ColumnPrinter;
 using static ACESimBase.Util.CPrint;
 using JetBrains.Annotations;
@@ -207,7 +206,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 {
                     den = (j == 0) ? coveringVectorD[i].Denominator :
                       (j == RHS()) ? rhsq[i].Denominator : lcpM[i][j - 1].Denominator;
-                    scaleFactors[j] = LeastCommonMultiple(scaleFactors[j], den);
+                    scaleFactors[j] = scaleFactors[j].LeastCommonMultiple(den);
                 }
                 /* fill in col  j  of  A    */
                 for (i = 0; i < n; i++)
@@ -220,7 +219,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     /* where the system is here         -Iw + dz_0 + Mz = -q    */
                     /* cols of  q  will be negated after first min ratio test   */
                     /* A[i][j] = num * (scaleFactors[j] / den),  fraction is integral       */
-                    ExactValue c = Divide(Multiply(num, scaleFactors[j]), den);
+                    ExactValue c = num.Multiply(scaleFactors[j]).Divide(den);
                     SetValueInTableau(i, j, c);
                 }
             }   /* end of  for(j=...)   */
@@ -228,7 +227,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             InitializeTableauVariables();
 
             determinant = (ExactValue)1;
-            ChangeSign(ref determinant);
+            determinant.ChangeSign();
         }       /* end of filltableau()         */
 
         /* ---------------- output routines ------------------- */
@@ -303,11 +302,11 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             for (j = 0; j <= n + 1; j++)
             {
                 if (j == RHS())
-                    smp = scaleFactors[RHS()].ToStringForTable();
+                    smp = scaleFactors[RHS()].ToString();
                 else if (basicCobasicIndexToVariable[j + n] > n) /* col  j  is some  W           */
                     smp = sprintf("1");
                 else                        /* col  j  is some  Z:  scfa    */
-                    smp = scaleFactors[basicCobasicIndexToVariable[j + n]].ToStringForTable();
+                    smp = scaleFactors[basicCobasicIndexToVariable[j + n]].ToString();
                 colpr(smp);
             }
             colnl();
@@ -317,7 +316,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 colpr(s);
                 for (j = 0; j <= n + 1; j++)
                 {
-                    smp = Tableau[i][j].ToStringForTable();
+                    smp = Tableau[i][j].ToString();
                     if (smp == "0")
                         colpr(".");
                     else
@@ -325,7 +324,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 }
             }
             colout();
-            smp = determinant.ToStringForTable();
+            smp = determinant.ToString();
             tabbedtextf("Determinant: %s\n", smp);
             tabbedtextf("-----------------end of tableau-----------------\n");
         }       /* end of  outtabl()                                    */
@@ -364,19 +363,19 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 {
                     if (i <= n)       /* printing Z(i)        */
                         /* value of  Z(i):  scfa[Z(i)]*rhs[row] / (scfa[RHS()]*det)   */
-                        num = Multiply(scaleFactors[Z(i)], Tableau[row][RHS()]);
+                        num = scaleFactors[Z(i)].Multiply(Tableau[row][RHS()]);
                     else            /* printing W(i-n)      */
                         /* value of  W(i-n)  is  rhs[row] / (scfa[RHS()]*det)         */
                         num = Tableau[row][RHS()];
-                    den = Multiply(determinant, scaleFactors[RHS()]);
+                    den = determinant.Multiply(scaleFactors[RHS()]);
                     ExactValue r = ((ExactValue) num / (ExactValue) den).CanonicalForm;
                     num = r.Numerator;
                     den = r.Denominator;
-                    smp = num.ToStringForTable();
+                    smp = num.ToString();
                     pos = smp.Length;
-                    if (!IsOne(den))  /* add the denominator  */
+                    if (!(den.IsOne()))  /* add the denominator  */
                     {
-                        if (ExactValueOperations.AbbreviateExactValues)
+                        if (ExactValue.AbbreviateExactValues)
                         {
                             double d = r.AsDouble;
                             smp = d.ToString();
@@ -387,7 +386,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                         {
                             smp += "/";
                             string denstring = null;
-                            denstring = den.ToStringForTable();
+                            denstring = den.ToString();
                             smp += denstring;
                         }
                     }
@@ -417,8 +416,8 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 if ((row = TableauRow(i)) < n)  /*  i  is a basic variable */
                 {
                     /* value of  Z(i):  scfa[Z(i)]*rhs[row] / (scfa[RHS()]*det)   */
-                    num = Multiply(scaleFactors[Z(i)], Tableau[row][RHS()]);
-                    den = Multiply(determinant, scaleFactors[RHS()]);
+                    num = scaleFactors[Z(i)].Multiply(Tableau[row][RHS()]);
+                    den = determinant.Multiply(scaleFactors[RHS()]);
                     solz[i - 1] = ((ExactValue)num / (ExactValue)den).CanonicalForm;
                 }
                 else            /* i is nonbasic    */
@@ -582,7 +581,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             /* start with  leavecand = { i | A[i][col] > 0 }                        */
             for (i = 0; i < n; i++)
             {
-                if (IsPositive(Tableau[i][col]))
+                if ((Tableau[i][col]).IsPositive())
                     leaveCandidates[numCandidates++] = i;
             }
             if (numCandidates == 0)
@@ -669,7 +668,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         {
             int j;
             for (j = 0; j <= n + 1; j++)
-                if (!IsZero(Tableau[row][j]))
+                if (!(Tableau[row][j]).IsZero())
                     ChangeSignInTableau(row, j);
         }
 
@@ -689,14 +688,14 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             col = TableauColumn(enter); // the columns correspond to the cobasic variables
 
             pivotValue = Tableau[row][col];     /* pivelt anyhow later new determinant  */
-            negativePivot = IsNegative(pivotValue);
+            negativePivot = (pivotValue).IsNegative();
             if (negativePivot)
-                ChangeSign(ref pivotValue); /* negativePivot also affects how pivoting is done (see below) */
+                pivotValue.ChangeSign(); /* negativePivot also affects how pivoting is done (see below) */
             for (i = 0; i < n; i++)
                 if (i != row)               /*  A[row][..]  remains unchanged       */
                 {
                     ExactValue sameRowInPivotColumn = Tableau[i][col];
-                    nonzero = !IsZero(sameRowInPivotColumn);
+                    nonzero = !(sameRowInPivotColumn.IsZero());
                     for (j = 0; j <= n + 1; j++)      /*  assume here RHS()==n+1        */
                     {
                         if (j != col)
@@ -706,7 +705,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                         /* except for the pivot cell itself. */ 
                         {
                             // 1. Multiply every cell by the pivot value (the value in the specified row and column)
-                            tableauEntry = Multiply(Tableau[i][j], pivotValue);
+                            tableauEntry = Tableau[i][j].Multiply(pivotValue);
                             if (nonzero)
                             {
                                 // 2. Add to each cell (for a negative pivot) or subtract from each cell (for a positive
@@ -714,13 +713,13 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                                 // pivot row (same column). The row/column operations here amount to multiplying the
                                 // pivot 
                                 ExactValue sameColumnInPivotRow = Tableau[row][j];
-                                pivotProduct = Multiply(sameRowInPivotColumn, sameColumnInPivotRow);
+                                pivotProduct = sameRowInPivotColumn.Multiply(sameColumnInPivotRow);
                                 if (negativePivot)
                                     tableauEntry = tableauEntry + pivotProduct;
                                 else
                                     tableauEntry = tableauEntry - pivotProduct;
                             }
-                            tableauEntry = Divide(tableauEntry, determinant);
+                            tableauEntry = tableauEntry.Divide(determinant);
                             SetValueInTableau(i, j, tableauEntry);
                         }
                     }
@@ -744,7 +743,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 
         void ChangeSignInTableau(int i, int j)
         {
-            ChangeSign(ref Tableau[i][j]);
+            Tableau[i][j].ChangeSign();
         }
 
         void SetValueInTableau(int i, int j, ExactValue value)

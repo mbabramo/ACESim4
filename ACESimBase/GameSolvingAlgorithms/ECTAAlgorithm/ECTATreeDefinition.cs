@@ -6,7 +6,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using static ACESimBase.Util.CPrint;
-using static ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm.ExactValueOperations;
 using static ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm.ColumnPrinter;
 using static ACESim.ArrayFormConversionExtension;
 using System.Numerics;
@@ -151,7 +150,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 for (int zindex = 0; zindex < outcomes.Length; zindex++)
                 {
                     z = outcomes[zindex];
-                    if (GreaterThan(z.pay[playerIndex], maxpay[playerIndex]))
+                    if (z.pay[playerIndex].GreaterThan(maxpay[playerIndex]))
                         maxpay[playerIndex] = z.pay[playerIndex];
                 }
                 if (bprint)     /* comment to stdout    */
@@ -502,7 +501,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 player2SequenceIndex = node.sequenceForPlayer[2] - firstMove[2];
                 for (pl = 1; pl < PLAYERS; pl++)
                     sequenceFormPayouts[player1SequenceIndex][player2SequenceIndex][pl - 1] = sequenceFormPayouts[player1SequenceIndex][player2SequenceIndex][pl - 1].Add(
-                        Multiply(moves[node.sequenceForPlayer[0]].realizationProbability, z.pay[pl - 1]));
+                        moves[node.sequenceForPlayer[0]].realizationProbability.Multiply(z.pay[pl - 1]));
             }
             /* sf constraint matrices, sparse fill (everything else is 0's  */
             for (pl = 1; pl < PLAYERS; pl++)
@@ -652,7 +651,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     {
                         s = moveToString(c, pl);
                         tabbedtextf(" %s", s);
-                        bprob = Divide(rprob, rplan[(int) h.sequence - firstMove[pl]]);
+                        bprob = rprob.Divide(rplan[(int) h.sequence - firstMove[pl]]);
                         if (!bprob.Equality(ExactValue.One()))
                         {
                             s = (bprob).ToString();
@@ -891,7 +890,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             {
                 c = moves[cindex];
                 int sequenceUpToMove = GetPriorSequence(c);
-                c.realizationProbability = Multiply(c.behavioralProbability, moves[sequenceUpToMove].realizationProbability);
+                c.realizationProbability = c.behavioralProbability.Multiply(moves[sequenceUpToMove].realizationProbability);
             }
         }
 
@@ -962,14 +961,14 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             for (i = 0; i < numSequences[1]; i++)
                 for (j = 0; j < numSequences[2]; j++)
                 {
-                    Lemke.coveringVectorD[i] = (Lemke.coveringVectorD[i]).Add(Multiply(Lemke.lcpM[i][offsetToStartOfPlayer2Sequences + j] /* Aij, which is offset horizontally in the LCP */,
+                    Lemke.coveringVectorD[i] = (Lemke.coveringVectorD[i]).Add(Lemke.lcpM[i][offsetToStartOfPlayer2Sequences + j] /* Aij, which is offset horizontally in the LCP */.Multiply(
                               moves[firstMove[2] + j].realizationProbability /* qj, i.e. the realization probability of player 2's sequence */));
                 }
             /* RSF yet to be done*/
             /* third blockrow += -B\T p */
             for (i = offsetToStartOfPlayer2Sequences; i < offsetToStartOfPlayer2Sequences + numSequences[2]; i++)
                 for (j = 0; j < numSequences[1]; j++)
-                    Lemke.coveringVectorD[i] = (Lemke.coveringVectorD[i]).Add(Multiply(Lemke.lcpM[i][j], /* B^Tij, which is offset vertically in the LCP */
+                    Lemke.coveringVectorD[i] = (Lemke.coveringVectorD[i]).Add(Lemke.lcpM[i][j].Multiply( /* B^Tij, which is offset vertically in the LCP */
                               moves[firstMove[1] + j].realizationProbability)); /* pj, i.e. the realization probability of player 1's sequence */
             /* RSF yet to be done*/
         }
