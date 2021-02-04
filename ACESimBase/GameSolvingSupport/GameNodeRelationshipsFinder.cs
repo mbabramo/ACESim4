@@ -46,8 +46,12 @@ namespace ACESimBase.GameSolvingSupport
 
         public int InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, int fromPredecessor)
         {
-            int id = Relationships.Count();
-            Relationships.Add(new GameNodeRelationship(id, informationSet, fromPredecessor, predecessorAction));
+            int id = 0;
+            if (predecessorAction != 0)
+            {
+                id = Relationships.Count();
+                Relationships.Add(new GameNodeRelationship(id, informationSet, fromPredecessor, predecessorAction));
+            }
             return id;
         }
     }

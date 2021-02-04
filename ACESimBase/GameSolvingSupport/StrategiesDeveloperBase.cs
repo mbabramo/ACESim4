@@ -143,6 +143,8 @@ namespace ACESim
 
                 TabbedText.WriteLineEvenIfDisabled(optionSetInfo);
 
+                PrintGameTree(); // DEBUG
+
                 ReportCollection reportToAddToCollection = await RunAlgorithm(optionSetName);
 
                 if (EvolutionSettings.PCA_PerformPrincipalComponentAnalysis)

@@ -286,7 +286,7 @@ namespace ACESim
                         }
                         catch (Exception ex)
                         {
-                            AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), $"FAILURE {taskToDo.TaskType} ID {taskToDo.ID}.txt", true, TabbedText.AccumulatedText.ToString(), SaveToAzureBlob);
+                            AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), $"FAILURE {taskToDo.TaskType} ID {taskToDo.ID}.txt", true, ex + "\n" + TabbedText.AccumulatedText.ToString(), SaveToAzureBlob);
                         }
                         logAction($"Completed task {taskToDo.TaskType} (ID {taskToDo.ID})");
                         taskCompleted = taskToDo;

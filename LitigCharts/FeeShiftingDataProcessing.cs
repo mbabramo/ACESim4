@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace LitigCharts
 {
-    public class FeeShiftingData
+    public class FeeShiftingDataProcessing
     {
         public static void ExecuteMain()
         {

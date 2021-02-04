@@ -161,7 +161,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             ecta.outputEquilibrium = true;
             ecta.outputRealizationPlan = true; // DEBUG
 
-            bool outputAll = false; // DEBUG
+            bool outputAll = true; // DEBUG
             if (outputAll)
             {
                 ecta.outputPrior = true;
@@ -230,7 +230,6 @@ namespace ACESimBase.GameSolvingAlgorithms
                 bool isFirst = eqNum == 0;
                 bool isLast = eqNum == numEquilibria - 1;
                 var actionProbabilities = equilibria[eqNum];
-                bool degeneracyExists = false;
                 if (infoSets.Sum(x => x.Decision.NumPossibleActions) != actionProbabilities.Count())
                 {
                     TabbedText.WriteLine($"Equilibrium {eqNum + 1}: mismatch in number of possible actions; skipping"); // Should not happen
@@ -254,7 +253,6 @@ namespace ACESimBase.GameSolvingAlgorithms
                         if (total != 1)
                         {
                             // Fix degeneracy
-                            degeneracyExists = true;
                             if (total <= 0)
                             {
                                 for (int i = 0; i < infoSet.NumPossibleActions; i++)
@@ -443,12 +441,31 @@ namespace ACESimBase.GameSolvingAlgorithms
 
             t.allocateTree(GameNodes.Count(), InformationSetInfos.Count(), MoveIndexToInfoSetIndex.Count(), Outcomes.Count);
 
+            int firstNonChancePlayerIndex;
+            int secondNonChancePlayerIndex;
+            int playerIndexForMove;
+            switch (FirstInformationSetInfosIndexForPlayers.Count())
+            {
+                case 2:
+                    playerIndexForMove = 0; // will skip chance player
+                    firstNonChancePlayerIndex = 0;
+                    secondNonChancePlayerIndex = 1;
+                    break;
+                case 3:
+                    firstNonChancePlayerIndex = 1;
+                    secondNonChancePlayerIndex = 2;
+                    playerIndexForMove = -1; // chance player will be 0
+                    break;
+                default:
+                    throw new NotImplementedException("Currently supporting only two-player games with or without a chance player");
+            }
+
             t.firstInformationSet[0] = 0;
-            t.firstInformationSet[1] = FirstInformationSetInfosIndexForPlayers[1];
-            t.firstInformationSet[2] = FirstInformationSetInfosIndexForPlayers[2];
+            t.firstInformationSet[1] = FirstInformationSetInfosIndexForPlayers[firstNonChancePlayerIndex];
+            t.firstInformationSet[2] = FirstInformationSetInfosIndexForPlayers[secondNonChancePlayerIndex];
             t.firstMove[0] = 0;
-            t.firstMove[1] = FirstMovesIndexForPlayers[1];
-            t.firstMove[2] = FirstMovesIndexForPlayers[2];
+            t.firstMove[1] = FirstMovesIndexForPlayers[firstNonChancePlayerIndex];
+            t.firstMove[2] = FirstMovesIndexForPlayers[secondNonChancePlayerIndex];
 
             int zindex = 0;
             var z = t.outcomes[0];
@@ -492,7 +509,6 @@ namespace ACESimBase.GameSolvingAlgorithms
                 t.informationSets[i].name = iinfo.ToString();
             }
 
-            int playerIndexForMove = -1;
             for (int moveIndex = 0; moveIndex < MoveIndexToInfoSetIndex.Count(); moveIndex++)
             {
                 int infoSetIndex = MoveIndexToInfoSetIndex[moveIndex];
@@ -635,6 +651,7 @@ namespace ACESimBase.GameSolvingAlgorithms
         // This is to generate code that can be pasted into the original C code. This was used to ensure that the results were the same (when used with simple games where integral overflow did not occur).
         public string GetECTACodeInC()
         {
+            // TODO: This would need to be updated (along the lines above) to work with games without a chance player.
             const int ECTA_MultiplyOutcomesByThisBeforeRounding = 10_000;
             var outcomes = Outcomes;
             var player0Rounded = ConvertToIntegralUtilities(outcomes.Select(x => x.Utilities[0]));
@@ -830,7 +847,7 @@ namespace ACESimBase.GameSolvingAlgorithms
 
             void NetOutputDataHandler(object sendingProcess, DataReceivedEventArgs outLine)
             {
-                string? data = outLine.Data;
+                string data = outLine.Data;
                 if (data != null)
                 {
                     TabbedText.WriteLine(data);

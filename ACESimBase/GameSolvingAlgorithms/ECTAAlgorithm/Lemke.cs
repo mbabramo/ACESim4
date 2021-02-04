@@ -799,7 +799,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 {
                     throw new Exception($"Leaving variable is basic."); // DEBUG
                 }
-                if (z0leave || pivotcount == 13 /* DEBUG */)
+                if (z0leave || pivotcount == 9999 /* DEBUG */)
                 {
                     /* z0 will have value 0 but may still be basic. Amend?  */ // DEBUG
                     break;  

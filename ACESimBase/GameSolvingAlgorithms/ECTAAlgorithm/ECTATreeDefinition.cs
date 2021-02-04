@@ -450,7 +450,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             tabbedtextf("------Prior behavior strategies player 1, 2:\n");
             for (pl = 1; pl < PLAYERS; pl++)
             {
-                behavioralToRealizationProbability(pl);
+                SetRealizationProbabilitiesFromBehavioralProbabilities(pl);
                 realplanfromprob(pl, realizationPlan[pl]);
                 outbehavstrat(pl, realizationPlan[pl], true);
             }
@@ -491,7 +491,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             ECTAOutcome z = null;
             allocateSequenceFormMemory();
 
-            behavioralToRealizationProbability(0);     /* get realization probabilities of leaves      */
+            SetRealizationProbabilitiesFromBehavioralProbabilities(0);     /* get realization probabilities of leaves      */
 
             /* sf payoff matrices                   */
             for (int zindex = 0; zindex < outcomes.Length; zindex++)
@@ -530,7 +530,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 | Sequence 2     | -B^T        | -F^T            |             |                  |
                 | Infosets1      | E           |                 |             |                  |
                 +----------------+-------------+-----------------+-------------+------------------+
-
+            Note that this diagram excludes the d (covering vector) and q (explained below) columns.
              */
 
             generateSequenceFormPayoutsAndConstraints();
@@ -545,7 +545,16 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
              * correspond to the information sets for the player (plus 1 for the null sequence), and the columns correspond
              * to the moves for the player (plus 1 for the beginning of the game). A 1 is placed at the move for each information
              * set (including a 1 for the "move" leading to the root information set), and a -1 is placed at the move corresponding
-             * to the parent's information set.
+             * to the parent's information set. For example, in a bimatrix game where each player chooses from two strategies, E and
+             * F will each look like this:
+                +----+---+---+
+                | 1  | 0 | 0 |
+                +----+---+---+
+                | -1 | 1 | 1 |
+                +----+---+---+
+            * The 1 on the first row represents the player's first information set. The -1 shows that this is the predecessor of 
+            * the next information set, and the two 1's represent the two moves available at that information set.
+            */
             /* -E\T.      */
             copyFromMatrix(sequenceFormConstraints[1], true, true, numInfoSets[1] + 1, numSequences[1],
             Lemke.lcpM, 0, numSequences[1] + numInfoSets[2] + 1 + numSequences[2]);
@@ -562,6 +571,8 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             copyFromMatrix(sequenceFormConstraints[1], false, false, numInfoSets[1] + 1, numSequences[1],
             Lemke.lcpM, numSequences[1] + numInfoSets[2] + 1 + numSequences[2], 0);
             /* define RHS q,  using special shape of SF constraints RHS e,f     */
+            /* That is, we have a -1 in the right hand column on the first row containing each of E and F */
+            /* because e and f are defined to be vectors with 1 on top and 0 everywhere else */
             for (i = 0; i < Lemke.lcpdim; i++)
                 Lemke.rhsq[i] = FromInteger(0);
             Lemke.rhsq[numSequences[1]] = Negate(FromInteger(1));
@@ -871,7 +882,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         /// excluding the move by the behavioral probability of the move.
         /// </summary>
         /// <param name="pl"></param>
-        public void behavioralToRealizationProbability(int pl)
+        public void SetRealizationProbabilitiesFromBehavioralProbabilities(int pl)
         {
             ECTAMove c;
             int lastmoveindex = firstMove[pl + 1];
@@ -940,29 +951,24 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 +-----------------+-------------+
             */
 
-            int i, j, numSequences1, numSequences2, offsetToStartOfPlayer2Sequences;
+            int i, j;
 
-            behavioralToRealizationProbability(1);
-            behavioralToRealizationProbability(2);
-
-            numSequences1 = numSequences[1];
-            numSequences2 = numSequences[2];
-            offsetToStartOfPlayer2Sequences = numSequences1 + 1 + numInfoSets[2];
+            int offsetToStartOfPlayer2Sequences = numSequences[1] + 1 + numInfoSets[2];
             /* covering vector  = -rhsq */
             for (i = 0; i < Lemke.lcpdim; i++)
                 Lemke.coveringVectorD[i] = Negate(Lemke.rhsq[i]);
 
             /* first blockrow += -Aq    */
-            for (i = 0; i < numSequences1; i++)
-                for (j = 0; j < numSequences2; j++)
+            for (i = 0; i < numSequences[1]; i++)
+                for (j = 0; j < numSequences[2]; j++)
                 {
                     Lemke.coveringVectorD[i] = Add(Lemke.coveringVectorD[i], Multiply(Lemke.lcpM[i][offsetToStartOfPlayer2Sequences + j] /* Aij, which is offset horizontally in the LCP */,
                               moves[firstMove[2] + j].realizationProbability /* qj, i.e. the realization probability of player 2's sequence */));
                 }
             /* RSF yet to be done*/
             /* third blockrow += -B\T p */
-            for (i = offsetToStartOfPlayer2Sequences; i < offsetToStartOfPlayer2Sequences + numSequences2; i++)
-                for (j = 0; j < numSequences1; j++)
+            for (i = offsetToStartOfPlayer2Sequences; i < offsetToStartOfPlayer2Sequences + numSequences[2]; i++)
+                for (j = 0; j < numSequences[1]; j++)
                     Lemke.coveringVectorD[i] = Add(Lemke.coveringVectorD[i], Multiply(Lemke.lcpM[i][j], /* B^Tij, which is offset vertically in the LCP */
                               moves[firstMove[1] + j].realizationProbability)); /* pj, i.e. the realization probability of player 1's sequence */
             /* RSF yet to be done*/
