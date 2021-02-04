@@ -13,7 +13,7 @@ using ACESimBase.GameSolvingSupport;
 
 namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
-    public class Lemke
+    public class ECTALemke
     {
 
         int n;   /* LCP (Linear Complementarity Problem) dimension as used here   */
@@ -82,7 +82,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         }
 
         /*------------------ memory allocation -------------------------*/
-        public Lemke(int newn)
+        public ECTALemke(int newn)
         {
             if (newn < 1 || newn > MAXLCPDIM)
             {
@@ -752,7 +752,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         }
 
         /* ------------------------------------------------------------ */
-        public void RunLemke(LemkeOptions flags)
+        public void RunLemke(ECTALemkeOptions flags)
         {
             int leaveBasis, enterBasis;
             bool z0leave = false;

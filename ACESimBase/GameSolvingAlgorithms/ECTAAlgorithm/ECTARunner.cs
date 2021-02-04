@@ -33,7 +33,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         public bool outputLexStats = false; 
 
         /* global variables for generating and documenting computation  */
-        LemkeOptions lemkeOptions;
+        ECTALemkeOptions lemkeOptions;
 
         long timeused, sumtimeused;
         int pivots, sumpivots;

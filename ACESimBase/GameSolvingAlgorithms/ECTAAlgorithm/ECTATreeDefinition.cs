@@ -15,7 +15,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
     public class ECTATreeDefinition
     {
-        public Lemke Lemke;
+        public ECTALemke Lemke;
 
         public const int PLAYERS = 3;
         public const int NAMECHARS = 8;
@@ -533,7 +533,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
              */
 
             generateSequenceFormPayoutsAndConstraints();
-            Lemke = new Lemke(numSequences[1] + numInfoSets[2] + 1 + numSequences[2] + numInfoSets[1] + 1);
+            Lemke = new ECTALemke(numSequences[1] + numInfoSets[2] + 1 + numSequences[2] + numInfoSets[1] + 1);
             /* fill  M  by copying from sequence form payouts and constraints */
             /* -A. A is a matrix of sequence payouts for the first player (with player 1's sequences as rows, and player 2's as columns). These are
              * negated and placed starting in the first row after columns devoted to each sequence of player 1 and each 

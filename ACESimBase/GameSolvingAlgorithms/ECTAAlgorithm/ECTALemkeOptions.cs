@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
-    public struct LemkeOptions
+    public struct ECTALemkeOptions
     {
         public int maxPivotSteps;   /* max no. of iterations, infinity if 0         */
         public bool outputPivotingSteps;   /* Y/N  document pivot step                     */
