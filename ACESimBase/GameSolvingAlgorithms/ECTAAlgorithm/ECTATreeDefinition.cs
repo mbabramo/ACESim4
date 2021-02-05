@@ -407,13 +407,6 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             if (0 == seed)
             {
                 gencentroid();
-                //var isetsDEBUG = informationSets.Where(x => x.name.Contains("Alt 141")).First();
-                //moves[isetsDEBUG.move0 + 0].behavprob = ((T)197) / (T)1000;
-                //moves[isetsDEBUG.move0 + 1].behavprob = ((T)199) / (T)1000;
-                //moves[isetsDEBUG.move0 + 2].behavprob = ((T)200) / (T)1000;
-                //moves[isetsDEBUG.move0 + 3].behavprob = ((T)201) / (T)1000;
-                //moves[isetsDEBUG.move0 + 4].behavprob = ((T)203) / (T)1000;
-
                 return;
             }
             /* generate random priors for all information sets	*/
@@ -449,11 +442,8 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             tabbedtextf("------Prior behavior strategies player 1, 2:\n");
             for (pl = 1; pl < PLAYERS; pl++)
             {
-                // DEBUG TODO -- why are realization probabilities not set the same already? 
                 var originals = moves.Select(x => x.realizationProbability).ToList();
                 SetRealizationProbabilitiesFromBehavioralProbabilities(pl);
-                for (int i = 0; i < originals.Count(); i++)
-                    moves[i].realizationProbability = originals[i];
 
                 realplanfromprob(pl, realizationPlan[pl]);
                 outbehavstrat(pl, realizationPlan[pl], true);
@@ -581,7 +571,6 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 Lemke.rhsq[i] = MaybeExact<T>.Zero();
             Lemke.rhsq[numSequences[1]] = MaybeExact<T>.One().Negated();
             Lemke.rhsq[numSequences[1] + numInfoSets[2] + 1 + numSequences[2]] = MaybeExact<T>.One().Negated();
-            var DEBUG = ArrayExtensions.TableToString(Lemke.lcpM);
         }
 
         void realplanfromprob(int pl, MaybeExact<T>[] rplan)
@@ -758,13 +747,27 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             {
                 h = informationSets[hindex];
                 i = 0;
+                List<MaybeExact<T>> probabilities = new List<MaybeExact<T>>();
+                MaybeExact<T> total = MaybeExact<T>.Zero();
                 for (int cindex = h.firstMoveIndex; i < h.numMoves; cindex++, i++)
                 {
                     c = moves[cindex];
                     rprob = rplan[offset + cindex - firstMove[pl]];
-                    yield return rprob;
-
+                    total = total.Plus(rprob);
+                    probabilities.Add(rprob);
                 }
+                if (total.IsGreaterThan(MaybeExact<T>.Zero()) && !total.IsOne())
+                {
+                    for (int p = 0; p < probabilities.Count(); p++)
+                        probabilities[p] = probabilities[p].DividedBy(total);
+                    i = 0;
+                    for (int cindex = h.firstMoveIndex; i < h.numMoves; cindex++, i++)
+                    {
+                        rplan[offset + cindex - firstMove[pl]] = probabilities[i];
+                    }
+                }
+                foreach (var probability in probabilities)
+                    yield return probability;
             }
         }
 
@@ -897,9 +900,6 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 int sequenceUpToMove = GetPriorSequence(c);
                 c.realizationProbability = c.behavioralProbability.Times(moves[sequenceUpToMove].realizationProbability);
             }
-            var DEBUG2 = moves.Select(x => x.behavioralProbability).ToList();
-            var DEBUG = moves.Select(x => x.realizationProbability).ToList();
-        
         }
 
         public int GetPriorSequence(ECTAMove<T> c)
@@ -973,10 +973,6 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 for (j = 0; j < numSequences[2]; j++)
                 {
                     Lemke.coveringVectorD[i] = (Lemke.coveringVectorD[i]).Plus(Lemke.lcpM[i][offsetToStartOfPlayer2Sequences + j] /* Aij, which is offset horizontally in the LCP */.Times(moves[firstMove[2] + j].realizationProbability /* qj, i.e. the realization probability of player 2's sequence */));
-                    if (i == 1 && j == 2)
-                    {
-                        var DEBUG = 0;
-                    }
                 }
             /* RSF yet to be done*/
             /* third blockrow += -B\T p */

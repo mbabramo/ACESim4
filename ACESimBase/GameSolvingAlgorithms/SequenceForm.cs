@@ -238,14 +238,14 @@ namespace ACESimBase.GameSolvingAlgorithms
             }
 
             List<int> imperfect = new List<int>();
-
+            bool isExact = new T().IsExact;
             for (int eqNum = 0; eqNum < numEquilibria; eqNum++)
             {
                 bool isFirst = eqNum == 0;
                 bool isLast = eqNum == numEquilibria - 1;
                 var actionProbabilities = equilibria[eqNum];
                 bool perfect = CheckEquilibrium(infoSets, chanceProbabilities, utilities, actionProbabilities);
-                if (!perfect)
+                if (!perfect && isExact)
                     imperfect.Add(eqNum);
             }
             bool eliminateImperfectIfPossible = true;

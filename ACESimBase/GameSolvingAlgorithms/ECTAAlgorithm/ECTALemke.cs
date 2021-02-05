@@ -172,10 +172,6 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         public void FillTableau()
         /* fill tableau from  M, q, d   */
         {
-
-            // DEBUG TODO: When generalizing our numeric types, we need to have a generic with two types -- one for the LCP 
-            // and one for the tableau. Here, T is for the LCP and then T is for the tableau.
-
             int i, j;
             MaybeExact<T> den, num;
             for (j = 0; j <= n + 1; j++)
