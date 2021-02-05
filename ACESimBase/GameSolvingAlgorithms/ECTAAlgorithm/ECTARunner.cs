@@ -30,7 +30,8 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         public bool outputEquilibrium = true;    
         public bool outputRealizationPlan = false; 
         public bool outputLCPSolution = false;
-        public bool outputLexStats = false; 
+        public bool outputLexStats = false;
+        public int maxPivotSteps = 0;
 
         /* global variables for generating and documenting computation  */
         ECTALemkeOptions lemkeOptions;
@@ -187,7 +188,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         {
             bool tracingEquilibrium = updateActionWhenTracingPathOfEquilibrium != null;
 
-            lemkeOptions.maxPivotSteps = 0; // no limit
+            lemkeOptions.maxPivotSteps = maxPivotSteps; // no limit
             lemkeOptions.outputPivotingSteps = outputPivotingSteps;
             lemkeOptions.outputInitialAndFinalTableaux = outputInitialAndFinalTableaux;
             lemkeOptions.outputTableauxAfterPivots = outputTableauxAfterPivots;
@@ -239,21 +240,33 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     t.outputGameTree();
                 if (outputPrior)
                     t.outprior();
-                processgame(seed + gamecount);
-                if (outputPivotResults && !outputPivotHeaderFirst)
-                    inforesultheader();
-                infopivotresult(priorSeed, seed + gamecount);
-                priorSeed++;
-                equilibriumProbabilities = t.GetPlayerMovesFromSolution().ToArray(); // probabilities for each non-chance player, ordered by player, information set, and then action.
-                int? sameAsEquilibrium = equilibria.Select((item, index) => ((MaybeExact<T>[] item, int index)?) (item, index)).FirstOrDefault(x => x != null && x.Value.item.SequenceEqual(equilibriumProbabilities))?.index;
-                if (sameAsEquilibrium != null)
-                    TabbedText.WriteLine($"Same as equilibrium {sameAsEquilibrium + 1}"); // note that equilibria are one-indexed
-                else
+                bool succeeded = true;
+                try
                 {
-                    equilibria.Add(equilibriumProbabilities);
-                    TabbedText.WriteLine($"Equilibrium {equilibria.Count()}");
-                    if (outputEquilibrium)
-                        t.showEquilibrium(outputRealizationPlan);
+                    processgame(seed + gamecount);
+                }
+                catch (ECTAException)
+                {
+                    TabbedText.WriteLine($"ECTA algorithm failed");
+                    succeeded = false;
+                }
+                if (succeeded)
+                {
+                    if (outputPivotResults && !outputPivotHeaderFirst)
+                        inforesultheader();
+                    infopivotresult(priorSeed, seed + gamecount);
+                    priorSeed++;
+                    equilibriumProbabilities = t.GetPlayerMovesFromSolution().ToArray(); // probabilities for each non-chance player, ordered by player, information set, and then action.
+                    int? sameAsEquilibrium = equilibria.Select((item, index) => ((MaybeExact<T>[] item, int index)?)(item, index)).FirstOrDefault(x => x != null && x.Value.item.SequenceEqual(equilibriumProbabilities))?.index;
+                    if (sameAsEquilibrium != null)
+                        TabbedText.WriteLine($"Same as equilibrium {sameAsEquilibrium + 1}"); // note that equilibria are one-indexed
+                    else
+                    {
+                        equilibria.Add(equilibriumProbabilities);
+                        TabbedText.WriteLine($"Equilibrium {equilibria.Count()}");
+                        if (outputEquilibrium)
+                            t.showEquilibrium(outputRealizationPlan);
+                    }
                 }
                 outputGameTreeSetup = false;
                 TabbedText.WriteLine($"Elapsed milliseconds prior {priorcount + 1}: {s.ElapsedMilliseconds}");

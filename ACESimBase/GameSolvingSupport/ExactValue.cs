@@ -27,8 +27,10 @@ namespace ACESimBase.GameSolvingSupport
         public MaybeExact<ExactValue> NewValueFromInteger(int i) => new ExactValue(i);
         public MaybeExact<ExactValue> NewValueFromRational(Rational r) => new ExactValue(r);
 
-        public static MaybeExact<ExactValue> Zero() => ExactValue.FromInteger(0);
-        public static MaybeExact<ExactValue> One() => ExactValue.FromInteger(1);
+        static MaybeExact<ExactValue> _Zero = MaybeExact<ExactValue>.FromInteger(0);
+        static MaybeExact<ExactValue> _One = MaybeExact<ExactValue>.FromInteger(1);
+        public static MaybeExact<ExactValue> Zero() => _Zero;
+        public static MaybeExact<ExactValue> One() => _One;
         public static MaybeExact<ExactValue> FromInteger(int i) => new ExactValue((Rational)i);
         public static MaybeExact<ExactValue> FromRational(Rational r) => new ExactValue(r);
 

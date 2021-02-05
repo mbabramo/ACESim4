@@ -75,11 +75,6 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         public const int INFOSTRINGLENGTH = 8;   /* string naming vars, e.g. "z0", "w187"   */
         public const int LCPSTRL = 60;          /* length of string containing LCP entry   */
 
-        /*------------------ error message ----------------*/
-        public void errexit(string info)
-        {
-            throw new Exception($"Error {info}. Lemke terminated unsuccessfully.");
-        }
 
         /*------------------ memory allocation -------------------------*/
         public ECTALemke(int newn)
@@ -473,10 +468,10 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             string s = null;
             VariableToString(enter, ref s);
             tabbedtextf($"Ray termination when trying to enter {s}\n");
-            OutputTableau();
-            tabbedtextf("Current basis, not an LCP solution:\n");
-            OutputSolution();
-            throw new Exception("Ray termination; current basis, not an LCP solution");
+            //OutputTableau();
+            //tabbedtextf("Current basis, not an LCP solution:\n");
+            //OutputSolution();
+            throw new ECTAException($"Ray termination on pivot {pivotcount}");
         }
 
         public void TestTableauVariables()
@@ -507,7 +502,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         public int ComplementOfVariable(int v)
         {
             if (v == Z(0))
-                errexit("Attempt to find complement of z0.");
+                throw new ECTAException("Attempt to find complement of z0.");
             return (v > n) ? Z(v - n) : W(v);
         }       /* end of  complement (v)     */
 
@@ -599,8 +594,8 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
              * the test column is basic or equal to the entering variable.
              */
             {
-                if (j > n)    /* impossible, perturbed RHS() should have full rank  */
-                    errexit("lex-minratio test failed");
+                if (j > n)    /* impossible, perturbed RHS() should have full rank (unless using inexact arithmetic)  */
+                    throw new ECTAException("lex-minratio test failed");
                 lexTested[j] += 1;
                 lexComparisons[j] += numCandidates;
 
@@ -793,11 +788,10 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 Pivot(leaveBasis, enterBasis);
                 if (VariableIsBasic(leaveBasis))
                 {
-                    throw new Exception($"Leaving variable is basic."); // DEBUG
+                    throw new Exception($"Leaving variable is basic."); 
                 }
                 if (z0leave)
                 {
-                    /* z0 will have value 0 but may still be basic. Amend?  */ // DEBUG
                     break;  
                 }
                 if (flags.outputTableauxAfterPivots)
@@ -809,7 +803,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 {
                     tabbedtextf("------- stop after %d pivoting steps --------\n",
                    flags.maxPivotSteps);
-                    break;
+                    throw new ECTAException($"Max ({flags.maxPivotSteps}) pivoting steps reached.");
                 }
                 
             }

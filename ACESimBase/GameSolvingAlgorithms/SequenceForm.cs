@@ -51,7 +51,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             InitializeInformationSets();
             //PrintGameTree(); 
             if (Approach == SequenceFormApproach.ECTA)
-                SetFinalUtilitiesToRoundedOffValues(); // because this is an exact algorithm that uses integral pivoting, we have only a discrete number of utility points. This ensures that the utilities are at the precise discrete points that correspond to the integral values we will use.
+                SetFinalUtilitiesToRoundedOffValues(); // because this may be an exact algorithm that uses integral pivoting, we have only a discrete number of utility points. This ensures that the utilities are at the precise discrete points that correspond to the integral values we will use.
             //PrintGameTree();
             if (!EvolutionSettings.CreateInformationSetCharts) // otherwise this will already have been run
                 InformationSetNode.IdentifyNodeRelationships(InformationSets);
@@ -68,7 +68,23 @@ namespace ACESimBase.GameSolvingAlgorithms
 
             if (Approach == SequenceFormApproach.ECTA)
             {
-                await ExecuteECTA<ExactValue>(reportCollection); // DEBUG
+                if (EvolutionSettings.TryInexactArithmetic)
+                {
+                    // TODO: Make this choice within the loop.
+                    try
+                    {
+                        await ExecuteECTA<InexactValue>(reportCollection);
+                    }
+                    catch (ECTAException)
+                    {
+                        // All attempts at using floating point failed. Use exact arithmetic.
+                        await ExecuteECTA<ExactValue>(reportCollection);
+                    }
+                }
+                else
+                {
+                    await ExecuteECTA<ExactValue>(reportCollection);
+                }
             }
             else if (Approach == SequenceFormApproach.Gambit)
             {
@@ -154,12 +170,14 @@ namespace ACESimBase.GameSolvingAlgorithms
             ecta.outputGameTreeSetup = false;
             ecta.outputLCP = false;
             ecta.outputInitialAndFinalTableaux = false;
-            ecta.outputPivotingSteps = true; // DEBUG
+            ecta.outputPivotingSteps = false; 
             ecta.outputTableauxAfterPivots = false;
             ecta.outputPivotResults = false;
             ecta.outputLCPSolution = false; 
             ecta.outputEquilibrium = true;
             ecta.outputRealizationPlan = false;
+            T maybeExact = new T();
+            ecta.maxPivotSteps = maybeExact.IsExact ? 0 /* no limit */ : 5_000; 
 
             bool outputAll = false; 
             if (outputAll)
@@ -194,12 +212,19 @@ namespace ACESimBase.GameSolvingAlgorithms
                 bool updateScenarios = false; // Doesn't work right now
                 Action<int, ECTATreeDefinition<T>> scenarioUpdater = updateScenarios ? ScenarioUpdater<T>() : null;
                 var results = ecta.Execute_ReturningRationalsAndDoubles(t => SetupECTA(t), scenarioUpdater);
-                if (EvolutionSettings.ConfirmPerfectEquilibria && false /* DEBUG */)
+                if (EvolutionSettings.ConfirmPerfectEquilibria)
+                {
+                    T t = new T();
+                    if (!t.IsExact)
+                        results.rationals = results.doubles.Select(x => x.Select(y => Rational.Approximate((decimal)y, ((decimal)1) / (decimal)EvolutionSettings.MaxIntegralUtility)).ToArray()).ToList();
                     VerifyPerfectEquilibria(results.rationals);
+                }
                 equilibria = results.doubles;
             }
             await GenerateReportsFromEquilibria(equilibria, reportCollection);
         }
+
+        Debug; // add tolerance in equilibrium check
 
         public void VerifyPerfectEquilibria(List<Rational[]> equilibria)
         {

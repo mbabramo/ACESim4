@@ -10,7 +10,7 @@ namespace ACESimBase.GameSolvingSupport
 {
     public readonly struct InexactValue : MaybeExact<InexactValue>
     {
-        public static double Tolerance = 1E-10;
+        public static double Tolerance = 1E-50;
 
         private readonly double V;
 
@@ -31,12 +31,14 @@ namespace ACESimBase.GameSolvingSupport
 
         public MaybeExact<InexactValue> NewValueFromInteger(int i) => new InexactValue(i);
         public MaybeExact<InexactValue> NewValueFromRational(Rational r) => new InexactValue(r);
-
-        public static MaybeExact<InexactValue> Zero() => InexactValue.FromInteger(0);
-        public static MaybeExact<InexactValue> One() => InexactValue.FromInteger(1);
         public static MaybeExact<InexactValue> FromInteger(int i) => new InexactValue((Rational)i);
         public static MaybeExact<InexactValue> FromRational(Rational r) => new InexactValue(r);
         public static MaybeExact<InexactValue> FromDouble(double d) => new InexactValue(d);
+
+        static MaybeExact<InexactValue> _Zero = MaybeExact<InexactValue>.FromInteger(0);
+        static MaybeExact<InexactValue> _One = MaybeExact<InexactValue>.FromInteger(1);
+        public static MaybeExact<InexactValue> Zero() => _Zero;
+        public static MaybeExact<InexactValue> One() => _One;
 
         public bool IsPositive()
         {
@@ -49,21 +51,31 @@ namespace ACESimBase.GameSolvingSupport
 
         public bool IsZero()
         {
-            return Math.Abs(V) < Tolerance;
+            return IsEqualTo(_Zero);
         }
 
         public bool IsOne()
         {
-            return Math.Abs(V - 1.0)  < Tolerance;
+            return IsEqualTo(_One);
         }
 
         public MaybeExact<InexactValue> Numerator => new InexactValue(V);
         public MaybeExact<InexactValue> Denominator => One();
-        public double AsDouble => (double)V;
+        public double AsDouble => IsZero() ? 0 : (IsOne() ? 1.0 : (double)V);
         public Rational AsRational => throw new NotImplementedException();
         public bool IsExact => false;
 
-        public bool IsEqualTo(MaybeExact<InexactValue> b) => Math.Abs(V - b.AsDouble) < Tolerance;
+        public bool IsEqualTo(MaybeExact<InexactValue> b)
+        {
+            //Math.Abs(V - bVal) < Tolerance;
+            double bVal = ((InexactValue)b).V;
+            if (bVal == 0 && V == 0)
+                return true;
+            if (bVal == 0)
+                return false;
+            double absRatioMinus1 = bVal == 0 ? 1 : Math.Abs(V / bVal - 1.0);
+            return absRatioMinus1 < Tolerance;
+        }
         public bool IsNotEqualTo(MaybeExact<InexactValue> b) => !IsEqualTo(b);
 
         public override string ToString()

@@ -94,7 +94,8 @@ namespace ACESim
         public static int RoundOffChanceDigits = 5; // Chance numbers will also be converted to rational numbers. The digits might be the same as above.
         public bool IdentifyPressureOnInformationSets = false; // currently called only for sequence form
         public bool ConfirmPerfectEquilibria = true; // for sequence form only
-        public bool ThrowIfNotPerfectEquilibrium = false; 
+        public bool ThrowIfNotPerfectEquilibrium = false;
+        public bool TryInexactArithmetic = true;
 
         public static bool PruneOnOpponentStrategy = true; // NOTE: In general sum games, this seemed to cause difficulties at one point, because some of the player's own information sets may not be visited, as a result of pruning on opponents' sets. Also, note that this cannot be used with symmetric games.
         public static double PruneOnOpponentStrategyThreshold = 1E-4; // NOTE: This is the probability for this action, not the cumulative probability. Meanwhile, this is not looked at directly during the generalized tree walk. This value affects only the updating of the information sets, by setting pruned probability to the smallest value possible (a positive value about 1). Pruning will then happen in turn in the tree walk.
