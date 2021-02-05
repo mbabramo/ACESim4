@@ -84,8 +84,8 @@ namespace ACESimBase.GameSolvingSupport
             double[] reachWeightedUtilities = utilities.Select(x => x * reachProbability).ToArray();
             WeightedUtilitiesAtInformationSet[informationSet.GetNodeNumber()] =
                 WeightedUtilitiesAtInformationSet.GetValueOrDefault<int, double[]>(
-                    informationSet.GetNodeNumber(), 
-                    utilities.Select(x => (double) 0).ToArray())
+                    informationSet.GetNodeNumber(),
+                    utilities.Select(x => (double)0).ToArray())
                 .Zip(reachWeightedUtilities, (x, y) => x + y).ToArray();
             List<double[]> prerecordedUtilitiesAtSuccessors = WeightedUtilitiesAtInformationSetSuccessors.GetValueOrDefault<int, List<double[]>>(
                     informationSet.GetNodeNumber(),

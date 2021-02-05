@@ -467,7 +467,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         {
             string s = null;
             VariableToString(enter, ref s);
-            tabbedtextf($"Ray termination when trying to enter {s}\n");
+            tabbedtextf($"Ray termination when trying to enter {s} on pivot {pivotcount}\n");
             //OutputTableau();
             //tabbedtextf("Current basis, not an LCP solution:\n");
             //OutputSolution();

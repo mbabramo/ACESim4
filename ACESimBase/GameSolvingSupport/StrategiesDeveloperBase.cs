@@ -1400,6 +1400,34 @@ namespace ACESim
                 infoSet.PastValuesAnalyze();
         }
 
+        public void IdentifyPressureOnInformationSets()
+        {
+            if (EvolutionSettings.IdentifyPressureOnInformationSets)
+            {
+                IdentifyPressureOnInformationSets(true, true, true, out var crossInformationSetEffects);
+                bool report = false;
+                if (crossInformationSetEffects != null && report)
+                {
+                    for (int i = 0; i < crossInformationSetEffects.Count(); i++)
+                    {
+                        var effectOfInformationSetChange = crossInformationSetEffects[i];
+                        if (effectOfInformationSetChange.actionPromotedInOtherInformationSets != null && effectOfInformationSetChange.actionPromotedInOtherInformationSets.Any(x => x != null))
+                        {
+                            TabbedText.WriteLine($"Change toward action {effectOfInformationSetChange.sourceAction} in information set {InformationSets[i]}:");
+                            for (int j = 0; j < effectOfInformationSetChange.actionPromotedInOtherInformationSets.Length; j++)
+                            {
+                                int? effectOnJ = effectOfInformationSetChange.actionPromotedInOtherInformationSets[j];
+                                if (effectOnJ != null)
+                                {
+                                    TabbedText.WriteLine($"--> move to action {effectOnJ} in information set {InformationSets[j]}");
+                                }
+                            };
+                        }
+                    }
+                }
+            }
+        }
+
         public void IdentifyPressureOnInformationSets(bool testSwitchToAlternativeGameOptions, bool calculatePressureBetweenInformationSets, bool considerOnlyInformationSetsAffectedByAlternativeGameOptions, out List<(int sourceAction, int?[] actionPromotedInOtherInformationSets)> effectOfChanges)
         {
             List<(int indexOfAffectedSet, int pushingTowardAction)> indicesOfAffectedInformationSets = new List<(int indexOfAffectedSet, int pushingTowardAction)>();

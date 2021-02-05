@@ -211,101 +211,40 @@ namespace ACESimBase.GameSolvingAlgorithms
             {
                 bool updateScenarios = false; // Doesn't work right now
                 Action<int, ECTATreeDefinition<T>> scenarioUpdater = updateScenarios ? ScenarioUpdater<T>() : null;
-                var results = ecta.Execute_ReturningRationalsAndDoubles(t => SetupECTA(t), scenarioUpdater);
-                if (EvolutionSettings.ConfirmPerfectEquilibria)
-                {
-                    T t = new T();
-                    if (!t.IsExact)
-                        results.rationals = results.doubles.Select(x => x.Select(y => Rational.Approximate((decimal)y, ((decimal)1) / (decimal)EvolutionSettings.MaxIntegralUtility)).ToArray()).ToList();
-                    VerifyPerfectEquilibria(results.rationals);
-                }
-                equilibria = results.doubles;
+                List<MaybeExact<T>[]> results = ecta.Execute(t => SetupECTA(t), scenarioUpdater);
+                CheckEquilibria<T>(results);
+                equilibria = results.Select(x => x.Select(y => y.AsDouble).ToArray()).ToList();
             }
             await GenerateReportsFromEquilibria(equilibria, reportCollection);
         }
 
-        Debug; // add tolerance in equilibrium check
-
-        public void VerifyPerfectEquilibria(List<Rational[]> equilibria)
+        public void CheckEquilibria<T>(List<MaybeExact<T>[]> equilibria) where T : MaybeExact<T>, new()
         {
             int numEquilibria = equilibria.Count();
             var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetNodeNumber).ToList();
             var infoSetNames = infoSets.Select(x => x.ToStringWithoutValues()).ToArray();
-            Dictionary<int, Rational[]> chanceProbabilities = new Dictionary<int, Rational[]>();
+            Dictionary<int, MaybeExact<T>[]> chanceProbabilities = new Dictionary<int, MaybeExact<T>[]>();
             foreach (var chanceNode in InformationSetInfos.Where(x => x.IsChance))
             {
-                chanceProbabilities[chanceNode.ChanceNode.GetNodeNumber()] = chanceNode.GetProbabilitiesAsRationals();
+                chanceProbabilities[chanceNode.ChanceNode.GetNodeNumber()] = chanceNode.GetProbabilitiesAsRationals().Select(x => MaybeExact<T>.FromRational(x)).ToArray();
             }
-            Dictionary<int, Rational[]> utilities = new Dictionary<int, Rational[]>();
+            Dictionary<int, MaybeExact<T>[]> utilities = new Dictionary<int, MaybeExact<T>[]>();
 
             Rational[][] rationalUtilities = UtilitiesAsRationals.TransposeRowsAndColumns();
             for (int finalUtilitiesNodesIndex = 0; finalUtilitiesNodesIndex < FinalUtilitiesNodes.Count; finalUtilitiesNodesIndex++)
             {
                 FinalUtilitiesNode finalUtilitiesNode = FinalUtilitiesNodes[finalUtilitiesNodesIndex];
-                utilities[finalUtilitiesNode.GetNodeNumber()] = rationalUtilities[finalUtilitiesNodesIndex];
+                utilities[finalUtilitiesNode.GetNodeNumber()] = rationalUtilities[finalUtilitiesNodesIndex].Select(x => MaybeExact<T>.FromRational(x)).ToArray();
             }
 
             List<int> imperfect = new List<int>();
 
             for (int eqNum = 0; eqNum < numEquilibria; eqNum++)
             {
-                Stopwatch s = new Stopwatch();
-                s.Start();
-                Dictionary<(int playerIndex, int nodeIndex), Rational[]> playerProbabilities = new Dictionary<(int playerIndex, int nodeIndex), Rational[]>();
                 bool isFirst = eqNum == 0;
                 bool isLast = eqNum == numEquilibria - 1;
                 var actionProbabilities = equilibria[eqNum];
-                if (infoSets.Sum(x => x.Decision.NumPossibleActions) != actionProbabilities.Count())
-                {
-                    TabbedText.WriteLine($"Equilibrium {eqNum + 1}: mismatch in number of possible actions; skipping"); // Should not happen
-                    throw new Exception("Unexpected mismatch");
-                }
-                else
-                {
-                    var numActionsPerSet = infoSets.Select(x => x.Decision.NumPossibleActions).ToList();
-                    int actionProbabilitiesIndex = 0;
-                    foreach (var infoSet in infoSets)
-                    {
-                        Rational[] asArray = new Rational[infoSet.NumPossibleActions];
-                        int initialActionProbabilitiesIndex = actionProbabilitiesIndex;
-                        Rational total = 0;
-                        for (int i = 0; i < infoSet.NumPossibleActions; i++)
-                        {
-                            var probability = actionProbabilities[actionProbabilitiesIndex++];
-                            asArray[i] = probability;
-                            total += probability;
-                        }
-                        if (total != 1)
-                        {
-                            // Fix degeneracy
-                            if (total <= 0)
-                            {
-                                for (int i = 0; i < infoSet.NumPossibleActions; i++)
-                                {
-                                    actionProbabilities[initialActionProbabilitiesIndex + i] = (Rational)1 / (Rational)infoSet.NumPossibleActions;
-                                    asArray[i] = actionProbabilities[initialActionProbabilitiesIndex + i];
-                                }
-
-                            }
-                            else
-                            {
-                                // It appears that when the equilibrium is imperfect (always only very slightly), there is always a degeneracy of this sort. 
-                                // Neither of these approaches makes it go away; nor does using the approach used where total <= 0.
-                                Rational multiplier = (Rational)1 / (Rational)total;
-                                for (int i = 0; i < infoSet.NumPossibleActions; i++)
-                                {
-                                    actionProbabilities[initialActionProbabilitiesIndex + i] *= multiplier;
-                                    asArray[i] = actionProbabilities[initialActionProbabilitiesIndex + i].CanonicalForm;
-                                }
-                            }
-                        }
-                        playerProbabilities[(infoSet.PlayerIndex, infoSet.GetNodeNumber())] = asArray;
-                    }
-                }
-                CalculateRationalUtilitiesAtEachInformationSet calc = new CalculateRationalUtilitiesAtEachInformationSet(chanceProbabilities, playerProbabilities, utilities);
-                TreeWalk_Tree(calc);
-                bool perfect = calc.VerifyPerfectEquilibrium(InformationSets, EvolutionSettings.ThrowIfNotPerfectEquilibrium);
-                TabbedText.WriteLine($"Perfect equilibrium {(!perfect ? "not " : "")}confirmed {s.ElapsedMilliseconds} ms");
+                bool perfect = CheckEquilibrium(infoSets, chanceProbabilities, utilities, actionProbabilities);
                 if (!perfect)
                     imperfect.Add(eqNum);
             }
@@ -316,6 +255,76 @@ namespace ACESimBase.GameSolvingAlgorithms
                 imperfect.Reverse();
                 foreach (int eqNum in imperfect)
                     equilibria.RemoveAt(eqNum);
+            }
+        }
+
+        private bool CheckEquilibrium<T>(List<InformationSetNode> infoSets, Dictionary<int, MaybeExact<T>[]> chanceProbabilities, Dictionary<int, MaybeExact<T>[]> utilities, MaybeExact<T>[] actionProbabilities) where T : MaybeExact<T>, new()
+        {
+            Stopwatch s = new Stopwatch();
+            s.Start();
+            Dictionary<(int playerIndex, int nodeIndex), MaybeExact<T>[]> playerProbabilities = null;
+            if (infoSets.Sum(x => x.Decision.NumPossibleActions) != actionProbabilities.Count())
+            {
+                throw new Exception("Mismatch in number of possible actions");
+            }
+            else
+            {
+                FixDegenerateProbabilities(infoSets, actionProbabilities, out playerProbabilities);
+            }
+            MaybeExact<T> errorTolerance = MaybeExact<T>.One().DividedBy(MaybeExact<T>.FromInteger(EvolutionSettings.MaxIntegralUtility));
+            CalculateUtilitiesAtEachInformationSet_MaybeExact<T> calc = new CalculateUtilitiesAtEachInformationSet_MaybeExact<T>(chanceProbabilities, playerProbabilities, utilities, errorTolerance);
+            TreeWalk_Tree(calc);
+            if (EvolutionSettings.ConfirmPerfectEquilibria)
+            {
+                bool perfect = calc.VerifyPerfectEquilibrium(InformationSets, EvolutionSettings.ThrowIfNotPerfectEquilibrium);
+                TabbedText.WriteLine($"Perfect equilibrium {(!perfect ? "not " : "")}confirmed {s.ElapsedMilliseconds} ms");
+                return perfect;
+            }
+            else
+                return true;
+        }
+
+        private static void FixDegenerateProbabilities<T>(List<InformationSetNode> infoSets, MaybeExact<T>[] actionProbabilities, out Dictionary<(int playerIndex, int nodeIndex), MaybeExact<T>[]> playerProbabilities) where T : MaybeExact<T>, new()
+        {
+            playerProbabilities = new Dictionary<(int playerIndex, int nodeIndex), MaybeExact<T>[]>();
+            var numActionsPerSet = infoSets.Select(x => x.Decision.NumPossibleActions).ToList();
+            int actionProbabilitiesIndex = 0;
+            foreach (var infoSet in infoSets)
+            {
+                MaybeExact<T>[] asArray = new MaybeExact<T>[infoSet.NumPossibleActions];
+                int initialActionProbabilitiesIndex = actionProbabilitiesIndex;
+                MaybeExact<T> total = MaybeExact<T>.Zero();
+                for (int i = 0; i < infoSet.NumPossibleActions; i++)
+                {
+                    var probability = actionProbabilities[actionProbabilitiesIndex++];
+                    asArray[i] = probability;
+                    total = total.Plus(probability);
+                }
+                if (!total.IsOne())
+                {
+                    // Fix degeneracy
+                    if (total.IsZero() || total.IsNegative())
+                    {
+                        for (int i = 0; i < infoSet.NumPossibleActions; i++)
+                        {
+                            actionProbabilities[initialActionProbabilitiesIndex + i] = MaybeExact<T>.One().DividedBy(MaybeExact<T>.FromInteger(infoSet.NumPossibleActions));
+                            asArray[i] = actionProbabilities[initialActionProbabilitiesIndex + i];
+                        }
+
+                    }
+                    else
+                    {
+                        // It appears that when the equilibrium is imperfect (always only very slightly), there is always a degeneracy of this sort. 
+                        // Neither of these approaches makes it go away; nor does using the approach used where total <= 0.
+                        MaybeExact<T> multiplier = MaybeExact<T>.One().DividedBy(total);
+                        for (int i = 0; i < infoSet.NumPossibleActions; i++)
+                        {
+                            actionProbabilities[initialActionProbabilitiesIndex + i] = actionProbabilities[initialActionProbabilitiesIndex + i].Times(multiplier);
+                            asArray[i] = actionProbabilities[initialActionProbabilitiesIndex + i];
+                        }
+                    }
+                }
+                playerProbabilities[(infoSet.PlayerIndex, infoSet.GetNodeNumber())] = asArray;
             }
         }
 
@@ -915,40 +924,6 @@ namespace ACESimBase.GameSolvingAlgorithms
                 bool isFirst = eqNum == 0;
                 bool isLast = eqNum == numEquilibria - 1;
                 var actionProbabilities = equilibria[eqNum];
-                if (infoSets.Sum(x => x.Decision.NumPossibleActions) != actionProbabilities.Count())
-                {
-                    TabbedText.WriteLine($"Equilibrium {eqNum + 1}: mismatch in number of possible actions; skipping"); // Should not happen
-                    throw new Exception("Unexpected mismatch");
-                }
-                else
-                {
-                    var numActionsPerSet = infoSets.Select(x => x.Decision.NumPossibleActions).ToList();
-                    int actionProbabilitiesIndex = 0;
-                    foreach (var infoSet in infoSets)
-                    {
-                        int initialActionProbabilitiesIndex = actionProbabilitiesIndex;
-                        double total = 0;
-                        for (int i = 0; i < infoSet.NumPossibleActions; i++)
-                            total += actionProbabilities[actionProbabilitiesIndex++];
-                        bool fixDegeneracy = true; 
-                        if (fixDegeneracy && Math.Abs(total - 1.0) > 0.000001)
-                        {
-                            //throw new Exception("Probabilities do not add up to 1");
-                            if (total <= 0)
-                            {
-                                for (int i = 0; i < infoSet.NumPossibleActions; i++)
-                                    actionProbabilities[initialActionProbabilitiesIndex + i] = 1.0 / (double)infoSet.NumPossibleActions;
-                            }
-                            else
-                            {
-                                double multiplier = 1.0 / total;
-                                for (int i = 0; i < infoSet.NumPossibleActions; i++)
-                                    actionProbabilities[initialActionProbabilitiesIndex + i] *= multiplier;
-                            }
-                        }
-                    }
-
-                }
                 await ProcessEquilibrium(reportCollection, includeCorrelatedEquilibriumReport, includeReportForFirstEquilibrium, includeReportForEachEquilibrium, numEquilibria, infoSets, eqNum, isFirst, isLast, actionProbabilities);
             }
         }
@@ -969,6 +944,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 }
                 if (total == 0)
                 {
+                    // for ecta, this check is redundant with the above
                     bool setArbitraryActionTo1 = false;
                     bool firstAction = false;
                     if (setArbitraryActionTo1)
@@ -987,30 +963,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                     infoSet.RecordProbabilitiesAsPastValues();
             }
 
-            if (EvolutionSettings.IdentifyPressureOnInformationSets)
-            {
-                IdentifyPressureOnInformationSets(true, true, true, out var crossInformationSetEffects);
-                bool report = false;
-                if (crossInformationSetEffects != null && report)
-                {
-                    for (int i = 0; i < crossInformationSetEffects.Count(); i++)
-                    {
-                        var effectOfInformationSetChange = crossInformationSetEffects[i];
-                        if (effectOfInformationSetChange.actionPromotedInOtherInformationSets != null && effectOfInformationSetChange.actionPromotedInOtherInformationSets.Any(x => x != null))
-                        {
-                            TabbedText.WriteLine($"Change toward action {effectOfInformationSetChange.sourceAction} in information set {InformationSets[i]}:");
-                            for (int j = 0; j < effectOfInformationSetChange.actionPromotedInOtherInformationSets.Length; j++)
-                            {
-                                int? effectOnJ = effectOfInformationSetChange.actionPromotedInOtherInformationSets[j];
-                                if (effectOnJ != null)
-                                {
-                                    TabbedText.WriteLine($"--> move to action {effectOnJ} in information set {InformationSets[j]}");
-                                }
-                            };
-                        }
-                    }
-                }
-            }
+            IdentifyPressureOnInformationSets();
 
             //double[] utils = GetAverageUtilities(false);
             //double[] maxPurifiedUtils = GetMaximumUtilitiesFromPurifiedStrategies();

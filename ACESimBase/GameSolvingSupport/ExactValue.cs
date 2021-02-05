@@ -10,7 +10,7 @@ namespace ACESimBase.GameSolvingSupport
 {
     public readonly struct ExactValue : MaybeExact<ExactValue>
     {
-        public const bool AbbreviateValues = false;
+        public static bool AbbreviateValues = false;
 
         private readonly Rational V;
 

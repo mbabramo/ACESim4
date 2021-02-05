@@ -15,6 +15,7 @@ namespace ACESimBase.GameSolvingSupport
         bool IsEqualTo(MaybeExact<T> b);
         bool IsGreaterThan(MaybeExact<T> b);
         bool IsLessThan(MaybeExact<T> b);
+        bool IsCloseTo(MaybeExact<T> b, MaybeExact<T> absoluteDistance) => this.Minus(b).AbsoluteValue().IsLessThan(absoluteDistance);
         bool IsNegative();
         bool IsNotEqualTo(MaybeExact<T> b);
         bool IsOne();
@@ -23,6 +24,7 @@ namespace ACESimBase.GameSolvingSupport
         MaybeExact<T> LeastCommonMultiple(MaybeExact<T> b);
         MaybeExact<T> Minus(MaybeExact<T> b);
         MaybeExact<T> Negated();
+        MaybeExact<T> AbsoluteValue() => IsNegative() ? this.Negated() : this;
         MaybeExact<T> Plus(MaybeExact<T> b);
         MaybeExact<T> Times(MaybeExact<T> b);
         MaybeExact<T> NewValueFromInteger(int i);

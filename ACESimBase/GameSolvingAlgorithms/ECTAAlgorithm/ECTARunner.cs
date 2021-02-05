@@ -170,14 +170,6 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             }
         }
 
-        public (List<Rational[]> rationals, List<double[]> doubles) Execute_ReturningRationalsAndDoubles(Action<ECTATreeDefinition<T>> setup, Action<int, ECTATreeDefinition<T>> updateActionWhenTracingPathOfEquilibrium)
-        {
-            List<MaybeExact<T>[]> asPotentiallyExact = Execute(setup, updateActionWhenTracingPathOfEquilibrium);
-            var asRationals = asPotentiallyExact.Select(x => x.Select(y => y.IsExact ? y.AsRational : (Rational) 0).ToArray()).ToList();
-            var asDoubles = asPotentiallyExact.Select(x => x.Select(y => y.AsDouble).ToArray()).ToList();
-            return (asRationals, asDoubles);
-        }
-
         /// <summary>
         /// Execute the algorithm, potentially multiple times.
         /// </summary>
@@ -245,9 +237,11 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 {
                     processgame(seed + gamecount);
                 }
-                catch (ECTAException)
+                catch (ECTAException ex)
                 {
-                    TabbedText.WriteLine($"ECTA algorithm failed");
+                    TabbedText.WriteLine($"ECTA algorithm failed {ex.Message}");
+                    if (priorcount == numPriors - 1 && !equilibria.Any())
+                        throw new ECTAException("All attempts to find equilibria failed");
                     succeeded = false;
                 }
                 if (succeeded)

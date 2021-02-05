@@ -89,13 +89,13 @@ namespace ACESim
         internal int NumRandomIterationsForUtilityCalculation = 1000;
         internal bool SuppressReportDisplayOnScreen;
 
-        public int SequenceFormNumPriorsToUseToGenerateEquilibria = 1; // DEBUG // Potentially we may end up with this many equilibria, but often different priors lead to the same equilibrium
+        public int SequenceFormNumPriorsToUseToGenerateEquilibria = 5; // DEBUG // Potentially we may end up with this many equilibria, but often different priors lead to the same equilibrium
         public static int MaxIntegralUtility = 100_000; // We need to convert payoffs to integers with some desired range (e.g., 0 to 1,000,000). A greater range produces greater precision. Note that ECTA will further change the payoffs so that they're all negative. Note that in one experiment, switching from 1,000 to 10,000 on average doubled the amount of time required.
         public static int RoundOffChanceDigits = 5; // Chance numbers will also be converted to rational numbers. The digits might be the same as above.
         public bool IdentifyPressureOnInformationSets = false; // currently called only for sequence form
         public bool ConfirmPerfectEquilibria = true; // for sequence form only
         public bool ThrowIfNotPerfectEquilibrium = false;
-        public bool TryInexactArithmetic = true;
+        public bool TryInexactArithmetic = false;
 
         public static bool PruneOnOpponentStrategy = true; // NOTE: In general sum games, this seemed to cause difficulties at one point, because some of the player's own information sets may not be visited, as a result of pruning on opponents' sets. Also, note that this cannot be used with symmetric games.
         public static double PruneOnOpponentStrategyThreshold = 1E-4; // NOTE: This is the probability for this action, not the cumulative probability. Meanwhile, this is not looked at directly during the generalized tree walk. This value affects only the updating of the information sets, by setting pruned probability to the smallest value possible (a positive value about 1). Pruning will then happen in turn in the tree walk.
