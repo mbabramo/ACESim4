@@ -792,6 +792,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 }
                 if (z0leave)
                 {
+                    tabbedtextf($"Complete after {pivotcount} pivoting steps\n");
                     break;  
                 }
                 if (flags.outputTableauxAfterPivots)

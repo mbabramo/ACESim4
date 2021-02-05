@@ -169,7 +169,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             ecta.outputPrior = false;
             ecta.outputGameTreeSetup = false;
             ecta.outputLCP = false;
-            ecta.outputInitialAndFinalTableaux = false;
+            ecta.outputInitialAndFinalTableaux = false; 
             ecta.outputPivotingSteps = false; 
             ecta.outputTableauxAfterPivots = false;
             ecta.outputPivotResults = false;
@@ -179,11 +179,11 @@ namespace ACESimBase.GameSolvingAlgorithms
             T maybeExact = new T();
             ecta.maxPivotSteps = maybeExact.IsExact ? 0 /* no limit */ : 5_000; 
 
-            bool outputAll = false; 
+            bool outputAll = false;  
             if (outputAll)
             {
-                ecta.outputPrior = true;
-                ecta.outputGameTreeSetup = true;
+                ecta.outputPrior = true; 
+                ecta.outputGameTreeSetup = true; 
                 ecta.outputInitialAndFinalTableaux = true;
                 ecta.outputLCP = true;
                 ecta.outputLCPSolution = true;

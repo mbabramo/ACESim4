@@ -10,6 +10,7 @@ using static ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm.ColumnPrinter;
 using static ACESim.ArrayFormConversionExtension;
 using System.Numerics;
 using ACESimBase.GameSolvingSupport;
+using ACESimBase.Util;
 
 namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
@@ -445,11 +446,15 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         public void outprior()
         {
             int pl;
-
             tabbedtextf("------Prior behavior strategies player 1, 2:\n");
             for (pl = 1; pl < PLAYERS; pl++)
             {
+                // DEBUG TODO -- why are realization probabilities not set the same already? 
+                var originals = moves.Select(x => x.realizationProbability).ToList();
                 SetRealizationProbabilitiesFromBehavioralProbabilities(pl);
+                for (int i = 0; i < originals.Count(); i++)
+                    moves[i].realizationProbability = originals[i];
+
                 realplanfromprob(pl, realizationPlan[pl]);
                 outbehavstrat(pl, realizationPlan[pl], true);
             }
@@ -576,6 +581,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 Lemke.rhsq[i] = MaybeExact<T>.Zero();
             Lemke.rhsq[numSequences[1]] = MaybeExact<T>.One().Negated();
             Lemke.rhsq[numSequences[1] + numInfoSets[2] + 1 + numSequences[2]] = MaybeExact<T>.One().Negated();
+            var DEBUG = ArrayExtensions.TableToString(Lemke.lcpM);
         }
 
         void realplanfromprob(int pl, MaybeExact<T>[] rplan)
@@ -891,6 +897,9 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 int sequenceUpToMove = GetPriorSequence(c);
                 c.realizationProbability = c.behavioralProbability.Times(moves[sequenceUpToMove].realizationProbability);
             }
+            var DEBUG2 = moves.Select(x => x.behavioralProbability).ToList();
+            var DEBUG = moves.Select(x => x.realizationProbability).ToList();
+        
         }
 
         public int GetPriorSequence(ECTAMove<T> c)
@@ -951,6 +960,9 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 
             int i, j;
 
+            SetRealizationProbabilitiesFromBehavioralProbabilities(1);
+            SetRealizationProbabilitiesFromBehavioralProbabilities(2);
+
             int offsetToStartOfPlayer2Sequences = numSequences[1] + 1 + numInfoSets[2];
             /* covering vector  = -rhsq */
             for (i = 0; i < Lemke.lcpdim; i++)
@@ -960,8 +972,11 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             for (i = 0; i < numSequences[1]; i++)
                 for (j = 0; j < numSequences[2]; j++)
                 {
-                    Lemke.coveringVectorD[i] = (Lemke.coveringVectorD[i]).Plus(Lemke.lcpM[i][offsetToStartOfPlayer2Sequences + j] /* Aij, which is offset horizontally in the LCP */.Times(
-                              moves[firstMove[2] + j].realizationProbability /* qj, i.e. the realization probability of player 2's sequence */));
+                    Lemke.coveringVectorD[i] = (Lemke.coveringVectorD[i]).Plus(Lemke.lcpM[i][offsetToStartOfPlayer2Sequences + j] /* Aij, which is offset horizontally in the LCP */.Times(moves[firstMove[2] + j].realizationProbability /* qj, i.e. the realization probability of player 2's sequence */));
+                    if (i == 1 && j == 2)
+                    {
+                        var DEBUG = 0;
+                    }
                 }
             /* RSF yet to be done*/
             /* third blockrow += -B\T p */

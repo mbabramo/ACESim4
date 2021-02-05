@@ -9,6 +9,29 @@ namespace ACESimBase.Util
 {
     public static class ArrayExtensions
     {
+        public static string TableToString<T>(this T[][] arr)
+        {
+            int rowCount = arr.Length;
+            int columnCount = arr[0].Length;
+            int[] colLength = Enumerable.Range(0, columnCount).Select(c => arr.Max(r => r[c]?.ToString()?.Length ?? 0)).ToArray();
+            StringBuilder b = new StringBuilder();
+            for (int r = 0; r < rowCount; r++)
+            {
+                for (int c = 0; c < columnCount; c++)
+                {
+                    string s = arr[r][c].ToString();
+                    b.Append(s);
+                    int spacesNeeded = colLength[c] - s.Length;
+                    for (int sp = 0; sp < spacesNeeded; sp++)
+                        b.Append(" ");
+                    if (c != columnCount - 1)
+                        b.Append(" | ");
+                }
+                b.AppendLine();
+            }
+            return b.ToString();
+        }
+
         public static T[][] TransposeRowsAndColumns<T>(this T[][] arr)
         {
             int rowCount = arr.Length;
