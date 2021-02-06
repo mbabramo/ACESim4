@@ -16,20 +16,46 @@ namespace LitigCharts
         const string averageEquilibriumFileSuffix = "-Avg";
         const string firstEquilibriumFileSuffix = "-Eq1"; 
 
-        public static void ExecuteMain()
+        public static void BuildMainFeeShiftingReport()
+        {
+            List<string> rowsToGet = new List<string> { "All", "PFiles" };
+            List<string> replacementRowNames = new List<string> { "All", "P Files" };
+            List<string> columnsToGet = new List<string> { "Exploit", "PFiles", "DAnswers", "POffer1", "DOffer1", "Trial", "PWinPct", "PWealth", "DWealth", "PWelfare", "DWelfare", "TotExpense", "False+", "False-", "ValIfSettled", "PDoesntFile", "DDoesntAnswer", "SettlesBR1", "PAbandonsBR1", "DDefaultsBR1", "P Loses", "P Wins", "Exploit" };
+            List<string> replacementColumnNames = new List<string> { "Exploitability", "P Files", "D Answers", "P Offer", "D Offer", "Trial", "P Win Prob", "P Wealth", "D Wealth", "P Welfare", "D Welfare", "Expenditures", "False Positive Inaccuracy", "False Negative Inaccuracy", "Value If Settled", "P Doesn't File", "D Doesn't Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins", "Exploitability" };
+            BuildReport(rowsToGet, replacementRowNames, columnsToGet, replacementColumnNames);
+        }
+
+        public static void BuildOffersReport()
+        {
+            var gameDefinition = new LitigGameDefinition();
+            gameDefinition.Setup(GetFeeShiftingGameOptionsSets().First());
+            var reportDefinitions = gameDefinition.GetSimpleReportDefinitions();
+            var report = reportDefinitions.First();
+            var rows = report.RowFilters;
+            var pSignalRows = rows.Where(x => x.Name.StartsWith("PLiabilitySignal")).ToList();
+            var dSignalRows = rows.Where(x => x.Name.StartsWith("DLiabilitySignal")).ToList();
+            // DEBUG -- may wish to get more rows, but we also need to merge the Round 1 P 1 PLiabilitySignal 1 rows with PLiabilitySignal etc., and All with All. 
+
+            List<string> filtersOfRowsToGet = new List<string> { "All" };
+            List<string> columnsToGet = new List<string> { "Exploit", "PFiles", "DAnswers", "POffer1", "DOffer1", "Trial", "PWinPct", "PWealth", "DWealth", "PWelfare", "DWelfare", "TotExpense", "False+", "False-", "ValIfSettled", "PDoesntFile", "DDoesntAnswer", "SettlesBR1", "PAbandonsBR1", "DDefaultsBR1", "P Loses", "P Wins", "Exploit" };
+            List<string> replacementColumnNames = new List<string> { "Exploitability", "P Files", "D Answers", "P Offer", "D Offer", "Trial", "P Win Prob", "P Wealth", "D Wealth", "P Welfare", "D Welfare", "Expenditures", "False Positive Inaccuracy", "False Negative Inaccuracy", "Value If Settled", "P Doesn't File", "D Doesn't Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins", "Exploitability" };
+            BuildReport(filtersOfRowsToGet, filtersOfRowsToGet, columnsToGet, replacementColumnNames);
+        }
+
+        private static void BuildReport(List<string> rowsToGet, List<string> replacementRowNames, List<string> columnsToGet, List<string> replacementColumnNames)
         {
             var launcher = new LitigGameLauncher();
-            var gameOptionsSets = launcher.GetFeeShiftingArticleGamesSets(false, true).SelectMany(x => x).ToList();
+            var gameOptionsSets = GetFeeShiftingGameOptionsSets();
             var map = launcher.GetFeeShiftingArticleNameMap(); // name to find (avoids redundancies)
-            List<string> filtersOfRowsToGet = new List<string> { "All" };
+            string endOfFileName = "output";
             string filePrefix = "FS023-";
             string path = @"C:\Users\Admin\Documents\GitHub\ACESim4\ReportResults";
-            string outputFileFullPath = Path.Combine(path, filePrefix + "-output.csv");
+            string outputFileFullPath = Path.Combine(path, filePrefix + $"-{endOfFileName}.csv");
             string cumResults = "";
             foreach (string fileSuffix in new string[] { correlatedEquilibriumFileSuffix, averageEquilibriumFileSuffix, firstEquilibriumFileSuffix })
             {
                 bool includeHeader = fileSuffix == correlatedEquilibriumFileSuffix;
-                List<List<string>> outputLines = GetCSVLines(gameOptionsSets, map, filtersOfRowsToGet, filePrefix, fileSuffix, path, includeHeader);
+                List<List<string>> outputLines = GetCSVLines(gameOptionsSets, map, rowsToGet, replacementRowNames, filePrefix, fileSuffix, path, includeHeader, columnsToGet, replacementColumnNames);
                 if (includeHeader)
                     outputLines[0].Insert(0, "Equilibrium Type");
                 string equilibriumType = fileSuffix switch
@@ -47,14 +73,17 @@ namespace LitigCharts
             TextFileCreate.CreateTextFile(outputFileFullPath, cumResults);
         }
 
-        private static List<List<string>> GetCSVLines(List<LitigGameOptions> gameOptionsSets, Dictionary<string, string> map, List<string> filtersOfRowsToGet, string filePrefix, string fileSuffix, string path, bool includeHeader)
+        private static List<LitigGameOptions> GetFeeShiftingGameOptionsSets()
         {
-            List<string> columnsToGet = new List<string> { "Exploit", "PFiles", "DAnswers", "POffer1", "DOffer1", "Trial", "PWinPct", "PWealth", "DWealth", "PWelfare", "DWelfare", "TotExpense", "False+", "False-", "ValIfSettled", "PDoesntFile", "DDoesntAnswer", "SettlesBR1", "PAbandonsBR1", "DDefaultsBR1", "P Loses", "P Wins", "Exploit" };
-            List<string> replacementColumnNames = new List<string> { "Exploitability", "P Files", "D Answers", "P Offer", "D Offer", "Trial", "P Win Prob", "P Wealth", "D Wealth", "P Welfare", "D Welfare", "Expenditures", "False Positive Inaccuracy", "False Negative Inaccuracy", "Value If Settled", "P Doesn't File", "D Doesn't Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins", "Exploitability" };
+            var launcher = new LitigGameLauncher();
+            return launcher.GetFeeShiftingArticleGamesSets(false, true).SelectMany(x => x).ToList();
+        }
+
+        private static List<List<string>> GetCSVLines(List<LitigGameOptions> gameOptionsSets, Dictionary<string, string> map, List<string> rowsToGet, List<string> replacementRowNames,  string filePrefix, string fileSuffix, string path, bool includeHeader, List<string> columnsToGet, List<string> replacementColumnNames)
+        {
 
             // Set the following on opening the first file
             List<List<string>> outputLines = null;
-            LitigGameDefinition gameDefinition = null;
 
             foreach (var gameOptionsSet in gameOptionsSets.Where(x => map[x.Name] == x.Name)) // for this aggregation, we want only one copy of each report, so we exclude the redundant names that include the baseline values for a noncritical set
             {
@@ -65,18 +94,10 @@ namespace LitigCharts
                     if (includeHeader)
                     {
                         List<string> headings = gameOptionsSet.VariableSettings.OrderBy(x => x.Key.ToString()).Select(x => x.Key).ToList();
+                        headings.Add("Filter");
                         headings.AddRange(replacementColumnNames);
                         outputLines.Add(headings);
                     }
-
-                    gameDefinition = new LitigGameDefinition();
-                    gameDefinition.Setup(gameOptionsSet);
-                    var reportDefinitions = gameDefinition.GetSimpleReportDefinitions();
-                    var report = reportDefinitions.First();
-                    var rows = report.RowFilters;
-                    var pSignalRows = rows.Where(x => x.Name.StartsWith("Round 1 P 1")).ToList();
-                    var dSignalRows = rows.Where(x => x.Name.StartsWith("Round 1 D 1")).ToList();
-                    // DEBUG -- may wish to get more rows, but we also need to merge the Round 1 P 1 PLiabilitySignal 1 rows with PLiabilitySignal etc., and All with All. 
                 }
                 double?[,] resultsAllRows = null;
             retry:
@@ -85,12 +106,12 @@ namespace LitigCharts
                     string filenameCore = map[gameOptionsSet.Name];
                     string filename = filePrefix + filenameCore + fileSuffix + ".csv";
                     string combined = Path.Combine(path, filename);
-                    (string columnName, string expectedText)[][] rowsToFind = new (string columnName, string expectedText)[filtersOfRowsToGet.Count()][];
-                    for (int f = 0; f < filtersOfRowsToGet.Count(); f++)
+                    (string columnName, string expectedText)[][] rowsToFind = new (string columnName, string expectedText)[rowsToGet.Count()][];
+                    for (int f = 0; f < rowsToGet.Count(); f++)
                     {
                         rowsToFind[f] = new (string columnName, string expectedText)[2];
                         rowsToFind[f][0] = ("OptionSet", filenameCore);
-                        rowsToFind[f][1] = ("Filter", filtersOfRowsToGet[f]);
+                        rowsToFind[f][1] = ("Filter", rowsToGet[f]);
                     }
                     // string[] columnsToGet = new string[] { "Trial", "AccSq", "POffer", "DOffer" };
                     resultsAllRows = CSVData.GetCSVData(combined, rowsToFind.ToArray(), columnsToGet.ToArray(), true);
@@ -104,10 +125,14 @@ namespace LitigCharts
                     }
                     throw;
                 }
-                List<string> bodyRow = new List<string>();
-                bodyRow.AddRange(gameOptionsSet.VariableSettings.OrderBy(x => x.Key.ToString()).Select(x => x.Value?.ToString()));
-                bodyRow.AddRange(resultsAllRows.GetRow(0).Select(x => x?.ToString()));
-                outputLines.Add(bodyRow);
+                for (int f = 0; f < rowsToGet.Count(); f++)
+                {
+                    List<string> bodyRow = new List<string>();
+                    bodyRow.AddRange(gameOptionsSet.VariableSettings.OrderBy(x => x.Key.ToString()).Select(x => x.Value?.ToString()));
+                    bodyRow.Add(replacementRowNames[f]);
+                    bodyRow.AddRange(resultsAllRows.GetRow(f).Select(x => x?.ToString()));
+                    outputLines.Add(bodyRow);
+                }
             }
             return outputLines;
         }

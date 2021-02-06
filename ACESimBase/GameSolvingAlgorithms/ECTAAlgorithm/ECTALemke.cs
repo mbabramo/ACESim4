@@ -10,6 +10,7 @@ using JetBrains.Annotations;
 using System.Numerics;
 using ACESim;
 using ACESimBase.GameSolvingSupport;
+using ACESimBase.Util;
 
 namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
@@ -40,6 +41,8 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         /*         n .. 2n:  tabl cols  0..n (cobasic) */
         public int[] variableIndexToBasicCobasicIndex;     /* given a variable at index i, shows where that variable is located in the list of basic then cobasic variables                      */
         public int[] basicCobasicIndexToVariable;          /* inverse of variableIndexToBasicCobasicIndex  */
+
+        List<(int leaving, int entering)> pivotHistory = new List<(int leaving, int entering)>();
         public int TableauRow(int variableIndexOfBasicVariable) => variableIndexToBasicCobasicIndex[variableIndexOfBasicVariable];
         public int TableauColumn(int variableIndexOfCobasicVariable) => variableIndexToBasicCobasicIndex[variableIndexOfCobasicVariable] - n;
         private bool VariableIsBasic(int v) => variableIndexToBasicCobasicIndex[v] < n;
@@ -748,6 +751,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             int leaveBasis, enterBasis;
             bool z0leave = false;
 
+            bool usingExactArithmetic = new T().IsExact;
             pivotcount = 1;
             InitMinRatioTestStatistics();
 
@@ -781,6 +785,13 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 TestTableauVariables();
                 if (flags.outputPivotingSteps)
                     OutputPivotLeaveAndEnter(leaveBasis, enterBasis);
+                pivotHistory.Add((leaveBasis, enterBasis));
+                if (!usingExactArithmetic && flags.abortIfCycling && CheckCycling(flags.minRepetitionsForCycling))
+                {
+                    string err = $"Cycling detected after {pivotcount} steps";
+                    TabbedText.WriteLine(err);
+                    throw new ECTAException(err);
+                }
                 Pivot(leaveBasis, enterBasis);
                 if (VariableIsBasic(leaveBasis))
                 {
@@ -802,7 +813,6 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                    flags.maxPivotSteps);
                     throw new ECTAException($"Max ({flags.maxPivotSteps}) pivoting steps reached.");
                 }
-                
             }
 
             if (flags.outputInitialAndFinalTableaux)
@@ -816,6 +826,11 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 OutputSolution();
 
             TransformBasicSolution();
+        }
+
+        private bool CheckCycling(int minNumRepetitionsForCycle)
+        {
+            return CycleDetection.CycleExists((a, b) => pivotHistory[a] == pivotHistory[b], pivotHistory.Count(), minNumRepetitionsForCycle);
         }
     }
 }

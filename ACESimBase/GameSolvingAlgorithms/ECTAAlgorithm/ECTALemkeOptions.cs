@@ -14,5 +14,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         public bool outputTableauxAfterPivots;   /* Y/N  output entire tableau at each step      */
         public bool outputSolution;   /* Y/N  output solution                         */
         public bool outputLexStats;   /* Y/N  statistics on lexminratio tests         */
+        public bool abortIfCycling; /* if Y, we abort prematurely if a cycle is observed */
+        public int minRepetitionsForCycling; /* must be greater than 1, or cycling will always be detected */
     }
 }

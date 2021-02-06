@@ -31,6 +31,8 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         public bool outputRealizationPlan = false; 
         public bool outputLCPSolution = false;
         public bool outputLexStats = false;
+        public bool abortIfCycling = true;
+        public int minRepetitionsForCycling = 3;
         public int maxPivotSteps = 0;
 
         /* global variables for generating and documenting computation  */
@@ -186,6 +188,9 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             lemkeOptions.outputTableauxAfterPivots = outputTableauxAfterPivots;
             lemkeOptions.outputSolution = outputLCPSolution;
             lemkeOptions.outputLexStats = outputLexStats;
+            lemkeOptions.abortIfCycling = abortIfCycling;
+            lemkeOptions.minRepetitionsForCycling = minRepetitionsForCycling;
+
             /* parse options    */
             if (outputPivotingSteps)
             {
@@ -208,21 +213,19 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 
             /* process games                    */
             int gamecount = 0;
-            int priorSeed = 0;
 
             t.allocateRealizationPlan();
             if (outputPivotResults && outputPivotHeaderFirst) /* otherwise the header is garbled by LCP output */
                 inforesultheader();
-            int priorcount; 
             MaybeExact<T>[] equilibriumProbabilities = null;
             /* multiple priors 	*/
-            for (priorcount = 0; priorcount < numPriors; priorcount++)
+            for (int priorcount = 0; priorcount < numPriors; priorcount++)
             {
                 Stopwatch s = new Stopwatch();
                 s.Start();
                 TabbedText.WriteLine($"Prior {priorcount + 1} of {numPriors}");
                 if (priorcount == 0 || !tracingEquilibrium)
-                    t.genprior(priorSeed);
+                    t.genprior(priorcount);
                 else
                 {
                     t.MakePlayerMovesStrictlyMixed(equilibriumProbabilities, MaybeExact<T>.One().DividedBy(MaybeExact<T>.FromInteger(1_000)));
@@ -248,8 +251,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 {
                     if (outputPivotResults && !outputPivotHeaderFirst)
                         inforesultheader();
-                    infopivotresult(priorSeed, seed + gamecount);
-                    priorSeed++;
+                    infopivotresult(priorcount, seed + gamecount);
                     equilibriumProbabilities = t.GetPlayerMovesFromSolution().ToArray(); // probabilities for each non-chance player, ordered by player, information set, and then action.
                     int? sameAsEquilibrium = equilibria.Select((item, index) => ((MaybeExact<T>[] item, int index)?)(item, index)).FirstOrDefault(x => x != null && x.Value.item.SequenceEqual(equilibriumProbabilities))?.index;
                     if (sameAsEquilibrium != null)

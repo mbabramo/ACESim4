@@ -359,5 +359,33 @@ namespace ACESimTest
 
         }
 
+        [TestMethod]
+        public void CycleTests()
+        {
+            List<int> x = new List<int>() { 3, 3, 3, 3 };
+            CycleDetection.CycleExists((i, j) => x[i] == x[j], x.Count(), 4).Should().BeTrue();
+            CycleDetection.CycleExists((i, j) => x[i] == x[j], x.Count(), 3).Should().BeTrue();
+            CycleDetection.CycleExists((i, j) => x[i] == x[j], x.Count(), 2).Should().BeTrue();
+            CycleDetection.CycleExists((i, j) => x[i] == x[j], x.Count(), 1).Should().BeTrue();
+            x.Add(5);
+            CycleDetection.CycleExists((i, j) => x[i] == x[j], x.Count(), 4).Should().BeFalse();
+            CycleDetection.CycleExists((i, j) => x[i] == x[j], x.Count(), 3).Should().BeFalse();
+            CycleDetection.CycleExists((i, j) => x[i] == x[j], x.Count(), 2).Should().BeFalse();
+            CycleDetection.CycleExists((i, j) => x[i] == x[j], x.Count(), 1).Should().BeTrue();
+            x = new List<int>() { 0, 0, 0, 1, 2, 3, 1, 2, 3, 1, 2, 3 };
+            CycleDetection.CycleExists((i, j) => x[i] == x[j], x.Count(), 4).Should().BeFalse();
+            CycleDetection.CycleExists((i, j) => x[i] == x[j], x.Count(), 3).Should().BeTrue();
+            CycleDetection.CycleExists((i, j) => x[i] == x[j], x.Count(), 2).Should().BeTrue();
+            CycleDetection.CycleExists((i, j) => x[i] == x[j], x.Count(), 1).Should().BeTrue();
+            x.Add(4);
+            CycleDetection.CycleExists((i, j) => x[i] == x[j], x.Count(), 1).Should().BeTrue();
+            CycleDetection.CycleExists((i, j) => x[i] == x[j], x.Count(), 2).Should().BeFalse();
+            x.Remove(4);
+            x.Add(3);
+            CycleDetection.CycleExists((i, j) => x[i] == x[j], x.Count(), 1).Should().BeTrue();
+            CycleDetection.CycleExists((i, j) => x[i] == x[j], x.Count(), 2).Should().BeTrue();
+            CycleDetection.CycleExists((i, j) => x[i] == x[j], x.Count(), 3).Should().BeFalse();
+        }
+
     }
 }

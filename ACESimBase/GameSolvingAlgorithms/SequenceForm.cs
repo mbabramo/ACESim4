@@ -176,8 +176,10 @@ namespace ACESimBase.GameSolvingAlgorithms
             ecta.outputLCPSolution = false; 
             ecta.outputEquilibrium = true;
             ecta.outputRealizationPlan = false;
+            ecta.abortIfCycling = true;
+            ecta.minRepetitionsForCycling = 3;
             T maybeExact = new T();
-            ecta.maxPivotSteps = maybeExact.IsExact ? 0 /* no limit */ : 5_000; 
+            ecta.maxPivotSteps = maybeExact.IsExact ? 0 /* no limit */ : 5_000; // DEBUG
 
             bool outputAll = false;  
             if (outputAll)
@@ -194,16 +196,15 @@ namespace ACESimBase.GameSolvingAlgorithms
                 ecta.outputRealizationPlan = true;
             }
 
-            bool usePresetEquilibria = false; // use this as a shortcut to replay some equilibrium
+            bool useManuallyDefinedEquilibria = false; // use this as a shortcut to replay some equilibrium
             List<double[]> equilibria = null;
-            if (usePresetEquilibria)
+            if (EvolutionSettings.PreloadedEquilibriaForSequenceForm)
             {
-                double[] eq = new double[] {
-                    //1,0,0.522862,0.477138,1,0,0.975029,0.0249706,1,0,0.522862,0.477138,1,0,0.975029,0.0249706,1,0,0,1,0,1,0,1,1,0,0,1,0,1,0,1,1,0,0,1,1,0,1,0,1,0,0.500793,0.499207,1,0,1,0,1,0,0.5,0.5,0,1,0,1,1,0,0.5,0.5,0,1,0,1
-
-                    1,0,0,1,1/2,1/2,0,1,1,0,0,1,1/2,1/2,1139690000.0/1152971127.0,13281127.0/1152971127.0,1,0,0,1,1.0/2.0,1.0/2.0,0,1,1,0,0,1,1.0/2.0,1.0/2.0,0,1,1,0,0,1,1.0/2.0,1.0/2.0,1,0,1,0,13513.0/26983.0,13470.0/26983.0,1,0,1,0,1,0,0,1,1.0/2.0,1.0/2.0,0,1,1,0,0,1,1.0/2.0,1.0/2.0,0,1
-
-                    //1,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+                equilibria = LoadEquilibriaFile();
+            }
+            else if (useManuallyDefinedEquilibria)
+            {
+                double[] eq =  new double[] {1,0,0,1,1/2,1/2,0,1,1,0,0,1,1/2,1/2,1139690000.0/1152971127.0,13281127.0/1152971127.0,1,0,0,1,1.0/2.0,1.0/2.0,0,1,1,0,0,1,1.0/2.0,1.0/2.0,0,1,1,0,0,1,1.0/2.0,1.0/2.0,1,0,1,0,13513.0/26983.0,13470.0/26983.0,1,0,1,0,1,0,0,1,1.0/2.0,1.0/2.0,0,1,1,0,0,1,1.0/2.0,1.0/2.0,0,1
                 };
                 equilibria = new List<double[]>() { eq };
             }
@@ -214,6 +215,8 @@ namespace ACESimBase.GameSolvingAlgorithms
                 List<MaybeExact<T>[]> results = ecta.Execute(t => SetupECTA(t), scenarioUpdater);
                 CheckEquilibria<T>(results);
                 equilibria = results.Select(x => x.Select(y => y.AsDouble).ToArray()).ToList();
+                if (EvolutionSettings.CreateEquilibriaFileForSequenceForm)
+                    CreateEquilibriaFile(equilibria);               
             }
             await GenerateReportsFromEquilibria(equilibria, reportCollection);
         }
@@ -277,7 +280,10 @@ namespace ACESimBase.GameSolvingAlgorithms
             CalculateBestResponse(false);
             double maxBestResponseImprovementAdjAvg = 0.001;
             if (Status.BestResponseImprovementAdjAvg >= maxBestResponseImprovementAdjAvg)
+            {
+                TabbedText.WriteLine($"Best response improvement average was {Status.BestResponseImprovementAdjAvg}; equilibrium rejected");
                 return false;
+            }
 
             MaybeExact<T> errorTolerance = MaybeExact<T>.One().DividedBy(MaybeExact<T>.FromInteger(EvolutionSettings.MaxIntegralUtility));
             CalculateUtilitiesAtEachInformationSet_MaybeExact<T> calc = new CalculateUtilitiesAtEachInformationSet_MaybeExact<T>(chanceProbabilities, playerProbabilities, utilities, errorTolerance);
@@ -836,6 +842,36 @@ namespace ACESimBase.GameSolvingAlgorithms
             string filename = Path.Combine(folderFullName, GameDefinition.OptionSetName + ".efg");
             TextFileCreate.CreateTextFile(filename, efgResult);
             return filename;
+        }
+
+        private string CreateEquilibriaFile(List<double[]> equilibria)
+        {
+            StringBuilder s = new StringBuilder();
+            foreach (var equilibrium in equilibria)
+            {
+                s.AppendLine(String.Join(",", equilibrium));
+            }
+            DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
+            var folderFullName = folder.FullName;
+            string filename = Path.Combine(folderFullName, GameDefinition.OptionSetName + "-equ.csv");
+            TextFileCreate.CreateTextFile(filename, s.ToString());
+            return filename;
+        }
+
+        public List<double[]> LoadEquilibriaFile()
+        {
+            DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
+            var folderFullName = folder.FullName;
+            string filename = Path.Combine(folderFullName, GameDefinition.OptionSetName + "-equ.csv");
+            var filestream = new System.IO.FileStream(filename,
+                                          System.IO.FileMode.Open,
+                                          System.IO.FileAccess.Read,
+                                          System.IO.FileShare.ReadWrite);
+            var streamreader = new System.IO.StreamReader(filestream, System.Text.Encoding.UTF8, true, 128);
+            string[] filestreams = streamreader.ReadToEnd().Split(Environment.NewLine,
+                              StringSplitOptions.RemoveEmptyEntries);
+            List<double[]> numbers = filestreams.Select(x => x.Split().Select(x => EFGFileReader.RationalStringToDouble(x)).ToArray()).ToList();
+            return numbers;
         }
 
         private async Task<string> CreateGambitProcess(string filename)
