@@ -241,21 +241,21 @@ namespace ACESimBase.GameSolvingAlgorithms
             bool isExact = new T().IsExact;
             for (int eqNum = 0; eqNum < numEquilibria; eqNum++)
             {
-                bool isFirst = eqNum == 0;
-                bool isLast = eqNum == numEquilibria - 1;
                 var actionProbabilities = equilibria[eqNum];
                 bool perfect = CheckEquilibrium(infoSets, chanceProbabilities, utilities, actionProbabilities);
-                if (!perfect && isExact)
+                if (!perfect)
                     imperfect.Add(eqNum);
             }
             bool eliminateImperfectIfPossible = true;
-            if (eliminateImperfectIfPossible && imperfect.Count() > 0 && imperfect.Count() < numEquilibria)
+            if (eliminateImperfectIfPossible && (!isExact || (imperfect.Count() > 0 && imperfect.Count() < numEquilibria)))
             {
                 // narrow down to perfect equilibrium -- in observation, the imperfection is only in a very late decimal place when converted to double
                 imperfect.Reverse();
                 foreach (int eqNum in imperfect)
                     equilibria.RemoveAt(eqNum);
             }
+            if (!equilibria.Any())
+                throw new ECTAException("No equilibria found");
         }
 
         private bool CheckEquilibrium<T>(List<InformationSetNode> infoSets, Dictionary<int, MaybeExact<T>[]> chanceProbabilities, Dictionary<int, MaybeExact<T>[]> utilities, MaybeExact<T>[] actionProbabilities) where T : MaybeExact<T>, new()
@@ -271,6 +271,14 @@ namespace ACESimBase.GameSolvingAlgorithms
             {
                 FixDegenerateProbabilities(infoSets, actionProbabilities, out playerProbabilities);
             }
+
+            // check the best response improvement
+            SetInformationSetsToEquilibrium(actionProbabilities.Select(x => x.AsDouble).ToArray());
+            CalculateBestResponse(false);
+            double maxBestResponseImprovementAdjAvg = 0.001;
+            if (Status.BestResponseImprovementAdjAvg >= maxBestResponseImprovementAdjAvg)
+                return false;
+
             MaybeExact<T> errorTolerance = MaybeExact<T>.One().DividedBy(MaybeExact<T>.FromInteger(EvolutionSettings.MaxIntegralUtility));
             CalculateUtilitiesAtEachInformationSet_MaybeExact<T> calc = new CalculateUtilitiesAtEachInformationSet_MaybeExact<T>(chanceProbabilities, playerProbabilities, utilities, errorTolerance);
             TreeWalk_Tree(calc);
@@ -911,11 +919,12 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         private async Task GenerateReportsFromEquilibria(List<double[]> equilibria, ReportCollection reportCollection)
         {
+            bool includeAverageEquilibriumReport = true;
             bool includeCorrelatedEquilibriumReport = true;
             if (includeCorrelatedEquilibriumReport)
                 SaveWeightedGameProgressesAfterEachReport = true;
             bool includeReportForFirstEquilibrium = true;
-            bool includeReportForEachEquilibrium = true;
+            bool includeReportForEachEquilibrium = false;
             int numEquilibria = equilibria.Count();
             var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetNodeNumber).ToList();
             var infoSetNames = infoSets.Select(x => x.ToStringWithoutValues()).ToArray();
@@ -924,13 +933,13 @@ namespace ACESimBase.GameSolvingAlgorithms
                 bool isFirst = eqNum == 0;
                 bool isLast = eqNum == numEquilibria - 1;
                 var actionProbabilities = equilibria[eqNum];
-                await ProcessEquilibrium(reportCollection, includeCorrelatedEquilibriumReport, includeReportForFirstEquilibrium, includeReportForEachEquilibrium, numEquilibria, infoSets, eqNum, isFirst, isLast, actionProbabilities);
+                await ProcessEquilibrium(reportCollection, includeAverageEquilibriumReport, includeCorrelatedEquilibriumReport, includeReportForFirstEquilibrium, includeReportForEachEquilibrium, numEquilibria, infoSets, eqNum, isFirst, isLast, actionProbabilities);
             }
         }
 
-        private async Task ProcessEquilibrium(ReportCollection reportCollection, bool includeCorrelatedEquilibriumReport, bool includeReportForFirstEquilibrium, bool includeReportForEachEquilibrium, int numEquilibria, List<InformationSetNode> infoSets, int eqNum, bool isFirst, bool isLast, double[] actionProbabilities)
+        private void SetInformationSetsToEquilibrium(double[] actionProbabilities)
         {
-
+            var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetNodeNumber).ToList();
             int totalNumbersProcessed = 0;
             for (int i = 0; i < infoSets.Count(); i++)
             {
@@ -940,23 +949,49 @@ namespace ACESimBase.GameSolvingAlgorithms
                 {
                     double v = actionProbabilities[totalNumbersProcessed++];
                     total += v;
-                    infoSet.SetActionToProbabilityValue(a, v, true);
+                    infoSet.SetCurrentStrategyValue(a, v, true);
                 }
                 if (total == 0)
                 {
-                    // for ecta, this check is redundant with the above
-                    bool setArbitraryActionTo1 = false;
-                    bool firstAction = false;
-                    if (setArbitraryActionTo1)
-                        infoSet.SetActionToProbabilityValue(firstAction ? 1 : infoSet.Decision.NumPossibleActions, 1.0, true);
-                    else
+                    // This is a redundant check for ECTA.
+                    // This information set cannot be reached. Use even probabilities.
+                    double v = 1.0 / (double)infoSet.Decision.NumPossibleActions;
+                    for (byte a = 1; a <= infoSet.Decision.NumPossibleActions; a++)
                     {
-                        // This information set cannot be reached. Use even probabilities.
-                        double p = 1.0 / (double)infoSet.Decision.NumPossibleActions;
-                        for (byte a = 1; a <= infoSet.Decision.NumPossibleActions; a++)
-                        {
-                            infoSet.SetActionToProbabilityValue(a, p, true);
-                        }
+                        infoSet.SetCurrentStrategyValue(a, v, true);
+                    }
+                }
+            }
+        }
+
+        private async Task ProcessEquilibrium(ReportCollection reportCollection, bool includeAverageEquilibriumReport, bool includeCorrelatedEquilibriumReport, bool includeReportForFirstEquilibrium, bool includeReportForEachEquilibrium, int numEquilibria, List<InformationSetNode> infoSets, int eqNum, bool isFirst, bool isLast, double[] actionProbabilities)
+        {
+
+            int totalNumbersProcessed = 0;
+            double weightToGivePastValueInAverage = eqNum / (eqNum + 1.0);
+            double weightToGiveNewValueInAverage = 1.0 - weightToGivePastValueInAverage;
+            for (int i = 0; i < infoSets.Count(); i++)
+            {
+                double total = 0;
+                InformationSetNode infoSet = infoSets[i];
+                for (byte a = 1; a <= infoSet.Decision.NumPossibleActions; a++)
+                {
+                    double v = actionProbabilities[totalNumbersProcessed++];
+                    total += v;
+                    double weightedCurrentAverageValue = infoSet.GetAverageStrategiesAsArray()[a - 1] * weightToGivePastValueInAverage;
+                    double revisedAverage = weightedCurrentAverageValue + v * weightToGiveNewValueInAverage;
+                    infoSet.SetCurrentAndAverageStrategyValues(a, v, revisedAverage);
+                }
+                if (total == 0)
+                {
+                    // This is a redundant check for ECTA.
+                    // This information set cannot be reached. Use even probabilities.
+                    double v = 1.0 / (double)infoSet.Decision.NumPossibleActions;
+                    for (byte a = 1; a <= infoSet.Decision.NumPossibleActions; a++)
+                    {
+                        double weightedCurrentAverageValue = infoSet.GetAverageStrategiesAsArray()[a - 1] * weightToGivePastValueInAverage;
+                        double revisedAverage = weightedCurrentAverageValue + v * weightToGiveNewValueInAverage;
+                        infoSet.SetCurrentAndAverageStrategyValues(a, v, revisedAverage);
                     }
                 }
                 if (includeCorrelatedEquilibriumReport)
@@ -973,10 +1008,16 @@ namespace ACESimBase.GameSolvingAlgorithms
             if ((includeReportForFirstEquilibrium && isFirst) || includeReportForEachEquilibrium)
             {
                 await AddReportForEquilibrium(reportCollection, numEquilibria, eqNum);
+                if (numEquilibria == 1)
+                    return;
             }
             if (includeCorrelatedEquilibriumReport && isLast)
             {
                 AddCorrelatedEquilibriumReport(reportCollection);
+            }
+            if (includeAverageEquilibriumReport && isLast)
+            {
+                await AddAverageEquilibriumReport(reportCollection);
             }
         }
 
@@ -987,9 +1028,9 @@ namespace ACESimBase.GameSolvingAlgorithms
             EvolutionSettings.ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.CurrentProbability }; // will use latest equilibrium 
             var reportResult = await GenerateReports(EvolutionSettings.ReportEveryNIterations ?? 0,
                 () =>
-                    $"{GameDefinition.OptionSetName}{(EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria > 1 ? $"Eq{eqNum + 1}" : "")}");
+                    $"{GameDefinition.OptionSetName}{(EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria > 1 ? $"-Eq{eqNum + 1}" : "")}");
             reportCollection.Add(reportResult, false, true);
-            TabbedText.WriteLine($"Elapsed milliseconds generating report: {s.ElapsedMilliseconds}");
+            TabbedText.WriteLine($"Elapsed milliseconds report for eq {eqNum + 1} of {numEquilibria}: {s.ElapsedMilliseconds}");
         }
 
         private void AddCorrelatedEquilibriumReport(ReportCollection reportCollection)
@@ -997,10 +1038,21 @@ namespace ACESimBase.GameSolvingAlgorithms
             Stopwatch s = new Stopwatch();
             s.Start();
             var reportResult = GenerateReportFromSavedWeightedGameProgresses(true);
-            reportResult.AddName($"{GameDefinition.OptionSetName}{("Corr")}");
+            reportResult.AddName($"{GameDefinition.OptionSetName}{("-Corr")}");
             PrintReportsToScreenIfNotSuppressed(reportResult);
             reportCollection.Add(reportResult, false, true);
-            TabbedText.WriteLine($"Elapsed milliseconds generating report: {s.ElapsedMilliseconds}");
+            TabbedText.WriteLine($"Elapsed milliseconds generating correlated equilibrium report: {s.ElapsedMilliseconds}");
+        }
+
+        private async Task AddAverageEquilibriumReport(ReportCollection reportCollection)
+        {
+            Stopwatch s = new Stopwatch();
+            s.Start();
+            EvolutionSettings.ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.AverageStrategy }; 
+            var reportResult = await GenerateReports(EvolutionSettings.ReportEveryNIterations ?? 0,
+                () => $"{GameDefinition.OptionSetName}-Avg");
+            reportCollection.Add(reportResult, false, true);
+            TabbedText.WriteLine($"Elapsed milliseconds generating average equilibrium report: {s.ElapsedMilliseconds}");
         }
 
         #endregion

@@ -1564,7 +1564,6 @@ namespace ACESim
                 }
             }
             // Confirm that after setting the utilities, reloading the utilities as rationals leads to the same result
-            // DEBUG
             //var utilities2 = GetUtilitiesAsRationals();
             //for (int p = 0; p < NumNonChancePlayers; p++)
             //    if (!UtilitiesAsRationals[p].SequenceEqual(utilities2[p]))

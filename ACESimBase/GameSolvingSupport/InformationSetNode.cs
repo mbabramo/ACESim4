@@ -1304,7 +1304,7 @@ namespace ACESim
                 }
                 done = Math.Abs(1.0 - total) < 1E-4;
                 if (i++ > 100)
-                    return; // DEBUG throw new Exception("Probabilities don't add up to 1");
+                    return; // throw new Exception("Probabilities don't add up to 1");
             }
         }
 
@@ -1504,11 +1504,11 @@ namespace ACESim
             for (byte a = 1; a <= NumPossibleActions; a++)
             {
                 double probabilityValue = strategy[a - 1];
-                SetActionToProbabilityValue(a, probabilityValue, setAverageAndCumulativeStrategy);
+                SetCurrentStrategyValue(a, probabilityValue, setAverageAndCumulativeStrategy);
             }
         }
 
-        public void SetActionToProbabilityValue(byte a, double probabilityValue, bool setAverageAndCumulativeStrategy)
+        public void SetCurrentStrategyValue(byte a, double probabilityValue, bool setAverageAndCumulativeStrategy)
         {
             if (double.IsNaN(probabilityValue))
                 throw new Exception();
@@ -1519,6 +1519,15 @@ namespace ACESim
                 NodeInformation[averageStrategyProbabilityDimension, a - 1] = probabilityValue;
                 NodeInformation[cumulativeStrategyDimension, a - 1] = probabilityValue;
             }
+        }
+        public void SetCurrentAndAverageStrategyValues(byte a, double current, double average)
+        {
+            if (double.IsNaN(current) || double.IsNaN(average))
+                throw new Exception();
+            NodeInformation[currentProbabilityDimension, a - 1] = current;
+            NodeInformation[currentProbabilityForOpponentDimension, a - 1] = current;
+            NodeInformation[averageStrategyProbabilityDimension, a - 1] = average;
+            NodeInformation[cumulativeStrategyDimension, a - 1] = average;
         }
 
         public void SetToPureStrategy(byte action, bool setAverageAndCumulativeStrategy)
