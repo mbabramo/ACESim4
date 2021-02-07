@@ -32,6 +32,7 @@ namespace ACESim
         public const bool UseRandomPathsForReporting = false; 
         public const int SummaryTableRandomPathsIterations = 1_000;
         public const int ProbingIterations = 20_000_000;
+        public const bool GenerateManualReports = true;
 
         public int MaxParallelDepth = 3;
         public bool ParallelizeOptionSets = false; // run multiple option sets at same time on computer (in which case each individually will be run not in parallel)
@@ -170,6 +171,7 @@ namespace ACESim
                 SuppressBestResponseBeforeIteration = SuppressBestResponseBeforeIteration,
                 CalculatePerturbedBestResponseRefinement = CalculatePerturbedBestResponseRefinement,
                 MiniReportEveryPIterations = MiniReportEveryPIterations,
+                GenerateManualReports = GenerateManualReports,
 
                 NumRandomIterationsForSummaryTable = SummaryTableRandomPathsIterations,
                 GenerateReportsByPlaying = true,
@@ -282,7 +284,10 @@ namespace ACESim
                         logAction($"Beginning task {taskToDo.TaskType} (ID {taskToDo.ID})");
                         try
                         {
-                            await CompleteIndividualTask(masterReportName, taskToDo, logAction);
+                            bool skipAllButSpecifiedTasks = false; 
+                            List<int> limitToTasks = new List<int>() { 1100, 1279 };
+                            if (!skipAllButSpecifiedTasks || limitToTasks.Contains(taskToDo.ID))
+                                await CompleteIndividualTask(masterReportName, taskToDo, logAction);
                         }
                         catch (Exception ex)
                         {

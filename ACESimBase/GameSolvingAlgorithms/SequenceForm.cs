@@ -276,7 +276,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             }
 
             // check the best response improvement
-            SetInformationSetsToEquilibrium(actionProbabilities.Select(x => x.AsDouble).ToArray());
+            SetInformationSetsToEquilibrium(actionProbabilities.Select(x => double.IsNaN(x.AsDouble) ? 0 : x.AsDouble).ToArray());
             CalculateBestResponse(false);
             double maxBestResponseImprovementAdjAvg = 0.001;
             if (Status.BestResponseImprovementAdjAvg >= maxBestResponseImprovementAdjAvg)
@@ -1066,6 +1066,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 () =>
                     $"{GameDefinition.OptionSetName}{(EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria > 1 ? $"-Eq{eqNum + 1}" : "")}");
             reportCollection.Add(reportResult, false, true);
+            GenerateManualReports($"-eq{eqNum + 1}");
             TabbedText.WriteLine($"Elapsed milliseconds report for eq {eqNum + 1} of {numEquilibria}: {s.ElapsedMilliseconds}");
         }
 
@@ -1077,6 +1078,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             reportResult.AddName($"{GameDefinition.OptionSetName}{("-Corr")}");
             PrintReportsToScreenIfNotSuppressed(reportResult);
             reportCollection.Add(reportResult, false, true);
+            GenerateManualReports($"-Corr");
             TabbedText.WriteLine($"Elapsed milliseconds generating correlated equilibrium report: {s.ElapsedMilliseconds}");
         }
 
@@ -1088,6 +1090,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             var reportResult = await GenerateReports(EvolutionSettings.ReportEveryNIterations ?? 0,
                 () => $"{GameDefinition.OptionSetName}-Avg");
             reportCollection.Add(reportResult, false, true);
+            GenerateManualReports($"-Avg");
             TabbedText.WriteLine($"Elapsed milliseconds generating average equilibrium report: {s.ElapsedMilliseconds}");
         }
 

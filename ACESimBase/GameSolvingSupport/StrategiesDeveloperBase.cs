@@ -924,7 +924,7 @@ namespace ACESim
             GameDefinition.ScenarioEquilibriumName = scenarioEquilibriumName;
             Func<string> prefaceFn = () => (scenarioEquilibriumName == null) ? $"{masterReportName}-{scenarioName}" : $"{masterReportName}-{scenarioName}-{scenarioEquilibriumName}";
             await GenerateReports(prefaceFn, reportCollection, EvolutionSettings.PCA_BestResponseAfterPCA, EvolutionSettings.PCA_ReportsAfterPCA);
-            AzureBlob.WriteTextToFileOrAzure("reports", Launcher.ReportFolder(), prefaceFn() + ".csv", true, reportCollection.csvReports.First(), EvolutionSettings.SaveToAzureBlob);
+            AzureBlob.WriteTextToFileOrAzure("results", Launcher.ReportFolder(), prefaceFn() + ".csv", true, reportCollection.csvReports.First(), EvolutionSettings.SaveToAzureBlob);
             GameDefinition.ScenarioEquilibriumName = null;
             TabbedText.WriteLine($"Results from model used to generate report:"); // can be useful as a check to make sure report corresponds approximately to model
             var resultAverage = await PCA_UtilitiesAndCustomResultAverage(0, true);
@@ -2713,6 +2713,17 @@ namespace ACESim
                 SavedWeightedGameProgresses = new List<(GameProgress theProgress, double weight)>();
             return result;
 
+        }
+
+        public void GenerateManualReports(string supplementalString)
+        {
+            if (!EvolutionSettings.GenerateManualReports)
+                return;
+            var results = GameDefinition.ProduceManualReports(SavedWeightedGameProgresses, supplementalString);
+            foreach (var result in results)
+            {
+                AzureBlob.WriteTextToFileOrAzure("results", Launcher.ReportFolder(), result.filename, true, result.reportcontent, EvolutionSettings.SaveToAzureBlob);
+            }
         }
 
         private double[] GetBestResponseImprovements_RandomPaths()

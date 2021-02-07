@@ -1511,7 +1511,7 @@ namespace ACESim
         public void SetCurrentStrategyValue(byte a, double probabilityValue, bool setAverageAndCumulativeStrategy)
         {
             if (double.IsNaN(probabilityValue))
-                throw new Exception();
+                throw new Exception("Probability value is not a number");
             NodeInformation[currentProbabilityDimension, a - 1] = probabilityValue;
             NodeInformation[currentProbabilityForOpponentDimension, a - 1] = probabilityValue;
             if (setAverageAndCumulativeStrategy)
