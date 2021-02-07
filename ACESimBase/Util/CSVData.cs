@@ -66,6 +66,7 @@ namespace ACESim
                         {
                             for (int c = 0; c < columnsToGet.Length; c++)
                             {
+                                csv.Configuration.MissingFieldFound = null;
                                 string contents = csv.GetField<string>(columnsToGet[c]);
                                 if (contents == null || contents == "")
                                     results[rowToFind, c] = null;
