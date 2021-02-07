@@ -25,7 +25,7 @@ namespace ACESim
         public bool LimitToAmerican = true;
 
         // Fee shifting article
-        public bool IncludeNonCriticalTransformations = false; // DEBUG
+        public bool IncludeNonCriticalTransformations = true;
         public FeeShiftingRule[] CriticalFeeShiftingModes = new[] { FeeShiftingRule.American, FeeShiftingRule.English };
         public FeeShiftingRule[] AdditionalFeeShiftingModes = new[] { FeeShiftingRule.Rule68, FeeShiftingRule.Rule68English, FeeShiftingRule.MarginOfVictory60, FeeShiftingRule.MarginOfVictory80 };
         public double[] CriticalCostsMultipliers = new double[] { 1.0, 0.5, 1.5 };
