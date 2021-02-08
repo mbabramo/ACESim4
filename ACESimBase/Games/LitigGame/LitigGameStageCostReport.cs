@@ -9,42 +9,110 @@ namespace ACESimBase.Games.LitigGame
 {
     public class LitigGameStageCostReport
     {
+        public record TikzPoint(double x, double y);
+        public record TikzLine(TikzPoint start, TikzPoint end);
+        public record TikzRectangle(double left, double bottom, double right, double top)
+        {
+            public TikzRectangle ReducedByPadding(double padding) => new TikzRectangle(left + padding, bottom + padding, right - padding, top - padding);
+
+            public TikzRectangle VerticalPortion(double bottomProportion, double topProportion)
+            {
+                return new TikzRectangle(left, bottom + (top - bottom) * bottomProportion, right, bottom + (top - bottom) * topProportion);
+            }
+
+            public TikzRectangle HorizontalPortion(double leftProportion, double rightProportion)
+            {
+                return new TikzRectangle(left + (right - left) * leftProportion, bottom , right + (right - left) * rightProportion, top);
+            }
+
+            public List<TikzRectangle> DivideVertically(double[] proportions)
+            {
+                double[] relative = proportions.Select(x => x / proportions.Sum()).ToArray();
+                List<(double bottom, double top)> ranges = new List<(double bottom, double top)>();
+                double bottomCumulative = 0;
+                for (int r = 0; r < relative.Length; r++)
+                {
+                    double topCumulative = bottomCumulative + relative[r];
+                    ranges.Add((bottomCumulative, topCumulative));
+                    bottomCumulative = topCumulative;
+                }
+                return ranges.Select(x => VerticalPortion(x.bottom, x.top)).ToList();
+            }
+
+            public List<TikzRectangle> DivideHorizontally(double[] proportions)
+            {
+                double[] relative = proportions.Select(x => x / proportions.Sum()).ToArray();
+                List<(double left, double right)> ranges = new List<(double left, double right)>();
+                double leftCumulative = 0;
+                for (int r = 0; r < relative.Length; r++)
+                {
+                    double rightCumulative = leftCumulative + relative[r];
+                    ranges.Add((leftCumulative, rightCumulative));
+                    leftCumulative = rightCumulative;
+                }
+                return ranges.Select(x => VerticalPortion(x.left, x.right)).ToList();
+            }
+        }
+
+        public record StageCostDiagramLayout(double totalWidth, double totalHeight, double imagePadding, double padBelowPanel, double padBetweenPanels, double proportionDedicatedToText, int numPanels)
+        {
+            public TikzPoint AxisBottom => new TikzPoint(imagePadding, imagePadding);
+            public TikzPoint AxisTop => new TikzPoint(imagePadding, totalHeight - imagePadding);
+            public TikzLine AxisLine => new TikzLine(AxisBottom, AxisTop);
+
+            public double PanelHeight => totalHeight - 2 * imagePadding - padBelowPanel;
+            public double PanelBottom => imagePadding + padBelowPanel;
+            public double PanelTop => PanelBottom + PanelHeight;
+            public double PanelsAndRightStuffWidthIncludingPadding => totalWidth - 2 * imagePadding;
+            public double RightStuffWidthIncludingPadding => PanelsAndRightStuffWidthIncludingPadding * proportionDedicatedToText;
+            public double TextAreaWidth => RightStuffWidthIncludingPadding - 2 * padBetweenPanels;
+            public double TextAreaLeft => totalWidth - TextAreaWidth;
+            public double PanelsWidthIncludingPadding => PanelsAndRightStuffWidthIncludingPadding * (1.0 - proportionDedicatedToText);
+            public double PerPanelWidthIncludingPadding => PanelsWidthIncludingPadding / numPanels;
+            public double PanelLeftIncludingPadding(int i) => imagePadding + PerPanelWidthIncludingPadding * i;
+            public double PanelRightIncludingPadding(int i) => PanelLeftIncludingPadding(i) + PerPanelWidthIncludingPadding;
+            public double PanelLeftAfterPadding(int i) => PanelLeftIncludingPadding(i) + padBetweenPanels;
+            public double PanelRightAfterPadding(int i) => PanelRightIncludingPadding(i) + padBetweenPanels;
+            public TikzRectangle PanelRectangle(int i) => new TikzRectangle(PanelLeftAfterPadding(i), PanelBottom, PanelRightAfterPadding(i), PanelTop);
+            public TikzRectangle TextAreaRectangle => new TikzRectangle(TextAreaLeft, PanelBottom, TextAreaLeft + TextAreaWidth, PanelTop);
+        }
+
         public record AssessmentInStageCostDiagram(string assessmentName, List<StageInStageCostDiagram> stages)
         {
-            public string GetTikzCodeForAssessment(double left, double totalWidth, double portionOfWidthForLabels, double totalHeight, double maxMagnitude)
+            public string GetTikzCodeForAssessment(StageCostDiagramLayout layout, double maxMagnitude, int panelIndex)
             {
+                bool includeTextArea = panelIndex == layout.numPanels - 1;
                 StringBuilder b = new StringBuilder();
                 double cumulativeHeight = 0;
                 List<(double bottom, double top)> ranges = new List<(double bottom, double top)>();
                 List<string> correspondingText = new List<string>();
-                double widthForMainImage = (1.0 - portionOfWidthForLabels) * totalWidth;
                 for (int i = 0; i < stages.Count(); i++)
                 {
                     var stage = stages[i];
                     double initialCumulativeHeight = cumulativeHeight;
-                    string stageCode = stage.GetTikzCodeForAllComponents(left, widthForMainImage, totalHeight, maxMagnitude, ref cumulativeHeight);
+                    string stageCode = stage.GetTikzCodeForAllComponents(layout.PanelLeftIncludingPadding(panelIndex),  maxMagnitude, ref cumulativeHeight);
                     double height = cumulativeHeight - initialCumulativeHeight;
-                    double midpoint = initialCumulativeHeight + 0.5 * height;
                     ranges.Add((initialCumulativeHeight, cumulativeHeight));
-                    correspondingText.Add($"\\shortstack[l]{{{stage.stageName} \\\\ ({(height * 100.0 / totalHeight).ToSignificantFigures(3)}\\%, {stage.GetWeightedAverageString()})}}");
+                    correspondingText.Add($"\\shortstack[l]{{{stage.stageName} \\\\ ({(height * 100.0 / heightOfPanel).ToSignificantFigures(3)}\\%, {stage.GetWeightedAverageString()})}}");
                     b.AppendLine(stageCode);
                 }
-                const double spaceToSeparationBars = 0.1;
-                const double spaceToText = 0.05;
                 for (int i = 0; i < ranges.Count; i++)
                 {
                     (double bottom, double top) range = ranges[i];
-                    b.AppendLine(DrawRegionSeparator(left, widthForMainImage + spaceToSeparationBars, range.bottom, range.top));
+                    b.AppendLine(DrawRegionSeparator(x, widthForMainImage, range.bottom, range.top));
                     string text = correspondingText[i];
-                    b.AppendLine(TikzHelper.DrawText(left + widthForMainImage + spaceToSeparationBars + spaceToText, ((range.bottom + range.top) / 2.0), text));
+                    b.AppendLine(TikzHelper.DrawText(x + widthForMainImage, ((range.bottom + range.top) / 2.0), text));
                 }
 
                 return b.ToString();
             }
 
-            public string DrawRegionSeparator(double left, double widthForImageAndPadding, double bottom, double top)
+            public string DrawRegionSeparator(double left, double widthForImage, double bottom, double top, bool includeText)
             {
+                const double spaceToSeparationBars = 0.1;
+                const double spaceToText = 0.05;
                 const double widthExtendingBeyond = 0.025;
+                double widthForImageAndPadding = widthForImage + spaceToSeparationBars;
                 double separationBarJutOutLeft = left; // widthForImageAndPadding - 0.5 * widthOfSeparationBars;
                 double separationBarJutOutRight = left + widthForImageAndPadding + widthExtendingBeyond;
                 StringBuilder b = new StringBuilder();
@@ -116,7 +184,7 @@ namespace ACESimBase.Games.LitigGame
                 return numberString;
             }
 
-            public string GetTikzCodeForAllComponents(double left, double totalWidth, double totalHeight, double maxMagnitude, ref double weightsSoFar)
+            public string GetTikzCodeForAllComponents(double left, double bottom, double width, double totalHeight, double maxMagnitude)
             {
                 StringBuilder b = new StringBuilder();
                 for (int i = 0; i < regionComponents.Count; i++)
@@ -124,7 +192,7 @@ namespace ACESimBase.Games.LitigGame
                     (double weight, double magnitude) component = regionComponents[i];
                     if (component.magnitude > maxMagnitude)
                         throw new Exception();
-                    string componentCode = GetTikzCodeForComponent(i, left, totalWidth, totalHeight, maxMagnitude, ref weightsSoFar);
+                    string componentCode = GetTikzCodeForComponent(i, left, width, totalHeight, maxMagnitude, ref weightsSoFar);
                     b.AppendLine(componentCode);
                 }
                 return b.ToString();
@@ -190,13 +258,18 @@ namespace ACESimBase.Games.LitigGame
                         stageCostDiagram[i].stages.Add(new StageInStageCostDiagram(namedFilter.stageName, weights.Zip(measures, (w, m) => (w, m)).OrderByDescending(x => x.m).ToList(), namedFilter.color));
                 }
             }
+            BuildTikzDiagram(stageCostDiagram);
+            return csvStringBuilder.ToString();
+        }
+
+        private static void BuildTikzDiagram(List<AssessmentInStageCostDiagram> stageCostDiagram)
+        {
             StringBuilder tikzBuilder = new StringBuilder();
             double width = 3;
             double height = 7;
             tikzBuilder.AppendLine(stageCostDiagram[0].GetTikzCodeForAssessment(1.25, width, 0.4, height, 1.5));
-            tikzBuilder.AppendLine(TikzHelper.DrawVerticalLine(1, 0, height, axisMarks: Enumerable.Range(1, 10).Select(x => (height * (double) x / 10.0, (x * 10).ToString() + "\\%", true)).ToList()));
+            tikzBuilder.AppendLine(TikzHelper.DrawVerticalLine(1, 0, height, axisMarks: Enumerable.Range(1, 10).Select(x => (height * (double)x / 10.0, (x * 10).ToString() + "\\%", true)).ToList()));
             string tikzDocument = TikzHelper.GetStandaloneDocument(tikzBuilder.ToString());
-            return csvStringBuilder.ToString();
         }
     }
 }
