@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using ACESim.Util;
 using ACESim.Util.DiscreteProbabilities;
+using ACESimBase.Games.LitigGame;
 using ACESimBase.GameSolvingSupport;
 using ACESimBase.Util;
 using ACESimBase.Util.DiscreteProbabilities;
@@ -1116,49 +1117,11 @@ namespace ACESim
         {
             return new List<(string filename, string reportcontent)>()
             {
-                (OptionSetName + $"-scr{supplementalString}.csv", StageCostReport(gameProgresses))
+                (OptionSetName + $"-scr{supplementalString}.csv", LitigGameStageCostReport.StageCostReport(gameProgresses))
             };
         }
 
-        public string StageCostReport(List<(GameProgress theProgress, double weight)> gameProgresses)
-        {
-            List<(LitigGameProgress theProgress, double weight)> litigProgresses = gameProgresses.Select(x => ((LitigGameProgress)x.theProgress, x.weight)).ToList();
-            List<(Func<LitigGameProgress, bool> filter, string filterName)> namedFilters = new List<(Func<LitigGameProgress, bool> filter, string filterName)>()
-            {
-                (prog => prog.PFiles == false, "P Doesn't File"),
-                (prog => prog.PFiles && !prog.DAnswers, "D Doesn't Answer"),
-                (prog => prog.CaseSettles, "Settles"),
-                (prog => prog.PAbandons, "P Abandons"),
-                (prog => prog.DDefaults, "D Defaults"),
-                (prog => prog.TrialOccurs && !prog.PWinsAtTrial, "P Loses"),
-                (prog => prog.TrialOccurs && prog.PWinsAtTrial, "P Wins"),
-            };
-            List<(Func<LitigGameProgress, double> assessmentMeasure, string assessmentName)> assessments = new List<(Func<LitigGameProgress, double> assessmentMeasure, string assessmentName)>()
-            {
-                (prog => prog.FalsePositiveExpenditures, "False +"),
-                (prog => prog.FalsePositiveExpenditures, "False -"),
-                (prog => prog.TotalExpensesIncurred, "False -"),
-            };
-            StringBuilder b = new StringBuilder();
-            b.AppendLine($"Filter,Assessment,Data Type");
-            foreach (var namedFilter in namedFilters)
-            {
-                var applicableProgresses = litigProgresses.Where(x => namedFilter.filter(x.Item1)).ToList();
-                foreach (var assessment in assessments)
-                {
-                    Func<(LitigGameProgress theProgress, double weight), double> assessor = prog => assessment.assessmentMeasure(prog.theProgress);
-                    var ordered = applicableProgresses.OrderByDescending(assessor).ToList();
-                    var consolidated = ordered.GroupBy(x => assessor(x)).Select(x => ((LitigGameProgress theProgress, double weight)) (x.First().theProgress, x.Sum(y => y.weight))).ToList();
-                    var measures = consolidated.Select(assessor).ToList();
-                    b.Append($"{namedFilter.filterName},{assessment.assessmentName},Probabilities,");
-                    b.AppendLine(String.Join(",", measures));
-                    var weights = consolidated.Select(x => x.weight).ToList();
-                    b.Append($"{namedFilter.filterName},{assessment.assessmentName},Values,");
-                    b.AppendLine(String.Join(",", weights));
-                }
-            }
-            return b.ToString();
-        }
+        
 
 
         #endregion
