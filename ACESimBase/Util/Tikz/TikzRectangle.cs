@@ -18,7 +18,7 @@ namespace ACESimBase.Util.Tikz
 
         public string DrawCommand(string attributes)
         {
-            string drawCommand = $"\\draw[{attributes}] {bottomLeft} rectangle {topRight};";
+            string drawCommand = $"\\draw[{attributes}{(rectangleAttributes is not (null or "") ? ", " + rectangleAttributes : "")}] {bottomLeft} rectangle {topRight};";
             return drawCommand;
         }
 

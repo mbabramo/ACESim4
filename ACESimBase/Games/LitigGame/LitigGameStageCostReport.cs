@@ -41,7 +41,7 @@ namespace ACESimBase.Games.LitigGame
             public List<TikzRectangle> StageInStageCostDiagramProportionalRectangles(int panelIndex, int subpanelIndex)
             {
                 var stage = StageInStageCostDiagram(panelIndex, subpanelIndex);
-                var result = StageInStageCostDiagramEncompassingRectangles(panelIndex, subpanelIndex).Select((item, index) => item.ReduceHorizontally(stage.regionComponents[index].magnitude / assessmentInfo[panelIndex].maxMagnitude, TikzHorizontalAlignment.Left) with { rectangleAttributes = stage.regionComponents[index].specialShading ? "red" : "blue" } ).ToList(); Debug;
+                var result = StageInStageCostDiagramEncompassingRectangles(panelIndex, subpanelIndex).Select((item, index) => item.ReduceHorizontally(stage.regionComponents[index].magnitude / assessmentInfo[panelIndex].maxMagnitude, TikzHorizontalAlignment.Left) with { rectangleAttributes = stage.regionComponents[index].specialShading ? "pattern color=red, pattern=north east lines" : "pattern color=blue, pattern=north west lines" } ).ToList();
                 return result;
             }
             public List<TikzRectangle> StageInStageCostDiagramProportionalRectangles() => PanelAndSubpanelIndices.SelectMany(x => StageInStageCostDiagramProportionalRectangles(x.panelIndex, x.subpanelIndex)).ToList();
@@ -82,7 +82,7 @@ namespace ACESimBase.Games.LitigGame
             }
         }
 
-        public record StageInStageCostDiagram(string stageName, List<(double weight, double magnitude, bool specialShading)> regionComponents, string color)
+        public record StageInStageCostDiagram(string stageName, List<(double weight, double magnitude, bool specialShading)> regionComponents)
         {
             public double TotalWeight => regionComponents.Sum(x => x.weight);
 
@@ -93,20 +93,20 @@ namespace ACESimBase.Games.LitigGame
         {
             double initialWeightSum = gameProgresses.Sum(x => x.weight);
             List<(LitigGameProgress theProgress, double weight)> litigProgresses = gameProgresses.Select(x => ((LitigGameProgress)x.theProgress, x.weight / initialWeightSum)).ToList();
-            List<(Func<LitigGameProgress, bool> filter, string stageName, string shortStageName, string color)> namedStages = new List<(Func<LitigGameProgress, bool> filter, string stageName, string shortStageName, string color)>()
+            List<(Func<LitigGameProgress, bool> filter, string stageName, string shortStageName)> namedStages = new List<(Func<LitigGameProgress, bool> filter, string stageName, string shortStageName)>()
             {
-                (prog => prog.PFiles == false, "P Doesn't File", "No Suit", "violet"),
-                (prog => prog.PFiles && !prog.DAnswers, "D Doesn't Answer", "No Answer", "purple"),
-                (prog => prog.CaseSettles, "Settles", "Settles", "blue"),
-                (prog => prog.PAbandons, "P Abandons", "P Abandons", "green"),
-                (prog => prog.DDefaults, "D Defaults", "D Defaults", "yellow"),
-                (prog => prog.TrialOccurs && !prog.PWinsAtTrial, "P Loses", "D Wins", "orange"),
-                (prog => prog.TrialOccurs && prog.PWinsAtTrial, "P Wins", "P Wins", "red"),
+                (prog => prog.PFiles == false, "P Doesn't File", "No Suit"),
+                (prog => prog.PFiles && !prog.DAnswers, "D Doesn't Answer", "No Answer"),
+                (prog => prog.CaseSettles, "Settles", "Settles"),
+                (prog => prog.PAbandons, "P Abandons", "P Abandons"),
+                (prog => prog.DDefaults, "D Defaults", "D Defaults"),
+                (prog => prog.TrialOccurs && !prog.PWinsAtTrial, "P Loses", "D Wins"),
+                (prog => prog.TrialOccurs && prog.PWinsAtTrial, "P Wins", "P Wins"),
             };
             List<(Func<LitigGameProgress, double> assessmentMeasure, string assessmentName)> assessments = new List<(Func<LitigGameProgress, double> assessmentMeasure, string assessmentName)>()
             {
                 (prog => prog.FalsePositiveExpenditures, "False Positives"),
-                (prog => prog.FalsePositiveExpenditures, "False Negatives"),
+                (prog => prog.FalseNegativeShortfall, "False Negatives"),
                 (prog => prog.TotalExpensesIncurred, "Total Expenditures"),
             };
             StringBuilder csvStringBuilder = new StringBuilder();
@@ -138,7 +138,7 @@ namespace ACESimBase.Games.LitigGame
                     {
                         List<(double w, double m)> weightsAndMeasures = weights.Zip(measures, (w, m) => (w, m)).OrderByDescending(x => x.m).ToList();
                         List<(double w, double m, bool s)> weightsMeasuresAndShading = weightsAndMeasures.Zip(isTrulyLiable, (w, itl) => (w.w, w.m, itl)).OrderByDescending(x => x.m).ToList();
-                        stages.Add(new StageInStageCostDiagram(namedStage.stageName, weightsMeasuresAndShading, namedStage.color));
+                        stages.Add(new StageInStageCostDiagram(namedStage.stageName, weightsMeasuresAndShading));
                     }
                 }
                 stagesForEachPanel.Add(stages);
