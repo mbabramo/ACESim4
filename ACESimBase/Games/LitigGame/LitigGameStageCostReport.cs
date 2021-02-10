@@ -89,7 +89,7 @@ namespace ACESimBase.Games.LitigGame
             public double[] VerticalProportions => regionComponents.Select(x => x.weight).ToArray();
         }
 
-        public static string StageCostReport(List<(GameProgress theProgress, double weight)> gameProgresses)
+        public static List<string> StageCostReport(List<(GameProgress theProgress, double weight)> gameProgresses)
         {
             double initialWeightSum = gameProgresses.Sum(x => x.weight);
             List<(LitigGameProgress theProgress, double weight)> litigProgresses = gameProgresses.Select(x => ((LitigGameProgress)x.theProgress, x.weight / initialWeightSum)).ToList();
@@ -144,8 +144,11 @@ namespace ACESimBase.Games.LitigGame
                 stagesForEachPanel.Add(stages);
             }
             StageCostDiagram diagram = new StageCostDiagram(new TikzRectangle(0, 0, 20, 16), 1.5, 0.25, 0.25, 0.30, stagesForEachPanel, maxMagnitudes, stageNames, shortStageNames);
+
+            string csvFile = csvStringBuilder.ToString();
             string tikzCode = diagram.GetTikzDocument();
-            return csvStringBuilder.ToString();
+
+            return new List<string>() {csvFile, tikzCode};
         }
     }
 }

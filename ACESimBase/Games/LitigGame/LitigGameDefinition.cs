@@ -1115,9 +1115,11 @@ namespace ACESim
 
         public override List<(string filename, string reportcontent)> ProduceManualReports(List<(GameProgress theProgress, double weight)> gameProgresses, string supplementalString)
         {
+            var contents = LitigGameStageCostReport.StageCostReport(gameProgresses);
             return new List<(string filename, string reportcontent)>()
             {
-                (OptionSetName + $"-scr{supplementalString}.csv", LitigGameStageCostReport.StageCostReport(gameProgresses))
+                (OptionSetName + $"-scr{supplementalString}.csv", contents[0]),
+                (OptionSetName + $"-scr{supplementalString}.tex", contents[1]),
             };
         }
 
