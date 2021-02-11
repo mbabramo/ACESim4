@@ -68,23 +68,22 @@ namespace ACESimBase.GameSolvingAlgorithms
 
             if (Approach == SequenceFormApproach.ECTA)
             {
-                if (EvolutionSettings.TryInexactArithmetic)
+                List<(double[] equilibrium, int frequency)> equilibria = new List<(double[] equilibrium, int frequency)>(), additionalEquilibria;
+                var centroidEquilibrium = DetermineEquilibria<ExactValue>(1).First(); // first equilibrium should always be accomplished with exact values
+                equilibria.Add(centroidEquilibrium);
+                if (EvolutionSettings.TryInexactArithmeticForAdditionalEquilibria)
                 {
-                    // TODO: Make this choice within the loop.
-                    try
-                    {
-                        await ExecuteECTA<InexactValue>(reportCollection);
-                    }
-                    catch (ECTAException)
-                    {
-                        // All attempts at using floating point failed. Use exact arithmetic.
-                        await ExecuteECTA<ExactValue>(reportCollection);
-                    }
+                    additionalEquilibria = DetermineEquilibria<InexactValue>(EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria - 1);
+                    equilibria.AddRange(additionalEquilibria);
                 }
-                else
+                if (equilibria == null || equilibria.Count() < EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria)
                 {
-                    await ExecuteECTA<ExactValue>(reportCollection);
+                    // Suppose our target is 100 equilibria, and we've found 1 with a frequency of 10. 
+                    additionalEquilibria = DetermineEquilibria<ExactValue>(EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria - equilibria.Sum(x => x.frequency));
+                    equilibria.AddRange(additionalEquilibria);
                 }
+
+                await ProcessIdentifiedEquilibria(reportCollection, equilibria.Select(x => x.equilibrium).ToList());
             }
             else if (Approach == SequenceFormApproach.Gambit)
             {
@@ -160,32 +159,72 @@ namespace ACESimBase.GameSolvingAlgorithms
         }
         List<FinalUtilitiesNode> Outcomes => GameNodes.Where(x => x != null && x.GameState is FinalUtilitiesNode).Select(x => (FinalUtilitiesNode)x.GameState).ToList();
 
-        public async Task ExecuteECTA<T>(ReportCollection reportCollection) where T : MaybeExact<T>, new()
+        private List<(double[] equilibrium, int frequency)> DetermineEquilibria<T>(int numPriorsToGet) where T : MaybeExact<T>, new()
         {
             DetermineGameNodeRelationships();
+            ECTARunner<T> ecta = GetECTARunner<T>(numPriorsToGet);
+            List<(double[] equilibrium, int frequency)> equilibria = DetermineEquilibria(ecta);
+            return equilibria;
+        }
+
+        private List<(double[] equilibrium, int frequency)> DetermineEquilibria<T>(ECTARunner<T> ecta) where T : MaybeExact<T>, new()
+        {
+            bool useManuallyDefinedEquilibria = false; // use this as a shortcut to replay some equilibrium
+            List<(double[] equilibrium, int frequency)> equilibria = null;
+            if (EvolutionSettings.PreloadedEquilibriaForSequenceForm)
+            {
+                equilibria = LoadEquilibriaFile().Select(x => (x, 1)).ToList();
+            }
+            else if (useManuallyDefinedEquilibria)
+            {
+                double[] eq = new double[] {1,0,0,1,1/2,1/2,0,1,1,0,0,1,1/2,1/2,1139690000.0/1152971127.0,13281127.0/1152971127.0,1,0,0,1,1.0/2.0,1.0/2.0,0,1,1,0,0,1,1.0/2.0,1.0/2.0,0,1,1,0,0,1,1.0/2.0,1.0/2.0,1,0,1,0,13513.0/26983.0,13470.0/26983.0,1,0,1,0,1,0,0,1,1.0/2.0,1.0/2.0,0,1,1,0,0,1,1.0/2.0,1.0/2.0,0,1
+                };
+                equilibria = new List<(double[] equilibrium, int frequency)>() { (eq, 1) };
+            }
+            else
+            {
+                bool updateScenarios = false; // Doesn't work right now
+                Action<int, ECTATreeDefinition<T>> scenarioUpdater = updateScenarios ? ScenarioUpdater<T>() : null;
+                List<(MaybeExact<T>[] equilibrium, int frequency)> results = ecta.Execute(t => SetupECTA(t), scenarioUpdater);
+                NarrowDownToValidEquilibria<T>(results);
+                equilibria = results.Select(x => (x.equilibrium.Select(y => y.AsDouble).ToArray(), 1)).ToList();
+            }
+
+            return equilibria;
+        }
+
+        private async Task ProcessIdentifiedEquilibria(ReportCollection reportCollection, List<double[]> equilibria)
+        {
+            if (EvolutionSettings.CreateEquilibriaFileForSequenceForm)
+                CreateEquilibriaFile(equilibria);
+            await GenerateReportsFromEquilibria(equilibria, reportCollection);
+        }
+
+        private ECTARunner<T> GetECTARunner<T>(int numPriorsToGet) where T : MaybeExact<T>, new()
+        {
             var ecta = new ECTARunner<T>();
-            ecta.numPriors = EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria;
+            ecta.numPriors = numPriorsToGet;
 
             ecta.outputPrior = false;
             ecta.outputGameTreeSetup = false;
             ecta.outputLCP = false;
-            ecta.outputInitialAndFinalTableaux = false; 
-            ecta.outputPivotingSteps = false; 
+            ecta.outputInitialAndFinalTableaux = false;
+            ecta.outputPivotingSteps = false;
             ecta.outputTableauxAfterPivots = false;
             ecta.outputPivotResults = false;
-            ecta.outputLCPSolution = false; 
+            ecta.outputLCPSolution = false;
             ecta.outputEquilibrium = true;
             ecta.outputRealizationPlan = false;
             ecta.abortIfCycling = true;
             ecta.minRepetitionsForCycling = 3;
             T maybeExact = new T();
-            ecta.maxPivotSteps = maybeExact.IsExact ? 0 /* no limit */ : 5_000; // DEBUG
+            ecta.maxPivotSteps = maybeExact.IsExact ? 0 /* no limit */ : 1_000;
 
-            bool outputAll = false;  
+            bool outputAll = false;
             if (outputAll)
             {
-                ecta.outputPrior = true; 
-                ecta.outputGameTreeSetup = true; 
+                ecta.outputPrior = true;
+                ecta.outputGameTreeSetup = true;
                 ecta.outputInitialAndFinalTableaux = true;
                 ecta.outputLCP = true;
                 ecta.outputLCPSolution = true;
@@ -196,32 +235,10 @@ namespace ACESimBase.GameSolvingAlgorithms
                 ecta.outputRealizationPlan = true;
             }
 
-            bool useManuallyDefinedEquilibria = false; // use this as a shortcut to replay some equilibrium
-            List<double[]> equilibria = null;
-            if (EvolutionSettings.PreloadedEquilibriaForSequenceForm)
-            {
-                equilibria = LoadEquilibriaFile();
-            }
-            else if (useManuallyDefinedEquilibria)
-            {
-                double[] eq =  new double[] {1,0,0,1,1/2,1/2,0,1,1,0,0,1,1/2,1/2,1139690000.0/1152971127.0,13281127.0/1152971127.0,1,0,0,1,1.0/2.0,1.0/2.0,0,1,1,0,0,1,1.0/2.0,1.0/2.0,0,1,1,0,0,1,1.0/2.0,1.0/2.0,1,0,1,0,13513.0/26983.0,13470.0/26983.0,1,0,1,0,1,0,0,1,1.0/2.0,1.0/2.0,0,1,1,0,0,1,1.0/2.0,1.0/2.0,0,1
-                };
-                equilibria = new List<double[]>() { eq };
-            }
-            else
-            {
-                bool updateScenarios = false; // Doesn't work right now
-                Action<int, ECTATreeDefinition<T>> scenarioUpdater = updateScenarios ? ScenarioUpdater<T>() : null;
-                List<MaybeExact<T>[]> results = ecta.Execute(t => SetupECTA(t), scenarioUpdater);
-                CheckEquilibria<T>(results);
-                equilibria = results.Select(x => x.Select(y => y.AsDouble).ToArray()).ToList();
-                if (EvolutionSettings.CreateEquilibriaFileForSequenceForm)
-                    CreateEquilibriaFile(equilibria);               
-            }
-            await GenerateReportsFromEquilibria(equilibria, reportCollection);
+            return ecta;
         }
 
-        public void CheckEquilibria<T>(List<MaybeExact<T>[]> equilibria) where T : MaybeExact<T>, new()
+        public List<(MaybeExact<T>[] equilibrium, int frequency)> NarrowDownToValidEquilibria<T>(List<(MaybeExact<T>[] equilibrium, int frequency)> equilibria) where T : MaybeExact<T>, new()
         {
             int numEquilibria = equilibria.Count();
             var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetNodeNumber).ToList();
@@ -244,7 +261,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             bool isExact = new T().IsExact;
             for (int eqNum = 0; eqNum < numEquilibria; eqNum++)
             {
-                var actionProbabilities = equilibria[eqNum];
+                var actionProbabilities = equilibria[eqNum].equilibrium;
                 bool perfect = CheckEquilibrium(infoSets, chanceProbabilities, utilities, actionProbabilities);
                 if (!perfect)
                     imperfect.Add(eqNum);
@@ -257,8 +274,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 foreach (int eqNum in imperfect)
                     equilibria.RemoveAt(eqNum);
             }
-            if (!equilibria.Any())
-                throw new ECTAException("No equilibria found");
+            return equilibria;
         }
 
         private bool CheckEquilibrium<T>(List<InformationSetNode> infoSets, Dictionary<int, MaybeExact<T>[]> chanceProbabilities, Dictionary<int, MaybeExact<T>[]> utilities, MaybeExact<T>[] actionProbabilities) where T : MaybeExact<T>, new()
@@ -839,7 +855,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             string efgResult = efgCreator.FileText.ToString();
             DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
             var folderFullName = folder.FullName;
-            string filename = Path.Combine(folderFullName, GameDefinition.OptionSetName + ".efg");
+            string filename = Path.Combine(folderFullName, MasterReportName + "-" + GameDefinition.OptionSetName + ".efg");
             TextFileCreate.CreateTextFile(filename, efgResult);
             return filename;
         }
@@ -853,7 +869,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             }
             DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
             var folderFullName = folder.FullName;
-            string filename = Path.Combine(folderFullName, GameDefinition.OptionSetName + "-equ.csv");
+            string filename = Path.Combine(folderFullName, MasterReportName + "-" + GameDefinition.OptionSetName + "-equ.csv");
             TextFileCreate.CreateTextFile(filename, s.ToString());
             return filename;
         }
@@ -862,7 +878,7 @@ namespace ACESimBase.GameSolvingAlgorithms
         {
             DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
             var folderFullName = folder.FullName;
-            string filename = Path.Combine(folderFullName, GameDefinition.OptionSetName + "-equ.csv");
+            string filename = Path.Combine(folderFullName, MasterReportName + "-" + GameDefinition.OptionSetName + "-equ.csv");
             var filestream = new System.IO.FileStream(filename,
                                           System.IO.FileMode.Open,
                                           System.IO.FileAccess.Read,
@@ -1074,11 +1090,12 @@ namespace ACESimBase.GameSolvingAlgorithms
         {
             Stopwatch s = new Stopwatch();
             s.Start();
-            var reportResult = GenerateReportFromSavedWeightedGameProgresses(true);
+            var reportResult = GenerateReportFromSavedWeightedGameProgresses(false);
             reportResult.AddName($"{GameDefinition.OptionSetName}{("-Corr")}");
             PrintReportsToScreenIfNotSuppressed(reportResult);
             reportCollection.Add(reportResult, false, true);
             GenerateManualReports($"-Corr");
+            SavedWeightedGameProgresses = new List<(GameProgress theProgress, double weight)>();
             TabbedText.WriteLine($"Elapsed milliseconds generating correlated equilibrium report: {s.ElapsedMilliseconds}");
         }
 

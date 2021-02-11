@@ -1117,9 +1117,9 @@ namespace ACESim
         {
             var contents = StageCostReport.GenerateReport(gameProgresses);
             yield return (OptionSetName + $"-scr{supplementalString}.csv", contents[0]);
-            yield return (OptionSetName + $"-scr.tex", contents[1]);
+            yield return (OptionSetName + $"-scr{supplementalString}.tex", contents[1]);
             contents = SignalOfferReport.GenerateReport(this, gameProgresses);
-            yield return (OptionSetName + $"-heatmap.tex", contents[0]);
+            yield return (OptionSetName + $"-heatmap{supplementalString}.tex", contents[0]);
         }
 
         #endregion

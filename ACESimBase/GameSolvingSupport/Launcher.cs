@@ -46,12 +46,17 @@ namespace ACESim
         public int NumRepetitions = 1;
         public bool SaveToAzureBlob = false;
         public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && UseDistributedProcessingForMultipleOptionsSets; // this should be true if running on the local service fabric or usign ACESimDistributed
-        public virtual string MasterReportNameForDistributedProcessing => "R370"; // ******* IMPORTANT: (1) Delete bin/obj in AceSimDistributed. Make sure that the correct Launcher is set in ACESimDistributed Program.cs. (2) Must update this (or delete the Coordinator) when deploying service fabric. 
+        public virtual string MasterReportNameForDistributedProcessing => "R370"; // DEBUG -- maybe not necessary anymore: ******* IMPORTANT: (1) Delete bin/obj in AceSimDistributed. Make sure that the correct Launcher is set in ACESimDistributed Program.cs. (2) Must update this (or delete the Coordinator) when deploying service fabric. 
         public bool UseDistributedProcessingForMultipleOptionsSets = false; 
         public bool SeparateScenariosWhenUsingDistributedProcessing = true;
         public static bool MaxOneReportPerDistributedProcess = false;
         public bool CombineResultsOfAllOptionSetsAfterExecution = false;
         const int EffectivelyNever = EvolutionSettings.EffectivelyNever;
+
+        public static Launcher GetLauncher()
+        {
+            return new LitigGameLauncher();
+        }
 
         #endregion
 

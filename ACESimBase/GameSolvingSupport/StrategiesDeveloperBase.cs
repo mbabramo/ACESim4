@@ -85,6 +85,8 @@ namespace ACESim
 
         public Rational[][] UtilitiesAsRationals;
 
+        public string MasterReportName;
+
         public StrategiesDeveloperBase(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition)
         {
             Navigation = Navigation.WithGameStateFunction(GetGameState);
@@ -107,6 +109,7 @@ namespace ACESim
 
         public async Task<ReportCollection> DevelopStrategies(string optionSetName, int? restrictToScenarioIndex, string masterReportName)
         {
+            MasterReportName = masterReportName;
             await Initialize();
             ReportCollection reportCollection = new ReportCollection();
             bool constructCorrelatedEquilibrium = GameDefinition.NumScenarioPermutations > 1 && EvolutionSettings.ConstructCorrelatedEquilibrium;
@@ -2722,7 +2725,7 @@ namespace ACESim
             var results = GameDefinition.ProduceManualReports(SavedWeightedGameProgresses, supplementalString);
             foreach (var result in results)
             {
-                AzureBlob.WriteTextToFileOrAzure("results", Launcher.ReportFolder(), result.filename, true, result.reportcontent, EvolutionSettings.SaveToAzureBlob);
+                AzureBlob.WriteTextToFileOrAzure("results", Launcher.ReportFolder(), MasterReportName + "-" + result.filename, true, result.reportcontent, EvolutionSettings.SaveToAzureBlob);
             }
         }
 

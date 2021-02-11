@@ -10,10 +10,6 @@ namespace ACESimDistributed
 {
     class Program
     {
-        public static Launcher GetLauncher()
-        {
-            return new LitigGameLauncher();
-        }
 
         public async static Task Main(string[] args)
         {
@@ -30,7 +26,7 @@ namespace ACESimDistributed
             string dateTimeString = DateTime.Now.ToString("yyyy-mm-dd-hh-mm");
             string processID = "p" + Process.GetCurrentProcess().Id;
             CancellationToken cancellationToken = new CancellationToken();
-            var launcher = GetLauncher();
+            var launcher = Launcher.GetLauncher();
             bool useAzure = launcher.SaveToAzureBlob;
             string containerName = "results"; // for azure
             string path = useAzure ? null : Launcher.ReportFolder();
@@ -53,7 +49,7 @@ namespace ACESimDistributed
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    launcher = GetLauncher(); // relaunch
+                    launcher = Launcher.GetLauncher(); // relaunch
 
                     if (launcher.LaunchSingleOptionsSetOnly)
                         throw new Exception("LaunchSingleOptionsSetOnly should only be used with ACESimConsole.");

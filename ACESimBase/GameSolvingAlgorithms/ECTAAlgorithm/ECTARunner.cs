@@ -178,7 +178,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         /// <param name="setup"></param>
         /// <param name="updateActionWhenTracingPathOfEquilibrium">Tracing path of an equilibrium means that we use the results of one run to seed the next, but then change the outcomes. The action receives a parameter indicating the index and then changes the outcomes appropriately.</param>
         /// <returns></returns>
-        public List<MaybeExact<T>[]> Execute(Action<ECTATreeDefinition<T>> setup, Action<int, ECTATreeDefinition<T>> updateActionWhenTracingPathOfEquilibrium)
+        public List<(MaybeExact<T>[] equilibrium, int frequency)> Execute(Action<ECTATreeDefinition<T>> setup, Action<int, ECTATreeDefinition<T>> updateActionWhenTracingPathOfEquilibrium)
         {
             bool tracingEquilibrium = updateActionWhenTracingPathOfEquilibrium != null;
 
@@ -199,6 +199,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             }
 
             List<MaybeExact<T>[]> equilibria = new List<MaybeExact<T>[]>();
+            List<int> frequencyOfEquilibria = new List<int>();
 
             setup(t);
 
@@ -244,8 +245,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 {
                     TabbedText.WriteLine($"ECTA algorithm failed {ex.Message}");
                     if (priorcount == numPriors - 1 && !equilibria.Any())
-                        throw new ECTAException("All attempts to find equilibria failed");
-                    succeeded = false;
+                        succeeded = false;
                 }
                 if (succeeded)
                 {
@@ -254,11 +254,15 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     infopivotresult(priorcount, seed + gamecount);
                     equilibriumProbabilities = t.GetPlayerMovesFromSolution().ToArray(); // probabilities for each non-chance player, ordered by player, information set, and then action.
                     int? sameAsEquilibrium = equilibria.Select((item, index) => ((MaybeExact<T>[] item, int index)?)(item, index)).FirstOrDefault(x => x != null && x.Value.item.SequenceEqual(equilibriumProbabilities))?.index;
-                    if (sameAsEquilibrium != null)
+                    if (sameAsEquilibrium is int eqIndex)
+                    {
                         TabbedText.WriteLine($"Same as equilibrium {sameAsEquilibrium + 1}"); // note that equilibria are one-indexed
+                        frequencyOfEquilibria[eqIndex]++;
+                    }
                     else
                     {
                         equilibria.Add(equilibriumProbabilities);
+                        frequencyOfEquilibria.Add(1);
                         TabbedText.WriteLine($"Equilibrium {equilibria.Count()}");
                         if (outputEquilibrium)
                             t.showEquilibrium(outputRealizationPlan);
@@ -266,22 +270,13 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 }
                 outputGameTreeSetup = false;
                 TabbedText.WriteLine($"Elapsed milliseconds prior {priorcount + 1}: {s.ElapsedMilliseconds}");
+                if (!succeeded && priorcount == numPriors - 1)
+                    return new List<(MaybeExact<T>[] equilibrium, int frequency)>();
             }
             if (numPriors > 1)    /* give averages */
                 infosumresult(numPriors);
 
-            bool distinctEquilibriaOnly = true;
-            if (distinctEquilibriaOnly)
-            {
-                var distinctEquilibria = new List<MaybeExact<T>[]>();
-                foreach (var eq in equilibria)
-                    if (!distinctEquilibria.Any(e2 => e2.SequenceEqual(eq)))
-                        distinctEquilibria.Add(eq);
-                equilibria = distinctEquilibria;
-                TabbedText.WriteLine($"Number distinct equilibria {equilibria.Count}");
-            }
-
-            return equilibria;
+            return equilibria.Zip(frequencyOfEquilibria, (e, f) => (e, f)).ToList();
         }
     }
 }
