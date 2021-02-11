@@ -16,10 +16,16 @@ namespace ACESimBase.Util.Tikz
         public TikzLine leftLine => new TikzLine(new TikzPoint(left, bottom), new TikzPoint(left, top));
         public TikzLine rightLine => new TikzLine(new TikzPoint(right, bottom), new TikzPoint(right, top));
 
-        public string DrawCommand(string attributes)
+        public string DrawCommand(string attributes, string text=null)
         {
-            string drawCommand = $"\\draw[{attributes}{(rectangleAttributes is not (null or "") ? ", " + rectangleAttributes : "")}] {bottomLeft} rectangle {topRight};";
+            string textDraw = text == null ? "" : $" node[midway] {{{text}}}";
+            string drawCommand = $"\\draw[{attributes}{(rectangleAttributes is not (null or "") ? ", " + rectangleAttributes : "")}] {bottomLeft} rectangle {topRight}{textDraw};";
             return drawCommand;
+        }
+
+        public string DrawTextOnly(string attributes, string text)
+        {
+            return TikzHelper.DrawText((left + right) / 2.0, (bottom + top) / 2.0, text, attributes);
         }
 
         public TikzRectangle ReducedByPadding(double horizontalPadding, double verticalPadding) => new TikzRectangle(left + horizontalPadding, bottom + verticalPadding, right - horizontalPadding, top - verticalPadding);
@@ -28,8 +34,8 @@ namespace ACESimBase.Util.Tikz
 
         public TikzRectangle BottomPortion(double amountToKeep) => new TikzRectangle(left, bottom, right, bottom + amountToKeep);
         public TikzRectangle TopPortion(double amountToKeep) => new TikzRectangle(left, top - amountToKeep, right, top);
-        public TikzRectangle LeftPortion(double amountToKeep) => new TikzRectangle(left, top, left + amountToKeep, top);
-        public TikzRectangle RightPortion(double amountToKeep) => new TikzRectangle(right - amountToKeep, top, right, top);
+        public TikzRectangle LeftPortion(double amountToKeep) => new TikzRectangle(left, bottom, left + amountToKeep, top);
+        public TikzRectangle RightPortion(double amountToKeep) => new TikzRectangle(right - amountToKeep, bottom, right, top);
 
         public TikzRectangle ReduceHorizontally(double horizontalPctToKeep, TikzHorizontalAlignment alignment)
         {

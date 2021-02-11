@@ -390,9 +390,11 @@ namespace ACESim
         {
             var options = BaseOptions();
 
-            options.InvertChanceDecisions = true; 
+            options.InvertChanceDecisions = true;
+            options.IncludeSignalsReport = false;
+            options.IncludeCourtSuccessReport = false;
 
-            options.NumOffers = 10;  
+            options.NumOffers = 10;
             options.NumLiabilityStrengthPoints = 5;
             options.NumLiabilitySignals = 5;
 

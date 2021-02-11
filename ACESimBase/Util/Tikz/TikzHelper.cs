@@ -1,4 +1,5 @@
 ﻿using ACESim;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace ACESimBase.Util.Tikz
@@ -19,11 +20,14 @@ namespace ACESimBase.Util.Tikz
             return s.ToCharArray().Sum(x => RelativeCharWidth(x)) * (pointSize / 10.0) * 1.2 / 69.0; // gives rough approximation in cm.
         }
 
-        public static string GetStandaloneDocument(string contents)
+        public static string GetStandaloneDocument(string contents, List<string> additionalPackages = null)
         {
+            string packagesString = ""; 
+            if (additionalPackages != null)
+                packagesString = "\r\n" + string.Join("\r\n", additionalPackages.Select(p => $"\\usepackage{{{p}}}"));
             return $@"\documentclass{{standalone}}
-\usepackage{{tikz}}
-\usetikzlibrary{{patterns}}
+\usepackage{{tikz}}{packagesString}
+\usetikzlibrary{{patterns, positioning}}
 \begin{{document}}
 \begin{{tikzpicture}}
 {contents}

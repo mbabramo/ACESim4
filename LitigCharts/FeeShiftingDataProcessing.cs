@@ -2,8 +2,10 @@
 using ACESimBase.Util;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection.Emit;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -23,6 +25,65 @@ namespace LitigCharts
             List<string> columnsToGet = new List<string> { "Exploit", "PFiles", "DAnswers", "POffer1", "DOffer1", "Trial", "PWinPct", "PWealth", "DWealth", "PWelfare", "DWelfare", "TotExpense", "False+", "False-", "ValIfSettled", "PDoesntFile", "DDoesntAnswer", "SettlesBR1", "PAbandonsBR1", "DDefaultsBR1", "P Loses", "P Wins" };
             List<string> replacementColumnNames = new List<string> { "Exploitability", "P Files", "D Answers", "P Offer", "D Offer", "Trial", "P Win Prob", "P Wealth", "D Wealth", "P Welfare", "D Welfare", "Expenditures", "False Positive Inaccuracy", "False Negative Inaccuracy", "Value If Settled", "P Doesn't File", "D Doesn't Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins" };
             BuildReport(rowsToGet, replacementRowNames, columnsToGet, replacementColumnNames, "output");
+        }
+
+        internal static void ProduceLatexDiagrams(string suffix)
+        {
+            var gameDefinition = new LitigGameDefinition();
+            List<LitigGameOptions> litigGameOptionsSets = GetFeeShiftingGameOptionsSets();
+            string outputDirectory = Launcher.ReportFolder();
+
+            List<Process> processesList = new List<Process>();
+            int maxProcesses = 5;
+
+            void CleanupCompletedProcesses()
+            {
+                processesList = processesList.Where(x => !x.HasExited).ToList();
+            }
+
+            foreach (var optionSet in litigGameOptionsSets)
+            {
+                string texFile = outputDirectory + @"\" + optionSet.Name + $"{suffix}.tex";
+                string texFileInQuotes = $"\"{texFile}\"";
+                string outputDirectoryInQuotes = $"\"{outputDirectory}\"";
+                string pdflatexProgram = @"C:\Users\Admin\AppData\Local\Programs\MiKTeX\miktex\bin\x64\pdflatex.exe";
+                string arguments = @$"{texFileInQuotes} -output-directory={outputDirectoryInQuotes}";
+
+                while (processesList.Count() >= maxProcesses)
+                {
+                    Task.Delay(100);
+                    CleanupCompletedProcesses();
+                }
+
+                ProcessStartInfo processStartInfo = new ProcessStartInfo(pdflatexProgram)
+                {
+                    Arguments = arguments,
+                    UseShellExecute = true,
+                };
+                Process.Start(processStartInfo);
+            }
+            while (processesList.Any())
+                CleanupCompletedProcesses();
+            foreach (var optionSet in litigGameOptionsSets)
+            {
+                int failures = 0;
+                retry:
+                try
+                {
+                    File.Delete(Path.Combine(outputDirectory, optionSet.Name + "{suffix}.aux"));
+                    File.Delete(Path.Combine(outputDirectory, optionSet.Name + "{suffix}.log"));
+                    File.Delete(Path.Combine(outputDirectory, optionSet.Name + ".synctex.gz"));
+                    File.Delete(Path.Combine(outputDirectory, optionSet.Name + "{suffix}.tex"));
+                    failures = 0;
+                }
+                catch
+                {
+                    Task.Delay(1000);
+                    failures++;
+                    if (failures < 5)
+                        goto retry;
+                }
+            }
         }
 
         public static void BuildOffersReport()
@@ -126,11 +187,17 @@ namespace LitigCharts
                 string filenameCore = map[gameOptionsSet.Name];
                 string filename = filePrefix + filenameCore + fileSuffix + ".csv";
                 string combinedPath = Path.Combine(path, filename);
-                if (fileSuffix != firstEquilibriumFileSuffix && !File.Exists(combinedPath))
+                if (!File.Exists(combinedPath))
                 {
                     fileSuffix = firstEquilibriumFileSuffix;
                     filename = filePrefix + filenameCore + fileSuffix + ".csv";
                     combinedPath = Path.Combine(path, filename);
+                    if (!File.Exists(combinedPath))
+                    {
+                        fileSuffix = "";
+                        filename = filePrefix + filenameCore + fileSuffix + ".csv";
+                        combinedPath = Path.Combine(path, filename);
+                    }
                 }
                 (string columnName, string expectedText)[][] rowsToFind = new (string columnName, string expectedText)[rowsToGet.Count()][];
                 for (int f = 0; f < rowsToGet.Count(); f++)

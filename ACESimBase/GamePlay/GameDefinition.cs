@@ -639,7 +639,7 @@ namespace ACESim
             );
         }
 
-        public virtual List<(string filename, string reportcontent)> ProduceManualReports(List<(GameProgress theProgress, double weight)> gameProgresses, string supplementalString)
+        public virtual IEnumerable<(string filename, string reportcontent)> ProduceManualReports(List<(GameProgress theProgress, double weight)> gameProgresses, string supplementalString)
         {
             return new List<(string filename, string reportcontent)>();
         }

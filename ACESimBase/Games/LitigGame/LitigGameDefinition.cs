@@ -6,6 +6,7 @@ using System.Text;
 using ACESim.Util;
 using ACESim.Util.DiscreteProbabilities;
 using ACESimBase.Games.LitigGame;
+using ACESimBase.Games.LitigGame.ManualReports;
 using ACESimBase.GameSolvingSupport;
 using ACESimBase.Util;
 using ACESimBase.Util.DiscreteProbabilities;
@@ -1108,23 +1109,18 @@ namespace ACESim
             return magnitudeOfChange;
         }
 
-
         #endregion
 
         #region Manual reports
 
-        public override List<(string filename, string reportcontent)> ProduceManualReports(List<(GameProgress theProgress, double weight)> gameProgresses, string supplementalString)
+        public override IEnumerable<(string filename, string reportcontent)> ProduceManualReports(List<(GameProgress theProgress, double weight)> gameProgresses, string supplementalString)
         {
-            var contents = LitigGameStageCostReport.StageCostReport(gameProgresses);
-            return new List<(string filename, string reportcontent)>()
-            {
-                (OptionSetName + $"-scr{supplementalString}.csv", contents[0]),
-                (OptionSetName + $"-scr{supplementalString}.tex", contents[1]),
-            };
+            var contents = StageCostReport.GenerateReport(gameProgresses);
+            yield return (OptionSetName + $"-scr{supplementalString}.csv", contents[0]);
+            yield return (OptionSetName + $"-scr.tex", contents[1]);
+            contents = SignalOfferReport.GenerateReport(this, gameProgresses);
+            yield return (OptionSetName + $"-heatmap.tex", contents[0]);
         }
-
-        
-
 
         #endregion
 

@@ -16,7 +16,9 @@ namespace LitigCharts
         {
             //KlermanData.Execute();
             FeeShiftingDataProcessing.BuildMainFeeShiftingReport();
-            FeeShiftingDataProcessing.BuildOffersReport();
+            //FeeShiftingDataProcessing.BuildOffersReport();
+            FeeShiftingDataProcessing.ProduceLatexDiagrams("-scr");
+            FeeShiftingDataProcessing.ProduceLatexDiagrams("-heatmap");
         }
 
         

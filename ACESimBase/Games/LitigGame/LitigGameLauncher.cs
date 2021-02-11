@@ -25,7 +25,7 @@ namespace ACESim
         public bool LimitToAmerican = true;
 
         // Fee shifting article
-        public bool IncludeNonCriticalTransformations = true;
+        public bool IncludeNonCriticalTransformations = false; // DEBUG
         public FeeShiftingRule[] CriticalFeeShiftingModes = new[] { FeeShiftingRule.American, FeeShiftingRule.English };
         public FeeShiftingRule[] AdditionalFeeShiftingModes = new[] { FeeShiftingRule.Rule68, FeeShiftingRule.Rule68English, FeeShiftingRule.MarginOfVictory60, FeeShiftingRule.MarginOfVictory80 };
         public double[] CriticalCostsMultipliers = new double[] { 1.0, 0.5, 1.5 };
@@ -602,24 +602,25 @@ namespace ACESim
             {
                 o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = 10 * 0.000001 };
                 o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = 10 * 0.000001 };
-                nameRevised += "-ra";
+                nameRevised += " both risk averse";
             }
             else if (riskAversion == RiskAversionMode.RiskNeutral)
             {
                 o.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = o.PInitialWealth };
                 o.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = o.DInitialWealth };
+                nameRevised += " risk neutral";
             }
             else if (riskAversion == RiskAversionMode.POnlyRiskAverse)
             {
                 o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = 10 * 0.000001 };
                 o.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = o.DInitialWealth };
-                nameRevised += "-ara";
+                nameRevised += " P risk averse";
             }
             else if (riskAversion == RiskAversionMode.DOnlyRiskAverse)
             {
                 o.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = o.PInitialWealth };
                 o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = 10 * 0.000001 };
-                nameRevised += "-dara";
+                nameRevised += " D risk averse";
             }
             o.Name = nameRevised;
             return o;
@@ -781,14 +782,14 @@ namespace ACESim
             return results;
         }
 
-        LitigGameOptions GetAndTransform_FeeShiftingMode(LitigGameOptions options, FeeShiftingRule mode) => GetAndTransform(options, "-fee" + mode switch
+        LitigGameOptions GetAndTransform_FeeShiftingMode(LitigGameOptions options, FeeShiftingRule mode) => GetAndTransform(options, " fee rule " + mode switch
         {
-            FeeShiftingRule.American => "Am",
-            FeeShiftingRule.English => "En",
-            FeeShiftingRule.Rule68 => "R68",
-            FeeShiftingRule.Rule68English => "R68Eng",
-            FeeShiftingRule.MarginOfVictory60 => "Mar60",
-            FeeShiftingRule.MarginOfVictory80 => "Mar80",
+            FeeShiftingRule.American => "American",
+            FeeShiftingRule.English => "English",
+            FeeShiftingRule.Rule68 => "Rule 68",
+            FeeShiftingRule.Rule68English => "Reverse 68",
+            FeeShiftingRule.MarginOfVictory60 => "Margin 60",
+            FeeShiftingRule.MarginOfVictory80 => "Margin 80",
             _ => throw new NotImplementedException()
         }
         , g =>
@@ -833,7 +834,7 @@ namespace ACESim
             return results;
         }
 
-        LitigGameOptions GetAndTransform_CostsMultiplier(LitigGameOptions options, double multiplier) => GetAndTransform(options, "-costsm" + multiplier, g =>
+        LitigGameOptions GetAndTransform_CostsMultiplier(LitigGameOptions options, double multiplier) => GetAndTransform(options, " Costs Multiplier " + multiplier, g =>
         {
             g.CostsMultiplier = multiplier;
             g.VariableSettings["Costs Multiplier"] = multiplier;
@@ -854,7 +855,7 @@ namespace ACESim
             return results;
         }
 
-        LitigGameOptions GetAndTransform_FeeShiftingMultiplier(LitigGameOptions options, double multiplier) => GetAndTransform(options, "-fsm" + multiplier, g =>
+        LitigGameOptions GetAndTransform_FeeShiftingMultiplier(LitigGameOptions options, double multiplier) => GetAndTransform(options, " Fee Shifting Multiplier " + multiplier, g =>
         {
             g.LoserPaysMultiple = multiplier;
             g.VariableSettings["Fee Shifting Multiplier"] = multiplier;
@@ -868,7 +869,7 @@ namespace ACESim
             return results;
         }
 
-        LitigGameOptions GetAndTransform_PRelativeCosts(LitigGameOptions options, double pRelativeCosts) => GetAndTransform(options, "-rc" + pRelativeCosts, g =>
+        LitigGameOptions GetAndTransform_PRelativeCosts(LitigGameOptions options, double pRelativeCosts) => GetAndTransform(options, " Relative Costs " + pRelativeCosts, g =>
         {
             // Note: Currently, this does not affect per-round bargaining costs (not relevant in fee shifting article anyway).
             g.PFilingCost = g.DAnswerCost * pRelativeCosts;
@@ -884,7 +885,7 @@ namespace ACESim
             return results;
         }
 
-        LitigGameOptions GetAndTransform_ProportionOfCostsAtBeginning(LitigGameOptions options, double proportionAtBeginning) => GetAndTransform(options, "-prop" + proportionAtBeginning, g =>
+        LitigGameOptions GetAndTransform_ProportionOfCostsAtBeginning(LitigGameOptions options, double proportionAtBeginning) => GetAndTransform(options, " Timing " + proportionAtBeginning, g =>
         {
             // Note: Currently, this does not affect per-round bargaining costs (not relevant in fee shifting article anyway).
             double pTotalCosts = g.PFilingCost + g.PTrialCosts;
@@ -912,7 +913,7 @@ namespace ACESim
             return results;
         }
 
-        LitigGameOptions GetAndTransform_Noise(LitigGameOptions options, double pNoiseMultiplier, double dNoiseMultiplier) => GetAndTransform(options, "-ns" + pNoiseMultiplier + "," + dNoiseMultiplier, g =>
+        LitigGameOptions GetAndTransform_Noise(LitigGameOptions options, double pNoiseMultiplier, double dNoiseMultiplier) => GetAndTransform(options, " Noise " + pNoiseMultiplier + "," + dNoiseMultiplier, g =>
         {
             g.PDamagesNoiseStdev *= pNoiseMultiplier;
             g.PLiabilityNoiseStdev *= pNoiseMultiplier;
@@ -927,26 +928,26 @@ namespace ACESim
 
         List<Func<LitigGameOptions, LitigGameOptions>> RiskAversionTransformations(bool includeBaselineValue) => new List<Func<LitigGameOptions, LitigGameOptions>>() { GetAndTransform_RiskNeutral, GetAndTransform_RiskAverse,  GetAndTransform_POnlyRiskAverse, GetAndTransform_DOnlyRiskAverse }.Skip(includeBaselineValue ? 0 : 1).ToList();
 
-        LitigGameOptions GetAndTransform_RiskAverse(LitigGameOptions options) => GetAndTransform(options, "-ra", g =>
+        LitigGameOptions GetAndTransform_RiskAverse(LitigGameOptions options) => GetAndTransform(options, " Both Risk Averse", g =>
         {
             g.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.PInitialWealth, Alpha = 10 * 0.000001 };
             g.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.DInitialWealth, Alpha = 10 * 0.000001 };
             g.VariableSettings["Risk Aversion"] = "Both Risk Averse";
         });
 
-        LitigGameOptions GetAndTransform_RiskNeutral(LitigGameOptions options) => GetAndTransform(options, "-rn", g =>
+        LitigGameOptions GetAndTransform_RiskNeutral(LitigGameOptions options) => GetAndTransform(options, " Risk Neutral", g =>
         {
             g.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = g.PInitialWealth };
             g.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = g.DInitialWealth };
             g.VariableSettings["Risk Aversion"] = "Both Risk Neutral";
         });
-        LitigGameOptions GetAndTransform_POnlyRiskAverse(LitigGameOptions options) => GetAndTransform(options, "-ara", g =>
+        LitigGameOptions GetAndTransform_POnlyRiskAverse(LitigGameOptions options) => GetAndTransform(options, " P Risk Averse", g =>
         {
             g.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.PInitialWealth, Alpha = 10 * 0.000001 };
             g.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = g.DInitialWealth };
             g.VariableSettings["Risk Aversion"] = "P Risk Averse";
         });
-        LitigGameOptions GetAndTransform_DOnlyRiskAverse(LitigGameOptions options) => GetAndTransform(options, "-dara", g =>
+        LitigGameOptions GetAndTransform_DOnlyRiskAverse(LitigGameOptions options) => GetAndTransform(options, " D Risk Averse", g =>
         {
             g.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = g.PInitialWealth };
             g.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.DInitialWealth, Alpha = 10 * 0.000001 };
@@ -960,7 +961,7 @@ namespace ACESim
             return results;
         }
 
-        LitigGameOptions GetAndTransform_AllowAbandonAndDefaults(LitigGameOptions options, bool allowAbandonAndDefaults) => GetAndTransform(options, "-aban" + allowAbandonAndDefaults, g =>
+        LitigGameOptions GetAndTransform_AllowAbandonAndDefaults(LitigGameOptions options, bool allowAbandonAndDefaults) => GetAndTransform(options, " Abandonable " + allowAbandonAndDefaults, g =>
         {
             g.AllowAbandonAndDefaults = allowAbandonAndDefaults;
             g.VariableSettings["Allow Abandon and Defaults"] = allowAbandonAndDefaults;
@@ -973,7 +974,7 @@ namespace ACESim
             return results;
         }
 
-        LitigGameOptions GetAndTransform_ProbabilityTrulyLiable(LitigGameOptions options, double probability) => GetAndTransform(options, "-ptl" + probability, g =>
+        LitigGameOptions GetAndTransform_ProbabilityTrulyLiable(LitigGameOptions options, double probability) => GetAndTransform(options, " Truly Liable Probability " + probability, g =>
         {
             ((LitigGameExogenousDisputeGenerator)g.LitigGameDisputeGenerator).ExogenousProbabilityTrulyLiable = probability;
 
@@ -988,7 +989,7 @@ namespace ACESim
             return results;
         }
 
-        LitigGameOptions GetAndTransform_NoiseToProduceCaseStrength(LitigGameOptions options, double noise) => GetAndTransform(options, "-casens" + noise, g =>
+        LitigGameOptions GetAndTransform_NoiseToProduceCaseStrength(LitigGameOptions options, double noise) => GetAndTransform(options, " Case Strength Noise " + noise, g =>
         {
             ((LitigGameExogenousDisputeGenerator)g.LitigGameDisputeGenerator).StdevNoiseToProduceLiabilityStrength = noise;
             g.VariableSettings["Noise to Produce Case Strength"] = noise;
@@ -1001,7 +1002,7 @@ namespace ACESim
             return results;
         }
 
-        LitigGameOptions GetAndTransform_LiabilityVsDamages(LitigGameOptions options, bool liabilityIsUncertain) => GetAndTransform(options, liabilityIsUncertain ? "-liab" : "-dam", g =>
+        LitigGameOptions GetAndTransform_LiabilityVsDamages(LitigGameOptions options, bool liabilityIsUncertain) => GetAndTransform(options, liabilityIsUncertain ? " Liability Dispute" : " Damages Dispute", g =>
         {
             if (!liabilityIsUncertain)
             {
