@@ -14,7 +14,6 @@ namespace ACESimDistributedSaturate
     {
         async static Task Main(string[] args)
         {
-            // DEBUG -- maybe doesn't matter  =======>>>>>>> IMPORTANT NOTE: Make sure to build before running and confirm that ACESimDistributed is built recently.
             string currentPath = Process.GetCurrentProcess().MainModule.FileName;
             bool allowDebugging = false;
             if (!allowDebugging && currentPath.Contains("Debug"))

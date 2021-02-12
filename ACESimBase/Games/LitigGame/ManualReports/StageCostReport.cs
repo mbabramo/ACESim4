@@ -84,7 +84,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             public TikzRectangle SpaceForPanels => SpaceForPanelsAndHorizontalAxes.ReducedByPadding(0, padBelowPanel, 0, 0);
             public TikzRectangle SpaceForHorizontalAxes => SpaceForPanelsAndHorizontalAxes.BottomPortion(padBelowPanel);
             public string MidpointOfHorizontalAxesString => $"({(SpaceForHorizontalAxes.left + SpaceForHorizontalAxes.right) / 2.0},{SpaceForHorizontalAxes.bottom})";
-            public double[] VerticalProportions => panelData[0].Select(x => x.TotalWeight).ToArray(); // each panel has same vertical proportions // DEBUG new double[] { 0.01, .08, .23, .1, .01 }.Proportionally(1.0).ToArray();
+            public double[] VerticalProportions => panelData[0].Select(x => x.TotalWeight).ToArray(); // each panel has same vertical proportions
             public double[] VerticalDivisionValues => new double[] { 0 }.Then(VerticalProportions.CumulativeSum()).ToArray();
             public int NumPanels => panelData.Count();
             public int NumSubpanels => panelData.First().Count;

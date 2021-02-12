@@ -13,7 +13,7 @@ namespace ACESim
 {
     public class LitigGameLauncher : Launcher
     {
-        public override string MasterReportNameForDistributedProcessing => "FS023"; // DEBUG -- not necessary. ******* IMPORTANT: (1) Delete bin/obj in AceSimDistributed. Make sure that the correct Launcher is set in ACESimDistributed Program.cs. (2) Must update this (or delete the Coordinator) when deploying service fabric. 
+        public override string MasterReportNameForDistributedProcessing => "FS024"; 
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
 
@@ -25,15 +25,15 @@ namespace ACESim
         public bool LimitToAmerican = true;
 
         // Fee shifting article
-        public bool IncludeNonCriticalTransformations = false; // DEBUG
-        public FeeShiftingRule[] CriticalFeeShiftingModes = new[] { FeeShiftingRule.American, FeeShiftingRule.English };
+        public bool IncludeNonCriticalTransformations = true; 
+        public FeeShiftingRule[] CriticalFeeShiftingModes = new[] { FeeShiftingRule.English };
         public FeeShiftingRule[] AdditionalFeeShiftingModes = new[] { FeeShiftingRule.Rule68, FeeShiftingRule.Rule68English, FeeShiftingRule.MarginOfVictory60, FeeShiftingRule.MarginOfVictory80 };
-        public double[] CriticalCostsMultipliers = new double[] { 1.0, 0.5, 1.5 };
+        public double[] CriticalCostsMultipliers = new double[] { 1.0, 0.25, 0.5, 2.0, 4.0 };
         public double[] AdditionalCostsMultipliers = new double[] { 0.125, 0.25, 2.0, 4.0, 8.0 };
-        public (double pNoiseMultiplier, double dNoiseMultiplier)[] CriticalNoiseMultipliers = new (double pNoiseMultiplier, double dNoiseMultiplier)[] { (1.0, 1.0), (0.50, 0.50), (2.0, 2.0) };
-        public (double pNoiseMultiplier, double dNoiseMultiplier)[] AdditionalNoiseMultipliers = new (double pNoiseMultiplier, double dNoiseMultiplier)[] { (0.5, 2.0), (2.0, 0.5), (0.25, 0.25), (4.0, 4.0) };
-        public double[] CriticalFeeShiftingMultipliers = new double[] { 1.0, 0.5, 2.0 };
-        public double[] AdditionalFeeShiftingMultipliers = new double[] { 0.1, 4.0, 8.0 };
+        public (double pNoiseMultiplier, double dNoiseMultiplier)[] CriticalNoiseMultipliers = new (double pNoiseMultiplier, double dNoiseMultiplier)[] { (1.0, 1.0), (0.50, 0.50) };
+        public (double pNoiseMultiplier, double dNoiseMultiplier)[] AdditionalNoiseMultipliers = new (double pNoiseMultiplier, double dNoiseMultiplier)[] { (0.5, 2.0), (2.0, 2.0), (2.0, 0.5), (0.25, 0.25), (4.0, 4.0) };
+        public double[] CriticalFeeShiftingMultipliers = new double[] { 0.0, 1.0, 0.5, 1.5, 2.0 };
+        public double[] AdditionalFeeShiftingMultipliers = new double[] { };
         public double[] RelativeCostsMultipliers = new double[] { 1.0, 0.5, 2.0 };
         public double[] ProbabilitiesTrulyLiable = new double[] { 0.5, 0.1, 0.9 };
         public double[] StdevsNoiseToProduceLiabilityStrength = new double[] { 0.35, 0, 0.70 };
@@ -719,7 +719,7 @@ namespace ACESim
             if (!useAllPermutationsOfTransformations)
             {
                 var noncriticalTransformationPlusNoTransformation = new List<List<Func<LitigGameOptions, LitigGameOptions>>>();
-                noncriticalTransformationPlusNoTransformation.AddRange(noncriticalTransformations);
+                noncriticalTransformationPlusNoTransformation.AddRange(noncriticalTransformations.Where(x => x.Count() != 0));
                 noncriticalTransformationPlusNoTransformation.Add(null);
                 // We still want the non-critical transformations, just not permuted with the others.
                 for (int noncriticalIndex = 0; noncriticalIndex < noncriticalTransformationPlusNoTransformation.Count; noncriticalIndex++)
