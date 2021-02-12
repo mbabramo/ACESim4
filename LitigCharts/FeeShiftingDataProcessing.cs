@@ -57,7 +57,7 @@ namespace LitigCharts
 
                 string texFileInQuotes = $"\"{combinedPath}\"";
                 string outputDirectoryInQuotes = $"\"{path}\"";
-                string pdflatexProgram = @"C:\Users\Admin\AppData\Local\Programs\MiKTeX\miktex\bin\x64\pdflatex.exe";
+                string pdflatexProgram = @"C:\Program Files\MiKTeX 2.9\miktex\bin\x64"; // DEBUG @"C:\Users\Admin\AppData\Local\Programs\MiKTeX\miktex\bin\x64\pdflatex.exe";
                 string arguments = @$"{texFileInQuotes} -output-directory={outputDirectoryInQuotes}";
 
                 while (processesList.Count() >= maxProcesses)
@@ -154,7 +154,7 @@ namespace LitigCharts
             var launcher = new LitigGameLauncher();
             var gameOptionsSets = GetFeeShiftingGameOptionsSets();
             var map = launcher.GetFeeShiftingArticleNameMap(); // name to find (avoids redundancies)
-            string path = @"C:\Users\Admin\Documents\GitHub\ACESim4\ReportResults";
+            string path = Launcher.ReportFolder();
             string outputFileFullPath = Path.Combine(path, filePrefix + $"-{endOfFileName}.csv");
             string cumResults = "";
             foreach (string fileSuffix in equilibriumTypeSuffixes)

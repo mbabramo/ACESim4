@@ -652,7 +652,7 @@ namespace ACESim
                 string runAsName = gameOptions.Name;
                 while (!withoutRedundancies.Any(x => x.Name == runAsName))
                 {
-                    var lastIndex = runAsName.LastIndexOf('-');
+                    var lastIndex = runAsName.LastIndexOf(' ');
                     runAsName = runAsName.Substring(0, lastIndex);
                 }
                 result[gameOptions.Name] = runAsName;
