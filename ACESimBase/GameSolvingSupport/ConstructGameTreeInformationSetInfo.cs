@@ -1,4 +1,5 @@
 ﻿using ACESim;
+using Microsoft.FSharp.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.GameSolvingSupport
 {
-    public class ConstructGameTreeInfo : ITreeNodeProcessor<ConstructGameTreeInfo.ForwardInfo, ConstructGameTreeInfo.MoveProbabilityTracker<(byte decisionByteCode, byte move)>>
+    public class ConstructGameTreeInformationSetInfo : ITreeNodeProcessor<ConstructGameTreeInformationSetInfo.ForwardInfo, ConstructGameTreeInformationSetInfo.MoveProbabilityTracker<(byte decisionByteCode, byte move)>>
     {
         Stack<double> ProbabilitiesToNode = new Stack<double>();
         Dictionary<int, double> ProbabilityOfReachingInformationSetForNonChancePlayer = new Dictionary<int, double>();
@@ -29,7 +30,7 @@ namespace ACESimBase.GameSolvingSupport
         {
         }
 
-        public ConstructGameTreeInfo()
+        public ConstructGameTreeInformationSetInfo()
         {
         }
 
@@ -130,13 +131,13 @@ namespace ACESimBase.GameSolvingSupport
 
         private ForwardInfo AnyNode_Forward(IAnyNode anyNode, IGameState predecessor, byte predecessorAction, ForwardInfo fromPredecessor)
         {
-            double reachProbability = GetCumulativeReachProbability(fromPredecessor.reachProbability, predecessor, predecessorAction);
+            double reachProbability = fromPredecessor == null ? 1.0 : GetCumulativeReachProbability(fromPredecessor.reachProbability, predecessor, predecessorAction);
             ProbabilitiesToNode.Push(reachProbability);
 
             AddNodeToTree(anyNode, predecessorAction, reachProbability);
 
             ProbabilityOfReachingInformationSet(!anyNode.IsChanceNode)[anyNode.GetInformationSetNodeNumber()] = ProbabilityOfReachingInformationSet(!anyNode.IsChanceNode).GetValueOrDefault(anyNode.GetInformationSetNodeNumber()) + reachProbability;
-            MoveProbabilityTracker<(byte decisionByteCode, byte move)> toAddToTracker = fromPredecessor.moveProbabilities.CloneWithWeight(1.0);
+            MoveProbabilityTracker<(byte decisionByteCode, byte move)> toAddToTracker = fromPredecessor == null ? new MoveProbabilityTracker<(byte decisionByteCode, byte move)>() : fromPredecessor.moveProbabilities.CloneWithWeight(1.0);
             for (int a = 1; a <= anyNode.Decision.NumPossibleActions; a++)
             {
                 toAddToTracker.AddMove((anyNode.Decision.DecisionByteCode, (byte)a), 1.0);

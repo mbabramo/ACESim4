@@ -87,7 +87,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             }
             else if (Approach == SequenceFormApproach.Gambit)
             {
-                await UseGambitToCalculateEquilibrium(reportCollection, filename);
+                await UseGambitToCalculateEquilibria(reportCollection, filename);
             }
 
             return reportCollection;
@@ -198,6 +198,8 @@ namespace ACESimBase.GameSolvingAlgorithms
             if (EvolutionSettings.CreateEquilibriaFileForSequenceForm)
                 CreateEquilibriaFile(equilibria);
             await GenerateReportsFromEquilibria(equilibria, reportCollection);
+            if (equilibria.Any())
+                SetInformationSetsToEquilibrium(equilibria.First());
         }
 
         private ECTARunner<T> GetECTARunner<T>(int numPriorsToGet) where T : MaybeExact<T>, new()
@@ -806,11 +808,13 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         #region Gambit
 
-        private async Task UseGambitToCalculateEquilibrium(ReportCollection reportCollection, string filename)
+        private async Task UseGambitToCalculateEquilibria(ReportCollection reportCollection, string filename)
         {
             string output = await RunGambit(filename);
-            var results = ProcessGambitResults(reportCollection, output);
-            await GenerateReportsFromEquilibria(results, reportCollection);
+            var equilibria = ProcessGambitResults(reportCollection, output);
+            await GenerateReportsFromEquilibria(equilibria, reportCollection);
+            if (equilibria.Any())
+                SetInformationSetsToEquilibrium(equilibria.First());
         }
 
         private List<double[]> ProcessGambitResults(ReportCollection reportCollection, string output)
@@ -989,6 +993,35 @@ namespace ACESimBase.GameSolvingAlgorithms
             }
         }
 
+
+        private async Task ProcessEquilibrium(ReportCollection reportCollection, bool includeAverageEquilibriumReport, bool includeCorrelatedEquilibriumReport, bool includeReportForFirstEquilibrium, bool includeReportForEachEquilibrium, int numEquilibria, List<InformationSetNode> infoSets, int eqNum, bool isFirst, bool isLast, double[] actionProbabilities)
+        {
+            SetToEquilibriumConstructingAverage(infoSets, actionProbabilities, eqNum, includeCorrelatedEquilibriumReport);
+
+            IdentifyPressureOnInformationSets();
+
+            //double[] utils = GetAverageUtilities(false);
+            //double[] maxPurifiedUtils = GetMaximumUtilitiesFromPurifiedStrategies();
+            //if (Enumerable.Range(0, NumNonChancePlayers).Any(p => maxPurifiedUtils[p] > utils[p] + 0.001))
+            //    TabbedText.WriteLine($"Maximum not achieved {String.Join(",", utils)} vs. {String.Join(",", maxPurifiedUtils)}"); 
+
+            if ((includeReportForFirstEquilibrium && isFirst) || includeReportForEachEquilibrium)
+            {
+                await AddReportForEquilibrium(reportCollection, numEquilibria, eqNum);
+                if (numEquilibria == 1)
+                    return;
+            }
+            if (includeCorrelatedEquilibriumReport && isLast)
+            {
+                AddCorrelatedEquilibriumReport(reportCollection);
+            }
+            if (includeAverageEquilibriumReport && isLast)
+            {
+                await AddAverageEquilibriumReport(reportCollection);
+            }
+        }
+
+
         private void SetInformationSetsToEquilibrium(double[] actionProbabilities)
         {
             var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetNodeNumber).ToList();
@@ -1016,9 +1049,8 @@ namespace ACESimBase.GameSolvingAlgorithms
             }
         }
 
-        private async Task ProcessEquilibrium(ReportCollection reportCollection, bool includeAverageEquilibriumReport, bool includeCorrelatedEquilibriumReport, bool includeReportForFirstEquilibrium, bool includeReportForEachEquilibrium, int numEquilibria, List<InformationSetNode> infoSets, int eqNum, bool isFirst, bool isLast, double[] actionProbabilities)
+        private static void SetToEquilibriumConstructingAverage(List<InformationSetNode> infoSets, double[] actionProbabilities, int eqNum, bool recordProbabilitiesAsPastValues)
         {
-
             int totalNumbersProcessed = 0;
             double weightToGivePastValueInAverage = eqNum / (eqNum + 1.0);
             double weightToGiveNewValueInAverage = 1.0 - weightToGivePastValueInAverage;
@@ -1046,30 +1078,8 @@ namespace ACESimBase.GameSolvingAlgorithms
                         infoSet.SetCurrentAndAverageStrategyValues(a, v, revisedAverage);
                     }
                 }
-                if (includeCorrelatedEquilibriumReport)
+                if (recordProbabilitiesAsPastValues)
                     infoSet.RecordProbabilitiesAsPastValues();
-            }
-
-            IdentifyPressureOnInformationSets();
-
-            //double[] utils = GetAverageUtilities(false);
-            //double[] maxPurifiedUtils = GetMaximumUtilitiesFromPurifiedStrategies();
-            //if (Enumerable.Range(0, NumNonChancePlayers).Any(p => maxPurifiedUtils[p] > utils[p] + 0.001))
-            //    TabbedText.WriteLine($"Maximum not achieved {String.Join(",", utils)} vs. {String.Join(",", maxPurifiedUtils)}"); 
-
-            if ((includeReportForFirstEquilibrium && isFirst) || includeReportForEachEquilibrium)
-            {
-                await AddReportForEquilibrium(reportCollection, numEquilibria, eqNum);
-                if (numEquilibria == 1)
-                    return;
-            }
-            if (includeCorrelatedEquilibriumReport && isLast)
-            {
-                AddCorrelatedEquilibriumReport(reportCollection);
-            }
-            if (includeAverageEquilibriumReport && isLast)
-            {
-                await AddAverageEquilibriumReport(reportCollection);
             }
         }
 

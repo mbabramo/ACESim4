@@ -18,7 +18,7 @@ namespace ACESim
         public double[] GetNodeValues() => GetActionProbabilities().ToArray();
         public int? AltNodeNumber { get; set; }
         public int GetNumPossibleActions() => Decision.NumPossibleActions;
-        public Decision Decision;
+        public Decision Decision { get; set; }
         public byte DecisionIndex;
         public byte PlayerNum => Decision.PlayerIndex;
         public byte DecisionByteCode => Decision.DecisionByteCode;

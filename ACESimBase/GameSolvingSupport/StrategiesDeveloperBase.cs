@@ -1674,13 +1674,21 @@ namespace ACESim
         {
             bool original = TraceTreeWalk;
             TraceTreeWalk = true;
-            TreeWalk_Tree(new WalkOnly());
+            if (EvolutionSettings.PrintedGameTreeIncludesInformationSetData)
+            {
+                TreeWalk_Tree(new ConstructGameTreeInformationSetInfo());
+            }
+            else
+            {
+                TreeWalk_Tree(new WalkOnly());
+                //var startHistoryPoint = GetStartOfGameHistoryPoint();
+                //PrintGameTree_Helper_Manual(ref startHistoryPoint);
+                // uncomment to print from particular poitn
+                //HistoryPoint historyPoint = GetHistoryPointFromActions(new List<byte>() {3, 10, 5, 9, 4, 8});
+                //PrintGameTree_Helper_Manual(historyPoint);
+            }
             TraceTreeWalk = original;
-            //var startHistoryPoint = GetStartOfGameHistoryPoint();
-            //PrintGameTree_Helper_Manual(ref startHistoryPoint);
-            // uncomment to print from particular poitn
-            //HistoryPoint historyPoint = GetHistoryPointFromActions(new List<byte>() {3, 10, 5, 9, 4, 8});
-            //PrintGameTree_Helper_Manual(historyPoint);
+
         }
 
         public double[] PrintGameTree_Helper_Manual(in HistoryPoint historyPoint)
