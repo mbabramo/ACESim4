@@ -14,7 +14,7 @@ namespace ACESim
 {
 
     [Serializable]
-    public class InformationSetNode : IGameState
+    public class InformationSetNode : IGameState, IAnyNode
     {
 
         #region Properties, members, and constants
@@ -22,12 +22,16 @@ namespace ACESim
         public const double SmallestProbabilityRepresented = 1E-16; // We make this considerably greater than Double.Epsilon (but still very small), because (1) otherwise when we multiply the value by anything < 1, we get 0, and this makes it impossible to climb out of being a zero-probability action, (2) we want to be able to represent 1 - probability.
         public const double SmallestProbabilityInAverageStrategy = 1E-5; // This is greater still -- when calculating average strategies, we disregard very small probabilities (which presumably are on their way to zero)
 
-        public int InformationSetNodeNumber; // could delete this once things are working, but may be useful in testing scenarios
+        public int InformationSetNodeNumber;
+        public bool IsChanceNode => false; 
+        public bool IsUtilitiesNode => false;
 
-        public int GetNodeNumber() => InformationSetNodeNumber;
+        public int GetInformationSetNodeNumber() => InformationSetNodeNumber;
+        public Decision Decision { get; set; }
+
+        public double[] GetNodeValues() => GetNodeValues();
         public int? AltNodeNumber { get; set; }
         public int GetNumPossibleActions() => Decision.NumPossibleActions;
-        public Decision Decision;
         public EvolutionSettings EvolutionSettings;
         public byte[] InformationSetContents;
         public string InformationSetContentsString => String.Join(",", InformationSetContents.Select(x => $"{x}").ToArray());
@@ -201,12 +205,12 @@ namespace ACESim
 
         public string ToStringWithoutValues()
         {
-            return $"ISet {GetNodeNumber()} Alt {AltNodeNumber} {Decision.Name} ({Decision.Abbreviation})";
+            return $"ISet {GetInformationSetNodeNumber()} Alt {AltNodeNumber} {Decision.Name} ({Decision.Abbreviation})";
         }
 
         public override string ToString()
         {
-            return $"Information set {(AltNodeNumber ?? GetNodeNumber())} {Decision.Name} ({Decision.Abbreviation}): DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetCurrentProbabilitiesAsString()} {GetBestResponseStringIfAvailable()}Average {GetAverageStrategiesAsString()} Regrets {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()} InformationSetContents {String.Join(";", LabeledInformationSet)}";
+            return $"Information set {(AltNodeNumber ?? GetInformationSetNodeNumber())} {Decision.Name} ({Decision.Abbreviation}): DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetCurrentProbabilitiesAsString()} {GetBestResponseStringIfAvailable()}Average {GetAverageStrategiesAsString()} Regrets {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()} InformationSetContents {String.Join(";", LabeledInformationSet)}";
         }
 
         public string GetBestResponseStringIfAvailable()

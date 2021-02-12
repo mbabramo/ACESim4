@@ -24,7 +24,7 @@ namespace ACESimBase.GameSolvingSupport
             return Node switch
             {
                 null => "null",
-                _ => $"{Node.GetGameStateType()} {Node.GetNodeNumber()}: {ActionAtNode}{(DistributorChanceInputs != -1 && DistributorChanceInputs != 0 && Node is ChanceNodeUnequalProbabilities u && u.Decision.DistributorChanceDecision ? $"({DistributorChanceInputs})" : "")}"
+                _ => $"{Node.GetGameStateType()} {Node.GetInformationSetNodeNumber()}: {ActionAtNode}{(DistributorChanceInputs != -1 && DistributorChanceInputs != 0 && Node is ChanceNodeUnequalProbabilities u && u.Decision.DistributorChanceDecision ? $"({DistributorChanceInputs})" : "")}"
             };
         }
 

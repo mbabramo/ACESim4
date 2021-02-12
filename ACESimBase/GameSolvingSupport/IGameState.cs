@@ -9,7 +9,7 @@ namespace ACESim
     public interface IGameState
     {
         GameStateTypeEnum GetGameStateType();
-        int GetNodeNumber();
+        int GetInformationSetNodeNumber();
         int? AltNodeNumber { get; set; } // used by SequenceForm to align node numbers with external code
         int GetNumPossibleActions();
 

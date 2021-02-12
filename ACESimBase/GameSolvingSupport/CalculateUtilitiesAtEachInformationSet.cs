@@ -10,7 +10,7 @@ namespace ACESimBase.GameSolvingSupport
 {
     public class CalculateUtilitiesAtEachInformationSet : ITreeNodeProcessor<double, double[]>
     {
-        Stack<double> probabilitiesToInformationSet = new Stack<double>();
+        Stack<double> probabilitiesToNode = new Stack<double>();
         Dictionary<int, double> ProbabilityOfReachingInformationSet = new Dictionary<int, double>();
         Dictionary<int, double[]> WeightedUtilitiesAtInformationSet = new Dictionary<int, double[]>();
         Dictionary<int, List<double[]>> WeightedUtilitiesAtInformationSetSuccessors = new Dictionary<int, List<double[]>>();
@@ -23,7 +23,7 @@ namespace ACESimBase.GameSolvingSupport
 
         public void VerifyPerfectEquilibrium(InformationSetNode informationSetNode)
         {
-            int informationSetNodeNumber = informationSetNode.GetNodeNumber();
+            int informationSetNodeNumber = informationSetNode.GetInformationSetNodeNumber();
             var (utilities, utilitiesAtSuccessors, reachProbability) = GetUtilitiesAndReachProbability(informationSetNodeNumber);
             int i = informationSetNode.PlayerIndex;
             int numSuccessors = utilitiesAtSuccessors.Count();
@@ -71,24 +71,24 @@ namespace ACESimBase.GameSolvingSupport
         public double InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, double fromPredecessor)
         {
             double cumulativeProbability = GetCumulativeReachProbability(fromPredecessor, predecessor, predecessorAction);
-            probabilitiesToInformationSet.Push(cumulativeProbability);
-            ProbabilityOfReachingInformationSet[informationSet.GetNodeNumber()] = ProbabilityOfReachingInformationSet.GetValueOrDefault(informationSet.GetNodeNumber()) + cumulativeProbability;
+            probabilitiesToNode.Push(cumulativeProbability);
+            ProbabilityOfReachingInformationSet[informationSet.GetInformationSetNodeNumber()] = ProbabilityOfReachingInformationSet.GetValueOrDefault(informationSet.GetInformationSetNodeNumber()) + cumulativeProbability;
             return cumulativeProbability;
         }
 
         public double[] InformationSet_Backward(InformationSetNode informationSet, IEnumerable<double[]> fromSuccessors)
         {
-            double reachProbability = probabilitiesToInformationSet.Pop();
+            double reachProbability = probabilitiesToNode.Pop();
             var nextActionProbabilities = informationSet.GetCurrentProbabilitiesAsArray().ToList();
             double[] utilities = AggregateUtilitiesFromSuccessors(fromSuccessors, nextActionProbabilities);
             double[] reachWeightedUtilities = utilities.Select(x => x * reachProbability).ToArray();
-            WeightedUtilitiesAtInformationSet[informationSet.GetNodeNumber()] =
+            WeightedUtilitiesAtInformationSet[informationSet.GetInformationSetNodeNumber()] =
                 WeightedUtilitiesAtInformationSet.GetValueOrDefault<int, double[]>(
-                    informationSet.GetNodeNumber(),
+                    informationSet.GetInformationSetNodeNumber(),
                     utilities.Select(x => (double)0).ToArray())
                 .Zip(reachWeightedUtilities, (x, y) => x + y).ToArray();
             List<double[]> prerecordedUtilitiesAtSuccessors = WeightedUtilitiesAtInformationSetSuccessors.GetValueOrDefault<int, List<double[]>>(
-                    informationSet.GetNodeNumber(),
+                    informationSet.GetInformationSetNodeNumber(),
                     fromSuccessors.Select(x => utilities.Select(x => (double)0).ToArray()).ToList());
             var fromSuccessorsList = fromSuccessors.ToList();
             for (int s = 0; s < fromSuccessorsList.Count(); s++)
@@ -97,7 +97,7 @@ namespace ACESimBase.GameSolvingSupport
                 double[] reachWeightedUtilitiesAtSuccessor = fromSuccessorsList[s].Select(x => x * reachProbability).ToArray();
                 prerecordedUtilitiesAtSuccessors[s] = prerecordedUtilitiesAtSuccessor.Zip(reachWeightedUtilitiesAtSuccessor, (x, y) => x + y).ToArray();
             }
-            WeightedUtilitiesAtInformationSetSuccessors[informationSet.GetNodeNumber()] = prerecordedUtilitiesAtSuccessors;
+            WeightedUtilitiesAtInformationSetSuccessors[informationSet.GetInformationSetNodeNumber()] = prerecordedUtilitiesAtSuccessors;
             return utilities;
         }
 

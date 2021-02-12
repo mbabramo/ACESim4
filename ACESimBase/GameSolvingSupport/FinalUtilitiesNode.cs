@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace ACESim
 {
     [Serializable]
-    public class FinalUtilitiesNode : IGameState
+    public class FinalUtilitiesNode : IGameState, IAnyNode
     {
         public int CurrentInitializedScenarioIndex = 0;
         public double WeightOnOpponentsUtilityP0 = 0;
@@ -34,8 +34,13 @@ namespace ACESim
             get;
             set;
         }
-        public int GetNodeNumber() => FinalUtilitiesNodeNumber;
+        public int GetInformationSetNodeNumber() => FinalUtilitiesNodeNumber;
         public int? AltNodeNumber { get; set; }
+        public Decision Decision { get => null; set => throw new NotImplementedException(); }
+
+        public bool IsChanceNode => false;
+        public bool IsUtilitiesNode => true;
+
         public int GetNumPossibleActions() => 0;
 
         public FinalUtilitiesNode(List<double[]> allScenarioUtilities, List<FloatSet> customResults, int finalUtilitiesNodeNumber)
@@ -60,6 +65,11 @@ namespace ACESim
         public GameStateTypeEnum GetGameStateType()
         {
             return GameStateTypeEnum.FinalUtilities;
+        }
+
+        public double[] GetNodeValues()
+        {
+            return Utilities;
         }
     }
 }

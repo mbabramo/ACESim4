@@ -246,7 +246,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             Dictionary<int, MaybeExact<T>[]> chanceProbabilities = new Dictionary<int, MaybeExact<T>[]>();
             foreach (var chanceNode in InformationSetInfos.Where(x => x.IsChance))
             {
-                chanceProbabilities[chanceNode.ChanceNode.GetNodeNumber()] = chanceNode.GetProbabilitiesAsRationals().Select(x => MaybeExact<T>.FromRational(x)).ToArray();
+                chanceProbabilities[chanceNode.ChanceNode.GetInformationSetNodeNumber()] = chanceNode.GetProbabilitiesAsRationals().Select(x => MaybeExact<T>.FromRational(x)).ToArray();
             }
             Dictionary<int, MaybeExact<T>[]> utilities = new Dictionary<int, MaybeExact<T>[]>();
 
@@ -254,7 +254,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             for (int finalUtilitiesNodesIndex = 0; finalUtilitiesNodesIndex < FinalUtilitiesNodes.Count; finalUtilitiesNodesIndex++)
             {
                 FinalUtilitiesNode finalUtilitiesNode = FinalUtilitiesNodes[finalUtilitiesNodesIndex];
-                utilities[finalUtilitiesNode.GetNodeNumber()] = rationalUtilities[finalUtilitiesNodesIndex].Select(x => MaybeExact<T>.FromRational(x)).ToArray();
+                utilities[finalUtilitiesNode.GetInformationSetNodeNumber()] = rationalUtilities[finalUtilitiesNodesIndex].Select(x => MaybeExact<T>.FromRational(x)).ToArray();
             }
 
             List<int> imperfect = new List<int>();
@@ -354,7 +354,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                         }
                     }
                 }
-                playerProbabilities[(infoSet.PlayerIndex, infoSet.GetNodeNumber())] = asArray;
+                playerProbabilities[(infoSet.PlayerIndex, infoSet.GetInformationSetNodeNumber())] = asArray;
             }
         }
 

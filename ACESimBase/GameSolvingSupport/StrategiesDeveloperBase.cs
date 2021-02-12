@@ -1527,7 +1527,7 @@ namespace ACESim
                 if (informationSetIndex == skipInformationSetIndex)
                     continue;
                 InformationSetNode informationSet = InformationSets[informationSetIndex];
-                var (utilities, utilitiesAtSuccessors, reachProbability) = utilitiesCalculator.GetUtilitiesAndReachProbability(informationSet.GetNodeNumber());
+                var (utilities, utilitiesAtSuccessors, reachProbability) = utilitiesCalculator.GetUtilitiesAndReachProbability(informationSet.GetInformationSetNodeNumber());
                 int p = informationSet.PlayerIndex;
                 var utilityForPlayer = utilities[p];
                 var utilityFromEachAction = utilitiesAtSuccessors.Select(x => x[p]).ToArray();

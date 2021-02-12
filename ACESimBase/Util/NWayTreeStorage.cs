@@ -212,5 +212,16 @@ namespace ACESim
 
 
         }
+
+        public IEnumerable<NWayTreeStorage<T>> EnumerateUpward()
+        {
+            NWayTreeStorage<T> node = this;
+            do
+            {
+                yield return node;
+                node = node.Parent;
+            }
+            while (node != null);
+        }
     }
 }

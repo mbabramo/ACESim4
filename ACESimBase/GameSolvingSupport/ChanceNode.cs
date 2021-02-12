@@ -8,10 +8,14 @@ using System.Threading.Tasks;
 namespace ACESim
 {
     [Serializable]
-    public abstract class ChanceNode : IGameState
+    public abstract class ChanceNode : IGameState, IAnyNode
     {
         public int ChanceNodeNumber;
-        public int GetNodeNumber() => ChanceNodeNumber;
+        public bool IsChanceNode => true;
+        public bool IsUtilitiesNode => false;
+        public int GetInformationSetNodeNumber() => ChanceNodeNumber;
+
+        public double[] GetNodeValues() => GetActionProbabilities().ToArray();
         public int? AltNodeNumber { get; set; }
         public int GetNumPossibleActions() => Decision.NumPossibleActions;
         public Decision Decision;

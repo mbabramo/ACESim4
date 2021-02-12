@@ -24,7 +24,7 @@ namespace ACESimBase.GameSolvingSupport
             string coefString = Coefficient == 1.0 ? "" : $"{Coefficient.ToSignificantFigures(3)} * ";
             var s = coefString + String.Join(", ", NodeActions);
             if (Successor != null)
-                s += $"{(s.Length > 0 ? " " : "")}Successor: {Successor.GetGameStateType()} {Successor.GetNodeNumber()}";
+                s += $"{(s.Length > 0 ? " " : "")}Successor: {Successor.GetGameStateType()} {Successor.GetInformationSetNodeNumber()}";
             return s;
         }
 
