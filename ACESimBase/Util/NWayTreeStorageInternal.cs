@@ -20,21 +20,38 @@ namespace ACESim
             Branches = null; // initialize to null
         }
 
-        public override IEnumerable<NWayTreeStorage<T>> EnumerateNodes(Func<NWayTreeStorage<T>, bool> enumerateThis, Func<NWayTreeStorageInternal<T>, IEnumerable<bool>> enumerateBranches)
+        public override IEnumerable<NWayTreeStorage<T>> EnumerateNodes(Func<NWayTreeStorage<T>, bool> enumerateThis, Func<NWayTreeStorageInternal<T>, IEnumerable<bool>> enumerateBranches, Action beforeAction = null, Action afterAction = null)
         {
+            if (beforeAction != null)
+                beforeAction();
             if (enumerateThis(this))
                 yield return this;
             int branchIndex = 0;
-            foreach (bool enumerateBranch in enumerateBranches(this))
-            {
-                if (enumerateBranch)
+            if (Branches != null)
+                foreach (bool enumerateBranch in enumerateBranches(this))
                 {
-                    foreach (NWayTreeStorage<T> node in Branches[branchIndex].EnumerateNodes(enumerateThis, enumerateBranches))
-                        yield return node;
+                    if (enumerateBranch)
+                    {
+                        foreach (NWayTreeStorage<T> node in Branches[branchIndex].EnumerateNodes(enumerateThis, enumerateBranches))
+                            yield return node;
+                    }
+                    branchIndex++;
                 }
-                branchIndex++;
-            }
+            if (afterAction != null)
+                afterAction();
         }
+        public override void ExecuteActions(Action<T> downTreeAction, Action<T> upTreeAction)
+        {
+            downTreeAction(StoredValue);
+            if (Branches != null)
+                foreach (var branch in Branches.Where(x => x != null))
+                {
+                    branch.ExecuteActions(downTreeAction, upTreeAction);
+                }
+            upTreeAction(StoredValue);
+        }
+
+
 
         private T GetItem(IEnumerable<byte> branchSequence) => GetNodeAtPath(branchSequence).StoredValue;
 

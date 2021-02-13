@@ -1,5 +1,6 @@
 ﻿using ACESim;
 using Microsoft.FSharp.Linq;
+using SixLabors.ImageSharp.Processing;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -22,6 +23,7 @@ namespace ACESimBase.GameSolvingSupport
         NWayTreeStorageInternal<GamePointNode> TreeRoot;
         Stack<NWayTreeStorageInternal<GamePointNode>> ParentNodes = new Stack<NWayTreeStorageInternal<GamePointNode>>();
         Stack<double> ProbabilitiesToNode = new Stack<double>();
+        byte NumNonChancePlayers = 0;
 
         public record GamePointNode(IAnyNode anyNode, double gamePointReachProbability)
         {
@@ -35,6 +37,53 @@ namespace ACESimBase.GameSolvingSupport
         {
         }
 
+        public record ParentInfo(string name, int action);
+
+        public void PrintTree(List<Decision> decisions)
+        {
+            Stack<ParentInfo> parentInfoStack = new Stack<ParentInfo>();
+            TreeRoot.ExecuteActions((gamePointNode) =>
+            {
+                ParentInfo parentInfo = null;
+                if (parentInfoStack.Any())
+                {
+                    parentInfo = parentInfoStack.Pop();
+                    parentInfo = parentInfo with { action = parentInfo.action + 1 };
+                    parentInfoStack.Push(parentInfo);
+                }
+
+                TabbedText.TabIndent();
+                IAnyNode gameNode = gamePointNode.anyNode;
+                double[] values = gameNode.GetNodeValues();
+                if (gameNode.IsUtilitiesNode)
+                {
+                    TabbedText.WriteLine("Utilities: " + String.Join(",", values));
+                }
+                else
+                {
+                    if (parentInfo != null) 
+                        TabbedText.WriteLine($"--- {parentInfo.name}: {parentInfo.action} -->");
+                    TabbedText.WriteLine($"Decision: {gameNode.Decision.Name} (Information set {gameNode.GetInformationSetNodeNumber()})");
+                    parentInfoStack.Push(new ParentInfo(gameNode.Decision.Name, 0));
+                    TabbedText.WriteLine("Value probabilities: " + String.Join(",", values));
+                    TabbedText.WriteLine($"Game point reach probability: {gamePointNode.gamePointReachProbability}");
+                    var otherMoves = GetProbabilitiesOfOtherInformationSetMoves(!gameNode.IsChanceNode, gameNode.GetInformationSetNodeNumber(), decisions);
+                    foreach (var entry in otherMoves.OrderBy(x => x.Key))
+                    {
+                        TabbedText.WriteLine($"{entry.Key}: {String.Join(",", entry.Value)}");
+                    }
+
+                }
+            },
+            (gamePointNode) =>
+            {
+                IAnyNode gameNode = gamePointNode.anyNode;
+                if (parentInfoStack.Any())
+                    parentInfoStack.Pop();
+                TabbedText.TabUnindent();
+            });
+        }
+
         public Dictionary<string, double[]> GetProbabilitiesOfOtherInformationSetMoves(bool nonChancePlayer, int atNodeNumber, List<Decision> decisions)
         {
             Dictionary<string, double[]> d = new Dictionary<string, double[]>();
@@ -44,6 +93,7 @@ namespace ACESimBase.GameSolvingSupport
                 if (probabilities != null)
                     d[decision.Name] = probabilities;
             }
+            d["Utilities"] = GetProbabilitiesOfUtilities(nonChancePlayer, atNodeNumber, NumNonChancePlayers); 
             return d;
         }
 
@@ -56,6 +106,19 @@ namespace ACESimBase.GameSolvingSupport
                 return null;
             for (byte a = 1; a <= sourceDecision.NumPossibleActions; a++)
                 results[a - 1] = statisticsAtNode.GetWeight((sourceDecision.DecisionByteCode, a));
+            double sum = results.Sum();
+            return results.Select(x => x / sum).ToArray();
+        }
+
+        public double[] GetProbabilitiesOfUtilities(bool nonChancePlayer, int atNodeNumber, int numNonChancePlayers)
+        {
+            double[] results = new double[numNonChancePlayers];
+            var statistics = StatisticsForInformationSets(nonChancePlayer);
+            var statisticsAtNode = statistics.GetValueOrDefault(atNodeNumber);
+            if (statisticsAtNode == null)
+                return null;
+            for (byte a = 1; a <= numNonChancePlayers; a++)
+                results[a - 1] = statisticsAtNode.GetWeight((255, a));
             double sum = results.Sum();
             return results.Select(x => x / sum).ToArray();
         }
@@ -172,7 +235,11 @@ namespace ACESimBase.GameSolvingSupport
         {
             double reachProbability = GetCumulativeReachProbability(fromPredecessor.reachProbability, predecessor, predecessorAction);
             AddNodeToTree(finalUtilities, predecessorAction, reachProbability);
-            return new MoveProbabilityTracker<(byte decisionByteCode, byte move)>();
+            var toReturn = new MoveProbabilityTracker<(byte decisionByteCode, byte move)>();
+            NumNonChancePlayers = (byte) finalUtilities.Utilities.Count();
+            for (int i = 0; i < NumNonChancePlayers; i++)
+                toReturn.AddMove((255, (byte)(i + 1)), finalUtilities.Utilities[i]);
+            return toReturn;
         }
 
         private MoveProbabilityTracker<(byte decisionByteCode, byte move)> AnyNode_Backward(IAnyNode node, IEnumerable<MoveProbabilityTracker<(byte decisionByteCode, byte move)>> fromSuccessors)

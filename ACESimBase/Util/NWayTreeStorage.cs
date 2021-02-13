@@ -153,10 +153,19 @@ namespace ACESim
             }
         }
 
-        public virtual IEnumerable<NWayTreeStorage<T>> EnumerateNodes(Func<NWayTreeStorage<T>, bool> enumerateThis, Func<NWayTreeStorageInternal<T>, IEnumerable<bool>> enumerateBranches)
+        public virtual IEnumerable<NWayTreeStorage<T>> EnumerateNodes(Func<NWayTreeStorage<T>, bool> enumerateThis, Func<NWayTreeStorageInternal<T>, IEnumerable<bool>> enumerateBranches, Action beforeAction = null, Action afterAction = null)
         {
+            if (beforeAction != null)
+                beforeAction();
             if (enumerateThis(this))
                 yield return this;
+            if (afterAction != null)
+                afterAction();
+        }
+        public virtual void ExecuteActions(Action<T> downTreeAction, Action<T> upTreeAction)
+        {
+            downTreeAction(StoredValue);
+            upTreeAction(StoredValue);
         }
 
         public virtual void WalkTree(Action<NWayTreeStorage<T>> beforeDescending, Action<NWayTreeStorage<T>> afterAscending, Func<NWayTreeStorage<T>, bool> parallel = null)

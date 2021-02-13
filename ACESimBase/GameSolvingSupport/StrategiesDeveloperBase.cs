@@ -1676,7 +1676,9 @@ namespace ACESim
             TraceTreeWalk = true;
             if (EvolutionSettings.PrintedGameTreeIncludesInformationSetData)
             {
-                TreeWalk_Tree(new ConstructGameTreeInformationSetInfo());
+                ConstructGameTreeInformationSetInfo processor = new ConstructGameTreeInformationSetInfo();
+                TreeWalk_Tree(processor);
+                processor.PrintTree(GameDefinition.DecisionsExecutionOrder);
             }
             else
             {
