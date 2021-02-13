@@ -1115,7 +1115,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             s.Start();
             EvolutionSettings.ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.AverageStrategy }; 
             var reportResult = await GenerateReports(EvolutionSettings.ReportEveryNIterations ?? 0,
-                () => $"{GameDefinition.OptionSetName}-Avg");
+                () => $"{GameDefinition.OptionSetName}-Avg", suppressPrintTree: true);
             reportCollection.Add(reportResult, false, true);
             GenerateManualReports($"-Avg");
             TabbedText.WriteLine($"Elapsed milliseconds generating average equilibrium report: {s.ElapsedMilliseconds}");

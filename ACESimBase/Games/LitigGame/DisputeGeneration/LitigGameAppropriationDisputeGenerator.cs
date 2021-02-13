@@ -26,6 +26,11 @@ namespace ACESim
 
         private double[][] ProbabilityLiabilityStrengthForNoiseLevel_TrulyLiable, ProbabilityLiabilityStrengthForNoiseLevel_TrulyNotLiable;
 
+
+        public (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("PrePrimaryChanceActions", "Pre Primary");
+        public (string name, string abbreviation) PrimaryNameAndAbbreviation => ("PrimaryChanceActions", "Primary");
+        public (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("PostPrimaryChanceActions", "Post Primary");
+
         public LitigGameDefinition LitigGameDefinition { get; set; }
         public void Setup(LitigGameDefinition myGameDefinition)
         {

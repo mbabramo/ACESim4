@@ -40,6 +40,11 @@ namespace ACESim
 
         string GetGeneratorName();
 
+        (string name, string abbreviation) PrePrimaryNameAndAbbreviation { get; }
+        (string name, string abbreviation) PrimaryNameAndAbbreviation { get; }
+        (string name, string abbreviation) PostPrimaryNameAndAbbreviation { get; }
+
+
         // The following are for dispute generators that invert calculations. Without inverted calculations, the dispute generator produces liability and damages strength
         // probabilities, often as a function of earlier probabilities (pre-primary, primary, and chance), for example representing true state of the world.
         // Without inverted calculations, the game then calculates the parties' signals based on these litigation strength values.

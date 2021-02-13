@@ -1673,7 +1673,7 @@ namespace ACESim
         public void PrintGameTree()
         {
             bool original = TraceTreeWalk;
-            TraceTreeWalk = true;
+            TraceTreeWalk = false;
             if (EvolutionSettings.PrintedGameTreeIncludesInformationSetData)
             {
                 ConstructGameTreeInformationSetInfo processor = new ConstructGameTreeInformationSetInfo();
@@ -1912,7 +1912,7 @@ namespace ACESim
 
         #region Game play and reporting
 
-        public virtual async Task<ReportCollection> GenerateReports(int iteration, Func<string> prefaceFn)
+        public virtual async Task<ReportCollection> GenerateReports(int iteration, Func<string> prefaceFn, bool suppressPrintTree = false)
         {
             ReportCollection reportCollection = new ReportCollection();
             bool doBestResponse = (EvolutionSettings.BestResponseEveryMIterations != null && (EvolutionSettings.SuppressBestResponseBeforeIteration == null || iteration >= EvolutionSettings.SuppressBestResponseBeforeIteration) && iteration % EvolutionSettings.BestResponseEveryMIterations == 0 && EvolutionSettings.BestResponseEveryMIterations != EvolutionSettings.EffectivelyNever && iteration != 0);
@@ -1935,7 +1935,7 @@ namespace ACESim
                 }
                 if (iteration % EvolutionSettings.CorrelatedEquilibriumCalculationsEveryNIterations == 0)
                     DoCorrelatedEquilibriumCalculations(iteration);
-                if (EvolutionSettings.PrintGameTree)
+                if (EvolutionSettings.PrintGameTree && !suppressPrintTree)
                     PrintGameTree();
                 if (EvolutionSettings.PrintInformationSets)
                     PrintInformationSets();

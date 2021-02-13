@@ -390,7 +390,7 @@ namespace ACESim
         {
             var options = BaseOptions();
 
-            options.InvertChanceDecisions = true;
+            options.InvertChanceDecisions = false; // DEBUG
             options.IncludeSignalsReport = false;
             options.IncludeCourtSuccessReport = false;
 
@@ -426,7 +426,7 @@ namespace ACESim
             options.DLiabilityNoiseStdev = 0.2;
             options.CourtLiabilityNoiseStdev = Math.Min(options.PLiabilityNoiseStdev, options.DLiabilityNoiseStdev);
 
-            options.SkipFileAndAnswerDecisions = false;
+            options.SkipFileAndAnswerDecisions = true; // DEBUG
             options.NumPotentialBargainingRounds = 1;
             options.IncludeAgreementToBargainDecisions = false;
             options.AllowAbandonAndDefaults = true;
