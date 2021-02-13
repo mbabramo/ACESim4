@@ -11,7 +11,6 @@ namespace ACESimBase.GameSolvingSupport
 {
     public class ConstructGameTreeInformationSetInfo : ITreeNodeProcessor<ConstructGameTreeInformationSetInfo.ForwardInfo, ConstructGameTreeInformationSetInfo.MoveProbabilityTracker<(byte decisionByteCode, byte move)>>
     {
-        Stack<double> ProbabilitiesToNode = new Stack<double>();
         Dictionary<int, double> ProbabilityOfReachingInformationSetForNonChancePlayer = new Dictionary<int, double>();
         Dictionary<int, double> ProbabilityOfReachingInformationSetForChance = new Dictionary<int, double>();
         Dictionary<int, double> ProbabilityOfReachingInformationSet(bool forNonChancePlayer) => forNonChancePlayer ? ProbabilityOfReachingInformationSetForNonChancePlayer : ProbabilityOfReachingInformationSetForChance;
@@ -20,7 +19,9 @@ namespace ACESimBase.GameSolvingSupport
         Dictionary<int, MoveProbabilityTracker<(byte decisionByteCode, byte move)>> StatisticsForInformationSets(bool forNonChancePlayers) => forNonChancePlayers ? StatisticsForNonChancePlayerNodes : StatisticsForChanceNodes;
 
         Dictionary<(bool chancePlayer, int nodeNumber), IAnyNode> InformationSets = new Dictionary<(bool chancePlayer, int nodeNumber), IAnyNode>();
-        NWayTreeStorageInternal<GamePointNode> TreeRoot, TreeLastNodeAdded;
+        NWayTreeStorageInternal<GamePointNode> TreeRoot;
+        Stack<NWayTreeStorageInternal<GamePointNode>> ParentNodes = new Stack<NWayTreeStorageInternal<GamePointNode>>();
+        Stack<double> ProbabilitiesToNode = new Stack<double>();
 
         public record GamePointNode(IAnyNode anyNode, double gamePointReachProbability)
         {
@@ -153,12 +154,14 @@ namespace ACESimBase.GameSolvingSupport
                 treeNode = TreeRoot = new NWayTreeStorageInternal<GamePointNode>(null, anyNode.Decision.NumPossibleActions);
             else
             {
-                var parentNode = (NWayTreeStorageInternal<GamePointNode>)TreeLastNodeAdded.EnumerateUpward().First(x => x.StoredValue.anyNode == anyNode);
-                parentNode.SetBranch(predecessorAction, new NWayTreeStorageInternal<GamePointNode>(parentNode, anyNode.Decision.NumPossibleActions));
+                var parentNode = ParentNodes.Peek();
+                parentNode.SetBranch(predecessorAction, new NWayTreeStorageInternal<GamePointNode>(parentNode, anyNode.Decision?.NumPossibleActions ?? 0));
                 treeNode = (NWayTreeStorageInternal<GamePointNode>)parentNode.GetBranch(predecessorAction);
             }
             treeNode.StoredValue = new GamePointNode(anyNode, reachProbability);
-            TreeLastNodeAdded = treeNode;
+
+            if (!anyNode.IsUtilitiesNode)
+                ParentNodes.Push(treeNode);
         }
 
         public ForwardInfo ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, ForwardInfo fromPredecessor, int distributorChanceInputs) => AnyNode_Forward(chanceNode, predecessor, predecessorAction, fromPredecessor);
@@ -174,6 +177,7 @@ namespace ACESimBase.GameSolvingSupport
 
         private MoveProbabilityTracker<(byte decisionByteCode, byte move)> AnyNode_Backward(IAnyNode node, IEnumerable<MoveProbabilityTracker<(byte decisionByteCode, byte move)>> fromSuccessors)
         {
+            ParentNodes.Pop();
             double reachProbability = ProbabilitiesToNode.Pop();
             var probabilitiesFromHere = node.GetNodeValues();
             MoveProbabilityTracker<(byte decisionByteCode, byte move)> toAddToTracker = new MoveProbabilityTracker<(byte decisionByteCode, byte move)>(fromSuccessors.ToList(), probabilitiesFromHere);

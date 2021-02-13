@@ -29,7 +29,7 @@ namespace ACESim
         public int GetInformationSetNodeNumber() => InformationSetNodeNumber;
         public Decision Decision { get; set; }
 
-        public double[] GetNodeValues() => GetNodeValues();
+        public double[] GetNodeValues() => GetCurrentProbabilitiesAsArray();
         public int? AltNodeNumber { get; set; }
         public int GetNumPossibleActions() => Decision.NumPossibleActions;
         public EvolutionSettings EvolutionSettings;
