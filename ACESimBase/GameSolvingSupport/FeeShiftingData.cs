@@ -51,7 +51,7 @@ namespace LitigCharts
             }
             string outputFileFullPath = Path.Combine(path, filePrefix + "-output.csv");
             string csvResult = MakeString(outputLines);
-            TextFileCreate.CreateTextFile(outputFileFullPath, csvResult);
+            TextFileManage.CreateTextFile(outputFileFullPath, csvResult);
         }
 
         public static string MakeString(List<List<string>> values)

@@ -57,7 +57,8 @@ namespace LitigCharts
 
                 string texFileInQuotes = $"\"{combinedPath}\"";
                 string outputDirectoryInQuotes = $"\"{path}\"";
-                string pdflatexProgram = @"C:\Program Files\MiKTeX 2.9\miktex\bin\x64"; // DEBUG @"C:\Users\Admin\AppData\Local\Programs\MiKTeX\miktex\bin\x64\pdflatex.exe";
+                bool backupComputer = false;
+                string pdflatexProgram = backupComputer ? @"C:\Program Files\MiKTeX 2.9\miktex\bin\x64" : @"C:\Users\Admin\AppData\Local\Programs\MiKTeX\miktex\bin\x64\pdflatex.exe";
                 string arguments = @$"{texFileInQuotes} -output-directory={outputDirectoryInQuotes}";
 
                 while (processesList.Count() >= maxProcesses)
@@ -175,7 +176,7 @@ namespace LitigCharts
                 string resultForEquilibrium = MakeString(outputLines);
                 cumResults += resultForEquilibrium;
             }
-            TextFileCreate.CreateTextFile(outputFileFullPath, cumResults);
+            TextFileManage.CreateTextFile(outputFileFullPath, cumResults);
         }
 
         private static List<LitigGameOptions> GetFeeShiftingGameOptionsSets()
@@ -254,5 +255,117 @@ namespace LitigCharts
                 b.AppendLine(String.Join(",", values[i]));
             return b.ToString();
         }
+
+        public static void FileFixer()
+        {
+            string reportFolder = Launcher.ReportFolder();
+            var files = Directory.GetFiles(reportFolder);
+            foreach (var filename in files.Where(x => x.EndsWith(".tex")))
+            {
+                string[] lines = TextFileManage.GetLinesOfFile(filename);
+                bool changeNeeded = false;
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    string line = lines[i];
+                    if (line.Contains("NaN"))
+                    {
+                        changeNeeded = true;
+                        int initialNumberStart = line.IndexOf("(") + 1;
+                        int numberCharacters = 4;
+                        string correctNumberString = new string(line.Skip(initialNumberStart).Take(numberCharacters).ToArray());
+                        int wrongNumberStart = line.IndexOf("NaN");
+                        numberCharacters = 3;
+                        string correctString = line.Replace("NaN", correctNumberString);
+                        lines[i] = correctString;
+                        //TabbedText.WriteLine($"{file}: {line}");
+                    }
+                }
+                if (changeNeeded)
+                {
+                    string revisedFileContents = String.Join(Environment.NewLine, lines);
+                    TextFileManage.CreateTextFile(filename, revisedFileContents);
+                }
+            }
+        }
+
+        public static void OrganizeIntoFolders()
+        {
+            string reportFolder = Launcher.ReportFolder();
+
+            string[] filesInFolder = Directory.GetFiles(reportFolder);
+            string[] fileExtensionsTriggeringDeletion = new string[] { ".aux", ".log" };
+            foreach (string file in filesInFolder)
+            {
+                foreach (string deletionTrigger in fileExtensionsTriggeringDeletion)
+                    if (file.EndsWith(deletionTrigger))
+                        File.Delete(file);
+            }
+            filesInFolder = Directory.GetFiles(reportFolder);
+
+            string[] getExtensions(string eqType) => new string[] { $"-{eqType}.csv", $"-heatmap-{eqType}.pdf", $"-heatmap-{eqType}.tex", $"-scr-{eqType}.pdf", $"-scr-{eqType}.tex", $"-scr-{eqType}.csv" };
+            List<(string folderName, string[] extensions)> placementRules = new List<(string folderName, string[] extensions)>()
+            {
+                ("Correlated Equilibrium", getExtensions("Corr")),
+                ("Average Equilibrium", getExtensions("Avg")),
+                ("First Equilibrium", getExtensions("Eq1")),
+                ("First Equilibrium", getExtensions("eq1")), // we're inconsistent in capitalization
+                ("EFG Files", new string[] { ".efg" }),
+                ("Equilibria Files", new string[] { "-equ.csv" }),
+                ("Logs", new string[] { "-log.txt" }),
+            };
+
+            var launcher = new LitigGameLauncher();
+            var sets = launcher.GetFeeShiftingArticleGamesSets(false, true);
+            var map = launcher.GetFeeShiftingArticleNameMap(); // name to find (avoids redundancies)
+            var setNames = launcher.NamesOfFeeShiftingArticleSets;
+            string masterReportName = launcher.MasterReportNameForDistributedProcessing;
+            List<(List<LitigGameOptions> theSet, string setName)> setsWithNames = sets.Zip(setNames, (s, sn) => (s, sn)).ToList();
+            foreach (var setWithName in setsWithNames)
+            {
+                string subfolderName = Path.Combine(reportFolder, setWithName.setName);
+                if (!Directory.GetDirectories(reportFolder).Any(x => x == subfolderName))
+                    Directory.CreateDirectory(subfolderName);
+                foreach (string folderName in placementRules.Select(x => x.folderName))
+                {
+                    var subsubfolderName = Path.Combine(subfolderName, folderName);
+                    if (!Directory.GetDirectories(subfolderName).Any(x => x == subsubfolderName))
+                        Directory.CreateDirectory(subsubfolderName);
+                }
+                foreach (var optionsSet in setWithName.theSet)
+                {
+                    string originalName = optionsSet.Name;
+                    string filenameMapped = map[originalName];
+                    foreach (var placementRule in placementRules)
+                    {
+                        var subsubfolderName = Path.Combine(subfolderName, placementRule.folderName);
+                        foreach (var extension in placementRule.extensions)
+                        {
+                            string combinedNameSource = Path.Combine(reportFolder, masterReportName + "-" + filenameMapped + extension);
+                            string targetFileName = originalName.Replace("FSA ", "").Replace("fee rule", "Fee Rule").Replace("-Eq1","-eq1").Replace("  ", " ") + extension;
+                            if (File.Exists(combinedNameSource))
+                            {
+                                string combinedNameTarget = Path.Combine(subsubfolderName, targetFileName);
+                                File.Copy(combinedNameSource, combinedNameTarget, true);
+                                File.Delete(combinedNameSource);
+                            }
+                        }
+                    }
+                    string fullOriginalFilename = Path.Combine(reportFolder, filenameMapped);
+                }
+            }
+        
+        }
+
+        //private string SeparateOptionSetsByRelevantVariable(List<LitigGameOptions> optionSets)
+        //{
+        //    foreach (var e in optionSets.First().VariableSettings)
+        //    {
+        //        int count = optionSets.Count(x => x.VariableSettings[e.Key] == e.Value);
+        //        if (count == 1)
+        //        {
+        //            string variableThatDiffers = e.Key;
+        //        }
+        //    }
+        //}
     }
 }

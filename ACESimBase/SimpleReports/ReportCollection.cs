@@ -85,17 +85,17 @@ namespace ACESim
         public void SaveLatestLocally()
         {
             DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
-            TextFileCreate.CreateTextFile(Path.Combine(folder.FullName, "standardreport"), standardReport);
+            TextFileManage.CreateTextFile(Path.Combine(folder.FullName, "standardreport"), standardReport);
             if (MultipleCSV)
             {
                 int i = 0;
                 foreach (string csv in csvReports)
-                    TextFileCreate.CreateTextFile(Path.Combine(folder.FullName, "csvreport-" + i++.ToString() + ".csv"), csv);
+                    TextFileManage.CreateTextFile(Path.Combine(folder.FullName, "csvreport-" + i++.ToString() + ".csv"), csv);
             }
             else
             {
                 if (csvReports.Any())
-                    TextFileCreate.CreateTextFile(Path.Combine(folder.FullName, "csvreport.csv"), csvReports.Single());
+                    TextFileManage.CreateTextFile(Path.Combine(folder.FullName, "csvreport.csv"), csvReports.Single());
             }
         }
 

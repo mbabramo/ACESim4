@@ -182,7 +182,7 @@ namespace ACESim
                 GenerateReportsByPlaying = true,
                 PrintInformationSets = false,  
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
-                PrintGameTree = true, // DEBUG
+                PrintGameTree = false, // DEBUG
                 ActionStrategiesToUseInReporting =
                  new List<ActionStrategies>() {
                      //ActionStrategies.CorrelatedEquilibrium,
@@ -226,7 +226,7 @@ namespace ACESim
             }
             var result = AzureBlob.GetBlobText("results", $"{masterReportName} AllCombined.csv");
             string folderFullName = ReportFolder();
-            TextFileCreate.CreateTextFile(Path.Combine(folderFullName, "csvreport.csv"), result);
+            TextFileManage.CreateTextFile(Path.Combine(folderFullName, "csvreport.csv"), result);
             return new ReportCollection("", result);
         }
 

@@ -84,15 +84,15 @@ namespace LitigCharts
 
                 var signals = sets == SetsToUse.Original ? new string[] { "PBias", "DBias" } : new string[] { "PQuality", "DQuality" }; // in the original model, the parties' signals count as "bias" because they are the z's and not part of the merits
                 string varyingQualitySignal = GetStringWithSeparateLineForEachCostThresholdAndQualityOrCategoricalVariable(prefix, inputColumnsWithSets, outputColumnsRevised, null, signals, quality);
-                TextFileCreate.CreateTextFile(destinationPath + "\\" + explanation + "_signal_q" + qString + ".csv", varyingQualitySignal);
+                TextFileManage.CreateTextFile(destinationPath + "\\" + explanation + "_signal_q" + qString + ".csv", varyingQualitySignal);
 
                 NumValuesCategoricalVar = 20;
                 string varyingBestGuess = GetStringWithSeparateLineForEachCostThresholdAndQualityOrCategoricalVariable(prefix, inputColumnsWithSets, outputColumnsRevised, null, new string[] { "PBestGuess", "DBestGuess" }, quality);
-                TextFileCreate.CreateTextFile(destinationPath + "\\" + explanation + "_expectation_q" + qString + ".csv", varyingBestGuess);
+                TextFileManage.CreateTextFile(destinationPath + "\\" + explanation + "_expectation_q" + qString + ".csv", varyingBestGuess);
 
                 NumValuesCategoricalVar = 20;
                 string varyingQuality = GetStringWithSeparateLineForEachCostThresholdAndQualityOrCategoricalVariable(prefix, inputColumnsWithSets, outputColumnsRevised, null, new string[] { "QualitySum" }, quality);
-                TextFileCreate.CreateTextFile(destinationPath + "\\" + explanation + "_quality_q" + qString + ".csv", varyingQuality);
+                TextFileManage.CreateTextFile(destinationPath + "\\" + explanation + "_quality_q" + qString + ".csv", varyingQuality);
             }
         }
 
@@ -105,7 +105,7 @@ namespace LitigCharts
                         foreach (double feeShifting in allFeeShifting)
                         {
                             string filename = prefix + " " + settingString(set, quality, costs, feeShifting) + ".csv";
-                            TextFileCreate.CopyFileFromAzure("results", filename, sourcePath);
+                            TextFileManage.CopyFileFromAzure("results", filename, sourcePath);
                         }
         }
 
@@ -121,7 +121,7 @@ namespace LitigCharts
                         {
                             string sourceFilename = sourcePrefix + " " + settingString(set, quality, costs, feeShifting) + ".csv";
                             string destinationFilename = destinationPrefix + " " + settingString(set, quality, costs, feeShifting) + ".csv";
-                            TextFileCreate.CopyFileFromAzure("results", sourceFilename, sourcePath, destinationFilename);
+                            TextFileManage.CopyFileFromAzure("results", sourceFilename, sourcePath, destinationFilename);
                         }
         }
 
@@ -315,8 +315,8 @@ namespace LitigCharts
                 string filename = prefix + " " + "klerman" + exogProb.ToString() + ".csv";
                 string logfilename = prefix + " " + "klerman" + exogProb.ToString() + "log.txt";
                 string fullFilename = path + "\\" + filename;
-                TextFileCreate.CopyFileFromAzure("results", filename, path);
-                TextFileCreate.CopyFileFromAzure("results", logfilename, path);
+                TextFileManage.CopyFileFromAzure("results", filename, path);
+                TextFileManage.CopyFileFromAzure("results", logfilename, path);
                 var results = CSVData.GetCSVData(fullFilename, new (string columnName, string expectedText)[] { ("Filter", "All") }, new string[] { "P Loses", "P Wins" }, false);
                 loses[i] = (double)results[0];
                 wins[i] = (double)results[1];

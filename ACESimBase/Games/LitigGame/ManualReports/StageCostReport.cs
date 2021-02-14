@@ -103,7 +103,11 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             public List<TikzRectangle> StageInStageCostDiagramProportionalRectangles(int panelIndex, int subpanelIndex)
             {
                 var stage = StageInStageCostDiagram(panelIndex, subpanelIndex);
-                var result = StageInStageCostDiagramEncompassingRectangles(panelIndex, subpanelIndex).Select((item, index) => item.ReduceHorizontally(stage.regionComponents[index].magnitude / assessmentInfo[panelIndex].maxMagnitude, TikzHorizontalAlignment.Left) with { rectangleAttributes = stage.regionComponents[index].specialShading ? "pattern color=red, pattern=north east lines" : "pattern color=blue, pattern=north west lines" } ).ToList();
+                var result = StageInStageCostDiagramEncompassingRectangles(panelIndex, subpanelIndex).Select((item, index) =>
+                {
+                    double maxMagnitude = assessmentInfo[panelIndex].maxMagnitude;
+                    return item.ReduceHorizontally(maxMagnitude == 0 ? 0 : stage.regionComponents[index].magnitude / maxMagnitude, TikzHorizontalAlignment.Left) with { rectangleAttributes = stage.regionComponents[index].specialShading ? "pattern color=red, pattern=north east lines" : "pattern color=blue, pattern=north west lines" };
+                }).ToList();
                 return result;
             }
             public List<TikzRectangle> StageInStageCostDiagramProportionalRectangles() => PanelAndSubpanelIndices.SelectMany(x => StageInStageCostDiagramProportionalRectangles(x.panelIndex, x.subpanelIndex)).ToList();
@@ -133,8 +137,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 StringBuilder tikzBuilder = new StringBuilder();
                 string attributes = "black, very thin";
 
-                tikzBuilder.AppendLine(VerticalAxis.DrawAxis(attributes, Enumerable.Range(0, 11).Select(x => (0.1 * x, (x * 10).ToString() + "\\%")).ToList(), "east", "Proportion of Cases", "center", TikzHorizontalAlignment.Center, "rotate=90", -1.2, 0));
-                tikzBuilder.AppendLine(TextAreaAxis.DrawAxis(attributes, VerticalDivisionValues.Select(x => (x, "")).ToList(), "west", null, null, TikzHorizontalAlignment.Center, null, 0, 0));
+                tikzBuilder.AppendLine(VerticalAxis.DrawAxis(attributes, Enumerable.Range(0, 11).Select(x => (0.1 * x, (x * 10).ToString() + "\\%")).ToList(), null, "east", "Proportion of Cases", "center", TikzHorizontalAlignment.Center, "rotate=90", -1.2, 0));
+                tikzBuilder.AppendLine(TextAreaAxis.DrawAxis(attributes, VerticalDivisionValues.Select(x => (x, "")).ToList(), null, "west", null, null, TikzHorizontalAlignment.Center, null, 0, 0));
                 foreach (var rect in StageInStageCostDiagramProportionalRectangles())
                     tikzBuilder.AppendLine(rect.DrawCommand(attributes));
                 foreach (var line in HorizontalLinesAcrossPanels)
@@ -142,7 +146,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 for (int i = 0; i < HorizontalAxes.Count; i++)
                 {
                     TikzLine horizontalAxis = HorizontalAxes[i];
-                    tikzBuilder.AppendLine(horizontalAxis.DrawAxis(attributes, new List<(double proportion, string text)>() { ((1.0, assessmentInfo[i].maxMagnitude.ToSignificantFigures(2))) }, "north", assessmentInfo[i].assessmentName, "north", TikzHorizontalAlignment.Center, null, 0, 0));
+                    tikzBuilder.AppendLine(horizontalAxis.DrawAxis(attributes, new List<(double proportion, string text)>() { ((1.0, assessmentInfo[i].maxMagnitude.ToSignificantFigures(2))) }, null, "north", assessmentInfo[i].assessmentName, "north", TikzHorizontalAlignment.Center, null, 0, 0));
                 }
                 var spacedLabels = new TikzSpacedLabels(TextAreaAxis, VerticalDivisionValues.ToList(), stageNames, shortStageNames);
                 tikzBuilder.AppendLine(spacedLabels.DrawCommand());

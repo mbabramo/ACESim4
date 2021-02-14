@@ -390,14 +390,13 @@ namespace ACESim
         {
             var options = BaseOptions();
 
-            options.InvertChanceDecisions = false; // DEBUG
+            options.InvertChanceDecisions = true;
             options.IncludeSignalsReport = false;
             options.IncludeCourtSuccessReport = false;
 
-            // DEBUG
-            options.NumOffers = 2;
-            options.NumLiabilityStrengthPoints = 2;
-            options.NumLiabilitySignals = 2;
+            options.NumOffers = 10;
+            options.NumLiabilityStrengthPoints = 5;
+            options.NumLiabilitySignals = 5;
 
             options.NumDamagesSignals = 1;
             options.NumDamagesStrengthPoints = 1;
@@ -426,11 +425,15 @@ namespace ACESim
             options.DLiabilityNoiseStdev = 0.2;
             options.CourtLiabilityNoiseStdev = Math.Min(options.PLiabilityNoiseStdev, options.DLiabilityNoiseStdev);
 
-            options.SkipFileAndAnswerDecisions = true; // DEBUG
+            options.SkipFileAndAnswerDecisions = false; 
             options.NumPotentialBargainingRounds = 1;
             options.IncludeAgreementToBargainDecisions = false;
             options.AllowAbandonAndDefaults = true;
             options.PredeterminedAbandonAndDefaults = true;
+
+            // DEBUG
+            options.LoserPaysMultiple = 2;
+            options.CostsMultiplier = 8;
 
             return options;
         }

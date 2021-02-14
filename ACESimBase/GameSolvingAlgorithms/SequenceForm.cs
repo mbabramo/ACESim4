@@ -860,7 +860,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
             var folderFullName = folder.FullName;
             string filename = Path.Combine(folderFullName, MasterReportName + "-" + GameDefinition.OptionSetName + ".efg");
-            TextFileCreate.CreateTextFile(filename, efgResult);
+            TextFileManage.CreateTextFile(filename, efgResult);
             return filename;
         }
 
@@ -874,7 +874,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
             var folderFullName = folder.FullName;
             string filename = Path.Combine(folderFullName, MasterReportName + "-" + GameDefinition.OptionSetName + "-equ.csv");
-            TextFileCreate.CreateTextFile(filename, s.ToString());
+            TextFileManage.CreateTextFile(filename, s.ToString());
             return filename;
         }
 
@@ -883,14 +883,8 @@ namespace ACESimBase.GameSolvingAlgorithms
             DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
             var folderFullName = folder.FullName;
             string filename = Path.Combine(folderFullName, MasterReportName + "-" + GameDefinition.OptionSetName + "-equ.csv");
-            var filestream = new System.IO.FileStream(filename,
-                                          System.IO.FileMode.Open,
-                                          System.IO.FileAccess.Read,
-                                          System.IO.FileShare.ReadWrite);
-            var streamreader = new System.IO.StreamReader(filestream, System.Text.Encoding.UTF8, true, 128);
-            string[] filestreams = streamreader.ReadToEnd().Split(Environment.NewLine,
-                              StringSplitOptions.RemoveEmptyEntries);
-            List<double[]> numbers = filestreams.Select(x => x.Split().Select(x => EFGFileReader.RationalStringToDouble(x)).ToArray()).ToList();
+            string[] lines = TextFileManage.GetLinesOfFile(filename);
+            List<double[]> numbers = lines.Select(x => x.Split().Select(x => EFGFileReader.RationalStringToDouble(x)).ToArray()).ToList();
             return numbers;
         }
 

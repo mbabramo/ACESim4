@@ -26,7 +26,7 @@ namespace ACESimBase.Util.Tikz
 
         public string DrawLineWithText(string attributes, string label, string labelAttributes, string anchor, TikzHorizontalAlignment alignment, double shiftX = 0, double shiftY = 0)
         {
-            string labelWithComma = labelAttributes == null ? "" : labelAttributes + ", ";
+            string labelAttributesWithComma = labelAttributes == null ? "" : labelAttributes + ", ";
             (double x, double y) = alignment switch
             {
                 TikzHorizontalAlignment.Center => (0.5 * start.x + 0.5 * end.x + shiftX, 0.5 * start.y + 0.5 * end.y + shiftY),
@@ -34,10 +34,10 @@ namespace ACESimBase.Util.Tikz
                 TikzHorizontalAlignment.Right or _ => (end.x + shiftX, end.y + shiftY),
             };
             return $@"{DrawCommand(attributes)}
-{TikzHelper.DrawText(x, y, label, labelWithComma + "anchor=" + anchor)}";
+{TikzHelper.DrawText(x, y, label, labelAttributesWithComma + "anchor=" + anchor)}";
         }
 
-        public string DrawAxis(string attributes, List<(double proportion, string text)> axisMarks, string anchor, string label, string labelAnchor, TikzHorizontalAlignment labelAlignment, string labelAttributes, double labelShiftX, double labelShiftY)
+        public string DrawAxis(string attributes, List<(double proportion, string text)> axisMarks, string markTextAttributes, string anchor, string label, string labelAnchor, TikzHorizontalAlignment labelAlignment, string labelAttributes, double labelShiftX, double labelShiftY)
         {
             StringBuilder b = new StringBuilder();
             if (label == null)
@@ -68,7 +68,7 @@ namespace ACESimBase.Util.Tikz
                         second = new TikzPoint(point.x, point.y + axisMarkHalfWidth);
                     }
                     TikzLine markLine = new TikzLine(first, second);
-                    string markCommand = markLine.DrawLineWithText(attributes, text, null, anchor, TikzHorizontalAlignment.Left);
+                    string markCommand = markLine.DrawLineWithText(attributes, text, markTextAttributes, anchor, TikzHorizontalAlignment.Left);
                     b.AppendLine(markCommand);
                 }
             }

@@ -633,7 +633,7 @@ namespace ACESim
         public void AddFeeShiftingArticleGames(List<GameOptions> options)
         {
             bool includeBaselineValueForNoncritical = false; // By setting this to false, we avoid repeating the baseline value for noncritical transformations, which would produce redundant options sets.
-            GetFeeShiftingArticleGames_Helper(options, includeBaselineValueForNoncritical);
+            GetFeeShiftingArticleGames(options, includeBaselineValueForNoncritical);
         }
 
         /// <summary>
@@ -643,9 +643,9 @@ namespace ACESim
         public Dictionary<string, string> GetFeeShiftingArticleNameMap()
         {
             List<GameOptions> withRedundancies = new List<GameOptions>();
-            GetFeeShiftingArticleGames_Helper(withRedundancies, true);
+            GetFeeShiftingArticleGames(withRedundancies, true);
             List<GameOptions> withoutRedundancies = new List<GameOptions>();
-            GetFeeShiftingArticleGames_Helper(withoutRedundancies, false);
+            GetFeeShiftingArticleGames(withoutRedundancies, false);
             Dictionary<string, string> result = new Dictionary<string, string>();
             foreach (var gameOptions in withRedundancies)
             {
@@ -660,7 +660,7 @@ namespace ACESim
             return result;
         }
 
-        private void GetFeeShiftingArticleGames_Helper(List<GameOptions> options, bool allowRedundancies)
+        public void GetFeeShiftingArticleGames(List<GameOptions> options, bool allowRedundancies)
         {
             var gamesSets = GetFeeShiftingArticleGamesSets(false, allowRedundancies); // each is a set with noncritical
             var eachGameIndependently = gamesSets.SelectMany(x => x).ToList();
@@ -763,6 +763,22 @@ namespace ACESim
             }
             return result;
         }
+
+        public List<string> NamesOfFeeShiftingArticleSets => new List<string>()
+        {
+            "Core",
+            "Additional Fee Shifting Rules",
+            "Additional Costs Multipliers",
+            "Additional Fee Shifting Multipliers",
+            "Relative Costs",
+            "Noise Multipliers", // includes P & D
+            "Risk",
+            "Allowing Abandon and Defaults",
+            "Probability Truly Liable",
+            "Noise to Produce Case Strength",
+            "Issue",
+            "Proportion of Costs at Beginning"
+        };
 
         List<Func<LitigGameOptions, LitigGameOptions>> CriticalFeeShiftingModeTransformations(bool includeBaselineValue)
         {

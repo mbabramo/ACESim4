@@ -20,7 +20,7 @@ namespace ACESimBase.Util.Tikz
             return s.ToCharArray().Sum(x => RelativeCharWidth(x)) * (pointSize / 10.0) * 1.2 / 69.0; // gives rough approximation in cm.
         }
 
-        public static string GetStandaloneDocument(string contents, List<string> additionalPackages = null)
+        public static string GetStandaloneDocument(string contents, List<string> additionalPackages = null, string additionalHeaderInfo = null)
         {
             string packagesString = ""; 
             if (additionalPackages != null)
@@ -28,6 +28,7 @@ namespace ACESimBase.Util.Tikz
             return $@"\documentclass{{standalone}}
 \usepackage{{tikz}}{packagesString}
 \usetikzlibrary{{patterns, positioning}}
+{additionalHeaderInfo}
 \begin{{document}}
 \begin{{tikzpicture}}
 {contents}

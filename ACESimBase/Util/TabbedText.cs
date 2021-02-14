@@ -110,7 +110,7 @@ namespace ACESim
 
         public static void WriteToFile(string baseDirectory, string subDirectory, string fileName, bool reset = true)
         {
-            TextFileCreate.CreateTextFile(Path.Combine(baseDirectory, subDirectory, fileName), AccumulatedText.ToString());
+            TextFileManage.CreateTextFile(Path.Combine(baseDirectory, subDirectory, fileName), AccumulatedText.ToString());
             if (reset)
                 ResetAccumulated();
         }
