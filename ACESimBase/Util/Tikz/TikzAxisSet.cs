@@ -6,31 +6,59 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.Util.Tikz
 {
-    public record TikzAxisSet(List<string> xValueNames, List<string> yValueNames, string xAxisLabel, string yAxisLabel, TikzRectangle sourceRectangle, string boxBordersAttributes="draw=none", string fontAttributes="")
+
+    public record TikzAxisSet(List<string> xValueNames, List<string> yValueNames, string xAxisLabel, string yAxisLabel, TikzRectangle sourceRectangle, string boxBordersAttributes="draw=none", int fontScale=1, double xAxisSpace = 2.0, double xAxisLabelOffset=1, double yAxisSpace=2.0, double yAxisLabelOffset=1, TikzLineGraphData lineGraphData=null)
     {
-        const double betweenMiniGraphs = 0.15;
-        const double spaceForMaximumGraph = 0.5;
-        int NumRows => xValueNames.Count();
-        int NumColumns => yValueNames.Count();
-        List<(double proportion, string value)> majorXMarks => xValueNames.Select((x, index) => ((1.0 + index) / (double) NumRows, x)).ToList();
-        List<(double proportion, string value)> majorYMarks => yValueNames.Select((y, index) => ((1.0 + index) / (double) NumColumns, y)).ToList();
+        const double betweenMiniGraphs = 0.1;
+        const double spaceForAxesUnscaled = 0.5;
+        int NumColumns => xValueNames.Count();
+        int NumRows => yValueNames.Count();
+        List<(double proportion, string value)> xMarks => xValueNames.Select((x, index) => ((0.5 + index) / (double) NumColumns, x)).ToList();
+        List<(double proportion, string value)> yMarks => yValueNames.Select((y, index) => ((0.5 + index) / (double) NumRows, y)).ToList();
 
-        TikzRectangle LeftAxisRectangle => sourceRectangle.LeftPortion(spaceForMaximumGraph).ReducedByPadding(0, spaceForMaximumGraph, 0, 0);
+        TikzRectangle LeftAxisRectangle => sourceRectangle.LeftPortion(xAxisSpace).ReducedByPadding(0, yAxisSpace, 0, 0);
         TikzLine LeftAxisLine => LeftAxisRectangle.rightLine;
-        TikzRectangle BottomAxisRectangle => sourceRectangle.BottomPortion(spaceForMaximumGraph).ReducedByPadding(spaceForMaximumGraph, 0, 0, 0);
+        List<TikzPoint> LeftAxisMarkPoints => yMarks.Select(m => LeftAxisLine.PointAlongLine(m.proportion)).ToList();
+        List<TikzPoint> LeftAxisSpecifiedPoints(List<double> proportionalHeights) => proportionalHeights.Select(m => LeftAxisLine.PointAlongLine(m)).ToList();
+        TikzRectangle BottomAxisRectangle => sourceRectangle.BottomPortion(yAxisSpace).ReducedByPadding(xAxisSpace, 0, 0, 0);
         TikzLine BottomAxisLine => BottomAxisRectangle.topLine;
+        List<TikzPoint> BottomAxisMarkPoints => xMarks.Select(m => BottomAxisLine.PointAlongLine(m.proportion)).ToList();
+        List<TikzPoint> GraphedPoints(List<double> proportionalHeights) => BottomAxisMarkPoints.Zip(LeftAxisSpecifiedPoints(proportionalHeights), (bottomAxisMark, leftAxisIntersection) => new TikzPoint(bottomAxisMark.x, leftAxisIntersection.y)).ToList();
 
-        TikzRectangle MainRectangle => sourceRectangle.RightPortion(sourceRectangle.width - spaceForMaximumGraph).TopPortion(sourceRectangle.height - spaceForMaximumGraph);
+        TikzRectangle MainRectangle => sourceRectangle.RightPortion(sourceRectangle.width - yAxisSpace).TopPortion(sourceRectangle.height - xAxisSpace);
         List<TikzRectangle> RowsWithSpaceBetweenMiniGraphs => Enumerable.Reverse(MainRectangle.DivideBottomToTop(NumRows)).ToList();
         List<List<TikzRectangle>> IndividualCellsWithSpaceBetweenMiniGraphs => RowsWithSpaceBetweenMiniGraphs.Select(x => x.DivideLeftToRight(NumColumns).ToList()).ToList();
         public List<List<TikzRectangle>> IndividualCells => IndividualCellsWithSpaceBetweenMiniGraphs.Select(row => row.Select(x => x.ReducedByPadding(betweenMiniGraphs, betweenMiniGraphs, 0, 0)).ToList()).ToList();
 
+        public string GetDrawLineGraphCommands()
+        {
+            if (lineGraphData == null)
+                return "";
+            int numDataSeries = lineGraphData.lineAttributes.Count();
+            if (lineGraphData.proportionalHeights.Any(x => x.Count() != NumColumns) || numDataSeries != lineGraphData.proportionalHeights.Count())
+                throw new Exception("Invalid line graph data");
+            StringBuilder b = new StringBuilder();
+            for (int i = 0; i < numDataSeries; i++)
+            {
+                List<double> proportionalHeights = lineGraphData.proportionalHeights[i];
+                List<TikzPoint> graphedPoints = GraphedPoints(proportionalHeights);
+                b.AppendLine($"\\draw[{lineGraphData.lineAttributes[i]}] {String.Join(" -- ", graphedPoints.Select(x => x.ToString()))};");
+            }
+            return b.ToString();
+        }
+
         public string GetDrawAxesCommands()
         {
-            string leftAxisCommand = LeftAxisLine.DrawAxis("black", majorYMarks, fontAttributes, "east", yAxisLabel, "center", TikzHorizontalAlignment.Center, $"rotate=90, {fontAttributes}", -0.8, 0);
-            string bottomAxisCommand = BottomAxisLine.DrawAxis("black", majorXMarks, fontAttributes, "north", xAxisLabel, "center", TikzHorizontalAlignment.Center, fontAttributes, 0, -0.8);
+            string fontAttributes = $"fontscale={fontScale}";
+            string leftAxisCommand = LeftAxisLine.DrawAxis("black", yMarks, fontAttributes, "east", yAxisLabel, "center", TikzHorizontalAlignment.Center, $"rotate=90, {fontAttributes}", 0 - yAxisLabelOffset, 0);
+            string bottomAxisCommand = BottomAxisLine.DrawAxis("black", xMarks, fontAttributes, "north", xAxisLabel, "center", TikzHorizontalAlignment.Center, fontAttributes, 0, 0 - xAxisLabelOffset);
             string boxBorders = String.Join(Environment.NewLine, IndividualCells.SelectMany(x => x.Select(y => y.DrawCommand("blue"))));
             return leftAxisCommand + "\r\n" + bottomAxisCommand + "\r\n" + boxBorders;
+        }
+
+        public string GetDrawCommands()
+        {
+            return $"{GetDrawLineGraphCommands()}{GetDrawAxesCommands()}";
         }
 
     }
