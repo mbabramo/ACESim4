@@ -28,14 +28,14 @@ namespace ACESim
         public bool IncludeNonCriticalTransformations = true; 
         public FeeShiftingRule[] FeeShiftingModes = new[] { FeeShiftingRule.English, FeeShiftingRule.Rule68, FeeShiftingRule.Rule68English, FeeShiftingRule.MarginOfVictory };
         public double[] CriticalCostsMultipliers = new double[] { 1.0, 0.25, 0.5, 2.0, 4.0 };
-        public double[] AdditionalCostsMultipliers = new double[] { 0.125, 0.25, 2.0, 4.0, 8.0 };
+        public double[] AdditionalCostsMultipliers = new double[] { 1.0 }; //, 0.125, 8.0 };
         public (double pNoiseMultiplier, double dNoiseMultiplier)[] NoiseMultipliers = new (double pNoiseMultiplier, double dNoiseMultiplier)[] { (1.0, 1.0), (0.50, 0.50), (0.5, 2.0), (2.0, 2.0), (2.0, 0.5), (0.25, 0.25), (4.0, 4.0) };
         public double[] CriticalFeeShiftingMultipliers = new double[] { 0.0, 1.0, 0.5, 1.5, 2.0 };
-        public double[] AdditionalFeeShiftingMultipliers = new double[] { };
+        public double[] AdditionalFeeShiftingMultipliers = new double[] { 0.0 }; //, 0.25, 4.0 };
         public double[] RelativeCostsMultipliers = new double[] { 1.0, 0.5, 2.0 };
         public double[] ProbabilitiesTrulyLiable = new double[] { 0.5, 0.1, 0.9 };
         public double[] StdevsNoiseToProduceLiabilityStrength = new double[] { 0.35, 0, 0.70 };
-        public double[] ProportionOfCostsAtBeginning = new double[] { 0.5, 0.75, 0.25, 0.9, 0.1, 1.0, 0.0 };
+        public double[] ProportionOfCostsAtBeginning = new double[] { 0.5, 0.75, 0.25, 1.0, 0.0 };
 
         public enum FeeShiftingRule
         {
@@ -693,7 +693,7 @@ namespace ACESim
             }
             if (!allowRedundancies && optionChoices.Distinct().Count() != optionChoices.Count())
             {
-                var redundancies = optionChoices.Where(x => optionChoices.Count(y => x == y) > 1).Select(x => (x, optionChoices.Count(y => x == y))).ToList();
+                var redundancies = optionChoices.Where(x => optionChoices.Count(y => x == y) > 1).Select(x => (x, optionChoices.Count(y => x == y), optionChoices.Select((item, index) => (item, index)).Where(z => z.item == x).Select(z => z.index).ToList())).ToList();
                 throw new Exception("redundancies found");
             }
 
@@ -705,11 +705,11 @@ namespace ACESim
             List<List<LitigGameOptions>> result = new List<List<LitigGameOptions>>();
             const int numCritical = 3; // critical transformations are all interacted with one another and then with each of the other transformations
             var criticalCostsMultiplierTransformations = CriticalCostsMultiplierTransformations(true);
-            var noncriticalCostsMultiplierTransformations = AdditionalCostsMultiplierTransformations(true);
+            var noncriticalCostsMultiplierTransformations = AdditionalCostsMultiplierTransformations(includeBaselineValueForNoncritical);
             var criticalFeeShiftingMultipleTransformations = CriticalFeeShiftingMultiplierTransformations(true);
-            var noncriticalFeeShiftingMultipleTransformations = AdditionalFeeShiftingMultiplierTransformations(true);
+            var noncriticalFeeShiftingMultipleTransformations = AdditionalFeeShiftingMultiplierTransformations(includeBaselineValueForNoncritical);
             var criticalRiskAversionTransformations = CriticalRiskAversionTransformations(true);
-            var noncriticalRiskAversionTransformations = AdditionalRiskAversionTransformations(true);
+            var noncriticalRiskAversionTransformations = AdditionalRiskAversionTransformations(includeBaselineValueForNoncritical);
             List<List<Func<LitigGameOptions, LitigGameOptions>>> allTransformations = new List<List<Func<LitigGameOptions, LitigGameOptions>>>()
             {
                 // Can always choose any of these:
@@ -720,8 +720,8 @@ namespace ACESim
                 noncriticalCostsMultiplierTransformations,
                 noncriticalFeeShiftingMultipleTransformations,
                 noncriticalRiskAversionTransformations,
-                FeeShiftingModeTransformations(true),
-                NoiseTransformations(true),
+                FeeShiftingModeTransformations(includeBaselineValueForNoncritical),
+                NoiseTransformations(includeBaselineValueForNoncritical),
                 PRelativeCostsTransformations(includeBaselineValueForNoncritical),
                 AllowAbandonAndDefaultsTransformations(includeBaselineValueForNoncritical),
                 ProbabilityTrulyLiableTransformations(includeBaselineValueForNoncritical),
@@ -743,20 +743,27 @@ namespace ACESim
                 {
                     List<Func<LitigGameOptions, LitigGameOptions>> noncriticalTransformation = noncriticalTransformationPlusNoTransformation[noncriticalIndex];
                     List<List<Func<LitigGameOptions, LitigGameOptions>>> transformLists = criticalTransformations.ToList();
-                    if (noncriticalTransformation == noncriticalCostsMultiplierTransformations)
-                        transformLists.Remove(criticalCostsMultiplierTransformations);
-                    if (noncriticalTransformation == noncriticalFeeShiftingMultipleTransformations)
-                        transformLists.Remove(criticalFeeShiftingMultipleTransformations);
-                    if (noncriticalTransformation == noncriticalRiskAversionTransformations)
-                        transformLists.Remove(criticalRiskAversionTransformations);
-                    if (noncriticalTransformation != null)
+                    bool replaced = false;
+                    foreach ((List<Func<LitigGameOptions, LitigGameOptions>> noncritical, List<Func<LitigGameOptions, LitigGameOptions>> critical) in new (List<Func<LitigGameOptions, LitigGameOptions>> noncritical, List<Func<LitigGameOptions, LitigGameOptions>> critical)[] { (noncriticalCostsMultiplierTransformations, criticalCostsMultiplierTransformations), (noncriticalFeeShiftingMultipleTransformations, criticalFeeShiftingMultipleTransformations), (noncriticalRiskAversionTransformations, criticalRiskAversionTransformations) })
+                    {
+                        if (noncriticalTransformation == noncritical)
+                        {
+                            // Keep the order the same for naming purposes
+                            int indexOfCritical = transformLists.IndexOf(critical);
+                            transformLists[indexOfCritical] = noncriticalTransformation;
+                            replaced = true;
+                        }
+                    }
+                    if (noncriticalTransformation != null && !replaced)
                         transformLists.Add(noncriticalTransformation);
                     var noncriticalOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.FeeShiftingArticleBase().WithName("FSA"), transformLists);
                     List<(string, object)> defaultNonCriticalValues = DefaultNonCriticalValues();
                     foreach (var optionSet in noncriticalOptions)
+                    {
                         foreach (var defaultPair in defaultNonCriticalValues)
                             if (!optionSet.VariableSettings.ContainsKey(defaultPair.Item1))
                                 optionSet.VariableSettings[defaultPair.Item1] = defaultPair.Item2;
+                    }
 
                     //var optionSetNames = noncriticalOptions.Select(x => x.Name).OrderBy(x => x).ToList();
                     result.Add(noncriticalOptions);
@@ -1046,9 +1053,9 @@ namespace ACESim
             g.VariableSettings["Noise Multiplier D"] = dNoiseMultiplier;
         });
 
-        List<Func<LitigGameOptions, LitigGameOptions>> CriticalRiskAversionTransformations(bool includeBaselineValue) => new List<Func<LitigGameOptions, LitigGameOptions>>() { GetAndTransform_RiskNeutral, GetAndTransform_RiskAverse }.Skip(includeBaselineValue ? 0 : 2).ToList();
+        List<Func<LitigGameOptions, LitigGameOptions>> CriticalRiskAversionTransformations(bool includeBaselineValue) => new List<Func<LitigGameOptions, LitigGameOptions>>() { GetAndTransform_RiskNeutral, GetAndTransform_RiskAverse }.Skip(includeBaselineValue ? 0 : 1).ToList();
 
-        List<Func<LitigGameOptions, LitigGameOptions>> AdditionalRiskAversionTransformations(bool includeBaselineValue) => new List<Func<LitigGameOptions, LitigGameOptions>>() { GetAndTransform_RiskNeutral, GetAndTransform_RiskAverse, GetAndTransform_VeryRiskAverse, GetAndTransform_POnlyRiskAverse, GetAndTransform_DOnlyRiskAverse, GetAndTransform_PMoreRiskAverse, GetAndTransform_DMoreRiskAverse }.Skip(includeBaselineValue ? 0 : 2).ToList();
+        List<Func<LitigGameOptions, LitigGameOptions>> AdditionalRiskAversionTransformations(bool includeBaselineValue) => new List<Func<LitigGameOptions, LitigGameOptions>>() { GetAndTransform_RiskNeutral, GetAndTransform_VeryRiskAverse, GetAndTransform_POnlyRiskAverse, GetAndTransform_DOnlyRiskAverse, GetAndTransform_PMoreRiskAverse, GetAndTransform_DMoreRiskAverse }.Skip(includeBaselineValue ? 0 : 1).ToList();
 
         LitigGameOptions GetAndTransform_RiskAverse(LitigGameOptions options) => GetAndTransform(options, " Both Risk Averse", g =>
         {
@@ -1060,19 +1067,19 @@ namespace ACESim
         {
             g.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.PInitialWealth, Alpha = 4 };
             g.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.DInitialWealth, Alpha = 4 };
-            g.VariableSettings["Risk Aversion"] = "Both Risk Averse";
+            g.VariableSettings["Risk Aversion"] = "Very Risk Averse";
         });
         LitigGameOptions GetAndTransform_PMoreRiskAverse(LitigGameOptions options) => GetAndTransform(options, " P More Risk Averse", g =>
         {
             g.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.PInitialWealth, Alpha = 4 };
             g.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.DInitialWealth, Alpha = 2 };
-            g.VariableSettings["Risk Aversion"] = "Both Risk Averse";
+            g.VariableSettings["Risk Aversion"] = "P More Risk Averse";
         });
         LitigGameOptions GetAndTransform_DMoreRiskAverse(LitigGameOptions options) => GetAndTransform(options, " D More Risk Averse", g =>
         {
             g.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.PInitialWealth, Alpha = 2 };
             g.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.DInitialWealth, Alpha = 4 };
-            g.VariableSettings["Risk Aversion"] = "Both Risk Averse";
+            g.VariableSettings["Risk Aversion"] = "D More Risk Averse";
         });
 
         LitigGameOptions GetAndTransform_RiskNeutral(LitigGameOptions options) => GetAndTransform(options, " Risk Neutral", g =>
