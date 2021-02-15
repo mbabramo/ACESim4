@@ -394,9 +394,10 @@ namespace ACESim
             options.IncludeSignalsReport = false;
             options.IncludeCourtSuccessReport = false;
 
-            options.NumOffers = 10;
-            options.NumLiabilityStrengthPoints = 5;
-            options.NumLiabilitySignals = 5;
+            // DEBUG
+            options.NumOffers = 2;
+            options.NumLiabilityStrengthPoints = 2;
+            options.NumLiabilitySignals = 2;
 
             options.NumDamagesSignals = 1;
             options.NumDamagesStrengthPoints = 1;
@@ -430,10 +431,6 @@ namespace ACESim
             options.IncludeAgreementToBargainDecisions = false;
             options.AllowAbandonAndDefaults = true;
             options.PredeterminedAbandonAndDefaults = true;
-
-            // DEBUG
-            options.LoserPaysMultiple = 2;
-            options.CostsMultiplier = 8;
 
             return options;
         }

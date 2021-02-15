@@ -1615,18 +1615,27 @@ namespace ACESim
         private Rational[][] ConvertToRationalUtilities((double min, double max)[] minmax, int[][] integralUtilities)
         {
             if (minmax == null)
-                return integralUtilities.Select(x => x.Select(y => (Rational)y).ToArray()).ToArray();
+                return ConvertWithoutRescalingToOriginalMinMax(integralUtilities);
             Rational[][] rationalUtilities = new Rational[NumNonChancePlayers][];
             for (int p = 0; p < NumNonChancePlayers; p++)
             {
                 double min = Math.Round(minmax[p].min * EvolutionSettings.MaxIntegralUtility);
                 double max = Math.Round(minmax[p].max * EvolutionSettings.MaxIntegralUtility);
+                if (min == max)
+                    return ConvertWithoutRescalingToOriginalMinMax(integralUtilities);
                 Rational minRational = (((Rational)(int)min) / (Rational)EvolutionSettings.MaxIntegralUtility).CanonicalForm;
                 Rational maxRational = (((Rational)(int)max) / (Rational)EvolutionSettings.MaxIntegralUtility).CanonicalForm;
                 Rational range = (maxRational - minRational).CanonicalForm;
                 rationalUtilities[p] = integralUtilities[p].Select(x => minRational + range * ((Rational)x) / ((Rational)EvolutionSettings.MaxIntegralUtility)).Select(x => x.CanonicalForm).ToArray();
             }
+            if (Enumerable.Range(0, NumNonChancePlayers).Any(x => rationalUtilities[x].Distinct().Count() == 1))
+                return ConvertWithoutRescalingToOriginalMinMax(integralUtilities);
             return rationalUtilities;
+
+            static Rational[][] ConvertWithoutRescalingToOriginalMinMax(int[][] integralUtilities)
+            {
+                return integralUtilities.Select(x => x.Select(y => (Rational)y).ToArray()).ToArray();
+            }
         }
 
         public int[][] GetUtilitiesAsIntegers(out bool rangeConverted)

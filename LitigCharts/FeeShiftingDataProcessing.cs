@@ -122,7 +122,7 @@ namespace LitigCharts
 
         public static void BuildMainFeeShiftingReport()
         {
-            List<string> rowsToGet = new List<string> { "All", "Not Litigated", "Litigated", "Settles", "Tried", "P Loses", "P Wins", "Truly Liable", "Truly Not Liable" }; // DEBUG -- add Not Litigated to this and next
+            List<string> rowsToGet = new List<string> { "All", "Not Litigated", "Litigated", "Settles", "Tried", "P Loses", "P Wins", "Truly Liable", "Truly Not Liable" };
             List<string> replacementRowNames = new List<string> { "All", "Not Litigated", "Litigated", "Settles", "Tried", "P Loses", "P Wins", "Truly Liable", "Truly Not Liable" };
             List<string> columnsToGet = new List<string> { "Exploit", "PFiles", "DAnswers", "POffer1", "DOffer1", "Trial", "PWinPct", "PWealth", "DWealth", "PWelfare", "DWelfare", "TotExpense", "False+", "False-", "ValIfSettled", "PDoesntFile", "DDoesntAnswer", "SettlesBR1", "PAbandonsBR1", "DDefaultsBR1", "P Loses", "P Wins" };
             List<string> replacementColumnNames = new List<string> { "Exploitability", "P Files", "D Answers", "P Offer", "D Offer", "Trial", "P Win Prob", "P Wealth", "D Wealth", "P Welfare", "D Welfare", "Expenditures", "False Positive Inaccuracy", "False Negative Inaccuracy", "Value If Settled", "P Doesn't File", "D Doesn't Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins" };
@@ -390,6 +390,12 @@ namespace LitigCharts
                     "red, opacity=0.50, line width=1mm, dashed",
                     "green, opacity=0.50, line width=1mm, solid",
                 };
+            var dataSeriesNames = new List<string>()
+            {
+                "Blue series",
+                "Red series",
+                "Green series"
+            };
 
             int numMiniGraphDataSeries = lineScheme.Count();
             Random ran = new Random();
@@ -399,7 +405,7 @@ namespace LitigCharts
             int numMacroGraphYValues = 3;
             List<double?> getMiniGraphData() => Enumerable.Range(0, numMiniGraphXValues).Select(x => (double?) ran.NextDouble()).ToList();
             List<List<double?>> getMiniGraph() => Enumerable.Range(0, numMiniGraphDataSeries).Select(x => getMiniGraphData()).ToList();
-            TikzLineGraphData miniGraphData() => new TikzLineGraphData(getMiniGraph(), lineScheme);
+            TikzLineGraphData miniGraphData() => new TikzLineGraphData(getMiniGraph(), lineScheme, dataSeriesNames);
 
             List<TikzLineGraphData> lineGraphDataX() => Enumerable.Range(0, numMacroGraphXValues).Select(x => miniGraphData()).ToList();
             List<List<TikzLineGraphData>> lineGraphDataXAndY() => Enumerable.Range(0, numMacroGraphYValues).Select(x => lineGraphDataX()).ToList();
@@ -459,8 +465,8 @@ namespace LitigCharts
                 new AggregatedGraphInfo("Accuracy", new List<string>() { "False Positive Inaccuracy", "False Negative Inaccuracy" }, lineSchemeFull.Take(2).ToList()),
                 new AggregatedGraphInfo("Expenditures", new List<string>() { "Expenditures" }, lineSchemeFull.Skip(2).Take(1).ToList()),
                 new AggregatedGraphInfo("Offers", new List<string>() { "P Offer", "D Offer" }, lineSchemeFull.Take(2).ToList()),
-                new AggregatedGraphInfo("Trial", new List<string>() { "Trial" }, lineSchemeFull.Take(1).ToList(), minorYAxisLabel: "\\%", maximumValueMicroY: 1.0),
-                new AggregatedGraphInfo("Trial Outcomes", new List<string>() { "P Win Prob" }, lineSchemeFull.Take(1).ToList(), minorYAxisLabel: "\\%", maximumValueMicroY: 1.0),
+                new AggregatedGraphInfo("Trial", new List<string>() { "Trial" }, lineSchemeFull.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0),
+                new AggregatedGraphInfo("Trial Outcomes", new List<string>() { "P Win Probability" }, lineSchemeFull.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0),
             };
             foreach (var welfareMeasureInfo in welfareMeasureColumns)
             {
@@ -526,7 +532,7 @@ namespace LitigCharts
                                 }
                                 if (!stepDefiningRowsToFind)
                                 {
-                                    TikzLineGraphData miniGraphData = new TikzLineGraphData(dataForMiniGraph, aggregatedGraphInfo.lineScheme);
+                                    TikzLineGraphData miniGraphData = new TikzLineGraphData(dataForMiniGraph, aggregatedGraphInfo.lineScheme, aggregatedGraphInfo.columnsToGet);
                                     lineGraphDataForRow.Add(miniGraphData);
                                 }
                             }

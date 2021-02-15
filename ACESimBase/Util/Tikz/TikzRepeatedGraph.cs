@@ -43,13 +43,16 @@ namespace ACESimBase.Util.Tikz
 
         public string GetLegend()
         {
+            var lineGraphDataInfo = lineGraphData.First().First();
+            int numberItems = lineGraphDataInfo.dataSeriesNames.Count();
+            List<(string name, string attributes, bool isLast)> legendData = lineGraphDataInfo.dataSeriesNames.Zip(lineGraphDataInfo.lineAttributes, (name, attributes) => (name, attributes)).Select((item, index) => (item.name, item.attributes, index == numberItems - 1)).ToList();
+            string dataSeriesDraw = String.Join(Environment.NewLine, legendData.Select(x => $@"
+\draw[{x.attributes}] (0.25,-0.25) -- (0.75,-0.25); &
+\node[draw=none, font=\small] (B) {{{x.name}}}; {(x.isLast ? "\\\\" : "&")}"));
             return $@"\draw {MidpointOfBottomString} node[draw=none] (baseCoordinate) {{}};
 \begin{{scope}}[align=center]
-        \matrix[scale=0.5, draw=black, below=0.5cm of baseCoordinate, nodes={{draw}}, column sep=0.1cm]{{
-            \node[rectangle, draw, minimum width=0.5cm, minimum height=0.5cm, pattern=north east lines, pattern color=red] {{}}; &
-            \node[draw=none, font=\small] (B) {{Truly Liable Cases}}; &
-            \node[rectangle, draw, minimum width=0.5cm, minimum height=0.5cm, pattern=north west lines, pattern color=blue] {{}}; &
-            \node[draw=none, font=\small] (B) {{Truly Not Liable Cases}}; \\
+        \matrix[scale=0.5, draw=black, below=-0.4cm of baseCoordinate, nodes={{draw}}, column sep=0.1cm]{{
+        {dataSeriesDraw}
             }};
 \end{{scope}}";
         }
@@ -61,6 +64,7 @@ namespace ACESimBase.Util.Tikz
             b.AppendLine(outerAxisSet.GetDrawCommands());
             foreach (var innerSet in innerAxisSets.SelectMany(y => y))
                 b.AppendLine(innerSet.GetDrawCommands());
+            b.AppendLine(GetLegend());
             return b.ToString();
         }
 

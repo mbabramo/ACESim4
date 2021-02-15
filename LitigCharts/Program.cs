@@ -22,6 +22,7 @@ namespace LitigCharts
             //FeeShiftingDataProcessing.BuildMainFeeShiftingReport();
             ////FeeShiftingDataProcessing.BuildOffersReport(); // we're no longer generating the offers data in csv, since we're directly generating a Latex file with the heatmap
             //FeeShiftingDataProcessing.ProduceLatexDiagramsFromTexFiles();
+            ////FeeShiftingDataProcessing.ExampleLatexDiagramsAggregatingReports();
             FeeShiftingDataProcessing.ProduceLatexDiagramsAggregatingReports();
         }
     }
