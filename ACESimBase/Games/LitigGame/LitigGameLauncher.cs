@@ -737,21 +737,7 @@ namespace ACESim
                     if (noncriticalTransformation != null)
                         transformLists.Add(noncriticalTransformation);
                     var noncriticalOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.FeeShiftingArticleBase().WithName("FSA"), transformLists);
-                    List<(string, object)> defaultNonCriticalValues = new List<(string, object)>()
-                    {
-                        ("Fee Shifting Rule", "American"),
-                        ("Costs Multiplier", "1"),
-                        ("Fee Shifting Multiplier", "1"),
-                        ("Relative Costs", "1"),
-                        ("Noise Multiplier P", "1"),
-                        ("Noise Multiplier D", "1"),
-                        ("Risk Aversion", "Both Risk Neutral"),
-                        ("Allow Abandon and Defaults", "true"),
-                        ("Probability Truly Liable", "0.5"),
-                        ("Noise to Produce Case Strength", "0.35"),
-                        ("Issue", "Liability"),
-                        ("Proportion of Costs at Beginning", "0.5"),
-                    };
+                    List<(string, object)> defaultNonCriticalValues = DefaultNonCriticalValues();
                     foreach (var optionSet in noncriticalOptions)
                         foreach (var defaultPair in defaultNonCriticalValues)
                             if (!optionSet.VariableSettings.ContainsKey(defaultPair.Item1))
@@ -762,6 +748,25 @@ namespace ACESim
                 }
             }
             return result;
+        }
+
+        private static List<(string, object)> DefaultNonCriticalValues()
+        {
+            return new List<(string, object)>()
+            {
+                ("Fee Shifting Rule", "English"),
+                ("Costs Multiplier", "1"),
+                ("Fee Shifting Multiplier", "0"),
+                ("Relative Costs", "1"),
+                ("Noise Multiplier P", "1"),
+                ("Noise Multiplier D", "1"),
+                ("Risk Aversion", "Both Risk Neutral"),
+                ("Allow Abandon and Defaults", "true"),
+                ("Probability Truly Liable", "0.5"),
+                ("Noise to Produce Case Strength", "0.35"),
+                ("Issue", "Liability"),
+                ("Proportion of Costs at Beginning", "0.5"),
+            };
         }
 
         public List<string> NamesOfFeeShiftingArticleSets => new List<string>()
@@ -779,6 +784,105 @@ namespace ACESim
             "Issue",
             "Proportion of Costs at Beginning"
         };
+
+        public record FeeShiftingArticleVariationInfo(string nameOfVariation, List<(string columnName, object expectedValue)> columnMatches);
+
+        public record FeeShiftingArticleVariationSetInfo(string nameOfSet, List<FeeShiftingArticleVariationInfo> requirementsForEachVariation);
+
+        public List<FeeShiftingArticleVariationSetInfo> GetFeeShiftingArticleVariationInfoList()
+        {
+            var varyingFeeShiftingRule = new List<FeeShiftingArticleVariationInfo>()
+            {
+                new FeeShiftingArticleVariationInfo("English", DefaultNonCriticalValues()),
+                new FeeShiftingArticleVariationInfo("Rule 68", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "Rule68")),
+                new FeeShiftingArticleVariationInfo("English 68", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "Rule68English")),
+                new FeeShiftingArticleVariationInfo("Margin", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "MarginOfVictory60")),
+                new FeeShiftingArticleVariationInfo("High Margin", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "MarginOfVictory80")),
+            };
+
+            var varyingNoiseMultipliersBoth = new List<FeeShiftingArticleVariationInfo>()
+            {
+                new FeeShiftingArticleVariationInfo(".25", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "0.25").WithReplacement("Noise Multiplier D", "0.25")),
+                new FeeShiftingArticleVariationInfo(".5", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "0.5").WithReplacement("Noise Multiplier D", "0.5")),
+                new FeeShiftingArticleVariationInfo("1", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "1").WithReplacement("Noise Multiplier D", "1")),
+                new FeeShiftingArticleVariationInfo("2", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "2").WithReplacement("Noise Multiplier D", "2")),
+                new FeeShiftingArticleVariationInfo("4", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "4").WithReplacement("Noise Multiplier D", "4")),
+            };
+
+            var varyingNoiseMultipliersAsymmetric = new List<FeeShiftingArticleVariationInfo>()
+            {
+                new FeeShiftingArticleVariationInfo("Equal Information", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "1").WithReplacement("Noise Multiplier D", "1")),
+                new FeeShiftingArticleVariationInfo("P Better", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "0.5").WithReplacement("Noise Multiplier D", "2")),
+                new FeeShiftingArticleVariationInfo("D Better", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "2").WithReplacement("Noise Multiplier D", "0.5")),
+            };
+
+            var varyingRelativeCosts = new List<FeeShiftingArticleVariationInfo>()
+            {
+                new FeeShiftingArticleVariationInfo("P Lower Costs", DefaultNonCriticalValues().WithReplacement("Relative Costs", "0.5")),
+                new FeeShiftingArticleVariationInfo("Equal", DefaultNonCriticalValues().WithReplacement("Relative Costs", "1")),
+                new FeeShiftingArticleVariationInfo("P Higher Costs", DefaultNonCriticalValues().WithReplacement("Relative Costs", "2")),
+            };
+
+            var varyingRiskAversion = new List<FeeShiftingArticleVariationInfo>()
+            {
+                new FeeShiftingArticleVariationInfo("Both Risk Neutral", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Both Risk Neutral")),
+                new FeeShiftingArticleVariationInfo("P Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "P Risk Averse")),
+                new FeeShiftingArticleVariationInfo("D Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "D Risk Averse")),
+                new FeeShiftingArticleVariationInfo("Both Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Both Risk Averse")),
+            };
+
+            var varyingQuitRules = new List<FeeShiftingArticleVariationInfo>()
+            {
+                new FeeShiftingArticleVariationInfo("Quitting Allowed", DefaultNonCriticalValues().WithReplacement("Allowing Abandon and Defaults", "TRUE")),
+                new FeeShiftingArticleVariationInfo("Quitting Prohibited", DefaultNonCriticalValues().WithReplacement("Allowing Abandon and Defaults", "FALSE")),
+            };
+
+            var varyingProbabilityTrulyLiable = new List<FeeShiftingArticleVariationInfo>()
+            {
+                new FeeShiftingArticleVariationInfo("10\\%", DefaultNonCriticalValues().WithReplacement("Probability Truly Liable", "0.1")),
+                new FeeShiftingArticleVariationInfo("50\\%", DefaultNonCriticalValues().WithReplacement("Probability Truly Liable", "0.5")),
+                new FeeShiftingArticleVariationInfo("90\\%", DefaultNonCriticalValues().WithReplacement("Probability Truly Liable", "0.9")),
+            };
+
+            var varyingNoiseToProduceCaseStrength = new List<FeeShiftingArticleVariationInfo>()
+            {
+                new FeeShiftingArticleVariationInfo("0", DefaultNonCriticalValues().WithReplacement("Noise to Produce Case Strength", "0")),
+                new FeeShiftingArticleVariationInfo("0.35", DefaultNonCriticalValues().WithReplacement("Noise to Produce Case Strength", "0.35")),
+                new FeeShiftingArticleVariationInfo("0.70", DefaultNonCriticalValues().WithReplacement("Noise to Produce Case Strength", "0.7")),
+            };
+
+            var varyingIssue = new List<FeeShiftingArticleVariationInfo>()
+            {
+                new FeeShiftingArticleVariationInfo("Liability", DefaultNonCriticalValues().WithReplacement("Issue", "Liability")),
+                new FeeShiftingArticleVariationInfo("Damages", DefaultNonCriticalValues().WithReplacement("Issue", "Damages")),
+            };
+
+            var varyingTimingOfCosts = new List<FeeShiftingArticleVariationInfo>()
+            {
+                new FeeShiftingArticleVariationInfo("0", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "0")),
+                new FeeShiftingArticleVariationInfo("0.1", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "0.1")),
+                new FeeShiftingArticleVariationInfo("0.25", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "0.25")),
+                new FeeShiftingArticleVariationInfo("0.5", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "0.5")),
+                new FeeShiftingArticleVariationInfo("0.75", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "0.75")),
+                new FeeShiftingArticleVariationInfo("0.95", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "0.9")),
+                new FeeShiftingArticleVariationInfo("1", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "1")),
+            };
+
+            return new List<FeeShiftingArticleVariationSetInfo>()
+            {
+                new FeeShiftingArticleVariationSetInfo("Fee Shifting Rule", varyingFeeShiftingRule),
+                new FeeShiftingArticleVariationSetInfo("Noise Multiplier", varyingNoiseMultipliersBoth),
+                new FeeShiftingArticleVariationSetInfo("Information Asymmetry", varyingNoiseMultipliersAsymmetric),
+                new FeeShiftingArticleVariationSetInfo("Relative Costs", varyingRelativeCosts),
+                new FeeShiftingArticleVariationSetInfo("Risk Aversion", varyingRiskAversion),
+                new FeeShiftingArticleVariationSetInfo("Quitting Rules", varyingQuitRules),
+                new FeeShiftingArticleVariationSetInfo("Proportion of Truly Liable Cases", varyingProbabilityTrulyLiable),
+                new FeeShiftingArticleVariationSetInfo("Case Strength Noise", varyingNoiseToProduceCaseStrength),
+                new FeeShiftingArticleVariationSetInfo("Issue", varyingIssue),
+                new FeeShiftingArticleVariationSetInfo("Timing of Costs", varyingTimingOfCosts),
+            };
+        }
+
 
         List<Func<LitigGameOptions, LitigGameOptions>> CriticalFeeShiftingModeTransformations(bool includeBaselineValue)
         {

@@ -20,6 +20,18 @@ namespace ACESim.Util
 
     public static class ListExtensions
     {
+        public static List<(string, object)> WithReplacement(this List<(string, object)> list, string s, object o)
+        {
+            var copy = list.ToList();
+            for (int i = 0; i < copy.Count; i++)
+            {
+                (string, object) c = copy[i];
+                if (c.Item1 == s)
+                    copy[i] = (s, o);
+}
+            return copy;
+        }
+
         public static void Resize<T>(this List<T> list, int sz, Func<T> c)
         {
             int cur = list.Count;

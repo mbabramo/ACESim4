@@ -2,5 +2,5 @@
 
 namespace ACESimBase.Util.Tikz
 {
-    public record TikzLineGraphData(List<List<double>> proportionalHeights, List<string> lineAttributes);
+    public record TikzLineGraphData(List<List<double?>> proportionalHeights, List<string> lineAttributes);
 }

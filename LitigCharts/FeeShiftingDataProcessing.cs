@@ -1,5 +1,7 @@
 ﻿using ACESim;
+using ACESim.Util;
 using ACESimBase.Util;
+using ACESimBase.Util.Tikz;
 using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
@@ -22,7 +24,7 @@ namespace LitigCharts
 
         private static string[] equilibriumTypeSuffixes = new string[] { correlatedEquilibriumFileSuffix, averageEquilibriumFileSuffix, firstEquilibriumFileSuffix };
 
-        internal static void ProduceLatexDiagrams()
+        internal static void ProduceLatexDiagramsFromTexFiles()
         {
             foreach (string fileSuffix in equilibriumTypeSuffixes)
             {
@@ -55,24 +57,13 @@ namespace LitigCharts
                 if (!File.Exists(combinedPath))
                     throw new Exception("File not found");
 
-                string texFileInQuotes = $"\"{combinedPath}\"";
-                string outputDirectoryInQuotes = $"\"{path}\"";
-                bool backupComputer = false;
-                string pdflatexProgram = backupComputer ? @"C:\Program Files\MiKTeX 2.9\miktex\bin\x64" : @"C:\Users\Admin\AppData\Local\Programs\MiKTeX\miktex\bin\x64\pdflatex.exe";
-                string arguments = @$"{texFileInQuotes} -output-directory={outputDirectoryInQuotes}";
-
                 while (processesList.Count() >= maxProcesses)
                 {
                     Task.Delay(100);
                     CleanupCompletedProcesses();
                 }
 
-                ProcessStartInfo processStartInfo = new ProcessStartInfo(pdflatexProgram)
-                {
-                    Arguments = arguments,
-                    UseShellExecute = true,
-                };
-                Process result = Process.Start(processStartInfo);
+                Process result = ExecuteLatexProcess(path, combinedPath);
                 if (result != null)
                     processesList.Add(result);
             }
@@ -98,6 +89,23 @@ namespace LitigCharts
                         goto retry;
                 }
             }
+        }
+
+        private static Process ExecuteLatexProcess(string path, string combinedPath)
+        {
+            string texFileInQuotes = $"\"{combinedPath}\"";
+            string outputDirectoryInQuotes = $"\"{path}\"";
+            bool backupComputer = false;
+            string pdflatexProgram = backupComputer ? @"C:\Program Files\MiKTeX 2.9\miktex\bin\x64" : @"C:\Users\Admin\AppData\Local\Programs\MiKTeX\miktex\bin\x64\pdflatex.exe";
+            string arguments = @$"{texFileInQuotes} -output-directory={outputDirectoryInQuotes}";
+
+            ProcessStartInfo processStartInfo = new ProcessStartInfo(pdflatexProgram)
+            {
+                Arguments = arguments,
+                UseShellExecute = true,
+            };
+            Process result = Process.Start(processStartInfo);
+            return result;
         }
 
         public static void BuildMainFeeShiftingReport()
@@ -355,6 +363,180 @@ namespace LitigCharts
             }
         
         }
+
+
+
+        public static void ExampleLatexDiagramsAggregatingReports()
+        {
+            var lineScheme = new List<string>()
+                {
+                    "blue, opacity=0.50, line width=0.5mm, double",
+                    "red, opacity=0.50, line width=1mm, dashed",
+                    "green, opacity=0.50, line width=1mm, solid",
+                };
+
+            int numMiniGraphDataSeries = lineScheme.Count();
+            Random ran = new Random();
+            int numMiniGraphXValues = 8;
+            int numMiniGraphYValues = 10;
+            int numMacroGraphXValues = 5;
+            int numMacroGraphYValues = 3;
+            List<double?> getMiniGraphData() => Enumerable.Range(0, numMiniGraphXValues).Select(x => (double?) ran.NextDouble()).ToList();
+            List<List<double?>> getMiniGraph() => Enumerable.Range(0, numMiniGraphDataSeries).Select(x => getMiniGraphData()).ToList();
+            TikzLineGraphData miniGraphData() => new TikzLineGraphData(getMiniGraph(), lineScheme);
+
+            List<TikzLineGraphData> lineGraphDataX() => Enumerable.Range(0, numMacroGraphXValues).Select(x => miniGraphData()).ToList();
+            List<List<TikzLineGraphData>> lineGraphDataXAndY() => Enumerable.Range(0, numMacroGraphYValues).Select(x => lineGraphDataX()).ToList();
+
+            var lineGraphData = lineGraphDataXAndY();
+
+            TikzRepeatedGraph r = new TikzRepeatedGraph()
+            {
+                majorXValueNames = Enumerable.Range(0, numMacroGraphXValues).Select(x => $"X{x}").ToList(),
+                majorXAxisLabel = "Major X",
+                majorYValueNames = Enumerable.Range(0, numMacroGraphYValues).Select(y => $"Y{y}").ToList(),
+                majorYAxisLabel = "Major Y",
+                minorXValueNames = Enumerable.Range(0, numMiniGraphXValues).Select(x => $"x{x}").ToList(),
+                minorXAxisLabel = "Minor X",
+                minorYValueNames = Enumerable.Range(0, numMiniGraphYValues).Select(y => $"y{y}").ToList(),
+                minorYAxisLabel = "Minor Y",
+                lineGraphData = lineGraphData,
+            };
+
+
+            var result = TikzHelper.GetStandaloneDocument(r.GetDrawCommands(), new List<string>() { "xcolor" }, additionalHeaderInfo: $@"
+\usetikzlibrary{{calc}}
+\usepackage{{relsize}}
+\tikzset{{fontscale/.style = {{font=\relsize{{#1}}}}}}");
+        }
+
+        public static void ProduceLatexDiagramsAggregatingReports()
+        {
+            string reportFolder = Launcher.ReportFolder();
+            LitigGameLauncher launcher = new LitigGameLauncher();
+            string filename = launcher.MasterReportNameForDistributedProcessing + "--output.csv";
+            string pathAndFilename = Path.Combine(reportFolder, filename);
+            string outputFolderName = "Aggregated Data";
+            string outputFolderPath = Path.Combine(reportFolder, outputFolderName);
+            if (!Directory.GetDirectories(reportFolder).Any(x => x == outputFolderName))
+                Directory.CreateDirectory(outputFolderPath);
+
+            var sets = launcher.GetFeeShiftingArticleGamesSets(false, true);
+            var map = launcher.GetFeeShiftingArticleNameMap(); // name to find (avoids redundancies)
+            var setNames = launcher.NamesOfFeeShiftingArticleSets;
+            string masterReportName = launcher.MasterReportNameForDistributedProcessing;
+            List<(List<LitigGameOptions> theSet, string setName)> setsWithNames = sets.Zip(setNames, (s, sn) => (s, sn)).ToList();
+
+            List<LitigGameLauncher.FeeShiftingArticleVariationSetInfo> variations = launcher.GetFeeShiftingArticleVariationInfoList();
+
+            List<(string welfareMeasuresName, List<string> columnsToGet)> welfareMeasureColumns = new List<(string welfareMeasuresName, List<string> columnsToGet)>()
+            {
+                ("Accuracy", new List<string>() { "False Positive Inaccuracy", "False Negative Inaccuracy", "Expenditures" }),
+                ("Offers", new List<string>() { "P Offer", "D Offer" }),
+                ("Trial", new List<string>() { "Trial" }),
+                ("Trial Outcomes", new List<string>() { "P Win Prob" }),
+            };
+            var lineSchemeFull = new List<string>()
+            {
+              "blue, opacity=0.50, line width=0.5mm, double",
+              "red, opacity=0.50, line width=1mm, dashed",
+              "green, opacity=0.50, line width=1mm, solid",
+            };
+            foreach (var welfareMeasureInfo in welfareMeasureColumns)
+            {
+                var lineScheme = lineSchemeFull.Take(welfareMeasureInfo.columnsToGet.Count()).ToList();
+                ProcessForWelfareMeasure(launcher, pathAndFilename, outputFolderPath, variations, welfareMeasureInfo.columnsToGet, lineScheme, welfareMeasureInfo.welfareMeasuresName);
+            }
+        }
+
+        private static void ProcessForWelfareMeasure(LitigGameLauncher launcher, string pathAndFilename, string outputFolderPath, List<LitigGameLauncher.FeeShiftingArticleVariationSetInfo> variations, List<string> columnsToGet, List<string> lineScheme, string welfareMeasureName)
+        {
+            foreach (string equilibriumType in new string[] { "Correlated", "Average", "First" })
+            {
+                string eqAbbreviation = equilibriumType switch { "Correlated" => "-Corr", "Average" => "-Avg", "First" => "-Eq1", _ => throw new NotImplementedException() };
+                foreach (var variation in variations)
+                {
+                    // This is a full report. The variation controls the big x axis. The big y axis is the costs multiplier.
+                    // The small x axis is the fee shifting multiplier. And the y axis represents the values that we are loading. 
+                    // We then have a different line for each data series.
+
+                    var requirementsForEachVariation = variation.requirementsForEachVariation;
+                    List<List<TikzLineGraphData>> lineGraphData = new List<List<TikzLineGraphData>>();
+                    foreach (double macroYValue in launcher.CriticalCostsMultipliers.OrderBy(x => x))
+                    {
+                        List<TikzLineGraphData> lineGraphDataForRow = new List<TikzLineGraphData>();
+                        foreach (var macroXValue in requirementsForEachVariation)
+                        {
+                            var rowsToFind = macroXValue.columnMatches;
+                            rowsToFind.Add(("Filter", "All"));
+                            rowsToFind.Add(("Equilibrium Type", equilibriumType));
+
+                            List<List<double?>> dataForMiniGraph = new List<List<double?>>();
+                            for (int i = 0; i < columnsToGet.Count(); i++)
+                                dataForMiniGraph.Add(new List<double?>());
+
+                            foreach (var microXValue in launcher.CriticalFeeShiftingMultipliers.OrderBy(x => x))
+                            {
+                                var modifiedRowsToFind = rowsToFind.WithReplacement("Fee Shifting Multiplier", microXValue).WithReplacement("Costs Multiplier", macroYValue).Select(x => (x.Item1, x.Item2.ToString())).ToArray();
+                                double?[] valuesFromCSV = CSVData.GetCSVData(pathAndFilename, modifiedRowsToFind, columnsToGet.ToArray(), cacheFile: true);
+                                for (int i = 0; i < columnsToGet.Count(); i++)
+                                    dataForMiniGraph[i].Add(valuesFromCSV[i]);
+                            }
+                            TikzLineGraphData miniGraphData = new TikzLineGraphData(dataForMiniGraph, lineScheme);
+                            lineGraphDataForRow.Add(miniGraphData);
+                        }
+                        lineGraphData.Add(lineGraphDataForRow);
+                    }
+
+                    // make all data proportional to rounded up maximum value
+                    var values = lineGraphData.SelectMany(macroRow => macroRow.SelectMany(macroColumn => macroColumn.proportionalHeights.SelectMany(microRow => microRow))).Where(x => x != null);
+                    double maximumValueMicroY = values.Any() ? values.Select(x => (double)x).Max() : 1.0;
+                    double RoundUp(double input, int places)
+                    {
+                        double multiplier = Math.Pow(10, Convert.ToDouble(places));
+                        return Math.Ceiling(input * multiplier) / multiplier;
+                    }
+                    maximumValueMicroY = RoundUp(maximumValueMicroY, 1);
+                    foreach (var macroRow in lineGraphData)
+                    {
+                        for (int i = 0; i < macroRow.Count; i++)
+                        {
+                            TikzLineGraphData macroColumn = macroRow[i];
+                            macroRow[i] = macroColumn with { proportionalHeights = macroColumn.proportionalHeights.Select(x => x.Select(y => y / maximumValueMicroY).ToList()).ToList() };
+                        }
+                    }
+
+                    TikzRepeatedGraph r = new TikzRepeatedGraph()
+                    {
+                        majorXValueNames = requirementsForEachVariation.Select(x => x.nameOfVariation).ToList(),
+                        majorXAxisLabel = variation.nameOfSet,
+                        majorYValueNames = launcher.CriticalCostsMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList(),
+                        majorYAxisLabel = "Costs Multiplier",
+                        minorXValueNames = launcher.CriticalFeeShiftingMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList(),
+                        minorXAxisLabel = "Fee Shift Multiplier",
+                        minorYValueNames = Enumerable.Range(0, 11).Select(y => y switch { 0 => "0", 10 => maximumValueMicroY.ToString(), _ => " " }).ToList(),
+                        minorYAxisLabel = "\\$",
+                        yAxisSpaceMicro = 0.8,
+                        yAxisLabelOffsetMicro = 0.4,
+                        xAxisSpaceMicro = 1.1,
+                        xAxisLabelOffsetMicro = 0.8,
+                        lineGraphData = lineGraphData,
+                    };
+                    var result = TikzHelper.GetStandaloneDocument(r.GetDrawCommands(), new List<string>() { "xcolor" }, additionalHeaderInfo: $@"
+    \usetikzlibrary{{calc}}
+    \usepackage{{relsize}}
+    \tikzset{{fontscale/.style = {{font=\relsize{{#1}}}}}}");
+
+                    string outputFilename = Path.Combine(outputFolderPath, $"{welfareMeasureName} Varying {variation.nameOfSet} ({equilibriumType}).tex");
+                    TextFileManage.CreateTextFile(outputFilename, result);
+                    ExecuteLatexProcess(outputFolderPath, outputFilename);
+
+
+                }
+            }
+        }
+
+
 
         //private string SeparateOptionSetsByRelevantVariable(List<LitigGameOptions> optionSets)
         //{
