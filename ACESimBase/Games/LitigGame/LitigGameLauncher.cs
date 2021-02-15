@@ -796,8 +796,7 @@ namespace ACESim
                 new FeeShiftingArticleVariationInfo("English", DefaultNonCriticalValues()),
                 new FeeShiftingArticleVariationInfo("Rule 68", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "Rule68")),
                 new FeeShiftingArticleVariationInfo("English 68", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "Rule68English")),
-                new FeeShiftingArticleVariationInfo("Margin", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "MarginOfVictory60")),
-                new FeeShiftingArticleVariationInfo("High Margin", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "MarginOfVictory80")),
+                new FeeShiftingArticleVariationInfo("Victory Margin", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "MarginOfVictory80")),
             };
 
             var varyingNoiseMultipliersBoth = new List<FeeShiftingArticleVariationInfo>()

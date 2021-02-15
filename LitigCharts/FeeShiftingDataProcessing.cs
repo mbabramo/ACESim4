@@ -33,6 +33,32 @@ namespace LitigCharts
             }
         }
 
+
+        // TODO: Move all this to a separate class
+
+        static List<Process> ProcessesList = new List<Process>();
+        static int maxProcesses = Environment.ProcessorCount;
+
+        static void CleanupCompletedProcesses()
+        {
+            ProcessesList = ProcessesList.Where(x => !x.HasExited).ToList();
+        }
+
+        static void WaitForProcessesToFinish()
+        {
+            while (ProcessesList.Any())
+                CleanupCompletedProcesses();
+        }
+
+        static void WaitUntilFewerThanMaxProcessesAreRunning()
+        {
+            while (ProcessesList.Count() >= maxProcesses)
+            {
+                Task.Delay(100);
+                CleanupCompletedProcesses();
+            }
+        }
+
         internal static void ProduceLatexDiagrams(string fileSuffix)
         {
             var gameDefinition = new LitigGameDefinition();
@@ -42,33 +68,16 @@ namespace LitigCharts
             var launcher = new LitigGameLauncher();
             var map = launcher.GetFeeShiftingArticleNameMap(); // name to find (avoids redundancies)
 
-            List<Process> processesList = new List<Process>();
-            int maxProcesses = 32;
-
-            void CleanupCompletedProcesses()
-            {
-                processesList = processesList.Where(x => !x.HasExited).ToList();
-            }
-
             foreach (var gameOptionsSet in litigGameOptionsSets)
             {
                 string filenameCore, combinedPath;
                 GetFileInfo(map, filePrefix, ".tex", ref fileSuffix, path, gameOptionsSet, out filenameCore, out combinedPath);
                 if (!File.Exists(combinedPath))
                     throw new Exception("File not found");
-
-                while (processesList.Count() >= maxProcesses)
-                {
-                    Task.Delay(100);
-                    CleanupCompletedProcesses();
-                }
-
-                Process result = ExecuteLatexProcess(path, combinedPath);
-                if (result != null)
-                    processesList.Add(result);
+                ExecuteLatexProcess(path, combinedPath);
             }
-            while (processesList.Any())
-                CleanupCompletedProcesses();
+            WaitForProcessesToFinish();
+
             foreach (var optionSet in litigGameOptionsSets)
             {
                 int failures = 0;
@@ -91,8 +100,10 @@ namespace LitigCharts
             }
         }
 
-        private static Process ExecuteLatexProcess(string path, string combinedPath)
+        private static void ExecuteLatexProcess(string path, string combinedPath)
         {
+            WaitUntilFewerThanMaxProcessesAreRunning();
+
             string texFileInQuotes = $"\"{combinedPath}\"";
             string outputDirectoryInQuotes = $"\"{path}\"";
             bool backupComputer = false;
@@ -105,7 +116,8 @@ namespace LitigCharts
                 UseShellExecute = true,
             };
             Process result = Process.Start(processStartInfo);
-            return result;
+
+            ProcessesList.Add(result);
         }
 
         public static void BuildMainFeeShiftingReport()
@@ -299,15 +311,7 @@ namespace LitigCharts
         public static void OrganizeIntoFolders()
         {
             string reportFolder = Launcher.ReportFolder();
-
-            string[] filesInFolder = Directory.GetFiles(reportFolder);
-            string[] fileExtensionsTriggeringDeletion = new string[] { ".aux", ".log" };
-            foreach (string file in filesInFolder)
-            {
-                foreach (string deletionTrigger in fileExtensionsTriggeringDeletion)
-                    if (file.EndsWith(deletionTrigger))
-                        File.Delete(file);
-            }
+            string[] filesInFolder = DeleteAuxiliaryFiles(reportFolder);
             filesInFolder = Directory.GetFiles(reportFolder);
 
             string[] getExtensions(string eqType) => new string[] { $"-{eqType}.csv", $"-heatmap-{eqType}.pdf", $"-heatmap-{eqType}.tex", $"-scr-{eqType}.pdf", $"-scr-{eqType}.tex", $"-scr-{eqType}.csv" };
@@ -349,7 +353,7 @@ namespace LitigCharts
                         foreach (var extension in placementRule.extensions)
                         {
                             string combinedNameSource = Path.Combine(reportFolder, masterReportName + "-" + filenameMapped + extension);
-                            string targetFileName = originalName.Replace("FSA ", "").Replace("fee rule", "Fee Rule").Replace("-Eq1","-eq1").Replace("  ", " ") + extension;
+                            string targetFileName = originalName.Replace("FSA ", "").Replace("fee rule", "Fee Rule").Replace("-Eq1", "-eq1").Replace("  ", " ") + extension;
                             if (File.Exists(combinedNameSource))
                             {
                                 string combinedNameTarget = Path.Combine(subsubfolderName, targetFileName);
@@ -361,10 +365,22 @@ namespace LitigCharts
                     string fullOriginalFilename = Path.Combine(reportFolder, filenameMapped);
                 }
             }
-        
+
         }
 
+        private static string[] DeleteAuxiliaryFiles(string reportFolder)
+        {
+            string[] filesInFolder = Directory.GetFiles(reportFolder);
+            string[] fileExtensionsTriggeringDeletion = new string[] { ".aux", ".log", ".gz" };
+            foreach (string file in filesInFolder)
+            {
+                foreach (string deletionTrigger in fileExtensionsTriggeringDeletion)
+                    if (file.EndsWith(deletionTrigger))
+                        File.Delete(file);
+            }
 
+            return filesInFolder;
+        }
 
         public static void ExampleLatexDiagramsAggregatingReports()
         {
@@ -410,6 +426,8 @@ namespace LitigCharts
 \tikzset{{fontscale/.style = {{font=\relsize{{#1}}}}}}");
         }
 
+        public record AggregatedGraphInfo(string topicName, List<string> columnsToGet, List<string> lineScheme, string minorXAxisLabel="Fee Shifting Multiplier", string minorYAxisLabel="\\$", string majorYAxisLabel="Costs Multiplier", double? maximumValueMicroY = null);
+
         public static void ProduceLatexDiagramsAggregatingReports()
         {
             string reportFolder = Launcher.ReportFolder();
@@ -429,111 +447,154 @@ namespace LitigCharts
 
             List<LitigGameLauncher.FeeShiftingArticleVariationSetInfo> variations = launcher.GetFeeShiftingArticleVariationInfoList();
 
-            List<(string welfareMeasuresName, List<string> columnsToGet)> welfareMeasureColumns = new List<(string welfareMeasuresName, List<string> columnsToGet)>()
-            {
-                ("Accuracy", new List<string>() { "False Positive Inaccuracy", "False Negative Inaccuracy", "Expenditures" }),
-                ("Offers", new List<string>() { "P Offer", "D Offer" }),
-                ("Trial", new List<string>() { "Trial" }),
-                ("Trial Outcomes", new List<string>() { "P Win Prob" }),
-            };
             var lineSchemeFull = new List<string>()
             {
               "blue, opacity=0.50, line width=0.5mm, double",
               "red, opacity=0.50, line width=1mm, dashed",
               "green, opacity=0.50, line width=1mm, solid",
             };
+            List<AggregatedGraphInfo> welfareMeasureColumns = new List<AggregatedGraphInfo>()
+            {
+                new AggregatedGraphInfo("Accuracy and Expenditures", new List<string>() { "False Positive Inaccuracy", "False Negative Inaccuracy", "Expenditures" }, lineSchemeFull.ToList()),
+                new AggregatedGraphInfo("Accuracy", new List<string>() { "False Positive Inaccuracy", "False Negative Inaccuracy" }, lineSchemeFull.Take(2).ToList()),
+                new AggregatedGraphInfo("Expenditures", new List<string>() { "Expenditures" }, lineSchemeFull.Skip(2).Take(1).ToList()),
+                new AggregatedGraphInfo("Offers", new List<string>() { "P Offer", "D Offer" }, lineSchemeFull.Take(2).ToList()),
+                new AggregatedGraphInfo("Trial", new List<string>() { "Trial" }, lineSchemeFull.Take(1).ToList(), minorYAxisLabel: "\\%", maximumValueMicroY: 1.0),
+                new AggregatedGraphInfo("Trial Outcomes", new List<string>() { "P Win Prob" }, lineSchemeFull.Take(1).ToList(), minorYAxisLabel: "\\%", maximumValueMicroY: 1.0),
+            };
             foreach (var welfareMeasureInfo in welfareMeasureColumns)
             {
-                var lineScheme = lineSchemeFull.Take(welfareMeasureInfo.columnsToGet.Count()).ToList();
-                ProcessForWelfareMeasure(launcher, pathAndFilename, outputFolderPath, variations, welfareMeasureInfo.columnsToGet, lineScheme, welfareMeasureInfo.welfareMeasuresName);
+                ProcessForWelfareMeasure(launcher, pathAndFilename, outputFolderPath, variations, welfareMeasureInfo);
+            }
+
+            WaitForProcessesToFinish();
+            Task.Delay(1000);
+            DeleteAuxiliaryFiles(outputFolderPath);
+        }
+
+        private static void ProcessForWelfareMeasure(LitigGameLauncher launcher, string pathAndFilename, string outputFolderPath, List<LitigGameLauncher.FeeShiftingArticleVariationSetInfo> variations, AggregatedGraphInfo aggregatedGraphInfo)
+        {
+            List<(string columnName, string expectedText)[]> collectedRowsToFind = new List<(string columnName, string expectedText)[]>();
+            double?[,] valuesFromCSVAllRows = null;
+            int collectedValuesIndex = 0;
+            foreach (bool stepDefiningRowsToFind in new bool[] { true, false })
+            {
+                foreach (string equilibriumType in new string[] { "Correlated", "Average", "First" }) 
+                {
+                    string eqAbbreviation = equilibriumType switch { "Correlated" => "-Corr", "Average" => "-Avg", "First" => "-Eq1", _ => throw new NotImplementedException() };
+                    foreach (var variation in variations)
+                    {
+                        // This is a full report. The variation controls the big x axis. The big y axis is the costs multiplier.
+                        // The small x axis is the fee shifting multiplier. And the y axis represents the values that we are loading. 
+                        // We then have a different line for each data series.
+
+                        var requirementsForEachVariation = variation.requirementsForEachVariation;
+                        List<List<TikzLineGraphData>> lineGraphData = new List<List<TikzLineGraphData>>();
+                        foreach (double macroYValue in launcher.CriticalCostsMultipliers.OrderBy(x => x))
+                        {
+                            List<TikzLineGraphData> lineGraphDataForRow = new List<TikzLineGraphData>();
+                            foreach (var macroXValue in requirementsForEachVariation)
+                            {
+                                var columnsToMatch = macroXValue.columnMatches.ToList();
+                                columnsToMatch.Add(("Filter", "All"));
+                                columnsToMatch.Add(("Equilibrium Type", equilibriumType));
+
+                                List<List<double?>> dataForMiniGraph = null;
+
+                                foreach (var microXValue in launcher.CriticalFeeShiftingMultipliers.OrderBy(x => x))
+                                {
+                                    if (stepDefiningRowsToFind)
+                                    {
+                                        var modifiedRowsToFind = columnsToMatch.WithReplacement("Fee Shifting Multiplier", microXValue).WithReplacement("Costs Multiplier", macroYValue).Select(x => (x.Item1, x.Item2.ToString())).ToArray();
+                                        collectedRowsToFind.Add(modifiedRowsToFind);
+                                    }
+                                    else
+                                    {
+                                        int welfareColumnsCount = aggregatedGraphInfo.columnsToGet.Count();
+                                        if (dataForMiniGraph == null)
+                                        {
+                                            dataForMiniGraph = new List<List<double?>>();
+                                            for (int i = 0; i < welfareColumnsCount; i++)
+                                                dataForMiniGraph.Add(new List<double?>());
+                                        }
+                                        for (int i = 0; i < welfareColumnsCount; i++)
+                                        {
+                                            dataForMiniGraph[i].Add(valuesFromCSVAllRows[collectedValuesIndex, i]);
+                                        }
+                                        collectedValuesIndex++;
+                                    }
+                                }
+                                if (!stepDefiningRowsToFind)
+                                {
+                                    TikzLineGraphData miniGraphData = new TikzLineGraphData(dataForMiniGraph, aggregatedGraphInfo.lineScheme);
+                                    lineGraphDataForRow.Add(miniGraphData);
+                                }
+                            }
+                            if (!stepDefiningRowsToFind)
+                                lineGraphData.Add(lineGraphDataForRow);
+                        }
+
+                        if (!stepDefiningRowsToFind)
+                            CreateAggregatedLineGraphFromData(launcher, outputFolderPath, aggregatedGraphInfo, equilibriumType, variation, requirementsForEachVariation, lineGraphData);
+
+                    }
+                }
+                if (stepDefiningRowsToFind)
+                    valuesFromCSVAllRows = CSVData.GetCSVData_SinglePass(pathAndFilename, collectedRowsToFind.ToArray(), aggregatedGraphInfo.columnsToGet.ToArray(), cacheFile: true);
             }
         }
 
-        private static void ProcessForWelfareMeasure(LitigGameLauncher launcher, string pathAndFilename, string outputFolderPath, List<LitigGameLauncher.FeeShiftingArticleVariationSetInfo> variations, List<string> columnsToGet, List<string> lineScheme, string welfareMeasureName)
+        private static void CreateAggregatedLineGraphFromData(LitigGameLauncher launcher, string outputFolderPath, AggregatedGraphInfo aggregatedGraphInfo, string equilibriumType, LitigGameLauncher.FeeShiftingArticleVariationSetInfo variation, List<LitigGameLauncher.FeeShiftingArticleVariationInfo> requirementsForEachVariation, List<List<TikzLineGraphData>> lineGraphData)
         {
-            foreach (string equilibriumType in new string[] { "Correlated", "Average", "First" })
+            // make all data proportional to rounded up maximum value
+            double maximumValueMicroY;
+            if (aggregatedGraphInfo.maximumValueMicroY is not double presetMax)
             {
-                string eqAbbreviation = equilibriumType switch { "Correlated" => "-Corr", "Average" => "-Avg", "First" => "-Eq1", _ => throw new NotImplementedException() };
-                foreach (var variation in variations)
+                var values = lineGraphData.SelectMany(macroRow => macroRow.SelectMany(macroColumn => macroColumn.proportionalHeights.SelectMany(microRow => microRow))).Where(x => x != null);
+                maximumValueMicroY = values.Any() ? values.Select(x => (double)x).Max() : 1.0;
+            }
+            else
+                maximumValueMicroY = presetMax;
+            
+            double RoundUp(double input, int places)
+            {
+                double multiplier = Math.Pow(10, Convert.ToDouble(places));
+                return Math.Ceiling(input * multiplier) / multiplier;
+            }
+            maximumValueMicroY = RoundUp(maximumValueMicroY, 1);
+            if (maximumValueMicroY is 0.7 or 0.8 or 0.9)
+                maximumValueMicroY = 1.0; // just round all the way up
+
+            foreach (var macroRow in lineGraphData)
+            {
+                for (int i = 0; i < macroRow.Count; i++)
                 {
-                    // This is a full report. The variation controls the big x axis. The big y axis is the costs multiplier.
-                    // The small x axis is the fee shifting multiplier. And the y axis represents the values that we are loading. 
-                    // We then have a different line for each data series.
-
-                    var requirementsForEachVariation = variation.requirementsForEachVariation;
-                    List<List<TikzLineGraphData>> lineGraphData = new List<List<TikzLineGraphData>>();
-                    foreach (double macroYValue in launcher.CriticalCostsMultipliers.OrderBy(x => x))
-                    {
-                        List<TikzLineGraphData> lineGraphDataForRow = new List<TikzLineGraphData>();
-                        foreach (var macroXValue in requirementsForEachVariation)
-                        {
-                            var rowsToFind = macroXValue.columnMatches;
-                            rowsToFind.Add(("Filter", "All"));
-                            rowsToFind.Add(("Equilibrium Type", equilibriumType));
-
-                            List<List<double?>> dataForMiniGraph = new List<List<double?>>();
-                            for (int i = 0; i < columnsToGet.Count(); i++)
-                                dataForMiniGraph.Add(new List<double?>());
-
-                            foreach (var microXValue in launcher.CriticalFeeShiftingMultipliers.OrderBy(x => x))
-                            {
-                                var modifiedRowsToFind = rowsToFind.WithReplacement("Fee Shifting Multiplier", microXValue).WithReplacement("Costs Multiplier", macroYValue).Select(x => (x.Item1, x.Item2.ToString())).ToArray();
-                                double?[] valuesFromCSV = CSVData.GetCSVData(pathAndFilename, modifiedRowsToFind, columnsToGet.ToArray(), cacheFile: true);
-                                for (int i = 0; i < columnsToGet.Count(); i++)
-                                    dataForMiniGraph[i].Add(valuesFromCSV[i]);
-                            }
-                            TikzLineGraphData miniGraphData = new TikzLineGraphData(dataForMiniGraph, lineScheme);
-                            lineGraphDataForRow.Add(miniGraphData);
-                        }
-                        lineGraphData.Add(lineGraphDataForRow);
-                    }
-
-                    // make all data proportional to rounded up maximum value
-                    var values = lineGraphData.SelectMany(macroRow => macroRow.SelectMany(macroColumn => macroColumn.proportionalHeights.SelectMany(microRow => microRow))).Where(x => x != null);
-                    double maximumValueMicroY = values.Any() ? values.Select(x => (double)x).Max() : 1.0;
-                    double RoundUp(double input, int places)
-                    {
-                        double multiplier = Math.Pow(10, Convert.ToDouble(places));
-                        return Math.Ceiling(input * multiplier) / multiplier;
-                    }
-                    maximumValueMicroY = RoundUp(maximumValueMicroY, 1);
-                    foreach (var macroRow in lineGraphData)
-                    {
-                        for (int i = 0; i < macroRow.Count; i++)
-                        {
-                            TikzLineGraphData macroColumn = macroRow[i];
-                            macroRow[i] = macroColumn with { proportionalHeights = macroColumn.proportionalHeights.Select(x => x.Select(y => y / maximumValueMicroY).ToList()).ToList() };
-                        }
-                    }
-
-                    TikzRepeatedGraph r = new TikzRepeatedGraph()
-                    {
-                        majorXValueNames = requirementsForEachVariation.Select(x => x.nameOfVariation).ToList(),
-                        majorXAxisLabel = variation.nameOfSet,
-                        majorYValueNames = launcher.CriticalCostsMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList(),
-                        majorYAxisLabel = "Costs Multiplier",
-                        minorXValueNames = launcher.CriticalFeeShiftingMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList(),
-                        minorXAxisLabel = "Fee Shift Multiplier",
-                        minorYValueNames = Enumerable.Range(0, 11).Select(y => y switch { 0 => "0", 10 => maximumValueMicroY.ToString(), _ => " " }).ToList(),
-                        minorYAxisLabel = "\\$",
-                        yAxisSpaceMicro = 0.8,
-                        yAxisLabelOffsetMicro = 0.4,
-                        xAxisSpaceMicro = 1.1,
-                        xAxisLabelOffsetMicro = 0.8,
-                        lineGraphData = lineGraphData,
-                    };
-                    var result = TikzHelper.GetStandaloneDocument(r.GetDrawCommands(), new List<string>() { "xcolor" }, additionalHeaderInfo: $@"
-    \usetikzlibrary{{calc}}
-    \usepackage{{relsize}}
-    \tikzset{{fontscale/.style = {{font=\relsize{{#1}}}}}}");
-
-                    string outputFilename = Path.Combine(outputFolderPath, $"{welfareMeasureName} Varying {variation.nameOfSet} ({equilibriumType}).tex");
-                    TextFileManage.CreateTextFile(outputFilename, result);
-                    ExecuteLatexProcess(outputFolderPath, outputFilename);
-
-
+                    TikzLineGraphData macroColumn = macroRow[i];
+                    macroRow[i] = macroColumn with { proportionalHeights = macroColumn.proportionalHeights.Select(x => x.Select(y => y / maximumValueMicroY).ToList()).ToList() };
                 }
             }
+
+            TikzRepeatedGraph r = new TikzRepeatedGraph()
+            {
+                majorXValueNames = requirementsForEachVariation.Select(x => x.nameOfVariation).ToList(),
+                majorXAxisLabel = variation.nameOfSet,
+                majorYValueNames = launcher.CriticalCostsMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList(),
+                majorYAxisLabel = aggregatedGraphInfo.minorYAxisLabel,
+                minorXValueNames = launcher.CriticalFeeShiftingMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList(),
+                minorXAxisLabel = aggregatedGraphInfo.minorXAxisLabel,
+                minorYValueNames = Enumerable.Range(0, 11).Select(y => y switch { 0 => "0", 10 => maximumValueMicroY.ToString(), _ => " " }).ToList(),
+                minorYAxisLabel = aggregatedGraphInfo.minorYAxisLabel,
+                yAxisSpaceMicro = 0.8,
+                yAxisLabelOffsetMicro = 0.4,
+                xAxisSpaceMicro = 1.1,
+                xAxisLabelOffsetMicro = 0.8,
+                lineGraphData = lineGraphData,
+            };
+            var result = r.GetStandaloneDocument();
+
+            string outputFilename = Path.Combine(outputFolderPath, $"{aggregatedGraphInfo.topicName} Varying {variation.nameOfSet} ({equilibriumType}).tex");
+            TextFileManage.CreateTextFile(outputFilename, result);
+            ExecuteLatexProcess(outputFolderPath, outputFilename);
         }
 
 
