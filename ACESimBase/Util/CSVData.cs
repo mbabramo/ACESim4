@@ -9,6 +9,55 @@ namespace ACESim
 {
     public static class CSVData
     {
+        public static CsvReader GetCSVReader(string fullFilename, bool cacheFile)
+        {
+            StreamReader reader = GetStreamReader(fullFilename, cacheFile);
+            CsvReader csv = GetCSVReader(reader);
+            return csv;
+        }
+
+        private static StreamReader GetStreamReader(string fullFilename, bool cacheFile)
+        {
+            byte[] bytes = null;
+            if (cacheFile)
+            {
+                if (CachedFilesDictionary.ContainsKey(fullFilename))
+                {
+                    bytes = CachedFilesDictionary[fullFilename];
+                }
+                else
+                {
+                    bytes = File.ReadAllBytes(fullFilename);
+                    CachedFilesDictionary[fullFilename] = bytes;
+                }
+            }
+            else
+                bytes = File.ReadAllBytes(fullFilename);
+            MemoryStream m = new MemoryStream(bytes);
+            StreamReader reader = new StreamReader(m);
+            return reader;
+        }
+
+        private static CsvReader GetCSVReader(StreamReader reader)
+        {
+            var config = new CsvHelper.Configuration.CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture);
+            var csv = new CsvReader(reader, config);
+            return csv;
+        }
+
+
+        public static double? GetCSVData(CsvReader reader, (string columnName, string expectedText)[] rowToFind, string columnToGet, bool cacheFile = false) => GetCSVData(reader, new (string columnName, string expectedText)[][] { rowToFind }, new string[] { columnToGet })[0, 0];
+
+        public static double?[] GetCSVData(CsvReader reader, (string columnName, string expectedText)[] rowToFind, string[] columnsToGet, bool cacheFile = false)
+        {
+            var resultMatrix = GetCSVData(reader, new (string columnName, string expectedText)[][] { rowToFind }, columnsToGet);
+            int columnsCount = columnsToGet.Count();
+            double?[] result = new double?[columnsCount];
+            for (int i = 0; i < columnsCount; i++)
+                result[i] = resultMatrix[0, i];
+            return result;
+        }
+
         public static double? GetCSVData(string fullFilename, (string columnName, string expectedText)[] rowToFind, string columnToGet, bool cacheFile=false) => GetCSVData(fullFilename, new (string columnName, string expectedText)[][] { rowToFind }, new string[] { columnToGet }, cacheFile)[0, 0];
 
         public static double?[] GetCSVData(string fullFilename, (string columnName, string expectedText)[] rowToFind, string[] columnsToGet, bool cacheFile = false)
@@ -27,52 +76,32 @@ namespace ACESim
 
         public static double?[,] GetCSVData(string fullFilename, (string columnName, string expectedText)[][] rowsToFind, string[] columnsToGet, bool cacheFile=false)
         {
-            byte[] bytes = null;
-            if (cacheFile)
-            {
-                if (CachedFilesDictionary.ContainsKey(fullFilename))
-                {
-                    bytes = CachedFilesDictionary[fullFilename];
-                }
-                else
-                {
-                    bytes = File.ReadAllBytes(fullFilename);
-                    CachedFilesDictionary[fullFilename] = bytes;
-                }
-            }
-            else
-                bytes = File.ReadAllBytes(fullFilename);
-            MemoryStream m = new MemoryStream(bytes);
-            using (var reader = new StreamReader(m))
-                return GetCSVData(rowsToFind, columnsToGet, reader);
+            CsvReader reader = GetCSVReader(fullFilename, cacheFile);
+            using (reader)
+                return GetCSVData(reader, rowsToFind, columnsToGet);
         }
 
-        public static double?[,] GetCSVData((string columnName, string expectedText)[][] rowsToFind, string[] columnsToGet, StreamReader reader)
+        public static double?[,] GetCSVData(CsvReader csv, (string columnName, string expectedText)[][] rowsToFind, string[] columnsToGet)
         {
             double?[,] results = new double?[rowsToFind.Length, columnsToGet.Length];
-
-            var config = new CsvHelper.Configuration.CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture);
-            using (var csv = new CsvReader(reader, config))
+            csv.Read();
+            csv.ReadHeader();
+            int rowInCSV = -1;
+            while (csv.Read())
             {
-                csv.Read();
-                csv.ReadHeader();
-                int rowInCSV = -1;
-                while (csv.Read())
+                rowInCSV++;
+                for (int rowToFind = 0; rowToFind < rowsToFind.Length; rowToFind++)
                 {
-                    rowInCSV++;
-                    for (int rowToFind = 0; rowToFind < rowsToFind.Length; rowToFind++)
+                    if (MeetsRowRequirements(csv, rowsToFind[rowToFind]))
                     {
-                        if (MeetsRowRequirements(csv, rowsToFind[rowToFind]))
+                        for (int c = 0; c < columnsToGet.Length; c++)
                         {
-                            for (int c = 0; c < columnsToGet.Length; c++)
-                            {
-                                csv.Configuration.MissingFieldFound = null;
-                                string contents = csv.GetField<string>(columnsToGet[c]);
-                                if (contents == null || contents == "")
-                                    results[rowToFind, c] = null;
-                                else
-                                    results[rowToFind, c] = csv.GetField<double>(columnsToGet[c]);
-                            }
+                            csv.Configuration.MissingFieldFound = null;
+                            string contents = csv.GetField<string>(columnsToGet[c]);
+                            if (contents == null || contents == "")
+                                results[rowToFind, c] = null;
+                            else
+                                results[rowToFind, c] = csv.GetField<double>(columnsToGet[c]);
                         }
                     }
                 }

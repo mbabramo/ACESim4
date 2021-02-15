@@ -2,6 +2,7 @@
 using ACESim.Util;
 using ACESimBase.Util;
 using ACESimBase.Util.Tikz;
+using CsvHelper;
 using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
@@ -442,16 +443,17 @@ namespace LitigCharts
               "red, opacity=0.50, line width=1mm, dashed",
               "green, opacity=0.50, line width=1mm, solid",
             };
+            CsvReader reader = CSVData.GetCSVReader(pathAndFilename, true);
             foreach (var welfareMeasureInfo in welfareMeasureColumns)
             {
                 var lineScheme = lineSchemeFull.Take(welfareMeasureInfo.columnsToGet.Count()).ToList();
-                ProcessForWelfareMeasure(launcher, pathAndFilename, outputFolderPath, variations, welfareMeasureInfo.columnsToGet, lineScheme, welfareMeasureInfo.welfareMeasuresName);
+                ProcessForWelfareMeasure(launcher, reader, outputFolderPath, variations, welfareMeasureInfo.columnsToGet, lineScheme, welfareMeasureInfo.welfareMeasuresName);
             }
         }
 
-        private static void ProcessForWelfareMeasure(LitigGameLauncher launcher, string pathAndFilename, string outputFolderPath, List<LitigGameLauncher.FeeShiftingArticleVariationSetInfo> variations, List<string> columnsToGet, List<string> lineScheme, string welfareMeasureName)
+        private static void ProcessForWelfareMeasure(LitigGameLauncher launcher, CsvReader reader, string outputFolderPath, List<LitigGameLauncher.FeeShiftingArticleVariationSetInfo> variations, List<string> columnsToGet, List<string> lineScheme, string welfareMeasureName)
         {
-            foreach (string equilibriumType in new string[] { "Correlated", "Average", "First" })
+            foreach (string equilibriumType in new string[] { "Average", "Correlated", "First" })
             {
                 string eqAbbreviation = equilibriumType switch { "Correlated" => "-Corr", "Average" => "-Avg", "First" => "-Eq1", _ => throw new NotImplementedException() };
                 foreach (var variation in variations)
@@ -467,9 +469,9 @@ namespace LitigCharts
                         List<TikzLineGraphData> lineGraphDataForRow = new List<TikzLineGraphData>();
                         foreach (var macroXValue in requirementsForEachVariation)
                         {
-                            var rowsToFind = macroXValue.columnMatches;
-                            rowsToFind.Add(("Filter", "All"));
-                            rowsToFind.Add(("Equilibrium Type", equilibriumType));
+                            var rowCriteria = macroXValue.columnMatches;
+                            rowCriteria.Add(("Filter", "All"));
+                            rowCriteria.Add(("Equilibrium Type", equilibriumType));
 
                             List<List<double?>> dataForMiniGraph = new List<List<double?>>();
                             for (int i = 0; i < columnsToGet.Count(); i++)
@@ -477,8 +479,8 @@ namespace LitigCharts
 
                             foreach (var microXValue in launcher.CriticalFeeShiftingMultipliers.OrderBy(x => x))
                             {
-                                var modifiedRowsToFind = rowsToFind.WithReplacement("Fee Shifting Multiplier", microXValue).WithReplacement("Costs Multiplier", macroYValue).Select(x => (x.Item1, x.Item2.ToString())).ToArray();
-                                double?[] valuesFromCSV = CSVData.GetCSVData(pathAndFilename, modifiedRowsToFind, columnsToGet.ToArray(), cacheFile: true);
+                                var modifiedRowToFind = rowCriteria.WithReplacement("Fee Shifting Multiplier", microXValue).WithReplacement("Costs Multiplier", macroYValue).Select(x => (x.Item1, x.Item2.ToString())).ToArray();
+                                double?[] valuesFromCSV = CSVData.GetCSVData(reader, modifiedRowToFind, columnsToGet.ToArray());
                                 for (int i = 0; i < columnsToGet.Count(); i++)
                                     dataForMiniGraph[i].Add(valuesFromCSV[i]);
                             }
