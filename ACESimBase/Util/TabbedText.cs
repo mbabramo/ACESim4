@@ -79,7 +79,10 @@ namespace ACESim
         public static void WriteWithoutTabs(string format, object[] args)
         {
             StringBuilder local = new StringBuilder();
-            local.Append(String.Format(format, args));
+            if (args == null || args.Length == 0)
+                local.Append(format);
+            else
+                local.Append(String.Format(format, args));
             OutputAndAccumulate(local);
         }
 

@@ -19,8 +19,9 @@ namespace LitigCharts
             //KlermanData.Execute();
 
             FeeShiftingDataProcessing.BuildMainFeeShiftingReport();
-            FeeShiftingDataProcessing.ProduceLatexDiagramsFromTexFiles(); // this code assumes that all data is in the ReportResults folder, so must do before organization
-            FeeShiftingDataProcessing.OrganizeIntoFolders(); // now we organize, including the diagrams just made
+            //DEBUG FeeShiftingDataProcessing.ProduceLatexDiagramsFromTexFiles(); // this code assumes that all data is in the ReportResults folder, so must do before organization
+            bool doDeletion = false; // DEBUG
+            FeeShiftingDataProcessing.OrganizeIntoFolders(doDeletion); // now we organize, including the diagrams just made
             FeeShiftingDataProcessing.ProduceLatexDiagramsAggregatingReports(); // now we produce diagrams that aggregate info from multiple reports
 
             ////FeeShiftingDataProcessing.BuildOffersReport(); // we're no longer generating the offers data in csv, since we're directly generating a Latex file with the heatmap

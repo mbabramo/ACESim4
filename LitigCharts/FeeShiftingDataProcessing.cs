@@ -178,8 +178,19 @@ namespace LitigCharts
             string path = Launcher.ReportFolder();
             string outputFileFullPath = Path.Combine(path, filePrefix + $"-{endOfFileName}.csv");
             string cumResults = "";
+
+            var mappedNames = gameOptionsSets.Where(x => map[x.Name] == x.Name).OrderBy(x => x.Name).ToList();
+            var numDistinctNames = mappedNames.OrderBy(x => x.Name).Distinct().Count();
+            var numFullNames = gameOptionsSets.Select(x => x.Name).Distinct().Count();
+            var variableSettingsList = gameOptionsSets.Select(x => x.VariableSettings).ToList();
+            var formattedTableOfOptionsSets = variableSettingsList.ToFormattedTable();
+            TabbedText.WriteLine($"Processing {numDistinctNames} option sets (from a list of {gameOptionsSets.Count} containing redundancies) "); // redundancies may exist because the options set list repeats the baseline value -- but here we want only the distinct ones (this will be filtered by GetCSVLines)
+            TabbedText.WriteLine("All options sets (including redundancies)");
+            TabbedText.WriteLine(formattedTableOfOptionsSets);
+
             foreach (string fileSuffix in equilibriumTypeSuffixes)
             {
+                TabbedText.WriteLine($"Processing equilibrium type {fileSuffix}");
                 bool includeHeader = fileSuffix == correlatedEquilibriumFileSuffix;
                 List<List<string>> outputLines = GetCSVLines(gameOptionsSets, map, rowsToGet, replacementRowNames, filePrefix, fileSuffix, path, includeHeader, columnsToGet, replacementColumnNames);
                 if (includeHeader)
@@ -308,7 +319,7 @@ namespace LitigCharts
             }
         }
 
-        public static void OrganizeIntoFolders()
+        public static void OrganizeIntoFolders(bool doDeletion)
         {
             string reportFolder = Launcher.ReportFolder();
             string[] filesInFolder = DeleteAuxiliaryFiles(reportFolder);
@@ -358,7 +369,8 @@ namespace LitigCharts
                             {
                                 string combinedNameTarget = Path.Combine(subsubfolderName, targetFileName);
                                 File.Copy(combinedNameSource, combinedNameTarget, true);
-                                File.Delete(combinedNameSource);
+                                if (doDeletion)
+                                    File.Delete(combinedNameSource);
                             }
                         }
                     }
@@ -367,6 +379,8 @@ namespace LitigCharts
             }
 
         }
+
+
 
         private static string[] DeleteAuxiliaryFiles(string reportFolder)
         {
