@@ -940,9 +940,11 @@ namespace ACESim
         }
         , g =>
         {
+            // This transformation happens after Multiplier, which will set LoserPays = true
             switch (mode)
             {
                 case FeeShiftingRule.American:
+                    g.LoserPays = false;
                     break;
                 case FeeShiftingRule.English:
                     g.LoserPays = true;
@@ -1003,6 +1005,7 @@ namespace ACESim
 
         LitigGameOptions GetAndTransform_FeeShiftingMultiplier(LitigGameOptions options, double multiplier) => GetAndTransform(options, " Fee Shifting Multiplier " + multiplier, g =>
         {
+            g.LoserPays = true; // note that we're not using American rule, we're just varying the multiplier, so we should always set this to TRUE, unless we're using Rule 68 American, but that will then override this
             g.LoserPaysMultiple = multiplier;
             g.VariableSettings["Fee Shifting Multiplier"] = multiplier;
         });

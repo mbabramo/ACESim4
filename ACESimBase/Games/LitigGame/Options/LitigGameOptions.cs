@@ -280,8 +280,8 @@ namespace ACESim
 
         public override string ToString()
         {
-            return 
-$@"LitigationGame
+            return
+$@"LitigationGame: {Name}
 InvertChanceDecisions {InvertChanceDecisions}
 NumOffers {NumOffers} {(IncludeEndpointsForOffers ? "(Includes endpoints)" : "")}  
 NumPotentialBargainingRounds {NumPotentialBargainingRounds}  BargainingRoundsSimultaneous {BargainingRoundsSimultaneous} SimultaneousOffersUltimatelyRevealed {SimultaneousOffersUltimatelyRevealed} 
@@ -289,8 +289,8 @@ NumLiabilityStrengthPoints {NumLiabilityStrengthPoints} NumLiabilitySignals {Num
 NumDamagesStrengthPoints {NumDamagesStrengthPoints} NumDamagesSignals {NumDamagesSignals} PDamagesNoiseStdev {PDamagesNoiseStdev} DDamagesNoiseStdev {DDamagesNoiseStdev} CourtDamagesNoiseStdev {CourtDamagesNoiseStdev} 
 SkipFileAndAnswerDecisions {SkipFileAndAnswerDecisions} AllowAbandonAndDefaults {AllowAbandonAndDefaults} PredeterminedAbandonAndDefaults {PredeterminedAbandonAndDefaults} IncludeAgreementToBargainDecisions {IncludeAgreementToBargainDecisions} DeltaOffersOptions {DeltaOffersOptions} 
 CostsMultiplier {CostsMultiplier} PTrialCosts {PTrialCosts} DTrialCosts {DTrialCosts} PFilingCost {PFilingCost} DAnswerCost {DAnswerCost} {(RoundSpecificBargainingCosts == null ? $"PerPartyCostsLeadingUpToBargainingRound {PerPartyCostsLeadingUpToBargainingRound}" : $"RoundSpecificBargainingCosts {String.Join(",", RoundSpecificBargainingCosts)}")} 
-{(LoserPays ? $@"LoserPays: Multiple {LoserPaysMultiple} AfterAbandonment {LoserPaysAfterAbandonment}
-" : $"")}{(ShootoutSettlements ? $@"ShootoutSettlements ShootoutStrength {ShootoutStrength} ShootoutOfferValueIsAveraged {ShootoutOfferValueIsAveraged} ShootoutsApplyAfterAbandonment {ShootoutsApplyAfterAbandonment}
+LoserPays {LoserPays} Multiple {LoserPaysMultiple} AfterAbandonment {LoserPaysAfterAbandonment} Rule68 {Rule68} Margin {LoserPaysOnlyLargeMarginOfVictory} ({LoserPaysMarginOfVictoryThreshold})
+{(ShootoutSettlements ? $@"ShootoutSettlements ShootoutStrength {ShootoutStrength} ShootoutOfferValueIsAveraged {ShootoutOfferValueIsAveraged} ShootoutsApplyAfterAbandonment {ShootoutsApplyAfterAbandonment}
 " : "")}PInitialWealth {PInitialWealth} DInitialWealth {DInitialWealth} 
 DamagesMin {DamagesMin} DamagesMax {DamagesMax} 
 RegretAversion {RegretAversion} 

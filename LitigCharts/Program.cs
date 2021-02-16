@@ -18,9 +18,13 @@ namespace LitigCharts
         {
             //KlermanData.Execute();
 
+
+            bool printIndividualLatexDiagrams = false; // this is the time consuming one
+            bool doDeletion = printIndividualLatexDiagrams; // don't delete if we haven't done the diagrams yet
+
             FeeShiftingDataProcessing.BuildMainFeeShiftingReport();
-            //DEBUG FeeShiftingDataProcessing.ProduceLatexDiagramsFromTexFiles(); // this code assumes that all data is in the ReportResults folder, so must do before organization
-            bool doDeletion = false; // DEBUG
+            if (printIndividualLatexDiagrams)
+                FeeShiftingDataProcessing.ProduceLatexDiagramsFromTexFiles(); // this code assumes that all data is in the ReportResults folder, so must do before organization
             FeeShiftingDataProcessing.OrganizeIntoFolders(doDeletion); // now we organize, including the diagrams just made
             FeeShiftingDataProcessing.ProduceLatexDiagramsAggregatingReports(); // now we produce diagrams that aggregate info from multiple reports
 
