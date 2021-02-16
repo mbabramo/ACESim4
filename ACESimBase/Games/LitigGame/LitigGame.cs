@@ -403,7 +403,7 @@ namespace ACESim
                     punishPlaintiffUnderRule68 = rule68Offer >= damagesAwarded; // NOTE: We are saying punish plaintiff if amount ends up being equal
                 }
             }
-            if (gameDefinition.Options.LoserPays)
+            if (gameDefinition.Options.LoserPays && gameDefinition.Options.LoserPaysMultiple > 0)
             {
                 loserPaysApplies = ((outcome.TrialOccurs && (!gameDefinition.Options.LoserPaysOnlyLargeMarginOfVictory || largeMarginAtTrial)) 
                     || 
@@ -418,7 +418,7 @@ namespace ACESim
                 }
             }
             if (loserPaysApplies)
-            { // British Rule and it applies (contested litigation and no settlement)
+            { // British Rule and it applies (contested litigation and no settlement) -- or punishing plaintiff under Rule 68 despite American rule, in which case we still use the loser pays multiple
                 double loserPaysMultiple = gameDefinition.Options.LoserPaysMultiple;
                 bool pLoses = (outcome.TrialOccurs && !pWinsAtTrial) || pAbandons;
                 if (pLoses || punishPlaintiffUnderRule68)

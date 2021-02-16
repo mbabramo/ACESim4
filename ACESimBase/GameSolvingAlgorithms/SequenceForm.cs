@@ -69,17 +69,22 @@ namespace ACESimBase.GameSolvingAlgorithms
             if (Approach == SequenceFormApproach.ECTA)
             {
                 List<(double[] equilibrium, int frequency)> equilibria = new List<(double[] equilibrium, int frequency)>(), additionalEquilibria;
+                TabbedText.WriteLine($"Using exact arithmetic for initial prior");
                 var centroidEquilibrium = DetermineEquilibria<ExactValue>(1).First(); // first equilibrium should always be accomplished with exact values
                 equilibria.Add(centroidEquilibrium);
                 if (EvolutionSettings.TryInexactArithmeticForAdditionalEquilibria)
                 {
-                    additionalEquilibria = DetermineEquilibria<InexactValue>(EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria - 1);
+                    int numPriorsToGet = EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria - 1;
+                    TabbedText.WriteLine($"Trying inexact arithmetic for up to {numPriorsToGet} random priors");
+                    additionalEquilibria = DetermineEquilibria<InexactValue>(numPriorsToGet);
                     equilibria.AddRange(additionalEquilibria);
                 }
                 if (equilibria == null || equilibria.Count() < EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria)
                 {
                     // Suppose our target is 100 equilibria, and we've found 1 with a frequency of 10. 
-                    additionalEquilibria = DetermineEquilibria<ExactValue>(EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria - equilibria.Sum(x => x.frequency));
+                    int numPriorsToGet = EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria - equilibria.Sum(x => x.frequency);
+                    TabbedText.WriteLine($"Resorting to exact arithmetic for up to {numPriorsToGet} random priors");
+                    additionalEquilibria = DetermineEquilibria<ExactValue>(numPriorsToGet);
                     equilibria.AddRange(additionalEquilibria);
                 }
 
@@ -187,7 +192,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 Action<int, ECTATreeDefinition<T>> scenarioUpdater = updateScenarios ? ScenarioUpdater<T>() : null;
                 List<(MaybeExact<T>[] equilibrium, int frequency)> results = ecta.Execute(t => SetupECTA(t), scenarioUpdater);
                 NarrowDownToValidEquilibria<T>(results);
-                equilibria = results.Select(x => (x.equilibrium.Select(y => y.AsDouble).ToArray(), 1)).ToList();
+                equilibria = results.Select(x => (x.equilibrium.Select(y => y.AsDouble).ToArray(), x.frequency)).ToList();
             }
 
             return equilibria;

@@ -603,8 +603,8 @@ namespace ACESim
             const double veryRiskAverseAlpha = 4.0;
             if (riskAversion == RiskAversionMode.RiskAverse)
             {
-                o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = somewhatRiskAverseAlpha };
-                o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = somewhatRiskAverseAlpha };
+                o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = somewhatRiskAverseAlpha, LinearTransformation = true, LowerWealthProducingSameUtility = o.PInitialWealth - 1.0 };
+                o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = somewhatRiskAverseAlpha, LinearTransformation = true, LowerWealthProducingSameUtility = o.PInitialWealth - 1.0 };
                 nameRevised += " both risk averse";
             }
             else if (riskAversion == RiskAversionMode.RiskNeutral)
@@ -615,32 +615,32 @@ namespace ACESim
             }
             else if (riskAversion == RiskAversionMode.POnlyRiskAverse)
             {
-                o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = somewhatRiskAverseAlpha };
+                o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = somewhatRiskAverseAlpha, LinearTransformation = true, LowerWealthProducingSameUtility = o.PInitialWealth - 1.0 };
                 o.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = o.DInitialWealth };
                 nameRevised += " P risk averse";
             }
             else if (riskAversion == RiskAversionMode.DOnlyRiskAverse)
             {
                 o.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = o.PInitialWealth };
-                o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = somewhatRiskAverseAlpha };
+                o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = somewhatRiskAverseAlpha, LinearTransformation = true, LowerWealthProducingSameUtility = o.PInitialWealth - 1.0 };
                 nameRevised += " D risk averse";
             }
             else if (riskAversion == RiskAversionMode.VeryRiskAverse)
             {
-                o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = veryRiskAverseAlpha };
-                o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = veryRiskAverseAlpha };
+                o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = veryRiskAverseAlpha, LinearTransformation = true, LowerWealthProducingSameUtility = o.PInitialWealth - 1.0 };
+                o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = veryRiskAverseAlpha, LinearTransformation = true, LowerWealthProducingSameUtility = o.PInitialWealth - 1.0 };
                 nameRevised += " both very risk averse";
             }
             else if (riskAversion == RiskAversionMode.PMoreRiskAverse)
             {
-                o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = veryRiskAverseAlpha };
-                o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = somewhatRiskAverseAlpha };
+                o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = veryRiskAverseAlpha, LinearTransformation = true, LowerWealthProducingSameUtility = o.PInitialWealth - 1.0 };
+                o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = somewhatRiskAverseAlpha, LinearTransformation = true, LowerWealthProducingSameUtility = o.PInitialWealth - 1.0 };
                 nameRevised += " P more risk averse";
             }
             else if (riskAversion == RiskAversionMode.DMoreRiskAverse)
             {
-                o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = somewhatRiskAverseAlpha };
-                o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = veryRiskAverseAlpha };
+                o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = somewhatRiskAverseAlpha, LinearTransformation = true, LowerWealthProducingSameUtility = o.PInitialWealth - 1.0 };
+                o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = veryRiskAverseAlpha, LinearTransformation = true, LowerWealthProducingSameUtility = o.PInitialWealth - 1.0 };
                 nameRevised += " D more risk averse";
             }
             o.Name = nameRevised;
@@ -941,7 +941,12 @@ namespace ACESim
                     g.LoserPays = true;
                     break;
                 case FeeShiftingRule.Rule68:
-                    g.Rule68 = true; 
+                    g.Rule68 = true;
+                    g.LoserPays = false; // Note that most of our simulations use English rule, even where testing for American rule (i.e., by doing English rule with multiple of 0). So, this will be an exception, and we set loser pays to false. But when Rule 68 is triggered, there will be fee shifting, according to the LoserPaysMultiple, so that variable matters. In other words, with Rule 68 American, loser pays is set to false, but the loser pays multiple still matters, because fee-shifting is still possible.
+                    break;
+                case FeeShiftingRule.Rule68English:
+                    g.Rule68 = true;
+                    g.LoserPays = true;
                     break;
                 case FeeShiftingRule.MarginOfVictory:
                     g.LoserPays = true;

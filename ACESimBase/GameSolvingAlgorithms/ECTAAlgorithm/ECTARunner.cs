@@ -212,6 +212,9 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 
             infosf(); // INFO
 
+            bool isExact = new T().IsExact;
+            int seedAdjust = isExact ? 0 : 1_000_000; // make sure we're using different seeds with inexact arithmetic, so that we maximize the chance of generating different priors
+
             /* process games                    */
             int gamecount = 0;
 
@@ -226,7 +229,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 s.Start();
                 TabbedText.WriteLine($"Prior {priorcount + 1} of {numPriors}");
                 if (priorcount == 0 || !tracingEquilibrium)
-                    t.genprior(priorcount);
+                    t.genprior(priorcount + seedAdjust);
                 else
                 {
                     t.MakePlayerMovesStrictlyMixed(equilibriumProbabilities, MaybeExact<T>.One().DividedBy(MaybeExact<T>.FromInteger(1_000)));

@@ -11,6 +11,7 @@ using System.Numerics;
 using ACESim;
 using ACESimBase.GameSolvingSupport;
 using ACESimBase.Util;
+using System.Diagnostics;
 
 namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
@@ -751,6 +752,9 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             int leaveBasis, enterBasis;
             bool z0leave = false;
 
+            Stopwatch s = new Stopwatch();
+            s.Start();
+
             bool usingExactArithmetic = new T().IsExact;
             pivotcount = 1;
             InitMinRatioTestStatistics();
@@ -809,10 +813,12 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 
                 if (pivotcount++ == flags.maxPivotSteps)
                 {
-                    tabbedtextf("------- stop after %d pivoting steps --------\n",
+                    tabbedtextf($"------- stop after {flags.maxPivotSteps} pivoting steps --------\n",
                    flags.maxPivotSteps);
                     throw new ECTAException($"Max ({flags.maxPivotSteps}) pivoting steps reached.");
                 }
+                else if (pivotcount % 100 == 0)
+                    tabbedtextf($"... {pivotcount} steps ({s.ElapsedMilliseconds} ms) ...");
             }
 
             if (flags.outputInitialAndFinalTableaux)
