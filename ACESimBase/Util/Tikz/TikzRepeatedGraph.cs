@@ -28,8 +28,9 @@ namespace ACESimBase.Util.Tikz
         public double width => 20 + (majorXValueNames.Count() > 5 ? 4.0 * (majorXValueNames.Count() - 5) : 0);
         public double height => 2.3 + majorYValueNames.Count() * 4.0;
         private TikzRectangle mainRectangle => new TikzRectangle(0, 0, width, height);
-
-        public string MidpointOfBottomString => $"({(mainRectangle.left + mainRectangle.right) / 2.0},{mainRectangle.bottom})";
+        TikzLine bottomAxisLine => outerAxisSet.BottomAxisLine;
+        TikzRectangle bottomAxisAsRectangle => outerAxisSet.BottomAxisLine.ToRectangle();
+        public string MidpointOfBottomString => $"({(bottomAxisLine.start.x + bottomAxisLine.end.x) / 2.0},{mainRectangle.bottom})";
 
         public void Initialize()
         {
@@ -38,6 +39,12 @@ namespace ACESimBase.Util.Tikz
             outerAxisSet = new TikzAxisSet(majorXValueNames, majorYValueNames, majorXAxisLabel, majorYAxisLabel, mainRectangle, fontScale:2, xAxisSpace:1.5, yAxisSpace: 1.7, xAxisLabelOffset:0.9, yAxisLabelOffset:1.1, boxBordersAttributes: "draw=none");
             var rectangles = outerAxisSet.IndividualCells;
             innerAxisSets = rectangles.Select((row, rowIndex) => row.Select((column, columnIndex) => new TikzAxisSet(minorXValueNames, minorYValueNames, minorXAxisLabel, minorYAxisLabel, rectangles[rowIndex][columnIndex], lineGraphData: lineGraphData[rowIndex][columnIndex], fontScale: 0.7, xAxisSpace: xAxisSpaceMicro, yAxisSpace: yAxisSpaceMicro, xAxisLabelOffset: xAxisLabelOffsetMicro, yAxisLabelOffset: yAxisLabelOffsetMicro, horizontalLinesAttribute: "gray!30", verticalLinesAttribute: "gray!30", yAxisUseEndpoints: true)).ToList()).ToList();
+            var firstInnerAxisSet = innerAxisSets.FirstOrDefault()?.FirstOrDefault();
+            outerAxisSet = outerAxisSet with
+            { // Our macro axis marks will be centered on the enter inner axis sets, but it looks better if they're centered relative to the content (excluding axes) of those sets.
+                xAxisMarkOffset = firstInnerAxisSet?.LeftAxisWidth * 0.5 ?? 0,
+                yAxisMarkOffset = firstInnerAxisSet?.BottomAxisHeight * 0.5 ?? 0,
+            };
             Initialized = true;
         }
 

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace ACESimBase.Util.Tikz
 {
 
-    public record TikzAxisSet(List<string> xValueNames, List<string> yValueNames, string xAxisLabel, string yAxisLabel, TikzRectangle sourceRectangle, string boxBordersAttributes="draw=none", string horizontalLinesAttribute="draw=none", string verticalLinesAttribute="draw=none", double fontScale=1, double xAxisSpace = 2.2, double xAxisLabelOffset=1.2, double yAxisSpace=2.0, double yAxisLabelOffset=1, bool xAxisUseEndpoints=false, bool yAxisUseEndpoints=false, TikzLineGraphData lineGraphData=null)
+    public record TikzAxisSet(List<string> xValueNames, List<string> yValueNames, string xAxisLabel, string yAxisLabel, TikzRectangle sourceRectangle, string boxBordersAttributes="draw=none", string horizontalLinesAttribute="draw=none", string verticalLinesAttribute="draw=none", double fontScale=1, double xAxisSpace = 2.2, double xAxisLabelOffset=1.2, double xAxisMarkOffset=0, double yAxisSpace=2.0, double yAxisLabelOffset=1, double yAxisMarkOffset=0, bool xAxisUseEndpoints=false, bool yAxisUseEndpoints=false, TikzLineGraphData lineGraphData=null)
     {
         const double betweenMiniGraphs = 0.05;
         const double spaceForAxesUnscaled = 0.5;
@@ -17,20 +17,22 @@ namespace ACESimBase.Util.Tikz
         List<(double proportion, string value)> xMarks => xValueNames.Select((x, index) => xAxisUseEndpoints ? ((index) / (double)(NumColumns - 1.0), x) : ((0.5 + index) / (double) NumColumns, x)).ToList();
         List<(double proportion, string value)> yMarks => yValueNames.Select((y, index) => yAxisUseEndpoints ? ((index) / (double)(NumRows - 1.0), y) : ((0.5 + index) / (double) NumRows, y)).ToList();
 
-        TikzRectangle LeftAxisRectangle => sourceRectangle.LeftPortion(yAxisSpace).ReducedByPadding(0, xAxisSpace, 0, 0);
-        TikzLine LeftAxisLine => LeftAxisRectangle.rightLine;
-        List<TikzPoint> LeftAxisMarkPoints => yMarks.Select(m => LeftAxisLine.PointAlongLine(m.proportion)).ToList();
-        List<TikzPoint> LeftAxisSpecifiedPoints(List<double> proportionalHeights) => proportionalHeights.Select(m => LeftAxisLine.PointAlongLine(m)).ToList();
-        TikzRectangle BottomAxisRectangle => sourceRectangle.BottomPortion(xAxisSpace).ReducedByPadding(yAxisSpace, 0, 0, 0);
-        TikzLine BottomAxisLine => BottomAxisRectangle.topLine;
-        List<TikzPoint> BottomAxisMarkPoints => xMarks.Select(m => BottomAxisLine.PointAlongLine(m.proportion)).ToList();
-        
-        List<TikzLine> VerticalLines => BottomAxisMarkPoints.Select(bottomAxisPoint => new TikzLine(bottomAxisPoint, new TikzPoint(bottomAxisPoint.x, MainRectangle.top))).ToList();
-        List<TikzLine> HorizontalLines => LeftAxisMarkPoints.Select(leftAxisPoint => new TikzLine(leftAxisPoint, new TikzPoint(MainRectangle.right, leftAxisPoint.y))).ToList();
+        public TikzRectangle LeftAxisRectangle => sourceRectangle.LeftPortion(yAxisSpace).ReducedByPadding(0, xAxisSpace, 0, 0);
+        public TikzLine LeftAxisLine => LeftAxisRectangle.rightLine;
+        public List<TikzPoint> LeftAxisMarkPoints => yMarks.Select(m => LeftAxisLine.PointAlongLine(m.proportion)).ToList();
+        public List<TikzPoint> LeftAxisSpecifiedPoints(List<double> proportionalHeights) => proportionalHeights.Select(m => LeftAxisLine.PointAlongLine(m)).ToList();
+        public double LeftAxisWidth => LeftAxisRectangle.width;
+        public TikzRectangle BottomAxisRectangle => sourceRectangle.BottomPortion(xAxisSpace).ReducedByPadding(yAxisSpace, 0, 0, 0);
+        public double BottomAxisHeight => BottomAxisRectangle.height;
+        public TikzLine BottomAxisLine => BottomAxisRectangle.topLine;
+        public List<TikzPoint> BottomAxisMarkPoints => xMarks.Select(m => BottomAxisLine.PointAlongLine(m.proportion)).ToList();
 
-        TikzRectangle MainRectangle => sourceRectangle.RightPortion(sourceRectangle.width - yAxisSpace).TopPortion(sourceRectangle.height - xAxisSpace);
-        List<TikzRectangle> RowsWithSpaceBetweenMiniGraphs => Enumerable.Reverse(MainRectangle.DivideBottomToTop(NumRows)).ToList();
-        List<List<TikzRectangle>> IndividualCellsWithSpaceBetweenMiniGraphs => RowsWithSpaceBetweenMiniGraphs.Select(x => x.DivideLeftToRight(NumColumns).ToList()).ToList();
+        public List<TikzLine> VerticalLines => BottomAxisMarkPoints.Select(bottomAxisPoint => new TikzLine(bottomAxisPoint, new TikzPoint(bottomAxisPoint.x, MainRectangle.top))).ToList();
+        public List<TikzLine> HorizontalLines => LeftAxisMarkPoints.Select(leftAxisPoint => new TikzLine(leftAxisPoint, new TikzPoint(MainRectangle.right, leftAxisPoint.y))).ToList();
+
+        public TikzRectangle MainRectangle => sourceRectangle.RightPortion(sourceRectangle.width - yAxisSpace).TopPortion(sourceRectangle.height - xAxisSpace);
+        public List<TikzRectangle> RowsWithSpaceBetweenMiniGraphs => Enumerable.Reverse(MainRectangle.DivideBottomToTop(NumRows)).ToList();
+        public List<List<TikzRectangle>> IndividualCellsWithSpaceBetweenMiniGraphs => RowsWithSpaceBetweenMiniGraphs.Select(x => x.DivideLeftToRight(NumColumns).ToList()).ToList();
         public List<List<TikzRectangle>> IndividualCells => IndividualCellsWithSpaceBetweenMiniGraphs.Select(row => row.Select(x => x.ReducedByPadding(betweenMiniGraphs, betweenMiniGraphs, 0, 0)).ToList()).Reverse().ToList();
 
         public string GetDrawLineGraphCommands()
@@ -117,9 +119,9 @@ namespace ACESimBase.Util.Tikz
                 b.AppendLine(lines);
             }
 
-            string leftAxisCommand = LeftAxisLine.DrawAxis("black", yMarks, fontAttributes, "east", yAxisLabel, "center", TikzHorizontalAlignment.Center, $"rotate=90, {fontAttributes}", 0 - yAxisLabelOffset, 0);
+            string leftAxisCommand = LeftAxisLine.DrawAxis("black", yMarks, fontAttributes, "east", yAxisLabel, "center", TikzHorizontalAlignment.Center, $"rotate=90, {fontAttributes}", 0 - yAxisLabelOffset, 0, 0, yAxisMarkOffset);
             b.AppendLine(leftAxisCommand);
-            string bottomAxisCommand = BottomAxisLine.DrawAxis("black", xMarks, fontAttributes, "north", xAxisLabel, "center", TikzHorizontalAlignment.Center, fontAttributes, 0, 0 - xAxisLabelOffset);
+            string bottomAxisCommand = BottomAxisLine.DrawAxis("black", xMarks, fontAttributes, "north", xAxisLabel, "center", TikzHorizontalAlignment.Center, fontAttributes, 0, 0 - xAxisLabelOffset, xAxisMarkOffset, 0);
             b.AppendLine(bottomAxisCommand);
             return b.ToString();
         }

@@ -38,7 +38,7 @@ namespace ACESimBase.Util.Tikz
 
         public static string DrawText(double x, double y, string text, string attributes = "black, very thin")
         {
-            return $"\\node[{attributes}] at ({x.ToSignificantFigures(3)}, {y.ToSignificantFigures(3)}) {{{text}}};";
+            return $"\\node[{attributes}] at ({x.ToSignificantFigures(5)}, {y.ToSignificantFigures(5)}) {{{text}}};";
         }
     }
 }

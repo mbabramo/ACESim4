@@ -22,6 +22,9 @@ namespace LitigCharts
             bool printIndividualLatexDiagrams = false; // this is the time consuming one
             bool doDeletion = printIndividualLatexDiagrams; // don't delete if we haven't done the diagrams yet
 
+
+            FeeShiftingDataProcessing.ExampleLatexDiagramsAggregatingReports();
+
             FeeShiftingDataProcessing.BuildMainFeeShiftingReport();
             if (printIndividualLatexDiagrams)
                 FeeShiftingDataProcessing.ProduceLatexDiagramsFromTexFiles(); // this code assumes that all data is in the ReportResults folder, so must do before organization
@@ -29,7 +32,6 @@ namespace LitigCharts
             FeeShiftingDataProcessing.ProduceLatexDiagramsAggregatingReports(); // now we produce diagrams that aggregate info from multiple reports
 
             ////FeeShiftingDataProcessing.BuildOffersReport(); // we're no longer generating the offers data in csv, since we're directly generating a Latex file with the heatmap
-            ////FeeShiftingDataProcessing.ExampleLatexDiagramsAggregatingReports();
         }
     }
 }

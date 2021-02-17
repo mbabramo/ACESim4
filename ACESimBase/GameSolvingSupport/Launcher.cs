@@ -289,6 +289,7 @@ namespace ACESim
                         if (AlwaysDoTaskID is int ID)
                             taskToDo.ID = ID;
                         TabbedText.WriteLineEvenIfDisabled($"Task to do: {taskToDo}");
+                        Console.Title = taskToDo.ToString();
                     }
                     return taskCoordinator;
                 }, SaveToAzureBlob);

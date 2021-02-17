@@ -37,7 +37,7 @@ namespace ACESimBase.Util.Tikz
 {TikzHelper.DrawText(x, y, label, labelAttributesWithComma + "anchor=" + anchor)}";
         }
 
-        public string DrawAxis(string attributes, List<(double proportion, string text)> axisMarks, string markTextAttributes, string anchor, string label, string labelAnchor, TikzHorizontalAlignment labelAlignment, string labelAttributes, double labelShiftX, double labelShiftY)
+        public string DrawAxis(string attributes, List<(double proportion, string text)> axisMarks, string markTextAttributes, string anchor, string label, string labelAnchor, TikzHorizontalAlignment labelAlignment, string labelAttributes, double labelShiftX, double labelShiftY, double axisMarkShiftX=0, double axisMarkShiftY=0)
         {
             StringBuilder b = new StringBuilder();
             if (label == null)
@@ -49,7 +49,7 @@ namespace ACESimBase.Util.Tikz
             if (axisMarks != null)
             {
                 double axisMarkHalfWidth = 0.05;
-                List<TikzPoint> points = axisMarks.Select(x => PointAlongLine(x.proportion)).ToList();
+                List<TikzPoint> points = axisMarks.Select(x => PointAlongLine(x.proportion).WithTranslation(axisMarkShiftX, axisMarkShiftY)).ToList();
                 for (int i = 0; i < axisMarks.Count; i++)
                 {
                     var point = points[i];
