@@ -998,7 +998,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 tabbedtextf("Equilibrium realization plan player 2:\n");
                 outrealplan(2, Lemke.solz, offset);
             }
-            tabbedtextf("......Equilibrium behavior strategies player 1, 2:\n");
+            tabbedtextf("Equilibrium behavior strategies player 1, 2:\n");
             outbehavstrat_moves(1, Lemke.solz, 0, outputRealizationPlan); 
             tabbedtextf("\n");
             outbehavstrat_moves(2, Lemke.solz, offset, true);  

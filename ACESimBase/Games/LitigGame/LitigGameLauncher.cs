@@ -779,7 +779,7 @@ namespace ACESim
             {
                 ("Costs Multiplier", "1"),
                 ("Fee Shifting Multiplier", "0"),
-                ("Risk Aversion", "Both Risk Neutral"),
+                ("Risk Aversion", "Risk Neutral"),
                 ("Fee Shifting Rule", "English"),
                 ("Relative Costs", "1"),
                 ("Noise Multiplier P", "1"),
@@ -847,9 +847,10 @@ namespace ACESim
 
             var varyingRiskAversion = new List<FeeShiftingArticleVariationInfo>()
             {
-                new FeeShiftingArticleVariationInfo("Both Risk Neutral", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Both Risk Neutral")),
-                new FeeShiftingArticleVariationInfo("Both Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Both Risk Averse")),
-                new FeeShiftingArticleVariationInfo("Very Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Very Risk Averse")),
+                new FeeShiftingArticleVariationInfo("Risk Neutral", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Risk Neutral")),
+                new FeeShiftingArticleVariationInfo("Mildly Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Mildly Risk Averse")),
+                new FeeShiftingArticleVariationInfo("Moderately Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Moderately Risk Averse")),
+                new FeeShiftingArticleVariationInfo("Highly Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Highly Risk Averse")),
             };
 
             var varyingRiskAversionAsymmetry = new List<FeeShiftingArticleVariationInfo>()
@@ -1062,21 +1063,27 @@ namespace ACESim
             g.VariableSettings["Noise Multiplier D"] = dNoiseMultiplier;
         });
 
-        List<Func<LitigGameOptions, LitigGameOptions>> CriticalRiskAversionTransformations(bool includeBaselineValue) => new List<Func<LitigGameOptions, LitigGameOptions>>() { GetAndTransform_RiskNeutral, GetAndTransform_RiskAverse }.Skip(includeBaselineValue ? 0 : 1).ToList();
+        List<Func<LitigGameOptions, LitigGameOptions>> CriticalRiskAversionTransformations(bool includeBaselineValue) => new List<Func<LitigGameOptions, LitigGameOptions>>() { GetAndTransform_RiskNeutral, GetAndTransform_ModeratelyRiskAverse }.Skip(includeBaselineValue ? 0 : 1).ToList();
 
-        List<Func<LitigGameOptions, LitigGameOptions>> AdditionalRiskAversionTransformations(bool includeBaselineValue) => new List<Func<LitigGameOptions, LitigGameOptions>>() { GetAndTransform_RiskNeutral, GetAndTransform_VeryRiskAverse, GetAndTransform_POnlyRiskAverse, GetAndTransform_DOnlyRiskAverse, GetAndTransform_PMoreRiskAverse, GetAndTransform_DMoreRiskAverse }.Skip(includeBaselineValue ? 0 : 1).ToList();
+        List<Func<LitigGameOptions, LitigGameOptions>> AdditionalRiskAversionTransformations(bool includeBaselineValue) => new List<Func<LitigGameOptions, LitigGameOptions>>() { GetAndTransform_RiskNeutral, GetAndTransform_MildlyRiskAverse, GetAndTransform_VeryRiskAverse, GetAndTransform_POnlyRiskAverse, GetAndTransform_DOnlyRiskAverse, GetAndTransform_PMoreRiskAverse, GetAndTransform_DMoreRiskAverse }.Skip(includeBaselineValue ? 0 : 1).ToList();
 
-        LitigGameOptions GetAndTransform_RiskAverse(LitigGameOptions options) => GetAndTransform(options, " Both Risk Averse", g =>
+        LitigGameOptions GetAndTransform_ModeratelyRiskAverse(LitigGameOptions options) => GetAndTransform(options, " Moderately Risk Averse", g =>
         {
             g.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.PInitialWealth, Alpha = 2, LinearTransformation = true };
             g.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.DInitialWealth, Alpha = 2, LinearTransformation = true };
-            g.VariableSettings["Risk Aversion"] = "Both Risk Averse";
+            g.VariableSettings["Risk Aversion"] = "Moderately Risk Averse";
         });
-        LitigGameOptions GetAndTransform_VeryRiskAverse(LitigGameOptions options) => GetAndTransform(options, " Very Risk Averse", g =>
+        LitigGameOptions GetAndTransform_MildlyRiskAverse(LitigGameOptions options) => GetAndTransform(options, " Mildly Risk Averse", g =>
+        {
+            g.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.PInitialWealth, Alpha = 1, LinearTransformation = true };
+            g.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.DInitialWealth, Alpha = 1, LinearTransformation = true };
+            g.VariableSettings["Risk Aversion"] = "Mildly Risk Averse";
+        });
+        LitigGameOptions GetAndTransform_VeryRiskAverse(LitigGameOptions options) => GetAndTransform(options, " Highly Risk Averse", g =>
         {
             g.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.PInitialWealth, Alpha = 4, LinearTransformation = true };
             g.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.DInitialWealth, Alpha = 4, LinearTransformation = true };
-            g.VariableSettings["Risk Aversion"] = "Very Risk Averse";
+            g.VariableSettings["Risk Aversion"] = "Highly Risk Averse";
         });
         LitigGameOptions GetAndTransform_PMoreRiskAverse(LitigGameOptions options) => GetAndTransform(options, " P More Risk Averse", g =>
         {
@@ -1095,7 +1102,7 @@ namespace ACESim
         {
             g.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = g.PInitialWealth };
             g.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = g.DInitialWealth };
-            g.VariableSettings["Risk Aversion"] = "Both Risk Neutral";
+            g.VariableSettings["Risk Aversion"] = "Risk Neutral";
         });
         LitigGameOptions GetAndTransform_POnlyRiskAverse(LitigGameOptions options) => GetAndTransform(options, " P Risk Averse", g =>
         {
