@@ -45,6 +45,11 @@ namespace ACESimDistributedSaturate
                 await Task.Delay(10_000);
                 try
                 {
+                    // TODO: It would be good if we could use memory-mapped files for task coordination, at least within a particular machine. Maybe this process
+                    // should use a real file (so that it can coordinate with another process on Azure), but on the machine, just memory-mapped files would be used.
+                    // But that creates the further complication that the tasks have to be allocated by this central process, rather than in a completely decentralized
+                    // way.
+
                     TaskCoordinator coordinator = (TaskCoordinator)AzureBlob.GetSerializedObjectFromFileOrAzure(Launcher.ReportFolder(), "results", masterReportName + " Coordinator", useAzure);
                     Console.WriteLine($"Proportion complete {coordinator.ProportionComplete} after {s.Elapsed}");
                     if (coordinator.Complete)
