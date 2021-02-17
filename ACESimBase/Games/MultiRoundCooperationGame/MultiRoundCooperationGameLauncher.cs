@@ -15,10 +15,10 @@ namespace ACESim
 
         public override List<GameOptions> GetOptionsSets()
         {
-            return new List<GameOptions>() { GetSingleGameOptions().WithName("CoopReport") };
+            return new List<GameOptions>() { GetDefaultSingleGameOptions().WithName("CoopReport") };
         }
 
-        public override GameOptions GetSingleGameOptions()
+        public override GameOptions GetDefaultSingleGameOptions()
         {
             return new GameOptions(); // no game-specific optinos
         }

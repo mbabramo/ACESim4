@@ -59,8 +59,6 @@ namespace ACESim
 
         public override GameDefinition GetGameDefinition() => new LitigGameDefinition();
 
-        public override GameOptions GetSingleGameOptions() => LitigGameOptionsGenerator.GetLitigGameOptions();
-
         private enum OptionSetChoice
         {
             JustOneOption,
@@ -80,6 +78,11 @@ namespace ACESim
             FeeShiftingArticle,
         }
         OptionSetChoice OptionSetChosen = OptionSetChoice.FeeShiftingArticle;  // <<-- Choose option set here
+
+        public override GameOptions GetDefaultSingleGameOptions()
+        {
+            return LitigGameOptionsGenerator.GetLitigGameOptions();
+        }
 
         public override List<GameOptions> GetOptionsSets()
         {
@@ -140,6 +143,14 @@ namespace ACESim
             if (simplify)
                 foreach (var optionSet in optionSets)
                     optionSet.Simplify();
+
+            if (LimitToTaskIDs != null)
+            {
+                List<GameOptions> replacements = new List<GameOptions>();
+                foreach (int idToKeep in LimitToTaskIDs)
+                    replacements.Add(optionSets[idToKeep]);
+                optionSets = replacements;
+            }
 
             var optionSetNames = optionSets.Select(x => x.Name).OrderBy(x => x).Distinct().ToList();
 

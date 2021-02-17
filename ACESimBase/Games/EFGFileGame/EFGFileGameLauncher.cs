@@ -14,7 +14,7 @@ namespace ACESimBase.Games.EFGFileGame
 
         public override GameDefinition GetGameDefinition() => new EFGFileGameDefinition();
 
-        public override GameOptions GetSingleGameOptions()
+        public override GameOptions GetDefaultSingleGameOptions()
         {
             return new EFGFileGameOptions() { EFGFileName = "C:\\Users\\Admin\\Documents\\GitHub\\ACESim4\\ACESimBase\\Games\\EFGFileGame\\pennies.efg" };
 
@@ -23,7 +23,7 @@ namespace ACESimBase.Games.EFGFileGame
 
         public override List<GameOptions> GetOptionsSets()
         {
-            List<GameOptions> optionSets = new List<GameOptions>() { GetSingleGameOptions().WithName("Report") };
+            List<GameOptions> optionSets = new List<GameOptions>() { GetDefaultSingleGameOptions().WithName("Report") };
 
             return optionSets;
         }

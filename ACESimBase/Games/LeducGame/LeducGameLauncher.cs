@@ -14,14 +14,14 @@ namespace ACESim
 
         public override GameDefinition GetGameDefinition() => new LeducGameDefinition();
 
-        public override GameOptions GetSingleGameOptions()
+        public override GameOptions GetDefaultSingleGameOptions()
         {
             return new LeducGameOptions() { OneBetSizeOnly = true };
         }
 
         public override List<GameOptions> GetOptionsSets()
         {
-            List<GameOptions> optionSets = new List<GameOptions>() { GetSingleGameOptions().WithName("Report") };
+            List<GameOptions> optionSets = new List<GameOptions>() { GetDefaultSingleGameOptions().WithName("Report") };
 
             
             return optionSets;

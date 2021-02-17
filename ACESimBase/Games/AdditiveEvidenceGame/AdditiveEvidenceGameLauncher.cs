@@ -14,7 +14,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public override GameDefinition GetGameDefinition() => new AdditiveEvidenceGameDefinition();
 
-        public override GameOptions GetSingleGameOptions() => AdditiveEvidenceGameOptionsGenerator.GetAdditiveEvidenceGameOptions();
+        public override GameOptions GetDefaultSingleGameOptions() => AdditiveEvidenceGameOptionsGenerator.GetAdditiveEvidenceGameOptions();
 
         private enum OptionSetChoice
         {

@@ -20,6 +20,9 @@ namespace ACESim
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.SequenceForm;  // use RegretMatching etc. for GeneralizedVanilla
 
+        public int? AlwaysDoTaskID = null;  // set this to a task to replay a particular task (either over and over again, using ACESimDistributed, or just once, using ACESimConsole).
+        public int[] LimitToTaskIDs = new int[] { 1100, 1102, 1119, 1150, 1152, 1169, 1200, 1201, 1202, 1204, 1205, 1206, 1207, 1208, 1209, 1210, 1212, 1213, 1214, 1215, 1216, 1217, 1219, 1220, 1221, 1222, 1223, 1224, 1225, 1226 }; // DEBUG // set this to non-null to repeat specific IDs (e.g., from failures) from a distributed action set.
+
         public const int VanillaIterations = 1000; // Note: Also used for GeneralizedVanilla, DeepCFR
         public const int VanillaReportEveryNIterations =  VanillaIterations; // EffectivelyNever
         public int? SuppressReportBeforeIteration = null;
@@ -64,7 +67,21 @@ namespace ACESim
 
         public abstract GameDefinition GetGameDefinition();
 
-        public abstract GameOptions GetSingleGameOptions();
+        public virtual GameOptions GetSingleGameOptions()
+        {
+            // Note -- if you want to play a single ID over and over again, scroll down to 
+            if (AlwaysDoTaskID is int ID)
+            {
+                List<GameOptions> gameOptions = GetOptionsSets();
+                var game = gameOptions.Skip(ID).First();
+                return game;
+            }
+            else
+                return GetDefaultSingleGameOptions();
+        }
+
+        public abstract GameOptions GetDefaultSingleGameOptions();
+
         public abstract List<GameOptions> GetOptionsSets();
 
         #endregion
@@ -81,7 +98,7 @@ namespace ACESim
             return result;
         }
 
-        public async Task<ReportCollection> Launch_Single()
+        public async virtual Task<ReportCollection> Launch_Single()
         {
             var options = GetSingleGameOptions();
             ReportCollection reportCollection = await ProcessSingleOptionSetLocally(options, "Report", "Single", true, false);
@@ -269,9 +286,8 @@ namespace ACESim
                     TabbedText.WriteLineEvenIfDisabled($"Percentage Complete {100.0 * taskCoordinator.ProportionComplete}% of {taskCoordinator.IndividualTaskCount}");
                     if (taskToDo != null)
                     {
-                        int? alwaysDoTaskID = null; // set this to a task to replay a particular task over and over
-                        if (alwaysDoTaskID != null)
-                            taskToDo.ID = (int)alwaysDoTaskID;
+                        if (AlwaysDoTaskID is int ID)
+                            taskToDo.ID = ID;
                         TabbedText.WriteLineEvenIfDisabled($"Task to do: {taskToDo}");
                     }
                     return taskCoordinator;
