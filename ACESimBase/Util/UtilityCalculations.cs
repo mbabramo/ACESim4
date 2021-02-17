@@ -92,22 +92,29 @@ namespace ACESim.Util
             return $"CARA Alpha={Alpha}";
         }
 
+        public CARARiskAverseUtilityCalculator()
+        {
+
+        }
+
         public double Alpha; // coefficient for constant absolute risk aversion, should be on the order of magnitude of 1 / laterWealth. As alpha goes up, risk aversion increases. WIth an initial wealth of 1,000,000 and a CARA of 30 / 1,000,000, one would be indifferent about whether to accept a coin flip that might pay $14,400 or cost $10,000.
 
-        // Instead of using negative numbers for utility, we can do a linear transformation so that the initial wealth and a specified lower wealth
-        // will produce utility equal to wealth. The shape of the utility curve will be the same.
+        // Instead of using negative numbers for utility, we can do a linear transformation. The shape of the utility curve will be the same.
         public bool LinearTransformation = false; 
-        public double LowerWealthProducingSameUtility = 9.0; 
+        public double WealthValue1 = 10.0, CorrespondingUtility1 = 1_000, WealthValue2 = 8, CorrespondingUtility2 = 999.9;
+        
 
         public override double GetSubjectiveUtilityForWealthLevel(double laterWealth)
         {
             if (LinearTransformation)
             {
-                var initValueFunc = ExpFunc(InitialWealth);
-                var lowerValueFunc = ExpFunc(LowerWealthProducingSameUtility);
-                var currentValueFunc = ExpFunc(laterWealth);
-                double proportion = (currentValueFunc - lowerValueFunc) / (initValueFunc - lowerValueFunc); // could be negative
-                double returnValue = LowerWealthProducingSameUtility + (InitialWealth - LowerWealthProducingSameUtility) * proportion;
+                var initialUtility1 = ExpFunc(WealthValue1);
+                var initialUtility2 = ExpFunc(WealthValue2);
+                var initialUtilityLaterWealth = ExpFunc(laterWealth);
+                double proportion = (initialUtilityLaterWealth - initialUtility2) / (initialUtility1 - initialUtility2); // could be negative
+                double returnValue = CorrespondingUtility1 + (CorrespondingUtility2 - CorrespondingUtility1) * proportion;
+                if (LinearTransformation && returnValue < 0)
+                    throw new Exception("Linear transformation should be set so that all utilities are positive");
                 return returnValue;
             }
             var value = ExpFunc(laterWealth);

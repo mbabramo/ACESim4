@@ -15,7 +15,7 @@ namespace ACESimDistributedSaturate
         async static Task Main(string[] args)
         {
             string currentPath = Process.GetCurrentProcess().MainModule.FileName;
-            bool allowDebugging = false;
+            bool allowDebugging = false; 
             if (!allowDebugging && currentPath.Contains("Debug"))
                 throw new Exception("Set to release mode before saturating.");
             string targetPath = currentPath.Replace("ACESimDistributedSaturate", "ACESimDistributed");
@@ -56,7 +56,7 @@ namespace ACESimDistributedSaturate
                 }
                 catch
                 {
-
+                    Console.WriteLine($"Task coordination file busy after {s.Elapsed}");
                 }
             }
         }

@@ -1805,6 +1805,8 @@ namespace ACESim
                 if (iteration == EvolutionSettings.TotalIterations)
                 {
                     Parallel.ForEach(InformationSets, informationSet => informationSet.RestoreBackup());
+                    if (LastBestResponseImprovement == null)
+                        throw new Exception("Best response not measured"); // possibly no equilibria found
                     Status.BestResponseImprovement = LastBestResponseImprovement.ToArray();
                     TabbedText.WriteLine($"Best iteration {BestIteration} best exploitability {BestExploitability}");
                 }
@@ -2303,6 +2305,8 @@ namespace ACESim
                 Status.BestResponseImprovement[playerIndex] = bestResponseResult - utilityResult;
                 Status.CustomResult = customResult; // will be same for each player
             }
+            if (EvolutionSettings.RecalculateScoreReachWhenCalculatingBestResponseImprovement)
+                Status.ScoreRange = Enumerable.Range(0, NumNonChancePlayers).Select(x => (FinalUtilitiesNodes.Select(y => y.Utilities[x]).Max() - FinalUtilitiesNodes.Select(y => y.Utilities[x]).Max())).ToArray();
             return results;
         }
 

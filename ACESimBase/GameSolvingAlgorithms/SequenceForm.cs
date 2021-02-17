@@ -51,7 +51,10 @@ namespace ACESimBase.GameSolvingAlgorithms
             InitializeInformationSets();
             //PrintGameTree(); 
             if (Approach == SequenceFormApproach.ECTA)
+            {
                 SetFinalUtilitiesToRoundedOffValues(); // because this may be an exact algorithm that uses integral pivoting, we have only a discrete number of utility points. This ensures that the utilities are at the precise discrete points that correspond to the integral values we will use.
+                EvolutionSettings.RecalculateScoreReachWhenCalculatingBestResponseImprovement = true; // since we're adjusting the utilities, we need to make sure that we recalculate the score range.
+            }
             //PrintGameTree();
             if (!EvolutionSettings.CreateInformationSetCharts) // otherwise this will already have been run
                 InformationSetNode.IdentifyNodeRelationships(InformationSets);
@@ -225,7 +228,15 @@ namespace ACESimBase.GameSolvingAlgorithms
             ecta.abortIfCycling = true;
             ecta.minRepetitionsForCycling = 3;
             T maybeExact = new T();
-            ecta.maxPivotSteps = maybeExact.IsExact ? 0 /* no limit */ : 1_000;
+            if (maybeExact.IsExact)
+            {
+                if (numPriorsToGet > 1) // we already have at least 1 equilibrium, so we shouldn't try too hard to get another
+                    ecta.maxPivotSteps = 1_000;
+                else
+                    ecta.maxPivotSteps = 0; // no limit for first equilibrium
+            }
+            else
+                ecta.maxPivotSteps = 500;
 
             bool outputAll = false;
             if (outputAll)

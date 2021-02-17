@@ -18,7 +18,7 @@ namespace LitigCharts
             var map = launcher.GetFeeShiftingArticleNameMap(); // name to find (avoids redundancies)
             string[] filtersOfRowsToGet = new string[] { "All" };
             string[] columnsToGet = new string[] { "PFiles", "DAnswers", "POffer1", "DOffer1", "Trial", "PWinPct", "PWealth", "DWealth", "PWelfare", "DWelfare", "TotExpense", "False+", "False-", "False+^2", "False-^2", "ValIfSettled", "PDoesntFile", "DDoesntAnswer", "SettlesBR1", "PAbandonsBR1", "DDefaultsBR1", "P Loses", "P Wins"};
-            string[] replacementNames = new string[] { "P Files", "D Answers", "P Offer", "D Offer", "Trial", "P Win Prob", "P Wealth", "D Wealth", "P Welfare", "D Welfare", "Expenditures", "False Positive Inaccuracy", "False Negative Inaccuracy", "False Positives Squared", "False Negatives Squared", "Value If Settled", "P Doesn't File", "D Doesn't Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins" };
+            string[] replacementNames = new string[] { "P Files", "D Answers", "P Offer", "D Offer", "Trial", "P Win Probability", "P Wealth", "D Wealth", "P Welfare", "D Welfare", "Expenditures", "False Positive Inaccuracy", "False Negative Inaccuracy", "False Positives Squared", "False Negatives Squared", "Value If Settled", "P Doesn't File", "D Doesn't Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins" };
             string filePrefix = new LitigGameLauncher().MasterReportNameForDistributedProcessing;
             string fileSuffix = "Corr";
             string path = @"C:\Users\Admin\Documents\GitHub\ACESim4\ReportResults";

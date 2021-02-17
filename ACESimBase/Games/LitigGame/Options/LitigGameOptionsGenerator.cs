@@ -394,10 +394,9 @@ namespace ACESim
             options.IncludeSignalsReport = false;
             options.IncludeCourtSuccessReport = false;
 
-            // DEBUG
-            options.NumOffers = 2;
-            options.NumLiabilityStrengthPoints = 2;
-            options.NumLiabilitySignals = 2;
+            options.NumOffers = 10;
+            options.NumLiabilityStrengthPoints = 5;
+            options.NumLiabilitySignals = 5;
 
             options.NumDamagesSignals = 1;
             options.NumDamagesStrengthPoints = 1;

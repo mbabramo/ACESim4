@@ -13,7 +13,7 @@ namespace ACESim
 {
     public class LitigGameLauncher : Launcher
     {
-        public override string MasterReportNameForDistributedProcessing => "FS024"; 
+        public override string MasterReportNameForDistributedProcessing => "FS025"; 
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
 
@@ -603,8 +603,8 @@ namespace ACESim
             const double veryRiskAverseAlpha = 4.0;
             if (riskAversion == RiskAversionMode.RiskAverse)
             {
-                o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = somewhatRiskAverseAlpha, LinearTransformation = true, LowerWealthProducingSameUtility = o.PInitialWealth - 1.0 };
-                o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = somewhatRiskAverseAlpha, LinearTransformation = true, LowerWealthProducingSameUtility = o.PInitialWealth - 1.0 };
+                o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = somewhatRiskAverseAlpha, LinearTransformation = true };
+                o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = somewhatRiskAverseAlpha, LinearTransformation = true };
                 nameRevised += " both risk averse";
             }
             else if (riskAversion == RiskAversionMode.RiskNeutral)
@@ -615,32 +615,32 @@ namespace ACESim
             }
             else if (riskAversion == RiskAversionMode.POnlyRiskAverse)
             {
-                o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = somewhatRiskAverseAlpha, LinearTransformation = true, LowerWealthProducingSameUtility = o.PInitialWealth - 1.0 };
+                o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = somewhatRiskAverseAlpha, LinearTransformation = true };
                 o.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = o.DInitialWealth };
                 nameRevised += " P risk averse";
             }
             else if (riskAversion == RiskAversionMode.DOnlyRiskAverse)
             {
                 o.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = o.PInitialWealth };
-                o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = somewhatRiskAverseAlpha, LinearTransformation = true, LowerWealthProducingSameUtility = o.PInitialWealth - 1.0 };
+                o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = somewhatRiskAverseAlpha, LinearTransformation = true };
                 nameRevised += " D risk averse";
             }
             else if (riskAversion == RiskAversionMode.VeryRiskAverse)
             {
-                o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = veryRiskAverseAlpha, LinearTransformation = true, LowerWealthProducingSameUtility = o.PInitialWealth - 1.0 };
-                o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = veryRiskAverseAlpha, LinearTransformation = true, LowerWealthProducingSameUtility = o.PInitialWealth - 1.0 };
+                o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = veryRiskAverseAlpha, LinearTransformation = true };
+                o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = veryRiskAverseAlpha, LinearTransformation = true };
                 nameRevised += " both very risk averse";
             }
             else if (riskAversion == RiskAversionMode.PMoreRiskAverse)
             {
-                o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = veryRiskAverseAlpha, LinearTransformation = true, LowerWealthProducingSameUtility = o.PInitialWealth - 1.0 };
-                o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = somewhatRiskAverseAlpha, LinearTransformation = true, LowerWealthProducingSameUtility = o.PInitialWealth - 1.0 };
+                o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = veryRiskAverseAlpha, LinearTransformation = true };
+                o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = somewhatRiskAverseAlpha, LinearTransformation = true };
                 nameRevised += " P more risk averse";
             }
             else if (riskAversion == RiskAversionMode.DMoreRiskAverse)
             {
-                o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = somewhatRiskAverseAlpha, LinearTransformation = true, LowerWealthProducingSameUtility = o.PInitialWealth - 1.0 };
-                o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = veryRiskAverseAlpha, LinearTransformation = true, LowerWealthProducingSameUtility = o.PInitialWealth - 1.0 };
+                o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = somewhatRiskAverseAlpha, LinearTransformation = true };
+                o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = veryRiskAverseAlpha, LinearTransformation = true };
                 nameRevised += " D more risk averse";
             }
             o.Name = nameRevised;
@@ -676,14 +676,8 @@ namespace ACESim
                     var lastIndex = runAsName.LastIndexOf(' ');
                     runAsName = runAsName.Substring(0, lastIndex);
                 }
-                var DEBUG3 = withoutRedundancies.Where(x => x.Name.Contains("Abandonable False")).ToList();
-                if (gameOptions.Name.StartsWith("FSA Costs Multiplier 4 Fee Shifting Multiplier 2 Risk Neutral"))
-                {
-                    var DEBUG2 = 0;
-                }
                 result[gameOptions.Name] = runAsName;
             }
-            var DEBUG = result.Select(x => x.Value).Distinct().OrderBy(x => x).ToList();
             return result;
         }
 
@@ -1074,26 +1068,26 @@ namespace ACESim
 
         LitigGameOptions GetAndTransform_RiskAverse(LitigGameOptions options) => GetAndTransform(options, " Both Risk Averse", g =>
         {
-            g.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.PInitialWealth, Alpha = 2 };
-            g.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.DInitialWealth, Alpha = 2 };
+            g.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.PInitialWealth, Alpha = 2, LinearTransformation = true };
+            g.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.DInitialWealth, Alpha = 2, LinearTransformation = true };
             g.VariableSettings["Risk Aversion"] = "Both Risk Averse";
         });
         LitigGameOptions GetAndTransform_VeryRiskAverse(LitigGameOptions options) => GetAndTransform(options, " Very Risk Averse", g =>
         {
-            g.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.PInitialWealth, Alpha = 4 };
-            g.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.DInitialWealth, Alpha = 4 };
+            g.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.PInitialWealth, Alpha = 4, LinearTransformation = true };
+            g.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.DInitialWealth, Alpha = 4, LinearTransformation = true };
             g.VariableSettings["Risk Aversion"] = "Very Risk Averse";
         });
         LitigGameOptions GetAndTransform_PMoreRiskAverse(LitigGameOptions options) => GetAndTransform(options, " P More Risk Averse", g =>
         {
-            g.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.PInitialWealth, Alpha = 4 };
-            g.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.DInitialWealth, Alpha = 2 };
+            g.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.PInitialWealth, Alpha = 4, LinearTransformation = true };
+            g.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.DInitialWealth, Alpha = 2, LinearTransformation = true };
             g.VariableSettings["Risk Aversion"] = "P More Risk Averse";
         });
         LitigGameOptions GetAndTransform_DMoreRiskAverse(LitigGameOptions options) => GetAndTransform(options, " D More Risk Averse", g =>
         {
-            g.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.PInitialWealth, Alpha = 2 };
-            g.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.DInitialWealth, Alpha = 4 };
+            g.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.PInitialWealth, Alpha = 2, LinearTransformation = true };
+            g.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.DInitialWealth, Alpha = 4, LinearTransformation = true };
             g.VariableSettings["Risk Aversion"] = "D More Risk Averse";
         });
 
@@ -1105,14 +1099,14 @@ namespace ACESim
         });
         LitigGameOptions GetAndTransform_POnlyRiskAverse(LitigGameOptions options) => GetAndTransform(options, " P Risk Averse", g =>
         {
-            g.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.PInitialWealth, Alpha = 2 };
+            g.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.PInitialWealth, Alpha = 2, LinearTransformation = true };
             g.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = g.DInitialWealth };
             g.VariableSettings["Risk Aversion"] = "P Risk Averse";
         });
         LitigGameOptions GetAndTransform_DOnlyRiskAverse(LitigGameOptions options) => GetAndTransform(options, " D Risk Averse", g =>
         {
             g.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = g.PInitialWealth };
-            g.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.DInitialWealth, Alpha = 2 };
+            g.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.DInitialWealth, Alpha = 2, LinearTransformation = true };
             g.VariableSettings["Risk Aversion"] = "D Risk Averse";
         });
         List<Func<LitigGameOptions, LitigGameOptions>> AllowAbandonAndDefaultsTransformations(bool includeBaselineValue)
