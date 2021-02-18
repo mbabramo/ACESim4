@@ -35,7 +35,8 @@ namespace ACESim
                 if (metaFilterSatisfied)
                 {
                     double[,] results = new double[rowFiltersCount, columnItemsCount];
-                    Parallel.For(0, rowFiltersCount, rowFilterIndex =>
+                    for (int rowFilterIndex = 0; rowFilterIndex < rowFiltersCount; rowFilterIndex++) // DEBUG
+                    // DEBUGParallel.For(0, rowFiltersCount, rowFilterIndex =>
                     {
                         SimpleReportFilter rowFilter = Definition.RowFilters[rowFilterIndex];
                         bool rowFilterSatisfied = rowFilter.IsInFilter(completedGame);
@@ -65,7 +66,7 @@ namespace ACESim
                             }
                             colItemIndex++;
                         }
-                    });
+                    } // DEBUG );
                 }
                 numProcessed += numPerMetaFilter;
             }
