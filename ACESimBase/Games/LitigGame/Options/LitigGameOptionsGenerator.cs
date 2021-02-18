@@ -394,7 +394,7 @@ namespace ACESim
             options.IncludeSignalsReport = false;
             options.IncludeCourtSuccessReport = false;
 
-            bool simplestCase = true; // DEBUG
+            bool simplestCase = false;
             if (simplestCase)
             {
                 options.NumOffers = 2;

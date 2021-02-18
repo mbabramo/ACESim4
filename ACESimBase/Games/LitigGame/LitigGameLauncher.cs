@@ -13,7 +13,7 @@ namespace ACESim
 {
     public class LitigGameLauncher : Launcher
     {
-        public override string MasterReportNameForDistributedProcessing => "FS026"; 
+        public override string MasterReportNameForDistributedProcessing => "FS027"; 
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
 
@@ -829,15 +829,15 @@ namespace ACESim
             {
                 // where liability is uncertain:
                 new FeeShiftingArticleVariationInfo("English", DefaultNonCriticalValues()),
-                new FeeShiftingArticleVariationInfo("Margin of Victory", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "MarginOfVictory")),
+                new FeeShiftingArticleVariationInfo("Margin of Victory", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "Margin of Victory")),
             };
 
             var varyingFeeShiftingRule_DamagesUncertain = new List<FeeShiftingArticleVariationInfo>()
             {
                 // where liability is uncertain:
                 new FeeShiftingArticleVariationInfo("English", DefaultNonCriticalValues().WithReplacement("Issue", "Damages")),
-                new FeeShiftingArticleVariationInfo("Rule 68", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "Rule68").WithReplacement("Issue", "Damages")),
-                new FeeShiftingArticleVariationInfo("English 68", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "Rule68English").WithReplacement("Issue", "Damages")),
+                new FeeShiftingArticleVariationInfo("Rule 68", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "Rule 68").WithReplacement("Issue", "Damages")),
+                new FeeShiftingArticleVariationInfo("Reverse 68", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "Reverse 68").WithReplacement("Issue", "Damages")),
             };
 
             var varyingNoiseMultipliersBoth = new List<FeeShiftingArticleVariationInfo>()
@@ -927,7 +927,7 @@ namespace ACESim
                 new FeeShiftingArticleVariationSetInfo("Proportion of Cases Where D Is Truly Liable", varyingProbabilityTrulyLiable),
                 new FeeShiftingArticleVariationSetInfo("Case Strength Noise", varyingNoiseToProduceCaseStrength),
                 new FeeShiftingArticleVariationSetInfo("Issue", varyingIssue),
-                new FeeShiftingArticleVariationSetInfo("Timing of Costs", varyingTimingOfCosts),
+                new FeeShiftingArticleVariationSetInfo("Proportion of Costs at Beginning", varyingTimingOfCosts)
             };
         }
 
@@ -978,7 +978,15 @@ namespace ACESim
                     g.LoserPays = true;
                     break;
             }
-            g.VariableSettings["Fee Shifting Rule"] = mode.ToString();
+            g.VariableSettings["Fee Shifting Rule"] = mode switch
+            {
+                FeeShiftingRule.English_LiabilityIssue => "English",
+                FeeShiftingRule.MarginOfVictory_LiabilityIssue => "Margin of Victory",
+                FeeShiftingRule.English_DamagesIssue => "English",
+                FeeShiftingRule.Rule68_DamagesIssue => "Rule 68",
+                FeeShiftingRule.Rule68English_DamagesIssue => "Reverse 68",
+                _ => throw new NotImplementedException()
+            };
             g.VariableSettings["Issue"] = mode switch
             {
                 FeeShiftingRule.English_LiabilityIssue => "Liability",
