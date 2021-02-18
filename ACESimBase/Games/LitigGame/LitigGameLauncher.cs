@@ -13,7 +13,7 @@ namespace ACESim
 {
     public class LitigGameLauncher : Launcher
     {
-        public override string MasterReportNameForDistributedProcessing => "FS025"; 
+        public override string MasterReportNameForDistributedProcessing => "FS026"; 
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
 
@@ -26,7 +26,7 @@ namespace ACESim
 
         // Fee shifting article
         public bool IncludeNonCriticalTransformations = true; 
-        public FeeShiftingRule[] FeeShiftingModes = new[] { FeeShiftingRule.English, FeeShiftingRule.Rule68, FeeShiftingRule.Rule68English, FeeShiftingRule.MarginOfVictory };
+        public FeeShiftingRule[] FeeShiftingModes = new[] { FeeShiftingRule.English_LiabilityIssue, FeeShiftingRule.MarginOfVictory_LiabilityIssue, FeeShiftingRule.Rule68_DamagesIssue, FeeShiftingRule.Rule68English_DamagesIssue };
         public double[] CriticalCostsMultipliers = new double[] { 1.0, 0.25, 0.5, 2.0, 4.0 };
         public double[] AdditionalCostsMultipliers = new double[] { 1.0 }; //, 0.125, 8.0 };
         public (double pNoiseMultiplier, double dNoiseMultiplier)[] NoiseMultipliers = new (double pNoiseMultiplier, double dNoiseMultiplier)[] { (1.0, 1.0), (0.50, 0.50), (0.5, 2.0), (2.0, 2.0), (2.0, 0.5), (0.25, 0.25), (4.0, 4.0) };
@@ -39,11 +39,11 @@ namespace ACESim
 
         public enum FeeShiftingRule
         {
-            American,
-            English,
-            Rule68,
-            Rule68English,
-            MarginOfVictory
+            English_LiabilityIssue,
+            MarginOfVictory_LiabilityIssue,
+            English_DamagesIssue,
+            Rule68_DamagesIssue,
+            Rule68English_DamagesIssue,
         }
 
         public enum RiskAversionMode
@@ -825,12 +825,19 @@ namespace ACESim
 
         public List<FeeShiftingArticleVariationSetInfo> GetFeeShiftingArticleVariationInfoList()
         {
-            var varyingFeeShiftingRule = new List<FeeShiftingArticleVariationInfo>()
+            var varyingFeeShiftingRule_LiabilityUncertain = new List<FeeShiftingArticleVariationInfo>()
             {
+                // where liability is uncertain:
                 new FeeShiftingArticleVariationInfo("English", DefaultNonCriticalValues()),
-                new FeeShiftingArticleVariationInfo("Rule 68", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "Rule68")),
-                new FeeShiftingArticleVariationInfo("English 68", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "Rule68English")),
-                new FeeShiftingArticleVariationInfo("Victory Margin", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "MarginOfVictory80")),
+                new FeeShiftingArticleVariationInfo("Margin of Victory", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "MarginOfVictory")),
+            };
+
+            var varyingFeeShiftingRule_DamagesUncertain = new List<FeeShiftingArticleVariationInfo>()
+            {
+                // where liability is uncertain:
+                new FeeShiftingArticleVariationInfo("English", DefaultNonCriticalValues().WithReplacement("Issue", "Damages")),
+                new FeeShiftingArticleVariationInfo("Rule 68", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "Rule68").WithReplacement("Issue", "Damages")),
+                new FeeShiftingArticleVariationInfo("English 68", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "Rule68English").WithReplacement("Issue", "Damages")),
             };
 
             var varyingNoiseMultipliersBoth = new List<FeeShiftingArticleVariationInfo>()
@@ -859,9 +866,9 @@ namespace ACESim
             var varyingRiskAversion = new List<FeeShiftingArticleVariationInfo>()
             {
                 new FeeShiftingArticleVariationInfo("Risk Neutral", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Risk Neutral")),
-                new FeeShiftingArticleVariationInfo("Mildly Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Mildly Risk Averse")),
-                new FeeShiftingArticleVariationInfo("Moderately Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Moderately Risk Averse")),
-                new FeeShiftingArticleVariationInfo("Highly Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Highly Risk Averse")),
+                new FeeShiftingArticleVariationInfo("Mildly Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Mildly Risk Averse")),
+                new FeeShiftingArticleVariationInfo("Moderately Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Moderately Risk Averse")),
+                new FeeShiftingArticleVariationInfo("Highly Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Highly Risk Averse")),
             };
 
             var varyingRiskAversionAsymmetry = new List<FeeShiftingArticleVariationInfo>()
@@ -880,9 +887,9 @@ namespace ACESim
 
             var varyingProbabilityTrulyLiable = new List<FeeShiftingArticleVariationInfo>()
             {
-                new FeeShiftingArticleVariationInfo("10\\%", DefaultNonCriticalValues().WithReplacement("Probability Truly Liable", "0.1")),
-                new FeeShiftingArticleVariationInfo("50\\%", DefaultNonCriticalValues().WithReplacement("Probability Truly Liable", "0.5")),
-                new FeeShiftingArticleVariationInfo("90\\%", DefaultNonCriticalValues().WithReplacement("Probability Truly Liable", "0.9")),
+                new FeeShiftingArticleVariationInfo("0.1", DefaultNonCriticalValues().WithReplacement("Probability Truly Liable", "0.1")),
+                new FeeShiftingArticleVariationInfo("0.5", DefaultNonCriticalValues().WithReplacement("Probability Truly Liable", "0.5")),
+                new FeeShiftingArticleVariationInfo("0.9", DefaultNonCriticalValues().WithReplacement("Probability Truly Liable", "0.9")),
             };
 
             var varyingNoiseToProduceCaseStrength = new List<FeeShiftingArticleVariationInfo>()
@@ -901,24 +908,23 @@ namespace ACESim
             var varyingTimingOfCosts = new List<FeeShiftingArticleVariationInfo>()
             {
                 new FeeShiftingArticleVariationInfo("0", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "0")),
-                new FeeShiftingArticleVariationInfo("0.1", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "0.1")),
                 new FeeShiftingArticleVariationInfo("0.25", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "0.25")),
                 new FeeShiftingArticleVariationInfo("0.5", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "0.5")),
                 new FeeShiftingArticleVariationInfo("0.75", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "0.75")),
-                new FeeShiftingArticleVariationInfo("0.95", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "0.9")),
                 new FeeShiftingArticleVariationInfo("1", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "1")),
             };
 
             return new List<FeeShiftingArticleVariationSetInfo>()
             {
-                new FeeShiftingArticleVariationSetInfo("Fee Shifting Rule", varyingFeeShiftingRule),
+                new FeeShiftingArticleVariationSetInfo("Fee Shifting Rule (Liability Issue)", varyingFeeShiftingRule_LiabilityUncertain),
+                new FeeShiftingArticleVariationSetInfo("Fee Shifting Rule (Damages Issue)", varyingFeeShiftingRule_DamagesUncertain),
                 new FeeShiftingArticleVariationSetInfo("Noise Multiplier", varyingNoiseMultipliersBoth),
                 new FeeShiftingArticleVariationSetInfo("Information Asymmetry", varyingNoiseMultipliersAsymmetric),
                 new FeeShiftingArticleVariationSetInfo("Relative Costs", varyingRelativeCosts),
                 new FeeShiftingArticleVariationSetInfo("Risk Aversion", varyingRiskAversion),
                 new FeeShiftingArticleVariationSetInfo("Risk Aversion Asymmetry", varyingRiskAversionAsymmetry),
                 new FeeShiftingArticleVariationSetInfo("Quitting Rules", varyingQuitRules),
-                new FeeShiftingArticleVariationSetInfo("Proportion of Truly Liable Cases", varyingProbabilityTrulyLiable),
+                new FeeShiftingArticleVariationSetInfo("Proportion of Cases Where D Is Truly Liable", varyingProbabilityTrulyLiable),
                 new FeeShiftingArticleVariationSetInfo("Case Strength Noise", varyingNoiseToProduceCaseStrength),
                 new FeeShiftingArticleVariationSetInfo("Issue", varyingIssue),
                 new FeeShiftingArticleVariationSetInfo("Timing of Costs", varyingTimingOfCosts),
@@ -935,13 +941,13 @@ namespace ACESim
             return results;
         }
 
-        LitigGameOptions GetAndTransform_FeeShiftingMode(LitigGameOptions options, FeeShiftingRule mode) => GetAndTransform(options, " fee rule " + mode switch
+        LitigGameOptions GetAndTransform_FeeShiftingMode(LitigGameOptions options, FeeShiftingRule mode) => GetAndTransform(options, " Fee Rule " + mode switch
         {
-            FeeShiftingRule.American => "American",
-            FeeShiftingRule.English => "English",
-            FeeShiftingRule.Rule68 => "Rule 68",
-            FeeShiftingRule.Rule68English => "Reverse 68",
-            FeeShiftingRule.MarginOfVictory => "Margin",
+            FeeShiftingRule.English_LiabilityIssue => "English",
+            FeeShiftingRule.MarginOfVictory_LiabilityIssue => "Margin",
+            FeeShiftingRule.English_DamagesIssue => "English Damages Dispute",
+            FeeShiftingRule.Rule68_DamagesIssue => "Rule 68 Damages Dispute",
+            FeeShiftingRule.Rule68English_DamagesIssue => "Reverse 68 Damages Dispute",
             _ => throw new NotImplementedException()
         }
         , g =>
@@ -949,27 +955,39 @@ namespace ACESim
             // This transformation happens after Multiplier, which will set LoserPays = true
             switch (mode)
             {
-                case FeeShiftingRule.American:
-                    g.LoserPays = false;
-                    break;
-                case FeeShiftingRule.English:
+                case FeeShiftingRule.English_LiabilityIssue:
                     g.LoserPays = true;
                     break;
-                case FeeShiftingRule.Rule68:
-                    g.Rule68 = true;
-                    g.LoserPays = false; // Note that most of our simulations use English rule, even where testing for American rule (i.e., by doing English rule with multiple of 0). So, this will be an exception, and we set loser pays to false. But when Rule 68 is triggered, there will be fee shifting, according to the LoserPaysMultiple, so that variable matters. In other words, with Rule 68 American, loser pays is set to false, but the loser pays multiple still matters, because fee-shifting is still possible.
-                    break;
-                case FeeShiftingRule.Rule68English:
-                    g.Rule68 = true;
-                    g.LoserPays = true;
-                    break;
-                case FeeShiftingRule.MarginOfVictory:
+                case FeeShiftingRule.MarginOfVictory_LiabilityIssue:
                     g.LoserPays = true;
                     g.LoserPaysOnlyLargeMarginOfVictory = true;
                     g.LoserPaysMarginOfVictoryThreshold = 0.8;
                     break;
+                case FeeShiftingRule.English_DamagesIssue:
+                    ChangeToDamagesIssue(g);
+                    g.LoserPays = true;
+                    break;
+                case FeeShiftingRule.Rule68_DamagesIssue:
+                    ChangeToDamagesIssue(g);
+                    g.Rule68 = true;
+                    g.LoserPays = false; // Note that most of our simulations use English rule, even where testing for American rule (i.e., by doing English rule with multiple of 0). So, this will be an exception, and we set loser pays to false. But when Rule 68 is triggered, there will be fee shifting, according to the LoserPaysMultiple, so that variable matters. In other words, with Rule 68 American, loser pays is set to false, but the loser pays multiple still matters, because fee-shifting is still possible.
+                    break;
+                case FeeShiftingRule.Rule68English_DamagesIssue:
+                    ChangeToDamagesIssue(g);
+                    g.Rule68 = true;
+                    g.LoserPays = true;
+                    break;
             }
             g.VariableSettings["Fee Shifting Rule"] = mode.ToString();
+            g.VariableSettings["Issue"] = mode switch
+            {
+                FeeShiftingRule.English_LiabilityIssue => "Liability",
+                FeeShiftingRule.MarginOfVictory_LiabilityIssue => "Liability",
+                FeeShiftingRule.English_DamagesIssue => "Damages",
+                FeeShiftingRule.Rule68_DamagesIssue => "Damages",
+                FeeShiftingRule.Rule68English_DamagesIssue => "Damages",
+                _ => throw new NotImplementedException()
+            };
         });
 
         List<Func<LitigGameOptions, LitigGameOptions>> CriticalCostsMultiplierTransformations(bool includeBaselineValue)
@@ -1180,14 +1198,19 @@ namespace ACESim
         {
             if (!liabilityIsUncertain)
             {
-                g.NumDamagesStrengthPoints = g.NumLiabilityStrengthPoints;
-                g.NumDamagesSignals = g.NumLiabilitySignals;
-                g.NumLiabilityStrengthPoints = 1;
-                g.NumLiabilitySignals = 1;
+                ChangeToDamagesIssue(g);
             }
 
             g.VariableSettings["Issue"] = liabilityIsUncertain ? "Liability" : "Damages";
         });
+
+        private static void ChangeToDamagesIssue(LitigGameOptions g)
+        {
+            g.NumDamagesStrengthPoints = g.NumLiabilityStrengthPoints;
+            g.NumDamagesSignals = g.NumLiabilitySignals;
+            g.NumLiabilityStrengthPoints = 1;
+            g.NumLiabilitySignals = 1;
+        }
 
         #endregion
     }

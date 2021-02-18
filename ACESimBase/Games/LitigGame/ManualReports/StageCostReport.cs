@@ -30,8 +30,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             };
             List<(Func<LitigGameProgress, double> assessmentMeasure, string assessmentName)> assessments = new List<(Func<LitigGameProgress, double> assessmentMeasure, string assessmentName)>()
             {
-                (prog => prog.FalsePositiveExpenditures, "False Positives"),
                 (prog => prog.FalseNegativeShortfall, "False Negatives"),
+                (prog => prog.FalsePositiveExpenditures, "False Positives"),
                 (prog => prog.TotalExpensesIncurred, "Total Expenditures"),
             };
             StringBuilder csvStringBuilder = new StringBuilder();
@@ -106,7 +106,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 var result = StageInStageCostDiagramEncompassingRectangles(panelIndex, subpanelIndex).Select((item, index) =>
                 {
                     double maxMagnitude = assessmentInfo[panelIndex].maxMagnitude;
-                    return item.ReduceHorizontally(maxMagnitude == 0 ? 0 : stage.regionComponents[index].magnitude / maxMagnitude, TikzHorizontalAlignment.Left) with { rectangleAttributes = stage.regionComponents[index].specialShading ? "pattern color=red, pattern=north east lines" : "pattern color=blue, pattern=north west lines" };
+                    return item.ReduceHorizontally(maxMagnitude == 0 ? 0 : stage.regionComponents[index].magnitude / maxMagnitude, TikzHorizontalAlignment.Left) with { rectangleAttributes = stage.regionComponents[index].specialShading ? "pattern color=blue, pattern=north east lines" : "pattern color=orange, pattern=north west lines" };
                 }).ToList();
                 return result;
             }
@@ -124,9 +124,9 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 return $@"\draw {MidpointOfHorizontalAxesString} node[draw=none] (baseCoordinate) {{}};
 \begin{{scope}}[align=center]
         \matrix[scale=0.5, draw=black, below=0.5cm of baseCoordinate, nodes={{draw}}, column sep=0.1cm]{{
-            \node[rectangle, draw, minimum width=0.5cm, minimum height=0.5cm, pattern=north east lines, pattern color=red] {{}}; &
+            \node[rectangle, draw, minimum width=0.5cm, minimum height=0.5cm, pattern=north east lines, pattern color=blue] {{}}; &
             \node[draw=none, font=\small] (B) {{Truly Liable Cases}}; &
-            \node[rectangle, draw, minimum width=0.5cm, minimum height=0.5cm, pattern=north west lines, pattern color=blue] {{}}; &
+            \node[rectangle, draw, minimum width=0.5cm, minimum height=0.5cm, pattern=north west lines, pattern color=orange] {{}}; &
             \node[draw=none, font=\small] (B) {{Truly Not Liable Cases}}; \\
             }};
 \end{{scope}}";

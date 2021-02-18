@@ -21,6 +21,7 @@ namespace ACESimBase.Util.Tikz
         public double xAxisLabelOffsetMicro { get; init; } = 0.7;
         public double yAxisSpaceMicro { get; init; } = 1.1;
         public double yAxisLabelOffsetMicro { get; init; } = 0.9;
+        public bool isStacked { get; init; } = false;
 
         private bool Initialized;
         private TikzAxisSet outerAxisSet;
@@ -30,20 +31,25 @@ namespace ACESimBase.Util.Tikz
         private TikzRectangle mainRectangle => new TikzRectangle(0, 0, width, height);
         TikzLine bottomAxisLine => outerAxisSet.BottomAxisLine;
         TikzRectangle bottomAxisAsRectangle => outerAxisSet.BottomAxisLine.ToRectangle();
-        public string MidpointOfBottomString => $"({(bottomAxisLine.start.x + bottomAxisLine.end.x) / 2.0},{mainRectangle.bottom})";
+        public string MidpointOfBottomString => $"({(bottomAxisLine.start.x + bottomAxisLine.end.x) / 2.0 + xAxisMarkOffset},{mainRectangle.bottom})";
+        private double xAxisMarkOffset, yAxisMarkOffset;
 
         public void Initialize()
         {
             if (Initialized)
                 return;
-            outerAxisSet = new TikzAxisSet(majorXValueNames, majorYValueNames, majorXAxisLabel, majorYAxisLabel, mainRectangle, fontScale:2, xAxisSpace:1.5, yAxisSpace: 1.7, xAxisLabelOffset:0.9, yAxisLabelOffset:1.1, boxBordersAttributes: "draw=none");
+            outerAxisSet = new TikzAxisSet(majorXValueNames, majorYValueNames, majorXAxisLabel, majorYAxisLabel, mainRectangle, fontScale:2, xAxisSpace:1.5, yAxisSpace: 1.7, xAxisLabelOffsetDown:0.9, yAxisLabelOffsetLeft:1.1, boxBordersAttributes: "draw=none");
             var rectangles = outerAxisSet.IndividualCells;
-            innerAxisSets = rectangles.Select((row, rowIndex) => row.Select((column, columnIndex) => new TikzAxisSet(minorXValueNames, minorYValueNames, minorXAxisLabel, minorYAxisLabel, rectangles[rowIndex][columnIndex], lineGraphData: lineGraphData[rowIndex][columnIndex], fontScale: 0.7, xAxisSpace: xAxisSpaceMicro, yAxisSpace: yAxisSpaceMicro, xAxisLabelOffset: xAxisLabelOffsetMicro, yAxisLabelOffset: yAxisLabelOffsetMicro, horizontalLinesAttribute: "gray!30", verticalLinesAttribute: "gray!30", yAxisUseEndpoints: true)).ToList()).ToList();
+            innerAxisSets = rectangles.Select((row, rowIndex) => row.Select((column, columnIndex) => new TikzAxisSet(minorXValueNames, minorYValueNames, minorXAxisLabel, minorYAxisLabel, rectangles[rowIndex][columnIndex], lineGraphData: lineGraphData[rowIndex][columnIndex], fontScale: 0.7, xAxisSpace: xAxisSpaceMicro, yAxisSpace: yAxisSpaceMicro, xAxisLabelOffsetDown: xAxisLabelOffsetMicro, xAxisLabelOffsetRight:0, yAxisLabelOffsetLeft: yAxisLabelOffsetMicro, yAxisLabelOffsetUp:0, horizontalLinesAttribute: "gray!30", verticalLinesAttribute: "gray!30", yAxisUseEndpoints: true, isStacked: isStacked)).ToList()).ToList();
             var firstInnerAxisSet = innerAxisSets.FirstOrDefault()?.FirstOrDefault();
+            xAxisMarkOffset = firstInnerAxisSet?.LeftAxisWidth * 0.5 ?? 0;
+            yAxisMarkOffset = firstInnerAxisSet?.BottomAxisHeight * 0.5 ?? 0;
             outerAxisSet = outerAxisSet with
-            { // Our macro axis marks will be centered on the enter inner axis sets, but it looks better if they're centered relative to the content (excluding axes) of those sets.
-                xAxisMarkOffset = firstInnerAxisSet?.LeftAxisWidth * 0.5 ?? 0,
-                yAxisMarkOffset = firstInnerAxisSet?.BottomAxisHeight * 0.5 ?? 0,
+            { // Our macro axis marks will be centered on the enter inner axis sets, but it looks better if they're centered relative to the content (excluding axes) of those sets. We then also need to shift the axis labels too.
+                xAxisMarkOffset = xAxisMarkOffset, 
+                yAxisMarkOffset = yAxisMarkOffset,
+                xAxisLabelOffsetRight = xAxisMarkOffset,
+                yAxisLabelOffsetUp = yAxisMarkOffset,
             };
             Initialized = true;
         }

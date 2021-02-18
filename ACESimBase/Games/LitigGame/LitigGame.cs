@@ -400,7 +400,7 @@ namespace ACESim
                 if (dOffers != null && dOffers.Any())
                 { // there might not be offers if there was a refusal to bargain or if plaintiff is giving an offer and defendant is replying
                     double rule68Offer = dOffers.Last();
-                    punishPlaintiffUnderRule68 = rule68Offer >= damagesAwarded; // NOTE: We are saying punish plaintiff if amount ends up being equal
+                    punishPlaintiffUnderRule68 = rule68Offer >= damagesAwarded; // NOTE: We are saying punish plaintiff if amount ends up being equal. But this will not occur if the only issue is liability.
                 }
             }
             if (gameDefinition.Options.LoserPays && gameDefinition.Options.LoserPaysMultiple > 0)

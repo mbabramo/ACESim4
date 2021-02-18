@@ -364,7 +364,7 @@ namespace LitigCharts
                         foreach (var extension in placementRule.extensions)
                         {
                             string combinedNameSource = Path.Combine(reportFolder, masterReportName + "-" + filenameMapped + extension);
-                            string targetFileName = originalName.Replace("FSA ", "").Replace("fee rule", "Fee Rule").Replace("-Eq1", "-eq1").Replace("  ", " ") + extension;
+                            string targetFileName = originalName.Replace("FSA ", "").Replace("-Eq1", "-eq1").Replace("  ", " ") + extension;
                             if (File.Exists(combinedNameSource))
                             {
                                 string combinedNameTarget = Path.Combine(subsubfolderName, targetFileName);
@@ -390,19 +390,29 @@ namespace LitigCharts
             {
                 foreach (string deletionTrigger in fileExtensionsTriggeringDeletion)
                     if (file.EndsWith(deletionTrigger))
-                        File.Delete(file);
+                    {
+                        try
+                        {
+                            File.Delete(file);
+                        }
+                        catch
+                        {
+                        }
+
+                    }
             }
 
             return filesInFolder;
         }
 
-        public static void ExampleLatexDiagramsAggregatingReports()
+        public static void ExampleLatexDiagramsAggregatingReports(bool isStacked=true)
         {
+
             var lineScheme = new List<string>()
                 {
-                    "blue, opacity=0.50, line width=0.5mm, double",
-                    "red, opacity=0.50, line width=1mm, dashed",
-                    "green, opacity=0.50, line width=1mm, solid",
+                    "blue, opacity=0.70, line width=0.5mm, double",
+                    "red, opacity=0.70, line width=1mm, dashed",
+                    "green, opacity=0.70, line width=1mm, solid",
                 };
             var dataSeriesNames = new List<string>()
             {
@@ -415,11 +425,38 @@ namespace LitigCharts
             Random ran = new Random();
             int numMiniGraphXValues = 8;
             int numMiniGraphYValues = 10;
-            int numMacroGraphXValues = 5;
-            int numMacroGraphYValues = 3;
+            int numMacroGraphXValues = 6;
+            int numMacroGraphYValues = 4;
             List<double?> getMiniGraphData() => Enumerable.Range(0, numMiniGraphXValues).Select(x => (double?) ran.NextDouble()).ToList();
             List<List<double?>> getMiniGraph() => Enumerable.Range(0, numMiniGraphDataSeries).Select(x => getMiniGraphData()).ToList();
-            TikzLineGraphData miniGraphData() => new TikzLineGraphData(getMiniGraph(), lineScheme, dataSeriesNames);
+            List<List<double?>> getMiniGraphAdjusted()
+            {
+                var miniGraphData = getMiniGraph();
+                if (!isStacked)
+                    return miniGraphData;
+
+                // for stacked graphs, we need to make sure that the total height is no greater than 1.0.
+                int numToStack = miniGraphData.Count();
+                int numXAxisPoints = miniGraphData.First().Count();
+                for (int c = 0; c < numXAxisPoints; c++)
+                {
+                    double sum = 0;
+                    for (int r = 0; r < numToStack; r++)
+                    {
+                        sum += miniGraphData[r][c] ?? 0;
+                    }
+                    if (sum > 1.0)
+                    {
+                        for (int r = 0; r < numToStack; r++)
+                        {
+                            if (miniGraphData[r][c] != null)
+                                miniGraphData[r][c] /= sum;
+                        }
+                    }
+                }
+                return miniGraphData;
+            }
+            TikzLineGraphData miniGraphData() => new TikzLineGraphData(getMiniGraphAdjusted(), lineScheme, dataSeriesNames);
 
             List<TikzLineGraphData> lineGraphDataX() => Enumerable.Range(0, numMacroGraphXValues).Select(x => miniGraphData()).ToList();
             List<List<TikzLineGraphData>> lineGraphDataXAndY() => Enumerable.Range(0, numMacroGraphYValues).Select(x => lineGraphDataX()).ToList();
@@ -436,6 +473,7 @@ namespace LitigCharts
                 minorXAxisLabel = "Minor X",
                 minorYValueNames = Enumerable.Range(0, numMiniGraphYValues).Select(y => $"y{y}").ToList(),
                 minorYAxisLabel = "Minor Y",
+                isStacked = isStacked,
                 lineGraphData = lineGraphData,
             };
 
@@ -446,7 +484,7 @@ namespace LitigCharts
 \tikzset{{fontscale/.style = {{font=\relsize{{#1}}}}}}");
         }
 
-        public record AggregatedGraphInfo(string topicName, List<string> columnsToGet, List<string> lineScheme, string minorXAxisLabel="Fee Shifting Multiplier", string minorYAxisLabel="\\$", string majorYAxisLabel="Costs Multiplier", double? maximumValueMicroY = null);
+        public record AggregatedGraphInfo(string topicName, List<string> columnsToGet, List<string> lineScheme, string minorXAxisLabel="Fee Shifting Multiplier", string minorYAxisLabel="\\$", string majorYAxisLabel="Costs Multiplier", double? maximumValueMicroY = null, bool isStacked=false);
 
         public static void ProduceLatexDiagramsAggregatingReports()
         {
@@ -467,20 +505,34 @@ namespace LitigCharts
 
             List<LitigGameLauncher.FeeShiftingArticleVariationSetInfo> variations = launcher.GetFeeShiftingArticleVariationInfoList();
 
-            var lineSchemeFull = new List<string>()
+            var plaintiffDefendantAndOthersLineScheme = new List<string>()
             {
-              "blue, opacity=0.50, line width=0.5mm, double",
-              "red, opacity=0.50, line width=1mm, dashed",
-              "green, opacity=0.50, line width=1mm, solid",
+              "blue, opacity=0.70, line width=0.5mm, double",
+              "orange, opacity=0.70, line width=1mm, dashed",
+              "green, opacity=0.70, line width=1mm, solid",
             };
+
+            var dispositionLineScheme = new List<string>()
+            {
+              "violet, line width=3mm, solid",
+              "magenta, line width=2.5mm, dashed",
+              "blue, line width=1mm, double",
+              "green, line width=1.5mm, densely dotted",
+              "yellow, line width=1.5mm, dotted",
+              "orange, line width=1mm, solid",
+              "red, line width=0.5mm, densely dashed",
+            };
+
+
             List<AggregatedGraphInfo> welfareMeasureColumns = new List<AggregatedGraphInfo>()
             {
-                new AggregatedGraphInfo("Accuracy and Expenditures", new List<string>() { "False Positive Inaccuracy", "False Negative Inaccuracy", "Expenditures" }, lineSchemeFull.ToList()),
-                new AggregatedGraphInfo("Accuracy", new List<string>() { "False Positive Inaccuracy", "False Negative Inaccuracy" }, lineSchemeFull.Take(2).ToList()),
-                new AggregatedGraphInfo("Expenditures", new List<string>() { "Expenditures" }, lineSchemeFull.Skip(2).Take(1).ToList()),
-                new AggregatedGraphInfo("Offers", new List<string>() { "P Offer", "D Offer" }, lineSchemeFull.Take(2).ToList()),
-                new AggregatedGraphInfo("Trial", new List<string>() { "Trial" }, lineSchemeFull.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0),
-                new AggregatedGraphInfo("Trial Outcomes", new List<string>() { "P Win Probability" }, lineSchemeFull.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0),
+                new AggregatedGraphInfo("Accuracy and Expenditures", new List<string>() { "False Negative Inaccuracy", "False Positive Inaccuracy",  "Expenditures" }, plaintiffDefendantAndOthersLineScheme.ToList()),
+                new AggregatedGraphInfo("Accuracy", new List<string>() { "False Positive Inaccuracy", "False Negative Inaccuracy" }, plaintiffDefendantAndOthersLineScheme.Take(2).ToList()),
+                new AggregatedGraphInfo("Expenditures", new List<string>() { "Expenditures" }, plaintiffDefendantAndOthersLineScheme.Skip(2).Take(1).ToList()),
+                new AggregatedGraphInfo("Offers", new List<string>() { "P Offer", "D Offer" }, plaintiffDefendantAndOthersLineScheme.Take(2).ToList()),
+                new AggregatedGraphInfo("Trial", new List<string>() { "Trial" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0),
+                new AggregatedGraphInfo("Trial Outcomes", new List<string>() { "P Win Probability" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0),
+                new AggregatedGraphInfo("Disposition", new List<string>() {"P Doesn't File", "D Doesn't Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins"}, dispositionLineScheme, minorYAxisLabel:"Proportion", maximumValueMicroY: 1.0, isStacked:true)
             };
             foreach (var welfareMeasureInfo in welfareMeasureColumns)
             {
@@ -560,7 +612,9 @@ namespace LitigCharts
                     }
                 }
                 if (stepDefiningRowsToFind)
+                {
                     valuesFromCSVAllRows = CSVData.GetCSVData_SinglePass(pathAndFilename, collectedRowsToFind.ToArray(), aggregatedGraphInfo.columnsToGet.ToArray(), cacheFile: true);
+                }
             }
         }
 
@@ -599,7 +653,7 @@ namespace LitigCharts
                 majorXValueNames = requirementsForEachVariation.Select(x => x.nameOfVariation).ToList(),
                 majorXAxisLabel = variation.nameOfSet,
                 majorYValueNames = launcher.CriticalCostsMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList(),
-                majorYAxisLabel = aggregatedGraphInfo.minorYAxisLabel,
+                majorYAxisLabel = aggregatedGraphInfo.majorYAxisLabel,
                 minorXValueNames = launcher.CriticalFeeShiftingMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList(),
                 minorXAxisLabel = aggregatedGraphInfo.minorXAxisLabel,
                 minorYValueNames = Enumerable.Range(0, 11).Select(y => y switch { 0 => "0", 10 => maximumValueMicroY.ToString(), _ => " " }).ToList(),
@@ -608,6 +662,7 @@ namespace LitigCharts
                 yAxisLabelOffsetMicro = 0.4,
                 xAxisSpaceMicro = 1.1,
                 xAxisLabelOffsetMicro = 0.8,
+                isStacked = aggregatedGraphInfo.isStacked,
                 lineGraphData = lineGraphData,
             };
             var result = r.GetStandaloneDocument();

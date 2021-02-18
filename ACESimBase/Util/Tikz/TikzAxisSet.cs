@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace ACESimBase.Util.Tikz
 {
 
-    public record TikzAxisSet(List<string> xValueNames, List<string> yValueNames, string xAxisLabel, string yAxisLabel, TikzRectangle sourceRectangle, string boxBordersAttributes="draw=none", string horizontalLinesAttribute="draw=none", string verticalLinesAttribute="draw=none", double fontScale=1, double xAxisSpace = 2.2, double xAxisLabelOffset=1.2, double xAxisMarkOffset=0, double yAxisSpace=2.0, double yAxisLabelOffset=1, double yAxisMarkOffset=0, bool xAxisUseEndpoints=false, bool yAxisUseEndpoints=false, TikzLineGraphData lineGraphData=null)
+    public record TikzAxisSet(List<string> xValueNames, List<string> yValueNames, string xAxisLabel, string yAxisLabel, TikzRectangle sourceRectangle, string boxBordersAttributes="draw=none", string horizontalLinesAttribute="draw=none", string verticalLinesAttribute="draw=none", double fontScale=1, double xAxisSpace = 2.2, double xAxisLabelOffsetDown=1.2, double xAxisLabelOffsetRight=0, double xAxisMarkOffset=0, double yAxisSpace=2.0, double yAxisLabelOffsetLeft=1, double yAxisLabelOffsetUp=0, double yAxisMarkOffset=0, bool xAxisUseEndpoints=false, bool yAxisUseEndpoints=false, bool isStacked=false, TikzLineGraphData lineGraphData=null)
     {
         const double betweenMiniGraphs = 0.05;
         const double spaceForAxesUnscaled = 0.5;
@@ -20,7 +20,9 @@ namespace ACESimBase.Util.Tikz
         public TikzRectangle LeftAxisRectangle => sourceRectangle.LeftPortion(yAxisSpace).ReducedByPadding(0, xAxisSpace, 0, 0);
         public TikzLine LeftAxisLine => LeftAxisRectangle.rightLine;
         public List<TikzPoint> LeftAxisMarkPoints => yMarks.Select(m => LeftAxisLine.PointAlongLine(m.proportion)).ToList();
-        public List<TikzPoint> LeftAxisSpecifiedPoints(List<double> proportionalHeights) => proportionalHeights.Select(m => LeftAxisLine.PointAlongLine(m)).ToList();
+        public List<TikzPoint> PointsAlongVerticalLine(List<double> proportionalHeights, TikzLine verticalLine) => proportionalHeights.Select(m => verticalLine.PointAlongLine(m)).ToList();
+        public List<TikzPoint> PointsAlongVerticalLine(List<double> proportionalHeights, int index) => PointsAlongVerticalLine(proportionalHeights, VerticalLines[index]);
+        public List<TikzPoint> LeftAxisSpecifiedPoints(List<double> proportionalHeights) => PointsAlongVerticalLine(proportionalHeights, LeftAxisLine);
         public double LeftAxisWidth => LeftAxisRectangle.width;
         public TikzRectangle BottomAxisRectangle => sourceRectangle.BottomPortion(xAxisSpace).ReducedByPadding(yAxisSpace, 0, 0, 0);
         public double BottomAxisHeight => BottomAxisRectangle.height;
@@ -89,6 +91,35 @@ namespace ACESimBase.Util.Tikz
             return b.ToString();
         }
 
+        public string GetDrawStackedLineGraphCommands()
+        {
+            if (lineGraphData == null)
+                return "";
+            int numDataSeries = lineGraphData.lineAttributes.Count();
+            if (lineGraphData.proportionalHeights.Any(x => x.Count() != NumColumns) || numDataSeries != lineGraphData.proportionalHeights.Count())
+                throw new Exception("Invalid line graph data");
+            StringBuilder b = new StringBuilder();
+            List<double> previousCumulative = Enumerable.Range(0, NumColumns).Select(x => (double) 0).ToList();
+            for (int i = 0; i < numDataSeries; i++)
+            {
+                List<double> currentAmounts = lineGraphData.proportionalHeights[i].Select(x => x ?? 0).ToList();
+                List<double> cumulative = previousCumulative == null ? currentAmounts.ToList() : previousCumulative.Zip(currentAmounts, (cum, curr) => cum + curr).ToList();
+                if (cumulative.Any(x => x > 1.01))
+                    throw new Exception("Proportional heights should not add up to more than 1.0 in stacked bar");
+
+                for (int c = 0; c < NumColumns; c++)
+                {
+                    double previousHeight = previousCumulative[c];
+                    double newHeight = cumulative[c];
+                    List<TikzPoint> graphedPoints = PointsAlongVerticalLine(new List<double> { previousHeight, newHeight }, c);
+                    b.AppendLine($"\\draw[{lineGraphData.lineAttributes[i]}] {String.Join(" -- ", graphedPoints.Select(x => x.ToString()))};");
+                }
+
+                previousCumulative = cumulative;
+            }
+            return b.ToString();
+        }
+
         List<TikzPoint> GraphedPoints(List<(int index, double value)> proportionalHeights) => BottomAxisMarkPoints
             .Select((item, index) => (item, index))
             .Where(x => proportionalHeights.Any(y => y.index == x.index))
@@ -119,16 +150,19 @@ namespace ACESimBase.Util.Tikz
                 b.AppendLine(lines);
             }
 
-            string leftAxisCommand = LeftAxisLine.DrawAxis("black", yMarks, fontAttributes, "east", yAxisLabel, "center", TikzHorizontalAlignment.Center, $"rotate=90, {fontAttributes}", 0 - yAxisLabelOffset, 0, 0, yAxisMarkOffset);
+            string leftAxisCommand = LeftAxisLine.DrawAxis("black", yMarks, fontAttributes, "east", yAxisLabel, "center", TikzHorizontalAlignment.Center, $"rotate=90, {fontAttributes}", 0 - yAxisLabelOffsetLeft, yAxisLabelOffsetUp, 0, yAxisMarkOffset);
             b.AppendLine(leftAxisCommand);
-            string bottomAxisCommand = BottomAxisLine.DrawAxis("black", xMarks, fontAttributes, "north", xAxisLabel, "center", TikzHorizontalAlignment.Center, fontAttributes, 0, 0 - xAxisLabelOffset, xAxisMarkOffset, 0);
+            string bottomAxisCommand = BottomAxisLine.DrawAxis("black", xMarks, fontAttributes, "north", xAxisLabel, "center", TikzHorizontalAlignment.Center, fontAttributes, xAxisLabelOffsetRight, 0 - xAxisLabelOffsetDown, xAxisMarkOffset, 0);
             b.AppendLine(bottomAxisCommand);
             return b.ToString();
         }
 
         public string GetDrawCommands()
         {
-            return $"{GetDrawAxesCommands()}{GetDrawLineGraphCommands()}";
+            if (isStacked)
+                return $"{GetDrawAxesCommands()}{GetDrawStackedLineGraphCommands()}";
+            else
+                return $"{GetDrawAxesCommands()}{GetDrawLineGraphCommands()}";
         }
 
     }
