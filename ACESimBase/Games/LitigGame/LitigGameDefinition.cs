@@ -156,7 +156,7 @@ namespace ACESim
         public byte GameHistoryCacheIndex_PResponse = 10;
         public byte GameHistoryCacheIndex_DResponse = 11;
         public byte GameHistoryCacheIndex_PReadyToAbandon = 12;
-        public byte GameHistoryCacheIndex_DReadyToAbandon = 13;
+        public byte GameHistoryCacheIndex_DReadyToDefault = 13;
         public byte GameHistoryCacheIndex_PChipsAction = 14;
         public byte GameHistoryCacheIndex_DChipsAction = 15;
         public byte GameHistoryCacheIndex_PWins = 16;
@@ -628,7 +628,7 @@ namespace ACESim
                     {
                         CustomByte = (byte)(b + 1),
                         CanTerminateGame = !Options.PredeterminedAbandonAndDefaults, // if either but not both has given up, game terminates, unless we're predetermining abandon and defaults, in which case we still have to go through offers
-                        StoreActionInGameCacheItem = GameHistoryCacheIndex_DReadyToAbandon,
+                        StoreActionInGameCacheItem = GameHistoryCacheIndex_DReadyToDefault,
                         IsReversible = true,
                         SymmetryMap = (SymmetryMapInput.SameInfo, SymmetryMapOutput.SameAction)
                     };
@@ -862,7 +862,7 @@ namespace ACESim
             if (decisionByteCode == (byte) LitigGameDecisions.MutualGiveUp)
             {
                 bool pTryingToGiveUp = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PReadyToAbandon) == 1;
-                bool dTryingToGiveUp = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DReadyToAbandon) == 1;
+                bool dTryingToGiveUp = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DReadyToDefault) == 1;
                 bool skip = !pTryingToGiveUp || !dTryingToGiveUp; // if anyone is NOT trying to give up, we don't have to deal with mutual giving up
                 return skip;
             }
@@ -923,10 +923,12 @@ namespace ACESim
                     if (Options.AllowAbandonAndDefaults && Options.PredeterminedAbandonAndDefaults)
                     {
                         bool pTryingToGiveUp2 = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PReadyToAbandon) == 1;
-                        bool dTryingToGiveUp2 = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DReadyToAbandon) == 1;
+                        bool dTryingToGiveUp2 = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DReadyToDefault) == 1;
                         if (pTryingToGiveUp2 ^ dTryingToGiveUp2)
                             return true; // exactly one trying to give up in last bargaining round
                     }
+                    if (Options.CollapseChanceDecisions && Options.CollapseAlternativeEndings)
+                        return true; // NOTE: If we want to support this over multiple bargaining rounds (currently excluded by code in LitigGame.CheckCollapseFinalGameDecisions), then we'll need to do more checks to make sure that this is the right time. Also, if we allow for non-predetermined decisions, we'll have to complicate this as well.
                     break;
                 case (byte)LitigGameDecisions.PrimaryAction:
                     return Options.LitigGameDisputeGenerator.MarkComplete(this, gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PrePrimaryChance), gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PrimaryAction));
@@ -944,7 +946,7 @@ namespace ACESim
                     if (Options.PredeterminedAbandonAndDefaults)
                         return false; // we need to wait for the bargaining round
                     bool pTryingToGiveUp = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PReadyToAbandon) == 1;
-                    bool dTryingToGiveUp = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DReadyToAbandon) == 1;
+                    bool dTryingToGiveUp = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DReadyToDefault) == 1;
                     if (pTryingToGiveUp ^ dTryingToGiveUp) // i.e., one but not both parties try to default
                         return true;
                     break;

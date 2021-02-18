@@ -125,7 +125,7 @@ namespace ACESim
                     LitigGameProgress.PReadyToAbandon = action == 1;
                     break;
                 case (byte)LitigGameDecisions.DDefault:
-                    LitigGameProgress.DReadyToAbandon = action == 1;
+                    LitigGameProgress.DReadyToDefault = action == 1;
                     if (!LitigGameDefinition.Options.PredeterminedAbandonAndDefaults)
                         CheckOnePartyGivesUp();
                     break;
@@ -162,65 +162,85 @@ namespace ACESim
             LitigGameProgress.ConcludeMainPortionOfBargainingRound(LitigGameDefinition);
             if (!LitigGameProgress.GameComplete && LitigGameDefinition.Options.PredeterminedAbandonAndDefaults && LitigGameDefinition.Options.AllowAbandonAndDefaults) 
                 CheckOnePartyGivesUp(); // note that this could be any bargaining round -- we haven't limited allow abandon and defaults to the last round
+            CheckCollapseFinalChanceDecisions();
         }
 
-        private void CheckCollapseFinalChanceDecisions(bool afterBargaining)
+        private void CheckCollapseFinalChanceDecisions()
         {
+            if (LitigGameProgress.GameComplete)
+                return;
             LitigGameOptions options = LitigGameDefinition.Options;
             if (options.CollapseChanceDecisions && options.CollapseAlternativeEndings)
             {
-                int numBargainingRoundsComplete = LitigGameProgress.BargainingRoundsComplete + 1; // haven't yet registered the completed round
-                if (numBargainingRoundsComplete < options.NumPotentialBargainingRounds)
-                    return;
-                bool canNowCollapse;
+                if (options.NumPotentialBargainingRounds > 1)
+                    throw new NotImplementedException(); // if changing, must also change ShouldMarkGameHistoryComplete. We need in that code to be able to figure out which bargaining round it is
+                if (options.AllowAbandonAndDefaults && !options.PredeterminedAbandonAndDefaults)
+                    throw new NotImplementedException(); // in this case, we need to call this method after DDefault or perhaps after MutualGiveUp
+
+                //int numBargainingRoundsComplete = LitigGameProgress.BargainingRoundsComplete + 1; // haven't yet registered the completed round
+                //if (numBargainingRoundsComplete < options.NumPotentialBargainingRounds)
+                //    return;
+
+                bool isEffectivelyComplete;
                 if (options.AllowAbandonAndDefaults)
                 {
-                    if (options.PredeterminedAbandonAndDefaults)
-                    {
-                        canNowCollapse = false; // we're just deciding in advance whether to abandon -- we still need to bargain.
-                    }
-                    else
-                    {
-                        canNowCollapse = true; // we've resolved abandon/default, so time for final decision has arrived
-                    }
+                    isEffectivelyComplete = options.PredeterminedAbandonAndDefaults; 
                 }
                 else
                 {
-                    canNowCollapse = true; // we've completed offers, and there are no abandonment decisions.
+                    isEffectivelyComplete = true; // we've completed offers, and there are no abandonment decisions.
                 }
 
-                if (canNowCollapse)
+                if (isEffectivelyComplete)
                 {
-                    double[] liabilityProbabilities, damagesProbabilities;
-                    if (options.NumCourtLiabilitySignals == 1)
+                    LitigGameProgress.BargainingRoundsComplete++;
+                    if (LitigGameProgress.PReadyToAbandon && LitigGameProgress.DReadyToDefault)
                     {
-                        liabilityProbabilities = new double[] { 1.0 };
-                        LitigGameProgress.PWinsAtTrial = true;
+                        // Note: We won't get this far if just one is ready to go. This is the scenario that would be handled, if we weren't collapsing final decisions, by MutualGiveUp.
+                        var scenario1 = LitigGameProgress.DeepCopy();
+                        scenario1.ResolveMutualGiveUp((byte)1);
+                        scenario1.CalculateGameOutcome();
+                        var scenario2 = LitigGameProgress.DeepCopy();
+                        scenario2.ResolveMutualGiveUp((byte)2);
+                        scenario2.CalculateGameOutcome();
+                        LitigGameProgress.AlternativeEndings = new List<(LitigGameProgress completedGame, double weight)>() { (scenario1, 0.5), (scenario2, 0.5) };
                     }
                     else
-                        liabilityProbabilities = LitigGameDefinition.GetUnevenChanceActionProbabilities((byte)LitigGameDecisions.CourtDecisionLiability, LitigGameProgress);
-                    if (options.NumDamagesSignals == 1)
-                        damagesProbabilities = new double[] { 1.0 };
-                    else
-                        damagesProbabilities = LitigGameDefinition.GetUnevenChanceActionProbabilities((byte)LitigGameDecisions.CourtDecisionDamages, LitigGameProgress);
-
-                    LitigGameProgress.AlternativeEndings = new List<(LitigGameProgress completedGame, double weight)>();
-                    for (int liabilityProbabilityIndex = 0; liabilityProbabilityIndex < liabilityProbabilities.Length; liabilityProbabilityIndex++)
                     {
-                        for (int damagesProbabilityIndex = 0; damagesProbabilityIndex < damagesProbabilities.Length; damagesProbabilityIndex++)
+                        LitigGameProgress.AlternativeEndings = new List<(LitigGameProgress completedGame, double weight)>();
+                        double[] liabilityProbabilities, damagesProbabilities;
+                        if (options.NumCourtLiabilitySignals == 1)
                         {
-                            double weight = liabilityProbabilities[liabilityProbabilityIndex] * damagesProbabilities[damagesProbabilityIndex];
-                            byte liabilityAction = (byte)(liabilityProbabilityIndex + 1);
-                            byte damagesAction = (byte)(damagesProbabilityIndex + 1);
-                            LitigGameProgress playedOut = LitigGameProgress.DeepCopy();
-                            playedOut.CourtReceivesLiabilitySignal(liabilityAction, LitigGameDefinition);
-                            playedOut.CourtReceivesDamagesSignal(damagesAction, LitigGameDefinition);
-                            if (!playedOut.GameComplete)
-                                throw new Exception();
-                            playedOut.CalculateGameOutcome();
-                            playedOut.AlternativeEndings.Add((playedOut, weight));
+                            liabilityProbabilities = new double[] { 1.0 };
+                            LitigGameProgress.PWinsAtTrial = true;
+                        }
+                        else
+                            liabilityProbabilities = LitigGameDefinition.GetUnevenChanceActionProbabilities((byte)LitigGameDecisions.CourtDecisionLiability, LitigGameProgress);
+                        if (options.NumDamagesSignals == 1)
+                            damagesProbabilities = new double[] { 1.0 };
+                        else
+                            damagesProbabilities = LitigGameDefinition.GetUnevenChanceActionProbabilities((byte)LitigGameDecisions.CourtDecisionDamages, LitigGameProgress);
+
+                        for (int liabilityProbabilityIndex = 0; liabilityProbabilityIndex < liabilityProbabilities.Length; liabilityProbabilityIndex++)
+                        {
+                            for (int damagesProbabilityIndex = 0; damagesProbabilityIndex < damagesProbabilities.Length; damagesProbabilityIndex++)
+                            {
+                                double weight = liabilityProbabilities[liabilityProbabilityIndex] * damagesProbabilities[damagesProbabilityIndex];
+                                byte liabilityAction = (byte)(liabilityProbabilityIndex + 1);
+                                byte damagesAction = (byte)(damagesProbabilityIndex + 1);
+                                LitigGameProgress playedOut = LitigGameProgress.DeepCopy();
+                                playedOut.AlternativeEndings = null;
+                                playedOut.CourtReceivesLiabilitySignal(liabilityAction, LitigGameDefinition);
+                                playedOut.CourtReceivesDamagesSignal(damagesAction, LitigGameDefinition);
+                                if (!playedOut.GameComplete)
+                                    throw new Exception();
+                                playedOut.CalculateGameOutcome();
+                                LitigGameProgress.AlternativeEndings.Add((playedOut, weight));
+                            }
                         }
                     }
+                    LitigGameProgress.WeightAlternativeEndings();
+                    LitigGameProgress.GameComplete = true;
                 }
             }
         }
@@ -228,11 +248,11 @@ namespace ACESim
         private void CheckOnePartyGivesUp()
         {
             // DEBUG -- must collapse this too
-            if (LitigGameProgress.PReadyToAbandon ^ LitigGameProgress.DReadyToAbandon)
+            if (LitigGameProgress.PReadyToAbandon ^ LitigGameProgress.DReadyToDefault)
             {
                 // exactly one party gives up
                 LitigGameProgress.PAbandons = LitigGameProgress.PReadyToAbandon;
-                LitigGameProgress.DDefaults = LitigGameProgress.DReadyToAbandon;
+                LitigGameProgress.DDefaults = LitigGameProgress.DReadyToDefault;
                 LitigGameProgress.TrialOccurs = false;
                 LitigGameProgress.GameComplete = true;
                 LitigGameProgress.BargainingRoundsComplete++; // we won't get to PostBargainingRound

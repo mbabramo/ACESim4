@@ -20,7 +20,7 @@ namespace ACESim
         public LitigGameOptions LitigGameOptions => LitigGameDefinition.Options;
 
         public bool DisputeArises;
-        public bool PFiles, DAnswers, PReadyToAbandon, DReadyToAbandon, BothReadyToGiveUp, PAbandons, DDefaults;
+        public bool PFiles, DAnswers, PReadyToAbandon, DReadyToDefault, BothReadyToGiveUp, PAbandons, DDefaults;
         public byte BargainingRoundsComplete;
 
         public List<bool> PAgreesToBargain;
@@ -275,7 +275,7 @@ namespace ACESim
             copy.PFiles = PFiles;
             copy.DAnswers = DAnswers;
             copy.PReadyToAbandon = PReadyToAbandon;
-            copy.DReadyToAbandon = DReadyToAbandon;
+            copy.DReadyToDefault = DReadyToDefault;
             copy.BothReadyToGiveUp = BothReadyToGiveUp;
             copy.PAbandons = PAbandons;
             copy.DDefaults = DDefaults;
@@ -507,17 +507,22 @@ namespace ACESim
             }
             else
             {
-                DisputeArises = true;
-                TrialOccurs = true;
-                double AggregateAlternativeEndings(Func<LitigGameProgress, double> valueToAverageFunc) => AlternativeEndings.Aggregate((double)0, (weightedSum, ending) => weightedSum + ending.weight * valueToAverageFunc(ending.completedGame));
-                // note that we're averaging changes in wealth, but that is irrelevant to outcome if the party is risk averse, since we are also averaging welfare directly. That's the ultimate point -- we can collapse chance decisions by producing a weighted average of utility.
-                PChangeWealth = AggregateAlternativeEndings(prog => prog.PChangeWealth);
-                DChangeWealth = AggregateAlternativeEndings(prog => prog.DChangeWealth);
-                PFinalWealth = AggregateAlternativeEndings(prog => prog.PFinalWealth);
-                PFinalWealth = AggregateAlternativeEndings(prog => prog.PFinalWealth);
-                PWelfare = AggregateAlternativeEndings(prog => prog.PWelfare);
-                DWelfare = AggregateAlternativeEndings(prog => prog.DWelfare);
+                WeightAlternativeEndings();
             }
+        }
+
+        public void WeightAlternativeEndings()
+        {
+            DisputeArises = true;
+            TrialOccurs = true;
+            double AggregateAlternativeEndings(Func<LitigGameProgress, double> valueToAverageFunc) => AlternativeEndings.Aggregate((double)0, (weightedSum, ending) => weightedSum + ending.weight * valueToAverageFunc(ending.completedGame));
+            // note that we're averaging changes in wealth, but that is irrelevant to outcome if the party is risk averse, since we are also averaging welfare directly. That's the ultimate point -- we can collapse chance decisions by producing a weighted average of utility.
+            PChangeWealth = AggregateAlternativeEndings(prog => prog.PChangeWealth);
+            DChangeWealth = AggregateAlternativeEndings(prog => prog.DChangeWealth);
+            PFinalWealth = AggregateAlternativeEndings(prog => prog.PFinalWealth);
+            PFinalWealth = AggregateAlternativeEndings(prog => prog.PFinalWealth);
+            PWelfare = AggregateAlternativeEndings(prog => prog.PWelfare);
+            DWelfare = AggregateAlternativeEndings(prog => prog.DWelfare);
         }
 
         public void CalculatePostGameInfo()
@@ -584,7 +589,7 @@ namespace ACESim
         public override List<(GameProgress progress, double weight)> InvertedCalculations_GenerateAllConsistentGameProgresses(double initialWeight)
         {
             List<(GameProgress progress, double weight)> results = new List<(GameProgress progress, double weight)>();
-            var possibleCurrentStates = AlternativeEndings ?? new List<(LitigGameProgress completedGame, double weight)>() { (this, 1.0) };
+            var possibleCurrentStates = AlternativeEndings ?? new List<(LitigGameProgress completedGame, double weight)>() { (DeepCopy(), 1.0) };
             foreach (var currentState in possibleCurrentStates)
             {
                 var p = currentState.completedGame;

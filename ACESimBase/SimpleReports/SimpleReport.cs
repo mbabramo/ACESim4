@@ -35,8 +35,10 @@ namespace ACESim
                 if (metaFilterSatisfied)
                 {
                     double[,] results = new double[rowFiltersCount, columnItemsCount];
-                    for (int rowFilterIndex = 0; rowFilterIndex < rowFiltersCount; rowFilterIndex++) // DEBUG
-                    // DEBUGParallel.For(0, rowFiltersCount, rowFilterIndex =>
+                    Br.eak.Add("DEBUG2");
+                    // TODO: Restore parallelism. There seemed to be a bug (2/18/2021) with parallelism when using it in conjunction with GetConsistentGameProgresses().
+                    for (int rowFilterIndex = 0; rowFilterIndex < rowFiltersCount; rowFilterIndex++) 
+                    //Parallel.For(0, rowFiltersCount, rowFilterIndex =>
                     {
                         SimpleReportFilter rowFilter = Definition.RowFilters[rowFilterIndex];
                         bool rowFilterSatisfied = rowFilter.IsInFilter(completedGame);
@@ -66,7 +68,7 @@ namespace ACESim
                             }
                             colItemIndex++;
                         }
-                    } // DEBUG );
+                    }//);
                 }
                 numProcessed += numPerMetaFilter;
             }

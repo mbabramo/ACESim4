@@ -1691,6 +1691,7 @@ namespace ACESim
             }
             else
             {
+                TraceTreeWalk = true;
                 TreeWalk_Tree(new WalkOnly());
                 //var startHistoryPoint = GetStartOfGameHistoryPoint();
                 //PrintGameTree_Helper_Manual(ref startHistoryPoint);
