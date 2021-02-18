@@ -13,8 +13,8 @@ namespace ACESim
     /// </summary>
     public class LitigGame : Game
     {
-        public LitigGameDefinition MyDefinition => (LitigGameDefinition)GameDefinition;
-        public LitigGameProgress MyProgress => (LitigGameProgress)Progress;
+        public LitigGameDefinition LitigGameDefinition => (LitigGameDefinition)GameDefinition;
+        public LitigGameProgress LitigGameProgress => (LitigGameProgress)Progress;
 
         public LitigGame(List<Strategy> strategies,
             GameProgress progress,
@@ -36,120 +36,120 @@ namespace ACESim
             switch (currentDecisionByteCode)
             {
                 case (byte)LitigGameDecisions.PrePrimaryActionChance:
-                    MyProgress.DisputeGeneratorActions.PrePrimaryChanceAction = action;
+                    LitigGameProgress.DisputeGeneratorActions.PrePrimaryChanceAction = action;
                     break;
                 case (byte)LitigGameDecisions.PrimaryAction:
-                    MyProgress.DisputeGeneratorActions.PrimaryAction = action;
-                    if (MyDefinition.CheckCompleteAfterPrimaryAction && MyDefinition.Options.LitigGameDisputeGenerator.MarkComplete(MyDefinition, MyProgress.DisputeGeneratorActions.PrePrimaryChanceAction, MyProgress.DisputeGeneratorActions.PrimaryAction))
-                        MyProgress.GameComplete = true;
+                    LitigGameProgress.DisputeGeneratorActions.PrimaryAction = action;
+                    if (LitigGameDefinition.CheckCompleteAfterPrimaryAction && LitigGameDefinition.Options.LitigGameDisputeGenerator.MarkComplete(LitigGameDefinition, LitigGameProgress.DisputeGeneratorActions.PrePrimaryChanceAction, LitigGameProgress.DisputeGeneratorActions.PrimaryAction))
+                        LitigGameProgress.GameComplete = true;
                     break;
                 case (byte)LitigGameDecisions.PostPrimaryActionChance:
-                    MyProgress.DisputeGeneratorActions.PostPrimaryChanceAction = action;
-                    if (MyDefinition.CheckCompleteAfterPostPrimaryAction && MyDefinition.Options.LitigGameDisputeGenerator.MarkComplete(MyDefinition, MyProgress.DisputeGeneratorActions.PrePrimaryChanceAction, MyProgress.DisputeGeneratorActions.PrimaryAction, MyProgress.DisputeGeneratorActions.PostPrimaryChanceAction))
-                        MyProgress.GameComplete = true;
+                    LitigGameProgress.DisputeGeneratorActions.PostPrimaryChanceAction = action;
+                    if (LitigGameDefinition.CheckCompleteAfterPostPrimaryAction && LitigGameDefinition.Options.LitigGameDisputeGenerator.MarkComplete(LitigGameDefinition, LitigGameProgress.DisputeGeneratorActions.PrePrimaryChanceAction, LitigGameProgress.DisputeGeneratorActions.PrimaryAction, LitigGameProgress.DisputeGeneratorActions.PostPrimaryChanceAction))
+                        LitigGameProgress.GameComplete = true;
                     break;
                 case (byte)LitigGameDecisions.LiabilityStrength:
-                    MyProgress.LiabilityStrengthDiscrete = action;
+                    LitigGameProgress.LiabilityStrengthDiscrete = action;
                 break;
                 case (byte)LitigGameDecisions.PLiabilitySignal:
-                    MyProgress.PLiabilitySignalDiscrete = action;
-                    GameProgressLogger.Log(() => $"P: Liability Strength {MyProgress.LiabilityStrengthDiscrete} => signal {MyProgress.PLiabilitySignalDiscrete}");
+                    LitigGameProgress.PLiabilitySignalDiscrete = action;
+                    GameProgressLogger.Log(() => $"P: Liability Strength {LitigGameProgress.LiabilityStrengthDiscrete} => signal {LitigGameProgress.PLiabilitySignalDiscrete}");
                 break;
                 case (byte)LitigGameDecisions.DLiabilitySignal:
-                    MyProgress.DLiabilitySignalDiscrete = action;
-                    GameProgressLogger.Log(() => $"D: Liability Strength {MyProgress.LiabilityStrengthDiscrete} => signal {MyProgress.DLiabilitySignalDiscrete}");
+                    LitigGameProgress.DLiabilitySignalDiscrete = action;
+                    GameProgressLogger.Log(() => $"D: Liability Strength {LitigGameProgress.LiabilityStrengthDiscrete} => signal {LitigGameProgress.DLiabilitySignalDiscrete}");
                     break;
                 case (byte)LitigGameDecisions.DamagesStrength:
-                    MyProgress.DamagesStrengthDiscrete = action;
+                    LitigGameProgress.DamagesStrengthDiscrete = action;
                     break;
                 case (byte)LitigGameDecisions.PDamagesSignal:
-                    MyProgress.PDamagesSignalDiscrete = action;
-                    GameProgressLogger.Log(() => $"P: Damages Strength {MyProgress.DamagesStrengthDiscrete} => signal {MyProgress.PDamagesSignalDiscrete}");
+                    LitigGameProgress.PDamagesSignalDiscrete = action;
+                    GameProgressLogger.Log(() => $"P: Damages Strength {LitigGameProgress.DamagesStrengthDiscrete} => signal {LitigGameProgress.PDamagesSignalDiscrete}");
                     break;
                 case (byte)LitigGameDecisions.DDamagesSignal:
-                    MyProgress.DDamagesSignalDiscrete = action;
-                    GameProgressLogger.Log(() => $"D: Damages Strength {MyProgress.DamagesStrengthDiscrete} => signal {MyProgress.DDamagesSignalDiscrete}");
+                    LitigGameProgress.DDamagesSignalDiscrete = action;
+                    GameProgressLogger.Log(() => $"D: Damages Strength {LitigGameProgress.DamagesStrengthDiscrete} => signal {LitigGameProgress.DDamagesSignalDiscrete}");
                     break;
                 case (byte)LitigGameDecisions.PFile:
-                    MyProgress.PFiles = action == 1;
-                    if (!MyProgress.PFiles)
-                        MyProgress.GameComplete = true;
+                    LitigGameProgress.PFiles = action == 1;
+                    if (!LitigGameProgress.PFiles)
+                        LitigGameProgress.GameComplete = true;
                     break;
                 case (byte)LitigGameDecisions.DAnswer:
-                    MyProgress.DAnswers = action == 1;
-                    if (!MyProgress.DAnswers)
-                        MyProgress.GameComplete = true;
+                    LitigGameProgress.DAnswers = action == 1;
+                    if (!LitigGameProgress.DAnswers)
+                        LitigGameProgress.GameComplete = true;
                     break;
                 case (byte)LitigGameDecisions.PreBargainingRound:
-                    if (MyDefinition.Options.SkipFileAndAnswerDecisions)
+                    if (LitigGameDefinition.Options.SkipFileAndAnswerDecisions)
                     {
-                        MyProgress.PFiles = MyProgress.DAnswers = true;
+                        LitigGameProgress.PFiles = LitigGameProgress.DAnswers = true;
                     }
                     break;
                 case (byte)LitigGameDecisions.PAgreeToBargain:
-                    MyProgress.AddPAgreesToBargain(action == 1);
+                    LitigGameProgress.AddPAgreesToBargain(action == 1);
                     break;
                 case (byte)LitigGameDecisions.DAgreeToBargain:
-                    MyProgress.AddDAgreesToBargain(action == 1);
+                    LitigGameProgress.AddDAgreesToBargain(action == 1);
                     break;
                 case (byte)LitigGameDecisions.POffer:
-                    double offer = GetOfferBasedOnAction(action, true, MyDefinition.Options.IncludeEndpointsForOffers);
-                    MyProgress.AddOffer(true, offer);
-                    MyProgress.AddOfferMixedness(true, MyProgress.Mixedness);
+                    double offer = GetOfferBasedOnAction(action, true, LitigGameDefinition.Options.IncludeEndpointsForOffers);
+                    LitigGameProgress.AddOffer(true, offer);
+                    LitigGameProgress.AddOfferMixedness(true, LitigGameProgress.Mixedness);
                 break;
                 case (byte)LitigGameDecisions.DOffer:
-                    offer = GetOfferBasedOnAction(action, false, MyDefinition.Options.IncludeEndpointsForOffers);
-                    MyProgress.AddOffer(false, offer);
-                    MyProgress.AddOfferMixedness(false, MyProgress.Mixedness);
-                    if (MyDefinition.Options.BargainingRoundsSimultaneous || MyDefinition.Options.PGoesFirstIfNotSimultaneous[MyProgress.BargainingRoundsComplete])
+                    offer = GetOfferBasedOnAction(action, false, LitigGameDefinition.Options.IncludeEndpointsForOffers);
+                    LitigGameProgress.AddOffer(false, offer);
+                    LitigGameProgress.AddOfferMixedness(false, LitigGameProgress.Mixedness);
+                    if (LitigGameDefinition.Options.BargainingRoundsSimultaneous || LitigGameDefinition.Options.PGoesFirstIfNotSimultaneous[LitigGameProgress.BargainingRoundsComplete])
                     {
                         ConcludeMainPortionOfBargainingRound();
                     }
                     break;
                 case (byte)LitigGameDecisions.PResponse:
-                    MyProgress.AddResponse(true, action == 1); // 1 == accept, 2 == reject
+                    LitigGameProgress.AddResponse(true, action == 1); // 1 == accept, 2 == reject
                     ConcludeMainPortionOfBargainingRound();
                     break;
                 case (byte)LitigGameDecisions.DResponse:
-                    MyProgress.AddResponse(false, action == 1); // 1 == accept, 2 == reject
+                    LitigGameProgress.AddResponse(false, action == 1); // 1 == accept, 2 == reject
                     ConcludeMainPortionOfBargainingRound();
                     break;
                 case (byte)LitigGameDecisions.PChips:
-                    MyProgress.RunningSideBetsActions.TemporaryStoragePMixedness = MyProgress.Mixedness;
+                    LitigGameProgress.RunningSideBetsActions.TemporaryStoragePMixedness = LitigGameProgress.Mixedness;
                     // don't do anything else yet -- the decision specifies that the action should be stored in the cache
                     break;
                 case (byte)LitigGameDecisions.DChips:
-                    MyDefinition.Options.LitigGameRunningSideBets.SaveRunningSideBets(MyDefinition, MyProgress, action);
+                    LitigGameDefinition.Options.LitigGameRunningSideBets.SaveRunningSideBets(LitigGameDefinition, LitigGameProgress, action);
                     break;
                 case (byte)LitigGameDecisions.PAbandon:
-                    MyProgress.PReadyToAbandon = action == 1;
+                    LitigGameProgress.PReadyToAbandon = action == 1;
                     break;
                 case (byte)LitigGameDecisions.DDefault:
-                    MyProgress.DReadyToAbandon = action == 1;
-                    if (!MyDefinition.Options.PredeterminedAbandonAndDefaults)
+                    LitigGameProgress.DReadyToAbandon = action == 1;
+                    if (!LitigGameDefinition.Options.PredeterminedAbandonAndDefaults)
                         CheckOnePartyGivesUp();
                     break;
                 case (byte)LitigGameDecisions.MutualGiveUp:
-                    if (!MyProgress.GameComplete)
+                    if (!LitigGameProgress.GameComplete)
                     {
-                        MyProgress.ResolveMutualGiveUp(action);
+                        LitigGameProgress.ResolveMutualGiveUp(action);
                     }
                     break;
                 case (byte)LitigGameDecisions.PostBargainingRound:
-                    MyProgress.BargainingRoundsComplete++;
+                    LitigGameProgress.BargainingRoundsComplete++; // executed if the game has NOT yet completed
                     break;
                 case (byte)LitigGameDecisions.PPretrialAction:
-                    MyDefinition.Options.LitigGamePretrialDecisionGeneratorGenerator.ProcessAction(MyDefinition, MyProgress, true, action);
+                    LitigGameDefinition.Options.LitigGamePretrialDecisionGeneratorGenerator.ProcessAction(LitigGameDefinition, LitigGameProgress, true, action);
                     break;
                 case (byte)LitigGameDecisions.DPretrialAction:
-                    MyDefinition.Options.LitigGamePretrialDecisionGeneratorGenerator.ProcessAction(MyDefinition, MyProgress, false, action);
+                    LitigGameDefinition.Options.LitigGamePretrialDecisionGeneratorGenerator.ProcessAction(LitigGameDefinition, LitigGameProgress, false, action);
                     break;
                 case (byte)LitigGameDecisions.CourtDecisionLiability:
-                    MyProgress.CourtReceivesLiabilitySignal(action, MyDefinition);
+                    LitigGameProgress.CourtReceivesLiabilitySignal(action, LitigGameDefinition);
                     //System.Diagnostics.TabbedText.WriteLine($"Quality {MyProgress.LiabilityStrengthUniform} Court noise action {action} => {courtNoiseNormalDraw} => signal {courtLiabilitySignal} PWins {MyProgress.PWinsAtTrial}");
                     break;
                 case (byte)LitigGameDecisions.CourtDecisionDamages:
-                    MyProgress.CourtReceivesDamagesSignal(action, MyDefinition);
+                    LitigGameProgress.CourtReceivesDamagesSignal(action, LitigGameDefinition);
                     break;
                 default:
                     throw new NotImplementedException();
@@ -159,21 +159,83 @@ namespace ACESim
 
         private void ConcludeMainPortionOfBargainingRound()
         {
-            MyProgress.ConcludeMainPortionOfBargainingRound(MyDefinition);
-            if (!MyProgress.GameComplete && MyDefinition.Options.PredeterminedAbandonAndDefaults && MyDefinition.Options.AllowAbandonAndDefaults) 
+            LitigGameProgress.ConcludeMainPortionOfBargainingRound(LitigGameDefinition);
+            if (!LitigGameProgress.GameComplete && LitigGameDefinition.Options.PredeterminedAbandonAndDefaults && LitigGameDefinition.Options.AllowAbandonAndDefaults) 
                 CheckOnePartyGivesUp(); // note that this could be any bargaining round -- we haven't limited allow abandon and defaults to the last round
+        }
+
+        private void CheckCollapseFinalChanceDecisions(bool afterBargaining)
+        {
+            LitigGameOptions options = LitigGameDefinition.Options;
+            if (options.CollapseChanceDecisions && options.CollapseAlternativeEndings)
+            {
+                int numBargainingRoundsComplete = LitigGameProgress.BargainingRoundsComplete + 1; // haven't yet registered the completed round
+                if (numBargainingRoundsComplete < options.NumPotentialBargainingRounds)
+                    return;
+                bool canNowCollapse;
+                if (options.AllowAbandonAndDefaults)
+                {
+                    if (options.PredeterminedAbandonAndDefaults)
+                    {
+                        canNowCollapse = false; // we're just deciding in advance whether to abandon -- we still need to bargain.
+                    }
+                    else
+                    {
+                        canNowCollapse = true; // we've resolved abandon/default, so time for final decision has arrived
+                    }
+                }
+                else
+                {
+                    canNowCollapse = true; // we've completed offers, and there are no abandonment decisions.
+                }
+
+                if (canNowCollapse)
+                {
+                    double[] liabilityProbabilities, damagesProbabilities;
+                    if (options.NumCourtLiabilitySignals == 1)
+                    {
+                        liabilityProbabilities = new double[] { 1.0 };
+                        LitigGameProgress.PWinsAtTrial = true;
+                    }
+                    else
+                        liabilityProbabilities = LitigGameDefinition.GetUnevenChanceActionProbabilities((byte)LitigGameDecisions.CourtDecisionLiability, LitigGameProgress);
+                    if (options.NumDamagesSignals == 1)
+                        damagesProbabilities = new double[] { 1.0 };
+                    else
+                        damagesProbabilities = LitigGameDefinition.GetUnevenChanceActionProbabilities((byte)LitigGameDecisions.CourtDecisionDamages, LitigGameProgress);
+
+                    LitigGameProgress.AlternativeEndings = new List<(LitigGameProgress completedGame, double weight)>();
+                    for (int liabilityProbabilityIndex = 0; liabilityProbabilityIndex < liabilityProbabilities.Length; liabilityProbabilityIndex++)
+                    {
+                        for (int damagesProbabilityIndex = 0; damagesProbabilityIndex < damagesProbabilities.Length; damagesProbabilityIndex++)
+                        {
+                            double weight = liabilityProbabilities[liabilityProbabilityIndex] * damagesProbabilities[damagesProbabilityIndex];
+                            byte liabilityAction = (byte)(liabilityProbabilityIndex + 1);
+                            byte damagesAction = (byte)(damagesProbabilityIndex + 1);
+                            LitigGameProgress playedOut = LitigGameProgress.DeepCopy();
+                            playedOut.CourtReceivesLiabilitySignal(liabilityAction, LitigGameDefinition);
+                            playedOut.CourtReceivesDamagesSignal(damagesAction, LitigGameDefinition);
+                            if (!playedOut.GameComplete)
+                                throw new Exception();
+                            playedOut.CalculateGameOutcome();
+                            playedOut.AlternativeEndings.Add((playedOut, weight));
+                        }
+                    }
+                }
+            }
         }
 
         private void CheckOnePartyGivesUp()
         {
-            if (MyProgress.PReadyToAbandon ^ MyProgress.DReadyToAbandon)
+            // DEBUG -- must collapse this too
+            if (LitigGameProgress.PReadyToAbandon ^ LitigGameProgress.DReadyToAbandon)
             {
                 // exactly one party gives up
-                MyProgress.PAbandons = MyProgress.PReadyToAbandon;
-                MyProgress.DDefaults = MyProgress.DReadyToAbandon;
-                MyProgress.TrialOccurs = false;
-                MyProgress.GameComplete = true;
-                MyProgress.BargainingRoundsComplete++;
+                LitigGameProgress.PAbandons = LitigGameProgress.PReadyToAbandon;
+                LitigGameProgress.DDefaults = LitigGameProgress.DReadyToAbandon;
+                LitigGameProgress.TrialOccurs = false;
+                LitigGameProgress.GameComplete = true;
+                LitigGameProgress.BargainingRoundsComplete++; // we won't get to PostBargainingRound
             }
         }
 
@@ -186,15 +248,15 @@ namespace ACESim
         private double GetOfferBasedOnAction(byte action, bool plaintiffOffer, bool includeEndpoints)
         {
             double offer;
-            if (MyProgress.BargainingRoundsComplete == 0 || !MyDefinition.Options.DeltaOffersOptions.SubsequentOffersAreDeltas)
+            if (LitigGameProgress.BargainingRoundsComplete == 0 || !LitigGameDefinition.Options.DeltaOffersOptions.SubsequentOffersAreDeltas)
                 offer = ConvertActionToUniformDistributionDraw(action, includeEndpoints);
             else
             {
-                double? previousOffer = plaintiffOffer ? MyProgress.PLastOffer : MyProgress.DLastOffer;
+                double? previousOffer = plaintiffOffer ? LitigGameProgress.PLastOffer : LitigGameProgress.DLastOffer;
                 if (previousOffer == null)
                     offer = ConvertActionToUniformDistributionDraw(action, includeEndpoints);
                 else
-                    offer = MyDefinition.Options.DeltaOffersCalculation.GetOfferValue((double) previousOffer, action);
+                    offer = LitigGameDefinition.Options.DeltaOffersCalculation.GetOfferValue((double) previousOffer, action);
             }
             return offer;
         }
@@ -414,7 +476,7 @@ namespace ACESim
 
         public override void FinalProcessing()
         {
-            MyProgress.CalculateGameOutcome();
+            LitigGameProgress.CalculateGameOutcome();
 
             base.FinalProcessing();
         }

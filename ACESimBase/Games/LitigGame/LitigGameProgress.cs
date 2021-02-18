@@ -69,6 +69,8 @@ namespace ACESim
         public List<double> POfferMixedness;
         public List<double> DOfferMixedness;
 
+        public List<(LitigGameProgress completedGame, double weight)> AlternativeEndings;
+
         public object lockObj = new object();
 
         public LitigGameProgress_PostGameInfo _PostGameInfo;
@@ -145,7 +147,7 @@ namespace ACESim
             if (CaseSettles)
                 {
                     SetSettlementValue(playersMovingSimultaneously, pGoesFirstIfNotSimultaneous);
-                    BargainingRoundsComplete++;
+                    BargainingRoundsComplete++; // we won't get to PostBargainingRound
                 GameComplete = true;
             }
             else
@@ -326,6 +328,8 @@ namespace ACESim
             if (DOfferMixedness != null)
                 copy.DOfferMixedness = DOfferMixedness.ToList();
 
+            copy.AlternativeEndings = AlternativeEndings?.Select(x => (x.completedGame.DeepCopy(), x.weight))?.ToList();
+
             // We don't need to copy the PostGameInfo, because that's automatically created
 
             return copy;
@@ -421,7 +425,7 @@ namespace ACESim
             BothReadyToGiveUp = true;
             PAbandons = action == 1;
             DDefaults = !PAbandons;
-            BargainingRoundsComplete++;
+            BargainingRoundsComplete++; // we won't get to PostBargainingRound
             GameComplete = true;
         }
 
@@ -471,9 +475,11 @@ namespace ACESim
         public void CourtReceivesDamagesSignal(byte action, LitigGameDefinition gameDefinition)
         {
             CDamagesSignalDiscrete = action;
-            double damagesProportion = LitigGame.ConvertActionToUniformDistributionDraw(action, gameDefinition.Options.NumDamagesSignals, true);
+            double damagesProportion;
             if (gameDefinition.Options.NumDamagesSignals == 1)
                 damagesProportion = 1.0;
+            else
+                damagesProportion = LitigGame.ConvertActionToUniformDistributionDraw(action, gameDefinition.Options.NumDamagesSignals, true);
             DamagesAwarded = (double)(gameDefinition.Options.DamagesMin + (gameDefinition.Options.DamagesMax - gameDefinition.Options.DamagesMin) * damagesProportion);
             GameComplete = true;
         }
@@ -482,25 +488,42 @@ namespace ACESim
         {
             LitigGameDefinition gameDefinition = (LitigGameDefinition)GameDefinition;
             LitigGameOptions options = LitigGameDefinition.Options;
-            var outcome = LitigGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, gameDefinition.Options.PInitialWealth, gameDefinition.Options.DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, SettlementValue, PWinsAtTrial, WinIsByLargeMargin, DamagesAwarded, BargainingRoundsComplete, PFinalWealthWithBestOffer, DFinalWealthWithBestOffer, POffers, PResponses, DOffers, DResponses);
-            DisputeArises = options.LitigGameDisputeGenerator.PotentialDisputeArises(gameDefinition, DisputeGeneratorActions);
-            PChangeWealth = outcome.PChangeWealth;
-            DChangeWealth = outcome.DChangeWealth;
-            PFinalWealth = outcome.PFinalWealth;
-            DFinalWealth = outcome.DFinalWealth;
-            PWelfare = outcome.PWelfare;
-            DWelfare = outcome.DWelfare;
-            TrialOccurs = outcome.TrialOccurs;
-            NumChips = outcome.NumChips;
 
-            if (options.InvertChanceDecisions)
-                (IsTrulyLiable, LiabilityStrengthDiscrete, DamagesStrengthDiscrete) = options.LitigGameDisputeGenerator.InvertedCalculations_WorkBackwardsFromSignals(options.NumLiabilitySignals == 1 ? 1 : PLiabilitySignalDiscrete, options.NumLiabilitySignals == 1 ? 1 : DLiabilitySignalDiscrete, options.NumLiabilitySignals == 1 ? 1 : CLiabilitySignalDiscrete, options.NumDamagesSignals == 1 ? 1 : PDamagesSignalDiscrete, options.NumDamagesSignals == 1 ? 1 : DDamagesSignalDiscrete, options.NumDamagesSignals == 1 ? 1 : CDamagesSignalDiscrete, IterationID.IterationNumIntUnchecked);
+            if (AlternativeEndings == null)
+            {
+                LitigGame.LitigGameOutcome outcome = LitigGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, gameDefinition.Options.PInitialWealth, gameDefinition.Options.DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, SettlementValue, PWinsAtTrial, WinIsByLargeMargin, DamagesAwarded, BargainingRoundsComplete, PFinalWealthWithBestOffer, DFinalWealthWithBestOffer, POffers, PResponses, DOffers, DResponses);
+                DisputeArises = options.LitigGameDisputeGenerator.PotentialDisputeArises(gameDefinition, DisputeGeneratorActions);
+                PChangeWealth = outcome.PChangeWealth;
+                DChangeWealth = outcome.DChangeWealth;
+                PFinalWealth = outcome.PFinalWealth;
+                DFinalWealth = outcome.DFinalWealth;
+                PWelfare = outcome.PWelfare;
+                DWelfare = outcome.DWelfare;
+                TrialOccurs = outcome.TrialOccurs;
+                NumChips = outcome.NumChips;
+
+                if (options.CollapseChanceDecisions)
+                    (IsTrulyLiable, LiabilityStrengthDiscrete, DamagesStrengthDiscrete) = options.LitigGameDisputeGenerator.InvertedCalculations_WorkBackwardsFromSignals(options.NumLiabilitySignals == 1 ? 1 : PLiabilitySignalDiscrete, options.NumLiabilitySignals == 1 ? 1 : DLiabilitySignalDiscrete, options.NumLiabilitySignals == 1 ? 1 : CLiabilitySignalDiscrete, options.NumDamagesSignals == 1 ? 1 : PDamagesSignalDiscrete, options.NumDamagesSignals == 1 ? 1 : DDamagesSignalDiscrete, options.NumDamagesSignals == 1 ? 1 : CDamagesSignalDiscrete, IterationID.IterationNumIntUnchecked);
+            }
+            else
+            {
+                DisputeArises = true;
+                TrialOccurs = true;
+                double AggregateAlternativeEndings(Func<LitigGameProgress, double> valueToAverageFunc) => AlternativeEndings.Aggregate((double)0, (weightedSum, ending) => weightedSum + ending.weight * valueToAverageFunc(ending.completedGame));
+                // note that we're averaging changes in wealth, but that is irrelevant to outcome if the party is risk averse, since we are also averaging welfare directly. That's the ultimate point -- we can collapse chance decisions by producing a weighted average of utility.
+                PChangeWealth = AggregateAlternativeEndings(prog => prog.PChangeWealth);
+                DChangeWealth = AggregateAlternativeEndings(prog => prog.DChangeWealth);
+                PFinalWealth = AggregateAlternativeEndings(prog => prog.PFinalWealth);
+                PFinalWealth = AggregateAlternativeEndings(prog => prog.PFinalWealth);
+                PWelfare = AggregateAlternativeEndings(prog => prog.PWelfare);
+                DWelfare = AggregateAlternativeEndings(prog => prog.DWelfare);
+            }
         }
 
         public void CalculatePostGameInfo()
         {
             LitigGameOptions o = LitigGameDefinition.Options;
-            if (!o.InvertChanceDecisions)
+            if (!o.CollapseChanceDecisions)
             {
                 if (!o.LitigGameDisputeGenerator.PotentialDisputeArises(LitigGameDefinition, DisputeGeneratorActions))
                     IsTrulyLiable = false;
@@ -556,11 +579,20 @@ namespace ACESim
         {
             CalculateGameOutcome();
         }
+
+
         public override List<(GameProgress progress, double weight)> InvertedCalculations_GenerateAllConsistentGameProgresses(double initialWeight)
         {
-            var o = LitigGameOptions;
-            var multiplied = o.LitigGameDisputeGenerator.InvertedCalculations_GenerateAllConsistentGameProgresses(o.NumLiabilitySignals == 1 ? 1 : PLiabilitySignalDiscrete, o.NumLiabilitySignals == 1 ? 1 : DLiabilitySignalDiscrete, o.NumLiabilitySignals == 1 ? 1 : CLiabilitySignalDiscrete, o.NumDamagesSignals == 1 ? 1 : PDamagesSignalDiscrete, o.NumDamagesSignals == 1 ? 1 : DDamagesSignalDiscrete, o.NumDamagesSignals == 1 ? 1 : CDamagesSignalDiscrete, this);
-            var results = multiplied.Select(x => (x.progress, x.weight * initialWeight)).ToList();
+            List<(GameProgress progress, double weight)> results = new List<(GameProgress progress, double weight)>();
+            var possibleCurrentStates = AlternativeEndings ?? new List<(LitigGameProgress completedGame, double weight)>() { (this, 1.0) };
+            foreach (var currentState in possibleCurrentStates)
+            {
+                var p = currentState.completedGame;
+                var o = LitigGameOptions;
+                var consistentGameProgresses = o.LitigGameDisputeGenerator.InvertedCalculations_GenerateAllConsistentGameProgresses(o.NumLiabilitySignals == 1 ? 1 : p.PLiabilitySignalDiscrete, o.NumLiabilitySignals == 1 ? 1 : p.DLiabilitySignalDiscrete, o.NumLiabilitySignals == 1 ? 1 : p.CLiabilitySignalDiscrete, o.NumDamagesSignals == 1 ? 1 : p.PDamagesSignalDiscrete, o.NumDamagesSignals == 1 ? 1 : p.DDamagesSignalDiscrete, o.NumDamagesSignals == 1 ? 1 : p.CDamagesSignalDiscrete, p);
+                var weightedConsistentGameProgress = consistentGameProgresses.Select(x => (x.progress, currentState.weight * x.weight * initialWeight)).ToList();
+                results.AddRange(weightedConsistentGameProgress);
+            }
             return results;
         }
     }

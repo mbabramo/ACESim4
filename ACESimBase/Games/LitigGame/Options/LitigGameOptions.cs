@@ -115,6 +115,10 @@ namespace ACESim
         /// If true, and AllowAbandonAndDefaults is true, then the decision whether to abandon/default is made at the beginning of the bargaining round rather than at the end of the bargaining round. This can greatly reduce the number of information sets in a one bargaining round game, at the expense of reducing the incentive to try to bluff the other player into giving up.
         /// </summary>
         public bool PredeterminedAbandonAndDefaults;
+        /// <summary>
+        /// If true, then during optimization, chance decisions at the end of the game are not fully played out to a single conclusion. Instead, a list of all possible alternative endings is created, and the outcome is the average of these. This can lead to a more compact game tree.
+        /// </summary>
+        public bool CollapseAlternativeEndings;
 
         /// <summary>
         /// A multiplier applied to all costs figures below. This makes it straightforward to change the overall level of costs without changing every option individually.
@@ -281,7 +285,7 @@ namespace ACESim
         {
             return
 $@"LitigationGame: {Name}
-InvertChanceDecisions {InvertChanceDecisions}
+InvertChanceDecisions {CollapseChanceDecisions}
 NumOffers {NumOffers} {(IncludeEndpointsForOffers ? "(Includes endpoints)" : "")}  
 NumPotentialBargainingRounds {NumPotentialBargainingRounds}  BargainingRoundsSimultaneous {BargainingRoundsSimultaneous} SimultaneousOffersUltimatelyRevealed {SimultaneousOffersUltimatelyRevealed} 
 NumLiabilityStrengthPoints {NumLiabilityStrengthPoints} NumLiabilitySignals {NumLiabilitySignals} PLiabilityNoiseStdev {PLiabilityNoiseStdev} DLiabilityNoiseStdev {DLiabilityNoiseStdev} CourtLiabilityNoiseStdev {CourtLiabilityNoiseStdev} 

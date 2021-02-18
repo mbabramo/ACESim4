@@ -158,7 +158,7 @@ namespace ACESim
         public void SetupInverted(LitigGameDefinition myGameDefinition)
         {
             var o = myGameDefinition.Options;
-            if (!o.InvertChanceDecisions)
+            if (!o.CollapseChanceDecisions)
                 return;
 
             const int numTrueLiabilityValues = 2;

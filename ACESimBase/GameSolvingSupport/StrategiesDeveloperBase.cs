@@ -2713,7 +2713,7 @@ namespace ACESim
                 if (pathProbability > 0) // probability
                 {
                     IEnumerable<(GameProgress progress, double splitWeight)> weightedProgresses = toProcess.Item1.GetGameProgressIncludingAnySplits(); // splits occur ex post after the game to transform a single outcome into multiple possible sources
-                    if (GameDefinition.GameOptions.InvertChanceDecisions && multiplyGameProgressesIfInvertingChanceDecisions)
+                    if (GameDefinition.GameOptions.CollapseChanceDecisions && multiplyGameProgressesIfInvertingChanceDecisions)
                     {
                         weightedProgresses = weightedProgresses.SelectMany(x => x.progress.InvertedCalculations_GenerateAllConsistentGameProgresses(x.splitWeight));
                     }
