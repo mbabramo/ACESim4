@@ -21,7 +21,7 @@ namespace ACESim
             for (int i = 0; i < Definition.TotalCells; i++)
                 StatCollectors[i] = new StatCollector();
         }
-
+        static double DEBUG1 = 0, DEBUG2 = 0;
         public void ProcessGameProgress(GameProgress completedGame, double weight)
         {
             int i = 0;
@@ -42,7 +42,17 @@ namespace ACESim
                         int colItemIndex = 0;
                         foreach (SimpleReportColumnItem colItem in Definition.ColumnItems)
                         {
+
                             var v = colItem.GetValueToRecord(completedGame);
+                            //if (colItem.Name == "LitigQuality" && rowFilter.Name is "Rounds1" or "All")
+                            //{
+                            //    if (rowFilter.Name == "All")
+                            //        DEBUG1 = weight * (v ?? 0);
+                            //    if (rowFilter.Name == "Rounds1")
+                            //        if (DEBUG1 != weight * (v ?? 0))
+                            //            throw new Exception();
+                            //    TabbedText.WriteLine($"DEBUG {rowFilter.Name} {weight} {v}");
+                            //}
                             bool recordThis;
                             recordThis = rowFilterSatisfied;
                             if (colItem is SimpleReportColumnFilter colFilter)

@@ -2712,7 +2712,7 @@ namespace ACESim
                 double pathProbability = toProcess.Item2;
                 if (pathProbability > 0) // probability
                 {
-                    IEnumerable<(GameProgress progress, double splitWeight)> weightedProgresses = toProcess.Item1.GetGameProgressIncludingAnySplits(); // splits occur ex post after the game to transform a single outcome into multiple possible sources
+                    IEnumerable<(GameProgress progress, double splitWeight)> weightedProgresses = toProcess.Item1.GetGameProgressIncludingAnySplits(); // splits occur ex post after the game to transform a single outcome into multiple possible sources (TODO: Get rid of this. It's redundant with GenerateAllConsistentGameProgresses, and it's only used in additive evidence game.)
                     if (GameDefinition.GameOptions.CollapseChanceDecisions && multiplyGameProgressesIfInvertingChanceDecisions)
                     {
                         weightedProgresses = weightedProgresses.SelectMany(x => x.progress.InvertedCalculations_GenerateAllConsistentGameProgresses(x.splitWeight));

@@ -590,6 +590,8 @@ namespace ACESim
                 var p = currentState.completedGame;
                 var o = LitigGameOptions;
                 var consistentGameProgresses = o.LitigGameDisputeGenerator.InvertedCalculations_GenerateAllConsistentGameProgresses(o.NumLiabilitySignals == 1 ? 1 : p.PLiabilitySignalDiscrete, o.NumLiabilitySignals == 1 ? 1 : p.DLiabilitySignalDiscrete, o.NumLiabilitySignals == 1 ? 1 : p.CLiabilitySignalDiscrete, o.NumDamagesSignals == 1 ? 1 : p.PDamagesSignalDiscrete, o.NumDamagesSignals == 1 ? 1 : p.DDamagesSignalDiscrete, o.NumDamagesSignals == 1 ? 1 : p.CDamagesSignalDiscrete, p);
+                //if (consistentGameProgresses.Any(x => ((LitigGameProgress)x.progress).BargainingRoundsComplete > 1))
+                //    throw new Exception(); // DEBUG
                 var weightedConsistentGameProgress = consistentGameProgresses.Select(x => (x.progress, currentState.weight * x.weight * initialWeight)).ToList();
                 results.AddRange(weightedConsistentGameProgress);
             }
