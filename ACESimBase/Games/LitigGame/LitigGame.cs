@@ -132,12 +132,7 @@ namespace ACESim
                 case (byte)LitigGameDecisions.MutualGiveUp:
                     if (!MyProgress.GameComplete)
                     {
-                        // both trying to give up simultaneously! revise with a coin flip
-                        MyProgress.BothReadyToGiveUp = true;
-                        MyProgress.PAbandons = action == 1;
-                        MyProgress.DDefaults = !MyProgress.PAbandons;
-                        MyProgress.BargainingRoundsComplete++;
-                        MyProgress.GameComplete = true;
+                        MyProgress.ResolveMutualGiveUp(action);
                     }
                     break;
                 case (byte)LitigGameDecisions.PostBargainingRound:
@@ -150,59 +145,17 @@ namespace ACESim
                     MyDefinition.Options.LitigGamePretrialDecisionGeneratorGenerator.ProcessAction(MyDefinition, MyProgress, false, action);
                     break;
                 case (byte)LitigGameDecisions.CourtDecisionLiability:
-                    MyProgress.CLiabilitySignalDiscrete = action;
-                    MyProgress.TrialOccurs = true;
-                    MyProgress.PWinsAtTrial = false;
-                    if (MyDefinition.Options.NumLiabilitySignals == 1)
-                        MyProgress.PWinsAtTrial = true; /* IMPORTANT: This highlights that when there is only one liability signal, the court ALWAYS finds liability */
-                    else
-                    {
-                        if (MyDefinition.Options.LoserPays && MyDefinition.Options.LoserPaysOnlyLargeMarginOfVictory)
-                        {
-                            MyProgress.PWinsAtTrial = action > (MyDefinition.Options.NumCourtLiabilitySignals + 1.0) / 2.0; // e.g., If we have four signals, then we need to be a 3 or 4, not a 1 or 2, when action is one-based (comparison will be to 2.5)
-                            //if there were an odd number (not currently allowed)
-                            //    MyProgress.PWinsAtTrial = action > (MyDefinition.Options.NumCourtLiabilitySignals + 1) / 2; // e.g., if we have three signals, then we need the one-based action to be greater than 4 / 2 = 2, because the midpoint (2) is not enough. If we have four signals, then we need to be a 3 or 4, not a 1 or 2, when action is one-based
-                            double courtLiabilitySignal = Game.ConvertActionToUniformDistributionDraw(action, MyDefinition.Options.NumCourtLiabilitySignals, false);
-                            if (MyProgress.PWinsAtTrial)
-                            {
-                                MyProgress.WinIsByLargeMargin = courtLiabilitySignal >= MyDefinition.Options.LoserPaysMarginOfVictoryThreshold;
-                            }
-                            else if (MyProgress.DWinsAtTrial)
-                            {
-                                MyProgress.WinIsByLargeMargin = courtLiabilitySignal <= 1.0 - MyDefinition.Options.LoserPaysMarginOfVictoryThreshold;
-                            }
-                        }
-                        else
-                            MyProgress.PWinsAtTrial = action == 2 /* signal must be the HIGH value for plaintiff to win */;
-                    }
-                    if (MyProgress.PWinsAtTrial == false)
-                    {
-                        MyProgress.DamagesAwarded = 0;
-                        MyProgress.GameComplete = true;
-                    }
-                    else
-                    {
-                        bool courtWouldDecideDamages = MyDefinition.Options.NumDamagesStrengthPoints > 1;
-                        if (!courtWouldDecideDamages)
-                        {
-                            MyProgress.DamagesAwarded = (double)MyDefinition.Options.DamagesMax;
-                            MyProgress.GameComplete = true;
-                        }
-                    }
+                    MyProgress.CourtReceivesLiabilitySignal(action, MyDefinition);
                     //System.Diagnostics.TabbedText.WriteLine($"Quality {MyProgress.LiabilityStrengthUniform} Court noise action {action} => {courtNoiseNormalDraw} => signal {courtLiabilitySignal} PWins {MyProgress.PWinsAtTrial}");
                     break;
                 case (byte)LitigGameDecisions.CourtDecisionDamages:
-                    MyProgress.CDamagesSignalDiscrete = action;
-                    double damagesProportion = ConvertActionToUniformDistributionDraw(action, true);
-                    if (MyDefinition.Options.NumDamagesSignals == 1)
-                        damagesProportion = 1.0;
-                    MyProgress.DamagesAwarded = (double) (MyDefinition.Options.DamagesMin + (MyDefinition.Options.DamagesMax - MyDefinition.Options.DamagesMin) * damagesProportion);
-                    MyProgress.GameComplete = true;
+                    MyProgress.CourtReceivesDamagesSignal(action, MyDefinition);
                     break;
                 default:
                     throw new NotImplementedException();
             }
         }
+
 
         private void ConcludeMainPortionOfBargainingRound()
         {

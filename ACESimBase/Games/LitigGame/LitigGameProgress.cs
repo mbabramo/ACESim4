@@ -415,6 +415,69 @@ namespace ACESim
             }
         }
 
+        public void ResolveMutualGiveUp(byte action)
+        {
+            // both trying to give up simultaneously! revise with a coin flip
+            BothReadyToGiveUp = true;
+            PAbandons = action == 1;
+            DDefaults = !PAbandons;
+            BargainingRoundsComplete++;
+            GameComplete = true;
+        }
+
+        public void CourtReceivesLiabilitySignal(byte action, LitigGameDefinition gameDefinition)
+        {
+            CLiabilitySignalDiscrete = action;
+            TrialOccurs = true;
+            PWinsAtTrial = false;
+            if (gameDefinition.Options.NumLiabilitySignals == 1)
+                PWinsAtTrial = true; /* IMPORTANT: This highlights that when there is only one liability signal, the court ALWAYS finds liability */
+            else
+            {
+                if (gameDefinition.Options.LoserPays && gameDefinition.Options.LoserPaysOnlyLargeMarginOfVictory)
+                {
+                    PWinsAtTrial = action > (gameDefinition.Options.NumCourtLiabilitySignals + 1.0) / 2.0; // e.g., If we have four signals, then we need to be a 3 or 4, not a 1 or 2, when action is one-based (comparison will be to 2.5)
+                                                                                                                    //if there were an odd number (not currently allowed)
+                                                                                                                    //    PWinsAtTrial = action > (MyDefinition.Options.NumCourtLiabilitySignals + 1) / 2; // e.g., if we have three signals, then we need the one-based action to be greater than 4 / 2 = 2, because the midpoint (2) is not enough. If we have four signals, then we need to be a 3 or 4, not a 1 or 2, when action is one-based
+                    double courtLiabilitySignal = Game.ConvertActionToUniformDistributionDraw(action, gameDefinition.Options.NumCourtLiabilitySignals, false);
+                    if (PWinsAtTrial)
+                    {
+                        WinIsByLargeMargin = courtLiabilitySignal >= gameDefinition.Options.LoserPaysMarginOfVictoryThreshold;
+                    }
+                    else if (DWinsAtTrial)
+                    {
+                        WinIsByLargeMargin = courtLiabilitySignal <= 1.0 - gameDefinition.Options.LoserPaysMarginOfVictoryThreshold;
+                    }
+                }
+                else
+                    PWinsAtTrial = action == 2 /* signal must be the HIGH value for plaintiff to win */;
+            }
+            if (PWinsAtTrial == false)
+            {
+                DamagesAwarded = 0;
+                GameComplete = true;
+            }
+            else
+            {
+                bool courtWouldDecideDamages = gameDefinition.Options.NumDamagesStrengthPoints > 1;
+                if (!courtWouldDecideDamages)
+                {
+                    DamagesAwarded = (double)gameDefinition.Options.DamagesMax;
+                    GameComplete = true;
+                }
+            }
+        }
+
+        public void CourtReceivesDamagesSignal(byte action, LitigGameDefinition gameDefinition)
+        {
+            CDamagesSignalDiscrete = action;
+            double damagesProportion = LitigGame.ConvertActionToUniformDistributionDraw(action, gameDefinition.Options.NumDamagesSignals, true);
+            if (gameDefinition.Options.NumDamagesSignals == 1)
+                damagesProportion = 1.0;
+            DamagesAwarded = (double)(gameDefinition.Options.DamagesMin + (gameDefinition.Options.DamagesMax - gameDefinition.Options.DamagesMin) * damagesProportion);
+            GameComplete = true;
+        }
+
         public void CalculateGameOutcome()
         {
             LitigGameDefinition gameDefinition = (LitigGameDefinition)GameDefinition;
