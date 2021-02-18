@@ -35,8 +35,7 @@ namespace ACESim
                 if (metaFilterSatisfied)
                 {
                     double[,] results = new double[rowFiltersCount, columnItemsCount];
-                    Br.eak.Add("DEBUG2");
-                    // TODO: Restore parallelism. There seemed to be a bug (2/18/2021) with parallelism when using it in conjunction with GetConsistentGameProgresses().
+                    // TODO: Restore parallelism. There seemed to be a bug (2/18/2021) with parallelism when using it, possibly because it is in conjunction with GetConsistentGameProgresses().
                     for (int rowFilterIndex = 0; rowFilterIndex < rowFiltersCount; rowFilterIndex++) 
                     //Parallel.For(0, rowFiltersCount, rowFilterIndex =>
                     {

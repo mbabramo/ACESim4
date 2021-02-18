@@ -391,12 +391,12 @@ namespace ACESim
             var options = BaseOptions();
 
             options.CollapseChanceDecisions = true;
-            options.CollapseAlternativeEndings = false; // DEBUG
+            options.CollapseAlternativeEndings = true;
 
             options.IncludeSignalsReport = false;
             options.IncludeCourtSuccessReport = false;
 
-            bool simplestCase = false; // DEBUG
+            bool simplestCase = false;
             if (simplestCase)
             {
                 options.NumOffers = 2;
@@ -406,8 +406,8 @@ namespace ACESim
             else
             {
                 options.NumOffers = 10;
-                options.NumLiabilityStrengthPoints = 10; // DEBUG 5;
-                options.NumLiabilitySignals = 10; // DEBUG 5;
+                options.NumLiabilityStrengthPoints = 5;
+                options.NumLiabilitySignals = 5;
             }
 
             options.NumDamagesSignals = 1;

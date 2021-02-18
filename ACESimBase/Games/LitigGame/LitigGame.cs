@@ -247,7 +247,6 @@ namespace ACESim
 
         private void CheckOnePartyGivesUp()
         {
-            // DEBUG -- must collapse this too
             if (LitigGameProgress.PReadyToAbandon ^ LitigGameProgress.DReadyToDefault)
             {
                 // exactly one party gives up
