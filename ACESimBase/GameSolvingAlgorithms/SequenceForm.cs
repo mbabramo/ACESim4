@@ -86,7 +86,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 {
                     // Suppose our target is 100 equilibria, and we've found 1 with a frequency of 10. 
                     int numPriorsToGet = EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria - equilibria.Sum(x => x.frequency);
-                    TabbedText.WriteLine($"Resorting to exact arithmetic for up to {numPriorsToGet} random priors");
+                    TabbedText.WriteLine($"Using exact arithmetic for up to {numPriorsToGet} additional random priors");
                     additionalEquilibria = DetermineEquilibria<ExactValue>(numPriorsToGet);
                     equilibria.AddRange(additionalEquilibria);
                 }
