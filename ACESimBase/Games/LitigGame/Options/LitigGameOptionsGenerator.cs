@@ -405,7 +405,7 @@ namespace ACESim
             }
             else
             {
-                options.NumOffers = 5; // DEBUG
+                options.NumOffers = 10;
                 options.NumLiabilityStrengthPoints = 5;
                 options.NumLiabilitySignals = 5;
             }
