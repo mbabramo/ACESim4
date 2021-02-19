@@ -125,7 +125,7 @@ namespace LitigCharts
             List<string> rowsToGet = new List<string> { "All", "Not Litigated", "Litigated", "Settles", "Tried", "P Loses", "P Wins", "Truly Liable", "Truly Not Liable" };
             List<string> replacementRowNames = new List<string> { "All", "Not Litigated", "Litigated", "Settles", "Tried", "P Loses", "P Wins", "Truly Liable", "Truly Not Liable" };
             List<string> columnsToGet = new List<string> { "Exploit", "PFiles", "DAnswers", "POffer1", "DOffer1", "Trial", "PWinPct", "PWealth", "DWealth", "PWelfare", "DWelfare", "TotExpense", "False+", "False-", "ValIfSettled", "PDoesntFile", "DDoesntAnswer", "SettlesBR1", "PAbandonsBR1", "DDefaultsBR1", "P Loses", "P Wins" };
-            List<string> replacementColumnNames = new List<string> { "Exploitability", "P Files", "D Answers", "P Offer", "D Offer", "Trial", "P Win Prob", "P Wealth", "D Wealth", "P Welfare", "D Welfare", "Expenditures", "False Positive Inaccuracy", "False Negative Inaccuracy", "Value If Settled", "No Suit", "No Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins" };
+            List<string> replacementColumnNames = new List<string> { "Exploitability", "P Files", "D Answers", "P Offer", "D Offer", "Trial", "P Win Probability", "P Wealth", "D Wealth", "P Welfare", "D Welfare", "Expenditures", "False Positive Inaccuracy", "False Negative Inaccuracy", "Value If Settled", "No Suit", "No Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins" };
             BuildReport(rowsToGet, replacementRowNames, columnsToGet, replacementColumnNames, "output");
         }
 
@@ -143,7 +143,7 @@ namespace LitigCharts
             var pOfferColumns = columns.Where(x => x.Name.StartsWith("P1")).Select(x => x.Name).ToList();
             var pOfferColumnsReplacement = Enumerable.Range(0, pOfferColumns.Count()).Select(x => $"P Offer Level {x + 1}");
 
-            report = reportDefinitions.Skip(2).First(); 
+            report = reportDefinitions.Skip(2).First();
             rows = report.RowFilters;
             columns = report.ColumnItems;
             var dSignalRows = rows.Where(x => x.Name.StartsWith("Round 1 D 1 DLiabilitySignal ")).Select(x => x.Name).ToList();
@@ -216,7 +216,7 @@ namespace LitigCharts
             return launcher.GetFeeShiftingArticleGamesSets(false, true).SelectMany(x => x).ToList();
         }
 
-        private static List<List<string>> GetCSVLines(List<LitigGameOptions> gameOptionsSets, Dictionary<string, string> map, List<string> rowsToGet, List<string> replacementRowNames,  string filePrefix, string fileSuffix, string path, bool includeHeader, List<string> columnsToGet, List<string> replacementColumnNames)
+        private static List<List<string>> GetCSVLines(List<LitigGameOptions> gameOptionsSets, Dictionary<string, string> map, List<string> rowsToGet, List<string> replacementRowNames, string filePrefix, string fileSuffix, string path, bool includeHeader, List<string> columnsToGet, List<string> replacementColumnNames)
         {
 
             // Set the following on opening the first file
@@ -405,7 +405,7 @@ namespace LitigCharts
             return filesInFolder;
         }
 
-        public static void ExampleLatexDiagramsAggregatingReports(bool isStacked=true)
+        public static void ExampleLatexDiagramsAggregatingReports(bool isStacked = true)
         {
 
             var lineScheme = new List<string>()
@@ -427,7 +427,7 @@ namespace LitigCharts
             int numMiniGraphYValues = 10;
             int numMacroGraphXValues = 6;
             int numMacroGraphYValues = 4;
-            List<double?> getMiniGraphData() => Enumerable.Range(0, numMiniGraphXValues).Select(x => (double?) ran.NextDouble()).ToList();
+            List<double?> getMiniGraphData() => Enumerable.Range(0, numMiniGraphXValues).Select(x => (double?)ran.NextDouble()).ToList();
             List<List<double?>> getMiniGraph() => Enumerable.Range(0, numMiniGraphDataSeries).Select(x => getMiniGraphData()).ToList();
             List<List<double?>> getMiniGraphAdjusted()
             {
@@ -484,7 +484,7 @@ namespace LitigCharts
 \tikzset{{fontscale/.style = {{font=\relsize{{#1}}}}}}");
         }
 
-        public record AggregatedGraphInfo(string topicName, List<string> columnsToGet, List<string> lineScheme, string minorXAxisLabel="Fee Shifting Multiplier", string minorYAxisLabel="\\$", string majorYAxisLabel="Costs Multiplier", double? maximumValueMicroY = null, bool isStacked=false);
+        public record AggregatedGraphInfo(string topicName, List<string> columnsToGet, List<string> lineScheme, string minorXAxisLabel = "Fee Shifting Multiplier", string minorYAxisLabel = "\\$", string majorYAxisLabel = "Costs Multiplier", double? maximumValueMicroY = null, bool isStacked = false);
 
         public static void ProduceLatexDiagramsAggregatingReports()
         {
@@ -503,40 +503,46 @@ namespace LitigCharts
             string masterReportName = launcher.MasterReportNameForDistributedProcessing;
             List<(List<LitigGameOptions> theSet, string setName)> setsWithNames = sets.Zip(setNames, (s, sn) => (s, sn)).ToList();
 
-            List<LitigGameLauncher.FeeShiftingArticleVariationSetInfo> variations = launcher.GetFeeShiftingArticleVariationInfoList();
-
-            var plaintiffDefendantAndOthersLineScheme = new List<string>()
+            foreach (bool useRiskAversionForNonRiskReports in new bool[] { false, true })
             {
-              "blue, opacity=0.70, line width=0.5mm, double",
-              "orange, opacity=0.70, line width=1mm, dashed",
-              "green, opacity=0.70, line width=1mm, solid",
-            };
 
-            var dispositionLineScheme = new List<string>()
-            {
-              "violet, line width=3mm, solid",
-              "magenta, line width=2.5mm, dashed",
-              "blue, line width=1mm, double",
-              "green, line width=1.5mm, densely dotted",
-              "yellow, line width=1.5mm, dotted",
-              "orange, line width=1mm, solid",
-              "red, line width=0.5mm, densely dashed",
-            };
+                List<LitigGameLauncher.FeeShiftingArticleVariationSetInfo> variations = launcher.GetFeeShiftingArticleVariationInfoList(useRiskAversionForNonRiskReports);
+
+                var plaintiffDefendantAndOthersLineScheme = new List<string>()
+                {
+                  "blue, opacity=0.70, line width=0.5mm, double",
+                  "orange, opacity=0.70, line width=1mm, dashed",
+                  "green, opacity=0.70, line width=1mm, solid",
+                };
+
+                var dispositionLineScheme = new List<string>()
+                {
+                  "violet, line width=3mm, solid",
+                  "magenta, line width=2.5mm, dashed",
+                  "blue, line width=1mm, double",
+                  "green, line width=1.5mm, densely dotted",
+                  "yellow, line width=1.5mm, dotted",
+                  "orange, line width=1mm, solid",
+                  "red, line width=0.5mm, densely dashed",
+                };
 
 
-            List<AggregatedGraphInfo> welfareMeasureColumns = new List<AggregatedGraphInfo>()
-            {
-                new AggregatedGraphInfo("Accuracy and Expenditures", new List<string>() { "False Negative Inaccuracy", "False Positive Inaccuracy",  "Expenditures" }, plaintiffDefendantAndOthersLineScheme.ToList()),
-                new AggregatedGraphInfo("Accuracy", new List<string>() { "False Positive Inaccuracy", "False Negative Inaccuracy" }, plaintiffDefendantAndOthersLineScheme.Take(2).ToList()),
-                new AggregatedGraphInfo("Expenditures", new List<string>() { "Expenditures" }, plaintiffDefendantAndOthersLineScheme.Skip(2).Take(1).ToList()),
-                new AggregatedGraphInfo("Offers", new List<string>() { "P Offer", "D Offer" }, plaintiffDefendantAndOthersLineScheme.Take(2).ToList()),
-                new AggregatedGraphInfo("Trial", new List<string>() { "Trial" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0),
-                new AggregatedGraphInfo("Trial Outcomes", new List<string>() { "P Win Probability" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0),
-                new AggregatedGraphInfo("Disposition", new List<string>() {"No Suit", "No Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins"}, dispositionLineScheme, minorYAxisLabel:"Proportion", maximumValueMicroY: 1.0, isStacked:true)
-            };
-            foreach (var welfareMeasureInfo in welfareMeasureColumns)
-            {
-                ProcessForWelfareMeasure(launcher, pathAndFilename, outputFolderPath, variations, welfareMeasureInfo);
+                string riskAversionString = useRiskAversionForNonRiskReports ? " (Risk Averse)" : "";
+                List<AggregatedGraphInfo> welfareMeasureColumns = new List<AggregatedGraphInfo>()
+                {
+                    new AggregatedGraphInfo($"Accuracy and Expenditures{riskAversionString}", new List<string>() { "False Negative Inaccuracy", "False Positive Inaccuracy",  "Expenditures" }, plaintiffDefendantAndOthersLineScheme.ToList()),
+                    new AggregatedGraphInfo($"Accuracy{riskAversionString}", new List<string>() { "False Positive Inaccuracy", "False Negative Inaccuracy" }, plaintiffDefendantAndOthersLineScheme.Take(2).ToList()),
+                    new AggregatedGraphInfo($"Expenditures{riskAversionString}", new List<string>() { "Expenditures" }, plaintiffDefendantAndOthersLineScheme.Skip(2).Take(1).ToList()),
+                    new AggregatedGraphInfo($"Offers{riskAversionString}", new List<string>() { "P Offer", "D Offer" }, plaintiffDefendantAndOthersLineScheme.Take(2).ToList()),
+                    new AggregatedGraphInfo($"Trial{riskAversionString}", new List<string>() { "Trial" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0),
+                    new AggregatedGraphInfo($"Trial Outcomes{riskAversionString}", new List<string>() { "P Win Probability" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0),
+                    new AggregatedGraphInfo($"Disposition{riskAversionString}", new List<string>() {"No Suit", "No Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins"}, dispositionLineScheme, minorYAxisLabel:"Proportion", maximumValueMicroY: 1.0, isStacked:true)
+                };
+
+                foreach (var welfareMeasureInfo in welfareMeasureColumns)
+                {
+                    ProcessForWelfareMeasure(launcher, pathAndFilename, outputFolderPath, variations, welfareMeasureInfo);
+                }
             }
 
             WaitForProcessesToFinish();
@@ -551,7 +557,7 @@ namespace LitigCharts
             int collectedValuesIndex = 0;
             foreach (bool stepDefiningRowsToFind in new bool[] { true, false })
             {
-                foreach (string equilibriumType in new string[] { "Correlated", "Average", "First" }) 
+                foreach (string equilibriumType in new string[] { "Correlated", "Average", "First" })
                 {
                     string eqAbbreviation = equilibriumType switch { "Correlated" => "-Corr", "Average" => "-Avg", "First" => "-Eq1", _ => throw new NotImplementedException() };
                     foreach (var variation in variations)
@@ -629,7 +635,7 @@ namespace LitigCharts
             }
             else
                 maximumValueMicroY = presetMax;
-            
+
             double RoundUp(double input, int places)
             {
                 double multiplier = Math.Pow(10, Convert.ToDouble(places));

@@ -136,7 +136,7 @@ namespace ACESim
 
         private static bool MeetsRowRequirement(CsvReader csv, string columnName, string expectedText)
         {
-            return csv.GetField<string>(columnName) == expectedText;
+            return csv.GetField<string>(columnName).ToUpper() == expectedText.ToUpper();
         }
         private static bool MeetsRowRequirements(CsvReader csv, (string columnName, string expectedText)[] requirements) => requirements.All(r => MeetsRowRequirement(csv, r.columnName, r.expectedText));
 
