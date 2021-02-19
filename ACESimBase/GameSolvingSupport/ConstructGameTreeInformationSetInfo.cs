@@ -37,7 +37,7 @@ namespace ACESimBase.GameSolvingSupport
         {
         }
 
-        public record ParentInfo(string name, int action);
+        public record ParentInfo(string name, int action, bool indented);
 
         public void PrintTree(List<Decision> decisions)
         {
@@ -52,35 +52,48 @@ namespace ACESimBase.GameSolvingSupport
                     parentInfoStack.Push(parentInfo);
                 }
 
-                TabbedText.TabIndent();
                 IAnyNode gameNode = gamePointNode.anyNode;
                 double[] values = gameNode.GetNodeValues();
                 if (gameNode.IsUtilitiesNode)
                 {
+                    TabbedText.TabIndent();
+                    if (parentInfo != null)
+                        TabbedText.WriteLine($"--- {parentInfo.name}: {parentInfo.action} -->");
                     TabbedText.WriteLine("Utilities: " + String.Join(",", values));
+                    parentInfoStack.Push(new ParentInfo(gameNode.ToString(), 0, true)); // must push, so we can pop later, even though this won't be printed
                 }
                 else
                 {
-                    if (parentInfo != null) 
-                        TabbedText.WriteLine($"--- {parentInfo.name}: {parentInfo.action} -->");
-                    TabbedText.WriteLine($"Decision: {gameNode.Decision.Name} (Information set {gameNode.GetInformationSetNodeNumber()})");
-                    parentInfoStack.Push(new ParentInfo(gameNode.Decision.Name, 0));
-                    TabbedText.WriteLine("Value probabilities: " + String.Join(",", values));
-                    TabbedText.WriteLine($"Game point reach probability: {gamePointNode.gamePointReachProbability}");
-                    var otherMoves = GetProbabilitiesOfOtherInformationSetMoves(!gameNode.IsChanceNode, gameNode.GetInformationSetNodeNumber(), decisions);
-                    foreach (var entry in otherMoves.OrderBy(x => x.Key))
-                    {
-                        TabbedText.WriteLine($"{entry.Key}: {String.Join(",", entry.Value)}");
+                    if (values.Length == 1)
+                    { // skip this node
+                        var previous = parentInfoStack.Peek();
+                        parentInfoStack.Push(new ParentInfo(previous.name, 0, true));
                     }
-
+                    else
+                    {
+                        parentInfoStack.Push(new ParentInfo(gameNode.Decision.Name, 0, true));
+                        TabbedText.TabIndent();
+                        if (parentInfo != null)
+                            TabbedText.WriteLine($"--- {parentInfo.name}: {parentInfo.action} -->");
+                        TabbedText.WriteLine($"Decision: {gameNode.Decision.Name} (Information set {gameNode.GetInformationSetNodeNumber()})");
+                        TabbedText.WriteLine("Value probabilities: " + String.Join(",", values));
+                        TabbedText.WriteLine($"Game point reach probability: {gamePointNode.gamePointReachProbability}");
+                        var otherMoves = GetProbabilitiesOfOtherInformationSetMoves(!gameNode.IsChanceNode, gameNode.GetInformationSetNodeNumber(), decisions);
+                        foreach (var entry in otherMoves.OrderBy(x => x.Key))
+                        {
+                            TabbedText.WriteLine($"{entry.Key}: {String.Join(",", entry.Value)}");
+                        }
+                    }
                 }
             },
             (gamePointNode) =>
             {
                 IAnyNode gameNode = gamePointNode.anyNode;
+                ParentInfo parentInfo = null;
                 if (parentInfoStack.Any())
-                    parentInfoStack.Pop();
-                TabbedText.TabUnindent();
+                    parentInfo = parentInfoStack.Pop();
+                if (parentInfo?.indented == true)
+                    TabbedText.TabUnindent();
             });
         }
 

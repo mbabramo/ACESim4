@@ -396,7 +396,7 @@ namespace ACESim
             options.IncludeSignalsReport = false;
             options.IncludeCourtSuccessReport = false;
 
-            bool simplestCase = false;
+            bool simplestCase = true; // DEBUG
             if (simplestCase)
             {
                 options.NumOffers = 2;
@@ -440,7 +440,7 @@ namespace ACESim
             options.SkipFileAndAnswerDecisions = false; 
             options.NumPotentialBargainingRounds = 1;
             options.IncludeAgreementToBargainDecisions = false;
-            options.AllowAbandonAndDefaults = true;
+            options.AllowAbandonAndDefaults = false; // DEBUG true;
             options.PredeterminedAbandonAndDefaults = true;
 
             return options;

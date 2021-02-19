@@ -46,6 +46,7 @@ namespace ACESim
             if (Branches != null)
                 foreach (var branch in Branches.Where(x => x != null))
                 {
+                    //var topOfBranchString = branch.ToString().Split(Environment.NewLine).First();
                     branch.ExecuteActions(downTreeAction, upTreeAction);
                 }
             upTreeAction(StoredValue);
