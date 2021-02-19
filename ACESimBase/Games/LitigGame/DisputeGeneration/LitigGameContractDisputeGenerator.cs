@@ -19,6 +19,10 @@ namespace ACESim
         public (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("Benefit to D", "BenefitD");
         public (string name, string abbreviation) PrimaryNameAndAbbreviation => ("Take Benefit", "TakeBenefit");
         public (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("PostPrimaryChanceActions", "Post Primary");
+        public string GetActionString(byte action, byte decisionByteCode)
+        {
+            return action.ToString();
+        }
 
         // Explanation: Potential defendant has a binary choice to take a certain action that will produce some benefit for itself and a standard cost for its opponent. The postulated contractual rule is that the defendant may take the action, without paying compensation, if the benefit is at least as great as the cost; that is, the contract is written to allow actions that increase joint welfare. The litigation quality should on average be in the middle of the range when benefit is equal to cost and more favorable to the plaintiff when there is a lower benefit. However, the actual litigation quality may vary somewhat from this level, as a noise term will be added. We assume for simplicity that at the time it makes its decision, the defendant has no separate estimate of litigation quality other than the benefit that it knows that it will receive.
         // Pre-primary decision: Benefit to defendant.

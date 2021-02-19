@@ -24,6 +24,7 @@ namespace ACESimBase.GameSolvingSupport
         Stack<NWayTreeStorageInternal<GamePointNode>> ParentNodes = new Stack<NWayTreeStorageInternal<GamePointNode>>();
         Stack<double> ProbabilitiesToNode = new Stack<double>();
         byte NumNonChancePlayers = 0;
+        GameDefinition GameDefinition;
 
         public record GamePointNode(IAnyNode anyNode, double gamePointReachProbability)
         {
@@ -33,11 +34,12 @@ namespace ACESimBase.GameSolvingSupport
         {
         }
 
-        public ConstructGameTreeInformationSetInfo()
+        public ConstructGameTreeInformationSetInfo(GameDefinition gameDefinition)
         {
+            GameDefinition = gameDefinition;
         }
 
-        public record ParentInfo(string name, int action, bool indented);
+        public record ParentInfo(string name, byte decisionByteCode, byte action, bool indented);
 
         public void PrintTree(List<Decision> decisions)
         {
@@ -48,7 +50,7 @@ namespace ACESimBase.GameSolvingSupport
                 if (parentInfoStack.Any())
                 {
                     parentInfo = parentInfoStack.Pop();
-                    parentInfo = parentInfo with { action = parentInfo.action + 1 };
+                    parentInfo = parentInfo with { action = (byte) ( parentInfo.action + 1 ) };
                     parentInfoStack.Push(parentInfo);
                 }
 
@@ -58,23 +60,23 @@ namespace ACESimBase.GameSolvingSupport
                 {
                     TabbedText.TabIndent();
                     if (parentInfo != null)
-                        TabbedText.WriteLine($"--- {parentInfo.name}: {parentInfo.action} -->");
+                        TabbedText.WriteLine($"--- {parentInfo.name}: {GameDefinition.GetActionString(parentInfo.action, parentInfo.decisionByteCode)} -->");
                     TabbedText.WriteLine("Utilities: " + String.Join(",", values));
-                    parentInfoStack.Push(new ParentInfo(gameNode.ToString(), 0, true)); // must push, so we can pop later, even though this won't be printed
+                    parentInfoStack.Push(new ParentInfo(gameNode.ToString(), 255, 0, true)); // must push, so we can pop later, even though this won't be printed
                 }
                 else
                 {
                     if (values.Length == 1)
                     { // skip this node
                         var previous = parentInfoStack.Peek();
-                        parentInfoStack.Push(new ParentInfo(previous.name, 0, true));
+                        parentInfoStack.Push(new ParentInfo(previous.name, 255, 0, true));
                     }
                     else
                     {
-                        parentInfoStack.Push(new ParentInfo(gameNode.Decision.Name, 0, true));
+                        parentInfoStack.Push(new ParentInfo(gameNode.Decision.Name, gameNode.Decision.DecisionByteCode, 0, true));
                         TabbedText.TabIndent();
                         if (parentInfo != null)
-                            TabbedText.WriteLine($"--- {parentInfo.name}: {parentInfo.action} -->");
+                            TabbedText.WriteLine($"--- {parentInfo.name}: {GameDefinition.GetActionString(parentInfo.action, parentInfo.decisionByteCode)} -->");
                         TabbedText.WriteLine($"Decision: {gameNode.Decision.Name} (Information set {gameNode.GetInformationSetNodeNumber()})");
                         TabbedText.WriteLine("Value probabilities: " + String.Join(",", values));
                         TabbedText.WriteLine($"Game point reach probability: {gamePointNode.gamePointReachProbability}");
