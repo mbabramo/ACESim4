@@ -396,7 +396,7 @@ namespace ACESim
             options.IncludeSignalsReport = false;
             options.IncludeCourtSuccessReport = false;
 
-            bool simplestCase = true; // DEBUG
+            bool simplestCase = false; 
             if (simplestCase)
             {
                 options.NumOffers = 2;
@@ -406,8 +406,8 @@ namespace ACESim
             else
             {
                 options.NumOffers = 10;
-                options.NumLiabilityStrengthPoints = 10; // DEBUG
-                options.NumLiabilitySignals = 10; // DEBUG
+                options.NumLiabilityStrengthPoints = 10; 
+                options.NumLiabilitySignals = 10;
             }
 
             options.NumDamagesSignals = 1;
