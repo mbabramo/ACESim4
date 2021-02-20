@@ -15,6 +15,11 @@ namespace ACESim
         public (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("Precaution Benefit Curve", "PrecautionBenefit");
         public (string name, string abbreviation) PrimaryNameAndAbbreviation => ("Precaution Level", "Precaution");
         public (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("Injury", "Injury");
+        public string GetActionString(byte action, byte decisionByteCode)
+        {
+            return action.ToString();
+        }
+
         // Defendant receives information that signals how quickly the marginal benefit of a precaution decreases with increased precaution level. 
 
         // Pre primary action chance: This determines how quickly the marginal benefit of precaution decreases. Let m = 1 - ppc / 20.0.

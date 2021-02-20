@@ -7,6 +7,8 @@ namespace ACESim
 {
     public static class NumberPrint
     {
+        public static string ToDecimalPlaces(this double d, int decimalPlaces = 2) => double.IsNaN(d) ? "N/A" : d.ToString($"F{decimalPlaces}"); // Decimal.Round((decimal)d, digits).ToString();
+
         public static double RoundToSignificantFigures(double d, int digits = 4) 
         {
             if (double.IsNaN(d) || double.IsInfinity(d))

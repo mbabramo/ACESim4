@@ -20,11 +20,13 @@ namespace ACESimBase.Util.Tikz
             return s.ToCharArray().Sum(x => RelativeCharWidth(x)) * (pointSize / 10.0) * 1.2 / 69.0; // gives rough approximation in cm.
         }
 
-        public static string GetStandaloneDocument(string contents, List<string> additionalPackages = null, string additionalHeaderInfo = null)
+        public static string GetStandaloneDocument(string contents, List<string> additionalPackages = null, string additionalHeaderInfo = null, List<string> additionalTikzLibraries = null)
         {
-            string packagesString = ""; 
+            string packagesString = "";
             if (additionalPackages != null)
                 packagesString = "\r\n" + string.Join("\r\n", additionalPackages.Select(p => $"\\usepackage{{{p}}}"));
+            if (additionalTikzLibraries != null)
+                packagesString = "\r\n" + string.Join("\r\n", additionalTikzLibraries.Select(p => $"\\usetikzlibrary{{{p}}}"));
             return $@"\documentclass{{standalone}}
 \usepackage{{tikz}}{packagesString}
 \usetikzlibrary{{patterns, positioning}}

@@ -644,5 +644,7 @@ namespace ACESim
             return new List<(string filename, string reportcontent)>();
         }
 
+        public virtual string GetActionString(byte action, byte decisionByteCode) => action.ToString();
+
     }
 }

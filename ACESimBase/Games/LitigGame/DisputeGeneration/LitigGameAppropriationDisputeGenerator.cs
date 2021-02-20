@@ -31,6 +31,11 @@ namespace ACESim
         public (string name, string abbreviation) PrimaryNameAndAbbreviation => ("PrimaryChanceActions", "Primary");
         public (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("PostPrimaryChanceActions", "Post Primary");
 
+        public string GetActionString(byte action, byte decisionByteCode)
+        {
+            return action.ToString();
+        }
+
         public LitigGameDefinition LitigGameDefinition { get; set; }
         public void Setup(LitigGameDefinition myGameDefinition)
         {

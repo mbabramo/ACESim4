@@ -43,6 +43,7 @@ namespace ACESim
         (string name, string abbreviation) PrePrimaryNameAndAbbreviation { get; }
         (string name, string abbreviation) PrimaryNameAndAbbreviation { get; }
         (string name, string abbreviation) PostPrimaryNameAndAbbreviation { get; }
+        string GetActionString(byte action, byte decisionByteCode);
 
 
         // The following are for dispute generators that invert calculations. Without inverted calculations, the dispute generator produces liability and damages strength
@@ -71,7 +72,5 @@ namespace ACESim
         (bool trulyLiable, byte liabilityStrength, byte damagesStrength) InvertedCalculations_WorkBackwardsFromSignals(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, int randomSeed) => throw new NotImplementedException();
 
         List<(GameProgress progress, double weight)> InvertedCalculations_GenerateAllConsistentGameProgresses(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, LitigGameProgress gameProgress) => throw new NotImplementedException();
-
-
     }
 }
