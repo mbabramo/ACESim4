@@ -390,8 +390,8 @@ namespace ACESim
         {
             var options = BaseOptions();
 
-            options.CollapseChanceDecisions = true;
-            options.CollapseAlternativeEndings = true;
+            options.CollapseChanceDecisions = true; 
+            options.CollapseAlternativeEndings = true; 
 
             options.IncludeSignalsReport = false;
             options.IncludeCourtSuccessReport = false;
@@ -440,7 +440,7 @@ namespace ACESim
             options.SkipFileAndAnswerDecisions = false; 
             options.NumPotentialBargainingRounds = 1;
             options.IncludeAgreementToBargainDecisions = false;
-            options.AllowAbandonAndDefaults = false; // DEBUG true;
+            options.AllowAbandonAndDefaults = true; 
             options.PredeterminedAbandonAndDefaults = true;
 
             return options;

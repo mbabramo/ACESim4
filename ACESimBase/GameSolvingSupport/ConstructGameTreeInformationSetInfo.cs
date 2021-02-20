@@ -1,4 +1,5 @@
 ﻿using ACESim;
+using ACESimBase.Util.Tikz;
 using Microsoft.FSharp.Linq;
 using SixLabors.ImageSharp.Processing;
 using System;
@@ -7,6 +8,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Tensorflow.Framework;
 
 namespace ACESimBase.GameSolvingSupport
 {
@@ -28,6 +30,39 @@ namespace ACESimBase.GameSolvingSupport
 
         public record GamePointNode(IAnyNode anyNode, double gamePointReachProbability)
         {
+            public EdgeInfo EdgeFromParent;
+            public int NodeLevel => EdgeFromParent == null ? 0 : EdgeFromParent.parentLevel + 1;
+            public bool IncludeInDiagram = true;
+            public List<GamePointNode> Children = new List<GamePointNode>();
+            public double XLocation, YRangeStart, YRangeEnd;
+            public double YLocation => 0.5 * (YRangeStart + YRangeEnd);
+            public int TikzIndex; 
+            public string NodePlayerString(GameDefinition gameDefinition)
+            {
+                if (anyNode.IsChanceNode)
+                    return "C";
+                if (anyNode.IsUtilitiesNode)
+                    return "";
+                return gameDefinition.Players[anyNode.Decision.PlayerIndex].PlayerName + anyNode.GetInformationSetNodeNumber();
+            }
+            public string MainNodeText()
+            {
+                if (anyNode.IsUtilitiesNode)
+                    return "(" + String.Join(", ", anyNode.GetNodeValues().Select(x => x.ToDecimalPlaces(4))) + ")";
+                return anyNode.Decision.Name;
+            }
+        }
+
+        public record EdgeInfo(GamePointNode parentNode, byte action, bool parentIncludedInDiagram, int parentLevel)
+        {
+            public byte parentDecisionByteCode => parentNode.anyNode.Decision.DecisionByteCode;
+            public string parentName => parentNode.anyNode.Decision.Name;
+            public string probabilityString => "Probability: " + parentNode.anyNode.GetNodeValues()[action - 1] switch
+            {
+                1.0 => "1",
+                0 => "0",
+                _ => parentNode.anyNode.GetNodeValues()[action - 1].ToDecimalPlaces(3)
+            };
         }
 
         public record ForwardInfo(MoveProbabilityTracker<(byte decisionByteCode, byte move)> moveProbabilities, double reachProbability)
@@ -39,64 +74,162 @@ namespace ACESimBase.GameSolvingSupport
             GameDefinition = gameDefinition;
         }
 
-        public record ParentInfo(string name, byte decisionByteCode, byte action, bool indented);
-
-        public void PrintTree(List<Decision> decisions)
+        public void CollectTreeInfo(List<Decision> decisions, bool print)
         {
-            Stack<ParentInfo> parentInfoStack = new Stack<ParentInfo>();
+            void Write(string s)
+            {
+                if (print)
+                    TabbedText.WriteLine(s);
+            }
+            Stack<EdgeInfo> edgeFromParentStack = new Stack<EdgeInfo>();
             TreeRoot.ExecuteActions((gamePointNode) =>
             {
-                ParentInfo parentInfo = null;
-                if (parentInfoStack.Any())
+                EdgeInfo edgeFromParent = null;
+                if (edgeFromParentStack.Any())
                 {
-                    parentInfo = parentInfoStack.Pop();
-                    parentInfo = parentInfo with { action = (byte) ( parentInfo.action + 1 ) };
-                    parentInfoStack.Push(parentInfo);
+                    edgeFromParent = edgeFromParentStack.Pop();
+                    edgeFromParent = edgeFromParent with { action = (byte) ( edgeFromParent.action + 1 ) };
+                    edgeFromParentStack.Push(edgeFromParent);
                 }
-
+                int nodeLevel = edgeFromParent == null ? 0 : edgeFromParent.parentLevel + 1;
+                gamePointNode.EdgeFromParent = edgeFromParent;
                 IAnyNode gameNode = gamePointNode.anyNode;
                 double[] values = gameNode.GetNodeValues();
+                if (edgeFromParent != null && values.Length > 1)
+                    edgeFromParent.parentNode.Children.Add(gamePointNode);
                 if (gameNode.IsUtilitiesNode)
                 {
                     TabbedText.TabIndent();
-                    if (parentInfo != null)
-                        TabbedText.WriteLine($"--- {parentInfo.name}: {GameDefinition.GetActionString(parentInfo.action, parentInfo.decisionByteCode)} -->");
-                    TabbedText.WriteLine("Utilities: " + String.Join(",", values));
-                    parentInfoStack.Push(new ParentInfo(gameNode.ToString(), 255, 0, true)); // must push, so we can pop later, even though this won't be printed
+                    if (edgeFromParent != null)
+                        Write($"--- {edgeFromParent.parentName}: {GameDefinition.GetActionString(edgeFromParent.action, edgeFromParent.parentDecisionByteCode)} -->");
+                    Write("Utilities: " + string.Join(",", values.Select(x => x.ToDecimalPlaces(2))));
+                    edgeFromParentStack.Push(new EdgeInfo(gamePointNode, 0, true, nodeLevel)); // must push, so we can pop later, even though this won't be printed
                 }
                 else
                 {
                     if (values.Length == 1)
-                    { // skip this node
-                        var previous = parentInfoStack.Peek();
-                        parentInfoStack.Push(new ParentInfo(previous.name, 255, 0, true));
+                    { // skip this node -- and don't remember it
+                        gamePointNode.IncludeInDiagram = false;
+                        var previous = edgeFromParentStack.Peek();
+                        edgeFromParentStack.Push(new EdgeInfo(previous.parentNode, 0, false, previous.parentLevel));
                     }
                     else
                     {
-                        parentInfoStack.Push(new ParentInfo(gameNode.Decision.Name, gameNode.Decision.DecisionByteCode, 0, true));
+                        edgeFromParentStack.Push(new EdgeInfo(gamePointNode, 0, true, nodeLevel));
                         TabbedText.TabIndent();
-                        if (parentInfo != null)
-                            TabbedText.WriteLine($"--- {parentInfo.name}: {GameDefinition.GetActionString(parentInfo.action, parentInfo.decisionByteCode)} -->");
-                        TabbedText.WriteLine($"Decision: {gameNode.Decision.Name} (Information set {gameNode.GetInformationSetNodeNumber()})");
-                        TabbedText.WriteLine("Value probabilities: " + String.Join(",", values));
-                        TabbedText.WriteLine($"Game point reach probability: {gamePointNode.gamePointReachProbability}");
+                        if (edgeFromParent != null)
+                            Write($"--- {edgeFromParent.parentName}: {GameDefinition.GetActionString(edgeFromParent.action, edgeFromParent.parentDecisionByteCode)} -->");
+                        Write($"Decision: {gameNode.Decision.Name} (Information set {gameNode.GetInformationSetNodeNumber()})");
+                        Write("Value probabilities: " + string.Join(",", values.Select(x => x.ToDecimalPlaces(2))));
+                        Write($"Game point reach probability: {gamePointNode.gamePointReachProbability.ToDecimalPlaces(2)}");
                         var otherMoves = GetProbabilitiesOfOtherInformationSetMoves(!gameNode.IsChanceNode, gameNode.GetInformationSetNodeNumber(), decisions);
                         foreach (var entry in otherMoves.OrderBy(x => x.Key))
                         {
-                            TabbedText.WriteLine($"{entry.Key}: {String.Join(",", entry.Value)}");
+                            Write($"{entry.Key}: {string.Join(",", entry.Value.Select(x => x.ToDecimalPlaces(2)))}");
                         }
                     }
                 }
             },
-            (gamePointNode) =>
+            (Action<GamePointNode>)((gamePointNode) =>
             {
                 IAnyNode gameNode = gamePointNode.anyNode;
-                ParentInfo parentInfo = null;
-                if (parentInfoStack.Any())
-                    parentInfo = parentInfoStack.Pop();
-                if (parentInfo?.indented == true)
+                EdgeInfo parentInfo = null;
+                if (edgeFromParentStack.Any())
+                    parentInfo = edgeFromParentStack.Pop();
+                if (parentInfo?.parentIncludedInDiagram == true)
                     TabbedText.TabUnindent();
-            });
+            }));
+        }
+
+        public string GenerateTikzDiagram()
+        {
+            const double xSpaceForNode = 6.0, ySpaceForLeaf = 0.5, circleSize = 0.4, straightAdjacentArrow = 0.4, utilitiesMove = -0.45;
+            StringBuilder b = new StringBuilder();
+            var allNodes = TreeRoot.EnumerateNodes().Select(x => x.StoredValue).Where(x => x.IncludeInDiagram).ToList();
+            var leafLevel = allNodes.Max(x => x.NodeLevel);
+            int tikzIndex = 0;
+            bool done = false;
+            do
+            {
+                done = true;
+                TreeRoot.ExecuteActionsOnTree(gamePointNode => { }, gamePointNode =>
+                {
+                    GamePointNode storedValue = gamePointNode.StoredValue;
+                    if (storedValue.Children.Any(x => x.YRangeStart != x.YRangeEnd)) // i.e., has initialized children
+                    {
+                        for (int i = 1; i < storedValue.Children.Count; i++)
+                        {
+                            var c0 = storedValue.Children[i - 1];
+                            var c1 = storedValue.Children[i];
+                            if (c1.YRangeStart > c0.YRangeEnd - ySpaceForLeaf)
+                            {
+                                done = false;
+                                double distanceDown = c1.YRangeStart - (c0.YRangeEnd - ySpaceForLeaf);
+                                var gamePointNodeInternal = (NWayTreeStorageInternal<GamePointNode>)gamePointNode;
+                                gamePointNodeInternal.Branches[i].ExecuteActions(gamePointNode2 => { }, gamePointNode2 =>
+                                {
+                                    if (gamePointNode2.Children.Any())
+                                    {
+
+                                        gamePointNode2.YRangeStart = gamePointNode2.Children.Max(c => c.YRangeStart);
+                                        gamePointNode2.YRangeEnd = gamePointNode2.Children.Min(c => c.YRangeEnd);
+                                    }
+                                    else
+                                    {
+                                        gamePointNode2.YRangeStart -= distanceDown;
+                                        gamePointNode2.YRangeEnd = gamePointNode2.YRangeStart - ySpaceForLeaf;
+                                    }
+                                });
+                            }
+                        }
+                        storedValue.YRangeStart = storedValue.Children.Max(c => c.YRangeStart);
+                        storedValue.YRangeEnd = storedValue.Children.Min(c => c.YRangeEnd);
+                        double childrenXLocation = storedValue.Children.Min(x => x.XLocation);
+                        foreach (var child in storedValue.Children)
+                            child.XLocation = childrenXLocation;
+                        storedValue.XLocation = childrenXLocation - xSpaceForNode;
+                    }
+                    else
+                    {
+                        // start this at the top -- then it will be moved down
+                        if (storedValue.YRangeStart == storedValue.YRangeEnd)
+                        {
+                            storedValue.YRangeStart = 0;
+                            storedValue.YRangeEnd = -ySpaceForLeaf;
+                        }
+                    }
+                }
+                );
+            }
+            while (!done);
+
+            foreach (var node in allNodes)
+            {
+                string arrow = null;
+                bool isUtilitiesNode = node.anyNode.IsUtilitiesNode;
+                b.AppendLine($@"
+    \draw[color=black] ({node.XLocation}, {node.YLocation}) {(isUtilitiesNode ? "" : $"circle ({circleSize}cm) ")}node[draw=none] (N{tikzIndex}) {{{node.NodePlayerString(GameDefinition)}}};");
+                if (isUtilitiesNode)
+                    b.AppendLine($@"\node[draw=none, right={utilitiesMove}cm of N{tikzIndex}] {{{node.MainNodeText()}}};");
+
+                if (node.EdgeFromParent != null)
+                {
+                    arrow = $@"\draw ({node.EdgeFromParent.parentNode.XLocation + circleSize}, {node.EdgeFromParent.parentNode.YLocation}) -- ({node.EdgeFromParent.parentNode.XLocation + circleSize + straightAdjacentArrow}, {node.EdgeFromParent.parentNode.YLocation}) -- ({node.EdgeFromParent.parentNode.XLocation + circleSize + straightAdjacentArrow}, {node.YLocation}) -- ({node.XLocation - circleSize }, {node.YLocation}) node [midway, above, sloped] (E{tikzIndex++}) {{{node.EdgeFromParent.parentName}: {GameDefinition.GetActionString(node.EdgeFromParent.action, node.EdgeFromParent.parentDecisionByteCode)}}} node [midway, below, sloped] (E{tikzIndex++}) {{{node.EdgeFromParent.probabilityString}}} ;
+";
+//                    arrow = $@"\draw ({node.EdgeFromParent.parentNode.XLocation + circleSize}, {node.EdgeFromParent.parentNode.YLocation}) -- ({node.EdgeFromParent.parentNode.XLocation + circleSize + straightAdjacentArrow}, {node.EdgeFromParent.parentNode.YLocation}) -- ({node.XLocation - circleSize - straightAdjacentArrow}, {node.YLocation}) node [midway, above, sloped] (E{tikzIndex++}) {{{node.EdgeFromParent.parentName}: {GameDefinition.GetActionString(node.EdgeFromParent.action, node.EdgeFromParent.parentDecisionByteCode)}}} -- ({node.XLocation - circleSize}, {node.YLocation});
+//";
+                    b.AppendLine(arrow);
+                }
+    // here is where we would put text under node if desired
+    //                b.AppendLine($@"\node[draw=none, below=0cm of N{tikzIndex}] {{
+    //\begin{{tabular}}{{c}}
+    //{node.MainNodeText()} \\
+    //\end{{tabular}}
+    //}};
+    //{arrow}");
+            }
+            string tikzDocument = TikzHelper.GetStandaloneDocument(b.ToString(), additionalTikzLibraries: new List<string>() { "shapes.geometric" });
+            return tikzDocument;
         }
 
         public Dictionary<string, double[]> GetProbabilitiesOfOtherInformationSetMoves(bool nonChancePlayer, int atNodeNumber, List<Decision> decisions)

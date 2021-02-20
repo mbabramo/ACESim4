@@ -637,7 +637,7 @@ namespace ACESim
             if (includeChanceDecision)
             {
                 var bothGiveUp =
-                    new Decision($"Mutual Give Up{bargainingRoundString}", "MGU" + (b + 1), true, (byte)LitigGamePlayers.BothGiveUpChance, new byte[] { (byte)LitigGamePlayers.Resolution },
+                    new Decision($"Both Quit{bargainingRoundString}", "MGU" + (b + 1), true, (byte)LitigGamePlayers.BothGiveUpChance, new byte[] { (byte)LitigGamePlayers.Resolution },
                         2, (byte)LitigGameDecisions.MutualGiveUp, unevenChanceActions: false)
                     {
                         CustomByte = (byte)(b + 1),
@@ -733,23 +733,23 @@ namespace ACESim
                     return Options.LitigGameDisputeGenerator.GetActionString(action, decisionByteCode);
 
                 case LitigGameDecisions.LiabilityStrength:
-                    return Game.ConvertActionToUniformDistributionDraw(action, Options.NumLiabilityStrengthPoints, false).ToSignificantFigures(2);
+                    return Game.ConvertActionToUniformDistributionDraw(action, Options.NumLiabilityStrengthPoints, false).ToDecimalPlaces(3);
 
                 case LitigGameDecisions.DamagesStrength:
-                    return Game.ConvertActionToUniformDistributionDraw(action, Options.NumDamagesStrengthPoints, true).ToSignificantFigures(2);
+                    return Game.ConvertActionToUniformDistributionDraw(action, Options.NumDamagesStrengthPoints, true).ToDecimalPlaces(3);
 
 
                 case LitigGameDecisions.PDamagesSignal:
                 case LitigGameDecisions.DDamagesSignal:
-                    return Options.NumDamagesSignals == 1 ? 1.0.ToString() : Game.ConvertActionToUniformDistributionDraw(action, Options.NumDamagesSignals, false).ToSignificantFigures(2);
+                    return Options.NumDamagesSignals == 1 ? 1.0.ToString() : Game.ConvertActionToUniformDistributionDraw(action, Options.NumDamagesSignals, false).ToDecimalPlaces(3);
 
                 case LitigGameDecisions.PLiabilitySignal:
                 case LitigGameDecisions.DLiabilitySignal:
-                    return Options.NumLiabilitySignals == 1 ? 0.5.ToString() : Game.ConvertActionToUniformDistributionDraw(action, Options.NumLiabilitySignals, false).ToSignificantFigures(2);
+                    return Options.NumLiabilitySignals == 1 ? 0.5.ToString() : Game.ConvertActionToUniformDistributionDraw(action, Options.NumLiabilitySignals, false).ToDecimalPlaces(3);
 
                 case LitigGameDecisions.POffer:
                 case LitigGameDecisions.DOffer:
-                    return Game.ConvertActionToUniformDistributionDraw(action, Options.NumOffers, Options.IncludeEndpointsForOffers).ToString(); // Note: This won't be right if delta offers are being used.
+                    return Game.ConvertActionToUniformDistributionDraw(action, Options.NumOffers, Options.IncludeEndpointsForOffers).ToDecimalPlaces(3); // Note: This won't be right if delta offers are being used.
 
                 case LitigGameDecisions.PFile:
                 case LitigGameDecisions.DAnswer:
@@ -761,8 +761,11 @@ namespace ACESim
                 case LitigGameDecisions.DDefault:
                     return action == 1 ? "Yes" : "No";
 
+                case LitigGameDecisions.CourtDecisionLiability:
+                    return action == 1 ? "Not Liable" : "Liable";
+
                 case LitigGameDecisions.MutualGiveUp:
-                    return action == 1 ? "P Gives Up" : "D Gives Up";
+                    return action == 1 ? "P Abandons" : "D Defaults";
 
                 default:
                     return base.GetActionString(action, decisionByteCode);

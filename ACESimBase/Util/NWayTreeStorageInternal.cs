@@ -51,6 +51,17 @@ namespace ACESim
                 }
             upTreeAction(StoredValue);
         }
+        public override void ExecuteActionsOnTree(Action<NWayTreeStorage<T>> downTreeAction, Action<NWayTreeStorage<T>> upTreeAction)
+        {
+            downTreeAction(this);
+            if (Branches != null)
+                foreach (var branch in Branches.Where(x => x != null))
+                {
+                    //var topOfBranchString = branch.ToString().Split(Environment.NewLine).First();
+                    branch.ExecuteActionsOnTree(downTreeAction, upTreeAction);
+                }
+            upTreeAction(this);
+        }
 
 
 

@@ -1687,7 +1687,8 @@ namespace ACESim
             {
                 ConstructGameTreeInformationSetInfo processor = new ConstructGameTreeInformationSetInfo(GameDefinition);
                 TreeWalk_Tree(processor);
-                processor.PrintTree(GameDefinition.DecisionsExecutionOrder);
+                processor.CollectTreeInfo(GameDefinition.DecisionsExecutionOrder, false);
+                string tikzDocument = processor.GenerateTikzDiagram();
             }
             else
             {

@@ -153,6 +153,7 @@ namespace ACESim
             }
         }
 
+        public virtual IEnumerable<NWayTreeStorage<T>>  EnumerateNodes() => EnumerateNodes(n => true, x => x.Branches.Select(b => true));
         public virtual IEnumerable<NWayTreeStorage<T>> EnumerateNodes(Func<NWayTreeStorage<T>, bool> enumerateThis, Func<NWayTreeStorageInternal<T>, IEnumerable<bool>> enumerateBranches, Action beforeAction = null, Action afterAction = null)
         {
             if (beforeAction != null)
@@ -166,6 +167,11 @@ namespace ACESim
         {
             downTreeAction(StoredValue);
             upTreeAction(StoredValue);
+        }
+        public virtual void ExecuteActionsOnTree(Action<NWayTreeStorage<T>> downTreeAction, Action<NWayTreeStorage<T>> upTreeAction)
+        {
+            downTreeAction(this);
+            upTreeAction(this);
         }
 
         public virtual void WalkTree(Action<NWayTreeStorage<T>> beforeDescending, Action<NWayTreeStorage<T>> afterAscending, Func<NWayTreeStorage<T>, bool> parallel = null)
