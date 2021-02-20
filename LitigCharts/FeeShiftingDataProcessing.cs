@@ -22,16 +22,14 @@ namespace LitigCharts
         const string averageEquilibriumFileSuffix = "-Avg";
         const string firstEquilibriumFileSuffix = "-Eq1";
 
-        private static string[] equilibriumTypeSuffixes = new string[] { correlatedEquilibriumFileSuffix, averageEquilibriumFileSuffix, firstEquilibriumFileSuffix };
+        private static string[] equilibriumTypeSuffixes_All = new string[] { correlatedEquilibriumFileSuffix, averageEquilibriumFileSuffix, firstEquilibriumFileSuffix };
+        private static string[] equilibriumTypeSuffixes_One = new string[] { firstEquilibriumFileSuffix };
+        private static string[] equilibriumTypeWords_All = new string[] { "Correlated", "Average", "First" };
+        private static string[] equilibriumTypeWords_One = new string[] { "First" };
 
-        internal static void ProduceLatexDiagramsFromTexFiles()
-        {
-            foreach (string fileSuffix in equilibriumTypeSuffixes)
-            {
-                FeeShiftingDataProcessing.ProduceLatexDiagrams("-scr" + fileSuffix);
-                FeeShiftingDataProcessing.ProduceLatexDiagrams("-heatmap" + fileSuffix);
-            }
-        }
+        static bool firstEqOnly => new EvolutionSettings().SequenceFormNumPriorsToUseToGenerateEquilibria == 1;
+        static string[] eqToRun => firstEqOnly ? equilibriumTypeWords_One : equilibriumTypeWords_All;
+        static string[] equilibriumTypeSuffixes => firstEqOnly ? equilibriumTypeSuffixes_One : equilibriumTypeSuffixes_All;
 
 
         // TODO: Move all this to a separate class
@@ -57,6 +55,16 @@ namespace LitigCharts
                 Task.Delay(100);
                 CleanupCompletedProcesses();
             }
+        }
+
+
+        public static void BuildMainFeeShiftingReport()
+        {
+            List<string> rowsToGet = new List<string> { "All", "Not Litigated", "Litigated", "Settles", "Tried", "P Loses", "P Wins", "Truly Liable", "Truly Not Liable" };
+            List<string> replacementRowNames = new List<string> { "All", "Not Litigated", "Litigated", "Settles", "Tried", "P Loses", "P Wins", "Truly Liable", "Truly Not Liable" };
+            List<string> columnsToGet = new List<string> { "Exploit", "PFiles", "DAnswers", "POffer1", "DOffer1", "Trial", "PWinPct", "PWealth", "DWealth", "PWelfare", "DWelfare", "TotExpense", "False+", "False-", "ValIfSettled", "PDoesntFile", "DDoesntAnswer", "SettlesBR1", "PAbandonsBR1", "DDefaultsBR1", "P Loses", "P Wins" };
+            List<string> replacementColumnNames = new List<string> { "Exploitability", "P Files", "D Answers", "P Offer", "D Offer", "Trial", "P Win Probability", "P Wealth", "D Wealth", "P Welfare", "D Welfare", "Expenditures", "False Positive Inaccuracy", "False Negative Inaccuracy", "Value If Settled", "No Suit", "No Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins" };
+            BuildReport(rowsToGet, replacementRowNames, columnsToGet, replacementColumnNames, "output");
         }
 
         internal static void ProduceLatexDiagrams(string fileSuffix)
@@ -113,20 +121,55 @@ namespace LitigCharts
             ProcessStartInfo processStartInfo = new ProcessStartInfo(pdflatexProgram)
             {
                 Arguments = arguments,
-                UseShellExecute = true,
+                UseShellExecute = false,
             };
-            Process result = Process.Start(processStartInfo);
 
+            var handle = Process.GetCurrentProcess().MainWindowHandle;
+            Process result = Process.Start(processStartInfo);
             ProcessesList.Add(result);
         }
 
-        public static void BuildMainFeeShiftingReport()
+        private static void BuildReport(List<string> rowsToGet, List<string> replacementRowNames, List<string> columnsToGet, List<string> replacementColumnNames, string endOfFileName)
         {
-            List<string> rowsToGet = new List<string> { "All", "Not Litigated", "Litigated", "Settles", "Tried", "P Loses", "P Wins", "Truly Liable", "Truly Not Liable" };
-            List<string> replacementRowNames = new List<string> { "All", "Not Litigated", "Litigated", "Settles", "Tried", "P Loses", "P Wins", "Truly Liable", "Truly Not Liable" };
-            List<string> columnsToGet = new List<string> { "Exploit", "PFiles", "DAnswers", "POffer1", "DOffer1", "Trial", "PWinPct", "PWealth", "DWealth", "PWelfare", "DWelfare", "TotExpense", "False+", "False-", "ValIfSettled", "PDoesntFile", "DDoesntAnswer", "SettlesBR1", "PAbandonsBR1", "DDefaultsBR1", "P Loses", "P Wins" };
-            List<string> replacementColumnNames = new List<string> { "Exploitability", "P Files", "D Answers", "P Offer", "D Offer", "Trial", "P Win Probability", "P Wealth", "D Wealth", "P Welfare", "D Welfare", "Expenditures", "False Positive Inaccuracy", "False Negative Inaccuracy", "Value If Settled", "No Suit", "No Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins" };
-            BuildReport(rowsToGet, replacementRowNames, columnsToGet, replacementColumnNames, "output");
+            var launcher = new LitigGameLauncher();
+            var gameOptionsSets = GetFeeShiftingGameOptionsSets();
+            var map = launcher.GetFeeShiftingArticleNameMap(); // name to find (avoids redundancies)
+            string path = Launcher.ReportFolder();
+            string outputFileFullPath = Path.Combine(path, filePrefix + $"-{endOfFileName}.csv");
+            string cumResults = "";
+
+            var distinctOptionSets = gameOptionsSets.Where(x => map[x.Name] == x.Name).ToList();
+            var mappedNames = distinctOptionSets.OrderBy(x => x.Name).ToList();
+            var numDistinctNames = mappedNames.OrderBy(x => x.Name).Distinct().Count();
+            if (numDistinctNames != distinctOptionSets.Count())
+                throw new Exception();
+            var numFullNames = gameOptionsSets.Select(x => x.Name).Distinct().Count();
+            var variableSettingsList = gameOptionsSets.Select(x => x.VariableSettings).ToList();
+            var formattedTableOfOptionsSets = variableSettingsList.ToFormattedTable();
+            TabbedText.WriteLine($"Processing {numDistinctNames} option sets (from a list of {gameOptionsSets.Count} containing redundancies) "); // redundancies may exist because the options set list repeats the baseline value -- but here we want only the distinct ones (this will be filtered by GetCSVLines)
+            TabbedText.WriteLine("All options sets (including redundancies)");
+            TabbedText.WriteLine(formattedTableOfOptionsSets);
+
+            foreach (string fileSuffix in equilibriumTypeSuffixes)
+            {
+                TabbedText.WriteLine($"Processing equilibrium type {fileSuffix}");
+                bool includeHeader = firstEqOnly || fileSuffix == correlatedEquilibriumFileSuffix;
+                List<List<string>> outputLines = GetCSVLines(distinctOptionSets, map, rowsToGet, replacementRowNames, filePrefix, fileSuffix, path, includeHeader, columnsToGet, replacementColumnNames);
+                if (includeHeader)
+                    outputLines[0].Insert(0, "Equilibrium Type");
+                string equilibriumType = fileSuffix switch
+                {
+                    correlatedEquilibriumFileSuffix => "Correlated",
+                    averageEquilibriumFileSuffix => "Average",
+                    firstEquilibriumFileSuffix => "First",
+                    _ => throw new NotImplementedException()
+                };
+                foreach (List<string> bodyLine in outputLines.Skip(includeHeader ? 1 : 0))
+                    bodyLine.Insert(0, equilibriumType);
+                string resultForEquilibrium = MakeString(outputLines);
+                cumResults += resultForEquilibrium;
+            }
+            TextFileManage.CreateTextFile(outputFileFullPath, cumResults);
         }
 
         public static void BuildOffersReport()
@@ -168,46 +211,6 @@ namespace LitigCharts
             replacementColumnNames.AddRange(dOfferColumnsReplacement);
 
             BuildReport(filtersOfRowsToGet, replacementRowNames, columnsToGet, replacementColumnNames, "offers");
-        }
-
-        private static void BuildReport(List<string> rowsToGet, List<string> replacementRowNames, List<string> columnsToGet, List<string> replacementColumnNames, string endOfFileName)
-        {
-            var launcher = new LitigGameLauncher();
-            var gameOptionsSets = GetFeeShiftingGameOptionsSets();
-            var map = launcher.GetFeeShiftingArticleNameMap(); // name to find (avoids redundancies)
-            string path = Launcher.ReportFolder();
-            string outputFileFullPath = Path.Combine(path, filePrefix + $"-{endOfFileName}.csv");
-            string cumResults = "";
-
-            var mappedNames = gameOptionsSets.Where(x => map[x.Name] == x.Name).OrderBy(x => x.Name).ToList();
-            var numDistinctNames = mappedNames.OrderBy(x => x.Name).Distinct().Count();
-            var numFullNames = gameOptionsSets.Select(x => x.Name).Distinct().Count();
-            var variableSettingsList = gameOptionsSets.Select(x => x.VariableSettings).ToList();
-            var formattedTableOfOptionsSets = variableSettingsList.ToFormattedTable();
-            TabbedText.WriteLine($"Processing {numDistinctNames} option sets (from a list of {gameOptionsSets.Count} containing redundancies) "); // redundancies may exist because the options set list repeats the baseline value -- but here we want only the distinct ones (this will be filtered by GetCSVLines)
-            TabbedText.WriteLine("All options sets (including redundancies)");
-            TabbedText.WriteLine(formattedTableOfOptionsSets);
-
-            foreach (string fileSuffix in equilibriumTypeSuffixes)
-            {
-                TabbedText.WriteLine($"Processing equilibrium type {fileSuffix}");
-                bool includeHeader = fileSuffix == correlatedEquilibriumFileSuffix;
-                List<List<string>> outputLines = GetCSVLines(gameOptionsSets, map, rowsToGet, replacementRowNames, filePrefix, fileSuffix, path, includeHeader, columnsToGet, replacementColumnNames);
-                if (includeHeader)
-                    outputLines[0].Insert(0, "Equilibrium Type");
-                string equilibriumType = fileSuffix switch
-                {
-                    correlatedEquilibriumFileSuffix => "Correlated",
-                    averageEquilibriumFileSuffix => "Average",
-                    firstEquilibriumFileSuffix => "First",
-                    _ => throw new NotImplementedException()
-                };
-                foreach (List<string> bodyLine in outputLines.Skip(includeHeader ? 1 : 0))
-                    bodyLine.Insert(0, equilibriumType);
-                string resultForEquilibrium = MakeString(outputLines);
-                cumResults += resultForEquilibrium;
-            }
-            TextFileManage.CreateTextFile(outputFileFullPath, cumResults);
         }
 
         private static List<LitigGameOptions> GetFeeShiftingGameOptionsSets()
@@ -279,7 +282,7 @@ namespace LitigCharts
             }
         }
 
-        public static string MakeString(List<List<string>> values)
+        private static string MakeString(List<List<string>> values)
         {
             StringBuilder b = new StringBuilder();
             for (int i = 0; i < values.Count(); i++)
@@ -287,7 +290,7 @@ namespace LitigCharts
             return b.ToString();
         }
 
-        public static void FileFixer()
+        private static void FileFixer()
         {
             string reportFolder = Launcher.ReportFolder();
             var files = Directory.GetFiles(reportFolder);
@@ -319,23 +322,39 @@ namespace LitigCharts
             }
         }
 
+        internal static void ProduceLatexDiagramsFromTexFiles()
+        {
+            foreach (string fileSuffix in equilibriumTypeSuffixes)
+            {
+                FeeShiftingDataProcessing.ProduceLatexDiagrams("-scr" + fileSuffix);
+                FeeShiftingDataProcessing.ProduceLatexDiagrams("-heatmap" + fileSuffix);
+            }
+        }
+
         public static void OrganizeIntoFolders(bool doDeletion)
         {
             string reportFolder = Launcher.ReportFolder();
             string[] filesInFolder = DeleteAuxiliaryFiles(reportFolder);
             filesInFolder = Directory.GetFiles(reportFolder);
 
-            string[] getExtensions(string eqType) => new string[] { $"-{eqType}.csv", $"-heatmap-{eqType}.pdf", $"-heatmap-{eqType}.tex", $"-scr-{eqType}.pdf", $"-scr-{eqType}.tex", $"-scr-{eqType}.csv" };
+            string[] getExtensions(string eqType) => new string[] { firstEqOnly ? $".csv" : $"-{eqType}.csv", $"-heatmap-{eqType}.pdf", $"-heatmap-{eqType}.tex", $"-scr-{eqType}.pdf", $"-scr-{eqType}.tex", $"-scr-{eqType}.csv" };
             List<(string folderName, string[] extensions)> placementRules = new List<(string folderName, string[] extensions)>()
             {
-                ("Correlated Equilibrium", getExtensions("Corr")),
-                ("Average Equilibrium", getExtensions("Avg")),
                 ("First Equilibrium", getExtensions("Eq1")),
                 ("First Equilibrium", getExtensions("eq1")), // we're inconsistent in capitalization
                 ("EFG Files", new string[] { ".efg" }),
                 ("Equilibria Files", new string[] { "-equ.csv" }),
                 ("Logs", new string[] { "-log.txt" }),
             };
+            if (!firstEqOnly)
+            {
+                placementRules.InsertRange(0, new List<(string folderName, string[] extensions)>()
+                {
+                    ("Correlated Equilibrium", getExtensions("Corr")),
+                    ("Average Equilibrium", getExtensions("Avg")),
+                }
+                );
+            }
 
             var launcher = new LitigGameLauncher();
             var sets = launcher.GetFeeShiftingArticleGamesSets(false, true);
@@ -557,8 +576,6 @@ namespace LitigCharts
             int collectedValuesIndex = 0;
             foreach (bool stepDefiningRowsToFind in new bool[] { true, false })
             {
-                bool firstEqOnly = new EvolutionSettings().SequenceFormNumPriorsToUseToGenerateEquilibria == 1;
-                var eqToRun = firstEqOnly ? new string[] { "First" } : new string[] { "Correlated", "Average", "First" };
                 foreach (string equilibriumType in eqToRun)
                 {
                     string eqAbbreviation = equilibriumType switch { "Correlated" => "-Corr", "Average" => "-Avg", "First" => "-Eq1", _ => throw new NotImplementedException() };
