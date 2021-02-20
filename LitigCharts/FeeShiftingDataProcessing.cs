@@ -557,7 +557,9 @@ namespace LitigCharts
             int collectedValuesIndex = 0;
             foreach (bool stepDefiningRowsToFind in new bool[] { true, false })
             {
-                foreach (string equilibriumType in new string[] { "Correlated", "Average", "First" })
+                bool firstEqOnly = new EvolutionSettings().SequenceFormNumPriorsToUseToGenerateEquilibria == 1;
+                var eqToRun = firstEqOnly ? new string[] { "First" }) : new string[] { "Correlated", "Average", "First" }) 
+                foreach (string equilibriumType in eqToRun)
                 {
                     string eqAbbreviation = equilibriumType switch { "Correlated" => "-Corr", "Average" => "-Avg", "First" => "-Eq1", _ => throw new NotImplementedException() };
                     foreach (var variation in variations)
