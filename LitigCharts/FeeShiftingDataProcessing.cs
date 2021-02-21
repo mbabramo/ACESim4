@@ -131,6 +131,13 @@ namespace LitigCharts
 
         private static void BuildReport(List<string> rowsToGet, List<string> replacementRowNames, List<string> columnsToGet, List<string> replacementColumnNames, string endOfFileName)
         {
+            bool onlyAllFilter = false; 
+            if (onlyAllFilter)
+            {
+                rowsToGet = rowsToGet.Take(1).ToList();
+                replacementRowNames = replacementRowNames.Take(1).ToList();
+            }
+
             var launcher = new LitigGameLauncher();
             var gameOptionsSets = GetFeeShiftingGameOptionsSets();
             var map = launcher.GetFeeShiftingArticleNameMap(); // name to find (avoids redundancies)
@@ -138,7 +145,28 @@ namespace LitigCharts
             string outputFileFullPath = Path.Combine(path, filePrefix + $"-{endOfFileName}.csv");
             string cumResults = "";
 
-            var distinctOptionSets = gameOptionsSets.Where(x => map[x.Name] == x.Name).ToList();
+            var distinctOptionSets = gameOptionsSets.DistinctBy(x => map[x.Name]).ToList();
+
+            // look up particular settings here if desired (not usually needed)
+            var settingsToFind = new List<(string, object)>()
+            {
+                ("Costs Multiplier", "1"),
+                ("Fee Shifting Multiplier", "0"),
+                ("Risk Aversion", "Risk Neutral"),
+                ("Fee Shifting Rule", "English"),
+                ("Relative Costs", "1"),
+                ("Noise Multiplier P", "1"),
+                ("Noise Multiplier D", "1"),
+                ("Allow Abandon and Defaults", "true"),
+                ("Probability Truly Liable", "0.5"),
+                ("Noise to Produce Case Strength", "0.35"),
+                ("Issue", "Liability"),
+                ("Proportion of Costs at Beginning", "0.5"),
+            };
+            var matches = distinctOptionSets.Where(x => settingsToFind.All(y => x.VariableSettings[y.Item1].ToString() == y.Item2.ToString())).ToList();
+            var namesOfMatches = matches.Select(x => x.Name).ToList();
+            var mappedNamesOfMatches = namesOfMatches.Select(x => map[x]).ToList();
+
             var mappedNames = distinctOptionSets.OrderBy(x => x.Name).ToList();
             var numDistinctNames = mappedNames.OrderBy(x => x.Name).Distinct().Count();
             if (numDistinctNames != distinctOptionSets.Count())
