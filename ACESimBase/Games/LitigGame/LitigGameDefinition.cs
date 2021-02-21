@@ -1182,6 +1182,90 @@ namespace ACESim
             yield return (OptionSetName + $"-heatmap{supplementalString}.tex", contents[0]);
         }
 
+
+        private enum TreeDiagramExclusions
+        {
+            FullDiagram,
+            BeginningOfGame,
+            EndOfGame
+        }
+        private TreeDiagramExclusions Exclusions = TreeDiagramExclusions.FullDiagram;
+
+        public override (Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> excludeBelow, Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> includeBelow) GetTreeDiagramExclusions()
+        {
+            (Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> excludeBelow, Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> includeBelow)
+                = (null, null);
+            switch (Exclusions)
+            {
+                case TreeDiagramExclusions.FullDiagram:
+                break;
+
+                case TreeDiagramExclusions.BeginningOfGame:
+                    excludeBelow = gpn =>
+                    {
+                        var edge = gpn.EdgeFromParent;
+                        if (edge == null)
+                            return false;
+                        string actionString = edge.parentNameWithActionString(this);
+                        string nodePlayerString = gpn.NodePlayerString(this);
+                        if (actionString.Contains("D Liability Signal"))
+                            return true;
+                        return false;
+                    };
+                    break;
+
+                case TreeDiagramExclusions.EndOfGame:
+                    includeBelow = gpn =>
+                    {
+                        var edge = gpn.EdgeFromParent;
+                        if (edge == null)
+                            return false;
+                        string actionString = edge.parentNameWithActionString(this);
+                        string nodePlayerString = gpn.NodePlayerString(this);
+                        if (actionString.Contains("D Liability Signal"))
+                            return true;
+                        return false;
+                    };
+                    break;
+
+                default:
+                    break;
+            }
+
+            return (excludeBelow, includeBelow);
+
+            //excludeBelow = gpn =>
+            //{
+            //    var edge = gpn.EdgeFromParent;
+            //    if (edge == null)
+            //        return false;
+            //    string actionString = edge.parentNameWithActionString(GameDefinition);
+            //    string nodePlayerString = gpn.NodePlayerString(GameDefinition);
+            //    // start with the most general
+            //    if (actionString == "Truly Liable: Truly Liable" && nodePlayerString == "C")
+            //        return true;
+            //    if (actionString == "Case Strength: 0.667" && nodePlayerString == "C")
+            //        return true;
+            //    if (actionString == "D Liability Signal: 0.667" && nodePlayerString == "P6")
+            //        return true;
+            //    if (actionString == "P Liability Signal: 0.667" && nodePlayerString == "C")
+            //        return true;
+            //    return false;
+            //};
+            //includeBelow = gpn =>
+            //{
+            //    var edge = gpn.EdgeFromParent;
+            //    if (edge == null)
+            //        return false;
+            //    string actionString = edge.parentNameWithActionString(GameDefinition);
+            //    string nodePlayerString = gpn.NodePlayerString(GameDefinition);
+            //    // start with the most general
+            //    if (actionString == "D Liability Signal: 0.333" && nodePlayerString == "P0")
+            //        return true;
+            //    return false;
+            //};
+        }
+
         #endregion
 
     }

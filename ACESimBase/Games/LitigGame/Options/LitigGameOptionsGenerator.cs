@@ -396,12 +396,13 @@ namespace ACESim
             options.IncludeSignalsReport = false;
             options.IncludeCourtSuccessReport = false;
 
-            bool simplestCase = false; 
-            if (simplestCase)
+            bool alternativeCase = true; // DEBUG
+            if (alternativeCase)
             {
-                options.NumOffers = 2;
-                options.NumLiabilityStrengthPoints = 2;
-                options.NumLiabilitySignals = 2;
+                byte numOfEach = 5;
+                options.NumOffers = numOfEach;
+                options.NumLiabilityStrengthPoints = numOfEach;
+                options.NumLiabilitySignals = numOfEach;
             }
             else
             {
@@ -440,7 +441,7 @@ namespace ACESim
             options.SkipFileAndAnswerDecisions = false; 
             options.NumPotentialBargainingRounds = 1;
             options.IncludeAgreementToBargainDecisions = false;
-            options.AllowAbandonAndDefaults = true; 
+            options.AllowAbandonAndDefaults = true;
             options.PredeterminedAbandonAndDefaults = true;
 
             return options;

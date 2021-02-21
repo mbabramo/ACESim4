@@ -646,5 +646,7 @@ namespace ACESim
 
         public virtual string GetActionString(byte action, byte decisionByteCode) => action.ToString();
 
+        public virtual (Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> excludeBelow, Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> includeBelow) GetTreeDiagramExclusions() => (null, null);
+
     }
 }

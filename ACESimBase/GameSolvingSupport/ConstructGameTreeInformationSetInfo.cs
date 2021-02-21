@@ -33,10 +33,27 @@ namespace ACESimBase.GameSolvingSupport
             public EdgeInfo EdgeFromParent;
             public int NodeLevel => EdgeFromParent == null ? 0 : EdgeFromParent.parentLevel + 1;
             public bool IncludeInDiagram = true;
+            public bool ExcludeBelow = false; // GenerateTikzDiagram allows a function as a parameter that allows this to be set to simplify complex diagrams. 
+            internal bool ExcludedFromAbove;
             public List<GamePointNode> Children = new List<GamePointNode>();
             public double XLocation, YRangeStart, YRangeEnd;
             public double YLocation => 0.5 * (YRangeStart + YRangeEnd);
-            public int TikzIndex; 
+            public int TikzIndex;
+            internal bool IncludeInRestrictedBelow;
+            internal bool IncludeInRestrictedFromAbove;
+
+            public string Ancestry(GameDefinition gameDefinition)
+            {
+                string thisLevel = NodePlayerString(gameDefinition) + $" {ExcludeBelow} {ExcludedFromAbove}";
+                if (EdgeFromParent != null)
+                {
+                    string edgeFromParentInfo = EdgeFromParent.parentNameWithActionString(gameDefinition);
+                    string parentAncestry = EdgeFromParent.parentNode.Ancestry(gameDefinition);
+                    return parentAncestry + "\r\n" + edgeFromParentInfo + "\r\n" + thisLevel;
+                }
+                return thisLevel;
+            }
+
             public string NodePlayerString(GameDefinition gameDefinition)
             {
                 if (anyNode.IsChanceNode)
@@ -57,6 +74,7 @@ namespace ACESimBase.GameSolvingSupport
         {
             public byte parentDecisionByteCode => parentNode.anyNode.Decision.DecisionByteCode;
             public string parentName => parentNode.anyNode.Decision.Name;
+            public string parentNameWithActionString(GameDefinition gameDefinition) => parentName + ": " + gameDefinition.GetActionString(action, parentDecisionByteCode);
             public string probabilityString => "Probability: " + parentNode.anyNode.GetNodeValues()[action - 1] switch
             {
                 1.0 => "1",
@@ -141,12 +159,33 @@ namespace ACESimBase.GameSolvingSupport
             }));
         }
 
-        public string GenerateTikzDiagram()
+        public string GenerateTikzDiagram(Func<GamePointNode, bool> excludeBelowNode, Func<GamePointNode, bool> includeBelowNode)
         {
-            const double xSpaceForNode = 6.0, ySpaceForLeaf = 0.5, circleSize = 0.4, straightAdjacentArrow = 0.4, utilitiesMove = -0.45;
+            const double xSpaceForNode = 6.0, ySpaceForLeaf = 0.5, circleSize = 0.4, straightAdjacentArrow = 0.4, utilitiesShiftRight = -0.45;
             StringBuilder b = new StringBuilder();
-            var allNodes = TreeRoot.EnumerateNodes().Select(x => x.StoredValue).Where(x => x.IncludeInDiagram).ToList();
-            var leafLevel = allNodes.Max(x => x.NodeLevel);
+            bool onlyIncludableRegionFound = false;
+            TreeRoot.ExecuteActionsOnTree(gamePointNode =>
+            {
+                if (excludeBelowNode != null && excludeBelowNode(gamePointNode.StoredValue))
+                {
+                    gamePointNode.StoredValue.ExcludeBelow = true;
+                }
+                if (gamePointNode.Parent?.StoredValue?.ExcludeBelow == true || gamePointNode.Parent?.StoredValue?.ExcludedFromAbove == true)
+                {
+                    gamePointNode.StoredValue.ExcludedFromAbove = true;
+                }
+                if (includeBelowNode != null && !onlyIncludableRegionFound && includeBelowNode(gamePointNode.StoredValue))
+                {
+                    gamePointNode.StoredValue.IncludeInRestrictedBelow = true; // we are making a diagram near the leaves of the tree. Only this section of the diagram will be included
+                    onlyIncludableRegionFound = true;
+                }
+                if (gamePointNode.Parent?.StoredValue?.IncludeInRestrictedBelow == true || gamePointNode.Parent?.StoredValue?.IncludeInRestrictedFromAbove == true)
+                {
+                    gamePointNode.StoredValue.IncludeInRestrictedFromAbove = true;
+                }
+            },
+            gamePointNode => { }
+            );
             int tikzIndex = 0;
             bool done = false;
             do
@@ -155,6 +194,12 @@ namespace ACESimBase.GameSolvingSupport
                 TreeRoot.ExecuteActionsOnTree(gamePointNode => { }, gamePointNode =>
                 {
                     GamePointNode storedValue = gamePointNode.StoredValue;
+                    if (!storedValue.IncludeInDiagram)
+                        return;
+                    if (storedValue.ExcludedFromAbove)
+                        return;
+                    if (onlyIncludableRegionFound && !storedValue.IncludeInRestrictedBelow && !storedValue.IncludeInRestrictedFromAbove)
+                        return;
                     if (storedValue.Children.Any(x => x.YRangeStart != x.YRangeEnd)) // i.e., has initialized children
                     {
                         for (int i = 1; i < storedValue.Children.Count; i++)
@@ -203,22 +248,36 @@ namespace ACESimBase.GameSolvingSupport
             }
             while (!done);
 
-            foreach (var node in allNodes)
+            var includedNodes = TreeRoot.EnumerateNodes().Select(x => x.StoredValue).Where(x => x.IncludeInDiagram && !x.ExcludedFromAbove && (!onlyIncludableRegionFound || (x.IncludeInRestrictedFromAbove))).ToList();
+            foreach (var node in includedNodes)
             {
                 string arrow = null;
                 bool isUtilitiesNode = node.anyNode.IsUtilitiesNode;
-                b.AppendLine($@"
+                StringBuilder nodeStringBuilder = new StringBuilder();
+                nodeStringBuilder.AppendLine($@"
     \draw[color=black] ({node.XLocation}, {node.YLocation}) {(isUtilitiesNode ? "" : $"circle ({circleSize}cm) ")}node[draw=none] (N{tikzIndex}) {{{node.NodePlayerString(GameDefinition)}}};");
                 if (isUtilitiesNode)
-                    b.AppendLine($@"\node[draw=none, right={utilitiesMove}cm of N{tikzIndex}] {{{node.MainNodeText()}}};");
+                    nodeStringBuilder.AppendLine($@"\node[draw=none, right={utilitiesShiftRight}cm of N{tikzIndex}] {{{node.MainNodeText()}}};");
+                bool excludingBelow = node.ExcludeBelow && node.IncludeInDiagram;
+                if (excludingBelow)
+                    nodeStringBuilder.AppendLine($@"\node[draw=none, right=0cm of N{tikzIndex},font=\huge] {{...}};");
 
                 if (node.EdgeFromParent != null)
                 {
-                    arrow = $@"\draw ({node.EdgeFromParent.parentNode.XLocation + circleSize}, {node.EdgeFromParent.parentNode.YLocation}) -- ({node.EdgeFromParent.parentNode.XLocation + circleSize + straightAdjacentArrow}, {node.EdgeFromParent.parentNode.YLocation}) -- ({node.EdgeFromParent.parentNode.XLocation + circleSize + straightAdjacentArrow}, {node.YLocation}) -- ({node.XLocation - circleSize }, {node.YLocation}) node [midway, above, sloped] (E{tikzIndex++}) {{{node.EdgeFromParent.parentName}: {GameDefinition.GetActionString(node.EdgeFromParent.action, node.EdgeFromParent.parentDecisionByteCode)}}} node [midway, below, sloped] (E{tikzIndex++}) {{{node.EdgeFromParent.probabilityString}}} ;
+                    arrow = $@"\draw ({node.EdgeFromParent.parentNode.XLocation + circleSize}, {node.EdgeFromParent.parentNode.YLocation}) -- ({node.EdgeFromParent.parentNode.XLocation + circleSize + straightAdjacentArrow}, {node.EdgeFromParent.parentNode.YLocation}) -- ({node.EdgeFromParent.parentNode.XLocation + circleSize + straightAdjacentArrow}, {node.YLocation}) -- ({node.XLocation - circleSize }, {node.YLocation}) node [midway, above, sloped] (E{tikzIndex++}) {{{node.EdgeFromParent.parentNameWithActionString(GameDefinition)}}} node [midway, below, sloped] (E{tikzIndex++}) {{{node.EdgeFromParent.probabilityString}}} ;
 ";
-//                    arrow = $@"\draw ({node.EdgeFromParent.parentNode.XLocation + circleSize}, {node.EdgeFromParent.parentNode.YLocation}) -- ({node.EdgeFromParent.parentNode.XLocation + circleSize + straightAdjacentArrow}, {node.EdgeFromParent.parentNode.YLocation}) -- ({node.XLocation - circleSize - straightAdjacentArrow}, {node.YLocation}) node [midway, above, sloped] (E{tikzIndex++}) {{{node.EdgeFromParent.parentName}: {GameDefinition.GetActionString(node.EdgeFromParent.action, node.EdgeFromParent.parentDecisionByteCode)}}} -- ({node.XLocation - circleSize}, {node.YLocation});
-//";
-                    b.AppendLine(arrow);
+                    //                    arrow = $@"\draw ({node.EdgeFromParent.parentNode.XLocation + circleSize}, {node.EdgeFromParent.parentNode.YLocation}) -- ({node.EdgeFromParent.parentNode.XLocation + circleSize + straightAdjacentArrow}, {node.EdgeFromParent.parentNode.YLocation}) -- ({node.XLocation - circleSize - straightAdjacentArrow}, {node.YLocation}) node [midway, above, sloped] (E{tikzIndex++}) {{{node.EdgeFromParent.parentName}: {GameDefinition.GetActionString(node.EdgeFromParent.action, node.EdgeFromParent.parentDecisionByteCode)}}} -- ({node.XLocation - circleSize}, {node.YLocation});
+                    //";
+                    nodeStringBuilder.AppendLine(arrow);
+                }
+                b.Append(nodeStringBuilder.ToString());
+                if (node.Ancestry(GameDefinition).Contains("True"))
+                {
+                    var DEBUG = 0;
+                }
+                if (nodeStringBuilder.ToString().Contains("D Liability Signal: 0.667") && nodeStringBuilder.ToString().Contains("Probability: 0.788"))
+                {
+                    var DEBUG = 0;
                 }
     // here is where we would put text under node if desired
     //                b.AppendLine($@"\node[draw=none, below=0cm of N{tikzIndex}] {{

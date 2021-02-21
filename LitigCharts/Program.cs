@@ -18,6 +18,13 @@ namespace LitigCharts
         {
             //KlermanData.Execute();
 
+            bool doSignalsDiagram = true; // DEBUG
+            if (doSignalsDiagram)
+            {
+                SignalsChart diagram = new SignalsChart();
+                diagram.CreateDiagram();
+                return;
+            }
 
             bool printIndividualLatexDiagrams = true; // this is the time consuming one
             bool doDeletion = printIndividualLatexDiagrams; // don't delete if we haven't done the diagrams yet

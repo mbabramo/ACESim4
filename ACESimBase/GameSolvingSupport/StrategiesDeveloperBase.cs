@@ -1688,7 +1688,12 @@ namespace ACESim
                 ConstructGameTreeInformationSetInfo processor = new ConstructGameTreeInformationSetInfo(GameDefinition);
                 TreeWalk_Tree(processor);
                 processor.CollectTreeInfo(GameDefinition.DecisionsExecutionOrder, false);
-                string tikzDocument = processor.GenerateTikzDiagram();
+
+                // NOTE: To abbreviate the diagram by eliminating certain nodes and everything below them, specify an excludeBelow function
+                // based on the node and the edge to the node. To specify a limited region to include, use includeBelow. 
+                (var excludeBelow, var includeBelow) = GameDefinition.GetTreeDiagramExclusions();
+
+                string tikzDocument = processor.GenerateTikzDiagram(excludeBelow, includeBelow);
             }
             else
             {
