@@ -94,7 +94,7 @@ namespace ACESim
         public bool GenerateReportsByPlaying;
         public int NumRandomIterationsForSummaryTable = 10_000; // overridden by Launcher.SummaryTableRandomPathsIterations
         public bool PrintGameTree = false; // Note: Value here overridden in launcher
-        public bool PrintedGameTreeIncludesInformationSetData = true; // DEBUG
+        public bool PrintedGameTreeIncludesInformationSetData = false;
         public bool PrintInformationSets = false; // Note: Value here overridden in launcher
         public bool AnalyzeInformationSets = false; 
         public List<int> RestrictToTheseInformationSets = null;

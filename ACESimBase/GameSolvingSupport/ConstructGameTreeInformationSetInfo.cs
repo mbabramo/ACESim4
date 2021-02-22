@@ -271,14 +271,6 @@ namespace ACESimBase.GameSolvingSupport
                     nodeStringBuilder.AppendLine(arrow);
                 }
                 b.Append(nodeStringBuilder.ToString());
-                if (node.Ancestry(GameDefinition).Contains("True"))
-                {
-                    var DEBUG = 0;
-                }
-                if (nodeStringBuilder.ToString().Contains("D Liability Signal: 0.667") && nodeStringBuilder.ToString().Contains("Probability: 0.788"))
-                {
-                    var DEBUG = 0;
-                }
     // here is where we would put text under node if desired
     //                b.AppendLine($@"\node[draw=none, below=0cm of N{tikzIndex}] {{
     //\begin{{tabular}}{{c}}
