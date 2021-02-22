@@ -26,7 +26,7 @@ namespace LitigCharts
 
             if (doSignalsDiagram)
             {
-                SignalsChart diagram = new SignalsChart();
+                SignalsDiagram diagram = new SignalsDiagram();
                 diagram.CreateDiagram();
                 return;
             }
