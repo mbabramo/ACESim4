@@ -21,7 +21,7 @@ namespace LitigCharts
             bool doSignalsDiagram = true; // DEBUG
             if (doSignalsDiagram)
             {
-                SignalsChart diagram = new SignalsChart();
+                SignalsDiagram diagram = new SignalsDiagram();
                 diagram.CreateDiagram();
                 return;
             }
