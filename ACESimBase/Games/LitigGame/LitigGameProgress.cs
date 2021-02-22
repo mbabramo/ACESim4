@@ -443,7 +443,7 @@ namespace ACESim
                     PWinsAtTrial = action > (gameDefinition.Options.NumCourtLiabilitySignals + 1.0) / 2.0; // e.g., If we have four signals, then we need to be a 3 or 4, not a 1 or 2, when action is one-based (comparison will be to 2.5)
                                                                                                                     //if there were an odd number (not currently allowed)
                                                                                                                     //    PWinsAtTrial = action > (MyDefinition.Options.NumCourtLiabilitySignals + 1) / 2; // e.g., if we have three signals, then we need the one-based action to be greater than 4 / 2 = 2, because the midpoint (2) is not enough. If we have four signals, then we need to be a 3 or 4, not a 1 or 2, when action is one-based
-                    double courtLiabilitySignal = Game.ConvertActionToUniformDistributionDraw(action, gameDefinition.Options.NumCourtLiabilitySignals, false);
+                    double courtLiabilitySignal = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1, gameDefinition.Options.NumCourtLiabilitySignals, false);
                     if (PWinsAtTrial)
                     {
                         WinIsByLargeMargin = courtLiabilitySignal >= gameDefinition.Options.LoserPaysMarginOfVictoryThreshold;
@@ -479,7 +479,7 @@ namespace ACESim
             if (gameDefinition.Options.NumDamagesSignals == 1)
                 damagesProportion = 1.0;
             else
-                damagesProportion = LitigGame.ConvertActionToUniformDistributionDraw(action, gameDefinition.Options.NumDamagesSignals, true);
+                damagesProportion = EquallySpaced.GetLocationOfEquallySpacedPoint(action, gameDefinition.Options.NumDamagesSignals, false);
             DamagesAwarded = (double)(gameDefinition.Options.DamagesMin + (gameDefinition.Options.DamagesMax - gameDefinition.Options.DamagesMin) * damagesProportion);
             GameComplete = true;
         }
@@ -535,7 +535,7 @@ namespace ACESim
                 else
                     IsTrulyLiable = o.LitigGameDisputeGenerator.IsTrulyLiable(LitigGameDefinition, DisputeGeneratorActions, this);
             }
-            LiabilityStrengthUniform = Game.ConvertActionToUniformDistributionDraw(LiabilityStrengthDiscrete, o.NumLiabilityStrengthPoints, false);
+            LiabilityStrengthUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(LiabilityStrengthDiscrete - 1, o.NumLiabilityStrengthPoints, false); Game.ConvertActionToUniformDistributionDraw(LiabilityStrengthDiscrete, o.NumLiabilityStrengthPoints, false);
             // If one or both parties have perfect information, then they can get their information about litigation quality now, since they don't need a signal. Note that we also specify in the game definition that the litigation quality should become part of their information set.
             if (o.PLiabilityNoiseStdev == 0)
                 PLiabilitySignalUniform = (double)LiabilityStrengthUniform;
