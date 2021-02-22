@@ -733,23 +733,23 @@ namespace ACESim
                     return Options.LitigGameDisputeGenerator.GetActionString(action, decisionByteCode);
 
                 case LitigGameDecisions.LiabilityStrength:
-                    return EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1, Options.NumLiabilityStrengthPoints, false).ToDecimalPlaces(1);
+                    return Game.ConvertActionToUniformDistributionDraw(action, Options.NumLiabilityStrengthPoints, false).ToDecimalPlaces(3);
 
                 case LitigGameDecisions.DamagesStrength:
-                    return EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1, Options.NumDamagesStrengthPoints, false).ToDecimalPlaces(1);
+                    return Game.ConvertActionToUniformDistributionDraw(action, Options.NumDamagesStrengthPoints, true).ToDecimalPlaces(3);
 
 
                 case LitigGameDecisions.PDamagesSignal:
                 case LitigGameDecisions.DDamagesSignal:
-                    return Options.NumDamagesSignals == 1 ? 1.0.ToString() : EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1, Options.NumDamagesSignals, false).ToDecimalPlaces(1);
+                    return Options.NumDamagesSignals == 1 ? 1.0.ToString() : Game.ConvertActionToUniformDistributionDraw(action, Options.NumDamagesSignals, false).ToDecimalPlaces(3);
 
                 case LitigGameDecisions.PLiabilitySignal:
                 case LitigGameDecisions.DLiabilitySignal:
-                    return Options.NumLiabilitySignals == 1 ? 0.5.ToString() : EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1, Options.NumLiabilitySignals, false).ToDecimalPlaces(1);
+                    return Options.NumLiabilitySignals == 1 ? 0.5.ToString() : Game.ConvertActionToUniformDistributionDraw(action, Options.NumLiabilitySignals, false).ToDecimalPlaces(3);
 
                 case LitigGameDecisions.POffer:
                 case LitigGameDecisions.DOffer:
-                    return Game.ConvertActionToUniformDistributionDraw(action, Options.NumOffers, Options.IncludeEndpointsForOffers).ToDecimalPlaces(3); // Note: This won't be right if delta offers are being used. // Note that this is a different way of dividing up points from 0 to 1.
+                    return Game.ConvertActionToUniformDistributionDraw(action, Options.NumOffers, Options.IncludeEndpointsForOffers).ToDecimalPlaces(3); // Note: This won't be right if delta offers are being used.
 
                 case LitigGameDecisions.PFile:
                 case LitigGameDecisions.DAnswer:
