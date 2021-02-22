@@ -14,7 +14,7 @@ namespace LitigCharts
 {
     public class SignalsDiagram
     {
-        bool ChartIsForDamagesSignals = true; 
+        bool ChartIsForDamagesSignals = false; 
         bool ChartIsForLiabilitySignals => !ChartIsForDamagesSignals;
         public DiscreteValueSignalParameters liabilityParams;
         public double ExogenousProbabilityTrulyLiable = 0.5; 
@@ -98,7 +98,7 @@ namespace LitigCharts
             }
         }
 
-        public void CreateDiagram()
+        public string CreateDiagram()
         {
             if (ChartIsForLiabilitySignals)
             {
@@ -147,10 +147,10 @@ namespace LitigCharts
             List<SignalsChartNode> caseStrengthColumn;
             if (ChartIsForLiabilitySignals)
                 caseStrengthColumn = Enumerable.Range(0, NumLiabilityStrengthPoints).Select<int, SignalsChartNode>(strengthPointIndex =>
-                new SignalsChartNode(1, strengthPointIndex, uniformStrengthLevels[strengthPointIndex], proportionOfTotalInSecondColumn[strengthPointIndex], "Liability Strength " + uniformStrengthLevels[strengthPointIndex].ToDecimalPlaces(3), DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(strengthPointIndex + 1, PLiabilitySignalParameters).ToList())).ToList();
+                new SignalsChartNode(1, strengthPointIndex, uniformStrengthLevels[strengthPointIndex], proportionOfTotalInSecondColumn[strengthPointIndex], "Liability Strength " + uniformStrengthLevels[strengthPointIndex].ToDecimalPlaces(2), DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(strengthPointIndex + 1, PLiabilitySignalParameters).ToList())).ToList();
             else
                 caseStrengthColumn = Enumerable.Range(0, NumDamagesStrengthPoints).Select<int, SignalsChartNode>(strengthPointIndex =>
-                new SignalsChartNode(0, strengthPointIndex, uniformStrengthLevels[strengthPointIndex], ProbabilityOfDamagesStrengthValues[strengthPointIndex], "Damages Strength " + uniformStrengthLevels[strengthPointIndex].ToDecimalPlaces(3), DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(strengthPointIndex + 1, PDamagesSignalParameters).ToList())).ToList();
+                new SignalsChartNode(0, strengthPointIndex, uniformStrengthLevels[strengthPointIndex], ProbabilityOfDamagesStrengthValues[strengthPointIndex], "Damages Strength " + uniformStrengthLevels[strengthPointIndex].ToDecimalPlaces(2), DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(strengthPointIndex + 1, PDamagesSignalParameters).ToList())).ToList();
             int numSignals = ChartIsForLiabilitySignals ? NumLiabilitySignals : NumDamagesSignals;
             DiscreteValueSignalParameters signalParameters = ChartIsForLiabilitySignals ? PLiabilitySignalParameters : PDamagesSignalParameters;
             double[] uniformSignalValues = Enumerable.Range(0, numSignals).Select(signalIndex => signalParameters.MapSourceTo0To1(signalIndex + 1)).ToArray();
@@ -163,7 +163,7 @@ namespace LitigCharts
                     signalsLevels[j] += contribution;
                 }
             }
-            List<SignalsChartNode> signalColumn = Enumerable.Range(0, numSignals).Select(signalIndex => new SignalsChartNode(numColumns - 1, signalIndex, uniformSignalValues[signalIndex], signalsLevels[signalIndex], "Signal " + uniformSignalValues[signalIndex].ToDecimalPlaces(3), null)).ToList();
+            List<SignalsChartNode> signalColumn = Enumerable.Range(0, numSignals).Select(signalIndex => new SignalsChartNode(numColumns - 1, signalIndex, uniformSignalValues[signalIndex], signalsLevels[signalIndex], "Signal " + uniformSignalValues[signalIndex].ToDecimalPlaces(2), null)).ToList();
             if (ChartIsForLiabilitySignals)
                 SignalsChartNodes.Add(trueLiabilityColumn);
             SignalsChartNodes.Add(caseStrengthColumn);
@@ -227,6 +227,7 @@ namespace LitigCharts
 
             string document = TikzHelper.GetStandaloneDocument(b.ToString(), additionalPackages: new List<string>() { "xcolor" });
 
+            return document;
         }
 
     }

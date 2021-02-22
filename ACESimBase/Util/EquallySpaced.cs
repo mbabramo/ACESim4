@@ -24,7 +24,7 @@ namespace ACESim
                 return GetPointsFullyEquallySpaced(numPoints, from, to); // e.g., 0.1, 0.2, ... 0.9
         }
 
-        static bool useMidpointsOfEquallySpacedRegions = false;
+        static bool useMidpointsOfEquallySpacedRegions = true;
 
         public static double GetLocationOfEquallySpacedPoint(int pointIndex, int numPoints, bool includeEndpoints, double from = 0, double to = 1.0)
         {
