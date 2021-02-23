@@ -390,16 +390,17 @@ namespace ACESim
         {
             var options = BaseOptions();
 
-            options.CollapseChanceDecisions = true; 
-            options.CollapseAlternativeEndings = true; 
+            bool collapse = true; 
+            options.CollapseChanceDecisions = collapse; 
+            options.CollapseAlternativeEndings = collapse; 
 
             options.IncludeSignalsReport = false;
             options.IncludeCourtSuccessReport = false;
 
-            bool alternativeCase = false; 
+            bool alternativeCase = false;  
             if (alternativeCase)
             {
-                byte numOfEach = 5;
+                byte numOfEach = 2;
                 options.NumOffers = numOfEach;
                 options.NumLiabilityStrengthPoints = numOfEach;
                 options.NumLiabilitySignals = numOfEach;

@@ -1233,37 +1233,6 @@ namespace ACESim
             }
 
             return (excludeBelow, includeBelow);
-
-            //excludeBelow = gpn =>
-            //{
-            //    var edge = gpn.EdgeFromParent;
-            //    if (edge == null)
-            //        return false;
-            //    string actionString = edge.parentNameWithActionString(GameDefinition);
-            //    string nodePlayerString = gpn.NodePlayerString(GameDefinition);
-            //    // start with the most general
-            //    if (actionString == "Truly Liable: Truly Liable" && nodePlayerString == "C")
-            //        return true;
-            //    if (actionString == "Case Strength: 0.667" && nodePlayerString == "C")
-            //        return true;
-            //    if (actionString == "D Liability Signal: 0.667" && nodePlayerString == "P6")
-            //        return true;
-            //    if (actionString == "P Liability Signal: 0.667" && nodePlayerString == "C")
-            //        return true;
-            //    return false;
-            //};
-            //includeBelow = gpn =>
-            //{
-            //    var edge = gpn.EdgeFromParent;
-            //    if (edge == null)
-            //        return false;
-            //    string actionString = edge.parentNameWithActionString(GameDefinition);
-            //    string nodePlayerString = gpn.NodePlayerString(GameDefinition);
-            //    // start with the most general
-            //    if (actionString == "D Liability Signal: 0.333" && nodePlayerString == "P0")
-            //        return true;
-            //    return false;
-            //};
         }
 
         #endregion

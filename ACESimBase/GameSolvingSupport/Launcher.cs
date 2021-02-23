@@ -32,8 +32,6 @@ namespace ACESim
         public const int MiniReportEveryPIterations = EffectivelyNever;
         public const bool AlwaysSuppressDisplayReportOnScreen = true; 
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever;
-        public const bool UseRandomPathsForReporting = false; 
-        public const int SummaryTableRandomPathsIterations = 1_000;
         public const int ProbingIterations = 20_000_000;
         public const bool GenerateManualReports = true;
 
@@ -185,7 +183,6 @@ namespace ACESim
 
                 Algorithm = Algorithm,
 
-                UseRandomPathsForReporting = UseRandomPathsForReporting,
                 ReportEveryNIterations = VanillaReportEveryNIterations,
                 SuppressReportBeforeIteration = SuppressReportBeforeIteration,
                 CorrelatedEquilibriumCalculationsEveryNIterations = CorrelatedEquilibriumCalculationsEveryNIterations,
@@ -195,19 +192,6 @@ namespace ACESim
                 MiniReportEveryPIterations = MiniReportEveryPIterations,
                 GenerateManualReports = GenerateManualReports,
 
-                NumRandomIterationsForSummaryTable = SummaryTableRandomPathsIterations,
-                GenerateReportsByPlaying = true,
-                PrintInformationSets = false,  
-                RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
-                PrintGameTree = false,
-                ActionStrategiesToUseInReporting =
-                 new List<ActionStrategies>() {
-                     //ActionStrategies.CorrelatedEquilibrium,
-                     //ActionStrategies.BestResponseVsCorrelatedEquilibrium,
-                     //ActionStrategies.CorrelatedEquilibriumVsBestResponse,
-                     ActionStrategies.CurrentProbability, 
-                     //ActionStrategies.AverageStrategy
-                 },
                 TotalProbingCFRIterations = ProbingIterations,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,

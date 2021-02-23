@@ -20,7 +20,7 @@ namespace ACESim
         public int TotalAvgStrategySamplingCFRIterations = 100000;
         public int TotalProbingCFRIterations = 100000;
         public int TotalIterations = 100000;
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; // also will be overridden by Launcher
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; // will be overridden by Launcher
         public double BestResponseTarget => Algorithm switch
         {
             GameApproximationAlgorithm.FictitiousPlay => -1, // 0.00001,
@@ -91,11 +91,11 @@ namespace ACESim
         public int MinBackupRegretsTrigger = 5;
         public int TriggerIncreaseOverTime = 45;
 
-        public bool GenerateReportsByPlaying;
-        public int NumRandomIterationsForSummaryTable = 10_000; // overridden by Launcher.SummaryTableRandomPathsIterations
-        public bool PrintGameTree = false; // Note: Value here overridden in launcher
+        public bool GenerateReportsByPlaying = true;
+        public int NumRandomIterationsForSummaryTable = 1_000;
+        public bool PrintGameTree = false;
         public bool PrintedGameTreeIncludesInformationSetData = false;
-        public bool PrintInformationSets = false; // Note: Value here overridden in launcher
+        public bool PrintInformationSets = false;
         public bool AnalyzeInformationSets = false; 
         public List<int> RestrictToTheseInformationSets = null;
         public bool PrintNonChanceInformationSetsOnly = true;
