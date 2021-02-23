@@ -586,9 +586,12 @@ namespace LitigCharts
                     new AggregatedGraphInfo($"Disposition{riskAversionString}", new List<string>() {"No Suit", "No Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins"}, dispositionLineScheme, minorYAxisLabel:"Proportion", maximumValueMicroY: 1.0, isStacked:true)
                 };
 
-                foreach (var welfareMeasureInfo in welfareMeasureColumns)
+                foreach (double? limitToCostsMultiplier in new double?[] { 1.0, null })
                 {
-                    ProcessForWelfareMeasure(launcher, pathAndFilename, outputFolderPath, variations, welfareMeasureInfo);
+                    foreach (var welfareMeasureInfo in welfareMeasureColumns)
+                    {
+                        ProcessForWelfareMeasure(launcher, pathAndFilename, outputFolderPath, variations, welfareMeasureInfo, limitToCostsMultiplier);
+                    }
                 }
             }
 
@@ -597,7 +600,7 @@ namespace LitigCharts
             DeleteAuxiliaryFiles(outputFolderPath);
         }
 
-        private static void ProcessForWelfareMeasure(LitigGameLauncher launcher, string pathAndFilename, string outputFolderPath, List<LitigGameLauncher.FeeShiftingArticleVariationSetInfo> variations, AggregatedGraphInfo aggregatedGraphInfo)
+        private static void ProcessForWelfareMeasure(LitigGameLauncher launcher, string pathAndFilename, string outputFolderPath, List<LitigGameLauncher.FeeShiftingArticleVariationSetInfo> variations, AggregatedGraphInfo aggregatedGraphInfo, double? limitToCostsMultiplier)
         {
             List<(string columnName, string expectedText)[]> collectedRowsToFind = new List<(string columnName, string expectedText)[]>();
             double?[,] valuesFromCSVAllRows = null;
@@ -615,7 +618,7 @@ namespace LitigCharts
 
                         var requirementsForEachVariation = variation.requirementsForEachVariation;
                         List<List<TikzLineGraphData>> lineGraphData = new List<List<TikzLineGraphData>>();
-                        foreach (double macroYValue in launcher.CriticalCostsMultipliers.OrderBy(x => x))
+                        foreach (double macroYValue in limitToCostsMultiplier == null ? launcher.CriticalCostsMultipliers.OrderBy(x => x).ToList() : new List<double> { (double) limitToCostsMultiplier })
                         {
                             List<TikzLineGraphData> lineGraphDataForRow = new List<TikzLineGraphData>();
                             foreach (var macroXValue in requirementsForEachVariation)
@@ -660,7 +663,7 @@ namespace LitigCharts
                         }
 
                         if (!stepDefiningRowsToFind)
-                            CreateAggregatedLineGraphFromData(launcher, outputFolderPath, aggregatedGraphInfo, equilibriumType, variation, requirementsForEachVariation, lineGraphData);
+                            CreateAggregatedLineGraphFromData(launcher, outputFolderPath, aggregatedGraphInfo, equilibriumType, variation, requirementsForEachVariation, lineGraphData, limitToCostsMultiplier);
 
                     }
                 }
@@ -671,7 +674,7 @@ namespace LitigCharts
             }
         }
 
-        private static void CreateAggregatedLineGraphFromData(LitigGameLauncher launcher, string outputFolderPath, AggregatedGraphInfo aggregatedGraphInfo, string equilibriumType, LitigGameLauncher.FeeShiftingArticleVariationSetInfo variation, List<LitigGameLauncher.FeeShiftingArticleVariationInfo> requirementsForEachVariation, List<List<TikzLineGraphData>> lineGraphData)
+        private static void CreateAggregatedLineGraphFromData(LitigGameLauncher launcher, string outputFolderPath, AggregatedGraphInfo aggregatedGraphInfo, string equilibriumType, LitigGameLauncher.FeeShiftingArticleVariationSetInfo variation, List<LitigGameLauncher.FeeShiftingArticleVariationInfo> requirementsForEachVariation, List<List<TikzLineGraphData>> lineGraphData, double? limitToCostsMultiplier)
         {
             // make all data proportional to rounded up maximum value
             double maximumValueMicroY;
@@ -705,7 +708,7 @@ namespace LitigCharts
             {
                 majorXValueNames = requirementsForEachVariation.Select(x => x.nameOfVariation).ToList(),
                 majorXAxisLabel = variation.nameOfSet,
-                majorYValueNames = launcher.CriticalCostsMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList(),
+                majorYValueNames = limitToCostsMultiplier == null ? launcher.CriticalCostsMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList() : new List<string>() { limitToCostsMultiplier.ToString() },
                 majorYAxisLabel = aggregatedGraphInfo.majorYAxisLabel,
                 minorXValueNames = launcher.CriticalFeeShiftingMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList(),
                 minorXAxisLabel = aggregatedGraphInfo.minorXAxisLabel,
@@ -720,7 +723,16 @@ namespace LitigCharts
             };
             var result = r.GetStandaloneDocument();
 
-            string outputFilename = Path.Combine(outputFolderPath, $"{aggregatedGraphInfo.topicName} Varying {variation.nameOfSet} ({equilibriumType}).tex");
+            string costsLevel = "";
+            if (limitToCostsMultiplier != null)
+                costsLevel = $" Costs {limitToCostsMultiplier}";
+            string equilibriumTypeAdj = equilibriumType == "First" ? "" : " (" + equilibriumType + ")";
+
+            string subfolderName = Path.Combine(outputFolderPath, variation.nameOfSet);
+            if (!Directory.GetDirectories(outputFolderPath).Any(x => x == subfolderName))
+                Directory.CreateDirectory(subfolderName);
+
+            string outputFilename = Path.Combine(subfolderName, $"{aggregatedGraphInfo.topicName} Varying {variation.nameOfSet}{costsLevel}{equilibriumTypeAdj}.tex");
             TextFileManage.CreateTextFile(outputFilename, result);
             ExecuteLatexProcess(outputFolderPath, outputFilename);
         }

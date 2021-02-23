@@ -27,8 +27,9 @@ namespace ACESimBase.GameSolvingAlgorithms
             Gambit,
             ECTA
         }
-        SequenceFormApproach Approach = SequenceFormApproach.ECTA; 
+        SequenceFormApproach Approach = SequenceFormApproach.ECTA;
 
+        bool SkipIfEquilibriumFileAlreadyExists = true; // DEBUG
         bool ProduceEFGFile = true;
 
         public SequenceForm(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
@@ -44,6 +45,8 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         public override async Task Initialize()
         {
+            if (SkipIfEquilibriumFileAlreadyExists && EquilibriumFileAlreadyExists())
+                return;
             GameDefinition.MakeAllChanceDecisionsKnowAllChanceActions(); // since there is just one chance player, each chance (and resolution) player must know all other chance decisions for ECTA algorithm to work properly
             AllowSkipEveryPermutationInitialization = false;
             StoreGameStateNodesInLists = true;
@@ -64,6 +67,8 @@ namespace ACESimBase.GameSolvingAlgorithms
         {
 
             ReportCollection reportCollection = new ReportCollection();
+            if (SkipIfEquilibriumFileAlreadyExists && EquilibriumFileAlreadyExists())
+                return reportCollection;
 
             string filename = null;
             if (ProduceEFGFile)
@@ -880,6 +885,11 @@ namespace ACESimBase.GameSolvingAlgorithms
             return filename;
         }
 
+        public bool EquilibriumFileAlreadyExists()
+        {
+            return File.Exists(GetEquilibriumFileName());
+        }
+
         private string CreateEquilibriaFile(List<double[]> equilibria)
         {
             StringBuilder s = new StringBuilder();
@@ -887,10 +897,16 @@ namespace ACESimBase.GameSolvingAlgorithms
             {
                 s.AppendLine(String.Join(",", equilibrium));
             }
+            string filename = GetEquilibriumFileName();
+            TextFileManage.CreateTextFile(filename, s.ToString()); // TODO: Switch to azure/local
+            return filename;
+        }
+
+        private string GetEquilibriumFileName()
+        {
             DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
             var folderFullName = folder.FullName;
             string filename = Path.Combine(folderFullName, MasterReportName + "-" + GameDefinition.OptionSetName + "-equ.csv");
-            TextFileManage.CreateTextFile(filename, s.ToString());
             return filename;
         }
 

@@ -34,7 +34,7 @@ namespace ACESim
         public double[] AdditionalFeeShiftingMultipliers = new double[] { 0.0 }; //, 0.25, 4.0 };// NOTE: If restoring this, also change NamesOfFeeShiftingArticleSets
         public double[] RelativeCostsMultipliers = new double[] { 1.0, 0.5, 2.0 };
         public double[] ProbabilitiesTrulyLiable = new double[] { 0.5, 0.1, 0.9 };
-        public double[] StdevsNoiseToProduceLiabilityStrength = new double[] { 0.35, 0, 0.70 };
+        public double[] StdevsNoiseToProduceLiabilityStrength = new double[] { 0.35, 0.175, 0.70 };
         public double[] ProportionOfCostsAtBeginning = new double[] { 0.5, 0.75, 0.25, 1.0, 0.0 };
 
         public enum FeeShiftingRule
@@ -826,6 +826,11 @@ namespace ACESim
 
         public List<FeeShiftingArticleVariationSetInfo> GetFeeShiftingArticleVariationInfoList(bool useRiskAversionForNonRiskReports)
         {
+            var varyingNothing = new List<FeeShiftingArticleVariationInfo>()
+            {
+                new FeeShiftingArticleVariationInfo("Baseline", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Risk Neutral")),
+            };
+
             var varyingFeeShiftingRule_LiabilityUncertain = new List<FeeShiftingArticleVariationInfo>()
             {
                 // where liability is uncertain:
@@ -895,7 +900,7 @@ namespace ACESim
 
             var varyingNoiseToProduceCaseStrength = new List<FeeShiftingArticleVariationInfo>()
             {
-                new FeeShiftingArticleVariationInfo("0", DefaultNonCriticalValues().WithReplacement("Noise to Produce Case Strength", "0")),
+                new FeeShiftingArticleVariationInfo("0.175", DefaultNonCriticalValues().WithReplacement("Noise to Produce Case Strength", "0.175")),
                 new FeeShiftingArticleVariationInfo("0.35", DefaultNonCriticalValues().WithReplacement("Noise to Produce Case Strength", "0.35")),
                 new FeeShiftingArticleVariationInfo("0.70", DefaultNonCriticalValues().WithReplacement("Noise to Produce Case Strength", "0.7")),
             };
@@ -917,6 +922,7 @@ namespace ACESim
 
             var tentativeResults = new List<FeeShiftingArticleVariationSetInfo>()
             {
+                new FeeShiftingArticleVariationSetInfo("Baseline", varyingNothing),
                 new FeeShiftingArticleVariationSetInfo("Fee Shifting Rule (Liability Issue)", varyingFeeShiftingRule_LiabilityUncertain),
                 new FeeShiftingArticleVariationSetInfo("Fee Shifting Rule (Damages Issue)", varyingFeeShiftingRule_DamagesUncertain),
                 new FeeShiftingArticleVariationSetInfo("Noise Multiplier", varyingNoiseMultipliersBoth),
