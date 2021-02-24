@@ -20,6 +20,26 @@ namespace ACESim.Util
 
     public static class ListExtensions
     {
+        public static List<List<T>> Transpose<T>(this List<List<T>> original)
+        {
+            var result = original
+                .SelectMany(inner => inner.Select((item, index) => new { item, index }))
+                .GroupBy(i => i.index, i => i.item)
+                .Select(g => g.ToList())
+                .ToList();
+            return result;
+        }
+
+        public static List<List<T>> TransposeReversingOrder<T>(this List<List<T>> original)
+        {
+            var result = original
+                .SelectMany(inner => inner.Select((item, index) => new { item, index }))
+                .GroupBy(i => i.index, i => i.item)
+                .Select(g => g.Reverse().ToList())
+                .Reverse().ToList();
+            return result;
+        }
+
         public static List<(string, object)> WithReplacement(this List<(string, object)> list, string s, object o)
         {
             var copy = list.ToList();

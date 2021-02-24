@@ -19,7 +19,7 @@ namespace LitigCharts
             //KlermanData.Execute();
 
             bool doSignalsDiagram = false; // if so, only this will be run
-            bool printIndividualLatexDiagrams = false; // this is the time consuming one
+            bool printIndividualLatexDiagrams = true; // this is the time consuming one
             bool doDeletion = printIndividualLatexDiagrams; // don't delete if we haven't done the diagrams yet
             bool organizeIntoFolders = true;
             bool printAggregatedDiagrams = true; 
@@ -30,6 +30,8 @@ namespace LitigCharts
                 string texCode = diagram.CreateDiagram();
                 return;
             }
+
+            // DEBUG -- why didn't deletion work?
 
             FeeShiftingDataProcessing.BuildMainFeeShiftingReport();
             if (printIndividualLatexDiagrams)

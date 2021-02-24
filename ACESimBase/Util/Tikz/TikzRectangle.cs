@@ -32,8 +32,10 @@ namespace ACESimBase.Util.Tikz
 
         public TikzRectangle ReducedByPadding(double leftPadding, double bottomPadding, double rightPadding, double topPadding) => new TikzRectangle(left + leftPadding, bottom + bottomPadding, right - rightPadding, top - topPadding);
 
+        public TikzRectangle TopOrBottomPortion(double amountToKeep, bool top) => top ? TopPortion(amountToKeep) : BottomPortion(amountToKeep);
         public TikzRectangle BottomPortion(double amountToKeep) => new TikzRectangle(left, bottom, right, bottom + amountToKeep);
         public TikzRectangle TopPortion(double amountToKeep) => new TikzRectangle(left, top - amountToKeep, right, top);
+        public TikzRectangle LeftOrRightPortion(double amountToKeep, bool left) => left ? LeftPortion(amountToKeep) : RightPortion(amountToKeep);
         public TikzRectangle LeftPortion(double amountToKeep) => new TikzRectangle(left, bottom, left + amountToKeep, top);
         public TikzRectangle RightPortion(double amountToKeep) => new TikzRectangle(right - amountToKeep, bottom, right, top);
 

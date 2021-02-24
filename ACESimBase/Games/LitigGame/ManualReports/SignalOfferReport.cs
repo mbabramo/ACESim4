@@ -1,4 +1,5 @@
 ﻿using ACESim;
+using ACESim.Util;
 using ACESimBase.Util.Tikz;
 using System;
 using System.Collections.Generic;
@@ -26,9 +27,20 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             LitigGameOptions options = gameDefinition.Options;
             bool useLiabilitySignals = options.NumLiabilitySignals > 1;
 
-            int numSignals = useLiabilitySignals ? options.NumLiabilitySignals : options.NumDamagesSignals;
             int numOffers = options.NumOffers;
             double[] offers = EquallySpaced.GetEquallySpacedPoints(options.NumOffers, options.IncludeEndpointsForOffers);
+
+            bool transpose = true; // move offers to y axis
+            if (transpose)
+            {
+                pLiabilitySignals.Reverse();
+                dLiabilitySignals.Reverse();
+                pDamagesSignals.Reverse();
+                dDamagesSignals.Reverse();
+                offers = offers.Reverse().ToArray();
+            }
+
+            int numSignals = useLiabilitySignals ? options.NumLiabilitySignals : options.NumDamagesSignals;
             (var pFunction, var pSignals) = useLiabilitySignals ? (pLiabilitySignalFunc, pLiabilitySignals) : (pDamagesSignalFunc, pDamagesSignals);
             (var dFunction, var dSignals) = useLiabilitySignals ? (dLiabilitySignalFunc, dLiabilitySignals) : (dDamagesSignalFunc, dDamagesSignals);
 
@@ -80,17 +92,37 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 pContents.Add(pRow);
                 dContents.Add(dRow);
             }
-            List<double> relativeWidths = Enumerable.Range(0, numOffers + 1).Select(x => 1.0 / (double)(numOffers + 1)).ToList();
-            TikzRectangle overallRectangle = new TikzRectangle(0, 0, numOffers <= 5 ? 12 : 12 * ((double) numOffers / 5.0), 5);
-            List<TikzRectangle> separateRectangles = overallRectangle.DivideLeftToRight(new double[] { 0.47, 0.06, 0.47 });
+
+            int numXAxisItems = transpose ? numSignals : numOffers;
+            List<double> relativeWidths = Enumerable.Range(0, numXAxisItems + 1).Select(x => 1.0 / (double)(numXAxisItems + 1)).ToList();
+            TikzRectangle overallRectangle = new TikzRectangle(0, 0, numXAxisItems <= 5 ? 12 : 12 * ((double)numXAxisItems / 5.0), 5);
+            List<TikzRectangle> separateRectangles = overallRectangle.DivideLeftToRight(new double[] { 0.49, 0.02, 0.49 });
             TikzRectangle pRect = separateRectangles[0];
             TikzRectangle dRect = separateRectangles[2];
 
+            string xAxisWord = "Offer";
+            string yAxisWord = "Signal";
+            if (transpose)
+            {
+                var temp = xAxisWord;
+                xAxisWord = yAxisWord;
+                yAxisWord = temp;
+
+                pContents = pContents.Transpose();
+                var horizontalAxis = pContents[0];
+                pContents.RemoveAt(0);
+                pContents.Add(horizontalAxis);
+                dContents = dContents.Transpose();
+                horizontalAxis = dContents[0];
+                dContents.RemoveAt(0);
+                dContents.Add(horizontalAxis);
+            }
+
             string numberAttributes = null;
-            if (numOffers > 5)
+            if (numXAxisItems > 5)
                 numberAttributes = "font=\\tiny";
-            TikzHeatMap pHeatMap = new TikzHeatMap("P Offer", "P Signal", numberAttributes, pRect, "blue", relativeWidths, pContents);
-            TikzHeatMap dHeatMap = new TikzHeatMap("D Offer", "D Signal", numberAttributes, dRect, "orange", relativeWidths, dContents);
+            TikzHeatMap pHeatMap = new TikzHeatMap($"P {xAxisWord}", $"P {yAxisWord}", !transpose, numberAttributes, pRect, "blue", relativeWidths, pContents);
+            TikzHeatMap dHeatMap = new TikzHeatMap($"D {xAxisWord}", $"D {yAxisWord}", !transpose, numberAttributes, dRect, "orange", relativeWidths, dContents);
 
             StringBuilder b = new StringBuilder();
             b.AppendLine(pHeatMap.DrawCommands());

@@ -397,7 +397,7 @@ namespace ACESim
             options.IncludeSignalsReport = false;
             options.IncludeCourtSuccessReport = false;
 
-            bool alternativeCase = false;  
+            bool alternativeCase = false;
             if (alternativeCase)
             {
                 byte numOfEach = 2;

@@ -6,21 +6,22 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.Util.Tikz
 {
-    public record TikzHeatMap(string columnAxisLabel, string rowAxisLabel, string contentAttributes, TikzRectangle sourceRectangle, string fillColor, List<double> relativeWidths, List<List<(string text, double darkness)>> contents)
+    public record TikzHeatMap(string columnAxisLabel, string rowAxisLabel, bool columnAxisIsOnTop, string contentAttributes, TikzRectangle sourceRectangle, string fillColor, List<double> relativeWidths, List<List<(string text, double darkness)>> contents)
     {
         int NumRows => contents.Count();
         int NumColumns => contents.First().Count();
-        const double axisSpace = 0.25;
-        TikzRectangle LeftAxisRectangle => sourceRectangle.LeftPortion(axisSpace).DivideBottomToTop(new double[] { (NumRows - 1.0) / (double)NumRows, 1.0 / (double)NumRows }).First();
-        TikzRectangle TopAxisRectangle => sourceRectangle.TopPortion(axisSpace).DivideLeftToRight(new double[] { 1.0 / (double) NumRows,  (NumRows - 1.0) / (double)NumRows }).Skip(1).First();
-        TikzRectangle MainRectangle => sourceRectangle.RightPortion(sourceRectangle.width - axisSpace).BottomPortion(sourceRectangle.height - axisSpace);
+        double axisSpace = columnAxisIsOnTop ? 0.25 : 0.40;
+        TikzRectangle LeftAxisRectangle => sourceRectangle.LeftPortion(axisSpace).DivideBottomToTop(new double[] { (columnAxisIsOnTop ? NumRows - 1.0 : 1.0) / (double)NumRows, (columnAxisIsOnTop ? 1.0 : NumRows - 1.0) / (double)NumRows }).Skip(columnAxisIsOnTop ? 0 : 1).First();
+        TikzRectangle HorizontalAxisRectangle => sourceRectangle.TopOrBottomPortion(axisSpace, columnAxisIsOnTop).DivideLeftToRight(new double[] { 1.0 / (double) NumRows,  (NumRows - 1.0) / (double)NumRows }).Skip(1).First();
+        TikzRectangle MainRectangle => sourceRectangle.RightPortion(sourceRectangle.width - axisSpace).TopOrBottomPortion(sourceRectangle.height - axisSpace, !columnAxisIsOnTop);
 
         List<TikzRectangle> Rows => Enumerable.Reverse(MainRectangle.DivideBottomToTop(NumRows)).ToList();
         List<List<TikzRectangle>> IndividualCells => Rows.Select(x => x.DivideLeftToRight(relativeWidths.ToArray())).ToList();
 
         private string GetRectangleCommand(TikzRectangle rectangle, string text, double darkness, bool includeLine, string additionalAttributes)
         {
-            string rectAttributes = $"fill={fillColor}!{darkness}, text={(darkness <= 50 ? "black" : "white")}";
+            string fill = darkness == 0 ? "none" : $"{fillColor}!{darkness}";
+            string rectAttributes = $"fill={fill}, text={(darkness <= 50 ? "black" : "white")}";
             if (!includeLine)
                 rectAttributes += ", draw=none";
             if (additionalAttributes != null)
@@ -43,11 +44,14 @@ namespace ACESimBase.Util.Tikz
                     double adjDarkness = content.darkness * 100;
                     if (adjDarkness < 0.001)
                         adjDarkness = 0.001;
-                    b.AppendLine(GetRectangleCommand(cell, content.text, adjDarkness, r != 0 && c != 0, contentAttributes));
+                    bool isAxis = r == (columnAxisIsOnTop ? 0 : numRows - 1) || c == 0;
+                    if (isAxis)
+                        adjDarkness = 0;
+                    b.AppendLine(GetRectangleCommand(cell, content.text, adjDarkness, !isAxis, contentAttributes));
                 }
             }
             b.AppendLine(LeftAxisRectangle.DrawTextOnly("black, rotate=90, draw=none", rowAxisLabel));
-            b.AppendLine(TopAxisRectangle.DrawTextOnly("black, draw=none", columnAxisLabel));
+            b.AppendLine(HorizontalAxisRectangle.DrawTextOnly("black, draw=none", columnAxisLabel));
             return b.ToString();
         }
 

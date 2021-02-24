@@ -29,9 +29,6 @@ namespace ACESimBase.GameSolvingAlgorithms
         }
         SequenceFormApproach Approach = SequenceFormApproach.ECTA;
 
-        bool SkipIfEquilibriumFileAlreadyExists = false; 
-        bool ProduceEFGFile = true;
-
         public SequenceForm(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
         {
         }
@@ -45,7 +42,7 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         public override async Task Initialize()
         {
-            if (SkipIfEquilibriumFileAlreadyExists && EquilibriumFileAlreadyExists())
+            if (EvolutionSettings.SkipIfEquilibriumFileAlreadyExists && EquilibriumFileAlreadyExists())
                 return;
             GameDefinition.MakeAllChanceDecisionsKnowAllChanceActions(); // since there is just one chance player, each chance (and resolution) player must know all other chance decisions for ECTA algorithm to work properly
             AllowSkipEveryPermutationInitialization = false;
@@ -67,11 +64,11 @@ namespace ACESimBase.GameSolvingAlgorithms
         {
 
             ReportCollection reportCollection = new ReportCollection();
-            if (SkipIfEquilibriumFileAlreadyExists && EquilibriumFileAlreadyExists())
+            if (EvolutionSettings.SkipIfEquilibriumFileAlreadyExists && EquilibriumFileAlreadyExists())
                 return reportCollection;
 
             string filename = null;
-            if (ProduceEFGFile)
+            if (EvolutionSettings.CreateEFGFileForSequenceForm)
                 filename = CreateGambitFile();
 
             if (Approach == SequenceFormApproach.ECTA)
@@ -916,7 +913,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             var folderFullName = folder.FullName;
             string filename = Path.Combine(folderFullName, MasterReportName + "-" + GameDefinition.OptionSetName + "-equ.csv");
             string[] lines = TextFileManage.GetLinesOfFile(filename);
-            List<double[]> numbers = lines.Select(x => x.Split().Select(x => EFGFileReader.RationalStringToDouble(x)).ToArray()).ToList();
+            List<double[]> numbers = lines.Select(x => x.Split(",").Select(x => EFGFileReader.RationalStringToDouble(x)).ToArray()).ToList();
             return numbers;
         }
 

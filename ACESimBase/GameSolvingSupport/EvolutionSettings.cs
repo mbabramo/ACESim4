@@ -62,8 +62,10 @@ namespace ACESim
         public bool ConfirmPerfectEquilibria = true; // for sequence form only
         public bool ThrowIfNotPerfectEquilibrium = false;
         public bool TryInexactArithmeticForAdditionalEquilibria = true;
+        public bool CreateEFGFileForSequenceForm = true;
         public bool CreateEquilibriaFileForSequenceForm = true;
-        public bool PreloadedEquilibriaForSequenceForm = false;
+        public bool PreloadedEquilibriaForSequenceForm = true; // DEBUG
+        public bool SkipIfEquilibriumFileAlreadyExists = false;
 
         public string SerializeResultsPrefixPlus(int scenario, int totalScenarios) => SerializeResultsPrefix + (totalScenarios > 0 ? scenario.ToString() : "");
 
