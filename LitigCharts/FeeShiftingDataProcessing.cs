@@ -356,6 +356,7 @@ namespace LitigCharts
             {
                 FeeShiftingDataProcessing.ProduceLatexDiagrams("-scr" + fileSuffix);
                 FeeShiftingDataProcessing.ProduceLatexDiagrams("-heatmap" + fileSuffix);
+                FeeShiftingDataProcessing.ProduceLatexDiagrams("-fileans" + fileSuffix);
             }
         }
 
@@ -365,7 +366,7 @@ namespace LitigCharts
             string[] filesInFolder = DeleteAuxiliaryFiles(reportFolder);
             filesInFolder = Directory.GetFiles(reportFolder);
 
-            string[] getExtensions(string eqType) => new string[] { firstEqOnly ? $".csv" : $"-{eqType}.csv", $"-heatmap-{eqType}.pdf", $"-heatmap-{eqType}.tex", $"-scr-{eqType}.pdf", $"-scr-{eqType}.tex", $"-scr-{eqType}.csv" };
+            string[] getExtensions(string eqType) => new string[] { firstEqOnly ? $".csv" : $"-{eqType}.csv", $"-heatmap-{eqType}.pdf", $"-heatmap-{eqType}.tex", $"-fileans-{eqType}.pdf", $"-fileans-{eqType}.tex", $"-scr-{eqType}.pdf", $"-scr-{eqType}.tex", $"-scr-{eqType}.csv" };
             List<(string folderName, string[] extensions)> placementRules = new List<(string folderName, string[] extensions)>()
             {
                 ("First Equilibrium", getExtensions("Eq1")),
