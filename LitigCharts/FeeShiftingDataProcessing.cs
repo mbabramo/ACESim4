@@ -707,7 +707,7 @@ namespace LitigCharts
             TikzRepeatedGraph r = new TikzRepeatedGraph()
             {
                 majorXValueNames = requirementsForEachVariation.Select(x => x.nameOfVariation).ToList(),
-                majorXAxisLabel = variation.nameOfSet,
+                majorXAxisLabel = variation.nameOfSet == "Baseline" ? "" : variation.nameOfSet,
                 majorYValueNames = limitToCostsMultiplier == null ? launcher.CriticalCostsMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList() : new List<string>() { limitToCostsMultiplier.ToString() },
                 majorYAxisLabel = aggregatedGraphInfo.majorYAxisLabel,
                 minorXValueNames = launcher.CriticalFeeShiftingMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList(),
@@ -734,7 +734,7 @@ namespace LitigCharts
 
             string outputFilename = Path.Combine(subfolderName, $"{aggregatedGraphInfo.topicName} Varying {variation.nameOfSet}{costsLevel}{equilibriumTypeAdj}.tex");
             TextFileManage.CreateTextFile(outputFilename, result);
-            ExecuteLatexProcess(outputFolderPath, outputFilename);
+            ExecuteLatexProcess(subfolderName, outputFilename);
         }
 
 
