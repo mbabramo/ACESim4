@@ -26,7 +26,7 @@ namespace ACESimBase.Util.Tikz
         private bool Initialized;
         private TikzAxisSet outerAxisSet;
         private List<List<TikzAxisSet>> innerAxisSets;
-        public double width => Math.Min(8, 5 + majorXValueNames.Count() * 4.0); 
+        public double width => 20 + (majorXValueNames.Count() > 5 ? 4.0 * (majorXValueNames.Count() - 5) : 0);
         public double height => 2.3 + majorYValueNames.Count() * 4.0;
         private TikzRectangle mainRectangle => new TikzRectangle(0, 0, width, height);
         TikzLine bottomAxisLine => outerAxisSet.BottomAxisLine;
