@@ -41,7 +41,7 @@ namespace ACESim
         public double PerturbationForBestResponseCalculation = 0.001;
         public int? MiniReportEveryPIterations = 1000;
         public bool MeasureRegretMatchingChanges = false;
-        public bool UseRandomPathsForReporting = true;
+        public bool UseRandomPathsForReporting = false;
         public bool RoundOffLowProbabilitiesBeforeReporting = true;
         public bool RoundOffLowProbabilitiesBeforeAcceleratedBestResponse = true;
         public bool RecalculateScoreReachWhenCalculatingBestResponseImprovement = false;

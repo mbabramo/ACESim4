@@ -68,7 +68,15 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 }
                 stagesForEachPanel.Add(stages);
             }
-            StageCostDiagram diagram = new StageCostDiagram(new TikzRectangle(0, 0, 20, 16), 1.5, 0.25, 0.25, 0.30, stagesForEachPanel, maxMagnitudes, stageNames, shortStageNames);
+            // We can change the following to tweak individual charts, for example to make them comparable to each other or to squeeze some more words in
+            double? heightOverride = null;
+            double? maxMagnitudeForAccuracy = null; 
+            if (maxMagnitudeForAccuracy is double nonNullMaxMagnitude)
+            {
+                maxMagnitudes[0] = (maxMagnitudes[0].assessmentName, Math.Max(maxMagnitudes[0].maxMagnitude, nonNullMaxMagnitude));
+                maxMagnitudes[1] = (maxMagnitudes[1].assessmentName, Math.Max(maxMagnitudes[1].maxMagnitude, nonNullMaxMagnitude));
+            }
+            StageCostDiagram diagram = new StageCostDiagram(new TikzRectangle(0, 0, 20, heightOverride ?? 16), 1.5, 0.25, 0.25, 0.30, stagesForEachPanel, maxMagnitudes, stageNames, shortStageNames);
 
             string csvFile = csvStringBuilder.ToString();
             string tikzCode = diagram.GetTikzDocument();

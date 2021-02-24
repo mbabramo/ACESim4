@@ -29,7 +29,7 @@ namespace ACESimBase.GameSolvingAlgorithms
         }
         SequenceFormApproach Approach = SequenceFormApproach.ECTA;
 
-        bool SkipIfEquilibriumFileAlreadyExists = true; // DEBUG
+        bool SkipIfEquilibriumFileAlreadyExists = false; 
         bool ProduceEFGFile = true;
 
         public SequenceForm(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
