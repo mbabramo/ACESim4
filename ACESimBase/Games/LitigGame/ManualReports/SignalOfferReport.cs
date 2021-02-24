@@ -11,7 +11,13 @@ namespace ACESimBase.Games.LitigGame.ManualReports
 {
     public class SignalOfferReport
     {
-        public static List<string> GenerateReport(LitigGameDefinition gameDefinition, List<(GameProgress theProgress, double weight)> gameProgresses)
+        public enum TypeOfReport
+        {
+            Offers,
+            FileAndAnswer
+        }
+
+        public static List<string> GenerateReport(LitigGameDefinition gameDefinition, List<(GameProgress theProgress, double weight)> gameProgresses, TypeOfReport reportType)
         {
             List<(LitigGameProgress theProgress, double weight)> litigProgresses = gameProgresses.Select(x => ((LitigGameProgress)x.theProgress, x.weight)).ToList();
             Func<LitigGameProgress, double> pLiabilitySignalFunc = x => x.PLiabilitySignalUniform;
@@ -29,6 +35,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
 
             int numOffers = options.NumOffers;
             double[] offers = EquallySpaced.GetEquallySpacedPoints(options.NumOffers, options.IncludeEndpointsForOffers);
+            string[] fileActionStrings = new string[] { "No Suit", "File" };
+            string[] answerActionStrings = new string[] { "Default", "Answer" };
 
             bool transpose = true; // move offers to y axis
             if (transpose)
@@ -38,6 +46,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 pDamagesSignals.Reverse();
                 dDamagesSignals.Reverse();
                 offers = offers.Reverse().ToArray();
+                fileActionStrings = fileActionStrings.Reverse().ToArray();
+                answerActionStrings = answerActionStrings.Reverse().ToArray();
             }
 
             int numSignals = useLiabilitySignals ? options.NumLiabilitySignals : options.NumDamagesSignals;
@@ -51,11 +61,21 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             // header row
             pRow.Add(("", 0));
             dRow.Add(("", 0));
-            for (int offerIndex = 0; offerIndex < numOffers; offerIndex++)
+            if (reportType == TypeOfReport.Offers)
             {
-                string offerValueString = offers[offerIndex].ToSignificantFigures(2).ToString();
-                pRow.Add((offerValueString, 0));
-                dRow.Add((offerValueString, 0));
+                for (int offerIndex = 0; offerIndex < numOffers; offerIndex++)
+                {
+                    string offerValueString = offers[offerIndex].ToSignificantFigures(2).ToString();
+                    pRow.Add((offerValueString, 0));
+                    dRow.Add((offerValueString, 0));
+                }
+            }
+            else
+            {
+                pRow.Add((fileActionStrings[0], 0));
+                pRow.Add((fileActionStrings[1], 0));
+                dRow.Add((answerActionStrings[0], 0));
+                dRow.Add((answerActionStrings[1], 0));
             }
             pContents.Add(pRow);
             dContents.Add(dRow);
@@ -67,27 +87,46 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 dRow = new List<(string text, double darkness)>() { (dSignals[signalIndex].ToSignificantFigures(2), 0) };
                 double pSignal = pSignals[signalIndex];
                 double dSignal = dSignals[signalIndex];
-                // inner contents
-                for (int offerIndex = 0; offerIndex < numOffers; offerIndex++)
+
+
+                (string representation, double darknessValue) GetProportionString(Func<LitigGameProgress, bool> numeratorFunction, Func<LitigGameProgress, bool> denominatorFunction)
                 {
-                    double offerValue = offers[offerIndex];
-                    Func<LitigGameProgress, bool> pNumeratorFn = x => x.PFirstOffer == offerValue;
-                    Func<LitigGameProgress, bool> pDenominatorFn = x => pFunction(x) == pSignal && (x.POffers?.Any() ?? false);
-                    Func<LitigGameProgress, bool> dNumeratorFn = x => x.DFirstOffer == offerValue;
-                    Func<LitigGameProgress, bool> dDenominatorFn = x => dFunction(x) == dSignal && (x.DOffers?.Any() ?? false);
+                    var numerator = litigProgresses.Where(x => numeratorFunction(x.theProgress) && denominatorFunction(x.theProgress)).Sum(x => x.weight);
+                    var denominator = litigProgresses.Where(x => denominatorFunction(x.theProgress)).Sum(x => x.weight);
+                    if (denominator == 0)
+                        return ("N/A", 0);
+                    double proportion = numerator / denominator;
+                    return (((int)(Math.Round(Math.Round(proportion, 2) * 100))).ToString() + "\\%", Math.Round(Math.Sqrt(proportion), 2));
+                }
 
-                    (string representation, double darknessValue) GetProportionString(Func<LitigGameProgress, bool> numeratorFunction, Func<LitigGameProgress, bool> denominatorFunction)
+                // inner contents
+                if (reportType == TypeOfReport.Offers)
+                {
+                    for (int offerIndex = 0; offerIndex < numOffers; offerIndex++)
                     {
-                        var numerator = litigProgresses.Where(x => numeratorFunction(x.theProgress) && denominatorFunction(x.theProgress)).Sum(x => x.weight);
-                        var denominator = litigProgresses.Where(x => denominatorFunction(x.theProgress)).Sum(x => x.weight);
-                        if (denominator == 0)
-                            return ("N/A", 0);
-                        double proportion = numerator / denominator;
-                        return (((int)(Math.Round(proportion, 2) * 100)).ToString() + "\\%", Math.Round(Math.Sqrt(proportion), 2));
-                    }
+                        double offerValue = offers[offerIndex];
+                        Func<LitigGameProgress, bool> pNumeratorFn = x => x.PFirstOffer == offerValue;
+                        Func<LitigGameProgress, bool> pDenominatorFn = x => pFunction(x) == pSignal && (x.POffers?.Any() ?? false);
+                        Func<LitigGameProgress, bool> dNumeratorFn = x => x.DFirstOffer == offerValue;
+                        Func<LitigGameProgress, bool> dDenominatorFn = x => dFunction(x) == dSignal && (x.DOffers?.Any() ?? false);
 
-                    pRow.Add(GetProportionString(pNumeratorFn, pDenominatorFn));
-                    dRow.Add(GetProportionString(dNumeratorFn, dDenominatorFn));
+                        pRow.Add(GetProportionString(pNumeratorFn, pDenominatorFn));
+                        dRow.Add(GetProportionString(dNumeratorFn, dDenominatorFn));
+                    }
+                }
+                else
+                {
+                    Func<LitigGameProgress, bool> pDenominatorFn = x => pFunction(x) == pSignal;
+                    Func<LitigGameProgress, bool> dDenominatorFn = x => dFunction(x) == dSignal && x.PFiles;
+                    Func<LitigGameProgress, bool> pFilesFn = x => x.PFiles;
+                    Func<LitigGameProgress, bool> pNoSuitFn = x => !x.PFiles;
+                    Func<LitigGameProgress, bool> dAnswersFn = x => x.DAnswers;
+                    Func<LitigGameProgress, bool> dDefaultsFn = x => !x.DAnswers;
+
+                    pRow.Add(GetProportionString(pFilesFn, pDenominatorFn));
+                    dRow.Add(GetProportionString(dAnswersFn, dDenominatorFn));
+                    pRow.Add(GetProportionString(pNoSuitFn, pDenominatorFn));
+                    dRow.Add(GetProportionString(dDefaultsFn, dDenominatorFn));
                 }
                 pContents.Add(pRow);
                 dContents.Add(dRow);
@@ -100,13 +139,19 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             TikzRectangle pRect = separateRectangles[0];
             TikzRectangle dRect = separateRectangles[2];
 
-            string xAxisWord = "Offer";
-            string yAxisWord = "Signal";
+            string xAxisWordP = reportType == TypeOfReport.Offers ? "P Offer" : "File Decision";
+            string xAxisWordD = reportType == TypeOfReport.Offers ? "D Offer" : "Answer Decision";
+            string yAxisWordP = "P Signal";
+            string yAxisWordD = "D Signal";
             if (transpose)
             {
-                var temp = xAxisWord;
-                xAxisWord = yAxisWord;
-                yAxisWord = temp;
+                var temp = xAxisWordP;
+                xAxisWordP = yAxisWordP;
+                yAxisWordP = temp;
+
+                temp = xAxisWordD;
+                xAxisWordD = yAxisWordD;
+                yAxisWordD = temp;
 
                 pContents = pContents.Transpose();
                 var horizontalAxis = pContents[0];
@@ -121,8 +166,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             string numberAttributes = null;
             if (numXAxisItems > 5)
                 numberAttributes = "font=\\tiny";
-            TikzHeatMap pHeatMap = new TikzHeatMap($"P {xAxisWord}", $"P {yAxisWord}", !transpose, numberAttributes, pRect, "blue", relativeWidths, pContents);
-            TikzHeatMap dHeatMap = new TikzHeatMap($"D {xAxisWord}", $"D {yAxisWord}", !transpose, numberAttributes, dRect, "orange", relativeWidths, dContents);
+            TikzHeatMap pHeatMap = new TikzHeatMap(xAxisWordP, yAxisWordP, !transpose, numberAttributes, pRect, "blue", relativeWidths, pContents);
+            TikzHeatMap dHeatMap = new TikzHeatMap(xAxisWordD, yAxisWordD, !transpose, numberAttributes, dRect, "orange", relativeWidths, dContents);
 
             StringBuilder b = new StringBuilder();
             b.AppendLine(pHeatMap.DrawCommands());

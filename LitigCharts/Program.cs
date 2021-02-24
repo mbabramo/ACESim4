@@ -31,8 +31,6 @@ namespace LitigCharts
                 return;
             }
 
-            // DEBUG -- why didn't deletion work?
-
             FeeShiftingDataProcessing.BuildMainFeeShiftingReport();
             if (printIndividualLatexDiagrams)
                 FeeShiftingDataProcessing.ProduceLatexDiagramsFromTexFiles(); // this code assumes that all data is in the ReportResults folder, so must do before organization

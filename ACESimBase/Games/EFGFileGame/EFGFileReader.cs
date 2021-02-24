@@ -2,9 +2,11 @@
 using ACESimBase.Util;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging.Abstractions;
+using Rationals;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -333,6 +335,19 @@ namespace ACESimBase.Games.EFGFileGame
             return results;
         }
 
+        public static Rational RationalStringToRational(string rationalNumberString)
+        {
+            if (rationalNumberString.Contains("/"))
+            {
+                string[] fractionComponents = rationalNumberString.Split('/');
+                Rational r= Rational.Divide(BigInteger.Parse(fractionComponents[0]), BigInteger.Parse(fractionComponents[1]));
+                return r;
+            }
+            else
+            {
+                return BigInteger.Parse(rationalNumberString);
+            }
+        }
 
         public static double RationalStringToDouble(string rationalNumberString)
         {

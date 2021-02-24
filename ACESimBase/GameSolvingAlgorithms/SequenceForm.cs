@@ -16,6 +16,7 @@ using JetBrains.Annotations;
 using NumSharp.Utilities;
 using ACESimBase.Games.EFGFileGame;
 using Microsoft.Azure.Storage;
+using System.Runtime.CompilerServices;
 
 namespace ACESimBase.GameSolvingAlgorithms
 {
@@ -913,7 +914,8 @@ namespace ACESimBase.GameSolvingAlgorithms
             var folderFullName = folder.FullName;
             string filename = Path.Combine(folderFullName, MasterReportName + "-" + GameDefinition.OptionSetName + "-equ.csv");
             string[] lines = TextFileManage.GetLinesOfFile(filename);
-            List<double[]> numbers = lines.Select(x => x.Split(",").Select(x => EFGFileReader.RationalStringToDouble(x)).ToArray()).ToList();
+            //List<Rational[]> numbersAsRationals = lines.Select(x => x.Split(",").Select(x => EFGFileReader.RationalStringToRational(x)).ToArray()).ToList();
+            List<double[]> numbers = lines.Select(x => x.Split(",").Select(x => EFGFileReader.RationalStringToDouble(x)).ToArray()).ToList(); // there may be doubles or rationals in the string
             return numbers;
         }
 

@@ -1178,8 +1178,10 @@ namespace ACESim
             var contents = StageCostReport.GenerateReport(gameProgresses);
             yield return (OptionSetName + $"-scr{supplementalString}.csv", contents[0]);
             yield return (OptionSetName + $"-scr{supplementalString}.tex", contents[1]);
-            contents = SignalOfferReport.GenerateReport(this, gameProgresses);
+            contents = SignalOfferReport.GenerateReport(this, gameProgresses, SignalOfferReport.TypeOfReport.Offers);
             yield return (OptionSetName + $"-heatmap{supplementalString}.tex", contents[0]);
+            contents = SignalOfferReport.GenerateReport(this, gameProgresses, SignalOfferReport.TypeOfReport.FileAndAnswer);
+            yield return (OptionSetName + $"-fileans{supplementalString}.tex", contents[0]);
         }
 
 

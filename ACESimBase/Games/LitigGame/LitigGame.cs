@@ -177,9 +177,9 @@ namespace ACESim
                 if (options.AllowAbandonAndDefaults && !options.PredeterminedAbandonAndDefaults)
                     throw new NotImplementedException(); // in this case, we need to call this method after DDefault or perhaps after MutualGiveUp
 
-                //int numBargainingRoundsComplete = LitigGameProgress.BargainingRoundsComplete + 1; // haven't yet registered the completed round
-                //if (numBargainingRoundsComplete < options.NumPotentialBargainingRounds)
-                //    return;
+                int numBargainingRoundsComplete = LitigGameProgress.BargainingRoundsComplete + 1; // haven't yet registered the completed round
+                if (numBargainingRoundsComplete < options.NumPotentialBargainingRounds)
+                    return;
 
                 bool isEffectivelyComplete;
                 if (options.AllowAbandonAndDefaults)

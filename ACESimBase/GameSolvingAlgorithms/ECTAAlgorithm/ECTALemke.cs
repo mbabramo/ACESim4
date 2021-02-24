@@ -75,7 +75,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 
         public int[] leaveCandidates; /* should be local to lexminvar but defined globally for economy    */
 
-        public const int MAXLCPDIM = 2000;       /* max LCP dimension                       */
+        public const int MAXLCPDIM = 50_000;       /* max LCP dimension                       */
         public const int INFOSTRINGLENGTH = 8;   /* string naming vars, e.g. "z0", "w187"   */
         public const int LCPSTRL = 60;          /* length of string containing LCP entry   */
 

@@ -12,7 +12,7 @@ namespace ACESimBase.Util.Tikz
         int NumColumns => contents.First().Count();
         double axisSpace = columnAxisIsOnTop ? 0.25 : 0.40;
         TikzRectangle LeftAxisRectangle => sourceRectangle.LeftPortion(axisSpace).DivideBottomToTop(new double[] { (columnAxisIsOnTop ? NumRows - 1.0 : 1.0) / (double)NumRows, (columnAxisIsOnTop ? 1.0 : NumRows - 1.0) / (double)NumRows }).Skip(columnAxisIsOnTop ? 0 : 1).First();
-        TikzRectangle HorizontalAxisRectangle => sourceRectangle.TopOrBottomPortion(axisSpace, columnAxisIsOnTop).DivideLeftToRight(new double[] { 1.0 / (double) NumRows,  (NumRows - 1.0) / (double)NumRows }).Skip(1).First();
+        TikzRectangle HorizontalAxisRectangle => sourceRectangle.TopOrBottomPortion(axisSpace, columnAxisIsOnTop).DivideLeftToRight(new double[] { 1.0 / (double) NumColumns,  (NumColumns - 1.0) / (double)NumColumns }).Skip(1).First();
         TikzRectangle MainRectangle => sourceRectangle.RightPortion(sourceRectangle.width - axisSpace).TopOrBottomPortion(sourceRectangle.height - axisSpace, !columnAxisIsOnTop);
 
         List<TikzRectangle> Rows => Enumerable.Reverse(MainRectangle.DivideBottomToTop(NumRows)).ToList();

@@ -63,8 +63,8 @@ namespace ACESim
         public bool ThrowIfNotPerfectEquilibrium = false;
         public bool TryInexactArithmeticForAdditionalEquilibria = true;
         public bool CreateEFGFileForSequenceForm = true;
-        public bool CreateEquilibriaFileForSequenceForm = true;
-        public bool PreloadedEquilibriaForSequenceForm = true; // DEBUG
+        public bool CreateEquilibriaFileForSequenceForm = false;
+        public bool PreloadedEquilibriaForSequenceForm = false; 
         public bool SkipIfEquilibriumFileAlreadyExists = false;
 
         public string SerializeResultsPrefixPlus(int scenario, int totalScenarios) => SerializeResultsPrefix + (totalScenarios > 0 ? scenario.ToString() : "");
@@ -97,7 +97,7 @@ namespace ACESim
         public int NumRandomIterationsForSummaryTable = 1_000;
         public bool PrintGameTree = false;
         public bool PrintedGameTreeIncludesInformationSetData = false;
-        public bool PrintInformationSets = false;
+        public bool PrintInformationSets = false; 
         public bool AnalyzeInformationSets = false; 
         public List<int> RestrictToTheseInformationSets = null;
         public bool PrintNonChanceInformationSetsOnly = true;
