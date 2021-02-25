@@ -523,7 +523,7 @@ namespace ACESim
         public List<List<int>> AllScenarioPermutations;
         public int[] PostWarmupScenarioIndices; // the indices in AllScenarioPermutations corresponding to the first scenario for each post-warmup possibility
 
-        public virtual double SwitchToAlternativeOptions(bool changeToAlternate)
+        public virtual double MakeMarginalChangeToTestInformationSetPressure(bool changeToAlternate)
         {
             return 0;
         }

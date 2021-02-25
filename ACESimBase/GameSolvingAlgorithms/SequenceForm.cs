@@ -706,7 +706,7 @@ namespace ACESimBase.GameSolvingAlgorithms
         public string GetECTACodeInC()
         {
             // TODO: This would need to be updated (along the lines above) to work with games without a chance player.
-            const int ECTA_MultiplyOutcomesByThisBeforeRounding = 10_000;
+            //const int ECTA_MultiplyOutcomesByThisBeforeRounding = 10_000;
             var outcomes = Outcomes;
             var player0Rounded = ConvertToIntegralUtilities(outcomes.Select(x => x.Utilities[0]));
             var player1Rounded = ConvertToIntegralUtilities(outcomes.Select(x => x.Utilities[1]));

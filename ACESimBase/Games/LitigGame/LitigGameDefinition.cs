@@ -1153,13 +1153,14 @@ namespace ACESim
             return warmupResult;
         }
 
-        public override double SwitchToAlternativeOptions(bool changeToAlternate)
+        public override double MakeMarginalChangeToTestInformationSetPressure(bool changeToAlternate)
         {
-            double magnitudeOfChange = 0.01;
+            double magnitudeOfChange = 1.0;
             // This is for a test in the sequence form algorithm, to see what will be out of equilibrium when the settings change.
             if (changeToAlternate)
             {
-                Options.LoserPays = true;
+                if (Options.LoserPays == false)
+                    throw new Exception("Must set loser pays to true and multiple to relevant value (possibly 0 for American rule) to start information set pressure analysis");
                 Options.LoserPaysMultiple += magnitudeOfChange;
             }
             else

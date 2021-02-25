@@ -445,6 +445,9 @@ namespace ACESim
             options.AllowAbandonAndDefaults = true;
             options.PredeterminedAbandonAndDefaults = true;
 
+            options.LoserPays = true; // DEBUG
+            options.LoserPaysMultiple = 0.0; // DEBUG
+
             return options;
         }
 

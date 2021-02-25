@@ -1433,20 +1433,20 @@ namespace ACESim
 
         public void IdentifyPressureOnInformationSets(bool testSwitchToAlternativeGameOptions, bool calculatePressureBetweenInformationSets, bool considerOnlyInformationSetsAffectedByAlternativeGameOptions, out List<(int sourceAction, int?[] actionPromotedInOtherInformationSets)> effectOfChanges)
         {
-            List<(int indexOfAffectedSet, int pushingTowardAction)> indicesOfAffectedInformationSets = new List<(int indexOfAffectedSet, int pushingTowardAction)>();
+            List<(int indexOfAffectedSet, int pushingTowardAction, double magnitude)> indicesOfAffectedInformationSets = new List<(int indexOfAffectedSet, int pushingTowardAction, double magnitude)>();
             if (testSwitchToAlternativeGameOptions)
             {
                 TabbedText.WriteLine("");
                 TabbedText.WriteLine("Switching to alternative options:");
-                double switchMagnitude = GameDefinition.SwitchToAlternativeOptions(true);
+                double switchMagnitude = GameDefinition.MakeMarginalChangeToTestInformationSetPressure(true);
                 if (switchMagnitude == 0)
                 {
                     effectOfChanges = null;
                     return;
                 }
-                int?[] result = DoInformationSetPressureAnalysis(true, switchMagnitude);
-                indicesOfAffectedInformationSets = result.Select((item, index) => (item, index)).Where(x => x.item != null).Select(x => (x.index, (int) x.item)).ToList();
-                GameDefinition.SwitchToAlternativeOptions(false);
+                (int? actionPromotedInOtherInformationSet, double magnitude)[] result = DoInformationSetPressureAnalysis(true, switchMagnitude);
+                indicesOfAffectedInformationSets = result.Select((item, index) => (item, index)).Where(x => x.item.actionPromotedInOtherInformationSet != null).Select(x => (x.index, (int) x.item.actionPromotedInOtherInformationSet, x.item.magnitude)).ToList();
+                GameDefinition.MakeMarginalChangeToTestInformationSetPressure(false);
             }
 
             TabbedText.WriteLine("");
@@ -1461,17 +1461,18 @@ namespace ACESim
                         effectOfChanges.Add((0, null));
                     else
                     {
-                        int pushingTowardAction = indicesOfAffectedInformationSets.First(x => x.indexOfAffectedSet == informationSetIndex).pushingTowardAction;
+                        (int indexOfAffectedSet, int pushingTowardAction, double magnitude) infoSetResult = indicesOfAffectedInformationSets.First(x => x.indexOfAffectedSet == informationSetIndex);
+                        int pushingTowardAction = infoSetResult.pushingTowardAction;
                         InformationSetNode informationSetToChange = InformationSets[informationSetIndex];
                         double[] originalProbabilities = informationSetToChange.GetCurrentProbabilitiesAsArray();
-                        double probabilityMassToReallocate = 0.001; 
+                        double probabilityMassToReallocate = infoSetResult.magnitude;
                         if (originalProbabilities[pushingTowardAction - 1] < 1 - probabilityMassToReallocate)
                         {
                             double[] replacementProbabilities = ReallocateProbabilityMass(originalProbabilities, probabilityMassToReallocate, pushingTowardAction - 1);
                             TabbedText.WriteLine($"Effect of changing information set {InformationSets[informationSetIndex]} to probabilities {String.Join(",", replacementProbabilities)}"); 
                             informationSetToChange.SetCurrentProbabilities(replacementProbabilities);
-                            int?[] effectOnOtherInformationSets = DoInformationSetPressureAnalysis(true, probabilityMassToReallocate, informationSetIndex);
-                            effectOfChanges.Add((pushingTowardAction, effectOnOtherInformationSets));
+                            (int? actionPromotedInOtherInformationSet, double magnitude)[] effectOnOtherInformationSets = DoInformationSetPressureAnalysis(true, probabilityMassToReallocate, informationSetIndex);
+                            effectOfChanges.Add((pushingTowardAction, effectOnOtherInformationSets.Select(x => x.actionPromotedInOtherInformationSet).ToArray()));
                             informationSetToChange.SetCurrentProbabilities(originalProbabilities);
                         }
                     }
@@ -1492,16 +1493,23 @@ namespace ACESim
         {
             if (probabilityToReallocate == 0)
                 return originalProbabilities.ToArray();
-            double probabilitiesExceptingIndexWithHighestValue = 1.0 - originalProbabilities[indexToReallocateTo];
+            double probabilitiesOfOtherIndices = 1.0 - originalProbabilities[indexToReallocateTo];
             double[] replacementProbabilities = originalProbabilities.ToArray();
-            for (int i = 0; i < replacementProbabilities.Length; i++)
+            replacementProbabilities[indexToReallocateTo] += probabilityToReallocate;
+            if (replacementProbabilities[indexToReallocateTo] > 1)
             {
-                if (i == indexToReallocateTo)
-                    replacementProbabilities[i] += probabilityToReallocate;
-                else
+                probabilityToReallocate -= (replacementProbabilities[indexToReallocateTo] - 1.0);
+                replacementProbabilities[indexToReallocateTo] = 1.0;
+            }
+            if (probabilityToReallocate > 0)
+            {
+                for (int i = 0; i < replacementProbabilities.Length; i++)
                 {
-                    double proportion = (probabilitiesExceptingIndexWithHighestValue == 0) ? 1.0 / ((double)replacementProbabilities.Length - 1.0) : replacementProbabilities[i] / probabilitiesExceptingIndexWithHighestValue;
-                    replacementProbabilities[i] -= probabilityToReallocate * proportion;
+                    if (i != indexToReallocateTo)
+                    {
+                        double proportion = replacementProbabilities[i] / probabilitiesOfOtherIndices;
+                        replacementProbabilities[i] -= probabilityToReallocate * proportion;
+                    }
                 }
             }
 
@@ -1515,13 +1523,13 @@ namespace ACESim
             return replacementProbabilities;
         }
 
-        private int?[] DoInformationSetPressureAnalysis(bool report, double sourceChangeMagnitude, int? skipInformationSetIndex = null)
+        private (int? actionPromotedInOtherInformationSet, double magnitude)[] DoInformationSetPressureAnalysis(bool report, double sourceChangeMagnitude, int? skipInformationSetIndex = null)
         {
             var originalNavigation = Navigation;
             Navigation = Navigation.WithLookupApproach(InformationSetLookupApproach.PlayGameDirectly);
             CalculateUtilitiesAtEachInformationSet utilitiesCalculator = new CalculateUtilitiesAtEachInformationSet();
             TreeWalk_Tree(utilitiesCalculator);
-            int?[] actionBecomingMorePopularAtEachInformationSet = new int?[InformationSets.Count()];
+            (int? actionPromotedInOtherInformationSet, double magnitude)[] actionBecomingMorePopularAtEachInformationSet = new (int? actionPromotedInOtherInformationSet, double magnitude)[InformationSets.Count()];
             for (int informationSetIndex = 0; informationSetIndex < InformationSets.Count; informationSetIndex++)
             {
                 if (informationSetIndex == skipInformationSetIndex)
@@ -1543,10 +1551,10 @@ namespace ACESim
                     }
                 }
                 double rate = largestIncrease / (sourceChangeMagnitude == 0 ? 1 : sourceChangeMagnitude);
-                bool nonZeroPressure = rate > 1E-10;
+                bool nonZeroPressure = rate > 0;
                 if (nonZeroPressure)
                 {
-                    actionBecomingMorePopularAtEachInformationSet[informationSetIndex] = indexWithLargestIncrease + 1;
+                    actionBecomingMorePopularAtEachInformationSet[informationSetIndex] = (indexWithLargestIncrease + 1, rate);
                     if (report)
                         TabbedText.WriteLine($"--> move to action {actionBecomingMorePopularAtEachInformationSet[informationSetIndex]} at rate {rate} in {informationSet}"); // Utilities from actions: {String.Join(",", utilityFromEachAction)}");
                 }
