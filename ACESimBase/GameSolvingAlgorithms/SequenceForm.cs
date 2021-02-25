@@ -143,8 +143,8 @@ namespace ACESimBase.GameSolvingAlgorithms
                     Rational eachProbability = (Rational)1 / (Rational)numPossibilities;
                     return Enumerable.Range(0, numPossibilities).Select(x => eachProbability).ToArray();
                 }
-                Rational minProbability = (Rational)1 / (Rational)MaxIntegralUtility; // DEBUG -- better approach would be to trim the game tree.
-                var results = GetProbabilities().Select(x => (int)x * MaxIntegralUtility).Select(x => (Rational)x / (Rational)MaxIntegralUtility).Select(x => x < minProbability ? minProbability : x).ToArray(); // NOTE: We set a minimium probability level of 1 / MaxIntegralUtility.
+                Rational minProbability = (Rational)1 / (Rational)MaxIntegralUtility; // TODO -- better approach would be to trim the game tree.
+                var results = GetProbabilities().Select(x => (int)Math.Round(x * MaxIntegralUtility)).Select(x => (Rational)x / (Rational)MaxIntegralUtility).Select(x => x < minProbability ? minProbability : x).ToArray(); // NOTE: We set a minimium probability level of 1 / MaxIntegralUtility.
                 // make numbers add up to exactly 1
                 Rational total = 0;
                 for (int i = 0; i < results.Length; i++)
@@ -331,7 +331,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 return false;
             }
 
-            MaybeExact<T> errorTolerance = MaybeExact<T>.Zero(); // DEBUG MaybeExact<T>.One().DividedBy(MaybeExact<T>.FromInteger(EvolutionSettings.MaxIntegralUtility));
+            MaybeExact<T> errorTolerance = new T().IsExact ? MaybeExact<T>.Zero() : MaybeExact<T>.One().DividedBy(MaybeExact<T>.FromInteger(EvolutionSettings.MaxIntegralUtility));
             CalculateUtilitiesAtEachInformationSet_MaybeExact<T> calc = new CalculateUtilitiesAtEachInformationSet_MaybeExact<T>(chanceProbabilities, playerProbabilities, utilities, errorTolerance);
             TreeWalk_Tree(calc);
             if (EvolutionSettings.ConfirmPerfectEquilibria)
@@ -362,6 +362,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 }
                 if (!total.IsOne())
                 {
+                    throw new Exception("DEGENERATE"); // DEBUG
                     // Fix degeneracy
                     if (total.IsZero() || total.IsNegative())
                     {
@@ -621,8 +622,6 @@ namespace ACESimBase.GameSolvingAlgorithms
                         // chance player
                         var chance = InformationSetInfos[infoSetIndex].ChanceNode;
                         var rational = InformationSetInfos[infoSetIndex].GetProbabilitiesAsRationals()[moveNumber - 1];
-                        if (rational.IsZero)
-                            throw new Exception("DEBUG");
                         if (chance.Decision.DistributedChanceDecision && EvolutionSettings.DistributeChanceDecisions)
                         {
                             t.moves[moveIndex].behavioralProbability = moveNumber == 1 ? MaybeExact<T>.One() : MaybeExact<T>.Zero();

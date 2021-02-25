@@ -400,7 +400,7 @@ namespace ACESim
             bool alternativeCase = false;
             if (alternativeCase)
             {
-                byte numOfEach = 5;
+                byte numOfEach = 2;
                 options.NumOffers = numOfEach;
                 options.NumLiabilityStrengthPoints = numOfEach;
                 options.NumLiabilitySignals = numOfEach;

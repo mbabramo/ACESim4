@@ -60,7 +60,7 @@ namespace ACESim
         public static int RoundOffChanceDigits = 5; // Chance numbers will also be converted to rational numbers. The digits might be the same as above.
         public bool IdentifyPressureOnInformationSets = false; // currently called only for sequence form
         public bool ConfirmPerfectEquilibria = true; // for sequence form only
-        public bool ThrowIfNotPerfectEquilibrium = true; // DEBUG
+        public bool ThrowIfNotPerfectEquilibrium = true; 
         public bool TryInexactArithmeticForAdditionalEquilibria = true;
         public bool CreateEFGFileForSequenceForm = true;
         public bool CreateEquilibriaFileForSequenceForm = false;
@@ -96,8 +96,8 @@ namespace ACESim
         public bool GenerateReportsByPlaying = true;
         public int NumRandomIterationsForSummaryTable = 1_000;
         public bool PrintGameTree = false;
-        public bool PrintedGameTreeIncludesInformationSetData = false;
-        public bool PrintInformationSets = false; 
+        public bool PrintedGameTreeIncludesInformationSetData = true; 
+        public bool PrintInformationSets = false;
         public bool AnalyzeInformationSets = false; 
         public List<int> RestrictToTheseInformationSets = null;
         public bool PrintNonChanceInformationSetsOnly = true;
