@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Rationals;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -36,24 +37,6 @@ namespace ACESim
             set;
         }
         bool DistributionComplete;
-
-
-        public override (int, int) GetActionProbabilityAsRational(int denominatorToUseForUnequalProbabilities, int action, int distributorChanceInputs = -1)
-        {
-            var unroundedActionProbability = GetActionProbability(action, distributorChanceInputs);
-            int numerator = (int) Math.Round(unroundedActionProbability * (double)denominatorToUseForUnequalProbabilities);
-            // simplify fraction
-            for (int i = 2; i <= numerator; i++)
-            {
-                if (numerator % i == 0 && denominatorToUseForUnequalProbabilities % i == 0)
-                {
-                    numerator /= i;
-                    denominatorToUseForUnequalProbabilities /= i;
-                    i--; // check same factor again
-                }
-            }
-            return (numerator, denominatorToUseForUnequalProbabilities);
-        }
 
         /// <summary>
         /// This is used to calculate the uneven chance probabilities given distributor chance inputs. This is called for a distributor chance input decision (e.g., a player's hidden signal) or a distributor chance decision (i.e., a chance decision whose values will differ depending on the value of that hidden signal). It will be called multiple times for the various distributor chance input values, so that the probability increments (for example, from different values of a card hidden to all players) can be added.
@@ -108,6 +91,39 @@ namespace ACESim
         public override bool AllProbabilitiesEqual()
         {
             return false;
+        }
+
+        public override Rational[] GetProbabilitiesAsRationals(int maxIntegralUtility)
+        {
+            Rational minProbability = (Rational)1 / (Rational)maxIntegralUtility; // TODO -- better approach would be to trim the game tree.
+            var results = GetActionProbabilities().Select(x => (int)Math.Round(x * maxIntegralUtility)).Select(x => (Rational)x / (Rational)maxIntegralUtility).Select(x => x < minProbability ? minProbability : x).ToArray(); // NOTE: We set a minimium probability level of 1 / MaxIntegralUtility.
+                                                                                                                                                                                                                                // make numbers add up to exactly 1
+            Rational total = 0;
+            for (int i = 0; i < results.Length; i++)
+            {
+                if (i < results.Length - 1)
+                {
+                    results[i] = results[i].CanonicalForm;
+                    total += results[i];
+                    total = total.CanonicalForm;
+                }
+                else
+                {
+                    results[i] = ((Rational)1 - total).CanonicalForm;
+                    if (results[i].IsZero)
+                    {
+                        int largestIndex = results.Select((item, index) => (item, index)).OrderByDescending(x => x.item).First().index;
+                        results[largestIndex] -= minProbability;
+                        results[i] = minProbability;
+                    }
+                }
+            }
+            // adjust the chance node probabilities so that they exactly match the rational numbers
+            for (int i = 0; i < results.Length; i++)
+            {
+                Probabilities[i] = (double)results[i];
+            }
+            return results;
         }
 
         public override string ToString()

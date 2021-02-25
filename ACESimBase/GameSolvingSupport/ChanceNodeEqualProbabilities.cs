@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Rationals;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -26,7 +27,6 @@ namespace ACESim
         }
 
         public override double GetActionProbability(int action, int distributorChanceInputs = -1) => EachProbability;
-        public override (int, int) GetActionProbabilityAsRational(int denominatorToUseForUnequalProbabilities, int action, int distributorChanceInputs = -1) => (1, Decision.NumPossibleActions);
 
         public override bool AllProbabilitiesEqual()
         {
@@ -36,6 +36,13 @@ namespace ACESim
         public override string ToString()
         {
             return $"{Decision.Abbreviation} (Info set {AltNodeNumber ?? ChanceNodeNumber}): Chance player {PlayerNum} for decision {DecisionByteCode} => Equal probabilities {EachProbability}";
+        }
+
+        public override Rational[] GetProbabilitiesAsRationals(int maxIntegralUtility)
+        {
+            int numPossibilities = GetNumPossibleActions();
+            Rational eachProbability = (Rational)1 / (Rational)numPossibilities;
+            return Enumerable.Range(0, numPossibilities).Select(x => eachProbability).ToArray();
         }
     }
 }
