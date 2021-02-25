@@ -30,7 +30,7 @@ namespace ACESimBase.GameSolvingSupport
             int id = 0;
             if (predecessorAction != 0) // i.e., this is not the root, which we already added with nulls for parent and predecessor action
             {
-                var probabilitiesAsRationals = chanceNode.GetProbabilitiesAsRationals(SequenceFormCutOffProbabilityZeroNodes, MaxIntegralUtility);
+                var probabilitiesAsRationals = chanceNode.GetProbabilitiesAsRationals(!SequenceFormCutOffProbabilityZeroNodes, MaxIntegralUtility);
                 id = Relationships.Count();
                 Relationships.Add(new GameNodeRelationship(id, chanceNode, fromPredecessor, predecessorAction));
             }
