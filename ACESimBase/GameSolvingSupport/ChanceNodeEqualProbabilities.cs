@@ -38,7 +38,7 @@ namespace ACESim
             return $"{Decision.Abbreviation} (Info set {AltNodeNumber ?? ChanceNodeNumber}): Chance player {PlayerNum} for decision {DecisionByteCode} => Equal probabilities {EachProbability}";
         }
 
-        public override Rational[] GetProbabilitiesAsRationals(int maxIntegralUtility)
+        public override Rational[] GetProbabilitiesAsRationals(bool makeAllProbabilitiesPositive, int maxIntegralUtility)
         {
             int numPossibilities = GetNumPossibleActions();
             Rational eachProbability = (Rational)1 / (Rational)numPossibilities;

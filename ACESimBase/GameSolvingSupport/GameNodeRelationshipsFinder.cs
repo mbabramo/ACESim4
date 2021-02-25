@@ -10,11 +10,13 @@ namespace ACESimBase.GameSolvingSupport
     public class GameNodeRelationshipsFinder : ITreeNodeProcessor<int, bool /* ignored */>
     {
         public List<GameNodeRelationship> Relationships;
+        public bool SequenceFormCutOffProbabilityZeroNodes;
         public int MaxIntegralUtility;
 
-        public GameNodeRelationshipsFinder(IGameState root, bool removePathsRoundingToZero, int maxIntegralUtility)
+        public GameNodeRelationshipsFinder(IGameState root, bool sequenceFormCutOffProbabilityZeroNodes, int maxIntegralUtility)
         {
             Relationships =  new List<GameNodeRelationship>() { new GameNodeRelationship(0, root, null, null) };
+            SequenceFormCutOffProbabilityZeroNodes = sequenceFormCutOffProbabilityZeroNodes;
             MaxIntegralUtility = maxIntegralUtility;
         }
 
@@ -28,7 +30,7 @@ namespace ACESimBase.GameSolvingSupport
             int id = 0;
             if (predecessorAction != 0) // i.e., this is not the root, which we already added with nulls for parent and predecessor action
             {
-                var probabilitiesAsRationals = chanceNode.GetProbabilitiesAsRationals(MaxIntegralUtility);
+                var probabilitiesAsRationals = chanceNode.GetProbabilitiesAsRationals(SequenceFormCutOffProbabilityZeroNodes, MaxIntegralUtility);
                 id = Relationships.Count();
                 Relationships.Add(new GameNodeRelationship(id, chanceNode, fromPredecessor, predecessorAction));
             }

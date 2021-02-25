@@ -45,7 +45,7 @@ namespace ACESim
         }
 
 
-        public abstract Rational[] GetProbabilitiesAsRationals(int maxIntegralUtility);
+        public abstract Rational[] GetProbabilitiesAsRationals(bool makeAllProbabilitiesPositive, int maxIntegralUtility);
 
         public byte SampleAction(byte numPossibleActions, double randomNumber)
         {

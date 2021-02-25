@@ -234,7 +234,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             Dictionary<int, MaybeExact<T>[]> chanceProbabilities = new Dictionary<int, MaybeExact<T>[]>();
             foreach (var chanceNode in InformationSetInfos.Where(x => x.IsChance))
             {
-                chanceProbabilities[chanceNode.ChanceNode.GetInformationSetNodeNumber()] = chanceNode.ChanceNode.GetProbabilitiesAsRationals(EvolutionSettings.MaxIntegralUtility).Select(x => MaybeExact<T>.FromRational(x)).ToArray();
+                chanceProbabilities[chanceNode.ChanceNode.GetInformationSetNodeNumber()] = chanceNode.ChanceNode.GetProbabilitiesAsRationals(EvolutionSettings.SequenceFormCutOffProbabilityZeroNodes, EvolutionSettings.MaxIntegralUtility).Select(x => MaybeExact<T>.FromRational(x)).ToArray();
             }
             Dictionary<int, MaybeExact<T>[]> utilities = new Dictionary<int, MaybeExact<T>[]>();
 
@@ -368,7 +368,7 @@ namespace ACESimBase.GameSolvingAlgorithms
 
 
             IGameState rootState = GetGameState(GetStartOfGameHistoryPoint());
-            GameNodeRelationshipsFinder finder = new GameNodeRelationshipsFinder(rootState, true /* DEBUG -- not implemented */, EvolutionSettings.MaxIntegralUtility);
+            GameNodeRelationshipsFinder finder = new GameNodeRelationshipsFinder(rootState, EvolutionSettings.SequenceFormCutOffProbabilityZeroNodes, EvolutionSettings.MaxIntegralUtility);
             TreeWalk_Tree(finder, 0);
 
             GameNodes = finder.Relationships;
@@ -578,7 +578,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                     {
                         // chance player
                         var chance = InformationSetInfos[infoSetIndex].ChanceNode;
-                        var rational = InformationSetInfos[infoSetIndex].ChanceNode.GetProbabilitiesAsRationals(EvolutionSettings.MaxIntegralUtility)[moveNumber - 1];
+                        var rational = InformationSetInfos[infoSetIndex].ChanceNode.GetProbabilitiesAsRationals(EvolutionSettings.SequenceFormCutOffProbabilityZeroNodes, EvolutionSettings.MaxIntegralUtility)[moveNumber - 1];
                         if (rational.IsZero)
                             throw new Exception("Zero chance probabilities not allowed");
                         if (chance.Decision.DistributedChanceDecision && EvolutionSettings.DistributeChanceDecisions)
@@ -781,7 +781,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                         var chance = InformationSetInfos[infoSetIndex].ChanceNode;
                         int moveIndexForFirstMove = MoveIndexFromInfoSetIndexAndMoveWithinInfoSet[(infoSetIndex, 1)];
                         int moveNumber = moveIndex - moveIndexForFirstMove + 1;
-                        var rational = chance.GetProbabilitiesAsRationals(EvolutionSettings.MaxIntegralUtility)[moveNumber - 1]; // note: this change not tested
+                        var rational = chance.GetProbabilitiesAsRationals(EvolutionSettings.SequenceFormCutOffProbabilityZeroNodes, EvolutionSettings.MaxIntegralUtility)[moveNumber - 1]; // note: this change not tested
                         s.AppendLine($@"    moves[{moveIndex}].behavprob.num = {rational.Numerator};
     moves[{moveIndex}].behavprob.den = {rational.Denominator};");
                     }

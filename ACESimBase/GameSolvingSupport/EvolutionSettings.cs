@@ -66,6 +66,7 @@ namespace ACESim
         public bool CreateEquilibriaFileForSequenceForm = false;
         public bool PreloadedEquilibriaForSequenceForm = false; 
         public bool SkipIfEquilibriumFileAlreadyExists = false;
+        public bool SequenceFormCutOffProbabilityZeroNodes = false; // TODO -- Not yet implemented. If true, then instead of setting chance nodes to no less than the lowest possible rational value, probability is set to zero, and that part of the tree will be excised. To implement, modify GameNodeRelationshipsFinder to track all cut off nodes. Then change SequenceForm so that zero-probability nodes and their descendants are excluded, but the equilibria values are always positive. Alternatively, make a wrapper around ECTA that identifies such nodes, but that's likely to be trickier.
 
         public string SerializeResultsPrefixPlus(int scenario, int totalScenarios) => SerializeResultsPrefix + (totalScenarios > 0 ? scenario.ToString() : "");
 

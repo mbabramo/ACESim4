@@ -93,10 +93,10 @@ namespace ACESim
             return false;
         }
 
-        public override Rational[] GetProbabilitiesAsRationals(int maxIntegralUtility)
+        public override Rational[] GetProbabilitiesAsRationals(bool makeAllProbabilitiesPositive, int maxIntegralUtility)
         {
             Rational minProbability = (Rational)1 / (Rational)maxIntegralUtility; // TODO -- better approach would be to trim the game tree.
-            var results = GetActionProbabilities().Select(x => (int)Math.Round(x * maxIntegralUtility)).Select(x => (Rational)x / (Rational)maxIntegralUtility).Select(x => x < minProbability ? minProbability : x).ToArray(); // NOTE: We set a minimium probability level of 1 / MaxIntegralUtility.
+            var results = GetActionProbabilities().Select(x => (int)Math.Round(x * maxIntegralUtility)).Select(x => (Rational)x / (Rational)maxIntegralUtility).Select(x => x < minProbability && makeAllProbabilitiesPositive ? minProbability : x).ToArray(); // NOTE: We set a minimium probability level of 1 / MaxIntegralUtility.
                                                                                                                                                                                                                                 // make numbers add up to exactly 1
             Rational total = 0;
             for (int i = 0; i < results.Length; i++)
@@ -110,7 +110,7 @@ namespace ACESim
                 else
                 {
                     results[i] = ((Rational)1 - total).CanonicalForm;
-                    if (results[i].IsZero)
+                    if (results[i].IsZero && makeAllProbabilitiesPositive)
                     {
                         int largestIndex = results.Select((item, index) => (item, index)).OrderByDescending(x => x.item).First().index;
                         results[largestIndex] -= minProbability;
