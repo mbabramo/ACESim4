@@ -7,8 +7,12 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.GameSolvingSupport
 {
-    public class GameNodeRelationshipsFinder : ITreeNodeProcessor<int, bool /* ignored */>
+
+    public class GameNodeRelationshipsFinder : ITreeNodeProcessor<GameNodeRelationshipsFinder.ForwardInfo, bool /* ignored */>
     {
+
+        public record ForwardInfo(int gameNodeRelationshipID, bool[] nextIsZero);
+
         public List<GameNodeRelationship> Relationships;
         public bool SequenceFormCutOffProbabilityZeroNodes;
         public int MaxIntegralUtility;
@@ -25,22 +29,33 @@ namespace ACESimBase.GameSolvingSupport
             return true;
         }
 
-        public int ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, int fromPredecessor, int distributorChanceInputs)
+        public ForwardInfo ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, ForwardInfo fromPredecessor, int distributorChanceInputs)
         {
             int id = 0;
+            bool isZero = false;
             if (predecessorAction != 0) // i.e., this is not the root, which we already added with nulls for parent and predecessor action
             {
-                var probabilitiesAsRationals = chanceNode.GetProbabilitiesAsRationals(!SequenceFormCutOffProbabilityZeroNodes, MaxIntegralUtility);
-                id = Relationships.Count();
-                Relationships.Add(new GameNodeRelationship(id, chanceNode, fromPredecessor, predecessorAction));
+                isZero = fromPredecessor.nextIsZero[predecessorAction];
+                if (!isZero || !SequenceFormCutOffProbabilityZeroNodes)
+                {
+                    id = Relationships.Count();
+                    Relationships.Add(new GameNodeRelationship(id, chanceNode, fromPredecessor.gameNodeRelationshipID, predecessorAction));
+                }
             }
-            return id;
+            var probabilitiesAsRationals = chanceNode.GetProbabilitiesAsRationals(!SequenceFormCutOffProbabilityZeroNodes, MaxIntegralUtility);
+            bool[] nextIsZero = probabilitiesAsRationals.Select(x => isZero || x.IsZero).ToArray();
+            return new ForwardInfo(id, nextIsZero);
         }
 
-        public bool FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, int fromPredecessor)
+        public bool FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, ForwardInfo fromPredecessor)
         {
-            int id = Relationships.Count();
-            Relationships.Add(new GameNodeRelationship(id, finalUtilities, fromPredecessor, predecessorAction));
+            bool isZero = fromPredecessor.nextIsZero[predecessorAction];
+            if (!isZero || !SequenceFormCutOffProbabilityZeroNodes)
+            {
+                int id = Relationships.Count();
+                Relationships.Add(new GameNodeRelationship(id, finalUtilities, fromPredecessor.gameNodeRelationshipID, predecessorAction));
+            }
+
             return true;
         }
 
@@ -49,15 +64,21 @@ namespace ACESimBase.GameSolvingSupport
             return true;
         }
 
-        public int InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, int fromPredecessor)
+        public ForwardInfo InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, ForwardInfo fromPredecessor)
         {
             int id = 0;
+            bool isZero = false;
             if (predecessorAction != 0)
             {
-                id = Relationships.Count();
-                Relationships.Add(new GameNodeRelationship(id, informationSet, fromPredecessor, predecessorAction));
+                isZero = fromPredecessor.nextIsZero[predecessorAction];
+                if (!isZero || !SequenceFormCutOffProbabilityZeroNodes)
+                {
+                    id = Relationships.Count();
+                    Relationships.Add(new GameNodeRelationship(id, informationSet, fromPredecessor.gameNodeRelationshipID, predecessorAction));
+                }
             }
-            return id;
+            bool[] nextIsZero = Enumerable.Range(0, informationSet.GetNumPossibleActions()).Select(x => isZero).ToArray();
+            return new ForwardInfo(id, nextIsZero);
         }
     }
 }
