@@ -733,7 +733,7 @@ namespace LitigCharts
             if (!Directory.GetDirectories(outputFolderPath).Any(x => x == subfolderName))
                 Directory.CreateDirectory(subfolderName);
 
-            string outputFilename = Path.Combine(subfolderName, $"{aggregatedGraphInfo.topicName} Varying {variation.nameOfSet}{costsLevel}{equilibriumTypeAdj}.tex");
+            string outputFilename = Path.Combine(subfolderName, $"{aggregatedGraphInfo.topicName} {(variation.nameOfSet.Contains("Baseline") == false ? "Varying " : "")}{variation.nameOfSet}{costsLevel}{equilibriumTypeAdj}.tex");
             TextFileManage.CreateTextFile(outputFilename, result);
             ExecuteLatexProcess(subfolderName, outputFilename);
         }
