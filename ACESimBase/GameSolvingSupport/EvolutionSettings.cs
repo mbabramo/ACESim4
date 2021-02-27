@@ -58,7 +58,7 @@ namespace ACESim
         public int SequenceFormNumPriorsToUseToGenerateEquilibria = 1; // Potentially we may end up with this many equilibria, but often different priors lead to the same equilibrium
         public static int MaxIntegralUtility = 100_000; // We need to convert payoffs to integers with some desired range (e.g., 0 to 1,000,000). A greater range produces greater precision. Note that ECTA will further change the payoffs so that they're all negative. Note that in one experiment, switching from 1,000 to 10,000 on average doubled the amount of time required.
         public static int RoundOffChanceDigits = 5; // Chance numbers will also be converted to rational numbers. The digits might be the same as above.
-        public bool IdentifyPressureOnInformationSets = true; // DEBUG // currently called only for sequence form
+        public bool IdentifyPressureOnInformationSets = false; // currently called only for sequence form
         public bool ConfirmPerfectEquilibria = true; // for sequence form only
         public bool ThrowIfNotPerfectEquilibrium = true; 
         public bool TryInexactArithmeticForAdditionalEquilibria = true;
@@ -66,7 +66,7 @@ namespace ACESim
         public bool CreateEquilibriaFileForSequenceForm = true;
         public bool PreloadedEquilibriaForSequenceForm = false; 
         public bool SkipIfEquilibriumFileAlreadyExists = false;
-        public bool SequenceFormCutOffProbabilityZeroNodes = true; // DEBUG // TODO -- Not yet implemented. If true, then instead of setting chance nodes to no less than the lowest possible rational value, probability is set to zero, and that part of the tree will be excised. To implement, modify GameNodeRelationshipsFinder to track all cut off nodes. Then change SequenceForm so that zero-probability nodes and their descendants are excluded, but the equilibria values are always positive. Alternatively, make a wrapper around ECTA that identifies such nodes, but that's likely to be trickier.
+        public bool SequenceFormCutOffProbabilityZeroNodes = false; // If true, then instead of setting chance nodes to no less than the lowest permissible rational value, probability is set to zero, and that part of the tree will be excised. (The algorithm will not work if probabilities are left at zero.)
 
         public string SerializeResultsPrefixPlus(int scenario, int totalScenarios) => SerializeResultsPrefix + (totalScenarios > 0 ? scenario.ToString() : "");
 
@@ -97,8 +97,8 @@ namespace ACESim
         public bool GenerateReportsByPlaying = true;
         public int NumRandomIterationsForSummaryTable = 1_000;
         public bool PrintGameTree = false;
-        public bool PrintedGameTreeIncludesInformationSetData = true; 
-        public bool PrintInformationSets = true; // DEBUG
+        public bool PrintedGameTreeIncludesInformationSetData = true;
+        public bool PrintInformationSets = false;
         public bool AnalyzeInformationSets = false; 
         public List<int> RestrictToTheseInformationSets = null;
         public bool PrintNonChanceInformationSetsOnly = true;

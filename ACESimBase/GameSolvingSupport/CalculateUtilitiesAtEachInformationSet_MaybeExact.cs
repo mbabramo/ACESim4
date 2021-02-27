@@ -86,7 +86,12 @@ namespace ACESimBase.GameSolvingSupport
             if (predecessor == null)
                 cumulativeProbability = MaybeExact<T>.One();
             else if (predecessor is ChanceNode c)
-                cumulativeProbability = cumulativeProbability.Times(ChanceProbabilities[c.ChanceNodeNumber][predecessorAction - 1]);
+            {
+                if (ChanceProbabilities.ContainsKey(c.ChanceNodeNumber))
+                    cumulativeProbability = cumulativeProbability.Times(ChanceProbabilities[c.ChanceNodeNumber][predecessorAction - 1]);
+                else
+                    cumulativeProbability = MaybeExact<T>.Zero(); // using SequenceFormCutOffProbabilityZeroNodes
+            }
             else if (predecessor is InformationSetNode i)
                 cumulativeProbability = cumulativeProbability.Times(PlayerProbabilities[(i.PlayerIndex, i.GetInformationSetNodeNumber())][predecessorAction - 1]);
             return cumulativeProbability;
@@ -128,7 +133,12 @@ namespace ACESimBase.GameSolvingSupport
 
         public MaybeExact<T>[] ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<MaybeExact<T>[]> fromSuccessors, int distributorChanceInputs)
         {
-            var probabilities = ChanceProbabilities[chanceNode.ChanceNodeNumber].ToList();
+            if (!ChanceProbabilities.ContainsKey(chanceNode.ChanceNodeNumber))
+            {
+                // This is a zero probability path, so we can just return 0 utility. 
+                return Enumerable.Range(0, fromSuccessors.First().Length).Select(x => MaybeExact<T>.Zero()).ToArray();
+            }
+            List<MaybeExact<T>> probabilities = ChanceProbabilities[chanceNode.ChanceNodeNumber].ToList();
             MaybeExact<T>[] utilities = AggregateUtilitiesFromSuccessors(fromSuccessors, probabilities);
             return utilities;
         }

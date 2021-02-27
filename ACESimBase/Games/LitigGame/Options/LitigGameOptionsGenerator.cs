@@ -400,7 +400,7 @@ namespace ACESim
             bool alternativeCase = false;
             if (alternativeCase)
             {
-                byte numOfEach = 5;
+                byte numOfEach = 10;
                 options.NumOffers = numOfEach;
                 options.NumLiabilityStrengthPoints = numOfEach;
                 options.NumLiabilitySignals = numOfEach;
@@ -435,7 +435,7 @@ namespace ACESim
                 StdevNoiseToProduceLiabilityStrength = 0.35,
             };
 
-            options.PLiabilityNoiseStdev =  0.2;
+            options.PLiabilityNoiseStdev = 0.2;
             options.DLiabilityNoiseStdev = 0.2;
             options.CourtLiabilityNoiseStdev = Math.Min(options.PLiabilityNoiseStdev, options.DLiabilityNoiseStdev);
 
@@ -445,8 +445,7 @@ namespace ACESim
             options.AllowAbandonAndDefaults = true;
             options.PredeterminedAbandonAndDefaults = true;
 
-            options.LoserPays = true; // DEBUG
-            options.LoserPaysMultiple = 0.0; // DEBUG
+
 
             return options;
         }

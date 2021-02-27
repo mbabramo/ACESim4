@@ -50,7 +50,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             StoreGameStateNodesInLists = true;
             await base.Initialize();
             InitializeInformationSets();
-            //PrintGameTree(); 
+            //PrintGameTree();
             if (Approach == SequenceFormApproach.ECTA)
             {
                 SetFinalUtilitiesToRoundedOffValues(); // because this may be an exact algorithm that uses integral pivoting, we have only a discrete number of utility points. This ensures that the utilities are at the precise discrete points that correspond to the integral values we will use.
@@ -81,9 +81,12 @@ namespace ACESimBase.GameSolvingAlgorithms
                 if (EvolutionSettings.TryInexactArithmeticForAdditionalEquilibria)
                 {
                     int numPriorsToGet = EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria - 1;
-                    TabbedText.WriteLine($"Trying inexact arithmetic for up to {numPriorsToGet} random priors");
-                    additionalEquilibria = DetermineEquilibria<InexactValue>(numPriorsToGet);
-                    equilibria.AddRange(additionalEquilibria);
+                    if (numPriorsToGet > 0)
+                    {
+                        TabbedText.WriteLine($"Trying inexact arithmetic for up to {numPriorsToGet} random priors");
+                        additionalEquilibria = DetermineEquilibria<InexactValue>(numPriorsToGet);
+                        equilibria.AddRange(additionalEquilibria);
+                    }
                 }
                 if (equilibria == null || equilibria.Count() < EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria)
                 {
@@ -108,6 +111,8 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         List<GameNodeRelationship> GameNodes;
         List<InformationSetInfo> InformationSetInfos;
+        HashSet<int> PotentiallyReachableInformationSets;
+        Dictionary<int, int> WhenInformationSetVisited;
         public List<int> MoveIndexToInfoSetIndex;
         public List<int> FirstInformationSetInfosIndexForPlayers;
         public List<int> FirstMovesIndexForPlayers;
@@ -164,6 +169,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 bool updateScenarios = false; // Doesn't work right now
                 Action<int, ECTATreeDefinition<T>> scenarioUpdater = updateScenarios ? ScenarioUpdater<T>() : null;
                 List<(MaybeExact<T>[] equilibrium, int frequency)> results = ecta.Execute(t => SetupECTA(t), scenarioUpdater);
+                results = results.Select(x => (ReverseEffectsOfCuttingOffProbabilityZeroNodes(x.equilibrium), x.frequency)).ToList();
                 NarrowDownToValidEquilibria<T>(results);
                 equilibria = results.Select(x => (x.equilibrium.Select(y => y.AsDouble).ToArray(), x.frequency)).ToList();
             }
@@ -369,7 +375,9 @@ namespace ACESimBase.GameSolvingAlgorithms
 
             IGameState rootState = GetGameState(GetStartOfGameHistoryPoint());
             GameNodeRelationshipsFinder finder = new GameNodeRelationshipsFinder(rootState, EvolutionSettings.SequenceFormCutOffProbabilityZeroNodes, EvolutionSettings.MaxIntegralUtility);
-            TreeWalk_Tree(finder, 0);
+            TreeWalk_Tree<GameNodeRelationshipsFinder.ForwardInfo, bool /* ignored */>(finder, new GameNodeRelationshipsFinder.ForwardInfo(0, new bool[] { false }));
+            WhenInformationSetVisited = finder.WhenInformationSetVisited;
+            PotentiallyReachableInformationSets = finder.PotentiallyReachableInformationSets;
 
             GameNodes = finder.Relationships;
             var originalOrder = GameNodes.ToList();
@@ -579,8 +587,8 @@ namespace ACESimBase.GameSolvingAlgorithms
                         // chance player
                         var chance = InformationSetInfos[infoSetIndex].ChanceNode;
                         var rational = InformationSetInfos[infoSetIndex].ChanceNode.GetProbabilitiesAsRationals(!EvolutionSettings.SequenceFormCutOffProbabilityZeroNodes, EvolutionSettings.MaxIntegralUtility)[moveNumber - 1];
-                        if (rational.IsZero)
-                            throw new Exception("Zero chance probabilities not allowed");
+                        if (rational.IsZero && !EvolutionSettings.SequenceFormCutOffProbabilityZeroNodes)
+                            throw new Exception("Zero chance probabilities not allowed"); 
                         if (chance.Decision.DistributedChanceDecision && EvolutionSettings.DistributeChanceDecisions)
                         {
                             t.moves[moveIndex].behavioralProbability = moveNumber == 1 ? MaybeExact<T>.One() : MaybeExact<T>.Zero();
@@ -1015,6 +1023,30 @@ namespace ACESimBase.GameSolvingAlgorithms
             }
         }
 
+        private MaybeExact<T>[] ReverseEffectsOfCuttingOffProbabilityZeroNodes<T>(MaybeExact<T>[] equilibrium) where T : MaybeExact<T>, new()
+        {
+            if (!EvolutionSettings.SequenceFormCutOffProbabilityZeroNodes)
+                return equilibrium;
+            List<MaybeExact<T>> expanded = new List<MaybeExact<T>>();
+            var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => WhenInformationSetVisited[x.InformationSetNodeNumber]).ToList();
+            int equilibriumIndex = 0;
+            foreach (var infoSet in infoSets)
+            {
+                if (PotentiallyReachableInformationSets.Contains(infoSet.InformationSetNodeNumber))
+                {
+                    for (int i = 0; i < infoSet.NumPossibleActions; i++)
+                        expanded.Add(equilibrium[equilibriumIndex++]);
+                }
+                else
+                {
+                    for (int i = 0; i < infoSet.NumPossibleActions; i++)
+                        expanded.Add(MaybeExact<T>.Zero());
+                }
+            }
+            TabbedText.WriteLine($"Changed to original form:");
+            TabbedText.WriteLine(String.Join(",", equilibrium.Select(x => x.ToString())));
+            return expanded.ToArray();
+        }
 
         private void SetInformationSetsToEquilibrium(double[] actionProbabilities)
         {
