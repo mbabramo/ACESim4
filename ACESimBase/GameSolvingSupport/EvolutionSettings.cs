@@ -49,7 +49,7 @@ namespace ACESim
         public bool SerializeResults = false;
         public bool SerializeInformationSetDataOnly = true;
         public string SerializeResultsPrefix = "serstrat";
-        public bool GenerateManualReports = false; // DEBUG // will be overridden by launcher
+        public bool GenerateManualReports = true; // will be overridden by launcher
         public bool ParallelOptimization = true; // will be overridden by launcher
         public bool DynamicSetParallel = false; // will be overridden by launcher
         public int MaxParallelDepth = 3; // will be overridden by launcher
