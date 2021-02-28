@@ -64,8 +64,8 @@ namespace ACESim
         public bool TryInexactArithmeticForAdditionalEquilibria = true;
         public bool CreateEFGFileForSequenceForm = true;
         public bool CreateEquilibriaFileForSequenceForm = true;
-        public bool PreloadedEquilibriaForSequenceForm = false; 
-        public bool SkipIfEquilibriumFileAlreadyExists = true; // DEBUG
+        public bool PreloadedEquilibriaForSequenceForm = false;
+        public bool SkipIfEquilibriumFileAlreadyExists = false;
         public bool SequenceFormCutOffProbabilityZeroNodes = true; // If true, then instead of setting chance nodes to no less than the lowest permissible rational value, probability is set to zero, and that part of the tree will be excised. (The algorithm will not work if probabilities are left at zero.)
 
         public string SerializeResultsPrefixPlus(int scenario, int totalScenarios) => SerializeResultsPrefix + (totalScenarios > 0 ? scenario.ToString() : "");
