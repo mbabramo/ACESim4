@@ -397,10 +397,10 @@ namespace ACESim
             options.IncludeSignalsReport = false;
             options.IncludeCourtSuccessReport = false;
 
-            bool alternativeCase = false;
+            bool alternativeCase = true; // DEBUG
             if (alternativeCase)
             {
-                byte numOfEach = 10;
+                byte numOfEach = 5;
                 options.NumOffers = numOfEach;
                 options.NumLiabilityStrengthPoints = numOfEach;
                 options.NumLiabilitySignals = numOfEach;
