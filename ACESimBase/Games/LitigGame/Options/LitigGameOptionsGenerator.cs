@@ -446,7 +446,6 @@ namespace ACESim
             options.PredeterminedAbandonAndDefaults = true;
 
 
-
             return options;
         }
 

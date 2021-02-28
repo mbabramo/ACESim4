@@ -1244,6 +1244,11 @@ namespace ACESim
             g.NumDamagesSignals = g.NumLiabilitySignals;
             g.NumLiabilityStrengthPoints = 1;
             g.NumLiabilitySignals = 1;
+            g.LitigGameDisputeGenerator = new LitigGameExogenousDisputeGenerator()
+            {
+                ExogenousProbabilityTrulyLiable = 1.0,
+                StdevNoiseToProduceLiabilityStrength = 0,
+            };
         }
 
         #endregion
