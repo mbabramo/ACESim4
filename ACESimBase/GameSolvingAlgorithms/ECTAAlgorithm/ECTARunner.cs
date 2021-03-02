@@ -178,7 +178,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         /// <param name="setup"></param>
         /// <param name="updateActionWhenTracingPathOfEquilibrium">Tracing path of an equilibrium means that we use the results of one run to seed the next, but then change the outcomes. The action receives a parameter indicating the index and then changes the outcomes appropriately.</param>
         /// <returns></returns>
-        public List<(MaybeExact<T>[] equilibrium, int frequency)> Execute(Action<ECTATreeDefinition<T>> setup, Action<int, ECTATreeDefinition<T>> updateActionWhenTracingPathOfEquilibrium)
+        public List<(MaybeExact<T>[] equilibrium, int frequency)> Execute(Action<ECTATreeDefinition<T>> setup, Action<int, ECTATreeDefinition<T>> updateActionWhenTracingPathOfEquilibrium, int seed)
         {
             bool tracingEquilibrium = updateActionWhenTracingPathOfEquilibrium != null;
 
@@ -213,7 +213,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             infosf(); // INFO
 
             bool isExact = new T().IsExact;
-            int seedAdjust = isExact ? 0 : 1_000_000; // make sure we're using different seeds with inexact arithmetic, so that we maximize the chance of generating different priors
+            int seedAdjust = isExact ? seed : 1_000_000 + seed; // make sure we're using different seeds with inexact arithmetic, so that we maximize the chance of generating different priors
 
             /* process games                    */
             int gamecount = 0;

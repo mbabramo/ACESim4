@@ -397,7 +397,7 @@ namespace ACESim
             options.IncludeSignalsReport = false;
             options.IncludeCourtSuccessReport = false;
 
-            bool alternativeCase = true; // DEBUG
+            bool alternativeCase = false;
             if (alternativeCase)
             {
                 byte numOfEach = 5;
@@ -444,7 +444,6 @@ namespace ACESim
             options.IncludeAgreementToBargainDecisions = false;
             options.AllowAbandonAndDefaults = true;
             options.PredeterminedAbandonAndDefaults = true;
-
 
             return options;
         }

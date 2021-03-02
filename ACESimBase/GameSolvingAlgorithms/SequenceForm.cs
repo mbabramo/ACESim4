@@ -76,11 +76,14 @@ namespace ACESimBase.GameSolvingAlgorithms
             {
                 List<(double[] equilibrium, int frequency)> equilibria = new List<(double[] equilibrium, int frequency)>(), additionalEquilibria;
                 TabbedText.WriteLine($"Using exact arithmetic for initial prior");
-                var centroidEquilibrium = DetermineEquilibria<ExactValue>(1).First(); // first equilibrium should always be accomplished with exact values
-                equilibria.Add(centroidEquilibrium);
+                if (!EvolutionSettings.ParallelOptimization)
+                {
+                    var centroidEquilibrium = DetermineEquilibria<ExactValue>(1).First(); // first equilibrium should always be accomplished with exact values
+                    equilibria.Add(centroidEquilibrium);
+                }
                 if (EvolutionSettings.TryInexactArithmeticForAdditionalEquilibria)
                 {
-                    int numPriorsToGet = EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria - 1;
+                    int numPriorsToGet = EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria - equilibria.Count();
                     if (numPriorsToGet > 0)
                     {
                         TabbedText.WriteLine($"Trying inexact arithmetic for up to {numPriorsToGet} random priors");
@@ -145,18 +148,12 @@ namespace ACESimBase.GameSolvingAlgorithms
         private List<(double[] equilibrium, int frequency)> DetermineEquilibria<T>(int numPriorsToGet) where T : MaybeExact<T>, new()
         {
             DetermineGameNodeRelationships();
-            ECTARunner<T> ecta = GetECTARunner<T>(numPriorsToGet);
-            List<(double[] equilibrium, int frequency)> equilibria = DetermineEquilibria(ecta);
-            return equilibria;
-        }
-
-        private List<(double[] equilibrium, int frequency)> DetermineEquilibria<T>(ECTARunner<T> ecta) where T : MaybeExact<T>, new()
-        {
             bool useManuallyDefinedEquilibria = false; // use this as a shortcut to replay some equilibrium
             List<(double[] equilibrium, int frequency)> equilibria = null;
             if (EvolutionSettings.PreloadedEquilibriaForSequenceForm)
             {
                 equilibria = LoadEquilibriaFile().Select(x => (x, 1)).ToList();
+                equilibria = NarrowDownToUniqueEquilibria(equilibria);
             }
             else if (useManuallyDefinedEquilibria)
             {
@@ -168,13 +165,80 @@ namespace ACESimBase.GameSolvingAlgorithms
             {
                 bool updateScenarios = false; // Doesn't work right now
                 Action<int, ECTATreeDefinition<T>> scenarioUpdater = updateScenarios ? ScenarioUpdater<T>() : null;
-                List<(MaybeExact<T>[] equilibrium, int frequency)> results = ecta.Execute(t => SetupECTA(t), scenarioUpdater);
+                List<(MaybeExact<T>[] equilibrium, int frequency)> results;
+                if (EvolutionSettings.ParallelOptimization)
+                {
+                    results = new List<(MaybeExact<T>[] equilibrium, int frequency)>();
+                    Parallelizer.Go(true, 0, numPriorsToGet, priorNumber =>
+                    {
+                        ECTARunner<T> ecta = GetECTARunner<T>(1);
+                        var individualResults = ecta.Execute(t => SetupECTA(t), scenarioUpdater, priorNumber);
+                        lock (results)
+                        {
+                            var individualResult = individualResults.First();
+                            AddEquilibriumToEquilibriaListIfUnique(results, individualResult);
+                        }
+                    });
+                }
+                else
+                {
+                    ECTARunner<T> ecta = GetECTARunner<T>(numPriorsToGet);
+                    results = ecta.Execute(t => SetupECTA(t), scenarioUpdater, 0);
+                }
                 results = results.Select(x => (ReverseEffectsOfCuttingOffProbabilityZeroNodes(x.equilibrium), x.frequency)).ToList();
                 NarrowDownToValidEquilibria<T>(results);
                 equilibria = results.Select(x => (x.equilibrium.Select(y => y.AsDouble).ToArray(), x.frequency)).ToList();
             }
 
             return equilibria;
+        }
+
+        private static List<(double[] equilibrium, int frequency)> NarrowDownToUniqueEquilibria(List<(double[] equilibrium, int frequency)> equilibriaList)
+        { 
+            List<(double[] equilibrium, int frequency)> copy = new List<(double[] equilibrium, int frequency)>();
+            foreach (var eq in equilibriaList)
+                AddEquilibriumToEquilibriaListIfUnique(copy, eq);
+            return copy;
+        }
+
+        private static void AddEquilibriumToEquilibriaListIfUnique(List<(double[] equilibrium, int frequency)> equilibriaList, (double[] equilibrium, int frequency) equilibrium)
+        {
+            bool found = false;
+            for (int i = 0; i < equilibriaList.Count(); i++)
+            {
+                if (equilibrium.equilibrium.SequenceEqual(equilibriaList[i].equilibrium))
+                {
+                    found = true;
+                    equilibriaList[i] = (equilibriaList[i].equilibrium, equilibriaList[i].frequency + equilibrium.frequency);
+                    break;
+                }
+            }
+            if (!found)
+                equilibriaList.Add(equilibrium);
+        }
+
+        private static List<(MaybeExact<T>[] equilibrium, int frequency)> NarrowDownToUniqueEquilibria<T>(List<(MaybeExact<T>[] equilibrium, int frequency)> equilibriaList) where T : MaybeExact<T>, new()
+        {
+            List<(MaybeExact<T>[] equilibrium, int frequency)> copy = new List<(MaybeExact<T>[] equilibrium, int frequency)>();
+            foreach (var eq in equilibriaList)
+                AddEquilibriumToEquilibriaListIfUnique(copy, eq);
+            return copy;
+        }
+
+        private static void AddEquilibriumToEquilibriaListIfUnique<T>(List<(MaybeExact<T>[] equilibrium, int frequency)> equilibriaList, (MaybeExact<T>[] equilibrium, int frequency) equilibrium) where T : MaybeExact<T>, new()
+        {
+            bool found = false;
+            for (int i = 0; i < equilibriaList.Count(); i++)
+            {
+                if (equilibrium.equilibrium.SequenceEqual(equilibriaList[i].equilibrium))
+                {
+                    found = true;
+                    equilibriaList[i] = (equilibriaList[i].equilibrium, equilibriaList[i].frequency + equilibrium.frequency);
+                    break;
+                }
+            }
+            if (!found)
+                equilibriaList.Add(equilibrium);
         }
 
         private async Task ProcessIdentifiedEquilibria(ReportCollection reportCollection, List<double[]> equilibria)
@@ -982,7 +1046,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             if (includeCorrelatedEquilibriumReport)
                 SaveWeightedGameProgressesAfterEachReport = true;
             bool includeReportForFirstEquilibrium = true;
-            bool includeReportForEachEquilibrium = false;
+            bool includeReportForEachEquilibrium = false; 
             int numEquilibria = equilibria.Count();
             var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetNodeNumber).ToList();
             var infoSetNames = infoSets.Select(x => x.ToStringWithoutValues()).ToArray();
