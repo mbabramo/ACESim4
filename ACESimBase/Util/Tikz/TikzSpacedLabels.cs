@@ -6,7 +6,7 @@ using System.Text;
 
 namespace ACESimBase.Util.Tikz
 {
-    public record TikzSpacedLabels(TikzLine line, List<double> divisionPoints, List<string> text, List<string> shortText)
+    public record TikzSpacedLabels(TikzLine line, List<double> divisionPoints, List<string> text, List<string> shortText, string textStyle)
     {
         double distance => line.IsVertical ? line.end.y - line.start.y : line.end.x - line.start.x;
         List<(double start, double end)> ranges;
@@ -62,7 +62,7 @@ namespace ACESimBase.Util.Tikz
             string command = "";
             if (textWidths[i] <= ranges[i].end - ranges[i].start || moveOverlapsFurtherBack)
             {
-                command = TikzHelper.DrawText(anchorPoint.x, anchorPoint.y, useShortText[i] ? shortText[i] : text[i], "black, " + sideOfAnchor + (line.IsVertical ? ", rotate=90" : ""));
+                command = TikzHelper.DrawText(anchorPoint.x, anchorPoint.y, useShortText[i] ? shortText[i] : text[i], $"{textStyle}, " + sideOfAnchor + (line.IsVertical ? ", rotate=90" : ""));
                 if (row[i] > 0)
                 {
                     TikzLine smallLine = line.IsVertical ? new TikzLine(new TikzPoint(line.start.x + .1, anchorPoint.y), new TikzPoint(anchorPoint.x, anchorPoint.y)) : new TikzLine(new TikzPoint(anchorPoint.x, line.start.y + .1), new TikzPoint(anchorPoint.x, anchorPoint.y));

@@ -397,7 +397,7 @@ namespace ACESim
             options.IncludeSignalsReport = false;
             options.IncludeCourtSuccessReport = false;
 
-            bool alternativeCase = false;
+            bool alternativeCase = true; // DEBUG
             if (alternativeCase)
             {
                 byte numOfEach = 5;
@@ -422,10 +422,10 @@ namespace ACESim
             options.PFilingCost = options.DAnswerCost = 0.15;
             options.PFilingCost_PortionSavedIfDDoesntAnswer = 0;
             options.PerPartyCostsLeadingUpToBargainingRound = 0;
-            options.CostsMultiplier =  1.0;
+            options.CostsMultiplier = 1.0;
 
             options.LoserPays = false;
-            options.LoserPaysMultiple = 1;
+            options.LoserPaysMultiple = options.LoserPays ? 1 : 0;
             options.LoserPaysMarginOfVictoryThreshold = 0.8; 
             options.LoserPaysOnlyLargeMarginOfVictory = false; 
 

@@ -9,11 +9,16 @@ using System.Text;
 using System.Threading.Tasks;
 using ACESimBase.Util.Tikz;
 using System.Diagnostics;
+using ACESim.Util;
 
 namespace ACESimBase.Games.LitigGame.ManualReports
 {
     public class StageCostReport
     {
+        static bool TargetPowerPoint = true; // DEBUG
+        static bool UseFixedAssessmentMaxMagnitudes = true; // DEBUG
+        static double[] FixedAsseessmentMaxMagnitudes = new double[] { 2.5, 2.5, 2.0 }; // DEBUG { 1.5, 1.5, 0.6 };  // DEBUG  // DEBUG -- may need to depend on series we are running
+
         public static List<string> GenerateReport(List<(GameProgress theProgress, double weight)> gameProgresses)
         {
             double initialWeightSum = gameProgresses.Sum(x => x.weight);
@@ -43,7 +48,11 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             for (int i = 0; i < assessments.Count(); i++)
             {
                 (Func<LitigGameProgress, double> assessmentMeasure, string assessmentName) assessment = assessments[i];
-                var maxMagnitude = litigProgresses.Max(x => assessment.assessmentMeasure(x.theProgress));
+                double maxMagnitude;
+                if (UseFixedAssessmentMaxMagnitudes)
+                    maxMagnitude = FixedAsseessmentMaxMagnitudes[i];
+                else
+                    maxMagnitude = litigProgresses.Max(x => assessment.assessmentMeasure(x.theProgress));
                 maxMagnitudes.Add((assessment.assessmentName, maxMagnitude));
                 List<StageInStageCostDiagram> stages = new List<StageInStageCostDiagram>();
                 foreach (var namedStage in namedStages)
@@ -76,7 +85,22 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 maxMagnitudes[0] = (maxMagnitudes[0].assessmentName, Math.Max(maxMagnitudes[0].maxMagnitude, nonNullMaxMagnitude));
                 maxMagnitudes[1] = (maxMagnitudes[1].assessmentName, Math.Max(maxMagnitudes[1].maxMagnitude, nonNullMaxMagnitude));
             }
-            StageCostDiagram diagram = new StageCostDiagram(new TikzRectangle(0, 0, 20, heightOverride ?? 16), 1.5, 0.25, 0.25, 0.30, stagesForEachPanel, maxMagnitudes, stageNames, shortStageNames);
+            const double PowerPointOverallSpaceMultiplier = 2.0;
+            var overallSpace = TargetPowerPoint ? new TikzRectangle(0, 0, 13.3333 * PowerPointOverallSpaceMultiplier, (heightOverride ?? 7.5) * PowerPointOverallSpaceMultiplier) : new TikzRectangle(0, 0, 20, heightOverride ?? 16);
+            double proportionForText = TargetPowerPoint ? 0.03 : 0.30;
+            var options = (LitigGameOptions) gameProgresses.First().theProgress.GameDefinition.GameOptions;
+            string title = $"Costs: {options.CostsMultiplier}x; Fee Shift: {options.LoserPaysMultiple}x";
+            bool pRiskNeutral = options.PUtilityCalculator is RiskNeutralUtilityCalculator;
+            bool dRiskNeutral = options.DUtilityCalculator is RiskNeutralUtilityCalculator;
+            string supplementalTitle = (pRiskNeutral, dRiskNeutral) switch
+            {
+                (true, true) => "",
+                (true, false) => " D Risk Averse",
+                (false, true) => " P Risk Averse",
+                (false, false) => " Both Risk Averse"
+            };
+            title += supplementalTitle;
+            StageCostDiagram diagram = new StageCostDiagram(overallSpace, 1.5, 0.25, 0.25, proportionForText, stagesForEachPanel, maxMagnitudes, stageNames, shortStageNames, title);
 
             string csvFile = csvStringBuilder.ToString();
             string tikzCode = diagram.GetTikzDocument();
@@ -84,9 +108,16 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             return new List<string>() { csvFile, tikzCode };
         }
 
-        public record StageCostDiagram(TikzRectangle overallSpace, double imagePadding, double padBelowPanel, double padBetweenPanels, double proportionDedicatedToText, List<List<StageInStageCostDiagram>> panelData, List<(string assessmentName, double maxMagnitude)> assessmentInfo, List<string> stageNames, List<string> shortStageNames)
+        public record StageCostDiagram(TikzRectangle overallSpace, double imagePadding, double padBelowPanel, double padBetweenPanels, double proportionDedicatedToText, List<List<StageInStageCostDiagram>> panelData, List<(string assessmentName, double maxMagnitude)> assessmentInfo, List<string> stageNames, List<string> shortStageNames, string title)
         {
+            string TrulyLiablePattern => TargetPowerPoint ? "fill=blue" : "pattern color=blue, pattern=north east lines";
+            string TrulyNotLiablePattern => TargetPowerPoint ? "fill=red" : "pattern color=orange, pattern=north west lines";
+            string PenColor => TargetPowerPoint ? "white" : "black"; 
+            string PenColorForStageName => TargetPowerPoint ? "yellow" : "black";
+
             public TikzRectangle SpaceAfterPadding => overallSpace.ReducedByPadding(imagePadding, imagePadding);
+            public double imagePaddingVerticalProportion => imagePadding / overallSpace.height;
+            public TikzRectangle SpaceAtTop => overallSpace.TopOrBottomPortion(imagePadding, true);
             public TikzRectangle SpaceForTextArea => SpaceAfterPadding.LeftToRightSubrectangle(1.0 - proportionDedicatedToText, 1.0).ReducedByPadding(0, padBelowPanel, 0, 0);
             public TikzRectangle SpaceForPanelsAndHorizontalAxes => SpaceAfterPadding.LeftToRightSubrectangle(0, 1.0 - proportionDedicatedToText);
             public TikzRectangle SpaceForPanels => SpaceForPanelsAndHorizontalAxes.ReducedByPadding(0, padBelowPanel, 0, 0);
@@ -114,7 +145,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 var result = StageInStageCostDiagramEncompassingRectangles(panelIndex, subpanelIndex).Select((item, index) =>
                 {
                     double maxMagnitude = assessmentInfo[panelIndex].maxMagnitude;
-                    return item.ReduceHorizontally(maxMagnitude == 0 ? 0 : stage.regionComponents[index].magnitude / maxMagnitude, TikzHorizontalAlignment.Left) with { rectangleAttributes = stage.regionComponents[index].specialShading ? "pattern color=blue, pattern=north east lines" : "pattern color=orange, pattern=north west lines" };
+                    return item.ReduceHorizontally(maxMagnitude == 0 ? 0 : stage.regionComponents[index].magnitude / maxMagnitude, TikzHorizontalAlignment.Left) with { rectangleAttributes = stage.regionComponents[index].specialShading ? TrulyLiablePattern : TrulyNotLiablePattern };
                 }).ToList();
                 return result;
             }
@@ -131,11 +162,11 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             {
                 return $@"\draw {MidpointOfHorizontalAxesString} node[draw=none] (baseCoordinate) {{}};
 \begin{{scope}}[align=center]
-        \matrix[scale=0.5, draw=black, below=0.5cm of baseCoordinate, nodes={{draw}}, column sep=0.1cm]{{
-            \node[rectangle, draw, minimum width=0.5cm, minimum height=0.5cm, pattern=north east lines, pattern color=blue] {{}}; &
-            \node[draw=none, font=\small] (B) {{Truly Liable Cases}}; &
-            \node[rectangle, draw, minimum width=0.5cm, minimum height=0.5cm, pattern=north west lines, pattern color=orange] {{}}; &
-            \node[draw=none, font=\small] (B) {{Truly Not Liable Cases}}; \\
+        \matrix[scale=0.5, draw={PenColor}, below=0.5cm of baseCoordinate, nodes={{draw}}, column sep=0.1cm]{{
+            \node[rectangle, draw, minimum width=0.5cm, minimum height=0.5cm, {TrulyLiablePattern}] {{}}; &
+            \node[draw=none, font=\small, text={PenColor}] (B) {{Truly Liable Cases}}; &
+            \node[rectangle, draw, minimum width=0.5cm, minimum height=0.5cm, {TrulyNotLiablePattern}] {{}}; &
+            \node[draw=none, font=\small, text={PenColor}] (B) {{Truly Not Liable Cases}}; \\
             }};
 \end{{scope}}";
             }
@@ -143,25 +174,38 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             public string GetTikzDocument()
             {
                 StringBuilder tikzBuilder = new StringBuilder();
-                string attributes = "black, very thin";
+                string attributes = $"{PenColor}, very thin";
 
-                tikzBuilder.AppendLine(VerticalAxis.DrawAxis(attributes, Enumerable.Range(0, 11).Select(x => (0.1 * x, (x * 10).ToString() + "\\%")).ToList(), null, "east", "Proportion of Cases", "center", TikzHorizontalAlignment.Center, "rotate=90", -1.2, 0));
-                tikzBuilder.AppendLine(TextAreaAxis.DrawAxis(attributes, VerticalDivisionValues.Select(x => (x, "")).ToList(), null, "west", null, null, TikzHorizontalAlignment.Center, null, 0, 0));
+                if (TargetPowerPoint)
+                {
+                    tikzBuilder.AppendLine(overallSpace.DrawCommand("fill=black"));
+                    tikzBuilder.AppendLine(SpaceAtTop.DrawCommand("text=white", $"\\huge {title}"));
+                }
+                bool showRectangles = false; 
+                if (showRectangles)
+                {
+                    foreach (TikzRectangle r in new TikzRectangle[] { SpaceAfterPadding, SpaceAtTop,  SpaceForTextArea }) // SpaceForHorizontalAxes, SpaceForPanels, SpaceForPanelsAndHorizontalAxes,
+                        tikzBuilder.AppendLine(r.DrawCommand("orange"));
+                }
+
+                tikzBuilder.AppendLine(VerticalAxis.DrawAxis(attributes, Enumerable.Range(0, 11).Select(x => (0.1 * x, (x * 10).ToString() + "\\%")).ToList(), $"text={PenColor}", "east", "Proportion of Cases", $"center", TikzHorizontalAlignment.Center, $"rotate=90, text={PenColor}", -1.2, 0));
+                tikzBuilder.AppendLine(TextAreaAxis.DrawAxis(attributes, VerticalDivisionValues.Select(x => (x, "")).ToList(), null, "west", null, null, TikzHorizontalAlignment.Center, $"text={PenColor}", 0, 0));
                 foreach (var rect in StageInStageCostDiagramProportionalRectangles())
                     tikzBuilder.AppendLine(rect.DrawCommand(attributes));
                 foreach (var line in HorizontalLinesAcrossPanels)
-                    tikzBuilder.AppendLine(line.DrawCommand("black, dotted"));
+                    tikzBuilder.AppendLine(line.DrawCommand($"{PenColor}, dotted"));
                 for (int i = 0; i < HorizontalAxes.Count; i++)
                 {
                     TikzLine horizontalAxis = HorizontalAxes[i];
-                    tikzBuilder.AppendLine(horizontalAxis.DrawAxis(attributes, new List<(double proportion, string text)>() { ((1.0, assessmentInfo[i].maxMagnitude.ToSignificantFigures(2))) }, null, "north", assessmentInfo[i].assessmentName, "north", TikzHorizontalAlignment.Center, null, 0, 0));
+                    tikzBuilder.AppendLine(horizontalAxis.DrawAxis(attributes, new List<(double proportion, string text)>() { ((1.0, assessmentInfo[i].maxMagnitude.ToSignificantFigures(2))) }, $"text={PenColor}", "north", assessmentInfo[i].assessmentName, "north", TikzHorizontalAlignment.Center, $"text={PenColorForStageName}", 0, 0));
                 }
-                var spacedLabels = new TikzSpacedLabels(TextAreaAxis, VerticalDivisionValues.ToList(), stageNames, shortStageNames);
+                var spacedLabels = new TikzSpacedLabels(TextAreaAxis, VerticalDivisionValues.ToList(), stageNames, shortStageNames, $"text={PenColorForStageName}");
                 tikzBuilder.AppendLine(spacedLabels.DrawCommand());
                 tikzBuilder.AppendLine(GetLegend());
 
 
-                string tikzDocument = TikzHelper.GetStandaloneDocument(tikzBuilder.ToString());
+                string tikzDocument = TikzHelper.GetStandaloneDocument(tikzBuilder.ToString(), null, TargetPowerPoint ? @"\usepackage[sfdefault]{ClearSans} %% option 'sfdefault' activates Clear Sans as the default text font
+\usepackage[T1]{fontenc}" : null);
                 return tikzDocument;
             }
         }

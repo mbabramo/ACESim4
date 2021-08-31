@@ -140,7 +140,7 @@ namespace LitigCharts
 
             var launcher = new LitigGameLauncher();
             var gameOptionsSets = GetFeeShiftingGameOptionsSets();
-            var map = launcher.GetFeeShiftingArticleNameMap(); // name to find (avoids redundancies)
+            var map = launcher.GetFeeShiftingArticleNameMap(); // name to find (avoids redundancies in naming)
             string path = Launcher.ReportFolder();
             string outputFileFullPath = Path.Combine(path, filePrefix + $"-{endOfFileName}.csv");
             string cumResults = "";
