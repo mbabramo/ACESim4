@@ -95,9 +95,9 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             string supplementalTitle = (pRiskNeutral, dRiskNeutral) switch
             {
                 (true, true) => "",
-                (true, false) => " D Risk Averse",
-                (false, true) => " P Risk Averse",
-                (false, false) => " Both Risk Averse"
+                (true, false) => "; D Risk Averse",
+                (false, true) => "; P Risk Averse",
+                (false, false) => "; Both Risk Averse"
             };
             title += supplementalTitle;
             StageCostDiagram diagram = new StageCostDiagram(overallSpace, 1.5, 0.25, 0.25, proportionForText, stagesForEachPanel, maxMagnitudes, stageNames, shortStageNames, title);
