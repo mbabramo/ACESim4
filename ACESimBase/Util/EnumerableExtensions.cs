@@ -7,18 +7,6 @@ namespace ACESimBase.Util
 {
     public static class EnumerableExtensions
     {
-        public static IEnumerable<TSource> DistinctBy<TSource, TKey>
-    (this IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
-        {
-            HashSet<TKey> seenKeys = new HashSet<TKey>();
-            foreach (TSource element in source)
-            {
-                if (seenKeys.Add(keySelector(element)))
-                {
-                    yield return element;
-                }
-            }
-        }
 
         public static IEnumerable<(T first, T last)> Pairs<T>(this IEnumerable<T> sequence)
         {
