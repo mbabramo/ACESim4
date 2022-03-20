@@ -69,7 +69,7 @@ namespace ACESim
             int[][] criteriaIndices = rowsToFind.Select(rowToFind => rowToFind.Select(criterionInRowToFind => indexedCriteria.First(criterion => criterionInRowToFind == criterion.item).index).ToArray()).ToArray();
             int numRowsToFind = criteriaIndices.Length;
             bool[] matchingCriteria = new bool[numCriteria];
-            var config = new CsvHelper.Configuration.CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture);
+            var config = new CsvHelper.Configuration.CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture) { MissingFieldFound = null };
             using (var csv = new CsvReader(reader, config))
             {
                 csv.Read();
@@ -87,7 +87,6 @@ namespace ACESim
                         {
                             for (int c = 0; c < columnsToGet.Length; c++)
                             {
-                                csv.Configuration.MissingFieldFound = null;
                                 string contents = csv.GetField<string>(columnsToGet[c]);
                                 if (contents == null || contents == "")
                                     results[rowToFind, c] = null;
@@ -105,7 +104,7 @@ namespace ACESim
         {
             double?[,] results = new double?[rowsToFind.Length, columnsToGet.Length];
 
-            var config = new CsvHelper.Configuration.CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture);
+            var config = new CsvHelper.Configuration.CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture) { MissingFieldFound = null };
             using (var csv = new CsvReader(reader, config))
             {
                 csv.Read();
@@ -120,7 +119,6 @@ namespace ACESim
                         {
                             for (int c = 0; c < columnsToGet.Length; c++)
                             {
-                                csv.Configuration.MissingFieldFound = null;
                                 string contents = csv.GetField<string>(columnsToGet[c]);
                                 if (contents == null || contents == "")
                                     results[rowToFind, c] = null;

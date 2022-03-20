@@ -121,21 +121,24 @@ namespace ACESimBase.Util
         /// <returns></returns>
         public static string MergeCSV(string csv1, string csv2, List<string> IDColumnNames)
         {
-            var config = new CsvHelper.Configuration.CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture);
-            using (var csv_r1 = new CsvReader(new StringReader(csv1), config))
-            using (var csv_r2 = new CsvReader(new StringReader(csv2), config))
+            var config_reader = new CsvHelper.Configuration.CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture) { MissingFieldFound = null };
+            using (var csv_r1 = new CsvReader(new StringReader(csv1), config_reader))
+            using (var csv_r2 = new CsvReader(new StringReader(csv2), config_reader))
             using (var writer = new StringWriter())
-            using (var csv_w = new CsvWriter(writer, config))
             {
-                csv_r1.Configuration.MissingFieldFound = null;
-                csv_r2.Configuration.MissingFieldFound = null;
                 var records1 = csv_r1.GetRecords<dynamic>().ToList();
                 var records2 = csv_r2.GetRecords<dynamic>().ToList();
                 MergeDynamic(records1, records2, IDColumnNames, out Dictionary<string, int> columnOrder);
-                csv_w.Configuration.ShouldQuote = (field, context) => true;
-                csv_w.Configuration.DynamicPropertySort = Comparer<string>.Create((x, y) => columnOrder[x].CompareTo(columnOrder[y]));
-                csv_w.WriteRecords(records1);
-                return writer.ToString();
+                var config_writer = new CsvHelper.Configuration.CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture)
+                {
+                    ShouldQuote = (args) => true,
+                    DynamicPropertySort = Comparer<string>.Create((x, y) => columnOrder[x].CompareTo(columnOrder[y]))
+                };
+                using (var csv_w = new CsvWriter(writer, config_writer))
+                {
+                    csv_w.WriteRecords(records1);
+                    return writer.ToString();
+                }
             }
         }
     }
