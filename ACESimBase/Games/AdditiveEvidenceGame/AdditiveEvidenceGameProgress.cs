@@ -108,7 +108,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         {
             get
             {
-                if (BiasSum_PInfoOnly_Denominator == 0) // note: this will be the case in most of our simulations, where the bias/noise is information that neither player has
+                if (BiasSum_PInfoOnly_Denominator == 0) 
                     return QualitySum_PInfoOnly;
                 if (QualitySum_PInfoOnly_Denominator == 0)
                     return BiasSum_PInfoOnly;

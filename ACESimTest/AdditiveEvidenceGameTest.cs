@@ -71,24 +71,34 @@ namespace ACESimTest
 
         public AdditiveEvidenceGameOptions GetOptions_DariMattiacci_Saraceno(double evidenceBothQuality)
         {
-            return GetOptions(evidenceBothQuality: evidenceBothQuality, alphaBothBias: 0, alphaPBias: evidenceBothQuality, alphaDBias: 1.0 - evidenceBothQuality, alphaQuality: 0.5); // P's strength of information about bias is the same as the strength of the case. Half of weight is on quality
+            // P's strength of information about bias is the same as the strength of the case. Half of weight is on quality
+            var options = GetOptions(evidenceBothQuality: evidenceBothQuality, alphaBothBias: 0, alphaPBias: evidenceBothQuality, alphaDBias: 1.0 - evidenceBothQuality, alphaQuality: 0.5);
+            return options;
         }
 
         [TestMethod]
         public void AdditiveEvidence_SettlementValues()
         {
             var gameOptions = GetOptions();
-            foreach ((int pOffer, int dOffer, double settlementValue) in new[] { (3, 3, 0.5), (2, 4, 0.5), (1, 5, 0.5), (1, 3, gameOptions.MinOffer + gameOptions.OfferRange * 2.0 / 6.0), (1, 4, gameOptions.MinOffer + gameOptions.OfferRange * 2.5 / 6.0), (2, 5, gameOptions.MinOffer + gameOptions.OfferRange * 3.5 / 6.0), (3, 5, gameOptions.MinOffer + gameOptions.OfferRange * 4.0 / 6.0), (4, 5, gameOptions.MinOffer + gameOptions.OfferRange * 4.5 / 6.0) }) 
+            foreach (int pOffer in new[] { 1, 2, 3, 4, 5 })
             {
-                Func<Decision, GameProgress, byte> actionsToPlay = AdditiveActionsGameActionsGenerator.PlaySpecifiedDecisions(pOffer: (byte)pOffer, dOffer: (byte)dOffer);
-                var gameProgress = AdditiveEvidenceGameLauncher.PlayAdditiveEvidenceGameOnce(gameOptions, actionsToPlay);
-                gameProgress.SettlementOccurs.Should().Be(true);
-                gameProgress.TrialOccurs.Should().Be(false);
-                gameProgress.SettlementValue.Should().BeApproximately(settlementValue, 1E-10);
-                gameProgress.ResolutionValue.Should().BeApproximately(settlementValue, 1E-10);
-                gameProgress.DsProportionOfCost.Should().Be(0.5);
-                gameProgress.PWelfare.Should().BeApproximately(settlementValue, 1E-10);
-                gameProgress.DWelfare.Should().BeApproximately(1.0 - settlementValue, 1E-10);
+                foreach (int dOffer in new[] { 1, 2, 3, 4, 5 })
+                {
+                    if (dOffer >= pOffer)
+                    {
+                        Func<Decision, GameProgress, byte> actionsToPlay = AdditiveActionsGameActionsGenerator.PlaySpecifiedDecisions(pOffer: (byte)pOffer, dOffer: (byte)dOffer);
+                        var gameProgress = AdditiveEvidenceGameLauncher.PlayAdditiveEvidenceGameOnce(gameOptions, actionsToPlay);
+                        gameProgress.SettlementOccurs.Should().Be(true);
+                        gameProgress.TrialOccurs.Should().Be(false);
+                        double expectedSettlementValue = gameOptions.MinOffer + gameOptions.OfferRange * 0.5 * (EquallySpaced.GetLocationOfEquallySpacedPoint(pOffer - 1, gameOptions.NumOffers, false) + EquallySpaced.GetLocationOfEquallySpacedPoint(dOffer - 1, gameOptions.NumOffers, false));
+                        double? observedSettlementValue = gameProgress.SettlementValue;
+                        observedSettlementValue.Should().BeApproximately(expectedSettlementValue, 1E-10);
+                        gameProgress.ResolutionValue.Should().BeApproximately(expectedSettlementValue, 1E-10);
+                        gameProgress.DsProportionOfCost.Should().Be(0.5);
+                        gameProgress.PWelfare.Should().BeApproximately(expectedSettlementValue, 1E-10);
+                        gameProgress.DWelfare.Should().BeApproximately(1.0 - expectedSettlementValue, 1E-10);
+                    }
+                }
             }
         }
 
