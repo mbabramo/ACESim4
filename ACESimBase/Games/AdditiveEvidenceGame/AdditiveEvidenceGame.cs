@@ -34,6 +34,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         {
             switch (currentDecisionByteCode)
             {
+                // Note: THe linear bids decisions will be executed if and only if the POffer and DOffer decisions are not
                 case (byte)AdditiveEvidenceGameDecisions.P_LinearBid_Min:
                     AdditiveEvidenceProgress.P_LinearBid_Min = action;
                     break;
@@ -66,7 +67,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     {
                         if (!(AdditiveEvidenceDefinition.Options.Alpha_Bias > 0))
                             AdditiveEvidenceProgress.GameComplete = true; // b/c using linear bids, there are no more offers, and there are also no more chance decisions
-                        if (AdditiveEvidenceProgress.D_LinearBid_Continuous >= AdditiveEvidenceProgress.P_LinearBid_Continuous)
+                        if (AdditiveEvidenceProgress.D_LinearBid_ContinuousOffer >= AdditiveEvidenceProgress.P_LinearBid_ContinuousOffer)
                             AdditiveEvidenceProgress.GameComplete = true;
                     }
                     break;
@@ -79,7 +80,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     {
                         if (!(AdditiveEvidenceDefinition.Options.Alpha_Bias > 0 && AdditiveEvidenceDefinition.Options.Alpha_Neither_Bias > 0))
                             AdditiveEvidenceProgress.GameComplete = true; // b/c using linear bids, there are no more offers, and there are also no more chance decisions
-                        if (AdditiveEvidenceProgress.D_LinearBid_Continuous >= AdditiveEvidenceProgress.P_LinearBid_Continuous)
+                        if (AdditiveEvidenceProgress.D_LinearBid_ContinuousOffer >= AdditiveEvidenceProgress.P_LinearBid_ContinuousOffer)
                             AdditiveEvidenceProgress.GameComplete = true;
                     }
                     break;

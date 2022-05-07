@@ -10,18 +10,36 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
     {
         public bool FirstRowOnly => false; // simplifies the reporting
 
-        public bool TrialGuaranteed;
+        // Parameters regarding game structure
 
+        // Whether we are constraining the players to minimum bids, in which case they announce a minimum and maximum (based on no parameters), instead of a bid value (based on a particular parameters).
         public bool LinearBids;
+
+        public bool TrialGuaranteed;
         public bool IncludePQuitDecision;
         public bool IncludeDQuitDecision;
 
-        // The evidence shared by both parties is a parameter. The evidence that one or neither party has is determined by chance.
-        public double Evidence_Both_Quality;
-        public double Evidence_Both_Bias;
+        public double TrialCost;
+        public bool FeeShifting;
+        public bool FeeShiftingIsBasedOnMarginOfVictory;
 
         /// <summary>
-        /// The portion of the judgment that is attributable to evidence on actual quality (whether that evidence is held by one party, both or neither). Evidence that is not related to quality is considered to be bias.
+        /// When based on margin of victory, judgment must exceed this amount (which thus should be greater than 1/2).
+        /// When not based on margin of victory, the judgment that would be entered based only on information accessible to the winner must exceed this amount.
+        /// </summary>
+        public double FeeShiftingThreshold;
+
+        // Parameters affecting relative importance of parties' information and relative importance of true merits and noise.
+
+        // True merits q' is weighted sum of evidence known by both parties, know by one or the other party, or by neither party.
+        // The noise Zn is weighted sum of non-evidentiary information known by both parties, know by one or the other party, or by neither party.
+        // The judgment is q' * Alpha_Quality + Zn * Alpha_Bias.
+        // Note: With linear bids, Alpha_Quality must be 0 or 1, because there is only 1 input to each party's decision. 
+
+        /// <summary>
+        /// The portion of the judgment that is attributable to evidence on actual quality (whether that evidence is held by one party, both or neither). 
+        /// In the Dari-Mattiacci/Saraceno paper, Alpha_Quality should be 0, because there is no individual information on quality. 
+        /// Evidence that is not related to quality is considered to be bias.
         /// </summary>
         public double Alpha_Quality;
         public double Alpha_Bias => 1.0 - Alpha_Quality;
@@ -34,6 +52,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             double calc = (1.0 - Alpha_Both_Quality - Alpha_Plaintiff_Quality - Alpha_Defendant_Quality);
             if (calc < 0)
                 throw new Exception("Alphas don't add up");
+            // If calc is positive, this remaining amount is the evidence that neither party has (but will still affect the judgment).
             return calc;
         }
         public double Alpha_Both_Bias;
@@ -49,6 +68,15 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             return calc;
         }
 
+        // Parameters regarding shared information
+
+        // The value of the evidence and/or non-evidentiary information shared by both parties is a parameter to the model. That is, we optimize given some assumptions about what these values are.
+        // The evidence that one or neither party has, by contrast, is determined by chance.
+        public double Evidence_Both_Quality;
+        public double Evidence_Both_Bias;
+
+        // Parameters regarding number of discrete levels and how they map onto continuous levels
+
         // NOTE: These are set in AdditiveEvidenceGameOptionsGenerator
         public byte NumQualityAndBiasLevels_PrivateInfo = 25;
         public byte NumQualityAndBiasLevels_NeitherInfo = 5;
@@ -56,16 +84,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public double MinOffer = -0.25; // settlements beyond the range of (-0.25, 1.25) have not been observed, but we are allowing offers below 0 and above 1. This is important if fee-shifting is possible.
         public double OfferRange = 1.5; 
-
-        public double TrialCost;
-        public bool FeeShifting;
-        public bool FeeShiftingIsBasedOnMarginOfVictory;
-
-        /// <summary>
-        /// When based on margin of victory, judgment must exceed this amount (which thus should be greater than 1/2).
-        /// When not based on margin of victory, the judgment that would be entered based only on information accessible to the winner must exceed this amount.
-        /// </summary>
-        public double FeeShiftingThreshold;
 
         public override string ToString()
         {
