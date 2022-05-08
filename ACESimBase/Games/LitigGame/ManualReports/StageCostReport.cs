@@ -15,9 +15,9 @@ namespace ACESimBase.Games.LitigGame.ManualReports
 {
     public class StageCostReport
     {
-        static bool TargetPowerPoint = true; // DEBUG
-        static bool UseFixedAssessmentMaxMagnitudes = true; // DEBUG
-        static double[] FixedAsseessmentMaxMagnitudes = new double[] { 2.5, 2.5, 2.0 }; // DEBUG { 1.5, 1.5, 0.6 };  // DEBUG  // DEBUG -- may need to depend on series we are running
+        static bool TargetPowerPoint = false; 
+        static bool UseFixedAssessmentMaxMagnitudes = true; 
+        static double[] FixedAsseessmentMaxMagnitudes = new double[] { 2.5, 2.5, 2.0 }; // 1.5, 1.5, 0.6 };  -- may need to depend on series we are running
 
         public static List<string> GenerateReport(List<(GameProgress theProgress, double weight)> gameProgresses)
         {

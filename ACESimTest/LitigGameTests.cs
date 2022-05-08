@@ -857,7 +857,7 @@ namespace ACESimTest
         public void CaseTried()
         {
             CaseNumber = 0;
-            bool aggregateAllExceptions = true; // DEBUG
+            bool aggregateAllExceptions = false; 
             StringBuilder b = new StringBuilder();
             try
             {   
@@ -887,7 +887,7 @@ namespace ACESimTest
                                                             {
                                                                 String settings = $"allowDamagesVariation {allowDamagesVariation} allowAbandonAndDefault {allowAbandonAndDefault} numBargainingRounds {numBargainingRounds} plaintiffWins {plaintiffWins} simultaneousBargainingRounds {simultaneousBargainingRounds} loserPaysPolicy {loserPaysPolicy} rule68 {rule68} simultaneousBargainingFailure {simulatingBargainingFailure} sideBetChallenges {sideBetChallenges} runningSideBetChallenges {runningSideBetChallenges} shootout {shootout}";
                                                                 var skipThis = false;
-                                                                if (CaseNumber == 18000) // DEBUG int.MaxValue)
+                                                                if (CaseNumber == int.MaxValue)
                                                                 {
                                                                     Br.eak.Add("Case");
                                                                     GameProgressLogger.LoggingOn = true;
@@ -957,10 +957,6 @@ namespace ACESimTest
             }
             else if (loserPaysPolicy == LoserPaysPolicy.MarginOfVictory_NotEnough)
             {
-                if (!plaintiffWins)
-                {
-                    var DEBUG = 0;
-                }
                 courtLiabilityResult = plaintiffWins ? (byte)liabilityResultPWinsNotEnough : (byte)liabilityResultDWinsNotEnough;
             }
             byte courtDamagesResultIfAllowVariation = CDamagesSignal;

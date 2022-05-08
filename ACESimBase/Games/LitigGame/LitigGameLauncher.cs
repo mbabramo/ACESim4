@@ -13,7 +13,7 @@ namespace ACESim
 {
     public class LitigGameLauncher : Launcher
     {
-        public override string MasterReportNameForDistributedProcessing => "FS033"; // DEBUG
+        public override string MasterReportNameForDistributedProcessing => "FS034";
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
 
@@ -27,11 +27,11 @@ namespace ACESim
         // Fee shifting article
         public bool IncludeNonCriticalTransformations = true; 
         public FeeShiftingRule[] FeeShiftingModes = new[] { FeeShiftingRule.English_LiabilityIssue, FeeShiftingRule.MarginOfVictory_LiabilityIssue, FeeShiftingRule.Rule68_DamagesIssue, FeeShiftingRule.Rule68English_DamagesIssue };
-        public double[] CriticalCostsMultipliers = new double[] { 1.0, 0.5, 2.0 }; // DEBUG 0.25, 0.5, 2.0, 4.0 };
-        public double[] AdditionalCostsMultipliers = new double[] { 1.0, 0.25, 4.0 }; // DEBUG // NOTE: If restoring this, also change NamesOfFeeShiftingArticleSets
+        public double[] CriticalCostsMultipliers = new double[] { 1.0, 0.5, 2.0 }; // 0.25, 0.5, 2.0, 4.0 };
+        public double[] AdditionalCostsMultipliers = new double[] { 1.0, 0.25, 4.0 }; // NOTE: If restoring this, also change NamesOfFeeShiftingArticleSets
         public (double pNoiseMultiplier, double dNoiseMultiplier)[] NoiseMultipliers = new (double pNoiseMultiplier, double dNoiseMultiplier)[] { (1.0, 1.0), (0.50, 0.50), (0.5, 2.0), (2.0, 2.0), (2.0, 0.5), (0.25, 0.25), (4.0, 4.0) };
-        public double[] CriticalFeeShiftingMultipliers = new double[] { 0.0, 0.25, 0.5, 0.75, 1.0 }; // DEBUG, 1.5, 2.0 };
-        public double[] AdditionalFeeShiftingMultipliers = new double[] { 0.0, 1.5, 2.0 }; // DEBUG added all but 0 //, 0.25, 4.0 };// NOTE: If restoring this, also change NamesOfFeeShiftingArticleSets
+        public double[] CriticalFeeShiftingMultipliers = new double[] { 0.0, 0.25, 0.5, 0.75, 1.0 }; // 1.5, 2.0 };
+        public double[] AdditionalFeeShiftingMultipliers = new double[] { 0.0, 1.5, 2.0 }; // added all but 0 //, 0.25, 4.0 };// NOTE: If restoring this, also change NamesOfFeeShiftingArticleSets
         public double[] RelativeCostsMultipliers = new double[] { 1.0, 0.5, 2.0 };
         public double[] ProbabilitiesTrulyLiable = new double[] { 0.5, 0.1, 0.9 };
         public double[] StdevsNoiseToProduceLiabilityStrength = new double[] { 0.35, 0.175, 0.70 };
@@ -733,12 +733,12 @@ namespace ACESim
                 noncriticalRiskAversionTransformations,
                 NoiseTransformations(includeBaselineValueForNoncritical),
                 PRelativeCostsTransformations(includeBaselineValueForNoncritical),
-                // DEBUG FeeShiftingModeTransformations(includeBaselineValueForNoncritical),
-                // DEBUG AllowAbandonAndDefaultsTransformations(includeBaselineValueForNoncritical),
-                // DEBUG ProbabilityTrulyLiableTransformations(includeBaselineValueForNoncritical),
-                // DEBUG NoiseToProduceCaseStrengthTransformations(includeBaselineValueForNoncritical),
-                // DEBUG LiabilityVsDamagesTransformations(includeBaselineValueForNoncritical),
-                // DEBUG ProportionOfCostsAtBeginningTransformations(includeBaselineValueForNoncritical),
+                FeeShiftingModeTransformations(includeBaselineValueForNoncritical),
+                AllowAbandonAndDefaultsTransformations(includeBaselineValueForNoncritical),
+                ProbabilityTrulyLiableTransformations(includeBaselineValueForNoncritical),
+                NoiseToProduceCaseStrengthTransformations(includeBaselineValueForNoncritical),
+                LiabilityVsDamagesTransformations(includeBaselineValueForNoncritical),
+                ProportionOfCostsAtBeginningTransformations(includeBaselineValueForNoncritical),
             };
             List<List<Func<LitigGameOptions, LitigGameOptions>>> criticalTransformations = allTransformations.Take(numCritical).ToList();
             List<List<Func<LitigGameOptions, LitigGameOptions>>> noncriticalTransformations = allTransformations.Skip(IncludeNonCriticalTransformations ? numCritical : allTransformations.Count()).ToList();
@@ -806,7 +806,7 @@ namespace ACESim
         public List<string> NamesOfFeeShiftingArticleSets => new List<string>()
         {
            // "Additional Costs Multipliers",
-            "Additional Fee Shifting Multipliers", // DEBUG -- delete if removing the additional multipliers
+            "Additional Fee Shifting Multipliers",
            // "Additional Risk Options",
             "Core",
             "Risk Aversion",

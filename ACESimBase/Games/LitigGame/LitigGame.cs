@@ -439,11 +439,6 @@ namespace ACESim
             }
             if (gameDefinition.Options.LoserPays && gameDefinition.Options.LoserPaysMultiple > 0)
             {
-                var DEBUG = gameDefinition.Options.LoserPaysOnlyLargeMarginOfVictory; 
-                if (DEBUG)
-                {
-                    var DEBUG2 = 0;
-                }
                 loserPaysApplies = ((outcome.TrialOccurs && (!gameDefinition.Options.LoserPaysOnlyLargeMarginOfVictory || largeMarginAtTrial)) 
                     || 
                     (gameDefinition.Options.LoserPaysAfterAbandonment && (pAbandons || dDefaults)));
