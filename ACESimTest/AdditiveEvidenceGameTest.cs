@@ -255,12 +255,12 @@ namespace ACESimTest
 
         private static void GetOptionsAndProgress(AdditiveEvidenceGameOptions gameOptions, byte chancePlaintiffQuality, byte chanceDefendantQuality, byte chanceNeitherQuality, byte chancePlaintiffBias, byte chanceDefendantBias, byte chanceNeitherBias, byte pOffer, byte dOffer, out double chancePQualityDouble, out double chanceDQualityDouble, out double chanceNQualityDouble, out double chancePBiasDouble, out double chanceDBiasDouble, out double chanceNBiasDouble, out AdditiveEvidenceGameProgress gameProgress)
         {
-            chancePQualityDouble = (chancePlaintiffQuality) / (gameOptions.NumQualityAndBiasLevels_PrivateInfo + 1.0);
-            chanceDQualityDouble = (chanceDefendantQuality) / (gameOptions.NumQualityAndBiasLevels_PrivateInfo + 1.0);
-            chanceNQualityDouble = (chanceNeitherQuality) / (gameOptions.NumQualityAndBiasLevels_NeitherInfo + 1.0);
-            chancePBiasDouble = (chancePlaintiffBias) / (gameOptions.NumQualityAndBiasLevels_PrivateInfo + 1.0);
-            chanceDBiasDouble = (chanceDefendantBias) / (gameOptions.NumQualityAndBiasLevels_PrivateInfo + 1.0);
-            chanceNBiasDouble = (chanceNeitherBias) / (gameOptions.NumQualityAndBiasLevels_NeitherInfo + 1.0);
+            chancePQualityDouble = EquallySpaced.GetLocationOfEquallySpacedPoint(chancePlaintiffQuality - 1, gameOptions.NumQualityAndBiasLevels_PrivateInfo, false);
+            chanceDQualityDouble = EquallySpaced.GetLocationOfEquallySpacedPoint(chanceDefendantQuality - 1, gameOptions.NumQualityAndBiasLevels_PrivateInfo, false); 
+            chanceNQualityDouble = EquallySpaced.GetLocationOfEquallySpacedPoint(chanceNeitherQuality - 1, gameOptions.NumQualityAndBiasLevels_NeitherInfo, false); 
+            chancePBiasDouble = EquallySpaced.GetLocationOfEquallySpacedPoint(chancePlaintiffBias - 1, gameOptions.NumQualityAndBiasLevels_PrivateInfo, false); 
+            chanceDBiasDouble = EquallySpaced.GetLocationOfEquallySpacedPoint(chanceDefendantBias - 1, gameOptions.NumQualityAndBiasLevels_PrivateInfo, false);
+            chanceNBiasDouble = EquallySpaced.GetLocationOfEquallySpacedPoint(chanceNeitherBias - 1, gameOptions.NumQualityAndBiasLevels_NeitherInfo, false); 
             Func<Decision, GameProgress, byte> actionsToPlay = AdditiveActionsGameActionsGenerator.PlaySpecifiedDecisions(chancePlaintiffQuality: chancePlaintiffQuality, chanceDefendantQuality: chanceDefendantQuality, chanceNeitherQuality: chanceNeitherQuality, chancePlaintiffBias: chancePlaintiffBias, chanceDefendantBias: chanceDefendantBias, chanceNeitherBias: chanceNeitherBias, pOffer: pOffer, dOffer: dOffer);
             gameProgress = AdditiveEvidenceGameLauncher.PlayAdditiveEvidenceGameOnce(gameOptions, actionsToPlay);
         }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using ACESim;
 using ACESim.Util;
 using ACESim.Util.DiscreteProbabilities;
@@ -84,7 +85,7 @@ namespace ACESimTest
         const byte liabilityResultPWinsEnough = 9;
         const byte liabilityResultPWinsNotEnough = 6;
         const byte liabilityResultDWinsEnough = 1;
-        const byte liabilityResultDWinsNotEnough = 3;
+        const byte liabilityResultDWinsNotEnough = 4;
 
         private static void GetInformationSetStrings(LitigGameProgress myGameProgress, out string pInformationSet,
             out string dInformationSet, out string resolutionSet)
@@ -856,54 +857,92 @@ namespace ACESimTest
         public void CaseTried()
         {
             CaseNumber = 0;
+            bool aggregateAllExceptions = true; // DEBUG
+            StringBuilder b = new StringBuilder();
             try
-            {
+            {   
                 foreach (bool allowDamagesVariation in new[] { true, false })
-                foreach (bool allowAbandonAndDefault in new[] {true, false})
-                foreach (byte numBargainingRounds in new byte[] {1, 2})
-                foreach (bool plaintiffWins in new[] {true, false})
-                foreach (bool simultaneousBargainingRounds in new[] { true , false})
-                foreach (bool simultaneousOffersUltimatelyRevealed in new[] { true, false })
-                foreach (var loserPaysPolicy in new[] {LoserPaysPolicy.NoLoserPays, LoserPaysPolicy.AfterTrialOnly, LoserPaysPolicy.EvenAfterAbandonOrDefault, LoserPaysPolicy.MarginOfVictory_Enough, LoserPaysPolicy.MarginOfVictory_NotEnough})
-                foreach (bool rule68 in new[] { false, true })
-                foreach (var simulatingBargainingFailure in new[] {HowToSimulateBargainingFailure.PRefusesToBargain, HowToSimulateBargainingFailure.DRefusesToBargain, HowToSimulateBargainingFailure.BothRefuseToBargain, HowToSimulateBargainingFailure.BothAgreeToBargain, HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain})
-                foreach (var sideBetChallenges in new[] {SideBetChallenges.NoChallengesAllowed, SideBetChallenges.BothChallenge, SideBetChallenges.NoOneChallenges, SideBetChallenges.PChallenges, SideBetChallenges.DChallenges})
-                foreach (var runningSideBetChallenges in new[] {RunningSideBetChallenges.None, RunningSideBetChallenges.PChallenges2D1, RunningSideBetChallenges.DChallenges2P1})
-                foreach (var shootout in new[] { ShootoutSettings.None, ShootoutSettings.Regular, ShootoutSettings.AverageAllRounds, ShootoutSettings.ApplyAfterAbandonment, ShootoutSettings.ApplyAfterAbandonment_AverageAllRounds })
                 {
-                    var skipThis = false;
-                    if (CaseNumber == int.MaxValue)
+                    foreach (bool allowAbandonAndDefault in new[] {true, false})
                     {
-                        Br.eak.Add("Case");
-                        GameProgressLogger.LoggingOn = true;
-                        GameProgressLogger.DetailedLogging = true;
-                        GameProgressLogger.OutputLogMessages = true;
+                        foreach (byte numBargainingRounds in new byte[] {1, 2})
+                        {
+                            foreach (bool plaintiffWins in new[] {true, false})
+                            {
+                                foreach (bool simultaneousBargainingRounds in new[] { true , false})
+                                {
+                                    foreach (bool simultaneousOffersUltimatelyRevealed in new[] { true, false })
+                                    {
+                                        foreach (var loserPaysPolicy in new[] {LoserPaysPolicy.NoLoserPays, LoserPaysPolicy.AfterTrialOnly, LoserPaysPolicy.EvenAfterAbandonOrDefault, LoserPaysPolicy.MarginOfVictory_Enough, LoserPaysPolicy.MarginOfVictory_NotEnough})
+                                        {
+                                            foreach (bool rule68 in new[] { false, true })
+                                            {
+                                                foreach (var simulatingBargainingFailure in new[] {HowToSimulateBargainingFailure.PRefusesToBargain, HowToSimulateBargainingFailure.DRefusesToBargain, HowToSimulateBargainingFailure.BothRefuseToBargain, HowToSimulateBargainingFailure.BothAgreeToBargain, HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain})
+                                                {
+                                                    foreach (var sideBetChallenges in new[] {SideBetChallenges.NoChallengesAllowed, SideBetChallenges.BothChallenge, SideBetChallenges.NoOneChallenges, SideBetChallenges.PChallenges, SideBetChallenges.DChallenges})
+                                                    {
+                                                        foreach (var runningSideBetChallenges in new[] {RunningSideBetChallenges.None, RunningSideBetChallenges.PChallenges2D1, RunningSideBetChallenges.DChallenges2P1})
+                                                        {
+                                                            foreach (var shootout in new[] { ShootoutSettings.None, ShootoutSettings.Regular, ShootoutSettings.AverageAllRounds, ShootoutSettings.ApplyAfterAbandonment, ShootoutSettings.ApplyAfterAbandonment_AverageAllRounds })
+                                                            {
+                                                                String settings = $"allowDamagesVariation {allowDamagesVariation} allowAbandonAndDefault {allowAbandonAndDefault} numBargainingRounds {numBargainingRounds} plaintiffWins {plaintiffWins} simultaneousBargainingRounds {simultaneousBargainingRounds} loserPaysPolicy {loserPaysPolicy} rule68 {rule68} simultaneousBargainingFailure {simulatingBargainingFailure} sideBetChallenges {sideBetChallenges} runningSideBetChallenges {runningSideBetChallenges} shootout {shootout}";
+                                                                var skipThis = false;
+                                                                if (CaseNumber == 18000) // DEBUG int.MaxValue)
+                                                                {
+                                                                    Br.eak.Add("Case");
+                                                                    GameProgressLogger.LoggingOn = true;
+                                                                    GameProgressLogger.DetailedLogging = true;
+                                                                    GameProgressLogger.OutputLogMessages = true;
+                                                                }
+                                                                else
+                                                                {
+                                                                    Br.eak.Remove("Case");
+                                                                    //skipThis = true; 
+                                                                    GameProgressLogger.LoggingOn = false;
+                                                                    GameProgressLogger.DetailedLogging = false;
+                                                                    GameProgressLogger.OutputLogMessages = false;
+                                                                }
+                                                                bool incompatible = (runningSideBetChallenges != RunningSideBetChallenges.None && (!allowAbandonAndDefault || simulatingBargainingFailure == HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain))
+                                                                    ||
+                                                                    (simulatingBargainingFailure != HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain && (shootout != ShootoutSettings.None || rule68))
+                                                                    ||
+                                                                    ((loserPaysPolicy is LoserPaysPolicy.MarginOfVictory_Enough or LoserPaysPolicy.MarginOfVictory_NotEnough) && rule68)
+                                                                      ;
+                                                                if (incompatible)
+                                                                    skipThis = true;
+                                                                if (!skipThis)
+                                                                {
+                                                                    try
+                                                                    {
+                                                                        CaseTried_Helper(allowDamagesVariation, allowAbandonAndDefault, numBargainingRounds, plaintiffWins, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, loserPaysPolicy, rule68, simulatingBargainingFailure, sideBetChallenges, runningSideBetChallenges, shootout);
+                                                                    }
+                                                                    catch(Exception ex)
+                                                                    {
+                                                                        if (aggregateAllExceptions)
+                                                                            b.AppendLine($"Case number {CaseNumber}: {settings}"); 
+                                                                        else throw;
+                                                                    }
+                                                                }
+                                                                CaseNumber++;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
-                    else
-                    {
-                        Br.eak.Remove("Case");
-                        //skipThis = true; 
-                        GameProgressLogger.LoggingOn = false;
-                        GameProgressLogger.DetailedLogging = false;
-                        GameProgressLogger.OutputLogMessages = false;
-                    }
-                    bool incompatible = (runningSideBetChallenges != RunningSideBetChallenges.None && (!allowAbandonAndDefault || simulatingBargainingFailure == HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain))
-                        ||
-                        (simulatingBargainingFailure != HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain && (shootout != ShootoutSettings.None || rule68))
-                        ||
-                        ((loserPaysPolicy is LoserPaysPolicy.MarginOfVictory_Enough or LoserPaysPolicy.MarginOfVictory_NotEnough) && rule68)
-                          ;
-                    if (incompatible)
-                        skipThis = true;
-                    if (!skipThis)
-                        CaseTried_Helper(allowDamagesVariation, allowAbandonAndDefault,  numBargainingRounds, plaintiffWins, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, loserPaysPolicy, rule68, simulatingBargainingFailure, sideBetChallenges, runningSideBetChallenges, shootout);
-                    CaseNumber++;
                 }
             }
             catch (Exception e)
             {
                 throw new Exception($"Failed case number {CaseNumber}: {e.Message}");
             }
+            if (aggregateAllExceptions && b.Length > 0)
+                throw new Exception(b.ToString());
         }
 
         private void CaseTried_Helper(bool allowDamagesVariation, bool allowAbandonAndDefaults, byte numBargainingRounds, bool plaintiffWins, bool simultaneousBargainingRounds, bool simultaneousOffersUltimatelyRevealed, LoserPaysPolicy loserPaysPolicy, bool rule68, HowToSimulateBargainingFailure simulatingBargainingFailure, SideBetChallenges sideBetChallenges, RunningSideBetChallenges runningSideBetChallenges, ShootoutSettings shootout)
@@ -918,6 +957,10 @@ namespace ACESimTest
             }
             else if (loserPaysPolicy == LoserPaysPolicy.MarginOfVictory_NotEnough)
             {
+                if (!plaintiffWins)
+                {
+                    var DEBUG = 0;
+                }
                 courtLiabilityResult = plaintiffWins ? (byte)liabilityResultPWinsNotEnough : (byte)liabilityResultDWinsNotEnough;
             }
             byte courtDamagesResultIfAllowVariation = CDamagesSignal;
