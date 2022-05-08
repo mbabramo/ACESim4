@@ -29,7 +29,7 @@ namespace ACESim
             SelectAdditiveEvidenceGame
         }
 
-        public static AvailableGames GameToPlay = AvailableGames.SelectLitigGame;
+        public static AvailableGames GameToPlay = AvailableGames.SelectAdditiveEvidenceGame;
         public static bool LaunchSingleOptionsSetOnly = true;
 
         [STAThread]

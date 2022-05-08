@@ -25,7 +25,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         // Note: Go to Launcher to change multiple option sets settings.
 
-        static AdditiveEvidenceOptionSetChoices AdditiveEvidenceChoice => AdditiveEvidenceOptionSetChoices.Temporary;
+        static AdditiveEvidenceOptionSetChoices AdditiveEvidenceChoice => AdditiveEvidenceOptionSetChoices.DMS_WithFeeShifting;
 
         public static AdditiveEvidenceGameOptions GetAdditiveEvidenceGameOptions() => AdditiveEvidenceChoice switch
         {
@@ -50,8 +50,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         };
 
         public static byte NumOffers = 20; // having a good number here allows for more precise strategies // 5/5/3 -> 39 seconds. 6/5/3 -> 2:10, 7/... -> 4:56 8/... -> 4:29 9/... -> 7:53 10/... -> 9:50
-        public static byte NumQualityAndBiasLevels_PrivateInfo = 5; // we don't need quite as much here, since it's information that doesn't intersect between players
-        public static byte NumQualityAndBiasLevels_NeitherInfo = 3; // still less needed here
+        public static byte NumQualityAndBiasLevels_PrivateInfo = 20; // we don't need quite as much here, since it's information that doesn't intersect between players
+        public static byte NumQualityAndBiasLevels_NeitherInfo = 1; // still less needed here
 
         public static AdditiveEvidenceGameOptions DariMattiacci_Saraceno_Original(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay)
         {
