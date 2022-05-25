@@ -8,8 +8,9 @@ using System.Text;
 
 namespace ACESim
 {
+
     [Serializable]
-    public class LitigGameProgress : GameProgress
+    public class LitigGameProgress : GameProgress, ISignalOfferReportGameProgress
     {
         public LitigGameProgress(bool fullHistoryRequired) : base(fullHistoryRequired)
         {
@@ -20,15 +21,17 @@ namespace ACESim
         public LitigGameOptions LitigGameOptions => LitigGameDefinition.Options;
 
         public bool DisputeArises;
-        public bool PFiles, DAnswers, PReadyToAbandon, DReadyToDefault, BothReadyToGiveUp, PAbandons, DDefaults;
+        public bool PFiles { get; set; }
+        public bool DAnswers { get; set; }
+        public bool PReadyToAbandon, DReadyToDefault, BothReadyToGiveUp, PAbandons, DDefaults;
         public byte BargainingRoundsComplete;
 
         public List<bool> PAgreesToBargain;
         public List<bool> DAgreesToBargain;
-        public List<double> POffers;
-        public List<bool> PResponses;
-        public List<double> DOffers;
-        public List<bool> DResponses;
+        public List<double> POffers { get; set; }
+        public List<bool> PResponses { get; set; }
+        public List<double> DOffers { get; set; }
+        public List<bool> DResponses { get; set; }
         public bool CaseSettles;
         public double? SettlementValue;
         public bool TrialOccurs;

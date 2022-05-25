@@ -1,4 +1,5 @@
 ﻿using ACESim;
+using ACESimBase.Games.LitigGame.ManualReports;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -307,6 +308,16 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public override (double, double) MinMaxWeightOnOpponentsStrategyDuringWarmup => (-0.8, 0.8); // NOTE: Don't go all the way up to 1, because then if costs multiplier is 0 (i.e., it is a zero-sum game), utility for a player will be invariant.
 
 
+
+        #endregion
+
+        #region Diagrams
+
+        public override IEnumerable<(string filename, string reportcontent)> ProduceManualReports(List<(GameProgress theProgress, double weight)> gameProgresses, string supplementalString)
+        {
+            var contents = SignalOfferReport.GenerateReport(this, gameProgresses, SignalOfferReport.TypeOfReport.Offers);
+            yield return (OptionSetName + $"-heatmap{supplementalString}.tex", contents[0]);
+        }
 
         #endregion
     }

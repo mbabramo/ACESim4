@@ -1,5 +1,6 @@
 ﻿using ACESim;
 using ACESim.Util;
+using ACESimBase.Games.AdditiveEvidenceGame;
 using ACESimBase.Util.Tikz;
 using System;
 using System.Collections.Generic;
@@ -17,13 +18,33 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             FileAndAnswer
         }
 
+        public static List<string> GenerateReport(AdditiveEvidenceGameDefinition gameDefinition, List<(GameProgress theProgress, double weight)> gameProgresses, TypeOfReport reportType)
+        {
+            List<(AdditiveEvidenceGameProgress theProgress, double weight)> additiveEvidenceProgresses = gameProgresses.Select(x => ((AdditiveEvidenceGameProgress)x.theProgress, x.weight)).ToList();
+            List<(ISignalOfferReportGameProgress theProgress, double weight)> signalOfferReportGameProgresses = gameProgresses.Select(x => ((ISignalOfferReportGameProgress)x.theProgress, x.weight)).ToList();
+            Func<ISignalOfferReportGameProgress, double> pDamagesSignalFunc = x => ((AdditiveEvidenceGameProgress)x).P_LinearBid_InputDouble;
+            Func<ISignalOfferReportGameProgress, double> dDamagesSignalFunc = x => ((AdditiveEvidenceGameProgress)x).D_LinearBid_InputDouble;
+
+            List<double> pDamagesSignals = additiveEvidenceProgresses.Select(x => x.theProgress.P_LinearBid_InputDouble).Distinct().OrderByDescending(x => x).ToList();
+            List<double> dDamagesSignals = additiveEvidenceProgresses.Select(x => x.theProgress.D_LinearBid_InputDouble).Distinct().OrderByDescending(x => x).ToList();
+
+            AdditiveEvidenceGameOptions options = gameDefinition.Options;
+            bool useLiabilitySignals = false;
+            int numSignals = options.NumQualityAndBiasLevels_PrivateInfo;
+            int numOffers = options.NumOffers;
+            bool includeEndpointsForOffers = false;
+
+            return CompleteReport(reportType, signalOfferReportGameProgresses, null, null, pDamagesSignalFunc, dDamagesSignalFunc, null, null, pDamagesSignals, dDamagesSignals, useLiabilitySignals, numSignals, numOffers, includeEndpointsForOffers);
+        }
+
         public static List<string> GenerateReport(LitigGameDefinition gameDefinition, List<(GameProgress theProgress, double weight)> gameProgresses, TypeOfReport reportType)
         {
             List<(LitigGameProgress theProgress, double weight)> litigProgresses = gameProgresses.Select(x => ((LitigGameProgress)x.theProgress, x.weight)).ToList();
-            Func<LitigGameProgress, double> pLiabilitySignalFunc = x => x.PLiabilitySignalUniform;
-            Func<LitigGameProgress, double> dLiabilitySignalFunc = x => x.DLiabilitySignalUniform;
-            Func<LitigGameProgress, double> pDamagesSignalFunc = x => x.PDamagesSignalUniform;
-            Func<LitigGameProgress, double> dDamagesSignalFunc = x => x.DDamagesSignalUniform;
+            List<(ISignalOfferReportGameProgress theProgress, double weight)> signalOfferReportGameProgresses = gameProgresses.Select(x => ((ISignalOfferReportGameProgress)x.theProgress, x.weight)).ToList();
+            Func<ISignalOfferReportGameProgress, double> pLiabilitySignalFunc = x => ((LitigGameProgress)x).PLiabilitySignalUniform;
+            Func<ISignalOfferReportGameProgress, double> dLiabilitySignalFunc = x => ((LitigGameProgress)x).DLiabilitySignalUniform;
+            Func<ISignalOfferReportGameProgress, double> pDamagesSignalFunc = x => ((LitigGameProgress)x).PDamagesSignalUniform;
+            Func<ISignalOfferReportGameProgress, double> dDamagesSignalFunc = x => ((LitigGameProgress)x).DDamagesSignalUniform;
 
             List<double> pLiabilitySignals = litigProgresses.Select(x => x.theProgress.PLiabilitySignalUniform).Distinct().OrderByDescending(x => x).ToList();
             List<double> dLiabilitySignals = litigProgresses.Select(x => x.theProgress.DLiabilitySignalUniform).Distinct().OrderByDescending(x => x).ToList();
@@ -32,9 +53,16 @@ namespace ACESimBase.Games.LitigGame.ManualReports
 
             LitigGameOptions options = gameDefinition.Options;
             bool useLiabilitySignals = options.NumLiabilitySignals > 1;
-
+            int numSignals = useLiabilitySignals ? options.NumLiabilitySignals : options.NumDamagesSignals;
             int numOffers = options.NumOffers;
-            double[] offers = EquallySpaced.GetEquallySpacedPoints(options.NumOffers, options.IncludeEndpointsForOffers);
+            bool includeEndpointsForOffers = options.IncludeEndpointsForOffers;
+
+            return CompleteReport(reportType, signalOfferReportGameProgresses, pLiabilitySignalFunc, dLiabilitySignalFunc, pDamagesSignalFunc, dDamagesSignalFunc, pLiabilitySignals, dLiabilitySignals, pDamagesSignals, dDamagesSignals, useLiabilitySignals, numSignals, numOffers, includeEndpointsForOffers);
+        }
+
+        private static List<string> CompleteReport(TypeOfReport reportType, List<(ISignalOfferReportGameProgress theProgress, double weight)> litigProgresses, Func<ISignalOfferReportGameProgress, double> pLiabilitySignalFunc, Func<ISignalOfferReportGameProgress, double> dLiabilitySignalFunc, Func<ISignalOfferReportGameProgress, double> pDamagesSignalFunc, Func<ISignalOfferReportGameProgress, double> dDamagesSignalFunc, List<double> pLiabilitySignals, List<double> dLiabilitySignals, List<double> pDamagesSignals, List<double> dDamagesSignals, bool useLiabilitySignals, int numSignals, int numOffers, bool includeEndpointsForOffers)
+        {
+            double[] offers = EquallySpaced.GetEquallySpacedPoints(numOffers, includeEndpointsForOffers);
             string[] fileActionStrings = new string[] { "No Suit", "File" };
             string[] answerActionStrings = new string[] { "Default", "Answer" };
 
@@ -50,7 +78,6 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 answerActionStrings = answerActionStrings.Reverse().ToArray();
             }
 
-            int numSignals = useLiabilitySignals ? options.NumLiabilitySignals : options.NumDamagesSignals;
             (var pFunction, var pSignals) = useLiabilitySignals ? (pLiabilitySignalFunc, pLiabilitySignals) : (pDamagesSignalFunc, pDamagesSignals);
             (var dFunction, var dSignals) = useLiabilitySignals ? (dLiabilitySignalFunc, dLiabilitySignals) : (dDamagesSignalFunc, dDamagesSignals);
 
@@ -89,7 +116,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 double dSignal = dSignals[signalIndex];
 
 
-                (string representation, double darknessValue) GetProportionString(Func<LitigGameProgress, bool> numeratorFunction, Func<LitigGameProgress, bool> denominatorFunction)
+                (string representation, double darknessValue) GetProportionString(Func<ISignalOfferReportGameProgress, bool> numeratorFunction, Func<ISignalOfferReportGameProgress, bool> denominatorFunction)
                 {
                     var numerator = litigProgresses.Where(x => numeratorFunction(x.theProgress) && denominatorFunction(x.theProgress)).Sum(x => x.weight);
                     var denominator = litigProgresses.Where(x => denominatorFunction(x.theProgress)).Sum(x => x.weight);
@@ -105,10 +132,10 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                     for (int offerIndex = 0; offerIndex < numOffers; offerIndex++)
                     {
                         double offerValue = offers[offerIndex];
-                        Func<LitigGameProgress, bool> pNumeratorFn = x => x.PFirstOffer == offerValue;
-                        Func<LitigGameProgress, bool> pDenominatorFn = x => pFunction(x) == pSignal && (x.POffers?.Any() ?? false);
-                        Func<LitigGameProgress, bool> dNumeratorFn = x => x.DFirstOffer == offerValue;
-                        Func<LitigGameProgress, bool> dDenominatorFn = x => dFunction(x) == dSignal && (x.DOffers?.Any() ?? false);
+                        Func<ISignalOfferReportGameProgress, bool> pNumeratorFn = x => x.PFirstOffer == offerValue;
+                        Func<ISignalOfferReportGameProgress, bool> pDenominatorFn = x => pFunction(x) == pSignal && (x.POffers?.Any() ?? false);
+                        Func<ISignalOfferReportGameProgress, bool> dNumeratorFn = x => x.DFirstOffer == offerValue;
+                        Func<ISignalOfferReportGameProgress, bool> dDenominatorFn = x => dFunction(x) == dSignal && (x.DOffers?.Any() ?? false);
 
                         pRow.Add(GetProportionString(pNumeratorFn, pDenominatorFn));
                         dRow.Add(GetProportionString(dNumeratorFn, dDenominatorFn));
@@ -116,12 +143,12 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 }
                 else
                 {
-                    Func<LitigGameProgress, bool> pDenominatorFn = x => pFunction(x) == pSignal;
-                    Func<LitigGameProgress, bool> dDenominatorFn = x => dFunction(x) == dSignal && x.PFiles;
-                    Func<LitigGameProgress, bool> pFilesFn = x => x.PFiles;
-                    Func<LitigGameProgress, bool> pNoSuitFn = x => !x.PFiles;
-                    Func<LitigGameProgress, bool> dAnswersFn = x => x.DAnswers;
-                    Func<LitigGameProgress, bool> dDefaultsFn = x => !x.DAnswers;
+                    Func<ISignalOfferReportGameProgress, bool> pDenominatorFn = x => pFunction(x) == pSignal;
+                    Func<ISignalOfferReportGameProgress, bool> dDenominatorFn = x => dFunction(x) == dSignal && x.PFiles;
+                    Func<ISignalOfferReportGameProgress, bool> pFilesFn = x => x.PFiles;
+                    Func<ISignalOfferReportGameProgress, bool> pNoSuitFn = x => !x.PFiles;
+                    Func<ISignalOfferReportGameProgress, bool> dAnswersFn = x => x.DAnswers;
+                    Func<ISignalOfferReportGameProgress, bool> dDefaultsFn = x => !x.DAnswers;
 
                     pRow.Add(GetProportionString(pFilesFn, pDenominatorFn));
                     dRow.Add(GetProportionString(dAnswersFn, dDenominatorFn));
