@@ -69,10 +69,14 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             bool transpose = true; // move offers to y axis
             if (transpose)
             {
-                pLiabilitySignals.Reverse();
-                dLiabilitySignals.Reverse();
-                pDamagesSignals.Reverse();
-                dDamagesSignals.Reverse();
+                if (pLiabilitySignals != null)
+                    pLiabilitySignals.Reverse();
+                if (dLiabilitySignals != null)
+                    dLiabilitySignals.Reverse();
+                if (pDamagesSignals != null)
+                    pDamagesSignals.Reverse();
+                if (dDamagesSignals != null)
+                    dDamagesSignals.Reverse();
                 offers = offers.Reverse().ToArray();
                 fileActionStrings = fileActionStrings.Reverse().ToArray();
                 answerActionStrings = answerActionStrings.Reverse().ToArray();
