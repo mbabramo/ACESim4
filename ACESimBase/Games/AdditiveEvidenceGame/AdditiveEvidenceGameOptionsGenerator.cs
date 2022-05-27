@@ -20,15 +20,17 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             Biasless_MuchLessInfoShared,
             Biasless_MuchLessInfoShared_WithFeeShift,
             SomeNoiseHalfSharedQuarterPAndD,
-            Temporary
+            Temporary,
+            DMSHighCost
         }
 
         // Note: Go to Launcher to change multiple option sets settings.
 
-        static AdditiveEvidenceOptionSetChoices AdditiveEvidenceChoice => AdditiveEvidenceOptionSetChoices.DMS_WithFeeShifting;
+        static AdditiveEvidenceOptionSetChoices AdditiveEvidenceChoice => AdditiveEvidenceOptionSetChoices.DMSHighCost;
 
         public static AdditiveEvidenceGameOptions GetAdditiveEvidenceGameOptions() => AdditiveEvidenceChoice switch
         {
+            AdditiveEvidenceOptionSetChoices.DMSHighCost => DariMattiacci_Saraceno_Original(0.35, 1.0, false, false, 0.0, false),
             AdditiveEvidenceOptionSetChoices.DMS => DariMattiacci_Saraceno_Original(0.5, 0.1, false, false, 0.5, false),
             AdditiveEvidenceOptionSetChoices.DMS_WithFeeShifting => DariMattiacci_Saraceno_Original(0.40, 0.15, true, false, 0.5, false),
             AdditiveEvidenceOptionSetChoices.DMS_WithOptionNotToPlay => DariMattiacci_Saraceno_Original(0.90, 0.6, true, false, 0.7, true),
@@ -49,7 +51,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             _ => throw new NotImplementedException()
         };
 
-        public static byte NumOffers = 10; // having a good number here allows for more precise strategies // 5/5/3 -> 39 seconds. 6/5/3 -> 2:10, 7/... -> 4:56 8/... -> 4:29 9/... -> 7:53 10/... -> 9:50
+        public static byte NumOffers = 20; // having a good number here allows for more precise strategies // 5/5/3 -> 39 seconds. 6/5/3 -> 2:10, 7/... -> 4:56 8/... -> 4:29 9/... -> 7:53 10/... -> 9:50
         public static byte NumQualityAndBiasLevels_PrivateInfo = 10; // we don't need quite as much here, since it's information that doesn't intersect between players
         public static byte NumQualityAndBiasLevels_NeitherInfo = 1; // still less needed here
 

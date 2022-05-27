@@ -10,7 +10,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
     {
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
-
+        public override string MasterReportNameForDistributedProcessing => "AE001"; // Note: Overridden in subclass.
 
         public override GameDefinition GetGameDefinition() => new AdditiveEvidenceGameDefinition();
 
@@ -31,7 +31,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public override List<GameOptions> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-            OptionSetChoice optionSetChoice = OptionSetChoice.All;
+            OptionSetChoice optionSetChoice = OptionSetChoice.Original;
             bool withOptionNotToPlay = false;
             switch (optionSetChoice)
             {
@@ -114,9 +114,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         private void AddDariMattiacci_Saraceno_Tests(List<(string optionSetName, GameOptions options)> optionSets, DMSVersion version, bool withOptionNotToPlay, bool feeShifting = true)
         {
             // now, liability and damages only
-                foreach (double? feeShiftingThreshold in feeShifting ? new double?[] { 0, 0.50, 1.0 } : new double?[] { 0 })
-                    foreach (double costs in new double[] { 0, 0.125, 0.25, 0.50, 1.0 })
-                    foreach (double qualityKnownToBoth in new double[] { 0.25, 0.50, 0.75 })
+                foreach (double? feeShiftingThreshold in feeShifting ? new double?[] { 0, 0.25, 0.50, 0.75, 1.0 } : new double?[] { 0 })
+                    foreach (double costs in new double[] { 0, 0.0625, 0.125, 0.25, 0.50, 1.0 })
+                    foreach (double qualityKnownToBoth in new double[] { 0.35, 0.50, 0.65 })
                     {
                         string settingsString = $"q{(int) (qualityKnownToBoth*100)}c{(int) (costs*100)}t{(int)(feeShiftingThreshold*100)}";
                         switch (version)

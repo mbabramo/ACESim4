@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.Games.AdditiveEvidenceGame
 {
-    public class DariMattiacciSaracenoCalc
+    public class DMSCalc
     {
         double Q, C, T;
 
-        public DariMattiacciSaracenoCalc(double q, double c, double t)
+        public DMSCalc(double q, double c, double t)
         {
             this.Q = q;
             if (Q < 1.0 / 3.0 || Q > 2.0 / 3.0)
@@ -49,6 +49,14 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             {
                 pBid = Math.Max(pUntruncFunc(zP), dUntruncFunc(0.0));
                 dBid = Math.Min(pUntruncFunc(1.0), dUntruncFunc(zD));
+            }
+            bool truncateAt0And1 = true;
+            if (truncateAt0And1)
+            {
+                pBid = Math.Min(pBid, 1.0);
+                pBid = Math.Max(pBid, 0.0);
+                dBid = Math.Min(dBid, 1.0);
+                dBid = Math.Max(dBid, 0.0);
             }
             return (pBid, dBid);
         }

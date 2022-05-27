@@ -34,7 +34,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             int numOffers = options.NumOffers;
             bool includeEndpointsForOffers = false;
 
-            DariMattiacciSaracenoCalc calc = new DariMattiacciSaracenoCalc(options.Evidence_Both_Quality, options.TrialCost, options.FeeShiftingThreshold);
+            DMSCalc calc = new DMSCalc(options.Evidence_Both_Quality, options.TrialCost, options.FeeShiftingThreshold);
             List<(double p, double d)> dmsBids = Enumerable.Range(0, 99).Select(x => 0.005 + (double)x / 100.0).Select(x => calc.GetBids(x, x)).ToList();
 
             return CompleteReport(reportType, signalOfferReportGameProgresses, null, null, pDamagesSignalFunc, dDamagesSignalFunc, null, null, pDamagesSignals, dDamagesSignals, useLiabilitySignals, numSignals, numOffers, includeEndpointsForOffers, dmsBids);
