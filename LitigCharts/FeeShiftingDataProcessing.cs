@@ -67,6 +67,29 @@ namespace LitigCharts
             BuildReport(rowsToGet, replacementRowNames, columnsToGet, replacementColumnNames, "output");
         }
 
+        internal static void ExecuteLatexProcessesForExisting()
+        {
+            string path = Launcher.ReportFolder();
+            string[] results = Directory.GetFiles(path);
+            foreach (var result in results)
+            {
+                if (result.EndsWith(".tex"))
+                {
+                    ExecuteLatexProcess(path, result);
+                }
+            }
+            WaitForProcessesToFinish();
+            results = Directory.GetFiles(path);
+            string[] toDelete = new string[] { ".aux", ".log", ".synctex.gz", ".tex" };
+            foreach (var result in results)
+            {
+                if (toDelete.Any(d => result.EndsWith(d)))
+                {
+                    File.Delete(result);
+                }
+            }
+        }
+
         internal static void ProduceLatexDiagrams(string fileSuffix)
         {
             var gameDefinition = new LitigGameDefinition();

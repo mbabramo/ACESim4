@@ -54,7 +54,7 @@ namespace ACESimDistributed
                     if (launcher.LaunchSingleOptionsSetOnly)
                         throw new Exception("LaunchSingleOptionsSetOnly should only be used with ACESimConsole.");
 
-                    Console.Beep();
+                    //Console.Beep();
 
                     await launcher.ParticipateInDistributedProcessing(
                         launcher.MasterReportNameForDistributedProcessing,
