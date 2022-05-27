@@ -22,11 +22,11 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         {
             List<(AdditiveEvidenceGameProgress theProgress, double weight)> additiveEvidenceProgresses = gameProgresses.Select(x => ((AdditiveEvidenceGameProgress)x.theProgress, x.weight)).ToList();
             List<(ISignalOfferReportGameProgress theProgress, double weight)> signalOfferReportGameProgresses = gameProgresses.Select(x => ((ISignalOfferReportGameProgress)x.theProgress, x.weight)).ToList();
-            Func<ISignalOfferReportGameProgress, double> pDamagesSignalFunc = x => ((AdditiveEvidenceGameProgress)x).P_LinearBid_InputDouble;
-            Func<ISignalOfferReportGameProgress, double> dDamagesSignalFunc = x => ((AdditiveEvidenceGameProgress)x).D_LinearBid_InputDouble;
+            Func<ISignalOfferReportGameProgress, double> pDamagesSignalFunc = x => ((AdditiveEvidenceGameProgress)x).Chance_Plaintiff_Bias_Continuous;
+            Func<ISignalOfferReportGameProgress, double> dDamagesSignalFunc = x => ((AdditiveEvidenceGameProgress)x).Chance_Defendant_Bias_Continuous;
 
-            List<double> pDamagesSignals = additiveEvidenceProgresses.Select(x => x.theProgress.P_LinearBid_InputDouble).Distinct().OrderByDescending(x => x).ToList();
-            List<double> dDamagesSignals = additiveEvidenceProgresses.Select(x => x.theProgress.D_LinearBid_InputDouble).Distinct().OrderByDescending(x => x).ToList();
+            List<double> pDamagesSignals = additiveEvidenceProgresses.Select(x => x.theProgress.Chance_Plaintiff_Bias_Continuous).Distinct().OrderByDescending(x => x).ToList();
+            List<double> dDamagesSignals = additiveEvidenceProgresses.Select(x => x.theProgress.Chance_Defendant_Bias_Continuous).Distinct().OrderByDescending(x => x).ToList();
 
             AdditiveEvidenceGameOptions options = gameDefinition.Options;
             bool useLiabilitySignals = false;
@@ -34,7 +34,10 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             int numOffers = options.NumOffers;
             bool includeEndpointsForOffers = false;
 
-            return CompleteReport(reportType, signalOfferReportGameProgresses, null, null, pDamagesSignalFunc, dDamagesSignalFunc, null, null, pDamagesSignals, dDamagesSignals, useLiabilitySignals, numSignals, numOffers, includeEndpointsForOffers);
+            DariMattiacciSaracenoCalc calc = new DariMattiacciSaracenoCalc(options.Evidence_Both_Quality, options.TrialCost, options.FeeShiftingThreshold);
+            List<(double p, double d)> dmsBids = Enumerable.Range(0, 99).Select(x => 0.005 + (double)x / 100.0).Select(x => calc.GetBids(x, x)).ToList();
+
+            return CompleteReport(reportType, signalOfferReportGameProgresses, null, null, pDamagesSignalFunc, dDamagesSignalFunc, null, null, pDamagesSignals, dDamagesSignals, useLiabilitySignals, numSignals, numOffers, includeEndpointsForOffers, dmsBids);
         }
 
         public static List<string> GenerateReport(LitigGameDefinition gameDefinition, List<(GameProgress theProgress, double weight)> gameProgresses, TypeOfReport reportType)
@@ -57,10 +60,10 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             int numOffers = options.NumOffers;
             bool includeEndpointsForOffers = options.IncludeEndpointsForOffers;
 
-            return CompleteReport(reportType, signalOfferReportGameProgresses, pLiabilitySignalFunc, dLiabilitySignalFunc, pDamagesSignalFunc, dDamagesSignalFunc, pLiabilitySignals, dLiabilitySignals, pDamagesSignals, dDamagesSignals, useLiabilitySignals, numSignals, numOffers, includeEndpointsForOffers);
+            return CompleteReport(reportType, signalOfferReportGameProgresses, pLiabilitySignalFunc, dLiabilitySignalFunc, pDamagesSignalFunc, dDamagesSignalFunc, pLiabilitySignals, dLiabilitySignals, pDamagesSignals, dDamagesSignals, useLiabilitySignals, numSignals, numOffers, includeEndpointsForOffers, null);
         }
 
-        private static List<string> CompleteReport(TypeOfReport reportType, List<(ISignalOfferReportGameProgress theProgress, double weight)> litigProgresses, Func<ISignalOfferReportGameProgress, double> pLiabilitySignalFunc, Func<ISignalOfferReportGameProgress, double> dLiabilitySignalFunc, Func<ISignalOfferReportGameProgress, double> pDamagesSignalFunc, Func<ISignalOfferReportGameProgress, double> dDamagesSignalFunc, List<double> pLiabilitySignals, List<double> dLiabilitySignals, List<double> pDamagesSignals, List<double> dDamagesSignals, bool useLiabilitySignals, int numSignals, int numOffers, bool includeEndpointsForOffers)
+        private static List<string> CompleteReport(TypeOfReport reportType, List<(ISignalOfferReportGameProgress theProgress, double weight)> litigProgresses, Func<ISignalOfferReportGameProgress, double> pLiabilitySignalFunc, Func<ISignalOfferReportGameProgress, double> dLiabilitySignalFunc, Func<ISignalOfferReportGameProgress, double> pDamagesSignalFunc, Func<ISignalOfferReportGameProgress, double> dDamagesSignalFunc, List<double> pLiabilitySignals, List<double> dLiabilitySignals, List<double> pDamagesSignals, List<double> dDamagesSignals, bool useLiabilitySignals, int numSignals, int numOffers, bool includeEndpointsForOffers, List<(double p, double d)> superimposedLines)
         {
             double[] offers = EquallySpaced.GetEquallySpacedPoints(numOffers, includeEndpointsForOffers);
             string[] fileActionStrings = new string[] { "No Suit", "File" };
@@ -203,6 +206,19 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             StringBuilder b = new StringBuilder();
             b.AppendLine(pHeatMap.DrawCommands());
             b.AppendLine(dHeatMap.DrawCommands());
+
+            if (superimposedLines != null)
+            {
+                TikzLineGraphData pLineGraphData = new TikzLineGraphData(new List<List<double?>> { superimposedLines.Select(x => (double?)x.p).ToList() }, new List<string>() { "red, opacity=0.70, line width=1mm, dashed" }, new List<string>() { "DMS" });
+                TikzLineGraphData dLineGraphData = new TikzLineGraphData(new List<List<double?>> { superimposedLines.Select(x => (double?)x.d).ToList() }, new List<string>() { "red, opacity=0.70, line width=1mm, dashed" }, new List<string>() { "DMS" });
+                var xValNames = Enumerable.Range(0, superimposedLines.Count()).Select(x => (x + 1.0) / (superimposedLines.Count() + 1)).Select(x => x.ToString()).ToList();
+                TikzAxisSet pAxisSet = new TikzAxisSet(xValNames, null, null, null, pHeatMap.MainRectangleWithoutAxes, yAxisSpace: 0, xAxisSpace: 0, lineGraphData: pLineGraphData);
+                TikzAxisSet dAxisSet = new TikzAxisSet(xValNames, null, null, null, dHeatMap.MainRectangleWithoutAxes, yAxisSpace: 0, xAxisSpace: 0, lineGraphData: dLineGraphData);
+                b.AppendLine(pAxisSet.GetDrawLineGraphCommands());
+                b.AppendLine(dAxisSet.GetDrawLineGraphCommands());
+
+
+            }
 
             string doc = TikzHelper.GetStandaloneDocument(b.ToString(), new List<string>() { "xcolor" });
             return new List<string>() { doc };

@@ -8,6 +8,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Text;
 using ACESim;
+using System.Runtime.Versioning;
 
 namespace ACESimBase.Util
 {
@@ -18,6 +19,7 @@ namespace ACESimBase.Util
 
         #region Drawings
 
+        [SupportedOSPlatform("windows")]
         public static void CreateBlankDrawing(int width, int height, out Bitmap bmpOut, out Graphics g, out Rectangle overall)
         {
             int newWidth = width;
@@ -90,6 +92,7 @@ namespace ACESimBase.Util
             return proportions;
         }
 
+        [SupportedOSPlatform("windows")]
         public static void GetDataFromCSVAndPlotAcross(string path, Graphics g, Rectangle r, string filename, (int firstRow, int firstColumn)[] setLocations, int numRowsPerSet, int numColumnsPerSet, int marginBetweenSets, Color color, bool includeTextWherePossible)
         {
             int numSets = setLocations.Length;
@@ -101,6 +104,7 @@ namespace ACESimBase.Util
             }
         }
 
+        [SupportedOSPlatform("windows")]
         public static void GetDataFromCSVAndPlot(string path, Graphics g, Rectangle r, string filename, int firstRow, int firstColumn, int numRows, int numColumns, Color color, bool includeTextWherePossible)
         {
             double[][] data = GetValuesFromCSV(path + @"\" + filename + ".csv", firstRow, firstColumn, numRows, numColumns);
@@ -111,6 +115,7 @@ namespace ACESimBase.Util
 
         #region Bars
 
+        [SupportedOSPlatform("windows")]
         public static void BarFillMultiple(Graphics g, Rectangle r, bool individualSetHorizontally, double[][] proportions, Color color, bool includeTextWherePossible)
         {
             Rectangle[] rectangles = DivideRectangle(r, !individualSetHorizontally, proportions.Length, 2 * BitmapMultiplier);
@@ -118,6 +123,7 @@ namespace ACESimBase.Util
                 BarFillSingle(g, rectangles[i], individualSetHorizontally, proportions[i], color, includeTextWherePossible);
         }
 
+        [SupportedOSPlatform("windows")]
         public static void BarFillSingle(Graphics g, Rectangle r, bool horizontally, double[] proportions, Color color, bool includeTextWherePossible)
         {
             if (proportions == null)
@@ -141,6 +147,7 @@ namespace ACESimBase.Util
 
         #region Rectangles
 
+        [SupportedOSPlatform("windows")]
         public static void DrawAndFillRectangle(Graphics g, Rectangle r, int intensity, int maxIntensity, Color color)
         {
             if (r.Width == 0)
@@ -210,12 +217,14 @@ namespace ACESimBase.Util
             return result;
         }
 
+        [SupportedOSPlatform("windows")]
         public static Rectangle AddRoundHeaders(Graphics g, Rectangle r, int numRounds, int fontSize)
         {
             r = AddTopHeaders(g, r, fontSize + 3 * BitmapMultiplier, 3 * (fontSize + 3 * BitmapMultiplier), Enumerable.Range(1, numRounds).Select(x => $"Round {x}").ToArray());
             return r;
         }
 
+        [SupportedOSPlatform("windows")]
         public static Rectangle AddLeftHeaders(Graphics g, Rectangle overallRectangle, int marginBetweenSetsVertically, params string[] text)
         {
             GetMainFont(out int fontSize, out Font f);
@@ -228,6 +237,7 @@ namespace ACESimBase.Util
             return everythingRemaining;
         }
 
+        [SupportedOSPlatform("windows")]
         public static Rectangle AddTopHeaders(Graphics g, Rectangle overallRectangle, int marginBetweenSetsHorizontally, int spaceLeftForLeftHeaders, params string[] text)
         {
             GetMainFont(out int fontSize, out Font f);
@@ -246,17 +256,20 @@ namespace ACESimBase.Util
 
         #region Text
 
+        [SupportedOSPlatform("windows")]
         public static void GetMainFont(out int fontSize, out Font f)
         {
             fontSize = 12 * BitmapMultiplier;
             f = new Font(FontFamily.Families.First(x => x.Name == "Calibri Light"), fontSize, GraphicsUnit.World);
         }
 
+        [SupportedOSPlatform("windows")]
         public static void DrawText270(Graphics g, Rectangle r, string text, Font font, Brush brush)
         {
             DrawRotatedText(g, r.X + r.Width / 2, r.Y + r.Height / 2, 270, text, font, brush);
         }
 
+        [SupportedOSPlatform("windows")]
         public static void DrawRotatedText(Graphics g, int x, int y, float angle, string text, Font font, Brush brush)
         {
             g.TranslateTransform(x, y); // Set rotation point
@@ -267,6 +280,7 @@ namespace ACESimBase.Util
             g.ResetTransform(); // Only needed if you reuse the Graphics object for multiple calls to DrawString
         }
 
+        [SupportedOSPlatform("windows")]
         public static void DrawTextCenteredHorizontally_Shadowed(Graphics g, Rectangle r, string text, Font font)
         {
             r.Offset(2, 2);
@@ -275,6 +289,7 @@ namespace ACESimBase.Util
             DrawTextCenteredHorizontally(g, r, text, font, Brushes.Black);
         }
 
+        [SupportedOSPlatform("windows")]
         public static void DrawTextCenteredHorizontally(Graphics g, Rectangle r, string text, Font font, Brush brush)
         {
             StringFormat stringFormatHorizontally = new StringFormat();
@@ -287,6 +302,7 @@ namespace ACESimBase.Util
 
         #region Information set charts
 
+        [SupportedOSPlatform("windows")]
         public static void CreateInformationSetChart(List<InformationSetNode> informationSets, string fullPath)
         {
             var startNodes = informationSets.Where(x => x.ParentInformationSet == null).OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetContentsSinceParentString).ToList();
@@ -301,6 +317,7 @@ namespace ACESimBase.Util
             bmpOut.Save(fullPath);
         }
 
+        [SupportedOSPlatform("windows")]
         public static void PlotInformationSetStrategy(Graphics g, Rectangle r, InformationSetNode informationSet)
         {
             GetMainFont(out int fontSize, out Font f);
@@ -345,6 +362,7 @@ namespace ACESimBase.Util
 
         #region Plaintiff-Defendant plots
 
+        [SupportedOSPlatform("windows")]
         public static void PlotPAndD(string path, string filename, Graphics g, Rectangle r, int numRounds, int numSignals, int numOffers, bool addRoundHeaders = true)
         {
             int marginBetweenSetsAcross = 10 * BitmapMultiplier;
@@ -390,6 +408,7 @@ namespace ACESimBase.Util
             GetDataFromCSVAndPlotAcross(path, g, verticallyDivided[1], filename, defendantRoundLocations, numSignals, numOffers, marginBetweenSetsAcross, Color.Orange, includeTextWherePossible);
         }
 
+        [SupportedOSPlatform("windows")]
         public static void PlotPAndD_WithHidden(string path, string filename, int numRounds, int numSignals, int numOffers)
         {
             GetMainFont(out int fontSize, out Font f);
@@ -403,6 +422,7 @@ namespace ACESimBase.Util
             bmpOut.Save(path + @"\plot-" + filename + ".png");
         }
 
+        [SupportedOSPlatform("windows")]
         public static void PlotPAndD(string path, string filename, int numRounds, int numSignals, int numOffers)
         {
             Bitmap bmpOut;
@@ -413,6 +433,7 @@ namespace ACESimBase.Util
             bmpOut.Save(path + @"\plot-" + filename + ".png");
         }
 
+        [SupportedOSPlatform("windows")]
         public static Rectangle AddLeftHeaders_WithFurtherSubdivision(Graphics g, Rectangle overallRectangle, int outerMarginBetweenSetsVertically, int innerMarginBetweenSetsVertically, string[] textOuter, string[] textInner)
         {
             overallRectangle = AddLeftHeaders(g, overallRectangle, outerMarginBetweenSetsVertically, textOuter);

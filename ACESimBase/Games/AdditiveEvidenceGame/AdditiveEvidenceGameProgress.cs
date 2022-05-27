@@ -31,19 +31,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         private double LinearBidProportion(byte action) => EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, AdditiveEvidenceGameOptions.NumOffers, false);
 
-        public double P_LinearBid_InputDouble => LinearSignalProportion(P_LinearBid_Input);
-        public double D_LinearBid_InputDouble => LinearSignalProportion(D_LinearBid_Input);
 
         public byte P_LinearBid_Input => AdditiveEvidenceGameOptions.Alpha_Bias > 0 && AdditiveEvidenceGameOptions.Alpha_Plaintiff_Bias > 0 ? Chance_Plaintiff_Bias : Chance_Plaintiff_Quality;
         public byte D_LinearBid_Input => AdditiveEvidenceGameOptions.Alpha_Bias > 0 && AdditiveEvidenceGameOptions.Alpha_Plaintiff_Bias > 0 ? Chance_Defendant_Bias : Chance_Defendant_Quality;
         public double P_LinearBid_ContinuousOffer => (1.0 - LinearBidProportion(P_LinearBid_Input)) * ContinuousOffer(P_LinearBid_Min) + LinearBidProportion(P_LinearBid_Input) * ContinuousOffer(P_LinearBid_Max);
         public double D_LinearBid_ContinuousOffer => (1.0 - LinearBidProportion(D_LinearBid_Input)) * ContinuousOffer(D_LinearBid_Min) + LinearBidProportion(D_LinearBid_Input) * ContinuousOffer(D_LinearBid_Max);
 
-        public double PFirstOffer => P_LinearBid_ContinuousOffer;
-        public double DFirstOffer => D_LinearBid_ContinuousOffer;
-        public List<double> POffers => new List<double>() { POffer };
-
-        public List<double> DOffers => new List<double>() { POffer };
         public bool PFiles => true;
         public bool DAnswers => true;
 
@@ -66,6 +59,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public bool PQuits;
         public bool DQuits;
+
+        public double PFirstOffer => ContinuousOffer(GetDiscreteOffer(true));
+        public double DFirstOffer => ContinuousOffer(GetDiscreteOffer(false));
+        public List<double> POffers => new List<double>() { POffer };
+
+        public List<double> DOffers => new List<double>() { POffer };
 
         public byte GetDiscreteOffer(bool plaintiff)
         {

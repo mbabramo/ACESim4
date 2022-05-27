@@ -13,7 +13,22 @@ namespace ACESimBase.Util.Tikz
         double axisSpace = columnAxisIsOnTop ? 0.25 : 0.40;
         TikzRectangle LeftAxisRectangle => sourceRectangle.LeftPortion(axisSpace).DivideBottomToTop(new double[] { (columnAxisIsOnTop ? NumRows - 1.0 : 1.0) / (double)NumRows, (columnAxisIsOnTop ? 1.0 : NumRows - 1.0) / (double)NumRows }).Skip(columnAxisIsOnTop ? 0 : 1).First();
         TikzRectangle HorizontalAxisRectangle => sourceRectangle.TopOrBottomPortion(axisSpace, columnAxisIsOnTop).DivideLeftToRight(new double[] { 1.0 / (double) NumColumns,  (NumColumns - 1.0) / (double)NumColumns }).Skip(1).First();
-        TikzRectangle MainRectangle => sourceRectangle.RightPortion(sourceRectangle.width - axisSpace).TopOrBottomPortion(sourceRectangle.height - axisSpace, !columnAxisIsOnTop);
+        public TikzRectangle MainRectangle => sourceRectangle.RightPortion(sourceRectangle.width - axisSpace).TopOrBottomPortion(sourceRectangle.height - axisSpace, !columnAxisIsOnTop);
+
+        public TikzRectangle MainRectangleWithoutAxes
+        {
+            get
+            { // very inefficient
+                var individualCells = IndividualCells.SelectMany(x => x).ToList();
+                var bottoms = individualCells.Select(x => x.bottom).OrderBy(x => x).Distinct().ToList();
+                var lefts = individualCells.Select(x => x.left).OrderBy(x => x).Distinct().ToList();
+                var bottom = bottoms.Skip(1).First();
+                var top = individualCells.Max(x => x.top);
+                var left = lefts.Skip(1).First();
+                var right = individualCells.Max(x => x.right);
+                return new TikzRectangle(left, bottom, right, top);
+            }
+        }
 
         List<TikzRectangle> Rows => Enumerable.Reverse(MainRectangle.DivideBottomToTop(NumRows)).ToList();
         List<List<TikzRectangle>> IndividualCells => Rows.Select(x => x.DivideLeftToRight(relativeWidths.ToArray())).ToList();

@@ -11,7 +11,6 @@ namespace ACESimBase.Util.Tikz
     public record TikzAxisSet(List<string> xValueNames, List<string> yValueNames, string xAxisLabel, string yAxisLabel, TikzRectangle sourceRectangle, string boxBordersAttributes="draw=none", string horizontalLinesAttribute="draw=none", string verticalLinesAttribute="draw=none", double fontScale=1, double xAxisSpace = 2.2, double xAxisLabelOffsetDown=1.2, double xAxisLabelOffsetRight=0, double xAxisMarkOffset=0, double yAxisSpace=2.0, double yAxisLabelOffsetLeft=1, double yAxisLabelOffsetUp=0, double yAxisMarkOffset=0, bool xAxisUseEndpoints=false, bool yAxisUseEndpoints=false, bool isStacked=false, TikzLineGraphData lineGraphData=null)
     {
         const double betweenMiniGraphs = 0.05;
-        const double spaceForAxesUnscaled = 0.5;
         int NumColumns => xValueNames.Count();
         int NumRows => yValueNames.Count();
         List<(double proportion, string value)> xMarks => xValueNames.Select((x, index) => xAxisUseEndpoints ? ((index) / (double)(NumColumns - 1.0), x) : ((0.5 + index) / (double) NumColumns, x)).ToList();

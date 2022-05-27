@@ -19,6 +19,7 @@ using System.Net.Http.Headers;
 using Microsoft.Extensions.Options;
 using NeuralNetworkNET.APIs.Datasets;
 using Rationals;
+using System.Runtime.Versioning;
 
 namespace ACESim
 {
@@ -1938,6 +1939,7 @@ namespace ACESim
 
         #region Game play and reporting
 
+        [SupportedOSPlatform("windows")]
         public virtual async Task<ReportCollection> GenerateReports(int iteration, Func<string> prefaceFn, bool suppressPrintTree = false)
         {
             ReportCollection reportCollection = new ReportCollection();

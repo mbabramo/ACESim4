@@ -17,6 +17,7 @@ using NumSharp.Utilities;
 using ACESimBase.Games.EFGFileGame;
 using Microsoft.Azure.Storage;
 using System.Runtime.CompilerServices;
+using System.Runtime.Versioning;
 
 namespace ACESimBase.GameSolvingAlgorithms
 {
@@ -61,6 +62,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 InformationSetNode.IdentifyNodeRelationships(InformationSets);
         }
 
+        [SupportedOSPlatform("windows")]
         public override async Task<ReportCollection> RunAlgorithm(string optionSetName)
         {
 
@@ -241,6 +243,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 equilibriaList.Add(equilibrium);
         }
 
+        [SupportedOSPlatform("windows")]
         private async Task ProcessIdentifiedEquilibria(ReportCollection reportCollection, List<double[]> equilibria)
         {
             if (EvolutionSettings.CreateEquilibriaFileForSequenceForm)
@@ -868,6 +871,7 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         #region Gambit
 
+        [SupportedOSPlatform("windows")]
         private async Task UseGambitToCalculateEquilibria(ReportCollection reportCollection, string filename)
         {
             string output = await RunGambit(filename);
@@ -1039,6 +1043,7 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         #region Equilibria and reporting
 
+        [SupportedOSPlatform("windows")]
         private async Task GenerateReportsFromEquilibria(List<double[]> equilibria, ReportCollection reportCollection)
         {
             bool includeAverageEquilibriumReport = true;
@@ -1059,7 +1064,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             }
         }
 
-
+        [SupportedOSPlatform("windows")]
         private async Task ProcessEquilibrium(ReportCollection reportCollection, bool includeAverageEquilibriumReport, bool includeCorrelatedEquilibriumReport, bool includeReportForFirstEquilibrium, bool includeReportForEachEquilibrium, int numEquilibria, List<InformationSetNode> infoSets, int eqNum, bool isFirst, bool isLast, double[] actionProbabilities)
         {
             SetToEquilibriumConstructingAverage(infoSets, actionProbabilities, eqNum, includeCorrelatedEquilibriumReport);
@@ -1173,6 +1178,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             }
         }
 
+        [SupportedOSPlatform("windows")]
         private async Task AddReportForEquilibrium(ReportCollection reportCollection, int numEquilibria, int eqNum)
         {
             Stopwatch s = new Stopwatch();
@@ -1199,6 +1205,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             TabbedText.WriteLine($"Elapsed milliseconds generating correlated equilibrium report: {s.ElapsedMilliseconds}");
         }
 
+        [SupportedOSPlatform("windows")]
         private async Task AddAverageEquilibriumReport(ReportCollection reportCollection)
         {
             Stopwatch s = new Stopwatch();

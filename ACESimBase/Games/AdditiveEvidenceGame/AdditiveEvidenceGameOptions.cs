@@ -38,7 +38,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         /// <summary>
         /// The portion of the judgment that is attributable to evidence on actual quality (whether that evidence is held by one party, both or neither). 
-        /// In the Dari-Mattiacci/Saraceno paper, Alpha_Quality should be 0, because there is no individual information on quality. 
+        /// In the Dari-Mattiacci/Saraceno paper, Alpha_Quality should be 0.5, because the end result is effectively determined half by quality (known by both parties) and half by bias. 
         /// Evidence that is not related to quality is considered to be bias.
         /// </summary>
         public double Alpha_Quality;
