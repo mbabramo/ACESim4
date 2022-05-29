@@ -17,16 +17,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public AdditiveEvidenceGameDefinition AdditiveEvidenceGameDefinition => (AdditiveEvidenceGameDefinition)GameDefinition;
         public AdditiveEvidenceGameOptions AdditiveEvidenceGameOptions => AdditiveEvidenceGameDefinition.Options;
 
-        // Linear bids (if enabled)
-        // Each player announces a minimum and a max, and we can then figure out the actual offer based on the party's information.
-        // That is, the player's offer equals the minimum + (Max - min) * (party's information - 1).
-        // Note that we're assuming here that the party has only one type of information -- either bias or quality information, not both.
-        // That is not necessarily a limitation without linear bids (though the game can be restricted to just one kind of information).
-
-        public byte P_LinearBid_Min;
-        public byte P_LinearBid_Max;
-        public byte D_LinearBid_Min;
-        public byte D_LinearBid_Max;
         private double LinearSignalProportion(byte action) => EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, AdditiveEvidenceGameOptions.NumQualityAndBiasLevels_PrivateInfo, false);
 
         private double LinearBidProportion(byte action) => EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, AdditiveEvidenceGameOptions.NumOffers, false);
@@ -34,9 +24,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public byte P_LinearBid_Input => AdditiveEvidenceGameOptions.Alpha_Bias > 0 && AdditiveEvidenceGameOptions.Alpha_Plaintiff_Bias > 0 ? Chance_Plaintiff_Bias : Chance_Plaintiff_Quality;
         public byte D_LinearBid_Input => AdditiveEvidenceGameOptions.Alpha_Bias > 0 && AdditiveEvidenceGameOptions.Alpha_Plaintiff_Bias > 0 ? Chance_Defendant_Bias : Chance_Defendant_Quality;
-        public double P_LinearBid_ContinuousOffer => (1.0 - LinearBidProportion(P_LinearBid_Input)) * ContinuousOffer(P_LinearBid_Min) + LinearBidProportion(P_LinearBid_Input) * ContinuousOffer(P_LinearBid_Max);
-        public double D_LinearBid_ContinuousOffer => (1.0 - LinearBidProportion(D_LinearBid_Input)) * ContinuousOffer(D_LinearBid_Min) + LinearBidProportion(D_LinearBid_Input) * ContinuousOffer(D_LinearBid_Max);
-
+        
         public bool PFiles => true;
         public bool DAnswers => true;
 
@@ -68,22 +56,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public byte GetDiscreteOffer(bool plaintiff)
         {
-            if (!AdditiveEvidenceGameOptions.LinearBids)
-                return plaintiff ? POffer : DOffer;
-            // When using linear bids, we want to find the discrete offer value nearest the continuous value -- this will allow for comparability between our linear bids and discrete models
-            double actualOffer = plaintiff ? P_LinearBid_ContinuousOffer : D_LinearBid_ContinuousOffer;
-            byte closest = Enumerable.Range(1, AdditiveEvidenceGameOptions.NumOffers)
-                .Select(a => (byte)a)
-                .Select(a => (a, Math.Abs(actualOffer - ContinuousOffer(a)))) // how far is the actual offer from a continuous offer at this level
-                .OrderBy(x => x.Item2)
-                .First()
-                .Item1;
-            return closest;
+            return plaintiff ? POffer : DOffer;
         }
 
         private double ContinuousOffer(byte offerAction) => AdditiveEvidenceGameOptions.MinOffer + AdditiveEvidenceGameOptions.OfferRange * EquallySpaced.GetLocationOfEquallySpacedPoint(offerAction - 1 /* make it zero-based */, AdditiveEvidenceGameOptions.NumOffers, false);
-        public double POfferContinuousIfMade => AdditiveEvidenceGameOptions.LinearBids ? P_LinearBid_ContinuousOffer : ContinuousOffer(POffer);
-        public double DOfferContinuousIfMade => AdditiveEvidenceGameOptions.LinearBids ? D_LinearBid_ContinuousOffer : ContinuousOffer(DOffer);
+        public double POfferContinuousIfMade => ContinuousOffer(POffer);
+        public double DOfferContinuousIfMade => ContinuousOffer(DOffer);
 
         public double? POfferContinuousOrNull => SomeoneQuits ? (double?)null : POfferContinuousIfMade;
         public double? DOfferContinuousOrNull => SomeoneQuits ? (double?)null : DOfferContinuousIfMade;
@@ -204,10 +182,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public override string ToString()
         {
             string offers;
-            if (AdditiveEvidenceGameOptions.LinearBids)
-                offers = $"P_LinearBid_Min {P_LinearBid_Min} P_LinearBid_Max {P_LinearBid_Max} => {P_LinearBid_ContinuousOffer}; D_LinearBid_Min {D_LinearBid_Min} D_LinearBid_Max {D_LinearBid_Max} => {D_LinearBid_ContinuousOffer}";
-            else
-                offers = $"POffer {POffer} DOffer {DOffer}";
+            offers = $"POffer {POffer} DOffer {DOffer}";
             return
                 $@"Chance_Plaintiff_Quality {Chance_Plaintiff_Quality} Chance_Defendant_Quality {Chance_Defendant_Quality} Chance_Plaintiff_Bias {Chance_Plaintiff_Bias} Chance_Defendant_Bias {Chance_Defendant_Bias}  Chance_Neither_Quality {Chance_Neither_Quality} Chance_Neither_Bias {Chance_Neither_Bias}
 {offers}
@@ -224,10 +199,6 @@ AccuracyIgnoringCosts {Accuracy} Accuracy_ForPlaintiff {Accuracy_ForPlaintiff} A
 
             // copy.GameComplete = this.GameComplete;
             base.CopyFieldInfo(copy);
-            copy.P_LinearBid_Min = P_LinearBid_Min;
-            copy.P_LinearBid_Max = P_LinearBid_Max;
-            copy.D_LinearBid_Min = D_LinearBid_Min;
-            copy.D_LinearBid_Max = D_LinearBid_Max;
             copy.Chance_Plaintiff_Quality = Chance_Plaintiff_Quality;
             copy.Chance_Defendant_Quality = Chance_Defendant_Quality;
             copy.Chance_Plaintiff_Bias = Chance_Plaintiff_Bias;

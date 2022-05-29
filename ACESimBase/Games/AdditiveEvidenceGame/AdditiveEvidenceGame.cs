@@ -35,18 +35,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             switch (currentDecisionByteCode)
             {
                 // Note: THe linear bids decisions will be executed if and only if the POffer and DOffer decisions are not
-                case (byte)AdditiveEvidenceGameDecisions.P_LinearBid_Min:
-                    AdditiveEvidenceProgress.P_LinearBid_Min = action;
-                    break;
-                case (byte)AdditiveEvidenceGameDecisions.P_LinearBid_Max:
-                    AdditiveEvidenceProgress.P_LinearBid_Max = action;
-                    break;
-                case (byte)AdditiveEvidenceGameDecisions.D_LinearBid_Min:
-                    AdditiveEvidenceProgress.D_LinearBid_Min = action;
-                    break;
-                case (byte)AdditiveEvidenceGameDecisions.D_LinearBid_Max:
-                    AdditiveEvidenceProgress.D_LinearBid_Max = action;
-                    break;
+                
 
                 case (byte)AdditiveEvidenceGameDecisions.PQuit:
                     AdditiveEvidenceProgress.PQuits = action == 1;
@@ -63,26 +52,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Quality:
                     AdditiveEvidenceProgress.Chance_Defendant_Quality = action;
-                    if (AdditiveEvidenceDefinition.Options.LinearBids)
-                    {
-                        if (!(AdditiveEvidenceDefinition.Options.Alpha_Bias > 0))
-                            AdditiveEvidenceProgress.GameComplete = true; // b/c using linear bids, there are no more offers, and there are also no more chance decisions
-                        if (AdditiveEvidenceProgress.D_LinearBid_ContinuousOffer >= AdditiveEvidenceProgress.P_LinearBid_ContinuousOffer)
-                            AdditiveEvidenceProgress.GameComplete = true;
-                    }
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias:
                     AdditiveEvidenceProgress.Chance_Plaintiff_Bias = action;
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias:
                     AdditiveEvidenceProgress.Chance_Defendant_Bias = action;
-                    if (AdditiveEvidenceDefinition.Options.LinearBids)
-                    {
-                        if (!(AdditiveEvidenceDefinition.Options.Alpha_Bias > 0 && AdditiveEvidenceDefinition.Options.Alpha_Neither_Bias > 0))
-                            AdditiveEvidenceProgress.GameComplete = true; // b/c using linear bids, there are no more offers, and there are also no more chance decisions
-                        if (AdditiveEvidenceProgress.D_LinearBid_ContinuousOffer >= AdditiveEvidenceProgress.P_LinearBid_ContinuousOffer)
-                            AdditiveEvidenceProgress.GameComplete = true;
-                    }
                     break;
 
 

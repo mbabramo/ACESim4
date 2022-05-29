@@ -12,7 +12,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         // Parameters regarding game structure
 
-        // Whether we are constraining the players to minimum bids, in which case they announce a minimum and maximum (based on no parameters), instead of a bid value (based on a particular parameters).
+        // Whether we are constraining the players to linear bids, in which case they must select a slope and then points in various regions.
         public bool LinearBids;
 
         public bool TrialGuaranteed;

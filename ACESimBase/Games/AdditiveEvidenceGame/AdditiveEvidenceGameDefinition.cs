@@ -88,48 +88,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         }
 
 
+        bool useAbbreviationsForSimplifiedGame = true;
+
         void AddLinearBidDecisions(List<Decision> decisions)
         {
-            var pMin =
-                    new Decision("PMin", "PM", false, (byte)AdditiveEvidenceGamePlayers.Plaintiff, new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution },
-                        Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.P_LinearBid_Min)
-                    {
-                        IsReversible = true,
-                        IsContinuousAction = true,
-                        StoreActionInGameCacheItem = GameHistoryCacheIndex_PMin,
-                    };
-            decisions.Add(pMin);
-            var pMax =
-                    new Decision("PMax", "PS", false, (byte)AdditiveEvidenceGamePlayers.Plaintiff, new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution },
-                        Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.P_LinearBid_Max)
-                    {
-                        IsReversible = true,
-                        IsContinuousAction = true,
-                        StoreActionInGameCacheItem = GameHistoryCacheIndex_PMax,
-                    };
-            decisions.Add(pMax);
 
-            var dMin =
-                    new Decision("DMin", "DM", false, (byte)AdditiveEvidenceGamePlayers.Defendant, new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution },
-                        Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.D_LinearBid_Min)
-                    {
-                        IsReversible = true,
-                        IsContinuousAction = true,
-                        StoreActionInGameCacheItem = GameHistoryCacheIndex_DMin,
-                    };
-            decisions.Add(dMin);
-            var dMax =
-                    new Decision("DMax", "DS", false, (byte)AdditiveEvidenceGamePlayers.Defendant, new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution },
-                        Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.D_LinearBid_Max)
-                    {
-                        IsReversible = true,
-                        IsContinuousAction = true,
-                        StoreActionInGameCacheItem = GameHistoryCacheIndex_DMax,
-                    };
-            decisions.Add(dMax);
         }
-
-        bool useAbbreviationsForSimplifiedGame = true;
 
         void AddInitialChanceDecisions(List<Decision> decisions)
         {
