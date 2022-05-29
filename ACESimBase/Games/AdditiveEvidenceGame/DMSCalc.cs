@@ -25,15 +25,50 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             return Truncated(zP, zD, fs.pUntruncFunc, fs.dUntruncFunc);
         }
 
+        public string ProduceTableOfCases()
+        {
+            StringBuilder b = new StringBuilder();
+            for (double tvar = 0.0; tvar <= 1.01; tvar += 0.05)
+            {
+                for (double qvar = 0.35; qvar <= 0.65; qvar += 0.05)
+                {
+                    int caseNum = GetCaseNum(tvar, qvar);
+                    b.Append(caseNum.ToString());
+                    if (qvar != 0.65)
+                        b.Append(",");
+                }
+                b.AppendLine("");
+            }
+            return b.ToString();
+        }
+
+        private static int GetCaseNum(double tvar, double qVar)
+        {
+            if (tvar <= qVar && qVar <= 1.0 - tvar)
+                return 1;
+            if (qVar < tvar && tvar < 1.0 - qVar)
+                return 2;
+            if (1.0 - qVar < tvar && tvar < qVar)
+                return 3;
+            return 4;
+        }
+
         private (Func<double, double> pUntruncFunc, Func<double, double> dUntruncFunc) GetUntruncFuncs()
         {
-            if (T <= Q && Q <= 1.0 - T)
-                return (Case1UntruncatedP, Case1UntruncatedD);
-            if (Q < T && T < 1.0 - Q)
-                return (Case2UntruncatedP, Case2UntruncatedD);
-            if (1.0 - Q < T && T < Q)
-                return (Case3UntruncatedP, Case3UntruncatedD);
-            return (Case4UntruncatedP, Case4UntruncatedD);
+            int caseNum = GetCaseNum(T, Q);
+            switch (caseNum)
+            {
+                case 1:
+                    return (Case1UntruncatedP, Case1UntruncatedD);
+                case 2:
+                    return (Case2UntruncatedP, Case2UntruncatedD);
+                case 3:
+                    return (Case3UntruncatedP, Case3UntruncatedD);
+                case 4:
+                    return (Case4UntruncatedP, Case4UntruncatedD);
+                default:
+                    throw new NotImplementedException();
+            }
         }
 
         private (double pBid, double dBid) Truncated(double zP, double zD, Func<double, double> pUntruncFunc, Func<double, double> dUntruncFunc)
