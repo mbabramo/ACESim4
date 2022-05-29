@@ -28,8 +28,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public DMSCalc PiecewiseLinearCalcs => AdditiveEvidenceGameDefinition.DMSCalculations;
         public bool PiecewiseLinearActive => PiecewiseLinearCalcs != null;
-        public List<double> PPiecewiseLinearMins, DPiecewiseLinearMins;
-        public double PSlope, DSlope;
+        public byte PPiecewiseLinearRangeIndex, DPiecewiseLinearRangeIndex;
+        public double PSlope, DSlope, PMinValueForRange, DMinValueForRange;
+
+        public double PiecewiseLinearPOffer => PiecewiseLinearCalcs.GetPiecewiseLinearBid(Chance_Plaintiff_Bias_Continuous, true, PMinValueForRange, PSlope);
+        public double PiecewiseLinearDOffer => PiecewiseLinearCalcs.GetPiecewiseLinearBid(Chance_Defendant_Bias_Continuous, true, DMinValueForRange, DSlope);
 
         // Chance information (where each party has individual information, as joint information is set as a game parameter)
 
@@ -52,8 +55,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public bool PQuits;
         public bool DQuits;
 
-        public double PFirstOffer => ContinuousOffer(GetDiscreteOffer(true));
-        public double DFirstOffer => ContinuousOffer(GetDiscreteOffer(false));
+        public double PFirstOffer => PiecewiseLinearActive ? PiecewiseLinearPOffer : ContinuousOffer(GetDiscreteOffer(true));
+        public double DFirstOffer => PiecewiseLinearActive ? PiecewiseLinearDOffer : ContinuousOffer(GetDiscreteOffer(false));
         public List<double> POffers => new List<double>() { POffer };
 
         public List<double> DOffers => new List<double>() { POffer };
@@ -70,7 +73,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             {
                 if (!PiecewiseLinearActive)
                     return ContinuousOffer(POffer);
-                return PiecewiseLinearCalcs.GetPiecewiseLinearBid(Chance_Plaintiff_Quality_Continuous, true, PSlope, PPiecewiseLinearMins);
+                return PiecewiseLinearPOffer;
             }
         }
         public double DOfferContinuousIfMade
@@ -79,7 +82,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             {
                 if (!PiecewiseLinearActive)
                     return ContinuousOffer(DOffer);
-                return PiecewiseLinearCalcs.GetPiecewiseLinearBid(Chance_Defendant_Quality_Continuous, true, DSlope, DPiecewiseLinearMins);
+                return PiecewiseLinearDOffer;
             }
         }
 
@@ -229,10 +232,12 @@ AccuracyIgnoringCosts {Accuracy} Accuracy_ForPlaintiff {Accuracy_ForPlaintiff} A
             copy.DOffer = DOffer;
             copy.Chance_Neither_Quality = Chance_Neither_Quality;
             copy.Chance_Neither_Bias = Chance_Neither_Bias;
+            copy.PPiecewiseLinearRangeIndex = PPiecewiseLinearRangeIndex;
+            copy.DPiecewiseLinearRangeIndex = DPiecewiseLinearRangeIndex;
             copy.PSlope = PSlope;
             copy.DSlope = DSlope;
-            copy.PPiecewiseLinearMins = PPiecewiseLinearMins?.ToList();
-            copy.DPiecewiseLinearMins = DPiecewiseLinearMins?.ToList();
+            copy.PMinValueForRange = PMinValueForRange;
+            copy.DMinValueForRange = DMinValueForRange;
 
             return copy;
         }

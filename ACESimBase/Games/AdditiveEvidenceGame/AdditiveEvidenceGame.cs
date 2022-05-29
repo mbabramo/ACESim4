@@ -39,30 +39,20 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
                 case (byte)AdditiveEvidenceGameDecisions.P_Slope:
                     AdditiveEvidenceProgress.PSlope = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, AdditiveEvidenceDefinition.Options.PiecewiseLinearBidsSlopeOptions.Length, false);
-                    AdditiveEvidenceProgress.PPiecewiseLinearMins = new List<double>();
                     break;
-                case (byte)AdditiveEvidenceGameDecisions.P_PiecewiseLinear_1:
-                case (byte)AdditiveEvidenceGameDecisions.P_PiecewiseLinear_2:
-                case (byte)AdditiveEvidenceGameDecisions.P_PiecewiseLinear_3:
+                case (byte)AdditiveEvidenceGameDecisions.P_MinValueForRange: 
                     double minForPiecewiseLinearSegment = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, AdditiveEvidenceDefinition.Options.NumOffers, false);
-                    AdditiveEvidenceProgress.PPiecewiseLinearMins.Add(minForPiecewiseLinearSegment);
+                    AdditiveEvidenceProgress.PMinValueForRange = minForPiecewiseLinearSegment;
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.D_Slope:
                     AdditiveEvidenceProgress.DSlope = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, AdditiveEvidenceDefinition.Options.PiecewiseLinearBidsSlopeOptions.Length, false);
-                    AdditiveEvidenceProgress.DPiecewiseLinearMins = new List<double>();
                     break;
-                case (byte)AdditiveEvidenceGameDecisions.D_PiecewiseLinear_1:
-                case (byte)AdditiveEvidenceGameDecisions.D_PiecewiseLinear_2:
-                case (byte)AdditiveEvidenceGameDecisions.D_PiecewiseLinear_3:
+                case (byte)AdditiveEvidenceGameDecisions.D_MinValueForRange:
                     double minForPiecewiseLinearSegment2 = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, AdditiveEvidenceDefinition.Options.NumOffers, false);
-                    AdditiveEvidenceProgress.DPiecewiseLinearMins.Add(minForPiecewiseLinearSegment2);
-                    bool allPiecewiseLinearInfoSubmitted = AdditiveEvidenceDefinition.DMSCalculations.NumPiecewiseLinearRanges == AdditiveEvidenceProgress.DPiecewiseLinearMins.Count;
-                    if (allPiecewiseLinearInfoSubmitted)
-                    {
-                        bool settled = AdditiveEvidenceProgress.POfferContinuousIfMade <= AdditiveEvidenceProgress.DOfferContinuousIfMade;
-                        if (settled)
-                            AdditiveEvidenceProgress.GameComplete = true;
-                    }
+                    AdditiveEvidenceProgress.DMinValueForRange = minForPiecewiseLinearSegment2;
+                    bool settled = AdditiveEvidenceProgress.PiecewiseLinearPOffer <= AdditiveEvidenceProgress.PiecewiseLinearDOffer;
+                    if (settled)
+                        AdditiveEvidenceProgress.GameComplete = true;
                     break;
 
                 case (byte)AdditiveEvidenceGameDecisions.PQuit:

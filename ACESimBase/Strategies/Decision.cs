@@ -111,7 +111,7 @@ namespace ACESim
         /// <summary>
         /// Indicates whom this chance decision provides private information for. This is used with DistributableDistributorChanceInputs.
         /// </summary>
-        public byte? ProvidesPrivateInformationFor;
+        public byte? ProvidesPrivateInformationFor; // DEBUG -- should be able to delete, I think.
 
         /// <summary>
         /// Whether the decision is bipolar (i.e., there are only two possible actions).

@@ -6,15 +6,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 {
     public enum AdditiveEvidenceGameDecisions : byte
     {
-        // If we have piecewise linear, then each player must announce a slope and up to three values for the lowest value within the range, corresponding to up to three ranges. 
-        P_Slope,
-        P_PiecewiseLinear_1,
-        P_PiecewiseLinear_2,
-        P_PiecewiseLinear_3,
-        D_Slope,
-        D_PiecewiseLinear_1,
-        D_PiecewiseLinear_2,
-        D_PiecewiseLinear_3,
 
         Chance_Plaintiff_Quality,
         Chance_Defendant_Quality,
@@ -26,6 +17,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         POffer,
         DOffer,
+        // If we have piecewise linear, then instead of an offer, each player must announce a min value for the range (which the player receives on the bases of the chance bias number) and a slope for that range.
+        P_Slope,
+        P_MinValueForRange,
+        D_Slope,
+        D_MinValueForRange,
 
         Chance_Neither_Quality, 
         Chance_Neither_Bias,

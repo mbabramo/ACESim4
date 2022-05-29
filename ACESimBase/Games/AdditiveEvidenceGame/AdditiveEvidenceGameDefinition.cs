@@ -80,22 +80,18 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public byte GameHistoryCacheIndex_DMin = 5;
         public byte GameHistoryCacheIndex_DMax = 6;
         public byte GameHistoryCacheIndex_PSlope = 7;
-        public byte GameHistoryCacheIndex_PPiecewiseLinear1 = 8;
-        public byte GameHistoryCacheIndex_PPiecewiseLinear2 = 9;
-        public byte GameHistoryCacheIndex_PPiecewiseLinear3 = 10;
-        public byte GameHistoryCacheIndex_DSlope = 11;
-        public byte GameHistoryCacheIndex_DPiecewiseLinear1 = 12;
-        public byte GameHistoryCacheIndex_DPiecewiseLinear2 = 13;
-        public byte GameHistoryCacheIndex_DPiecewiseLinear3 = 14;
+        public byte GameHistoryCacheIndex_PMinValueForRange = 8;
+        public byte GameHistoryCacheIndex_DSlope = 9;
+        public byte GameHistoryCacheIndex_DMinValueForRange = 10;
 
         private List<Decision> GetDecisionsList()
         {
             var decisions = new List<Decision>();
-            if (Options.PiecewiseLinearBids)
-                AddLinearBidDecisions(decisions);
             AddInitialChanceDecisions(decisions);
             AddQuitDecisions(decisions);
-            if (!Options.PiecewiseLinearBids)
+            if (Options.PiecewiseLinearBids)
+                AddLinearBidDecisions(decisions);
+            else
                 AddPlayerOffers(decisions);
             AddLaterChanceDecisions(decisions);
             return decisions;
@@ -106,13 +102,17 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         void AddLinearBidDecisions(List<Decision> decisions)
         {
-            decisions.Add(new Decision("P_Slope", useAbbreviationsForSimplifiedGame ? "PSlope" : "PS", true, (byte)AdditiveEvidenceGamePlayers.Chance_Plaintiff_Quality, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte) Options.PiecewiseLinearBidsSlopeOptions.Length, (byte)AdditiveEvidenceGameDecisions.P_Slope));
-            decisions.Add(new Decision("P_Slope", useAbbreviationsForSimplifiedGame ? "PLinear1" : "PL1", true, (byte)AdditiveEvidenceGamePlayers.Chance_Plaintiff_Quality, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte)Options.PiecewiseLinearBidsSlopeOptions.Length, (byte)AdditiveEvidenceGameDecisions.P_PiecewiseLinear_1));
+            decisions.Add(new Decision("P_Slope", useAbbreviationsForSimplifiedGame ? "PSlope" : "PS", true, (byte)AdditiveEvidenceGamePlayers.Plaintiff, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte) Options.PiecewiseLinearBidsSlopeOptions.Length, (byte)AdditiveEvidenceGameDecisions.P_Slope));
+            decisions.Add(new Decision("P_MinValueForRange", useAbbreviationsForSimplifiedGame ? "P_MinValueForRange" : "PMIN", true, (byte)AdditiveEvidenceGamePlayers.Plaintiff, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte)Options.PiecewiseLinearBidsSlopeOptions.Length, (byte)AdditiveEvidenceGameDecisions.P_MinValueForRange));
+            decisions.Add(new Decision("D_Slope", useAbbreviationsForSimplifiedGame ? "DSlope" : "DS", true, (byte)AdditiveEvidenceGamePlayers.Defendant, new byte[] { (byte)AdditiveEvidenceGamePlayers.Defendant, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte)Options.PiecewiseLinearBidsSlopeOptions.Length, (byte)AdditiveEvidenceGameDecisions.D_Slope));
+            decisions.Add(new Decision("D_MinValueForRange", useAbbreviationsForSimplifiedGame ? "D_MinValueForRange" : "DMIN", true, (byte)AdditiveEvidenceGamePlayers.Defendant, new byte[] { (byte)AdditiveEvidenceGamePlayers.Defendant, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte)Options.PiecewiseLinearBidsSlopeOptions.Length, (byte)AdditiveEvidenceGameDecisions.D_MinValueForRange));
+
 
         }
 
         void AddInitialChanceDecisions(List<Decision> decisions)
         {
+            // DEBUG; // must inform each player of the bias based on their range.
             if (Options.Alpha_Quality > 0 && Options.Alpha_Plaintiff_Quality > 0)
                 decisions.Add(new Decision("Chance_Plaintiff_Quality", useAbbreviationsForSimplifiedGame ? "PInfo" : "PQ", true, (byte)AdditiveEvidenceGamePlayers.Chance_Plaintiff_Quality, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte) AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Quality)
             {
@@ -246,6 +246,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     byte defendantOffer = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DOffer);
                     if (defendantOffer >= plaintiffOffer)
                         return true;
+                    break;
+                case (byte)AdditiveEvidenceGameDecisions.D_MinValueForRange:
+                    // DEBUG
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Quality:
                     if (Options.PiecewiseLinearBids)

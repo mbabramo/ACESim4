@@ -25,55 +25,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             dPiecewiseLinearRanges = GetPiecewiseLinearRanges(false);
         }
 
+        #region Truncations
+
         public (double pBid, double dBid) GetBids(double zP, double zD)
         {
             var fs = GetUntruncFuncs();
             return Truncated(zP, zD, fs.pUntruncFunc, fs.dUntruncFunc);
-        }
-
-        public string ProduceTableOfCases()
-        {
-            StringBuilder b = new StringBuilder();
-            for (double tvar = 0.0; tvar <= 1.01; tvar += 0.05)
-            {
-                for (double qvar = 0.35; qvar <= 0.65; qvar += 0.05)
-                {
-                    int caseNum = GetCaseNum(tvar, qvar);
-                    b.Append(caseNum.ToString());
-                    if (qvar != 0.65)
-                        b.Append(",");
-                }
-                b.AppendLine("");
-            }
-            return b.ToString();
-        }
-
-        private static int GetCaseNum(double tvar, double qVar)
-        {
-            if (tvar <= qVar && qVar <= 1.0 - tvar)
-                return 1;
-            if (qVar < tvar && tvar < 1.0 - qVar)
-                return 2;
-            if (1.0 - qVar < tvar && tvar < qVar)
-                return 3;
-            return 4;
-        }
-
-        private (Func<double, double> pUntruncFunc, Func<double, double> dUntruncFunc) GetUntruncFuncs()
-        {
-            switch (CaseNum)
-            {
-                case 1:
-                    return (Case1UntruncatedP, Case1UntruncatedD);
-                case 2:
-                    return (Case2UntruncatedP, Case2UntruncatedD);
-                case 3:
-                    return (Case3UntruncatedP, Case3UntruncatedD);
-                case 4:
-                    return (Case4UntruncatedP, Case4UntruncatedD);
-                default:
-                    throw new NotImplementedException();
-            }
         }
 
         private (double pBid, double dBid) Truncated(double zP, double zD, Func<double, double> pUntruncFunc, Func<double, double> dUntruncFunc)
@@ -146,37 +103,36 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             return pUntruncFunc(1.0) < dUntruncFunc(0.0);
         }
 
-        private List<(double x, double y)> GetPiecewiseLinearRanges(bool plaintiff)
+        #endregion
+
+        #region Untruncated functions
+
+        private static int GetCaseNum(double tvar, double qVar)
+        {
+            if (tvar <= qVar && qVar <= 1.0 - tvar)
+                return 1;
+            if (qVar < tvar && tvar < 1.0 - qVar)
+                return 2;
+            if (1.0 - qVar < tvar && tvar < qVar)
+                return 3;
+            return 4;
+        }
+
+        private (Func<double, double> pUntruncFunc, Func<double, double> dUntruncFunc) GetUntruncFuncs()
         {
             switch (CaseNum)
             {
                 case 1:
-                    return new List<(double x, double y)>() { (0, 1.0) };
+                    return (Case1UntruncatedP, Case1UntruncatedD);
                 case 2:
+                    return (Case2UntruncatedP, Case2UntruncatedD);
                 case 3:
-                    return new List<(double x, double y)>() { (0, GetCutoff(plaintiff, false)), (GetCutoff(plaintiff, false), 1.0) };
+                    return (Case3UntruncatedP, Case3UntruncatedD);
                 case 4:
-                    return new List<(double x, double y)>() { (0, GetCutoff(plaintiff, false)), (GetCutoff(plaintiff, false), GetCutoff(plaintiff, true)), (GetCutoff(plaintiff, true), 1.0) };
+                    return (Case4UntruncatedP, Case4UntruncatedD);
                 default:
-                    throw new Exception();
+                    throw new NotImplementedException();
             }
-        }
-
-        public double GetPiecewiseLinearBid(double z, bool plaintiff, double slope, List<double> minForRange)
-        {
-            var ranges = plaintiff ? pPiecewiseLinearRanges : dPiecewiseLinearRanges;
-            int i = 0;
-            foreach (var range in ranges)
-            {
-                if (z >= range.low && z < range.high)
-                {
-                    double distance = (z - range.low);
-                    double bid = minForRange[i] + distance * slope;
-                    return bid;
-                }
-                i++;
-            }
-            throw new NotImplementedException();
         }
 
         private double GetCutoff(bool plaintiff, bool secondCutoffForCase4)
@@ -262,6 +218,92 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 return 1.0 / 6.0 + 3.0 * Q * C + (1.0 / 3.0) * zD;
         }
 
-        // Truncations. If the P line is above the D line, then P is truncated above at D(1), i.e. will be Min(untruncated P(x)
+        public string ProduceTableOfCases()
+        {
+            StringBuilder b = new StringBuilder();
+            for (double tvar = 0.0; tvar <= 1.01; tvar += 0.05)
+            {
+                for (double qvar = 0.35; qvar <= 0.65; qvar += 0.05)
+                {
+                    int caseNum = GetCaseNum(tvar, qvar);
+                    b.Append(caseNum.ToString());
+                    if (qvar != 0.65)
+                        b.Append(",");
+                }
+                b.AppendLine("");
+            }
+            return b.ToString();
+        }
+
+        #endregion 
+
+        #region Piecewise linear
+
+        private List<(double x, double y)> GetPiecewiseLinearRanges(bool plaintiff)
+        {
+            switch (CaseNum)
+            {
+                case 1:
+                    return new List<(double x, double y)>() { (0, 1.0) };
+                case 2:
+                case 3:
+                    return new List<(double x, double y)>() { (0, GetCutoff(plaintiff, false)), (GetCutoff(plaintiff, false), 1.0) };
+                case 4:
+                    return new List<(double x, double y)>() { (0, GetCutoff(plaintiff, false)), (GetCutoff(plaintiff, false), GetCutoff(plaintiff, true)), (GetCutoff(plaintiff, true), 1.0) };
+                default:
+                    throw new Exception();
+            }
+        }
+
+        public byte GetPiecewiseLinearRangeIndex(double z, bool plaintiff)
+        {
+            var ranges = plaintiff ? pPiecewiseLinearRanges : dPiecewiseLinearRanges;
+            byte i = 1;
+            foreach (var range in ranges)
+            {
+                if (z >= range.low && z < range.high)
+                {
+                    return i;
+                }
+                i++;
+            }
+            throw new NotImplementedException();
+        }
+
+        public (double low, double high) GetPiecewiseLinearRange(byte rangeIndex, bool plaintiff)
+        {
+            (double low, double high) range = plaintiff ? pPiecewiseLinearRanges[rangeIndex] : dPiecewiseLinearRanges[rangeIndex];
+            return range;
+        }
+
+        public double GetDistanceFromStartOfLinearRange(double z, bool plaintiff)
+        {
+            byte rangeIndex = GetPiecewiseLinearRangeIndex(z, plaintiff);
+            return z - GetPiecewiseLinearRange(rangeIndex, plaintiff).low;
+        }
+
+        public double GetPiecewiseLinearBid(double z, bool plaintiff, double minValForRange, double slope)
+        {
+            return minValForRange + slope * GetDistanceFromStartOfLinearRange(z, plaintiff);
+        }
+
+        public double GetPiecewiseLinearBid(double z, bool plaintiff, double slope, List<double> minForRange)
+        {
+            var ranges = plaintiff ? pPiecewiseLinearRanges : dPiecewiseLinearRanges;
+            int i = 0;
+            foreach (var range in ranges)
+            {
+                if (z >= range.low && z < range.high)
+                {
+                    double distance = (z - range.low);
+                    double bid = minForRange[i] + distance * slope;
+                    return bid;
+                }
+                i++;
+            }
+            throw new NotImplementedException();
+        }
+
+        #endregion
     }
 }
