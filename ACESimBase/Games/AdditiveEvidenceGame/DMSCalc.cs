@@ -9,6 +9,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
     public class DMSCalc
     {
         double Q, C, T;
+        int CaseNum;
+        List<(double low, double high)> pPiecewiseLinearRanges, dPiecewiseLinearRanges;
+        public int NumPiecewiseLinearRanges => pPiecewiseLinearRanges.Count;
 
         public DMSCalc(double q, double c, double t)
         {
@@ -17,6 +20,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 throw new ArgumentException("Invalid parameter under Dari-Mattiacci & Saraceno");
             this.C = c;
             this.T = t;
+            this.CaseNum = GetCaseNum(T, Q);
+            pPiecewiseLinearRanges = GetPiecewiseLinearRanges(true);
+            dPiecewiseLinearRanges = GetPiecewiseLinearRanges(false);
         }
 
         public (double pBid, double dBid) GetBids(double zP, double zD)
@@ -55,8 +61,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         private (Func<double, double> pUntruncFunc, Func<double, double> dUntruncFunc) GetUntruncFuncs()
         {
-            int caseNum = GetCaseNum(T, Q);
-            switch (caseNum)
+            switch (CaseNum)
             {
                 case 1:
                     return (Case1UntruncatedP, Case1UntruncatedD);
@@ -141,6 +146,57 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             return pUntruncFunc(1.0) < dUntruncFunc(0.0);
         }
 
+        private List<(double x, double y)> GetPiecewiseLinearRanges(bool plaintiff)
+        {
+            switch (CaseNum)
+            {
+                case 1:
+                    return new List<(double x, double y)>() { (0, 1.0) };
+                case 2:
+                case 3:
+                    return new List<(double x, double y)>() { (0, GetCutoff(plaintiff, false)), (GetCutoff(plaintiff, false), 1.0) };
+                case 4:
+                    return new List<(double x, double y)>() { (0, GetCutoff(plaintiff, false)), (GetCutoff(plaintiff, false), GetCutoff(plaintiff, true)), (GetCutoff(plaintiff, true), 1.0) };
+                default:
+                    throw new Exception();
+            }
+        }
+
+        public double GetPiecewiseLinearBid(double z, bool plaintiff, double slope, List<double> minForRange)
+        {
+            var ranges = plaintiff ? pPiecewiseLinearRanges : dPiecewiseLinearRanges;
+            int i = 0;
+            foreach (var range in ranges)
+            {
+                if (z >= range.low && z < range.high)
+                {
+                    double distance = (z - range.low);
+                    double bid = minForRange[i] + distance * slope;
+                    return bid;
+                }
+                i++;
+            }
+            throw new NotImplementedException();
+        }
+
+        private double GetCutoff(bool plaintiff, bool secondCutoffForCase4)
+        {
+            switch (CaseNum)
+            {
+                case 1:
+                    throw new NotImplementedException();
+                case 2:
+                    return plaintiff ? 6.0 * C - 1.0 + (T - Q) / (1.0 - Q) : (T - Q) / (1.0 - Q);
+                case 3:
+                    return plaintiff ? (1.0 - T) / Q : 1.0 - 6.0 * C + (1.0 - T) / Q;
+                case 4:
+                    if (secondCutoffForCase4)
+                        return plaintiff ? (1.0 - T) / Q : 1.0 - 6.0 * C + (1.0 - T) / Q;
+                    return plaintiff ? 6.0 * C - 1.0 + (T - Q) / (1.0 - Q) : (T - Q) / (1.0 - Q);
+                default:
+                    throw new NotImplementedException();
+            }
+        }
 
         private double Case1UntruncatedP(double zP) => 1.0 / 2.0 - 3.0 * (5.0 / 6.0 - Q) * C + (1.0 / 3.0) * zP;
         private double Case1UntruncatedD(double zD) => 1.0 / 6.0 + 3.0 * (Q - 1.0 / 6.0) * C + (1.0 / 3.0) * zD;

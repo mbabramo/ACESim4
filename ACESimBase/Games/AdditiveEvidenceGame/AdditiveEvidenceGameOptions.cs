@@ -12,8 +12,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         // Parameters regarding game structure
 
-        // Whether we are constraining the players to linear bids, in which case they must select a slope and then points in various regions.
-        public bool LinearBids;
+        // Whether we are constraining the players to piecewise linear bids, in which case they must select a slope and then the minimum value in each of various regions.
+        public bool PiecewiseLinearBids => true;
+        public double[] PiecewiseLinearBidsSlopeOptions = new double[] { 0, 1.0 / 3.0, 1.0 / 2.0, 2.0 / 3.0 };
 
         public bool TrialGuaranteed;
         public bool IncludePQuitDecision;
@@ -93,7 +94,7 @@ Alpha_Bias {Alpha_Bias}: Both {Alpha_Both_Bias} P {Alpha_Plaintiff_Bias} D {Alph
 FeeShifting {FeeShifting} {(FeeShifting ? $"Margin {FeeShiftingIsBasedOnMarginOfVictory} Threshold {FeeShiftingThreshold}" : "")}
 NumOffers {NumOffers} MinOffer {MinOffer} OfferRange {OfferRange} 
 NumQualityAndBiasLevels {NumQualityAndBiasLevels_PrivateInfo} (private) {NumQualityAndBiasLevels_NeitherInfo} (neither info)
-LinearBids {LinearBids} TrialGuaranteed {TrialGuaranteed} IncludePQuit {IncludePQuitDecision} IncludeDQuit {IncludeDQuitDecision}";
+LinearBids {PiecewiseLinearBids} TrialGuaranteed {TrialGuaranteed} IncludePQuit {IncludePQuitDecision} IncludeDQuit {IncludeDQuitDecision}";
         }
     }
 }

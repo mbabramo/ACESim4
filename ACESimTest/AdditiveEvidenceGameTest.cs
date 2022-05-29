@@ -62,7 +62,6 @@ namespace ACESimTest
                     FeeShifting = feeShifting,
                     FeeShiftingIsBasedOnMarginOfVictory = feeShiftingBasedOnMarginOfVictory,
                     FeeShiftingThreshold = feeShiftingThreshold,
-                    LinearBids = false // not tested
                 };
                 if (options.Alpha_Both_Quality + options.Alpha_Plaintiff_Quality + options.Alpha_Defendant_Quality <= 1.0 && options.Alpha_Both_Bias + options.Alpha_Plaintiff_Bias + options.Alpha_Defendant_Bias <= 1.0)
                     return options;

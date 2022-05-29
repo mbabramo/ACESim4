@@ -35,7 +35,35 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             switch (currentDecisionByteCode)
             {
                 // Note: THe linear bids decisions will be executed if and only if the POffer and DOffer decisions are not
-                
+
+
+                case (byte)AdditiveEvidenceGameDecisions.P_Slope:
+                    AdditiveEvidenceProgress.PSlope = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, AdditiveEvidenceDefinition.Options.PiecewiseLinearBidsSlopeOptions.Length, false);
+                    AdditiveEvidenceProgress.PPiecewiseLinearMins = new List<double>();
+                    break;
+                case (byte)AdditiveEvidenceGameDecisions.P_PiecewiseLinear_1:
+                case (byte)AdditiveEvidenceGameDecisions.P_PiecewiseLinear_2:
+                case (byte)AdditiveEvidenceGameDecisions.P_PiecewiseLinear_3:
+                    double minForPiecewiseLinearSegment = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, AdditiveEvidenceDefinition.Options.NumOffers, false);
+                    AdditiveEvidenceProgress.PPiecewiseLinearMins.Add(minForPiecewiseLinearSegment);
+                    break;
+                case (byte)AdditiveEvidenceGameDecisions.D_Slope:
+                    AdditiveEvidenceProgress.DSlope = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, AdditiveEvidenceDefinition.Options.PiecewiseLinearBidsSlopeOptions.Length, false);
+                    AdditiveEvidenceProgress.DPiecewiseLinearMins = new List<double>();
+                    break;
+                case (byte)AdditiveEvidenceGameDecisions.D_PiecewiseLinear_1:
+                case (byte)AdditiveEvidenceGameDecisions.D_PiecewiseLinear_2:
+                case (byte)AdditiveEvidenceGameDecisions.D_PiecewiseLinear_3:
+                    double minForPiecewiseLinearSegment2 = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, AdditiveEvidenceDefinition.Options.NumOffers, false);
+                    AdditiveEvidenceProgress.DPiecewiseLinearMins.Add(minForPiecewiseLinearSegment2);
+                    bool allPiecewiseLinearInfoSubmitted = AdditiveEvidenceDefinition.DMSCalculations.NumPiecewiseLinearRanges == AdditiveEvidenceProgress.DPiecewiseLinearMins.Count;
+                    if (allPiecewiseLinearInfoSubmitted)
+                    {
+                        bool settled = AdditiveEvidenceProgress.POfferContinuousIfMade <= AdditiveEvidenceProgress.DOfferContinuousIfMade;
+                        if (settled)
+                            AdditiveEvidenceProgress.GameComplete = true;
+                    }
+                    break;
 
                 case (byte)AdditiveEvidenceGameDecisions.PQuit:
                     AdditiveEvidenceProgress.PQuits = action == 1;
@@ -59,8 +87,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias:
                     AdditiveEvidenceProgress.Chance_Defendant_Bias = action;
                     break;
-
-
                 case (byte)AdditiveEvidenceGameDecisions.POffer:
                     AdditiveEvidenceProgress.POffer = action;
                     break;

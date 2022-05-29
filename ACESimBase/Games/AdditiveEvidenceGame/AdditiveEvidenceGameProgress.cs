@@ -17,16 +17,19 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public AdditiveEvidenceGameDefinition AdditiveEvidenceGameDefinition => (AdditiveEvidenceGameDefinition)GameDefinition;
         public AdditiveEvidenceGameOptions AdditiveEvidenceGameOptions => AdditiveEvidenceGameDefinition.Options;
 
-        private double LinearSignalProportion(byte action) => EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, AdditiveEvidenceGameOptions.NumQualityAndBiasLevels_PrivateInfo, false);
-
-        private double LinearBidProportion(byte action) => EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, AdditiveEvidenceGameOptions.NumOffers, false);
-
 
         public byte P_LinearBid_Input => AdditiveEvidenceGameOptions.Alpha_Bias > 0 && AdditiveEvidenceGameOptions.Alpha_Plaintiff_Bias > 0 ? Chance_Plaintiff_Bias : Chance_Plaintiff_Quality;
         public byte D_LinearBid_Input => AdditiveEvidenceGameOptions.Alpha_Bias > 0 && AdditiveEvidenceGameOptions.Alpha_Plaintiff_Bias > 0 ? Chance_Defendant_Bias : Chance_Defendant_Quality;
-        
+
         public bool PFiles => true;
         public bool DAnswers => true;
+
+        // For piecewise linear:
+
+        public DMSCalc PiecewiseLinearCalcs => AdditiveEvidenceGameDefinition.DMSCalculations;
+        public bool PiecewiseLinearActive => PiecewiseLinearCalcs != null;
+        public List<double> PPiecewiseLinearMins, DPiecewiseLinearMins;
+        public double PSlope, DSlope;
 
         // Chance information (where each party has individual information, as joint information is set as a game parameter)
 
@@ -42,8 +45,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         // Party decisions on offers (whether or not based on linear bid) and quitting)
 
-        public byte POffer;
-        public byte DOffer;
+        public byte POffer { get; set; }
+
+        public byte DOffer { get; set; }
 
         public bool PQuits;
         public bool DQuits;
@@ -60,8 +64,24 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         }
 
         private double ContinuousOffer(byte offerAction) => AdditiveEvidenceGameOptions.MinOffer + AdditiveEvidenceGameOptions.OfferRange * EquallySpaced.GetLocationOfEquallySpacedPoint(offerAction - 1 /* make it zero-based */, AdditiveEvidenceGameOptions.NumOffers, false);
-        public double POfferContinuousIfMade => ContinuousOffer(POffer);
-        public double DOfferContinuousIfMade => ContinuousOffer(DOffer);
+        public double POfferContinuousIfMade
+        {
+            get
+            {
+                if (!PiecewiseLinearActive)
+                    return ContinuousOffer(POffer);
+                return PiecewiseLinearCalcs.GetPiecewiseLinearBid(Chance_Plaintiff_Quality_Continuous, true, PSlope, PPiecewiseLinearMins);
+            }
+        }
+        public double DOfferContinuousIfMade
+        {
+            get
+            {
+                if (!PiecewiseLinearActive)
+                    return ContinuousOffer(DOffer);
+                return PiecewiseLinearCalcs.GetPiecewiseLinearBid(Chance_Defendant_Quality_Continuous, true, DSlope, DPiecewiseLinearMins);
+            }
+        }
 
         public double? POfferContinuousOrNull => SomeoneQuits ? (double?)null : POfferContinuousIfMade;
         public double? DOfferContinuousOrNull => SomeoneQuits ? (double?)null : DOfferContinuousIfMade;
@@ -209,6 +229,10 @@ AccuracyIgnoringCosts {Accuracy} Accuracy_ForPlaintiff {Accuracy_ForPlaintiff} A
             copy.DOffer = DOffer;
             copy.Chance_Neither_Quality = Chance_Neither_Quality;
             copy.Chance_Neither_Bias = Chance_Neither_Bias;
+            copy.PSlope = PSlope;
+            copy.DSlope = DSlope;
+            copy.PPiecewiseLinearMins = PPiecewiseLinearMins?.ToList();
+            copy.DPiecewiseLinearMins = DPiecewiseLinearMins?.ToList();
 
             return copy;
         }

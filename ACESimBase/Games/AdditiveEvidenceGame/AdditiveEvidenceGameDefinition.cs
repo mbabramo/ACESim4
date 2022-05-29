@@ -12,6 +12,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
     {
         public AdditiveEvidenceGameOptions Options => (AdditiveEvidenceGameOptions)GameOptions;
 
+        public DMSCalc DMSCalculations; // used for piecewise linear bids.
+
         public override string ToString()
         {
             return Options.ToString();
@@ -26,6 +28,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         {
             base.Setup(options);
             FurtherOptionsSetup();
+
+            AdditiveEvidenceGameOptions aeOptions = (AdditiveEvidenceGameOptions)options;
+            if (aeOptions.PiecewiseLinearBids)
+                DMSCalculations = new DMSCalc(aeOptions.Evidence_Both_Quality, aeOptions.TrialCost, aeOptions.FeeShiftingThreshold);
 
             Players = GetPlayersList();
             PlayerNames = Players.Select(x => x.PlayerName).ToArray();
@@ -73,15 +79,23 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public byte GameHistoryCacheIndex_PMax = 4;
         public byte GameHistoryCacheIndex_DMin = 5;
         public byte GameHistoryCacheIndex_DMax = 6;
+        public byte GameHistoryCacheIndex_PSlope = 7;
+        public byte GameHistoryCacheIndex_PPiecewiseLinear1 = 8;
+        public byte GameHistoryCacheIndex_PPiecewiseLinear2 = 9;
+        public byte GameHistoryCacheIndex_PPiecewiseLinear3 = 10;
+        public byte GameHistoryCacheIndex_DSlope = 11;
+        public byte GameHistoryCacheIndex_DPiecewiseLinear1 = 12;
+        public byte GameHistoryCacheIndex_DPiecewiseLinear2 = 13;
+        public byte GameHistoryCacheIndex_DPiecewiseLinear3 = 14;
 
         private List<Decision> GetDecisionsList()
         {
             var decisions = new List<Decision>();
-            if (Options.LinearBids)
+            if (Options.PiecewiseLinearBids)
                 AddLinearBidDecisions(decisions);
             AddInitialChanceDecisions(decisions);
             AddQuitDecisions(decisions);
-            if (!Options.LinearBids)
+            if (!Options.PiecewiseLinearBids)
                 AddPlayerOffers(decisions);
             AddLaterChanceDecisions(decisions);
             return decisions;
@@ -92,6 +106,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         void AddLinearBidDecisions(List<Decision> decisions)
         {
+            decisions.Add(new Decision("P_Slope", useAbbreviationsForSimplifiedGame ? "PSlope" : "PS", true, (byte)AdditiveEvidenceGamePlayers.Chance_Plaintiff_Quality, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte) Options.PiecewiseLinearBidsSlopeOptions.Length, (byte)AdditiveEvidenceGameDecisions.P_Slope));
+            decisions.Add(new Decision("P_Slope", useAbbreviationsForSimplifiedGame ? "PLinear1" : "PL1", true, (byte)AdditiveEvidenceGamePlayers.Chance_Plaintiff_Quality, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte)Options.PiecewiseLinearBidsSlopeOptions.Length, (byte)AdditiveEvidenceGameDecisions.P_PiecewiseLinear_1));
 
         }
 
@@ -116,7 +132,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 //DistributorChanceInputDecision = true,
                 //DistributableDistributorChanceInput = true,
                 ProvidesPrivateInformationFor = (byte)AdditiveEvidenceGamePlayers.Defendant,
-                CanTerminateGame = Options.LinearBids
+                CanTerminateGame = Options.PiecewiseLinearBids
             });
             if (Options.Alpha_Bias > 0 && Options.Alpha_Plaintiff_Bias > 0)
                 decisions.Add(new Decision("Chance_Plaintiff_Bias", "PB", true, (byte)AdditiveEvidenceGamePlayers.Chance_Plaintiff_Bias, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias)
@@ -137,7 +153,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 //DistributorChanceInputDecision = true,
                 //DistributableDistributorChanceInput = true,
                 ProvidesPrivateInformationFor = (byte)AdditiveEvidenceGamePlayers.Defendant,
-                CanTerminateGame = Options.LinearBids
+                CanTerminateGame = Options.PiecewiseLinearBids
             });
         }
         void AddQuitDecisions(List<Decision> decisions)
@@ -232,14 +248,14 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                         return true;
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Quality:
-                    if (Options.LinearBids)
+                    if (Options.PiecewiseLinearBids)
                     {
                         if (!(Options.Alpha_Bias > 0))
                             return true;
                     }
                     return false;
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias:
-                    if (Options.LinearBids)
+                    if (Options.PiecewiseLinearBids)
                     {
                         if (!(Options.Alpha_Bias > 0 && Options.Alpha_Neither_Bias > 0))
                             return true;
