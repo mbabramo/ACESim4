@@ -38,21 +38,19 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
 
                 case (byte)AdditiveEvidenceGameDecisions.P_Slope:
-                    AdditiveEvidenceProgress.PSlope = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, AdditiveEvidenceDefinition.Options.PiecewiseLinearBidsSlopeOptions.Length, false);
+                    AdditiveEvidenceProgress.PSlope = AdditiveEvidenceGameOptions.PiecewiseLinearBidsSlopeOptions[action - 1]; 
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.P_MinValueForRange: 
                     double minForPiecewiseLinearSegment = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, AdditiveEvidenceDefinition.Options.NumOffers, false);
                     AdditiveEvidenceProgress.PMinValueForRange = minForPiecewiseLinearSegment;
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.D_Slope:
-                    AdditiveEvidenceProgress.DSlope = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, AdditiveEvidenceDefinition.Options.PiecewiseLinearBidsSlopeOptions.Length, false);
+                    AdditiveEvidenceProgress.DSlope = AdditiveEvidenceGameOptions.PiecewiseLinearBidsSlopeOptions[action - 1];
+
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.D_MinValueForRange:
-                    // DEBUG -- delete following
-                    //double minForPiecewiseLinearSegment2 = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, AdditiveEvidenceDefinition.Options.NumOffers, false);
-                    //AdditiveEvidenceProgress.DMinValueForRange = minForPiecewiseLinearSegment2;
-                    //bool settled = AdditiveEvidenceProgress.PiecewiseLinearPOffer <= AdditiveEvidenceProgress.PiecewiseLinearDOffer;
-                    //if (settled)
+                    double minForPiecewiseLinearSegment2 = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, AdditiveEvidenceDefinition.Options.NumOffers, false);
+                    AdditiveEvidenceProgress.DMinValueForRange = minForPiecewiseLinearSegment2;
                     AdditiveEvidenceProgress.GameComplete = true; // with piecewise linear offers, we always end after defendant's announcement of line
                     break;
 

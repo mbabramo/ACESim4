@@ -26,12 +26,25 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         // For piecewise linear:
 
-        public DMSCalc PiecewiseLinearCalcs => AdditiveEvidenceGameDefinition.DMSCalculations;
-        public bool PiecewiseLinearActive => PiecewiseLinearCalcs != null;
+        public DMSCalc _PiecewiseLinearCalcs = null;
+        public DMSCalc PiecewiseLinearCalcs
+        {
+            get
+            {
+                if (PiecewiseLinearActive)
+                {
+                    if (_PiecewiseLinearCalcs == null)
+                        _PiecewiseLinearCalcs = new DMSCalc(AdditiveEvidenceGameOptions.FeeShiftingThreshold, AdditiveEvidenceGameOptions.TrialCost, AdditiveEvidenceGameOptions.Evidence_Both_Quality);
+                    return _PiecewiseLinearCalcs;
+                }
+                return null;
+            }
+        }
+        public bool PiecewiseLinearActive => AdditiveEvidenceGameOptions.PiecewiseLinearBids;
         public double PSlope, DSlope, PMinValueForRange, DMinValueForRange;
 
-        public double PiecewiseLinearPOffer => PiecewiseLinearCalcs.GetPiecewiseLinearBid(Chance_Plaintiff_Bias_Continuous, true, PMinValueForRange, PSlope);
-        public double PiecewiseLinearDOffer => PiecewiseLinearCalcs.GetPiecewiseLinearBid(Chance_Defendant_Bias_Continuous, true, DMinValueForRange, DSlope);
+        public double PiecewiseLinearPOffer => PiecewiseLinearCalcs.GetPiecewiseLinearBidTruncated(Chance_Plaintiff_Bias_Continuous, true, PMinValueForRange, PSlope);
+        public double PiecewiseLinearDOffer => PiecewiseLinearCalcs.GetPiecewiseLinearBidTruncated(Chance_Defendant_Bias_Continuous, false, DMinValueForRange, DSlope);
 
         // Chance information (where each party has individual information, as joint information is set as a game parameter)
 

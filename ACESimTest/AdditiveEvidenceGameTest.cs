@@ -262,14 +262,7 @@ namespace ACESimTest
                             double midpoint = 0.5 * range.low + 0.5 * range.high;
                             byte rangeIndex = dmsCalc.GetPiecewiseLinearRangeIndex(midpoint, plaintiff: true);
                             rangeIndex.Should().Be((byte)i);
-                            try // DEBUG
-                            {
-                                dmsCalc.GetDistanceFromStartOfLinearRange(midpoint, plaintiff: true).Should().BeApproximately(midpoint - range.low, 0.001);
-                            }
-                            catch
-                            {
-
-                            }
+                            dmsCalc.GetDistanceFromStartOfLinearRange(midpoint, plaintiff: true).Should().BeApproximately(midpoint - range.low, 0.001);
                         }
                     }
                 }
@@ -279,21 +272,75 @@ namespace ACESimTest
         [TestMethod]
         public void AdditiveEvidence_PiecewiseLinear()
         {
-            var gameOptions = GetOptions();
-            gameOptions.PiecewiseLinearBids = true;
-            Func<Decision, GameProgress, byte> actionsToPlay = AdditiveActionsGameActionsGenerator.PlaySpecifiedDecisions();
-            var gameProgress = AdditiveEvidenceGameLauncher.PlayAdditiveEvidenceGameOnce(gameOptions, actionsToPlay);
-            gameProgress.SomeoneQuits.Should().Be(false);
-            gameProgress.PQuits.Should().Be(false);
-            gameProgress.DQuits.Should().Be(false);
-            gameProgress.SettlementOccurs.Should().Be(false);
-            gameProgress.TrialOccurs.Should().Be(false);
-            gameProgress.SettlementValue.Should().BeNull();
-            gameProgress.ResolutionValue.Should().BeApproximately(1.0, 1E-10);
-            gameProgress.PWelfare.Should().BeApproximately(1.0, 1E-10);
-            gameProgress.DWelfare.Should().BeApproximately(0, 1E-10);
-            gameProgress.POfferContinuousOrNull.Should().BeNull();
-            gameProgress.DOfferContinuousOrNull.Should().BeNull();
+            byte numBiasLevels = 20;
+            byte numOffers = 20;
+
+            var tOptions = Enumerable.Range(0, 6).Select(x => 0.2 * x).ToArray();
+            var cOptions = Enumerable.Range(0, 26).Select(x => 0 + x * 0.04).ToArray();
+            var qOptions = Enumerable.Range(0, 7).Select(x => 0.35 + x * 0.05).ToArray();
+            var chancePlaintiffBiasIndexOptions = Enumerable.Range(1, numBiasLevels).Select(x => (byte)(x + 1)).ToArray();
+            var chanceDefendantBiasIndexOptions = Enumerable.Range(1, numBiasLevels).Select(x => (byte)(x + 1)).ToArray();
+            var pSlopeIndexOptions = Enumerable.Range(0, AdditiveEvidenceGameOptions.PiecewiseLinearBidsSlopeOptions.Length).Select(x => (byte)(x + 1)).ToArray();
+            var dSlopeIndexOptions = Enumerable.Range(0, AdditiveEvidenceGameOptions.PiecewiseLinearBidsSlopeOptions.Length).Select(x => (byte)(x + 1)).ToArray();
+            var pMinValIndexOptions = Enumerable.Range(0, numOffers).Select(x => (byte)(x + 1)).ToArray();
+            var dMinValIndexOptions = Enumerable.Range(0, numOffers).Select(x => (byte)(x + 1)).ToArray();
+
+
+            
+            Random r = new Random(0);
+            T GetRandom<T>(T[] items) => items[r.Next(items.Length)];
+
+            int numRepetitions = 10_000; // DEBUG
+            for (int i = 0; i < numRepetitions; i++)
+            {
+                double t = GetRandom(tOptions);
+                double c = GetRandom(cOptions);
+                double q = GetRandom(qOptions);
+                byte chancePlaintiffBiasIndex = GetRandom(chancePlaintiffBiasIndexOptions);
+                byte chanceDefendantBiasIndex = GetRandom(chanceDefendantBiasIndexOptions);
+                byte pSlopeIndex = GetRandom(pSlopeIndexOptions);
+                byte dSlopeIndex = GetRandom(dSlopeIndexOptions);
+                byte pMinValIndex = GetRandom(pMinValIndexOptions);
+                byte dMinValIndex = GetRandom(dMinValIndexOptions);
+
+                var gameOptions = GetOptions(feeShifting: true, feeShiftingBasedOnMarginOfVictory: false, feeShiftingThreshold: t, trialCost: c, evidenceBothQuality: q, numOffers: numOffers, numQualityAndBiasLevels: numBiasLevels);
+                gameOptions.PiecewiseLinearBids = true;
+
+                Func<Decision, GameProgress, byte> actionsToPlay = AdditiveActionsGameActionsGenerator.PlaySpecifiedDecisions(chancePlaintiffBias: chancePlaintiffBiasIndex, chanceDefendantBias: chanceDefendantBiasIndex, pSlope: pSlopeIndex, dSlope: dSlopeIndex, pMinValForRange: pMinValIndex, dMinValForRange: dMinValIndex);
+                var gameProgress = AdditiveEvidenceGameLauncher.PlayAdditiveEvidenceGameOnce(gameOptions, actionsToPlay);
+                gameProgress.PiecewiseLinearCalcs.T.Should().Be(t);
+                gameProgress.PiecewiseLinearCalcs.C.Should().Be(c);
+                gameProgress.PiecewiseLinearCalcs.Q.Should().Be(q);
+                gameProgress.Chance_Plaintiff_Bias.Should().Be(chancePlaintiffBiasIndex);
+                gameProgress.Chance_Defendant_Bias.Should().Be(chanceDefendantBiasIndex);
+                gameProgress.PSlope.Should().Be(AdditiveEvidenceGameOptions.PiecewiseLinearBidsSlopeOptions[pSlopeIndex - 1]);
+                gameProgress.DSlope.Should().Be(AdditiveEvidenceGameOptions.PiecewiseLinearBidsSlopeOptions[dSlopeIndex - 1]);
+                gameProgress.PMinValueForRange.Should().Be(EquallySpaced.GetLocationOfEquallySpacedPoint(pMinValIndex - 1 /* make it zero-based */, numOffers, false));
+                gameProgress.DMinValueForRange.Should().Be(EquallySpaced.GetLocationOfEquallySpacedPoint(dMinValIndex - 1 /* make it zero-based */, numOffers, false));
+                gameProgress.PiecewiseLinearPOffer.Should().BeGreaterThanOrEqualTo(gameProgress.PMinValueForRange);
+                gameProgress.PiecewiseLinearDOffer.Should().BeGreaterThanOrEqualTo(gameProgress.DMinValueForRange);
+
+
+                var dmsCalcs = gameProgress.PiecewiseLinearCalcs;
+                byte pSignal = (byte) (dmsCalcs.GetPiecewiseLinearRangeIndex(gameProgress.Chance_Plaintiff_Bias_Continuous, true) + 1);
+                byte dSignal = (byte)(dmsCalcs.GetPiecewiseLinearRangeIndex(gameProgress.Chance_Defendant_Bias_Continuous, true) + 1);
+
+                gameProgress.GameComplete.Should().BeTrue();
+
+                //gameProgress.SomeoneQuits.Should().Be(false);
+                //gameProgress.PQuits.Should().Be(false);
+                //gameProgress.DQuits.Should().Be(false);
+                //gameProgress.SettlementOccurs.Should().Be(false);
+                //gameProgress.TrialOccurs.Should().Be(false);
+                //gameProgress.SettlementValue.Should().BeNull();
+                //gameProgress.ResolutionValue.Should().BeApproximately(1.0, 1E-10);
+                //gameProgress.PWelfare.Should().BeApproximately(1.0, 1E-10);
+                //gameProgress.DWelfare.Should().BeApproximately(0, 1E-10);
+                //gameProgress.POfferContinuousOrNull.Should().BeNull();
+                //gameProgress.DOfferContinuousOrNull.Should().BeNull();
+            }
+
+            
         }
 
         private static void AdditiveEvidence_TrialValue_Helper(AdditiveEvidenceGameOptions gameOptions, byte chancePlaintiffQuality, byte chanceDefendantQuality, byte chanceNeitherQuality, byte chancePlaintiffBias, byte chanceDefendantBias, byte chanceNeitherBias, bool feeShifting, bool basedOnMarginOfVictory, double feeShiftingThreshold)

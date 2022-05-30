@@ -12,8 +12,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
     {
         public AdditiveEvidenceGameOptions Options => (AdditiveEvidenceGameOptions)GameOptions;
 
-        public DMSCalc DMSCalculations; // used for piecewise linear bids.
-
         public override string ToString()
         {
             return Options.ToString();
@@ -30,8 +28,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             FurtherOptionsSetup();
 
             AdditiveEvidenceGameOptions aeOptions = (AdditiveEvidenceGameOptions)options;
-            if (aeOptions.PiecewiseLinearBids)
-                DMSCalculations = new DMSCalc(aeOptions.FeeShiftingThreshold, aeOptions.TrialCost, aeOptions.Evidence_Both_Quality);
 
             Players = GetPlayersList();
             PlayerNames = Players.Select(x => x.PlayerName).ToArray();
@@ -102,9 +98,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         void AddLinearBidDecisions(List<Decision> decisions)
         {
-            decisions.Add(new Decision("P_Slope", useAbbreviationsForSimplifiedGame ? "PSlope" : "PS", true, (byte)AdditiveEvidenceGamePlayers.Plaintiff, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte) Options.PiecewiseLinearBidsSlopeOptions.Length, (byte)AdditiveEvidenceGameDecisions.P_Slope));
+            decisions.Add(new Decision("P_Slope", useAbbreviationsForSimplifiedGame ? "PSlope" : "PS", true, (byte)AdditiveEvidenceGamePlayers.Plaintiff, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte)AdditiveEvidenceGameOptions.PiecewiseLinearBidsSlopeOptions.Length, (byte)AdditiveEvidenceGameDecisions.P_Slope));
             decisions.Add(new Decision("P_MinValueForRange", useAbbreviationsForSimplifiedGame ? "P_MinValueForRange" : "PMIN", true, (byte)AdditiveEvidenceGamePlayers.Plaintiff, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte)Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.P_MinValueForRange));
-            decisions.Add(new Decision("D_Slope", useAbbreviationsForSimplifiedGame ? "DSlope" : "DS", true, (byte)AdditiveEvidenceGamePlayers.Defendant, new byte[] { (byte)AdditiveEvidenceGamePlayers.Defendant, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte)Options.PiecewiseLinearBidsSlopeOptions.Length, (byte)AdditiveEvidenceGameDecisions.D_Slope));
+            decisions.Add(new Decision("D_Slope", useAbbreviationsForSimplifiedGame ? "DSlope" : "DS", true, (byte)AdditiveEvidenceGamePlayers.Defendant, new byte[] { (byte)AdditiveEvidenceGamePlayers.Defendant, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte)AdditiveEvidenceGameOptions.PiecewiseLinearBidsSlopeOptions.Length, (byte)AdditiveEvidenceGameDecisions.D_Slope));
             decisions.Add(new Decision("D_MinValueForRange", useAbbreviationsForSimplifiedGame ? "D_MinValueForRange" : "DMIN", true, (byte)AdditiveEvidenceGamePlayers.Defendant, new byte[] { (byte)AdditiveEvidenceGamePlayers.Defendant, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte)Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.D_MinValueForRange));
 
 

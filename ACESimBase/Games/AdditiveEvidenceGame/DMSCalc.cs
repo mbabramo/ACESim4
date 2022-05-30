@@ -8,9 +8,13 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 {
     public class DMSCalc
     {
-        double Q, C, T;
+        public double T, C, Q;
         int CaseNum;
+        Func<double, double> pUntruncFunc;
+        Func<double, double> dUntruncFunc;
         public List<(double low, double high)> pPiecewiseLinearRanges, dPiecewiseLinearRanges;
+
+        bool pAboveD, pEntirelyAboveD, dEntirelyAboveP;
         public int NumPiecewiseLinearRanges => pPiecewiseLinearRanges.Count;
 
         public DMSCalc(double t, double c, double q)
@@ -21,6 +25,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             this.C = c;
             this.T = t;
             this.CaseNum = GetCaseNum(T, C, Q);
+            (pUntruncFunc, dUntruncFunc) = GetUntruncFuncs();
+            pAboveD = PAboveD();
+            pEntirelyAboveD = PEntirelyAboveD();
+            dEntirelyAboveP = DEntirelyAboveP();
             pPiecewiseLinearRanges = GetPiecewiseLinearRanges(true);
             dPiecewiseLinearRanges = GetPiecewiseLinearRanges(false);
         }
@@ -30,10 +38,60 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public (double pBid, double dBid) GetBids(double zP, double zD)
         {
             var fs = GetUntruncFuncs();
-            return Truncated(zP, zD, fs.pUntruncFunc, fs.dUntruncFunc);
+            return Truncated(zP, zD);
         }
 
-        private (double pBid, double dBid) Truncated(double zP, double zD, Func<double, double> pUntruncFunc, Func<double, double> dUntruncFunc)
+        bool truncate = true;
+        bool includeIrrelevantTruncations = false;
+        bool standardizeTrivialEq = true; // if P's most generous bid is greater than the D's most generous bid, there will never be a settlement, regardless of the signals. This is a trivial equilibrium, and so we can standardize those.
+
+        private double Truncated(double untrunc, bool plaintiff)
+        {
+            if (!truncate)
+                return untrunc;
+            // In DMS, P bids that are always higher than D's are truncated to their min value, since they will never result in settlement anyway.
+            // Similarly, if D bids are alwayer lower than p's, 
+
+            double bid = plaintiff ? 1 : 0;
+            if (pAboveD)
+            {
+                if (standardizeTrivialEq && pEntirelyAboveD)
+                    return plaintiff ? 1.0 : 0;
+                if (includeIrrelevantTruncations)
+                {
+                    if (plaintiff)
+                        bid = Math.Min(untrunc, dUntruncFunc(1.0)); // the case won't settle whether P offers a bid higher than the highest possible D bid of just at that value in the DMS model, so these are equivalent equilibria
+                    else
+                        bid = Math.Max(pUntruncFunc(0), untrunc); // the case won't settle whether D offers a bid less than the lowest possible P bid or just at that value in the DMS model, so these are equivalent equilibria
+                }
+            }
+            else
+            {
+                if (dEntirelyAboveP)
+                {
+                    // There are also unlimited equilibria here, all of which result in settlement.
+                    // Let's narrow down to one such equilibrium, where the parties bid the midpoint of D's most aggressive (lowest) bid and P's most aggressive (highest) bid.
+                    bid = (dUntruncFunc(0.0) + pUntruncFunc(1.0)) / 2.0;
+                    if (bid < 0 && 0 <= dUntruncFunc(0.0))
+                        bid = 0;
+                    else if (bid > 1.0 && 1.0 >= pUntruncFunc(1.0))
+                        bid = 1.0;
+                }
+                else
+                {
+                    bid = plaintiff ? Math.Max(untrunc, dUntruncFunc(0.0)) : Math.Min(pUntruncFunc(1.0), untrunc);
+                }
+            }
+            bool truncateAt0And1 = false;
+            if (truncateAt0And1)
+            {
+                bid = Math.Min(bid, 1.0);
+                bid = Math.Max(bid, 0.0);
+            }
+            return bid;
+        }
+
+        private (double pBid, double dBid) Truncated(double zP, double zD)
         {
             bool truncate = true; 
             if (!truncate)
@@ -41,12 +99,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             bool includeIrrelevantTruncations = false; 
             // In DMS, P bids that are always higher than D's are truncated to their min value, since they will never result in settlement anyway.
             // Similarly, if D bids are alwayer lower than p's, 
-            bool pAboveD = PAboveD(pUntruncFunc, dUntruncFunc);
             bool standardizeTrivialEq = true; // if P's most generous bid is greater than the D's most generous bid, there will never be a settlement, regardless of the signals. This is a trivial equilibrium, and so we can standardize those.
             double pBid = 1, dBid = 0;
             if (pAboveD)
             {
-                if (standardizeTrivialEq && PAlwaysAboveD(pUntruncFunc, dUntruncFunc))
+                if (standardizeTrivialEq && pEntirelyAboveD)
                     return (1.0, 0);
                 if (includeIrrelevantTruncations)
                 {
@@ -56,7 +113,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             }
             else
             {
-                if (DAlwaysAboveP(pUntruncFunc, dUntruncFunc))
+                if (dEntirelyAboveP)
                 {
                     // There are also unlimited equilibria here, all of which result in settlement.
                     // Let's narrow down to one such equilibrium, where the parties bid the midpoint of D's most aggressive (lowest) bid and P's most aggressive (highest) bid.
@@ -83,7 +140,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             return (pBid, dBid);
         }
 
-        private bool PAboveD(Func<double, double> pUntruncFunc, Func<double, double> dUntruncFunc)
+        private bool PAboveD()
         {
 
             bool pAboveD = pUntruncFunc(1.0) > dUntruncFunc(1.0);
@@ -93,12 +150,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             return pAboveD;
         }
 
-        private bool PAlwaysAboveD(Func<double, double> pUntruncFunc, Func<double, double> dUntruncFunc)
+        private bool PEntirelyAboveD()
         {
             return pUntruncFunc(0.0) > dUntruncFunc(1.0);
         }
 
-        private bool DAlwaysAboveP(Func<double, double> pUntruncFunc, Func<double, double> dUntruncFunc)
+        private bool DEntirelyAboveP()
         {
             return pUntruncFunc(1.0) < dUntruncFunc(0.0);
         }
@@ -331,9 +388,17 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             return z - GetPiecewiseLinearRange(rangeIndex, plaintiff).low;
         }
 
-        public double GetPiecewiseLinearBid(double z, bool plaintiff, double minValForRange, double slope)
+        public double GetPiecewiseLinearBidTruncated(double z, bool plaintiff, double minValForRange, double slope)
         {
-            return minValForRange + slope * GetDistanceFromStartOfLinearRange(z, plaintiff);
+            var untrunc = GetPiecewiseLinearBidUntruncated(z, plaintiff, minValForRange, slope);
+            var trunc = Truncated(untrunc, plaintiff);
+            return trunc;
+        }
+
+        public double GetPiecewiseLinearBidUntruncated(double z, bool plaintiff, double minValForRange, double slope)
+        {
+            var untrunc = minValForRange + slope * GetDistanceFromStartOfLinearRange(z, plaintiff);
+            return untrunc;
         }
 
         public double GetPiecewiseLinearBid(double z, bool plaintiff, double slope, List<double> minForRange)
