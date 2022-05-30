@@ -10,17 +10,17 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
     {
         double Q, C, T;
         int CaseNum;
-        List<(double low, double high)> pPiecewiseLinearRanges, dPiecewiseLinearRanges;
+        public List<(double low, double high)> pPiecewiseLinearRanges, dPiecewiseLinearRanges;
         public int NumPiecewiseLinearRanges => pPiecewiseLinearRanges.Count;
 
-        public DMSCalc(double q, double c, double t)
+        public DMSCalc(double t, double c, double q)
         {
             this.Q = q;
             if (Q < 1.0 / 3.0 || Q > 2.0 / 3.0)
                 throw new ArgumentException("Invalid parameter under Dari-Mattiacci & Saraceno");
             this.C = c;
             this.T = t;
-            this.CaseNum = GetCaseNum(T, Q);
+            this.CaseNum = GetCaseNum(T, C, Q);
             pPiecewiseLinearRanges = GetPiecewiseLinearRanges(true);
             dPiecewiseLinearRanges = GetPiecewiseLinearRanges(false);
         }
@@ -107,15 +107,19 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         #region Untruncated functions
 
-        private static int GetCaseNum(double tvar, double qVar)
+        private static int GetCaseNum(double tvar, double cvar, double qvar)
         {
-            if (tvar <= qVar && qVar <= 1.0 - tvar)
+            if (tvar <= qvar && qvar <= 1.0 - tvar)
                 return 1;
-            if (qVar < tvar && tvar < 1.0 - qVar)
+            if (qvar < tvar && tvar < 1.0 - qvar)
                 return 2;
-            if (1.0 - qVar < tvar && tvar < qVar)
+            if (1.0 - qvar < tvar && tvar < qvar)
                 return 3;
-            return 4;
+            if (1 - tvar <= qvar && qvar <= tvar && cvar <= (1.0 / 6.0) * (1 - tvar) / (qvar * (1 - qvar)))
+                return 4; // case 4A
+            if (1 - tvar <= qvar && qvar <= tvar && cvar > (1.0 / 6.0) * (1 - tvar) / (qvar * (1 - qvar)))
+                return 5; // case 4B
+            throw new NotSupportedException();
         }
 
         private (Func<double, double> pUntruncFunc, Func<double, double> dUntruncFunc) GetUntruncFuncs()
@@ -129,13 +133,15 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 case 3:
                     return (Case3UntruncatedP, Case3UntruncatedD);
                 case 4:
-                    return (Case4UntruncatedP, Case4UntruncatedD);
+                    return (Case4AUntruncatedP, Case4AUntruncatedD);
+                case 5:
+                    return (Case4BUntruncatedP, Case4BUntruncatedD);
                 default:
                     throw new NotImplementedException();
             }
         }
 
-        private double GetCutoff(bool plaintiff, bool secondCutoffForCase4)
+        private double GetCutoff(bool plaintiff, bool secondCutoffForCase4A)
         {
             switch (CaseNum)
             {
@@ -146,9 +152,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 case 3:
                     return plaintiff ? (1.0 - T) / Q : 1.0 - 6.0 * C + (1.0 - T) / Q;
                 case 4:
-                    if (secondCutoffForCase4)
+                    if (secondCutoffForCase4A)
                         return plaintiff ? (1.0 - T) / Q : 1.0 - 6.0 * C + (1.0 - T) / Q;
                     return plaintiff ? 6.0 * C - 1.0 + (T - Q) / (1.0 - Q) : (T - Q) / (1.0 - Q);
+                case 5:
+                    return plaintiff ? 6.0 * C * (1 - Q) : 1 - 6.0 * C * Q;
                 default:
                     throw new NotImplementedException();
             }
@@ -159,61 +167,78 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         private double Case2UntruncatedP(double zP)
         {
-            bool caseA = zP < 6.0 * C - 1.0 + (T - Q) / (1.0 - Q);
-            if (caseA)
+            bool firstSubcase = zP < 6.0 * C - 1.0 + (T - Q) / (1.0 - Q);
+            if (firstSubcase)
                 return 1.0 / 2.0 - 3.0 * (1.0 - Q) * C + (1.0 / 3.0) * zP;
             else
                 return 1.0 / 2.0 - 3.0 * (5.0 / 6.0 - Q) * C + (1.0 / 3.0) * zP;
         }
         private double Case2UntruncatedD(double zD)
         {
-            bool caseA = zD < (T - Q) / (1.0 - Q);
-            if (caseA)
+            bool firstSubcase = zD < (T - Q) / (1.0 - Q);
+            if (firstSubcase)
                 return 1.0 / 6.0 + 3.0 * (Q - 1.0 / 3.0) * C + (1.0 / 3.0) * zD;
             else
                 return 1.0 / 6.0 + 3.0 * (Q - 1.0 / 6.0) * C + (1.0 / 3.0) * zD;
         }
         private double Case3UntruncatedP(double zP)
         {
-            bool caseA = zP <= (1.0 - T) / Q;
-            if (caseA)
+            bool firstSubcase = zP <= (1.0 - T) / Q;
+            if (firstSubcase)
                 return 1.0 / 2.0 - 3.0 * (5.0 / 6.0 - Q) * C + (1.0 / 3.0) * zP;
             else
                 return 1.0 / 2.0 - 3.0 * (2.0 / 3.0 - Q) * C + (1.0 / 3.0) * zP;
         }
         private double Case3UntruncatedD(double zD)
         {
-            bool caseA = zD <= 1.0 - 6.0 * C + (1.0 - T) / Q;
-            if (caseA)
+            bool firstSubcase = zD <= 1.0 - 6.0 * C + (1.0 - T) / Q;
+            if (firstSubcase)
                 return 1.0 / 6.0 + 3.0 * (Q - 1.0 / 6.0) * C + (1.0 / 3.0) * zD;
             else
                 return 1.0 / 6.0 + 3.0 * Q * C + (1.0 / 3.0) * zD;
         }
-        private double Case4UntruncatedP(double zP)
+        private double Case4AUntruncatedP(double zP)
         {
             double expression = 6.0 * C - 1.0 + (T - Q) / (1.0 - Q);
             double expression2 = (1.0 - T) / Q;
 
-            bool caseA = zP < expression;
+            bool firstSubcase = zP < expression;
             bool caseB = expression <= zP && zP <= expression2;
-            if (caseA)
+            if (firstSubcase)
                 return 1.0 / 2.0 - 3.0 * (1.0 - Q) * C + (1.0 / 3.0) * zP;
             else if (caseB)
                 return 1.0 / 2.0 - 3.0 * (5.0 / 6.0 - Q) * C + (1.0 / 3.0) * zP;
             else
                 return 1.0 / 2.0 - 3.0 * (2.0 / 3.0 - Q) * C + (1.0 / 3.0) * zP;
         }
-        private double Case4UntruncatedD(double zD)
+        private double Case4AUntruncatedD(double zD)
         {
             double expression = (T - Q) / (1.0 - Q);
             double expression2 = 1.0 - 6.0 * C + (1.0 - T) / Q;
 
-            bool caseA = zD < expression;
+            bool firstSubcase = zD < expression;
             bool caseB = expression <= zD && zD <= expression2;
-            if (caseA)
+            if (firstSubcase)
                 return 1.0 / 6.0 + 3.0 * (Q - 1.0 / 3.0) * C + (1.0 / 3.0) * zD;
             else if (caseB)
                 return 1.0 / 6.0 + 3.0 * (Q - 1.0 / 6.0) * C + (1.0 / 3.0) * zD;
+            else
+                return 1.0 / 6.0 + 3.0 * Q * C + (1.0 / 3.0) * zD;
+        }
+
+        private double Case4BUntruncatedP(double zP)
+        {
+            bool firstSubcase = zP < 6.0 * C * (1 - Q);
+            if (firstSubcase)
+                return 1.0 / 2.0 - 3.0 * (1.0 - Q) * C + (1.0 / 3.0) * zP;
+            else
+                return 1.0 / 2.0 - 3.0 * (2.0 / 3.0 - Q) * C + (1.0 / 3.0) * zP;
+        }
+        private double Case4BUntruncatedD(double zD)
+        {
+            bool firstSubcase = zD <= 1.0 - 6.0 * C * Q;
+            if (firstSubcase)
+                return 1.0 / 6.0 + 3.0 * (Q - 1.0 / 3.0) * C + (1.0 / 3.0) * zD;
             else
                 return 1.0 / 6.0 + 3.0 * Q * C + (1.0 / 3.0) * zD;
         }
@@ -225,8 +250,26 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             {
                 for (double qvar = 0.35; qvar <= 0.65; qvar += 0.05)
                 {
-                    int caseNum = GetCaseNum(tvar, qvar);
+                    int caseNum = GetCaseNum(tvar, C, qvar);
                     b.Append(caseNum.ToString());
+                    if (qvar != 0.65)
+                        b.Append(",");
+                }
+                b.AppendLine("");
+            }
+            return b.ToString();
+        }
+
+        public string ProduceTableOfPPiecewiseRanges()
+        {
+            StringBuilder b = new StringBuilder();
+            for (double tvar = 0.0; tvar <= 1.01; tvar += 0.05)
+            {
+                for (double qvar = 0.35; qvar <= 0.65; qvar += 0.05)
+                {
+                    DMSCalc d2 = new DMSCalc(tvar, C, qvar);
+                    int numRanges = d2.pPiecewiseLinearRanges.Count;
+                    b.Append(numRanges.ToString());
                     if (qvar != 0.65)
                         b.Append(",");
                 }
@@ -239,17 +282,23 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         #region Piecewise linear
 
-        private List<(double x, double y)> GetPiecewiseLinearRanges(bool plaintiff)
+        private List<(double low, double high)> GetPiecewiseLinearRanges(bool plaintiff)
+        {
+            return GetPiecewiseLinearRangesHelper(plaintiff).Where(x => x.high >= 0 && x.low <= 1.0).Select(x => (low: Math.Max(x.low, 0), high: Math.Min(x.high, 1))).Where(x => x.low != x.high).ToList();
+        }
+
+        private List<(double low, double high)> GetPiecewiseLinearRangesHelper(bool plaintiff)
         {
             switch (CaseNum)
             {
                 case 1:
-                    return new List<(double x, double y)>() { (0, 1.0) };
+                    return new List<(double x, double y)>() { (double.NegativeInfinity, double.PositiveInfinity) };
                 case 2:
                 case 3:
-                    return new List<(double x, double y)>() { (0, GetCutoff(plaintiff, false)), (GetCutoff(plaintiff, false), 1.0) };
+                case 5:
+                    return new List<(double x, double y)>() { (double.NegativeInfinity, GetCutoff(plaintiff, false)), (GetCutoff(plaintiff, false), double.PositiveInfinity) };
                 case 4:
-                    return new List<(double x, double y)>() { (0, GetCutoff(plaintiff, false)), (GetCutoff(plaintiff, false), GetCutoff(plaintiff, true)), (GetCutoff(plaintiff, true), 1.0) };
+                    return new List<(double x, double y)>() { (double.NegativeInfinity, GetCutoff(plaintiff, false)), (GetCutoff(plaintiff, false), GetCutoff(plaintiff, true)), (GetCutoff(plaintiff, true), double.PositiveInfinity) };
                 default:
                     throw new Exception();
             }
@@ -258,10 +307,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public byte GetPiecewiseLinearRangeIndex(double z, bool plaintiff)
         {
             var ranges = plaintiff ? pPiecewiseLinearRanges : dPiecewiseLinearRanges;
-            byte i = 1;
+            byte i = 0;
             foreach (var range in ranges)
             {
-                if (z >= range.low && z < range.high)
+                if (z >= range.low && (z < range.high || (z == 1.0 && z == range.high)))
                 {
                     return i;
                 }

@@ -48,11 +48,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     AdditiveEvidenceProgress.DSlope = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, AdditiveEvidenceDefinition.Options.PiecewiseLinearBidsSlopeOptions.Length, false);
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.D_MinValueForRange:
-                    double minForPiecewiseLinearSegment2 = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, AdditiveEvidenceDefinition.Options.NumOffers, false);
-                    AdditiveEvidenceProgress.DMinValueForRange = minForPiecewiseLinearSegment2;
-                    bool settled = AdditiveEvidenceProgress.PiecewiseLinearPOffer <= AdditiveEvidenceProgress.PiecewiseLinearDOffer;
-                    if (settled)
-                        AdditiveEvidenceProgress.GameComplete = true;
+                    // DEBUG -- delete following
+                    //double minForPiecewiseLinearSegment2 = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, AdditiveEvidenceDefinition.Options.NumOffers, false);
+                    //AdditiveEvidenceProgress.DMinValueForRange = minForPiecewiseLinearSegment2;
+                    //bool settled = AdditiveEvidenceProgress.PiecewiseLinearPOffer <= AdditiveEvidenceProgress.PiecewiseLinearDOffer;
+                    //if (settled)
+                    AdditiveEvidenceProgress.GameComplete = true; // with piecewise linear offers, we always end after defendant's announcement of line
                     break;
 
                 case (byte)AdditiveEvidenceGameDecisions.PQuit:

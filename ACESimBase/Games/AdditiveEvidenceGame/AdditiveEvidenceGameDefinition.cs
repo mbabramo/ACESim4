@@ -31,7 +31,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
             AdditiveEvidenceGameOptions aeOptions = (AdditiveEvidenceGameOptions)options;
             if (aeOptions.PiecewiseLinearBids)
-                DMSCalculations = new DMSCalc(aeOptions.Evidence_Both_Quality, aeOptions.TrialCost, aeOptions.FeeShiftingThreshold);
+                DMSCalculations = new DMSCalc(aeOptions.FeeShiftingThreshold, aeOptions.TrialCost, aeOptions.Evidence_Both_Quality);
 
             Players = GetPlayersList();
             PlayerNames = Players.Select(x => x.PlayerName).ToArray();
@@ -131,10 +131,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 //DistributorChanceInputDecision = true,
                 //DistributableDistributorChanceInput = true,
                 ProvidesPrivateInformationFor = (byte)AdditiveEvidenceGamePlayers.Defendant,
-                CanTerminateGame = Options.PiecewiseLinearBids
+                CanTerminateGame = false
             });
             if (Options.Alpha_Bias > 0 && Options.Alpha_Plaintiff_Bias > 0)
-                decisions.Add(new Decision("Chance_Plaintiff_Bias", "PB", true, (byte)AdditiveEvidenceGamePlayers.Chance_Plaintiff_Bias, Options.PiecewiseLinearBids ? new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution } : new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias)
+                decisions.Add(new Decision("Chance_Plaintiff_Bias", "PB", true, (byte)AdditiveEvidenceGamePlayers.Chance_Plaintiff_Bias, Options.PiecewiseLinearBids && false /* DEBUG */ ? new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution } : new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias)
             {
                 IsReversible = true,
                 Unroll_Parallelize = true,
@@ -145,7 +145,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 RequiresCustomInformationSetManipulation = Options.PiecewiseLinearBids
             });
             if (Options.Alpha_Bias > 0 && Options.Alpha_Defendant_Bias > 0)
-                decisions.Add(new Decision("Chance_Defendant_Bias", "DB", true, (byte)AdditiveEvidenceGamePlayers.Chance_Defendant_Bias, Options.PiecewiseLinearBids ? new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution } : new byte[] { (byte)AdditiveEvidenceGamePlayers.Defendant, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias)
+                decisions.Add(new Decision("Chance_Defendant_Bias", "DB", true, (byte)AdditiveEvidenceGamePlayers.Chance_Defendant_Bias, Options.PiecewiseLinearBids && false /* DEBUG */ ? new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution } : new byte[] { (byte)AdditiveEvidenceGamePlayers.Defendant, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias)
             {
                 IsReversible = true,
                 Unroll_Parallelize = true,
@@ -154,7 +154,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 //DistributableDistributorChanceInput = true,
                 ProvidesPrivateInformationFor = (byte)AdditiveEvidenceGamePlayers.Defendant,
                 RequiresCustomInformationSetManipulation = Options.PiecewiseLinearBids,
-                CanTerminateGame = Options.PiecewiseLinearBids
+                CanTerminateGame = false
             });
         }
         void AddQuitDecisions(List<Decision> decisions)
@@ -250,24 +250,13 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.D_MinValueForRange:
                     if (!((Options.Alpha_Quality > 0 && Options.Alpha_Neither_Quality > 0) || (Options.Alpha_Bias > 0 && Options.Alpha_Neither_Bias > 0)))
-                        return true; // if no more chance decisions, defendant offer certainly ends it
+                        return true; // if no more chance decisions, defendant completion of linear offer certainly ends it
                     throw new NotImplementedException(); // not planning to use piecewise linear in conjunction with quality decisions.
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Quality:
-                    if (Options.PiecewiseLinearBids)
-                    {
-                        if (!(Options.Alpha_Bias > 0))
-                            return true;
-                    }
                     return false;
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias:
-                    if (Options.PiecewiseLinearBids)
-                    {
-                        if (!(Options.Alpha_Bias > 0 && Options.Alpha_Neither_Bias > 0))
-                            return true;
-                        throw new NotImplementedException(); // if we start using the "neither bias" category, then we need to implement this, following the logic in the game class to determine whether the linear bids produce a settlement. Possibly, easiest thing to do will be to just create a progress object, pass the options to it, and then do the calculations from there. This defeats the purpose of using the game definition class, but that is likely not critical here.
-                    }
                     return false;
-                    case (byte)AdditiveEvidenceGameDecisions.Chance_Neither_Quality:
+                case (byte)AdditiveEvidenceGameDecisions.Chance_Neither_Quality:
                         return !(Options.Alpha_Bias > 0 && Options.Alpha_Neither_Bias > 0); // if there is no bias decision to make, then we're done after the quality decision
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Neither_Bias:
                     return true;
@@ -277,14 +266,15 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory, GameProgress gameProgress)
         {
-            if (currentDecision.DecisionByteCode == (byte) AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias || currentDecision.DecisionByteCode == (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias)
-            {
-                bool plaintiff = currentDecision.DecisionByteCode == (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias;
-                byte playerIndex = plaintiff ? (byte)AdditiveEvidenceGamePlayers.Plaintiff : (byte)AdditiveEvidenceGamePlayers.Defendant;
-                double z = EquallySpaced.GetLocationOfEquallySpacedPoint(actionChosen - 1 /* make it zero-based */, Options.NumQualityAndBiasLevels_PrivateInfo, false);
-                byte regionIndex = DMSCalculations.GetPiecewiseLinearRangeIndex(z, plaintiff: plaintiff);
-                gameHistory.AddToInformationSetLog(regionIndex, currentDecisionIndex, playerIndex, new byte[] { (byte)playerIndex }, gameProgress);
-            }
+            // DEBUG
+            //if (currentDecision.DecisionByteCode == (byte) AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias || currentDecision.DecisionByteCode == (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias)
+            //{
+            //    bool plaintiff = currentDecision.DecisionByteCode == (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias;
+            //    byte playerIndex = plaintiff ? (byte)AdditiveEvidenceGamePlayers.Plaintiff : (byte)AdditiveEvidenceGamePlayers.Defendant;
+            //    double z = EquallySpaced.GetLocationOfEquallySpacedPoint(actionChosen - 1 /* make it zero-based */, Options.NumQualityAndBiasLevels_PrivateInfo, false);
+            //    byte regionIndex = DMSCalculations.GetPiecewiseLinearRangeIndex(z, plaintiff: plaintiff);
+            //    gameHistory.AddToInformationSetLog(regionIndex, currentDecisionIndex, playerIndex, new byte[] { (byte)playerIndex }, gameProgress);
+            //}
             base.CustomInformationSetManipulation(currentDecision, currentDecisionIndex, actionChosen, ref gameHistory, gameProgress);
         }
 

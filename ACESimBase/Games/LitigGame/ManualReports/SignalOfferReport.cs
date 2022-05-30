@@ -34,7 +34,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             int numOffers = options.NumOffers;
             bool includeEndpointsForOffers = false;
 
-            DMSCalc calc = new DMSCalc(options.Evidence_Both_Quality, options.TrialCost, options.FeeShiftingThreshold);
+            DMSCalc calc = new DMSCalc(options.FeeShiftingThreshold, options.TrialCost, options.Evidence_Both_Quality);
             List<(double p, double d)> dmsBids = Enumerable.Range(0, 999).Select(x => 0.0005 + (double)x / 1000.0).Select(x => calc.GetBids(x, x)).ToList();
 
             return CompleteReport(reportType, signalOfferReportGameProgresses, null, null, pDamagesSignalFunc, dDamagesSignalFunc, null, null, pDamagesSignals, dDamagesSignals, useLiabilitySignals, numSignals, numOffers, includeEndpointsForOffers, dmsBids);

@@ -188,6 +188,114 @@ namespace ACESimTest
 
         }
 
+        [TestMethod]
+        public void AdditiveEvidence_DMSCalculations()
+        {
+            DMSCalc dmsCalcHighCost = new DMSCalc(0.5, 0.5, 0.5);
+            string tableOfCases = dmsCalcHighCost.ProduceTableOfCases();
+            string expected = @"1,1,1,1,1,1,1
+1,1,1,1,1,1,1
+1,1,1,1,1,1,1
+1,1,1,1,1,1,1
+1,1,1,1,1,1,1
+1,1,1,1,1,1,1
+1,1,1,1,1,1,1
+1,1,1,1,1,1,1
+2,1,1,1,1,1,3
+2,2,1,1,1,3,3
+2,2,2,1,3,3,3
+2,2,2,5,5,3,3
+2,2,5,5,5,5,3
+5,5,5,5,5,5,5
+5,5,5,5,5,5,5
+5,5,5,5,5,5,5
+5,5,5,5,5,5,5
+5,5,5,5,5,5,5
+5,5,5,5,5,5,5
+5,5,5,5,5,5,5
+5,5,5,5,5,5,5
+";
+            tableOfCases.Should().Be(expected);
+            DMSCalc dmsCalcLowCost = new DMSCalc(0.5, 0.02, 0.5);
+            tableOfCases = dmsCalcLowCost.ProduceTableOfCases();
+            expected = @"1,1,1,1,1,1,1
+1,1,1,1,1,1,1
+1,1,1,1,1,1,1
+1,1,1,1,1,1,1
+1,1,1,1,1,1,1
+1,1,1,1,1,1,1
+1,1,1,1,1,1,1
+1,1,1,1,1,1,1
+2,1,1,1,1,1,3
+2,2,1,1,1,3,3
+2,2,2,1,3,3,3
+2,2,2,4,4,3,3
+2,2,4,4,4,4,3
+4,4,4,4,4,4,4
+4,4,4,4,4,4,4
+4,4,4,4,4,4,4
+4,4,4,4,4,4,4
+4,4,4,4,4,4,4
+4,4,4,4,4,4,4
+4,4,4,4,4,4,4
+5,5,5,5,5,5,5
+";
+            tableOfCases.Should().Be(expected);
+            var dmsCalc_T80_C10_Q50 = new DMSCalc(0.8, 0.10, 0.5); // should be case 4A
+            dmsCalc_T80_C10_Q50.pPiecewiseLinearRanges.Count.Should().Be(3);
+            // Make sure that linear ranges span from 0 to 1. Also, make sure that we get the right range index for a number in the range.
+            for (double tvar = 0.0; tvar <= 1.01; tvar += 0.05)
+            {
+                foreach (double cvar in new double[] {0, 0.02, 0.1, 0.2, 0.5, 1.0})
+                {
+                    for (double qvar = 0.35; qvar <= 0.65; qvar += 0.05)
+                    {
+                        DMSCalc dmsCalc = new DMSCalc(tvar, cvar, qvar);
+                        for (int i = 0; i < dmsCalc.pPiecewiseLinearRanges.Count; i++)
+                        {
+                            var range = dmsCalc.pPiecewiseLinearRanges[i];
+                            if (i == 0)
+                                range.low.Should().Be(0);
+                            if (i == dmsCalc.pPiecewiseLinearRanges.Count - 1)
+                                range.high.Should().Be(1);
+                            else range.high.Should().Be(dmsCalc.pPiecewiseLinearRanges[i + 1].low); // high should be low of next range
+                            double midpoint = 0.5 * range.low + 0.5 * range.high;
+                            byte rangeIndex = dmsCalc.GetPiecewiseLinearRangeIndex(midpoint, plaintiff: true);
+                            rangeIndex.Should().Be((byte)i);
+                            try // DEBUG
+                            {
+                                dmsCalc.GetDistanceFromStartOfLinearRange(midpoint, plaintiff: true).Should().BeApproximately(midpoint - range.low, 0.001);
+                            }
+                            catch
+                            {
+
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        [TestMethod]
+        public void AdditiveEvidence_PiecewiseLinear()
+        {
+            var gameOptions = GetOptions();
+            gameOptions.PiecewiseLinearBids = true;
+            Func<Decision, GameProgress, byte> actionsToPlay = AdditiveActionsGameActionsGenerator.PlaySpecifiedDecisions();
+            var gameProgress = AdditiveEvidenceGameLauncher.PlayAdditiveEvidenceGameOnce(gameOptions, actionsToPlay);
+            gameProgress.SomeoneQuits.Should().Be(false);
+            gameProgress.PQuits.Should().Be(false);
+            gameProgress.DQuits.Should().Be(false);
+            gameProgress.SettlementOccurs.Should().Be(false);
+            gameProgress.TrialOccurs.Should().Be(false);
+            gameProgress.SettlementValue.Should().BeNull();
+            gameProgress.ResolutionValue.Should().BeApproximately(1.0, 1E-10);
+            gameProgress.PWelfare.Should().BeApproximately(1.0, 1E-10);
+            gameProgress.DWelfare.Should().BeApproximately(0, 1E-10);
+            gameProgress.POfferContinuousOrNull.Should().BeNull();
+            gameProgress.DOfferContinuousOrNull.Should().BeNull();
+        }
+
         private static void AdditiveEvidence_TrialValue_Helper(AdditiveEvidenceGameOptions gameOptions, byte chancePlaintiffQuality, byte chanceDefendantQuality, byte chanceNeitherQuality, byte chancePlaintiffBias, byte chanceDefendantBias, byte chanceNeitherBias, bool feeShifting, bool basedOnMarginOfVictory, double feeShiftingThreshold)
         {
             GetOptionsAndProgress(gameOptions, chancePlaintiffQuality, chanceDefendantQuality, chanceNeitherQuality, chancePlaintiffBias, chanceDefendantBias, chanceNeitherBias, 3, 2, out double chancePQualityDouble, out double chanceDQualityDouble, out double chanceNQualityDouble, out double chancePBiasDouble, out double chanceDBiasDouble, out double chanceNBiasDouble, out AdditiveEvidenceGameProgress gameProgress);
