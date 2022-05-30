@@ -112,7 +112,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         void AddInitialChanceDecisions(List<Decision> decisions)
         {
-            // DEBUG; // must inform each player of the bias based on their range.
             if (Options.Alpha_Quality > 0 && Options.Alpha_Plaintiff_Quality > 0)
                 decisions.Add(new Decision("Chance_Plaintiff_Quality", useAbbreviationsForSimplifiedGame ? "PInfo" : "PQ", true, (byte)AdditiveEvidenceGamePlayers.Chance_Plaintiff_Quality, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte) AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Quality)
             {
@@ -135,7 +134,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 CanTerminateGame = Options.PiecewiseLinearBids
             });
             if (Options.Alpha_Bias > 0 && Options.Alpha_Plaintiff_Bias > 0)
-                decisions.Add(new Decision("Chance_Plaintiff_Bias", "PB", true, (byte)AdditiveEvidenceGamePlayers.Chance_Plaintiff_Bias, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias)
+                decisions.Add(new Decision("Chance_Plaintiff_Bias", "PB", true, (byte)AdditiveEvidenceGamePlayers.Chance_Plaintiff_Bias, Options.PiecewiseLinearBids ? new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution } : new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias)
             {
                 IsReversible = true,
                 Unroll_Parallelize = true,
@@ -145,7 +144,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 ProvidesPrivateInformationFor = (byte)AdditiveEvidenceGamePlayers.Plaintiff
             });
             if (Options.Alpha_Bias > 0 && Options.Alpha_Defendant_Bias > 0)
-                decisions.Add(new Decision("Chance_Defendant_Bias", "DB", true, (byte)AdditiveEvidenceGamePlayers.Chance_Defendant_Bias, new byte[] { (byte)AdditiveEvidenceGamePlayers.Defendant, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias)
+                decisions.Add(new Decision("Chance_Defendant_Bias", "DB", true, (byte)AdditiveEvidenceGamePlayers.Chance_Defendant_Bias, Options.PiecewiseLinearBids ? new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution } : new byte[] { (byte)AdditiveEvidenceGamePlayers.Defendant, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias)
             {
                 IsReversible = true,
                 Unroll_Parallelize = true,
@@ -248,8 +247,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                         return true;
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.D_MinValueForRange:
-                    // DEBUG
-                    break;
+                    if (!((Options.Alpha_Quality > 0 && Options.Alpha_Neither_Quality > 0) || (Options.Alpha_Bias > 0 && Options.Alpha_Neither_Bias > 0)))
+                        return true; // if no more chance decisions, defendant offer certainly ends it
+                    throw new NotImplementedException(); // not planning to use piecewise linear in conjunction with quality decisions.
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Quality:
                     if (Options.PiecewiseLinearBids)
                     {
@@ -271,6 +271,24 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     return true;
             }
             return false;
+        }
+
+        public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory, GameProgress gameProgress)
+        {
+            if (currentDecision.DecisionByteCode == (byte) AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias || currentDecision.DecisionByteCode == (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias)
+            {
+                bool plaintiff = currentDecision.DecisionByteCode == (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias;
+                byte playerIndex = plaintiff ? (byte)AdditiveEvidenceGamePlayers.Plaintiff : (byte)AdditiveEvidenceGamePlayers.Defendant;
+                AdditiveEvidenceGameProgress aeProgress = (AdditiveEvidenceGameProgress)gameProgress;
+                double z = EquallySpaced.GetLocationOfEquallySpacedPoint(actionChosen - 1 /* make it zero-based */, Options.NumQualityAndBiasLevels_PrivateInfo, false);
+                byte regionIndex = aeProgress.PiecewiseLinearCalcs.GetPiecewiseLinearRangeIndex(z, plaintiff: plaintiff);
+                gameHistory.AddToInformationSetLog(regionIndex, currentDecisionIndex, playerIndex, new byte[] { (byte)playerIndex }, gameProgress);
+                if (plaintiff)
+                    aeProgress.PPiecewiseLinearRangeIndex = regionIndex;
+                else
+                    aeProgress.DPiecewiseLinearRangeIndex = regionIndex;
+            }
+            base.CustomInformationSetManipulation(currentDecision, currentDecisionIndex, actionChosen, ref gameHistory, gameProgress);
         }
 
         private void FurtherOptionsSetup()

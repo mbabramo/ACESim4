@@ -358,7 +358,7 @@ namespace ACESim
 
 #region Player information sets
 
-        private void AddToInformationSetLog(byte information, byte informationIsKnownFollowingDecisionIndex, byte playerIndex, byte[] playersToInform, GameProgress gameProgress)
+        public void AddToInformationSetLog(byte information, byte informationIsKnownFollowingDecisionIndex, byte playerIndex, byte[] playersToInform, GameProgress gameProgress)
         {
             if (playersToInform == null)
                 return;
