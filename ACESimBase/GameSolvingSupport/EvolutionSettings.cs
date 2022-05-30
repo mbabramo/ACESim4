@@ -96,7 +96,7 @@ namespace ACESim
 
         public bool GenerateReportsByPlaying = true;
         public int NumRandomIterationsForSummaryTable = 1_000;
-        public bool PrintGameTree = false;
+        public bool PrintGameTree = true; // DEBUG
         public bool PrintedGameTreeIncludesInformationSetData = true;
         public bool PrintInformationSets = false;
         public bool AnalyzeInformationSets = false; 

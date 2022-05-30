@@ -28,7 +28,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public DMSCalc PiecewiseLinearCalcs => AdditiveEvidenceGameDefinition.DMSCalculations;
         public bool PiecewiseLinearActive => PiecewiseLinearCalcs != null;
-        public byte PPiecewiseLinearRangeIndex, DPiecewiseLinearRangeIndex;
         public double PSlope, DSlope, PMinValueForRange, DMinValueForRange;
 
         public double PiecewiseLinearPOffer => PiecewiseLinearCalcs.GetPiecewiseLinearBid(Chance_Plaintiff_Bias_Continuous, true, PMinValueForRange, PSlope);
@@ -232,8 +231,6 @@ AccuracyIgnoringCosts {Accuracy} Accuracy_ForPlaintiff {Accuracy_ForPlaintiff} A
             copy.DOffer = DOffer;
             copy.Chance_Neither_Quality = Chance_Neither_Quality;
             copy.Chance_Neither_Bias = Chance_Neither_Bias;
-            copy.PPiecewiseLinearRangeIndex = PPiecewiseLinearRangeIndex;
-            copy.DPiecewiseLinearRangeIndex = DPiecewiseLinearRangeIndex;
             copy.PSlope = PSlope;
             copy.DSlope = DSlope;
             copy.PMinValueForRange = PMinValueForRange;

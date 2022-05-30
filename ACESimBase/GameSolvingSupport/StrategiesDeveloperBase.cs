@@ -1217,6 +1217,7 @@ namespace ACESim
             stopwatch.Stop();
             string informationSetsString = StoreGameStateNodesInLists ? $" Total information sets: {InformationSets.Count()} chance nodes: {ChanceNodes.Count()} final nodes: {FinalUtilitiesNodes.Count()}" : "";
             TabbedText.WriteLine($"... {informationSetsString} Initialization milliseconds {stopwatch.ElapsedMilliseconds}");
+            PrintGameTree(); // DEBUG
         }
 
         public void CalculateMinMax()
@@ -1692,7 +1693,7 @@ namespace ACESim
         {
             bool original = TraceTreeWalk;
             TraceTreeWalk = false;
-            if (EvolutionSettings.PrintedGameTreeIncludesInformationSetData)
+            if (EvolutionSettings.PrintedGameTreeIncludesInformationSetData && false /* DEBUG */)
             {
                 ConstructGameTreeInformationSetInfo processor = new ConstructGameTreeInformationSetInfo(GameDefinition);
                 TreeWalk_Tree(processor);
