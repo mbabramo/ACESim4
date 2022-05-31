@@ -98,12 +98,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         void AddLinearBidDecisions(List<Decision> decisions)
         {
-            decisions.Add(new Decision("P_Slope", useAbbreviationsForSimplifiedGame ? "PSlope" : "PS", true, (byte)AdditiveEvidenceGamePlayers.Plaintiff, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte)AdditiveEvidenceGameOptions.PiecewiseLinearBidsSlopeOptions.Length, (byte)AdditiveEvidenceGameDecisions.P_Slope));
+            decisions.Add(new Decision("P_Slope", useAbbreviationsForSimplifiedGame ? "PSlope" : "PSL", true, (byte)AdditiveEvidenceGamePlayers.Plaintiff, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte)AdditiveEvidenceGameOptions.PiecewiseLinearBidsSlopeOptions.Length, (byte)AdditiveEvidenceGameDecisions.P_Slope));
             decisions.Add(new Decision("P_MinValueForRange", useAbbreviationsForSimplifiedGame ? "P_MinValueForRange" : "PMIN", true, (byte)AdditiveEvidenceGamePlayers.Plaintiff, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte)Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.P_MinValueForRange));
-            decisions.Add(new Decision("D_Slope", useAbbreviationsForSimplifiedGame ? "DSlope" : "DS", true, (byte)AdditiveEvidenceGamePlayers.Defendant, new byte[] { (byte)AdditiveEvidenceGamePlayers.Defendant, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte)AdditiveEvidenceGameOptions.PiecewiseLinearBidsSlopeOptions.Length, (byte)AdditiveEvidenceGameDecisions.D_Slope));
+            decisions.Add(new Decision("P_TruncationPortion", useAbbreviationsForSimplifiedGame ? "P_TruncationPortion" : "PTR", true, (byte)AdditiveEvidenceGamePlayers.Plaintiff, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte)Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.P_TruncationPortion));
+            decisions.Add(new Decision("D_Slope", useAbbreviationsForSimplifiedGame ? "DSlope" : "DSL", true, (byte)AdditiveEvidenceGamePlayers.Defendant, new byte[] { (byte)AdditiveEvidenceGamePlayers.Defendant, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte)AdditiveEvidenceGameOptions.PiecewiseLinearBidsSlopeOptions.Length, (byte)AdditiveEvidenceGameDecisions.D_Slope));
             decisions.Add(new Decision("D_MinValueForRange", useAbbreviationsForSimplifiedGame ? "D_MinValueForRange" : "DMIN", true, (byte)AdditiveEvidenceGamePlayers.Defendant, new byte[] { (byte)AdditiveEvidenceGamePlayers.Defendant, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte)Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.D_MinValueForRange));
-
-
+            decisions.Add(new Decision("D_TruncationPortion", useAbbreviationsForSimplifiedGame ? "D_TruncationPortion" : "DTR", true, (byte)AdditiveEvidenceGamePlayers.Defendant, new byte[] { (byte)AdditiveEvidenceGamePlayers.Defendant, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte)Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.D_TruncationPortion) { CanTerminateGame = true });
         }
 
         void AddInitialChanceDecisions(List<Decision> decisions)
@@ -244,10 +244,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     if (defendantOffer >= plaintiffOffer)
                         return true;
                     break;
-                case (byte)AdditiveEvidenceGameDecisions.D_MinValueForRange:
-                    if (!((Options.Alpha_Quality > 0 && Options.Alpha_Neither_Quality > 0) || (Options.Alpha_Bias > 0 && Options.Alpha_Neither_Bias > 0)))
-                        return true; // if no more chance decisions, defendant completion of linear offer certainly ends it
-                    throw new NotImplementedException(); // not planning to use piecewise linear in conjunction with quality decisions.
+                case (byte)AdditiveEvidenceGameDecisions.D_TruncationPortion:
+                    return true;
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Quality:
                     return false;
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias:

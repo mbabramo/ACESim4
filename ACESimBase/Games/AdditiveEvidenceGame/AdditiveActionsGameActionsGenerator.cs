@@ -7,7 +7,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 {
     public static class AdditiveActionsGameActionsGenerator
     {
-        public static Func<Decision, GameProgress, byte> PlaySpecifiedDecisions(byte chancePlaintiffQuality = 1, byte chanceDefendantQuality = 1, byte chancePlaintiffBias = 1, byte chanceDefendantBias=1, byte pOffer=1, byte dOffer=1, byte chanceNeitherQuality=1, byte chanceNeitherBias=1, bool pQuit = false, bool dQuit = false, byte pSlope = 2, byte dSlope = 2, byte pMinValForRange = 3, byte dMinValForRange = 2)
+        public static Func<Decision, GameProgress, byte> PlaySpecifiedDecisions(byte chancePlaintiffQuality = 1, byte chanceDefendantQuality = 1, byte chancePlaintiffBias = 1, byte chanceDefendantBias=1, byte pOffer=1, byte dOffer=1, byte chanceNeitherQuality=1, byte chanceNeitherBias=1, bool pQuit = false, bool dQuit = false, byte pSlope = 2, byte dSlope = 2, byte pMinValForRange = 3, byte dMinValForRange = 2, byte pTruncationPortion = 2, byte dTruncationPortion = 2)
         {
             return (d, p) =>
             {
@@ -41,6 +41,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                         return pMinValForRange;
                     case AdditiveEvidenceGameDecisions.D_MinValueForRange:
                         return dMinValForRange;
+                    case AdditiveEvidenceGameDecisions.P_TruncationPortion:
+                        return pTruncationPortion;
+                    case AdditiveEvidenceGameDecisions.D_TruncationPortion:
+                        return dTruncationPortion;
 
                     default:
                         throw new NotSupportedException();

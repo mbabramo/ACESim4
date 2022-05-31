@@ -41,10 +41,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             }
         }
         public bool PiecewiseLinearActive => AdditiveEvidenceGameOptions.PiecewiseLinearBids;
-        public double PSlope, DSlope, PMinValueForRange, DMinValueForRange;
+        public double PSlope, DSlope, PMinValueForRange, DMinValueForRange, PTruncationPortion, DTruncationPortion;
 
-        public double PiecewiseLinearPOffer => PiecewiseLinearCalcs.GetPiecewiseLinearBidTruncated(Chance_Plaintiff_Bias_Continuous, true, PMinValueForRange, PSlope);
-        public double PiecewiseLinearDOffer => PiecewiseLinearCalcs.GetPiecewiseLinearBidTruncated(Chance_Defendant_Bias_Continuous, false, DMinValueForRange, DSlope);
+        public double PiecewiseLinearPOffer => PiecewiseLinearCalcs.GetPiecewiseLinearBidTruncated(Chance_Plaintiff_Bias_Continuous, true, PMinValueForRange, PSlope, PTruncationPortion);
+        public double PiecewiseLinearDOffer => PiecewiseLinearCalcs.GetPiecewiseLinearBidTruncated(Chance_Defendant_Bias_Continuous, false, DMinValueForRange, DSlope, DTruncationPortion);
 
         // Chance information (where each party has individual information, as joint information is set as a game parameter)
 

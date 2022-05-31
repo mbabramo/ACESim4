@@ -382,23 +382,29 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             return range;
         }
 
-        public double GetDistanceFromStartOfLinearRange(double z, bool plaintiff)
+        public double GetTruncatedDistanceFromStartOfLinearRange(double z, bool plaintiff, double truncationPortion)
         {
             byte rangeIndex = GetPiecewiseLinearRangeIndex(z, plaintiff);
-            return z - GetPiecewiseLinearRange(rangeIndex, plaintiff).low;
+            (double low, double high) range = GetPiecewiseLinearRange(rangeIndex, plaintiff);
+            if (plaintiff)
+            {
+                double threshold = range.low + truncationPortion * (range.high - range.low);
+                if (z < threshold)
+                    z = threshold;
+            }
+            else
+            {
+                double threshold = range.low + (1.0 - truncationPortion) * (range.high - range.low);
+                if (z > threshold)
+                    z = threshold;
+            }
+            return z - range.low;
         }
 
-        public double GetPiecewiseLinearBidTruncated(double z, bool plaintiff, double minValForRange, double slope)
+        public double GetPiecewiseLinearBidTruncated(double z, bool plaintiff, double minValForRange, double slope, double truncationPortion)
         {
-            var untrunc = GetPiecewiseLinearBidUntruncated(z, plaintiff, minValForRange, slope);
-            var trunc = Truncated(untrunc, plaintiff);
-            return trunc;
-        }
-
-        public double GetPiecewiseLinearBidUntruncated(double z, bool plaintiff, double minValForRange, double slope)
-        {
-            var untrunc = minValForRange + slope * GetDistanceFromStartOfLinearRange(z, plaintiff);
-            return untrunc;
+            var bid = minValForRange + slope * GetTruncatedDistanceFromStartOfLinearRange(z, plaintiff, truncationPortion);
+            return bid;
         }
 
         public double GetPiecewiseLinearBid(double z, bool plaintiff, double slope, List<double> minForRange)

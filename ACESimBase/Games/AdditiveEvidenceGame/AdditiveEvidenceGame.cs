@@ -44,6 +44,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     double minForPiecewiseLinearSegment = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, AdditiveEvidenceDefinition.Options.NumOffers, false);
                     AdditiveEvidenceProgress.PMinValueForRange = minForPiecewiseLinearSegment;
                     break;
+                case (byte)AdditiveEvidenceGameDecisions.P_TruncationPortion:
+                    AdditiveEvidenceProgress.PTruncationPortion = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1, AdditiveEvidenceGameOptions.NumTruncationPortions, true);
+                    break;
                 case (byte)AdditiveEvidenceGameDecisions.D_Slope:
                     AdditiveEvidenceProgress.DSlope = AdditiveEvidenceGameOptions.PiecewiseLinearBidsSlopeOptions[action - 1];
 
@@ -51,6 +54,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 case (byte)AdditiveEvidenceGameDecisions.D_MinValueForRange:
                     double minForPiecewiseLinearSegment2 = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, AdditiveEvidenceDefinition.Options.NumOffers, false);
                     AdditiveEvidenceProgress.DMinValueForRange = minForPiecewiseLinearSegment2;
+                    break;
+                case (byte)AdditiveEvidenceGameDecisions.D_TruncationPortion:
+                    AdditiveEvidenceProgress.DTruncationPortion = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1, AdditiveEvidenceGameOptions.NumTruncationPortions, true);
                     AdditiveEvidenceProgress.GameComplete = true; // with piecewise linear offers, we always end after defendant's announcement of line
                     break;
 

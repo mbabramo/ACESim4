@@ -262,7 +262,7 @@ namespace ACESimTest
                             double midpoint = 0.5 * range.low + 0.5 * range.high;
                             byte rangeIndex = dmsCalc.GetPiecewiseLinearRangeIndex(midpoint, plaintiff: true);
                             rangeIndex.Should().Be((byte)i);
-                            dmsCalc.GetDistanceFromStartOfLinearRange(midpoint, plaintiff: true).Should().BeApproximately(midpoint - range.low, 0.001);
+                            dmsCalc.GetTruncatedDistanceFromStartOfLinearRange(midpoint, true, 0).Should().BeApproximately(midpoint - range.low, 0.001);
                         }
                     }
                 }
