@@ -394,7 +394,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             }
             else
             {
-                double threshold = range.low + (1.0 - truncationPortion) * (range.high - range.low);
+                double threshold = range.high - truncationPortion * (range.high - range.low);
                 if (z > threshold)
                     z = threshold;
             }

@@ -244,6 +244,7 @@ namespace ACESimTest
             var dmsCalc_T80_C10_Q50 = new DMSCalc(0.8, 0.10, 0.5); // should be case 4A
             dmsCalc_T80_C10_Q50.pPiecewiseLinearRanges.Count.Should().Be(3);
             // Make sure that linear ranges span from 0 to 1. Also, make sure that we get the right range index for a number in the range.
+            int counter = 0;
             for (double tvar = 0.0; tvar <= 1.01; tvar += 0.05)
             {
                 foreach (double cvar in new double[] {0, 0.02, 0.1, 0.2, 0.5, 1.0})
@@ -262,7 +263,26 @@ namespace ACESimTest
                             double midpoint = 0.5 * range.low + 0.5 * range.high;
                             byte rangeIndex = dmsCalc.GetPiecewiseLinearRangeIndex(midpoint, plaintiff: true);
                             rangeIndex.Should().Be((byte)i);
+                            counter++;
                             dmsCalc.GetTruncatedDistanceFromStartOfLinearRange(midpoint, true, 0).Should().BeApproximately(midpoint - range.low, 0.001);
+                            dmsCalc.GetTruncatedDistanceFromStartOfLinearRange(midpoint, true, 0.45).Should().BeApproximately(midpoint - range.low, 0.001); // this truncation has no effect
+                            dmsCalc.GetTruncatedDistanceFromStartOfLinearRange(midpoint, true, 0.55).Should().BeGreaterThan(midpoint - range.low); // bottom 70% is truncated, so we end up higher than midpoint.
+                        }
+                        for (int i = 0; i < dmsCalc.dPiecewiseLinearRanges.Count; i++)
+                        {
+                            var range = dmsCalc.dPiecewiseLinearRanges[i];
+                            if (i == 0)
+                                range.low.Should().Be(0);
+                            if (i == dmsCalc.dPiecewiseLinearRanges.Count - 1)
+                                range.high.Should().Be(1);
+                            else range.high.Should().Be(dmsCalc.dPiecewiseLinearRanges[i + 1].low); // high should be low of next range
+                            double midpoint = 0.5 * range.low + 0.5 * range.high;
+                            byte rangeIndex = dmsCalc.GetPiecewiseLinearRangeIndex(midpoint, plaintiff: false);
+                            rangeIndex.Should().Be((byte)i);
+                            counter++;
+                            dmsCalc.GetTruncatedDistanceFromStartOfLinearRange(midpoint, false, 0).Should().BeApproximately(midpoint - range.low, 0.001);
+                            dmsCalc.GetTruncatedDistanceFromStartOfLinearRange(midpoint, false, 0.45).Should().BeApproximately(midpoint - range.low, 0.001); // this truncation has no effect
+                            dmsCalc.GetTruncatedDistanceFromStartOfLinearRange(midpoint, false, 0.55).Should().BeLessThan(midpoint - range.low); // this truncation has an effect since we truncate after 45% of the range.
                         }
                     }
                 }
