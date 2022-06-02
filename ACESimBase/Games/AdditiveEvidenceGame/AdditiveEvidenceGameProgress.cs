@@ -43,8 +43,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public bool PiecewiseLinearActive => AdditiveEvidenceGameOptions.PiecewiseLinearBids;
         public double PSlope, DSlope, PMinValueForRange, DMinValueForRange, PTruncationPortion, DTruncationPortion;
 
-        public double PiecewiseLinearPOffer => PiecewiseLinearCalcs.GetPiecewiseLinearBidTruncated(Chance_Plaintiff_Bias_Continuous, true, PMinValueForRange, PSlope, PTruncationPortion);
-        public double PiecewiseLinearDOffer => PiecewiseLinearCalcs.GetPiecewiseLinearBidTruncated(Chance_Defendant_Bias_Continuous, false, DMinValueForRange, DSlope, DTruncationPortion);
+        public double PiecewiseLinearPBid => PiecewiseLinearCalcs.GetPiecewiseLinearBidTruncated(Chance_Plaintiff_Bias_Continuous, true, PMinValueForRange, PSlope, PTruncationPortion);
+        public double PiecewiseLinearDBid => PiecewiseLinearCalcs.GetPiecewiseLinearBidTruncated(Chance_Defendant_Bias_Continuous, false, DMinValueForRange, DSlope, DTruncationPortion);
 
         // Chance information (where each party has individual information, as joint information is set as a game parameter)
 
@@ -67,8 +67,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public bool PQuits;
         public bool DQuits;
 
-        public double PFirstOffer => PiecewiseLinearActive ? PiecewiseLinearPOffer : ContinuousOffer(GetDiscreteOffer(true));
-        public double DFirstOffer => PiecewiseLinearActive ? PiecewiseLinearDOffer : ContinuousOffer(GetDiscreteOffer(false));
+        public double PFirstOffer => PiecewiseLinearActive ? PiecewiseLinearPBid : ContinuousOffer(GetDiscreteOffer(true));
+        public double DFirstOffer => PiecewiseLinearActive ? PiecewiseLinearDBid : ContinuousOffer(GetDiscreteOffer(false));
         public List<double> POffers => new List<double>() { POffer };
 
         public List<double> DOffers => new List<double>() { POffer };
@@ -85,7 +85,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             {
                 if (!PiecewiseLinearActive)
                     return ContinuousOffer(POffer);
-                return PiecewiseLinearPOffer;
+                return PiecewiseLinearPBid;
             }
         }
         public double DOfferContinuousIfMade
@@ -94,7 +94,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             {
                 if (!PiecewiseLinearActive)
                     return ContinuousOffer(DOffer);
-                return PiecewiseLinearDOffer;
+                return PiecewiseLinearDBid;
             }
         }
 
