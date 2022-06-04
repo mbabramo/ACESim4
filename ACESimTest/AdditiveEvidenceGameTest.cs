@@ -313,7 +313,7 @@ namespace ACESimTest
             Random r = new Random(0);
             T GetRandom<T>(T[] items) => items[r.Next(items.Length)];
 
-            int numRepetitions = 10_000; // DEBUG
+            int numRepetitions = 1_000;
             for (int i = 0; i < numRepetitions; i++)
             {
                 double t = GetRandom(tOptions);
@@ -344,7 +344,6 @@ namespace ACESimTest
                 gameProgress.DMinValueForRange.Should().Be(EquallySpaced.GetLocationOfEquallySpacedPoint(dMinValIndex - 1 /* make it zero-based */, numOffers, false));
                 gameProgress.PTruncationPortion.Should().Be(EquallySpaced.GetLocationOfEquallySpacedPoint(pTruncationIndex - 1, numTruncationLevels, true));
                 gameProgress.DTruncationPortion.Should().Be(EquallySpaced.GetLocationOfEquallySpacedPoint(dTruncationIndex - 1, numTruncationLevels, true));
-
                 var dmsCalcs = gameProgress.PiecewiseLinearCalcs;
                 byte pSignal = (byte) (dmsCalcs.GetPiecewiseLinearRangeIndex(gameProgress.Chance_Plaintiff_Bias_Continuous, true) + 1);
                 byte dSignal = (byte)(dmsCalcs.GetPiecewiseLinearRangeIndex(gameProgress.Chance_Defendant_Bias_Continuous, true) + 1);

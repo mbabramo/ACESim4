@@ -11,6 +11,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
     public partial class AdditiveEvidenceGameDefinition : GameDefinition
     {
         public AdditiveEvidenceGameOptions Options => (AdditiveEvidenceGameOptions)GameOptions;
+        public DMSCalc PiecewiseLinearCalcs;
 
         public override string ToString()
         {
@@ -28,6 +29,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             FurtherOptionsSetup();
 
             AdditiveEvidenceGameOptions aeOptions = (AdditiveEvidenceGameOptions)options;
+            if (aeOptions.PiecewiseLinearBids)
+                PiecewiseLinearCalcs = new DMSCalc(aeOptions.FeeShiftingThreshold, aeOptions.TrialCost, aeOptions.Evidence_Both_Quality);
+            else
+                PiecewiseLinearCalcs = null;
 
             Players = GetPlayersList();
             PlayerNames = Players.Select(x => x.PlayerName).ToArray();
@@ -51,7 +56,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         private static List<PlayerInfo> GetPlayersList()
         {
-            // IMPORTANT: Chance players MUST be listed after other players. Resolution player should be listed afte4r main players.
+            // IMPORTANT: Chance players MUST be listed after other players. Resolution player should be listed after main players.
             return new List<PlayerInfo>
                 {
                     new PlayerInfo(PlaintiffName, (int) AdditiveEvidenceGamePlayers.Plaintiff, false, true),
@@ -130,7 +135,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 CanTerminateGame = false
             });
             if (Options.Alpha_Bias > 0 && Options.Alpha_Plaintiff_Bias > 0)
-                decisions.Add(new Decision("Chance_Plaintiff_Bias", "PB", true, (byte)AdditiveEvidenceGamePlayers.Chance_Plaintiff_Bias, Options.PiecewiseLinearBids && false /* DEBUG */ ? new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution } : new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias)
+                decisions.Add(new Decision("Chance_Plaintiff_Bias", "PB", true, (byte)AdditiveEvidenceGamePlayers.Chance_Plaintiff_Bias, Options.PiecewiseLinearBids ? new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution } : new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias)
             {
                 IsReversible = true,
                 Unroll_Parallelize = true,
@@ -141,7 +146,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 RequiresCustomInformationSetManipulation = Options.PiecewiseLinearBids
             });
             if (Options.Alpha_Bias > 0 && Options.Alpha_Defendant_Bias > 0)
-                decisions.Add(new Decision("Chance_Defendant_Bias", "DB", true, (byte)AdditiveEvidenceGamePlayers.Chance_Defendant_Bias, Options.PiecewiseLinearBids && false /* DEBUG */ ? new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution } : new byte[] { (byte)AdditiveEvidenceGamePlayers.Defendant, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias)
+                decisions.Add(new Decision("Chance_Defendant_Bias", "DB", true, (byte)AdditiveEvidenceGamePlayers.Chance_Defendant_Bias, Options.PiecewiseLinearBids ? new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution } : new byte[] { (byte)AdditiveEvidenceGamePlayers.Defendant, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias)
             {
                 IsReversible = true,
                 Unroll_Parallelize = true,
@@ -260,15 +265,15 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory, GameProgress gameProgress)
         {
-            // DEBUG
-            //if (currentDecision.DecisionByteCode == (byte) AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias || currentDecision.DecisionByteCode == (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias)
-            //{
-            //    bool plaintiff = currentDecision.DecisionByteCode == (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias;
-            //    byte playerIndex = plaintiff ? (byte)AdditiveEvidenceGamePlayers.Plaintiff : (byte)AdditiveEvidenceGamePlayers.Defendant;
-            //    double z = EquallySpaced.GetLocationOfEquallySpacedPoint(actionChosen - 1 /* make it zero-based */, Options.NumQualityAndBiasLevels_PrivateInfo, false);
-            //    byte regionIndex = DMSCalculations.GetPiecewiseLinearRangeIndex(z, plaintiff: plaintiff);
-            //    gameHistory.AddToInformationSetLog(regionIndex, currentDecisionIndex, playerIndex, new byte[] { (byte)playerIndex }, gameProgress);
-            //}
+            if (Options.PiecewiseLinearBids && (currentDecision.DecisionByteCode == (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias || currentDecision.DecisionByteCode == (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias))
+            {
+                bool plaintiff = currentDecision.DecisionByteCode == (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias;
+                byte playerIndex = plaintiff ? (byte)AdditiveEvidenceGamePlayers.Plaintiff : (byte)AdditiveEvidenceGamePlayers.Defendant;
+                double z = EquallySpaced.GetLocationOfEquallySpacedPoint(actionChosen - 1 /* make it zero-based */, Options.NumQualityAndBiasLevels_PrivateInfo, false);
+                byte regionIndex = PiecewiseLinearCalcs.GetPiecewiseLinearRangeIndex(z, plaintiff: plaintiff);
+                gameHistory.ProvideLimitedInformationAboutAction((byte) (regionIndex + 1), playerIndex);
+                gameHistory.AddToInformationSetLog((byte) (regionIndex + 1), currentDecisionIndex, playerIndex, new byte[] { (byte)playerIndex }, gameProgress);
+            }
             base.CustomInformationSetManipulation(currentDecision, currentDecisionIndex, actionChosen, ref gameHistory, gameProgress);
         }
 

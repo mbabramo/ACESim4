@@ -33,9 +33,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             {
                 if (PiecewiseLinearActive)
                 {
-                    if (_PiecewiseLinearCalcs == null)
-                        _PiecewiseLinearCalcs = new DMSCalc(AdditiveEvidenceGameOptions.FeeShiftingThreshold, AdditiveEvidenceGameOptions.TrialCost, AdditiveEvidenceGameOptions.Evidence_Both_Quality);
-                    return _PiecewiseLinearCalcs;
+                    return AdditiveEvidenceGameDefinition.PiecewiseLinearCalcs;
                 }
                 return null;
             }

@@ -320,6 +320,23 @@ namespace ACESim
 #endif
         }
 
+        // suppose chance produces an action from 1 to 10, but we only want to let a player know whether it's from 1 to 5 or 6 to 10. Then,
+        // we can call this in custom information set maniuplation.
+        public void ProvideLimitedInformationAboutAction(byte action, byte playerToInform)
+        {
+#if SAFETYCHECKS
+            if (action == 0)
+                ThrowHelper.Throw("Invalid action.");
+#endif
+            ActionsHistory[NextActionsAndDecisionsHistoryIndex] = action;
+            SpanBitArray.Set(InformationSetMembership, playerToInform * MaxNumActions + NextActionsAndDecisionsHistoryIndex, true);
+            NextActionsAndDecisionsHistoryIndex++;
+#if SAFETYCHECKS
+            if (NextActionsAndDecisionsHistoryIndex >= GameHistory.MaxNumActions)
+                ThrowHelper.Throw("Internal error. Must increase MaxNumActions.");
+#endif
+        }
+
         public bool DecessionIsDeferred_FromNextActionsAndDecisionsHistoryIndex(byte nextActionsAndDecisionsHistoryIndex) => SpanBitArray.Get(DecisionsDeferred, nextActionsAndDecisionsHistoryIndex);
 
         public List<byte> GetActionsAsList()
