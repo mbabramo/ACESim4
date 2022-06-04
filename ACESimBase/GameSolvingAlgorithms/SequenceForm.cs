@@ -1097,7 +1097,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             if (!EvolutionSettings.SequenceFormCutOffProbabilityZeroNodes)
                 return equilibrium;
             List<MaybeExact<T>> expanded = new List<MaybeExact<T>>();
-            var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => WhenInformationSetVisited[x.InformationSetNodeNumber]).ToList();
+            var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => WhenInformationSetVisited.GetValueOrDefault(x.InformationSetNodeNumber, int.MaxValue)).ToList();
             int equilibriumIndex = 0;
             foreach (var infoSet in infoSets)
             {

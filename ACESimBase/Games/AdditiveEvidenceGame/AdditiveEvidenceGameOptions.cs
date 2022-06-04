@@ -14,8 +14,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         // Whether we are constraining the players to piecewise linear bids, in which case they must select a slope and then the minimum value in each of various regions.
         public bool PiecewiseLinearBids = false;
-        public static double[] PiecewiseLinearBidsSlopeOptions = new double[] { 1.0 / 3.0, 1.0 / 2.0, 2.0 / 3.0 };
-        public static byte NumTruncationPortions = 8; // 0, 1/6, ... 5/6, 1
+        public static double[] PiecewiseLinearBidsSlopeOptions = new double[] { 1.0 / 3.0, 2.0 / 3.0 , 1.0 }; 
+        public static byte NumTruncationPortions = 2;  // DEBUG
 
         public bool TrialGuaranteed;
         public bool IncludePQuitDecision;
@@ -80,7 +80,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         // Parameters regarding number of discrete levels and how they map onto continuous levels
 
         // NOTE: These are set in AdditiveEvidenceGameOptionsGenerator
-        public byte NumQualityAndBiasLevels_PrivateInfo = 25;
+        public byte NumQualityAndBiasLevels_PrivateInfo = 10;
         public byte NumQualityAndBiasLevels_NeitherInfo = 5;
         public byte NumOffers = 25;
 
