@@ -10,7 +10,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
     {
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
-        public override string MasterReportNameForDistributedProcessing => "AE001"; // Note: Overridden in subclass.
+        public override string MasterReportNameForDistributedProcessing => "AE002"; // Note: Overridden in subclass.
 
         public override GameDefinition GetGameDefinition() => new AdditiveEvidenceGameDefinition();
 
@@ -21,6 +21,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             All,
             Fast,
             Original,
+            OriginalPiecewise,
             TwoSets,
             OtherTwoSets,
             TrialGuaranteed,
@@ -36,45 +37,48 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             switch (optionSetChoice)
             {
                 case OptionSetChoice.Original:
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.Original, withOptionNotToPlay);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.Original, withOptionNotToPlay);
+                    break;
+                case OptionSetChoice.OriginalPiecewise:
+                    AddDMSGameOptionSets(optionSets, DMSVersion.OriginalPiecewise, withOptionNotToPlay);
                     break;
                 case OptionSetChoice.TwoSets:
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.Original, withOptionNotToPlay);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.EvenStrengthAndBiasless, withOptionNotToPlay);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.Original, withOptionNotToPlay);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrengthAndBiasless, withOptionNotToPlay);
                     break;
                 case OptionSetChoice.OtherTwoSets:
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.Biasless, withOptionNotToPlay);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.EvenStrength, withOptionNotToPlay);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.Biasless, withOptionNotToPlay);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrength, withOptionNotToPlay);
                     break;
                 case OptionSetChoice.All:
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.Original, withOptionNotToPlay);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.Biasless, withOptionNotToPlay);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.EvenStrength, withOptionNotToPlay);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.EvenStrengthAndBiasless, withOptionNotToPlay);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.Original, withOptionNotToPlay);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.Biasless, withOptionNotToPlay);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrength, withOptionNotToPlay);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrengthAndBiasless, withOptionNotToPlay);
                     break;
                 case OptionSetChoice.Fast:
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.Original, false, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.Original, false, false);
                     break;
                 case OptionSetChoice.TrialGuaranteed:
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.Baseline_WithTrialGuaranteed, false, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.Baseline_WithTrialGuaranteed, false, true);
                     break;
                 case OptionSetChoice.VaryingNoiseEtc:
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryNoise_00, false, true);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryNoise_25, false, true);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryNoise_50, false, true);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryShared_00, false, true);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryShared_25, false, true);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryShared_50, false, true);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryShared_75, false, true);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryShared_100, false, true);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryPStrength_00, false, true);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryPStrength_25, false, true);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryPStrength_50, false, true);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryPStrength_75, false, true);
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryPStrength_100, false, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryNoise_00, false, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryNoise_25, false, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryNoise_50, false, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryShared_00, false, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryShared_25, false, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryShared_50, false, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryShared_75, false, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryShared_100, false, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryPStrength_00, false, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryPStrength_25, false, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryPStrength_50, false, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryPStrength_75, false, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryPStrength_100, false, true);
                     break;
                 case OptionSetChoice.Temporary:
-                    AddDariMattiacci_Saraceno_Tests(optionSets, DMSVersion.VaryShared_100, false, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryShared_100, false, true);
                     break;
             }
 
@@ -91,6 +95,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         enum DMSVersion
         {
             Original,
+            OriginalPiecewise,
             Biasless,
             EvenStrength,
             EvenStrengthAndBiasless,
@@ -111,7 +116,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             VaryPStrength_100, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p private estimate determines 100% of rest of judgment
         }
 
-        private void AddDariMattiacci_Saraceno_Tests(List<(string optionSetName, GameOptions options)> optionSets, DMSVersion version, bool withOptionNotToPlay, bool feeShifting = true)
+        private void AddDMSGameOptionSets(List<(string optionSetName, GameOptions options)> optionSets, DMSVersion version, bool withOptionNotToPlay, bool feeShifting = true)
         {
             // now, liability and damages only
                 foreach (double? feeShiftingThreshold in feeShifting ? new double?[] { 0, 0.25, 0.50, 0.75, 1.0 } : new double?[] { 0 })
@@ -124,6 +129,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                             case DMSVersion.Original:
                                 // this tracks the original model by DMS. The adjudicator's outcome depends half on some information about quality shared by both parties, and half on the sum of the parties' independent information (where this independent information does not count as part of the quality of the lawsuit).
                                 optionSets.Add(GetAndTransform("orig", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
+                                break;
+                            case DMSVersion.OriginalPiecewise:
+                                // this tracks the original model by DMS. The adjudicator's outcome depends half on some information about quality shared by both parties, and half on the sum of the parties' independent information (where this independent information does not count as part of the quality of the lawsuit).
+                                optionSets.Add(GetAndTransform("orig", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.PiecewiseLinearBids = true; }));
                                 break;
                             case DMSVersion.Biasless:
                                 // biasless means that all of the info that the adjudicator adds up counts in the quality measurement. Here, we continue to follow the DMS approach of making the plaintiff's proportion of information equal to the actual shared quality value (qualityKnownToBoth).

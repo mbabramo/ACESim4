@@ -23,8 +23,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                         return chanceDefendantQuality;
                     case AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias:
                         return chancePlaintiffBias;
+                    case AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias_Reduction:
+                        return ((AdditiveEvidenceGameDefinition)p.GameDefinition).GetReductionForPiecewiseLinear(chancePlaintiffBias, true);
                     case AdditiveEvidenceGameDecisions.Chance_Defendant_Bias:
                         return chanceDefendantBias;
+                    case AdditiveEvidenceGameDecisions.Chance_Defendant_Bias_Reduction:
+                        return ((AdditiveEvidenceGameDefinition)p.GameDefinition).GetReductionForPiecewiseLinear(chanceDefendantBias, false);
                     case AdditiveEvidenceGameDecisions.POffer:
                         return pOffer;
                     case AdditiveEvidenceGameDecisions.DOffer:

@@ -12,8 +12,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         // Parameters regarding game structure
 
-        // DEBUG -- must truncate decisions
-
         // Whether we are constraining the players to piecewise linear bids, in which case they must select a slope and then the minimum value in each of various regions.
         public bool PiecewiseLinearBids = false;
         public static double[] PiecewiseLinearBidsSlopeOptions = new double[] { 1.0 / 3.0, 1.0 / 2.0, 2.0 / 3.0 };

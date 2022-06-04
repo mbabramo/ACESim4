@@ -312,7 +312,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             return result;
         }
 
-        private byte GetReductionForPiecewiseLinear(byte bias, bool plaintiff)
+        public byte GetReductionForPiecewiseLinear(byte bias, bool plaintiff)
         {
             byte playerIndex = plaintiff ? (byte)AdditiveEvidenceGamePlayers.Plaintiff : (byte)AdditiveEvidenceGamePlayers.Defendant;
             double z = EquallySpaced.GetLocationOfEquallySpacedPoint(bias - 1 /* make it zero-based */, Options.NumQualityAndBiasLevels_PrivateInfo, false);

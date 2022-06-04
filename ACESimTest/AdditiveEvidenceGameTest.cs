@@ -313,7 +313,7 @@ namespace ACESimTest
             Random r = new Random(0);
             T GetRandom<T>(T[] items) => items[r.Next(items.Length)];
 
-            int numRepetitions = 1_000;
+            int numRepetitions = 1_000; 
             for (int i = 0; i < numRepetitions; i++)
             {
                 double t = GetRandom(tOptions);
@@ -346,7 +346,9 @@ namespace ACESimTest
                 gameProgress.DTruncationPortion.Should().Be(EquallySpaced.GetLocationOfEquallySpacedPoint(dTruncationIndex - 1, numTruncationLevels, true));
                 var dmsCalcs = gameProgress.PiecewiseLinearCalcs;
                 byte pSignal = (byte) (dmsCalcs.GetPiecewiseLinearRangeIndex(gameProgress.Chance_Plaintiff_Bias_Continuous, true) + 1);
-                byte dSignal = (byte)(dmsCalcs.GetPiecewiseLinearRangeIndex(gameProgress.Chance_Defendant_Bias_Continuous, true) + 1);
+                pSignal.Should().Be(gameProgress.Chance_Plaintiff_Bias_Reduction);
+                byte dSignal = (byte)(dmsCalcs.GetPiecewiseLinearRangeIndex(gameProgress.Chance_Defendant_Bias_Continuous, false) + 1);
+                dSignal.Should().Be(gameProgress.Chance_Defendant_Bias_Reduction);
                 double pBid = dmsCalcs.GetPiecewiseLinearBidTruncated(gameProgress.Chance_Plaintiff_Bias_Continuous, true, gameProgress.PMinValueForRange, gameProgress.PSlope, gameProgress.PTruncationPortion);
                 gameProgress.PiecewiseLinearPBid.Should().Be(pBid);
                 double dBid = dmsCalcs.GetPiecewiseLinearBidTruncated(gameProgress.Chance_Defendant_Bias_Continuous, false, gameProgress.DMinValueForRange, gameProgress.DSlope, gameProgress.DTruncationPortion);
@@ -354,6 +356,7 @@ namespace ACESimTest
                 gameProgress.SettlementOccurs.Should().Be(dBid >= pBid);
                 if (gameProgress.SettlementOccurs)
                     gameProgress.SettlementValue.Should().Be(0.5 * (pBid + dBid));
+                // DEBUG Debug.WriteLine(gameProgress.Chance_Plaintiff_Bias_Reduction + " " + gameProgress.Chance_Defendant_Bias_Reduction);
 
                 gameProgress.GameComplete.Should().BeTrue();
 
