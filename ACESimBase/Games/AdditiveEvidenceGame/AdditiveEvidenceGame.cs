@@ -79,8 +79,14 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias:
                     AdditiveEvidenceProgress.Chance_Plaintiff_Bias = action;
                     break;
+                case (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias_Reduction:
+                    AdditiveEvidenceProgress.Chance_Plaintiff_Bias_Reduction = action;
+                    break;
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias:
                     AdditiveEvidenceProgress.Chance_Defendant_Bias = action;
+                    break;
+                case (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias_Reduction:
+                    AdditiveEvidenceProgress.Chance_Defendant_Bias_Reduction = action;
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.POffer:
                     AdditiveEvidenceProgress.POffer = action;

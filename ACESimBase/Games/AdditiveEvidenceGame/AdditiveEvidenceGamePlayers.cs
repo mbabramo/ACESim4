@@ -20,7 +20,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         Chance_Plaintiff_Quality,
         Chance_Defendant_Quality,
         Chance_Plaintiff_Bias,
+        Chance_Plaintiff_Bias_Reduction, // for piecewise linear to provide only limited information
         Chance_Defendant_Bias,
+        Chance_Defendant_Bias_Reduction, // for piecewise linear also
         Chance_Neither_Quality, // will be drawn after settlement fails
         Chance_Neither_Bias, // will be drawn after settlement fails
         // Note that we omit Both_Quality and Both_Bias because we can just separate those as options. We do want the players recognizing the distribution of possibilities in information that neither knows about.

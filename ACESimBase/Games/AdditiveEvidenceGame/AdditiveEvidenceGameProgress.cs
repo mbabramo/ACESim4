@@ -50,6 +50,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public byte Chance_Defendant_Quality;
         public byte Chance_Plaintiff_Bias;
         public byte Chance_Defendant_Bias;
+        // with piecewise linear, the plaintiff/defendant receive only partial information about the bias and then produce an entire schedule of responses
+        public byte Chance_Plaintiff_Bias_Reduction;
+        public byte Chance_Defendant_Bias_Reduction;
 
         public double Chance_Plaintiff_Quality_Continuous => EquallySpaced.GetLocationOfEquallySpacedPoint(Chance_Plaintiff_Quality - 1 /* make it zero-based */, AdditiveEvidenceGameOptions.NumQualityAndBiasLevels_PrivateInfo, false);
         public double Chance_Defendant_Quality_Continuous => EquallySpaced.GetLocationOfEquallySpacedPoint(Chance_Defendant_Quality - 1 /* make it zero-based */, AdditiveEvidenceGameOptions.NumQualityAndBiasLevels_PrivateInfo, false);
