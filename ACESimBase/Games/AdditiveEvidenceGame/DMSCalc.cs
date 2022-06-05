@@ -424,6 +424,24 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             throw new NotImplementedException();
         }
 
+        //record struct LineSegment(double xStart, double xEnd, double yStart, double slope);
+
+        // Exact solutions -- For each plaintiff range, there is a line, and same for each defendant range. But then we need to add on truncations. So, plaintiff will not be below the defendant's lowest bid, and the defendant will not be above the plaintiff's highest bid. So, we would figure out over which range the truncation comes into effect, and we would split at that point. 
+
+        private void ConvertStrategyIntoLines(double pSlope, List<double> pMinForRange)
+        {
+            var ranges = plaintiff ? pPiecewiseLinearRanges : dPiecewiseLinearRanges;
+        }
+
+        private double? GetXIntersectionPoint(double line1Constant, double line1Slope, double line2Constant, double line2Slope)
+        {
+            if (line1Slope == line2Slope)
+                return null; // either lines totally overlap or they don't overlap at all.
+            return (line1Constant - line2Constant) / (line2Slope - line1Slope);
+        }
+
+        
+
 
 
         #endregion
