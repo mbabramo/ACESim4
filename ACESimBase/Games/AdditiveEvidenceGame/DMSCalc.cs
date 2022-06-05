@@ -12,7 +12,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         int CaseNum;
         Func<double, double> pUntruncFunc;
         Func<double, double> dUntruncFunc;
-        public List<(double low, double high)> pPiecewiseLinearRanges, dPiecewiseLinearRanges;
+        public List<(double low, double high)> pPiecewiseLinearRanges, dPiecewiseLinearRanges, intersectPiecewiseLinearRanges;
 
         bool pAboveD, pEntirelyAboveD, dEntirelyAboveP;
         public int NumPiecewiseLinearRanges => pPiecewiseLinearRanges.Count;
@@ -31,6 +31,17 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             dEntirelyAboveP = DEntirelyAboveP();
             pPiecewiseLinearRanges = GetPiecewiseLinearRanges(true);
             dPiecewiseLinearRanges = GetPiecewiseLinearRanges(false);
+            List<double> criticalPoints = new List<double>();
+            for (int i = 1; i < pPiecewiseLinearRanges.Count; i++)
+                criticalPoints.Add(pPiecewiseLinearRanges[i].low);
+            for (int i = 1; i < dPiecewiseLinearRanges.Count; i++)
+                criticalPoints.Add(dPiecewiseLinearRanges[i].low);
+            criticalPoints.Add(0);
+            criticalPoints.Add(1);
+            criticalPoints = criticalPoints.OrderBy(x => x).Distinct().ToList();
+            intersectPiecewiseLinearRanges = new List<(double low, double high)>();
+            for (int i = 1; i < criticalPoints.Count; i++)
+                intersectPiecewiseLinearRanges.Add((criticalPoints[i-1], criticalPoints[i]));
         }
 
         #region Truncations
@@ -407,22 +418,24 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             return bid;
         }
 
-        public double GetPiecewiseLinearBid(double z, bool plaintiff, double slope, List<double> minForRange)
+        public double GetPiecewiseLinearBidTruncated(double z, bool plaintiff, double slope, double truncationPortion, List<double> minForRange)
         {
             var ranges = plaintiff ? pPiecewiseLinearRanges : dPiecewiseLinearRanges;
+            if (ranges.Count != minForRange.Count)
+                throw new Exception();
             int i = 0;
             foreach (var range in ranges)
             {
                 if (z >= range.low && z < range.high)
                 {
-                    double distance = (z - range.low);
-                    double bid = minForRange[i] + distance * slope;
-                    return bid;
+                    return GetPiecewiseLinearBidTruncated(z, plaintiff, range.low, slope, truncationPortion);
                 }
                 i++;
             }
             throw new NotImplementedException();
         }
+
+
 
         #endregion
     }
