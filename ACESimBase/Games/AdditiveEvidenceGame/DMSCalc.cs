@@ -12,7 +12,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         int CaseNum;
         Func<double, double> pUntruncFunc;
         Func<double, double> dUntruncFunc;
-        public List<(double low, double high)> pPiecewiseLinearRanges, dPiecewiseLinearRanges, intersectPiecewiseLinearRanges;
+        public List<(double low, double high)> pPiecewiseLinearRanges, dPiecewiseLinearRanges;
 
         bool pAboveD, pEntirelyAboveD, dEntirelyAboveP;
         public int NumPiecewiseLinearRanges => pPiecewiseLinearRanges.Count;
@@ -31,17 +31,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             dEntirelyAboveP = DEntirelyAboveP();
             pPiecewiseLinearRanges = GetPiecewiseLinearRanges(true);
             dPiecewiseLinearRanges = GetPiecewiseLinearRanges(false);
-            List<double> criticalPoints = new List<double>();
-            for (int i = 1; i < pPiecewiseLinearRanges.Count; i++)
-                criticalPoints.Add(pPiecewiseLinearRanges[i].low);
-            for (int i = 1; i < dPiecewiseLinearRanges.Count; i++)
-                criticalPoints.Add(dPiecewiseLinearRanges[i].low);
-            criticalPoints.Add(0);
-            criticalPoints.Add(1);
-            criticalPoints = criticalPoints.OrderBy(x => x).Distinct().ToList();
-            intersectPiecewiseLinearRanges = new List<(double low, double high)>();
-            for (int i = 1; i < criticalPoints.Count; i++)
-                intersectPiecewiseLinearRanges.Add((criticalPoints[i-1], criticalPoints[i]));
         }
 
         #region Truncations
