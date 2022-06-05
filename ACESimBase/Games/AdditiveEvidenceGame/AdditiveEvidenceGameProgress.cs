@@ -41,8 +41,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public bool PiecewiseLinearActive => AdditiveEvidenceGameOptions.PiecewiseLinearBids;
         public double PSlope, DSlope, PMinValueForRange, DMinValueForRange, PTruncationPortion, DTruncationPortion;
 
-        public double PiecewiseLinearPBid => PiecewiseLinearCalcs.GetPiecewiseLinearBidTruncated(Chance_Plaintiff_Bias_Continuous, true, PMinValueForRange, PSlope, PTruncationPortion);
-        public double PiecewiseLinearDBid => PiecewiseLinearCalcs.GetPiecewiseLinearBidTruncated(Chance_Defendant_Bias_Continuous, false, DMinValueForRange, DSlope, DTruncationPortion);
+        public double PiecewiseLinearPBidFromSignal(double signal) => PiecewiseLinearCalcs.GetPiecewiseLinearBidTruncated(signal, true, PMinValueForRange, PSlope, PTruncationPortion);
+        public double PiecewiseLinearPBid => PiecewiseLinearPBidFromSignal(Chance_Plaintiff_Bias_Continuous);
+        public double PiecewiseLinearDBidFromSignal(double signal) => PiecewiseLinearCalcs.GetPiecewiseLinearBidTruncated(signal, false, DMinValueForRange, DSlope, DTruncationPortion);
+        public double PiecewiseLinearDBid => PiecewiseLinearDBidFromSignal(Chance_Defendant_Bias_Continuous);
 
         // Chance information (where each party has individual information, as joint information is set as a game parameter)
 
@@ -239,6 +241,8 @@ AccuracyIgnoringCosts {Accuracy} Accuracy_ForPlaintiff {Accuracy_ForPlaintiff} A
             copy.Chance_Defendant_Quality = Chance_Defendant_Quality;
             copy.Chance_Plaintiff_Bias = Chance_Plaintiff_Bias;
             copy.Chance_Defendant_Bias = Chance_Defendant_Bias;
+            copy.Chance_Plaintiff_Bias_Reduction = Chance_Plaintiff_Bias_Reduction;
+            copy.Chance_Defendant_Bias_Reduction = Chance_Defendant_Bias_Reduction;
             copy.PQuits = PQuits;
             copy.DQuits = DQuits;
             copy.POffer = POffer;
@@ -249,6 +253,8 @@ AccuracyIgnoringCosts {Accuracy} Accuracy_ForPlaintiff {Accuracy_ForPlaintiff} A
             copy.DSlope = DSlope;
             copy.PMinValueForRange = PMinValueForRange;
             copy.DMinValueForRange = DMinValueForRange;
+            copy.PTruncationPortion = PTruncationPortion;
+            copy.DTruncationPortion = DTruncationPortion;
 
             return copy;
         }
