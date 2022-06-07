@@ -430,9 +430,26 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public record struct DMSStrategyPretruncation(int index, double slope, List<double> minForRange, List<(double low, double high)> piecewiseRanges)
         {
-            public DMSStrategyWithTruncations GetStrategy(double truncationValue, bool truncationIsMin)
+            public DMSStrategyWithTruncations GetStrategyWithTruncation(double truncationValue, bool truncationIsMin)
             {
                 return new DMSStrategyWithTruncations(index, LineSegment.GetTruncatedLineSegments(piecewiseRanges, minForRange, slope, truncationValue, truncationIsMin));
+            }
+        }
+
+        public struct DMSStrategiesPair
+        {
+            public DMSStrategyWithTruncations pStrategy;
+            public DMSStrategyWithTruncations dStrategy;
+            public DMSStrategiesPair(DMSStrategyPretruncation pPretruncation, DMSStrategyPretruncation dPretruncation, DMSCalc dmsCalc)
+            {
+                var pLastMin = pPretruncation.minForRange[pPretruncation.minForRange.Count - 1];
+                var pLastLinearRange = dmsCalc.pPiecewiseLinearRanges[dmsCalc.pPiecewiseLinearRanges.Count - 1];
+                var pLastLinearRangeDistance = pLastLinearRange.high - pLastLinearRange.low;
+                double pAbsoluteMax = pLastMin + pLastLinearRangeDistance * pPretruncation.slope;
+                double dAbsoluteMin = dPretruncation.minForRange[0];
+
+                pStrategy = new DMSStrategyWithTruncations(pPretruncation.index, pPretruncation.GetStrategyWithTruncation(dAbsoluteMin, true).lineSegments);
+                dStrategy = new DMSStrategyWithTruncations(dPretruncation.index, dPretruncation.GetStrategyWithTruncation(pAbsoluteMax, false).lineSegments);
             }
         }
 
@@ -454,12 +471,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 return Enumerable.Range(0, numItems).Select(i => copy.GetBidForSignal(EquallySpaced.GetLocationOfMidpoint(i, numItems)));
             }
 
-            public static IEnumerable<(double pBid, double dBid)> GetBidsForSignal(DMSStrategyWithTruncations pStrategy, DMSStrategyWithTruncations dStrategy, int numItems) => Enumerable.Range(0, numItems).Select(i => EquallySpaced.GetLocationOfMidpoint(i, numItems)).Select(x => (pStrategy.GetBidForSignal(x), dStrategy.GetBidForSignal(x)));
+            public static IEnumerable<(double pBid, double dBid)> GetBidsForSignal(DMSStrategiesPair pair, int numItems) => Enumerable.Range(0, numItems).Select(i => EquallySpaced.GetLocationOfMidpoint(i, numItems)).Select(x => (pair.pStrategy.GetBidForSignal(x), pair.dStrategy.GetBidForSignal(x)));
         }
 
 
 
-        public IEnumerable<(DMSStrategyWithTruncations pStrategy, DMSStrategyWithTruncations dStrategy)> EnumeratePossibleStrategyPairs()
+        public IEnumerable<DMSStrategyPretruncation> EnumeratePossibleStrategies(bool plaintiff)
         {
             bool IsOrdered<T>(IList<T> list, IComparer<T> comparer = null)
             {
@@ -482,47 +499,31 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             }
 
             double[] slopes = new double[] { 1.0 / 3.0, 2.0 / 3.0, 1.0 };
-            int minPossibilities = 10;
-            double[] minForRange = Enumerable.Range(0, minPossibilities).Select(x => EquallySpaced.GetLocationOfMidpoint(x, minPossibilities)).ToArray();
+            int numYPossibilities = 10;
+            double[] potentialYPoints = Enumerable.Range(0, numYPossibilities).Select(x => EquallySpaced.GetLocationOfMidpoint(x, numYPossibilities)).ToArray();
 
-            var pLastLinearRange = pPiecewiseLinearRanges[pPiecewiseLinearRanges.Count - 1];
-            double pLastLinearRangeDistance = pLastLinearRange.high - pLastLinearRange.low;
+            var piecewiseLinearRanges = plaintiff ? pPiecewiseLinearRanges : dPiecewiseLinearRanges;
 
-            int pIndex = 0, dIndex = 0;
-            foreach (double pSlope in slopes)
+            int index = 0;
+            foreach (double slope in slopes)
             {
-                foreach (double dSlope in slopes)
+                int numLinearRanges = piecewiseLinearRanges.Count;
+                List<List<double>> permutationSource = new List<List<double>>();
+                for (int c = 0; c < numLinearRanges; c++)
+                    permutationSource.Add(potentialYPoints.ToList());
+                List<List<double>> possibilities = PermutationMaker.GetPermutationsOfItems(permutationSource).Where(l => IsOrdered(l)).ToList();
+
+                for (int j = 0; j < possibilities.Count; j++)
                 {
-                    int numChoices = pPiecewiseLinearRanges.Count;
-                    List<List<double>> permutationSource = new List<List<double>>();
-                    for (int c = 0; c < numChoices; c++)
-                        permutationSource.Add(minForRange.ToList());
-                    List<List<double>> pPossibilities = PermutationMaker.GetPermutationsOfItems(permutationSource).Where(l => IsOrdered(l)).ToList();
+                    List<double> minVals = possibilities[j];
 
-
-                    numChoices = dPiecewiseLinearRanges.Count;
-                    permutationSource = new List<List<double>>();
-                    for (int c = 0; c < numChoices; c++)
-                        permutationSource.Add(minForRange.ToList());
-                    List<List<double>> dPossibilities = PermutationMaker.GetPermutationsOfItems(permutationSource).Where(l => IsOrdered(l)).ToList();
-                    for (int j = 0; j < pPossibilities.Count; j++)
-                    {
-                        List<double> pMinVals = pPossibilities[j];
-                        double pAbsoluteMax = pMinVals[pMinVals.Count - 1] + pLastLinearRangeDistance * pSlope;
-                        for (int k = 0; k < dPossibilities.Count; k++)
-                        {
-                            List<double> dMinVals = dPossibilities[k];
-                            double dAbsoluteMin = dMinVals[0];
-                            var pStrategy = new DMSStrategyWithTruncations(pIndex++, LineSegment.GetTruncatedLineSegments(pPiecewiseLinearRanges, pMinVals, pSlope, dAbsoluteMin, true));
-                            var dStrategy = new DMSStrategyWithTruncations(dIndex++, LineSegment.GetTruncatedLineSegments(dPiecewiseLinearRanges, dMinVals, dSlope, pAbsoluteMax, false));
-                            yield return (pStrategy, dStrategy);
-                        }
-                    }
+                    var strategy = new DMSStrategyPretruncation(index++, slope, minVals, piecewiseLinearRanges);
+                    yield return strategy;
                 }
             }
         }
 
-        public IEnumerable<SingleCaseOutcome> GetOutcomes(DMSStrategyWithTruncations pStrategy, DMSStrategyWithTruncations dStrategy)
+        public IEnumerable<SingleCaseOutcome> GetOutcomes(DMSStrategiesPair pair)
         {
             const int numSignalsPerParty = 100;
             double signalDistance = 1.0 / (double)numSignalsPerParty;
@@ -532,14 +533,14 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 {
                     double pSignal = (pSignalIndex + 1) * signalDistance;
                     double dSignal = (dSignalIndex + 1) * signalDistance;
-                    yield return GetOutcome(pStrategy, dStrategy, pSignal, dSignal);
+                    yield return GetOutcome(pair, pSignal, dSignal);
                 }
             }
         }
 
-        public SingleCaseOutcome GetOutcome(DMSStrategyWithTruncations pStrategy, DMSStrategyWithTruncations dStrategy, double pSignal, double dSignal)
+        public SingleCaseOutcome GetOutcome(DMSStrategiesPair pair, double pSignal, double dSignal)
         {
-            return GetOutcome(pSignal, dSignal, pStrategy.GetBidForSignal(pSignal), dStrategy.GetBidForSignal(dSignal));
+            return GetOutcome(pSignal, dSignal, pair.pStrategy.GetBidForSignal(pSignal), pair.dStrategy.GetBidForSignal(dSignal));
         }
 
         public record struct SingleCaseOutcome(bool settles, double pGross, double pCosts, double dCosts)

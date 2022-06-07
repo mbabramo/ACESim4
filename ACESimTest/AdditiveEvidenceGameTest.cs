@@ -462,25 +462,25 @@ namespace ACESimTest
                 double c = GetRandom(cOptions);
                 double q = GetRandom(qOptions);
                 DMSCalc dmsCalc = new DMSCalc(t, c, q);
-                var strategyPairs = dmsCalc.EnumeratePossibleStrategyPairs().ToList();
-                var pStrategies = strategyPairs.Select(x => x.pStrategy).DistinctBy(x => x.index).OrderBy(x => x.index).ToList();
-                var dStrategies = strategyPairs.Select(x => x.dStrategy).DistinctBy(x => x.index).OrderBy(x => x.index).ToList();
-                double[,] pUtilities = new double[pStrategies.Count, dStrategies.Count];
-                double[,] dUtilities = new double[pStrategies.Count, dStrategies.Count];
+                var pUntruncatedStrategies = dmsCalc.EnumeratePossibleStrategies(true).ToList();
+                var dUntruncatedStrategies = dmsCalc.EnumeratePossibleStrategies(false).ToList();
+                var strategyPairs = pUntruncatedStrategies.SelectMany(x => dUntruncatedStrategies, (x, y) => new DMSCalc.DMSStrategiesPair(x, y, dmsCalc)).ToList();
+                double[,] pUtilities = new double[pUntruncatedStrategies.Count, dUntruncatedStrategies.Count];
+                double[,] dUtilities = new double[pUntruncatedStrategies.Count, dUntruncatedStrategies.Count];
                 if (dmsCalc.trivial || dmsCalc.pPiecewiseLinearRanges.Count != 1 || dmsCalc.pPiecewiseLinearRanges.Count != 1)
                     continue; // DEBUG
                 foreach (var strategyPair in strategyPairs)
                 {
-                    var outcomes = dmsCalc.GetOutcomes(strategyPair.pStrategy, strategyPair.dStrategy).ToList();
+                    var outcomes = dmsCalc.GetOutcomes(strategyPair).ToList();
                     double pUtility = outcomes.Average(x => x.pNet);
                     double dUtility = outcomes.Average(x => x.dNet);
                     pUtilities[strategyPair.pStrategy.index, strategyPair.dStrategy.index] = pUtility;
                     dUtilities[strategyPair.pStrategy.index, strategyPair.dStrategy.index] = dUtility;
                 }
-                var equilibria = PureStrategiesFinder.ComputeNashEquilibria(pUtilities, dUtilities, false).Select(x => (pStrategies[x.Item1], dStrategies[x.Item2])).ToList();
+                var equilibria = PureStrategiesFinder.ComputeNashEquilibria(pUtilities, dUtilities, false).Select(x => new DMSCalc.DMSStrategiesPair(pUntruncatedStrategies[x.Item1], dUntruncatedStrategies[x.Item2], dmsCalc)).ToList();
                 foreach (var equilibrium in equilibria)
                 {
-                    var bids = DMSCalc.DMSStrategyWithTruncations.GetBidsForSignal(equilibrium.Item1, equilibrium.Item2, 10);
+                    var bids = DMSCalc.DMSStrategyWithTruncations.GetBidsForSignal(equilibrium, 10);
                     var correct = dmsCalc.GetBids(10);
                     string pBidsString = String.Join(",", bids.Select(x => $"{Math.Round(x.pBid, 2)}"));
                     string pCorrectString = String.Join(",", correct.Select(x => $"{Math.Round(x.pBid, 2)}"));
