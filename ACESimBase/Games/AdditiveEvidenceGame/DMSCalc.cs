@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ACESim;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.Games.AdditiveEvidenceGame
 {
-    public class DMSCalc
+    public partial class DMSCalc
     {
         public double T, C, Q;
         int CaseNum;
@@ -15,7 +16,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public List<(double low, double high)> pPiecewiseLinearRanges, dPiecewiseLinearRanges;
 
         bool pAboveD, pEntirelyAboveD, dEntirelyAboveP;
-        public int NumPiecewiseLinearRanges => pPiecewiseLinearRanges.Count;
+
+        public bool trivial => pEntirelyAboveD || dEntirelyAboveP;
 
         public DMSCalc(double t, double c, double q)
         {
@@ -40,6 +42,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             var fs = GetUntruncFuncs();
             return Truncated(zP, zD);
         }
+
+        public IEnumerable<(double pBid, double dBid)> GetBids(int numItems) => Enumerable.Range(0, numItems).Select(i => EquallySpaced.GetLocationOfMidpoint(i, numItems)).Select(x => GetBids(x, x));
 
         bool truncate = true;
         bool includeIrrelevantTruncations = false;
@@ -93,10 +97,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         private (double pBid, double dBid) Truncated(double zP, double zD)
         {
-            bool truncate = true; 
+            bool truncate = true;
             if (!truncate)
                 return (pUntruncFunc(zP), dUntruncFunc(zD));
-            bool includeIrrelevantTruncations = false; 
+            bool includeIrrelevantTruncations = false;
             // In DMS, P bids that are always higher than D's are truncated to their min value, since they will never result in settlement anyway.
             // Similarly, if D bids are alwayer lower than p's, 
             bool standardizeTrivialEq = true; // if P's most generous bid is greater than the D's most generous bid, there will never be a settlement, regardless of the signals. This is a trivial equilibrium, and so we can standardize those.
@@ -424,23 +428,183 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             throw new NotImplementedException();
         }
 
-        //record struct LineSegment(double xStart, double xEnd, double yStart, double slope);
-
-        // Exact solutions -- For each plaintiff range, there is a line, and same for each defendant range. But then we need to add on truncations. So, plaintiff will not be below the defendant's lowest bid, and the defendant will not be above the plaintiff's highest bid. So, we would figure out over which range the truncation comes into effect, and we would split at that point. 
-
-        private void ConvertStrategyIntoLines(double pSlope, List<double> pMinForRange)
+        public record struct DMSStrategyPretruncation(int index, double slope, List<double> minForRange, List<(double low, double high)> piecewiseRanges)
         {
-            var ranges = plaintiff ? pPiecewiseLinearRanges : dPiecewiseLinearRanges;
+            public DMSStrategyWithTruncations GetStrategy(double truncationValue, bool truncationIsMin)
+            {
+                return new DMSStrategyWithTruncations(index, LineSegment.GetTruncatedLineSegments(piecewiseRanges, minForRange, slope, truncationValue, truncationIsMin));
+            }
         }
 
-        private double? GetXIntersectionPoint(double line1Constant, double line1Slope, double line2Constant, double line2Slope)
+        public record struct DMSStrategyWithTruncations(int index, List<LineSegment> lineSegments)
         {
-            if (line1Slope == line2Slope)
-                return null; // either lines totally overlap or they don't overlap at all.
-            return (line1Constant - line2Constant) / (line2Slope - line1Slope);
+            public double GetBidForSignal(double signal)
+            {
+                foreach (var ls in lineSegments)
+                {
+                    if (signal >= ls.xStart - 1E-12 && signal <= ls.xEnd + 1E-12)
+                        return ls.yVal(signal);
+                }
+                throw new Exception();
+            }
+
+            public IEnumerable<double> GetBidsForSignal(int numItems)
+            {
+                var copy = this;
+                return Enumerable.Range(0, numItems).Select(i => copy.GetBidForSignal(EquallySpaced.GetLocationOfMidpoint(i, numItems)));
+            }
+
+            public static IEnumerable<(double pBid, double dBid)> GetBidsForSignal(DMSStrategyWithTruncations pStrategy, DMSStrategyWithTruncations dStrategy, int numItems) => Enumerable.Range(0, numItems).Select(i => EquallySpaced.GetLocationOfMidpoint(i, numItems)).Select(x => (pStrategy.GetBidForSignal(x), dStrategy.GetBidForSignal(x)));
         }
 
-        
+
+
+        public IEnumerable<(DMSStrategyWithTruncations pStrategy, DMSStrategyWithTruncations dStrategy)> EnumeratePossibleStrategyPairs()
+        {
+            bool IsOrdered<T>(IList<T> list, IComparer<T> comparer = null)
+            {
+                if (comparer == null)
+                {
+                    comparer = Comparer<T>.Default;
+                }
+
+                if (list.Count > 1)
+                {
+                    for (int i = 1; i < list.Count; i++)
+                    {
+                        if (comparer.Compare(list[i - 1], list[i]) > 0)
+                        {
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            }
+
+            double[] slopes = new double[] { 1.0 / 3.0, 2.0 / 3.0, 1.0 };
+            int minPossibilities = 10;
+            double[] minForRange = Enumerable.Range(0, minPossibilities).Select(x => EquallySpaced.GetLocationOfMidpoint(x, minPossibilities)).ToArray();
+
+            var pLastLinearRange = pPiecewiseLinearRanges[pPiecewiseLinearRanges.Count - 1];
+            double pLastLinearRangeDistance = pLastLinearRange.high - pLastLinearRange.low;
+
+            int pIndex = 0, dIndex = 0;
+            foreach (double pSlope in slopes)
+            {
+                foreach (double dSlope in slopes)
+                {
+                    int numChoices = pPiecewiseLinearRanges.Count;
+                    List<List<double>> permutationSource = new List<List<double>>();
+                    for (int c = 0; c < numChoices; c++)
+                        permutationSource.Add(minForRange.ToList());
+                    List<List<double>> pPossibilities = PermutationMaker.GetPermutationsOfItems(permutationSource).Where(l => IsOrdered(l)).ToList();
+
+
+                    numChoices = dPiecewiseLinearRanges.Count;
+                    permutationSource = new List<List<double>>();
+                    for (int c = 0; c < numChoices; c++)
+                        permutationSource.Add(minForRange.ToList());
+                    List<List<double>> dPossibilities = PermutationMaker.GetPermutationsOfItems(permutationSource).Where(l => IsOrdered(l)).ToList();
+                    for (int j = 0; j < pPossibilities.Count; j++)
+                    {
+                        List<double> pMinVals = pPossibilities[j];
+                        double pAbsoluteMax = pMinVals[pMinVals.Count - 1] + pLastLinearRangeDistance * pSlope;
+                        for (int k = 0; k < dPossibilities.Count; k++)
+                        {
+                            List<double> dMinVals = dPossibilities[k];
+                            double dAbsoluteMin = dMinVals[0];
+                            var pStrategy = new DMSStrategyWithTruncations(pIndex++, LineSegment.GetTruncatedLineSegments(pPiecewiseLinearRanges, pMinVals, pSlope, dAbsoluteMin, true));
+                            var dStrategy = new DMSStrategyWithTruncations(dIndex++, LineSegment.GetTruncatedLineSegments(dPiecewiseLinearRanges, dMinVals, dSlope, pAbsoluteMax, false));
+                            yield return (pStrategy, dStrategy);
+                        }
+                    }
+                }
+            }
+        }
+
+        public IEnumerable<SingleCaseOutcome> GetOutcomes(DMSStrategyWithTruncations pStrategy, DMSStrategyWithTruncations dStrategy)
+        {
+            const int numSignalsPerParty = 100;
+            double signalDistance = 1.0 / (double)numSignalsPerParty;
+            for (int pSignalIndex = 0; pSignalIndex < numSignalsPerParty; pSignalIndex++)
+            {
+                for (int dSignalIndex = 0; dSignalIndex < numSignalsPerParty; dSignalIndex++)
+                {
+                    double pSignal = (pSignalIndex + 1) * signalDistance;
+                    double dSignal = (dSignalIndex + 1) * signalDistance;
+                    yield return GetOutcome(pStrategy, dStrategy, pSignal, dSignal);
+                }
+            }
+        }
+
+        public SingleCaseOutcome GetOutcome(DMSStrategyWithTruncations pStrategy, DMSStrategyWithTruncations dStrategy, double pSignal, double dSignal)
+        {
+            return GetOutcome(pSignal, dSignal, pStrategy.GetBidForSignal(pSignal), dStrategy.GetBidForSignal(dSignal));
+        }
+
+        public record struct SingleCaseOutcome(bool settles, double pGross, double pCosts, double dCosts)
+        {
+            public double dGross => 1.0 - pGross;
+            public double pNet => pGross - pCosts;
+            public double dNet => dGross - dCosts;
+        }
+
+        public SingleCaseOutcome GetOutcome(double pSignal, double dSignal, double pBid, double dBid)
+        {
+            if (dBid >= pBid - 1E-12)
+                return new SingleCaseOutcome(true, (pBid + dBid) / 2.0, 0, 0);
+            double thetaP = pSignal * Q;
+            double thetaD = Q + dSignal * (1.0 - Q);
+            double judgment = 0.5 * (thetaP + thetaD);
+            bool feeShiftingToP = judgment < 0.5 && thetaD < T;
+            bool feeShiftingToD = judgment > 0.5 && thetaP > T;
+            double pCosts = 0, dCosts = 0;
+            if (feeShiftingToP)
+                pCosts = C + C;
+            else if (feeShiftingToD)
+                dCosts = C + C;
+            else
+                pCosts = dCosts = C;
+            return new SingleCaseOutcome(false, judgment, pCosts, dCosts);
+        }
+
+        //public record struct DMSPartialOutcome(double weight, bool settles, double? avgTrialValue, double? avgSettlementValue)
+        //{
+        //    public static DMSPartialOutcome GetFromSegments(DMSCalc c, LineSegment pSegment, LineSegment dSegment)
+        //    {
+        //        if (pSegment.YApproximatelyEqual(dSegment))
+        //            return GetForOverlappingYs(c, pSegment, dSegment);
+        //        if (pSegment.yStart >= dSegment.yEnd - 1E-12)
+        //            return GetTrialOutcome(c, pSegment, dSegment);
+        //        else if (dSegment.yStart >= pSegment.yEnd - 1E-12)
+        //            return GetSettlementOutcome(c, pSegment, dSegment);
+        //        else
+        //            throw new Exception("Partial outcome cannot be calculated from partially overlapping segments.");
+        //    }
+
+        //    private static DMSPartialOutcome GetForOverlappingYs(DMSCalc c, LineSegment pSegment, LineSegment dSegment)
+        //    {
+
+        //    }
+
+        //    private static DMSPartialOutcome GetSettlementOutcome(DMSCalc c, LineSegment pSegment, LineSegment dSegment)
+        //    {
+        //        return new DMSPartialOutcome(GetWeight(pSegment, dSegment), true, null, (dSegment.yAvg - pSegment.yAvg));
+        //    }
+
+        //    private static DMSPartialOutcome GetTrialOutcome(DMSCalc c, LineSegment pSegment, LineSegment dSegment)
+        //    {
+        //        // Whether fee shifting occurs will be uniform within this range. 
+        //        double lowPSignal = pSegment.xAvg * c.Q;
+        //        double avgDSignal = c.Q + (1.0 - c.Q) * dSegment.xAvg;
+        //        double avgJudgment = avgPSignal + avgDSignal;
+
+        //    }
+
+        //    private static double GetWeight(LineSegment pSegment, LineSegment dSegment) => (pSegment.xEnd - pSegment.xStart) * (dSegment.xEnd - dSegment.xStart);
+        //}
+
+
 
 
 

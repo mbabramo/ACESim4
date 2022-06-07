@@ -290,6 +290,61 @@ namespace ACESimTest
         }
 
         [TestMethod]
+        public void AdditiveEvidence_LineSegment()
+        {
+            var x = new List<(double low, double high)>() { (0, 0.3), (0.3, 0.6), (0.6, 1.0) };
+            var y = new List<double>() { 0.1, 0.5, 0.8 };
+            var slope = 1.0;
+
+            var results = LineSegment.GetTruncatedLineSegments(x, y, slope, 0.15, true);
+            results.Count.Should().Be(3); // last two should be combined
+            results[0].slope.Should().Be(0);
+            y = new List<double>() { 0.1, 0.5, 0.85 };
+            results = LineSegment.GetTruncatedLineSegments(x, y, slope, 0.15, true);
+            results.Count.Should().Be(4);
+            results[0].slope.Should().Be(0);
+            results = LineSegment.GetTruncatedLineSegments(x, y, slope, 0.6, true);
+            results.Count.Should().Be(3); // first two should be combined now
+            results[0].slope.Should().Be(0);
+
+            results = LineSegment.GetTruncatedLineSegments(x, y, slope, 0.85, false);
+            results.Count.Should().Be(3); 
+            results = LineSegment.GetTruncatedLineSegments(x, y, slope, 0.5, false);
+            results.Count.Should().Be(2);
+            results = LineSegment.GetTruncatedLineSegments(x, y, slope, 0.05, false);
+            results.Count.Should().Be(1);
+
+            bool RangesApproximatelyEqual((double start, double end) n1, (double start, double end) n2) => Math.Abs(n1.start - n2.start) < 1E-12 && Math.Abs(n1.end - n2.end) < 1E-12;
+
+            Random r = new Random(0);
+            for (int i = 0; i < 10_000; i++)
+            {
+                double a = Math.Round(r.NextDouble(), 2), b = Math.Round(r.NextDouble(), 2), c = Math.Round(r.NextDouble(), 2), d = Math.Round(r.NextDouble(), 2);
+                LineSegment s1 = new LineSegment(Math.Min(a, b), Math.Max(a, b), Math.Round(r.NextDouble(), 2), Math.Round(r.NextDouble(), 2));
+                LineSegment s2 = new LineSegment(Math.Min(c, d), Math.Max(c, d), Math.Round(r.NextDouble(), 2), Math.Round(r.NextDouble(), 2));
+                
+                var pairs = s1.GetPairsOfNonoverlappingAndEntirelyOverlappingYRanges(s2);
+                foreach (var pair in pairs)
+                {
+                    if (!RangesApproximatelyEqual((pair.l1.yStart, pair.l1.yEnd), (pair.l2.yStart,pair.l2.yEnd)) && pair.l1.yStart + 1E-12 < pair.l2.yEnd && pair.l2.yStart + 1E-12 < pair.l1.yEnd)
+                        throw new Exception("Pair y ranges are not equal but overlapping");
+                }
+                var pairs_firstItems = pairs.Select(x => x.l1).Distinct().OrderBy(x => x.xStart).ToArray();
+                var pairs_secondItems = pairs.Select(x => x.l2).Distinct().OrderBy(x => x.xStart).ToArray();
+                for (int j = 0; j < pairs_firstItems.Length - 1; j++)
+                {
+                    if (pairs_firstItems[j].xEnd != pairs_firstItems[j + 1].xStart || Math.Abs(pairs_firstItems[j].yEnd - pairs_firstItems[j + 1].yStart) > 1E-12)
+                        throw new Exception();
+                }
+                for (int j = 0; j < pairs_secondItems.Length - 1; j++)
+                {
+                    if (pairs_secondItems[j].xEnd != pairs_secondItems[j + 1].xStart || Math.Abs(pairs_secondItems[j].yEnd - pairs_secondItems[j + 1].yStart) > 1E-12)
+                        throw new Exception();
+                }
+            }
+        }
+
+        [TestMethod]
         public void AdditiveEvidence_PiecewiseLinear()
         {
             byte numBiasLevels = 20;
@@ -376,7 +431,66 @@ namespace ACESimTest
             
         }
 
-        private static void AdditiveEvidence_TrialValue_Helper(AdditiveEvidenceGameOptions gameOptions, byte chancePlaintiffQuality, byte chanceDefendantQuality, byte chanceNeitherQuality, byte chancePlaintiffBias, byte chanceDefendantBias, byte chanceNeitherBias, bool feeShifting, bool basedOnMarginOfVictory, double feeShiftingThreshold)
+        [TestMethod]
+        public void AdditiveEvidence_PiecewiseLinear_Approximation()
+        {
+            byte numBiasLevels = 20;
+            byte numOffers = 20;
+            byte numTruncationLevels = AdditiveEvidenceGameOptions.NumTruncationPortions;
+
+            var tOptions = Enumerable.Range(0, 6).Select(x => 0.2 * x).ToArray();
+            var cOptions = Enumerable.Range(0, 26).Select(x => 0 + x * 0.04).ToArray();
+            var qOptions = Enumerable.Range(0, 7).Select(x => 0.35 + x * 0.05).ToArray();
+            var chancePlaintiffBiasIndexOptions = Enumerable.Range(0, numBiasLevels).Select(x => (byte)(x + 1)).ToArray();
+            var chanceDefendantBiasIndexOptions = Enumerable.Range(0, numBiasLevels).Select(x => (byte)(x + 1)).ToArray();
+            var pSlopeIndexOptions = Enumerable.Range(0, AdditiveEvidenceGameOptions.PiecewiseLinearBidsSlopeOptions.Length).Select(x => (byte)(x + 1)).ToArray();
+            var dSlopeIndexOptions = Enumerable.Range(0, AdditiveEvidenceGameOptions.PiecewiseLinearBidsSlopeOptions.Length).Select(x => (byte)(x + 1)).ToArray();
+            var pMinValIndexOptions = Enumerable.Range(0, numOffers).Select(x => (byte)(x + 1)).ToArray();
+            var dMinValIndexOptions = Enumerable.Range(0, numOffers).Select(x => (byte)(x + 1)).ToArray();
+            var pTruncationOptions = Enumerable.Range(0, numTruncationLevels).Select(x => (byte)(x + 1)).ToArray();
+            var dTruncationOptions = Enumerable.Range(0, numTruncationLevels).Select(x => (byte)(x + 1)).ToArray();
+
+
+
+            Random r = new Random(0);
+            T GetRandom<T>(T[] items) => items[r.Next(items.Length)];
+
+            int numRepetitions = 1_000;
+            for (int i = 0; i < numRepetitions; i++)
+            {
+                double t = GetRandom(tOptions);
+                double c = GetRandom(cOptions);
+                double q = GetRandom(qOptions);
+                DMSCalc dmsCalc = new DMSCalc(t, c, q);
+                var strategyPairs = dmsCalc.EnumeratePossibleStrategyPairs().ToList();
+                var pStrategies = strategyPairs.Select(x => x.pStrategy).DistinctBy(x => x.index).OrderBy(x => x.index).ToList();
+                var dStrategies = strategyPairs.Select(x => x.dStrategy).DistinctBy(x => x.index).OrderBy(x => x.index).ToList();
+                double[,] pUtilities = new double[pStrategies.Count, dStrategies.Count];
+                double[,] dUtilities = new double[pStrategies.Count, dStrategies.Count];
+                if (dmsCalc.trivial || dmsCalc.pPiecewiseLinearRanges.Count != 1 || dmsCalc.pPiecewiseLinearRanges.Count != 1)
+                    continue; // DEBUG
+                foreach (var strategyPair in strategyPairs)
+                {
+                    var outcomes = dmsCalc.GetOutcomes(strategyPair.pStrategy, strategyPair.dStrategy).ToList();
+                    double pUtility = outcomes.Average(x => x.pNet);
+                    double dUtility = outcomes.Average(x => x.dNet);
+                    pUtilities[strategyPair.pStrategy.index, strategyPair.dStrategy.index] = pUtility;
+                    dUtilities[strategyPair.pStrategy.index, strategyPair.dStrategy.index] = dUtility;
+                }
+                var equilibria = PureStrategiesFinder.ComputeNashEquilibria(pUtilities, dUtilities, false).Select(x => (pStrategies[x.Item1], dStrategies[x.Item2])).ToList();
+                foreach (var equilibrium in equilibria)
+                {
+                    var bids = DMSCalc.DMSStrategyWithTruncations.GetBidsForSignal(equilibrium.Item1, equilibrium.Item2, 10);
+                    var correct = dmsCalc.GetBids(10);
+                    string pBidsString = String.Join(",", bids.Select(x => $"{Math.Round(x.pBid, 2)}"));
+                    string pCorrectString = String.Join(",", correct.Select(x => $"{Math.Round(x.pBid, 2)}"));
+                    string dBidsString = String.Join(",", bids.Select(x => $"{Math.Round(x.dBid, 2)}"));
+                    string dCorrectString = String.Join(",", correct.Select(x => $"{Math.Round(x.dBid, 2)}"));
+                }
+            }
+        }
+
+                private static void AdditiveEvidence_TrialValue_Helper(AdditiveEvidenceGameOptions gameOptions, byte chancePlaintiffQuality, byte chanceDefendantQuality, byte chanceNeitherQuality, byte chancePlaintiffBias, byte chanceDefendantBias, byte chanceNeitherBias, bool feeShifting, bool basedOnMarginOfVictory, double feeShiftingThreshold)
         {
             GetOptionsAndProgress(gameOptions, chancePlaintiffQuality, chanceDefendantQuality, chanceNeitherQuality, chancePlaintiffBias, chanceDefendantBias, chanceNeitherBias, 3, 2, out double chancePQualityDouble, out double chanceDQualityDouble, out double chanceNQualityDouble, out double chancePBiasDouble, out double chanceDBiasDouble, out double chanceNBiasDouble, out AdditiveEvidenceGameProgress gameProgress);
             gameProgress.SettlementOccurs.Should().BeFalse();
