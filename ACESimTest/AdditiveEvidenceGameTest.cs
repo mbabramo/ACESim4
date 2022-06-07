@@ -477,16 +477,9 @@ namespace ACESimTest
                     pUtilities[strategyPair.pStrategy.index, strategyPair.dStrategy.index] = pUtility;
                     dUtilities[strategyPair.pStrategy.index, strategyPair.dStrategy.index] = dUtility;
                 }
-                var equilibria = PureStrategiesFinder.ComputeNashEquilibria(pUtilities, dUtilities, false).Select(x => new DMSCalc.DMSStrategiesPair(pUntruncatedStrategies[x.Item1], dUntruncatedStrategies[x.Item2], dmsCalc)).ToList();
-                foreach (var equilibrium in equilibria)
-                {
-                    var bids = DMSCalc.DMSStrategyWithTruncations.GetBidsForSignal(equilibrium, 10);
-                    var correct = dmsCalc.GetBids(10);
-                    string pBidsString = String.Join(",", bids.Select(x => $"{Math.Round(x.pBid, 2)}"));
-                    string pCorrectString = String.Join(",", correct.Select(x => $"{Math.Round(x.pBid, 2)}"));
-                    string dBidsString = String.Join(",", bids.Select(x => $"{Math.Round(x.dBid, 2)}"));
-                    string dCorrectString = String.Join(",", correct.Select(x => $"{Math.Round(x.dBid, 2)}"));
-                }
+
+                List<(int pIndex, int dIndex)> equilibriaIndices = PureStrategiesFinder.ComputeNashEquilibria(pUtilities, dUtilities, false);
+                var equilibria = equilibriaIndices.Select(x => new DMSCalc.DMSStrategiesPair(pUntruncatedStrategies[x.pIndex], dUntruncatedStrategies[x.dIndex], dmsCalc)).ToList();
             }
         }
 

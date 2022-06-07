@@ -35,13 +35,25 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             dPiecewiseLinearRanges = GetPiecewiseLinearRanges(false);
         }
 
+        public override string ToString()
+        {
+            var correct = GetBids(10);
+            string pCorrectString = String.Join(",", correct.Select(x => $"{Math.Round(x.pBid, 2)}"));
+            string dCorrectString = String.Join(",", correct.Select(x => $"{Math.Round(x.dBid, 2)}"));
+            string combined = $"T: {T}; C: {C}; Q: {Q}\n{pCorrectString}; {dCorrectString}";
+            return combined;
+        }
+
         #region Truncations
 
         public (double pBid, double dBid) GetBids(double zP, double zD)
         {
             var fs = GetUntruncFuncs();
-            return Truncated(zP, zD);
+            return (fs.pUntruncFunc(zP), fs.dUntruncFunc(zD)); // DEBUG
+            // DEBUGreturn Truncated(zP, zD);
         }
+
+
 
         public IEnumerable<(double pBid, double dBid)> GetBids(int numItems) => Enumerable.Range(0, numItems).Select(i => EquallySpaced.GetLocationOfMidpoint(i, numItems)).Select(x => GetBids(x, x));
 
@@ -434,6 +446,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             {
                 return new DMSStrategyWithTruncations(index, LineSegment.GetTruncatedLineSegments(piecewiseRanges, minForRange, slope, truncationValue, truncationIsMin));
             }
+
+            public override string ToString()
+            {
+                return index + ": " + String.Join(", ", piecewiseRanges.Zip(minForRange, (x, y) => $"({Math.Round(x.low, 2)},{Math.Round(y,2)})")) + $" (slope {Math.Round(slope, 2)})";
+            }
         }
 
         public struct DMSStrategiesPair
@@ -450,6 +467,15 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
                 pStrategy = new DMSStrategyWithTruncations(pPretruncation.index, pPretruncation.GetStrategyWithTruncation(dAbsoluteMin, true).lineSegments);
                 dStrategy = new DMSStrategyWithTruncations(dPretruncation.index, dPretruncation.GetStrategyWithTruncation(pAbsoluteMax, false).lineSegments);
+            }
+
+            public override string ToString()
+            {
+                var pBids = pStrategy.GetBidsForSignal(10);
+                string pBidsString = String.Join(",", pBids.Select(x => $"{Math.Round(x, 2)}"));
+                var dBids = dStrategy.GetBidsForSignal(10);
+                string dBidsString = String.Join(",", dBids.Select(x => $"{Math.Round(x, 2)}"));
+                return $"{pBidsString}; {dBidsString}";
             }
         }
 
@@ -498,20 +524,22 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 return true;
             }
 
-            double[] slopes = new double[] { 1.0 / 3.0, 2.0 / 3.0, 1.0 };
+            double[] slopes = new double[] { 1.0 / 3.0 }; // DEBUG, 2.0 / 3.0, 1.0 };
             int numYPossibilities = 10;
             double[] potentialYPoints = Enumerable.Range(0, numYPossibilities).Select(x => EquallySpaced.GetLocationOfMidpoint(x, numYPossibilities)).ToArray();
 
             var piecewiseLinearRanges = plaintiff ? pPiecewiseLinearRanges : dPiecewiseLinearRanges;
 
+
+            int numLinearRanges = piecewiseLinearRanges.Count;
+            List<List<double>> permutationSource = new List<List<double>>();
+            for (int c = 0; c < numLinearRanges; c++)
+                permutationSource.Add(potentialYPoints.ToList());
+            List<List<double>> possibilities = PermutationMaker.GetPermutationsOfItems(permutationSource).Where(l => IsOrdered(l)).ToList();
+
             int index = 0;
             foreach (double slope in slopes)
             {
-                int numLinearRanges = piecewiseLinearRanges.Count;
-                List<List<double>> permutationSource = new List<List<double>>();
-                for (int c = 0; c < numLinearRanges; c++)
-                    permutationSource.Add(potentialYPoints.ToList());
-                List<List<double>> possibilities = PermutationMaker.GetPermutationsOfItems(permutationSource).Where(l => IsOrdered(l)).ToList();
 
                 for (int j = 0; j < possibilities.Count; j++)
                 {
