@@ -37,25 +37,48 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public override string ToString()
         {
-            var correct = GetBids(10);
+            var correct = GetBids(10, truncated: false);
             string pCorrectString = String.Join(",", correct.Select(x => $"{Math.Round(x.pBid, 2)}"));
             string dCorrectString = String.Join(",", correct.Select(x => $"{Math.Round(x.dBid, 2)}"));
-            string combined = $"T: {T}; C: {C}; Q: {Q}\n{pCorrectString}; {dCorrectString}";
+            string combined = $"T: {T}; C: {C}; Q: {Q} \nCorrect (untruncated): P {pCorrectString}; D {dCorrectString}";
             return combined;
+        }
+
+
+        public DMSStrategiesPair GetCorrectStrategiesPair()
+        {
+            DMSStrategyPretruncation p, d;
+            (p, d) = GetCorrectStrategiesPretruncation();
+
+            return new DMSStrategiesPair(p, d, this);
+        }
+
+        public (DMSStrategyPretruncation p, DMSStrategyPretruncation d) GetCorrectStrategiesPretruncation()
+        {
+            var fs = GetUntruncFuncs();
+            double pBidMin = fs.pUntruncFunc(0), pBidMax = fs.pUntruncFunc(1), dBidMin = fs.dUntruncFunc(0), dBidMax = fs.dUntruncFunc(1);
+            double pSlope = pBidMax - pBidMin;
+            double dSlope = dBidMax - dBidMin;
+
+            var p = new DMSStrategyPretruncation(0, pSlope, pPiecewiseLinearRanges.Select(x => fs.pUntruncFunc(x.low)).ToList(), pPiecewiseLinearRanges);
+            var d = new DMSStrategyPretruncation(0, dSlope, dPiecewiseLinearRanges.Select(x => fs.dUntruncFunc(x.low)).ToList(), dPiecewiseLinearRanges);
+            return (p, d);
         }
 
         #region Truncations
 
-        public (double pBid, double dBid) GetBids(double zP, double zD)
+
+        public (double pBid, double dBid) GetBids(double zP, double zD, bool truncated = true)
         {
             var fs = GetUntruncFuncs();
-            return (fs.pUntruncFunc(zP), fs.dUntruncFunc(zD)); // DEBUG
-            // DEBUGreturn Truncated(zP, zD);
+            if (truncated) 
+                return Truncated(zP, zD);
+            return (fs.pUntruncFunc(zP), fs.dUntruncFunc(zD)); 
         }
 
 
 
-        public IEnumerable<(double pBid, double dBid)> GetBids(int numItems) => Enumerable.Range(0, numItems).Select(i => EquallySpaced.GetLocationOfMidpoint(i, numItems)).Select(x => GetBids(x, x));
+        public IEnumerable<(double pBid, double dBid)> GetBids(int numItems, bool truncated = true) => Enumerable.Range(0, numItems).Select(i => EquallySpaced.GetLocationOfMidpoint(i, numItems)).Select(x => GetBids(x, x, truncated));
 
         bool truncate = true;
         bool includeIrrelevantTruncations = false;
@@ -457,6 +480,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         {
             public DMSStrategyWithTruncations pStrategy;
             public DMSStrategyWithTruncations dStrategy;
+            public DMSCalc DMSCalc;
+            public List<SingleCaseOutcome> Outcomes;
+            public double SettlementPercentage, PNet, DNet;
+            public bool Nontrivial => SettlementPercentage is > 0 and < 1;
+
             public DMSStrategiesPair(DMSStrategyPretruncation pPretruncation, DMSStrategyPretruncation dPretruncation, DMSCalc dmsCalc)
             {
                 var pLastMin = pPretruncation.minForRange[pPretruncation.minForRange.Count - 1];
@@ -467,6 +495,59 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
                 pStrategy = new DMSStrategyWithTruncations(pPretruncation.index, pPretruncation.GetStrategyWithTruncation(dAbsoluteMin, true).lineSegments);
                 dStrategy = new DMSStrategyWithTruncations(dPretruncation.index, dPretruncation.GetStrategyWithTruncation(pAbsoluteMax, false).lineSegments);
+                DMSCalc = dmsCalc;
+                Outcomes = null;
+                SettlementPercentage = PNet = DNet = 0;
+                Outcomes = GetOutcomes(250).ToList();
+                SettlementPercentage = Outcomes.Average(x => x.settles ? 1.0 : 0);
+                PNet = Outcomes.Average(x => x.pNet);
+                DNet = Outcomes.Average(x => x.dNet);
+            }
+
+
+            public IEnumerable<SingleCaseOutcome> GetOutcomes(int numSignalsPerParty = 100)
+            {
+                double signalDistance = 1.0 / (double)numSignalsPerParty;
+                for (int pSignalIndex = 0; pSignalIndex < numSignalsPerParty; pSignalIndex++)
+                {
+                    for (int dSignalIndex = 0; dSignalIndex < numSignalsPerParty; dSignalIndex++)
+                    {
+                        double pSignal = (pSignalIndex + 1) * signalDistance;
+                        double dSignal = (dSignalIndex + 1) * signalDistance;
+                        yield return GetOutcome(pSignal, dSignal);
+                    }
+                }
+            }
+
+            public SingleCaseOutcome GetOutcome(double pSignal, double dSignal)
+            {
+                return GetOutcome(pSignal, dSignal, pStrategy.GetBidForSignal(pSignal), dStrategy.GetBidForSignal(dSignal));
+            }
+
+            public record struct SingleCaseOutcome(bool settles, double pGross, double pCosts, double dCosts)
+            {
+                public double dGross => 1.0 - pGross;
+                public double pNet => pGross - pCosts;
+                public double dNet => dGross - dCosts;
+            }
+
+            public SingleCaseOutcome GetOutcome(double pSignal, double dSignal, double pBid, double dBid)
+            {
+                if (dBid >= pBid - 1E-12)
+                    return new SingleCaseOutcome(true, (pBid + dBid) / 2.0, 0, 0);
+                double thetaP = pSignal * DMSCalc.Q;
+                double thetaD = DMSCalc.Q + dSignal * (1.0 - DMSCalc.Q);
+                double judgment = 0.5 * (thetaP + thetaD);
+                bool feeShiftingToP = judgment < 0.5 && thetaD < DMSCalc.T;
+                bool feeShiftingToD = judgment > 0.5 && thetaP > DMSCalc.T;
+                double pCosts = 0, dCosts = 0;
+                if (feeShiftingToP)
+                    pCosts = DMSCalc.C;
+                else if (feeShiftingToD)
+                    dCosts = DMSCalc.C;
+                else
+                    pCosts = dCosts = 0.5 * DMSCalc.C;
+                return new SingleCaseOutcome(false, judgment, pCosts, dCosts);
             }
 
             public override string ToString()
@@ -475,7 +556,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 string pBidsString = String.Join(",", pBids.Select(x => $"{Math.Round(x, 2)}"));
                 var dBids = dStrategy.GetBidsForSignal(10);
                 string dBidsString = String.Join(",", dBids.Select(x => $"{Math.Round(x, 2)}"));
-                return $"{pBidsString}; {dBidsString}";
+                return $"{pStrategy.index}, {dStrategy.index} (Settlement {SettlementPercentage} pNet {PNet} dNet {DNet}): P {pBidsString}; D {dBidsString}";
             }
         }
 
@@ -525,7 +606,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             }
 
             double[] slopes = new double[] { 1.0 / 3.0 }; // DEBUG, 2.0 / 3.0, 1.0 };
-            int numYPossibilities = 10;
+            int numYPossibilities = 50;
             double[] potentialYPoints = Enumerable.Range(0, numYPossibilities).Select(x => EquallySpaced.GetLocationOfMidpoint(x, numYPossibilities)).ToArray();
 
             var piecewiseLinearRanges = plaintiff ? pPiecewiseLinearRanges : dPiecewiseLinearRanges;
@@ -551,51 +632,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             }
         }
 
-        public IEnumerable<SingleCaseOutcome> GetOutcomes(DMSStrategiesPair pair)
-        {
-            const int numSignalsPerParty = 100;
-            double signalDistance = 1.0 / (double)numSignalsPerParty;
-            for (int pSignalIndex = 0; pSignalIndex < numSignalsPerParty; pSignalIndex++)
-            {
-                for (int dSignalIndex = 0; dSignalIndex < numSignalsPerParty; dSignalIndex++)
-                {
-                    double pSignal = (pSignalIndex + 1) * signalDistance;
-                    double dSignal = (dSignalIndex + 1) * signalDistance;
-                    yield return GetOutcome(pair, pSignal, dSignal);
-                }
-            }
-        }
-
-        public SingleCaseOutcome GetOutcome(DMSStrategiesPair pair, double pSignal, double dSignal)
-        {
-            return GetOutcome(pSignal, dSignal, pair.pStrategy.GetBidForSignal(pSignal), pair.dStrategy.GetBidForSignal(dSignal));
-        }
-
-        public record struct SingleCaseOutcome(bool settles, double pGross, double pCosts, double dCosts)
-        {
-            public double dGross => 1.0 - pGross;
-            public double pNet => pGross - pCosts;
-            public double dNet => dGross - dCosts;
-        }
-
-        public SingleCaseOutcome GetOutcome(double pSignal, double dSignal, double pBid, double dBid)
-        {
-            if (dBid >= pBid - 1E-12)
-                return new SingleCaseOutcome(true, (pBid + dBid) / 2.0, 0, 0);
-            double thetaP = pSignal * Q;
-            double thetaD = Q + dSignal * (1.0 - Q);
-            double judgment = 0.5 * (thetaP + thetaD);
-            bool feeShiftingToP = judgment < 0.5 && thetaD < T;
-            bool feeShiftingToD = judgment > 0.5 && thetaP > T;
-            double pCosts = 0, dCosts = 0;
-            if (feeShiftingToP)
-                pCosts = C + C;
-            else if (feeShiftingToD)
-                dCosts = C + C;
-            else
-                pCosts = dCosts = C;
-            return new SingleCaseOutcome(false, judgment, pCosts, dCosts);
-        }
 
         //public record struct DMSPartialOutcome(double weight, bool settles, double? avgTrialValue, double? avgSettlementValue)
         //{

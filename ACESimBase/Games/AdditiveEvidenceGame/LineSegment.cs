@@ -14,7 +14,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public double yEnd => yStart + (xEnd - xStart) * slope;
         public double yAvg => 0.5 * yStart + 0.5 * yEnd;
         public double xAvg => 0.5 * xStart + 0.5 * xEnd;
-        public double yVal(double xVal) => xStart + slope * (xEnd - xStart);
+        public double yVal(double xVal) => yStart + slope * (xEnd - xStart);
         public double xVal(double yVal) => xStart + (yVal - yStart) / slope;
         public bool IntersectsHorizontalLine(double yVal) => yVal > yStart && yVal < yEnd;
         public double XIntersection(LineSegment other)

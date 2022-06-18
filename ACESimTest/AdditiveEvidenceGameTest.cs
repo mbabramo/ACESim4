@@ -5,6 +5,7 @@ using System.Linq;
 using ACESim;
 using ACESim.Util;
 using ACESimBase.Games.AdditiveEvidenceGame;
+using ACESimBase.Util;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -458,28 +459,42 @@ namespace ACESimTest
             int numRepetitions = 1_000;
             for (int i = 0; i < numRepetitions; i++)
             {
-                double t = GetRandom(tOptions);
+                double t = 0; // DEBUG  GetRandom(tOptions);
                 double c = GetRandom(cOptions);
                 double q = GetRandom(qOptions);
                 DMSCalc dmsCalc = new DMSCalc(t, c, q);
                 var pUntruncatedStrategies = dmsCalc.EnumeratePossibleStrategies(true).ToList();
                 var dUntruncatedStrategies = dmsCalc.EnumeratePossibleStrategies(false).ToList();
+                //Debug; //something's going wrong in constructing the strategies pair.
                 var strategyPairs = pUntruncatedStrategies.SelectMany(x => dUntruncatedStrategies, (x, y) => new DMSCalc.DMSStrategiesPair(x, y, dmsCalc)).ToList();
+                var DEBUG_CorrectStrategy = dmsCalc.GetCorrectStrategiesPretruncation(); // DEBUG -- must delete
+                for (int i1 = 0; i1 < strategyPairs.Count; i1++)
+                {
+                    DMSCalc.DMSStrategiesPair strategyPair = strategyPairs[i1];
+                    if (strategyPair.pStrategy.index == 0 && strategyPair.dStrategy.index == 0)
+                        strategyPairs[i1] = new DMSCalc.DMSStrategiesPair(DEBUG_CorrectStrategy.p, DEBUG_CorrectStrategy.d, dmsCalc);
+                    else if (strategyPair.pStrategy.index == 0)
+                        strategyPairs[i1] = new DMSCalc.DMSStrategiesPair(DEBUG_CorrectStrategy.p, dUntruncatedStrategies[strategyPairs[i1].dStrategy.index], dmsCalc);
+                    else if (strategyPair.dStrategy.index == 0)
+                        strategyPairs[i1] = new DMSCalc.DMSStrategiesPair(pUntruncatedStrategies[strategyPairs[i1].pStrategy.index], DEBUG_CorrectStrategy.d, dmsCalc);
+                }
                 double[,] pUtilities = new double[pUntruncatedStrategies.Count, dUntruncatedStrategies.Count];
                 double[,] dUtilities = new double[pUntruncatedStrategies.Count, dUntruncatedStrategies.Count];
                 if (dmsCalc.trivial || dmsCalc.pPiecewiseLinearRanges.Count != 1 || dmsCalc.pPiecewiseLinearRanges.Count != 1)
                     continue; // DEBUG
                 foreach (var strategyPair in strategyPairs)
                 {
-                    var outcomes = dmsCalc.GetOutcomes(strategyPair).ToList();
-                    double pUtility = outcomes.Average(x => x.pNet);
-                    double dUtility = outcomes.Average(x => x.dNet);
-                    pUtilities[strategyPair.pStrategy.index, strategyPair.dStrategy.index] = pUtility;
-                    dUtilities[strategyPair.pStrategy.index, strategyPair.dStrategy.index] = dUtility;
+                    pUtilities[strategyPair.pStrategy.index, strategyPair.dStrategy.index] = strategyPair.PNet;
+                    dUtilities[strategyPair.pStrategy.index, strategyPair.dStrategy.index] = strategyPair.DNet;
                 }
+                var pMatrixString = Matrix.ToString(pUtilities);
+                var dMatrixString = Matrix.ToString(dUtilities);
+                var combinedMatrixString = pMatrixString + "\n" + dMatrixString;
 
                 List<(int pIndex, int dIndex)> equilibriaIndices = PureStrategiesFinder.ComputeNashEquilibria(pUtilities, dUtilities, false);
-                var equilibria = equilibriaIndices.Select(x => new DMSCalc.DMSStrategiesPair(pUntruncatedStrategies[x.pIndex], dUntruncatedStrategies[x.dIndex], dmsCalc)).ToList();
+                DMSCalc.DMSStrategiesPair GetEq((int pIndex, int dIndex) eq) => strategyPairs.First(x => x.pStrategy.index == eq.pIndex && x.dStrategy.index == eq.dIndex);
+                IEnumerable<((int pIndex, int dIndex) eq, DMSCalc.DMSStrategiesPair)> equilibria = equilibriaIndices.Select(eq => (eq, GetEq(eq)));
+                var nonTrivialEquilibria = equilibria.Where(x => x.Item2.Nontrivial).ToList();
             }
         }
 
