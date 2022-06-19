@@ -470,9 +470,13 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 return new DMSStrategyWithTruncations(index, LineSegment.GetTruncatedLineSegments(piecewiseRanges, minForRange, slope, truncationValue, truncationIsMin));
             }
 
+            public double MinVal() => minForRange[0];
+
+            public double MaxVal() => minForRange.Last() + slope * (piecewiseRanges.Last().high - piecewiseRanges.Last().low);
+
             public override string ToString()
             {
-                return index + ": " + String.Join(", ", piecewiseRanges.Zip(minForRange, (x, y) => $"({Math.Round(x.low, 2)},{Math.Round(y,2)})")) + $" (slope {Math.Round(slope, 2)})";
+                return index + ": " + String.Join(", ", piecewiseRanges.Zip(minForRange, (x, y) => $"({Math.Round(x.low, 2)},{Math.Round(y,2)})")) + $" (slope {Math.Round(slope, 2)}) Overall range {MinVal()}-{MaxVal()}";
             }
         }
 
@@ -485,6 +489,20 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             public double SettlementPercentage, PNet, DNet;
             public bool Nontrivial => SettlementPercentage is > 0 and < 1;
 
+            const int NumSignalsPerParty = 50;
+
+            public DMSStrategiesPair(DMSStrategyWithTruncations pStrategy, DMSStrategyWithTruncations dStrategy, DMSCalc dmsCalc)
+            {
+                this.pStrategy = pStrategy;
+                this.dStrategy = dStrategy;
+                DMSCalc = dmsCalc;
+                Outcomes = null;
+                SettlementPercentage = PNet = DNet = 0;
+                Outcomes = GetOutcomes().ToList();
+                SettlementPercentage = Outcomes.Average(x => x.settles ? 1.0 : 0);
+                PNet = Outcomes.Average(x => x.pNet);
+                DNet = Outcomes.Average(x => x.dNet);
+            }
             public DMSStrategiesPair(DMSStrategyPretruncation pPretruncation, DMSStrategyPretruncation dPretruncation, DMSCalc dmsCalc)
             {
                 var pLastMin = pPretruncation.minForRange[pPretruncation.minForRange.Count - 1];
@@ -498,19 +516,19 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 DMSCalc = dmsCalc;
                 Outcomes = null;
                 SettlementPercentage = PNet = DNet = 0;
-                Outcomes = GetOutcomes(250).ToList();
+                Outcomes = GetOutcomes().ToList();
                 SettlementPercentage = Outcomes.Average(x => x.settles ? 1.0 : 0);
                 PNet = Outcomes.Average(x => x.pNet);
                 DNet = Outcomes.Average(x => x.dNet);
             }
 
 
-            public IEnumerable<SingleCaseOutcome> GetOutcomes(int numSignalsPerParty = 100)
+            public IEnumerable<SingleCaseOutcome> GetOutcomes()
             {
-                double signalDistance = 1.0 / (double)numSignalsPerParty;
-                for (int pSignalIndex = 0; pSignalIndex < numSignalsPerParty; pSignalIndex++)
+                double signalDistance = 1.0 / (double)NumSignalsPerParty;
+                for (int pSignalIndex = 0; pSignalIndex < NumSignalsPerParty; pSignalIndex++)
                 {
-                    for (int dSignalIndex = 0; dSignalIndex < numSignalsPerParty; dSignalIndex++)
+                    for (int dSignalIndex = 0; dSignalIndex < NumSignalsPerParty; dSignalIndex++)
                     {
                         double pSignal = (pSignalIndex + 1) * signalDistance;
                         double dSignal = (dSignalIndex + 1) * signalDistance;
@@ -583,7 +601,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
 
 
-        public IEnumerable<DMSStrategyPretruncation> EnumeratePossibleStrategies(bool plaintiff)
+        public IEnumerable<DMSStrategyPretruncation> EnumeratePossiblePretruncationStrategies(bool plaintiff)
         {
             bool IsOrdered<T>(IList<T> list, IComparer<T> comparer = null)
             {

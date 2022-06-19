@@ -459,42 +459,67 @@ namespace ACESimTest
             int numRepetitions = 1_000;
             for (int i = 0; i < numRepetitions; i++)
             {
-                double t = 0; // DEBUG  GetRandom(tOptions);
+                double t = GetRandom(tOptions);
                 double c = GetRandom(cOptions);
                 double q = GetRandom(qOptions);
                 DMSCalc dmsCalc = new DMSCalc(t, c, q);
-                var pUntruncatedStrategies = dmsCalc.EnumeratePossibleStrategies(true).ToList();
-                var dUntruncatedStrategies = dmsCalc.EnumeratePossibleStrategies(false).ToList();
-                //Debug; //something's going wrong in constructing the strategies pair.
-                var strategyPairs = pUntruncatedStrategies.SelectMany(x => dUntruncatedStrategies, (x, y) => new DMSCalc.DMSStrategiesPair(x, y, dmsCalc)).ToList();
-                var DEBUG_CorrectStrategy = dmsCalc.GetCorrectStrategiesPretruncation(); // DEBUG -- must delete
-                for (int i1 = 0; i1 < strategyPairs.Count; i1++)
-                {
-                    DMSCalc.DMSStrategiesPair strategyPair = strategyPairs[i1];
-                    if (strategyPair.pStrategy.index == 0 && strategyPair.dStrategy.index == 0)
-                        strategyPairs[i1] = new DMSCalc.DMSStrategiesPair(DEBUG_CorrectStrategy.p, DEBUG_CorrectStrategy.d, dmsCalc);
-                    else if (strategyPair.pStrategy.index == 0)
-                        strategyPairs[i1] = new DMSCalc.DMSStrategiesPair(DEBUG_CorrectStrategy.p, dUntruncatedStrategies[strategyPairs[i1].dStrategy.index], dmsCalc);
-                    else if (strategyPair.dStrategy.index == 0)
-                        strategyPairs[i1] = new DMSCalc.DMSStrategiesPair(pUntruncatedStrategies[strategyPairs[i1].pStrategy.index], DEBUG_CorrectStrategy.d, dmsCalc);
-                }
-                double[,] pUtilities = new double[pUntruncatedStrategies.Count, dUntruncatedStrategies.Count];
-                double[,] dUtilities = new double[pUntruncatedStrategies.Count, dUntruncatedStrategies.Count];
+
                 if (dmsCalc.trivial || dmsCalc.pPiecewiseLinearRanges.Count != 1 || dmsCalc.pPiecewiseLinearRanges.Count != 1)
                     continue; // DEBUG
-                foreach (var strategyPair in strategyPairs)
-                {
-                    pUtilities[strategyPair.pStrategy.index, strategyPair.dStrategy.index] = strategyPair.PNet;
-                    dUtilities[strategyPair.pStrategy.index, strategyPair.dStrategy.index] = strategyPair.DNet;
-                }
-                var pMatrixString = Matrix.ToString(pUtilities);
-                var dMatrixString = Matrix.ToString(dUtilities);
-                var combinedMatrixString = pMatrixString + "\n" + dMatrixString;
 
-                List<(int pIndex, int dIndex)> equilibriaIndices = PureStrategiesFinder.ComputeNashEquilibria(pUtilities, dUtilities, false);
-                DMSCalc.DMSStrategiesPair GetEq((int pIndex, int dIndex) eq) => strategyPairs.First(x => x.pStrategy.index == eq.pIndex && x.dStrategy.index == eq.dIndex);
-                IEnumerable<((int pIndex, int dIndex) eq, DMSCalc.DMSStrategiesPair)> equilibria = equilibriaIndices.Select(eq => (eq, GetEq(eq)));
-                var nonTrivialEquilibria = equilibria.Where(x => x.Item2.Nontrivial).ToList();
+                var pUntruncatedStrategies = dmsCalc.EnumeratePossiblePretruncationStrategies(true).ToList();
+                var dUntruncatedStrategies = dmsCalc.EnumeratePossiblePretruncationStrategies(false).ToList();
+                //double[] possibleTruncationValues = new double[] { 0.05, 0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.86, 0.95 };
+                //var pStrategiesWithTruncation = pUntruncatedStrategies.SelectMany(x => possibleTruncationValues, (p, tr) => (p, tr)).Where(x => x.p.MinVal() < x.tr && x.tr < x.p.MaxVal()).Select(x => x.p.GetStrategyWithTruncation(x.tr, true)).ToList();
+                //var dStrategiesWithTruncation = dUntruncatedStrategies.SelectMany(x => possibleTruncationValues, (d, tr) => (d, tr)).Where(x => x.d.MinVal() < x.tr && x.tr < x.d.MaxVal()).Select(x => x.d.GetStrategyWithTruncation(x.tr, false)).ToList();
+
+                var pStrategiesWithTruncation = pUntruncatedStrategies.Select(x => x.GetStrategyWithTruncation(1.0, true)).ToList();
+                var dStrategiesWithTruncation = dUntruncatedStrategies.Select(x => x.GetStrategyWithTruncation(0, false)).ToList();
+
+                //DEBUG; //something's going wrong in constructing the strategies pair.
+                //var strategyPairs = pStrategiesWithTruncation.SelectMany(x => dStrategiesWithTruncation, (p, d) => new DMSCalc.DMSStrategiesPair(p, d, dmsCalc)).ToList();
+
+                var correctStrategyPretruncation = dmsCalc.GetCorrectStrategiesPretruncation(); // DEBUG -- must delete
+                var correctStrategyTruncated = new DMSCalc.DMSStrategiesPair(correctStrategyPretruncation.p, correctStrategyPretruncation.d, dmsCalc);
+                foreach (var dStrategyTruncated in dStrategiesWithTruncation)
+                {
+                    var altStrategyPair = new DMSCalc.DMSStrategiesPair(correctStrategyTruncated.pStrategy, dStrategyTruncated, dmsCalc);
+                    if (altStrategyPair.DNet > correctStrategyTruncated.DNet)
+                        throw new Exception("Not true equilibrium.");
+                }
+                foreach (var pStrategyTruncated in pStrategiesWithTruncation)
+                {
+                    var altStrategyPair = new DMSCalc.DMSStrategiesPair(pStrategyTruncated, correctStrategyTruncated.dStrategy, dmsCalc);
+                    if (altStrategyPair.PNet > correctStrategyTruncated.PNet)
+                        throw new Exception("Not true equilibrium.");
+                }
+
+
+                //for (int i1 = 0; i1 < strategyPairs.Count; i1++)
+                //{
+                //    DMSCalc.DMSStrategiesPair strategyPair = strategyPairs[i1];
+                //    if (strategyPair.pStrategy.index == 0 && strategyPair.dStrategy.index == 0)
+                //        strategyPairs[i1] = new DMSCalc.DMSStrategiesPair(DEBUG_CorrectStrategy.p, DEBUG_CorrectStrategy.d, dmsCalc);
+                //    else if (strategyPair.pStrategy.index == 0)
+                //        strategyPairs[i1] = new DMSCalc.DMSStrategiesPair(DEBUG_CorrectStrategy.p, dUntruncatedStrategies[strategyPairs[i1].dStrategy.index], dmsCalc);
+                //    else if (strategyPair.dStrategy.index == 0)
+                //        strategyPairs[i1] = new DMSCalc.DMSStrategiesPair(pUntruncatedStrategies[strategyPairs[i1].pStrategy.index], DEBUG_CorrectStrategy.d, dmsCalc);
+                //}
+                //double[,] pUtilities = new double[pStrategiesWithTruncation.Count, dStrategiesWithTruncation.Count];
+                //double[,] dUtilities = new double[pStrategiesWithTruncation.Count, dStrategiesWithTruncation.Count];
+                //foreach (var strategyPair in strategyPairs)
+                //{
+                //    pUtilities[strategyPair.pStrategy.index, strategyPair.dStrategy.index] = strategyPair.PNet;
+                //    dUtilities[strategyPair.pStrategy.index, strategyPair.dStrategy.index] = strategyPair.DNet;
+                //}
+                //var pMatrixString = Matrix.ToString(pUtilities);
+                //var dMatrixString = Matrix.ToString(dUtilities);
+                //var combinedMatrixString = pMatrixString + "\n" + dMatrixString;
+
+                //List<(int pIndex, int dIndex)> equilibriaIndices = PureStrategiesFinder.ComputeNashEquilibria(pUtilities, dUtilities, false);
+                //DMSCalc.DMSStrategiesPair GetEq((int pIndex, int dIndex) eq) => strategyPairs.First(x => x.pStrategy.index == eq.pIndex && x.dStrategy.index == eq.dIndex);
+                //IEnumerable<((int pIndex, int dIndex) eq, DMSCalc.DMSStrategiesPair)> equilibria = equilibriaIndices.Select(eq => (eq, GetEq(eq)));
+                //var nonTrivialEquilibria = equilibria.Where(x => x.Item2.Nontrivial).ToList();
             }
         }
 
