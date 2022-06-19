@@ -489,7 +489,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             public double SettlementPercentage, PNet, DNet;
             public bool Nontrivial => SettlementPercentage is > 0 and < 1;
 
-            const int NumSignalsPerParty = 50;
+            const int NumSignalsPerParty = 250;
 
             public DMSStrategiesPair(DMSStrategyWithTruncations pStrategy, DMSStrategyWithTruncations dStrategy, DMSCalc dmsCalc)
             {

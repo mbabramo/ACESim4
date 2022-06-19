@@ -473,8 +473,8 @@ namespace ACESimTest
                 //var pStrategiesWithTruncation = pUntruncatedStrategies.SelectMany(x => possibleTruncationValues, (p, tr) => (p, tr)).Where(x => x.p.MinVal() < x.tr && x.tr < x.p.MaxVal()).Select(x => x.p.GetStrategyWithTruncation(x.tr, true)).ToList();
                 //var dStrategiesWithTruncation = dUntruncatedStrategies.SelectMany(x => possibleTruncationValues, (d, tr) => (d, tr)).Where(x => x.d.MinVal() < x.tr && x.tr < x.d.MaxVal()).Select(x => x.d.GetStrategyWithTruncation(x.tr, false)).ToList();
 
-                var pStrategiesWithTruncation = pUntruncatedStrategies.Select(x => x.GetStrategyWithTruncation(1.0, true)).ToList();
-                var dStrategiesWithTruncation = dUntruncatedStrategies.Select(x => x.GetStrategyWithTruncation(0, false)).ToList();
+                var pStrategiesWithTruncation = pUntruncatedStrategies.Select(x => x.GetStrategyWithTruncation(0, true)).ToList();
+                var dStrategiesWithTruncation = dUntruncatedStrategies.Select(x => x.GetStrategyWithTruncation(1.0, false)).ToList();
 
                 //DEBUG; //something's going wrong in constructing the strategies pair.
                 //var strategyPairs = pStrategiesWithTruncation.SelectMany(x => dStrategiesWithTruncation, (p, d) => new DMSCalc.DMSStrategiesPair(p, d, dmsCalc)).ToList();
@@ -490,7 +490,7 @@ namespace ACESimTest
                 foreach (var pStrategyTruncated in pStrategiesWithTruncation)
                 {
                     var altStrategyPair = new DMSCalc.DMSStrategiesPair(pStrategyTruncated, correctStrategyTruncated.dStrategy, dmsCalc);
-                    if (altStrategyPair.PNet > correctStrategyTruncated.PNet)
+                    if (altStrategyPair.PNet > correctStrategyTruncated.PNet + 0.02 /* DEBUG */)
                         throw new Exception("Not true equilibrium.");
                 }
 
