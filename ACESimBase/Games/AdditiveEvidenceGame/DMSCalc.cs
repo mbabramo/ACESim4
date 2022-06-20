@@ -38,8 +38,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public override string ToString()
         {
             var correct = GetBids(10, truncated: false);
-            string pCorrectString = String.Join(",", correct.Select(x => $"{Math.Round(x.pBid, 2)}"));
-            string dCorrectString = String.Join(",", correct.Select(x => $"{Math.Round(x.dBid, 2)}"));
+            string pCorrectString = String.Join(",", correct.Select(x => $"{Math.Round(x.pBid, 3)}"));
+            string dCorrectString = String.Join(",", correct.Select(x => $"{Math.Round(x.dBid, 3)}"));
             string combined = $"T: {T}; C: {C}; Q: {Q} \nCorrect (untruncated): P {pCorrectString}; D {dCorrectString}";
             return combined;
         }
@@ -56,9 +56,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public (DMSStrategyPretruncation p, DMSStrategyPretruncation d) GetCorrectStrategiesPretruncation()
         {
             var fs = GetUntruncFuncs();
-            double pBidMin = fs.pUntruncFunc(0), pBidMax = fs.pUntruncFunc(1), dBidMin = fs.dUntruncFunc(0), dBidMax = fs.dUntruncFunc(1);
-            double pSlope = pBidMax - pBidMin;
-            double dSlope = dBidMax - dBidMin;
+            // We assume the same slope in each piecewise linear range. But because there can be discontinuities, the slope cannot be calculated based on the difference in y values between x values of 0 and 1.
+            double pBidStartFirstRange = fs.pUntruncFunc(pPiecewiseLinearRanges[0].low), pBidEndFirstRange = fs.pUntruncFunc(pPiecewiseLinearRanges[0].high - 1E-12), dBidStartFirstRange = fs.dUntruncFunc(dPiecewiseLinearRanges[0].low), dBidEndFirstRange = fs.dUntruncFunc(dPiecewiseLinearRanges[0].high - 1E-12);
+
+            double pSlope = (pBidEndFirstRange - pBidStartFirstRange) / (pPiecewiseLinearRanges[0].high - pPiecewiseLinearRanges[0].low);
+            double dSlope = (dBidEndFirstRange - dBidStartFirstRange) / (dPiecewiseLinearRanges[0].high - dPiecewiseLinearRanges[0].low);
 
             var p = new DMSStrategyPretruncation(0, pSlope, pPiecewiseLinearRanges.Select(x => fs.pUntruncFunc(x.low)).ToList(), pPiecewiseLinearRanges);
             var d = new DMSStrategyPretruncation(0, dSlope, dPiecewiseLinearRanges.Select(x => fs.dUntruncFunc(x.low)).ToList(), dPiecewiseLinearRanges);
@@ -78,7 +80,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
 
 
-        public IEnumerable<(double pBid, double dBid)> GetBids(int numItems, bool truncated = true) => Enumerable.Range(0, numItems).Select(i => EquallySpaced.GetLocationOfMidpoint(i, numItems)).Select(x => GetBids(x, x, truncated));
+        public IEnumerable<(double pBid, double dBid)> GetBids(int numItems, bool truncated = true) => Enumerable.Range(0, numItems).Select(i => EquallySpaced.GetLocationOfEquallySpacedPoint(i, numItems, true)).Select(x => GetBids(x, x, truncated));
 
         bool truncate = true;
         bool includeIrrelevantTruncations = false;
@@ -467,16 +469,45 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         {
             public DMSStrategyWithTruncations GetStrategyWithTruncation(double truncationValue, bool truncationIsMin)
             {
-                return new DMSStrategyWithTruncations(index, LineSegment.GetTruncatedLineSegments(piecewiseRanges, minForRange, slope, truncationValue, truncationIsMin));
+                return new DMSStrategyWithTruncations(index, LineSegment.GetTruncatedLineSegments(piecewiseRanges, minForRange, slope, truncationValue, truncationIsMin), MinVal(), MaxVal());
             }
 
             public double MinVal() => minForRange[0];
 
             public double MaxVal() => minForRange.Last() + slope * (piecewiseRanges.Last().high - piecewiseRanges.Last().low);
 
+            public IEnumerable<(double low, double high)> EnumerateYRanges()
+            {
+                for (int i = 0; i < minForRange.Count; i++)
+                {
+                    var low = minForRange[i];
+                    var high = low + slope * (piecewiseRanges[i].high - piecewiseRanges[i].low);
+                    yield return (low, high);
+                }
+            }
             public override string ToString()
             {
-                return index + ": " + String.Join(", ", piecewiseRanges.Zip(minForRange, (x, y) => $"({Math.Round(x.low, 2)},{Math.Round(y,2)})")) + $" (slope {Math.Round(slope, 2)}) Overall range {MinVal()}-{MaxVal()}";
+                return index + ": " + String.Join(", ", piecewiseRanges.Zip(EnumerateYRanges(), (x, y) => $"({Math.Round(x.low, 3)},{Math.Round(y.low,3)})-({Math.Round(x.high, 3)},{Math.Round(y.high, 3)})")) + $" (slope {Math.Round(slope, 3)})";
+            }
+
+            public IEnumerable<DMSStrategyPretruncation> EnumerateStrategiesDifferingInOneRange()
+            {
+                for (int r = 0; r < piecewiseRanges.Count; r++)
+                {
+                    var rng = piecewiseRanges[r];
+                    foreach (var potentialYValue in DMSCalc.potentialYPoints)
+                    {
+                        if (potentialYValue != minForRange[0] && (r == 0 || potentialYValue > minForRange[r - 1]) && (r == piecewiseRanges.Count - 1 || potentialYValue < minForRange[r + 1]))
+                        {
+                            var minForRange2 = minForRange.ToList();
+                            minForRange2[r] = potentialYValue;
+                            foreach (var potentialSlope in DMSCalc.potentialSlopes)
+                            {
+                                yield return new DMSStrategyPretruncation(index, potentialSlope, minForRange2, piecewiseRanges);
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -489,7 +520,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             public double SettlementPercentage, PNet, DNet;
             public bool Nontrivial => SettlementPercentage is > 0 and < 1;
 
-            const int NumSignalsPerParty = 250;
+            const int NumSignalsPerParty = 100;
 
             public DMSStrategiesPair(DMSStrategyWithTruncations pStrategy, DMSStrategyWithTruncations dStrategy, DMSCalc dmsCalc)
             {
@@ -511,8 +542,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 double pAbsoluteMax = pLastMin + pLastLinearRangeDistance * pPretruncation.slope;
                 double dAbsoluteMin = dPretruncation.minForRange[0];
 
-                pStrategy = new DMSStrategyWithTruncations(pPretruncation.index, pPretruncation.GetStrategyWithTruncation(dAbsoluteMin, true).lineSegments);
-                dStrategy = new DMSStrategyWithTruncations(dPretruncation.index, dPretruncation.GetStrategyWithTruncation(pAbsoluteMax, false).lineSegments);
+                pStrategy = new DMSStrategyWithTruncations(pPretruncation.index, pPretruncation.GetStrategyWithTruncation(dAbsoluteMin + 1E-10 /* be an infinitesimal amount more aggressive to prevent settlements in the event of equality */, true).lineSegments, pPretruncation.MinVal(), pPretruncation.MaxVal());
+                dStrategy = new DMSStrategyWithTruncations(dPretruncation.index, dPretruncation.GetStrategyWithTruncation(pAbsoluteMax - 1E-10, false).lineSegments, dPretruncation.MinVal(), dPretruncation.MaxVal());
                 DMSCalc = dmsCalc;
                 Outcomes = null;
                 SettlementPercentage = PNet = DNet = 0;
@@ -555,9 +586,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     return new SingleCaseOutcome(true, (pBid + dBid) / 2.0, 0, 0);
                 double thetaP = pSignal * DMSCalc.Q;
                 double thetaD = DMSCalc.Q + dSignal * (1.0 - DMSCalc.Q);
+                double oneMinusThetaD = 1.0 - thetaD;
+
                 double judgment = 0.5 * (thetaP + thetaD);
-                bool feeShiftingToP = judgment < 0.5 && thetaD < DMSCalc.T;
-                bool feeShiftingToD = judgment > 0.5 && thetaP > DMSCalc.T;
+                bool feeShiftingToP = thetaP < oneMinusThetaD - 1E-12 && thetaD < DMSCalc.T - 1E-12;
+                bool feeShiftingToD = thetaP > oneMinusThetaD + 1E-12 && thetaP > 1.0 - DMSCalc.T + 1E-12;
                 double pCosts = 0, dCosts = 0;
                 if (feeShiftingToP)
                     pCosts = DMSCalc.C;
@@ -571,14 +604,14 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             public override string ToString()
             {
                 var pBids = pStrategy.GetBidsForSignal(10);
-                string pBidsString = String.Join(",", pBids.Select(x => $"{Math.Round(x, 2)}"));
+                string pBidsString = String.Join(",", pBids.Select(x => $"{Math.Round(x, 3)}"));
                 var dBids = dStrategy.GetBidsForSignal(10);
-                string dBidsString = String.Join(",", dBids.Select(x => $"{Math.Round(x, 2)}"));
-                return $"{pStrategy.index}, {dStrategy.index} (Settlement {SettlementPercentage} pNet {PNet} dNet {DNet}): P {pBidsString}; D {dBidsString}";
+                string dBidsString = String.Join(",", dBids.Select(x => $"{Math.Round(x, 3)}"));
+                return $"{pStrategy.index}, {dStrategy.index} (Settlement {Math.Round(SettlementPercentage, 3)} pNet {Math.Round(PNet, 3)} dNet {Math.Round(DNet, 3)}): P {pBidsString}; D {dBidsString}";
             }
         }
 
-        public record struct DMSStrategyWithTruncations(int index, List<LineSegment> lineSegments)
+        public record struct DMSStrategyWithTruncations(int index, List<LineSegment> lineSegments, double untruncatedMinY, double untruncatedMaxY)
         {
             public double GetBidForSignal(double signal)
             {
@@ -593,14 +626,24 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             public IEnumerable<double> GetBidsForSignal(int numItems)
             {
                 var copy = this;
-                return Enumerable.Range(0, numItems).Select(i => copy.GetBidForSignal(EquallySpaced.GetLocationOfMidpoint(i, numItems)));
+                return Enumerable.Range(0, numItems).Select(i => copy.GetBidForSignal(EquallySpaced.GetLocationOfEquallySpacedPoint(i, numItems, true)));
             }
 
-            public static IEnumerable<(double pBid, double dBid)> GetBidsForSignal(DMSStrategiesPair pair, int numItems) => Enumerable.Range(0, numItems).Select(i => EquallySpaced.GetLocationOfMidpoint(i, numItems)).Select(x => (pair.pStrategy.GetBidForSignal(x), pair.dStrategy.GetBidForSignal(x)));
+            public static IEnumerable<(double pBid, double dBid)> GetBidsForSignal(DMSStrategiesPair pair, int numItems) => Enumerable.Range(0, numItems).Select(i => EquallySpaced.GetLocationOfEquallySpacedPoint(i, numItems, true)).Select(x => (pair.pStrategy.GetBidForSignal(x), pair.dStrategy.GetBidForSignal(x)));
+
+            public override string ToString()
+            {
+                return String.Join("; ", lineSegments.Select(x => x.ToString())) + $" Untruncated range: {Math.Round(untruncatedMinY, 3)}-{Math.Round(untruncatedMaxY, 3)}";
+            }
         }
 
 
 
+        public static double[] potentialSlopes = new double[] { 1.0 / 3.0, 2.0 / 3.0, 1.0 };
+        const int numYPossibilities = 50;
+        public static double[] potentialYPoints = Enumerable.Range(0, numYPossibilities).Select(x => EquallySpaced.GetLocationOfMidpoint(x, numYPossibilities)).ToArray();
+
+        
         public IEnumerable<DMSStrategyPretruncation> EnumeratePossiblePretruncationStrategies(bool plaintiff)
         {
             bool IsOrdered<T>(IList<T> list, IComparer<T> comparer = null)
@@ -623,10 +666,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 return true;
             }
 
-            double[] slopes = new double[] { 1.0 / 3.0 }; // DEBUG, 2.0 / 3.0, 1.0 };
-            int numYPossibilities = 50;
-            double[] potentialYPoints = Enumerable.Range(0, numYPossibilities).Select(x => EquallySpaced.GetLocationOfMidpoint(x, numYPossibilities)).ToArray();
-
             var piecewiseLinearRanges = plaintiff ? pPiecewiseLinearRanges : dPiecewiseLinearRanges;
 
 
@@ -637,7 +676,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             List<List<double>> possibilities = PermutationMaker.GetPermutationsOfItems(permutationSource).Where(l => IsOrdered(l)).ToList();
 
             int index = 0;
-            foreach (double slope in slopes)
+            foreach (double slope in potentialSlopes)
             {
 
                 for (int j = 0; j < possibilities.Count; j++)

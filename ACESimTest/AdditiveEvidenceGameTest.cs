@@ -428,12 +428,9 @@ namespace ACESimTest
                 //gameProgress.POfferContinuousOrNull.Should().BeNull();
                 //gameProgress.DOfferContinuousOrNull.Should().BeNull();
             }
-
-            
         }
 
-        [TestMethod]
-        public void AdditiveEvidence_PiecewiseLinear_Approximation()
+        private IEnumerable<DMSCalc> GetRandomOptions()
         {
             byte numBiasLevels = 20;
             byte numOffers = 20;
@@ -451,47 +448,73 @@ namespace ACESimTest
             var pTruncationOptions = Enumerable.Range(0, numTruncationLevels).Select(x => (byte)(x + 1)).ToArray();
             var dTruncationOptions = Enumerable.Range(0, numTruncationLevels).Select(x => (byte)(x + 1)).ToArray();
 
-
-
             Random r = new Random(0);
             T GetRandom<T>(T[] items) => items[r.Next(items.Length)];
 
-            int numRepetitions = 1_000;
-            for (int i = 0; i < numRepetitions; i++)
+            while (true)
             {
                 double t = GetRandom(tOptions);
                 double c = GetRandom(cOptions);
                 double q = GetRandom(qOptions);
                 DMSCalc dmsCalc = new DMSCalc(t, c, q);
+                yield return dmsCalc;
+            }
+        }
 
-                if (dmsCalc.trivial || dmsCalc.pPiecewiseLinearRanges.Count != 1 || dmsCalc.pPiecewiseLinearRanges.Count != 1)
-                    continue; // DEBUG
+        [TestMethod]
+        public void AdditiveEvidence_VerifyDMSEquilibrium()
+        {
 
-                var pUntruncatedStrategies = dmsCalc.EnumeratePossiblePretruncationStrategies(true).ToList();
-                var dUntruncatedStrategies = dmsCalc.EnumeratePossiblePretruncationStrategies(false).ToList();
-                //double[] possibleTruncationValues = new double[] { 0.05, 0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.86, 0.95 };
-                //var pStrategiesWithTruncation = pUntruncatedStrategies.SelectMany(x => possibleTruncationValues, (p, tr) => (p, tr)).Where(x => x.p.MinVal() < x.tr && x.tr < x.p.MaxVal()).Select(x => x.p.GetStrategyWithTruncation(x.tr, true)).ToList();
-                //var dStrategiesWithTruncation = dUntruncatedStrategies.SelectMany(x => possibleTruncationValues, (d, tr) => (d, tr)).Where(x => x.d.MinVal() < x.tr && x.tr < x.d.MaxVal()).Select(x => x.d.GetStrategyWithTruncation(x.tr, false)).ToList();
+            IEnumerator<DMSCalc> optionsGenerator = GetRandomOptions().GetEnumerator();
 
-                var pStrategiesWithTruncation = pUntruncatedStrategies.Select(x => x.GetStrategyWithTruncation(0, true)).ToList();
-                var dStrategiesWithTruncation = dUntruncatedStrategies.Select(x => x.GetStrategyWithTruncation(1.0, false)).ToList();
 
-                //DEBUG; //something's going wrong in constructing the strategies pair.
-                //var strategyPairs = pStrategiesWithTruncation.SelectMany(x => dStrategiesWithTruncation, (p, d) => new DMSCalc.DMSStrategiesPair(p, d, dmsCalc)).ToList();
+            int numRepetitions = 1_000;
+            for (int i = 0; i < numRepetitions; i++)
+            {
+                optionsGenerator.MoveNext();
+
+                DMSCalc dmsCalc = optionsGenerator.Current;
 
                 var correctStrategyPretruncation = dmsCalc.GetCorrectStrategiesPretruncation(); // DEBUG -- must delete
                 var correctStrategyTruncated = new DMSCalc.DMSStrategiesPair(correctStrategyPretruncation.p, correctStrategyPretruncation.d, dmsCalc);
+
+                if (dmsCalc.trivial || dmsCalc.pPiecewiseLinearRanges.Count != 1 || dmsCalc.pPiecewiseLinearRanges.Count != 1 || correctStrategyPretruncation.p.MinVal() < 0 || correctStrategyPretruncation.d.MaxVal() > 1) // DEBUG
+                    continue; // DEBUG }; // DEBUG -- when we change this, we need to deal with the problem that we ought to be able to have different slope on different segments
+
+                var pUntruncatedAlternatives = correctStrategyPretruncation.p.EnumerateStrategiesDifferingInOneRange().ToList();
+                var dUntruncatedAlternatives = correctStrategyPretruncation.d.EnumerateStrategiesDifferingInOneRange().ToList();
+
+                double dCorrectMin = correctStrategyPretruncation.d.MinVal();
+                double pCorrectMax = correctStrategyPretruncation.p.MaxVal();
+                var pStrategiesWithTruncation = pUntruncatedAlternatives.Select(x => x.GetStrategyWithTruncation(dCorrectMin, true)).ToList();
+                var dStrategiesWithTruncation = dUntruncatedAlternatives.Select(x => x.GetStrategyWithTruncation(pCorrectMax, false)).ToList();
+                
                 foreach (var dStrategyTruncated in dStrategiesWithTruncation)
                 {
                     var altStrategyPair = new DMSCalc.DMSStrategiesPair(correctStrategyTruncated.pStrategy, dStrategyTruncated, dmsCalc);
-                    if (altStrategyPair.DNet > correctStrategyTruncated.DNet)
+                    if (altStrategyPair.DNet > correctStrategyTruncated.DNet + 0.01 /* DEBUG */)
                         throw new Exception("Not true equilibrium.");
                 }
-                foreach (var pStrategyTruncated in pStrategiesWithTruncation)
+                foreach (var pStrategyPotentiallyTruncated in pStrategiesWithTruncation)
                 {
-                    var altStrategyPair = new DMSCalc.DMSStrategiesPair(pStrategyTruncated, correctStrategyTruncated.dStrategy, dmsCalc);
-                    if (altStrategyPair.PNet > correctStrategyTruncated.PNet + 0.02 /* DEBUG */)
+                    var altStrategyPair = new DMSCalc.DMSStrategiesPair(pStrategyPotentiallyTruncated, correctStrategyTruncated.dStrategy, dmsCalc);
+                    if (altStrategyPair.PNet > correctStrategyTruncated.PNet + 0.01 /* DEBUG */)
+                    {
+                        Debug.WriteLine(dmsCalc);
+                        Debug.WriteLine($"Correct P {correctStrategyTruncated.pStrategy}");
+                        Debug.WriteLine($"Correct D {correctStrategyTruncated.dStrategy}");
+                        Debug.WriteLine($"Correct P vs. Correct D result: {correctStrategyTruncated}");
+                        Debug.WriteLine($"Better P {pStrategyPotentiallyTruncated}");
+                        //DMSCalc.DMSStrategyPretruncation betterPDefinitelyUntruncated = pUntruncatedAlternatives.First(x => x.index == pStrategyPotentiallyTruncated.index);
+                        //Debug.WriteLine($"Better P definitely untruncated {betterPDefinitelyUntruncated}");
+                        //var betterPDefinitelyTruncated = betterPDefinitelyUntruncated.GetStrategyWithTruncation(correctStrategyTruncated.dStrategy.untruncatedMinY, true);
+                        //Debug.WriteLine($"Better P definitely truncated {betterPDefinitelyTruncated}");
+                        //var altStrategyPairAllTruncated = new DMSCalc.DMSStrategiesPair(betterPDefinitelyTruncated, correctStrategyTruncated.dStrategy, dmsCalc);
+                        Debug.WriteLine($"Better P vs. Correct D result: {altStrategyPair}");
+                        //Debug.WriteLine($"Better P definitely truncated vs. Correct D result: {altStrategyPairAllTruncated}");
+                        // DEBUG something is wrong -- why should the truncation make P's score go down
                         throw new Exception("Not true equilibrium.");
+                    }
                 }
 
 

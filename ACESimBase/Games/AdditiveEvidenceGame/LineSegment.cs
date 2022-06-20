@@ -8,13 +8,13 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
     {
         public override string ToString()
         {
-            return $"({Math.Round(xStart, 2)}, {Math.Round(yStart, 2)}) - ({Math.Round(xEnd, 2)}, {Math.Round(yEnd, 2)}) slope {slope}";
+            return $"({Math.Round(xStart, 2)}, {Math.Round(yStart, 2)}) - ({Math.Round(xEnd, 2)}, {Math.Round(yEnd, 2)}) slope {Math.Round(slope, 2)}";
         }
 
         public double yEnd => yStart + (xEnd - xStart) * slope;
         public double yAvg => 0.5 * yStart + 0.5 * yEnd;
         public double xAvg => 0.5 * xStart + 0.5 * xEnd;
-        public double yVal(double xVal) => yStart + slope * (xEnd - xStart);
+        public double yVal(double xVal) => yStart + slope * (xVal - xStart);
         public double xVal(double yVal) => xStart + (yVal - yStart) / slope;
         public bool IntersectsHorizontalLine(double yVal) => yVal > yStart && yVal < yEnd;
         public double XIntersection(LineSegment other)
@@ -134,6 +134,13 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 yield return p;
         }
 
-        
+        public IEnumerable<LineSegment> EnumeratePotentialReplacements(double[] slopes, double[] potentialYPoints)
+        {
+            foreach (var slope in slopes)
+                foreach (double potentialYPoint in potentialYPoints)
+                    yield return new LineSegment(xStart, xEnd, potentialYPoint, slope);
+        }
+
+
     }
 }
