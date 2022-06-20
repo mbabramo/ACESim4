@@ -591,6 +591,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 double judgment = 0.5 * (thetaP + thetaD);
                 bool feeShiftingToP = thetaP < oneMinusThetaD - 1E-12 && thetaD < DMSCalc.T - 1E-12;
                 bool feeShiftingToD = thetaP > oneMinusThetaD + 1E-12 && thetaP > 1.0 - DMSCalc.T + 1E-12;
+                // The following is equivalent (but does not include what is necessary to avoid rounding error)
+                // bool feeShiftingToP = judgment < 0.5 && thetaD < DMSCalc.T;
+                // bool feeShiftingToD = judgment > 0.5 && thetaP > 1 - DMSCalc.T;
                 double pCosts = 0, dCosts = 0;
                 if (feeShiftingToP)
                     pCosts = DMSCalc.C;
