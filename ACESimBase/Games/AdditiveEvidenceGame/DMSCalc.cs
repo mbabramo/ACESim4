@@ -657,8 +657,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 {
                     foreach (LineSegment dSegment in dStrategy.lineSegments)
                     {
-                        foreach (var nonoverlappingPair in pSegment.GetPairsOfNonoverlappingAndEntirelyOverlappingYRanges(dSegment))
-                            partialOutcomes.AddRange(DMSPartialOutcome.GetFromSegments(DMSCalc, nonoverlappingPair.l1, nonoverlappingPair.l2));
+                        List<(LineSegment p, LineSegment d)> nonoverlappingPairs = pSegment.GetPairsOfNonoverlappingAndEntirelyOverlappingYRanges(dSegment).ToList(); // DEBUG -- make IEnumerable again
+                        foreach (var nonoverlappingPair in nonoverlappingPairs)
+                            partialOutcomes.AddRange(DMSPartialOutcome.GetFromSegments(DMSCalc, nonoverlappingPair.p, nonoverlappingPair.d));
                     }
                 }
                 var averageOutcome = DMSCalc.GetAverageOutcome(partialOutcomes);

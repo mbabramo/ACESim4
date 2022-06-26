@@ -473,7 +473,11 @@ namespace ACESimTest
 
                 DMSCalc dmsCalc = optionsGenerator.Current;
 
-                var correctStrategyPretruncation = dmsCalc.GetCorrectStrategiesPretruncation(); 
+                var correctStrategyPretruncation = dmsCalc.GetCorrectStrategiesPretruncation();
+                bool overlap = !((correctStrategyPretruncation.p.MaxVal() < correctStrategyPretruncation.d.MinVal() && correctStrategyPretruncation.p.MinVal() < correctStrategyPretruncation.d.MinVal()) ||
+                (correctStrategyPretruncation.d.MaxVal() < correctStrategyPretruncation.p.MinVal() && correctStrategyPretruncation.d.MinVal() < correctStrategyPretruncation.p.MinVal()));
+                if (!overlap)
+                    continue;
                 var analytical = new DMSCalc.DMSStrategiesPair(correctStrategyPretruncation.p, correctStrategyPretruncation.d, dmsCalc, true);
                 if (analytical.Nontrivial == false)
                     continue;

@@ -43,15 +43,27 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         private IEnumerable<(double startY, double endY)> DivideAroundOverlapYRegion((double startY, double endY) overlapRegion)
         {
+            bool overlapIsPoint = Math.Abs(overlapRegion.endY - overlapRegion.startY) < 1E-6;
+            if (overlapIsPoint)
+                overlapRegion = (overlapRegion.startY, overlapRegion.startY);
             // we assume that yRange is encompassed here.
-            if (yStart < overlapRegion.startY)
+            bool includeBeforeRegion = yStart < overlapRegion.startY - 1E-6;
+            bool includeAfterRegion = yEnd > overlapRegion.endY + 1E-6;
+            bool includeOverlapRegion = !overlapIsPoint || (!includeBeforeRegion && !includeAfterRegion);
+            if (includeBeforeRegion)
                 yield return (yStart, overlapRegion.startY);
-            yield return overlapRegion;
-            if (yEnd > overlapRegion.endY)
+            if (includeOverlapRegion)
+                yield return overlapRegion;
+            if (includeAfterRegion)
                 yield return (overlapRegion.endY, yEnd);
         }
 
-        private LineSegment GetSubsegmentFromYRegion((double startY, double endY) yRegion) => this with { xStart = xVal(yRegion.startY), xEnd = xVal(yRegion.endY), yStart = yRegion.startY };
+        private LineSegment GetSubsegmentFromYRegion((double startY, double endY) yRegion)
+        {
+            if (Math.Abs(yStart - yRegion.startY) < 1E-6 && Math.Abs(yEnd - yRegion.endY) < 1E-6)
+                return this;
+            return this with { xStart = xVal(yRegion.startY), xEnd = xVal(yRegion.endY), yStart = yRegion.startY };
+        }
 
         /// <summary>
         /// Given this and another line segment, we want to divide each line segment and then pair the two sets up so that each pair consists of one subsequent from this and from the other line segment, and the two elements of each pair either have the same y range or entirely nonoverlapping y ranges. 
@@ -61,7 +73,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public IEnumerable<(LineSegment l1, LineSegment l2)> GetPairsOfNonoverlappingAndEntirelyOverlappingYRanges(LineSegment other)
         {
             var thisYRange = (yStart, yEnd);
+            bool thisYRangeSlope0 = (Math.Abs(thisYRange.yEnd - thisYRange.yStart) < 1E-6);
             var otherYRange = (other.yStart, other.yEnd);
+            bool otherYRangeSlope0 = (Math.Abs(otherYRange.yEnd - otherYRange.yStart) < 1E-6);
             var yOverlap = GetOverlap(thisYRange, otherYRange);
             if (yOverlap == null || (yOverlap.Value == thisYRange && yOverlap.Value == otherYRange))
                 yield return (this, other);
