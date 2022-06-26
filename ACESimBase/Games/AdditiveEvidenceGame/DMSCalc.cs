@@ -513,7 +513,21 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         }
         public record struct DMSPartialOutcome(double weight, bool settles, double pGross, double dGross, double pCosts, double dCosts)
         {
-            public static IEnumerable<DMSPartialOutcome> GetFromSegments(DMSCalc c, LineSegment pSegment, LineSegment dSegment)
+            private bool ConfirmApproximateMatch(DMSPartialOutcome other, double precision)
+            {
+                return (weight == other.weight && settles == other.settles && Math.Abs(pGross - other.pGross) < precision && Math.Abs(dGross - other.dGross) < precision && Math.Abs(pCosts - other.pCosts) < precision && Math.Abs(dCosts - other.dCosts) < precision) ;
+            }
+
+            public static IEnumerable<DMSPartialOutcome> GetFromSegments(DMSCalc c, LineSegment pSegment, LineSegment dSegment, bool confirmEmpirically)
+            {
+                foreach (var analyticalOutcome in GetFromSegments(c, pSegment, dSegment))
+                {
+                    if (confirmEmpirically)
+                        ConfirmAverageEmpirically(analyticalOutcome, c, analyticalOutcome.weight, pSegment, dSegment);
+                    yield return analyticalOutcome;
+                }
+            }
+            private static IEnumerable<DMSPartialOutcome> GetFromSegments(DMSCalc c, LineSegment pSegment, LineSegment dSegment)
             {
                 if (pSegment.YApproximatelyEqual(dSegment))
                 {
@@ -527,10 +541,35 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 else 
                     throw new Exception("Partial outcome cannot be calculated from partially overlapping segments.");
             }
+
+            private static void ConfirmAverageEmpirically(DMSPartialOutcome analytical, DMSCalc c, double weight, LineSegment pSegment, LineSegment dSegment)
+            {
+                var empirical = GetAverageEmpirically(c, weight, pSegment, dSegment, analytical.settles);
+                if (!analytical.ConfirmApproximateMatch(empirical, 1E-4))
+                    throw new Exception();
+            }
+            private static DMSPartialOutcome GetAverageEmpirically(DMSCalc c, double weight, LineSegment pSegment, LineSegment dSegment, bool settlingCases)
+            {
+                List<DMSOutcome> outcomes = new List<DMSOutcome>();
+                foreach (double pSignal in EquallySpaced.GetPointsFullyEquallySpaced(1000, pSegment.xStart, pSegment.xEnd))
+                {
+                    double pBid = pSegment.yVal(pSignal);
+                    foreach (double dSignal in EquallySpaced.GetPointsFullyEquallySpaced(1000, dSegment.xStart, dSegment.xEnd))
+                    {
+                        double dBid = dSegment.yVal(dSignal);
+                        var result = c.GetOutcome(pSignal, dSignal, pBid, dBid);
+                        if (result.settles == settlingCases)
+                            outcomes.Add(result.outcome);
+                    }
+                }
+                DMSPartialOutcome partialOutcome = new DMSPartialOutcome(weight, settlingCases, outcomes.Average(x => x.pGross), outcomes.Average(x => x.dGross), outcomes.Average(x => x.pCosts), outcomes.Average(x => x.dCosts));
+                var DEBUG = outcomes.Select(x => x.pCosts).Distinct().ToList();
+                return partialOutcome;
+            }
             private static DMSPartialOutcome GetSettlementOutcome(DMSCalc c, LineSegment pSegment, LineSegment dSegment)
             {
                 // Every one of these cases will settle, because D's bid is higher than P's. Average settlement value is the average d bid minus the average p bid.
-                double settlementValue = (dSegment.yAvg - pSegment.yAvg);
+                double settlementValue = 0.25 * (dSegment.yStart + dSegment.yEnd + pSegment.yStart + pSegment.yEnd);
                 return new DMSPartialOutcome(GetWeight(pSegment, dSegment), true, settlementValue, 1.0 - settlementValue, 0, 0);
             }
 
@@ -541,12 +580,13 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 var trial1 = c.GetOutcome(pSegment.xStart, dSegment.xStart, 1, 0);
                 var trial2 = c.GetOutcome(pSegment.xEnd, dSegment.xEnd, 1, 0);
                 var trialValue = 0.5 * (trial1.outcome.pGross + trial2.outcome.pGross);
-                return new DMSPartialOutcome(GetWeight(pSegment, dSegment), false, trialValue, 1.0 - trialValue, trial1.outcome.pCosts, trial1.outcome.dCosts);
+
+                return new DMSPartialOutcome(GetWeight(pSegment, dSegment), false, trialValue, 1.0 - trialValue, 0.5 * (trial1.outcome.pCosts + trial2.outcome.pCosts), 0.5 * (trial1.outcome.dCosts + trial2.outcome.dCosts));
 
             }
             private static DMSPartialOutcome GetSettlementOutcome_IdenticalBidRanges(DMSCalc c, LineSegment pSegment, LineSegment dSegment)
             {
-                double settlementValue = 0.25 * (pSegment.yStart + pSegment.yEnd);
+                double settlementValue = 0.5 * (pSegment.yStart + pSegment.yEnd);
                 return new DMSPartialOutcome(0.5 * GetWeight(pSegment, dSegment), true, settlementValue, 1.0 - settlementValue, 0, 0);
             }
 
@@ -659,7 +699,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     {
                         List<(LineSegment p, LineSegment d)> nonoverlappingPairs = pSegment.GetPairsOfNonoverlappingAndEntirelyOverlappingYRanges(dSegment).ToList(); // DEBUG -- make IEnumerable again
                         foreach (var nonoverlappingPair in nonoverlappingPairs)
-                            partialOutcomes.AddRange(DMSPartialOutcome.GetFromSegments(DMSCalc, nonoverlappingPair.p, nonoverlappingPair.d));
+                            partialOutcomes.AddRange(DMSPartialOutcome.GetFromSegments(DMSCalc, nonoverlappingPair.p, nonoverlappingPair.d, false));
                     }
                 }
                 var averageOutcome = DMSCalc.GetAverageOutcome(partialOutcomes);

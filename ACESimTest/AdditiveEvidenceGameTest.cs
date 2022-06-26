@@ -430,15 +430,15 @@ namespace ACESimTest
             }
         }
 
-        private IEnumerable<DMSCalc> GetRandomOptions()
+        private IEnumerable<DMSCalc> GetRandomOptions(bool useFriedmanWittman = false)
         {
             byte numBiasLevels = 20;
             byte numOffers = 20;
             byte numTruncationLevels = AdditiveEvidenceGameOptions.NumTruncationPortions;
 
-            var tOptions = Enumerable.Range(0, 6).Select(x => 0.2 * x).ToArray();
+            var tOptions = useFriedmanWittman ? new double[] { 0 } : Enumerable.Range(0, 6).Select(x => 0.2 * x).ToArray();
             var cOptions = Enumerable.Range(0, 26).Select(x => 0 + x * 0.04).ToArray();
-            var qOptions = Enumerable.Range(0, 7).Select(x => 0.35 + x * 0.05).ToArray();
+            var qOptions = useFriedmanWittman ? new double[] { 0.5 } : Enumerable.Range(0, 7).Select(x => 0.35 + x * 0.05).ToArray();
             var chancePlaintiffBiasIndexOptions = Enumerable.Range(0, numBiasLevels).Select(x => (byte)(x + 1)).ToArray();
             var chanceDefendantBiasIndexOptions = Enumerable.Range(0, numBiasLevels).Select(x => (byte)(x + 1)).ToArray();
             var pSlopeIndexOptions = Enumerable.Range(0, AdditiveEvidenceGameOptions.PiecewiseLinearBidsSlopeOptions.Length).Select(x => (byte)(x + 1)).ToArray();
@@ -462,11 +462,11 @@ namespace ACESimTest
         }
 
         [TestMethod]
-        public void AdditiveEvidence_DMSOutcomesVerification()
+        public void AdditiveEvidence_FWOutcomesVerification()
         {
-            IEnumerator<DMSCalc> optionsGenerator = GetRandomOptions().GetEnumerator();
+            IEnumerator<DMSCalc> optionsGenerator = GetRandomOptions(true).GetEnumerator();
 
-            int numRepetitions = 1_000;
+            int numRepetitions = 20;
             for (int i = 0; i < numRepetitions; i++)
             {
                 optionsGenerator.MoveNext();
@@ -482,7 +482,7 @@ namespace ACESimTest
                 if (analytical.Nontrivial == false)
                     continue;
                 var empirical = new DMSCalc.DMSStrategiesPair(correctStrategyPretruncation.p, correctStrategyPretruncation.d, dmsCalc, false);
-                const double marginForRounding = 1E-5;
+                const double marginForRounding = 1E-2;
                 Math.Abs(analytical.PNet - empirical.PNet).Should().BeLessThan(marginForRounding);
                 Math.Abs(analytical.DNet - empirical.DNet).Should().BeLessThan(marginForRounding);
                 Math.Abs(analytical.SettlementProportion - empirical.SettlementProportion).Should().BeLessThan(marginForRounding);
@@ -491,10 +491,10 @@ namespace ACESimTest
         }
 
         [TestMethod]
-        public void AdditiveEvidence_VerifyDMSEquilibrium()
+        public void AdditiveEvidence_VerifyFWEquilibrium()
         {
 
-            IEnumerator<DMSCalc> optionsGenerator = GetRandomOptions().GetEnumerator();
+            IEnumerator<DMSCalc> optionsGenerator = GetRandomOptions(true).GetEnumerator();
 
             int numRepetitions = 1_000;
             for (int i = 0; i < numRepetitions; i++)
