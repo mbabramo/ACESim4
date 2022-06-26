@@ -24,7 +24,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             return (xStart - other.xStart) / (other.slope - slope);
         }
 
-        public bool YApproximatelyEqual(LineSegment other) => Math.Abs(yStart - other.yStart) < 1E-12 && Math.Abs(yEnd - other.yEnd) < 1E-12;
+        public bool YApproximatelyEqual(LineSegment other) => Math.Abs(yStart - other.yStart) < 1E-6 && Math.Abs(yEnd - other.yEnd) < 1E-6;
 
         public (LineSegment l1, LineSegment l2) DivideAtX(double xVal)
         {

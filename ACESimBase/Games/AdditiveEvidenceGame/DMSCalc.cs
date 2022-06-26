@@ -520,9 +520,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     yield return GetSettlementOutcome_IdenticalBidRanges(c, pSegment, dSegment);
                     yield return GetTrialOutcome_IdenticalBidRanges(c, pSegment, dSegment);
                 }
-                else if (pSegment.yStart >= dSegment.yEnd - 1E-12)
+                else if (pSegment.yStart >= dSegment.yEnd - 1E-6)
                     yield return GetTrialOutcome(c, pSegment, dSegment);
-                else if (dSegment.yStart >= pSegment.yEnd - 1E-12)
+                else if (dSegment.yStart >= pSegment.yEnd - 1E-6)
                     yield return GetSettlementOutcome(c, pSegment, dSegment);
                 else 
                     throw new Exception("Partial outcome cannot be calculated from partially overlapping segments.");
@@ -657,7 +657,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 {
                     foreach (LineSegment dSegment in dStrategy.lineSegments)
                     {
-                        partialOutcomes.AddRange(DMSPartialOutcome.GetFromSegments(DMSCalc, pSegment, dSegment));
+                        foreach (var nonoverlappingPair in pSegment.GetPairsOfNonoverlappingAndEntirelyOverlappingYRanges(dSegment))
+                            partialOutcomes.AddRange(DMSPartialOutcome.GetFromSegments(DMSCalc, nonoverlappingPair.l1, nonoverlappingPair.l2));
                     }
                 }
                 var averageOutcome = DMSCalc.GetAverageOutcome(partialOutcomes);

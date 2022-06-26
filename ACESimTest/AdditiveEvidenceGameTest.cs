@@ -475,6 +475,8 @@ namespace ACESimTest
 
                 var correctStrategyPretruncation = dmsCalc.GetCorrectStrategiesPretruncation(); 
                 var analytical = new DMSCalc.DMSStrategiesPair(correctStrategyPretruncation.p, correctStrategyPretruncation.d, dmsCalc, true);
+                if (analytical.Nontrivial == false)
+                    continue;
                 var empirical = new DMSCalc.DMSStrategiesPair(correctStrategyPretruncation.p, correctStrategyPretruncation.d, dmsCalc, false);
                 const double marginForRounding = 1E-5;
                 Math.Abs(analytical.PNet - empirical.PNet).Should().BeLessThan(marginForRounding);
