@@ -201,7 +201,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             {
                 // the regular fee shifting depends only on information available to the player, and it comes into effect only if the player wins.
                 // Note that 0 is the American rule and 1 is the British rule. 
-                bool considerShiftingToDefendant = TrialValuePreShiftingIfOccurs > 0.5; // if p has more than 0.5, d may have to pay
+                double? trialValuePreShifting = TrialValuePreShifting;
+                if (0.5 - 1E-12 < trialValuePreShifting && trialValuePreShifting < 0.5 + 1E-12)
+                    return 0.5;
+                bool considerShiftingToDefendant = trialValuePreShifting > 0.5; // if p has more than 0.5, d may have to pay
                 if (considerShiftingToDefendant)
                     return AnticipatedTrialValue_PInfo > 1.0 - AdditiveEvidenceGameOptions.FeeShiftingThreshold ? 1.0 : 0.5;
                 else

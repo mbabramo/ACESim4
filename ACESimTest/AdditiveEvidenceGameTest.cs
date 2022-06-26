@@ -462,11 +462,9 @@ namespace ACESimTest
         }
 
         [TestMethod]
-        public void AdditiveEvidence_VerifyDMSEquilibrium()
+        public void AdditiveEvidence_DMSOutcomesVerification()
         {
-
             IEnumerator<DMSCalc> optionsGenerator = GetRandomOptions().GetEnumerator();
-
 
             int numRepetitions = 1_000;
             for (int i = 0; i < numRepetitions; i++)
@@ -475,8 +473,32 @@ namespace ACESimTest
 
                 DMSCalc dmsCalc = optionsGenerator.Current;
 
-                var correctStrategyPretruncation = dmsCalc.GetCorrectStrategiesPretruncation(); // DEBUG -- must delete
-                var correctStrategyTruncated = new DMSCalc.DMSStrategiesPair(correctStrategyPretruncation.p, correctStrategyPretruncation.d, dmsCalc);
+                var correctStrategyPretruncation = dmsCalc.GetCorrectStrategiesPretruncation(); 
+                var analytical = new DMSCalc.DMSStrategiesPair(correctStrategyPretruncation.p, correctStrategyPretruncation.d, dmsCalc, true);
+                var empirical = new DMSCalc.DMSStrategiesPair(correctStrategyPretruncation.p, correctStrategyPretruncation.d, dmsCalc, false);
+                const double marginForRounding = 1E-5;
+                Math.Abs(analytical.PNet - empirical.PNet).Should().BeLessThan(marginForRounding);
+                Math.Abs(analytical.DNet - empirical.DNet).Should().BeLessThan(marginForRounding);
+                Math.Abs(analytical.SettlementProportion - empirical.SettlementProportion).Should().BeLessThan(marginForRounding);
+
+            }
+        }
+
+        [TestMethod]
+        public void AdditiveEvidence_VerifyDMSEquilibrium()
+        {
+
+            IEnumerator<DMSCalc> optionsGenerator = GetRandomOptions().GetEnumerator();
+
+            int numRepetitions = 1_000;
+            for (int i = 0; i < numRepetitions; i++)
+            {
+                optionsGenerator.MoveNext();
+
+                DMSCalc dmsCalc = optionsGenerator.Current;
+
+                var correctStrategyPretruncation = dmsCalc.GetCorrectStrategiesPretruncation();
+                var correctStrategyTruncated = new DMSCalc.DMSStrategiesPair(correctStrategyPretruncation.p, correctStrategyPretruncation.d, dmsCalc, true);
 
                 if (dmsCalc.trivial || dmsCalc.pPiecewiseLinearRanges.Count != 1 || dmsCalc.pPiecewiseLinearRanges.Count != 1 || correctStrategyPretruncation.p.MinVal() < 0 || correctStrategyPretruncation.d.MaxVal() > 1) // DEBUG
                     continue; // DEBUG }; // DEBUG -- when we change this, we need to deal with the problem that we ought to be able to have different slope on different segments
@@ -491,13 +513,13 @@ namespace ACESimTest
                 
                 foreach (var dStrategyTruncated in dStrategiesWithTruncation)
                 {
-                    var altStrategyPair = new DMSCalc.DMSStrategiesPair(correctStrategyTruncated.pStrategy, dStrategyTruncated, dmsCalc);
+                    var altStrategyPair = new DMSCalc.DMSStrategiesPair(correctStrategyTruncated.pStrategy, dStrategyTruncated, dmsCalc, true);
                     if (altStrategyPair.DNet > correctStrategyTruncated.DNet + 0.01 /* DEBUG */)
                         throw new Exception("Not true equilibrium.");
                 }
                 foreach (var pStrategyPotentiallyTruncated in pStrategiesWithTruncation)
                 {
-                    var altStrategyPair = new DMSCalc.DMSStrategiesPair(pStrategyPotentiallyTruncated, correctStrategyTruncated.dStrategy, dmsCalc);
+                    var altStrategyPair = new DMSCalc.DMSStrategiesPair(pStrategyPotentiallyTruncated, correctStrategyTruncated.dStrategy, dmsCalc, true);
                     if (altStrategyPair.PNet > correctStrategyTruncated.PNet + 0.01 /* DEBUG */)
                     {
                         Debug.WriteLine(dmsCalc);
