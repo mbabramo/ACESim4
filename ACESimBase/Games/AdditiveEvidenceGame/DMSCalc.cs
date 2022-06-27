@@ -10,7 +10,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
     public partial class DMSCalc
     {
         public double T, C, Q;
-        int CaseNum;
+        public int CaseNum;
         Func<double, double> pUntruncFunc;
         Func<double, double> dUntruncFunc;
         public List<(double low, double high)> pPiecewiseLinearRanges, dPiecewiseLinearRanges;
@@ -293,18 +293,27 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 case 1:
                     throw new NotImplementedException();
                 case 2:
-                    return plaintiff ? 6.0 * C - 1.0 + (T - Q) / (1.0 - Q) : (T - Q) / (1.0 - Q);
+                    return RoundIfVeryClose(plaintiff ? 6.0 * C - 1.0 + (T - Q) / (1.0 - Q) : (T - Q) / (1.0 - Q));
                 case 3:
-                    return plaintiff ? (1.0 - T) / Q : 1.0 - 6.0 * C + (1.0 - T) / Q;
+                    return RoundIfVeryClose(plaintiff ? (1.0 - T) / Q : 1.0 - 6.0 * C + (1.0 - T) / Q);
                 case 4:
                     if (secondCutoffForCase4A)
-                        return plaintiff ? (1.0 - T) / Q : 1.0 - 6.0 * C + (1.0 - T) / Q;
-                    return plaintiff ? 6.0 * C - 1.0 + (T - Q) / (1.0 - Q) : (T - Q) / (1.0 - Q);
+                        return RoundIfVeryClose(plaintiff ? (1.0 - T) / Q : 1.0 - 6.0 * C + (1.0 - T) / Q);
+                    return RoundIfVeryClose(plaintiff ? 6.0 * C - 1.0 + (T - Q) / (1.0 - Q) : (T - Q) / (1.0 - Q));
                 case 5:
-                    return plaintiff ? 6.0 * C * (1 - Q) : 1 - 6.0 * C * Q;
+                    return RoundIfVeryClose(plaintiff ? 6.0 * C * (1 - Q) : 1 - 6.0 * C * Q);
                 default:
                     throw new NotImplementedException();
             }
+        }
+
+        private double RoundIfVeryClose(double x)
+        {
+            if (Math.Abs(x) < 1E-8)
+                return 0;
+            if (Math.Abs(x - 1) < 1E-8)
+                return 1.0;
+            return x;
         }
 
         private double Case1UntruncatedP(double zP) => 1.0 / 2.0 - 3.0 * (5.0 / 6.0 - Q) * C + (1.0 / 3.0) * zP;
@@ -312,7 +321,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         private double Case2UntruncatedP(double zP)
         {
-            bool firstSubcase = zP < 6.0 * C - 1.0 + (T - Q) / (1.0 - Q);
+            bool firstSubcase = zP < RoundIfVeryClose(6.0 * C - 1.0 + (T - Q) / (1.0 - Q));
             if (firstSubcase)
                 return 1.0 / 2.0 - 3.0 * (1.0 - Q) * C + (1.0 / 3.0) * zP;
             else
@@ -320,7 +329,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         }
         private double Case2UntruncatedD(double zD)
         {
-            bool firstSubcase = zD < (T - Q) / (1.0 - Q);
+            bool firstSubcase = zD < RoundIfVeryClose((T - Q) / (1.0 - Q));
             if (firstSubcase)
                 return 1.0 / 6.0 + 3.0 * (Q - 1.0 / 3.0) * C + (1.0 / 3.0) * zD;
             else
@@ -328,7 +337,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         }
         private double Case3UntruncatedP(double zP)
         {
-            bool firstSubcase = zP <= (1.0 - T) / Q;
+            bool firstSubcase = zP <= RoundIfVeryClose((1.0 - T) / Q);
             if (firstSubcase)
                 return 1.0 / 2.0 - 3.0 * (5.0 / 6.0 - Q) * C + (1.0 / 3.0) * zP;
             else
@@ -336,7 +345,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         }
         private double Case3UntruncatedD(double zD)
         {
-            bool firstSubcase = zD <= 1.0 - 6.0 * C + (1.0 - T) / Q;
+            bool firstSubcase = zD <= RoundIfVeryClose(1.0 - 6.0 * C + (1.0 - T) / Q);
             if (firstSubcase)
                 return 1.0 / 6.0 + 3.0 * (Q - 1.0 / 6.0) * C + (1.0 / 3.0) * zD;
             else
@@ -344,8 +353,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         }
         private double Case4AUntruncatedP(double zP)
         {
-            double expression = 6.0 * C - 1.0 + (T - Q) / (1.0 - Q);
-            double expression2 = (1.0 - T) / Q;
+            double expression = RoundIfVeryClose(6.0 * C - 1.0 + (T - Q) / (1.0 - Q));
+            double expression2 = RoundIfVeryClose((1.0 - T) / Q);
 
             bool firstSubcase = zP < expression;
             bool caseB = expression <= zP && zP <= expression2;
@@ -358,8 +367,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         }
         private double Case4AUntruncatedD(double zD)
         {
-            double expression = (T - Q) / (1.0 - Q);
-            double expression2 = 1.0 - 6.0 * C + (1.0 - T) / Q;
+            double expression = RoundIfVeryClose((T - Q) / (1.0 - Q));
+            double expression2 = RoundIfVeryClose(1.0 - 6.0 * C + (1.0 - T) / Q);
 
             bool firstSubcase = zD < expression;
             bool caseB = expression <= zD && zD <= expression2;
@@ -373,7 +382,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         private double Case4BUntruncatedP(double zP)
         {
-            bool firstSubcase = zP < 6.0 * C * (1 - Q);
+            bool firstSubcase = zP < RoundIfVeryClose(6.0 * C * (1 - Q));
             if (firstSubcase)
                 return 1.0 / 2.0 - 3.0 * (1.0 - Q) * C + (1.0 / 3.0) * zP;
             else
@@ -381,7 +390,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         }
         private double Case4BUntruncatedD(double zD)
         {
-            bool firstSubcase = zD <= 1.0 - 6.0 * C * Q;
+            bool firstSubcase = zD <= RoundIfVeryClose(1.0 - 6.0 * C * Q);
             if (firstSubcase)
                 return 1.0 / 6.0 + 3.0 * (Q - 1.0 / 3.0) * C + (1.0 / 3.0) * zD;
             else
@@ -511,6 +520,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             }
             throw new NotImplementedException();
         }
+
+        // Note: This calculates analytically the outcome from a subset of cases defined by a strategy pair. Currently, it works only for the Friedman-Wittman
+        // subset of the DMS cases, so for other cases, we should continue to use empirical calcultions.
         public record struct DMSPartialOutcome(double weight, bool settles, double pGross, double dGross, double pCosts, double dCosts)
         {
             private bool ConfirmApproximateMatch(DMSPartialOutcome other, double precision)
