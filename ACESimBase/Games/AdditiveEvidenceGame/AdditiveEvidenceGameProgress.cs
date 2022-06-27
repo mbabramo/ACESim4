@@ -132,27 +132,40 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public double DBestGuess => AdditiveEvidenceGameOptions.Alpha_Quality * (AdditiveEvidenceGameOptions.Alpha_Both_Quality * AdditiveEvidenceGameOptions.Evidence_Both_Quality + AdditiveEvidenceGameOptions.Alpha_Plaintiff_Quality * 0.5 + AdditiveEvidenceGameOptions.Alpha_Defendant_Quality * Chance_Defendant_Quality_Continuous + AdditiveEvidenceGameOptions.Alpha_Neither_Quality * 0.5) + AdditiveEvidenceGameOptions.Alpha_Bias * (AdditiveEvidenceGameOptions.Alpha_Both_Bias * AdditiveEvidenceGameOptions.Evidence_Both_Bias + AdditiveEvidenceGameOptions.Alpha_Plaintiff_Bias * 0.5 + AdditiveEvidenceGameOptions.Alpha_Defendant_Bias * Chance_Defendant_Bias_Continuous + AdditiveEvidenceGameOptions.Alpha_Neither_Bias * 0.5);
 
         public double TrialValuePreShiftingIfOccurs => AdditiveEvidenceGameOptions.Alpha_Quality * QualitySum + AdditiveEvidenceGameOptions.Alpha_Bias * BiasSum;
-        public double AnticipatedTrialValue_PInfo
+        public double ThetaP_Generalized
         {
             get
             {
-                if (BiasSum_PInfoOnly_Denominator == 0) 
-                    return QualitySum_PInfoOnly;
-                if (QualitySum_PInfoOnly_Denominator == 0)
-                    return BiasSum_PInfoOnly;
-                return AdditiveEvidenceGameOptions.Alpha_Quality* QualitySum_PInfoOnly + AdditiveEvidenceGameOptions.Alpha_Bias * BiasSum_PInfoOnly;
+                // In the original paper, to determine whether fee shifting occurs in favor of a party, that party must win half of the judgment, and then
+                // thetaD < t (for shifting from D to P) or thetaP > 1 - t (for shifting from P to D). thetaP = zP * q. Here we are generalizing thetaP 
+                // (and below we are generalizing thetaD). The q here represents the information symmetry (serving a dual role in this model). The zP
+                // is party-specific information from 0 to 1 (in the original model, about bias).
+                double overallPartySpecificInfoBias = (AdditiveEvidenceGameOptions.Alpha_Plaintiff_Bias + AdditiveEvidenceGameOptions.Alpha_Defendant_Bias);
+                double overallPartySpecificInfoQuality = (AdditiveEvidenceGameOptions.Alpha_Plaintiff_Quality + AdditiveEvidenceGameOptions.Alpha_Defendant_Quality);
+                double biasProportion = overallPartySpecificInfoBias / (overallPartySpecificInfoBias + overallPartySpecificInfoQuality);
+                double qualityProportion = 1.0 - biasProportion;
+                var plaintiffProportionOfBiasInfo = dOr0(AdditiveEvidenceGameOptions.Alpha_Plaintiff_Bias, overallPartySpecificInfoBias);
+                var plaintiffProportionOfQualityInfo = dOr0(AdditiveEvidenceGameOptions.Alpha_Plaintiff_Quality, overallPartySpecificInfoQuality);
+                var plaintiffProportionOfOverallInfo = biasProportion * plaintiffProportionOfBiasInfo + qualityProportion * plaintiffProportionOfQualityInfo;
+                double partySpecificEstimateP = biasProportion * Chance_Plaintiff_Bias_Continuous + qualityProportion * Chance_Plaintiff_Quality_Continuous;
+                return partySpecificEstimateP * plaintiffProportionOfOverallInfo;
             }
         }
 
-        public double AnticipatedTrialValue_DInfo
+        public double ThetaD_Generalized
         {
             get
             {
-                if (BiasSum_DInfoOnly_Denominator == 0)
-                    return QualitySum_DInfoOnly;
-                if (QualitySum_DInfoOnly_Denominator == 0)
-                    return BiasSum_DInfoOnly;
-                return AdditiveEvidenceGameOptions.Alpha_Quality* QualitySum_DInfoOnly + AdditiveEvidenceGameOptions.Alpha_Bias * BiasSum_DInfoOnly;
+                double overallPartySpecificInfoBias = (AdditiveEvidenceGameOptions.Alpha_Plaintiff_Bias + AdditiveEvidenceGameOptions.Alpha_Defendant_Bias);
+                double overallPartySpecificInfoQuality = (AdditiveEvidenceGameOptions.Alpha_Plaintiff_Quality + AdditiveEvidenceGameOptions.Alpha_Defendant_Quality);
+                double biasProportion = overallPartySpecificInfoBias / (overallPartySpecificInfoBias + overallPartySpecificInfoQuality);
+                double qualityProportion = 1.0 - biasProportion;
+                var plaintiffProportionOfBiasInfo = dOr0(AdditiveEvidenceGameOptions.Alpha_Plaintiff_Bias, overallPartySpecificInfoBias);
+                var plaintiffProportionOfQualityInfo = dOr0(AdditiveEvidenceGameOptions.Alpha_Plaintiff_Quality, overallPartySpecificInfoQuality);
+                var plaintiffProportionOfOverallInfo = biasProportion * plaintiffProportionOfBiasInfo + qualityProportion * plaintiffProportionOfQualityInfo;
+                var defendantProportionOfOverallInfo = 1.0 - plaintiffProportionOfOverallInfo;
+                double partySpecificEstimateD = biasProportion * Chance_Defendant_Bias_Continuous + qualityProportion * Chance_Defendant_Quality_Continuous;
+                return plaintiffProportionOfOverallInfo + (1 - plaintiffProportionOfOverallInfo) * partySpecificEstimateD;
             }
         }
 
@@ -206,9 +219,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     return 0.5;
                 bool considerShiftingToDefendant = trialValuePreShifting > 0.5; // if p has more than 0.5, d may have to pay
                 if (considerShiftingToDefendant)
-                    return AnticipatedTrialValue_PInfo > 1.0 - AdditiveEvidenceGameOptions.FeeShiftingThreshold ? 1.0 : 0.5;
+                    return ThetaP_Generalized > 1.0 - AdditiveEvidenceGameOptions.FeeShiftingThreshold + 1E-12 ? 1.0 : 0.5; // theta p > 1 - t
                 else
-                    return AnticipatedTrialValue_DInfo < AdditiveEvidenceGameOptions.FeeShiftingThreshold ? 0.0 : 0.5;
+                    return ThetaD_Generalized < AdditiveEvidenceGameOptions.FeeShiftingThreshold - 1E-12 ? 0.0 : 0.5; // theta d < t
             }
         }
 

@@ -69,10 +69,10 @@ namespace ACESimTest
             }
         }
 
-        public AdditiveEvidenceGameOptions GetOptions_DariMattiacci_Saraceno(double evidenceBothQuality)
+        public AdditiveEvidenceGameOptions GetOptions_DariMattiacci_Saraceno(double evidenceBothQuality, double feeShiftingThreshold = 0)
         {
             // P's strength of information about bias is the same as the strength of the case. Half of weight is on quality
-            var options = GetOptions(evidenceBothQuality: evidenceBothQuality, alphaBothBias: 0, alphaPBias: evidenceBothQuality, alphaDBias: 1.0 - evidenceBothQuality, alphaQuality: 0.5);
+            var options = GetOptions(evidenceBothQuality: evidenceBothQuality, alphaBothBias: 0, alphaPBias: evidenceBothQuality, alphaDBias: 1.0 - evidenceBothQuality, alphaQuality: 0.5, alphaBothQuality: 1.0, alphaPQuality: 0, alphaDQuality: 0, feeShifting: true, feeShiftingThreshold: feeShiftingThreshold);
             return options;
         }
 
@@ -183,10 +183,15 @@ namespace ACESimTest
                 byte chanceNeitherBias = (byte)r.Next(1, 6);
                 AdditiveEvidence_TrialValue_Helper(gameOptions, chancePlaintiffQuality, chanceDefendantQuality, chanceNeitherQuality, chancePlaintiffBias, chanceDefendantBias, chanceNeitherBias, gameOptions.FeeShifting, gameOptions.FeeShiftingIsBasedOnMarginOfVictory, gameOptions.FeeShiftingThreshold);
 
-                gameOptions = GetOptions_DariMattiacci_Saraceno(0.6);
-                AdditiveEvidence_TrialValue_Helper(gameOptions, chancePlaintiffQuality, chanceDefendantQuality, chanceNeitherQuality, chancePlaintiffBias, chanceDefendantBias, chanceNeitherBias, gameOptions.FeeShifting, gameOptions.FeeShiftingIsBasedOnMarginOfVictory, gameOptions.FeeShiftingThreshold);
-            }
+                var q = 0.6;
+                var t = gameOptions.FeeShiftingThreshold;
+                gameOptions = GetOptions_DariMattiacci_Saraceno(q, t);
+                var gameProgress = AdditiveEvidence_TrialValue_Helper(gameOptions, chancePlaintiffQuality, chanceDefendantQuality, chanceNeitherQuality, chancePlaintiffBias, chanceDefendantBias, chanceNeitherBias, gameOptions.FeeShifting, gameOptions.FeeShiftingIsBasedOnMarginOfVictory, gameOptions.FeeShiftingThreshold);
+                DMSCalc c = new DMSCalc(gameOptions.FeeShiftingThreshold, gameOptions.TrialCost, q);
+                var result = c.GetOutcome(gameProgress.Chance_Plaintiff_Bias_Continuous, gameProgress.Chance_Defendant_Bias_Continuous, gameProgress.POfferContinuousIfMade, gameProgress.DOfferContinuousIfMade);
 
+                result.outcome.pNet.Should().BeApproximately(gameProgress.PWelfare, 0.01);
+            }
         }
 
         [TestMethod]
@@ -574,7 +579,7 @@ namespace ACESimTest
             }
         }
 
-                private static void AdditiveEvidence_TrialValue_Helper(AdditiveEvidenceGameOptions gameOptions, byte chancePlaintiffQuality, byte chanceDefendantQuality, byte chanceNeitherQuality, byte chancePlaintiffBias, byte chanceDefendantBias, byte chanceNeitherBias, bool feeShifting, bool basedOnMarginOfVictory, double feeShiftingThreshold)
+        private static AdditiveEvidenceGameProgress AdditiveEvidence_TrialValue_Helper(AdditiveEvidenceGameOptions gameOptions, byte chancePlaintiffQuality, byte chanceDefendantQuality, byte chanceNeitherQuality, byte chancePlaintiffBias, byte chanceDefendantBias, byte chanceNeitherBias, bool feeShifting, bool basedOnMarginOfVictory, double feeShiftingThreshold)
         {
             GetOptionsAndProgress(gameOptions, chancePlaintiffQuality, chanceDefendantQuality, chanceNeitherQuality, chancePlaintiffBias, chanceDefendantBias, chanceNeitherBias, 3, 2, out double chancePQualityDouble, out double chanceDQualityDouble, out double chanceNQualityDouble, out double chancePBiasDouble, out double chanceDBiasDouble, out double chanceNBiasDouble, out AdditiveEvidenceGameProgress gameProgress);
             gameProgress.SettlementOccurs.Should().BeFalse();
@@ -615,10 +620,13 @@ namespace ACESimTest
                 }
                 else
                 {
-                    if (!pWins && gameProgress.AnticipatedTrialValue_DInfo < feeShiftingThreshold)
-                        feeShiftingShouldOccur = true;
-                    else if (pWins && gameProgress.AnticipatedTrialValue_PInfo > 1 - feeShiftingThreshold)
-                        feeShiftingShouldOccur = true;
+                    if (Math.Abs(trialValue - 0.5) > 1E-12)
+                    {
+                        if (!pWins && gameProgress.ThetaD_Generalized < feeShiftingThreshold)
+                            feeShiftingShouldOccur = true;
+                        else if (pWins && gameProgress.ThetaP_Generalized > 1 - feeShiftingThreshold)
+                            feeShiftingShouldOccur = true;
+                    }
                 }
                 gameProgress.ShiftingOccurs.Should().Be(feeShiftingShouldOccur);
                 if (feeShiftingShouldOccur)
@@ -636,6 +644,7 @@ namespace ACESimTest
             }
             gameProgress.PWelfare.Should().Be(gameProgress.PTrialEffect);
             gameProgress.DWelfare.Should().Be(gameProgress.DTrialEffect);
+            return gameProgress;
         }
 
         private static void GetOptionsAndProgress(AdditiveEvidenceGameOptions gameOptions, byte chancePlaintiffQuality, byte chanceDefendantQuality, byte chanceNeitherQuality, byte chancePlaintiffBias, byte chanceDefendantBias, byte chanceNeitherBias, byte pOffer, byte dOffer, out double chancePQualityDouble, out double chanceDQualityDouble, out double chanceNQualityDouble, out double chancePBiasDouble, out double chanceDBiasDouble, out double chanceNBiasDouble, out AdditiveEvidenceGameProgress gameProgress)
