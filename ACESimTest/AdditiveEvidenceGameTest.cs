@@ -511,8 +511,8 @@ namespace ACESimTest
                 var correctStrategyPretruncation = dmsCalc.GetCorrectStrategiesPretruncation();
                 var correctStrategyTruncated = new DMSCalc.DMSStrategiesPair(correctStrategyPretruncation.p, correctStrategyPretruncation.d, dmsCalc, true);
 
-                if (dmsCalc.trivial || dmsCalc.pPiecewiseLinearRanges.Count != 1 || dmsCalc.pPiecewiseLinearRanges.Count != 1 || correctStrategyPretruncation.p.MinVal() < 0 || correctStrategyPretruncation.d.MaxVal() > 1) // DEBUG
-                    continue; // DEBUG }; // DEBUG -- when we change this, we need to deal with the problem that we ought to be able to have different slope on different segments
+                if (dmsCalc.trivial || dmsCalc.pPiecewiseLinearRanges.Count != 1 || dmsCalc.pPiecewiseLinearRanges.Count != 1) // Note: If going beyond Friedman Wittman, for this to work, we need to ensure that correctStrategyPretruncation.p.MinVal() < 0 || correctStrategyPretruncation.d.MaxVal() > 1
+                    continue; 
 
                 var pUntruncatedAlternatives = correctStrategyPretruncation.p.EnumerateStrategiesDifferingInOneRange().ToList();
                 var dUntruncatedAlternatives = correctStrategyPretruncation.d.EnumerateStrategiesDifferingInOneRange().ToList();

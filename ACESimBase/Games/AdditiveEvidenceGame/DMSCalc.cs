@@ -772,7 +772,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         #region Strategy enumeration
 
-        public static double[] potentialSlopes = new double[] { 1.0 / 3.0, 2.0 / 3.0, 1.0 };
+        public static double[] potentialSlopes = new double[] { 1.0 / 6.0, 1.0 / 3.0, 1.0 / 2.0, 2.0 / 3.0, 5.0 / 6.0, 1.0 };
         const int numYPossibilities = 50;
         public static double[] potentialYPoints = Enumerable.Range(0, numYPossibilities).Select(x => EquallySpaced.GetLocationOfMidpoint(x, numYPossibilities)).ToArray();
         public IEnumerable<DMSStrategyPretruncation> EnumeratePossiblePretruncationStrategies(bool plaintiff)
