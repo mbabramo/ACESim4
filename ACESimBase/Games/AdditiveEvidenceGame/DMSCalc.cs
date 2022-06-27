@@ -17,7 +17,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         bool pAboveD, pEntirelyAboveD, dEntirelyAboveP;
 
-        public bool trivial => pEntirelyAboveD || dEntirelyAboveP;
+        public bool manyEquilibria => pEntirelyAboveD || dEntirelyAboveP;
 
         public DMSCalc(double t, double c, double q)
         {

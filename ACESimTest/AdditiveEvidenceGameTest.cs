@@ -511,7 +511,7 @@ namespace ACESimTest
                 var correctStrategyPretruncation = dmsCalc.GetCorrectStrategiesPretruncation();
                 var correctStrategyTruncated = new DMSCalc.DMSStrategiesPair(correctStrategyPretruncation.p, correctStrategyPretruncation.d, dmsCalc, true);
 
-                if (dmsCalc.trivial || dmsCalc.pPiecewiseLinearRanges.Count != 1 || dmsCalc.pPiecewiseLinearRanges.Count != 1) // Note: If going beyond Friedman Wittman, for this to work, we need to ensure that correctStrategyPretruncation.p.MinVal() < 0 || correctStrategyPretruncation.d.MaxVal() > 1
+                if (dmsCalc.manyEquilibria)  // || dmsCalc.pPiecewiseLinearRanges.Count != 1 || dmsCalc.pPiecewiseLinearRanges.Count != 1) // Note: If going beyond Friedman Wittman, for this to work, we need to ensure that correctStrategyPretruncation.p.MinVal() < 0 || correctStrategyPretruncation.d.MaxVal() > 1
                     continue; 
 
                 var pUntruncatedAlternatives = correctStrategyPretruncation.p.EnumerateStrategiesDifferingInOneRange().ToList();
