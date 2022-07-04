@@ -30,8 +30,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public static AdditiveEvidenceGameOptions GetAdditiveEvidenceGameOptions() => AdditiveEvidenceChoice switch
         {
-            AdditiveEvidenceOptionSetChoices.DMSPiecewiseLinear => DariMattiacci_Saraceno_Original(0.35, 1.0, true, false, 0.75, false, piecewiseLinear: true),
-            AdditiveEvidenceOptionSetChoices.DMS => DariMattiacci_Saraceno_Original(0.5, 0.1, false, false, 0.5, false),
+            AdditiveEvidenceOptionSetChoices.DMSPiecewiseLinear => DariMattiacci_Saraceno_Original(0.5, 1.0, false, false, 0, false, piecewiseLinear: true),
+            AdditiveEvidenceOptionSetChoices.DMS => DariMattiacci_Saraceno_Original(0.5, 0.1, false, false, 0, false),
             AdditiveEvidenceOptionSetChoices.DMS_WithFeeShifting => DariMattiacci_Saraceno_Original(0.40, 0.15, true, false, 0.5, false),
             AdditiveEvidenceOptionSetChoices.DMS_WithOptionNotToPlay => DariMattiacci_Saraceno_Original(0.90, 0.6, true, false, 0.7, true),
             //AdditiveEvidenceOptionSetChoices.DMS_WithOptionNotToPlay => DariMattiacci_Saraceno(0.05, 1.0, true, false, 0.5, false), // removing option not to play and including fee shifting  -- do we get negative settlements
@@ -51,9 +51,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             _ => throw new NotImplementedException()
         };
 
-        // DEBUG
-        public static byte NumOffers = 5; // having a good number here allows for more precise strategies // 5/5/3 -> 39 seconds. 6/5/3 -> 2:10, 7/... -> 4:56 8/... -> 4:29 9/... -> 7:53 10/... -> 9:50
-        public static byte NumQualityAndBiasLevels_PrivateInfo = 5; // we don't need quite as much here, since it's information that doesn't intersect between players
+        // DEBUG -- changed for piecewise linear
+        public static byte NumOffers = 1; // having a good number here allows for more precise strategies // 5/5/3 -> 39 seconds. 6/5/3 -> 2:10, 7/... -> 4:56 8/... -> 4:29 9/... -> 7:53 10/... -> 9:50
+        public static byte NumQualityAndBiasLevels_PrivateInfo = 1; // DEBUG // we don't need quite as much here, since it's information that doesn't intersect between players
         public static byte NumQualityAndBiasLevels_NeitherInfo = 1; // still less needed here
 
         public static AdditiveEvidenceGameOptions DariMattiacci_Saraceno_Original(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay, bool piecewiseLinear = false)
