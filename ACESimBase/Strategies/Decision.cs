@@ -109,11 +109,6 @@ namespace ACESim
         public int DistributorChanceInputDecisionMultiplier;
 
         /// <summary>
-        /// Indicates whom this chance decision provides private information for. This is used with DistributableDistributorChanceInputs.
-        /// </summary>
-        public byte? ProvidesPrivateInformationFor; // DEBUG -- should be able to delete, I think.
-
-        /// <summary>
         /// Whether the decision is bipolar (i.e., there are only two possible actions).
         /// </summary>
         public bool Bipolar => NumPossibleActions == 2;
@@ -229,7 +224,7 @@ namespace ACESim
 
         public Decision Clone()
         {
-            Decision d = new Decision(Name, Abbreviation, IsChance, PlayerIndex, PlayersToInform?.ToArray() ?? new byte[] { }, NumPossibleActions, DecisionByteCode, DecisionTypeCode, RepetitionsAfterFirst, PreevolvedStrategyFilename, InformationSetAbbreviations, AlwaysDoAction, UnevenChanceActions, CriticalNode) { IsAlwaysPlayersLastDecision = IsAlwaysPlayersLastDecision, CanTerminateGame = CanTerminateGame, IncrementGameCacheItem = IncrementGameCacheItem, CustomByte = CustomByte, DeferNotificationOfPlayers = DeferNotificationOfPlayers, RequiresCustomInformationSetManipulation = RequiresCustomInformationSetManipulation, IsReversible = IsReversible, StoreActionInGameCacheItem = StoreActionInGameCacheItem, DistributedChanceDecision = DistributedChanceDecision, DistributableDistributorChanceInput = DistributableDistributorChanceInput, DistributorChanceDecision = DistributorChanceDecision, DistributorChanceInputDecision = DistributorChanceInputDecision, DistributorChanceInputDecisionMultiplier = DistributorChanceInputDecisionMultiplier, ProvidesPrivateInformationFor = ProvidesPrivateInformationFor, AlwaysTerminatesGame = AlwaysTerminatesGame,  IsChance = IsChance, IsContinuousAction = IsContinuousAction, Unroll_Parallelize = Unroll_Parallelize, Unroll_Parallelize_Identical = Unroll_Parallelize_Identical, WarmStartThroughIteration = WarmStartThroughIteration, WarmStartValue = WarmStartValue, SymmetryMap = SymmetryMap };
+            Decision d = new Decision(Name, Abbreviation, IsChance, PlayerIndex, PlayersToInform?.ToArray() ?? new byte[] { }, NumPossibleActions, DecisionByteCode, DecisionTypeCode, RepetitionsAfterFirst, PreevolvedStrategyFilename, InformationSetAbbreviations, AlwaysDoAction, UnevenChanceActions, CriticalNode) { IsAlwaysPlayersLastDecision = IsAlwaysPlayersLastDecision, CanTerminateGame = CanTerminateGame, IncrementGameCacheItem = IncrementGameCacheItem, CustomByte = CustomByte, DeferNotificationOfPlayers = DeferNotificationOfPlayers, RequiresCustomInformationSetManipulation = RequiresCustomInformationSetManipulation, IsReversible = IsReversible, StoreActionInGameCacheItem = StoreActionInGameCacheItem, DistributedChanceDecision = DistributedChanceDecision, DistributableDistributorChanceInput = DistributableDistributorChanceInput, DistributorChanceDecision = DistributorChanceDecision, DistributorChanceInputDecision = DistributorChanceInputDecision, DistributorChanceInputDecisionMultiplier = DistributorChanceInputDecisionMultiplier, AlwaysTerminatesGame = AlwaysTerminatesGame,  IsChance = IsChance, IsContinuousAction = IsContinuousAction, Unroll_Parallelize = Unroll_Parallelize, Unroll_Parallelize_Identical = Unroll_Parallelize_Identical, WarmStartThroughIteration = WarmStartThroughIteration, WarmStartValue = WarmStartValue, SymmetryMap = SymmetryMap };
             return d;
         }
 

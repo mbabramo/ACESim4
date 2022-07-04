@@ -34,7 +34,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         {
             switch (currentDecisionByteCode)
             {
-                // Note: THe linear bids decisions will be executed if and only if the POffer and DOffer decisions are not
+                // Note: The linear bids decisions will be executed if and only if the POffer and DOffer decisions are not
 
 
                 case (byte)AdditiveEvidenceGameDecisions.P_Slope:

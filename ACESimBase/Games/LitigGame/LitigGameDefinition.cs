@@ -261,7 +261,6 @@ namespace ACESim
                     Unroll_Parallelize_Identical = true,
                     DistributorChanceInputDecision = true,
                     DistributableDistributorChanceInput = true,
-                    ProvidesPrivateInformationFor = (byte)LitigGamePlayers.Plaintiff,
                     SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
                 });
             if (Options.DLiabilityNoiseStdev != 0)
@@ -274,7 +273,6 @@ namespace ACESim
                     Unroll_Parallelize_Identical = true,
                     DistributorChanceInputDecision = true,
                     DistributableDistributorChanceInput = true,
-                    ProvidesPrivateInformationFor = (byte) LitigGamePlayers.Defendant,
                     SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
                 });
             CreateLiabilitySignalsTables();
@@ -318,7 +316,6 @@ namespace ACESim
                     Unroll_Parallelize_Identical = true,
                     DistributorChanceInputDecision = true,
                     DistributableDistributorChanceInput = true,
-                    ProvidesPrivateInformationFor = (byte)LitigGamePlayers.Plaintiff,
                     SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
                 });
             if (Options.DDamagesNoiseStdev != 0)
@@ -331,7 +328,6 @@ namespace ACESim
                     Unroll_Parallelize_Identical = true,
                     DistributorChanceInputDecision = true,
                     DistributableDistributorChanceInput = true,
-                    ProvidesPrivateInformationFor = (byte)LitigGamePlayers.Defendant,
                     SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
                 });
             CreateDamagesSignalsTables();

@@ -417,7 +417,6 @@ namespace ACESimTest
                 gameProgress.SettlementOccurs.Should().Be(dBid >= pBid);
                 if (gameProgress.SettlementOccurs)
                     gameProgress.SettlementValue.Should().Be(0.5 * (pBid + dBid));
-                // DEBUG Debug.WriteLine(gameProgress.Chance_Plaintiff_Bias_Reduction + " " + gameProgress.Chance_Defendant_Bias_Reduction);
 
                 gameProgress.GameComplete.Should().BeTrue();
 
@@ -568,34 +567,7 @@ namespace ACESimTest
 
             onFail:
                 Debug.WriteLine($"Problem with {i}: Not true equilibrium. DMSCalc {dmsCalc} case num {dmsCalc.CaseNum} num piecewise ranges {dmsCalc.pPiecewiseLinearRanges.Count}, {dmsCalc.dPiecewiseLinearRanges.Count}");
-                // DEBUG throw new Exception("Not true equilibrium.");
-
-
-                //for (int i1 = 0; i1 < strategyPairs.Count; i1++)
-                //{
-                //    DMSCalc.DMSStrategiesPair strategyPair = strategyPairs[i1];
-                //    if (strategyPair.pStrategy.index == 0 && strategyPair.dStrategy.index == 0)
-                //        strategyPairs[i1] = new DMSCalc.DMSStrategiesPair(DEBUG_CorrectStrategy.p, DEBUG_CorrectStrategy.d, dmsCalc);
-                //    else if (strategyPair.pStrategy.index == 0)
-                //        strategyPairs[i1] = new DMSCalc.DMSStrategiesPair(DEBUG_CorrectStrategy.p, dUntruncatedStrategies[strategyPairs[i1].dStrategy.index], dmsCalc);
-                //    else if (strategyPair.dStrategy.index == 0)
-                //        strategyPairs[i1] = new DMSCalc.DMSStrategiesPair(pUntruncatedStrategies[strategyPairs[i1].pStrategy.index], DEBUG_CorrectStrategy.d, dmsCalc);
-                //}
-                //double[,] pUtilities = new double[pStrategiesWithTruncation.Count, dStrategiesWithTruncation.Count];
-                //double[,] dUtilities = new double[pStrategiesWithTruncation.Count, dStrategiesWithTruncation.Count];
-                //foreach (var strategyPair in strategyPairs)
-                //{
-                //    pUtilities[strategyPair.pStrategy.index, strategyPair.dStrategy.index] = strategyPair.PNet;
-                //    dUtilities[strategyPair.pStrategy.index, strategyPair.dStrategy.index] = strategyPair.DNet;
-                //}
-                //var pMatrixString = Matrix.ToString(pUtilities);
-                //var dMatrixString = Matrix.ToString(dUtilities);
-                //var combinedMatrixString = pMatrixString + "\n" + dMatrixString;
-
-                //List<(int pIndex, int dIndex)> equilibriaIndices = PureStrategiesFinder.ComputeNashEquilibria(pUtilities, dUtilities, false);
-                //DMSCalc.DMSStrategiesPair GetEq((int pIndex, int dIndex) eq) => strategyPairs.First(x => x.pStrategy.index == eq.pIndex && x.dStrategy.index == eq.dIndex);
-                //IEnumerable<((int pIndex, int dIndex) eq, DMSCalc.DMSStrategiesPair)> equilibria = equilibriaIndices.Select(eq => (eq, GetEq(eq)));
-                //var nonTrivialEquilibria = equilibria.Where(x => x.Item2.Nontrivial).ToList();
+                
             }
         }
 

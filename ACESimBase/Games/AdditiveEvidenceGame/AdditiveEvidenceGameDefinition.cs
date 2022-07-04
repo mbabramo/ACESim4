@@ -123,7 +123,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 Unroll_Parallelize_Identical = true,
                 //DistributorChanceInputDecision = true,
                 //DistributableDistributorChanceInput = true,
-                ProvidesPrivateInformationFor = (byte)AdditiveEvidenceGamePlayers.Plaintiff
             });
             if (Options.Alpha_Quality > 0 && Options.Alpha_Defendant_Quality > 0)
                 decisions.Add(new Decision("Chance_Defendant_Quality", useAbbreviationsForSimplifiedGame ? "DInfo" : "DQ", true, (byte)AdditiveEvidenceGamePlayers.Chance_Defendant_Quality, new byte[] { (byte)AdditiveEvidenceGamePlayers.Defendant, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Quality)
@@ -133,7 +132,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 Unroll_Parallelize_Identical = true,
                 //DistributorChanceInputDecision = true,
                 //DistributableDistributorChanceInput = true,
-                ProvidesPrivateInformationFor = (byte)AdditiveEvidenceGamePlayers.Defendant,
                 CanTerminateGame = false
             });
             if (Options.Alpha_Bias > 0 && Options.Alpha_Plaintiff_Bias > 0)
@@ -145,7 +143,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     Unroll_Parallelize_Identical = true,
                     //DistributorChanceInputDecision = true,
                     //DistributableDistributorChanceInput = true,
-                    ProvidesPrivateInformationFor = (byte)AdditiveEvidenceGamePlayers.Plaintiff
                 });
                 if (Options.PiecewiseLinearBids)
                     decisions.Add(new Decision("Chance_Plaintiff_Bias_Reduction", "PBR", true, (byte)AdditiveEvidenceGamePlayers.Chance_Plaintiff_Bias_Reduction, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte) PiecewiseLinearCalcs.pPiecewiseLinearRanges.Count, (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias_Reduction) 
@@ -155,7 +152,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                         Unroll_Parallelize_Identical = true,
                         //DistributorChanceInputDecision = true,
                         //DistributableDistributorChanceInput = true,
-                        ProvidesPrivateInformationFor = (byte)AdditiveEvidenceGamePlayers.Plaintiff,
                         UnevenChanceActions = true
                     });
             }
@@ -168,7 +164,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     Unroll_Parallelize_Identical = true,
                     //DistributorChanceInputDecision = true,
                     //DistributableDistributorChanceInput = true,
-                    ProvidesPrivateInformationFor = (byte)AdditiveEvidenceGamePlayers.Defendant,
                     CanTerminateGame = false
                 });
                 if (Options.PiecewiseLinearBids)
@@ -179,7 +174,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                         Unroll_Parallelize_Identical = true,
                         //DistributorChanceInputDecision = true,
                         //DistributableDistributorChanceInput = true,
-                        ProvidesPrivateInformationFor = (byte)AdditiveEvidenceGamePlayers.Defendant,
                         UnevenChanceActions = true
                     });
             }

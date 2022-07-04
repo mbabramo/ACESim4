@@ -14,8 +14,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         // Whether we are constraining the players to piecewise linear bids, in which case they must select a slope and then the minimum value in each of various regions.
         public bool PiecewiseLinearBids = false;
-        public static double[] PiecewiseLinearBidsSlopeOptions = new double[] { 1.0 / 3.0, 2.0 / 3.0 , 1.0 }; 
-        public static byte NumTruncationPortions = 2;  // DEBUG
+        public static double[] PiecewiseLinearBidsSlopeOptions = new double[] { 1.0 / 6.0, 1.0 / 3.0, 1.0 / 2.0, 2.0 / 3.0 , 1.0 }; 
+        public static byte NumTruncationPortions = 10;
 
         public bool TrialGuaranteed;
         public bool IncludePQuitDecision;
