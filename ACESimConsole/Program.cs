@@ -15,6 +15,7 @@ using ACESim.Util;
 using ACESimBase.Games.AdditiveEvidenceGame;
 using ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm;
 using ACESimBase.Games.EFGFileGame;
+using ACESimBase.Games.DMSReplicationGame;
 
 namespace ACESim
 {
@@ -26,10 +27,11 @@ namespace ACESim
             SelectLeducGame,
             SelectMultiRoundCooperationGame,
             SelectLitigGame,
-            SelectAdditiveEvidenceGame
+            SelectAdditiveEvidenceGame,
+            SelectDMSReplicationGame
         }
 
-        public static AvailableGames GameToPlay = AvailableGames.SelectAdditiveEvidenceGame;
+        public static AvailableGames GameToPlay = AvailableGames.SelectDMSReplicationGame;
         public static bool LaunchSingleOptionsSetOnly = true;
 
         [STAThread]
@@ -97,6 +99,12 @@ namespace ACESim
                     baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\AdditiveEvidenceGame";
                     strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
                     launcher = new AdditiveEvidenceGameLauncher();
+                    break;
+
+                case AvailableGames.SelectDMSReplicationGame:
+                    baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\AdditiveEvidenceGame";
+                    strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
+                    launcher = new DMSReplicationGameLauncher();
                     break;
 
             }
