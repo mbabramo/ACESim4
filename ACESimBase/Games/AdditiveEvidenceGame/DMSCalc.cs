@@ -62,8 +62,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             double pSlope = (pBidEndFirstRange - pBidStartFirstRange) / (pPiecewiseLinearRanges[0].high - pPiecewiseLinearRanges[0].low);
             double dSlope = (dBidEndFirstRange - dBidStartFirstRange) / (dPiecewiseLinearRanges[0].high - dPiecewiseLinearRanges[0].low);
 
-            var p = new DMSStrategyPretruncation(0, pSlope, pPiecewiseLinearRanges.Select(x => fs.pUntruncFunc(x.low)).ToList(), pPiecewiseLinearRanges);
-            var d = new DMSStrategyPretruncation(0, dSlope, dPiecewiseLinearRanges.Select(x => fs.dUntruncFunc(x.low)).ToList(), dPiecewiseLinearRanges);
+            var p = new DMSStrategyPretruncation(0, pSlope, pPiecewiseLinearRanges.Select(x => fs.pUntruncFunc(x.low + 1E-14)).ToList(), pPiecewiseLinearRanges);
+            var d = new DMSStrategyPretruncation(0, dSlope, dPiecewiseLinearRanges.Select(x => fs.dUntruncFunc(x.low + 1E-14)).ToList(), dPiecewiseLinearRanges);
             return (p, d);
         }
 
@@ -575,7 +575,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     }
                 }
                 DMSPartialOutcome partialOutcome = new DMSPartialOutcome(weight, settlingCases, outcomes.Average(x => x.pGross), outcomes.Average(x => x.dGross), outcomes.Average(x => x.pCosts), outcomes.Average(x => x.dCosts));
-                var DEBUG = outcomes.Select(x => x.pCosts).Distinct().ToList();
                 return partialOutcome;
             }
             private static DMSPartialOutcome GetSettlementOutcome(DMSCalc c, LineSegment pSegment, LineSegment dSegment)

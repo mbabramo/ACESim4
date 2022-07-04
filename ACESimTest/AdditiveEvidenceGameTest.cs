@@ -501,7 +501,7 @@ namespace ACESimTest
         [TestMethod]
         public void AdditiveEvidence_VerifyEquilibria()
         {
-            bool friedmanWittmanOnly = false; // other DMS equilibria not yet implemented (except single segment)
+            bool friedmanWittmanOnly = true; // other DMS equilibria not yet implemented (except single segment)
             IEnumerator<DMSCalc> optionsGenerator = GetRandomOptions(friedmanWittmanOnly).GetEnumerator();
 
             int numRepetitions = 1_000;
@@ -510,12 +510,6 @@ namespace ACESimTest
                 optionsGenerator.MoveNext();
 
                 DMSCalc dmsCalc = optionsGenerator.Current;
-
-                if (i == 556749)
-                {
-                    var DEBUG = "asdf";
-                    var DEBUG2 = new DMSCalc(dmsCalc.T, dmsCalc.C, dmsCalc.Q);
-                }
 
                 var correctStrategyPretruncation = dmsCalc.GetCorrectStrategiesPretruncation();
                 var correctStrategyTruncated = new DMSCalc.DMSStrategiesPair(correctStrategyPretruncation.p, correctStrategyPretruncation.d, dmsCalc, true);
@@ -543,19 +537,29 @@ namespace ACESimTest
                 {
                     var altStrategyPair = new DMSCalc.DMSStrategiesPair(correctStrategyTruncated.pStrategy, dStrategyTruncated, dmsCalc, true);
                     if (altStrategyPair.DNet > correctStrategyTruncated.DNet + maxDeviationForRounding)
+                    {
+                        Debug.WriteLine("");
+                        Debug.WriteLine(dmsCalc);
+                        Debug.WriteLine($"Correct P {correctStrategyTruncated.pStrategy}");
+                        Debug.WriteLine($"Correct D {correctStrategyTruncated.dStrategy}");
+                        Debug.WriteLine($"Correct P vs. Correct D result: {correctStrategyTruncated}");
+                        Debug.WriteLine($"Better D {dStrategyTruncated}");
+                        Debug.WriteLine($"Correct P vs. Better D result: {altStrategyPair}");
                         goto onFail;
+                    }
                 }
-                foreach (var pStrategyPotentiallyTruncated in pStrategiesWithTruncation)
+                foreach (var pStrategyTruncated in pStrategiesWithTruncation)
                 {
-                    var altStrategyPair = new DMSCalc.DMSStrategiesPair(pStrategyPotentiallyTruncated, correctStrategyTruncated.dStrategy, dmsCalc, true);
+                    var altStrategyPair = new DMSCalc.DMSStrategiesPair(pStrategyTruncated, correctStrategyTruncated.dStrategy, dmsCalc, true);
                     if (altStrategyPair.PNet > correctStrategyTruncated.PNet + maxDeviationForRounding)
                     {
-                        //Debug.WriteLine(dmsCalc);
-                        //Debug.WriteLine($"Correct P {correctStrategyTruncated.pStrategy}");
-                        //Debug.WriteLine($"Correct D {correctStrategyTruncated.dStrategy}");
-                        //Debug.WriteLine($"Correct P vs. Correct D result: {correctStrategyTruncated}");
-                        //Debug.WriteLine($"Better P {pStrategyPotentiallyTruncated}");
-                        //Debug.WriteLine($"Better P vs. Correct D result: {altStrategyPair}");
+                        Debug.WriteLine("");
+                        Debug.WriteLine(dmsCalc);
+                        Debug.WriteLine($"Correct P {correctStrategyTruncated.pStrategy}");
+                        Debug.WriteLine($"Correct D {correctStrategyTruncated.dStrategy}");
+                        Debug.WriteLine($"Correct P vs. Correct D result: {correctStrategyTruncated}");
+                        Debug.WriteLine($"Better P {pStrategyTruncated}");
+                        Debug.WriteLine($"Better P vs. Correct D result: {altStrategyPair}");
                         goto onFail;
                     }
                 }
