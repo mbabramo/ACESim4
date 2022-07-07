@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.Games.DMSReplicationGame
 {
-    public class DMSReplicationGameDefinition : GameDefinition
+    public partial class DMSReplicationGameDefinition : GameDefinition
     {
 
         public DMSReplicationGameOptions Options => (DMSReplicationGameOptions)GameOptions;
@@ -44,12 +44,20 @@ namespace ACESimBase.Games.DMSReplicationGame
                     new PlayerInfo(PlaintiffName, (int) DMSReplicationGamePlayers.Plaintiff, false, true),
                     new PlayerInfo(DefendantName, (int) DMSReplicationGamePlayers.Defendant, false, true),
                     new PlayerInfo(ResolutionPlayerName, (int) DMSReplicationGamePlayers.Resolution, true, false),
+                    new PlayerInfo("Chance", (int) DMSReplicationGamePlayers.Chance, true, false),
                 };
         }
 
         private List<Decision> GetDecisionsList()
         {
             var decisions = new List<Decision>();
+            decisions.Add(new Decision("Chance", "C", true, (byte)DMSReplicationGamePlayers.Chance, new byte[] { (byte)DMSReplicationGamePlayers.Resolution }, 1 /* dummy decision -- only one possibility */, (byte)DMSReplicationGameDecisions.C_Dummy)
+            {
+                IsReversible = true,
+                Unroll_Parallelize = true,
+                Unroll_Parallelize_Identical = true,
+                CanTerminateGame = false
+            });
             AddLinearBidDecisions(decisions);
             return decisions;
         }
@@ -74,7 +82,29 @@ namespace ACESimBase.Games.DMSReplicationGame
             if (!currentDecision.CanTerminateGame)
                 return false;
             return true;
+        }
 
+        public override IEnumerable<(string filename, string reportcontent)> ProduceManualReports(List<(GameProgress theProgress, double weight)> gameProgresses, string supplementalString)
+        {
+            var prog = gameProgresses.First().theProgress as DMSReplicationGameProgress;
+            var zs = Enumerable.Range(0, 100).Select(x => EquallySpaced.GetLocationOfEquallySpacedPoint(x, 101, true)).ToList();
+            var ps = zs.Select(z => prog.P(z)).ToList();
+            var ds = zs.Select(z => prog.D(z)).ToList();
+            AdditiveEvidenceGame.DMSCalc calc = new AdditiveEvidenceGame.DMSCalc(Options.T, Options.C, Options.Q);
+            var correct = calc.GetCorrectStrategiesPair(false);
+            var correctBids  = zs.Select(z => calc.GetBids(z, z)).ToList();
+            var p_corrects = correctBids.Select(x => x.pBid).ToList();
+            var d_corrects = correctBids.Select(x => x.dBid).ToList();
+            StringBuilder sb = new StringBuilder();
+            foreach ((string name, List<double> values) row in new List<(string name, List<double> values)> { ("z", zs), ("p", ps), ("d", ds), ("p*", p_corrects), ("d*", d_corrects) })
+            {
+                sb.Append(row.name);
+                foreach (double v in row.values)
+                    sb.Append($",{v:#.#####}");
+                sb.AppendLine("");
+            }
+
+            yield return (OptionSetName + $"-dms{supplementalString}.txt", sb.ToString());
         }
     }
 }

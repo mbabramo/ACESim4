@@ -10,7 +10,7 @@ namespace ACESimBase.Games.DMSReplicationGame
     {
         public static DMSReplicationGameOptions GetDMSReplicationGameOptions() => new DMSReplicationGameOptions()
         {
-            C = 0.1,
+            C = 0.2,
             Q = 0.5,
             T = 0
         };

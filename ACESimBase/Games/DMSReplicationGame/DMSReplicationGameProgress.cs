@@ -39,6 +39,11 @@ namespace ACESimBase.Games.DMSReplicationGame
             Outcomes = GetOutcomes();
         }
 
+        public override double[] GetNonChancePlayerUtilities()
+        {
+            return new double[] { Outcomes.p, Outcomes.d };
+        }
+
         // Calculate welfare and case outcomes evenly sampling over plaintiff and defendant signals, using the definition of the P offer 
         // and D demand functions set above.
         (double p, double d, double settleProportion, double pPaysForDProportion, double dPaysForPProportion) GetOutcomes()
@@ -49,7 +54,7 @@ namespace ACESimBase.Games.DMSReplicationGame
             int dPaysForPCount = 0;
             double pSum = 0, dSum = 0;
             int n = 0;
-            const double increment = 0.01; // DEBUG
+            const double increment = 0.01; 
             for (double zP = increment; zP < 1.0; zP += increment)
             {
                 for (double zD = increment; zD < 1.0; zD += increment)
@@ -74,17 +79,17 @@ namespace ACESimBase.Games.DMSReplicationGame
             return (pSum / n, dSum / n, settlements / totalCases, pPaysForDCount / totalCases, dPaysForPCount / totalCases);
         }
 
-        double P(double zp)
+        public double P(double zp)
         {
             if (zp < PTruncationPortion)
                 zp = PTruncationPortion;
             return PMinValue + PSlope * zp;
         }
-        double D(double zd)
+        public double D(double zd)
         {
             if (zd > DTruncationPortion)
-                zd = PTruncationPortion;
-            return DMinValue + PSlope * zd;
+                zd = DTruncationPortion;
+            return DMinValue + DSlope * zd;
         }
 
         // Calculate welfare and case outcomes based on plaintiff and defendant signals, using the definition of the P offer 

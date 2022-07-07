@@ -8,7 +8,7 @@ namespace ACESimBase.Games.DMSReplicationGame
 {
     internal enum DMSReplicationGameDecisions : byte
     {
-
+        C_Dummy, // must have at least one chance decision
         P_Slope,
         P_MinValue,
         P_TruncationPortion,

@@ -15,5 +15,8 @@ namespace ACESimBase.Games.DMSReplicationGame
 
         // resolution player (full information set)
         Resolution,
+
+        // chance player
+        Chance
     }
 }

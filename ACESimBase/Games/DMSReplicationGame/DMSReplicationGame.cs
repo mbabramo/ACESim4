@@ -34,9 +34,8 @@ namespace ACESimBase.Games.DMSReplicationGame
         {
             switch (currentDecisionByteCode)
             {
-                // Note: The linear bids decisions will be executed if and only if the POffer and DOffer decisions are not
-
-
+                case (byte)DMSReplicationGameDecisions.C_Dummy:
+                    break;
                 case (byte)DMSReplicationGameDecisions.P_Slope:
                     DMSReplicationProgress.PSlope = DMSReplicationGameOptions.PiecewiseLinearBidsSlopeOptions[action - 1];
                     break;

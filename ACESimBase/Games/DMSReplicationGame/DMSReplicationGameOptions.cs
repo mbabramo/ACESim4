@@ -10,9 +10,9 @@ namespace ACESimBase.Games.DMSReplicationGame
     public class DMSReplicationGameOptions : GameOptions
     {
         public double T, C, Q;
-        public static double[] PiecewiseLinearBidsSlopeOptions = new double[] { 1.0 / 6.0, 1.0 / 3.0, 2.0 / 3.0 }; // DEBUG { 1.0 / 6.0, 1.0 / 3.0, 1.0 / 2.0, 2.0 / 3.0 , 1.0 }; 
-        public static byte NumMinValues => (byte)5;
+        public static double[] PiecewiseLinearBidsSlopeOptions = new double[] { 1.0 / 3.0, 1.0 / 2.0, 2.0 / 3.0, 1.0 }; 
+        public static byte NumMinValues => (byte)25;
         public static byte NumSlopes => (byte) PiecewiseLinearBidsSlopeOptions.Length;
-        public static byte NumTruncationPortions = 5; // DEBUG
+        public static byte NumTruncationPortions = 10;
     }
 }
