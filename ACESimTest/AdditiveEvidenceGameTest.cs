@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using ACESim;
 using ACESim.Util;
 using ACESimBase.Games.AdditiveEvidenceGame;
@@ -440,8 +441,8 @@ namespace ACESimTest
             byte numOffers = 20;
             byte numTruncationLevels = AdditiveEvidenceGameOptions.NumTruncationPortions;
 
-            var tOptions = useFriedmanWittman ? new double[] { 0 } : Enumerable.Range(0, 6).Select(x => 0.2 * x).ToArray();
-            var cOptions = Enumerable.Range(0, 40).Select(x => 0 + x * 0.04).ToArray();
+            var tOptions = useFriedmanWittman ? new double[] { 0 } : Enumerable.Range(0, 11).Select(x => 0.1 * x).ToArray();
+            var cOptions = Enumerable.Range(0, 40).Select(x => 0 + x * 0.025).ToArray();
             var qOptions = useFriedmanWittman ? new double[] { 0.5 } : Enumerable.Range(0, 7).Select(x => 0.35 + x * 0.05).ToArray();
             var chancePlaintiffBiasIndexOptions = Enumerable.Range(0, numBiasLevels).Select(x => (byte)(x + 1)).ToArray();
             var chanceDefendantBiasIndexOptions = Enumerable.Range(0, numBiasLevels).Select(x => (byte)(x + 1)).ToArray();
@@ -500,10 +501,14 @@ namespace ACESimTest
         [TestMethod]
         public void AdditiveEvidence_VerifyEquilibria()
         {
-            bool friedmanWittmanOnly = true; // other DMS equilibria not yet implemented (except single segment)
+            bool failureOccurs = false;
+            bool friedmanWittmanOnly = false; // DEBUG // other DMS equilibria not yet implemented (except single segment)
             IEnumerator<DMSCalc> optionsGenerator = GetRandomOptions(friedmanWittmanOnly).GetEnumerator();
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine($"t,c,q,Case,ManyEQ,PSegments,DSegments,Checked,Verified");
+            HashSet<string> settingsCompleted = new HashSet<string>();
 
-            int numRepetitions = 1_000;
+            int numRepetitions = 5_000;
             for (int i = 0; i < numRepetitions; i++)
             {
                 optionsGenerator.MoveNext();
@@ -513,14 +518,28 @@ namespace ACESimTest
                 var correctStrategyPretruncation = dmsCalc.GetCorrectStrategiesPretruncation();
                 var correctStrategyTruncated = new DMSCalc.DMSStrategiesPair(correctStrategyPretruncation.p, correctStrategyPretruncation.d, dmsCalc, true);
 
+                string settingsString = dmsCalc.ToStringShort();
+                if (settingsCompleted.Contains(settingsString))
+                    continue;
+                settingsCompleted.Add(settingsString);
+                sb.Append($"{settingsString},{dmsCalc.manyEquilibria},{dmsCalc.pPiecewiseLinearRanges.Count},{dmsCalc.dPiecewiseLinearRanges.Count}");
+
+                bool check = true;
                 if (dmsCalc.manyEquilibria)
-                    continue;
-                bool limitToSingleSegmentEquilibria = true; // this will have no relevance for FW, which are all single segment.
+                    check = true; // DEBUG
+                bool limitToSingleSegmentEquilibria = false; // DEBUG // this will have no relevance for FW, which are all single segment.
                 if (limitToSingleSegmentEquilibria && (dmsCalc.pPiecewiseLinearRanges.Count != 1 || dmsCalc.pPiecewiseLinearRanges.Count != 1))
-                    continue;
+                    check = false;
                 bool limitToStrategiesBetween0And1 = false; // this will have no relevance for FW either -- it's only with fee shifting that the strategy might not be between 0 and 1
                 if (limitToStrategiesBetween0And1 && (correctStrategyPretruncation.p.MinVal() < 0 || correctStrategyPretruncation.d.MaxVal() > 1))
+                    check = false;
+                if (check)
+                    sb.Append(",True");
+                else
+                    sb.AppendLine(",False,False");
+                if (!check)
                     continue;
+                
 
                 var pUntruncatedAlternatives = correctStrategyPretruncation.p.EnumerateStrategiesDifferingInOneRange().ToList();
                 var dUntruncatedAlternatives = correctStrategyPretruncation.d.EnumerateStrategiesDifferingInOneRange().ToList();
@@ -562,13 +581,20 @@ namespace ACESimTest
                         goto onFail;
                     }
                 }
+                sb.AppendLine(",True");
 
                 continue;
 
             onFail:
                 Debug.WriteLine($"Problem with {i}: Not true equilibrium. DMSCalc {dmsCalc} case num {dmsCalc.CaseNum} num piecewise ranges {dmsCalc.pPiecewiseLinearRanges.Count}, {dmsCalc.dPiecewiseLinearRanges.Count}");
+                sb.AppendLine(",False");
+                failureOccurs = true;
                 
             }
+            Debug.WriteLine($"");
+            Debug.WriteLine(sb.ToString());
+            if (failureOccurs)
+                throw new Exception("At least one equilibrium not verified.");
         }
 
         private static AdditiveEvidenceGameProgress AdditiveEvidence_TrialValue_Helper(AdditiveEvidenceGameOptions gameOptions, byte chancePlaintiffQuality, byte chanceDefendantQuality, byte chanceNeitherQuality, byte chancePlaintiffBias, byte chanceDefendantBias, byte chanceNeitherBias, bool feeShifting, bool basedOnMarginOfVictory, double feeShiftingThreshold)

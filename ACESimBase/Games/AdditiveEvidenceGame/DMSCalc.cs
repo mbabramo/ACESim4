@@ -44,6 +44,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             return combined;
         }
 
+        public string ToStringShort()
+        {
+            return $"{T:0.000},{C:0.000},{Q:0.000},{CaseNum}";   
+        }
+
         #region Correct strategy pairs
         public DMSStrategiesPair GetCorrectStrategiesPair(bool calculateAnalytically)
         {

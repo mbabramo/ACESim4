@@ -1,6 +1,7 @@
 ﻿using ACESim;
 using ACESim.Util;
 using ACESimBase.Games.AdditiveEvidenceGame;
+using ACESimBase.Games.DMSReplicationGame;
 using ACESimBase.GameSolvingAlgorithms;
 using ACESimBase.GameSolvingSupport;
 using System;
@@ -57,7 +58,7 @@ namespace ACESim
 
         public static Launcher GetLauncher()
         {
-            return new AdditiveEvidenceGameLauncher(); // LitigGameLauncher();
+            return new DMSReplicationGameLauncher(); // AdditiveEvidenceGameLauncher(); // LitigGameLauncher();
         }
 
         #endregion

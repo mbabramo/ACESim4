@@ -14,5 +14,13 @@ namespace ACESimBase.Games.DMSReplicationGame
             Q = 0.5,
             T = 0
         };
+
+        public static DMSReplicationGameOptions GetDMSReplicationGameOptions((double t, double c, double q) options) => new DMSReplicationGameOptions()
+        {
+            C = options.c,
+            Q = options.q,
+            T = options.t,
+            Name = $"T{options.t},C{options.c},Q{options.q}"
+        };
     }
 }
