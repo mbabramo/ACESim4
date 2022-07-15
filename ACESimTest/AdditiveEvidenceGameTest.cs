@@ -516,8 +516,8 @@ namespace ACESimTest
         public void AdditiveEvidence_VerifyEquilibria()
         {
             bool failureOccurs = false;
-            bool friedmanWittmanOnly = false; // DEBUG // other DMS equilibria not yet implemented (except single segment)
-            bool useRandomOptions = false; // DEBUG
+            bool friedmanWittmanOnly = true; // other DMS equilibria not yet implemented (except single segment)
+            bool useRandomOptions = true;
             IEnumerator<DMSCalc> optionsGenerator = useRandomOptions ? GetRandomOptions(friedmanWittmanOnly).GetEnumerator() : GetSelectedOptions().GetEnumerator();
             StringBuilder sb = new StringBuilder();
             sb.AppendLine($"t,c,q,Case,ManyEQ,PSegments,DSegments,Checked,Verified");
@@ -530,11 +530,6 @@ namespace ACESimTest
 
                 DMSCalc dmsCalc = optionsGenerator.Current;
 
-                if (Math.Abs(dmsCalc.Q - 0.4) < 1E-10 && Math.Abs(dmsCalc.T - 0.0) < 1E-10 && Math.Abs(dmsCalc.C - 0.0) < 1E-10)
-                {
-                    var DEBUG = 0;
-                }
-
                 var correctStrategyPretruncation = dmsCalc.GetCorrectStrategiesPretruncation();
                 var correctStrategyTruncated = new DMSCalc.DMSStrategiesPair(correctStrategyPretruncation.p, correctStrategyPretruncation.d, dmsCalc, true);
 
@@ -546,8 +541,8 @@ namespace ACESimTest
 
                 bool check = true;
                 if (dmsCalc.manyEquilibria)
-                    check = true; // DEBUG
-                bool limitToSingleSegmentEquilibria = false; // DEBUG // this will have no relevance for FW, which are all single segment.
+                    check = false; 
+                bool limitToSingleSegmentEquilibria = true; // this will have no relevance for FW, which are all single segment.
                 if (limitToSingleSegmentEquilibria && (dmsCalc.pPiecewiseLinearRanges.Count != 1 || dmsCalc.pPiecewiseLinearRanges.Count != 1))
                     check = false;
                 bool limitToStrategiesBetween0And1 = false; // this will have no relevance for FW either -- it's only with fee shifting that the strategy might not be between 0 and 1

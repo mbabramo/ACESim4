@@ -22,7 +22,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public DMSCalc(double t, double c, double q)
         {
             this.Q = q;
-            if (Q < 1.0 / 3.0 || Q > 2.0 / 3.0)
+            bool verifyDMSCompliance = false;
+            if (verifyDMSCompliance && (Q < 1.0 / 3.0 || Q > 2.0 / 3.0))
                 throw new ArgumentException("Invalid parameter under Dari-Mattiacci & Saraceno");
             this.C = c;
             this.T = t;

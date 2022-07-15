@@ -31,7 +31,7 @@ namespace ACESim
             SelectDMSReplicationGame
         }
 
-        public static AvailableGames GameToPlay = AvailableGames.SelectDMSReplicationGame;
+        public static AvailableGames GameToPlay = AvailableGames.SelectAdditiveEvidenceGame;
         public static bool LaunchSingleOptionsSetOnly = true;
 
         [STAThread]
