@@ -435,6 +435,20 @@ namespace ACESimTest
             }
         }
 
+        private IEnumerable<DMSCalc> GetSelectedOptions()
+        {
+            for (double t = 0; t <= 1.0; t += 0.10)
+            {
+                for (double c = 0; c <= 0.8; c += 0.10)
+                {
+                    for (double q = 0.4; q <= 0.6; q += 0.10)
+                    {
+                        yield return new DMSCalc(t, c, q);
+                    }
+                }
+            }
+        }
+
         private IEnumerable<DMSCalc> GetRandomOptions(bool useFriedmanWittman = false)
         {
             byte numBiasLevels = 20;
@@ -503,7 +517,8 @@ namespace ACESimTest
         {
             bool failureOccurs = false;
             bool friedmanWittmanOnly = false; // DEBUG // other DMS equilibria not yet implemented (except single segment)
-            IEnumerator<DMSCalc> optionsGenerator = GetRandomOptions(friedmanWittmanOnly).GetEnumerator();
+            bool useRandomOptions = false; // DEBUG
+            IEnumerator<DMSCalc> optionsGenerator = useRandomOptions ? GetRandomOptions(friedmanWittmanOnly).GetEnumerator() : GetSelectedOptions().GetEnumerator();
             StringBuilder sb = new StringBuilder();
             sb.AppendLine($"t,c,q,Case,ManyEQ,PSegments,DSegments,Checked,Verified");
             HashSet<string> settingsCompleted = new HashSet<string>();
@@ -514,6 +529,11 @@ namespace ACESimTest
                 optionsGenerator.MoveNext();
 
                 DMSCalc dmsCalc = optionsGenerator.Current;
+
+                if (Math.Abs(dmsCalc.Q - 0.4) < 1E-10 && Math.Abs(dmsCalc.T - 0.0) < 1E-10 && Math.Abs(dmsCalc.C - 0.0) < 1E-10)
+                {
+                    var DEBUG = 0;
+                }
 
                 var correctStrategyPretruncation = dmsCalc.GetCorrectStrategiesPretruncation();
                 var correctStrategyTruncated = new DMSCalc.DMSStrategiesPair(correctStrategyPretruncation.p, correctStrategyPretruncation.d, dmsCalc, true);

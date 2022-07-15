@@ -203,6 +203,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     pBid = Math.Min(pUntruncFunc(zP), dUntruncFunc(1.0)); // the case won't settle whether P offers a bid higher than the highest possible D bid of just at that value in the DMS model, so these are equivalent equilibria
                     dBid = Math.Max(pUntruncFunc(0), dUntruncFunc(zD)); // the case won't settle whether D offers a bid less than the lowest possible P bid or just at that value in the DMS model, so these are equivalent equilibria
                 }
+                else
+                {
+                    pBid = pUntruncFunc(zP);
+                    dBid = dUntruncFunc(zD);
+                }
             }
             else
             {
@@ -245,12 +250,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         private bool PEntirelyAboveD()
         {
-            return pUntruncFunc(0.0) > dUntruncFunc(1.0);
+            return pUntruncFunc(0.0) >= dUntruncFunc(1.0);
         }
 
         private bool DEntirelyAboveP()
         {
-            return pUntruncFunc(1.0) < dUntruncFunc(0.0);
+            return pUntruncFunc(1.0) <= dUntruncFunc(0.0);
         }
 
         #endregion

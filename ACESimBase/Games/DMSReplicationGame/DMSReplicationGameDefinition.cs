@@ -100,11 +100,16 @@ namespace ACESimBase.Games.DMSReplicationGame
             {
                 sb.Append(row.name);
                 foreach (double v in row.values)
-                    sb.Append($",{v:#.#####}");
+                    sb.Append($",{v:0.#####}");
                 sb.AppendLine("");
             }
 
             yield return (OptionSetName + $"-dms{supplementalString}.txt", sb.ToString());
+        }
+
+        public override string ToString()
+        {
+            return $"T: {Options.T}, C: {Options.C}, Q: {Options.Q}";
         }
     }
 }
