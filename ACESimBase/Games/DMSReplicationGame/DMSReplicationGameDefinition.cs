@@ -1,4 +1,5 @@
 ﻿using ACESim;
+using ACESimBase.Util.Tikz;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -86,25 +87,74 @@ namespace ACESimBase.Games.DMSReplicationGame
 
         public override IEnumerable<(string filename, string reportcontent)> ProduceManualReports(List<(GameProgress theProgress, double weight)> gameProgresses, string supplementalString)
         {
-            var prog = gameProgresses.First().theProgress as DMSReplicationGameProgress;
-            var zs = Enumerable.Range(0, 100).Select(x => EquallySpaced.GetLocationOfEquallySpacedPoint(x, 101, true)).ToList();
-            var ps = zs.Select(z => prog.P(z)).ToList();
-            var ds = zs.Select(z => prog.D(z)).ToList();
+            var series = new List<(string name, List<double> values)>();
+            StringBuilder csvBuilder = new StringBuilder();
+            
+            var dataSeriesForRepeatedGraph = new List<List<List<(double weight, List<double?> values)>>>();
+            dataSeriesForRepeatedGraph.Add(new List<List<(double weight, List<double?> values)>>()); // first row -- computational
+            dataSeriesForRepeatedGraph.Add(new List<List<(double weight, List<double?> values)>>()); // second row -- analytical
+            dataSeriesForRepeatedGraph[0].Add(new List<(double weight, List<double?> values)>()); // first row, first column -- computational, plaintiff
+            dataSeriesForRepeatedGraph[0].Add(new List<(double weight, List<double?> values)>()); // first row, second column -- computational, defendant
+            dataSeriesForRepeatedGraph[1].Add(new List<(double weight, List<double?> values)>()); // second row, first column -- analytical, plaintiff
+            dataSeriesForRepeatedGraph[1].Add(new List<(double weight, List<double?> values)>()); // second row, second column -- analytical, defendant
+
+            void AddSeries(string name, double weight, List<double> values, bool addToLatexGraph, bool computational, bool plaintiff)
+            {
+                csvBuilder.Append($"{name},{weight:0.#####}");
+                foreach(double v in values)
+                    csvBuilder.Append($",{v:0.#####}");
+                csvBuilder.AppendLine();
+                if (addToLatexGraph)
+                {
+                    var miniGraphDataSeriesCollection = dataSeriesForRepeatedGraph[computational ? 0 : 1][plaintiff ? 0 : 1];
+                    miniGraphDataSeriesCollection.Add((weight, values.Select(x => (double?)x).ToList()));
+                }
+            }
+
+            var zs = Enumerable.Range(0, 101).Select(x => EquallySpaced.GetLocationOfEquallySpacedPoint(x, 101, true)).ToList();
+            AddSeries("z", 1.0, zs, false, false, false);
+
+            int progressNum = 0;
+            foreach (var progressAndWeight in gameProgresses)
+            {
+                progressNum++;
+                var prog = progressAndWeight.theProgress as DMSReplicationGameProgress;
+                var ps = zs.Select(z => prog.P(z)).ToList();
+                AddSeries($"p{progressNum}", progressAndWeight.weight, ps, true, true, true);
+                var ds = zs.Select(z => prog.D(z)).ToList();
+                AddSeries($"d{progressNum}", progressAndWeight.weight, ds, true, true, false);
+            }
             AdditiveEvidenceGame.DMSCalc calc = new AdditiveEvidenceGame.DMSCalc(Options.T, Options.C, Options.Q);
             var correct = calc.GetCorrectStrategiesPair(false);
             var correctBids  = zs.Select(z => calc.GetBids(z, z)).ToList();
             var p_corrects = correctBids.Select(x => x.pBid).ToList();
             var d_corrects = correctBids.Select(x => x.dBid).ToList();
-            StringBuilder sb = new StringBuilder();
-            foreach ((string name, List<double> values) row in new List<(string name, List<double> values)> { ("z", zs), ("p", ps), ("d", ds), ("p*", p_corrects), ("d*", d_corrects) })
-            {
-                sb.Append(row.name);
-                foreach (double v in row.values)
-                    sb.Append($",{v:0.#####}");
-                sb.AppendLine("");
-            }
+            AddSeries("p*", 1.0, p_corrects, true, false, true);
+            AddSeries("d*", 1.0, d_corrects, true, false, false);
+            var p_correct_deltas = Enumerable.Range(1, p_corrects.Count - 1).Select(x => Math.Abs(p_corrects[x] - p_corrects[x - 1])).ToList();
+            var d_correct_deltas = Enumerable.Range(1, d_corrects.Count - 1).Select(x => Math.Abs(d_corrects[x] - d_corrects[x - 1])).ToList();
 
-            yield return (OptionSetName + $"-dms{supplementalString}.txt", sb.ToString());
+            yield return (OptionSetName + $" dms{supplementalString}.txt", csvBuilder.ToString());
+
+            var lineGraphData = dataSeriesForRepeatedGraph.Select(majorRow => majorRow.Select(majorColumn => new TikzLineGraphData(majorColumn.Select(x => x.values).ToList(), majorColumn.Select(x => x.weight).Select(x => $"black, opacity={x}, line width=1mm, solid").ToList(), majorColumn.Select(x => "").ToList())).ToList()).ToList();
+
+            TikzRepeatedGraph r = new TikzRepeatedGraph()
+            {
+                majorXValueNames = new List<string>() { "P", "D" },
+                majorXAxisLabel = "Party",
+                majorYValueNames = new List<string>() { "Computational", "Analytical" },
+                majorYAxisLabel = "Model",
+                minorXValueNames = zs.Select(z => $"{(Math.Abs(z % 0.10) < 1E-5 || Math.Abs(z % 0.10 - 0.10) < 1E-5 ? z.ToString() : "")}").ToList(),
+                minorXAxisLabel = "z",
+                minorYValueNames = Enumerable.Range(0, 6).Select(y => $"{y * 0.2M}").ToList(),
+                minorYAxisLabel = "Bid",
+                isStackedBar = false,
+                lineGraphData = lineGraphData,
+            };
+            string latexDoc = r.GetStandaloneDocument();
+
+            if (p_correct_deltas.Max() < 0.01 && d_correct_deltas.Max() < 0.01) // for now, only include where there is no discontinuity
+                yield return (OptionSetName + $" dms{supplementalString}.tex", latexDoc);
         }
 
         public override string ToString()

@@ -544,7 +544,7 @@ namespace LitigCharts
                 minorXAxisLabel = "Minor X",
                 minorYValueNames = Enumerable.Range(0, numMiniGraphYValues).Select(y => $"y{y}").ToList(),
                 minorYAxisLabel = "Minor Y",
-                isStacked = isStacked,
+                isStackedBar = isStacked,
                 lineGraphData = lineGraphData,
             };
 
@@ -742,7 +742,7 @@ namespace LitigCharts
                 yAxisLabelOffsetMicro = 0.4,
                 xAxisSpaceMicro = 1.1,
                 xAxisLabelOffsetMicro = 0.8,
-                isStacked = aggregatedGraphInfo.isStacked,
+                isStackedBar = aggregatedGraphInfo.isStacked,
                 lineGraphData = lineGraphData,
             };
             var result = r.GetStandaloneDocument();

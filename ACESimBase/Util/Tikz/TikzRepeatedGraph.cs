@@ -21,7 +21,7 @@ namespace ACESimBase.Util.Tikz
         public double xAxisLabelOffsetMicro { get; init; } = 0.7;
         public double yAxisSpaceMicro { get; init; } = 1.1;
         public double yAxisLabelOffsetMicro { get; init; } = 0.9;
-        public bool isStacked { get; init; } = false;
+        public bool isStackedBar { get; init; } = false;
 
         private bool Initialized;
         private TikzAxisSet outerAxisSet;
@@ -40,7 +40,7 @@ namespace ACESimBase.Util.Tikz
                 return;
             outerAxisSet = new TikzAxisSet(majorXValueNames, majorYValueNames, majorXAxisLabel, majorYAxisLabel, mainRectangle, fontScale:2, xAxisSpace:1.5, yAxisSpace: 1.7, xAxisLabelOffsetDown:0.9, yAxisLabelOffsetLeft:1.1, boxBordersAttributes: "draw=none");
             var rectangles = outerAxisSet.IndividualCells;
-            innerAxisSets = rectangles.Select((row, rowIndex) => row.Select((column, columnIndex) => new TikzAxisSet(minorXValueNames, minorYValueNames, minorXAxisLabel, minorYAxisLabel, rectangles[rowIndex][columnIndex], lineGraphData: lineGraphData[rowIndex][columnIndex], fontScale: 0.7, xAxisSpace: xAxisSpaceMicro, yAxisSpace: yAxisSpaceMicro, xAxisLabelOffsetDown: xAxisLabelOffsetMicro, xAxisLabelOffsetRight:0, yAxisLabelOffsetLeft: yAxisLabelOffsetMicro, yAxisLabelOffsetUp:0, horizontalLinesAttribute: "gray!30", verticalLinesAttribute: "gray!30", yAxisUseEndpoints: true, isStacked: isStacked)).ToList()).ToList();
+            innerAxisSets = rectangles.Select((row, rowIndex) => row.Select((column, columnIndex) => new TikzAxisSet(minorXValueNames, minorYValueNames, minorXAxisLabel, minorYAxisLabel, rectangles[rowIndex][columnIndex], lineGraphData: lineGraphData[rowIndex][columnIndex], fontScale: 0.7, xAxisSpace: xAxisSpaceMicro, yAxisSpace: yAxisSpaceMicro, xAxisLabelOffsetDown: xAxisLabelOffsetMicro, xAxisLabelOffsetRight:0, yAxisLabelOffsetLeft: yAxisLabelOffsetMicro, yAxisLabelOffsetUp:0, horizontalLinesAttribute: "gray!30", verticalLinesAttribute: "gray!30", yAxisUseEndpoints: true, isStacked: isStackedBar)).ToList()).ToList();
             var firstInnerAxisSet = innerAxisSets.FirstOrDefault()?.FirstOrDefault();
             xAxisMarkOffset = firstInnerAxisSet?.LeftAxisWidth * 0.5 ?? 0;
             yAxisMarkOffset = firstInnerAxisSet?.BottomAxisHeight * 0.5 ?? 0;
@@ -57,6 +57,8 @@ namespace ACESimBase.Util.Tikz
         public string GetLegend()
         {
             var lineGraphDataInfo = lineGraphData.First().First();
+            if (lineGraphDataInfo.dataSeriesNames.All(x => x == null || x == ""))
+                return "";
             int numberItems = lineGraphDataInfo.dataSeriesNames.Count();
             List<(string name, string attributes, bool isLast)> legendData = lineGraphDataInfo.dataSeriesNames.Zip(lineGraphDataInfo.lineAttributes, (name, attributes) => (name, attributes)).Select((item, index) => (item.name, item.attributes, index == numberItems - 1)).ToList();
             string dataSeriesDraw = String.Join(Environment.NewLine, legendData.Select(x => $@"

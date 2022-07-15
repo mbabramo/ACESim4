@@ -64,7 +64,7 @@ namespace ACESim
         public bool TryInexactArithmeticForAdditionalEquilibria = false; 
         public bool CreateEFGFileForSequenceForm = true;
         public bool CreateEquilibriaFileForSequenceForm = true;
-        public bool PreloadedEquilibriaForSequenceForm = false;
+        public bool PreloadedEquilibriaForSequenceForm = true; // DEBUG
         public bool SkipIfEquilibriumFileAlreadyExists = false;
         public bool SequenceFormCutOffProbabilityZeroNodes = true; // If true, then instead of setting chance nodes to no less than the lowest permissible rational value, probability is set to zero, and that part of the tree will be excised. (The algorithm will not work if probabilities are left at zero.)
 
