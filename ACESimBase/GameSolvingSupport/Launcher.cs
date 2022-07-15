@@ -58,7 +58,7 @@ namespace ACESim
 
         public static Launcher GetLauncher()
         {
-            return new DMSReplicationGameLauncher(); // AdditiveEvidenceGameLauncher(); // LitigGameLauncher();
+            return new AdditiveEvidenceGameLauncher(); // DMSReplicationGameLauncher(); LitigGameLauncher();
         }
 
         #endregion
