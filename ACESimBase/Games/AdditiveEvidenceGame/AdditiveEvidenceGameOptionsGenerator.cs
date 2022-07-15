@@ -30,7 +30,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public static AdditiveEvidenceGameOptions GetAdditiveEvidenceGameOptions() => AdditiveEvidenceChoice switch
         {
-            AdditiveEvidenceOptionSetChoices.DMSPiecewiseLinear => DariMattiacci_Saraceno_Original(0.5, 1.0, false, false, 0, false, piecewiseLinear: true),
+            AdditiveEvidenceOptionSetChoices.DMSPiecewiseLinear => DariMattiacci_Saraceno_Original(0.5, 1.0, false, false, 0, false),
             AdditiveEvidenceOptionSetChoices.DMS => DariMattiacci_Saraceno_Original(0.5, 0.1, false, false, 0, false),
             AdditiveEvidenceOptionSetChoices.DMS_WithFeeShifting => DariMattiacci_Saraceno_Original(0.40, 0.15, true, false, 0.5, false),
             AdditiveEvidenceOptionSetChoices.DMS_WithOptionNotToPlay => DariMattiacci_Saraceno_Original(0.90, 0.6, true, false, 0.7, true),
@@ -56,7 +56,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public static byte NumQualityAndBiasLevels_PrivateInfo = 10; // DEBUG // we don't need quite as much here, since it's information that doesn't intersect between players
         public static byte NumQualityAndBiasLevels_NeitherInfo = 1; // still less needed here
 
-        public static AdditiveEvidenceGameOptions DariMattiacci_Saraceno_Original(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay, bool piecewiseLinear = false)
+        public static AdditiveEvidenceGameOptions DariMattiacci_Saraceno_Original(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay)
         {
             var options = new AdditiveEvidenceGameOptions()
             {
@@ -66,7 +66,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 Alpha_Defendant_Quality = 0,
                 // so Neither_Quality is set automatically to 0
                 Alpha_Both_Bias = 0.0,
-                PiecewiseLinearBids = piecewiseLinear
             };
             options.Alpha_Plaintiff_Bias = options.Evidence_Both_Quality = quality; // this is the key (strange) assumption -- the proportion of the evidence about bias that is in the plaintiff's possession is equal to the strength of the case
             options.Alpha_Defendant_Bias = 1.0 - options.Alpha_Plaintiff_Bias;

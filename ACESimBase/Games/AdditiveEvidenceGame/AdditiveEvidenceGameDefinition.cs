@@ -11,7 +11,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
     public partial class AdditiveEvidenceGameDefinition : GameDefinition
     {
         public AdditiveEvidenceGameOptions Options => (AdditiveEvidenceGameOptions)GameOptions;
-        public DMSCalc PiecewiseLinearCalcs;
 
         public override string ToString()
         {
@@ -29,10 +28,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             FurtherOptionsSetup();
 
             AdditiveEvidenceGameOptions aeOptions = (AdditiveEvidenceGameOptions)options;
-            if (aeOptions.PiecewiseLinearBids)
-                PiecewiseLinearCalcs = new DMSCalc(aeOptions.FeeShiftingThreshold, aeOptions.TrialCost, aeOptions.Evidence_Both_Quality);
-            else
-                PiecewiseLinearCalcs = null;
 
             Players = GetPlayersList();
             PlayerNames = Players.Select(x => x.PlayerName).ToArray();
@@ -92,26 +87,13 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             var decisions = new List<Decision>();
             AddInitialChanceDecisions(decisions);
             AddQuitDecisions(decisions);
-            if (Options.PiecewiseLinearBids)
-                AddLinearBidDecisions(decisions);
-            else
-                AddPlayerOffers(decisions);
+            AddPlayerOffers(decisions);
             AddLaterChanceDecisions(decisions);
             return decisions;
         }
 
 
         bool useAbbreviationsForSimplifiedGame = true;
-
-        void AddLinearBidDecisions(List<Decision> decisions)
-        {
-            decisions.Add(new Decision("P_Slope", useAbbreviationsForSimplifiedGame ? "PSlope" : "PSL", true, (byte)AdditiveEvidenceGamePlayers.Plaintiff, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte)AdditiveEvidenceGameOptions.PiecewiseLinearBidsSlopeOptions.Length, (byte)AdditiveEvidenceGameDecisions.P_Slope));
-            decisions.Add(new Decision("P_MinValueForRange", useAbbreviationsForSimplifiedGame ? "P_MinValueForRange" : "PMIN", true, (byte)AdditiveEvidenceGamePlayers.Plaintiff, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte)Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.P_MinValueForRange));
-            decisions.Add(new Decision("P_TruncationPortion", useAbbreviationsForSimplifiedGame ? "P_TruncationPortion" : "PTR", true, (byte)AdditiveEvidenceGamePlayers.Plaintiff, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte)Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.P_TruncationPortion));
-            decisions.Add(new Decision("D_Slope", useAbbreviationsForSimplifiedGame ? "DSlope" : "DSL", true, (byte)AdditiveEvidenceGamePlayers.Defendant, new byte[] { (byte)AdditiveEvidenceGamePlayers.Defendant, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte)AdditiveEvidenceGameOptions.PiecewiseLinearBidsSlopeOptions.Length, (byte)AdditiveEvidenceGameDecisions.D_Slope));
-            decisions.Add(new Decision("D_MinValueForRange", useAbbreviationsForSimplifiedGame ? "D_MinValueForRange" : "DMIN", true, (byte)AdditiveEvidenceGamePlayers.Defendant, new byte[] { (byte)AdditiveEvidenceGamePlayers.Defendant, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte)Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.D_MinValueForRange));
-            decisions.Add(new Decision("D_TruncationPortion", useAbbreviationsForSimplifiedGame ? "D_TruncationPortion" : "DTR", true, (byte)AdditiveEvidenceGamePlayers.Defendant, new byte[] { (byte)AdditiveEvidenceGamePlayers.Defendant, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte)Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.D_TruncationPortion) { CanTerminateGame = true });
-        }
 
         void AddInitialChanceDecisions(List<Decision> decisions)
         {
@@ -136,7 +118,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             });
             if (Options.Alpha_Bias > 0 && Options.Alpha_Plaintiff_Bias > 0)
             {
-                decisions.Add(new Decision("Chance_Plaintiff_Bias", "PB", true, (byte)AdditiveEvidenceGamePlayers.Chance_Plaintiff_Bias, Options.PiecewiseLinearBids ? new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution } : new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias)
+                decisions.Add(new Decision("Chance_Plaintiff_Bias", "PB", true, (byte)AdditiveEvidenceGamePlayers.Chance_Plaintiff_Bias, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias)
                 {
                     IsReversible = true,
                     Unroll_Parallelize = true,
@@ -144,20 +126,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     //DistributorChanceInputDecision = true,
                     //DistributableDistributorChanceInput = true,
                 });
-                if (Options.PiecewiseLinearBids)
-                    decisions.Add(new Decision("Chance_Plaintiff_Bias_Reduction", "PBR", true, (byte)AdditiveEvidenceGamePlayers.Chance_Plaintiff_Bias_Reduction, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte) PiecewiseLinearCalcs.pPiecewiseLinearRanges.Count, (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias_Reduction) 
-                    {
-                        IsReversible = true,
-                        Unroll_Parallelize = true,
-                        Unroll_Parallelize_Identical = true,
-                        //DistributorChanceInputDecision = true,
-                        //DistributableDistributorChanceInput = true,
-                        UnevenChanceActions = true
-                    });
             }
             if (Options.Alpha_Bias > 0 && Options.Alpha_Defendant_Bias > 0)
             {
-                decisions.Add(new Decision("Chance_Defendant_Bias", "DB", true, (byte)AdditiveEvidenceGamePlayers.Chance_Defendant_Bias, Options.PiecewiseLinearBids ? new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution } : new byte[] { (byte)AdditiveEvidenceGamePlayers.Defendant, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias)
+                decisions.Add(new Decision("Chance_Defendant_Bias", "DB", true, (byte)AdditiveEvidenceGamePlayers.Chance_Defendant_Bias, new byte[] { (byte)AdditiveEvidenceGamePlayers.Defendant, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias)
                 {
                     IsReversible = true,
                     Unroll_Parallelize = true,
@@ -166,16 +138,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     //DistributableDistributorChanceInput = true,
                     CanTerminateGame = false
                 });
-                if (Options.PiecewiseLinearBids)
-                    decisions.Add(new Decision("Chance_Defendant_Bias_Reduction", "DBR", true, (byte)AdditiveEvidenceGamePlayers.Chance_Defendant_Bias_Reduction, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, (byte)PiecewiseLinearCalcs.dPiecewiseLinearRanges.Count, (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias_Reduction)
-                    {
-                        IsReversible = true,
-                        Unroll_Parallelize = true,
-                        Unroll_Parallelize_Identical = true,
-                        //DistributorChanceInputDecision = true,
-                        //DistributableDistributorChanceInput = true,
-                        UnevenChanceActions = true
-                    });
             }
         }
         void AddQuitDecisions(List<Decision> decisions)
@@ -269,8 +231,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     if (defendantOffer >= plaintiffOffer)
                         return true;
                     break;
-                case (byte)AdditiveEvidenceGameDecisions.D_TruncationPortion:
-                    return true;
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Quality:
                     return false;
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias:
@@ -283,36 +243,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             return false;
         }
 
-        public override double[] GetUnevenChanceActionProbabilities(byte decisionByteCode, GameProgress gameProgress)
-        {
-            AdditiveEvidenceGameProgress aeProgress = (AdditiveEvidenceGameProgress)gameProgress;
-            byte reduction;
-            double[] result = null;
-            switch (decisionByteCode)
-            {
-                case (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias_Reduction:
-                    reduction = GetReductionForPiecewiseLinear(aeProgress.Chance_Plaintiff_Bias, true);
-                    result = new double[PiecewiseLinearCalcs.pPiecewiseLinearRanges.Count];
-                    result[reduction - 1] = 1.0;
-                    break;
-                case (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias_Reduction:
-                    reduction = GetReductionForPiecewiseLinear(aeProgress.Chance_Defendant_Bias, false);
-                    result = new double[PiecewiseLinearCalcs.dPiecewiseLinearRanges.Count];
-                    result[reduction - 1] = 1.0;
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
-            return result;
-        }
-
-        public byte GetReductionForPiecewiseLinear(byte bias, bool plaintiff)
-        {
-            byte playerIndex = plaintiff ? (byte)AdditiveEvidenceGamePlayers.Plaintiff : (byte)AdditiveEvidenceGamePlayers.Defendant;
-            double z = EquallySpaced.GetLocationOfEquallySpacedPoint(bias - 1 /* make it zero-based */, Options.NumQualityAndBiasLevels_PrivateInfo, false);
-            byte reducedInformation = (byte) (PiecewiseLinearCalcs.GetPiecewiseLinearRangeIndex(z, plaintiff: plaintiff) + 1);
-            return reducedInformation;
-        }
 
         private void FurtherOptionsSetup()
         {

@@ -34,31 +34,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         {
             switch (currentDecisionByteCode)
             {
-                // Note: The linear bids decisions will be executed if and only if the POffer and DOffer decisions are not
-
-
-                case (byte)AdditiveEvidenceGameDecisions.P_Slope:
-                    AdditiveEvidenceProgress.PSlope = AdditiveEvidenceGameOptions.PiecewiseLinearBidsSlopeOptions[action - 1]; 
-                    break;
-                case (byte)AdditiveEvidenceGameDecisions.P_MinValueForRange: 
-                    double minForPiecewiseLinearSegment = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, AdditiveEvidenceDefinition.Options.NumOffers, false);
-                    AdditiveEvidenceProgress.PMinValueForRange = minForPiecewiseLinearSegment;
-                    break;
-                case (byte)AdditiveEvidenceGameDecisions.P_TruncationPortion:
-                    AdditiveEvidenceProgress.PTruncationPortion = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1, AdditiveEvidenceGameOptions.NumTruncationPortions, true);
-                    break;
-                case (byte)AdditiveEvidenceGameDecisions.D_Slope:
-                    AdditiveEvidenceProgress.DSlope = AdditiveEvidenceGameOptions.PiecewiseLinearBidsSlopeOptions[action - 1];
-
-                    break;
-                case (byte)AdditiveEvidenceGameDecisions.D_MinValueForRange:
-                    double minForPiecewiseLinearSegment2 = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, AdditiveEvidenceDefinition.Options.NumOffers, false);
-                    AdditiveEvidenceProgress.DMinValueForRange = minForPiecewiseLinearSegment2;
-                    break;
-                case (byte)AdditiveEvidenceGameDecisions.D_TruncationPortion:
-                    AdditiveEvidenceProgress.DTruncationPortion = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1, AdditiveEvidenceGameOptions.NumTruncationPortions, true);
-                    AdditiveEvidenceProgress.GameComplete = true; // with piecewise linear offers, we always end after defendant's announcement of line
-                    break;
 
                 case (byte)AdditiveEvidenceGameDecisions.PQuit:
                     AdditiveEvidenceProgress.PQuits = action == 1;
@@ -79,14 +54,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias:
                     AdditiveEvidenceProgress.Chance_Plaintiff_Bias = action;
                     break;
-                case (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias_Reduction:
-                    AdditiveEvidenceProgress.Chance_Plaintiff_Bias_Reduction = action;
-                    break;
                 case (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias:
                     AdditiveEvidenceProgress.Chance_Defendant_Bias = action;
-                    break;
-                case (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias_Reduction:
-                    AdditiveEvidenceProgress.Chance_Defendant_Bias_Reduction = action;
                     break;
                 case (byte)AdditiveEvidenceGameDecisions.POffer:
                     AdditiveEvidenceProgress.POffer = action;

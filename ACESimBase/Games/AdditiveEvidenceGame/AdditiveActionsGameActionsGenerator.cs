@@ -23,12 +23,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                         return chanceDefendantQuality;
                     case AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias:
                         return chancePlaintiffBias;
-                    case AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias_Reduction:
-                        return ((AdditiveEvidenceGameDefinition)p.GameDefinition).GetReductionForPiecewiseLinear(chancePlaintiffBias, true);
                     case AdditiveEvidenceGameDecisions.Chance_Defendant_Bias:
                         return chanceDefendantBias;
-                    case AdditiveEvidenceGameDecisions.Chance_Defendant_Bias_Reduction:
-                        return ((AdditiveEvidenceGameDefinition)p.GameDefinition).GetReductionForPiecewiseLinear(chanceDefendantBias, false);
                     case AdditiveEvidenceGameDecisions.POffer:
                         return pOffer;
                     case AdditiveEvidenceGameDecisions.DOffer:
@@ -37,18 +33,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                         return chanceNeitherQuality;
                     case AdditiveEvidenceGameDecisions.Chance_Neither_Bias:
                         return chanceNeitherBias;
-                    case AdditiveEvidenceGameDecisions.P_Slope:
-                        return pSlope;
-                    case AdditiveEvidenceGameDecisions.D_Slope:
-                        return dSlope;
-                    case AdditiveEvidenceGameDecisions.P_MinValueForRange:
-                        return pMinValForRange;
-                    case AdditiveEvidenceGameDecisions.D_MinValueForRange:
-                        return dMinValForRange;
-                    case AdditiveEvidenceGameDecisions.P_TruncationPortion:
-                        return pTruncationPortion;
-                    case AdditiveEvidenceGameDecisions.D_TruncationPortion:
-                        return dTruncationPortion;
 
                     default:
                         throw new NotSupportedException();

@@ -21,7 +21,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             All,
             Fast,
             Original,
-            OriginalPiecewise,
             TwoSets,
             OtherTwoSets,
             TrialGuaranteed,
@@ -32,15 +31,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public override List<GameOptions> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-            OptionSetChoice optionSetChoice = OptionSetChoice.OriginalPiecewise;
+            OptionSetChoice optionSetChoice = OptionSetChoice.Original;
             bool withOptionNotToPlay = false;
             switch (optionSetChoice)
             {
                 case OptionSetChoice.Original:
                     AddDMSGameOptionSets(optionSets, DMSVersion.Original, withOptionNotToPlay);
-                    break;
-                case OptionSetChoice.OriginalPiecewise:
-                    AddDMSGameOptionSets(optionSets, DMSVersion.OriginalPiecewise, withOptionNotToPlay);
                     break;
                 case OptionSetChoice.TwoSets:
                     AddDMSGameOptionSets(optionSets, DMSVersion.Original, withOptionNotToPlay);
@@ -95,7 +91,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         enum DMSVersion
         {
             Original,
-            OriginalPiecewise,
             Biasless,
             EvenStrength,
             EvenStrengthAndBiasless,
@@ -129,10 +124,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                             case DMSVersion.Original:
                                 // this tracks the original model by DMS. The adjudicator's outcome depends half on some information about quality shared by both parties, and half on the sum of the parties' independent information (where this independent information does not count as part of the quality of the lawsuit).
                                 optionSets.Add(GetAndTransform("orig", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
-                                break;
-                            case DMSVersion.OriginalPiecewise:
-                                // this tracks the original model by DMS. The adjudicator's outcome depends half on some information about quality shared by both parties, and half on the sum of the parties' independent information (where this independent information does not count as part of the quality of the lawsuit).
-                                optionSets.Add(GetAndTransform("orig", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.PiecewiseLinearBids = true; }));
                                 break;
                             case DMSVersion.Biasless:
                                 // biasless means that all of the info that the adjudicator adds up counts in the quality measurement. Here, we continue to follow the DMS approach of making the plaintiff's proportion of information equal to the actual shared quality value (qualityKnownToBoth).

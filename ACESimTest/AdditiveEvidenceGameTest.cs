@@ -351,90 +351,6 @@ namespace ACESimTest
             }
         }
 
-        [TestMethod]
-        public void AdditiveEvidence_PiecewiseLinear()
-        {
-            byte numBiasLevels = 20;
-            byte numOffers = 20;
-            byte numTruncationLevels = AdditiveEvidenceGameOptions.NumTruncationPortions;
-
-            var tOptions = Enumerable.Range(0, 6).Select(x => 0.2 * x).ToArray();
-            var cOptions = Enumerable.Range(0, 26).Select(x => 0 + x * 0.04).ToArray();
-            var qOptions = Enumerable.Range(0, 7).Select(x => 0.35 + x * 0.05).ToArray();
-            var chancePlaintiffBiasIndexOptions = Enumerable.Range(0, numBiasLevels).Select(x => (byte)(x + 1)).ToArray();
-            var chanceDefendantBiasIndexOptions = Enumerable.Range(0, numBiasLevels).Select(x => (byte)(x + 1)).ToArray();
-            var pSlopeIndexOptions = Enumerable.Range(0, AdditiveEvidenceGameOptions.PiecewiseLinearBidsSlopeOptions.Length).Select(x => (byte)(x + 1)).ToArray();
-            var dSlopeIndexOptions = Enumerable.Range(0, AdditiveEvidenceGameOptions.PiecewiseLinearBidsSlopeOptions.Length).Select(x => (byte)(x + 1)).ToArray();
-            var pMinValIndexOptions = Enumerable.Range(0, numOffers).Select(x => (byte)(x + 1)).ToArray();
-            var dMinValIndexOptions = Enumerable.Range(0, numOffers).Select(x => (byte)(x + 1)).ToArray();
-            var pTruncationOptions = Enumerable.Range(0, numTruncationLevels).Select(x => (byte)(x + 1)).ToArray();
-            var dTruncationOptions = Enumerable.Range(0, numTruncationLevels).Select(x => (byte)(x + 1)).ToArray();
-
-
-
-            Random r = new Random(0);
-            T GetRandom<T>(T[] items) => items[r.Next(items.Length)];
-
-            int numRepetitions = 1_000; 
-            for (int i = 0; i < numRepetitions; i++)
-            {
-                double t = GetRandom(tOptions);
-                double c = GetRandom(cOptions);
-                double q = GetRandom(qOptions);
-                byte chancePlaintiffBiasIndex = GetRandom(chancePlaintiffBiasIndexOptions);
-                byte chanceDefendantBiasIndex = GetRandom(chanceDefendantBiasIndexOptions);
-                byte pSlopeIndex = GetRandom(pSlopeIndexOptions);
-                byte dSlopeIndex = GetRandom(dSlopeIndexOptions);
-                byte pMinValIndex = GetRandom(pMinValIndexOptions);
-                byte dMinValIndex = GetRandom(dMinValIndexOptions);
-                byte pTruncationIndex = GetRandom(pTruncationOptions);
-                byte dTruncationIndex = GetRandom(dTruncationOptions);
-
-                var gameOptions = GetOptions(feeShifting: true, feeShiftingBasedOnMarginOfVictory: false, feeShiftingThreshold: t, trialCost: c, evidenceBothQuality: q, numOffers: numOffers, numQualityAndBiasLevels: numBiasLevels);
-                gameOptions.PiecewiseLinearBids = true;
-
-                Func<Decision, GameProgress, byte> actionsToPlay = AdditiveActionsGameActionsGenerator.PlaySpecifiedDecisions(chancePlaintiffBias: chancePlaintiffBiasIndex, chanceDefendantBias: chanceDefendantBiasIndex, pSlope: pSlopeIndex, dSlope: dSlopeIndex, pMinValForRange: pMinValIndex, dMinValForRange: dMinValIndex, pTruncationPortion: pTruncationIndex, dTruncationPortion: dTruncationIndex);
-                var gameProgress = AdditiveEvidenceGameLauncher.PlayAdditiveEvidenceGameOnce(gameOptions, actionsToPlay);
-                gameProgress.PiecewiseLinearCalcs.T.Should().Be(t);
-                gameProgress.PiecewiseLinearCalcs.C.Should().Be(c);
-                gameProgress.PiecewiseLinearCalcs.Q.Should().Be(q);
-                gameProgress.Chance_Plaintiff_Bias.Should().Be(chancePlaintiffBiasIndex);
-                gameProgress.Chance_Defendant_Bias.Should().Be(chanceDefendantBiasIndex);
-                gameProgress.PSlope.Should().Be(AdditiveEvidenceGameOptions.PiecewiseLinearBidsSlopeOptions[pSlopeIndex - 1]);
-                gameProgress.DSlope.Should().Be(AdditiveEvidenceGameOptions.PiecewiseLinearBidsSlopeOptions[dSlopeIndex - 1]);
-                gameProgress.PMinValueForRange.Should().Be(EquallySpaced.GetLocationOfEquallySpacedPoint(pMinValIndex - 1 /* make it zero-based */, numOffers, false));
-                gameProgress.DMinValueForRange.Should().Be(EquallySpaced.GetLocationOfEquallySpacedPoint(dMinValIndex - 1 /* make it zero-based */, numOffers, false));
-                gameProgress.PTruncationPortion.Should().Be(EquallySpaced.GetLocationOfEquallySpacedPoint(pTruncationIndex - 1, numTruncationLevels, true));
-                gameProgress.DTruncationPortion.Should().Be(EquallySpaced.GetLocationOfEquallySpacedPoint(dTruncationIndex - 1, numTruncationLevels, true));
-                var dmsCalcs = gameProgress.PiecewiseLinearCalcs;
-                byte pSignal = (byte) (dmsCalcs.GetPiecewiseLinearRangeIndex(gameProgress.Chance_Plaintiff_Bias_Continuous, true) + 1);
-                pSignal.Should().Be(gameProgress.Chance_Plaintiff_Bias_Reduction);
-                byte dSignal = (byte)(dmsCalcs.GetPiecewiseLinearRangeIndex(gameProgress.Chance_Defendant_Bias_Continuous, false) + 1);
-                dSignal.Should().Be(gameProgress.Chance_Defendant_Bias_Reduction);
-                double pBid = dmsCalcs.GetPiecewiseLinearBidTruncated(gameProgress.Chance_Plaintiff_Bias_Continuous, true, gameProgress.PMinValueForRange, gameProgress.PSlope, gameProgress.PTruncationPortion);
-                gameProgress.PiecewiseLinearPBid.Should().Be(pBid);
-                double dBid = dmsCalcs.GetPiecewiseLinearBidTruncated(gameProgress.Chance_Defendant_Bias_Continuous, false, gameProgress.DMinValueForRange, gameProgress.DSlope, gameProgress.DTruncationPortion);
-                gameProgress.PiecewiseLinearDBid.Should().Be(dBid);
-                gameProgress.SettlementOccurs.Should().Be(dBid >= pBid);
-                if (gameProgress.SettlementOccurs)
-                    gameProgress.SettlementValue.Should().Be(0.5 * (pBid + dBid));
-
-                gameProgress.GameComplete.Should().BeTrue();
-
-                //gameProgress.SomeoneQuits.Should().Be(false);
-                //gameProgress.PQuits.Should().Be(false);
-                //gameProgress.DQuits.Should().Be(false);
-                //gameProgress.SettlementOccurs.Should().Be(false);
-                //gameProgress.TrialOccurs.Should().Be(false);
-                //gameProgress.SettlementValue.Should().BeNull();
-                //gameProgress.ResolutionValue.Should().BeApproximately(1.0, 1E-10);
-                //gameProgress.PWelfare.Should().BeApproximately(1.0, 1E-10);
-                //gameProgress.DWelfare.Should().BeApproximately(0, 1E-10);
-                //gameProgress.POfferContinuousOrNull.Should().BeNull();
-                //gameProgress.DOfferContinuousOrNull.Should().BeNull();
-            }
-        }
-
         private IEnumerable<DMSCalc> GetSelectedOptions()
         {
             for (double t = 0; t <= 1.0; t += 0.10)
@@ -453,19 +369,14 @@ namespace ACESimTest
         {
             byte numBiasLevels = 20;
             byte numOffers = 20;
-            byte numTruncationLevels = AdditiveEvidenceGameOptions.NumTruncationPortions;
 
             var tOptions = useFriedmanWittman ? new double[] { 0 } : Enumerable.Range(0, 11).Select(x => 0.1 * x).ToArray();
             var cOptions = Enumerable.Range(0, 40).Select(x => 0 + x * 0.025).ToArray();
             var qOptions = useFriedmanWittman ? new double[] { 0.5 } : Enumerable.Range(0, 7).Select(x => 0.35 + x * 0.05).ToArray();
             var chancePlaintiffBiasIndexOptions = Enumerable.Range(0, numBiasLevels).Select(x => (byte)(x + 1)).ToArray();
             var chanceDefendantBiasIndexOptions = Enumerable.Range(0, numBiasLevels).Select(x => (byte)(x + 1)).ToArray();
-            var pSlopeIndexOptions = Enumerable.Range(0, AdditiveEvidenceGameOptions.PiecewiseLinearBidsSlopeOptions.Length).Select(x => (byte)(x + 1)).ToArray();
-            var dSlopeIndexOptions = Enumerable.Range(0, AdditiveEvidenceGameOptions.PiecewiseLinearBidsSlopeOptions.Length).Select(x => (byte)(x + 1)).ToArray();
             var pMinValIndexOptions = Enumerable.Range(0, numOffers).Select(x => (byte)(x + 1)).ToArray();
             var dMinValIndexOptions = Enumerable.Range(0, numOffers).Select(x => (byte)(x + 1)).ToArray();
-            var pTruncationOptions = Enumerable.Range(0, numTruncationLevels).Select(x => (byte)(x + 1)).ToArray();
-            var dTruncationOptions = Enumerable.Range(0, numTruncationLevels).Select(x => (byte)(x + 1)).ToArray();
 
             Random r = new Random(0);
             T GetRandom<T>(T[] items) => items[r.Next(items.Length)];

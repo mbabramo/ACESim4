@@ -11,11 +11,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public bool FirstRowOnly => false; // simplifies the reporting
 
         // Parameters regarding game structure
-
-        // Whether we are constraining the players to piecewise linear bids, in which case they must select a slope and then the minimum value in each of various regions.
-        public bool PiecewiseLinearBids = false;
-        public static double[] PiecewiseLinearBidsSlopeOptions = new double[] { 1.0 / 6.0, 1.0 / 3.0, 2.0 / 3.0 };
-        public static byte NumTruncationPortions = 20;
         
         public bool TrialGuaranteed;
         public bool IncludePQuitDecision;
@@ -95,7 +90,7 @@ Alpha_Bias {Alpha_Bias}: Both {Alpha_Both_Bias} P {Alpha_Plaintiff_Bias} D {Alph
 FeeShifting {FeeShifting} {(FeeShifting ? $"Margin {FeeShiftingIsBasedOnMarginOfVictory} Threshold {FeeShiftingThreshold}" : "")}
 NumOffers {NumOffers} MinOffer {MinOffer} OfferRange {OfferRange} 
 NumQualityAndBiasLevels {NumQualityAndBiasLevels_PrivateInfo} (private) {NumQualityAndBiasLevels_NeitherInfo} (neither info)
-LinearBids {PiecewiseLinearBids} TrialGuaranteed {TrialGuaranteed} IncludePQuit {IncludePQuitDecision} IncludeDQuit {IncludeDQuitDecision}";
+TrialGuaranteed {TrialGuaranteed} IncludePQuit {IncludePQuitDecision} IncludeDQuit {IncludeDQuitDecision}";
         }
     }
 }
