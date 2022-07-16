@@ -18,7 +18,9 @@ namespace LitigCharts
         {
             //KlermanData.Execute();
 
-            FeeShiftingDataProcessing.ExecuteLatexProcessesForExisting(); // executes for existing .tex files rather than generating the .tex files
+            AdditiveEvidenceDataProcessing.BuildReport();
+
+            // FeeShiftingDataProcessing.ExecuteLatexProcessesForExisting(); // executes for existing .tex files rather than generating the .tex files
 
             return;
 

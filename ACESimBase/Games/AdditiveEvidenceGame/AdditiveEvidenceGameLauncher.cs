@@ -30,8 +30,30 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public override List<GameOptions> GetOptionsSets()
         {
-            List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
             OptionSetChoice optionSetChoice = OptionSetChoice.Original;
+            return GetOptionSetsFromChoice(optionSetChoice);
+        }
+
+        public List<List<AdditiveEvidenceGameOptions>> GetSetsOfOptionsSets()
+        {
+            List<List<AdditiveEvidenceGameOptions>> setsOfOptionsSets = new List<List<AdditiveEvidenceGameOptions>>();
+            OptionSetChoice optionSetChoice = OptionSetChoice.Original;
+            var set1 = GetOptionSetsFromChoice(optionSetChoice).Select(x => (AdditiveEvidenceGameOptions)x).ToList();
+            setsOfOptionsSets.Add(set1);
+            return setsOfOptionsSets;
+        }
+
+        public Dictionary<string, string> GetAdditiveEvidenceNameMap()
+        {
+            Dictionary<string, string> result = new Dictionary<string, string>();
+            foreach (AdditiveEvidenceGameOptions gameOptions in GetSetsOfOptionsSets().SelectMany(x => x))
+                result[gameOptions.Name] = gameOptions.Name;
+            return result;
+        }
+
+        private List<GameOptions> GetOptionSetsFromChoice(OptionSetChoice optionSetChoice)
+        {
+            List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
             bool withOptionNotToPlay = false;
             switch (optionSetChoice)
             {

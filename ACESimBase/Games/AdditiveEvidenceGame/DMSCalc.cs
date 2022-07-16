@@ -193,7 +193,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             bool includeIrrelevantTruncations = false;
             // In DMS, P bids that are always higher than D's are truncated to their min value, since they will never result in settlement anyway.
             // Similarly, if D bids are alwayer lower than p's, 
-            bool standardizeTrivialEq = true; // if P's most generous bid is greater than the D's most generous bid, there will never be a settlement, regardless of the signals. This is a trivial equilibrium, and so we can standardize those.
+            bool standardizeTrivialEq = false; // if P's most generous bid is greater than the D's most generous bid, there will never be a settlement, regardless of the signals. This is a trivial equilibrium, and so we can standardize those. Meanwhile, we also can standardize situations in which the case will always settle.
             double pBid = 1, dBid = 0;
             if (pAboveD)
             {
@@ -215,20 +215,33 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 if (dEntirelyAboveP)
                 {
                     // There are also unlimited equilibria here, all of which result in settlement.
-                    // Let's narrow down to one such equilibrium, where the parties bid the midpoint of D's most aggressive (lowest) bid and P's most aggressive (highest) bid.
-                    pBid = dBid = (dUntruncFunc(0.0) + pUntruncFunc(1.0)) / 2.0;
-                    if (pBid < 0 && 0 <= dUntruncFunc(0.0))
-                        pBid = dBid = 0;
-                    else if (dBid > 1.0 && 1.0 >= pUntruncFunc(1.0))
-                        pBid = dBid = 1.0;
+                    // Note that we can't apply the usual truncation, or else we would end up with a situation where P's bid is higher than D's, and all cases will go to trial.
+
+                    bool makeBidsIdentical = false;
+
+                    if (makeBidsIdentical)
+                    {
+                        // Let's narrow down to one settlement equilibrium, where the parties bid the midpoint of D's most aggressive (lowest) bid and P's most aggressive (highest) bid.
+                        pBid = dBid = (dUntruncFunc(0.0) + pUntruncFunc(1.0)) / 2.0;
+                        if (pBid < 0 && 0 <= dUntruncFunc(0.0))
+                            pBid = dBid = 0;
+                        else if (dBid > 1.0 && 1.0 >= pUntruncFunc(1.0))
+                            pBid = dBid = 1.0;
+                    }
+                    else
+                    {
+                        pBid = pUntruncFunc(zP);
+                        dBid = dUntruncFunc(zD);
+                    }
                 }
                 else
                 {
+                    // standard truncation
                     pBid = Math.Max(pUntruncFunc(zP), dUntruncFunc(0.0));
                     dBid = Math.Min(pUntruncFunc(1.0), dUntruncFunc(zD));
                 }
             }
-            bool truncateAt0And1 = false;
+            bool truncateAt0And1 = true;
             if (truncateAt0And1)
             {
                 pBid = Math.Min(pBid, 1.0);

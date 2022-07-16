@@ -209,8 +209,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
 
             if (superimposedLines != null)
             {
-                TikzLineGraphData pLineGraphData = new TikzLineGraphData(new List<List<double?>> { superimposedLines.Select(x => (double?)x.p).ToList() }, new List<string>() { "gray, opacity=0.30, line width=1mm, dashed" }, new List<string>() { "DMS" });
-                TikzLineGraphData dLineGraphData = new TikzLineGraphData(new List<List<double?>> { superimposedLines.Select(x => (double?)x.d).ToList() }, new List<string>() { "gray, opacity=0.30, line width=1mm, dashed" }, new List<string>() { "DMS" });
+                TikzLineGraphData pLineGraphData = new TikzLineGraphData(new List<List<double?>> { superimposedLines.Select(x => (double?)x.p).ToList() }, new List<string>() { "black, opacity=0.50, line width=1mm, dashed" }, new List<string>() { "DMS" });
+                TikzLineGraphData dLineGraphData = new TikzLineGraphData(new List<List<double?>> { superimposedLines.Select(x => (double?)x.d).ToList() }, new List<string>() { "black, opacity=0.50, line width=1mm, dashed" }, new List<string>() { "DMS" });
                 var xValNames = Enumerable.Range(0, superimposedLines.Count()).Select(x => (x + 1.0) / (superimposedLines.Count() + 1)).Select(x => x.ToString()).ToList();
                 TikzAxisSet pAxisSet = new TikzAxisSet(xValNames, null, null, null, pHeatMap.MainRectangleWithoutAxes, yAxisSpace: 0, xAxisSpace: 0, lineGraphData: pLineGraphData);
                 TikzAxisSet dAxisSet = new TikzAxisSet(xValNames, null, null, null, dHeatMap.MainRectangleWithoutAxes, yAxisSpace: 0, xAxisSpace: 0, lineGraphData: dLineGraphData);

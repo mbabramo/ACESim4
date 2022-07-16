@@ -12,6 +12,7 @@ using System.Reflection.Emit;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using static LitigCharts.DataProcessingUtils;
 
 namespace LitigCharts
 {
@@ -102,7 +103,7 @@ namespace LitigCharts
             foreach (var gameOptionsSet in litigGameOptionsSets)
             {
                 string filenameCore, combinedPath;
-                GetFileInfo(map, filePrefix, ".tex", ref fileSuffix, path, gameOptionsSet, out filenameCore, out combinedPath);
+                GetFileInfo(map, filePrefix, ".tex", firstEquilibriumFileSuffix, ref fileSuffix, path, gameOptionsSet, out filenameCore, out combinedPath);
                 if (!File.Exists(combinedPath))
                     throw new Exception("File not found");
                 ExecuteLatexProcess(path, combinedPath);
@@ -205,7 +206,7 @@ namespace LitigCharts
             {
                 TabbedText.WriteLine($"Processing equilibrium type {fileSuffix}");
                 bool includeHeader = firstEqOnly || fileSuffix == correlatedEquilibriumFileSuffix;
-                List<List<string>> outputLines = GetCSVLines(distinctOptionSets, map, rowsToGet, replacementRowNames, filePrefix, fileSuffix, path, includeHeader, columnsToGet, replacementColumnNames);
+                List<List<string>> outputLines = GetCSVLines(distinctOptionSets.Select(x => (GameOptions) x).ToList(), map, rowsToGet, replacementRowNames, filePrefix, fileSuffix, firstEquilibriumFileSuffix, path, includeHeader, columnsToGet, replacementColumnNames);
                 if (includeHeader)
                     outputLines[0].Insert(0, "Equilibrium Type");
                 string equilibriumType = fileSuffix switch
@@ -270,76 +271,6 @@ namespace LitigCharts
             return launcher.GetFeeShiftingArticleGamesSets(false, true).SelectMany(x => x).ToList();
         }
 
-        private static List<List<string>> GetCSVLines(List<LitigGameOptions> gameOptionsSets, Dictionary<string, string> map, List<string> rowsToGet, List<string> replacementRowNames, string filePrefix, string fileSuffix, string path, bool includeHeader, List<string> columnsToGet, List<string> replacementColumnNames)
-        {
-
-            // Set the following on opening the first file
-            List<List<string>> outputLines = null;
-
-            foreach (var gameOptionsSet in gameOptionsSets.Where(x => map[x.Name] == x.Name)) // for this aggregation, we want only one copy of each report, so we exclude the redundant names that include the baseline values for a noncritical set
-            {
-                if (outputLines == null)
-                {
-                    outputLines = new List<List<string>>();
-
-                    if (includeHeader)
-                    {
-                        List<string> headings = gameOptionsSet.VariableSettings.OrderBy(x => x.Key.ToString()).Select(x => x.Key).ToList();
-                        headings.Add("Filter");
-                        headings.AddRange(replacementColumnNames);
-                        outputLines.Add(headings);
-                    }
-                }
-                double?[,] resultsAllRows = null;
-                string filenameCore, combinedPath;
-                GetFileInfo(map, filePrefix, ".csv", ref fileSuffix, path, gameOptionsSet, out filenameCore, out combinedPath);
-                (string columnName, string expectedText)[][] rowsToFind = new (string columnName, string expectedText)[rowsToGet.Count()][];
-                for (int f = 0; f < rowsToGet.Count(); f++)
-                {
-                    rowsToFind[f] = new (string columnName, string expectedText)[2];
-                    rowsToFind[f][0] = ("OptionSet", filenameCore);
-                    rowsToFind[f][1] = ("Filter", rowsToGet[f]);
-                }
-                // string[] columnsToGet = new string[] { "Trial", "AccSq", "POffer", "DOffer" };
-                resultsAllRows = CSVData.GetCSVData(combinedPath, rowsToFind.ToArray(), columnsToGet.ToArray(), true);
-                for (int f = 0; f < rowsToGet.Count(); f++)
-                {
-                    List<string> bodyRow = new List<string>();
-                    bodyRow.AddRange(gameOptionsSet.VariableSettings.OrderBy(x => x.Key.ToString()).Select(x => x.Value?.ToString()));
-                    bodyRow.Add(replacementRowNames[f]);
-                    bodyRow.AddRange(resultsAllRows.GetRow(f).Select(x => x?.ToString()));
-                    outputLines.Add(bodyRow);
-                }
-            }
-            return outputLines;
-        }
-
-        private static void GetFileInfo(Dictionary<string, string> map, string filePrefix, string fileExtensionIncludingPeriod, ref string fileSuffix, string path, LitigGameOptions gameOptionsSet, out string filenameCore, out string combinedPath)
-        {
-            filenameCore = map[gameOptionsSet.Name];
-            string filename = filePrefix + filenameCore + fileSuffix + fileExtensionIncludingPeriod;
-            combinedPath = Path.Combine(path, filename);
-            if (!File.Exists(combinedPath))
-            {
-                fileSuffix = firstEquilibriumFileSuffix;
-                filename = filePrefix + filenameCore + fileSuffix + fileExtensionIncludingPeriod;
-                combinedPath = Path.Combine(path, filename);
-                if (!File.Exists(combinedPath))
-                {
-                    fileSuffix = "";
-                    filename = filePrefix + filenameCore + fileSuffix + fileExtensionIncludingPeriod;
-                    combinedPath = Path.Combine(path, filename);
-                }
-            }
-        }
-
-        private static string MakeString(List<List<string>> values)
-        {
-            StringBuilder b = new StringBuilder();
-            for (int i = 0; i < values.Count(); i++)
-                b.AppendLine(String.Join(",", values[i]));
-            return b.ToString();
-        }
 
         private static void FileFixer()
         {
