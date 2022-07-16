@@ -1,5 +1,6 @@
 ﻿using ACESim;
 using ACESimBase.Games.LitigGame.ManualReports;
+using ACESimBase.GameSolvingSupport;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -261,7 +262,45 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public override bool VaryWeightOnOpponentsStrategySeparatelyForEachPlayer => true;
         public override (double, double) MinMaxWeightOnOpponentsStrategyDuringWarmup => (-0.8, 0.8); // NOTE: Don't go all the way up to 1, because then if costs multiplier is 0 (i.e., it is a zero-sum game), utility for a player will be invariant.
 
+        public double PBestGuessFromSingleSignal(int signal)
+        {
+            double continuousSignal = EquallySpaced.GetLocationOfEquallySpacedPoint(signal - 1 /* make it zero-based */, Options.NumQualityAndBiasLevels_PrivateInfo, false);
+            return Options.Alpha_Quality * (Options.Alpha_Both_Quality * Options.Evidence_Both_Quality + Options.Alpha_Plaintiff_Quality * continuousSignal + Options.Alpha_Defendant_Quality * 0.5 /* best guess of defendant's evidence */ + Options.Alpha_Neither_Quality * 0.5) + Options.Alpha_Bias * (Options.Alpha_Both_Bias * Options.Evidence_Both_Bias + Options.Alpha_Plaintiff_Bias * continuousSignal + Options.Alpha_Defendant_Bias * 0.5 + Options.Alpha_Neither_Bias * 0.5);
+        }
 
+        public double DBestGuessFromSingleSignal(int signal)
+        {
+            double continuousSignal = EquallySpaced.GetLocationOfEquallySpacedPoint(signal - 1 /* make it zero-based */, Options.NumQualityAndBiasLevels_PrivateInfo, false);
+            return Options.Alpha_Quality * (Options.Alpha_Both_Quality * Options.Evidence_Both_Quality + Options.Alpha_Plaintiff_Quality * 0.5 + Options.Alpha_Defendant_Quality * continuousSignal + Options.Alpha_Neither_Quality * 0.5) + Options.Alpha_Bias * (Options.Alpha_Both_Bias * Options.Evidence_Both_Bias + Options.Alpha_Plaintiff_Bias * 0.5 + Options.Alpha_Defendant_Bias * continuousSignal + Options.Alpha_Neither_Bias * 0.5);
+        }
+
+        public List<MaybeExact<T>> GetProbabilitiesFocusedOnBestGuess<T>() where T : MaybeExact<T>, new()
+        {
+            List<MaybeExact<T>> probabilities = new List<MaybeExact<T>>();
+            for (int playerIndex = 1; playerIndex <= 2; playerIndex++)
+            {
+                for (int signalIndex = 0; signalIndex < Options.NumQualityAndBiasLevels_PrivateInfo; signalIndex++)
+                {
+                    double bestGuess = playerIndex == 1 ? PBestGuessFromSingleSignal(signalIndex + 1) : DBestGuessFromSingleSignal(signalIndex + 1);
+                    var distances = EquallySpaced.GetAbsoluteDistanceFromLocation(bestGuess, Options.NumQualityAndBiasLevels_PrivateInfo, false);
+                    const double k = 1.5;
+                    var relativeValues = distances.Select(d => Math.Pow(k, 0 - d)).ToList();
+                    var sum = relativeValues.Sum();
+                    var addingToApproxOne = relativeValues.Select(v => Math.Max((decimal) 0.001, Math.Round((decimal) (v / sum), 3))).ToList();
+                    var addingToOneThousand = addingToApproxOne.Select(v => (int)(v * 1000)).ToArray();
+                    int overage = addingToOneThousand.Sum() - 1000;
+                    for (int i = 0; i < overage; i++)
+                    {
+                        int indexOfMax = Array.IndexOf(addingToOneThousand, addingToOneThousand.Max());
+                        addingToOneThousand[indexOfMax] -= 1;
+                    }
+                    MaybeExact<T> denom = MaybeExact<T>.FromInteger(1000);
+                    var probabilitiesToAddToList = addingToOneThousand.Select(v => MaybeExact<T>.FromInteger(v).DividedBy(denom)).ToList();
+                    probabilities.AddRange(probabilitiesToAddToList);
+                }
+            }
+            return probabilities;
+        }
 
         #endregion
 

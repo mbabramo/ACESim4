@@ -659,15 +659,20 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 tabbedtextf("\n");
         }
 
-        public void MakePlayerMovesStrictlyMixed(MaybeExact<T>[] allMoveProbabilities, MaybeExact<T> minValue)
+        /// <summary>
+        ///  Sets the probabilities to the specified value, but it ensures that the probabilities are strictly mixed, with no more than the minimum value.
+        /// </summary>
+        /// <param name="allMoveProbabilities"></param>
+        /// <param name="minValue"></param>
+        public void SetProbabilitiesToValues(MaybeExact<T>[] allMoveProbabilities, MaybeExact<T> minValue)
         {
 
             int offset = numSequences[1] + 1 + numInfoSets[2];
-            MakePlayerMovesStrictlyMixed(1, allMoveProbabilities, 0, minValue);
-            MakePlayerMovesStrictlyMixed(2, allMoveProbabilities, offset, minValue);
+            SetProbabilitiesToValues(1, allMoveProbabilities, 0, minValue);
+            SetProbabilitiesToValues(2, allMoveProbabilities, offset, minValue);
         }
 
-        private void MakePlayerMovesStrictlyMixed(int pl, MaybeExact<T>[] allMoveProbabilities, int offset, MaybeExact<T> minValue)
+        private void SetProbabilitiesToValues(int pl, MaybeExact<T>[] allMoveProbabilities, int offset, MaybeExact<T> minValue)
         {
             int indexInAllMovesArray = 0;
             int moveIndexInInformationSet;

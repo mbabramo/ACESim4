@@ -26,6 +26,17 @@ namespace ACESim
 
         static bool useMidpointsOfEquallySpacedRegions = true;
 
+        public static double[] GetLocationsOfEquallySpacedPoint(int numPoints, bool includeEndpoints, double from = 0, double to = 1.0)
+        {
+            return Enumerable.Range(0, numPoints).Select(x => GetLocationOfEquallySpacedPoint(x, numPoints, includeEndpoints, from, to)).ToArray();
+        }
+
+        public static double[] GetAbsoluteDistanceFromLocation(double location, int numPoints, bool includeEndpoints, double from = 0, double to = 1.0)
+        {
+            double[] locations = GetLocationsOfEquallySpacedPoint(numPoints, includeEndpoints, from, to);
+            return locations.Select(x => Math.Abs(x - location)).ToArray();
+        }
+
         public static double GetLocationOfEquallySpacedPoint(int pointIndex, int numPoints, bool includeEndpoints, double from = 0, double to = 1.0)
         {
             if (includeEndpoints)

@@ -178,7 +178,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         /// <param name="setup"></param>
         /// <param name="updateActionWhenTracingPathOfEquilibrium">Tracing path of an equilibrium means that we use the results of one run to seed the next, but then change the outcomes. The action receives a parameter indicating the index and then changes the outcomes appropriately.</param>
         /// <returns></returns>
-        public List<(MaybeExact<T>[] equilibrium, int frequency)> Execute(Action<ECTATreeDefinition<T>> setup, Action<int, ECTATreeDefinition<T>> updateActionWhenTracingPathOfEquilibrium, int seed)
+        public List<(MaybeExact<T>[] equilibrium, int frequency)> Execute(Action<ECTATreeDefinition<T>> setup, Action<int, ECTATreeDefinition<T>> updateActionWhenTracingPathOfEquilibrium, int seed, MaybeExact<T>[] initialProbabilities = null)
         {
             bool tracingEquilibrium = updateActionWhenTracingPathOfEquilibrium != null;
 
@@ -221,18 +221,20 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             t.allocateRealizationPlan();
             if (outputPivotResults && outputPivotHeaderFirst) /* otherwise the header is garbled by LCP output */
                 inforesultheader();
-            MaybeExact<T>[] equilibriumProbabilities = null;
+            MaybeExact<T>[] equilibriumProbabilities = initialProbabilities;
             /* multiple priors 	*/
             for (int priorcount = 0; priorcount < numPriors; priorcount++)
             {
                 Stopwatch s = new Stopwatch();
                 s.Start();
                 TabbedText.WriteLine($"Prior {priorcount + 1} of {numPriors}");
-                if (priorcount == 0 || !tracingEquilibrium)
+                if (priorcount > 0 && initialProbabilities != null && !tracingEquilibrium)
+                    throw new Exception("Can't use multiple priors if you set the initial probabilities and don't want to trace the equilibrium, because then the probabilities will be the same every time.");
+                if ((priorcount == 0 && initialProbabilities == null) || !tracingEquilibrium)
                     t.genprior(priorcount + seedAdjust);
                 else
                 {
-                    t.MakePlayerMovesStrictlyMixed(equilibriumProbabilities, MaybeExact<T>.One().DividedBy(MaybeExact<T>.FromInteger(1_000)));
+                    t.SetProbabilitiesToValues(equilibriumProbabilities, MaybeExact<T>.One().DividedBy(MaybeExact<T>.FromInteger(1_000)));
                     updateActionWhenTracingPathOfEquilibrium(priorcount, t);
                 }
                 if (outputGameTreeSetup)
