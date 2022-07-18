@@ -31,6 +31,9 @@ namespace ACESimBase.GameSolvingAlgorithms
         }
         SequenceFormApproach Approach = SequenceFormApproach.ECTA;
 
+        bool ConsiderInitializingToMostRecentEquilibrium = true;
+        object MostRecentEquilibrium; // MaybeExact<T>[]
+
         public SequenceForm(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
         {
         }
@@ -44,7 +47,7 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         public override async Task Initialize()
         {
-            if (EvolutionSettings.SkipIfEquilibriumFileAlreadyExists && EquilibriumFileAlreadyExists())
+            if (EvolutionSettings.SkipIfEquilibriumFileAlreadyExists && EquilibriaFileAlreadyExists())
                 return;
             GameDefinition.MakeAllChanceDecisionsKnowAllChanceActions(); // since there is just one chance player, each chance (and resolution) player must know all other chance decisions for ECTA algorithm to work properly
             AllowSkipEveryPermutationInitialization = false;
@@ -67,7 +70,7 @@ namespace ACESimBase.GameSolvingAlgorithms
         {
 
             ReportCollection reportCollection = new ReportCollection();
-            if (EvolutionSettings.SkipIfEquilibriumFileAlreadyExists && EquilibriumFileAlreadyExists())
+            if (EvolutionSettings.SkipIfEquilibriumFileAlreadyExists && EquilibriaFileAlreadyExists())
                 return reportCollection;
 
             string filename = null;
@@ -184,8 +187,18 @@ namespace ACESimBase.GameSolvingAlgorithms
                 }
                 else
                 {
+                    List<MaybeExact<T>> initialProbabilities = null;
+                    if (ConsiderInitializingToMostRecentEquilibrium && GameDefinition.InitializeToMostRecentEquilibrium && MostRecentEquilibrium != null)
+                    {
+                        initialProbabilities = ((MaybeExact<T>[])MostRecentEquilibrium).ToList();
+                    }
+                    else if (EvolutionSettings.CustomSequenceFormInitialization)
+                    {
+                        initialProbabilities = GameDefinition.GetSequenceFormInitialization<T>();
+                    }
                     ECTARunner<T> ecta = GetECTARunner<T>(numPriorsToGet);
-                    results = ecta.Execute(t => SetupECTA(t), scenarioUpdater, 0);
+                    results = ecta.Execute(t => SetupECTA(t), scenarioUpdater, 0, initialProbabilities.ToArray());
+                    MostRecentEquilibrium = results.Last().equilibrium;
                 }
                 results = results.Select(x => (ReverseEffectsOfCuttingOffProbabilityZeroNodes(x.equilibrium), x.frequency)).ToList();
                 NarrowDownToValidEquilibria<T>(results);
@@ -928,9 +941,9 @@ namespace ACESimBase.GameSolvingAlgorithms
             return filename;
         }
 
-        public bool EquilibriumFileAlreadyExists()
+        public bool EquilibriaFileAlreadyExists()
         {
-            return File.Exists(GetEquilibriumFileName());
+            return File.Exists(GetEquilibriaFileName());
         }
 
         private string CreateEquilibriaFile(List<double[]> equilibria)
@@ -940,12 +953,12 @@ namespace ACESimBase.GameSolvingAlgorithms
             {
                 s.AppendLine(String.Join(",", equilibrium));
             }
-            string filename = GetEquilibriumFileName();
+            string filename = GetEquilibriaFileName();
             TextFileManage.CreateTextFile(filename, s.ToString()); // TODO: Switch to azure/local
             return filename;
         }
 
-        private string GetEquilibriumFileName()
+        private string GetEquilibriaFileName()
         {
             DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
             var folderFullName = folder.FullName;
