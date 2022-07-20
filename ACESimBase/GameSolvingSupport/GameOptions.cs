@@ -21,6 +21,8 @@ namespace ACESim
 
         public bool CollapseChanceDecisions { get; set; }
 
+        public bool InitializeToMostRecentEquilibrium; // This is for the SequenceForm solver. If true, then the initial strategy is set to the most recent equilibrium, which will then be altered to be strictly mixed. If false, then the initial strategy is generated as usual.
+
         /// <summary>
         /// If the launcher creates many different versions of game options, it can set the value of options here. This can make it easier to combine different game options into reports afterwards.
         /// </summary>

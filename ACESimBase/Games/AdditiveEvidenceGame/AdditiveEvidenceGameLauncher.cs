@@ -10,7 +10,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
     {
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
-        public override string MasterReportNameForDistributedProcessing => "AE006"; 
+        public override string MasterReportNameForDistributedProcessing => "AE009"; 
         public override GameDefinition GetGameDefinition() => new AdditiveEvidenceGameDefinition();
 
         public override GameOptions GetDefaultSingleGameOptions() => AdditiveEvidenceGameOptionsGenerator.GetAdditiveEvidenceGameOptions();
@@ -136,11 +136,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         private void AddDMSGameOptionSets(List<(string optionSetName, GameOptions options)> optionSets, DMSVersion version, bool withOptionNotToPlay, bool feeShifting = true)
         {
             // now, liability and damages only
-            foreach (double? feeShiftingThreshold in feeShifting ? new double?[] { 0, 0.25, 0.50, 0.75, 1.0 } : new double?[] { 0 })
+
+            foreach (double costs in new double[] { 0.125 }) // DEBUG 0, 0.0625, 0.125, 0.25, 0.50, 1.0 })
             {
-                foreach (double costs in new double[] { 0, 0.0625, 0.125, 0.25, 0.50, 1.0 })
+                foreach (double qualityKnownToBoth in new double[] { 0.35 }) // DEBUG , 0.40, 0.45, 0.50, 0.55, 0.60, 0.65 })
                 {
-                    foreach (double qualityKnownToBoth in new double[] { 0.35, 0.40, 0.45, 0.50, 0.55, 0.60, 0.65 })
+                    foreach (double? feeShiftingThreshold in Enumerable.Range(50, 51).Select(x => (double?) x / 100.0).ToArray()) // DEBUG feeShifting ? new double?[] { 0, 0.25, 0.50, 0.75, 1.0 } : new double?[] { 0 })
                     {
                         string settingsString = $"q{(int) (qualityKnownToBoth*100)}c{(int) (costs*100)}t{(int)(feeShiftingThreshold*100)}";
                         switch (version)
@@ -206,6 +207,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                                 optionSets.Add(GetAndTransform("pstrength100", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.25, 0.5, 1.0, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
                                 break;
                         }
+                        if (feeShiftingThreshold != 0)
+                            optionSets.Last().options.InitializeToMostRecentEquilibrium = true; // DEBUG
                     }
                 }
             }

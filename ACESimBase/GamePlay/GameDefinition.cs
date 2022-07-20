@@ -80,7 +80,6 @@ namespace ACESim
 
         private bool DecisionsSetFromModules = false; // have we initialized this yet
 
-        public bool InitializeToMostRecentEquilibrium; // This is for the SequenceForm solver. If true, then the initial strategy is set to the most recent equilibrium, which will then be altered to be strictly mixed. If false, then the initial strategy is generated as usual.
 
         public virtual void Initialize(IGameFactory gameFactory)
         {

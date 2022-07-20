@@ -10,8 +10,19 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
     {
         public bool FirstRowOnly => false; // simplifies the reporting
 
+
+        // Parameters regarding number of discrete levels and how they map onto continuous levels
+
+        // NOTE: These are set in AdditiveEvidenceGameOptionsGenerator
+        public byte NumQualityAndBiasLevels_PrivateInfo = 5;
+        public byte NumQualityAndBiasLevels_NeitherInfo = 1;
+        public byte NumOffers = 5;
+
+        public double MinOffer = 0; // -0.25; // settlements beyond the range of (-0.25, 1.25) have not been observed, but we are allowing offers below 0 and above 1. This is important if fee-shifting is possible.
+        public double OfferRange = 1.0; // 1.5; 
+
         // Parameters regarding game structure
-        
+
         public bool TrialGuaranteed;
         public bool IncludePQuitDecision;
         public bool IncludeDQuitDecision;
@@ -72,15 +83,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public double Evidence_Both_Quality;
         public double Evidence_Both_Bias;
 
-        // Parameters regarding number of discrete levels and how they map onto continuous levels
-
-        // NOTE: These are set in AdditiveEvidenceGameOptionsGenerator
-        public byte NumQualityAndBiasLevels_PrivateInfo = 10;
-        public byte NumQualityAndBiasLevels_NeitherInfo = 1;
-        public byte NumOffers = 25;
-
-        public double MinOffer = 0; // -0.25; // settlements beyond the range of (-0.25, 1.25) have not been observed, but we are allowing offers below 0 and above 1. This is important if fee-shifting is possible.
-        public double OfferRange = 1.0; // 1.5; 
 
         public override string ToString()
         {

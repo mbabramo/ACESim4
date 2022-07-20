@@ -188,7 +188,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 else
                 {
                     List<MaybeExact<T>> initialProbabilities = null;
-                    if (ConsiderInitializingToMostRecentEquilibrium && GameDefinition.InitializeToMostRecentEquilibrium && MostRecentEquilibrium != null)
+                    if (ConsiderInitializingToMostRecentEquilibrium && GameDefinition.GameOptions.InitializeToMostRecentEquilibrium && MostRecentEquilibrium != null)
                     {
                         initialProbabilities = ((MaybeExact<T>[])MostRecentEquilibrium).ToList();
                     }
