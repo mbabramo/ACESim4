@@ -132,5 +132,10 @@ namespace ACESimBase.GameSolvingSupport
         {
             return V.GetHashCode();
         }
+        
+        public int CompareTo(InexactValue other)
+        {
+            return V.CompareTo(other.V);
+        }
     }
 }

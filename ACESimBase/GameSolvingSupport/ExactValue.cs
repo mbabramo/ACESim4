@@ -131,5 +131,15 @@ namespace ACESimBase.GameSolvingSupport
         {
             return V.GetHashCode();
         }
+
+        public int CompareTo(ExactValue other)
+        {
+            if (IsLessThan(other))
+                return -1;
+            else if (IsGreaterThan(other))
+                return 1;
+            else
+                return 0;
+        }
     }
 }
