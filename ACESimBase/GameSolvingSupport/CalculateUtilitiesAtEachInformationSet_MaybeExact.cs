@@ -9,19 +9,19 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.GameSolvingSupport
 {
-    public class CalculateUtilitiesAtEachInformationSet_MaybeExact<T> : ITreeNodeProcessor<MaybeExact<T>, MaybeExact<T>[]> where T : MaybeExact<T>, new()
+    public class CalculateUtilitiesAtEachInformationSet_MaybeExact<T> : ITreeNodeProcessor<IMaybeExact<T>, IMaybeExact<T>[]> where T : IMaybeExact<T>, new()
     {
-        Stack<MaybeExact<T>> probabilitiesToInformationSet = new Stack<MaybeExact<T>>();
-        Dictionary<int, MaybeExact<T>> ProbabilityOfReachingInformationSet = new Dictionary<int, MaybeExact<T>>();
-        Dictionary<int, MaybeExact<T>[]> WeightedUtilitiesAtInformationSet = new Dictionary<int, MaybeExact<T>[]>();
-        Dictionary<int, List<MaybeExact<T>[]>> WeightedUtilitiesAtInformationSetSuccessors = new Dictionary<int, List<MaybeExact<T>[]>>();
-        Dictionary<int, MaybeExact<T>[]> ChanceProbabilities;
-        Dictionary<(int playerIndex, int nodeIndex), MaybeExact<T>[]> PlayerProbabilities;
-        Dictionary<int, MaybeExact<T>[]> Utilities;
+        Stack<IMaybeExact<T>> probabilitiesToInformationSet = new Stack<IMaybeExact<T>>();
+        Dictionary<int, IMaybeExact<T>> ProbabilityOfReachingInformationSet = new Dictionary<int, IMaybeExact<T>>();
+        Dictionary<int, IMaybeExact<T>[]> WeightedUtilitiesAtInformationSet = new Dictionary<int, IMaybeExact<T>[]>();
+        Dictionary<int, List<IMaybeExact<T>[]>> WeightedUtilitiesAtInformationSetSuccessors = new Dictionary<int, List<IMaybeExact<T>[]>>();
+        Dictionary<int, IMaybeExact<T>[]> ChanceProbabilities;
+        Dictionary<(int playerIndex, int nodeIndex), IMaybeExact<T>[]> PlayerProbabilities;
+        Dictionary<int, IMaybeExact<T>[]> Utilities;
         HashSet<int> InformationSetNodeNumbers = new HashSet<int>();
-        MaybeExact<T> ErrorTolerance;
+        IMaybeExact<T> ErrorTolerance;
 
-        public CalculateUtilitiesAtEachInformationSet_MaybeExact(Dictionary<int, MaybeExact<T>[]> chanceProbabilities, Dictionary<(int playerIndex, int nodeIndex), MaybeExact<T>[]> playerProbabilities, Dictionary<int, MaybeExact<T>[]> utilities, MaybeExact<T> errorTolerance)
+        public CalculateUtilitiesAtEachInformationSet_MaybeExact(Dictionary<int, IMaybeExact<T>[]> chanceProbabilities, Dictionary<(int playerIndex, int nodeIndex), IMaybeExact<T>[]> playerProbabilities, Dictionary<int, IMaybeExact<T>[]> utilities, IMaybeExact<T> errorTolerance)
         {
             ChanceProbabilities = chanceProbabilities;
             PlayerProbabilities = playerProbabilities;
@@ -46,12 +46,12 @@ namespace ACESimBase.GameSolvingSupport
             bool perfect = true;
             for (int successorIndex = 0; successorIndex < numSuccessors; successorIndex++)
             {
-                MaybeExact<T>[] actionProbabilities = PlayerProbabilities[(informationSetNode.PlayerIndex, informationSetNode.GetInformationSetNodeNumber())];
-                MaybeExact<T> actionProbability = actionProbabilities[successorIndex];
+                IMaybeExact<T>[] actionProbabilities = PlayerProbabilities[(informationSetNode.PlayerIndex, informationSetNode.GetInformationSetNodeNumber())];
+                IMaybeExact<T> actionProbability = actionProbabilities[successorIndex];
                 if (!actionProbability.IsZero())
                 { // this is an action played with positive probability
-                    MaybeExact<T> utility = utilities[i];
-                    MaybeExact<T> utilityAtSuccessor = utilitiesAtSuccessors[successorIndex][i];
+                    IMaybeExact<T> utility = utilities[i];
+                    IMaybeExact<T> utilityAtSuccessor = utilitiesAtSuccessors[successorIndex][i];
                     if (!(utility.IsCloseTo(utilityAtSuccessor, ErrorTolerance)))
                     {
                         string matchFailure = $"Verification of equal utilities failed. {utility.AsDouble} != {utilityAtSuccessor.AsDouble} (i.e., {utility} != {utilityAtSuccessor}) at {informationSetNode}";
@@ -65,9 +65,9 @@ namespace ACESimBase.GameSolvingSupport
             return perfect;
         }
 
-        public (MaybeExact<T>[] utilities, List<MaybeExact<T>[]> utilitiesAtSuccessors, MaybeExact<T> reachProbability) GetUtilitiesAndReachProbability(int informationSetNodeNumber)
+        public (IMaybeExact<T>[] utilities, List<IMaybeExact<T>[]> utilitiesAtSuccessors, IMaybeExact<T> reachProbability) GetUtilitiesAndReachProbability(int informationSetNodeNumber)
         {
-            MaybeExact<T> reachProbability = ProbabilityOfReachingInformationSet[informationSetNodeNumber];
+            IMaybeExact<T> reachProbability = ProbabilityOfReachingInformationSet[informationSetNodeNumber];
             var weightedUtilities = WeightedUtilitiesAtInformationSet[informationSetNodeNumber];
             var normalizedUtilities = weightedUtilities.Select(x => reachProbability.IsZero() ? x : (x.DividedBy(reachProbability))).ToArray();
             var weightedUtilitiesAtSuccessors = WeightedUtilitiesAtInformationSetSuccessors[informationSetNodeNumber];
@@ -75,80 +75,80 @@ namespace ACESimBase.GameSolvingSupport
             return (normalizedUtilities, normalizedUtilitiesAtSuccessors, reachProbability);
         }
 
-        public MaybeExact<T> ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, MaybeExact<T> fromPredecessor, int distributorChanceInputs)
+        public IMaybeExact<T> ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, IMaybeExact<T> fromPredecessor, int distributorChanceInputs)
         {
             return GetCumulativeReachProbability(fromPredecessor, predecessor, predecessorAction);
         }
 
-        private MaybeExact<T> GetCumulativeReachProbability(MaybeExact<T> fromPredecessor, IGameState predecessor, byte predecessorAction)
+        private IMaybeExact<T> GetCumulativeReachProbability(IMaybeExact<T> fromPredecessor, IGameState predecessor, byte predecessorAction)
         {
-            MaybeExact<T> cumulativeProbability = fromPredecessor;
+            IMaybeExact<T> cumulativeProbability = fromPredecessor;
             if (predecessor == null)
-                cumulativeProbability = MaybeExact<T>.One();
+                cumulativeProbability = IMaybeExact<T>.One();
             else if (predecessor is ChanceNode c)
             {
                 if (ChanceProbabilities.ContainsKey(c.ChanceNodeNumber))
                     cumulativeProbability = cumulativeProbability.Times(ChanceProbabilities[c.ChanceNodeNumber][predecessorAction - 1]);
                 else
-                    cumulativeProbability = MaybeExact<T>.Zero(); // using SequenceFormCutOffProbabilityZeroNodes
+                    cumulativeProbability = IMaybeExact<T>.Zero(); // using SequenceFormCutOffProbabilityZeroNodes
             }
             else if (predecessor is InformationSetNode i)
                 cumulativeProbability = cumulativeProbability.Times(PlayerProbabilities[(i.PlayerIndex, i.GetInformationSetNodeNumber())][predecessorAction - 1]);
             return cumulativeProbability;
         }
 
-        public MaybeExact<T> InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, MaybeExact<T> fromPredecessor)
+        public IMaybeExact<T> InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, IMaybeExact<T> fromPredecessor)
         {
             InformationSetNodeNumbers.Add(informationSet.GetInformationSetNodeNumber());
-            MaybeExact<T> cumulativeProbability = GetCumulativeReachProbability(fromPredecessor, predecessor, predecessorAction);
+            IMaybeExact<T> cumulativeProbability = GetCumulativeReachProbability(fromPredecessor, predecessor, predecessorAction);
             probabilitiesToInformationSet.Push(cumulativeProbability);
-            ProbabilityOfReachingInformationSet[informationSet.GetInformationSetNodeNumber()] = ProbabilityOfReachingInformationSet.GetValueOrDefault(informationSet.GetInformationSetNodeNumber(), MaybeExact<T>.Zero()).Plus(cumulativeProbability);
+            ProbabilityOfReachingInformationSet[informationSet.GetInformationSetNodeNumber()] = ProbabilityOfReachingInformationSet.GetValueOrDefault(informationSet.GetInformationSetNodeNumber(), IMaybeExact<T>.Zero()).Plus(cumulativeProbability);
             return cumulativeProbability;
         }
 
-        public MaybeExact<T>[] InformationSet_Backward(InformationSetNode informationSet, IEnumerable<MaybeExact<T>[]> fromSuccessors)
+        public IMaybeExact<T>[] InformationSet_Backward(InformationSetNode informationSet, IEnumerable<IMaybeExact<T>[]> fromSuccessors)
         {
-            MaybeExact<T> reachProbability = probabilitiesToInformationSet.Pop();
-            List<MaybeExact<T>> nextActionProbabilities = PlayerProbabilities[(informationSet.PlayerIndex, informationSet.GetInformationSetNodeNumber())].ToList();
-            MaybeExact<T>[] utilities = AggregateUtilitiesFromSuccessors(fromSuccessors, nextActionProbabilities);
-            MaybeExact<T>[] reachWeightedUtilities = utilities.Select(x => x.Times(reachProbability)).ToArray();
+            IMaybeExact<T> reachProbability = probabilitiesToInformationSet.Pop();
+            List<IMaybeExact<T>> nextActionProbabilities = PlayerProbabilities[(informationSet.PlayerIndex, informationSet.GetInformationSetNodeNumber())].ToList();
+            IMaybeExact<T>[] utilities = AggregateUtilitiesFromSuccessors(fromSuccessors, nextActionProbabilities);
+            IMaybeExact<T>[] reachWeightedUtilities = utilities.Select(x => x.Times(reachProbability)).ToArray();
             WeightedUtilitiesAtInformationSet[informationSet.GetInformationSetNodeNumber()] =
-                WeightedUtilitiesAtInformationSet.GetValueOrDefault<int, MaybeExact<T>[]>(
+                WeightedUtilitiesAtInformationSet.GetValueOrDefault<int, IMaybeExact<T>[]>(
                     informationSet.GetInformationSetNodeNumber(),
-                    utilities.Select(x => MaybeExact<T>.Zero()).ToArray())
+                    utilities.Select(x => IMaybeExact<T>.Zero()).ToArray())
                 .Zip(reachWeightedUtilities, (x, y) => x.Plus(y)).ToArray();
-            List<MaybeExact<T>[]> prerecordedUtilitiesAtSuccessors = WeightedUtilitiesAtInformationSetSuccessors.GetValueOrDefault<int, List<MaybeExact<T>[]>>(
+            List<IMaybeExact<T>[]> prerecordedUtilitiesAtSuccessors = WeightedUtilitiesAtInformationSetSuccessors.GetValueOrDefault<int, List<IMaybeExact<T>[]>>(
                     informationSet.GetInformationSetNodeNumber(),
-                    fromSuccessors.Select(x => utilities.Select(x => MaybeExact<T>.Zero()).ToArray()).ToList());
+                    fromSuccessors.Select(x => utilities.Select(x => IMaybeExact<T>.Zero()).ToArray()).ToList());
             var fromSuccessorsList = fromSuccessors.ToList();
             for (int s = 0; s < fromSuccessorsList.Count(); s++)
             {
-                MaybeExact<T>[] prerecordedUtilitiesAtSuccessor = prerecordedUtilitiesAtSuccessors[s];
-                MaybeExact<T>[] reachWeightedUtilitiesAtSuccessor = fromSuccessorsList[s].Select(x => x.Times(reachProbability)).ToArray();
+                IMaybeExact<T>[] prerecordedUtilitiesAtSuccessor = prerecordedUtilitiesAtSuccessors[s];
+                IMaybeExact<T>[] reachWeightedUtilitiesAtSuccessor = fromSuccessorsList[s].Select(x => x.Times(reachProbability)).ToArray();
                 prerecordedUtilitiesAtSuccessors[s] = prerecordedUtilitiesAtSuccessor.Zip(reachWeightedUtilitiesAtSuccessor, (x, y) => x.Plus(y)).ToArray();
             }
             WeightedUtilitiesAtInformationSetSuccessors[informationSet.GetInformationSetNodeNumber()] = prerecordedUtilitiesAtSuccessors;
             return utilities;
         }
 
-        public MaybeExact<T>[] ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<MaybeExact<T>[]> fromSuccessors, int distributorChanceInputs)
+        public IMaybeExact<T>[] ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<IMaybeExact<T>[]> fromSuccessors, int distributorChanceInputs)
         {
             if (!ChanceProbabilities.ContainsKey(chanceNode.ChanceNodeNumber))
             {
                 // This is a zero probability path, so we can just return 0 utility. 
-                return Enumerable.Range(0, fromSuccessors.First().Length).Select(x => MaybeExact<T>.Zero()).ToArray();
+                return Enumerable.Range(0, fromSuccessors.First().Length).Select(x => IMaybeExact<T>.Zero()).ToArray();
             }
-            List<MaybeExact<T>> probabilities = ChanceProbabilities[chanceNode.ChanceNodeNumber].ToList();
-            MaybeExact<T>[] utilities = AggregateUtilitiesFromSuccessors(fromSuccessors, probabilities);
+            List<IMaybeExact<T>> probabilities = ChanceProbabilities[chanceNode.ChanceNodeNumber].ToList();
+            IMaybeExact<T>[] utilities = AggregateUtilitiesFromSuccessors(fromSuccessors, probabilities);
             return utilities;
         }
 
-        private static MaybeExact<T>[] AggregateUtilitiesFromSuccessors(IEnumerable<MaybeExact<T>[]> fromSuccessors, List<MaybeExact<T>> probabilities)
+        private static IMaybeExact<T>[] AggregateUtilitiesFromSuccessors(IEnumerable<IMaybeExact<T>[]> fromSuccessors, List<IMaybeExact<T>> probabilities)
         {
-            MaybeExact<T>[] utilities = new MaybeExact<T>[fromSuccessors.First().Length];
+            IMaybeExact<T>[] utilities = new IMaybeExact<T>[fromSuccessors.First().Length];
             for (int i = 0; i < utilities.Length; i++)
             {
-                utilities[i] = MaybeExact<T>.Zero();
+                utilities[i] = IMaybeExact<T>.Zero();
             }
             int j = 0;
             foreach (var utilitiesFromSuccessor in fromSuccessors)
@@ -163,7 +163,7 @@ namespace ACESimBase.GameSolvingSupport
             return utilities;
         }
 
-        public MaybeExact<T>[] FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, MaybeExact<T> fromPredecessor)
+        public IMaybeExact<T>[] FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, IMaybeExact<T> fromPredecessor)
         {
             var rational = Utilities[finalUtilities.GetInformationSetNodeNumber()].ToArray();
             return rational;

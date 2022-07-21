@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.GameSolvingSupport
 {
-    public readonly struct ExactValue : MaybeExact<ExactValue>
+    public readonly struct ExactValue : IMaybeExact<ExactValue>
     {
         public static bool AbbreviateValues = false;
 
@@ -24,15 +24,15 @@ namespace ACESimBase.GameSolvingSupport
             V = r;
         }
 
-        public MaybeExact<ExactValue> NewValueFromInteger(int i) => new ExactValue(i);
-        public MaybeExact<ExactValue> NewValueFromRational(Rational r) => new ExactValue(r);
+        public IMaybeExact<ExactValue> NewValueFromInteger(int i) => new ExactValue(i);
+        public IMaybeExact<ExactValue> NewValueFromRational(Rational r) => new ExactValue(r);
 
-        static MaybeExact<ExactValue> _Zero = MaybeExact<ExactValue>.FromInteger(0);
-        static MaybeExact<ExactValue> _One = MaybeExact<ExactValue>.FromInteger(1);
-        public static MaybeExact<ExactValue> Zero() => _Zero;
-        public static MaybeExact<ExactValue> One() => _One;
-        public static MaybeExact<ExactValue> FromInteger(int i) => new ExactValue((Rational)i);
-        public static MaybeExact<ExactValue> FromRational(Rational r) => new ExactValue(r);
+        static IMaybeExact<ExactValue> _Zero = IMaybeExact<ExactValue>.FromInteger(0);
+        static IMaybeExact<ExactValue> _One = IMaybeExact<ExactValue>.FromInteger(1);
+        public static IMaybeExact<ExactValue> Zero() => _Zero;
+        public static IMaybeExact<ExactValue> One() => _One;
+        public static IMaybeExact<ExactValue> FromInteger(int i) => new ExactValue((Rational)i);
+        public static IMaybeExact<ExactValue> FromRational(Rational r) => new ExactValue(r);
 
         public bool IsPositive()
         {
@@ -53,16 +53,16 @@ namespace ACESimBase.GameSolvingSupport
             return V.IsOne;
         }
 
-        public MaybeExact<ExactValue> CanonicalForm => FromRational(V.CanonicalForm);
+        public IMaybeExact<ExactValue> CanonicalForm => FromRational(V.CanonicalForm);
 
-        public MaybeExact<ExactValue> Numerator => ExactValue.FromRational(V.Numerator);
-        public MaybeExact<ExactValue> Denominator => ExactValue.FromRational(V.Denominator);
+        public IMaybeExact<ExactValue> Numerator => ExactValue.FromRational(V.Numerator);
+        public IMaybeExact<ExactValue> Denominator => ExactValue.FromRational(V.Denominator);
         public double AsDouble => (double)V;
         public Rational AsRational => V;
         public bool IsExact => true;
 
-        public bool IsEqualTo(MaybeExact<ExactValue> b) => V == b.AsRational;
-        public bool IsNotEqualTo(MaybeExact<ExactValue> b) => V != b.AsRational;
+        public bool IsEqualTo(IMaybeExact<ExactValue> b) => V == b.AsRational;
+        public bool IsNotEqualTo(IMaybeExact<ExactValue> b) => V != b.AsRational;
 
         public override string ToString()
         {
@@ -86,45 +86,45 @@ namespace ACESimBase.GameSolvingSupport
             return s;
         }
 
-        public MaybeExact<ExactValue> LeastCommonMultiple(MaybeExact<ExactValue> b)
+        public IMaybeExact<ExactValue> LeastCommonMultiple(IMaybeExact<ExactValue> b)
         /* a = least common multiple of a, b; b is preserved */
         {
             if (V.Denominator != 1 || b.AsRational.Denominator != 1)
                 throw new Exception("LeastCommonMultiple operation not available.");
-            var result = Times(b).DividedBy(MaybeExact<ExactValue>.FromRational((Rational)BigInteger.GreatestCommonDivisor(V.Numerator, b.AsRational.Numerator)));
+            var result = Times(b).DividedBy(IMaybeExact<ExactValue>.FromRational((Rational)BigInteger.GreatestCommonDivisor(V.Numerator, b.AsRational.Numerator)));
             return result;
         }
 
-        public bool IsGreaterThan(MaybeExact<ExactValue> b)
+        public bool IsGreaterThan(IMaybeExact<ExactValue> b)
         {
             return V > b.AsRational;
         }
 
-        public bool IsLessThan(MaybeExact<ExactValue> b)
+        public bool IsLessThan(IMaybeExact<ExactValue> b)
         {
             return V < b.AsRational;
         }
 
-        public MaybeExact<ExactValue> Plus(MaybeExact<ExactValue> b)
+        public IMaybeExact<ExactValue> Plus(IMaybeExact<ExactValue> b)
         {
-            return MaybeExact<ExactValue>.FromRational((V + b.AsRational).CanonicalForm);
+            return IMaybeExact<ExactValue>.FromRational((V + b.AsRational).CanonicalForm);
         }
 
-        public MaybeExact<ExactValue> Minus(MaybeExact<ExactValue> b)
+        public IMaybeExact<ExactValue> Minus(IMaybeExact<ExactValue> b)
         {
-            return MaybeExact<ExactValue>.FromRational((V - b.AsRational).CanonicalForm);
+            return IMaybeExact<ExactValue>.FromRational((V - b.AsRational).CanonicalForm);
         }
 
-        public MaybeExact<ExactValue> Negated() => Zero().Minus(this);
+        public IMaybeExact<ExactValue> Negated() => Zero().Minus(this);
 
-        public MaybeExact<ExactValue> Times(MaybeExact<ExactValue> b)
+        public IMaybeExact<ExactValue> Times(IMaybeExact<ExactValue> b)
         {
-            return MaybeExact<ExactValue>.FromRational((V * b.AsRational).CanonicalForm);
+            return IMaybeExact<ExactValue>.FromRational((V * b.AsRational).CanonicalForm);
         }
 
-        public MaybeExact<ExactValue> DividedBy(MaybeExact<ExactValue> b)
+        public IMaybeExact<ExactValue> DividedBy(IMaybeExact<ExactValue> b)
         {
-            return MaybeExact<ExactValue>.FromRational((V / b.AsRational).CanonicalForm);
+            return IMaybeExact<ExactValue>.FromRational((V / b.AsRational).CanonicalForm);
         }
 
         public override int GetHashCode()

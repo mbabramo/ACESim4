@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.GameSolvingSupport
 {
-    public readonly struct InexactValue : MaybeExact<InexactValue>
+    public readonly struct InexactValue : IMaybeExact<InexactValue>
     {
         public static double Tolerance = 1E-50;
 
@@ -29,16 +29,16 @@ namespace ACESimBase.GameSolvingSupport
             V = d;
         }
 
-        public MaybeExact<InexactValue> NewValueFromInteger(int i) => new InexactValue(i);
-        public MaybeExact<InexactValue> NewValueFromRational(Rational r) => new InexactValue(r);
-        public static MaybeExact<InexactValue> FromInteger(int i) => new InexactValue((Rational)i);
-        public static MaybeExact<InexactValue> FromRational(Rational r) => new InexactValue(r);
-        public static MaybeExact<InexactValue> FromDouble(double d) => new InexactValue(d);
+        public IMaybeExact<InexactValue> NewValueFromInteger(int i) => new InexactValue(i);
+        public IMaybeExact<InexactValue> NewValueFromRational(Rational r) => new InexactValue(r);
+        public static IMaybeExact<InexactValue> FromInteger(int i) => new InexactValue((Rational)i);
+        public static IMaybeExact<InexactValue> FromRational(Rational r) => new InexactValue(r);
+        public static IMaybeExact<InexactValue> FromDouble(double d) => new InexactValue(d);
 
-        static MaybeExact<InexactValue> _Zero = MaybeExact<InexactValue>.FromInteger(0);
-        static MaybeExact<InexactValue> _One = MaybeExact<InexactValue>.FromInteger(1);
-        public static MaybeExact<InexactValue> Zero() => _Zero;
-        public static MaybeExact<InexactValue> One() => _One;
+        static IMaybeExact<InexactValue> _Zero = IMaybeExact<InexactValue>.FromInteger(0);
+        static IMaybeExact<InexactValue> _One = IMaybeExact<InexactValue>.FromInteger(1);
+        public static IMaybeExact<InexactValue> Zero() => _Zero;
+        public static IMaybeExact<InexactValue> One() => _One;
 
         public bool IsPositive()
         {
@@ -59,13 +59,13 @@ namespace ACESimBase.GameSolvingSupport
             return IsEqualTo(_One);
         }
 
-        public MaybeExact<InexactValue> Numerator => new InexactValue(V);
-        public MaybeExact<InexactValue> Denominator => One();
+        public IMaybeExact<InexactValue> Numerator => new InexactValue(V);
+        public IMaybeExact<InexactValue> Denominator => One();
         public double AsDouble => IsZero() ? 0 : (IsOne() ? 1.0 : (double)V);
         public Rational AsRational => throw new NotImplementedException();
         public bool IsExact => false;
 
-        public bool IsEqualTo(MaybeExact<InexactValue> b)
+        public bool IsEqualTo(IMaybeExact<InexactValue> b)
         {
             //Math.Abs(V - bVal) < Tolerance;
             double bVal = ((InexactValue)b).V;
@@ -76,7 +76,7 @@ namespace ACESimBase.GameSolvingSupport
             double absRatioMinus1 = bVal == 0 ? 1 : Math.Abs(V / bVal - 1.0);
             return absRatioMinus1 < Tolerance;
         }
-        public bool IsNotEqualTo(MaybeExact<InexactValue> b) => !IsEqualTo(b);
+        public bool IsNotEqualTo(IMaybeExact<InexactValue> b) => !IsEqualTo(b);
 
         public override string ToString()
         {
@@ -88,7 +88,7 @@ namespace ACESimBase.GameSolvingSupport
                 return s;
         }
 
-        public MaybeExact<InexactValue> LeastCommonMultiple(MaybeExact<InexactValue> b)
+        public IMaybeExact<InexactValue> LeastCommonMultiple(IMaybeExact<InexactValue> b)
         /* since we don't work only in integers with this type, we just return the larger number */
         {
             if (b.AsDouble > V)
@@ -96,34 +96,34 @@ namespace ACESimBase.GameSolvingSupport
             return this;
         }
 
-        public bool IsGreaterThan(MaybeExact<InexactValue> b)
+        public bool IsGreaterThan(IMaybeExact<InexactValue> b)
         {
             return V > b.AsDouble && !IsEqualTo(b); // make sure it is not within tolerance
         }
 
-        public bool IsLessThan(MaybeExact<InexactValue> b)
+        public bool IsLessThan(IMaybeExact<InexactValue> b)
         {
             return V < b.AsDouble && !IsEqualTo(b); // make sure it is not within tolerance
         }
 
-        public MaybeExact<InexactValue> Plus(MaybeExact<InexactValue> b)
+        public IMaybeExact<InexactValue> Plus(IMaybeExact<InexactValue> b)
         {
             return FromDouble(V + b.AsDouble);
         }
 
-        public MaybeExact<InexactValue> Minus(MaybeExact<InexactValue> b)
+        public IMaybeExact<InexactValue> Minus(IMaybeExact<InexactValue> b)
         {
             return FromDouble(V - b.AsDouble);
         }
 
-        public MaybeExact<InexactValue> Negated() => Zero().Minus(this);
+        public IMaybeExact<InexactValue> Negated() => Zero().Minus(this);
 
-        public MaybeExact<InexactValue> Times(MaybeExact<InexactValue> b)
+        public IMaybeExact<InexactValue> Times(IMaybeExact<InexactValue> b)
         {
             return FromDouble(V * b.AsDouble);
         }
 
-        public MaybeExact<InexactValue> DividedBy(MaybeExact<InexactValue> b)
+        public IMaybeExact<InexactValue> DividedBy(IMaybeExact<InexactValue> b)
         {
             return FromDouble(V / b.AsDouble);
         }

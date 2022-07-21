@@ -3,41 +3,41 @@ using System;
 
 namespace ACESimBase.GameSolvingSupport
 {
-    public interface MaybeExact<T> : IComparable<T> where T : MaybeExact<T>, new()
+    public interface IMaybeExact<T> : IComparable<T> where T : IMaybeExact<T>, new()
     {
         double AsDouble { get; }
         Rational AsRational { get; }
-        MaybeExact<T> Denominator { get; }
+        IMaybeExact<T> Denominator { get; }
         bool IsExact { get; }
-        MaybeExact<T> Numerator { get; }
+        IMaybeExact<T> Numerator { get; }
 
-        MaybeExact<T> DividedBy(MaybeExact<T> b);
+        IMaybeExact<T> DividedBy(IMaybeExact<T> b);
         int GetHashCode();
-        bool IsEqualTo(MaybeExact<T> b);
-        bool IsGreaterThan(MaybeExact<T> b);
-        bool IsLessThan(MaybeExact<T> b);
-        bool IsCloseTo(MaybeExact<T> b, MaybeExact<T> absoluteDistance) => absoluteDistance.IsZero() ? IsEqualTo(b) : this.Minus(b).AbsoluteValue().IsLessThan(absoluteDistance);
+        bool IsEqualTo(IMaybeExact<T> b);
+        bool IsGreaterThan(IMaybeExact<T> b);
+        bool IsLessThan(IMaybeExact<T> b);
+        bool IsCloseTo(IMaybeExact<T> b, IMaybeExact<T> absoluteDistance) => absoluteDistance.IsZero() ? IsEqualTo(b) : this.Minus(b).AbsoluteValue().IsLessThan(absoluteDistance);
         bool IsNegative();
-        bool IsNotEqualTo(MaybeExact<T> b);
+        bool IsNotEqualTo(IMaybeExact<T> b);
         bool IsOne();
         bool IsPositive();
         bool IsZero();
-        MaybeExact<T> LeastCommonMultiple(MaybeExact<T> b);
-        MaybeExact<T> Minus(MaybeExact<T> b);
-        MaybeExact<T> Negated();
-        MaybeExact<T> AbsoluteValue() => IsNegative() ? this.Negated() : this;
-        MaybeExact<T> Plus(MaybeExact<T> b);
-        MaybeExact<T> Times(MaybeExact<T> b);
-        MaybeExact<T> NewValueFromInteger(int i);
-        MaybeExact<T> NewValueFromRational(Rational r);
-        public static MaybeExact<T> Zero() => MaybeExact<T>.FromInteger(0);
-        public static MaybeExact<T> One() => MaybeExact<T>.FromInteger(1);
-        public static MaybeExact<T> FromInteger(int i)
+        IMaybeExact<T> LeastCommonMultiple(IMaybeExact<T> b);
+        IMaybeExact<T> Minus(IMaybeExact<T> b);
+        IMaybeExact<T> Negated();
+        IMaybeExact<T> AbsoluteValue() => IsNegative() ? this.Negated() : this;
+        IMaybeExact<T> Plus(IMaybeExact<T> b);
+        IMaybeExact<T> Times(IMaybeExact<T> b);
+        IMaybeExact<T> NewValueFromInteger(int i);
+        IMaybeExact<T> NewValueFromRational(Rational r);
+        public static IMaybeExact<T> Zero() => IMaybeExact<T>.FromInteger(0);
+        public static IMaybeExact<T> One() => IMaybeExact<T>.FromInteger(1);
+        public static IMaybeExact<T> FromInteger(int i)
         {
             var x = new T();
             return x.NewValueFromInteger(i);
         }
-        public static MaybeExact<T> FromRational(Rational r)
+        public static IMaybeExact<T> FromRational(Rational r)
         {
             var x = new T();
             return x.NewValueFromRational(r);

@@ -7,15 +7,15 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
-	public class ECTAPayVector<T> where T : MaybeExact<T>, new()
+	public class ECTAPayVector<T> where T : IMaybeExact<T>, new()
 	{
-		public MaybeExact<T>[] Values;
+		public IMaybeExact<T>[] Values;
 
-		public ECTAPayVector(MaybeExact<T>[] values = null)
+		public ECTAPayVector(IMaybeExact<T>[] values = null)
 		{
-			Values = values ?? new MaybeExact<T>[2] {  MaybeExact<T>.Zero(),  MaybeExact<T>.Zero() };
+			Values = values ?? new IMaybeExact<T>[2] {  IMaybeExact<T>.Zero(),  IMaybeExact<T>.Zero() };
 		}
-		public MaybeExact<T> this[int index]
+		public IMaybeExact<T> this[int index]
 		{
 			get => Values[index];
 			set
@@ -24,7 +24,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             }
 		}
 
-		public static implicit operator ECTAPayVector<T>(MaybeExact<T>[] d) => new ECTAPayVector<T>(d);
-		public static implicit operator MaybeExact<T>[](ECTAPayVector<T> b) => b.Values;
+		public static implicit operator ECTAPayVector<T>(IMaybeExact<T>[] d) => new ECTAPayVector<T>(d);
+		public static implicit operator IMaybeExact<T>[](ECTAPayVector<T> b) => b.Values;
 	}
 }

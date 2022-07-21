@@ -649,7 +649,7 @@ namespace ACESim
 
         public virtual (Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> excludeBelow, Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> includeBelow) GetTreeDiagramExclusions() => (null, null);
 
-        public virtual List<MaybeExact<T>> GetSequenceFormInitialization<T>() where T : MaybeExact<T>, new()
+        public virtual List<IMaybeExact<T>> GetSequenceFormInitialization<T>() where T : IMaybeExact<T>, new()
         {
             return null;
         }

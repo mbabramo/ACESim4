@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
-    public class ECTAMove<T> where T : MaybeExact<T>, new()
+    public class ECTAMove<T> where T : IMaybeExact<T>, new()
 	{
 		public int priorInformationSet = -1; // where this move emanates from
-		public MaybeExact<T> behavioralProbability =  MaybeExact<T>.Zero(); // behavior probability
-		public MaybeExact<T> realizationProbability =  MaybeExact<T>.Zero(); // realization probability
+		public IMaybeExact<T> behavioralProbability =  IMaybeExact<T>.Zero(); // behavior probability
+		public IMaybeExact<T> realizationProbability =  IMaybeExact<T>.Zero(); // realization probability
 		public int redsfcol; // column of reduced sequence form
 		/* for NF computation                                               */
 		public int ncompat; // number of compatible partial strats

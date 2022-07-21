@@ -14,7 +14,7 @@ using ACESimBase.Util;
 
 namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
-    public class ECTATreeDefinition<T> where T : MaybeExact<T>, new()
+    public class ECTATreeDefinition<T> where T : IMaybeExact<T>, new()
     {
         public ECTALemke<T> Lemke;
 
@@ -147,7 +147,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 
             for (playerIndex = 0; playerIndex < PLAYERS - 1; playerIndex++)
             {
-                maxpay[playerIndex] = MaybeExact<T>.FromInteger(MINUSINFTY);
+                maxpay[playerIndex] = IMaybeExact<T>.FromInteger(MINUSINFTY);
                 for (int zindex = 0; zindex < outcomes.Length; zindex++)
                 {
                     z = outcomes[zindex];
@@ -158,7 +158,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 {
                     TabbedText.WriteLine($"Player {playerIndex}'s maximum payoff is {maxpay[playerIndex]}, normalized to -1");
                 }
-                addtopay[playerIndex] = (maxpay[playerIndex].Plus(MaybeExact<T>.One())).Negated();
+                addtopay[playerIndex] = (maxpay[playerIndex].Plus(IMaybeExact<T>.One())).Negated();
                 for (int zindex = 0; zindex < outcomes.Length; zindex++)
                 {
                     z = outcomes[zindex];
@@ -395,7 +395,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 for (int cindex = firstMove[pl] + 1; cindex < firstMove[pl + 1]; cindex++)
                 {
                     c = moves[cindex];
-                    c.behavioralProbability = MaybeExact<T>.One().DividedBy(MaybeExact<T>.FromInteger(informationSets[c.priorInformationSet].numMoves));
+                    c.behavioralProbability = IMaybeExact<T>.One().DividedBy(IMaybeExact<T>.FromInteger(informationSets[c.priorInformationSet].numMoves));
                 }
         }
 
@@ -419,17 +419,17 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     // We must create fractions that add up to 1 (each greater than 0).
                     // So, we'll just take random numbers from 1 to 10, use those for numerators
                     // and the sum for a denominator.
-                    MaybeExact<T> denominator = MaybeExact<T>.Zero();
+                    IMaybeExact<T> denominator = IMaybeExact<T>.Zero();
                     for (int i = 0; i < h.numMoves; i++)
                     {
                         double maxValue = 9;
-                        MaybeExact<T> numerator = MaybeExact<T>.FromInteger((1 + (int)Math.Floor(maxValue * RandomGenerator.NextDouble())));
+                        IMaybeExact<T> numerator = IMaybeExact<T>.FromInteger((1 + (int)Math.Floor(maxValue * RandomGenerator.NextDouble())));
                         moves[h.firstMoveIndex + i].behavioralProbability = (T)numerator; // store value so that we remember it
                         denominator = denominator.Plus(numerator);
                     }
                     for (int i = 0; i < h.numMoves; i++)
                     {
-                        MaybeExact<T> a =  MaybeExact<T>.Zero();
+                        IMaybeExact<T> a =  IMaybeExact<T>.Zero();
                         a = moves[h.firstMoveIndex + i].behavioralProbability.Numerator.DividedBy(denominator);
                         moves[h.firstMoveIndex + i].behavioralProbability = a;
                     }
@@ -468,7 +468,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 {
                     sequenceFormPayouts[player1SequenceIndex][player2SequenceIndex] = new ECTAPayVector<T>();
                     for (playerIndex = 1; playerIndex < PLAYERS; playerIndex++) // skip chance palyer
-                        sequenceFormPayouts[player1SequenceIndex][player2SequenceIndex][playerIndex - 1] = MaybeExact<T>.Zero();
+                        sequenceFormPayouts[player1SequenceIndex][player2SequenceIndex][playerIndex - 1] = IMaybeExact<T>.Zero();
                 }
             /* constraint matrices, any number of players           */
             /* sfconstr[0] stays unused                             */
@@ -568,12 +568,12 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             /* That is, we have a -1 in the right hand column on the first row containing each of E and F */
             /* because e and f are defined to be vectors with 1 on top and 0 everywhere else */
             for (i = 0; i < Lemke.lcpdim; i++)
-                Lemke.rhsq[i] = MaybeExact<T>.Zero();
-            Lemke.rhsq[numSequences[1]] = MaybeExact<T>.One().Negated();
-            Lemke.rhsq[numSequences[1] + numInfoSets[2] + 1 + numSequences[2]] = MaybeExact<T>.One().Negated();
+                Lemke.rhsq[i] = IMaybeExact<T>.Zero();
+            Lemke.rhsq[numSequences[1]] = IMaybeExact<T>.One().Negated();
+            Lemke.rhsq[numSequences[1] + numInfoSets[2] + 1 + numSequences[2]] = IMaybeExact<T>.One().Negated();
         }
 
-        void realplanfromprob(int pl, MaybeExact<T>[] rplan)
+        void realplanfromprob(int pl, IMaybeExact<T>[] rplan)
         {
             int i;
 
@@ -581,7 +581,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 rplan[i] = moves[firstMove[pl] + i].realizationProbability;
         }
 
-        public int propermixisets(int pl, MaybeExact<T>[] rplan, int offset)
+        public int propermixisets(int pl, IMaybeExact<T>[] rplan, int offset)
         {
             int mix = 0;
             int i;
@@ -595,7 +595,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 for (int cindex = h.firstMoveIndex; i < h.numMoves; cindex++, i++)
                 {
                     c = moves[cindex];
-                    if (rplan[offset + cindex - firstMove[pl]].IsNotEqualTo(MaybeExact<T>.Zero()) &&
+                    if (rplan[offset + cindex - firstMove[pl]].IsNotEqualTo(IMaybeExact<T>.Zero()) &&
                         !(rplan[offset + cindex - firstMove[pl]].IsEqualTo(
                                   rplan[offset + (int) h.sequence - firstMove[pl]])))
                     {
@@ -607,7 +607,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             return mix;
         }
 
-        void outrealplan(int pl, MaybeExact<T>[] rplan, int offset)
+        void outrealplan(int pl, IMaybeExact<T>[] rplan, int offset)
         {
             int i;
             string s = null;
@@ -626,13 +626,13 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             colout();
         }
 
-        void outbehavstrat(int pl, MaybeExact<T>[] rplan, bool bnewline)
+        void outbehavstrat(int pl, IMaybeExact<T>[] rplan, bool bnewline)
         {
             string s = null;
             int i;
             ECTAMove<T> c;
             ECTAInformationSet h;
-            MaybeExact<T> rprob, bprob;
+            IMaybeExact<T> rprob, bprob;
 
             for (int hindex = firstInformationSet[pl]; hindex < firstInformationSet[pl + 1]; hindex++)
             {
@@ -642,12 +642,12 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 {
                     c = moves[cindex];
                     rprob = rplan[cindex - firstMove[pl]];
-                    if (rprob.IsNotEqualTo(MaybeExact<T>.Zero()))
+                    if (rprob.IsNotEqualTo(IMaybeExact<T>.Zero()))
                     {
                         s = moveToString(c, pl);
                         tabbedtextf(" %s", s);
                         bprob = rprob.DividedBy(rplan[(int) h.sequence - firstMove[pl]]);
-                        if (!bprob.IsEqualTo(MaybeExact<T>.One()))
+                        if (!bprob.IsEqualTo(IMaybeExact<T>.One()))
                         {
                             s = (bprob).ToString();
                             tabbedtextf(":%s", s);
@@ -664,7 +664,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         /// </summary>
         /// <param name="allMoveProbabilities"></param>
         /// <param name="minValue"></param>
-        public void SetProbabilitiesToValues(MaybeExact<T>[] allMoveProbabilities, MaybeExact<T> minValue)
+        public void SetProbabilitiesToValues(IMaybeExact<T>[] allMoveProbabilities, IMaybeExact<T> minValue)
         {
 
             int offset = numSequences[1] + 1 + numInfoSets[2];
@@ -672,7 +672,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             SetProbabilitiesToValues(2, allMoveProbabilities, offset, minValue);
         }
 
-        private void SetProbabilitiesToValues(int pl, MaybeExact<T>[] allMoveProbabilities, int offset, MaybeExact<T> minValue)
+        private void SetProbabilitiesToValues(int pl, IMaybeExact<T>[] allMoveProbabilities, int offset, IMaybeExact<T> minValue)
         {
             int indexInAllMovesArray = 0;
             int moveIndexInInformationSet;
@@ -681,8 +681,8 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             for (int hindex = firstInformationSet[pl]; hindex < firstInformationSet[pl + 1]; hindex++)
             {
                 h = informationSets[hindex];
-                MaybeExact<T> total = MaybeExact<T>.Zero();
-                MaybeExact<T> totalAboveMinValue = MaybeExact<T>.Zero();
+                IMaybeExact<T> total = IMaybeExact<T>.Zero();
+                IMaybeExact<T> totalAboveMinValue = IMaybeExact<T>.Zero();
                 moveIndexInInformationSet = 0;
                 for (int cindex = h.firstMoveIndex; moveIndexInInformationSet < h.numMoves; cindex++, moveIndexInInformationSet++)
                 {
@@ -694,7 +694,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     if (c.behavioralProbability.IsGreaterThan(minValue))
                         totalAboveMinValue = totalAboveMinValue.Plus(c.behavioralProbability.Minus(minValue));
                 }
-                MaybeExact<T> excess = total.Minus(MaybeExact<T>.One());
+                IMaybeExact<T> excess = total.Minus(IMaybeExact<T>.One());
                 indexInAllMovesArray = 0;
                 moveIndexInInformationSet = 0;
                 for (int cindex = h.firstMoveIndex; moveIndexInInformationSet < h.numMoves; cindex++, moveIndexInInformationSet++)
@@ -710,11 +710,11 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             }
         }
 
-        public IEnumerable<MaybeExact<T>> GetInformationSetProbabilitySums(int pl, T[] rplan, int offset)
+        public IEnumerable<IMaybeExact<T>> GetInformationSetProbabilitySums(int pl, T[] rplan, int offset)
         {
             foreach (List<T> informationSetProbabilities in GetInformationSetProbabilities(pl, rplan, offset))
             {
-                MaybeExact<T> total = MaybeExact<T>.Zero();
+                IMaybeExact<T> total = IMaybeExact<T>.Zero();
                 foreach (T r in informationSetProbabilities)
                     total = total.Plus(r);
                 yield return total;
@@ -742,18 +742,18 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             }
         }
 
-        private IEnumerable<MaybeExact<T>> GetPlayerMoveProbabilities(int pl, MaybeExact<T>[] rplan, int offset)
+        private IEnumerable<IMaybeExact<T>> GetPlayerMoveProbabilities(int pl, IMaybeExact<T>[] rplan, int offset)
         {
             int i;
             ECTAMove<T> c;
             ECTAInformationSet h;
-            MaybeExact<T> rprob;
+            IMaybeExact<T> rprob;
             for (int hindex = firstInformationSet[pl]; hindex < firstInformationSet[pl + 1]; hindex++)
             {
                 h = informationSets[hindex];
                 i = 0;
-                List<MaybeExact<T>> probabilities = new List<MaybeExact<T>>();
-                MaybeExact<T> total = MaybeExact<T>.Zero();
+                List<IMaybeExact<T>> probabilities = new List<IMaybeExact<T>>();
+                IMaybeExact<T> total = IMaybeExact<T>.Zero();
                 for (int cindex = h.firstMoveIndex; i < h.numMoves; cindex++, i++)
                 {
                     c = moves[cindex];
@@ -761,7 +761,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     total = total.Plus(rprob);
                     probabilities.Add(rprob);
                 }
-                if (total.IsGreaterThan(MaybeExact<T>.Zero()) && !total.IsOne())
+                if (total.IsGreaterThan(IMaybeExact<T>.Zero()) && !total.IsOne())
                 {
                     for (int p = 0; p < probabilities.Count(); p++)
                         probabilities[p] = probabilities[p].DividedBy(total);
@@ -776,12 +776,12 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             }
         }
 
-        public IEnumerable<MaybeExact<T>> GetPlayerMovesFromSolution()
+        public IEnumerable<IMaybeExact<T>> GetPlayerMovesFromSolution()
         {
             int offset = numSequences[1] + 1 + numInfoSets[2];
-            foreach (MaybeExact<T> r in GetPlayerMoveProbabilities(1, Lemke.solz, 0))
+            foreach (IMaybeExact<T> r in GetPlayerMoveProbabilities(1, Lemke.solz, 0))
                 yield return r;
-            foreach (MaybeExact<T> r in GetPlayerMoveProbabilities(2, Lemke.solz, offset))
+            foreach (IMaybeExact<T> r in GetPlayerMoveProbabilities(2, Lemke.solz, offset))
                 yield return r;
         }
 
@@ -791,12 +791,12 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 zipped.Second.behavioralProbability = zipped.First;
         }
 
-        void outbehavstrat_moves(int pl, MaybeExact<T>[] rplan, int offset, bool bnewline)
+        void outbehavstrat_moves(int pl, IMaybeExact<T>[] rplan, int offset, bool bnewline)
         {
             int i;
             ECTAMove<T> c;
             ECTAInformationSet h;
-            MaybeExact<T> rprob;
+            IMaybeExact<T> rprob;
 
             for (int hindex = firstInformationSet[pl]; hindex < firstInformationSet[pl + 1]; hindex++)
             {
@@ -879,14 +879,14 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 
         /* SFNF */
 
-        public MaybeExact<T>[][] realizationPlan = new MaybeExact<T>[PLAYERS][];
+        public IMaybeExact<T>[][] realizationPlan = new IMaybeExact<T>[PLAYERS][];
 
         public void allocateRealizationPlan()
         {
             int pl;
 
             for (pl = 0; pl < PLAYERS; pl++)
-                realizationPlan[pl] = new MaybeExact<T>[numSequences[pl]];
+                realizationPlan[pl] = new IMaybeExact<T>[numSequences[pl]];
         }
 
         /// <summary>
@@ -898,7 +898,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         {
             ECTAMove<T> c;
             int lastmoveindex = firstMove[pl + 1];
-            moves[firstMove[pl]].realizationProbability = MaybeExact<T>.One();  /* empty seq has probability 1  */
+            moves[firstMove[pl]].realizationProbability = IMaybeExact<T>.One();  /* empty seq has probability 1  */
             for (int cindex = firstMove[pl] + 1; cindex < lastmoveindex; cindex++)
             {
                 c = moves[cindex];
@@ -921,7 +921,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 
         void copySequenceFormPayoutsForPlayer(ECTAPayVector<T>[][] sourceMatrix, int playerIndexMinus1, bool negate,
                 bool transpose, int numRowsInSourceMatrix, int numColsInSourceMatrix,
-                MaybeExact<T>[][] targetMatrix, int targetRowOffset, int targetColOffset)
+                IMaybeExact<T>[][] targetMatrix, int targetRowOffset, int targetColOffset)
         {
             int i, j;
             for (i = 0; i < numRowsInSourceMatrix; i++)
@@ -936,17 +936,17 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 
         void copyFromMatrix(int[][] sourceMatrix, bool negate,
                 bool transpose, int numRowsInSourceMatrix, int numColsInSourceMatrix,
-                MaybeExact<T>[][] targetMatrix, int targetRowOffset, int targetColOffset)
+                IMaybeExact<T>[][] targetMatrix, int targetRowOffset, int targetColOffset)
         {
             int i, j;
             for (i = 0; i < numRowsInSourceMatrix; i++)
                 for (j = 0; j < numColsInSourceMatrix; j++)
                     if (transpose)
                         targetMatrix[j + targetRowOffset][i + targetColOffset]
-                        = MaybeExact<T>.FromInteger(negate ? -sourceMatrix[i][j] : sourceMatrix[i][j]);
+                        = IMaybeExact<T>.FromInteger(negate ? -sourceMatrix[i][j] : sourceMatrix[i][j]);
                     else
                         targetMatrix[i + targetRowOffset][j + targetColOffset]
-                        = MaybeExact<T>.FromInteger(negate ? -sourceMatrix[i][j] : sourceMatrix[i][j]);
+                        = IMaybeExact<T>.FromInteger(negate ? -sourceMatrix[i][j] : sourceMatrix[i][j]);
         }
 
         public void calculateCoveringVectorD()
@@ -1205,1224 +1205,1224 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 
             nodes[86].outcome = zindex;
             z.nodeIndex = 86;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][0]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][0]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][0]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][0]);
             z = outcomes[++zindex];
             nodes[87].father = 4;
 
             nodes[87].terminal = true;
             nodes[87].outcome = zindex;
             z.nodeIndex = 87;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][1]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][1]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][1]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][1]);
             z = outcomes[++zindex];
             nodes[88].father = 6;
 
             nodes[88].terminal = true;
             nodes[88].outcome = zindex;
             z.nodeIndex = 88;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][2]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][2]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][2]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][2]);
             z = outcomes[++zindex];
             nodes[89].father = 6;
 
             nodes[89].terminal = true;
             nodes[89].outcome = zindex;
             z.nodeIndex = 89;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][3]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][3]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][3]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][3]);
             z = outcomes[++zindex];
             nodes[90].father = 6;
 
             nodes[90].terminal = true;
             nodes[90].outcome = zindex;
             z.nodeIndex = 90;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][4]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][4]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][4]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][4]);
             z = outcomes[++zindex];
             nodes[91].father = 8;
 
             nodes[91].terminal = true;
             nodes[91].outcome = zindex;
             z.nodeIndex = 91;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][5]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][5]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][5]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][5]);
             z = outcomes[++zindex];
             nodes[92].father = 8;
 
             nodes[92].terminal = true;
             nodes[92].outcome = zindex;
             z.nodeIndex = 92;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][6]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][6]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][6]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][6]);
             z = outcomes[++zindex];
             nodes[93].father = 8;
 
             nodes[93].terminal = true;
             nodes[93].outcome = zindex;
             z.nodeIndex = 93;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][7]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][7]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][7]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][7]);
             z = outcomes[++zindex];
             nodes[94].father = 7;
 
             nodes[94].terminal = true;
             nodes[94].outcome = zindex;
             z.nodeIndex = 94;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][8]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][8]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][8]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][8]);
             z = outcomes[++zindex];
             nodes[95].father = 7;
 
             nodes[95].terminal = true;
             nodes[95].outcome = zindex;
             z.nodeIndex = 95;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][9]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][9]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][9]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][9]);
             z = outcomes[++zindex];
             nodes[96].father = 10;
 
             nodes[96].terminal = true;
             nodes[96].outcome = zindex;
             z.nodeIndex = 96;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][10]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][10]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][10]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][10]);
             z = outcomes[++zindex];
             nodes[97].father = 10;
 
             nodes[97].terminal = true;
             nodes[97].outcome = zindex;
             z.nodeIndex = 97;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][11]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][11]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][11]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][11]);
             z = outcomes[++zindex];
             nodes[98].father = 10;
 
             nodes[98].terminal = true;
             nodes[98].outcome = zindex;
             z.nodeIndex = 98;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][12]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][12]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][12]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][12]);
             z = outcomes[++zindex];
             nodes[99].father = 11;
 
             nodes[99].terminal = true;
             nodes[99].outcome = zindex;
             z.nodeIndex = 99;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][13]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][13]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][13]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][13]);
             z = outcomes[++zindex];
             nodes[100].father = 11;
 
             nodes[100].terminal = true;
             nodes[100].outcome = zindex;
             z.nodeIndex = 100;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][14]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][14]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][14]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][14]);
             z = outcomes[++zindex];
             nodes[101].father = 11;
 
             nodes[101].terminal = true;
             nodes[101].outcome = zindex;
             z.nodeIndex = 101;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][15]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][15]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][15]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][15]);
             z = outcomes[++zindex];
             nodes[102].father = 9;
 
             nodes[102].terminal = true;
             nodes[102].outcome = zindex;
             z.nodeIndex = 102;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][16]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][16]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][16]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][16]);
             z = outcomes[++zindex];
             nodes[103].father = 12;
 
             nodes[103].terminal = true;
             nodes[103].outcome = zindex;
             z.nodeIndex = 103;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][17]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][17]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][17]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][17]);
             z = outcomes[++zindex];
             nodes[104].father = 13;
 
             nodes[104].terminal = true;
             nodes[104].outcome = zindex;
             z.nodeIndex = 104;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][18]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][18]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][18]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][18]);
             z = outcomes[++zindex];
             nodes[105].father = 15;
 
             nodes[105].terminal = true;
             nodes[105].outcome = zindex;
             z.nodeIndex = 105;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][19]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][19]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][19]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][19]);
             z = outcomes[++zindex];
             nodes[106].father = 15;
 
             nodes[106].terminal = true;
             nodes[106].outcome = zindex;
             z.nodeIndex = 106;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][20]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][20]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][20]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][20]);
             z = outcomes[++zindex];
             nodes[107].father = 15;
 
             nodes[107].terminal = true;
             nodes[107].outcome = zindex;
             z.nodeIndex = 107;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][21]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][21]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][21]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][21]);
             z = outcomes[++zindex];
             nodes[108].father = 17;
 
             nodes[108].terminal = true;
             nodes[108].outcome = zindex;
             z.nodeIndex = 108;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][22]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][22]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][22]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][22]);
             z = outcomes[++zindex];
             nodes[109].father = 17;
 
             nodes[109].terminal = true;
             nodes[109].outcome = zindex;
             z.nodeIndex = 109;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][23]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][23]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][23]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][23]);
             z = outcomes[++zindex];
             nodes[110].father = 17;
 
             nodes[110].terminal = true;
             nodes[110].outcome = zindex;
             z.nodeIndex = 110;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][24]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][24]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][24]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][24]);
             z = outcomes[++zindex];
             nodes[111].father = 16;
 
             nodes[111].terminal = true;
             nodes[111].outcome = zindex;
             z.nodeIndex = 111;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][25]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][25]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][25]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][25]);
             z = outcomes[++zindex];
             nodes[112].father = 16;
 
             nodes[112].terminal = true;
             nodes[112].outcome = zindex;
             z.nodeIndex = 112;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][26]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][26]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][26]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][26]);
             z = outcomes[++zindex];
             nodes[113].father = 19;
 
             nodes[113].terminal = true;
             nodes[113].outcome = zindex;
             z.nodeIndex = 113;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][27]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][27]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][27]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][27]);
             z = outcomes[++zindex];
             nodes[114].father = 19;
 
             nodes[114].terminal = true;
             nodes[114].outcome = zindex;
             z.nodeIndex = 114;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][28]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][28]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][28]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][28]);
             z = outcomes[++zindex];
             nodes[115].father = 19;
 
             nodes[115].terminal = true;
             nodes[115].outcome = zindex;
             z.nodeIndex = 115;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][29]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][29]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][29]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][29]);
             z = outcomes[++zindex];
             nodes[116].father = 20;
 
             nodes[116].terminal = true;
             nodes[116].outcome = zindex;
             z.nodeIndex = 116;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][30]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][30]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][30]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][30]);
             z = outcomes[++zindex];
             nodes[117].father = 20;
 
             nodes[117].terminal = true;
             nodes[117].outcome = zindex;
             z.nodeIndex = 117;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][31]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][31]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][31]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][31]);
             z = outcomes[++zindex];
             nodes[118].father = 20;
 
             nodes[118].terminal = true;
             nodes[118].outcome = zindex;
             z.nodeIndex = 118;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][32]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][32]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][32]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][32]);
             z = outcomes[++zindex];
             nodes[119].father = 18;
 
             nodes[119].terminal = true;
             nodes[119].outcome = zindex;
             z.nodeIndex = 119;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][33]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][33]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][33]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][33]);
             z = outcomes[++zindex];
             nodes[120].father = 21;
 
             nodes[120].terminal = true;
             nodes[120].outcome = zindex;
             z.nodeIndex = 120;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][34]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][34]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][34]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][34]);
             z = outcomes[++zindex];
             nodes[121].father = 22;
 
             nodes[121].terminal = true;
             nodes[121].outcome = zindex;
             z.nodeIndex = 121;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][35]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][35]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][35]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][35]);
             z = outcomes[++zindex];
             nodes[122].father = 24;
 
             nodes[122].terminal = true;
             nodes[122].outcome = zindex;
             z.nodeIndex = 122;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][36]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][36]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][36]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][36]);
             z = outcomes[++zindex];
             nodes[123].father = 24;
 
             nodes[123].terminal = true;
             nodes[123].outcome = zindex;
             z.nodeIndex = 123;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][37]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][37]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][37]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][37]);
             z = outcomes[++zindex];
             nodes[124].father = 24;
 
             nodes[124].terminal = true;
             nodes[124].outcome = zindex;
             z.nodeIndex = 124;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][38]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][38]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][38]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][38]);
             z = outcomes[++zindex];
             nodes[125].father = 26;
 
             nodes[125].terminal = true;
             nodes[125].outcome = zindex;
             z.nodeIndex = 125;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][39]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][39]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][39]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][39]);
             z = outcomes[++zindex];
             nodes[126].father = 26;
 
             nodes[126].terminal = true;
             nodes[126].outcome = zindex;
             z.nodeIndex = 126;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][40]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][40]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][40]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][40]);
             z = outcomes[++zindex];
             nodes[127].father = 26;
 
             nodes[127].terminal = true;
             nodes[127].outcome = zindex;
             z.nodeIndex = 127;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][41]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][41]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][41]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][41]);
             z = outcomes[++zindex];
             nodes[128].father = 25;
 
             nodes[128].terminal = true;
             nodes[128].outcome = zindex;
             z.nodeIndex = 128;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][42]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][42]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][42]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][42]);
             z = outcomes[++zindex];
             nodes[129].father = 25;
 
             nodes[129].terminal = true;
             nodes[129].outcome = zindex;
             z.nodeIndex = 129;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][43]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][43]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][43]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][43]);
             z = outcomes[++zindex];
             nodes[130].father = 28;
 
             nodes[130].terminal = true;
             nodes[130].outcome = zindex;
             z.nodeIndex = 130;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][44]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][44]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][44]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][44]);
             z = outcomes[++zindex];
             nodes[131].father = 28;
 
             nodes[131].terminal = true;
             nodes[131].outcome = zindex;
             z.nodeIndex = 131;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][45]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][45]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][45]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][45]);
             z = outcomes[++zindex];
             nodes[132].father = 28;
 
             nodes[132].terminal = true;
             nodes[132].outcome = zindex;
             z.nodeIndex = 132;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][46]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][46]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][46]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][46]);
             z = outcomes[++zindex];
             nodes[133].father = 29;
 
             nodes[133].terminal = true;
             nodes[133].outcome = zindex;
             z.nodeIndex = 133;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][47]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][47]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][47]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][47]);
             z = outcomes[++zindex];
             nodes[134].father = 29;
 
             nodes[134].terminal = true;
             nodes[134].outcome = zindex;
             z.nodeIndex = 134;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][48]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][48]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][48]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][48]);
             z = outcomes[++zindex];
             nodes[135].father = 29;
 
             nodes[135].terminal = true;
             nodes[135].outcome = zindex;
             z.nodeIndex = 135;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][49]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][49]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][49]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][49]);
             z = outcomes[++zindex];
             nodes[136].father = 27;
 
             nodes[136].terminal = true;
             nodes[136].outcome = zindex;
             z.nodeIndex = 136;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][50]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][50]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][50]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][50]);
             z = outcomes[++zindex];
             nodes[137].father = 31;
 
             nodes[137].terminal = true;
             nodes[137].outcome = zindex;
             z.nodeIndex = 137;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][51]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][51]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][51]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][51]);
             z = outcomes[++zindex];
             nodes[138].father = 32;
 
             nodes[138].terminal = true;
             nodes[138].outcome = zindex;
             z.nodeIndex = 138;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][52]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][52]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][52]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][52]);
             z = outcomes[++zindex];
             nodes[139].father = 34;
 
             nodes[139].terminal = true;
             nodes[139].outcome = zindex;
             z.nodeIndex = 139;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][53]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][53]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][53]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][53]);
             z = outcomes[++zindex];
             nodes[140].father = 34;
 
             nodes[140].terminal = true;
             nodes[140].outcome = zindex;
             z.nodeIndex = 140;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][54]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][54]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][54]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][54]);
             z = outcomes[++zindex];
             nodes[141].father = 34;
 
             nodes[141].terminal = true;
             nodes[141].outcome = zindex;
             z.nodeIndex = 141;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][55]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][55]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][55]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][55]);
             z = outcomes[++zindex];
             nodes[142].father = 36;
 
             nodes[142].terminal = true;
             nodes[142].outcome = zindex;
             z.nodeIndex = 142;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][56]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][56]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][56]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][56]);
             z = outcomes[++zindex];
             nodes[143].father = 36;
 
             nodes[143].terminal = true;
             nodes[143].outcome = zindex;
             z.nodeIndex = 143;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][57]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][57]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][57]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][57]);
             z = outcomes[++zindex];
             nodes[144].father = 36;
 
             nodes[144].terminal = true;
             nodes[144].outcome = zindex;
             z.nodeIndex = 144;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][58]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][58]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][58]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][58]);
             z = outcomes[++zindex];
             nodes[145].father = 35;
 
             nodes[145].terminal = true;
             nodes[145].outcome = zindex;
             z.nodeIndex = 145;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][59]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][59]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][59]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][59]);
             z = outcomes[++zindex];
             nodes[146].father = 35;
 
             nodes[146].terminal = true;
             nodes[146].outcome = zindex;
             z.nodeIndex = 146;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][60]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][60]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][60]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][60]);
             z = outcomes[++zindex];
             nodes[147].father = 38;
 
             nodes[147].terminal = true;
             nodes[147].outcome = zindex;
             z.nodeIndex = 147;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][61]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][61]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][61]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][61]);
             z = outcomes[++zindex];
             nodes[148].father = 38;
 
             nodes[148].terminal = true;
             nodes[148].outcome = zindex;
             z.nodeIndex = 148;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][62]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][62]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][62]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][62]);
             z = outcomes[++zindex];
             nodes[149].father = 38;
 
             nodes[149].terminal = true;
             nodes[149].outcome = zindex;
             z.nodeIndex = 149;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][63]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][63]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][63]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][63]);
             z = outcomes[++zindex];
             nodes[150].father = 39;
 
             nodes[150].terminal = true;
             nodes[150].outcome = zindex;
             z.nodeIndex = 150;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][64]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][64]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][64]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][64]);
             z = outcomes[++zindex];
             nodes[151].father = 39;
 
             nodes[151].terminal = true;
             nodes[151].outcome = zindex;
             z.nodeIndex = 151;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][65]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][65]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][65]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][65]);
             z = outcomes[++zindex];
             nodes[152].father = 39;
 
             nodes[152].terminal = true;
             nodes[152].outcome = zindex;
             z.nodeIndex = 152;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][66]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][66]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][66]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][66]);
             z = outcomes[++zindex];
             nodes[153].father = 37;
 
             nodes[153].terminal = true;
             nodes[153].outcome = zindex;
             z.nodeIndex = 153;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][67]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][67]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][67]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][67]);
             z = outcomes[++zindex];
             nodes[154].father = 40;
 
             nodes[154].terminal = true;
             nodes[154].outcome = zindex;
             z.nodeIndex = 154;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][68]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][68]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][68]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][68]);
             z = outcomes[++zindex];
             nodes[155].father = 41;
 
             nodes[155].terminal = true;
             nodes[155].outcome = zindex;
             z.nodeIndex = 155;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][69]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][69]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][69]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][69]);
             z = outcomes[++zindex];
             nodes[156].father = 43;
 
             nodes[156].terminal = true;
             nodes[156].outcome = zindex;
             z.nodeIndex = 156;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][70]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][70]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][70]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][70]);
             z = outcomes[++zindex];
             nodes[157].father = 43;
 
             nodes[157].terminal = true;
             nodes[157].outcome = zindex;
             z.nodeIndex = 157;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][71]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][71]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][71]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][71]);
             z = outcomes[++zindex];
             nodes[158].father = 43;
 
             nodes[158].terminal = true;
             nodes[158].outcome = zindex;
             z.nodeIndex = 158;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][72]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][72]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][72]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][72]);
             z = outcomes[++zindex];
             nodes[159].father = 45;
 
             nodes[159].terminal = true;
             nodes[159].outcome = zindex;
             z.nodeIndex = 159;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][73]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][73]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][73]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][73]);
             z = outcomes[++zindex];
             nodes[160].father = 45;
 
             nodes[160].terminal = true;
             nodes[160].outcome = zindex;
             z.nodeIndex = 160;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][74]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][74]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][74]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][74]);
             z = outcomes[++zindex];
             nodes[161].father = 45;
 
             nodes[161].terminal = true;
             nodes[161].outcome = zindex;
             z.nodeIndex = 161;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][75]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][75]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][75]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][75]);
             z = outcomes[++zindex];
             nodes[162].father = 44;
 
             nodes[162].terminal = true;
             nodes[162].outcome = zindex;
             z.nodeIndex = 162;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][76]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][76]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][76]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][76]);
             z = outcomes[++zindex];
             nodes[163].father = 44;
 
             nodes[163].terminal = true;
             nodes[163].outcome = zindex;
             z.nodeIndex = 163;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][77]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][77]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][77]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][77]);
             z = outcomes[++zindex];
             nodes[164].father = 47;
 
             nodes[164].terminal = true;
             nodes[164].outcome = zindex;
             z.nodeIndex = 164;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][78]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][78]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][78]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][78]);
             z = outcomes[++zindex];
             nodes[165].father = 47;
 
             nodes[165].terminal = true;
             nodes[165].outcome = zindex;
             z.nodeIndex = 165;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][79]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][79]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][79]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][79]);
             z = outcomes[++zindex];
             nodes[166].father = 47;
 
             nodes[166].terminal = true;
             nodes[166].outcome = zindex;
             z.nodeIndex = 166;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][80]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][80]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][80]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][80]);
             z = outcomes[++zindex];
             nodes[167].father = 48;
 
             nodes[167].terminal = true;
             nodes[167].outcome = zindex;
             z.nodeIndex = 167;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][81]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][81]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][81]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][81]);
             z = outcomes[++zindex];
             nodes[168].father = 48;
 
             nodes[168].terminal = true;
             nodes[168].outcome = zindex;
             z.nodeIndex = 168;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][82]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][82]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][82]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][82]);
             z = outcomes[++zindex];
             nodes[169].father = 48;
 
             nodes[169].terminal = true;
             nodes[169].outcome = zindex;
             z.nodeIndex = 169;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][83]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][83]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][83]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][83]);
             z = outcomes[++zindex];
             nodes[170].father = 46;
 
             nodes[170].terminal = true;
             nodes[170].outcome = zindex;
             z.nodeIndex = 170;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][84]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][84]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][84]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][84]);
             z = outcomes[++zindex];
             nodes[171].father = 49;
 
             nodes[171].terminal = true;
             nodes[171].outcome = zindex;
             z.nodeIndex = 171;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][85]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][85]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][85]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][85]);
             z = outcomes[++zindex];
             nodes[172].father = 50;
 
             nodes[172].terminal = true;
             nodes[172].outcome = zindex;
             z.nodeIndex = 172;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][86]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][86]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][86]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][86]);
             z = outcomes[++zindex];
             nodes[173].father = 52;
 
             nodes[173].terminal = true;
             nodes[173].outcome = zindex;
             z.nodeIndex = 173;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][87]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][87]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][87]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][87]);
             z = outcomes[++zindex];
             nodes[174].father = 52;
 
             nodes[174].terminal = true;
             nodes[174].outcome = zindex;
             z.nodeIndex = 174;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][88]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][88]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][88]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][88]);
             z = outcomes[++zindex];
             nodes[175].father = 52;
 
             nodes[175].terminal = true;
             nodes[175].outcome = zindex;
             z.nodeIndex = 175;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][89]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][89]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][89]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][89]);
             z = outcomes[++zindex];
             nodes[176].father = 54;
 
             nodes[176].terminal = true;
             nodes[176].outcome = zindex;
             z.nodeIndex = 176;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][90]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][90]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][90]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][90]);
             z = outcomes[++zindex];
             nodes[177].father = 54;
 
             nodes[177].terminal = true;
             nodes[177].outcome = zindex;
             z.nodeIndex = 177;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][91]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][91]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][91]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][91]);
             z = outcomes[++zindex];
             nodes[178].father = 54;
 
             nodes[178].terminal = true;
             nodes[178].outcome = zindex;
             z.nodeIndex = 178;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][92]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][92]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][92]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][92]);
             z = outcomes[++zindex];
             nodes[179].father = 53;
 
             nodes[179].terminal = true;
             nodes[179].outcome = zindex;
             z.nodeIndex = 179;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][93]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][93]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][93]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][93]);
             z = outcomes[++zindex];
             nodes[180].father = 53;
 
             nodes[180].terminal = true;
             nodes[180].outcome = zindex;
             z.nodeIndex = 180;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][94]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][94]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][94]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][94]);
             z = outcomes[++zindex];
             nodes[181].father = 56;
 
             nodes[181].terminal = true;
             nodes[181].outcome = zindex;
             z.nodeIndex = 181;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][95]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][95]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][95]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][95]);
             z = outcomes[++zindex];
             nodes[182].father = 56;
 
             nodes[182].terminal = true;
             nodes[182].outcome = zindex;
             z.nodeIndex = 182;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][96]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][96]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][96]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][96]);
             z = outcomes[++zindex];
             nodes[183].father = 56;
 
             nodes[183].terminal = true;
             nodes[183].outcome = zindex;
             z.nodeIndex = 183;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][97]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][97]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][97]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][97]);
             z = outcomes[++zindex];
             nodes[184].father = 57;
 
             nodes[184].terminal = true;
             nodes[184].outcome = zindex;
             z.nodeIndex = 184;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][98]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][98]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][98]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][98]);
             z = outcomes[++zindex];
             nodes[185].father = 57;
 
             nodes[185].terminal = true;
             nodes[185].outcome = zindex;
             z.nodeIndex = 185;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][99]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][99]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][99]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][99]);
             z = outcomes[++zindex];
             nodes[186].father = 57;
 
             nodes[186].terminal = true;
             nodes[186].outcome = zindex;
             z.nodeIndex = 186;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][100]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][100]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][100]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][100]);
             z = outcomes[++zindex];
             nodes[187].father = 55;
 
             nodes[187].terminal = true;
             nodes[187].outcome = zindex;
             z.nodeIndex = 187;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][101]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][101]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][101]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][101]);
             z = outcomes[++zindex];
             nodes[188].father = 59;
 
             nodes[188].terminal = true;
             nodes[188].outcome = zindex;
             z.nodeIndex = 188;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][102]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][102]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][102]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][102]);
             z = outcomes[++zindex];
             nodes[189].father = 60;
 
             nodes[189].terminal = true;
             nodes[189].outcome = zindex;
             z.nodeIndex = 189;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][103]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][103]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][103]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][103]);
             z = outcomes[++zindex];
             nodes[190].father = 62;
 
             nodes[190].terminal = true;
             nodes[190].outcome = zindex;
             z.nodeIndex = 190;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][104]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][104]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][104]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][104]);
             z = outcomes[++zindex];
             nodes[191].father = 62;
 
             nodes[191].terminal = true;
             nodes[191].outcome = zindex;
             z.nodeIndex = 191;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][105]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][105]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][105]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][105]);
             z = outcomes[++zindex];
             nodes[192].father = 62;
 
             nodes[192].terminal = true;
             nodes[192].outcome = zindex;
             z.nodeIndex = 192;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][106]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][106]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][106]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][106]);
             z = outcomes[++zindex];
             nodes[193].father = 64;
 
             nodes[193].terminal = true;
             nodes[193].outcome = zindex;
             z.nodeIndex = 193;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][107]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][107]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][107]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][107]);
             z = outcomes[++zindex];
             nodes[194].father = 64;
 
             nodes[194].terminal = true;
             nodes[194].outcome = zindex;
             z.nodeIndex = 194;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][108]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][108]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][108]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][108]);
             z = outcomes[++zindex];
             nodes[195].father = 64;
 
             nodes[195].terminal = true;
             nodes[195].outcome = zindex;
             z.nodeIndex = 195;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][109]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][109]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][109]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][109]);
             z = outcomes[++zindex];
             nodes[196].father = 63;
 
             nodes[196].terminal = true;
             nodes[196].outcome = zindex;
             z.nodeIndex = 196;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][110]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][110]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][110]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][110]);
             z = outcomes[++zindex];
             nodes[197].father = 63;
 
             nodes[197].terminal = true;
             nodes[197].outcome = zindex;
             z.nodeIndex = 197;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][111]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][111]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][111]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][111]);
             z = outcomes[++zindex];
             nodes[198].father = 66;
 
             nodes[198].terminal = true;
             nodes[198].outcome = zindex;
             z.nodeIndex = 198;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][112]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][112]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][112]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][112]);
             z = outcomes[++zindex];
             nodes[199].father = 66;
 
             nodes[199].terminal = true;
             nodes[199].outcome = zindex;
             z.nodeIndex = 199;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][113]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][113]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][113]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][113]);
             z = outcomes[++zindex];
             nodes[200].father = 66;
 
             nodes[200].terminal = true;
             nodes[200].outcome = zindex;
             z.nodeIndex = 200;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][114]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][114]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][114]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][114]);
             z = outcomes[++zindex];
             nodes[201].father = 67;
 
             nodes[201].terminal = true;
             nodes[201].outcome = zindex;
             z.nodeIndex = 201;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][115]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][115]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][115]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][115]);
             z = outcomes[++zindex];
             nodes[202].father = 67;
 
             nodes[202].terminal = true;
             nodes[202].outcome = zindex;
             z.nodeIndex = 202;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][116]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][116]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][116]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][116]);
             z = outcomes[++zindex];
             nodes[203].father = 67;
 
             nodes[203].terminal = true;
             nodes[203].outcome = zindex;
             z.nodeIndex = 203;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][117]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][117]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][117]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][117]);
             z = outcomes[++zindex];
             nodes[204].father = 65;
 
             nodes[204].terminal = true;
             nodes[204].outcome = zindex;
             z.nodeIndex = 204;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][118]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][118]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][118]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][118]);
             z = outcomes[++zindex];
             nodes[205].father = 68;
 
             nodes[205].terminal = true;
             nodes[205].outcome = zindex;
             z.nodeIndex = 205;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][119]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][119]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][119]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][119]);
             z = outcomes[++zindex];
             nodes[206].father = 69;
 
             nodes[206].terminal = true;
             nodes[206].outcome = zindex;
             z.nodeIndex = 206;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][120]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][120]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][120]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][120]);
             z = outcomes[++zindex];
             nodes[207].father = 71;
 
             nodes[207].terminal = true;
             nodes[207].outcome = zindex;
             z.nodeIndex = 207;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][121]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][121]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][121]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][121]);
             z = outcomes[++zindex];
             nodes[208].father = 71;
 
             nodes[208].terminal = true;
             nodes[208].outcome = zindex;
             z.nodeIndex = 208;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][122]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][122]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][122]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][122]);
             z = outcomes[++zindex];
             nodes[209].father = 71;
 
             nodes[209].terminal = true;
             nodes[209].outcome = zindex;
             z.nodeIndex = 209;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][123]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][123]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][123]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][123]);
             z = outcomes[++zindex];
             nodes[210].father = 73;
 
             nodes[210].terminal = true;
             nodes[210].outcome = zindex;
             z.nodeIndex = 210;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][124]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][124]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][124]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][124]);
             z = outcomes[++zindex];
             nodes[211].father = 73;
 
             nodes[211].terminal = true;
             nodes[211].outcome = zindex;
             z.nodeIndex = 211;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][125]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][125]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][125]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][125]);
             z = outcomes[++zindex];
             nodes[212].father = 73;
 
             nodes[212].terminal = true;
             nodes[212].outcome = zindex;
             z.nodeIndex = 212;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][126]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][126]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][126]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][126]);
             z = outcomes[++zindex];
             nodes[213].father = 72;
 
             nodes[213].terminal = true;
             nodes[213].outcome = zindex;
             z.nodeIndex = 213;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][127]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][127]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][127]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][127]);
             z = outcomes[++zindex];
             nodes[214].father = 72;
 
             nodes[214].terminal = true;
             nodes[214].outcome = zindex;
             z.nodeIndex = 214;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][128]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][128]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][128]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][128]);
             z = outcomes[++zindex];
             nodes[215].father = 75;
 
             nodes[215].terminal = true;
             nodes[215].outcome = zindex;
             z.nodeIndex = 215;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][129]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][129]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][129]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][129]);
             z = outcomes[++zindex];
             nodes[216].father = 75;
 
             nodes[216].terminal = true;
             nodes[216].outcome = zindex;
             z.nodeIndex = 216;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][130]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][130]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][130]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][130]);
             z = outcomes[++zindex];
             nodes[217].father = 75;
 
             nodes[217].terminal = true;
             nodes[217].outcome = zindex;
             z.nodeIndex = 217;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][131]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][131]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][131]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][131]);
             z = outcomes[++zindex];
             nodes[218].father = 76;
 
             nodes[218].terminal = true;
             nodes[218].outcome = zindex;
             z.nodeIndex = 218;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][132]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][132]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][132]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][132]);
             z = outcomes[++zindex];
             nodes[219].father = 76;
 
             nodes[219].terminal = true;
             nodes[219].outcome = zindex;
             z.nodeIndex = 219;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][133]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][133]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][133]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][133]);
             z = outcomes[++zindex];
             nodes[220].father = 76;
 
             nodes[220].terminal = true;
             nodes[220].outcome = zindex;
             z.nodeIndex = 220;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][134]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][134]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][134]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][134]);
             z = outcomes[++zindex];
             nodes[221].father = 74;
 
             nodes[221].terminal = true;
             nodes[221].outcome = zindex;
             z.nodeIndex = 221;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][135]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][135]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][135]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][135]);
             z = outcomes[++zindex];
             nodes[222].father = 77;
 
             nodes[222].terminal = true;
             nodes[222].outcome = zindex;
             z.nodeIndex = 222;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][136]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][136]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][136]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][136]);
             z = outcomes[++zindex];
             nodes[223].father = 78;
 
             nodes[223].terminal = true;
             nodes[223].outcome = zindex;
             z.nodeIndex = 223;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][137]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][137]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][137]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][137]);
             z = outcomes[++zindex];
             nodes[224].father = 80;
 
             nodes[224].terminal = true;
             nodes[224].outcome = zindex;
             z.nodeIndex = 224;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][138]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][138]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][138]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][138]);
             z = outcomes[++zindex];
             nodes[225].father = 80;
 
             nodes[225].terminal = true;
             nodes[225].outcome = zindex;
             z.nodeIndex = 225;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][139]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][139]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][139]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][139]);
             z = outcomes[++zindex];
             nodes[226].father = 80;
 
             nodes[226].terminal = true;
             nodes[226].outcome = zindex;
             z.nodeIndex = 226;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][140]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][140]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][140]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][140]);
             z = outcomes[++zindex];
             nodes[227].father = 82;
 
             nodes[227].terminal = true;
             nodes[227].outcome = zindex;
             z.nodeIndex = 227;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][141]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][141]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][141]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][141]);
             z = outcomes[++zindex];
             nodes[228].father = 82;
 
             nodes[228].terminal = true;
             nodes[228].outcome = zindex;
             z.nodeIndex = 228;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][142]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][142]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][142]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][142]);
             z = outcomes[++zindex];
             nodes[229].father = 82;
 
             nodes[229].terminal = true;
             nodes[229].outcome = zindex;
             z.nodeIndex = 229;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][143]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][143]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][143]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][143]);
             z = outcomes[++zindex];
             nodes[230].father = 81;
 
             nodes[230].terminal = true;
             nodes[230].outcome = zindex;
             z.nodeIndex = 230;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][144]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][144]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][144]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][144]);
             z = outcomes[++zindex];
             nodes[231].father = 81;
 
             nodes[231].terminal = true;
             nodes[231].outcome = zindex;
             z.nodeIndex = 231;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][145]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][145]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][145]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][145]);
             z = outcomes[++zindex];
             nodes[232].father = 84;
 
             nodes[232].terminal = true;
             nodes[232].outcome = zindex;
             z.nodeIndex = 232;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][146]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][146]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][146]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][146]);
             z = outcomes[++zindex];
             nodes[233].father = 84;
 
             nodes[233].terminal = true;
             nodes[233].outcome = zindex;
             z.nodeIndex = 233;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][147]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][147]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][147]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][147]);
             z = outcomes[++zindex];
             nodes[234].father = 84;
 
             nodes[234].terminal = true;
             nodes[234].outcome = zindex;
             z.nodeIndex = 234;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][148]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][148]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][148]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][148]);
             z = outcomes[++zindex];
             nodes[235].father = 85;
 
             nodes[235].terminal = true;
             nodes[235].outcome = zindex;
             z.nodeIndex = 235;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][149]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][149]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][149]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][149]);
             z = outcomes[++zindex];
             nodes[236].father = 85;
 
             nodes[236].terminal = true;
             nodes[236].outcome = zindex;
             z.nodeIndex = 236;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][150]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][150]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][150]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][150]);
             z = outcomes[++zindex];
             nodes[237].father = 85;
 
             nodes[237].terminal = true;
             nodes[237].outcome = zindex;
             z.nodeIndex = 237;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][151]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][151]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][151]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][151]);
             z = outcomes[++zindex];
             nodes[238].father = 83;
 
             nodes[238].terminal = true;
             nodes[238].outcome = zindex;
             z.nodeIndex = 238;
-            z.pay[0] = MaybeExact<T>.FromInteger(pay[0][152]);
-            z.pay[1] = MaybeExact<T>.FromInteger(pay[1][152]);
+            z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][152]);
+            z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][152]);
             zindex++;
             nodes[1].iset = 0;
             nodes[2].iset = 1;
@@ -2793,23 +2793,23 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             informationSets[14].numMoves = 3;
             // move 0 is empty sequence for player 0
             moves[1].priorInformationSet = 0;
-            moves[1].behavioralProbability = MaybeExact<T>.One().DividedBy(MaybeExact<T>.FromInteger(3));
+            moves[1].behavioralProbability = IMaybeExact<T>.One().DividedBy(IMaybeExact<T>.FromInteger(3));
             moves[2].priorInformationSet = 0;
-            moves[2].behavioralProbability = MaybeExact<T>.One().DividedBy(MaybeExact<T>.FromInteger(3));
+            moves[2].behavioralProbability = IMaybeExact<T>.One().DividedBy(IMaybeExact<T>.FromInteger(3));
             moves[3].priorInformationSet = 0;
-            moves[3].behavioralProbability = MaybeExact<T>.One().DividedBy(MaybeExact<T>.FromInteger(3));
+            moves[3].behavioralProbability = IMaybeExact<T>.One().DividedBy(IMaybeExact<T>.FromInteger(3));
             moves[4].priorInformationSet = 1;
-            moves[4].behavioralProbability = MaybeExact<T>.One().DividedBy(MaybeExact<T>.FromInteger(3));
+            moves[4].behavioralProbability = IMaybeExact<T>.One().DividedBy(IMaybeExact<T>.FromInteger(3));
             moves[5].priorInformationSet = 1;
-            moves[5].behavioralProbability = MaybeExact<T>.One().DividedBy(MaybeExact<T>.FromInteger(3));
+            moves[5].behavioralProbability = IMaybeExact<T>.One().DividedBy(IMaybeExact<T>.FromInteger(3));
             moves[6].priorInformationSet = 1;
-            moves[6].behavioralProbability = MaybeExact<T>.One().DividedBy(MaybeExact<T>.FromInteger(3));
+            moves[6].behavioralProbability = IMaybeExact<T>.One().DividedBy(IMaybeExact<T>.FromInteger(3));
             moves[7].priorInformationSet = 2;
-            moves[7].behavioralProbability = MaybeExact<T>.One().DividedBy(MaybeExact<T>.FromInteger(3));
+            moves[7].behavioralProbability = IMaybeExact<T>.One().DividedBy(IMaybeExact<T>.FromInteger(3));
             moves[8].priorInformationSet = 2;
-            moves[8].behavioralProbability = MaybeExact<T>.One().DividedBy(MaybeExact<T>.FromInteger(3));
+            moves[8].behavioralProbability = IMaybeExact<T>.One().DividedBy(IMaybeExact<T>.FromInteger(3));
             moves[9].priorInformationSet = 2;
-            moves[9].behavioralProbability = MaybeExact<T>.One().DividedBy(MaybeExact<T>.FromInteger(3));
+            moves[9].behavioralProbability = IMaybeExact<T>.One().DividedBy(IMaybeExact<T>.FromInteger(3));
             // move 10 is empty sequence for player 1
             moves[11].priorInformationSet = 3;
             moves[12].priorInformationSet = 3;

@@ -274,14 +274,14 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             return Options.Alpha_Quality * (Options.Alpha_Both_Quality * Options.Evidence_Both_Quality + Options.Alpha_Plaintiff_Quality * 0.5 + Options.Alpha_Defendant_Quality * continuousSignal + Options.Alpha_Neither_Quality * 0.5) + Options.Alpha_Bias * (Options.Alpha_Both_Bias * Options.Evidence_Both_Bias + Options.Alpha_Plaintiff_Bias * 0.5 + Options.Alpha_Defendant_Bias * continuousSignal + Options.Alpha_Neither_Bias * 0.5);
         }
 
-        public override List<MaybeExact<T>> GetSequenceFormInitialization<T>()
+        public override List<IMaybeExact<T>> GetSequenceFormInitialization<T>()
         {
             return GetProbabilitiesFocusedOnBestGuess<T>();
         }
 
-        public List<MaybeExact<T>> GetProbabilitiesFocusedOnBestGuess<T>() where T : MaybeExact<T>, new()
+        public List<IMaybeExact<T>> GetProbabilitiesFocusedOnBestGuess<T>() where T : IMaybeExact<T>, new()
         {
-            List<MaybeExact<T>> probabilities = new List<MaybeExact<T>>();
+            List<IMaybeExact<T>> probabilities = new List<IMaybeExact<T>>();
             for (int playerIndex = 1; playerIndex <= 2; playerIndex++)
             {
                 for (int signalIndex = 0; signalIndex < Options.NumQualityAndBiasLevels_PrivateInfo; signalIndex++)
@@ -299,8 +299,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                         int indexOfMax = Array.IndexOf(addingToOneThousand, addingToOneThousand.Max());
                         addingToOneThousand[indexOfMax] -= 1;
                     }
-                    MaybeExact<T> denom = MaybeExact<T>.FromInteger(1000);
-                    var probabilitiesToAddToList = addingToOneThousand.Select(v => MaybeExact<T>.FromInteger(v).DividedBy(denom)).ToList();
+                    IMaybeExact<T> denom = IMaybeExact<T>.FromInteger(1000);
+                    var probabilitiesToAddToList = addingToOneThousand.Select(v => IMaybeExact<T>.FromInteger(v).DividedBy(denom)).ToList();
                     probabilities.AddRange(probabilitiesToAddToList);
                 }
             }

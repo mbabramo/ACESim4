@@ -150,7 +150,7 @@ namespace ACESimBase.GameSolvingAlgorithms
         }
         List<FinalUtilitiesNode> Outcomes => GameNodeRelationships.Where(x => x != null && x.GameState is FinalUtilitiesNode).Select(x => (FinalUtilitiesNode)x.GameState).ToList();
 
-        private List<(double[] equilibrium, int frequency)> DetermineEquilibria<T>(int numPriorsToGet) where T : MaybeExact<T>, new()
+        private List<(double[] equilibrium, int frequency)> DetermineEquilibria<T>(int numPriorsToGet) where T : IMaybeExact<T>, new()
         {
             DetermineGameNodeRelationships();
             bool useManuallyDefinedEquilibria = false; // use this as a shortcut to replay some equilibrium
@@ -170,10 +170,10 @@ namespace ACESimBase.GameSolvingAlgorithms
             {
                 bool updateScenarios = false; // Doesn't work right now
                 Action<int, ECTATreeDefinition<T>> scenarioUpdater = updateScenarios ? ScenarioUpdater<T>() : null;
-                List<(MaybeExact<T>[] equilibrium, int frequency)> results;
+                List<(IMaybeExact<T>[] equilibrium, int frequency)> results;
                 if (EvolutionSettings.ParallelOptimization)
                 {
-                    results = new List<(MaybeExact<T>[] equilibrium, int frequency)>();
+                    results = new List<(IMaybeExact<T>[] equilibrium, int frequency)>();
                     Parallelizer.Go(true, 0, numPriorsToGet, priorNumber =>
                     {
                         ECTARunner<T> ecta = GetECTARunner<T>(1);
@@ -189,10 +189,10 @@ namespace ACESimBase.GameSolvingAlgorithms
                 }
                 else
                 {
-                    List<MaybeExact<T>> initialProbabilities = null;
+                    List<IMaybeExact<T>> initialProbabilities = null;
                     if (EvolutionSettings.ConsiderInitializingToMostRecentEquilibrium && GameDefinition.GameOptions.InitializeToMostRecentEquilibrium && MostRecentEquilibrium != null)
                     {
-                        initialProbabilities = ((MaybeExact<T>[])MostRecentEquilibrium).ToList();
+                        initialProbabilities = ((IMaybeExact<T>[])MostRecentEquilibrium).ToList();
                     }
                     else if (EvolutionSettings.CustomSequenceFormInitialization)
                     {
@@ -206,7 +206,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 NarrowDownToValidEquilibria<T>(results);
                 equilibria = results.Select(x => (x.equilibrium.Select(y => y.AsDouble).ToArray(), x.frequency)).ToList();
                 if (EvolutionSettings.SequenceFormBlockDistantActionsWhenTracingEquilibrium)
-                    IdentifyProbabilitiesToBlockWhenTracingPath<T>((MaybeExact<T>[])MostRecentEquilibrium);
+                    IdentifyProbabilitiesToBlockWhenTracingPath<T>((IMaybeExact<T>[])MostRecentEquilibrium);
                 else
                     BlockedPlayerActions = null;
             }
@@ -238,15 +238,15 @@ namespace ACESimBase.GameSolvingAlgorithms
                 equilibriaList.Add(equilibrium);
         }
 
-        private static List<(MaybeExact<T>[] equilibrium, int frequency)> NarrowDownToUniqueEquilibria<T>(List<(MaybeExact<T>[] equilibrium, int frequency)> equilibriaList) where T : MaybeExact<T>, new()
+        private static List<(IMaybeExact<T>[] equilibrium, int frequency)> NarrowDownToUniqueEquilibria<T>(List<(IMaybeExact<T>[] equilibrium, int frequency)> equilibriaList) where T : IMaybeExact<T>, new()
         {
-            List<(MaybeExact<T>[] equilibrium, int frequency)> copy = new List<(MaybeExact<T>[] equilibrium, int frequency)>();
+            List<(IMaybeExact<T>[] equilibrium, int frequency)> copy = new List<(IMaybeExact<T>[] equilibrium, int frequency)>();
             foreach (var eq in equilibriaList)
                 AddEquilibriumToEquilibriaListIfUnique(copy, eq);
             return copy;
         }
 
-        private static void AddEquilibriumToEquilibriaListIfUnique<T>(List<(MaybeExact<T>[] equilibrium, int frequency)> equilibriaList, (MaybeExact<T>[] equilibrium, int frequency) equilibrium) where T : MaybeExact<T>, new()
+        private static void AddEquilibriumToEquilibriaListIfUnique<T>(List<(IMaybeExact<T>[] equilibrium, int frequency)> equilibriaList, (IMaybeExact<T>[] equilibrium, int frequency) equilibrium) where T : IMaybeExact<T>, new()
         {
             bool found = false;
             for (int i = 0; i < equilibriaList.Count(); i++)
@@ -272,7 +272,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 SetInformationSetsToEquilibrium(equilibria.First());
         }
 
-        private ECTARunner<T> GetECTARunner<T>(int numPriorsToGet) where T : MaybeExact<T>, new()
+        private ECTARunner<T> GetECTARunner<T>(int numPriorsToGet) where T : IMaybeExact<T>, new()
         {
             var ecta = new ECTARunner<T>();
             ecta.numPriors = numPriorsToGet;
@@ -318,23 +318,23 @@ namespace ACESimBase.GameSolvingAlgorithms
             return ecta;
         }
 
-        public List<(MaybeExact<T>[] equilibrium, int frequency)> NarrowDownToValidEquilibria<T>(List<(MaybeExact<T>[] equilibrium, int frequency)> equilibria) where T : MaybeExact<T>, new()
+        public List<(IMaybeExact<T>[] equilibrium, int frequency)> NarrowDownToValidEquilibria<T>(List<(IMaybeExact<T>[] equilibrium, int frequency)> equilibria) where T : IMaybeExact<T>, new()
         {
             int numEquilibria = equilibria.Count();
             var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetNodeNumber).ToList();
             var infoSetNames = infoSets.Select(x => x.ToStringWithoutValues()).ToArray();
-            Dictionary<int, MaybeExact<T>[]> chanceProbabilities = new Dictionary<int, MaybeExact<T>[]>();
+            Dictionary<int, IMaybeExact<T>[]> chanceProbabilities = new Dictionary<int, IMaybeExact<T>[]>();
             foreach (var chanceNode in InformationSetInfos.Where(x => x.IsChance))
             {
-                chanceProbabilities[chanceNode.ChanceNode.GetInformationSetNodeNumber()] = chanceNode.ChanceNode.GetProbabilitiesAsRationals(!EvolutionSettings.SequenceFormCutOffProbabilityZeroNodes, EvolutionSettings.MaxIntegralUtility).Select(x => MaybeExact<T>.FromRational(x)).ToArray();
+                chanceProbabilities[chanceNode.ChanceNode.GetInformationSetNodeNumber()] = chanceNode.ChanceNode.GetProbabilitiesAsRationals(!EvolutionSettings.SequenceFormCutOffProbabilityZeroNodes, EvolutionSettings.MaxIntegralUtility).Select(x => IMaybeExact<T>.FromRational(x)).ToArray();
             }
-            Dictionary<int, MaybeExact<T>[]> utilities = new Dictionary<int, MaybeExact<T>[]>();
+            Dictionary<int, IMaybeExact<T>[]> utilities = new Dictionary<int, IMaybeExact<T>[]>();
 
             Rational[][] rationalUtilities = UtilitiesAsRationals.TransposeRowsAndColumns();
             for (int finalUtilitiesNodesIndex = 0; finalUtilitiesNodesIndex < FinalUtilitiesNodes.Count; finalUtilitiesNodesIndex++)
             {
                 FinalUtilitiesNode finalUtilitiesNode = FinalUtilitiesNodes[finalUtilitiesNodesIndex];
-                utilities[finalUtilitiesNode.GetInformationSetNodeNumber()] = rationalUtilities[finalUtilitiesNodesIndex].Select(x => MaybeExact<T>.FromRational(x)).ToArray();
+                utilities[finalUtilitiesNode.GetInformationSetNodeNumber()] = rationalUtilities[finalUtilitiesNodesIndex].Select(x => IMaybeExact<T>.FromRational(x)).ToArray();
             }
 
             List<int> imperfect = new List<int>();
@@ -357,11 +357,11 @@ namespace ACESimBase.GameSolvingAlgorithms
             return equilibria;
         }
 
-        private bool CheckEquilibrium<T>(List<InformationSetNode> infoSets, Dictionary<int, MaybeExact<T>[]> chanceProbabilities, Dictionary<int, MaybeExact<T>[]> utilities, MaybeExact<T>[] actionProbabilities) where T : MaybeExact<T>, new()
+        private bool CheckEquilibrium<T>(List<InformationSetNode> infoSets, Dictionary<int, IMaybeExact<T>[]> chanceProbabilities, Dictionary<int, IMaybeExact<T>[]> utilities, IMaybeExact<T>[] actionProbabilities) where T : IMaybeExact<T>, new()
         {
             Stopwatch s = new Stopwatch();
             s.Start();
-            Dictionary<(int playerIndex, int nodeIndex), MaybeExact<T>[]> playerProbabilities = null;
+            Dictionary<(int playerIndex, int nodeIndex), IMaybeExact<T>[]> playerProbabilities = null;
             if (infoSets.Sum(x => x.Decision.NumPossibleActions) != actionProbabilities.Count())
             {
                 throw new Exception("Mismatch in number of possible actions");
@@ -381,7 +381,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 return false;
             }
 
-            MaybeExact<T> errorTolerance = new T().IsExact ? MaybeExact<T>.Zero() : MaybeExact<T>.One().DividedBy(MaybeExact<T>.FromInteger(EvolutionSettings.MaxIntegralUtility));
+            IMaybeExact<T> errorTolerance = new T().IsExact ? IMaybeExact<T>.Zero() : IMaybeExact<T>.One().DividedBy(IMaybeExact<T>.FromInteger(EvolutionSettings.MaxIntegralUtility));
             CalculateUtilitiesAtEachInformationSet_MaybeExact<T> calc = new CalculateUtilitiesAtEachInformationSet_MaybeExact<T>(chanceProbabilities, playerProbabilities, utilities, errorTolerance);
             TreeWalk_Tree(calc);
             if (EvolutionSettings.ConfirmPerfectEquilibria)
@@ -394,16 +394,16 @@ namespace ACESimBase.GameSolvingAlgorithms
                 return true;
         }
 
-        private static void FixDegenerateProbabilities<T>(List<InformationSetNode> infoSets, MaybeExact<T>[] actionProbabilities, out Dictionary<(int playerIndex, int nodeIndex), MaybeExact<T>[]> playerProbabilities) where T : MaybeExact<T>, new()
+        private static void FixDegenerateProbabilities<T>(List<InformationSetNode> infoSets, IMaybeExact<T>[] actionProbabilities, out Dictionary<(int playerIndex, int nodeIndex), IMaybeExact<T>[]> playerProbabilities) where T : IMaybeExact<T>, new()
         {
-            playerProbabilities = new Dictionary<(int playerIndex, int nodeIndex), MaybeExact<T>[]>();
+            playerProbabilities = new Dictionary<(int playerIndex, int nodeIndex), IMaybeExact<T>[]>();
             var numActionsPerSet = infoSets.Select(x => x.Decision.NumPossibleActions).ToList();
             int actionProbabilitiesIndex = 0;
             foreach (var infoSet in infoSets)
             {
-                MaybeExact<T>[] asArray = new MaybeExact<T>[infoSet.NumPossibleActions];
+                IMaybeExact<T>[] asArray = new IMaybeExact<T>[infoSet.NumPossibleActions];
                 int initialActionProbabilitiesIndex = actionProbabilitiesIndex;
-                MaybeExact<T> total = MaybeExact<T>.Zero();
+                IMaybeExact<T> total = IMaybeExact<T>.Zero();
                 for (int i = 0; i < infoSet.NumPossibleActions; i++)
                 {
                     var probability = actionProbabilities[actionProbabilitiesIndex++];
@@ -417,7 +417,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                     {
                         for (int i = 0; i < infoSet.NumPossibleActions; i++)
                         {
-                            actionProbabilities[initialActionProbabilitiesIndex + i] = MaybeExact<T>.One().DividedBy(MaybeExact<T>.FromInteger(infoSet.NumPossibleActions));
+                            actionProbabilities[initialActionProbabilitiesIndex + i] = IMaybeExact<T>.One().DividedBy(IMaybeExact<T>.FromInteger(infoSet.NumPossibleActions));
                             asArray[i] = actionProbabilities[initialActionProbabilitiesIndex + i];
                         }
 
@@ -426,7 +426,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                     {
                         // It appears that when the equilibrium is imperfect (always only very slightly), there is always a degeneracy of this sort. 
                         // Neither of these approaches makes it go away; nor does using the approach used where total <= 0.
-                        MaybeExact<T> multiplier = MaybeExact<T>.One().DividedBy(total);
+                        IMaybeExact<T> multiplier = IMaybeExact<T>.One().DividedBy(total);
                         for (int i = 0; i < infoSet.NumPossibleActions; i++)
                         {
                             actionProbabilities[initialActionProbabilitiesIndex + i] = actionProbabilities[initialActionProbabilitiesIndex + i].Times(multiplier);
@@ -438,7 +438,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             }
         }
 
-        private Action<int, ECTATreeDefinition<T>> ScenarioUpdater<T>() where T : MaybeExact<T>, new()
+        private Action<int, ECTATreeDefinition<T>> ScenarioUpdater<T>() where T : IMaybeExact<T>, new()
         {
             return (index, treeDefinition) =>
             {
@@ -581,7 +581,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             }
         }
 
-        public void SetupECTA<T>(ECTATreeDefinition<T> t) where T : MaybeExact<T>, new()
+        public void SetupECTA<T>(ECTATreeDefinition<T> t) where T : IMaybeExact<T>, new()
         {
             int[][] pay = GetOutcomesForECTA();
 
@@ -628,8 +628,8 @@ namespace ACESimBase.GameSolvingAlgorithms
                     t.nodes[n].terminal = true;
                     t.nodes[n].outcome = zindex;
                     z.nodeIndex = n;
-                    z.pay[0] = MaybeExact<T>.FromInteger(pay[0][zindex]);
-                    z.pay[1] = MaybeExact<T>.FromInteger(pay[1][zindex]);
+                    z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][zindex]);
+                    z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][zindex]);
                     if (zindex < t.outcomes.Length - 1)
                         z = t.outcomes[++zindex];
                 }
@@ -677,16 +677,16 @@ namespace ACESimBase.GameSolvingAlgorithms
                             throw new Exception("Zero chance probabilities not allowed");
                         if (chance.Decision.DistributedChanceDecision && EvolutionSettings.DistributeChanceDecisions)
                         {
-                            t.moves[moveIndex].behavioralProbability = moveNumber == 1 ? MaybeExact<T>.One() : MaybeExact<T>.Zero();
+                            t.moves[moveIndex].behavioralProbability = moveNumber == 1 ? IMaybeExact<T>.One() : IMaybeExact<T>.Zero();
                         }
                         else
-                            t.moves[moveIndex].behavioralProbability = MaybeExact<T>.FromRational(rational);
+                            t.moves[moveIndex].behavioralProbability = IMaybeExact<T>.FromRational(rational);
                     }
                 }
             }
         }
 
-        public void UpdateECTAOutcomes<T>(ECTATreeDefinition<T> t) where T : MaybeExact<T>, new()
+        public void UpdateECTAOutcomes<T>(ECTATreeDefinition<T> t) where T : IMaybeExact<T>, new()
         {
             int[][] pay = GetOutcomesForECTA();
 
@@ -701,8 +701,8 @@ namespace ACESimBase.GameSolvingAlgorithms
                     if (firstOutcome == -1)
                         firstOutcome = n;
                     t.nodes[n].outcome = zindex;
-                    z.pay[0] = MaybeExact<T>.FromInteger(pay[0][zindex]);
-                    z.pay[1] = MaybeExact<T>.FromInteger(pay[1][zindex]);
+                    z.pay[0] = IMaybeExact<T>.FromInteger(pay[0][zindex]);
+                    z.pay[1] = IMaybeExact<T>.FromInteger(pay[1][zindex]);
                     if (zindex < t.outcomes.Length - 1)
                         z = t.outcomes[++zindex];
                 }
@@ -1110,11 +1110,11 @@ namespace ACESimBase.GameSolvingAlgorithms
             }
         }
 
-        private MaybeExact<T>[] ReverseEffectsOfCuttingOffProbabilityZeroNodes<T>(MaybeExact<T>[] equilibrium) where T : MaybeExact<T>, new()
+        private IMaybeExact<T>[] ReverseEffectsOfCuttingOffProbabilityZeroNodes<T>(IMaybeExact<T>[] equilibrium) where T : IMaybeExact<T>, new()
         {
             if (!EvolutionSettings.SequenceFormCutOffProbabilityZeroNodes)
                 return equilibrium;
-            List<MaybeExact<T>> expanded = new List<MaybeExact<T>>();
+            List<IMaybeExact<T>> expanded = new List<IMaybeExact<T>>();
             var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => WhenInformationSetVisited.GetValueOrDefault(x.InformationSetNodeNumber, int.MaxValue)).ToList();
             int equilibriumIndex = 0;
             foreach (var infoSet in infoSets)
@@ -1127,7 +1127,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                     // Second, the particular action may be blocked.
                     bool actionBlocked = !notReachable && BlockedPlayerActions != null && BlockedPlayerActions[infoSet.InformationSetNodeNumber].Contains(i);
                     if (notReachable || actionBlocked)
-                        expanded.Add(MaybeExact<T>.Zero());
+                        expanded.Add(IMaybeExact<T>.Zero());
                     else
                         expanded.Add(equilibrium[equilibriumIndex++]);
                 }
@@ -1137,7 +1137,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             return expanded.ToArray();
         }
 
-        private void IdentifyProbabilitiesToBlockWhenTracingPath<T>(MaybeExact<T>[] equilibrium) where T : MaybeExact<T>, new()
+        private void IdentifyProbabilitiesToBlockWhenTracingPath<T>(IMaybeExact<T>[] equilibrium) where T : IMaybeExact<T>, new()
         {
             // Note: This is relevant only when we are constraining the next equilibrium we find (with different settings) to be very close to this equilibrium, i.e. differing by no more than one step.
             if (!EvolutionSettings.SequenceFormBlockDistantActionsWhenTracingEquilibrium || !EvolutionSettings.ConsiderInitializingToMostRecentEquilibrium)
@@ -1148,7 +1148,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             foreach (var infoSet in infoSets)
             {
                 List<byte> actionsToAllow = new List<byte>();
-                List<MaybeExact<T>> probabilities = new List<MaybeExact<T>>();
+                List<IMaybeExact<T>> probabilities = new List<IMaybeExact<T>>();
                 for (int i = 0; i < infoSet.NumPossibleActions; i++)
                     probabilities.Add(equilibrium[equilibriumIndex++]);
                 // find the index of the highest value in probabilities

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
-	public class ECTANode<T> where T : MaybeExact<T>, new()
+	public class ECTANode<T> where T : IMaybeExact<T>, new()
 	{
 		public bool terminal; // 0: decision node / 1: terminal node
 		public int iset = -1; // which information set

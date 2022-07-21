@@ -13,7 +13,7 @@ using Rationals;
 
 namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
-    public class ECTARunner<T> where T : MaybeExact<T>, new()
+    public class ECTARunner<T> where T : IMaybeExact<T>, new()
     {
         public int numPriors = 0;      
         public int seed = 0;     
@@ -178,7 +178,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
         /// <param name="setup"></param>
         /// <param name="updateActionWhenTracingPathOfEquilibrium">Tracing path of an equilibrium means that we use the results of one run to seed the next, but then change the outcomes. The action receives a parameter indicating the index and then changes the outcomes appropriately.</param>
         /// <returns></returns>
-        public List<(MaybeExact<T>[] equilibrium, int frequency)> Execute(Action<ECTATreeDefinition<T>> setup, Action<int, ECTATreeDefinition<T>> updateActionWhenTracingPathOfEquilibrium, int seed, MaybeExact<T>[] initialProbabilities = null)
+        public List<(IMaybeExact<T>[] equilibrium, int frequency)> Execute(Action<ECTATreeDefinition<T>> setup, Action<int, ECTATreeDefinition<T>> updateActionWhenTracingPathOfEquilibrium, int seed, IMaybeExact<T>[] initialProbabilities = null)
         {
             bool tracingEquilibrium = updateActionWhenTracingPathOfEquilibrium != null;
 
@@ -198,7 +198,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 lemkeOptions.outputSolution = true;
             }
 
-            List<MaybeExact<T>[]> equilibria = new List<MaybeExact<T>[]>();
+            List<IMaybeExact<T>[]> equilibria = new List<IMaybeExact<T>[]>();
             List<int> frequencyOfEquilibria = new List<int>();
 
             setup(t);
@@ -221,7 +221,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
             t.allocateRealizationPlan();
             if (outputPivotResults && outputPivotHeaderFirst) /* otherwise the header is garbled by LCP output */
                 inforesultheader();
-            MaybeExact<T>[] equilibriumProbabilities = initialProbabilities;
+            IMaybeExact<T>[] equilibriumProbabilities = initialProbabilities;
             /* multiple priors 	*/
             for (int priorcount = 0; priorcount < numPriors; priorcount++)
             {
@@ -234,7 +234,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                     t.genprior(priorcount + seedAdjust);
                 else
                 {
-                    t.SetProbabilitiesToValues(equilibriumProbabilities, MaybeExact<T>.One().DividedBy(MaybeExact<T>.FromInteger(1_000)));
+                    t.SetProbabilitiesToValues(equilibriumProbabilities, IMaybeExact<T>.One().DividedBy(IMaybeExact<T>.FromInteger(1_000)));
                     updateActionWhenTracingPathOfEquilibrium(priorcount, t);
                 }
                 if (outputGameTreeSetup)
@@ -258,7 +258,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                         inforesultheader();
                     infopivotresult(priorcount, seed + gamecount);
                     equilibriumProbabilities = t.GetPlayerMovesFromSolution().ToArray(); // probabilities for each non-chance player, ordered by player, information set, and then action.
-                    int? sameAsEquilibrium = equilibria.Select((item, index) => ((MaybeExact<T>[] item, int index)?)(item, index)).FirstOrDefault(x => x != null && x.Value.item.SequenceEqual(equilibriumProbabilities))?.index;
+                    int? sameAsEquilibrium = equilibria.Select((item, index) => ((IMaybeExact<T>[] item, int index)?)(item, index)).FirstOrDefault(x => x != null && x.Value.item.SequenceEqual(equilibriumProbabilities))?.index;
                     if (sameAsEquilibrium is int eqIndex)
                     {
                         TabbedText.WriteLine($"Same as equilibrium {sameAsEquilibrium + 1}"); // note that equilibria are one-indexed
@@ -276,7 +276,7 @@ namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
                 outputGameTreeSetup = false;
                 TabbedText.WriteLine($"Elapsed milliseconds prior {priorcount + 1}: {s.ElapsedMilliseconds}");
                 if (!succeeded && priorcount == numPriors - 1)
-                    return new List<(MaybeExact<T>[] equilibrium, int frequency)>();
+                    return new List<(IMaybeExact<T>[] equilibrium, int frequency)>();
             }
             if (numPriors > 1)    /* give averages */
                 infosumresult(numPriors);
