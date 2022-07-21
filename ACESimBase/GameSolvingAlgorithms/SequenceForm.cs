@@ -31,7 +31,6 @@ namespace ACESimBase.GameSolvingAlgorithms
         }
         SequenceFormApproach Approach = SequenceFormApproach.ECTA;
 
-        bool ConsiderInitializingToMostRecentEquilibrium = true;
         object MostRecentEquilibrium; // MaybeExact<T>[]
 
         public SequenceForm(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
@@ -117,9 +116,10 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         #region ECTA
 
-        List<GameNodeRelationship> GameNodes;
+        List<GameNodeRelationship> GameNodeRelationships;
         List<InformationSetInfo> InformationSetInfos;
         HashSet<int> PotentiallyReachableInformationSets;
+        Dictionary<int, List<byte>> BlockedPlayerActions;
         Dictionary<int, int> WhenInformationSetVisited;
         public List<int> MoveIndexToInfoSetIndex;
         public List<int> FirstInformationSetInfosIndexForPlayers;
@@ -148,7 +148,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 return InformationSetNode?.GetCurrentProbabilitiesAsArray() ?? ChanceNode.GetActionProbabilities().ToArray();
             }
         }
-        List<FinalUtilitiesNode> Outcomes => GameNodes.Where(x => x != null && x.GameState is FinalUtilitiesNode).Select(x => (FinalUtilitiesNode)x.GameState).ToList();
+        List<FinalUtilitiesNode> Outcomes => GameNodeRelationships.Where(x => x != null && x.GameState is FinalUtilitiesNode).Select(x => (FinalUtilitiesNode)x.GameState).ToList();
 
         private List<(double[] equilibrium, int frequency)> DetermineEquilibria<T>(int numPriorsToGet) where T : MaybeExact<T>, new()
         {
@@ -184,11 +184,13 @@ namespace ACESimBase.GameSolvingAlgorithms
                             AddEquilibriumToEquilibriaListIfUnique(results, individualResult);
                         }
                     });
+                    if (EvolutionSettings.SequenceFormBlockDistantActionsWhenTracingEquilibrium)
+                        throw new Exception();
                 }
                 else
                 {
                     List<MaybeExact<T>> initialProbabilities = null;
-                    if (ConsiderInitializingToMostRecentEquilibrium && GameDefinition.GameOptions.InitializeToMostRecentEquilibrium && MostRecentEquilibrium != null)
+                    if (EvolutionSettings.ConsiderInitializingToMostRecentEquilibrium && GameDefinition.GameOptions.InitializeToMostRecentEquilibrium && MostRecentEquilibrium != null)
                     {
                         initialProbabilities = ((MaybeExact<T>[])MostRecentEquilibrium).ToList();
                     }
@@ -197,12 +199,16 @@ namespace ACESimBase.GameSolvingAlgorithms
                         initialProbabilities = GameDefinition.GetSequenceFormInitialization<T>();
                     }
                     ECTARunner<T> ecta = GetECTARunner<T>(numPriorsToGet);
-                    results = ecta.Execute(t => SetupECTA(t), scenarioUpdater, 0, initialProbabilities.ToArray());
+                    results = ecta.Execute(t => SetupECTA(t), scenarioUpdater, 0, initialProbabilities?.ToArray());
                     MostRecentEquilibrium = results.Last().equilibrium;
                 }
                 results = results.Select(x => (ReverseEffectsOfCuttingOffProbabilityZeroNodes(x.equilibrium), x.frequency)).ToList();
                 NarrowDownToValidEquilibria<T>(results);
                 equilibria = results.Select(x => (x.equilibrium.Select(y => y.AsDouble).ToArray(), x.frequency)).ToList();
+                if (EvolutionSettings.SequenceFormBlockDistantActionsWhenTracingEquilibrium)
+                    IdentifyProbabilitiesToBlockWhenTracingPath<T>((MaybeExact<T>[])MostRecentEquilibrium);
+                else
+                    BlockedPlayerActions = null;
             }
 
             return equilibria;
@@ -454,16 +460,16 @@ namespace ACESimBase.GameSolvingAlgorithms
 
 
             IGameState rootState = GetGameState(GetStartOfGameHistoryPoint());
-            GameNodeRelationshipsFinder finder = new GameNodeRelationshipsFinder(rootState, EvolutionSettings.SequenceFormCutOffProbabilityZeroNodes, EvolutionSettings.MaxIntegralUtility);
+            GameNodeRelationshipsFinder finder = new GameNodeRelationshipsFinder(rootState, EvolutionSettings.SequenceFormCutOffProbabilityZeroNodes, EvolutionSettings.MaxIntegralUtility, BlockedPlayerActions);
             TreeWalk_Tree<GameNodeRelationshipsFinder.ForwardInfo, bool /* ignored */>(finder, new GameNodeRelationshipsFinder.ForwardInfo(0, new bool[] { false }));
             WhenInformationSetVisited = finder.WhenInformationSetVisited;
             PotentiallyReachableInformationSets = finder.PotentiallyReachableInformationSets;
 
-            GameNodes = finder.Relationships;
-            var originalOrder = GameNodes.ToList();
+            GameNodeRelationships = finder.NodeRelationships;
+            var originalOrder = GameNodeRelationships.ToList();
 
             // information sets must be in player order
-            var orderedByPlayer = GameNodes.OrderByDescending(x => x.GameState is ChanceNode)
+            var orderedByPlayer = GameNodeRelationships.OrderByDescending(x => x.GameState is ChanceNode)
                 .ThenByDescending(x => x.GameState is InformationSetNode)
                 .ThenByDescending(x => x.GameState is FinalUtilitiesNode)
                 .ThenBy(x => (x.GameState as InformationSetNode)?.PlayerIndex ?? 0)
@@ -482,7 +488,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 InformationSetInfos[i].GameState.AltNodeNumber = i; // set the alt node number so that we can match the numbering scheme expected of our ECTA code
 
             // game nodes must be in game order, but with outcomes all at end
-            var orderedWithOutcomesLast = GameNodes
+            var orderedWithOutcomesLast = GameNodeRelationships
                 .OrderBy(x => x.GameState is FinalUtilitiesNode)
                 .ThenBy(x => x.NodeID)
                 .ToList();
@@ -504,7 +510,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                     ParentNodeID = orderedWithOutcomesLast[i].ParentNodeID is int originalParentID ? originalIDToRevised[originalParentID] : null
                 };
             }
-            GameNodes = orderedWithOutcomesLast;
+            GameNodeRelationships = orderedWithOutcomesLast;
 
             MoveIndexToInfoSetIndex = new List<int>();
             FirstInformationSetInfosIndexForPlayers = new List<int>();
@@ -561,7 +567,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                         asOriginallyOrdered.Append(" ");
                     int nodeIndex = originalOrder.Select((item, index) => (item, index)).First(x => x.item.NodeID == nodeID).index;
                     var node = originalOrder[nodeIndex];
-                    var correspondingNode = GameNodes.First(x => x != null && x.OriginalNodeID == node.NodeID);
+                    var correspondingNode = GameNodeRelationships.First(x => x != null && x.OriginalNodeID == node.NodeID);
                     asOriginallyOrdered.AppendLine(correspondingNode.ToString());
                     List<int> childrenNodeIDs = originalOrder.Select((item, index) => (item, index)).Where(x => x.item.ParentNodeID == nodeID).Select(x => x.index).ToList();
                     foreach (var childNodeID in childrenNodeIDs)
@@ -570,8 +576,8 @@ namespace ACESimBase.GameSolvingAlgorithms
                 PrintNodeAndChildren(0, 0);
 
                 StringBuilder revisedOrder = new StringBuilder();
-                for (int i = 1; i < GameNodes.Count(); i++)
-                    revisedOrder.AppendLine(GameNodes[i].ToString());
+                for (int i = 1; i < GameNodeRelationships.Count(); i++)
+                    revisedOrder.AppendLine(GameNodeRelationships[i].ToString());
             }
         }
 
@@ -579,7 +585,7 @@ namespace ACESimBase.GameSolvingAlgorithms
         {
             int[][] pay = GetOutcomesForECTA();
 
-            t.allocateTree(GameNodes.Count(), InformationSetInfos.Count(), MoveIndexToInfoSetIndex.Count(), Outcomes.Count);
+            t.allocateTree(GameNodeRelationships.Count(), InformationSetInfos.Count(), MoveIndexToInfoSetIndex.Count(), Outcomes.Count);
 
             int firstNonChancePlayerIndex;
             int secondNonChancePlayerIndex;
@@ -614,8 +620,8 @@ namespace ACESimBase.GameSolvingAlgorithms
             t.nodes[ECTATreeDefinition<T>.rootindex].father = -1;
             for (int n = 2; n < t.nodes.Length; n++)
             {
-                t.nodes[n].father = (int)GameNodes[n].ParentNodeID;
-                if (GameNodes[n].GameState is FinalUtilitiesNode outcome)
+                t.nodes[n].father = (int)GameNodeRelationships[n].ParentNodeID;
+                if (GameNodeRelationships[n].GameState is FinalUtilitiesNode outcome)
                 {
                     if (firstOutcome == -1)
                         firstOutcome = n;
@@ -629,12 +635,12 @@ namespace ACESimBase.GameSolvingAlgorithms
                 }
             }
 
-            for (int n = 1; n < GameNodes.Count(); n++)
+            for (int n = 1; n < GameNodeRelationships.Count(); n++)
             {
-                if (GameNodes[n].GameState is not FinalUtilitiesNode)
+                if (GameNodeRelationships[n].GameState is not FinalUtilitiesNode)
                     t.nodes[n].iset = InformationSetInfoIndexForGameNode(n);
             }
-            for (int n = 2; n < GameNodes.Count(); n++)
+            for (int n = 2; n < GameNodeRelationships.Count(); n++)
             {
                 int movesIndex = GetIndexOfMoveLeadingToNode(n);
                 t.nodes[n].moveAtFather = movesIndex;
@@ -668,7 +674,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                         var chance = InformationSetInfos[infoSetIndex].ChanceNode;
                         var rational = InformationSetInfos[infoSetIndex].ChanceNode.GetProbabilitiesAsRationals(!EvolutionSettings.SequenceFormCutOffProbabilityZeroNodes, EvolutionSettings.MaxIntegralUtility)[moveNumber - 1];
                         if (rational.IsZero && !EvolutionSettings.SequenceFormCutOffProbabilityZeroNodes)
-                            throw new Exception("Zero chance probabilities not allowed"); 
+                            throw new Exception("Zero chance probabilities not allowed");
                         if (chance.Decision.DistributedChanceDecision && EvolutionSettings.DistributeChanceDecisions)
                         {
                             t.moves[moveIndex].behavioralProbability = moveNumber == 1 ? MaybeExact<T>.One() : MaybeExact<T>.Zero();
@@ -680,7 +686,6 @@ namespace ACESimBase.GameSolvingAlgorithms
             }
         }
 
-
         public void UpdateECTAOutcomes<T>(ECTATreeDefinition<T> t) where T : MaybeExact<T>, new()
         {
             int[][] pay = GetOutcomesForECTA();
@@ -691,7 +696,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             int firstOutcome = -1;
             for (int n = 2; n < t.nodes.Length; n++)
             {
-                if (GameNodes[n].GameState is FinalUtilitiesNode outcome)
+                if (GameNodeRelationships[n].GameState is FinalUtilitiesNode outcome)
                 {
                     if (firstOutcome == -1)
                         firstOutcome = n;
@@ -722,7 +727,7 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         int InformationSetInfoIndexForGameNode(int nodeIndex)
         {
-            GameNodeRelationship gameNode = GameNodes[nodeIndex];
+            GameNodeRelationship gameNode = GameNodeRelationships[nodeIndex];
             var gameState = gameNode.GameState;
             return (int)gameState.AltNodeNumber;
             //for (int i = 0; i < InformationSetInfos.Count(); i++)
@@ -732,17 +737,17 @@ namespace ACESimBase.GameSolvingAlgorithms
         }
         private int GetIndexOfMoveLeadingToNode(int nodeIndex)
         {
-            int parentNodeID = (int)GameNodes[nodeIndex].ParentNodeID;
+            int parentNodeID = (int)GameNodeRelationships[nodeIndex].ParentNodeID;
             int parentNodeInformationSetInfoIndex = InformationSetInfoIndexForGameNode(parentNodeID);
-            byte actionAtParent = (byte)GameNodes[nodeIndex].ActionAtParent;
+            byte actionAtParent = (byte)GameNodeRelationships[nodeIndex].ActionAtParent;
             int movesIndex = MoveIndexFromInfoSetIndexAndMoveWithinInfoSet[(parentNodeInformationSetInfoIndex, actionAtParent)];
             return movesIndex;
         }
         private (int moveIndex, int ectaPlayerID) GetIndexAndPlayerOfMoveLeadingToNode(int nodeIndex)
         {
-            int parentNodeID = (int)GameNodes[nodeIndex].ParentNodeID;
+            int parentNodeID = (int)GameNodeRelationships[nodeIndex].ParentNodeID;
             int parentNodeInformationSetInfoIndex = InformationSetInfoIndexForGameNode(parentNodeID);
-            byte actionAtParent = (byte)GameNodes[nodeIndex].ActionAtParent;
+            byte actionAtParent = (byte)GameNodeRelationships[nodeIndex].ActionAtParent;
             int movesIndex = MoveIndexFromInfoSetIndexAndMoveWithinInfoSet[(parentNodeInformationSetInfoIndex, actionAtParent)];
             int ectaPlayerID = InformationSetInfos[parentNodeInformationSetInfoIndex].ECTAPlayerID;
             return (movesIndex, ectaPlayerID);
@@ -757,14 +762,14 @@ namespace ACESimBase.GameSolvingAlgorithms
                 {
                     moves.Add(moveIndex);
                 }
-                nodeIndex = (int)GameNodes[nodeIndex].ParentNodeID;
+                nodeIndex = (int)GameNodeRelationships[nodeIndex].ParentNodeID;
             }
             moves.Reverse();
             return moves;
         }
         private List<IGrouping<int, int>> NodesGroupedByInformationSet()
         {
-            var gameNodesWithInformationSets = GameNodes.Select((item, index) => (item, index)).Where(x => x.item != null && x.item.GameState is not FinalUtilitiesNode).Select(x => x.index).ToList();
+            var gameNodesWithInformationSets = GameNodeRelationships.Select((item, index) => (item, index)).Where(x => x.item != null && x.item.GameState is not FinalUtilitiesNode).Select(x => x.index).ToList();
             List<IGrouping<int, int>> grouped = gameNodesWithInformationSets.GroupBy(nodeIndex => InformationSetInfoIndexForGameNode(nodeIndex)).ToList();
             return grouped;
         }
@@ -804,7 +809,7 @@ namespace ACESimBase.GameSolvingAlgorithms
         {{ {String.Join(", ", player1Rounded)} }} 
     }};";
             s.AppendLine(s1);
-            string s2 = $@"    alloctree({GameNodes.Count()},{InformationSetInfos.Count()},{MoveIndexToInfoSetIndex.Count()},{outcomes.Count});
+            string s2 = $@"    alloctree({GameNodeRelationships.Count()},{InformationSetInfos.Count()},{MoveIndexToInfoSetIndex.Count()},{outcomes.Count});
     Outcome z = outcomes;
     firstiset[0] = isets + 0;
     firstiset[1] = isets + {FirstInformationSetInfosIndexForPlayers[1]};
@@ -819,11 +824,11 @@ namespace ACESimBase.GameSolvingAlgorithms
 ";
             s.Append(s2);
             int firstOutcome = -1;
-            for (int n = 2; n < GameNodes.Count(); n++)
+            for (int n = 2; n < GameNodeRelationships.Count(); n++)
             {
-                s.AppendLine($@"    nodes[{n}].father = nodes + {GameNodes[n].ParentNodeID};
+                s.AppendLine($@"    nodes[{n}].father = nodes + {GameNodeRelationships[n].ParentNodeID};
                     ");
-                if (GameNodes[n].GameState is FinalUtilitiesNode outcome)
+                if (GameNodeRelationships[n].GameState is FinalUtilitiesNode outcome)
                 {
                     if (firstOutcome == -1)
                         firstOutcome = n;
@@ -835,12 +840,12 @@ namespace ACESimBase.GameSolvingAlgorithms
     z++;");
                 }
             }
-            for (int n = 1; n < GameNodes.Count(); n++)
+            for (int n = 1; n < GameNodeRelationships.Count(); n++)
             {
-                if (GameNodes[n].GameState is not FinalUtilitiesNode)
+                if (GameNodeRelationships[n].GameState is not FinalUtilitiesNode)
                     s.AppendLine($"    nodes[{n}].iset = isets + {InformationSetInfoIndexForGameNode(n)};");
             }
-            for (int n = 2; n < GameNodes.Count(); n++)
+            for (int n = 2; n < GameNodeRelationships.Count(); n++)
             {
                 int movesIndex = GetIndexOfMoveLeadingToNode(n);
                 s.AppendLine($"    nodes[{n}].reachedby = moves + {movesIndex};");
@@ -1114,20 +1119,48 @@ namespace ACESimBase.GameSolvingAlgorithms
             int equilibriumIndex = 0;
             foreach (var infoSet in infoSets)
             {
-                if (PotentiallyReachableInformationSets.Contains(infoSet.InformationSetNodeNumber))
+                bool notReachable = !PotentiallyReachableInformationSets.Contains(infoSet.InformationSetNodeNumber);
+                for (byte i = 0; i < infoSet.NumPossibleActions; i++)
                 {
-                    for (int i = 0; i < infoSet.NumPossibleActions; i++)
-                        expanded.Add(equilibrium[equilibriumIndex++]);
-                }
-                else
-                {
-                    for (int i = 0; i < infoSet.NumPossibleActions; i++)
+                    // There are two reasons that an information set probability may be omitted and therefore needs to be added back in.
+                    // First, the entire information set may not be potentially reachable, because of zero-probability earlier decisions (including chance).
+                    // Second, the particular action may be blocked.
+                    bool actionBlocked = !notReachable && BlockedPlayerActions != null && BlockedPlayerActions[infoSet.InformationSetNodeNumber].Contains(i);
+                    if (notReachable || actionBlocked)
                         expanded.Add(MaybeExact<T>.Zero());
+                    else
+                        expanded.Add(equilibrium[equilibriumIndex++]);
                 }
             }
             TabbedText.WriteLine($"Changed to original form:");
             TabbedText.WriteLine(String.Join(",", equilibrium.Select(x => x.ToString())));
             return expanded.ToArray();
+        }
+
+        private void IdentifyProbabilitiesToBlockWhenTracingPath<T>(MaybeExact<T>[] equilibrium) where T : MaybeExact<T>, new()
+        {
+            // Note: This is relevant only when we are constraining the next equilibrium we find (with different settings) to be very close to this equilibrium, i.e. differing by no more than one step.
+            if (!EvolutionSettings.SequenceFormBlockDistantActionsWhenTracingEquilibrium || !EvolutionSettings.ConsiderInitializingToMostRecentEquilibrium)
+                throw new NotImplementedException();
+            BlockedPlayerActions = new Dictionary<int, List<byte>>();
+            var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => WhenInformationSetVisited.GetValueOrDefault(x.InformationSetNodeNumber, int.MaxValue)).ToList();
+            int equilibriumIndex = 0;
+            foreach (var infoSet in infoSets)
+            {
+                List<byte> actionsToAllow = new List<byte>();
+                List<MaybeExact<T>> probabilities = new List<MaybeExact<T>>();
+                for (int i = 0; i < infoSet.NumPossibleActions; i++)
+                    probabilities.Add(equilibrium[equilibriumIndex++]);
+                // find the index of the highest value in probabilities
+                byte highestIndex = (byte) probabilities.Select((x, i) => new { x, i }).OrderByDescending(x => x.x).First().i;
+                if (highestIndex > 0)
+                    actionsToAllow.Add((byte) (highestIndex - 1));
+                actionsToAllow.Add((byte)highestIndex);
+                if (highestIndex < infoSet.NumPossibleActions - 1)
+                    actionsToAllow.Add((byte)(highestIndex + 1));
+                var actionsToBlock = Enumerable.Range(0, infoSet.NumPossibleActions).Where(x => !actionsToAllow.Contains((byte)x)).Select(x => (byte) x).ToList();
+                BlockedPlayerActions[infoSet.InformationSetNodeNumber] = actionsToBlock;
+            }
         }
 
         private void SetInformationSetsToEquilibrium(double[] actionProbabilities)

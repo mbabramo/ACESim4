@@ -1,8 +1,9 @@
 ﻿using Rationals;
+using System;
 
 namespace ACESimBase.GameSolvingSupport
 {
-    public interface MaybeExact<T> where T : MaybeExact<T>, new()
+    public interface MaybeExact<T> : IComparable<T> where T : MaybeExact<T>, new()
     {
         double AsDouble { get; }
         Rational AsRational { get; }

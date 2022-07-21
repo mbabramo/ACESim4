@@ -13,18 +13,20 @@ namespace ACESimBase.GameSolvingSupport
 
         public record ForwardInfo(int gameNodeRelationshipID, bool[] nextIsZero);
 
-        public List<GameNodeRelationship> Relationships;
+        public List<GameNodeRelationship> NodeRelationships;
         public bool SequenceFormCutOffProbabilityZeroNodes;
         public int MaxIntegralUtility;
         public HashSet<int> PotentiallyReachableInformationSets = new HashSet<int>();
         public List<int> InformationSetsOrderVisited = new List<int>();
         public Dictionary<int, int> WhenInformationSetVisited => InformationSetsOrderVisited.Select((item, index) => (item, index)).ToDictionary(x => x.item, x => x.index);
+        public Dictionary<int, List<byte>> BlockedPlayerActions;
 
-        public GameNodeRelationshipsFinder(IGameState root, bool sequenceFormCutOffProbabilityZeroNodes, int maxIntegralUtility)
+        public GameNodeRelationshipsFinder(IGameState root, bool sequenceFormCutOffProbabilityZeroNodes, int maxIntegralUtility, Dictionary<int, List<byte>> blockedPlayerActions)
         {
-            Relationships =  new List<GameNodeRelationship>() { new GameNodeRelationship(0, root, null, null) };
+            NodeRelationships =  new List<GameNodeRelationship>() { new GameNodeRelationship(0, root, null, null) };
             SequenceFormCutOffProbabilityZeroNodes = sequenceFormCutOffProbabilityZeroNodes;
             MaxIntegralUtility = maxIntegralUtility;
+            BlockedPlayerActions = blockedPlayerActions;
         }
 
         public bool ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<bool> fromSuccessors, int distributorChanceInputs)
@@ -41,8 +43,8 @@ namespace ACESimBase.GameSolvingSupport
                 isZero = fromPredecessor.nextIsZero[predecessorAction - 1];
                 if (!isZero || !SequenceFormCutOffProbabilityZeroNodes)
                 {
-                    id = Relationships.Count();
-                    Relationships.Add(new GameNodeRelationship(id, chanceNode, fromPredecessor.gameNodeRelationshipID, predecessorAction));
+                    id = NodeRelationships.Count();
+                    NodeRelationships.Add(new GameNodeRelationship(id, chanceNode, fromPredecessor.gameNodeRelationshipID, predecessorAction));
                 }
             }
             var probabilitiesAsRationals = chanceNode.GetProbabilitiesAsRationals(!SequenceFormCutOffProbabilityZeroNodes, MaxIntegralUtility);
@@ -55,8 +57,8 @@ namespace ACESimBase.GameSolvingSupport
             bool isZero = fromPredecessor.nextIsZero[predecessorAction - 1];
             if (!isZero || !SequenceFormCutOffProbabilityZeroNodes)
             {
-                int id = Relationships.Count();
-                Relationships.Add(new GameNodeRelationship(id, finalUtilities, fromPredecessor.gameNodeRelationshipID, predecessorAction));
+                int id = NodeRelationships.Count();
+                NodeRelationships.Add(new GameNodeRelationship(id, finalUtilities, fromPredecessor.gameNodeRelationshipID, predecessorAction));
             }
 
             return true;
@@ -81,11 +83,11 @@ namespace ACESimBase.GameSolvingSupport
                         PotentiallyReachableInformationSets.Add(informationSet.InformationSetNodeNumber); // Note that if an information set is non-zero a single time, then it is non-zero.
                         InformationSetsOrderVisited.Add(informationSet.InformationSetNodeNumber); // normally, information sets would be visited in order. But since a zero can prevent visiting an information set, the order may change. 
                     }
-                    id = Relationships.Count();
-                    Relationships.Add(new GameNodeRelationship(id, informationSet, fromPredecessor.gameNodeRelationshipID, predecessorAction));
+                    id = NodeRelationships.Count();
+                    NodeRelationships.Add(new GameNodeRelationship(id, informationSet, fromPredecessor.gameNodeRelationshipID, predecessorAction));
                 }
             }
-            bool[] nextIsZero = Enumerable.Range(0, informationSet.GetNumPossibleActions()).Select(x => isZero).ToArray();
+            bool[] nextIsZero = Enumerable.Range(0, informationSet.GetNumPossibleActions()).Select(x => isZero || (BlockedPlayerActions != null && BlockedPlayerActions[informationSet.InformationSetNodeNumber].Contains((byte) x))).ToArray(); 
             return new ForwardInfo(id, nextIsZero);
         }
     }
