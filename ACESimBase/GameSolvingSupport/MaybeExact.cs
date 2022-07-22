@@ -3,7 +3,7 @@ using System;
 
 namespace ACESimBase.GameSolvingSupport
 {
-    public interface IMaybeExact<T> : IComparable<T> where T : IMaybeExact<T>, new()
+    public interface IMaybeExact<T> : IComparable<T>, IComparable where T : IMaybeExact<T>, new()
     {
         double AsDouble { get; }
         Rational AsRational { get; }

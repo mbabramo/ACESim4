@@ -31,7 +31,7 @@ namespace ACESimBase.GameSolvingAlgorithms
         }
         SequenceFormApproach Approach = SequenceFormApproach.ECTA;
 
-        object MostRecentEquilibrium; // MaybeExact<T>[]
+        static object MostRecentEquilibrium; // MaybeExact<T>[]
 
         public SequenceForm(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
         {
@@ -119,7 +119,7 @@ namespace ACESimBase.GameSolvingAlgorithms
         List<GameNodeRelationship> GameNodeRelationships;
         List<InformationSetInfo> InformationSetInfos;
         HashSet<int> PotentiallyReachableInformationSets;
-        Dictionary<int, List<byte>> BlockedPlayerActions;
+        static Dictionary<int, List<byte>> BlockedPlayerActions; // static because this is determined across executions
         Dictionary<int, int> WhenInformationSetVisited;
         public List<int> MoveIndexToInfoSetIndex;
         public List<int> FirstInformationSetInfosIndexForPlayers;
@@ -533,7 +533,10 @@ namespace ACESimBase.GameSolvingAlgorithms
                     FirstMovesIndexForPlayers.Add(MoveIndexToInfoSetIndex.Count());
                     MoveIndexToInfoSetIndex.Add(-1);
                 }
-                for (int move = 1; move <= informationSetInfo.NumPossibleMoves; move++)
+                int numMoves = informationSetInfo.NumPossibleMoves;
+                if (BlockedPlayerActions != null && informationSetInfo.InformationSetNode != null && BlockedPlayerActions.ContainsKey(informationSetInfo.InformationSetNode.InformationSetNodeNumber))
+                    numMoves -= BlockedPlayerActions[informationSetInfo.InformationSetNode.InformationSetNodeNumber].Count;
+                for (int move = 1; move <= numMoves; move++)
                 {
                     MoveIndexFromInfoSetIndexAndMoveWithinInfoSet[(informationSetInfo.Index, move)] = MoveIndexToInfoSetIndex.Count();
                     MoveIndexToInfoSetIndex.Add(informationSetInfo.Index); // Here's where we add the move.
@@ -747,7 +750,7 @@ namespace ACESimBase.GameSolvingAlgorithms
         {
             int parentNodeID = (int)GameNodeRelationships[nodeIndex].ParentNodeID;
             int parentNodeInformationSetInfoIndex = InformationSetInfoIndexForGameNode(parentNodeID);
-            byte actionAtParent = (byte)GameNodeRelationships[nodeIndex].ActionAtParent;
+            byte actionAtParent = (byte)GameNodeRelationships[nodeIndex].ActionAtParent; Debug; // must translate that
             int movesIndex = MoveIndexFromInfoSetIndexAndMoveWithinInfoSet[(parentNodeInformationSetInfoIndex, actionAtParent)];
             int ectaPlayerID = InformationSetInfos[parentNodeInformationSetInfoIndex].ECTAPlayerID;
             return (movesIndex, ectaPlayerID);

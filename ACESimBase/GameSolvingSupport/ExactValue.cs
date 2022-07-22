@@ -141,5 +141,11 @@ namespace ACESimBase.GameSolvingSupport
             else
                 return 0;
         }
+        public int CompareTo(object obj)
+        {
+            if (obj.GetType() != GetType())
+                return -1;
+            return CompareTo((ExactValue) obj);
+        }
     }
 }

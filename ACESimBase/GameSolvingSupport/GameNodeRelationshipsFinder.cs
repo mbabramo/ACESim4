@@ -44,7 +44,8 @@ namespace ACESimBase.GameSolvingSupport
                 if (!isZero || !SequenceFormCutOffProbabilityZeroNodes)
                 {
                     id = NodeRelationships.Count();
-                    NodeRelationships.Add(new GameNodeRelationship(id, chanceNode, fromPredecessor.gameNodeRelationshipID, predecessorAction));
+                    byte adjustedPredecessorAction = GetAdjustedPredecessorAction(predecessor, predecessorAction);
+                    NodeRelationships.Add(new GameNodeRelationship(id, chanceNode, fromPredecessor.gameNodeRelationshipID, adjustedPredecessorAction));
                 }
             }
             var probabilitiesAsRationals = chanceNode.GetProbabilitiesAsRationals(!SequenceFormCutOffProbabilityZeroNodes, MaxIntegralUtility);
@@ -58,10 +59,20 @@ namespace ACESimBase.GameSolvingSupport
             if (!isZero || !SequenceFormCutOffProbabilityZeroNodes)
             {
                 int id = NodeRelationships.Count();
-                NodeRelationships.Add(new GameNodeRelationship(id, finalUtilities, fromPredecessor.gameNodeRelationshipID, predecessorAction));
+                byte adjustedPredecessorAction = GetAdjustedPredecessorAction(predecessor, predecessorAction);
+                NodeRelationships.Add(new GameNodeRelationship(id, finalUtilities, fromPredecessor.gameNodeRelationshipID, adjustedPredecessorAction));
             }
 
             return true;
+        }
+        
+        private byte GetAdjustedPredecessorAction(IGameState predecessor, byte predecessorAction)
+        {
+            int predecessorNodeNumber = predecessor.GetInformationSetNodeNumber();
+            int adjustedPredecessorAction = predecessorAction;
+            if (BlockedPlayerActions != null && BlockedPlayerActions.ContainsKey(predecessorNodeNumber))
+                adjustedPredecessorAction -= BlockedPlayerActions[predecessorNodeNumber].Where(x => x < predecessorAction).Count();
+            return (byte) adjustedPredecessorAction;
         }
 
         public bool InformationSet_Backward(InformationSetNode informationSet, IEnumerable<bool> fromSuccessors)
@@ -84,7 +95,8 @@ namespace ACESimBase.GameSolvingSupport
                         InformationSetsOrderVisited.Add(informationSet.InformationSetNodeNumber); // normally, information sets would be visited in order. But since a zero can prevent visiting an information set, the order may change. 
                     }
                     id = NodeRelationships.Count();
-                    NodeRelationships.Add(new GameNodeRelationship(id, informationSet, fromPredecessor.gameNodeRelationshipID, predecessorAction));
+                    byte adjustedPredecessorAction = GetAdjustedPredecessorAction(predecessor, predecessorAction);
+                    NodeRelationships.Add(new GameNodeRelationship(id, informationSet, fromPredecessor.gameNodeRelationshipID, adjustedPredecessorAction));
                 }
             }
             bool[] nextIsZero = Enumerable.Range(0, informationSet.GetNumPossibleActions()).Select(x => isZero || (BlockedPlayerActions != null && BlockedPlayerActions[informationSet.InformationSetNodeNumber].Contains((byte) x))).ToArray(); 
