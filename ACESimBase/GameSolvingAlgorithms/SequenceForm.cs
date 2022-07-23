@@ -130,7 +130,16 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         public record InformationSetInfo(IGameState GameState, int ECTAPlayerID, int Index, int FirstMoveIndex, int MaxIntegralUtility)
         {
-            public int NumPossibleMoves => GameState.GetNumPossibleActions();
+            public int NumPossibleMoves
+            {
+                get
+                {
+                    int numPossibleActions = GameState.GetNumPossibleActions();
+                    if (BlockedPlayerActions != null && GameState.GetGameStateType() == GameStateTypeEnum.InformationSet && BlockedPlayerActions.ContainsKey(GameState.GetInformationSetNodeNumber()))
+                        numPossibleActions -= BlockedPlayerActions[GameState.GetInformationSetNodeNumber()].Count();
+                    return numPossibleActions;
+                }
+            }
             public bool IsChance => GameState is ChanceNode;
             public InformationSetNode InformationSetNode => IsChance ? null : (InformationSetNode)GameState;
             public ChanceNode ChanceNode => IsChance ? (ChanceNode)GameState : null;
@@ -200,9 +209,9 @@ namespace ACESimBase.GameSolvingAlgorithms
                     }
                     ECTARunner<T> ecta = GetECTARunner<T>(numPriorsToGet);
                     results = ecta.Execute(t => SetupECTA(t), scenarioUpdater, 0, initialProbabilities?.ToArray());
-                    MostRecentEquilibrium = results.Last().equilibrium;
                 }
                 results = results.Select(x => (ReverseEffectsOfCuttingOffProbabilityZeroNodes(x.equilibrium), x.frequency)).ToList();
+                MostRecentEquilibrium = results.Last().equilibrium;
                 NarrowDownToValidEquilibria<T>(results);
                 equilibria = results.Select(x => (x.equilibrium.Select(y => y.AsDouble).ToArray(), x.frequency)).ToList();
                 if (EvolutionSettings.SequenceFormBlockDistantActionsWhenTracingEquilibrium)
@@ -384,7 +393,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             IMaybeExact<T> errorTolerance = new T().IsExact ? IMaybeExact<T>.Zero() : IMaybeExact<T>.One().DividedBy(IMaybeExact<T>.FromInteger(EvolutionSettings.MaxIntegralUtility));
             CalculateUtilitiesAtEachInformationSet_MaybeExact<T> calc = new CalculateUtilitiesAtEachInformationSet_MaybeExact<T>(chanceProbabilities, playerProbabilities, utilities, errorTolerance);
             TreeWalk_Tree(calc);
-            if (EvolutionSettings.ConfirmPerfectEquilibria)
+            if (EvolutionSettings.ConfirmPerfectEquilibria && !EvolutionSettings.SequenceFormBlockDistantActionsWhenTracingEquilibrium)
             {
                 bool perfect = calc.VerifyPerfectEquilibrium(InformationSets, EvolutionSettings.ThrowIfNotPerfectEquilibrium);
                 TabbedText.WriteLine($"Perfect equilibrium {(!perfect ? "not " : "")}confirmed {s.ElapsedMilliseconds} ms");
@@ -534,8 +543,6 @@ namespace ACESimBase.GameSolvingAlgorithms
                     MoveIndexToInfoSetIndex.Add(-1);
                 }
                 int numMoves = informationSetInfo.NumPossibleMoves;
-                if (BlockedPlayerActions != null && informationSetInfo.InformationSetNode != null && BlockedPlayerActions.ContainsKey(informationSetInfo.InformationSetNode.InformationSetNodeNumber))
-                    numMoves -= BlockedPlayerActions[informationSetInfo.InformationSetNode.InformationSetNodeNumber].Count;
                 for (int move = 1; move <= numMoves; move++)
                 {
                     MoveIndexFromInfoSetIndexAndMoveWithinInfoSet[(informationSetInfo.Index, move)] = MoveIndexToInfoSetIndex.Count();
@@ -750,11 +757,12 @@ namespace ACESimBase.GameSolvingAlgorithms
         {
             int parentNodeID = (int)GameNodeRelationships[nodeIndex].ParentNodeID;
             int parentNodeInformationSetInfoIndex = InformationSetInfoIndexForGameNode(parentNodeID);
-            byte actionAtParent = (byte)GameNodeRelationships[nodeIndex].ActionAtParent; Debug; // must translate that
+            byte actionAtParent = (byte)GameNodeRelationships[nodeIndex].ActionAtParent;
             int movesIndex = MoveIndexFromInfoSetIndexAndMoveWithinInfoSet[(parentNodeInformationSetInfoIndex, actionAtParent)];
             int ectaPlayerID = InformationSetInfos[parentNodeInformationSetInfoIndex].ECTAPlayerID;
             return (movesIndex, ectaPlayerID);
         }
+
         private List<int> GetSequenceOfMovesLeadingToNode(int nodeIndex, int ectaPlayerID)
         {
             List<int> moves = new List<int>();
@@ -1123,12 +1131,12 @@ namespace ACESimBase.GameSolvingAlgorithms
             foreach (var infoSet in infoSets)
             {
                 bool notReachable = !PotentiallyReachableInformationSets.Contains(infoSet.InformationSetNodeNumber);
-                for (byte i = 0; i < infoSet.NumPossibleActions; i++)
+                for (byte i = 1; i <= infoSet.NumPossibleActions; i++)
                 {
                     // There are two reasons that an information set probability may be omitted and therefore needs to be added back in.
                     // First, the entire information set may not be potentially reachable, because of zero-probability earlier decisions (including chance).
                     // Second, the particular action may be blocked.
-                    bool actionBlocked = !notReachable && BlockedPlayerActions != null && BlockedPlayerActions[infoSet.InformationSetNodeNumber].Contains(i);
+                    bool actionBlocked = !notReachable && infoSet.IsChanceNode == false && BlockedPlayerActions != null && BlockedPlayerActions[infoSet.InformationSetNodeNumber].Contains(i);
                     if (notReachable || actionBlocked)
                         expanded.Add(IMaybeExact<T>.Zero());
                     else
@@ -1136,7 +1144,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 }
             }
             TabbedText.WriteLine($"Changed to original form:");
-            TabbedText.WriteLine(String.Join(",", equilibrium.Select(x => x.ToString())));
+            TabbedText.WriteLine(String.Join(",", expanded.Select(x => x.ToString())));
             return expanded.ToArray();
         }
 
@@ -1152,16 +1160,16 @@ namespace ACESimBase.GameSolvingAlgorithms
             {
                 List<byte> actionsToAllow = new List<byte>();
                 List<IMaybeExact<T>> probabilities = new List<IMaybeExact<T>>();
-                for (int i = 0; i < infoSet.NumPossibleActions; i++)
+                for (int i = 1; i <= infoSet.NumPossibleActions; i++)
                     probabilities.Add(equilibrium[equilibriumIndex++]);
                 // find the index of the highest value in probabilities
-                byte highestIndex = (byte) probabilities.Select((x, i) => new { x, i }).OrderByDescending(x => x.x).First().i;
-                if (highestIndex > 0)
+                byte highestIndex = (byte) (probabilities.Select((x, i) => new { x, i}).OrderByDescending(x => x.x).First().i + 1 /* one-based actions */);
+                if (highestIndex > 1)
                     actionsToAllow.Add((byte) (highestIndex - 1));
                 actionsToAllow.Add((byte)highestIndex);
-                if (highestIndex < infoSet.NumPossibleActions - 1)
+                if (highestIndex < infoSet.NumPossibleActions)
                     actionsToAllow.Add((byte)(highestIndex + 1));
-                var actionsToBlock = Enumerable.Range(0, infoSet.NumPossibleActions).Where(x => !actionsToAllow.Contains((byte)x)).Select(x => (byte) x).ToList();
+                var actionsToBlock = Enumerable.Range(1, infoSet.NumPossibleActions).Where(x => !actionsToAllow.Contains((byte)x)).Select(x => (byte) x).ToList();
                 BlockedPlayerActions[infoSet.InformationSetNodeNumber] = actionsToBlock;
             }
         }

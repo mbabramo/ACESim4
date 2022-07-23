@@ -99,7 +99,7 @@ namespace ACESimBase.GameSolvingSupport
                     NodeRelationships.Add(new GameNodeRelationship(id, informationSet, fromPredecessor.gameNodeRelationshipID, adjustedPredecessorAction));
                 }
             }
-            bool[] nextIsZero = Enumerable.Range(0, informationSet.GetNumPossibleActions()).Select(x => isZero || (BlockedPlayerActions != null && BlockedPlayerActions[informationSet.InformationSetNodeNumber].Contains((byte) x))).ToArray(); 
+            bool[] nextIsZero = Enumerable.Range(1, informationSet.GetNumPossibleActions()).Select(x => isZero || (BlockedPlayerActions != null && BlockedPlayerActions[informationSet.InformationSetNodeNumber].Contains((byte) x))).ToArray(); 
             return new ForwardInfo(id, nextIsZero);
         }
     }
