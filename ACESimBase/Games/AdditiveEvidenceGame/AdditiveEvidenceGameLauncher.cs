@@ -10,7 +10,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
     {
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
-        public override string MasterReportNameForDistributedProcessing => "AE009"; 
+        public override string MasterReportNameForDistributedProcessing => "AE012"; 
         public override GameDefinition GetGameDefinition() => new AdditiveEvidenceGameDefinition();
 
         public override GameOptions GetDefaultSingleGameOptions() => AdditiveEvidenceGameOptionsGenerator.GetAdditiveEvidenceGameOptions();
@@ -31,7 +31,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public override List<GameOptions> GetOptionsSets()
         {
             OptionSetChoice optionSetChoice = OptionSetChoice.Original;
-            return GetOptionSetsFromChoice(optionSetChoice);
+            var results = GetOptionSetsFromChoice(optionSetChoice);
+            return results;
         }
 
         public List<List<AdditiveEvidenceGameOptions>> GetSetsOfOptionsSets()
@@ -137,13 +138,13 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         {
             // now, liability and damages only
 
-            foreach (double costs in new double[] { 0.125 }) // DEBUG 0, 0.0625, 0.125, 0.25, 0.50, 1.0 })
+            foreach (double costs in new double[] { 0, 0.0625, 0.125, 0.25 })
             {
-                foreach (double qualityKnownToBoth in new double[] { 0.35 }) // DEBUG , 0.40, 0.45, 0.50, 0.55, 0.60, 0.65 })
+                foreach (double qualityKnownToBoth in new double[] { 0.35 , 0.40, 0.45, 0.50, 0.55, 0.60, 0.65 })
                 {
-                    foreach (double? feeShiftingThreshold in Enumerable.Range(50, 51).Select(x => (double?) x / 100.0).ToArray()) // DEBUG feeShifting ? new double?[] { 0, 0.25, 0.50, 0.75, 1.0 } : new double?[] { 0 })
+                    foreach (double? feeShiftingThreshold in Enumerable.Range(0, 101).Select(x => (double?) x / 100.0).ToArray()) // DEBUG feeShifting ? new double?[] { 0, 0.25, 0.50, 0.75, 1.0 } : new double?[] { 0 })
                     {
-                        string settingsString = $"q{(int) (qualityKnownToBoth*100)}c{(int) (costs*100)}t{(int)(feeShiftingThreshold*100)}";
+                        string settingsString = $"q{(int) (qualityKnownToBoth*100):D3}c{(int) (costs*100):D3}t{(int)(feeShiftingThreshold*100):D3}";
                         switch (version)
                         {
                             case DMSVersion.Original:
