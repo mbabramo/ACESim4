@@ -135,9 +135,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public double? TrialValuePreShifting => TrialOccurs ? TrialValuePreShiftingIfOccurs : (double?)null;
         public double PTrialEffect_IfOccurs => TrialValuePreShiftingIfOccurs - (1.0 - DsProportionOfCostIfTrial()) * AdditiveEvidenceGameOptions.TrialCost;
         public double DTrialEffect_IfOccurs => 1.0 - TrialValuePreShiftingIfOccurs - (DsProportionOfCostIfTrial()) * AdditiveEvidenceGameOptions.TrialCost; // remember, this is a damages game, so defendant receives (1 - what is awarded to plaintiff)
-
-        public double PTrialEffectIgnoringOwnCosts_IfOccurs => PTrialEffect_IfOccurs + (TrialOccurs ? AdditiveEvidenceGameOptions.TrialCost * 0.5 : 0.0);
-        public double DTrialEffectIgnoringOwnCosts_IfOccurs => DTrialEffect_IfOccurs + (TrialOccurs ? AdditiveEvidenceGameOptions.TrialCost * 0.5 : 0.0);
         public double? PTrialEffect => TrialOccurs ? PTrialEffect_IfOccurs : (double?) null;
         public double? DTrialEffect => TrialOccurs ? DTrialEffect_IfOccurs : (double?) null;
 
@@ -198,11 +195,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public double PWelfare => PResultFromQuitting ?? (SettlementOccurs ? (double)SettlementValue : PTrialEffect_IfOccurs);
         public double DWelfare => DResultFromQuitting ?? (SettlementOccurs ? (double)(1.0 - SettlementValue) : DTrialEffect_IfOccurs);
-
-        public double PWelfareIgnoringOwnCosts => PResultFromQuitting ?? (SettlementOccurs ? (double)SettlementValue : PTrialEffectIgnoringOwnCosts_IfOccurs);
-        public double DWelfareIgnoringOwnCosts => DResultFromQuitting ?? (SettlementOccurs ? (double)(1.0 - SettlementValue) : DTrialEffectIgnoringOwnCosts_IfOccurs);
-
-        public double AccuracyIgnoringOwnCosts => Math.Abs(QualitySum - PWelfareIgnoringOwnCosts);
 
         public override string ToString()
         {
