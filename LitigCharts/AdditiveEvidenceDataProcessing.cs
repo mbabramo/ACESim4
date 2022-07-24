@@ -19,7 +19,7 @@ namespace LitigCharts
         {
             List<string> rowsToGet = new List<string>() { "All", "Settles", "Trial", "Shifting",   };
             List<string> replacementRowNames = rowsToGet.ToList();
-            List<string> columnsToGet = new List<string>() { "All", "PQuits", "DQuits", "Settles", "Trial", "Shifting", "ShiftingOccursIfTrial", "ShiftingValueIfTrial", "POffer", "DOffer", "AccSq", "Accuracy", "Accuracy_ForPlaintiff", "Accuracy_ForDefendant", "SettlementOrJudgment", "TrialValuePreShiftingIfOccurs", "TrialValueWithShiftingIfOccurs", "ResolutionValueIncludingShiftedAmount", "SettlementValue", "PWelfare", "DWelfare", "PBestGuess", "DBestGuess", "TrialCost", "FeeShifting", "FeeShiftingThreshold", "Alpha_Plaintiff_Quality", "Alpha_Plaintiff_Bias" };
+            List<string> columnsToGet = new List<string>() { "Exploit", "All", "TrialCost", "FeeShifting", "FeeShiftingThreshold", "Alpha_Plaintiff_Quality", "Alpha_Plaintiff_Bias", "Settles", "Trial", "PWelfare", "DWelfare", "PQuits", "DQuits", "Shifting", "ShiftingOccursIfTrial", "ShiftingValueIfTrial", "POffer", "DOffer", "AccSq", "Accuracy", "Accuracy_ForPlaintiff", "Accuracy_ForDefendant", "SettlementOrJudgment", "TrialValuePreShiftingIfOccurs", "TrialValueWithShiftingIfOccurs", "ResolutionValueIncludingShiftedAmount", "SettlementValue", "PBestGuess", "DBestGuess" };
             List<string> replacementColumnNames = columnsToGet.ToList();
             string endOfFileName = "";
 

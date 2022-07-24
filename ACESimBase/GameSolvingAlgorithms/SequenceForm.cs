@@ -204,10 +204,14 @@ namespace ACESimBase.GameSolvingAlgorithms
                         initialProbabilities = ((IMaybeExact<T>[])MostRecentEquilibrium).ToList();
                         TabbedText.WriteLine($"Initializing probabilities to {String.Join(",", initialProbabilities.Select(x => x.ToString()))}"); // DEBUG
                     }
-                    else if (EvolutionSettings.CustomSequenceFormInitialization)
+                    else
                     {
-                        initialProbabilities = GameDefinition.GetSequenceFormInitialization<T>();
+                        if (EvolutionSettings.CustomSequenceFormInitialization)
+                        {
+                            initialProbabilities = GameDefinition.GetSequenceFormInitialization<T>();
+                        }
                     }
+                    
                     ECTARunner<T> ecta = GetECTARunner<T>(numPriorsToGet);
                     results = ecta.Execute(t => SetupECTA(t), scenarioUpdater, 0, initialProbabilities?.ToArray());
                 }
@@ -468,6 +472,8 @@ namespace ACESimBase.GameSolvingAlgorithms
             if (NumNonChancePlayers != 2)
                 throw new NotImplementedException();
 
+            if (EvolutionSettings.SequenceFormBlockDistantActionsWhenTracingEquilibrium && GameDefinition.GameOptions.InitializeToMostRecentEquilibrium == false)
+                BlockedPlayerActions = null;
 
             IGameState rootState = GetGameState(GetStartOfGameHistoryPoint());
             GameNodeRelationshipsFinder finder = new GameNodeRelationshipsFinder(rootState, EvolutionSettings.SequenceFormCutOffProbabilityZeroNodes, EvolutionSettings.MaxIntegralUtility, BlockedPlayerActions);
