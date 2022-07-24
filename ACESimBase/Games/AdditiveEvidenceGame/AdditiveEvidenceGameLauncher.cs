@@ -142,7 +142,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             {
                 foreach (double qualityKnownToBoth in new double[] { 0.35 , 0.40, 0.45, 0.50, 0.55, 0.60, 0.65 })
                 {
-                    foreach (double? feeShiftingThreshold in feeShifting ? new double?[] { 0, 0.25, 0.50, 0.75, 1.0 } : new double?[] { 0 })
+                    foreach (double? feeShiftingThreshold in Enumerable.Range(0, 101).Select(x => (double?) (x / 100.0)).ToArray()) // DEBUG feeShifting ? new double?[] { 0, 0.25, 0.50, 0.75, 1.0 } : new double?[] { 0 })
                     {
                         string settingsString = $"q{(int) (qualityKnownToBoth*100):D3}c{(int) (costs*100):D3}t{(int)(feeShiftingThreshold*100):D3}";
                         switch (version)
