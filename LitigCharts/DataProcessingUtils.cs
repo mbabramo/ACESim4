@@ -19,7 +19,7 @@ namespace LitigCharts
 
             foreach (var gameOptionsSet in gameOptionsSets.Where(x => map[x.Name] == x.Name)) // for this aggregation, we want only one copy of each report, so we exclude the redundant names that include the baseline values for a noncritical set
             {
-                bool keepGoingOnException = true; // DEBUG
+                bool keepGoingOnException = false;
                 try
                 {
                     GetCSVLinesForGameOptionsSet(map, rowsToGet, replacementRowNames, filePrefix, ref fileSuffix, altFileSuffix, path, includeHeader, columnsToGet, replacementColumnNames, ref outputLines, gameOptionsSet);

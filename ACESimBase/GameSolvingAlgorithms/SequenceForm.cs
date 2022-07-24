@@ -202,7 +202,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                     if (EvolutionSettings.ConsiderInitializingToMostRecentEquilibrium && GameDefinition.GameOptions.InitializeToMostRecentEquilibrium && MostRecentEquilibrium != null)
                     {
                         initialProbabilities = ((IMaybeExact<T>[])MostRecentEquilibrium).ToList();
-                        TabbedText.WriteLine($"Initializing probabilities to {String.Join(",", initialProbabilities.Select(x => x.ToString()))}"); // DEBUG
+                        TabbedText.WriteLine($"Initializing probabilities to {String.Join(",", initialProbabilities.Select(x => x.ToString()))}");
                     }
                     else
                     {
@@ -1179,8 +1179,8 @@ namespace ACESimBase.GameSolvingAlgorithms
                 var actionsToBlock = Enumerable.Range(1, infoSet.NumPossibleActions).Where(x => !actionsToAllow.Contains((byte)x)).Select(x => (byte) x).ToList();
                 BlockedPlayerActions[infoSet.InformationSetNodeNumber] = actionsToBlock;
             }
-            if (BlockedPlayerActions.Any())
-                TabbedText.WriteLine($"Blocked actions: {String.Join(",", BlockedPlayerActions.Select(x => $"{x.Key}:{String.Join(",", x.Value)}"))}"); // DEBUG
+            //if (BlockedPlayerActions.Any())
+            //    TabbedText.WriteLine($"Blocked actions: {String.Join(",", BlockedPlayerActions.Select(x => $"{x.Key}:{String.Join(",", x.Value)}"))}");
         }
 
         private void SetInformationSetsToEquilibrium(double[] actionProbabilities)

@@ -66,10 +66,10 @@ namespace ACESim
         public bool CreateEquilibriaFileForSequenceForm = true;
         public bool PreloadedEquilibriaForSequenceForm = false;
         public bool CustomSequenceFormInitialization = false;
-        public bool ConsiderInitializingToMostRecentEquilibrium = true; // DEBUG
+        public bool ConsiderInitializingToMostRecentEquilibrium = false;
+        public bool SequenceFormBlockDistantActionsWhenTracingEquilibrium = false;
         public bool SkipIfEquilibriumFileAlreadyExists = false;
         public bool SequenceFormCutOffProbabilityZeroNodes = true; // If true, then instead of setting chance nodes to no less than the lowest permissible rational value, probability is set to zero, and that part of the tree will be excised. (The algorithm will not work if probabilities are left at zero.)
-        public bool SequenceFormBlockDistantActionsWhenTracingEquilibrium = true; // DEBUG
 
         public string SerializeResultsPrefixPlus(int scenario, int totalScenarios) => SerializeResultsPrefix + (totalScenarios > 0 ? scenario.ToString() : "");
 
