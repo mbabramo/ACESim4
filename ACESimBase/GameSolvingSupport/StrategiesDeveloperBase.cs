@@ -110,6 +110,7 @@ namespace ACESim
 
         public async Task<ReportCollection> DevelopStrategies(string optionSetName, int? restrictToScenarioIndex, string masterReportName)
         {
+            DateTime started = DateTime.Now;
             MasterReportName = masterReportName;
             await Initialize();
             ReportCollection reportCollection = new ReportCollection();
@@ -169,6 +170,9 @@ namespace ACESim
                 await RecoverSavedPCAModelDataAndPerformAnalysis(reportCollection, masterReportName); // i.e., we've gone through all scenarios all at once (if there are more than one) and so now we should perform PCA. If we are distributing the scenarios across processes, then we will execute this through a later task instead.
             if (constructCorrelatedEquilibrium)
                 reportCollection = await FinalizeCorrelatedEquilibrium();
+            DateTime finished = DateTime.Now;
+            TimeSpan timeSpan = finished - started;
+            Status.OverallCalculationTime = (int) timeSpan.TotalSeconds;
             return reportCollection;
         }
 
@@ -2112,6 +2116,8 @@ namespace ACESim
             public bool BestResponseReflectsCurrentStrategy;
             public long BestResponseCalculationTime;
 
+            public long OverallCalculationTime;
+
             public DevelopmentStatus DeepCopy()
             {
                 return new DevelopmentStatus()
@@ -2678,6 +2684,7 @@ namespace ACESim
                     d.StaticTextColumns.Add(("Exploit", Status.BestResponseImprovementAdjAvg.ToSignificantFigures(4)));
                 if (Status.Refinement != 0)
                     d.StaticTextColumns.Add(("Refine", Status.Refinement.ToSignificantFigures(4)));
+                d.StaticTextColumns.Add(("Seconds", Status.OverallCalculationTime.ToString()));
             }
             return simpleReportDefinitions;
         }
