@@ -10,7 +10,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
     {
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
-        public override string MasterReportNameForDistributedProcessing => "AE013"; 
+        public override string MasterReportNameForDistributedProcessing => "AE014"; 
         public override GameDefinition GetGameDefinition() => new AdditiveEvidenceGameDefinition();
 
         public override GameOptions GetDefaultSingleGameOptions() => AdditiveEvidenceGameOptionsGenerator.GetAdditiveEvidenceGameOptions();
@@ -26,11 +26,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             TrialGuaranteed,
             VaryingNoiseEtc,
             Temporary,
+            EvenStrength,
         }
 
         public override List<GameOptions> GetOptionsSets()
         {
-            OptionSetChoice optionSetChoice = OptionSetChoice.Original;
+            OptionSetChoice optionSetChoice = OptionSetChoice.EvenStrength;
             var results = GetOptionSetsFromChoice(optionSetChoice);
             return results;
         }
@@ -60,6 +61,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             {
                 case OptionSetChoice.Original:
                     AddDMSGameOptionSets(optionSets, DMSVersion.Original, withOptionNotToPlay);
+                    break;
+                case OptionSetChoice.EvenStrength:
+                    AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrength, withOptionNotToPlay);
                     break;
                 case OptionSetChoice.TwoSets:
                     AddDMSGameOptionSets(optionSets, DMSVersion.Original, withOptionNotToPlay);
