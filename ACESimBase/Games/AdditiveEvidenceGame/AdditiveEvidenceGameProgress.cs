@@ -94,7 +94,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public double DBestGuess => AdditiveEvidenceGameOptions.Alpha_Quality * (AdditiveEvidenceGameOptions.Alpha_Both_Quality * AdditiveEvidenceGameOptions.Evidence_Both_Quality + AdditiveEvidenceGameOptions.Alpha_Plaintiff_Quality * 0.5 + AdditiveEvidenceGameOptions.Alpha_Defendant_Quality * Chance_Defendant_Quality_Continuous + AdditiveEvidenceGameOptions.Alpha_Neither_Quality * 0.5) + AdditiveEvidenceGameOptions.Alpha_Bias * (AdditiveEvidenceGameOptions.Alpha_Both_Bias * AdditiveEvidenceGameOptions.Evidence_Both_Bias + AdditiveEvidenceGameOptions.Alpha_Plaintiff_Bias * 0.5 + AdditiveEvidenceGameOptions.Alpha_Defendant_Bias * Chance_Defendant_Bias_Continuous + AdditiveEvidenceGameOptions.Alpha_Neither_Bias * 0.5);
 
-        public double TrialValuePreShiftingIfOccurs => AdditiveEvidenceGameOptions.Alpha_Quality * QualitySum + AdditiveEvidenceGameOptions.Alpha_Bias * BiasSum;
+        public double TrialEvidence => AdditiveEvidenceGameOptions.Alpha_Quality * QualitySum + AdditiveEvidenceGameOptions.Alpha_Bias * BiasSum;
+
+        public double TrialResultWinnerTakesAll => TrialEvidence > 0.5 ? 1.0 : 0;
+        
+        public double TrialValuePreShiftingIfOccurs => AdditiveEvidenceGameOptions.WinnerTakesAll ? TrialResultWinnerTakesAll : TrialEvidence;
         public double ThetaP_Generalized
         {
             get

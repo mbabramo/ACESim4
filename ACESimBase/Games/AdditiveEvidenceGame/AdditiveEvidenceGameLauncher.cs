@@ -9,11 +9,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
     public class AdditiveEvidenceGameLauncher : Launcher
     {
 
-
-        OptionSetChoice optionSetChoice = OptionSetChoice.Biasless;
+        
+        OptionSetChoice optionSetChoice = OptionSetChoice.WinnerTakesAll;
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
-        public override string MasterReportNameForDistributedProcessing => "AE015"; 
+        public override string MasterReportNameForDistributedProcessing => "AE016"; 
         public override GameDefinition GetGameDefinition() => new AdditiveEvidenceGameDefinition();
 
         public override GameOptions GetDefaultSingleGameOptions() => AdditiveEvidenceGameOptionsGenerator.GetAdditiveEvidenceGameOptions();
@@ -31,6 +31,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             Temporary,
             EvenStrength,
             Biasless,
+            WinnerTakesAll,
         }
 
         public override List<GameOptions> GetOptionsSets()
@@ -63,6 +64,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             {
                 case OptionSetChoice.Original:
                     AddDMSGameOptionSets(optionSets, DMSVersion.Original, withOptionNotToPlay);
+                    break;
+                case OptionSetChoice.WinnerTakesAll:
+                    AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll, withOptionNotToPlay);
                     break;
                 case OptionSetChoice.EvenStrength:
                     AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrength, withOptionNotToPlay);
@@ -141,6 +145,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             VaryPStrength_50, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p private estimate determines 50% of rest of judgment
             VaryPStrength_75, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p private estimate determines 75% of rest of judgment
             VaryPStrength_100, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p private estimate determines 100% of rest of judgment
+            WinnerTakesAll,
         }
 
         private void AddDMSGameOptionSets(List<(string optionSetName, GameOptions options)> optionSets, DMSVersion version, bool withOptionNotToPlay, bool feeShifting = true)
@@ -160,8 +165,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                                 // this tracks the original model by DMS. The adjudicator's outcome depends half on some information about quality shared by both parties, and half on the sum of the parties' independent information (where this independent information does not count as part of the quality of the lawsuit).
                                 optionSets.Add(GetAndTransform("orig", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
                                 break;
+                            case DMSVersion.WinnerTakesAll:
+                                optionSets.Add(GetAndTransform("orig", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.WinnerTakesAll = true; }));
+                                break;
                             case DMSVersion.Biasless:
-                                // biasless means that all of the info that the adjudicator adds up counts in the quality measurement. Here, we continue to follow the DMS approach of making the plaintiff's proportion of information equal to the actual shared quality value (qualityKnownToBoth).
+                                // biasless means that all of the info that the adjudicator adds up counts in the quality measurement. That is, there is some quality known to both parties, but the remaining quality is the sum of the two parties' information. Here, we continue to follow the DMS approach of making the plaintiff's proportion of information equal to the actual shared quality value (qualityKnownToBoth).
                                 optionSets.Add(GetAndTransform("bl", settingsString, () => AdditiveEvidenceGameOptionsGenerator.Biasless(qualityKnownToBoth /* the actual value of the quality that both know about */, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, 0.5 /* proportion of the total quality score that is shared -- i.e., equal to qualityKnownToBoth */, withOptionNotToPlay), x => { }));
                                 break;
                             case DMSVersion.EvenStrength:

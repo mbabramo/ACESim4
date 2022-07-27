@@ -120,12 +120,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             return options;
         }
 
-        public static AdditiveEvidenceGameOptions Biasless(double quality, double pPortionOfPrivateInfo /* set to quality to be like the original DMS model in this respect */, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, double alphaBothQuality, bool withOptionNotToPlay)
+        public static AdditiveEvidenceGameOptions Biasless(double sharedQualityInfo, double pPortionOfPrivateInfo /* set to quality to be like the original DMS model in this respect */, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, double alphaBothQuality, bool withOptionNotToPlay)
         {
-            // Note: Biasless refers to the idea that all of the information that the adjudicator sums up to produce a result actually counts as quality. In the original DMS model, half of the information that the adjudicator sums up is bias rather than quality. 
+            // Note: Biasless refers to the idea that all of the information that the adjudicator sums up to produce a result actually counts as quality. In the original DMS model, half of the information that the adjudicator sums up is bias rather than quality. But here, both parties share some information about quality, and then each has some private information about quality.
             var options = new AdditiveEvidenceGameOptions()
             {
-                Evidence_Both_Quality = quality,
+                Evidence_Both_Quality = sharedQualityInfo,
                 Alpha_Quality = 1.0, // there is no separate bias
                 Alpha_Both_Quality = alphaBothQuality, // The portion of quality that is known by the parties (0.5 in DMS)
                 Alpha_Plaintiff_Quality = (1 - alphaBothQuality) * pPortionOfPrivateInfo, // we are apportioning the remaining portion of quality between the plaintiff and defendant based on the parameter -- this can be set to quality to simulate the DMS model (so that we can see what the effect is of everything being quality rather than having a split between quailty and bias)
@@ -164,7 +164,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 Alpha_Plaintiff_Quality = (1 - alphaBothQuality) * pPortionOfPrivateInfo,
                 Alpha_Defendant_Quality = (1 - alphaBothQuality) * (1.0 - pPortionOfPrivateInfo),
                 // so Neither_Quality is set automatically to 0
-                // So Alpha_Bias is set to noisiness
+                // So Alpha_Bias is set to noisiness and represents information known to no one.
                 Alpha_Both_Bias = 0.0,
                 Alpha_Plaintiff_Bias = 0.0,
                 Alpha_Defendant_Bias = 0.0,

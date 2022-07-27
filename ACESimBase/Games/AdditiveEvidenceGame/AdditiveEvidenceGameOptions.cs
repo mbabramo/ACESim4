@@ -30,7 +30,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public double TrialCost;
         public bool FeeShifting;
         public bool FeeShiftingIsBasedOnMarginOfVictory;
-
+        public bool WinnerTakesAll;
+        
         /// <summary>
         /// When based on margin of victory, judgment must exceed this amount (which thus should be greater than 1/2).
         /// When not based on margin of victory, the judgment that would be entered based only on information accessible to the winner must exceed this amount.
