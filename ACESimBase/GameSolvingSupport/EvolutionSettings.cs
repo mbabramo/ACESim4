@@ -64,11 +64,11 @@ namespace ACESim
         public bool TryInexactArithmeticForAdditionalEquilibria = false; 
         public bool CreateEFGFileForSequenceForm = false;
         public bool CreateEquilibriaFileForSequenceForm = true;
-        public bool PreloadedEquilibriaForSequenceForm = false;
+        public bool PreloadedEquilibriaForSequenceForm = true; // DEBUG
         public bool CustomSequenceFormInitialization = false;
         public bool ConsiderInitializingToMostRecentEquilibrium = false;
         public bool SequenceFormBlockDistantActionsWhenTracingEquilibrium = false;
-        public bool SkipIfEquilibriumFileAlreadyExists = true; // DEBUG
+        public bool SkipAltogetherIfEquilibriumFileAlreadyExists = false; // If true, and an equilibrium file exists, then we will skip and processing AND reporting. If you want to do reporting, then use PreloadedEquilibriaForSequenceForm
         public bool SequenceFormCutOffProbabilityZeroNodes = true; // If true, then instead of setting chance nodes to no less than the lowest permissible rational value, probability is set to zero, and that part of the tree will be excised. (The algorithm will not work if probabilities are left at zero.)
 
         public string SerializeResultsPrefixPlus(int scenario, int totalScenarios) => SerializeResultsPrefix + (totalScenarios > 0 ? scenario.ToString() : "");

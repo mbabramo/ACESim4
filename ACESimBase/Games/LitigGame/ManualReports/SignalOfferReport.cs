@@ -25,14 +25,19 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             Func<ISignalOfferReportGameProgress, double> pDamagesSignalFunc = x => ((AdditiveEvidenceGameProgress)x).Chance_Plaintiff_Bias_Continuous;
             Func<ISignalOfferReportGameProgress, double> dDamagesSignalFunc = x => ((AdditiveEvidenceGameProgress)x).Chance_Defendant_Bias_Continuous;
 
-            List<double> pDamagesSignals = additiveEvidenceProgresses.Select(x => x.theProgress.Chance_Plaintiff_Bias_Continuous).Distinct().OrderByDescending(x => x).ToList();
-            List<double> dDamagesSignals = additiveEvidenceProgresses.Select(x => x.theProgress.Chance_Defendant_Bias_Continuous).Distinct().OrderByDescending(x => x).ToList();
-
             AdditiveEvidenceGameOptions options = gameDefinition.Options;
             bool useLiabilitySignals = false;
             int numSignals = options.NumQualityAndBiasLevels_PrivateInfo;
             int numOffers = options.NumOffers;
             bool includeEndpointsForOffers = false;
+
+            List<double> pDamagesSignals = additiveEvidenceProgresses.Select(x => x.theProgress.Chance_Plaintiff_Bias_Continuous).Distinct().OrderByDescending(x => x).ToList();
+            List<double> dDamagesSignals = additiveEvidenceProgresses.Select(x => x.theProgress.Chance_Defendant_Bias_Continuous).Distinct().OrderByDescending(x => x).ToList();
+
+            if (pDamagesSignals.Count == 1)
+                pDamagesSignals = additiveEvidenceProgresses.Select(x => x.theProgress.Chance_Plaintiff_Quality_Continuous).Distinct().OrderByDescending(x => x).ToList();
+            if (dDamagesSignals.Count == 1)
+                dDamagesSignals = additiveEvidenceProgresses.Select(x => x.theProgress.Chance_Defendant_Quality_Continuous).Distinct().OrderByDescending(x => x).ToList();
 
             DMSCalc calc = new DMSCalc(options.FeeShiftingThreshold, options.TrialCost, options.Evidence_Both_Quality);
             List<(double p, double d)> dmsBids = Enumerable.Range(0, 999).Select(x => 0.0005 + (double)x / 1000.0).Select(x => calc.GetBids(x, x)).ToList();
