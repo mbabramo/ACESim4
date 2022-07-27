@@ -164,7 +164,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             DetermineGameNodeRelationships();
             bool useManuallyDefinedEquilibria = false; // use this as a shortcut to replay some equilibrium
             List<(double[] equilibrium, int frequency)> equilibria = null;
-            if (EvolutionSettings.PreloadedEquilibriaForSequenceForm)
+            if (EvolutionSettings.PreloadedEquilibriaForSequenceForm && EquilibriaFileAlreadyExists())
             {
                 equilibria = LoadEquilibriaFile().Select(x => (x, 1)).ToList();
                 equilibria = NarrowDownToUniqueEquilibria(equilibria);

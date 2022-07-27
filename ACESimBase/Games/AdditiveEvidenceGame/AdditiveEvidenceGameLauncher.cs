@@ -9,8 +9,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
     public class AdditiveEvidenceGameLauncher : Launcher
     {
 
+
+        OptionSetChoice optionSetChoice = OptionSetChoice.Biasless;
+
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
-        public override string MasterReportNameForDistributedProcessing => "AE014"; 
+        public override string MasterReportNameForDistributedProcessing => "AE015"; 
         public override GameDefinition GetGameDefinition() => new AdditiveEvidenceGameDefinition();
 
         public override GameOptions GetDefaultSingleGameOptions() => AdditiveEvidenceGameOptionsGenerator.GetAdditiveEvidenceGameOptions();
@@ -27,11 +30,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             VaryingNoiseEtc,
             Temporary,
             EvenStrength,
+            Biasless,
         }
 
         public override List<GameOptions> GetOptionsSets()
         {
-            OptionSetChoice optionSetChoice = OptionSetChoice.EvenStrength;
             var results = GetOptionSetsFromChoice(optionSetChoice);
             return results;
         }
@@ -39,7 +42,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public List<List<AdditiveEvidenceGameOptions>> GetSetsOfOptionsSets()
         {
             List<List<AdditiveEvidenceGameOptions>> setsOfOptionsSets = new List<List<AdditiveEvidenceGameOptions>>();
-            OptionSetChoice optionSetChoice = OptionSetChoice.Original;
             var set1 = GetOptionSetsFromChoice(optionSetChoice).Select(x => (AdditiveEvidenceGameOptions)x).ToList();
             setsOfOptionsSets.Add(set1);
             return setsOfOptionsSets;
@@ -64,6 +66,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     break;
                 case OptionSetChoice.EvenStrength:
                     AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrength, withOptionNotToPlay);
+                    break;
+                case OptionSetChoice.Biasless:
+                    AddDMSGameOptionSets(optionSets, DMSVersion.Biasless, withOptionNotToPlay);
                     break;
                 case OptionSetChoice.TwoSets:
                     AddDMSGameOptionSets(optionSets, DMSVersion.Original, withOptionNotToPlay);

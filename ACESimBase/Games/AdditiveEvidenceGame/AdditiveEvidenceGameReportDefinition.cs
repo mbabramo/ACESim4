@@ -70,10 +70,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 new SimpleReportColumnVariable("Alpha_Defendant_Quality", (GameProgress gp) => AEGP(gp).AdditiveEvidenceGameOptions.Alpha_Defendant_Quality),
                 new SimpleReportColumnVariable("Alpha_Plaintiff_Bias", (GameProgress gp) => AEGP(gp).AdditiveEvidenceGameOptions.Alpha_Plaintiff_Bias),
                 new SimpleReportColumnVariable("Alpha_Defendant_Bias", (GameProgress gp) => AEGP(gp).AdditiveEvidenceGameOptions.Alpha_Defendant_Bias),
+                new SimpleReportColumnVariable("Evidence_Both_Quality", (GameProgress gp) => AEGP(gp).AdditiveEvidenceGameOptions.Evidence_Both_Quality),
                 new SimpleReportColumnVariable("TrialCost", (GameProgress gp) => AEGP(gp).AdditiveEvidenceGameOptions.TrialCost),
                 new SimpleReportColumnVariable("FeeShifting", (GameProgress gp) => AEGP(gp).AdditiveEvidenceGameOptions.FeeShifting ? 1.0 : 0),
                 new SimpleReportColumnVariable("FSMargin", (GameProgress gp) => AEGP(gp).AdditiveEvidenceGameOptions.FeeShiftingIsBasedOnMarginOfVictory ? 1.0 : 0),
                 new SimpleReportColumnVariable("FeeShiftingThreshold", (GameProgress gp) => AEGP(gp).AdditiveEvidenceGameOptions.FeeShiftingThreshold),
+                
             };
             List<SimpleReportFilter> rows;
             if (Options.FirstRowOnly)
