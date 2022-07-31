@@ -11,7 +11,13 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         OptionSetChoice optionSetChoice = OptionSetChoice.AdditiveEvidencePaperMain;
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
-        public override string MasterReportNameForDistributedProcessing => "AE017"; 
+        public override string MasterReportNameForDistributedProcessing => "AE017";
+
+        public double[] CostsLevels = new double[] { 0, 0.0625, 0.125, 0.25 };
+        public double[] QualityLevels = new double[] { 0.35, 0.50, 0.65 }; // DEBUG { 0.35 , 0.40, 0.45, 0.50, 0.55, 0.60, 0.65 }
+        int numFeeShiftingThresholds = 5;
+        public double[] FeeShiftingThresholds => Enumerable.Range(0, numFeeShiftingThresholds).Select(x => (double)(x / (numFeeShiftingThresholds - 1.0))).ToArray();
+
         public override GameDefinition GetGameDefinition() => new AdditiveEvidenceGameDefinition();
 
         public override GameOptions GetDefaultSingleGameOptions() => AdditiveEvidenceGameOptionsGenerator.GetAdditiveEvidenceGameOptions();
@@ -62,12 +68,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             switch (optionSetChoice)
             {
                 case OptionSetChoice.AdditiveEvidencePaperMain:
-                    AddDMSGameOptionSets(optionSets, DMSVersion.Original, withOptionNotToPlay);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll, withOptionNotToPlay);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.Original, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll, false);
                     // DEBUG
-                    //AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrength, withOptionNotToPlay);
-                    //AddDMSGameOptionSets(optionSets, DMSVersion.Biasless, withOptionNotToPlay);
-                    //AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrengthAndBiasless, withOptionNotToPlay);
+                    //AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrength, false);
+                    //AddDMSGameOptionSets(optionSets, DMSVersion.Biasless, false);
+                    //AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrengthAndBiasless, false);
                     break;
                 case OptionSetChoice.Original:
                     AddDMSGameOptionSets(optionSets, DMSVersion.Original, withOptionNotToPlay);
@@ -155,29 +161,27 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             WinnerTakesAll,
         }
 
-        private void AddDMSGameOptionSets(List<(string optionSetName, GameOptions options)> optionSets, DMSVersion version, bool withOptionNotToPlay, bool feeShifting = true, int numFeeShiftingThresholds = 5) // DEBUG
+        private void AddDMSGameOptionSets(List<(string optionSetName, GameOptions options)> optionSets, DMSVersion version, bool withOptionNotToPlay, bool feeShifting = true)
         {
-            // now, liability and damages only
-
-            foreach (double costs in new double[] { 0, 0.0625, 0.125, 0.25 })
+            foreach (double costs in CostsLevels)
             {
-                foreach (double qualityKnownToBoth in new double[] { 0.35 , 0.40, 0.45, 0.50, 0.55, 0.60, 0.65 })
+                foreach (double qualityKnownToBoth in QualityLevels)
                 {
-                    double?[] feeShiftingThresholds = Enumerable.Range(0, numFeeShiftingThresholds).Select(x => (double?)(x / (numFeeShiftingThresholds - 1.0))).ToArray();
-                    foreach (double? feeShiftingThreshold in feeShiftingThresholds)
+                    
+                    foreach (double? feeShiftingThreshold in FeeShiftingThresholds)
                     {
                         string settingsString = $"q{(int) (qualityKnownToBoth*100):D3}c{(int) (costs*100):D3}t{(int)(feeShiftingThreshold*100.0):D3}";
                         switch (version)
                         {
                             case DMSVersion.Original:
-                                // this tracks the original model by DMS. The adjudicator's outcome depends half on some information about quality shared by both parties, and half on the sum of the parties' independent information (where this independent information does not count as part of the quality of the lawsuit).
+                                // This tracks the original model by DMS. The adjudicator's outcome depends half on some information about quality shared by both parties, and half on the sum of the parties' independent information (where this independent information does not count as part of the quality of the lawsuit).
                                 optionSets.Add(GetAndTransform("orig", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
                                 break;
                             case DMSVersion.WinnerTakesAll:
-                                optionSets.Add(GetAndTransform("orig", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.WinnerTakesAll = true; }));
+                                optionSets.Add(GetAndTransform("wta", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.WinnerTakesAll = true; }));
                                 break;
                             case DMSVersion.Biasless:
-                                // biasless means that all of the info that the adjudicator adds up counts in the quality measurement. That is, there is some quality known to both parties, but the remaining quality is the sum of the two parties' information. Here, we continue to follow the DMS approach of making the plaintiff's proportion of information equal to the actual shared quality value (qualityKnownToBoth).
+                                // Biasless means that all of the info that the adjudicator adds up counts in the quality measurement. That is, there is some quality known to both parties, but the remaining quality is the sum of the two parties' information. Here, we continue to follow the DMS approach of making the plaintiff's proportion of information equal to the actual shared quality value (qualityKnownToBoth).
                                 optionSets.Add(GetAndTransform("bl", settingsString, () => AdditiveEvidenceGameOptionsGenerator.Biasless(qualityKnownToBoth /* the actual value of the quality that both know about */, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, 0.5 /* proportion of the total quality score that is shared -- i.e., equal to qualityKnownToBoth */, withOptionNotToPlay), x => { }));
                                 break;
                             case DMSVersion.EvenStrength:
@@ -185,7 +189,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                                 optionSets.Add(GetAndTransform("es", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SharedInfoOnQuality_EvenStrengthOnBias(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
                                 break;
                             case DMSVersion.EvenStrengthAndBiasless:
-                                optionSets.Add(GetAndTransform("bl_es", settingsString, () => AdditiveEvidenceGameOptionsGenerator.Biasless(qualityKnownToBoth, 0.5, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, 0.5, withOptionNotToPlay), x => { }));
+                                optionSets.Add(GetAndTransform("es_bl", settingsString, () => AdditiveEvidenceGameOptionsGenerator.Biasless(qualityKnownToBoth, 0.5, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, 0.5, withOptionNotToPlay), x => { }));
                                 break;
                             case DMSVersion.EvenStrengthAndBiasless_MoreInfoShared:
                                 optionSets.Add(GetAndTransform("mis", settingsString, () => AdditiveEvidenceGameOptionsGenerator.Biasless(qualityKnownToBoth, 0.5, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, 0.75, withOptionNotToPlay), x => { }));
@@ -240,13 +244,14 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             }
         }
 
-        (string optionSetName, AdditiveEvidenceGameOptions options) GetAndTransform(string baseName, string suffix, Func<AdditiveEvidenceGameOptions> baseOptionsFn, Action<AdditiveEvidenceGameOptions> transform)
+        (string optionSetName, AdditiveEvidenceGameOptions options) GetAndTransform(string groupName, string suffix, Func<AdditiveEvidenceGameOptions> baseOptionsFn, Action<AdditiveEvidenceGameOptions> transform)
         {
             AdditiveEvidenceGameOptions g = baseOptionsFn();
+            g.GroupName = groupName;
             transform(g);
             string suffix2 = suffix;
             // add further transformation based on additional params here
-            return (baseName + suffix2, g);
+            return (groupName + suffix2, g);
         }
 
         // The following is used by the test classes

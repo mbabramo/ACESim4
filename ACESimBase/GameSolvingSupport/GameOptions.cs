@@ -7,7 +7,7 @@ namespace ACESim
     [Serializable]
     public class GameOptions
     {
-
+        public string GroupName;
         public string Name;
 
         public GameOptions WithName(string name)

@@ -2681,7 +2681,11 @@ namespace ACESim
                     d.StaticTextColumns.Add(("Eq", GameDefinition.ScenarioEquilibriumName));
                 }
                 if (GameDefinition.OptionSetName != null && GameDefinition.OptionSetName != "")
+                {
+                    if (GameDefinition.GameOptions.GroupName != null && GameDefinition.GameOptions.GroupName != "")
+                        d.StaticTextColumns.Add(("GroupName", GameDefinition.GameOptions.GroupName));
                     d.StaticTextColumns.Add(("OptionSet", GameDefinition.OptionSetName));
+                }
                 if (Status.BestResponseImprovementAdj != null)
                     d.StaticTextColumns.Add(("Exploit", Status.BestResponseImprovementAdjAvg.ToSignificantFigures(4)));
                 if (Status.Refinement != 0)

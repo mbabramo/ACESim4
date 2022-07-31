@@ -604,11 +604,12 @@ namespace ACESim
 
         // the following is not for the fee-shifting
 
-        GameOptions GetAndTransformWithRiskAversion(string baseName, string suffix, Func<LitigGameOptions> baseOptionsFn, Action<LitigGameOptions> transform, RiskAversionMode riskAversion)
+        GameOptions GetAndTransformWithRiskAversion(string groupName, string suffix, Func<LitigGameOptions> baseOptionsFn, Action<LitigGameOptions> transform, RiskAversionMode riskAversion)
         {
             LitigGameOptions o = baseOptionsFn();
+            o.GroupName = groupName;
             transform(o);
-            string nameRevised = baseName;
+            string nameRevised = groupName;
             // Note that the following alpha values are based on an initial wealth of 10, with stakes of 1
             const double somewhatRiskAverseAlpha = 2.0;
             const double veryRiskAverseAlpha = 4.0;

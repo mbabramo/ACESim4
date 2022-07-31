@@ -22,7 +22,7 @@ namespace LitigCharts
         {
             List<string> rowsToGet = new List<string>() { "All", "Settles", "Trial", "Shifting",   };
             List<string> replacementRowNames = rowsToGet.ToList();
-            List<string> columnsToGet = new List<string>() { "Exploit", "Seconds", "All", "TrialCost", "FeeShifting", "FeeShiftingThreshold", "Alpha_Plaintiff_Quality", /* "Alpha_Plaintiff_Bias", */ "Evidence_Both_Quality", "Settles", "Trial", "PWelfare", "DWelfare", "PQuits", "DQuits", "Shifting", "ShiftingOccursIfTrial", "ShiftingValueIfTrial", "POffer", "DOffer", "AccSq", "Accuracy", "Accuracy_ForPlaintiff", "Accuracy_ForDefendant", "SettlementOrJudgment", "TrialValuePreShiftingIfOccurs", "TrialValueWithShiftingIfOccurs", "ResolutionValueIncludingShiftedAmount", "SettlementValue", "PBestGuess", "DBestGuess" };
+            List<string> columnsToGet = new List<string>() { "OptionSetName", "GroupName", "Exploit", "Seconds", "All", "TrialCost", "FeeShifting", "FeeShiftingThreshold", "Alpha_Plaintiff_Quality", /* "Alpha_Plaintiff_Bias", */ "Evidence_Both_Quality", "Settles", "Trial", "PWelfare", "DWelfare", "PQuits", "DQuits", "Shifting", "ShiftingOccursIfTrial", "ShiftingValueIfTrial", "POffer", "DOffer", "AccSq", "Accuracy", "Accuracy_ForPlaintiff", "Accuracy_ForDefendant", "SettlementOrJudgment", "TrialValuePreShiftingIfOccurs", "TrialValueWithShiftingIfOccurs", "ResolutionValueIncludingShiftedAmount", "SettlementValue", "PBestGuess", "DBestGuess" };
             List<string> replacementColumnNames = columnsToGet.ToList();
             string endOfFileName = "";
 
@@ -49,6 +49,7 @@ namespace LitigCharts
 
         public class AEData
         {
+            public string GroupName { get; set; }
             public string Filter { get; set; }
             public double? c { get; set; }
             public double? q { get; set; }
@@ -58,11 +59,13 @@ namespace LitigCharts
         
         public static void GenerateDiagramsFromCSV()
         {
-            string folder = @"H:\My Drive\Articles, books in progress\Machine learning model of litigation\AE results\AE016 -- winner-take-all";
-            string csvFileName = "AE016--.csv";
+            string folder = @"C:\Users\Admin\Documents\GitHub\ACESim4\ReportResults"; // @"H:\My Drive\Articles, books in progress\Machine learning model of litigation\AE results\AE016 -- winner-take-all";
+            string groupName = "orig";
+            string set = new AdditiveEvidenceGameLauncher().MasterReportNameForDistributedProcessing;
+            string csvFileName = set + "--.csv";
             string fullFileName = Path.Combine(folder, csvFileName);
-            string texContents = GenerateDiagramFromCSV(fullFileName, "AccSq");
-            string outputFile = Path.Combine(folder, "AE016--AccSq.tex");
+            string texContents = GenerateDiagramFromCSV(fullFileName, groupName, "AccSq");
+            string outputFile = Path.Combine(folder, set + "--AccSq.tex");
             File.WriteAllText(outputFile, texContents);
         }
 
@@ -74,6 +77,7 @@ namespace LitigCharts
             public static string tVarName { get; set; } = "FeeShiftingThreshold";
             public AEDataMap()
             {
+                Map(m => m.GroupName).Name("GroupName");
                 Map(m => m.Filter).Name("Filter");
                 Map(m => m.c).Name(cVarName);
                 Map(m => m.q).Name(qVarName);
@@ -82,7 +86,7 @@ namespace LitigCharts
             }
         }
 
-        public static string GenerateDiagramFromCSV(string csvFileName, string mainVarName, string qVarName = "Evidence_Both_Quality", string cVarName = "TrialCost", string tVarName = "FeeShiftingThreshold")
+        public static string GenerateDiagramFromCSV(string csvFileName, string groupName, string mainVarName, string qVarName = "Evidence_Both_Quality", string cVarName = "TrialCost", string tVarName = "FeeShiftingThreshold")
         {
             AEDataMap.mainVarName = mainVarName;
             AEDataMap.qVarName = qVarName;
@@ -100,9 +104,10 @@ namespace LitigCharts
                 aeData = csv.GetRecords<AEData>().Where(x => x.Filter == "All").ToList();
             }
 
-            double[] tVarVals = Enumerable.Range(0, 101).Select(x => x / 100.0).ToArray();
-            double[] qVarVals = new double[] { 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65 };
-            double[] cVarVals = new double[] { 0, 0.0625, 0.125, 0.25 };
+            AdditiveEvidenceGameLauncher launcher = new AdditiveEvidenceGameLauncher();
+            double[] tVarVals = launcher.FeeShiftingThresholds;
+            double[] qVarVals = launcher.QualityLevels;
+            double[] cVarVals = launcher.CostsLevels;
             
             List<List<List<List<double?>>>> graphData = new List<List<List<List<double?>>>>();
             foreach (var qVarVal in qVarVals)
@@ -132,11 +137,28 @@ namespace LitigCharts
                 }
                 graphData.Add(macroRow);
             }
-            string result = GenerateLatex(graphData, mainVarName);
+            string result = GenerateLatex(graphData, qVarVals.Select(x => x.ToString("0.00")).ToList(), cVarVals.Select(x => RemoveTrailingZeros(x.ToString("0.0000"))).ToList(), tVarVals.Select(x => (((decimal) x) % 0.10M == 0 ? x.ToString("0.0") : "")).ToList(), mainVarName);
+
+
+            
             return result;
         }
 
-        private static string GenerateLatex(List<List<List<List<double?>>>> overallData, string microYVariableName)
+        private static string RemoveTrailingZeros(string input)
+        {
+            for (int i = input.Length - 1; i > 0; i--)
+            {
+                if (!input.Contains(".")) break;
+                if (input[i].Equals('0'))
+                {
+                    input = input.Remove(i);
+                }
+                else break;
+            }
+            return input;
+        }
+
+        private static string GenerateLatex(List<List<List<List<double?>>>> overallData, List<string> qValueStrings, List<string> cValueStrings, List<string> tValueStrings, string microYVariableName)
         {
             
             bool isStacked = false;
@@ -157,11 +179,11 @@ namespace LitigCharts
 
             TikzRepeatedGraph r = new TikzRepeatedGraph()
             {
-                majorYValueNames = new List<string>() { "0.35", "0.4", "0.45", "0.5", "0.55", "0.6", "0.65", }, // major row values
+                majorYValueNames = qValueStrings, // major row values
                 majorYAxisLabel = "q",
-                majorXValueNames = new List<string>() { "0", "0.0625", "0.125", "0.25" }, // major column values
+                majorXValueNames = cValueStrings, // major column values
                 majorXAxisLabel = "c",
-                minorXValueNames = new List<string>() { "0", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1" },
+                minorXValueNames = tValueStrings,
                 minorXAxisLabel = "t",
                 minorYValueNames = new List<string>() { "0", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1" },
                 minorYAxisLabel = microYVariableName,
