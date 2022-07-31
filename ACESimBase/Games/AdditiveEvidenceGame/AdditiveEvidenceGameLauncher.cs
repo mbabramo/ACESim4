@@ -11,11 +11,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         OptionSetChoice optionSetChoice = OptionSetChoice.AdditiveEvidencePaperMain;
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
-        public override string MasterReportNameForDistributedProcessing => "AE017";
+        public override string MasterReportNameForDistributedProcessing => "AE018";
 
         public double[] CostsLevels = new double[] { 0, 0.0625, 0.125, 0.25 };
-        public double[] QualityLevels = new double[] { 0.35, 0.50, 0.65 }; // DEBUG { 0.35 , 0.40, 0.45, 0.50, 0.55, 0.60, 0.65 }
-        int numFeeShiftingThresholds = 5;
+        public double[] QualityLevels = new double[] { 0.35, 0.50, 0.65 }; 
+        int numFeeShiftingThresholds = 21;
         public double[] FeeShiftingThresholds => Enumerable.Range(0, numFeeShiftingThresholds).Select(x => (double)(x / (numFeeShiftingThresholds - 1.0))).ToArray();
 
         public override GameDefinition GetGameDefinition() => new AdditiveEvidenceGameDefinition();
@@ -38,7 +38,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             WinnerTakesAll,
             AdditiveEvidencePaperMain,
         }
-
+        
         public override List<GameOptions> GetOptionsSets()
         {
             var results = GetOptionSetsFromChoice(optionSetChoice);
@@ -69,11 +69,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             {
                 case OptionSetChoice.AdditiveEvidencePaperMain:
                     AddDMSGameOptionSets(optionSets, DMSVersion.Original, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.OriginalInitialized, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.OriginalRandomized, false);
                     AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll, false);
-                    // DEBUG
-                    //AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrength, false);
-                    //AddDMSGameOptionSets(optionSets, DMSVersion.Biasless, false);
-                    //AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrengthAndBiasless, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrength, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.Biasless, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrengthAndBiasless, false);
                     break;
                 case OptionSetChoice.Original:
                     AddDMSGameOptionSets(optionSets, DMSVersion.Original, withOptionNotToPlay);
@@ -159,6 +160,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             VaryPStrength_75, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p private estimate determines 75% of rest of judgment
             VaryPStrength_100, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p private estimate determines 100% of rest of judgment
             WinnerTakesAll,
+            OriginalInitialized,
+            OriginalRandomized,
         }
 
         private void AddDMSGameOptionSets(List<(string optionSetName, GameOptions options)> optionSets, DMSVersion version, bool withOptionNotToPlay, bool feeShifting = true)
@@ -170,12 +173,21 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     
                     foreach (double? feeShiftingThreshold in FeeShiftingThresholds)
                     {
-                        string settingsString = $"q{(int) (qualityKnownToBoth*100):D3}c{(int) (costs*100):D3}t{(int)(feeShiftingThreshold*100.0):D3}";
+                        string settingsString = $";q{(int) (qualityKnownToBoth*100):D3};c{(int) (costs*100):D3};t{(int)(feeShiftingThreshold*100.0):D3}";
                         switch (version)
                         {
                             case DMSVersion.Original:
                                 // This tracks the original model by DMS. The adjudicator's outcome depends half on some information about quality shared by both parties, and half on the sum of the parties' independent information (where this independent information does not count as part of the quality of the lawsuit).
                                 optionSets.Add(GetAndTransform("orig", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
+                                break;
+                            case DMSVersion.OriginalInitialized:
+                                // Same as above, but initialized to the DMS value
+                                optionSets.Add(GetAndTransform("orig", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.ModifyEvolutionSettings = e => { e.CustomSequenceFormInitialization = true; }; }));
+                                break;
+                            case DMSVersion.OriginalRandomized:
+                                // Same as above, but initialized to the DMS value
+                                int seed = 1;
+                                optionSets.Add(GetAndTransform("orig", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormRandomSeed = seed++; }; }));
                                 break;
                             case DMSVersion.WinnerTakesAll:
                                 optionSets.Add(GetAndTransform("wta", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.WinnerTakesAll = true; }));

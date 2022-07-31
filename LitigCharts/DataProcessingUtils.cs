@@ -43,6 +43,8 @@ namespace LitigCharts
                 {
                     List<string> headings = gameOptionsSet.VariableSettings.OrderBy(x => x.Key.ToString()).Select(x => x.Key).ToList();
                     headings.Add("Filter");
+                    headings.Add("GroupName");
+                    headings.Add("OptionSetName");
                     headings.AddRange(replacementColumnNames);
                     outputLines.Add(headings);
                 }
@@ -64,6 +66,8 @@ namespace LitigCharts
                 List<string> bodyRow = new List<string>();
                 bodyRow.AddRange(gameOptionsSet.VariableSettings.OrderBy(x => x.Key.ToString()).Select(x => x.Value?.ToString()));
                 bodyRow.Add(replacementRowNames[f]);
+                bodyRow.Add(gameOptionsSet.GroupName);
+                bodyRow.Add(filenameCore); // option set name
                 bodyRow.AddRange(resultsAllRows.GetRow(f).Select(x => x?.ToString()));
                 outputLines.Add(bodyRow);
             }

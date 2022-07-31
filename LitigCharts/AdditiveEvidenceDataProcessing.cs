@@ -22,7 +22,7 @@ namespace LitigCharts
         {
             List<string> rowsToGet = new List<string>() { "All", "Settles", "Trial", "Shifting",   };
             List<string> replacementRowNames = rowsToGet.ToList();
-            List<string> columnsToGet = new List<string>() { "OptionSetName", "GroupName", "Exploit", "Seconds", "All", "TrialCost", "FeeShifting", "FeeShiftingThreshold", "Alpha_Plaintiff_Quality", /* "Alpha_Plaintiff_Bias", */ "Evidence_Both_Quality", "Settles", "Trial", "PWelfare", "DWelfare", "PQuits", "DQuits", "Shifting", "ShiftingOccursIfTrial", "ShiftingValueIfTrial", "POffer", "DOffer", "AccSq", "Accuracy", "Accuracy_ForPlaintiff", "Accuracy_ForDefendant", "SettlementOrJudgment", "TrialValuePreShiftingIfOccurs", "TrialValueWithShiftingIfOccurs", "ResolutionValueIncludingShiftedAmount", "SettlementValue", "PBestGuess", "DBestGuess" };
+            List<string> columnsToGet = new List<string>() { "Exploit", "Seconds", "All", "TrialCost", "FeeShifting", "FeeShiftingThreshold", "Alpha_Plaintiff_Quality", /* "Alpha_Plaintiff_Bias", */ "Evidence_Both_Quality", "Settles", "Trial", "PWelfare", "DWelfare", "PQuits", "DQuits", "Shifting", "ShiftingOccursIfTrial", "ShiftingValueIfTrial", "POffer", "DOffer", "AccSq", "Accuracy", "Accuracy_ForPlaintiff", "Accuracy_ForDefendant", "SettlementOrJudgment", "TrialValuePreShiftingIfOccurs", "TrialValueWithShiftingIfOccurs", "ResolutionValueIncludingShiftedAmount", "SettlementValue", "PBestGuess", "DBestGuess" };
             List<string> replacementColumnNames = columnsToGet.ToList();
             string endOfFileName = "";
 
@@ -60,13 +60,19 @@ namespace LitigCharts
         public static void GenerateDiagramsFromCSV()
         {
             string folder = @"C:\Users\Admin\Documents\GitHub\ACESim4\ReportResults"; // @"H:\My Drive\Articles, books in progress\Machine learning model of litigation\AE results\AE016 -- winner-take-all";
-            string groupName = "orig";
-            string set = new AdditiveEvidenceGameLauncher().MasterReportNameForDistributedProcessing;
-            string csvFileName = set + "--.csv";
-            string fullFileName = Path.Combine(folder, csvFileName);
-            string texContents = GenerateDiagramFromCSV(fullFileName, groupName, "AccSq");
-            string outputFile = Path.Combine(folder, set + "--AccSq.tex");
-            File.WriteAllText(outputFile, texContents);
+            var groupNames = new AdditiveEvidenceGameLauncher().GetGroupNames();
+            foreach (string groupName in groupNames)
+            {
+                foreach ((string targetVariable, string targetAbbreviation) in new (string, string)[] { ("AccSq", "A"), ("Accuracy_ForPlaintiff", "A"), ("Accuracy_ForDefendant", "A"), ("POffer", "Bid"), ("DOffer", "Bid"), ("PWelfare", "w"), ("DWelfare", "w"), ("Trial", "L") })
+                {
+                    string set = new AdditiveEvidenceGameLauncher().MasterReportNameForDistributedProcessing;
+                    string csvFileName = set + "--.csv";
+                    string fullFileName = Path.Combine(folder, csvFileName);
+                    string texContents = GenerateDiagramFromCSV(fullFileName, groupName, targetVariable, targetAbbreviation);
+                    string outputFile = Path.Combine(folder, $"{set};{groupName};{targetVariable}.tex");
+                    File.WriteAllText(outputFile, texContents);
+                }
+            }
         }
 
         public sealed class AEDataMap : ClassMap<AEData>
@@ -86,7 +92,7 @@ namespace LitigCharts
             }
         }
 
-        public static string GenerateDiagramFromCSV(string csvFileName, string groupName, string mainVarName, string qVarName = "Evidence_Both_Quality", string cVarName = "TrialCost", string tVarName = "FeeShiftingThreshold")
+        public static string GenerateDiagramFromCSV(string csvFileName, string groupName, string mainVarName, string mainVarLabel, string qVarName = "Evidence_Both_Quality", string cVarName = "TrialCost", string tVarName = "FeeShiftingThreshold")
         {
             AEDataMap.mainVarName = mainVarName;
             AEDataMap.qVarName = qVarName;
@@ -101,7 +107,7 @@ namespace LitigCharts
             using (var csv = new CsvReader(reader, config))
             {
                 csv.Context.RegisterClassMap<AEDataMap>();
-                aeData = csv.GetRecords<AEData>().Where(x => x.Filter == "All").ToList();
+                aeData = csv.GetRecords<AEData>().Where(x => x.Filter == "All").Where(x => x.GroupName == groupName).ToList();
             }
 
             AdditiveEvidenceGameLauncher launcher = new AdditiveEvidenceGameLauncher();
@@ -137,9 +143,7 @@ namespace LitigCharts
                 }
                 graphData.Add(macroRow);
             }
-            string result = GenerateLatex(graphData, qVarVals.Select(x => x.ToString("0.00")).ToList(), cVarVals.Select(x => RemoveTrailingZeros(x.ToString("0.0000"))).ToList(), tVarVals.Select(x => (((decimal) x) % 0.10M == 0 ? x.ToString("0.0") : "")).ToList(), mainVarName);
-
-
+            string result = GenerateLatex(graphData, qVarVals.Select(x => x.ToString("0.00")).ToList(), cVarVals.Select(x => RemoveTrailingZeros(x.ToString("0.0000"))).ToList(), tVarVals.Select(x => (((decimal) x) % 0.10M == 0 ? x.ToString("0.0") : "")).ToList(), mainVarLabel);
             
             return result;
         }
@@ -158,14 +162,14 @@ namespace LitigCharts
             return input;
         }
 
-        private static string GenerateLatex(List<List<List<List<double?>>>> overallData, List<string> qValueStrings, List<string> cValueStrings, List<string> tValueStrings, string microYVariableName)
+        private static string GenerateLatex(List<List<List<List<double?>>>> overallData, List<string> qValueStrings, List<string> cValueStrings, List<string> tValueStrings, string microYAxisLabel)
         {
             
             bool isStacked = false;
 
             var lineScheme = new List<string>()
             {
-                "black, opacity=1.0, line width=0.5mm, solid",
+                "red, opacity=1.0, line width=0.5mm, solid",
             };
             var dataSeriesNames = new List<string>()
             {
@@ -181,12 +185,14 @@ namespace LitigCharts
             {
                 majorYValueNames = qValueStrings, // major row values
                 majorYAxisLabel = "q",
+                yAxisLabelOffsetLeft = 1.4,
                 majorXValueNames = cValueStrings, // major column values
                 majorXAxisLabel = "c",
+                xAxisLabelOffsetDown = 0.5,
                 minorXValueNames = tValueStrings,
                 minorXAxisLabel = "t",
-                minorYValueNames = new List<string>() { "0", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1" },
-                minorYAxisLabel = microYVariableName,
+                minorYValueNames = new List<string>() { "0", "0.25", "0.5", "0.75", "1" },
+                minorYAxisLabel = microYAxisLabel,
                 isStackedBar = isStacked,
                 lineGraphData = lineGraphData,
             };

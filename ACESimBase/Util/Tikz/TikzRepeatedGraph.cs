@@ -21,6 +21,12 @@ namespace ACESimBase.Util.Tikz
         public double xAxisLabelOffsetMicro { get; init; } = 0.7;
         public double yAxisSpaceMicro { get; init; } = 1.1;
         public double yAxisLabelOffsetMicro { get; init; } = 0.9;
+
+        public double xAxisLabelOffsetDown { get; init; } = 1.2;
+
+        public double yAxisLabelOffsetLeft { get; init; } = 1;
+
+
         public bool isStackedBar { get; init; } = false;
 
         private bool Initialized;
@@ -49,7 +55,9 @@ namespace ACESimBase.Util.Tikz
                 xAxisMarkOffset = xAxisMarkOffset, 
                 yAxisMarkOffset = yAxisMarkOffset,
                 xAxisLabelOffsetRight = xAxisMarkOffset,
+                xAxisLabelOffsetDown = xAxisLabelOffsetDown,
                 yAxisLabelOffsetUp = yAxisMarkOffset,
+                yAxisLabelOffsetLeft = yAxisLabelOffsetLeft,
             };
             Initialized = true;
         }

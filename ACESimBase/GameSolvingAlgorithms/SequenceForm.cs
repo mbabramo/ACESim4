@@ -165,7 +165,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             DetermineGameNodeRelationships();
             bool useManuallyDefinedEquilibria = false; // use this as a shortcut to replay some equilibrium
             List<(double[] equilibrium, int frequency)> equilibria = null;
-            if (EvolutionSettings.PreloadedEquilibriaForSequenceForm && EquilibriaFileAlreadyExists())
+            if (EvolutionSettings.UsePreloadedEquilibriaForSequenceFormIfAvailable && EquilibriaFileAlreadyExists())
             {
                 equilibria = LoadEquilibriaFile().Select(x => (x, 1)).ToList();
                 equilibria = NarrowDownToUniqueEquilibria(equilibria);
@@ -214,7 +214,8 @@ namespace ACESimBase.GameSolvingAlgorithms
                     }
                     
                     ECTARunner<T> ecta = GetECTARunner<T>(numPriorsToGet);
-                    results = ecta.Execute(t => SetupECTA(t), scenarioUpdater, 0, initialProbabilities?.ToArray());
+                    int seed = EvolutionSettings.SequenceFormRandomSeed ?? 0;
+                    results = ecta.Execute(t => SetupECTA(t), scenarioUpdater, seed, initialProbabilities?.ToArray());
                 }
                 results = results.Select(x => (ReverseEffectsOfCuttingOffProbabilityZeroNodes(x.equilibrium), x.frequency)).ToList();
                 MostRecentEquilibrium = results.Last().equilibrium;

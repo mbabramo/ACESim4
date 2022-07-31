@@ -64,8 +64,9 @@ namespace ACESim
         public bool TryInexactArithmeticForAdditionalEquilibria = false; 
         public bool CreateEFGFileForSequenceForm = false;
         public bool CreateEquilibriaFileForSequenceForm = true;
-        public bool PreloadedEquilibriaForSequenceForm = true; // DEBUG
+        public bool UsePreloadedEquilibriaForSequenceFormIfAvailable = true;
         public bool CustomSequenceFormInitialization = false;
+        public int? SequenceFormRandomSeed = null; // random seed always used for additional priors, but this can be used for just a single prior
         public bool ConsiderInitializingToMostRecentEquilibrium = false;
         public bool SequenceFormBlockDistantActionsWhenTracingEquilibrium = false;
         public bool SkipAltogetherIfEquilibriumFileAlreadyExists = false; // If true, and an equilibrium file exists, then we will skip and processing AND reporting. If you want to do reporting, then use PreloadedEquilibriaForSequenceForm

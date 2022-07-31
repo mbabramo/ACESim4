@@ -84,6 +84,8 @@ namespace ACESim
 
         public abstract List<GameOptions> GetOptionsSets();
 
+        public List<string> GetGroupNames() => GetOptionsSets().Select(x => x.GroupName).Distinct().OrderBy(x => x).ToList();
+        
         #endregion
 
         #region Launching
