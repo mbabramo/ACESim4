@@ -107,10 +107,12 @@ namespace ACESim
         public abstract Task<ReportCollection> RunAlgorithm(string optionSetName);
 
         public int OverallScenarioIndex;
+        DateTime Started = DateTime.Now;
+        long SecondsSoFar => (long) (DateTime.Now - Started).TotalSeconds;
 
         public async Task<ReportCollection> DevelopStrategies(string optionSetName, int? restrictToScenarioIndex, string masterReportName)
         {
-            DateTime started = DateTime.Now;
+            Started = DateTime.Now;
             MasterReportName = masterReportName;
             await Initialize();
             ReportCollection reportCollection = new ReportCollection();
@@ -171,7 +173,7 @@ namespace ACESim
             if (constructCorrelatedEquilibrium)
                 reportCollection = await FinalizeCorrelatedEquilibrium();
             DateTime finished = DateTime.Now;
-            TimeSpan timeSpan = finished - started;
+            TimeSpan timeSpan = finished - Started;
             Status.OverallCalculationTime = (int) timeSpan.TotalSeconds;
             return reportCollection;
         }
@@ -2684,7 +2686,7 @@ namespace ACESim
                     d.StaticTextColumns.Add(("Exploit", Status.BestResponseImprovementAdjAvg.ToSignificantFigures(4)));
                 if (Status.Refinement != 0)
                     d.StaticTextColumns.Add(("Refine", Status.Refinement.ToSignificantFigures(4)));
-                d.StaticTextColumns.Add(("Seconds", Status.OverallCalculationTime.ToString()));
+                d.StaticTextColumns.Add(("Seconds", SecondsSoFar.ToString()));
             }
             return simpleReportDefinitions;
         }

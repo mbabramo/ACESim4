@@ -8,12 +8,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 {
     public class AdditiveEvidenceGameLauncher : Launcher
     {
-
-        
-        OptionSetChoice optionSetChoice = OptionSetChoice.WinnerTakesAll;
+        OptionSetChoice optionSetChoice = OptionSetChoice.AdditiveEvidencePaperMain;
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
-        public override string MasterReportNameForDistributedProcessing => "AE016"; 
+        public override string MasterReportNameForDistributedProcessing => "AE017"; 
         public override GameDefinition GetGameDefinition() => new AdditiveEvidenceGameDefinition();
 
         public override GameOptions GetDefaultSingleGameOptions() => AdditiveEvidenceGameOptionsGenerator.GetAdditiveEvidenceGameOptions();
@@ -21,7 +19,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         // See below for choice
         private enum OptionSetChoice
         {
-            All,
+            EarlierSets,
             Fast,
             Original,
             TwoSets,
@@ -32,6 +30,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             EvenStrength,
             Biasless,
             WinnerTakesAll,
+            AdditiveEvidencePaperMain,
         }
 
         public override List<GameOptions> GetOptionsSets()
@@ -62,6 +61,14 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             bool withOptionNotToPlay = false;
             switch (optionSetChoice)
             {
+                case OptionSetChoice.AdditiveEvidencePaperMain:
+                    AddDMSGameOptionSets(optionSets, DMSVersion.Original, withOptionNotToPlay);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll, withOptionNotToPlay);
+                    // DEBUG
+                    //AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrength, withOptionNotToPlay);
+                    //AddDMSGameOptionSets(optionSets, DMSVersion.Biasless, withOptionNotToPlay);
+                    //AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrengthAndBiasless, withOptionNotToPlay);
+                    break;
                 case OptionSetChoice.Original:
                     AddDMSGameOptionSets(optionSets, DMSVersion.Original, withOptionNotToPlay);
                     break;
@@ -82,7 +89,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     AddDMSGameOptionSets(optionSets, DMSVersion.Biasless, withOptionNotToPlay);
                     AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrength, withOptionNotToPlay);
                     break;
-                case OptionSetChoice.All:
+                case OptionSetChoice.EarlierSets:
                     AddDMSGameOptionSets(optionSets, DMSVersion.Original, withOptionNotToPlay);
                     AddDMSGameOptionSets(optionSets, DMSVersion.Biasless, withOptionNotToPlay);
                     AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrength, withOptionNotToPlay);
@@ -148,7 +155,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             WinnerTakesAll,
         }
 
-        private void AddDMSGameOptionSets(List<(string optionSetName, GameOptions options)> optionSets, DMSVersion version, bool withOptionNotToPlay, bool feeShifting = true)
+        private void AddDMSGameOptionSets(List<(string optionSetName, GameOptions options)> optionSets, DMSVersion version, bool withOptionNotToPlay, bool feeShifting = true, int numFeeShiftingThresholds = 5) // DEBUG
         {
             // now, liability and damages only
 
@@ -156,9 +163,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             {
                 foreach (double qualityKnownToBoth in new double[] { 0.35 , 0.40, 0.45, 0.50, 0.55, 0.60, 0.65 })
                 {
-                    foreach (double? feeShiftingThreshold in Enumerable.Range(0, 101).Select(x => (double?) (x / 100.0)).ToArray()) // DEBUG feeShifting ? new double?[] { 0, 0.25, 0.50, 0.75, 1.0 } : new double?[] { 0 })
+                    double?[] feeShiftingThresholds = Enumerable.Range(0, numFeeShiftingThresholds).Select(x => (double?)(x / (numFeeShiftingThresholds - 1.0))).ToArray();
+                    foreach (double? feeShiftingThreshold in feeShiftingThresholds)
                     {
-                        string settingsString = $"q{(int) (qualityKnownToBoth*100):D3}c{(int) (costs*100):D3}t{(int)(feeShiftingThreshold*100):D3}";
+                        string settingsString = $"q{(int) (qualityKnownToBoth*100):D3}c{(int) (costs*100):D3}t{(int)(feeShiftingThreshold*100.0):D3}";
                         switch (version)
                         {
                             case DMSVersion.Original:
