@@ -31,9 +31,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public byte Chance_Defendant_Quality;
         public byte Chance_Plaintiff_Bias;
         public byte Chance_Defendant_Bias;
-        // with piecewise linear, the plaintiff/defendant receive only partial information about the bias and then produce an entire schedule of responses
-        public byte Chance_Plaintiff_Bias_Reduction;
-        public byte Chance_Defendant_Bias_Reduction;
 
         public double Chance_Plaintiff_Quality_Continuous => EquallySpaced.GetLocationOfEquallySpacedPoint(Chance_Plaintiff_Quality - 1 /* make it zero-based */, AdditiveEvidenceGameOptions.NumQualityAndBiasLevels_PrivateInfo, false);
         public double Chance_Defendant_Quality_Continuous => EquallySpaced.GetLocationOfEquallySpacedPoint(Chance_Defendant_Quality - 1 /* make it zero-based */, AdditiveEvidenceGameOptions.NumQualityAndBiasLevels_PrivateInfo, false);
@@ -197,6 +194,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public double Accuracy_ForPlaintiff => Math.Abs(PWelfare - QualitySum);
         public double Accuracy_ForDefendant => Math.Abs(DWelfare - (1.0 - QualitySum));
 
+        public double TrialRelativeAccuracy => Math.Abs(TrialValuePreShiftingIfOccurs - ResolutionValueIncludingShiftedAmount); // this EXCLUDES self-borne costs
+        public double TrialRelativeAccuracySquared => Accuracy * Accuracy;
+        public double TrialRelativeAccuracy_ForPlaintiff => Math.Abs(PWelfare - TrialValuePreShiftingIfOccurs);
+        public double TrialRelativeAccuracy_ForDefendant => Math.Abs(DWelfare - (1.0 - TrialValuePreShiftingIfOccurs));
+
         public double PWelfare => PResultFromQuitting ?? (SettlementOccurs ? (double)SettlementValue : PTrialEffect_IfOccurs);
         public double DWelfare => DResultFromQuitting ?? (SettlementOccurs ? (double)(1.0 - SettlementValue) : DTrialEffect_IfOccurs);
 
@@ -224,8 +226,6 @@ AccuracyIgnoringCosts {Accuracy} Accuracy_ForPlaintiff {Accuracy_ForPlaintiff} A
             copy.Chance_Defendant_Quality = Chance_Defendant_Quality;
             copy.Chance_Plaintiff_Bias = Chance_Plaintiff_Bias;
             copy.Chance_Defendant_Bias = Chance_Defendant_Bias;
-            copy.Chance_Plaintiff_Bias_Reduction = Chance_Plaintiff_Bias_Reduction;
-            copy.Chance_Defendant_Bias_Reduction = Chance_Defendant_Bias_Reduction;
             copy.PQuits = PQuits;
             copy.DQuits = DQuits;
             copy.POffer = POffer;

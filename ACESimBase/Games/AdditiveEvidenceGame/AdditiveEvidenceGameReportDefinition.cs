@@ -38,6 +38,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 new SimpleReportColumnVariable("Accuracy", (GameProgress gp) => AEGP(gp).Accuracy),
                 new SimpleReportColumnVariable("Accuracy_ForPlaintiff", (GameProgress gp) => AEGP(gp).Accuracy_ForPlaintiff),
                 new SimpleReportColumnVariable("Accuracy_ForDefendant", (GameProgress gp) => AEGP(gp).Accuracy_ForDefendant),
+
+                new SimpleReportColumnVariable("TrialRelativeAccSq", (GameProgress gp) => AEGP(gp).TrialRelativeAccuracySquared),
+                new SimpleReportColumnVariable("TrialRelativeAccuracy", (GameProgress gp) => AEGP(gp).TrialRelativeAccuracy),
+                new SimpleReportColumnVariable("TrialRelativeAccuracy_ForPlaintiff", (GameProgress gp) => AEGP(gp).TrialRelativeAccuracy_ForPlaintiff),
+                new SimpleReportColumnVariable("TrialRelativeAccuracy_ForDefendant", (GameProgress gp) => AEGP(gp).TrialRelativeAccuracy_ForDefendant),
+                
                 new SimpleReportColumnVariable("SettlementOrJudgment", (GameProgress gp) => AEGP(gp).ResolutionValue),
                 new SimpleReportColumnVariable("DsProportionOfCost", (GameProgress gp) => AEGP(gp).DsProportionOfCost),
                 new SimpleReportColumnVariable("DsProportionOfCostIfTrial", (GameProgress gp) => AEGP(gp).DsProportionOfCostIfTrial()),

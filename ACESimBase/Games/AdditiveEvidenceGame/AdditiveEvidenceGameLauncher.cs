@@ -11,7 +11,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         OptionSetChoice optionSetChoice = OptionSetChoice.AdditiveEvidencePaperMain;
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
-        public override string MasterReportNameForDistributedProcessing => "AE019";
+        public override string MasterReportNameForDistributedProcessing => "AE020";
 
         public double[] CostsLevels = new double[] { 0, 0.0625, 0.125, 0.25, 0.5 };
         public double[] QualityLevels = new double[] { 0.2, 0.35, 0.50, 0.65, 0.8 }; 
@@ -73,8 +73,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     AddDMSGameOptionSets(optionSets, DMSVersion.OriginalRandomized, false);
                     AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll, false);
                     AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrength, false);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.Biasless, false);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrengthAndBiasless, false);
                     break;
                 case OptionSetChoice.Original:
                     AddDMSGameOptionSets(optionSets, DMSVersion.Original, withOptionNotToPlay);

@@ -22,7 +22,7 @@ namespace LitigCharts
         {
             List<string> rowsToGet = new List<string>() { "All", "Settles", "Trial", "Shifting",   };
             List<string> replacementRowNames = rowsToGet.ToList();
-            List<string> columnsToGet = new List<string>() { "Exploit", "Seconds", "All", "TrialCost", "FeeShifting", "FeeShiftingThreshold", "Alpha_Plaintiff_Quality", /* "Alpha_Plaintiff_Bias", */ "Evidence_Both_Quality", "Settles", "Trial", "PWelfare", "DWelfare", "PQuits", "DQuits", "Shifting", "ShiftingOccursIfTrial", "ShiftingValueIfTrial", "POffer", "DOffer", "AccSq", "Accuracy", "Accuracy_ForPlaintiff", "Accuracy_ForDefendant", "SettlementOrJudgment", "TrialValuePreShiftingIfOccurs", "TrialValueWithShiftingIfOccurs", "ResolutionValueIncludingShiftedAmount", "SettlementValue", "PBestGuess", "DBestGuess" };
+            List<string> columnsToGet = new List<string>() { "Exploit", "Seconds", "All", "TrialCost", "FeeShifting", "FeeShiftingThreshold", "Alpha_Plaintiff_Quality", /* "Alpha_Plaintiff_Bias", */ "Evidence_Both_Quality", "Settles", "Trial", "PWelfare", "DWelfare", "PQuits", "DQuits", "Shifting", "ShiftingOccursIfTrial", "ShiftingValueIfTrial", "POffer", "DOffer", "AccSq", "Accuracy", "Accuracy_ForPlaintiff", "Accuracy_ForDefendant", "TrialRelativeAccSq", "TrialRelativeAccuracy", "TrialRelativeAccuracy_ForPlaintiff", "TrialRelativeAccuracy_ForDefendant", "SettlementOrJudgment", "TrialValuePreShiftingIfOccurs", "TrialValueWithShiftingIfOccurs", "ResolutionValueIncludingShiftedAmount", "SettlementValue", "PBestGuess", "DBestGuess" };
             List<string> replacementColumnNames = columnsToGet.ToList();
             string endOfFileName = "";
 
@@ -143,7 +143,18 @@ namespace LitigCharts
                 }
                 graphData.Add(macroRow);
             }
-            string result = GenerateLatex(graphData, qVarVals.Select(x => x.ToString("0.00")).ToList(), cVarVals.Select(x => RemoveTrailingZeros(x.ToString("0.0000"))).ToList(), tVarVals.Select(x => (((decimal) x) % 0.2M == 0 ? x.ToString("0.0") : "")).ToList(), mainVarLabel);
+            string tVarToString(double x)
+            {
+                if (x == 0)
+                    return "0";
+                else if (x == 1)
+                    return "1";
+                else if (x == 0.5)
+                    return "0.5";
+                else
+                    return "";
+            }
+            string result = GenerateLatex(graphData, qVarVals.Select(q => q.ToString("0.00")).ToList(), cVarVals.Select(c => RemoveTrailingZeros(c.ToString("0.0000"))).ToList(), tVarVals.Select(t => tVarToString(t)).ToList(), mainVarLabel);
             
             return result;
         }

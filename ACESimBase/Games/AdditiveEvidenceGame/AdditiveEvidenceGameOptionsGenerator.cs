@@ -31,12 +31,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         // Note: Go to Launcher to change multiple option sets settings.
 
-        static AdditiveEvidenceOptionSetChoices AdditiveEvidenceChoice => AdditiveEvidenceOptionSetChoices.Temporary;
+        static AdditiveEvidenceOptionSetChoices AdditiveEvidenceChoice => AdditiveEvidenceOptionSetChoices.DMS;
 
         public static AdditiveEvidenceGameOptions GetAdditiveEvidenceGameOptions() => AdditiveEvidenceChoice switch
         {
             AdditiveEvidenceOptionSetChoices.DMSPiecewiseLinear => DariMattiacci_Saraceno_Original(0.5, 1.0, false, false, 0, false),
-            AdditiveEvidenceOptionSetChoices.DMS => DariMattiacci_Saraceno_Original(0.5, 0.1, false, false, 0, false),
+            AdditiveEvidenceOptionSetChoices.DMS => DariMattiacci_Saraceno_Original(0.6, 0.15, false, false, 0, false),
             AdditiveEvidenceOptionSetChoices.DMS_WithFeeShifting => DariMattiacci_Saraceno_Original(0.40, 0.15, true, false, 0.5, false),
             AdditiveEvidenceOptionSetChoices.DMS_WithOptionNotToPlay => DariMattiacci_Saraceno_Original(0.90, 0.6, true, false, 0.7, true),
             //AdditiveEvidenceOptionSetChoices.DMS_WithOptionNotToPlay => DariMattiacci_Saraceno(0.05, 1.0, true, false, 0.5, false), // removing option not to play and including fee shifting  -- do we get negative settlements
