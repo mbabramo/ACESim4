@@ -143,7 +143,7 @@ namespace LitigCharts
                 }
                 graphData.Add(macroRow);
             }
-            string result = GenerateLatex(graphData, qVarVals.Select(x => x.ToString("0.00")).ToList(), cVarVals.Select(x => RemoveTrailingZeros(x.ToString("0.0000"))).ToList(), tVarVals.Select(x => (((decimal) x) % 0.10M == 0 ? x.ToString("0.0") : "")).ToList(), mainVarLabel);
+            string result = GenerateLatex(graphData, qVarVals.Select(x => x.ToString("0.00")).ToList(), cVarVals.Select(x => RemoveTrailingZeros(x.ToString("0.0000"))).ToList(), tVarVals.Select(x => (((decimal) x) % 0.2M == 0 ? x.ToString("0.0") : "")).ToList(), mainVarLabel);
             
             return result;
         }

@@ -74,14 +74,15 @@ namespace LitigCharts
             string[] results = Directory.GetFiles(path);
             foreach (var result in results)
             {
-                if (result.EndsWith(".tex"))
+                bool includeHeatmaps = false; // DEBUG
+                if (result.EndsWith(".tex") && (includeHeatmaps || !result.Contains("heatmap")))
                 {
                     ExecuteLatexProcess(path, result);
                 }
             }
             WaitForProcessesToFinish();
             results = Directory.GetFiles(path);
-            string[] toDelete = new string[] { ".aux", ".log", ".synctex.gz", ".tex" };
+            string[] toDelete = new string[] { ".aux", ".log", ".synctex.gz" };
             foreach (var result in results)
             {
                 if (toDelete.Any(d => result.EndsWith(d)))
