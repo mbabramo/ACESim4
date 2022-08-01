@@ -215,6 +215,8 @@ namespace ACESimBase.GameSolvingAlgorithms
                     
                     ECTARunner<T> ecta = GetECTARunner<T>(numPriorsToGet);
                     int seed = EvolutionSettings.SequenceFormRandomSeed ?? 0;
+                    if (seed != 0)
+                        TabbedText.WriteLine($"Using random seed {seed}");
                     results = ecta.Execute(t => SetupECTA(t), scenarioUpdater, seed, initialProbabilities?.ToArray());
                 }
                 results = results.Select(x => (ReverseEffectsOfCuttingOffProbabilityZeroNodes(x.equilibrium), x.frequency)).ToList();
