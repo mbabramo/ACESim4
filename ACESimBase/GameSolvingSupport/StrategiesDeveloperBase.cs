@@ -2157,7 +2157,7 @@ namespace ACESim
                     b.AppendLine($"Avg BR: {BestResponseImprovementAdjAvg}{refinement} Custom: {CustomResult}");
                 for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
                 {
-                    b.AppendLine($"U(P{playerBeingOptimized}): {UtilitiesOverall[playerBeingOptimized]} BR vs. {BestResponseReflectsCurrentStrategy} {BestResponseUtilities?[playerBeingOptimized]} BRimp: {BestResponseImprovementAdj?[playerBeingOptimized].ToSignificantFigures(3)}");
+                    b.AppendLine($"U(P{playerBeingOptimized}): {UtilitiesOverall[playerBeingOptimized]} BR score {BestResponseUtilities?[playerBeingOptimized]} BRimp: {BestResponseImprovementAdj?[playerBeingOptimized].ToSignificantFigures(3)}");
                 }
                 if (BestResponseImprovementAdj != null)
                     b.AppendLine($"Total best response calculation time: {BestResponseCalculationTime} milliseconds");
