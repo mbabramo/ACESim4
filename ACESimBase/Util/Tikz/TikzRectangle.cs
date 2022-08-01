@@ -64,6 +64,14 @@ namespace ACESimBase.Util.Tikz
 
         public List<TikzRectangle> DivideBottomToTop(int n) => DivideBottomToTop(Enumerable.Range(0, n).Select(x => 1.0 / n).ToArray());
 
+        public List<TikzRectangle> DivideTopToBottom(double[] proportions)
+        {
+            var rectangles = DivideBottomToTop(proportions);
+            rectangles.Reverse();
+            return rectangles;
+        }
+
+
         public List<TikzRectangle> DivideBottomToTop(double[] proportions)
         {
             double[] relative = proportions.Select(x => x / proportions.Sum()).ToArray();

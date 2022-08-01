@@ -173,8 +173,13 @@ namespace ACESimBase.Games.LitigGame.ManualReports
 
             int numXAxisItems = transpose ? numSignals : numOffers;
             List<double> relativeWidths = Enumerable.Range(0, numXAxisItems + 1).Select(x => 1.0 / (double)(numXAxisItems + 1)).ToList();
-            TikzRectangle overallRectangle = new TikzRectangle(0, 0, numXAxisItems <= 5 ? 12 : 12 * ((double)numXAxisItems / 5.0), 5);
-            List<TikzRectangle> separateRectangles = overallRectangle.DivideLeftToRight(new double[] { 0.49, 0.02, 0.49 });
+            bool dRectUnderPRect = numXAxisItems > 13;
+            double right = numXAxisItems <= 5 ? 12 : 12 * ((double)numXAxisItems / 5.0);
+            if (dRectUnderPRect)
+                right /= 2.0;
+            double top = dRectUnderPRect ? 10 : 5;
+            TikzRectangle overallRectangle = new TikzRectangle(0, 0, right, top);
+            List<TikzRectangle> separateRectangles = dRectUnderPRect ? overallRectangle.DivideTopToBottom(new double[] { 0.49, 0.02, 0.49 }) : overallRectangle.DivideLeftToRight(new double[] { 0.49, 0.02, 0.49 });
             TikzRectangle pRect = separateRectangles[0];
             TikzRectangle dRect = separateRectangles[2];
 

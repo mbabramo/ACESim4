@@ -71,7 +71,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             ReportCollection reportCollection = new ReportCollection();
             
             if (EvolutionSettings.SkipAltogetherIfEquilibriumFileAlreadyExists && EquilibriaFileAlreadyExists())
-                return reportCollection; // DEBUG
+                return reportCollection; 
 
             string filename = null;
             if (EvolutionSettings.CreateEFGFileForSequenceForm)
@@ -214,9 +214,12 @@ namespace ACESimBase.GameSolvingAlgorithms
                     }
                     
                     ECTARunner<T> ecta = GetECTARunner<T>(numPriorsToGet);
-                    int seed = EvolutionSettings.SequenceFormRandomSeed ?? 0;
-                    if (seed != 0)
-                        TabbedText.WriteLine($"Using random seed {seed}");
+                    int seed = 0;
+                    if (EvolutionSettings.SequenceFormUseRandomSeed)
+                    {
+                        seed = GameDefinition.GameOptions.Name.GetHashCode();
+                        TabbedText.WriteLine($"Using pseudorandom seed {seed}");
+                    }
                     results = ecta.Execute(t => SetupECTA(t), scenarioUpdater, seed, initialProbabilities?.ToArray());
                 }
                 results = results.Select(x => (ReverseEffectsOfCuttingOffProbabilityZeroNodes(x.equilibrium), x.frequency)).ToList();

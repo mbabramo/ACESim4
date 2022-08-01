@@ -32,6 +32,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 new SimpleReportColumnFilter("Shifting", (GameProgress gp) => AEGP(gp).ShiftingOccurs, SimpleReportColumnFilterOptions.ProportionOfRow),
                 new SimpleReportColumnFilter("ShiftingOccursIfTrial", (GameProgress gp) => AEGP(gp).ShiftingOccursIfTrial, SimpleReportColumnFilterOptions.ProportionOfRow),
                 new SimpleReportColumnVariable("ShiftingValueIfTrial", (GameProgress gp) => AEGP(gp).ShiftingValueIfTrial),
+                new SimpleReportColumnVariable("PQuits", (GameProgress gp) => AEGP(gp).PQuits ? 1.0 : 0),
+                new SimpleReportColumnVariable("DQuits", (GameProgress gp) => AEGP(gp).DQuits ? 1.0 : 0),
                 new SimpleReportColumnVariable("POffer", (GameProgress gp) => AEGP(gp).POfferContinuousOrNull),
                 new SimpleReportColumnVariable("DOffer", (GameProgress gp) => AEGP(gp).DOfferContinuousOrNull),
                 new SimpleReportColumnVariable("AccSq", (GameProgress gp) => AEGP(gp).AccuracySquared),
