@@ -15,7 +15,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public double[] CostsLevels = new double[] { 0, 0.0625, 0.125, 0.25, 0.5 };
         public double[] QualityLevels = new double[] { 0.2, 0.35, 0.50, 0.65, 0.8 }; 
-        int numFeeShiftingThresholds = 101;
+        int numFeeShiftingThresholds = 1001;
         public double[] FeeShiftingThresholds => Enumerable.Range(0, numFeeShiftingThresholds).Select(x => (double)(x / (numFeeShiftingThresholds - 1.0))).ToArray();
 
         public override GameDefinition GetGameDefinition() => new AdditiveEvidenceGameDefinition();

@@ -96,9 +96,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 rows = new List<SimpleReportFilter>()
                 {
                     new SimpleReportFilter("All", (GameProgress gp) => true),
-                    new SimpleReportFilter("Settles", (GameProgress gp) => AEGP(gp).SettlementOccurs),
-                    new SimpleReportFilter("Trial", (GameProgress gp) => AEGP(gp).TrialOccurs),
-                    new SimpleReportFilter("Shifting", (GameProgress gp) => AEGP(gp).ShiftingOccurs),
+                    //new SimpleReportFilter("Settles", (GameProgress gp) => AEGP(gp).SettlementOccurs),
+                    //new SimpleReportFilter("Trial", (GameProgress gp) => AEGP(gp).TrialOccurs),
+                    //new SimpleReportFilter("Shifting", (GameProgress gp) => AEGP(gp).ShiftingOccurs),
                 };
                 foreach (var r in new (string prefix, Func<GameProgress, byte, bool> filter, int n)[]
                 {
