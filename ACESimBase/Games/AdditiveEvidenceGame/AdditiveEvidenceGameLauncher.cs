@@ -11,11 +11,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         OptionSetChoice optionSetChoice = OptionSetChoice.AdditiveEvidencePaperMain;
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
-        public override string MasterReportNameForDistributedProcessing => "AE022";
+        public override string MasterReportNameForDistributedProcessing => "AE023";
 
         public double[] CostsLevels = new double[] { 0, 0.0625, 0.125, 0.25, 0.5 };
         public double[] QualityLevels = new double[] { 0.2, 0.35, 0.50, 0.65, 0.8 }; 
-        int numFeeShiftingThresholds = 21;
+        int numFeeShiftingThresholds = 101;
         public double[] FeeShiftingThresholds => Enumerable.Range(0, numFeeShiftingThresholds).Select(x => (double)(x / (numFeeShiftingThresholds - 1.0))).ToArray();
 
         public override GameDefinition GetGameDefinition() => new AdditiveEvidenceGameDefinition();
@@ -68,8 +68,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             switch (optionSetChoice)
             {
                 case OptionSetChoice.AdditiveEvidencePaperMain:
-                    AddDMSGameOptionSets(optionSets, DMSVersion.Original, false);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.OriginalInitialized, false);
+                    //AddDMSGameOptionSets(optionSets, DMSVersion.Original, false);
+                    //AddDMSGameOptionSets(optionSets, DMSVersion.OriginalInitialized, false);
                     AddDMSGameOptionSets(optionSets, DMSVersion.OriginalRandomized, false);
                     //AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAllWithQuitting, false);
                     AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll, false);
@@ -192,7 +192,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                                 optionSets.Add(GetAndTransform("quit", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.IncludePQuitDecision = x.IncludeDQuitDecision = true; x.WinnerTakesAll = true; }));
                                 break;
                             case DMSVersion.WinnerTakesAll:
-                                optionSets.Add(GetAndTransform("wta", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.WinnerTakesAll = true; }));
+                                optionSets.Add(GetAndTransform("wta", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.WinnerTakesAll = true; x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; /* DEBUG */ }; }));
                                 break;
                             case DMSVersion.Biasless:
                                 // Biasless means that all of the info that the adjudicator adds up counts in the quality measurement. That is, there is some quality known to both parties, but the remaining quality is the sum of the two parties' information. Here, we continue to follow the DMS approach of making the plaintiff's proportion of information equal to the actual shared quality value (qualityKnownToBoth).
@@ -200,7 +200,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                                 break;
                             case DMSVersion.EvenStrength:
                                 // even strength means that each party has the same amount of information. We still have bias here -- that is, the parties' private information has nothing to do with the merits. 
-                                optionSets.Add(GetAndTransform("es", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SharedInfoOnQuality_EvenStrengthOnBias(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
+                                optionSets.Add(GetAndTransform("es", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SharedInfoOnQuality_EvenStrengthOnBias(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; /* DEBUG */ }; }));
                                 break;
                             case DMSVersion.EvenStrengthAndBiasless:
                                 optionSets.Add(GetAndTransform("es_bl", settingsString, () => AdditiveEvidenceGameOptionsGenerator.Biasless(qualityKnownToBoth, 0.5, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, 0.5, withOptionNotToPlay), x => { }));
