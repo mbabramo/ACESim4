@@ -173,7 +173,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     
                     foreach (double? feeShiftingThreshold in FeeShiftingThresholds)
                     {
-                        string settingsString = $";q{(int) (qualityKnownToBoth*100):D3};c{(int) (costs*100):D3};t{(int)(feeShiftingThreshold*100.0):D5}";
+                        string settingsString = $";q{(decimal) (qualityKnownToBoth):0.000};c{(decimal) (costs):0.000};t{(decimal)(feeShiftingThreshold):0.0000}";
                         switch (version)
                         {
                             case DMSVersion.Original:
