@@ -3,6 +3,7 @@ using ACESimBase.Games.LitigGame.ManualReports;
 using ACESimBase.GameSolvingSupport;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -313,8 +314,14 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public override IEnumerable<(string filename, string reportcontent)> ProduceManualReports(List<(GameProgress theProgress, double weight)> gameProgresses, string supplementalString)
         {
+            if (Math.Abs(Options.FeeShiftingThreshold % 0.05) > 1E-7)
+                yield break;
+            Stopwatch w = new Stopwatch();
+            w.Start();
             var contents = SignalOfferReport.GenerateReport(this, gameProgresses, SignalOfferReport.TypeOfReport.Offers);
             yield return (OptionSetName + $"-heatmap{supplementalString}.tex", contents[0]);
+            w.Stop();
+            TabbedText.WriteLine($"Produced manual reports; time {w.ElapsedMilliseconds} ms");
         }
 
         #endregion

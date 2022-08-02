@@ -291,7 +291,7 @@ namespace ACESim
                     }
                     else
                     {
-                        logAction($"Beginning task {taskToDo.TaskType} (ID {taskToDo.ID})");
+                        logAction($"Beginning task {taskToDo.TaskType} (ID {taskToDo.ID}) time {DateTime.Now}");
                         try
                         {
                             bool skipAllButSpecifiedTasks = false; 
@@ -303,7 +303,7 @@ namespace ACESim
                         {
                             AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), $"FAILURE {taskToDo.TaskType} ID {taskToDo.ID}.txt", true, ex + "\n" + TabbedText.AccumulatedText.ToString(), SaveToAzureBlob);
                         }
-                        logAction($"Completed task {taskToDo.TaskType} (ID {taskToDo.ID})");
+                        logAction($"Completed task {taskToDo.TaskType} (ID {taskToDo.ID}) time {DateTime.Now}");
                         taskCompleted = taskToDo;
                     }
                 }

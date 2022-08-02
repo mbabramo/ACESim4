@@ -40,7 +40,7 @@ namespace ACESimDistributed
                 string original = AzureBlob.GetSerializedObjectFromFileOrAzure(path, containerName, fileName, useAzure) as string ?? "";
                 string revised = original + "\r\n" + text;
                 AzureBlob.SerializeToFileOrAzure(revised, path, containerName, fileName, useAzure);
-                Console.WriteLine(text);
+                TabbedText.WriteLine(text);
             }
 
             while (iterations < 10)

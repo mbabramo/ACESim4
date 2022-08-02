@@ -15,7 +15,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public double[] CostsLevels = new double[] { 0, 0.0625, 0.125, 0.25, 0.5 };
         public double[] QualityLevels = new double[] { 0.2, 0.35, 0.50, 0.65, 0.8 }; 
-        int numFeeShiftingThresholds = 1001;
+        int numFeeShiftingThresholds = 101;
         public double[] FeeShiftingThresholds => Enumerable.Range(0, numFeeShiftingThresholds).Select(x => (double)(x / (numFeeShiftingThresholds - 1.0))).ToArray();
 
         public override GameDefinition GetGameDefinition() => new AdditiveEvidenceGameDefinition();
@@ -173,7 +173,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     
                     foreach (double? feeShiftingThreshold in FeeShiftingThresholds)
                     {
-                        string settingsString = $";q{(int) (qualityKnownToBoth*100):D3};c{(int) (costs*100):D3};t{(int)(feeShiftingThreshold*100.0):D3}";
+                        string settingsString = $";q{(int) (qualityKnownToBoth*100):D3};c{(int) (costs*100):D3};t{(int)(feeShiftingThreshold*100.0):D5}";
                         switch (version)
                         {
                             case DMSVersion.Original:
