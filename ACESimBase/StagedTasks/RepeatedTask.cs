@@ -1,16 +1,12 @@
-﻿using System;
+﻿using ACESimBase.StagedTasks;
+using System;
 using System.Linq;
 
-namespace ACESim.Util
+namespace ACESimBase.StagedTasks
 {
     [Serializable]
-    public class RepeatedTask
+    public partial class RepeatedTask : IRepeatedTask
     {
-        public string TaskType;
-        public int ID;
-        public bool AvoidRedundantExecution; // use AvoidRedundantExecution for very long tasks at the end of a series of tasks, so other processes do not try to do them simultaneously when they see that it has been some time before the task was started
-        public IndividualTask[] IndividualTasks;
-
         public RepeatedTask(string taskType, int id, int repetitions, int? scenarios)
         {
             TaskType = taskType;

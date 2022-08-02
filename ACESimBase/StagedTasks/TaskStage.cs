@@ -1,17 +1,17 @@
-﻿using System;
+﻿using ACESim.Util;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ACESim.Util
+namespace ACESimBase.StagedTasks
 {
     [Serializable]
-    public class TaskStage
+    public partial class TaskStage : ITaskStage
     {
         public TaskStage(List<RepeatedTask> repeatedTasks)
         {
             RepeatedTasks = repeatedTasks;
         }
-        public List<RepeatedTask> RepeatedTasks = null;
         public bool Complete => RepeatedTasks.All(x => x.Complete);
         public RepeatedTask IncompleteRepeatedTask => RepeatedTasks
             .Where(x => !x.Complete)
@@ -22,7 +22,7 @@ namespace ACESim.Util
 
         public override string ToString()
         {
-            return String.Join("\n", RepeatedTasks.Select(x => x.ToString()));
+            return string.Join("\n", RepeatedTasks.Select(x => x.ToString()));
         }
     }
 }

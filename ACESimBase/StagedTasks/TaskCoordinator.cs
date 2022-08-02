@@ -1,18 +1,19 @@
-﻿using System;
+﻿using ACESim.Util;
+using Lazinator.Collections;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ACESim.Util
+namespace ACESimBase.StagedTasks
 {
 
     [Serializable]
-    public class TaskCoordinator
+    public partial class TaskCoordinator : ITaskCoordinator
     {
-        public List<TaskStage> Stages;
 
-        public TaskCoordinator(List<TaskStage> stages)
+        public TaskCoordinator(LazinatorList<TaskStage> stages)
         {
             Stages = stages;
         }
@@ -21,7 +22,7 @@ namespace ACESim.Util
         private IEnumerable<IndividualTask> IndividualTasks => RepeatedTasks.SelectMany(x => x.IndividualTasks);
         public int IndividualTaskCount => IndividualTasks.Count();
         public bool Complete => IndividualTasks.All(x => x.Complete);
-        public double ProportionComplete => (double) IndividualTasks.Count(x => x.Complete) / (double) IndividualTasks.Count();
+        public double ProportionComplete => IndividualTasks.Count(x => x.Complete) / (double)IndividualTasks.Count();
         public TimeSpan LongestDuration => IndividualTasks.Any() ? IndividualTasks.Max(x => x.DurationOfLongestComplete) : TimeSpan.FromSeconds(0);
 
         public void Update(IndividualTask taskCompleted, bool readyForAnotherTask, out IndividualTask taskToDo, out bool allComplete)
@@ -54,7 +55,7 @@ namespace ACESim.Util
             { // all stages complete
                 taskToDo = null;
                 allComplete = true;
-                return; 
+                return;
             }
             repeatedTask = taskStage.IncompleteRepeatedTask;
             if (repeatedTask == null)
@@ -65,7 +66,7 @@ namespace ACESim.Util
             }
             taskToDo = repeatedTask.FirstIncomplete();
             allComplete = false;
-            if (taskToDo.Started != null && (taskToDo.Started + minSpanBeforeStartingAlreadyStartedJob > DateTime.Now || repeatedTask.AvoidRedundantExecution)) 
+            if (taskToDo.Started != null && (taskToDo.Started + minSpanBeforeStartingAlreadyStartedJob > DateTime.Now || repeatedTask.AvoidRedundantExecution))
                 taskToDo = null;
             else
                 taskToDo.Started = DateTime.Now;
@@ -73,7 +74,7 @@ namespace ACESim.Util
 
         public override string ToString()
         {
-            return String.Join("\n\n", Stages.Select(x => x.ToString()));
+            return string.Join("\n\n", Stages.Select(x => x.ToString()));
         }
     }
 }

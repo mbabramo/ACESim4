@@ -1,16 +1,13 @@
-﻿using System;
+﻿using ACESimBase.StagedTasks;
+using Lazinator.Attributes;
+using Lazinator.Core;
+using System;
 
-namespace ACESim.Util
+namespace ACESimBase.StagedTasks
 {
     [Serializable]
-    public class IndividualTask
+    public partial class IndividualTask : IIndividualTask
     {
-        public string TaskType;
-        public int ID;
-        public int Repetition;
-        public int? RestrictToScenarioIndex;
-        public DateTime? Started;
-        public DateTime? Completed;
         public TimeSpan DurationOfLongestComplete => Completed == null ? TimeSpan.FromSeconds(0) : (TimeSpan) (Completed - Started); // we do not count incomplete tasks here
         public bool Complete
         {
