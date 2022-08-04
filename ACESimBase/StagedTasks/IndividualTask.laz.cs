@@ -45,7 +45,6 @@ namespace ACESimBase.StagedTasks
             {
                 return _Completed;
             }
-            [DebuggerStepThrough]
             set
             {
                 IsDirty = true;
@@ -176,12 +175,9 @@ namespace ACESimBase.StagedTasks
         
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         protected bool _IsDirty;
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public virtual bool IsDirty
         {
-            [DebuggerStepThrough]
             get => _IsDirty|| LazinatorMemoryStorage.Length == 0;
-            [DebuggerStepThrough]
             set
             {
                 if (_IsDirty != value)

@@ -9,13 +9,42 @@ using System.Threading.Tasks;
 namespace ACESimBase.StagedTasks
 {
 
-    [Serializable]
-    public partial class TaskCoordinator : ITaskCoordinator
+    public partial class TaskCoordinator
     {
 
-        public TaskCoordinator(LazinatorList<TaskStage> stages)
+        public LazinatorList<TaskStage> Stages;
+
+        public TaskCoordinator(IEnumerable<TaskStage> stages)
         {
-            Stages = stages;
+            Stages = new LazinatorList<TaskStage>(stages);
+        }
+        
+        public TaskCoordinator(string path, string containerName, string fileName, bool useAzure)
+        {
+            byte[] bytes = AzureBlob.GetByteArrayFromFileOrAzure(path, containerName, fileName, useAzure);
+            Stages = new LazinatorList<TaskStage>(bytes);
+        }
+
+        public void SaveToFileOrAzure(string path, string containerName, string fileName, bool useAzure)
+        {
+            byte[] bytes = SerializeToBytes();
+            AzureBlob.SaveByteArrayToFileOrAzure(bytes, path, containerName, fileName, useAzure);
+        }
+
+        public byte[] SerializeToBytes()
+        {
+            Stages.SerializeLazinator();
+            byte[] bytes = Stages.LazinatorMemoryStorage.EnumerateBytes().ToArray();
+            return bytes;
+        }
+
+        public static TaskCoordinator TransformShared(string path, string containerName, string fileName, bool useAzure, Func<TaskCoordinator, TaskCoordinator> transformFunc)
+        {
+            TaskCoordinator tc = AzureBlob.BlobOrFileExists(path, containerName, fileName, useAzure) ? new TaskCoordinator(path, containerName, fileName, useAzure) : null;
+            tc = transformFunc(tc);
+            if (tc != null)
+                tc.SaveToFileOrAzure(path, containerName, fileName, useAzure);
+            return tc;
         }
 
         private IEnumerable<RepeatedTask> RepeatedTasks => Stages.SelectMany(x => x.RepeatedTasks);

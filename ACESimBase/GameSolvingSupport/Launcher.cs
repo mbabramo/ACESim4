@@ -5,6 +5,7 @@ using ACESimBase.Games.DMSReplicationGame;
 using ACESimBase.GameSolvingAlgorithms;
 using ACESimBase.GameSolvingSupport;
 using ACESimBase.StagedTasks;
+using Lazinator.Collections;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -259,9 +260,8 @@ namespace ACESim
                 Stopwatch s = new Stopwatch();
                 s.Start();
                 // We are serializing the TaskCoordinator to synchronize information. Thus, we need to update the task coordinator to report that this job is complete. 
-                AzureBlob.TransformSharedBlobOrFileObject(ReportFolder(), "results", masterReportName + " Coordinator", o =>
+                TaskCoordinator.TransformShared(ReportFolder(), "results", masterReportName + " Coordinator", SaveToAzureBlob, taskCoordinator =>
                 {
-                    TaskCoordinator taskCoordinator = (TaskCoordinator)o; // because of TransformSharedBlobObject, changes to this will be persisted
                     if (taskCoordinator == null)
                         throw new Exception("Corrupted or nonexistent task coordinator blob");
 
@@ -270,7 +270,13 @@ namespace ACESim
                     //    if (taskToChange.TaskType == "CompletePCA")
                     //        taskToChange.Complete = false;
 
+                    var DEBUG = taskCoordinator.SerializeToBytes();
                     taskCoordinator.Update(theCompletedTask, readyForAnotherTask, out taskToDo, out complete);
+                    var DEBUG2 = taskCoordinator.SerializeToBytes();
+                    var DEBUG3 = DEBUG2.SequenceEqual(DEBUG);
+                    var DEBUG4 = new TaskCoordinator(new LazinatorList<TaskStage>(DEBUG2));
+                    var DEBUG5 = DEBUG4.SerializeToBytes();
+                    var DEBUG6 = DEBUG4.Stages.First().RepeatedTasks.SelectMany(x => x.IndividualTasks).ToArray();
                     TabbedText.WriteLineEvenIfDisabled($"");
                     TabbedText.WriteLineEvenIfDisabled($"Percentage Complete {100.0 * taskCoordinator.ProportionComplete}% of {taskCoordinator.IndividualTaskCount}");
                     if (taskToDo != null)
@@ -281,7 +287,7 @@ namespace ACESim
                         Console.Title = taskToDo.ToString();
                     }
                     return taskCoordinator;
-                }, SaveToAzureBlob);
+                });
                 TabbedText.WriteLine($"Updated status (total {s.ElapsedMilliseconds} milliseconds)");
                 if (!complete)
                 {
@@ -319,7 +325,7 @@ namespace ACESim
                 logAction = s => Debug.WriteLine(s);
             ReportCollection reportCollection = null;
             string optionSetName = null;
-            if (taskToDo.TaskType == "Optimize")
+            if (taskToDo.TaskType == "O") // Optimize
             {
                 IStrategiesDeveloper developer = GetDeveloper(taskToDo.ID);
                 (reportCollection, optionSetName) = await GetSingleRepetitionReportAndSave(masterReportName, taskToDo.ID, taskToDo.Repetition, true, developer, taskToDo.RestrictToScenarioIndex, logAction);
@@ -373,7 +379,7 @@ namespace ACESim
                 scenarios = GetGameDefinition().NumScenarioPermutations;
             var taskStages = new List<TaskStage>()
             {
-                new TaskStage(Enumerable.Range(0, optionSetsCount).Select(x => new RepeatedTask("Optimize", x, NumRepetitions, scenarios)).ToList())
+                new TaskStage(Enumerable.Range(0, optionSetsCount).Select(x => new RepeatedTask("O" /* short for optimize */, x, NumRepetitions, scenarios)).ToList())
             };
             if (DistributedProcessing && SeparateScenariosWhenUsingDistributedProcessing)
                 taskStages.Add(new TaskStage(Enumerable.Range(0, optionSetsCount).Select(x => new RepeatedTask("CompletePCA", x, 1, null)).ToList()));
@@ -382,12 +388,12 @@ namespace ACESim
             if (optionSetsCount > 1)
                 taskStages.Add(new TaskStage(Enumerable.Range(0, 1).Select(x => new RepeatedTask("CombineOptionSets", x, 1, null) { AvoidRedundantExecution = true }).ToList()));
             TaskCoordinator tasks = new TaskCoordinator(taskStages);
-            var result = AzureBlob.TransformSharedBlobOrFileObject(ReportFolder(), "results", masterReportName + " Coordinator", o =>
+            var result = TaskCoordinator.TransformShared(ReportFolder(), "results", masterReportName + " Coordinator", SaveToAzureBlob, o =>
             {
                 if (o == null)
                     return tasks; // create a new file
                 return null; // this will leave the existing file unchanged, and shortly we'll look at the existing file
-            }, SaveToAzureBlob); // return null if the task coordinator object is already created
+            }); // return null if the task coordinator object is already created
             //if (result != null)
             //    Debug.WriteLine(result);
         }

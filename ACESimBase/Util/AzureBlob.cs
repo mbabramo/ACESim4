@@ -155,6 +155,8 @@ namespace ACESim.Util
             }
         }
 
+        public static bool BlobOrFileExists(string path, string containerName, string fileName, bool useAzure) => useAzure ? BlobExists(containerName, fileName) : FileExists(path, fileName);
+
         public static object TransformSharedBlobOrFileObject(string path, string containerName, string fileName, Func<object, object> transformFunction, bool useAzure)
         {
             if (useAzure)
@@ -199,6 +201,13 @@ namespace ACESim.Util
                     formatter.Serialize(stream, finalState);
                 return finalState;
             }
+        }
+
+        public static bool FileExists(string path, string filename)
+        {
+            string fullFilename = Path.Combine(path, filename);
+            var exists = File.Exists(fullFilename);
+            return exists;
         }
 
         public static FileStream GetFileStream(string path, string filename)
@@ -287,6 +296,14 @@ namespace ACESim.Util
             {
                 blockBlob.UploadFromStream(stream, null, options);
             }
+        }
+
+        public static bool BlobExists(string containerName, string fileName)
+        {
+
+            var blockBlob = GetBlockBlob(containerName, fileName, false);
+
+            return blockBlob.Exists();
         }
 
         public static string GetBlobText(string containerName, string fileName)
