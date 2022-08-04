@@ -1,6 +1,5 @@
 ﻿using ACESim;
 using ACESim.Util;
-using ACESimBase.StagedTasks;
 using LitigCharts;
 using System;
 using System.Collections.Generic;
@@ -51,7 +50,7 @@ namespace ACESimDistributedSaturate
                     // But that creates the further complication that the tasks have to be allocated by this central process, rather than in a completely decentralized
                     // way.
 
-                    TaskCoordinator coordinator = new TaskCoordinator(Launcher.ReportFolder(), "results", masterReportName + " Coordinator", useAzure);
+                    TaskCoordinator coordinator = (TaskCoordinator)AzureBlob.GetSerializedObjectFromFileOrAzure(Launcher.ReportFolder(), "results", masterReportName + " Coordinator", useAzure);
                     Console.WriteLine($"Proportion complete {coordinator.ProportionComplete} after {s.Elapsed}");
                     if (coordinator.Complete)
                     {

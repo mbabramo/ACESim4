@@ -13,9 +13,6 @@
   <ItemGroup>
     <PackageReference Include="alglib.net" Version="3.18.2" />
     <PackageReference Include="CsvHelper" Version="28.0.1" />
-    <PackageReference Include="Lazinator" Version="0.1.0.395-alpha" />
-    <PackageReference Include="Lazinator.Collections" Version="0.1.0.395-alpha" />
-    <PackageReference Include="LazinatorAnalyzer" Version="0.1.0.395-alpha" />
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
     <PackageReference Include="Microsoft.Azure.KeyVault.Core" Version="3.0.5" />
     <PackageReference Include="Microsoft.Azure.Storage.Blob" Version="11.2.3" />
