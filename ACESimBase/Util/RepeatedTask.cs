@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace ACESim.Util
@@ -50,6 +51,14 @@ namespace ACESim.Util
             .ThenBy(x => x.Started != null) // not started first
             .ThenBy(x => x.Started) // oldest started first
             .FirstOrDefault();
+
+        public List<IndividualTask> FirstIncompleteTasks(int n) => Complete ? (List<IndividualTask>)null :
+            IndividualTasks
+            .OrderBy(x => x.Complete) // incomplete first
+            .ThenBy(x => x.Started != null) // not started first
+            .ThenBy(x => x.Started) // oldest started first
+            .Take(n)
+            .ToList();
         public override string ToString()
         {
             return String.Join("; ", IndividualTasks.Select(x => x.ToString()));

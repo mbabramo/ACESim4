@@ -24,35 +24,39 @@ namespace ACESim.Util
         public double ProportionComplete => (double) IndividualTasks.Count(x => x.Complete) / (double) IndividualTasks.Count();
         public TimeSpan LongestDuration => IndividualTasks.Any() ? IndividualTasks.Max(x => x.DurationOfLongestComplete) : TimeSpan.FromSeconds(0);
 
-        public void Update(IndividualTask taskCompleted, bool readyForAnotherTask, out IndividualTask taskToDo, out bool allComplete)
+        public void Update(List<IndividualTask> tasksCompleted, bool readyForAnotherTask, int numTasksToRequest, out List<IndividualTask> tasksToDo, out bool allComplete)
         {
             TimeSpan minSpanBeforeStartingAlreadyStartedJob = TimeSpan.FromSeconds(0); // ALTERNATIVE: LongestDuration;
             RepeatedTask repeatedTask = null;
-            if (taskCompleted != null)
+            if (tasksCompleted != null)
             {
-                // mark the completed task as complete
-                repeatedTask = RepeatedTasks.First(x => x.TaskType == taskCompleted.TaskType && x.ID == taskCompleted.ID); // repeatedtask has same name and id as each individualtask within it
-                var individualTask = repeatedTask.IndividualTasks.First(x => x.Repetition == taskCompleted.Repetition && x.RestrictToScenarioIndex == taskCompleted.RestrictToScenarioIndex);
-                individualTask.Complete = true;
-                individualTask.Completed = DateTime.Now;
+                foreach (var taskCompleted in tasksCompleted)
+                {
+                    // mark the completed task as complete
+                    repeatedTask = RepeatedTasks.First(x => x.TaskType == taskCompleted.TaskType && x.ID == taskCompleted.ID); // repeatedtask has same name and id as each individualtask within it
+                    var individualTask = repeatedTask.IndividualTasks.First(x => x.Repetition == taskCompleted.Repetition && x.RestrictToScenarioIndex == taskCompleted.RestrictToScenarioIndex);
+                    individualTask.Complete = true;
+                    individualTask.Completed = DateTime.Now;
+                }
                 if (!readyForAnotherTask)
                 {
-                    taskToDo = null;
+                    tasksToDo = null;
                     allComplete = false; // assume all are not complete
                     return;
                 }
-                taskToDo = repeatedTask.FirstIncomplete(); // look at same repeated task for a new job before considering other stages altogether.
-                if (taskToDo != null)
+                tasksToDo = repeatedTask.FirstIncompleteTasks(numTasksToRequest); // look at same repeated task for a new job before considering other stages altogether.
+                if (tasksToDo != null)
                 {
                     allComplete = false;
-                    taskToDo.Started = DateTime.Now;
+                    foreach (var taskToDo in tasksToDo)
+                        taskToDo.Started = DateTime.Now;
                     return;
                 }
             }
             var taskStage = Stages.FirstOrDefault(x => !x.Complete);
             if (taskStage == null)
             { // all stages complete
-                taskToDo = null;
+                tasksToDo = null;
                 allComplete = true;
                 return; 
             }
@@ -60,15 +64,20 @@ namespace ACESim.Util
             if (repeatedTask == null)
             {
                 allComplete = false;
-                taskToDo = null;
+                tasksToDo = null;
                 return;
             }
-            taskToDo = repeatedTask.FirstIncomplete();
+            tasksToDo = repeatedTask.FirstIncompleteTasks(numTasksToRequest);
             allComplete = false;
-            if (taskToDo.Started != null && (taskToDo.Started + minSpanBeforeStartingAlreadyStartedJob > DateTime.Now || repeatedTask.AvoidRedundantExecution)) 
-                taskToDo = null;
-            else
-                taskToDo.Started = DateTime.Now;
+            foreach (var taskToDo in tasksToDo.ToList())
+            {
+                if (taskToDo.Started != null && (taskToDo.Started + minSpanBeforeStartingAlreadyStartedJob > DateTime.Now || repeatedTask.AvoidRedundantExecution))
+                    tasksToDo.Remove(taskToDo);
+                else
+                    taskToDo.Started = DateTime.Now;
+            }
+            if (!tasksToDo.Any())
+                tasksToDo = null;
         }
 
         public override string ToString()
