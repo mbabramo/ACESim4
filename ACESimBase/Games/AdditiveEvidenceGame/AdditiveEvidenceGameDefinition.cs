@@ -314,7 +314,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public override IEnumerable<(string filename, string reportcontent)> ProduceManualReports(List<(GameProgress theProgress, double weight)> gameProgresses, string supplementalString)
         {
-            if (Math.Abs(Options.FeeShiftingThreshold % 0.05) > 1E-7)
+            double includeMultiplesOf = 0.05;
+            double remainder = Math.Abs(Options.FeeShiftingThreshold % includeMultiplesOf);
+            if (remainder > includeMultiplesOf * 0.5) // e.g., 0.049999 -> 0.049999
+                remainder = includeMultiplesOf - remainder;
+            if (remainder > 1E-6)
                 yield break;
             Stopwatch w = new Stopwatch();
             w.Start();

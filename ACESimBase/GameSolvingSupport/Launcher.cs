@@ -245,7 +245,7 @@ namespace ACESim
         public async Task ParticipateInDistributedProcessing(string masterReportName, CancellationToken cancellationToken, Action<string> logAction = null)
         {
             InitializeTaskCoordinatorIfNecessary(masterReportName);
-            IndividualTask taskToDo = null, taskCompleted = null;
+            List<IndividualTask> tasksToDo = null, tasksCompleted = null;
             bool complete = false;
             if (logAction == null)
                 logAction = s => Debug.WriteLine(s);
@@ -253,7 +253,7 @@ namespace ACESim
             TabbedText.WriteLine($"Starting participation in {MasterReportNameForDistributedProcessing}");
             while (!complete)
             {
-                IndividualTask theCompletedTask = taskCompleted; // avoid problem with closure
+                List<IndividualTask> theCompletedTasks = tasksCompleted; // avoid problem with closure
                 bool readyForAnotherTask = !cancellationToken.IsCancellationRequested;
                 Stopwatch s = new Stopwatch();
                 s.Start();
@@ -269,42 +269,53 @@ namespace ACESim
                     //    if (taskToChange.TaskType == "CompletePCA")
                     //        taskToChange.Complete = false;
 
-                    taskCoordinator.Update(theCompletedTask, readyForAnotherTask, out taskToDo, out complete);
+                    int numTasksToRequest = 25; // DEBUG // NOTE: This should only be used if the simulations are quite short and there are a very large number of them (in which case modifying the TaskCoordinator file may take a while, given that each process will be waiting to get access often).
+                    taskCoordinator.Update(theCompletedTasks, readyForAnotherTask, numTasksToRequest, out tasksToDo, out complete);
                     TabbedText.WriteLineEvenIfDisabled($"");
                     TabbedText.WriteLineEvenIfDisabled($"Percentage Complete {100.0 * taskCoordinator.ProportionComplete}% of {taskCoordinator.IndividualTaskCount}");
-                    if (taskToDo != null)
+                    if (tasksToDo != null)
                     {
                         if (AlwaysDoTaskID is int ID)
-                            taskToDo.ID = ID;
-                        TabbedText.WriteLineEvenIfDisabled($"Task to do: {taskToDo}");
-                        Console.Title = taskToDo.ToString();
+                        {
+                            if (numTasksToRequest != 1)
+                                throw new Exception();
+                            tasksToDo.First().ID = ID;
+                        }
                     }
                     return taskCoordinator;
                 }, SaveToAzureBlob);
                 TabbedText.WriteLine($"Updated status (total {s.ElapsedMilliseconds} milliseconds)");
                 if (!complete)
                 {
-                    if (taskToDo == null)
+                    if (tasksToDo == null)
                     {
                         await Task.Delay(1000 * 60 * 1); // wait a minute for another task
                         TabbedText.WriteLine("Waiting before trying to find a task");
                     }
                     else
                     {
-                        logAction($"Beginning task {taskToDo.TaskType} (ID {taskToDo.ID}) time {DateTime.Now}");
-                        try
+                        foreach (var taskToDo in tasksToDo.ToList())
                         {
-                            bool skipAllButSpecifiedTasks = false; 
-                            List<int> limitToTasks = new List<int>() { 1100, 1279 };
-                            if (!skipAllButSpecifiedTasks || limitToTasks.Contains(taskToDo.ID))
-                                await CompleteIndividualTask(masterReportName, taskToDo, logAction);
+                            TabbedText.WriteLineEvenIfDisabled($"Task to do: {taskToDo}");
+                            Console.Title = tasksToDo.First().ToString();
+                            logAction($"Beginning task {taskToDo.TaskType} (ID {taskToDo.ID}) time {DateTime.Now}");
+                            try
+                            {
+                                bool skipAllButSpecifiedTasks = false;
+                                List<int> limitToTasks = new List<int>() { 1100, 1279 };
+                                if (!skipAllButSpecifiedTasks || limitToTasks.Contains(taskToDo.ID))
+                                    await CompleteIndividualTask(masterReportName, taskToDo, logAction);
+                            }
+                            catch (Exception ex)
+                            {
+                                AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), $"FAILURE {taskToDo.TaskType} ID {taskToDo.ID}.txt", true, ex + "\n" + TabbedText.AccumulatedText.ToString(), SaveToAzureBlob);
+                            }
+                            logAction($"Completed task {taskToDo.TaskType} (ID {taskToDo.ID}) time {DateTime.Now}");
+                            tasksToDo.Remove(taskToDo);
+                            if (tasksCompleted == null)
+                                tasksCompleted = new List<IndividualTask>();
+                            tasksCompleted.Add(taskToDo);
                         }
-                        catch (Exception ex)
-                        {
-                            AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), $"FAILURE {taskToDo.TaskType} ID {taskToDo.ID}.txt", true, ex + "\n" + TabbedText.AccumulatedText.ToString(), SaveToAzureBlob);
-                        }
-                        logAction($"Completed task {taskToDo.TaskType} (ID {taskToDo.ID}) time {DateTime.Now}");
-                        taskCompleted = taskToDo;
                     }
                 }
                 if (MaxOneReportPerDistributedProcess)
