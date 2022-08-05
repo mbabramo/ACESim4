@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static ACESimBase.Util.ByteArrayCompression;
 
 namespace ACESim.Util
 {
@@ -22,6 +23,7 @@ namespace ACESim.Util
         
         public void StatusFromByteArray(byte[] bytes)
         {
+            bytes = Decompress(bytes);
             // 1 bit for each individual task indicating whether it has started;
             // 1 bit for each started task indicating whether it is complete;
             // 4 bytes = 32 bits for each pending task indicating when it was started, measured in minutes from some reference point 
@@ -77,7 +79,7 @@ namespace ACESim.Util
                     }
                 }
             }
-            return ConvertToByteArray(bits);
+            return Compress(ConvertToByteArray(bits));
         }
 
         static byte[] ConvertToByteArray(BitArray bits)
