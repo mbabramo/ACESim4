@@ -55,7 +55,7 @@ namespace ACESimDistributedSaturate
                     byte[] result = AzureBlob.GetByteArrayFromFileOrAzure(Launcher.ReportFolder(), "results", masterReportName + " Coordinator", useAzure);
                     coordinator.StatusFromByteArray(result);
                     Console.WriteLine($"Proportion complete {coordinator.ProportionComplete} after {s.Elapsed}");
-                    if (coordinator.Complete)
+                    if (coordinator.AllComplete)
                     {
                         foreach (var process in processes)
                             process.Kill();
