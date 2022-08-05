@@ -40,6 +40,8 @@ namespace ACESimDistributedSaturate
             Stopwatch s = new Stopwatch();
             s.Start();
 
+            var launcher = Launcher.GetLauncher();
+            var coordinator = launcher.GetUninitializedTaskList();
             while (true)
             {
                 await Task.Delay(10_000);
@@ -50,7 +52,8 @@ namespace ACESimDistributedSaturate
                     // But that creates the further complication that the tasks have to be allocated by this central process, rather than in a completely decentralized
                     // way.
 
-                    TaskCoordinator coordinator = (TaskCoordinator)AzureBlob.GetSerializedObjectFromFileOrAzure(Launcher.ReportFolder(), "results", masterReportName + " Coordinator", useAzure);
+                    byte[] result = AzureBlob.GetByteArrayFromFileOrAzure(Launcher.ReportFolder(), "results", masterReportName + " Coordinator", useAzure);
+                    coordinator.StatusFromByteArray(result);
                     Console.WriteLine($"Proportion complete {coordinator.ProportionComplete} after {s.Elapsed}");
                     if (coordinator.Complete)
                     {

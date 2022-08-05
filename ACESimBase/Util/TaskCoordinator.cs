@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,6 +16,31 @@ namespace ACESim.Util
         public TaskCoordinator(List<TaskStage> stages)
         {
             Stages = stages;
+        }
+
+        public void StatusFromByteArray(byte[] bytes)
+        {
+            BitArray bits = new BitArray(bytes);
+            int i = 0;
+            foreach (var individualTask in IndividualTasks)
+                individualTask.Complete = bits[i++];
+        }
+
+        public byte[] StatusAsByteArray()
+        {
+            BitArray bits = new BitArray(IndividualTaskCount);
+            int i = 0;
+            foreach (var individualTask in IndividualTasks)
+                bits[i++] = individualTask.Complete;
+            return ConvertToByteArray(bits);
+        }
+
+        static byte[] ConvertToByteArray(BitArray bits)
+        {
+            // Make sure we have enough space allocated even when number of bits is not a multiple of 8
+            var bytes = new byte[(bits.Length - 1) / 8 + 1];
+            bits.CopyTo(bytes, 0);
+            return bytes;
         }
 
         private IEnumerable<RepeatedTask> RepeatedTasks => Stages.SelectMany(x => x.RepeatedTasks);

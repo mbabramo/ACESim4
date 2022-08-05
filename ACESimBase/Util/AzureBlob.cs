@@ -139,6 +139,8 @@ namespace ACESim.Util
             }
         }
 
+        
+
         public static byte[] GetByteArray(CloudBlockBlob blockBlob)
         {
             var options = new BlobRequestOptions()
@@ -155,6 +157,7 @@ namespace ACESim.Util
             }
         }
 
+
         public static object TransformSharedBlobOrFileObject(string path, string containerName, string fileName, Func<object, object> transformFunction, bool useAzure)
         {
             if (useAzure)
@@ -163,10 +166,35 @@ namespace ACESim.Util
                 return TransformSharedFileBlob(path, fileName, transformFunction);
         }
 
+        public static byte[] TransformSharedBlobOrFileByteArray(string path, string containerName, string fileName, Func<byte[], byte[]> transformFunction, bool useAzure)
+        {
+            if (useAzure)
+                return TransformSharedBlobByteArray(containerName, fileName, transformFunction);
+            else
+                return TransformSharedFileByteArray(path, fileName, transformFunction);
+        }
+
         public static object TransformSharedBlobObject(string containerName, string fileName, Func<object, object> transformFunction)
         {
             var leasedBlob = GetLeasedBlockBlob(containerName, fileName, true);
             return TransformSharedBlobObject(leasedBlob.blob, leasedBlob.lease, transformFunction);
+        }
+
+        public static byte[] TransformSharedBlobByteArray(string containerName, string fileName, Func<byte[], byte[]> transformFunction)
+        {
+            var leasedBlob = GetLeasedBlockBlob(containerName, fileName, true);
+            return TransformSharedBlobByteArray(leasedBlob.blob, leasedBlob.lease, transformFunction);
+        }
+
+        public static byte[] TransformSharedBlobByteArray(CloudBlockBlob blockBlob, string leaseID, Func<byte[], byte[]> transformFunction)
+        {
+            byte[] bytes = GetByteArray(blockBlob);
+            var result = transformFunction(bytes);
+            if (result != null)
+                SaveByteArray(result, blockBlob, leaseID);
+            else
+                ReleaseBlobLease(blockBlob, leaseID);
+            return result;
         }
 
         public static object TransformSharedBlobObject(CloudBlockBlob blockBlob, string leaseID, Func<object, object> transformFunction)
@@ -181,6 +209,24 @@ namespace ACESim.Util
             else
                 ReleaseBlobLease(blockBlob, leaseID);
             return result;
+        }
+
+        public static byte[] TransformSharedFileByteArray(string path, string filename, Func<byte[], byte[]> transformFunction)
+        {
+            using (FileStream stream = GetFileStream(path, filename))
+            {
+                MemoryStream ms = new MemoryStream();
+                stream.CopyTo(ms);
+                var initialState = ms.ToArray();
+                byte[] finalState = transformFunction(initialState);
+                if (finalState != null)
+                {
+                    stream.Seek(0, SeekOrigin.Begin);
+                    stream.Write(finalState, 0, finalState.Length);
+                }
+                stream.Close();
+                return finalState;
+            }
         }
 
         public static object TransformSharedFileBlob(string path, string filename, Func<object, object> transformFunction)

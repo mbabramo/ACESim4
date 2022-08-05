@@ -5,6 +5,7 @@ using ACESimBase.Games.DMSReplicationGame;
 using ACESimBase.GameSolvingAlgorithms;
 using ACESimBase.GameSolvingSupport;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -212,6 +213,8 @@ namespace ACESim
 
         #region Distributed processing
 
+        TaskCoordinator TaskList;
+        
         public async Task<ReportCollection> LaunchDistributedProcessingParticipation()
         {
             string masterReportName = MasterReportNameForDistributedProcessing;
@@ -258,22 +261,23 @@ namespace ACESim
                 Stopwatch s = new Stopwatch();
                 s.Start();
                 // We are serializing the TaskCoordinator to synchronize information. Thus, we need to update the task coordinator to report that this job is complete. 
-                AzureBlob.TransformSharedBlobOrFileObject(ReportFolder(), "results", masterReportName + " Coordinator", o =>
+                AzureBlob.TransformSharedBlobOrFileByteArray(ReportFolder(), "results", masterReportName + " Coordinator", byteArray =>
                 {
-                    TaskCoordinator taskCoordinator = (TaskCoordinator)o; // because of TransformSharedBlobObject, changes to this will be persisted
-                    if (taskCoordinator == null)
-                        throw new Exception("Corrupted or nonexistent task coordinator blob");
+                    if (byteArray == null)
+                        throw new Exception("Corrupted or nonexistent task coordinator status blob");
+                    TaskList.StatusFromByteArray(byteArray);
 
                     // Uncomment this to redo a particular completed step or steps so that it can be debugged without doing all earlier steps
                     //foreach (IndividualTask taskToChange in taskCoordinator.Stages.SelectMany(x => x.RepeatedTasks.SelectMany(y => y.IndividualTasks)))
                     //    if (taskToChange.TaskType == "CompletePCA")
                     //        taskToChange.Complete = false;
 
-                    Random r = new Random(taskCoordinator.ProportionComplete.GetHashCode());
-                    int numTasksToRequest = 20 + r.Next(5); // DEBUG // NOTE: This should only be used if the simulations are quite short and there are a very large number of them (in which case modifying the TaskCoordinator file may take a while, given that each process will be waiting to get access often). The exact number is randomized so that processes are on different schedules.
-                    taskCoordinator.Update(theCompletedTasks, readyForAnotherTask, numTasksToRequest, out tasksToDo, out complete);
+                    Random r = new Random(TaskList.ProportionComplete.GetHashCode());
+                    int numTasksToRequest = 1 + r.Next(5); // DEBUG // NOTE: This should only be used if the simulations are quite short and there are a very large number of them (in which case modifying the TaskCoordinator file may take a while, given that each process will be waiting to get access often). The exact number is randomized so that processes are on different schedules.
+                    Debug; // problem is that we haven't figured out a way to identify that we have started a task, which we previously could do.
+                    TaskList.Update(theCompletedTasks, readyForAnotherTask, numTasksToRequest, out tasksToDo, out complete);
                     TabbedText.WriteLineEvenIfDisabled($"");
-                    TabbedText.WriteLineEvenIfDisabled($"Percentage Complete {100.0 * taskCoordinator.ProportionComplete}% of {taskCoordinator.IndividualTaskCount}");
+                    TabbedText.WriteLineEvenIfDisabled($"Percentage Complete {100.0 * TaskList.ProportionComplete}% of {TaskList.IndividualTaskCount}");
                     if (tasksToDo != null)
                     {
                         if (AlwaysDoTaskID is int ID)
@@ -283,7 +287,7 @@ namespace ACESim
                             tasksToDo.First().ID = ID;
                         }
                     }
-                    return taskCoordinator;
+                    return TaskList.StatusAsByteArray();
                 }, SaveToAzureBlob);
                 TabbedText.WriteLine($"Updated status (total {s.ElapsedMilliseconds} milliseconds)");
                 if (!complete)
@@ -377,6 +381,23 @@ namespace ACESim
 
         private void InitializeTaskCoordinatorIfNecessary(string masterReportName)
         {
+            TaskCoordinator uninitialized = GetUninitializedTaskList();
+            TaskList = uninitialized;
+            var result = AzureBlob.TransformSharedBlobOrFileByteArray(ReportFolder(), "results", masterReportName + " Coordinator", byteArray =>
+            {
+                if (byteArray == null || byteArray.Length == 0)
+                { // create a new byteArray
+                    byte[] bytes = TaskList.StatusAsByteArray();
+                    return bytes; // create the main file
+                }
+                return null; // this will leave the existing file unchanged, and shortly we'll look at the existing file
+            }, SaveToAzureBlob); // return null if the task coordinator object is already created
+            //if (result != null)
+            //    Debug.WriteLine(result);
+        }
+
+        public TaskCoordinator GetUninitializedTaskList()
+        {
             List<GameOptions> optionSets = GetOptionsSets();
             int optionSetsCount = optionSets.Count();
             int? scenarios = null;
@@ -392,15 +413,8 @@ namespace ACESim
                 taskStages.Add(new TaskStage(Enumerable.Range(0, optionSetsCount).Select(x => new RepeatedTask("CombineRepetitions", x, 1, null)).ToList()));
             if (optionSetsCount > 1)
                 taskStages.Add(new TaskStage(Enumerable.Range(0, 1).Select(x => new RepeatedTask("CombineOptionSets", x, 1, null) { AvoidRedundantExecution = true }).ToList()));
-            TaskCoordinator tasks = new TaskCoordinator(taskStages);
-            var result = AzureBlob.TransformSharedBlobOrFileObject(ReportFolder(), "results", masterReportName + " Coordinator", o =>
-            {
-                if (o == null)
-                    return tasks; // create a new file
-                return null; // this will leave the existing file unchanged, and shortly we'll look at the existing file
-            }, SaveToAzureBlob); // return null if the task coordinator object is already created
-            //if (result != null)
-            //    Debug.WriteLine(result);
+            var uninitialized = new TaskCoordinator(taskStages);
+            return uninitialized;
         }
 
         private bool SaveLastDeveloperOnThread = false; // NOTE: If true, we get memory leaks
