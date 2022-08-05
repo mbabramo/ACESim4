@@ -20,6 +20,14 @@ namespace ACESim.Util
             .ThenBy(x => x.ID)
             .FirstOrDefault();
 
+        public List<IndividualTask> FirstIncompleteTasks(int n) => Complete ? (List<IndividualTask>)null :
+            RepeatedTasks.SelectMany(x => x.IndividualTasks)
+            .OrderBy(x => x.Complete) // incomplete first
+            .ThenBy(x => x.Started != null) // not started first
+            .ThenBy(x => x.Started) // oldest started first
+            .Take(n)
+            .ToList();
+
         public override string ToString()
         {
             return String.Join("\n", RepeatedTasks.Select(x => x.ToString()));

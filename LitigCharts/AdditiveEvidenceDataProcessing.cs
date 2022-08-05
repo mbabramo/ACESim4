@@ -20,7 +20,7 @@ namespace LitigCharts
         
         public static void BuildReport()
         {
-            List<string> rowsToGet = new List<string>() { "All", "Settles", "Trial", "Shifting",   };
+            List<string> rowsToGet = new List<string>() { "All" }; // , "Settles", "Trial", "Shifting",   };
             List<string> replacementRowNames = rowsToGet.ToList();
             List<string> columnsToGet = new List<string>() { "Exploit", "Seconds", "All", "TrialCost", "FeeShifting", "FeeShiftingThreshold", "Alpha_Plaintiff_Quality", /* "Alpha_Plaintiff_Bias", */ "Evidence_Both_Quality", "Settles", "Trial", "PWelfare", "DWelfare", "PQuits", "DQuits", "Shifting", "ShiftingOccursIfTrial", "ShiftingValueIfTrial", "POffer", "DOffer", "AccSq", "Accuracy", "Accuracy_ForPlaintiff", "Accuracy_ForDefendant", "TrialRelativeAccSq", "TrialRelativeAccuracy", "TrialRelativeAccuracy_ForPlaintiff", "TrialRelativeAccuracy_ForDefendant", "SettlementOrJudgment", "TrialValuePreShiftingIfOccurs", "TrialValueWithShiftingIfOccurs", "ResolutionValueIncludingShiftedAmount", "SettlementValue", "PBestGuess", "DBestGuess" };
             List<string> replacementColumnNames = columnsToGet.ToList();

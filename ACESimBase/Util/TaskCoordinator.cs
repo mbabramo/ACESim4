@@ -90,6 +90,16 @@ namespace ACESim.Util
 
         private IEnumerable<RepeatedTask> RepeatedTasks => Stages.SelectMany(x => x.RepeatedTasks);
         private IEnumerable<IndividualTask> IndividualTasks => RepeatedTasks.SelectMany(x => x.IndividualTasks);
+
+        private List<IndividualTask> FirstIncompleteTasks(int numToRequest)
+        {
+            var firstIncompleteStage = Stages.FirstOrDefault(x => !x.Complete);
+            if (firstIncompleteStage == null)
+                return new List<IndividualTask>();
+            else
+                return firstIncompleteStage.FirstIncompleteTasks(numToRequest);
+        }
+        
         public int NumIndividualTasks => IndividualTasks.Count();
         public int NumTasksStarted => IndividualTasks.Where(x => x.Started != null).Count();
         public int NumTasksPending => IndividualTasks.Where(x => x.Started != null && !x.Complete).Count();
@@ -100,6 +110,7 @@ namespace ACESim.Util
         {
             TimeSpan minSpanBeforeStartingAlreadyStartedJob = TimeSpan.FromSeconds(0); // ALTERNATIVE: LongestDuration;
             RepeatedTask repeatedTask = null;
+            tasksToDo = null;
             if (tasksCompleted != null)
             {
                 foreach (var taskCompleted in tasksCompleted)
@@ -113,14 +124,6 @@ namespace ACESim.Util
                 {
                     tasksToDo = null;
                     allComplete = false; // assume all are not complete
-                    return;
-                }
-                tasksToDo = repeatedTask.FirstIncompleteTasks(numTasksToRequest); // look at same repeated task for a new job before considering other stages altogether.
-                if (tasksToDo != null)
-                {
-                    allComplete = false;
-                    foreach (var taskToDo in tasksToDo)
-                        taskToDo.Started = DateTime.Now;
                     return;
                 }
             }
@@ -138,7 +141,7 @@ namespace ACESim.Util
                 tasksToDo = null;
                 return;
             }
-            tasksToDo = repeatedTask.FirstIncompleteTasks(numTasksToRequest);
+            tasksToDo = FirstIncompleteTasks(numTasksToRequest);
             allComplete = false;
             foreach (var taskToDo in tasksToDo.ToList())
             {
