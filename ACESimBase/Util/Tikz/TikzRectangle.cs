@@ -16,6 +16,12 @@ namespace ACESimBase.Util.Tikz
         public TikzLine leftLine => new TikzLine(new TikzPoint(left, bottom), new TikzPoint(left, top));
         public TikzLine rightLine => new TikzLine(new TikzPoint(right, bottom), new TikzPoint(right, top));
 
+        public TikzRectangle Offset(double x, double y) => new TikzRectangle(left + x, bottom + y, right + x, top + y, rectangleAttributes);
+        
+        public TikzRectangle MovedToOrigin => new TikzRectangle(0, 0, right - left, top - bottom, rectangleAttributes);
+
+        public TikzRectangle ConditionallyMovedToOrigin(bool move) => move ? MovedToOrigin : this;
+
         public string DrawCommand(string attributes, string text=null)
         {
             string textDraw = text == null ? "" : $" node[midway] {{{text}}}";

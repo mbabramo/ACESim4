@@ -34,7 +34,7 @@ namespace ACESimBase.Util.Tikz
         public TikzRectangle MainRectangle => sourceRectangle.RightPortion(sourceRectangle.width - yAxisSpace).TopPortion(sourceRectangle.height - xAxisSpace);
         public List<TikzRectangle> RowsWithSpaceBetweenMiniGraphs => Enumerable.Reverse(MainRectangle.DivideBottomToTop(NumRows)).ToList();
         public List<List<TikzRectangle>> IndividualCellsWithSpaceBetweenMiniGraphs => RowsWithSpaceBetweenMiniGraphs.Select(x => x.DivideLeftToRight(NumColumns).ToList()).ToList();
-        public List<List<TikzRectangle>> IndividualCells => IndividualCellsWithSpaceBetweenMiniGraphs.Select(row => row.Select(x => x.ReducedByPadding(betweenMiniGraphs, betweenMiniGraphs, 0, 0)).ToList()).Reverse().ToList();
+        public List<List<TikzRectangle>> IndividualCells => IndividualCellsWithSpaceBetweenMiniGraphs.Select(row => row.Select(x => x.ReducedByPadding(betweenMiniGraphs, betweenMiniGraphs + 0.15, 0.1, 0.1)).ToList()).Reverse().ToList();
 
         public string GetDrawLineGraphCommands()
         {

@@ -1,5 +1,6 @@
 ﻿using ACESim;
 using ACESimBase.Games.AdditiveEvidenceGame;
+using ACESimBase.Util;
 using ACESimBase.Util.Tikz;
 using CsvHelper;
 using CsvHelper.Configuration;
@@ -63,7 +64,7 @@ namespace LitigCharts
             var groupNames = new AdditiveEvidenceGameLauncher().GetGroupNames();
             foreach (string groupName in groupNames)
             {
-                foreach ((string targetVariable, string targetAbbreviation) in new (string, string)[] { ("AccSq", "A"), ("Accuracy", "A"), ("Accuracy_ForPlaintiff", "A"), ("Accuracy_ForDefendant", "A"), ("TrialRelativeAccSq", "A"), ("TrialRelativeAccuracy", "A"), ("TrialRelativeAccuracy_ForPlaintiff", "A"), ("TrialRelativeAccuracy_ForDefendant", "A"), ("POffer", "Bid"), ("DOffer", "Bid"), ("PWelfare", "w"), ("DWelfare", "w"), ("Trial", "L"), ("PQuits", "Q"), ("DQuits", "Q") })
+                foreach ((string targetVariable, string targetAbbreviation) in new (string, string)[] { ("Trial", "L"), ("Accuracy", "A"), ("Accuracy_ForPlaintiff", "A"), ("Accuracy_ForDefendant", "A"), ("AccSq", "A"), ("TrialRelativeAccuracy", "A"), ("TrialRelativeAccuracy_ForPlaintiff", "A"), ("TrialRelativeAccuracy_ForDefendant", "A"), ("TrialRelativeAccSq", "A"), ("POffer", "Bid"), ("DOffer", "Bid"), ("PWelfare", "w"), ("DWelfare", "w"), ("PQuits", "Q"), ("DQuits", "Q") })
                 {
                     string set = new AdditiveEvidenceGameLauncher().MasterReportNameForDistributedProcessing;
                     string csvFileName = set + "--.csv";
@@ -111,7 +112,7 @@ namespace LitigCharts
             }
 
             AdditiveEvidenceGameLauncher launcher = new AdditiveEvidenceGameLauncher();
-            double[] tVarVals = launcher.FeeShiftingThresholds;
+            double[] tVarVals = launcher.FeeShiftingThresholds; 
             double[] qVarVals = launcher.QualityLevels;
             double[] cVarVals = launcher.CostsLevels;
             
@@ -124,7 +125,7 @@ namespace LitigCharts
                     // right now, each individual graph consists of just one line
                     List<List<double?>> individualGraph = new List<List<double?>>();
                     List<double?> lineInIndividualGraph = new List<double?>();
-                    foreach (var tVarVal in tVarVals)
+                    foreach (var tVarVal in tVarVals.ToArray()) // DEBUG)
                     {
                         bool added = false;
                         foreach (var ae in aeData)
@@ -145,7 +146,7 @@ namespace LitigCharts
             }
             string tVarToString(double x)
             {
-                if (x == 0)
+                if (Math.Abs(x) < 1E-6)
                     return "0";
                 else if (x == 1)
                     return "1";
@@ -154,7 +155,7 @@ namespace LitigCharts
                 else
                     return "";
             }
-            string result = GenerateLatex(graphData, qVarVals.Select(q => q.ToString("0.00")).ToList(), cVarVals.Select(c => RemoveTrailingZeros(c.ToString("0.0000"))).ToList(), tVarVals.Select(t => tVarToString(t)).ToList(), mainVarLabel);
+            string result = GenerateLatex(graphData, qVarVals.Select(q => q.ToString("0.00")).ToList(), cVarVals.Select(c => RemoveTrailingZeros(c.ToString("0.0000"))).ToList(), tVarVals.Select(t => tVarToString(t)).ToList() /* DEBUG */, mainVarLabel);
             
             return result;
         }
@@ -199,7 +200,7 @@ namespace LitigCharts
                 yAxisLabelOffsetLeft = 1.4,
                 majorXValueNames = cValueStrings, // major column values
                 majorXAxisLabel = "c",
-                xAxisLabelOffsetDown = 0.5,
+                xAxisLabelOffsetDown = 1.0,
                 minorXValueNames = tValueStrings,
                 minorXAxisLabel = "t",
                 minorYValueNames = new List<string>() { "0", "0.25", "0.5", "0.75", "1" },
@@ -209,10 +210,7 @@ namespace LitigCharts
             };
 
 
-            var result = TikzHelper.GetStandaloneDocument(r.GetDrawCommands(), new List<string>() { "xcolor" }, additionalHeaderInfo: $@"
-\usetikzlibrary{{calc}}
-\usepackage{{relsize}}
-\tikzset{{fontscale/.style = {{font=\relsize{{#1}}}}}}");
+            var result = r.GetStandaloneDocument();
             return result;
         }
     }

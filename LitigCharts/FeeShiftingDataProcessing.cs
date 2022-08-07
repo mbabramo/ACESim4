@@ -74,7 +74,7 @@ namespace LitigCharts
             string[] results = Directory.GetFiles(path);
             foreach (var result in results)
             {
-                bool includeHeatmaps = true;
+                bool includeHeatmaps = false; // DEBUG
                 if (result.EndsWith(".tex") && (includeHeatmaps || !result.Contains("heatmap")))
                 {
                     ExecuteLatexProcess(path, result);
@@ -140,7 +140,7 @@ namespace LitigCharts
             string texFileInQuotes = $"\"{combinedPath}\"";
             string outputDirectoryInQuotes = $"\"{path}\"";
             bool backupComputer = false;
-            string pdflatexProgram = backupComputer ? @"C:\Program Files\MiKTeX 2.9\miktex\bin\x64" : @"C:\Users\Admin\AppData\Local\Programs\MiKTeX\miktex\bin\x64\pdflatex.exe";
+            string pdflatexProgram = backupComputer ? @"C:\Program Files\MiKTeX 2.9\miktex\bin\x64\lualatex.exe" : @"C:\Users\Admin\AppData\Local\Programs\MiKTeX\miktex\bin\x64\lualatex.exe"; // DEBUG pdflatex was original
             string arguments = @$"{texFileInQuotes} -output-directory={outputDirectoryInQuotes}";
 
             ProcessStartInfo processStartInfo = new ProcessStartInfo(pdflatexProgram)
@@ -481,10 +481,7 @@ namespace LitigCharts
             };
 
 
-            var result = TikzHelper.GetStandaloneDocument(r.GetDrawCommands(), new List<string>() { "xcolor" }, additionalHeaderInfo: $@"
-\usetikzlibrary{{calc}}
-\usepackage{{relsize}}
-\tikzset{{fontscale/.style = {{font=\relsize{{#1}}}}}}");
+            var drawCommands = r.GetStandaloneDocument();
         }
 
         public record AggregatedGraphInfo(string topicName, List<string> columnsToGet, List<string> lineScheme, string minorXAxisLabel = "Fee Shifting Multiplier", string minorYAxisLabel = "\\$", string majorYAxisLabel = "Costs Multiplier", double? maximumValueMicroY = null, bool isStacked = false);

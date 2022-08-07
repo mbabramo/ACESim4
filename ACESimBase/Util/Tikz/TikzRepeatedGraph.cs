@@ -25,6 +25,9 @@ namespace ACESimBase.Util.Tikz
         public double xAxisLabelOffsetDown { get; init; } = 1.2;
 
         public double yAxisLabelOffsetLeft { get; init; } = 1;
+        public bool drawInternalGraphPaperLines { get; init; } = false;
+
+        public bool useSaveBoxes { get; init; } = true; // DEBUG
 
 
         public bool isStackedBar { get; init; } = false;
@@ -44,9 +47,9 @@ namespace ACESimBase.Util.Tikz
         {
             if (Initialized)
                 return;
-            outerAxisSet = new TikzAxisSet(majorXValueNames, majorYValueNames, majorXAxisLabel, majorYAxisLabel, mainRectangle, fontScale:2, xAxisSpace:1.5, yAxisSpace: 1.7, xAxisLabelOffsetDown:0.9, yAxisLabelOffsetLeft:1.1, boxBordersAttributes: "draw=none");
+            outerAxisSet = new TikzAxisSet(majorXValueNames, majorYValueNames, majorXAxisLabel, majorYAxisLabel, mainRectangle, fontScale:2, xAxisSpace:1.5, yAxisSpace: 1.7, xAxisLabelOffsetDown:0.9, yAxisLabelOffsetLeft:1.1, boxBordersAttributes: "draw=none", horizontalLinesAttribute: "draw=none", verticalLinesAttribute: "draw=none");
             var rectangles = outerAxisSet.IndividualCells;
-            innerAxisSets = rectangles.Select((row, rowIndex) => row.Select((column, columnIndex) => new TikzAxisSet(minorXValueNames, minorYValueNames, minorXAxisLabel, minorYAxisLabel, rectangles[rowIndex][columnIndex], lineGraphData: lineGraphData[rowIndex][columnIndex], fontScale: 0.7, xAxisSpace: xAxisSpaceMicro, yAxisSpace: yAxisSpaceMicro, xAxisLabelOffsetDown: xAxisLabelOffsetMicro, xAxisLabelOffsetRight:0, yAxisLabelOffsetLeft: yAxisLabelOffsetMicro, yAxisLabelOffsetUp:0, horizontalLinesAttribute: "gray!30", verticalLinesAttribute: "gray!30", yAxisUseEndpoints: true, isStacked: isStackedBar)).ToList()).ToList();
+            innerAxisSets = rectangles.Select((row, rowIndex) => row.Select((column, columnIndex) => new TikzAxisSet(minorXValueNames, minorYValueNames, minorXAxisLabel, minorYAxisLabel, rectangles[rowIndex][columnIndex].ConditionallyMovedToOrigin(useSaveBoxes), lineGraphData: lineGraphData[rowIndex][columnIndex], fontScale: 0.7, xAxisSpace: xAxisSpaceMicro, yAxisSpace: yAxisSpaceMicro, xAxisLabelOffsetDown: xAxisLabelOffsetMicro, xAxisLabelOffsetRight:0, yAxisLabelOffsetLeft: yAxisLabelOffsetMicro, yAxisLabelOffsetUp:0, horizontalLinesAttribute: drawInternalGraphPaperLines ? "gray!30" : "draw=none", verticalLinesAttribute: drawInternalGraphPaperLines ? "gray!30" : "draw=none", yAxisUseEndpoints: true, isStacked: isStackedBar)).ToList()).ToList();
             var firstInnerAxisSet = innerAxisSets.FirstOrDefault()?.FirstOrDefault();
             xAxisMarkOffset = firstInnerAxisSet?.LeftAxisWidth * 0.5 ?? 0;
             yAxisMarkOffset = firstInnerAxisSet?.BottomAxisHeight * 0.5 ?? 0;
@@ -80,21 +83,70 @@ namespace ACESimBase.Util.Tikz
 \end{{scope}}";
         }
 
-        public string GetDrawCommands()
+        public (string contents, string beforeDocument) GetDrawCommands()
         {
             Initialize();
-            StringBuilder b = new StringBuilder();
-            b.AppendLine(outerAxisSet.GetDrawCommands());
-            foreach (var innerSet in innerAxisSets.SelectMany(y => y))
-                b.AppendLine(innerSet.GetDrawCommands());
-            b.AppendLine(GetLegend());
-            return b.ToString();
+            StringBuilder contentsBuilder = new StringBuilder();
+            StringBuilder beforeMainPictureBuilder = new StringBuilder();
+            // DEBUG // (1) Can we reuse the axes and inner lines? (2) Why is the graph being moved over? (3) fix the x axis letter on the big graph (4) stop removing all but the 25th point (5) add scatterplot option
+            contentsBuilder.AppendLine($@"\clip(0, 0) rectangle + {outerAxisSet.sourceRectangle.topRight}; ");
+            contentsBuilder.AppendLine(outerAxisSet.GetDrawCommands());
+            List<List<TikzAxisSet>> list = innerAxisSets.Select(y => y).ToList();
+            for (int rowIndex = 0; rowIndex < list.Count; rowIndex++)
+            {
+                List<TikzAxisSet> row = list[rowIndex];
+                for (int columnIndex = 0; columnIndex < row.Count; columnIndex++)
+                {
+                    string saveBoxName = $"myboxR{GetColumnName(rowIndex)}C{GetColumnName(columnIndex)}"; // note that we can't use numbers in the box register name
+                    TikzAxisSet cell = row[columnIndex];
+                    StringBuilder b = useSaveBoxes ? beforeMainPictureBuilder : contentsBuilder;
+                    if (useSaveBoxes)
+                    {
+                        b.AppendLine($@"\newsavebox{{\{saveBoxName}}} 
+\begin{{lrbox}}{{\{saveBoxName}}}
+  \begin{{tikzpicture}}
+    \begin{{scope}}");
+                    }
+                    b.AppendLine($"% ");
+                    b.AppendLine($"% Cell {rowIndex},{columnIndex}");
+                    b.AppendLine($"% ");
+                    b.AppendLine(cell.GetDrawCommands());
+                    if (useSaveBoxes)
+                    {
+                        b.AppendLine($@"  \end{{scope}}
+  \end{{tikzpicture}}
+\end{{lrbox}}");
+                        var rect = outerAxisSet.IndividualCells[rowIndex][columnIndex];
+                        contentsBuilder.AppendLine($@"\node[anchor=north west,inner sep=0pt,outer sep=0pt] at {rect.topLeft.ToString()} {{ \usebox{{\{saveBoxName}}} }};");
+                    }
+                }
+            }
+            contentsBuilder.AppendLine(GetLegend());
+            return (contentsBuilder.ToString(), beforeMainPictureBuilder.ToString());
         }
 
-        public string GetStandaloneDocument() => TikzHelper.GetStandaloneDocument(GetDrawCommands(), new List<string>() { "xcolor" }, additionalHeaderInfo: $@"
+        static string GetColumnName(int index)
+        {
+            const string letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+            var value = "";
+
+            if (index >= letters.Length)
+                value += letters[index / letters.Length - 1];
+
+            value += letters[index % letters.Length];
+
+            return value;
+        }
+
+        public string GetStandaloneDocument()
+        {
+            var drawCommands = GetDrawCommands();
+            return TikzHelper.GetStandaloneDocument(drawCommands.contents, new List<string>() { "xcolor" }, additionalHeaderInfo: $@"
     \usetikzlibrary{{calc}}
     \usepackage{{relsize}}
-    \tikzset{{fontscale/.style = {{font=\relsize{{#1}}}}}}");
+    \tikzset{{fontscale/.style = {{font=\relsize{{#1}}}}}}", contentsBeforeDocument: drawCommands.beforeDocument);
+        }
 
     }
 }
