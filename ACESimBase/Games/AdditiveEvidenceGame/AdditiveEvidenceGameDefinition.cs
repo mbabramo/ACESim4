@@ -275,12 +275,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             return Options.Alpha_Quality * (Options.Alpha_Both_Quality * Options.Evidence_Both_Quality + Options.Alpha_Plaintiff_Quality * 0.5 + Options.Alpha_Defendant_Quality * continuousSignal + Options.Alpha_Neither_Quality * 0.5) + Options.Alpha_Bias * (Options.Alpha_Both_Bias * Options.Evidence_Both_Bias + Options.Alpha_Plaintiff_Bias * 0.5 + Options.Alpha_Defendant_Bias * continuousSignal + Options.Alpha_Neither_Bias * 0.5);
         }
 
-        public override List<IMaybeExact<T>> GetSequenceFormInitialization<T>()
+        public override List<IMaybeExact<T>> GetSequenceFormInitialization<T>(bool initializeToFinalValues)
         {
-            return GetProbabilitiesFocusedOnBestGuess<T>();
+            return GetProbabilitiesFocusedOnBestGuess<T>(initializeToFinalValues);
         }
 
-        public List<IMaybeExact<T>> GetProbabilitiesFocusedOnBestGuess<T>() where T : IMaybeExact<T>, new()
+        public List<IMaybeExact<T>> GetProbabilitiesFocusedOnBestGuess<T>(bool usePureStrategies) where T : IMaybeExact<T>, new()
         {
             List<IMaybeExact<T>> probabilities = new List<IMaybeExact<T>>();
             for (int playerIndex = 1; playerIndex <= 2; playerIndex++)
@@ -289,20 +289,39 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 {
                     double bestGuess = playerIndex == 1 ? PBestGuessFromSingleSignal(signalIndex + 1) : DBestGuessFromSingleSignal(signalIndex + 1);
                     var distances = EquallySpaced.GetAbsoluteDistanceFromLocation(bestGuess, Options.NumQualityAndBiasLevels_PrivateInfo, false);
-                    const double k = 1.5;
-                    var relativeValues = distances.Select(d => Math.Pow(1/Math.Max(d, 0.001), k)).ToList();
-                    var sum = relativeValues.Sum();
-                    var addingToApproxOne = relativeValues.Select(v => Math.Max((decimal) 0.001, Math.Round((decimal) (v / sum), 3))).ToList();
-                    var addingToOneThousand = addingToApproxOne.Select(v => (int)(v * 1000)).ToArray();
-                    int overage = addingToOneThousand.Sum() - 1000;
-                    for (int i = 0; i < overage; i++)
+                    if (usePureStrategies)
                     {
-                        int indexOfMax = Array.IndexOf(addingToOneThousand, addingToOneThousand.Max());
-                        addingToOneThousand[indexOfMax] -= 1;
+                        double minDistance = distances.Min();
+                        int minDistanceIndex = -1;
+                        for (int i = 0; i < distances.Length; i++)
+                            if (distances[i] == minDistance)
+                            { 
+                                minDistanceIndex = i; 
+                                break; 
+                            }
+                        for (int i = 0; i < distances.Length; i++)
+                            if (i == minDistanceIndex)
+                                probabilities.Add(IMaybeExact<T>.One());
+                            else
+                                probabilities.Add(IMaybeExact<T>.Zero());
                     }
-                    IMaybeExact<T> denom = IMaybeExact<T>.FromInteger(1000);
-                    var probabilitiesToAddToList = addingToOneThousand.Select(v => IMaybeExact<T>.FromInteger(v).DividedBy(denom)).ToList();
-                    probabilities.AddRange(probabilitiesToAddToList);
+                    else
+                    {
+                        const double k = 1.5;
+                        var relativeValues = distances.Select(d => Math.Pow(1 / Math.Max(d, 0.001), k)).ToList();
+                        var sum = relativeValues.Sum();
+                        var addingToApproxOne = relativeValues.Select(v => Math.Max((decimal)0.001, Math.Round((decimal)(v / sum), 3))).ToList();
+                        var addingToOneThousand = addingToApproxOne.Select(v => (int)(v * 1000)).ToArray();
+                        int overage = addingToOneThousand.Sum() - 1000;
+                        for (int i = 0; i < overage; i++)
+                        {
+                            int indexOfMax = Array.IndexOf(addingToOneThousand, addingToOneThousand.Max());
+                            addingToOneThousand[indexOfMax] -= 1;
+                        }
+                        IMaybeExact<T> denom = IMaybeExact<T>.FromInteger(1000);
+                        var probabilitiesToAddToList = addingToOneThousand.Select(v => IMaybeExact<T>.FromInteger(v).DividedBy(denom)).ToList();
+                        probabilities.AddRange(probabilitiesToAddToList);
+                    }
                 }
             }
             return probabilities;
@@ -314,7 +333,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public override IEnumerable<(string filename, string reportcontent)> ProduceManualReports(List<(GameProgress theProgress, double weight)> gameProgresses, string supplementalString)
         {
-            double includeMultiplesOf = 0.001; // DEBUG 0.05;
+            double includeMultiplesOf = 0.001; ;
             double remainder = Math.Abs(Options.FeeShiftingThreshold % includeMultiplesOf);
             if (remainder > includeMultiplesOf * 0.5) // e.g., 0.049999 -> 0.049999
                 remainder = includeMultiplesOf - remainder;

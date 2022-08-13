@@ -165,7 +165,11 @@ namespace ACESimBase.GameSolvingAlgorithms
             DetermineGameNodeRelationships();
             bool useManuallyDefinedEquilibria = false; // use this as a shortcut to replay some equilibrium
             List<(double[] equilibrium, int frequency)> equilibria = null;
-            if (EvolutionSettings.UsePreloadedEquilibriaForSequenceFormIfAvailable && EquilibriaFileAlreadyExists())
+            if (EvolutionSettings.UseCustomSequenceFormInitializationAsFinalEquilibria)
+            {
+                equilibria = new List<(double[] equilibrium, int frequency)>() { (GameDefinition.GetSequenceFormInitialization<T>(true).Select(x => x.AsDouble).ToArray(), 1) };
+            }
+            else if (EvolutionSettings.UsePreloadedEquilibriaForSequenceFormIfAvailable && EquilibriaFileAlreadyExists())
             {
                 equilibria = LoadEquilibriaFile().Select(x => (x, 1)).ToList();
                 equilibria = NarrowDownToUniqueEquilibria(equilibria);
@@ -209,7 +213,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                     {
                         if (EvolutionSettings.CustomSequenceFormInitialization)
                         {
-                            initialProbabilities = GameDefinition.GetSequenceFormInitialization<T>();
+                            initialProbabilities = GameDefinition.GetSequenceFormInitialization<T>(false);
                         }
                     }
                     
