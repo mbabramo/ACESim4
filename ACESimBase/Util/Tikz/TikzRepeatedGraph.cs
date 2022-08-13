@@ -87,7 +87,6 @@ namespace ACESimBase.Util.Tikz
             Initialize();
             StringBuilder contentsBuilder = new StringBuilder();
             StringBuilder beforeMainPictureBuilder = new StringBuilder();
-            // DEBUG // (1) Can we reuse the axes and inner lines? (2) Why is the graph being moved over? (3) fix the x axis letter on the big graph (4) stop removing all but the 25th point (5) add scatterplot option
             contentsBuilder.AppendLine($@"\clip(0, 0) rectangle + {outerAxisSet.sourceRectangle.topRight}; ");
             contentsBuilder.AppendLine(outerAxisSet.GetDrawCommands());
             List<List<TikzAxisSet>> list = innerAxisSets.Select(y => y).ToList();

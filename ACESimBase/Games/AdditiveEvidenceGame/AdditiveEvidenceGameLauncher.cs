@@ -15,11 +15,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public override string MasterReportNameForDistributedProcessing => "AE030";
 
         public static bool UseSpecificOnly = false;
-        public static bool LimitToNonTrivialDMS = true; // DEBUG
+        public static bool LimitToNonTrivialDMS = false; 
 
         public double[] CostsLevels = UseSpecificOnly ? new double[] { 0.25 } : new double[] { 0, 0.0625, 0.125, 0.25, 0.5 };
         public double[] QualityLevels = UseSpecificOnly ? new double[] { 0.5 } : new double[] { 0.2, 0.35, 0.50, 0.65, 0.8 };
-        int numFeeShiftingThresholds = 21; // DEBUG 1001;
+        int numFeeShiftingThresholds = 21;
         public bool specificThresholdsDefined = false;
         public double[] FeeShiftingThresholds => UseSpecificOnly && specificThresholdsDefined ? SpecificThresholdLevels : Enumerable.Range(0, numFeeShiftingThresholds).Select(x => (double)(x / (numFeeShiftingThresholds - 1.0))).ToArray();
 
