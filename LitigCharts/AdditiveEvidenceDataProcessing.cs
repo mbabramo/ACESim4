@@ -136,7 +136,8 @@ namespace LitigCharts
                                 added = true;
                             }
                         }
-                        if (!added)
+                        bool throwIfMissingDatum = true; 
+                        if (throwIfMissingDatum && !added)
                             throw new Exception($"Missing datum for t={tVarVal}");
                     }
                     individualGraph.Add(lineInIndividualGraph);
