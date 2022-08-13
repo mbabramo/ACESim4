@@ -277,18 +277,26 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public override List<IMaybeExact<T>> GetSequenceFormInitialization<T>(bool initializeToFinalValues)
         {
-            return GetProbabilitiesFocusedOnBestGuess<T>(initializeToFinalValues);
+            bool useDMS = true; // DEBUG
+            return GetProbabilitiesFocusedOnBestGuessOrDMS<T>(initializeToFinalValues, useDMS);
         }
 
-        public List<IMaybeExact<T>> GetProbabilitiesFocusedOnBestGuess<T>(bool usePureStrategies) where T : IMaybeExact<T>, new()
+        public List<IMaybeExact<T>> GetProbabilitiesFocusedOnBestGuessOrDMS<T>(bool usePureStrategies, bool useDMS) where T : IMaybeExact<T>, new()
         {
             List<IMaybeExact<T>> probabilities = new List<IMaybeExact<T>>();
+
+            DMSCalc dmsCalc = new DMSCalc(Options.FeeShiftingThreshold, Options.TrialCost, Options.Evidence_Both_Quality);
             for (int playerIndex = 1; playerIndex <= 2; playerIndex++)
             {
+                var dmsBids = dmsCalc.GetBids(Options.NumQualityAndBiasLevels_PrivateInfo).ToArray();
                 for (int signalIndex = 0; signalIndex < Options.NumQualityAndBiasLevels_PrivateInfo; signalIndex++)
                 {
-                    double bestGuess = playerIndex == 1 ? PBestGuessFromSingleSignal(signalIndex + 1) : DBestGuessFromSingleSignal(signalIndex + 1);
-                    var distances = EquallySpaced.GetAbsoluteDistanceFromLocation(bestGuess, Options.NumQualityAndBiasLevels_PrivateInfo, false);
+                    double exactValue;
+                    if (useDMS)
+                        exactValue = playerIndex == 1 ? dmsBids[signalIndex].pBid : dmsBids[signalIndex].dBid;
+                    else
+                        exactValue = playerIndex == 1 ? PBestGuessFromSingleSignal(signalIndex + 1) : DBestGuessFromSingleSignal(signalIndex + 1);
+                    var distances = EquallySpaced.GetAbsoluteDistanceFromLocation(exactValue, Options.NumQualityAndBiasLevels_PrivateInfo, false);
                     if (usePureStrategies)
                     {
                         double minDistance = distances.Min();
