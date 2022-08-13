@@ -27,10 +27,9 @@ namespace ACESimBase.Util.Tikz
         public double yAxisLabelOffsetLeft { get; init; } = 1;
         public bool drawInternalGraphPaperLines { get; init; } = false;
 
-        public bool useSaveBoxes { get; init; } = true; // DEBUG
+        public bool useSaveBoxes { get; init; } = true;
 
-
-        public bool isStackedBar { get; init; } = false;
+        public TikzAxisSet.GraphType graphType { get; init; } = TikzAxisSet.GraphType.Scatter;
 
         private bool Initialized;
         private TikzAxisSet outerAxisSet;
@@ -49,7 +48,7 @@ namespace ACESimBase.Util.Tikz
                 return;
             outerAxisSet = new TikzAxisSet(majorXValueNames, majorYValueNames, majorXAxisLabel, majorYAxisLabel, mainRectangle, fontScale:2, xAxisSpace:1.5, yAxisSpace: 1.7, xAxisLabelOffsetDown:0.9, yAxisLabelOffsetLeft:1.1, boxBordersAttributes: "draw=none", horizontalLinesAttribute: "draw=none", verticalLinesAttribute: "draw=none");
             var rectangles = outerAxisSet.IndividualCells;
-            innerAxisSets = rectangles.Select((row, rowIndex) => row.Select((column, columnIndex) => new TikzAxisSet(minorXValueNames, minorYValueNames, minorXAxisLabel, minorYAxisLabel, rectangles[rowIndex][columnIndex].ConditionallyMovedToOrigin(useSaveBoxes), lineGraphData: lineGraphData[rowIndex][columnIndex], fontScale: 0.7, xAxisSpace: xAxisSpaceMicro, yAxisSpace: yAxisSpaceMicro, xAxisLabelOffsetDown: xAxisLabelOffsetMicro, xAxisLabelOffsetRight:0, yAxisLabelOffsetLeft: yAxisLabelOffsetMicro, yAxisLabelOffsetUp:0, horizontalLinesAttribute: drawInternalGraphPaperLines ? "gray!30" : "draw=none", verticalLinesAttribute: drawInternalGraphPaperLines ? "gray!30" : "draw=none", yAxisUseEndpoints: true, isStacked: isStackedBar)).ToList()).ToList();
+            innerAxisSets = rectangles.Select((row, rowIndex) => row.Select((column, columnIndex) => new TikzAxisSet(minorXValueNames, minorYValueNames, minorXAxisLabel, minorYAxisLabel, rectangles[rowIndex][columnIndex].ConditionallyMovedToOrigin(useSaveBoxes), lineGraphData: lineGraphData[rowIndex][columnIndex], fontScale: 0.7, xAxisSpace: xAxisSpaceMicro, yAxisSpace: yAxisSpaceMicro, xAxisLabelOffsetDown: xAxisLabelOffsetMicro, xAxisLabelOffsetRight:0, yAxisLabelOffsetLeft: yAxisLabelOffsetMicro, yAxisLabelOffsetUp:0, horizontalLinesAttribute: drawInternalGraphPaperLines ? "gray!30" : "draw=none", verticalLinesAttribute: drawInternalGraphPaperLines ? "gray!30" : "draw=none", yAxisUseEndpoints: true, graphType: graphType)).ToList()).ToList();
             var firstInnerAxisSet = innerAxisSets.FirstOrDefault()?.FirstOrDefault();
             xAxisMarkOffset = firstInnerAxisSet?.LeftAxisWidth * 0.5 ?? 0;
             yAxisMarkOffset = firstInnerAxisSet?.BottomAxisHeight * 0.5 ?? 0;
@@ -92,10 +91,10 @@ namespace ACESimBase.Util.Tikz
             contentsBuilder.AppendLine($@"\clip(0, 0) rectangle + {outerAxisSet.sourceRectangle.topRight}; ");
             contentsBuilder.AppendLine(outerAxisSet.GetDrawCommands());
             List<List<TikzAxisSet>> list = innerAxisSets.Select(y => y).ToList();
-            for (int rowIndex = 0; rowIndex < list.Count; rowIndex++)
+            for (int rowIndex = 0; rowIndex <  list.Count; rowIndex++)
             {
                 List<TikzAxisSet> row = list[rowIndex];
-                for (int columnIndex = 0; columnIndex < row.Count; columnIndex++)
+                for (int columnIndex = 0; columnIndex <  row.Count; columnIndex++)
                 {
                     string saveBoxName = $"myboxR{GetColumnName(rowIndex)}C{GetColumnName(columnIndex)}"; // note that we can't use numbers in the box register name
                     TikzAxisSet cell = row[columnIndex];

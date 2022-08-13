@@ -8,13 +8,21 @@ using System.Threading.Tasks;
 namespace ACESimBase.Util.Tikz
 {
 
-    public record TikzAxisSet(List<string> xValueNames, List<string> yValueNames, string xAxisLabel, string yAxisLabel, TikzRectangle sourceRectangle, string boxBordersAttributes="draw=none", string horizontalLinesAttribute="draw=none", string verticalLinesAttribute="draw=none", double fontScale=1, double xAxisSpace = 2.2, double xAxisLabelOffsetDown=1.2, double xAxisLabelOffsetRight=0, double xAxisMarkOffset=0, double yAxisSpace=2.0, double yAxisLabelOffsetLeft=1, double yAxisLabelOffsetUp=0, double yAxisMarkOffset=0, bool xAxisUseEndpoints=false, bool yAxisUseEndpoints=false, bool isStacked=false, TikzLineGraphData lineGraphData=null)
+    public record TikzAxisSet(List<string> xValueNames, List<string> yValueNames, string xAxisLabel, string yAxisLabel, TikzRectangle sourceRectangle, string boxBordersAttributes = "draw=none", string horizontalLinesAttribute = "draw=none", string verticalLinesAttribute = "draw=none", double fontScale = 1, double xAxisSpace = 2.2, double xAxisLabelOffsetDown = 1.2, double xAxisLabelOffsetRight = 0, double xAxisMarkOffset = 0, double yAxisSpace = 2.0, double yAxisLabelOffsetLeft = 1, double yAxisLabelOffsetUp = 0, double yAxisMarkOffset = 0, bool xAxisUseEndpoints = false, bool yAxisUseEndpoints = false, TikzAxisSet.GraphType graphType = TikzAxisSet.GraphType.Line, TikzLineGraphData lineGraphData = null)
     {
+        public enum GraphType
+        {
+            Line,
+            StackedBar,
+            Scatter
+        }
+
+
         const double betweenMiniGraphs = 0.05;
         int NumColumns => xValueNames.Count();
         int NumRows => yValueNames.Count();
-        List<(double proportion, string value)> xMarks => xValueNames.Select((x, index) => xAxisUseEndpoints ? ((index) / (double)(NumColumns - 1.0), x) : ((0.5 + index) / (double) NumColumns, x)).ToList();
-        List<(double proportion, string value)> yMarks => yValueNames.Select((y, index) => yAxisUseEndpoints ? ((index) / (double)(NumRows - 1.0), y) : ((0.5 + index) / (double) NumRows, y)).ToList();
+        List<(double proportion, string value)> xMarks => xValueNames.Select((x, index) => xAxisUseEndpoints ? ((index) / (double)(NumColumns - 1.0), x) : ((0.5 + index) / (double)NumColumns, x)).ToList();
+        List<(double proportion, string value)> yMarks => yValueNames.Select((y, index) => yAxisUseEndpoints ? ((index) / (double)(NumRows - 1.0), y) : ((0.5 + index) / (double)NumRows, y)).ToList();
 
         public TikzRectangle LeftAxisRectangle => sourceRectangle.LeftPortion(yAxisSpace).ReducedByPadding(0, xAxisSpace, 0, 0);
         public TikzLine LeftAxisLine => LeftAxisRectangle.rightLine;
@@ -26,15 +34,54 @@ namespace ACESimBase.Util.Tikz
         public TikzRectangle BottomAxisRectangle => sourceRectangle.BottomPortion(xAxisSpace).ReducedByPadding(yAxisSpace, 0, 0, 0);
         public double BottomAxisHeight => BottomAxisRectangle.height;
         public TikzLine BottomAxisLine => BottomAxisRectangle.topLine;
-        public List<TikzPoint> BottomAxisMarkPoints => xMarks.Select(m => BottomAxisLine.PointAlongLine(m.proportion)).ToList();
+        private List<TikzPoint> _BottomAxisMarkPoints;
+        public List<TikzPoint> BottomAxisMarkPoints
+        {
+            get
+            {
+                if (_BottomAxisMarkPoints == null)
+                    _BottomAxisMarkPoints = xMarks.Select(m => BottomAxisLine.PointAlongLine(m.proportion)).ToList();
+                return _BottomAxisMarkPoints;
+            }
+            set
+            {
+                _BottomAxisMarkPoints = value;
+            }
+        }
 
         public List<TikzLine> VerticalLines => BottomAxisMarkPoints.Select(bottomAxisPoint => new TikzLine(bottomAxisPoint, new TikzPoint(bottomAxisPoint.x, MainRectangle.top))).ToList();
         public List<TikzLine> HorizontalLines => LeftAxisMarkPoints.Select(leftAxisPoint => new TikzLine(leftAxisPoint, new TikzPoint(MainRectangle.right, leftAxisPoint.y))).ToList();
 
         public TikzRectangle MainRectangle => sourceRectangle.RightPortion(sourceRectangle.width - yAxisSpace).TopPortion(sourceRectangle.height - xAxisSpace);
         public List<TikzRectangle> RowsWithSpaceBetweenMiniGraphs => Enumerable.Reverse(MainRectangle.DivideBottomToTop(NumRows)).ToList();
-        public List<List<TikzRectangle>> IndividualCellsWithSpaceBetweenMiniGraphs => RowsWithSpaceBetweenMiniGraphs.Select(x => x.DivideLeftToRight(NumColumns).ToList()).ToList();
-        public List<List<TikzRectangle>> IndividualCells => IndividualCellsWithSpaceBetweenMiniGraphs.Select(row => row.Select(x => x.ReducedByPadding(betweenMiniGraphs, betweenMiniGraphs + 0.15, 0.1, 0.1)).ToList()).Reverse().ToList();
+        private List<List<TikzRectangle>> _IndividualCellsWithSpaceBetweenMiniGraphs;
+        public List<List<TikzRectangle>> IndividualCellsWithSpaceBetweenMiniGraphs
+        {
+            get
+            {
+                if (_IndividualCellsWithSpaceBetweenMiniGraphs == null)
+                    _IndividualCellsWithSpaceBetweenMiniGraphs = RowsWithSpaceBetweenMiniGraphs.Select(x => x.DivideLeftToRight(NumColumns).ToList()).ToList();
+                return _IndividualCellsWithSpaceBetweenMiniGraphs;
+            }
+            set
+            {
+                _IndividualCellsWithSpaceBetweenMiniGraphs = value;
+            }
+        }
+        private List<List<TikzRectangle>> _IndividualCells;
+        public List<List<TikzRectangle>> IndividualCells
+        {
+            get
+            {
+                if (_IndividualCells == null)
+                    _IndividualCells = IndividualCellsWithSpaceBetweenMiniGraphs.Select(row => row.Select(x => x.ReducedByPadding(betweenMiniGraphs, betweenMiniGraphs + 0.15, 0.1, 0.1)).ToList()).Reverse().ToList();
+                return _IndividualCells;
+            }
+            set
+            {
+                _IndividualCells = value;
+            }
+        }
 
         public string GetDrawLineGraphCommands()
         {
@@ -57,10 +104,15 @@ namespace ACESimBase.Util.Tikz
                 {
                     if (activeList != null && activeList.Count() > 0)
                     {
-                        if (activeList.Count() == 1)
-                            soloPoints.Add(activeList.First());
+                        if (graphType == GraphType.Scatter)
+                            soloPoints.AddRange(activeList);
                         else
-                            pointPaths.Add(activeList);
+                        {
+                            if (activeList.Count() == 1)
+                                soloPoints.Add(activeList.First());
+                            else
+                                pointPaths.Add(activeList);
+                        }
                     }
                     activeList = new List<(int index, double value)>();
                 }
@@ -89,6 +141,8 @@ namespace ACESimBase.Util.Tikz
             }
             return b.ToString();
         }
+
+
 
         public string GetDrawStackedLineGraphCommands()
         {
@@ -151,17 +205,41 @@ namespace ACESimBase.Util.Tikz
 
             string leftAxisCommand = LeftAxisLine.DrawAxis("black", yMarks, fontAttributes, "east", yAxisLabel, "center", TikzHorizontalAlignment.Center, $"rotate=90, {fontAttributes}", 0 - yAxisLabelOffsetLeft, yAxisLabelOffsetUp, 0, yAxisMarkOffset);
             b.AppendLine(leftAxisCommand);
-            string bottomAxisCommand = BottomAxisLine.DrawAxis("black", xMarks, fontAttributes, "north", xAxisLabel, "center", TikzHorizontalAlignment.Center, fontAttributes, xAxisLabelOffsetRight, 0 - xAxisLabelOffsetDown, xAxisMarkOffset, 0);
+            var xMarksTransform = xMarks;
+            if (xMarks.Count > 11)
+            {
+                int? n = xMarks.Count switch
+                {
+                    101 => 10,
+                    1001 => 100,
+                    10001 => 1000,
+                    _ => null
+                };
+                if (n != null)
+                {
+                    xMarksTransform = xMarks.GetNth((int) n).ToList();
+                }
+                else
+                    xMarksTransform = xMarks.Where(x => x.value != "").ToList();
+
+            }
+            string bottomAxisCommand = BottomAxisLine.DrawAxis("black", xMarksTransform, fontAttributes, "north", xAxisLabel, "center", TikzHorizontalAlignment.Center, fontAttributes, xAxisLabelOffsetRight, 0 - xAxisLabelOffsetDown, xAxisMarkOffset, 0);
             b.AppendLine(bottomAxisCommand);
             return b.ToString();
         }
 
         public string GetDrawCommands()
         {
-            if (isStacked)
-                return $"{GetDrawAxesCommands()}{GetDrawStackedLineGraphCommands()}";
-            else
-                return $"{GetDrawAxesCommands()}{GetDrawLineGraphCommands()}";
+            switch (graphType)
+            {
+                case GraphType.Line:
+                case GraphType.Scatter:
+                    return $"{GetDrawAxesCommands()}{GetDrawLineGraphCommands()}";
+                case GraphType.StackedBar:
+                    return $"{GetDrawAxesCommands()}{GetDrawStackedLineGraphCommands()}";
+                default:
+                    throw new Exception("Invalid graph type");
+            }
         }
 
     }

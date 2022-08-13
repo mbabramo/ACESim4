@@ -25,7 +25,7 @@ namespace LitigCharts
 
         private static void AdditiveEvidenceArticle()
         {
-            // DEBUG AdditiveEvidenceDataProcessing.BuildReport();
+            AdditiveEvidenceDataProcessing.BuildReport();
 
             AdditiveEvidenceDataProcessing.GenerateDiagramsFromCSV();
             

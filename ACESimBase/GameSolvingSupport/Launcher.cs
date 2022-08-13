@@ -273,7 +273,7 @@ namespace ACESim
                     //        taskToChange.Complete = false;
 
                     Random r = new Random(TaskList.ProportionComplete.GetHashCode());
-                    int numTasksToRequest = 1 + r.Next(5); // DEBUG // NOTE: This should only be used if the simulations are quite short and there are a very large number of them (in which case modifying the TaskCoordinator file may take a while, given that each process will be waiting to get access often). The exact number is randomized so that processes are on different schedules.
+                    int numTasksToRequest = 20 + r.Next(5); // DEBUG // NOTE: This should only be used if the simulations are quite short and there are a very large number of them (in which case modifying the TaskCoordinator file may take a while, given that each process will be waiting to get access often). The exact number is randomized so that processes are on different schedules.
                     TaskList.Update(theCompletedTasks, readyForAnotherTask, numTasksToRequest, out tasksToDo, out complete);
                     TabbedText.WriteLineEvenIfDisabled($"");
                     TabbedText.WriteLineEvenIfDisabled($"Percentage Complete {100.0 * TaskList.ProportionComplete}% of {TaskList.NumIndividualTasks}");

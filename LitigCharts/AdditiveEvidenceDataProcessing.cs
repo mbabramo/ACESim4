@@ -125,7 +125,7 @@ namespace LitigCharts
                     // right now, each individual graph consists of just one line
                     List<List<double?>> individualGraph = new List<List<double?>>();
                     List<double?> lineInIndividualGraph = new List<double?>();
-                    foreach (var tVarVal in tVarVals.ToArray()) // DEBUG)
+                    foreach (var tVarVal in tVarVals.ToArray())
                     {
                         bool added = false;
                         foreach (var ae in aeData)
@@ -155,7 +155,7 @@ namespace LitigCharts
                 else
                     return "";
             }
-            string result = GenerateLatex(graphData, qVarVals.Select(q => q.ToString("0.00")).ToList(), cVarVals.Select(c => RemoveTrailingZeros(c.ToString("0.0000"))).ToList(), tVarVals.Select(t => tVarToString(t)).ToList() /* DEBUG */, mainVarLabel);
+            string result = GenerateLatex(graphData, qVarVals.Select(q => q.ToString("0.00")).ToList(), cVarVals.Select(c => RemoveTrailingZeros(c.ToString("0.0000"))).ToList(), tVarVals.Select(t => tVarToString(t)).ToList(), mainVarLabel);
             
             return result;
         }
@@ -176,12 +176,10 @@ namespace LitigCharts
 
         private static string GenerateLatex(List<List<List<List<double?>>>> overallData, List<string> qValueStrings, List<string> cValueStrings, List<string> tValueStrings, string microYAxisLabel)
         {
-            
-            bool isStacked = false;
 
             var lineScheme = new List<string>()
             {
-                "red, opacity=1.0, line width=0.5mm, solid",
+                "red, opacity=0.2, line width=0.1mm, solid",
             };
             var dataSeriesNames = new List<string>()
             {
@@ -205,7 +203,7 @@ namespace LitigCharts
                 minorXAxisLabel = "t",
                 minorYValueNames = new List<string>() { "0", "0.25", "0.5", "0.75", "1" },
                 minorYAxisLabel = microYAxisLabel,
-                isStackedBar = isStacked,
+                graphType = TikzAxisSet.GraphType.Scatter,
                 lineGraphData = lineGraphData,
             };
 

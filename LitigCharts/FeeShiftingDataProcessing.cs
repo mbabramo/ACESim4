@@ -74,7 +74,7 @@ namespace LitigCharts
             string[] results = Directory.GetFiles(path);
             foreach (var result in results)
             {
-                bool includeHeatmaps = false; // DEBUG
+                bool includeHeatmaps = true; 
                 if (result.EndsWith(".tex") && (includeHeatmaps || !result.Contains("heatmap")))
                 {
                     ExecuteLatexProcess(path, result);
@@ -140,13 +140,17 @@ namespace LitigCharts
             string texFileInQuotes = $"\"{combinedPath}\"";
             string outputDirectoryInQuotes = $"\"{path}\"";
             bool backupComputer = false;
-            string pdflatexProgram = backupComputer ? @"C:\Program Files\MiKTeX 2.9\miktex\bin\x64\lualatex.exe" : @"C:\Users\Admin\AppData\Local\Programs\MiKTeX\miktex\bin\x64\lualatex.exe"; // DEBUG pdflatex was original
-            string arguments = @$"{texFileInQuotes} -output-directory={outputDirectoryInQuotes}";
+            string programName = "lualatex"; // "pdflatex";
+            string extraHyphen = programName == "lualatex" ? "-" : "";
+            string directory = backupComputer ? @$"C:\Program Files\MiKTeX 2.9\miktex\bin\x64" : @$"C:\Users\Admin\AppData\Local\Programs\MiKTeX\miktex\bin\x64";
+            string pdflatexProgram = @$"{directory}\{programName}.exe"; // NOTE: pdflatex was original
+            string arguments = @$"{texFileInQuotes} {extraHyphen}-output-directory={outputDirectoryInQuotes}";
 
             ProcessStartInfo processStartInfo = new ProcessStartInfo(pdflatexProgram)
             {
                 Arguments = arguments,
                 UseShellExecute = false,
+                WorkingDirectory = path
             };
 
             var handle = Process.GetCurrentProcess().MainWindowHandle;
@@ -408,9 +412,9 @@ namespace LitigCharts
             return filesInFolder;
         }
 
-        public static void ExampleLatexDiagramsAggregatingReports(bool isStacked = true)
+        public static void ExampleLatexDiagramsAggregatingReports(TikzAxisSet.GraphType graphType = TikzAxisSet.GraphType.Line)
         {
-
+            
             var lineScheme = new List<string>()
                 {
                     "blue, opacity=0.70, line width=0.5mm, double",
@@ -435,7 +439,7 @@ namespace LitigCharts
             List<List<double?>> getMiniGraphAdjusted()
             {
                 var miniGraphData = getMiniGraph();
-                if (!isStacked)
+                if (graphType != TikzAxisSet.GraphType.StackedBar)
                     return miniGraphData;
 
                 // for stacked graphs, we need to make sure that the total height is no greater than 1.0.
@@ -476,7 +480,7 @@ namespace LitigCharts
                 minorXAxisLabel = "Minor X",
                 minorYValueNames = Enumerable.Range(0, numMiniGraphYValues).Select(y => $"y{y}").ToList(),
                 minorYAxisLabel = "Minor Y",
-                isStackedBar = isStacked,
+                graphType = graphType,
                 lineGraphData = lineGraphData,
             };
 
@@ -484,8 +488,8 @@ namespace LitigCharts
             var drawCommands = r.GetStandaloneDocument();
         }
 
-        public record AggregatedGraphInfo(string topicName, List<string> columnsToGet, List<string> lineScheme, string minorXAxisLabel = "Fee Shifting Multiplier", string minorYAxisLabel = "\\$", string majorYAxisLabel = "Costs Multiplier", double? maximumValueMicroY = null, bool isStacked = false);
-
+        public record AggregatedGraphInfo(string topicName, List<string> columnsToGet, List<string> lineScheme, string minorXAxisLabel = "Fee Shifting Multiplier", string minorYAxisLabel = "\\$", string majorYAxisLabel = "Costs Multiplier", double? maximumValueMicroY = null, TikzAxisSet.GraphType graphType = TikzAxisSet.GraphType.Line);
+        
         public static void ProduceLatexDiagramsAggregatingReports()
         {
             string reportFolder = Launcher.ReportFolder();
@@ -536,7 +540,7 @@ namespace LitigCharts
                     new AggregatedGraphInfo($"Offers{riskAversionString}", new List<string>() { "P Offer", "D Offer" }, plaintiffDefendantAndOthersLineScheme.Take(2).ToList()),
                     new AggregatedGraphInfo($"Trial{riskAversionString}", new List<string>() { "Trial" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0),
                     new AggregatedGraphInfo($"Trial Outcomes{riskAversionString}", new List<string>() { "P Win Probability" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0),
-                    new AggregatedGraphInfo($"Disposition{riskAversionString}", new List<string>() {"No Suit", "No Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins"}, dispositionLineScheme, minorYAxisLabel:"Proportion", maximumValueMicroY: 1.0, isStacked:true)
+                    new AggregatedGraphInfo($"Disposition{riskAversionString}", new List<string>() {"No Suit", "No Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins"}, dispositionLineScheme, minorYAxisLabel:"Proportion", maximumValueMicroY: 1.0, graphType:TikzAxisSet.GraphType.StackedBar)
                 };
 
                 foreach (double? limitToCostsMultiplier in new double?[] { 1.0, null })
@@ -671,7 +675,7 @@ namespace LitigCharts
                 yAxisLabelOffsetMicro = 0.4,
                 xAxisSpaceMicro = 1.1,
                 xAxisLabelOffsetMicro = 0.8,
-                isStackedBar = aggregatedGraphInfo.isStacked,
+                graphType = aggregatedGraphInfo.graphType,
                 lineGraphData = lineGraphData,
             };
             var result = r.GetStandaloneDocument();

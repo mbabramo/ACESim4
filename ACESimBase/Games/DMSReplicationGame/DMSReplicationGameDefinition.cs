@@ -148,7 +148,7 @@ namespace ACESimBase.Games.DMSReplicationGame
                 minorXAxisLabel = "z",
                 minorYValueNames = Enumerable.Range(0, 6).Select(y => $"{y * 0.2M}").ToList(),
                 minorYAxisLabel = "Bid",
-                isStackedBar = false,
+                graphType = TikzAxisSet.GraphType.Line,
                 lineGraphData = lineGraphData,
             };
             string latexDoc = r.GetStandaloneDocument();
