@@ -66,7 +66,7 @@ namespace ACESim
         public bool CreateEquilibriaFileForSequenceForm = true;
         public bool UsePreloadedEquilibriaForSequenceFormIfAvailable = false;
         public bool CustomSequenceFormInitialization = false;
-        public bool UseCustomSequenceFormInitializationAsFinalEquilibria = true; // TEMPORARY
+        public bool UseCustomSequenceFormInitializationAsFinalEquilibria = false;
         public bool SequenceFormUseRandomSeed = false; // random seed always used for additional priors, but this can be used for just a single prior
         public bool ConsiderInitializingToMostRecentEquilibrium = false;
         public bool SequenceFormBlockDistantActionsWhenTracingEquilibrium = false;

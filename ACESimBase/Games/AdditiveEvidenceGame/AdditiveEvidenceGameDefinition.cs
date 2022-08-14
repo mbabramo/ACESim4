@@ -277,7 +277,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public override List<IMaybeExact<T>> GetSequenceFormInitialization<T>(bool initializeToFinalValues)
         {
-            bool useDMS = true; // TEMPORARY
+            bool useDMS = false; 
             return GetProbabilitiesFocusedOnBestGuessOrDMS<T>(initializeToFinalValues, useDMS);
         }
 

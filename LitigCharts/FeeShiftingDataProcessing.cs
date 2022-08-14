@@ -74,7 +74,7 @@ namespace LitigCharts
             string[] results = Directory.GetFiles(path);
             foreach (var result in results)
             {
-                bool includeHeatmaps = false; // TEMPORARY
+                bool includeHeatmaps = true; 
                 if (result.EndsWith(".tex") && (includeHeatmaps || !result.Contains("heatmap")))
                 {
                     ExecuteLatexProcess(path, result);

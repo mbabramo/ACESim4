@@ -27,7 +27,7 @@ namespace LitigCharts
         {
             AdditiveEvidenceDataProcessing.BuildReport();
 
-            // TEMPORARY AdditiveEvidenceDataProcessing.GenerateDiagramsFromCSV();
+            AdditiveEvidenceDataProcessing.GenerateDiagramsFromCSV();
             
             FeeShiftingDataProcessing.ExecuteLatexProcessesForExisting(); // executes for existing .tex files rather than generating the .tex files
         }
