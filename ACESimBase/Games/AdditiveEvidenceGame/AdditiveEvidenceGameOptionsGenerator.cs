@@ -30,7 +30,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         // Note: Go to Launcher to change multiple option sets settings.
 
-        static AdditiveEvidenceOptionSetChoices AdditiveEvidenceChoice => AdditiveEvidenceOptionSetChoices.DMS;
+        static AdditiveEvidenceOptionSetChoices AdditiveEvidenceChoice => AdditiveEvidenceOptionSetChoices.Temporary; // DEBUG
 
         public static AdditiveEvidenceGameOptions GetAdditiveEvidenceGameOptions() => AdditiveEvidenceChoice switch
         {
@@ -51,7 +51,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             AdditiveEvidenceOptionSetChoices.Biasless_MuchLessInfoShared => Biasless(0.5, 0.5, 0.3, false, false, 0.5, 0.05, false), // settles around 50% of the time
             AdditiveEvidenceOptionSetChoices.Biasless_MuchLessInfoShared_WithFeeShift => Biasless(0.5, 0.5, 0.3, true, false, 1.0, 0.05, false), // settles around 30% of the time
             AdditiveEvidenceOptionSetChoices.SomeNoiseHalfSharedQuarterPAndD => SomeNoise(0.50, 0.50, 0.50, 0.8, 0.15, true, false, 0.25, false),
-            AdditiveEvidenceOptionSetChoices.Temporary => DariMattiacci_Saraceno_Original(0.5, 1.0, true, false, 1.0, false),
+            AdditiveEvidenceOptionSetChoices.Temporary => DariMattiacci_Saraceno_Original(0.5, 0.125, true, false, 0.5, false),
             _ => throw new NotImplementedException()
         };
         public static AdditiveEvidenceGameOptions DariMattiacci_Saraceno_Original(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay)

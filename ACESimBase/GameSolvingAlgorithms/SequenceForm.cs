@@ -93,16 +93,17 @@ namespace ACESimBase.GameSolvingAlgorithms
                     {
                         TabbedText.WriteLine($"Trying inexact arithmetic for up to {numPriorsToGet} random priors");
                         additionalEquilibria = DetermineEquilibria<InexactValue>(numPriorsToGet);
-                        equilibria.AddRange(additionalEquilibria);
+                        AddAdditionalEquilibria(equilibria, additionalEquilibria);
                     }
                 }
                 if (equilibria == null || equilibria.Count() < EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria)
                 {
                     // Suppose our target is 100 equilibria, and we've found 1 with a frequency of 10. 
                     int numPriorsToGet = EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria - equilibria.Sum(x => x.frequency);
-                    TabbedText.WriteLine($"Resorting to exact arithmetic for up to {numPriorsToGet} random priors");
+                    if (EvolutionSettings.TryInexactArithmeticForAdditionalEquilibria)
+                        TabbedText.WriteLine($"Resorting to exact arithmetic for up to {numPriorsToGet} random priors");
                     additionalEquilibria = DetermineEquilibria<ExactValue>(numPriorsToGet);
-                    equilibria.AddRange(additionalEquilibria);
+                    AddAdditionalEquilibria(equilibria, additionalEquilibria);
                 }
 
                 await ProcessIdentifiedEquilibria(reportCollection, equilibria.Select(x => x.equilibrium).ToList());
@@ -113,6 +114,25 @@ namespace ACESimBase.GameSolvingAlgorithms
             }
 
             return reportCollection;
+        }
+
+        private static void AddAdditionalEquilibria(List<(double[] equilibrium, int frequency)> equilibria, List<(double[] equilibrium, int frequency)> additionalEquilibria)
+        {
+            foreach (var additionalEquilibrium in additionalEquilibria)
+            {
+                bool matchFound = false;
+                for (int i = 0; i < equilibria.Count; i++)
+                {
+                    if (equilibria[i].equilibrium.SequenceEqual(additionalEquilibrium.equilibrium))
+                    {
+                        equilibria[i] = (equilibria[i].equilibrium, additionalEquilibrium.frequency + equilibria[i].frequency);
+                        matchFound = true;
+                        break;
+                    }
+                }
+                if (!matchFound)
+                    equilibria.Add(additionalEquilibrium);
+            }
         }
 
         #region ECTA
@@ -1098,7 +1118,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             if (includeCorrelatedEquilibriumReport)
                 SaveWeightedGameProgressesAfterEachReport = true;
             bool includeReportForFirstEquilibrium = true;
-            bool includeReportForEachEquilibrium = false; 
+            bool includeReportForEachEquilibrium = true; 
             int numEquilibria = equilibria.Count();
             var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetNodeNumber).ToList();
             var infoSetNames = infoSets.Select(x => x.ToStringWithoutValues()).ToArray();
