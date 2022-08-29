@@ -315,7 +315,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     }
                     else
                     {
-                        const double k = 1.5;
+                        const double k = 3;
                         var relativeValues = distances.Select(d => Math.Pow(1 / Math.Max(d, 0.001), k)).ToList();
                         var sum = relativeValues.Sum();
                         var addingToApproxOne = relativeValues.Select(v => Math.Max((decimal)0.001, Math.Round((decimal)(v / sum), 3))).ToList();
