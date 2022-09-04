@@ -136,7 +136,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public IEnumerable<(double pBid, double dBid)> GetBids(int numItems, bool truncated = true) => Enumerable.Range(0, numItems).Select(i => EquallySpaced.GetLocationOfEquallySpacedPoint(i, numItems, true)).Select(x => GetBids(x, x, truncated));
 
         bool truncate = true;
-        bool includeIrrelevantTruncations = false;
+        bool includeIrrelevantTruncations = false; // suppose P asks for much more than what would be possible. Should we lower to D's highest bid? One reason not to is that, once we discretize this, they will sometimes be equal
         bool standardizeTrivialEq = true; // if P's most generous bid is greater than the D's most generous bid, there will never be a settlement, regardless of the signals. This is a trivial equilibrium, and so we can standardize those.
 
         private double Truncated(double untrunc, bool plaintiff)
@@ -166,13 +166,14 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     // There are also unlimited equilibria here, all of which result in settlement.
                     // Let's narrow down to one such equilibrium, where the parties bid the midpoint of D's most aggressive (lowest) bid and P's most aggressive (highest) bid.
                     bid = (dUntruncFunc(0.0) + pUntruncFunc(1.0)) / 2.0;
-                    if (bid < 0 && 0 <= dUntruncFunc(0.0))
+                    if (bid < 0 && pUntruncFunc(1.0) <= 0 && 0 <= dUntruncFunc(0.0))
                         bid = 0;
-                    else if (bid > 1.0 && 1.0 >= pUntruncFunc(1.0))
+                    else if (bid > 1.0 && pUntruncFunc(1.0) <= 1.0 && 1.0 <= dUntruncFunc(0.0))
                         bid = 1.0;
                 }
                 else
                 {
+                    // D is above P, but not entirely. There is thus an overlap range. P should never offer a bid lower than the highest possible D bid, and D should never offer a bid lower than the lowest possible P bid.
                     bid = plaintiff ? Math.Max(untrunc, dUntruncFunc(0.0)) : Math.Min(pUntruncFunc(1.0), untrunc);
                 }
             }
@@ -217,7 +218,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     // There are also unlimited equilibria here, all of which result in settlement.
                     // Note that we can't apply the usual truncation, or else we would end up with a situation where P's bid is higher than D's, and all cases will go to trial.
 
-                    bool makeBidsIdentical = false;
+                    bool makeBidsIdentical = true; // DEBUG
 
                     if (makeBidsIdentical)
                     {

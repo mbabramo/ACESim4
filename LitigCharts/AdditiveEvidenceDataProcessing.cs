@@ -177,10 +177,10 @@ namespace LitigCharts
 
         private static string GenerateLatex(List<List<List<List<double?>>>> overallData, List<string> qValueStrings, List<string> cValueStrings, List<string> tValueStrings, string microYAxisLabel)
         {
-
+            bool useHollow = tValueStrings.Count >= 25;
             var lineScheme = new List<string>()
             {
-                "red, opacity=0.2, line width=0.1mm, solid",
+                useHollow ? "red, opacity=0.2, line width=0.1mm, solid" : "red, fill=red, opacity=0.4, line width=0.1mm, solid",
             };
             var dataSeriesNames = new List<string>()
             {

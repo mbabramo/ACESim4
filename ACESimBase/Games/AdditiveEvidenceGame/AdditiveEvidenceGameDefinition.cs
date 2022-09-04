@@ -278,7 +278,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public override List<IMaybeExact<T>> GetSequenceFormInitialization<T>(bool initializeToFinalValues)
         {
             bool useDMS = true; // DEBUG
-            return GetProbabilitiesFocusedOnBestGuessOrDMS<T>(initializeToFinalValues, useDMS);
+            var probabilities = GetProbabilitiesFocusedOnBestGuessOrDMS<T>(initializeToFinalValues, useDMS);
+            // TabbedText.WriteLine("PROBS: " + String.Join(",", probabilities.Select(p => p.ToString())));
+            return probabilities;
         }
 
         public List<IMaybeExact<T>> GetProbabilitiesFocusedOnBestGuessOrDMS<T>(bool usePureStrategies, bool useDMS) where T : IMaybeExact<T>, new()
@@ -341,7 +343,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public override IEnumerable<(string filename, string reportcontent)> ProduceManualReports(List<(GameProgress theProgress, double weight)> gameProgresses, string supplementalString)
         {
-            double includeMultiplesOf = 0.001; ;
+            double includeMultiplesOf = 0.1; // DEBUG
             double remainder = Math.Abs(Options.FeeShiftingThreshold % includeMultiplesOf);
             if (remainder > includeMultiplesOf * 0.5) // e.g., 0.049999 -> 0.049999
                 remainder = includeMultiplesOf - remainder;
