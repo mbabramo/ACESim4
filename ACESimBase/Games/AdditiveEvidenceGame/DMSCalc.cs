@@ -218,7 +218,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     // There are also unlimited equilibria here, all of which result in settlement.
                     // Note that we can't apply the usual truncation, or else we would end up with a situation where P's bid is higher than D's, and all cases will go to trial.
 
-                    bool makeBidsIdentical = true; // DEBUG
+                    bool makeBidsIdentical = true;
 
                     if (makeBidsIdentical)
                     {
