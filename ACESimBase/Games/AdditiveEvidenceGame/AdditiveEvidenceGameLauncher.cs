@@ -9,17 +9,17 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 {
     public class AdditiveEvidenceGameLauncher : Launcher
     {
-        OptionSetChoice optionSetChoice = OptionSetChoice.AdditiveEvidenceRevisitSpecific;
+        OptionSetChoice optionSetChoice = OptionSetChoice.WinnerTakeAllWithQuitting;
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
-        public override string MasterReportNameForDistributedProcessing => "AE039";
+        public override string MasterReportNameForDistributedProcessing => "AE040";
 
         public static bool UseSpecificOnly = false;
         public static bool LimitToNonTrivialDMS = false; 
 
         public double[] CostsLevels = UseSpecificOnly ? new double[] { 0.25 } : new double[] { 0, 0.0625, 0.125, 0.25, 0.5 };
         public double[] QualityLevels = UseSpecificOnly ? new double[] { 0.5 } : new double[] { 0.2, 0.35, 0.50, 0.65, 0.8 };
-        int numFeeShiftingThresholds = 21;
+        int numFeeShiftingThresholds = 1001;
         public bool specificThresholdsDefined = false;
         public double[] FeeShiftingThresholds => UseSpecificOnly && specificThresholdsDefined ? SpecificThresholdLevels : Enumerable.Range(0, numFeeShiftingThresholds).Select(x => (double)(x / (numFeeShiftingThresholds - 1.0))).ToArray();
 
@@ -30,6 +30,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         // See below for choice
         private enum OptionSetChoice
         {
+            Main,
             EarlierSets,
             Fast,
             Original,
@@ -41,8 +42,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             EvenStrength,
             Biasless,
             WinnerTakesAll,
-            AdditiveEvidencePaperMain,
-            AdditiveEvidenceRevisitSpecific,
+            RevisitSpecific,
+            WinnerTakeAllWithQuitting,
         }
         
         public override List<GameOptions> GetOptionsSets()
@@ -73,7 +74,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             bool withOptionNotToPlay = false;
             switch (optionSetChoice)
             {
-                case OptionSetChoice.AdditiveEvidencePaperMain:
+                case OptionSetChoice.Main:
                     //AddDMSGameOptionSets(optionSets, DMSVersion.Original, false);
                     //AddDMSGameOptionSets(optionSets, DMSVersion.OriginalInitialized, false);
                     AddDMSGameOptionSets(optionSets, DMSVersion.OriginalRandomized, false);
@@ -81,7 +82,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll, false);
                     AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrength, false);
                     break;
-                case OptionSetChoice.AdditiveEvidenceRevisitSpecific:
+                case OptionSetChoice.WinnerTakeAllWithQuitting:
+                    AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll, true);
+                    break;
+                case OptionSetChoice.RevisitSpecific:
                     AddDMSGameOptionSets(optionSets, DMSVersion.RevisitSpecific, false);
                     break;
                 case OptionSetChoice.Original:
@@ -170,7 +174,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             WinnerTakesAll,
             OriginalInitialized,
             OriginalRandomized,
-            WinnerTakesAllWithQuitting,
             RevisitSpecific,
         }
 
@@ -208,9 +211,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                             case DMSVersion.RevisitSpecific:
                                 // Same as above, but initialized to the DMS value
                                 optionSets.Add(GetAndTransform("spec", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
-                                break;
-                            case DMSVersion.WinnerTakesAllWithQuitting:
-                                optionSets.Add(GetAndTransform("quit", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.IncludePQuitDecision = x.IncludeDQuitDecision = true; x.WinnerTakesAll = true; }));
                                 break;
                             case DMSVersion.WinnerTakesAll:
                                 optionSets.Add(GetAndTransform("wta", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.WinnerTakesAll = true; x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
