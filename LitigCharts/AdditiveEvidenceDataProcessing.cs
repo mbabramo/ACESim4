@@ -39,7 +39,7 @@ namespace LitigCharts
             var map = launcher.GetAdditiveEvidenceNameMap();
             string path = Launcher.ReportFolder();
             string outputFileFullPath = Path.Combine(path, filePrefix + $"-{endOfFileName}.csv");
-            var distinctOptionSets = gameOptionsSets.DistinctBy(x => map[x.Name]).ToList();
+            var distinctOptionSets = gameOptionsSets.DistinctBy(x => map[x.Name]).ToList(); 
 
             bool includeHeader = true;
             List<List<string>> outputLines = GetCSVLines(distinctOptionSets, map, rowsToGet, replacementRowNames, filePrefix, ".csv", "", path, includeHeader, columnsToGet, replacementColumnNames);
