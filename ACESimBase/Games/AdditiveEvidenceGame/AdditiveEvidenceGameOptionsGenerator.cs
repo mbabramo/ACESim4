@@ -51,7 +51,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             AdditiveEvidenceOptionSetChoices.Biasless_MuchLessInfoShared => Biasless(0.5, 0.5, 0.3, false, false, 0.5, 0.05, false), // settles around 50% of the time
             AdditiveEvidenceOptionSetChoices.Biasless_MuchLessInfoShared_WithFeeShift => Biasless(0.5, 0.5, 0.3, true, false, 1.0, 0.05, false), // settles around 30% of the time
             AdditiveEvidenceOptionSetChoices.SomeNoiseHalfSharedQuarterPAndD => SomeNoise(0.50, 0.50, 0.50, 0.8, 0.15, true, false, 0.25, false),
-            AdditiveEvidenceOptionSetChoices.Temporary => DariMattiacci_Saraceno_Original(0.35, 0.5, true, false, 0.4, false),
+            AdditiveEvidenceOptionSetChoices.Temporary => DariMattiacci_Saraceno_Original(0.01, 10, true, false, 1.0, true),
             _ => throw new NotImplementedException()
         };
         public static AdditiveEvidenceGameOptions DariMattiacci_Saraceno_Original(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay)
@@ -78,6 +78,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             {
                 options.IncludePQuitDecision = true;
                 options.IncludeDQuitDecision = true;
+                // change the offer range, so that neither party can count on always getting a minimal offer
+                options.MinOffer = 0 - 1.0 / (double)options.NumOffers;
+                options.OfferRange = 1.0 + 2.0 / (double)options.NumOffers;
+                options.NumOffers += 2;
             }
 
             options.FeeShifting = feeShifting;

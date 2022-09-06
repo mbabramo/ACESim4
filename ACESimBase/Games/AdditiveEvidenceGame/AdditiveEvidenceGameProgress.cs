@@ -58,8 +58,26 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         }
 
         private double ContinuousOffer(byte offerAction) => AdditiveEvidenceGameOptions.MinOffer + AdditiveEvidenceGameOptions.OfferRange * EquallySpaced.GetLocationOfEquallySpacedPoint(offerAction - 1 /* make it zero-based */, AdditiveEvidenceGameOptions.NumOffers, false);
-        public double POfferContinuousIfMade => ContinuousOffer(POffer);
-        public double DOfferContinuousIfMade => ContinuousOffer(DOffer);
+        public double POfferContinuousIfMade
+        {
+            get
+            {
+                var result = ContinuousOffer(POffer);
+                if (result > 1)
+                    result = 2.0; // higher offer than defendant can make, i.e. we're interpreting this as a refusal to bargain
+                return result;
+            }
+        }
+        public double DOfferContinuousIfMade
+        {
+            get
+            {
+                var result = ContinuousOffer(DOffer);
+                if (result < 0)
+                    result = -1; // lower offer than plaintiff can make, i.e. we're interpreting this as a refusal to bargain
+                return result;
+            }
+        }
 
         public double? POfferContinuousOrNull => SomeoneQuits ? (double?)null : POfferContinuousIfMade;
         public double? DOfferContinuousOrNull => SomeoneQuits ? (double?)null : DOfferContinuousIfMade;
@@ -71,7 +89,14 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public double? Chance_Neither_Quality_Continuous_OrNull => (TrialOccurs ? Chance_Neither_Quality_Continuous_IfDetermined : (double?)null);
         public double? Chance_Neither_Bias_Continuous_OrNull => (TrialOccurs ? Chance_Neither_Bias_Continuous_IfDetermined : (double?)null);
 
-        public double? SettlementValue => SettlementOccurs ? (POfferContinuousIfMade + DOfferContinuousIfMade) / 2.0 : (double?) null;
+        public double? SettlementValue
+        {
+            get
+            {
+                var result = SettlementOccurs ? (POfferContinuousIfMade + DOfferContinuousIfMade) / 2.0 : (double?)null;
+                return result;
+            }
+        }
         public bool SomeoneQuits => !AdditiveEvidenceGameOptions.TrialGuaranteed && (PQuits || DQuits);
         public bool SettlementOccurs => !SomeoneQuits && !AdditiveEvidenceGameOptions.TrialGuaranteed && POfferContinuousIfMade <= DOfferContinuousIfMade;
         public bool TrialOccurs => !SomeoneQuits && !SettlementOccurs;
@@ -129,13 +154,32 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 var plaintiffProportionOfOverallInfo = biasProportion * plaintiffProportionOfBiasInfo + qualityProportion * plaintiffProportionOfQualityInfo;
                 var defendantProportionOfOverallInfo = 1.0 - plaintiffProportionOfOverallInfo;
                 double partySpecificEstimateD = biasProportion * Chance_Defendant_Bias_Continuous + qualityProportion * Chance_Defendant_Quality_Continuous;
-                return plaintiffProportionOfOverallInfo + (1 - plaintiffProportionOfOverallInfo) * partySpecificEstimateD;
+                var result = plaintiffProportionOfOverallInfo + (1 - plaintiffProportionOfOverallInfo) * partySpecificEstimateD;
+                return result;
             }
         }
 
         public double? TrialValuePreShifting => TrialOccurs ? TrialValuePreShiftingIfOccurs : (double?)null;
-        public double PTrialEffect_IfOccurs => TrialValuePreShiftingIfOccurs - (1.0 - DsProportionOfCostIfTrial()) * AdditiveEvidenceGameOptions.TrialCost;
-        public double DTrialEffect_IfOccurs => 1.0 - TrialValuePreShiftingIfOccurs - (DsProportionOfCostIfTrial()) * AdditiveEvidenceGameOptions.TrialCost; // remember, this is a damages game, so defendant receives (1 - what is awarded to plaintiff)
+        public double PTrialEffect_IfOccurs
+        {
+            get
+            {
+                var result = TrialValuePreShiftingIfOccurs - (1.0 - DsProportionOfCostIfTrial()) * AdditiveEvidenceGameOptions.TrialCost;
+                if (AdditiveEvidenceGameOptions.TrialGuaranteed)
+                    result += POfferContinuousIfMade / 1000.0; // necessary to avoid error from same utilities at each option
+                return result;
+            }
+        }
+        public double DTrialEffect_IfOccurs
+        {
+            get
+            {
+                var result = 1.0 - TrialValuePreShiftingIfOccurs - (DsProportionOfCostIfTrial()) * AdditiveEvidenceGameOptions.TrialCost; // remember, this is a damages game, so defendant receives (1 - what is awarded to plaintiff)
+                if (AdditiveEvidenceGameOptions.TrialGuaranteed)
+                    result += DOfferContinuousIfMade / 1000.0; // necessary to avoid error from same utilities at each option
+                return result;
+            }
+        }
         public double? PTrialEffect => TrialOccurs ? PTrialEffect_IfOccurs : (double?) null;
         public double? DTrialEffect => TrialOccurs ? DTrialEffect_IfOccurs : (double?) null;
 

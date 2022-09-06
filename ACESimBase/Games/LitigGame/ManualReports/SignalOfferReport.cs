@@ -42,7 +42,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             DMSCalc calc = new DMSCalc(options.FeeShiftingThreshold, options.TrialCost, options.Evidence_Both_Quality);
             List<(double p, double d)> dmsBids = Enumerable.Range(0, 999).Select(x => 0.0005 + (double)x / 1000.0).Select(x => calc.GetBids(x, x)).ToList();
 
-            return CompleteReport(reportType, signalOfferReportGameProgresses, null, null, pDamagesSignalFunc, dDamagesSignalFunc, null, null, pDamagesSignals, dDamagesSignals, useLiabilitySignals, numSignals, numOffers, includeEndpointsForOffers, dmsBids);
+            return CompleteReport(reportType, signalOfferReportGameProgresses, null, null, pDamagesSignalFunc, dDamagesSignalFunc, null, null, pDamagesSignals, dDamagesSignals, useLiabilitySignals, numSignals, numOffers, includeEndpointsForOffers, dmsBids, options.MinOffer, options.MinOffer + options.OfferRange);
         }
 
         public static List<string> GenerateReport(LitigGameDefinition gameDefinition, List<(GameProgress theProgress, double weight)> gameProgresses, TypeOfReport reportType)
@@ -65,12 +65,12 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             int numOffers = options.NumOffers;
             bool includeEndpointsForOffers = options.IncludeEndpointsForOffers;
 
-            return CompleteReport(reportType, signalOfferReportGameProgresses, pLiabilitySignalFunc, dLiabilitySignalFunc, pDamagesSignalFunc, dDamagesSignalFunc, pLiabilitySignals, dLiabilitySignals, pDamagesSignals, dDamagesSignals, useLiabilitySignals, numSignals, numOffers, includeEndpointsForOffers, null);
+            return CompleteReport(reportType, signalOfferReportGameProgresses, pLiabilitySignalFunc, dLiabilitySignalFunc, pDamagesSignalFunc, dDamagesSignalFunc, pLiabilitySignals, dLiabilitySignals, pDamagesSignals, dDamagesSignals, useLiabilitySignals, numSignals, numOffers, includeEndpointsForOffers, null, 0, 1);
         }
 
-        private static List<string> CompleteReport(TypeOfReport reportType, List<(ISignalOfferReportGameProgress theProgress, double weight)> litigProgresses, Func<ISignalOfferReportGameProgress, double> pLiabilitySignalFunc, Func<ISignalOfferReportGameProgress, double> dLiabilitySignalFunc, Func<ISignalOfferReportGameProgress, double> pDamagesSignalFunc, Func<ISignalOfferReportGameProgress, double> dDamagesSignalFunc, List<double> pLiabilitySignals, List<double> dLiabilitySignals, List<double> pDamagesSignals, List<double> dDamagesSignals, bool useLiabilitySignals, int numSignals, int numOffers, bool includeEndpointsForOffers, List<(double p, double d)> superimposedLines)
+        private static List<string> CompleteReport(TypeOfReport reportType, List<(ISignalOfferReportGameProgress theProgress, double weight)> litigProgresses, Func<ISignalOfferReportGameProgress, double> pLiabilitySignalFunc, Func<ISignalOfferReportGameProgress, double> dLiabilitySignalFunc, Func<ISignalOfferReportGameProgress, double> pDamagesSignalFunc, Func<ISignalOfferReportGameProgress, double> dDamagesSignalFunc, List<double> pLiabilitySignals, List<double> dLiabilitySignals, List<double> pDamagesSignals, List<double> dDamagesSignals, bool useLiabilitySignals, int numSignals, int numOffers, bool includeEndpointsForOffers, List<(double p, double d)> superimposedLines, double minOffer, double maxOffer)
         {
-            double[] offers = EquallySpaced.GetEquallySpacedPoints(numOffers, includeEndpointsForOffers);
+            double[] offers = EquallySpaced.GetEquallySpacedPoints(numOffers, includeEndpointsForOffers, minOffer, maxOffer);
             string[] fileActionStrings = new string[] { "No Suit", "File" };
             string[] answerActionStrings = new string[] { "Default", "Answer" };
 
