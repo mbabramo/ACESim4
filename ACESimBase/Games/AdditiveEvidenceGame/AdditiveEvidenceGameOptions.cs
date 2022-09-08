@@ -10,7 +10,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
     {
         public bool FirstRowOnly => false; // simplifies the reporting
 
-
         // Parameters regarding number of discrete levels and how they map onto continuous levels
 
         // NOTE: These are set in AdditiveEvidenceGameOptionsGenerator

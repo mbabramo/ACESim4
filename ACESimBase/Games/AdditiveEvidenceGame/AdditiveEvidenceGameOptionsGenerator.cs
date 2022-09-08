@@ -15,20 +15,22 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             DMS,
             EqualStrengthInfo,
             AsymmetricInfo,
-            SomeNoiseHalfSharedQuarterPAndD,
+            NoPInfo,
+            NoisyWithAsymmetricInfoOnBias,
             Temporary,
         }
 
         // Note: Go to Launcher to change multiple option sets settings.
 
-        static AdditiveEvidenceOptionSetChoices AdditiveEvidenceChoice => AdditiveEvidenceOptionSetChoices.Temporary; 
+        static AdditiveEvidenceOptionSetChoices AdditiveEvidenceChoice => AdditiveEvidenceOptionSetChoices.NoPInfo; 
 
         public static AdditiveEvidenceGameOptions GetAdditiveEvidenceGameOptions() => AdditiveEvidenceChoice switch
         {
             AdditiveEvidenceOptionSetChoices.DMS => DariMattiacci_Saraceno_Original(0.6, 0.15, true, false, 0.5, false, false),
             AdditiveEvidenceOptionSetChoices.EqualStrengthInfo => EqualStrengthInfo(0.6, 0.15, true, false, 0.5, false, false),
-            AdditiveEvidenceOptionSetChoices.AsymmetricInfo => AsymmetricInfo(0.50, 0.50, 0.8, 0.15, true, false, 0.25, false, false),
-            AdditiveEvidenceOptionSetChoices.SomeNoiseHalfSharedQuarterPAndD => NoiseAndAsymmetricInfo(0.50, 0.50, 0.50, 0.8, 0.15, true, false, 0.25, false, false),
+            AdditiveEvidenceOptionSetChoices.AsymmetricInfo => AsymmetricInfo(1.0, 0.65, 0.8, 0.15, true, false, 0.25, false, false),
+            AdditiveEvidenceOptionSetChoices.NoPInfo => AsymmetricInfo(1.0, 0, 0.8, 0.15, true, false, 0.25, false, false),
+            AdditiveEvidenceOptionSetChoices.NoisyWithAsymmetricInfoOnBias => NoiseAndAsymmetricInfo(0.50, 1.0, 0.75, 0.8, 0.15, true, false, 0.25, false, false),
             AdditiveEvidenceOptionSetChoices.Temporary => DariMattiacci_Saraceno_Original(0.8, 0, true, false, 0.01, true, true)
             ,
             _ => throw new NotImplementedException()
@@ -119,16 +121,15 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             var options = new AdditiveEvidenceGameOptions()
             {
                 Evidence_Both_Quality = sharedQualityInfo,
-                Alpha_Quality = 1.0 - noisiness,
-                Alpha_Both_Quality = alphaBothQuality, 
+                Alpha_Quality = 0.5,
+                Alpha_Both_Quality = alphaBothQuality, // if parallel to above, this should be 1.0, meaning that all info on quality is shared. If less than 1.0, then the parties will have private information on quality as well as on what we are calling bias
                 Alpha_Plaintiff_Quality = (1 - alphaBothQuality) * pPortionOfPrivateInfo,
                 Alpha_Defendant_Quality = (1 - alphaBothQuality) * (1.0 - pPortionOfPrivateInfo),
                 // so Neither_Quality is set automatically to 0
-                // So Alpha_Bias is set to noisiness and represents information known to no one.
-                Alpha_Both_Bias = 0.0,
-                Alpha_Plaintiff_Bias = 0.0,
-                Alpha_Defendant_Bias = 0.0,
-                // so, we are assuming that all bias is unknown to both parties. In other words, there is some information that is irrelevant to the merits, that affects the judgment, and no one knows -- essentially, judicial uncertainty.
+                Alpha_Both_Bias = 0.0, // no shared info on bias
+                Alpha_Plaintiff_Bias = (1.0 - noisiness) * pPortionOfPrivateInfo,
+                Alpha_Defendant_Bias = (1.0 - noisiness) * (1.0 - pPortionOfPrivateInfo),
+                // thus, the noisiness applies to the bias component only, and it represents information that is irrelevant to the merits, that affects the judgment, and no one knows -- essentially, judicial uncertainty.
             };
             // nothing to neither or both with respect to bias
 
