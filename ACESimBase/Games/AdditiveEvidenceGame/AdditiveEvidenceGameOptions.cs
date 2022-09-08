@@ -83,6 +83,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public double Evidence_Both_Quality;
         public double Evidence_Both_Bias;
 
+        public bool IncludeChanceDecisionsEvenForPartyWithNoInfluence = true; // if false, then we can have a smaller game tree if, for example, the plaintiff has no private information on quality or bias. But if true, then it will be easier to make heatmap diagrams; the chance information just doesn't have an effect on the calculated outcome.
 
         public override string ToString()
         {

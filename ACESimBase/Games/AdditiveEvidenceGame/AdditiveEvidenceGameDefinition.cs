@@ -118,7 +118,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 //DistributableDistributorChanceInput = true,
                 CanTerminateGame = false
             });
-            if (Options.Alpha_Bias > 0 && Options.Alpha_Plaintiff_Bias > 0)
+            if (Options.IncludeChanceDecisionsEvenForPartyWithNoInfluence || (Options.Alpha_Bias > 0 && Options.Alpha_Plaintiff_Bias > 0)) 
             {
                 decisions.Add(new Decision("Chance_Plaintiff_Bias", "PB", true, (byte)AdditiveEvidenceGamePlayers.Chance_Plaintiff_Bias, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias)
                 {
@@ -129,7 +129,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     //DistributableDistributorChanceInput = true,
                 });
             }
-            if (Options.Alpha_Bias > 0 && Options.Alpha_Defendant_Bias > 0)
+            if (Options.IncludeChanceDecisionsEvenForPartyWithNoInfluence || (Options.Alpha_Bias > 0 && Options.Alpha_Defendant_Bias > 0))
             {
                 decisions.Add(new Decision("Chance_Defendant_Bias", "DB", true, (byte)AdditiveEvidenceGamePlayers.Chance_Defendant_Bias, new byte[] { (byte)AdditiveEvidenceGamePlayers.Defendant, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias)
                 {
