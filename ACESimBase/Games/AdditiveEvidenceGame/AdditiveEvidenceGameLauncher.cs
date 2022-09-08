@@ -40,7 +40,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             TrialGuaranteed,
             VaryingNoiseEtc,
             Temporary,
-            Biasless,
             RevisitSpecific,
         }
         
@@ -92,9 +91,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 case OptionSetChoice.WinnerTakesAll:
                     AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll, false);
                     break;
-                case OptionSetChoice.Biasless:
-                    AddDMSGameOptionSets(optionSets, DMSVersion.Biasless, false);
-                    break;
                 case OptionSetChoice.Fast:
                     AddDMSGameOptionSets(optionSets, DMSVersion.OriginalEvenPrior, false, false);
                     break;
@@ -136,7 +132,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             Original,
             OriginalInitializedToDMS,
             OriginalEvenPrior,
-            Biasless,
             EvenStrength,
             EvenStrengthAndBiasless,
             EvenStrengthAndBiasless_MoreInfoShared,
@@ -195,10 +190,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                             case DMSVersion.RevisitSpecific:
                                 // Same as above, but initialized to the DMS value
                                 optionSets.Add(GetAndTransform("spec", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
-                                break;
-                            case DMSVersion.Biasless:
-                                // Biasless means that all of the info that the adjudicator adds up counts in the quality measurement. That is, there is some quality known to both parties, but the remaining quality is the sum of the two parties' information. Here, we continue to follow the DMS approach of making the plaintiff's proportion of information equal to the actual shared quality value (qualityKnownToBoth).
-                                optionSets.Add(GetAndTransform("bl", settingsString, () => AdditiveEvidenceGameOptionsGenerator.Biasless(qualityKnownToBoth /* the actual value of the quality that both know about */, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, 0.5 /* proportion of the total quality score that is shared -- i.e., equal to qualityKnownToBoth */, withOptionNotToPlay), x => { }));
                                 break;
                             case DMSVersion.EvenStrength:
                                 // even strength means that each party has the same amount of information. We still have bias here -- that is, the parties' private information has nothing to do with the merits. 
