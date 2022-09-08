@@ -70,7 +70,7 @@ namespace LitigCharts
                     string csvFileName = set + "--.csv";
                     string fullFileName = Path.Combine(folder, csvFileName);
                     string texContents = GenerateDiagramFromCSV(fullFileName, groupName, targetVariable, targetAbbreviation, false);
-                    string outputFile = Path.Combine(folder, $"{set};{groupName};{targetVariable}; full.tex");
+                    string outputFile = Path.Combine(folder, $"{set};{groupName};{targetVariable};full.tex");
                     File.WriteAllText(outputFile, texContents);
                     texContents = GenerateDiagramFromCSV(fullFileName, groupName, targetVariable, targetAbbreviation, true);
                     outputFile = Path.Combine(folder, $"{set};{groupName};{targetVariable};short.tex");

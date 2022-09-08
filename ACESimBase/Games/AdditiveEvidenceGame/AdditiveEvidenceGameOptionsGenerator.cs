@@ -13,12 +13,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public enum AdditiveEvidenceOptionSetChoices
         {
             DMS,
-            DMS_WithFeeShifting,
-            DMS_WithOptionNotToPlay,
-            EvenStrength,
+            EqualStrengthInfo,
+            AsymmetricInfo,
             SomeNoiseHalfSharedQuarterPAndD,
             Temporary,
-            DMSPiecewiseLinear
         }
 
         // Note: Go to Launcher to change multiple option sets settings.
@@ -27,11 +25,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public static AdditiveEvidenceGameOptions GetAdditiveEvidenceGameOptions() => AdditiveEvidenceChoice switch
         {
-            AdditiveEvidenceOptionSetChoices.DMSPiecewiseLinear => DariMattiacci_Saraceno_Original(0.5, 1.0, false, false, 0, false),
-            AdditiveEvidenceOptionSetChoices.DMS => DariMattiacci_Saraceno_Original(0.6, 0.15, false, false, 0, false),
-            AdditiveEvidenceOptionSetChoices.DMS_WithFeeShifting => DariMattiacci_Saraceno_Original(0.40, 0.15, true, false, 0.5, false),
-            AdditiveEvidenceOptionSetChoices.DMS_WithOptionNotToPlay => DariMattiacci_Saraceno_Original(0.90, 0.6, true, false, 0.7, true),
-            AdditiveEvidenceOptionSetChoices.SomeNoiseHalfSharedQuarterPAndD => SomeNoise(0.50, 0.50, 0.50, 0.8, 0.15, true, false, 0.25, false),
+            AdditiveEvidenceOptionSetChoices.DMS => DariMattiacci_Saraceno_Original(0.6, 0.15, true, false, 0.5, false, false),
+            AdditiveEvidenceOptionSetChoices.EqualStrengthInfo => EqualStrengthInfo(0.6, 0.15, true, false, 0.5, false, false),
+            AdditiveEvidenceOptionSetChoices.AsymmetricInfo => AsymmetricInfo(0.50, 0.50, 0.8, 0.15, true, false, 0.25, false, false),
+            AdditiveEvidenceOptionSetChoices.SomeNoiseHalfSharedQuarterPAndD => NoiseAndAsymmetricInfo(0.50, 0.50, 0.50, 0.8, 0.15, true, false, 0.25, false, false),
             AdditiveEvidenceOptionSetChoices.Temporary => DariMattiacci_Saraceno_Original(0.8, 0, true, false, 0.01, true, true)
             ,
             _ => throw new NotImplementedException()
@@ -74,12 +71,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             if (winnerTakesAll)
             {
                 options.WinnerTakesAll = true;
-                //options.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; };
             }
             return options;
         }
 
-        public static AdditiveEvidenceGameOptions SharedInfoOnQuality_EvenStrengthOnBias(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay)
+        public static AdditiveEvidenceGameOptions EqualStrengthInfo(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay, bool winnerTakesAll)
         {
             var options = new AdditiveEvidenceGameOptions()
             {
@@ -108,45 +104,17 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             }
             options.FeeShifting = feeShifting;
             options.FeeShiftingIsBasedOnMarginOfVictory = feeShiftingMarginOfVictory;
-            options.FeeShiftingThreshold = feeShiftingThreshold;
-            return options;
-        }
-
-        public static AdditiveEvidenceGameOptions Biasless(double sharedQualityInfo, double pPortionOfPrivateInfo /* set to quality to be like the original DMS model in this respect */, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, double alphaBothQuality, bool withOptionNotToPlay)
-        {
-            // Note: Biasless refers to the idea that all of the information that the adjudicator sums up to produce a result actually counts as quality. In the original DMS model, half of the information that the adjudicator sums up is bias rather than quality. But here, both parties share some information about quality, and then each has some private information about quality.
-            var options = new AdditiveEvidenceGameOptions()
+            options.FeeShiftingThreshold = feeShiftingThreshold; 
+            if (winnerTakesAll)
             {
-                Evidence_Both_Quality = sharedQualityInfo,
-                Alpha_Quality = 1.0, // there is no separate bias
-                Alpha_Both_Quality = alphaBothQuality, // The portion of quality that is known by the parties (0.5 in DMS)
-                Alpha_Plaintiff_Quality = (1 - alphaBothQuality) * pPortionOfPrivateInfo, // we are apportioning the remaining portion of quality between the plaintiff and defendant based on the parameter -- this can be set to quality to simulate the DMS model (so that we can see what the effect is of everything being quality rather than having a split between quailty and bias)
-                Alpha_Defendant_Quality = (1 - alphaBothQuality) * (1.0 - pPortionOfPrivateInfo),
-                // so Neither_Quality is set automatically to 0
-                // bias is irrelevant
-                Alpha_Both_Bias = 0.0,
-                Alpha_Plaintiff_Bias = 0.0,
-                Alpha_Defendant_Bias = 0.0,
-            };
-            // nothing to neither or both with respect to bias
-
-            options.TrialCost = costs;
-
-            options.NumOffers = NumOffers;
-            options.NumQualityAndBiasLevels_PrivateInfo = NumQualityAndBiasLevels_PrivateInfo;
-            options.NumQualityAndBiasLevels_NeitherInfo = NumQualityAndBiasLevels_NeitherInfo;
-            if (withOptionNotToPlay)
-            {
-                options.IncludePQuitDecision = true;
-                options.IncludeDQuitDecision = true;
+                options.WinnerTakesAll = true;
             }
-            options.FeeShifting = feeShifting;
-            options.FeeShiftingIsBasedOnMarginOfVictory = feeShiftingMarginOfVictory;
-            options.FeeShiftingThreshold = feeShiftingThreshold;
             return options;
         }
 
-        public static AdditiveEvidenceGameOptions SomeNoise(double noisiness, double alphaBothQuality, double pPortionOfPrivateInfo, double sharedQualityInfo, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay)
+        public static AdditiveEvidenceGameOptions AsymmetricInfo(double alphaBothQuality, double pPortionOfPrivateInfo, double sharedQualityInfo, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay, bool winnerTakesAll) => NoiseAndAsymmetricInfo(0, alphaBothQuality, pPortionOfPrivateInfo, sharedQualityInfo, costs, feeShifting, feeShiftingMarginOfVictory, feeShiftingThreshold, withOptionNotToPlay, winnerTakesAll);
+        
+        public static AdditiveEvidenceGameOptions NoiseAndAsymmetricInfo(double noisiness, double alphaBothQuality, double pPortionOfPrivateInfo, double sharedQualityInfo, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay, bool winnerTakesAll)
         {
             var options = new AdditiveEvidenceGameOptions()
             {
@@ -176,7 +144,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             }
             options.FeeShifting = feeShifting;
             options.FeeShiftingIsBasedOnMarginOfVictory = feeShiftingMarginOfVictory;
-            options.FeeShiftingThreshold = feeShiftingThreshold;
+            options.FeeShiftingThreshold = feeShiftingThreshold; 
+            if (winnerTakesAll)
+            {
+                options.WinnerTakesAll = true;
+            }
             return options;
         }
     }

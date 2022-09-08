@@ -73,8 +73,15 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 case OptionSetChoice.Main:
                     AddDMSGameOptionSets(optionSets, DMSVersion.Original, false);
                     AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrength, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.PInfo_00, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.PInfo_25, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.NoSharedInfo, false);
                     AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll, false);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAllEvenStrength, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.Original, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.PInfo_25, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.NoSharedInfo, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAllEvenStrength, true);
                     break;
                 case OptionSetChoice.Original:
                     AddDMSGameOptionSets(optionSets, DMSVersion.OriginalEvenPrior, false);
@@ -92,28 +99,23 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll, false);
                     break;
                 case OptionSetChoice.Fast:
-                    AddDMSGameOptionSets(optionSets, DMSVersion.OriginalEvenPrior, false, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.OriginalEvenPrior, false);
                     break;
                 case OptionSetChoice.TrialGuaranteed:
-                    AddDMSGameOptionSets(optionSets, DMSVersion.Baseline_WithTrialGuaranteed, false, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.Baseline_WithTrialGuaranteed, false);
                     break;
                 case OptionSetChoice.VaryingNoiseEtc:
-                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryNoise_00, false, true);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryNoise_25, false, true);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryNoise_50, false, true);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryShared_00, false, true);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryShared_25, false, true);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryShared_50, false, true);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryShared_75, false, true);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryShared_100, false, true);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryPStrength_00, false, true);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryPStrength_25, false, true);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryPStrength_50, false, true);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryPStrength_75, false, true);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryPStrength_100, false, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryNoise_00, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryNoise_25, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryNoise_50, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.NoiseWithQuality00, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.NoiseWithQuality25, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.NoiseWithQuality50, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.NoiseWithQuality75, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.NoiseWithQuality100, false);
                     break;
                 case OptionSetChoice.Temporary:
-                    AddDMSGameOptionSets(optionSets, DMSVersion.VaryShared_100, false, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.NoiseWithQuality100, false);
                     break;
             }
 
@@ -133,27 +135,24 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             OriginalInitializedToDMS,
             OriginalEvenPrior,
             EvenStrength,
-            EvenStrengthAndBiasless,
-            EvenStrengthAndBiasless_MoreInfoShared,
+            PInfo_00, // p has no information
+            PInfo_25, // p has 25% of information
+            NoSharedInfo,
+            WinnerTakesAll,
+            WinnerTakesAllEvenStrength,
             Baseline_WithTrialGuaranteed, // same as VaryNoise_25 with trial guaranteed
             VaryNoise_00, // no noise; 50% of judgment depends on shared evaluation of quality; p, d private estimates evenly determine rest of judgment
             VaryNoise_25, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p, d private estimates evenly determine rest of judgment
             VaryNoise_50, // 50% noise; 50% of rest of judgment depends on shared evaluation of quality; p, d private estimates evenly determine rest of judgment
-            VaryShared_00, // 25% noise; no shared info on case quality; p, d private estimates evenly determine rest of judgment
-            VaryShared_25, // 25% noise; 25% of rest of judgment depends on shared evaluation of quality; p, d private estimates evenly determine rest of judgment
-            VaryShared_50, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p, d private estimates evenly determine rest of judgment
-            VaryShared_75, // 25% noise; 75% of rest of judgment depends on shared evaluation of quality; p, d private estimates evenly determine rest of judgment
-            VaryShared_100, // 25% noise; 100% of rest of judgment depends on shared evaluation of quality; p, d private estimates are actually irrelevant
-            VaryPStrength_00, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p private estimate determines 0% of rest of judgment
-            VaryPStrength_25, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p private estimate determines 25% of rest of judgment
-            VaryPStrength_50, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p private estimate determines 50% of rest of judgment
-            VaryPStrength_75, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p private estimate determines 75% of rest of judgment
-            VaryPStrength_100, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p private estimate determines 100% of rest of judgment
-            WinnerTakesAll,
+            NoiseWithQuality00, // 25% noise; no shared info on case quality; p, d private estimates evenly determine rest of judgment
+            NoiseWithQuality25, // 25% noise; 25% of rest of judgment depends on shared evaluation of quality; p, d private estimates evenly determine rest of judgment
+            NoiseWithQuality50, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p, d private estimates evenly determine rest of judgment
+            NoiseWithQuality75, // 25% noise; 75% of rest of judgment depends on shared evaluation of quality; p, d private estimates evenly determine rest of judgment
+            NoiseWithQuality100, // 25% noise; 100% of rest of judgment depends on shared evaluation of quality; p, d private estimates are actually irrelevant
             RevisitSpecific,
         }
 
-        private void AddDMSGameOptionSets(List<(string optionSetName, GameOptions options)> optionSets, DMSVersion version, bool withOptionNotToPlay, bool feeShifting = true)
+        private void AddDMSGameOptionSets(List<(string optionSetName, GameOptions options)> optionSets, DMSVersion version, bool withOptionNotToPlay)
         {
             foreach (double costs in CostsLevels)
             {
@@ -170,78 +169,70 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                         }
                         
                         string settingsString = $";q{(decimal) (qualityKnownToBoth):0.000};c{(decimal) (costs):0.000};t{(decimal)(feeShiftingThreshold):0.0000}";
+                        string qForQuit = (withOptionNotToPlay ? "q" : "");
                         switch (version)
                         {
                             case DMSVersion.Original:
                                 // Same as above, but using random seeds
-                                optionSets.Add(GetAndTransform("orig", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
+                                optionSets.Add(GetAndTransform("orig" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
                                 break;
                             case DMSVersion.OriginalEvenPrior:
                                 // This tracks the original model by DMS. The adjudicator's outcome depends half on some information about quality shared by both parties, and half on the sum of the parties' independent information (where this independent information does not count as part of the quality of the lawsuit).
-                                optionSets.Add(GetAndTransform("oreven", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
+                                optionSets.Add(GetAndTransform("oreven" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
                                 break;
                             case DMSVersion.OriginalInitializedToDMS:
                                 // Same as above, but initialized to focus on the DMS value
-                                optionSets.Add(GetAndTransform("orinit", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.ModifyEvolutionSettings = e => { e.CustomSequenceFormInitialization = true; }; }));
-                                break;
-                            case DMSVersion.WinnerTakesAll:
-                                optionSets.Add(GetAndTransform("wta" + (withOptionNotToPlay ? "q" : ""), settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay, winnerTakesAll: true), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
-                                break;
-                            case DMSVersion.RevisitSpecific:
-                                // Same as above, but initialized to the DMS value
-                                optionSets.Add(GetAndTransform("spec", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
+                                optionSets.Add(GetAndTransform("orinit" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.ModifyEvolutionSettings = e => { e.CustomSequenceFormInitialization = true; }; }));
                                 break;
                             case DMSVersion.EvenStrength:
                                 // even strength means that each party has the same amount of information. We still have bias here -- that is, the parties' private information has nothing to do with the merits. 
-                                optionSets.Add(GetAndTransform("es", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SharedInfoOnQuality_EvenStrengthOnBias(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
+                                optionSets.Add(GetAndTransform("es" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.EqualStrengthInfo(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay, false), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
                                 break;
-                            case DMSVersion.EvenStrengthAndBiasless:
-                                optionSets.Add(GetAndTransform("es_bl", settingsString, () => AdditiveEvidenceGameOptionsGenerator.Biasless(qualityKnownToBoth, 0.5, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, 0.5, withOptionNotToPlay), x => { }));
+                            case DMSVersion.PInfo_00:
+                                optionSets.Add(GetAndTransform("pinfo00" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.AsymmetricInfo(0.5, 0.0, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay, false), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
                                 break;
-                            case DMSVersion.EvenStrengthAndBiasless_MoreInfoShared:
-                                optionSets.Add(GetAndTransform("mis", settingsString, () => AdditiveEvidenceGameOptionsGenerator.Biasless(qualityKnownToBoth, 0.5, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, 0.75, withOptionNotToPlay), x => { }));
+                            case DMSVersion.PInfo_25:
+                                optionSets.Add(GetAndTransform("pinfo25" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.AsymmetricInfo(0.5, 0.25, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay, false), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
+                                break;
+                            case DMSVersion.NoSharedInfo:
+                                optionSets.Add(GetAndTransform("noshare" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.AsymmetricInfo(0, 0.50, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay, false), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
+                                break;
+                            case DMSVersion.WinnerTakesAll:
+                                optionSets.Add(GetAndTransform("wta" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay, winnerTakesAll: true), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
+                                break;
+                            case DMSVersion.WinnerTakesAllEvenStrength:
+                                optionSets.Add(GetAndTransform("wtaes" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.EqualStrengthInfo(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay, winnerTakesAll: true), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
+                                break;
+                            case DMSVersion.RevisitSpecific:
+                                // Same as above, but initialized to the DMS value
+                                optionSets.Add(GetAndTransform("spec" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
                                 break;
                             case DMSVersion.Baseline_WithTrialGuaranteed:
-                                optionSets.Add(GetAndTransform("trialg", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.25, 0.5, 0.5, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.TrialGuaranteed = true; }));
+                                optionSets.Add(GetAndTransform("trialg" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.NoiseAndAsymmetricInfo(0.25, 0.5, 0.5, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay, false), x => { x.TrialGuaranteed = true; x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
                                 break;
                             case DMSVersion.VaryNoise_00:
-                                optionSets.Add(GetAndTransform("noise00", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0, 0.5, 0.5, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
+                                optionSets.Add(GetAndTransform("noise00" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.NoiseAndAsymmetricInfo(0, 0.5, 0.5, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay, false), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
                                 break;
                             case DMSVersion.VaryNoise_25:
-                                optionSets.Add(GetAndTransform("noise25", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.25, 0.5, 0.5, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { })); // NOTE: This is the baseline
+                                optionSets.Add(GetAndTransform("noise25" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.NoiseAndAsymmetricInfo(0.25, 0.5, 0.5, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay, false), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; })); 
                                 break;
                             case DMSVersion.VaryNoise_50:
-                                optionSets.Add(GetAndTransform("noise50", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.50, 0.5, 0.5, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
+                                optionSets.Add(GetAndTransform("noise50" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.NoiseAndAsymmetricInfo(0.50, 0.5, 0.5, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay, false), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
                                 break;
-                            case DMSVersion.VaryShared_00:
-                                optionSets.Add(GetAndTransform("shared00", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.25, 0.0, 0.5, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
+                            case DMSVersion.NoiseWithQuality00:
+                                optionSets.Add(GetAndTransform("shared00" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.NoiseAndAsymmetricInfo(0.25, 0.0, 0.5, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay, false), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
                                 break;
-                            case DMSVersion.VaryShared_25:
-                                optionSets.Add(GetAndTransform("shared25", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.25, 0.25, 0.5, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
+                            case DMSVersion.NoiseWithQuality25:
+                                optionSets.Add(GetAndTransform("shared25" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.NoiseAndAsymmetricInfo(0.25, 0.25, 0.5, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay, false), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
                                 break;
-                            case DMSVersion.VaryShared_50:
-                                optionSets.Add(GetAndTransform("shared50", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.25, 0.50, 0.5, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
+                            case DMSVersion.NoiseWithQuality50:
+                                optionSets.Add(GetAndTransform("shared50" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.NoiseAndAsymmetricInfo(0.25, 0.50, 0.5, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay, false), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
                                 break;
-                            case DMSVersion.VaryShared_75:
-                                optionSets.Add(GetAndTransform("shared75", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.25, 0.75, 0.5, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
+                            case DMSVersion.NoiseWithQuality75:
+                                optionSets.Add(GetAndTransform("shared75" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.NoiseAndAsymmetricInfo(0.25, 0.75, 0.5, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay, false), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
                                 break;
-                            case DMSVersion.VaryShared_100:
-                                optionSets.Add(GetAndTransform("shared100", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.25, 1.0, 0.5, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
-                                break;
-                            case DMSVersion.VaryPStrength_00:
-                                optionSets.Add(GetAndTransform("pstrength00", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.25, 0.5, 0, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
-                                break;
-                            case DMSVersion.VaryPStrength_25:
-                                optionSets.Add(GetAndTransform("pstrength25", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.25, 0.5, 0.25, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
-                                break;
-                            case DMSVersion.VaryPStrength_50:
-                                optionSets.Add(GetAndTransform("pstrength50", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.25, 0.5, 0.5, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
-                                break;
-                            case DMSVersion.VaryPStrength_75:
-                                optionSets.Add(GetAndTransform("pstrength75", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.25, 0.5, 0.75, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
-                                break;
-                            case DMSVersion.VaryPStrength_100:
-                                optionSets.Add(GetAndTransform("pstrength100", settingsString, () => AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.25, 0.5, 1.0, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
+                            case DMSVersion.NoiseWithQuality100:
+                                optionSets.Add(GetAndTransform("shared100" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.NoiseAndAsymmetricInfo(0.25, 1.0, 0.5, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay, false), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
                                 break;
                         }
                         //if (feeShiftingThreshold != 0)

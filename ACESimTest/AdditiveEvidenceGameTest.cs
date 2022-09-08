@@ -148,7 +148,7 @@ namespace ACESimTest
         [TestMethod]
         public void AdditiveEvidence_SpecificCase()
         {
-            var gameOptions = AdditiveEvidenceGameOptionsGenerator.SomeNoise(0.50, 0.5, 0.5, 0.2, 0.15, false, false, 0.25, false);
+            var gameOptions = AdditiveEvidenceGameOptionsGenerator.NoiseAndAsymmetricInfo(0.50, 0.5, 0.5, 0.2, 0.15, false, false, 0.25, false, false);
 
             gameOptions.FeeShifting = true;
             gameOptions.FeeShiftingIsBasedOnMarginOfVictory = false;
