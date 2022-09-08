@@ -9,6 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\ACESimBase\ACESimBase.csproj" />
     <ProjectReference Include="..\ACESimDistributed\ACESimDistributed.csproj" />
+    <ProjectReference Include="..\LitigCharts\LitigCharts.csproj" />
   </ItemGroup>
 
 </Project>
