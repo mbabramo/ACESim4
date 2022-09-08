@@ -59,7 +59,6 @@ namespace ACESimDistributedSaturate
                     {
                         foreach (var process in processes)
                             process.Kill();
-                        LitigCharts.Runner.AdditiveEvidenceArticle(); // run the LitigCharts code // TEMPORARY CODE
                         return;
                     }
                 }
