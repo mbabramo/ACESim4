@@ -12,14 +12,15 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         OptionSetChoice optionSetChoice = OptionSetChoice.Main;
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
-        public override string MasterReportNameForDistributedProcessing => "AE040";
+        public override string MasterReportNameForDistributedProcessing => "AE042";
 
         public static bool UseSpecificOnly = false;
         public static bool LimitToNonTrivialDMS = false; 
 
         public double[] CostsLevels = UseSpecificOnly ? new double[] { 0.25 } : new double[] { 0, 0.0625, 0.125, 0.25, 0.5 };
-        public double[] QualityLevels = UseSpecificOnly ? new double[] { 0.5 } : new double[] { 0.2, 0.35, 0.50, 0.65, 0.8 };
-        int numFeeShiftingThresholds = 1001;
+        public double[] QualityLevels => UseSpecificOnly ? QualityLevels_Specific : new double[] { 0.2, 0.35, 0.50, 0.65, 0.8 };
+        public double[] QualityLevels_Specific = new double[] { 0.35, 0.5 };
+        int numFeeShiftingThresholds = 101;
         public bool specificThresholdsDefined = false;
         public double[] FeeShiftingThresholds => UseSpecificOnly && specificThresholdsDefined ? SpecificThresholdLevels : Enumerable.Range(0, numFeeShiftingThresholds).Select(x => (double)(x / (numFeeShiftingThresholds - 1.0))).ToArray();
 
@@ -27,23 +28,20 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public override GameOptions GetDefaultSingleGameOptions() => AdditiveEvidenceGameOptionsGenerator.GetAdditiveEvidenceGameOptions();
 
-        // See below for choice
+        // See top of this file to select a choice
         private enum OptionSetChoice
         {
             Main,
-            EarlierSets,
-            Fast,
+            EvenStrength,
             Original,
-            TwoSets,
-            OtherTwoSets,
+            WinnerTakesAll,
+            WinnerTakeAllWithQuitting,
+            Fast,
             TrialGuaranteed,
             VaryingNoiseEtc,
             Temporary,
-            EvenStrength,
             Biasless,
-            WinnerTakesAll,
             RevisitSpecific,
-            WinnerTakeAllWithQuitting,
         }
         
         public override List<GameOptions> GetOptionsSets()
@@ -71,15 +69,18 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         private List<GameOptions> GetOptionSetsFromChoice(OptionSetChoice optionSetChoice)
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-            bool withOptionNotToPlay = false;
             switch (optionSetChoice)
             {
                 case OptionSetChoice.Main:
-                    //AddDMSGameOptionSets(optionSets, DMSVersion.Original, false);
-                    //AddDMSGameOptionSets(optionSets, DMSVersion.OriginalInitialized, false);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.OriginalRandomized, false);
-                    //AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAllWithQuitting, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.Original, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrength, false);
                     AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll, true);
+                    break;
+                case OptionSetChoice.Original:
+                    AddDMSGameOptionSets(optionSets, DMSVersion.OriginalEvenPrior, false);
+                    break;
+                case OptionSetChoice.EvenStrength:
                     AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrength, false);
                     break;
                 case OptionSetChoice.WinnerTakeAllWithQuitting:
@@ -88,34 +89,14 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 case OptionSetChoice.RevisitSpecific:
                     AddDMSGameOptionSets(optionSets, DMSVersion.RevisitSpecific, false);
                     break;
-                case OptionSetChoice.Original:
-                    AddDMSGameOptionSets(optionSets, DMSVersion.Original, withOptionNotToPlay);
-                    break;
                 case OptionSetChoice.WinnerTakesAll:
-                    AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll, withOptionNotToPlay);
-                    break;
-                case OptionSetChoice.EvenStrength:
-                    AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrength, withOptionNotToPlay);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll, false);
                     break;
                 case OptionSetChoice.Biasless:
-                    AddDMSGameOptionSets(optionSets, DMSVersion.Biasless, withOptionNotToPlay);
-                    break;
-                case OptionSetChoice.TwoSets:
-                    AddDMSGameOptionSets(optionSets, DMSVersion.Original, withOptionNotToPlay);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrengthAndBiasless, withOptionNotToPlay);
-                    break;
-                case OptionSetChoice.OtherTwoSets:
-                    AddDMSGameOptionSets(optionSets, DMSVersion.Biasless, withOptionNotToPlay);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrength, withOptionNotToPlay);
-                    break;
-                case OptionSetChoice.EarlierSets:
-                    AddDMSGameOptionSets(optionSets, DMSVersion.Original, withOptionNotToPlay);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.Biasless, withOptionNotToPlay);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrength, withOptionNotToPlay);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrengthAndBiasless, withOptionNotToPlay);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.Biasless, false);
                     break;
                 case OptionSetChoice.Fast:
-                    AddDMSGameOptionSets(optionSets, DMSVersion.Original, false, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.OriginalEvenPrior, false, false);
                     break;
                 case OptionSetChoice.TrialGuaranteed:
                     AddDMSGameOptionSets(optionSets, DMSVersion.Baseline_WithTrialGuaranteed, false, true);
@@ -153,6 +134,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         enum DMSVersion
         {
             Original,
+            OriginalInitializedToDMS,
+            OriginalEvenPrior,
             Biasless,
             EvenStrength,
             EvenStrengthAndBiasless,
@@ -172,8 +155,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             VaryPStrength_75, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p private estimate determines 75% of rest of judgment
             VaryPStrength_100, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p private estimate determines 100% of rest of judgment
             WinnerTakesAll,
-            OriginalInitialized,
-            OriginalRandomized,
             RevisitSpecific,
         }
 
@@ -197,23 +178,23 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                         switch (version)
                         {
                             case DMSVersion.Original:
-                                // This tracks the original model by DMS. The adjudicator's outcome depends half on some information about quality shared by both parties, and half on the sum of the parties' independent information (where this independent information does not count as part of the quality of the lawsuit).
-                                optionSets.Add(GetAndTransform("orig", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
+                                // Same as above, but using random seeds
+                                optionSets.Add(GetAndTransform("orig", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
                                 break;
-                            case DMSVersion.OriginalInitialized:
+                            case DMSVersion.OriginalEvenPrior:
+                                // This tracks the original model by DMS. The adjudicator's outcome depends half on some information about quality shared by both parties, and half on the sum of the parties' independent information (where this independent information does not count as part of the quality of the lawsuit).
+                                optionSets.Add(GetAndTransform("oreven", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { }));
+                                break;
+                            case DMSVersion.OriginalInitializedToDMS:
                                 // Same as above, but initialized to focus on the DMS value
                                 optionSets.Add(GetAndTransform("orinit", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.ModifyEvolutionSettings = e => { e.CustomSequenceFormInitialization = true; }; }));
                                 break;
-                            case DMSVersion.OriginalRandomized:
-                                // Same as above, but initialized to the DMS value
-                                optionSets.Add(GetAndTransform("orran", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
+                            case DMSVersion.WinnerTakesAll:
+                                optionSets.Add(GetAndTransform("wta" + (withOptionNotToPlay ? "q" : ""), settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay, winnerTakesAll: true), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
                                 break;
                             case DMSVersion.RevisitSpecific:
                                 // Same as above, but initialized to the DMS value
                                 optionSets.Add(GetAndTransform("spec", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
-                                break;
-                            case DMSVersion.WinnerTakesAll:
-                                optionSets.Add(GetAndTransform("wta", settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.WinnerTakesAll = true; x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
                                 break;
                             case DMSVersion.Biasless:
                                 // Biasless means that all of the info that the adjudicator adds up counts in the quality measurement. That is, there is some quality known to both parties, but the remaining quality is the sum of the two parties' information. Here, we continue to follow the DMS approach of making the plaintiff's proportion of information equal to the actual shared quality value (qualityKnownToBoth).

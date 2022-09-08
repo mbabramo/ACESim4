@@ -69,8 +69,11 @@ namespace LitigCharts
                     string set = new AdditiveEvidenceGameLauncher().MasterReportNameForDistributedProcessing;
                     string csvFileName = set + "--.csv";
                     string fullFileName = Path.Combine(folder, csvFileName);
-                    string texContents = GenerateDiagramFromCSV(fullFileName, groupName, targetVariable, targetAbbreviation);
-                    string outputFile = Path.Combine(folder, $"{set};{groupName};{targetVariable}.tex");
+                    string texContents = GenerateDiagramFromCSV(fullFileName, groupName, targetVariable, targetAbbreviation, false);
+                    string outputFile = Path.Combine(folder, $"{set};{groupName};{targetVariable}; full.tex");
+                    File.WriteAllText(outputFile, texContents);
+                    texContents = GenerateDiagramFromCSV(fullFileName, groupName, targetVariable, targetAbbreviation, true);
+                    outputFile = Path.Combine(folder, $"{set};{groupName};{targetVariable};short.tex");
                     File.WriteAllText(outputFile, texContents);
                 }
             }
@@ -93,7 +96,7 @@ namespace LitigCharts
             }
         }
 
-        public static string GenerateDiagramFromCSV(string csvFileName, string groupName, string mainVarName, string mainVarLabel, string qVarName = "Evidence_Both_Quality", string cVarName = "TrialCost", string tVarName = "FeeShiftingThreshold")
+        public static string GenerateDiagramFromCSV(string csvFileName, string groupName, string mainVarName, string mainVarLabel, bool specificQualityLevelsOnly, string qVarName = "Evidence_Both_Quality", string cVarName = "TrialCost", string tVarName = "FeeShiftingThreshold")
         {
             AEDataMap.mainVarName = mainVarName;
             AEDataMap.qVarName = qVarName;
@@ -113,7 +116,7 @@ namespace LitigCharts
 
             AdditiveEvidenceGameLauncher launcher = new AdditiveEvidenceGameLauncher();
             double[] tVarVals = launcher.FeeShiftingThresholds; 
-            double[] qVarVals = launcher.QualityLevels;
+            double[] qVarVals = specificQualityLevelsOnly ? launcher.QualityLevels_Specific : launcher.QualityLevels;
             double[] cVarVals = launcher.CostsLevels;
             
             List<List<List<List<double?>>>> graphData = new List<List<List<List<double?>>>>();

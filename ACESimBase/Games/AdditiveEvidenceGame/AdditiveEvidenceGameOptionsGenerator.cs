@@ -51,10 +51,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             AdditiveEvidenceOptionSetChoices.Biasless_MuchLessInfoShared => Biasless(0.5, 0.5, 0.3, false, false, 0.5, 0.05, false), // settles around 50% of the time
             AdditiveEvidenceOptionSetChoices.Biasless_MuchLessInfoShared_WithFeeShift => Biasless(0.5, 0.5, 0.3, true, false, 1.0, 0.05, false), // settles around 30% of the time
             AdditiveEvidenceOptionSetChoices.SomeNoiseHalfSharedQuarterPAndD => SomeNoise(0.50, 0.50, 0.50, 0.8, 0.15, true, false, 0.25, false),
-            AdditiveEvidenceOptionSetChoices.Temporary => DariMattiacci_Saraceno_Original(0.01, 10, true, false, 1.0, true),
+            AdditiveEvidenceOptionSetChoices.Temporary => DariMattiacci_Saraceno_Original(0.8, 0, true, false, 0.01, true, true)
+            ,
             _ => throw new NotImplementedException()
         };
-        public static AdditiveEvidenceGameOptions DariMattiacci_Saraceno_Original(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay)
+        public static AdditiveEvidenceGameOptions DariMattiacci_Saraceno_Original(double quality, double costs, bool feeShifting, bool feeShiftingMarginOfVictory, double feeShiftingThreshold, bool withOptionNotToPlay, bool winnerTakesAll = false)
         {
             var options = new AdditiveEvidenceGameOptions()
             {
@@ -79,6 +80,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 options.IncludePQuitDecision = true;
                 options.IncludeDQuitDecision = true;
                 // change the offer range, so that neither party can count on always getting a minimal offer
+                // if plaintiff makes an offer > 1 or defendant makes an offer < 0, then the other party will not be allowed to match
                 options.MinOffer = 0 - 1.0 / (double)options.NumOffers;
                 options.OfferRange = 1.0 + 2.0 / (double)options.NumOffers;
                 options.NumOffers += 2;
@@ -87,6 +89,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             options.FeeShifting = feeShifting;
             options.FeeShiftingIsBasedOnMarginOfVictory = feeShiftingMarginOfVictory;
             options.FeeShiftingThreshold = feeShiftingThreshold;
+
+            if (winnerTakesAll)
+            {
+                options.WinnerTakesAll = true;
+                //options.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; };
+            }
             return options;
         }
 
