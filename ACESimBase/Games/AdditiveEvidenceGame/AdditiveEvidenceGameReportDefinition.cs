@@ -102,12 +102,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 };
                 foreach (var r in new (string prefix, Func<GameProgress, byte, bool> filter, int n)[]
                 {
-                    ("PQuality", (GameProgress gp, byte s) => AEGP(gp).Chance_Plaintiff_Quality == s, Options.NumQualityAndBiasLevels_PrivateInfo),
-                    ("DQuality", (GameProgress gp, byte s) => AEGP(gp).Chance_Defendant_Quality == s, Options.NumQualityAndBiasLevels_PrivateInfo),
-                    ("NQuality", (GameProgress gp, byte s) => AEGP(gp).Chance_Neither_Quality == s, Options.NumQualityAndBiasLevels_NeitherInfo),
+                    //("PQuality", (GameProgress gp, byte s) => AEGP(gp).Chance_Plaintiff_Quality == s, Options.NumQualityAndBiasLevels_PrivateInfo),
+                    //("DQuality", (GameProgress gp, byte s) => AEGP(gp).Chance_Defendant_Quality == s, Options.NumQualityAndBiasLevels_PrivateInfo),
+                    //("NQuality", (GameProgress gp, byte s) => AEGP(gp).Chance_Neither_Quality == s, Options.NumQualityAndBiasLevels_NeitherInfo),
                     ("PBias", (GameProgress gp, byte s) => AEGP(gp).Chance_Plaintiff_Bias == s, Options.NumQualityAndBiasLevels_PrivateInfo),
                     ("DBias", (GameProgress gp, byte s) => AEGP(gp).Chance_Defendant_Bias == s, Options.NumQualityAndBiasLevels_PrivateInfo),
-                    ("NBias", (GameProgress gp, byte s) => AEGP(gp).Chance_Neither_Bias == s, Options.NumQualityAndBiasLevels_NeitherInfo),
+                    //("NBias", (GameProgress gp, byte s) => AEGP(gp).Chance_Neither_Bias == s, Options.NumQualityAndBiasLevels_NeitherInfo),
                     ("POffer", (GameProgress gp, byte s) => AEGP(gp).GetDiscreteOffer(true) == s, Options.NumOffers),
                     ("DOffer", (GameProgress gp, byte s) => AEGP(gp).GetDiscreteOffer(false) == s, Options.NumOffers),
                 })
