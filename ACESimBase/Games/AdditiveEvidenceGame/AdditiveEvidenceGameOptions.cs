@@ -22,6 +22,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         // Parameters regarding game structure
 
+        public bool RiskAversion = false;
+
         public bool TrialGuaranteed = false;
         public bool IncludePQuitDecision;
         public bool IncludeDQuitDecision;
@@ -92,7 +94,7 @@ Alpha_Quality {Alpha_Quality}: Both {Alpha_Both_Quality} P {Alpha_Plaintiff_Qual
 Alpha_Bias {Alpha_Bias}: Both {Alpha_Both_Bias} P {Alpha_Plaintiff_Bias} D {Alpha_Defendant_Bias} Neither {Alpha_Neither_Bias}
 FeeShifting {FeeShifting} {(FeeShifting ? $"Margin {FeeShiftingIsBasedOnMarginOfVictory} Threshold {FeeShiftingThreshold}" : "")}
 NumOffers {NumOffers} MinOffer {MinOffer} OfferRange {OfferRange} 
-WinnerTakesAll {WinnerTakesAll}
+WinnerTakesAll {WinnerTakesAll} RiskAversion {RiskAversion}
 NumQualityAndBiasLevels {NumQualityAndBiasLevels_PrivateInfo} (private) {NumQualityAndBiasLevels_NeitherInfo} (neither info)
 TrialGuaranteed {TrialGuaranteed} IncludePQuit {IncludePQuitDecision} IncludeDQuit {IncludeDQuitDecision}";
         }

@@ -1,4 +1,5 @@
 ﻿using ACESim;
+using ACESim.Util;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -246,8 +247,12 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public double PWealth => PResultFromQuitting ?? (SettlementOccurs ? (double)SettlementValue : PTrialEffect_IfOccurs);
         public double DWealth => DResultFromQuitting ?? (SettlementOccurs ? (double)(1.0 - SettlementValue) : DTrialEffect_IfOccurs);
 
-        public double PWelfare => PWealth;
-        public double DWelfare => DWealth;
+        public double PWelfare => AdditiveEvidenceGameOptions.RiskAversion ? RiskAverseUtility(PWealth) : PWealth;
+        public double DWelfare => AdditiveEvidenceGameOptions.RiskAversion ? RiskAverseUtility(DWealth) : DWealth;
+
+        const double AssumedInitialWealth = 10.0;
+        CARARiskAverseUtilityCalculator calc = new CARARiskAverseUtilityCalculator() { InitialWealth = AssumedInitialWealth, Alpha = 1, LinearTransformation = true };
+        double RiskAverseUtility(double wealthGained) => calc.GetSubjectiveUtilityForWealthLevel(AssumedInitialWealth + wealthGained);
 
         public override string ToString()
         {
