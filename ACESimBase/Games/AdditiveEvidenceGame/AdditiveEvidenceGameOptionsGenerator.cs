@@ -22,7 +22,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         // Note: Go to Launcher to change multiple option sets settings.
 
-        static AdditiveEvidenceOptionSetChoices AdditiveEvidenceChoice => AdditiveEvidenceOptionSetChoices.NoPInfo; 
+        static AdditiveEvidenceOptionSetChoices AdditiveEvidenceChoice => AdditiveEvidenceOptionSetChoices.Temporary; 
 
         public static AdditiveEvidenceGameOptions GetAdditiveEvidenceGameOptions() => AdditiveEvidenceChoice switch
         {
@@ -31,7 +31,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             AdditiveEvidenceOptionSetChoices.AsymmetricInfo => AsymmetricInfo(1.0, 0.65, 0.8, 0.15, true, false, 0.25, false, false),
             AdditiveEvidenceOptionSetChoices.NoPInfo => AsymmetricInfo(1.0, 0, 0.8, 0.15, true, false, 0.25, false, false),
             AdditiveEvidenceOptionSetChoices.NoisyWithAsymmetricInfoOnBias => NoiseAndAsymmetricInfo(0.50, 1.0, 0.75, 0.8, 0.15, true, false, 0.25, false, false),
-            AdditiveEvidenceOptionSetChoices.Temporary => DariMattiacci_Saraceno_Original(0.8, 0, true, false, 0.01, true, true)
+            AdditiveEvidenceOptionSetChoices.Temporary => DariMattiacci_Saraceno_Original(0.2, 0.5, true, false, 1, true, true)
             ,
             _ => throw new NotImplementedException()
         };
@@ -103,6 +103,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             {
                 options.IncludePQuitDecision = true;
                 options.IncludeDQuitDecision = true;
+                // change the offer range, so that neither party can count on always getting a minimal offer
+                // if plaintiff makes an offer > 1 or defendant makes an offer < 0, then the other party will not be allowed to match
+                options.MinOffer = 0 - 1.0 / (double)options.NumOffers;
+                options.OfferRange = 1.0 + 2.0 / (double)options.NumOffers;
+                options.NumOffers += 2;
             }
             options.FeeShifting = feeShifting;
             options.FeeShiftingIsBasedOnMarginOfVictory = feeShiftingMarginOfVictory;
@@ -142,6 +147,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             {
                 options.IncludePQuitDecision = true;
                 options.IncludeDQuitDecision = true;
+                // change the offer range, so that neither party can count on always getting a minimal offer
+                // if plaintiff makes an offer > 1 or defendant makes an offer < 0, then the other party will not be allowed to match
+                options.MinOffer = 0 - 1.0 / (double)options.NumOffers;
+                options.OfferRange = 1.0 + 2.0 / (double)options.NumOffers;
+                options.NumOffers += 2;
             }
             options.FeeShifting = feeShifting;
             options.FeeShiftingIsBasedOnMarginOfVictory = feeShiftingMarginOfVictory;
