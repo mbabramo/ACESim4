@@ -55,6 +55,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 new SimpleReportColumnVariable("DTrialEffect_IfOccurs", (GameProgress gp) => AEGP(gp).DTrialEffect_IfOccurs),
                 new SimpleReportColumnVariable("ResolutionValueIncludingShiftedAmount", (GameProgress gp) => AEGP(gp).ResolutionValueIncludingShiftedAmount),
                 new SimpleReportColumnVariable("SettlementValue", (GameProgress gp) => AEGP(gp).SettlementValue),
+                new SimpleReportColumnVariable("PWealth", (GameProgress gp) => AEGP(gp).PWealth),
+                new SimpleReportColumnVariable("DWealth", (GameProgress gp) => AEGP(gp).DWealth),
                 new SimpleReportColumnVariable("PWelfare", (GameProgress gp) => AEGP(gp).PWelfare),
                 new SimpleReportColumnVariable("DWelfare", (GameProgress gp) => AEGP(gp).DWelfare),
                 new SimpleReportColumnVariable("PQuality", (GameProgress gp) => AEGP(gp).Chance_Plaintiff_Quality_Continuous),

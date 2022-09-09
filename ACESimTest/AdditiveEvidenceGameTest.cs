@@ -96,8 +96,8 @@ namespace ACESimTest
                         observedSettlementValue.Should().BeApproximately(expectedSettlementValue, 1E-10);
                         gameProgress.ResolutionValue.Should().BeApproximately(expectedSettlementValue, 1E-10);
                         gameProgress.DsProportionOfCost.Should().Be(0.5);
-                        gameProgress.PWelfare.Should().BeApproximately(expectedSettlementValue, 1E-10);
-                        gameProgress.DWelfare.Should().BeApproximately(1.0 - expectedSettlementValue, 1E-10);
+                        gameProgress.PWealth.Should().BeApproximately(expectedSettlementValue, 1E-10);
+                        gameProgress.DWealth.Should().BeApproximately(1.0 - expectedSettlementValue, 1E-10);
                     }
                 }
             }
@@ -118,8 +118,8 @@ namespace ACESimTest
             gameProgress.TrialOccurs.Should().Be(false);
             gameProgress.SettlementValue.Should().BeNull();
             gameProgress.ResolutionValue.Should().BeApproximately(0, 1E-10);
-            gameProgress.PWelfare.Should().BeApproximately(0, 1E-10);
-            gameProgress.DWelfare.Should().BeApproximately(1.0, 1E-10); // remember this is a game about splitting an asset
+            gameProgress.PWealth.Should().BeApproximately(0, 1E-10);
+            gameProgress.DWealth.Should().BeApproximately(1.0, 1E-10); // remember this is a game about splitting an asset
             gameProgress.POfferContinuousOrNull.Should().BeNull();
             gameProgress.DOfferContinuousOrNull.Should().BeNull();
         }
@@ -139,8 +139,8 @@ namespace ACESimTest
             gameProgress.TrialOccurs.Should().Be(false);
             gameProgress.SettlementValue.Should().BeNull();
             gameProgress.ResolutionValue.Should().BeApproximately(1.0, 1E-10);
-            gameProgress.PWelfare.Should().BeApproximately(1.0, 1E-10);
-            gameProgress.DWelfare.Should().BeApproximately(0, 1E-10);
+            gameProgress.PWealth.Should().BeApproximately(1.0, 1E-10);
+            gameProgress.DWealth.Should().BeApproximately(0, 1E-10);
             gameProgress.POfferContinuousOrNull.Should().BeNull();
             gameProgress.DOfferContinuousOrNull.Should().BeNull();
         }
@@ -191,7 +191,7 @@ namespace ACESimTest
                 DMSCalc c = new DMSCalc(gameOptions.FeeShiftingThreshold, gameOptions.TrialCost, q);
                 var result = c.GetOutcome(gameProgress.Chance_Plaintiff_Bias_Continuous, gameProgress.Chance_Defendant_Bias_Continuous, gameProgress.POfferContinuousIfMade, gameProgress.DOfferContinuousIfMade);
 
-                result.outcome.pNet.Should().BeApproximately(gameProgress.PWelfare, 0.01);
+                result.outcome.pNet.Should().BeApproximately(gameProgress.PWealth, 0.01);
             }
         }
 
@@ -586,8 +586,8 @@ namespace ACESimTest
                 gameProgress.PTrialEffect.Should().BeApproximately(gameProgress.TrialValuePreShiftingIfOccurs - 0.5 * gameOptions.TrialCost, 1E-10);
                 gameProgress.DTrialEffect.Should().BeApproximately(1.0 - gameProgress.TrialValuePreShiftingIfOccurs - 0.5 * gameOptions.TrialCost, 1E-10);
             }
-            gameProgress.PWelfare.Should().Be(gameProgress.PTrialEffect);
-            gameProgress.DWelfare.Should().Be(gameProgress.DTrialEffect);
+            gameProgress.PWealth.Should().Be(gameProgress.PTrialEffect);
+            gameProgress.DWealth.Should().Be(gameProgress.DTrialEffect);
             return gameProgress;
         }
 

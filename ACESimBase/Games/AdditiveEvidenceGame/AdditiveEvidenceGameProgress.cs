@@ -235,16 +235,19 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public double Accuracy => Math.Abs(QualitySum - ResolutionValueIncludingShiftedAmount); // this EXCLUDES self-borne costs
         public double AccuracySquared => Accuracy * Accuracy;
-        public double Accuracy_ForPlaintiff => Math.Abs(PWelfare - QualitySum);
-        public double Accuracy_ForDefendant => Math.Abs(DWelfare - (1.0 - QualitySum));
+        public double Accuracy_ForPlaintiff => Math.Abs(PWealth - QualitySum);
+        public double Accuracy_ForDefendant => Math.Abs(DWealth - (1.0 - QualitySum));
 
         public double TrialRelativeAccuracy => Math.Abs(TrialValuePreShiftingIfOccurs - ResolutionValueIncludingShiftedAmount); // this EXCLUDES self-borne costs
         public double TrialRelativeAccuracySquared => Accuracy * Accuracy;
-        public double TrialRelativeAccuracy_ForPlaintiff => Math.Abs(PWelfare - TrialValuePreShiftingIfOccurs);
-        public double TrialRelativeAccuracy_ForDefendant => Math.Abs(DWelfare - (1.0 - TrialValuePreShiftingIfOccurs));
+        public double TrialRelativeAccuracy_ForPlaintiff => Math.Abs(PWealth - TrialValuePreShiftingIfOccurs);
+        public double TrialRelativeAccuracy_ForDefendant => Math.Abs(DWealth - (1.0 - TrialValuePreShiftingIfOccurs));
 
-        public double PWelfare => PResultFromQuitting ?? (SettlementOccurs ? (double)SettlementValue : PTrialEffect_IfOccurs);
-        public double DWelfare => DResultFromQuitting ?? (SettlementOccurs ? (double)(1.0 - SettlementValue) : DTrialEffect_IfOccurs);
+        public double PWealth => PResultFromQuitting ?? (SettlementOccurs ? (double)SettlementValue : PTrialEffect_IfOccurs);
+        public double DWealth => DResultFromQuitting ?? (SettlementOccurs ? (double)(1.0 - SettlementValue) : DTrialEffect_IfOccurs);
+
+        public double PWelfare => PWealth;
+        public double DWelfare => DWealth;
 
         public override string ToString()
         {
@@ -256,8 +259,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 QualitySum {QualitySum} QualitySum_PInfoOnly {QualitySum_PInfoOnly} QualitySum_DInfoOnly {QualitySum_DInfoOnly} BiasSum {BiasSum} BiasSum_PInfoOnly {BiasSum_PInfoOnly} BiasSum_DInfoOnly {BiasSum_DInfoOnly}
 PQuits {PQuits} DQuits {DQuits}
 SettlementValue {SettlementValue} SettlementOccurs {SettlementOccurs} TrialOccurs {TrialOccurs} TrialValuePreShifting {TrialValuePreShifting} SettlementOrJudgment {ResolutionValue} DsProportionOfCost {DsProportionOfCost}
-ShiftingOccurs {ShiftingOccurs}  PTrialEffect {PTrialEffect} DTrialEffect {DTrialEffect} PWelfare {PWelfare} DWelfare {DWelfare}
-AccuracyIgnoringCosts {Accuracy} Accuracy_ForPlaintiff {Accuracy_ForPlaintiff} Accuracy_ForDefendant {Accuracy_ForDefendant} PWelfare {PWelfare} DWelfare {DWelfare}";
+ShiftingOccurs {ShiftingOccurs}  PTrialEffect {PTrialEffect} DTrialEffect {DTrialEffect} PWealth {PWealth} DWealth {DWealth} PWelfare {PWelfare} DWelfare {DWelfare}
+AccuracyIgnoringCosts {Accuracy} Accuracy_ForPlaintiff {Accuracy_ForPlaintiff} Accuracy_ForDefendant {Accuracy_ForDefendant}";
         }
 
         public override GameProgress DeepCopy()
