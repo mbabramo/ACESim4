@@ -239,6 +239,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public double Accuracy_ForPlaintiff => Math.Abs(PWealth - QualitySum);
         public double Accuracy_ForDefendant => Math.Abs(DWealth - (1.0 - QualitySum));
 
+        // trial-relative accuracy is the accuracy of the resolution value relative to the trial value. Note that the trial value includes quality and bias. 
+        // Thus, in an alternative model in which evidence is about the merits, rather than independent of the merits as in DMS, this is a better measure of accuracy.
+        // However, note that this measure, like the ones above, excludes self-borne costs. It doens't matter if a defendant spends many times the stakes on a trial;
+        // if the result (including any amount of costs shifted) is accurate, then the result is accurate.
         public double TrialRelativeAccuracy => Math.Abs(TrialValuePreShiftingIfOccurs - ResolutionValueIncludingShiftedAmount); // this EXCLUDES self-borne costs
         public double TrialRelativeAccuracySquared => Accuracy * Accuracy;
         public double TrialRelativeAccuracy_ForPlaintiff => Math.Abs(PWealth - TrialValuePreShiftingIfOccurs);
