@@ -22,6 +22,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         // Parameters regarding game structure
 
+        public bool UseDMS = false; // if true, everything else is irrelevant
+
         public bool RiskAversion = false;
 
         public bool TrialGuaranteed = false;
@@ -96,7 +98,8 @@ FeeShifting {FeeShifting} {(FeeShifting ? $"Margin {FeeShiftingIsBasedOnMarginOf
 NumOffers {NumOffers} MinOffer {MinOffer} OfferRange {OfferRange} 
 WinnerTakesAll {WinnerTakesAll} RiskAversion {RiskAversion}
 NumQualityAndBiasLevels {NumQualityAndBiasLevels_PrivateInfo} (private) {NumQualityAndBiasLevels_NeitherInfo} (neither info)
-TrialGuaranteed {TrialGuaranteed} IncludePQuit {IncludePQuitDecision} IncludeDQuit {IncludeDQuitDecision}";
+IncludePQuit {IncludePQuitDecision} IncludeDQuit {IncludeDQuitDecision} UseDMS {UseDMS}
+TrialGuaranteed {TrialGuaranteed} ";
         }
     }
 }

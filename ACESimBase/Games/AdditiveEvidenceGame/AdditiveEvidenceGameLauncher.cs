@@ -9,7 +9,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 {
     public class AdditiveEvidenceGameLauncher : Launcher
     {
-        OptionSetChoice optionSetChoice = OptionSetChoice.Main;
+        OptionSetChoice optionSetChoice = OptionSetChoice.DMS;
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
         public override string MasterReportNameForDistributedProcessing => "AE045";
@@ -32,6 +32,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         private enum OptionSetChoice
         {
             Main,
+            DMS,
             EvenStrength,
             Original,
             WinnerTakesAll,
@@ -92,6 +93,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     AddDMSGameOptionSets(optionSets, DMSVersion.NoSharedInfo, true);
                     AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAllEvenStrength, true);
                     AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAllEvenStrengthRiskAversion, true);
+                    break;
+                case OptionSetChoice.DMS:
+                    AddDMSGameOptionSets(optionSets, DMSVersion.DMS, false);
                     break;
                 case OptionSetChoice.Original:
                     AddDMSGameOptionSets(optionSets, DMSVersion.OriginalEvenPrior, false);
@@ -161,6 +165,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             NoiseWithQuality100, // 25% noise; 100% of rest of judgment depends on shared evaluation of quality; p, d private estimates are actually irrelevant
             RevisitSpecific,
             WinnerTakesAllEvenStrengthRiskAversion,
+            DMS,
         }
 
         private void AddDMSGameOptionSets(List<(string optionSetName, GameOptions options)> optionSets, DMSVersion version, bool withOptionNotToPlay)
@@ -183,6 +188,9 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                         string qForQuit = (withOptionNotToPlay ? "q" : "");
                         switch (version)
                         {
+                            case DMSVersion.DMS:
+                                optionSets.Add(GetAndTransform("orig" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.UseDMS = true; x.ModifyEvolutionSettings = e => { e.UseCustomSequenceFormInitializationAsFinalEquilibria = true; }; }));
+                                break;
                             case DMSVersion.Original:
                                 // Same as above, but using random seeds
                                 optionSets.Add(GetAndTransform("orig" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
