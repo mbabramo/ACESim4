@@ -31,7 +31,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             AdditiveEvidenceOptionSetChoices.AsymmetricInfo => AsymmetricInfo(1.0, 0.65, 0.8, 0.15, true, false, 0.25, false, false),
             AdditiveEvidenceOptionSetChoices.NoPInfo => AsymmetricInfo(1.0, 0, 0.8, 0.15, true, false, 0.25, false, false),
             AdditiveEvidenceOptionSetChoices.NoisyWithAsymmetricInfoOnBias => NoiseAndAsymmetricInfo(0.50, 1.0, 0.75, 0.8, 0.15, true, false, 0.25, false, false),
-            AdditiveEvidenceOptionSetChoices.Temporary => DariMattiacci_Saraceno_Original(0.2, 0.5, true, false, 1, true, true)
+            AdditiveEvidenceOptionSetChoices.Temporary => DariMattiacci_Saraceno_Original(0.35, 0, true, false, 0, false, false)
             ,
             _ => throw new NotImplementedException()
         };

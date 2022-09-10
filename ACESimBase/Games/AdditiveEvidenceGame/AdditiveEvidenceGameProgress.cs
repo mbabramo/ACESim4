@@ -244,7 +244,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         // However, note that this measure, like the ones above, excludes self-borne costs. It doens't matter if a defendant spends many times the stakes on a trial;
         // if the result (including any amount of costs shifted) is accurate, then the result is accurate.
         public double TrialRelativeAccuracy => Math.Abs(TrialValuePreShiftingIfOccurs - ResolutionValueIncludingShiftedAmount); // this EXCLUDES self-borne costs
-        public double TrialRelativeAccuracySquared => Accuracy * Accuracy;
+        public double TrialRelativeAccuracySquared => TrialRelativeAccuracy * TrialRelativeAccuracy;
         public double TrialRelativeAccuracy_ForPlaintiff => Math.Abs(PWealth - TrialValuePreShiftingIfOccurs);
         public double TrialRelativeAccuracy_ForDefendant => Math.Abs(DWealth - (1.0 - TrialValuePreShiftingIfOccurs));
 
