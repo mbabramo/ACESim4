@@ -9,10 +9,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 {
     public class AdditiveEvidenceGameLauncher : Launcher
     {
-        OptionSetChoice optionSetChoice = OptionSetChoice.DMS;
+        OptionSetChoice optionSetChoice = OptionSetChoice.Main;
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
-        public override string MasterReportNameForDistributedProcessing => "AE046";
+        public override string MasterReportNameForDistributedProcessing => "AE047";
 
         public static bool UseSpecificOnly = false;
         public static bool LimitToNonTrivialDMS = false; 
@@ -81,6 +81,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             switch (optionSetChoice)
             {
                 case OptionSetChoice.Main:
+                    AddDMSGameOptionSets(optionSets, DMSVersion.DMS, false);
                     AddDMSGameOptionSets(optionSets, DMSVersion.Original, false);
                     AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrength, false);
                     AddDMSGameOptionSets(optionSets, DMSVersion.PInfo_00, false);
