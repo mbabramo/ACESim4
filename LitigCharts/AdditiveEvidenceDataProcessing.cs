@@ -64,7 +64,7 @@ namespace LitigCharts
             var groupNames = new AdditiveEvidenceGameLauncher().GetGroupNames();
             foreach (string groupName in groupNames)
             {
-                foreach ((string targetVariable, string targetAbbreviation) in new (string, string)[] { ("Trial", "L"), ("Accuracy", "A"), ("Accuracy_ForPlaintiff", "A"), ("Accuracy_ForDefendant", "A"), ("AccSq", "A"), ("TrialRelativeAccuracy", "A"), ("TrialRelativeAccuracy_ForPlaintiff", "A"), ("TrialRelativeAccuracy_ForDefendant", "A"), ("TrialRelativeAccSq", "A"), ("POffer", "Bid"), ("DOffer", "Bid"), ("PWelfare", "w"), ("DWelfare", "w"), ("PQuits", "Q"), ("DQuits", "Q"), ("Exploit", "E") })
+                foreach ((string targetVariable, string targetAbbreviation) in new (string, string)[] { ("Trial", "L"), ("Accuracy", "A"), ("Accuracy_ForPlaintiff", "A"), ("Accuracy_ForDefendant", "A"), ("DMSAccL1Norm", "A"), ("TrialRelativeAccuracy", "A"), ("TrialRelativeAccuracy_ForPlaintiff", "A"), ("TrialRelativeAccuracy_ForDefendant", "A"), ("TrialRelativeAccSq", "A"), ("POffer", "Bid"), ("DOffer", "Bid"), ("PWelfare", "w"), ("DWelfare", "w"), ("PQuits", "Q"), ("DQuits", "Q"), ("Exploit", "E") })
                 {
                     string set = new AdditiveEvidenceGameLauncher().MasterReportNameForDistributedProcessing;
                     string csvFileName = set + "--.csv";
