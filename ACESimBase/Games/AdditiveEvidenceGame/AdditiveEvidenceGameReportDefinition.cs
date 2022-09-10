@@ -36,6 +36,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 new SimpleReportColumnVariable("DQuits", (GameProgress gp) => AEGP(gp).DQuits ? 1.0 : 0),
                 new SimpleReportColumnVariable("POffer", (GameProgress gp) => AEGP(gp).POfferContinuousOrNull),
                 new SimpleReportColumnVariable("DOffer", (GameProgress gp) => AEGP(gp).DOfferContinuousOrNull),
+                new SimpleReportColumnVariable("DMSAcc", (GameProgress gp) => AEGP(gp).ResolutionValueIncludingShiftedAmount - AEGP(gp).AdditiveEvidenceGameOptions.Evidence_Both_Quality) { columnVariableOptions = ColumnVariableOptions.SquareOfMean }, // The dms accuracy measure is based on the difference between the average resolution value including shifted amount and q. They then square that number. Note that this means that if q = 0.5, then if p receives 0 half the time and 1 half the time, the result counts as perfectly accurate (which makes sense for risk-neutral parties). 
+                new SimpleReportColumnVariable("DMSAccL1Norm", (GameProgress gp) => AEGP(gp).ResolutionValueIncludingShiftedAmount - AEGP(gp).AdditiveEvidenceGameOptions.Evidence_Both_Quality) { columnVariableOptions = ColumnVariableOptions.AbsOfMean }, // in aggregate, will be the square root of the DMS accuracy measure. This is convenient for comparability across measures.
                 new SimpleReportColumnVariable("AccSq", (GameProgress gp) => AEGP(gp).AccuracySquared),
                 new SimpleReportColumnVariable("Accuracy", (GameProgress gp) => AEGP(gp).Accuracy),
                 new SimpleReportColumnVariable("Accuracy_ForPlaintiff", (GameProgress gp) => AEGP(gp).Accuracy_ForPlaintiff),

@@ -6,10 +6,11 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
+
     [Serializable]
     public class SimpleReportColumnVariable : SimpleReportColumnItem
     {
-        public bool Stdev; // if false, report the mean
+        public ColumnVariableOptions columnVariableOptions = ColumnVariableOptions.Mean;
         public Func<GameProgress, double?> GetColumnItem;
 
         public override double? GetValueToRecord(GameProgress completedGame)

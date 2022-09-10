@@ -235,7 +235,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         }
 
         public double Accuracy => Math.Abs(QualitySum - ResolutionValueIncludingShiftedAmount); // this EXCLUDES self-borne costs
-        public double AccuracySquared => Accuracy * Accuracy;
+        public double AccuracySquared => Accuracy * Accuracy; // note that this tracks the DMS concept of accuracy, except that the DMS concept of accuracy is based on the average accuracy across cases (which makes more sense for risk-neutral parties). the additive evidence report calculates that. 
         public double Accuracy_ForPlaintiff => Math.Abs(PWealth - QualitySum);
         public double Accuracy_ForDefendant => Math.Abs(DWealth - (1.0 - QualitySum));
 

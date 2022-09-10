@@ -392,6 +392,40 @@ namespace ACESimTest
         }
 
         [TestMethod]
+        public void AdditiveEvidence_Figures()
+        {
+            // Perform essentially the same math as DMS Fig. C-1, but using a per-case measure of accuracy.
+            // Note that we are calculating using the formulas in DMS itself, not a calculated equilibrium.
+            // The results do not match the figure closely. However, they do match very closely the results
+            // obtained by using the AdditiveEvidenceGame, if setting the players strategies in the discretized
+            // game to the strategies calculated by DMS. The reason for this is that DMS do not calculate accuracy
+            // per case, but calculate p's expected return and compare that to q, and then square it.
+            var qVals = new double[] { 0.35 };
+            var cVals = new double[] { 0, 0.0625, 0.125, 0.25, 0.5 };
+            string figC1_American = AccuracyTestHelper(qVals, cVals, 0);
+            string figC1_English = AccuracyTestHelper(qVals, cVals, 1);
+        }
+        
+        private static string AccuracyTestHelper(double[] q_vals, double[] c_vals, double threshold)
+        {
+            List<double> acc_results = new List<double>();
+            foreach (double c in c_vals)
+            {
+                foreach (double q in q_vals)
+                {
+                    DMSCalc dmsCalc = new DMSCalc(threshold, c, q);
+
+                    var correctStrategyPretruncation = dmsCalc.GetCorrectStrategiesPretruncation();
+                    var empirical = new DMSCalc.DMSStrategiesPair(correctStrategyPretruncation.p, correctStrategyPretruncation.d, dmsCalc, false);
+                    var accuracy = empirical.AccSq;
+                    acc_results.Add(accuracy);
+                }
+            }
+            string result = String.Join(",", acc_results.Select(x => $"{Math.Round(x, 3)}"));
+            return result;
+        }
+
+        [TestMethod]
         public void AdditiveEvidence_FWOutcomesVerification()
         {
             // Note: This tests whether the calculation of P and D are correct by comparing an analytical and empirical result.

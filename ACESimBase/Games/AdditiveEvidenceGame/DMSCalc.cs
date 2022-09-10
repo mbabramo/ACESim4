@@ -83,6 +83,13 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             public double pNet => pGross - pCosts;
             public double dNet => dGross - dCosts;
             public double feeShiftingFromPToD => 0.5 * (dCosts - pCosts); // Suppose cost is 0.1. If D must pay all fees, then the difference in costs will be 0.1, and the fee shifting amount will be 0.5. 
+
+            // The following are what are used to measure accuracy in the DMS framework. We count the gross gains plus any fee shifting ordered by the court, so that 
+            // this is the judgment ordered by the court, but it ignores self-borne costs.
+            public double pGrossPlusFeeShifting => pGross + feeShiftingFromPToD;
+            public double dGrossPlusFeeShifting => dGross - feeShiftingFromPToD;
+            public double accuracy(double q) => Math.Abs(pGrossPlusFeeShifting - q);
+            public double accsq(double q) => accuracy(q) * accuracy(q);
         }
 
         public (double proportionSettling, DMSOutcome avgOutcome) GetAverageOutcome(List<DMSPartialOutcome> partialOutcomes)
@@ -548,7 +555,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         // Note: This calculates analytically the outcome from a subset of cases defined by a strategy pair. Currently, it works only for the Friedman-Wittman
         // subset of the DMS cases, so for other cases, we should continue to use empirical calcultions.
-        public record struct DMSPartialOutcome(double weight, bool settles, double pGross, double dGross, double pCosts, double dCosts)
+        public record struct DMSPartialOutcome(double weight, bool settles, double pGross, double dGross, double pCosts, double dCosts, double accSq)
         {
             private bool ConfirmApproximateMatch(DMSPartialOutcome other, double precision)
             {
@@ -585,6 +592,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 if (!analytical.ConfirmApproximateMatch(empirical, 1E-4))
                     throw new Exception();
             }
+            
             private static DMSPartialOutcome GetAverageEmpirically(DMSCalc c, double weight, LineSegment pSegment, LineSegment dSegment, bool settlingCases)
             {
                 List<DMSOutcome> outcomes = new List<DMSOutcome>();
@@ -599,14 +607,14 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                             outcomes.Add(result.outcome);
                     }
                 }
-                DMSPartialOutcome partialOutcome = new DMSPartialOutcome(weight, settlingCases, outcomes.Average(x => x.pGross), outcomes.Average(x => x.dGross), outcomes.Average(x => x.pCosts), outcomes.Average(x => x.dCosts));
+                DMSPartialOutcome partialOutcome = new DMSPartialOutcome(weight, settlingCases, outcomes.Average(x => x.pGross), outcomes.Average(x => x.dGross), outcomes.Average(x => x.pCosts), outcomes.Average(x => x.dCosts), outcomes.Average(x => x.accsq(c.Q)));
                 return partialOutcome;
             }
             private static DMSPartialOutcome GetSettlementOutcome(DMSCalc c, LineSegment pSegment, LineSegment dSegment)
             {
                 // Every one of these cases will settle, because D's bid is higher than P's. Average settlement value is the average d bid minus the average p bid.
                 double settlementValue = 0.25 * (dSegment.yStart + dSegment.yEnd + pSegment.yStart + pSegment.yEnd);
-                return new DMSPartialOutcome(GetWeight(pSegment, dSegment), true, settlementValue, 1.0 - settlementValue, 0, 0);
+                return new DMSPartialOutcome(GetWeight(pSegment, dSegment), true, settlementValue, 1.0 - settlementValue, 0, 0, Math.Abs(c.Q - settlementValue) * Math.Abs(c.Q - settlementValue));
             }
 
             private static DMSPartialOutcome GetTrialOutcome(DMSCalc c, LineSegment pSegment, LineSegment dSegment)
@@ -617,20 +625,20 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 var trial2 = c.GetOutcome(pSegment.xEnd, dSegment.xEnd, 1, 0);
                 var trialValue = 0.5 * (trial1.outcome.pGross + trial2.outcome.pGross);
 
-                return new DMSPartialOutcome(GetWeight(pSegment, dSegment), false, trialValue, 1.0 - trialValue, 0.5 * (trial1.outcome.pCosts + trial2.outcome.pCosts), 0.5 * (trial1.outcome.dCosts + trial2.outcome.dCosts));
+                return new DMSPartialOutcome(GetWeight(pSegment, dSegment), false, trialValue, 1.0 - trialValue, 0.5 * (trial1.outcome.pCosts + trial2.outcome.pCosts), 0.5 * (trial1.outcome.dCosts + trial2.outcome.dCosts), 0.5 * (trial1.outcome.accsq(c.Q) + trial2.outcome.accsq(c.Q)));
 
             }
             private static DMSPartialOutcome GetSettlementOutcome_IdenticalBidRanges(DMSCalc c, LineSegment pSegment, LineSegment dSegment)
             {
                 double settlementValue = 0.5 * (pSegment.yStart + pSegment.yEnd);
-                return new DMSPartialOutcome(0.5 * GetWeight(pSegment, dSegment), true, settlementValue, 1.0 - settlementValue, 0, 0);
+                return new DMSPartialOutcome(0.5 * GetWeight(pSegment, dSegment), true, settlementValue, 1.0 - settlementValue, 0, 0, Math.Abs(c.Q - settlementValue) * Math.Abs(c.Q - settlementValue));
             }
 
             private static DMSPartialOutcome GetTrialOutcome_IdenticalBidRanges(DMSCalc c, LineSegment pSegment, LineSegment dSegment)
             {
                 double avgTrialValue = -(1.0 / 6.0) * (-c.Q * (pSegment.xStart + 2 * pSegment.xEnd + 3) + 2 * dSegment.xStart * (c.Q - 1) + dSegment.xEnd * (c.Q - 1));
                 var sampleOutcome = c.GetOutcome(pSegment.xEnd - 1E-12, dSegment.xStart + 1E-12, 1, 0);
-                return new DMSPartialOutcome(0.5 * GetWeight(pSegment, dSegment), false, avgTrialValue, 1.0 - avgTrialValue, sampleOutcome.outcome.pCosts, sampleOutcome.outcome.dCosts);
+                return new DMSPartialOutcome(0.5 * GetWeight(pSegment, dSegment), false, avgTrialValue, 1.0 - avgTrialValue, sampleOutcome.outcome.pCosts, sampleOutcome.outcome.dCosts, Math.Abs(c.Q - avgTrialValue) * Math.Abs(c.Q - avgTrialValue));
             }
 
             private static double GetWeight(LineSegment pSegment, LineSegment dSegment) => (pSegment.xEnd - pSegment.xStart) * (dSegment.xEnd - dSegment.xStart);
@@ -690,7 +698,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             public DMSStrategyWithTruncations pStrategy;
             public DMSStrategyWithTruncations dStrategy;
             public DMSCalc DMSCalc;
-            public double SettlementProportion, PNet, DNet;
+            public double SettlementProportion, PNet, DNet, AccSq;
             public bool Nontrivial => SettlementProportion is > 0 and < 1;
 
             const int NumSignalsPerParty = 100;
@@ -700,7 +708,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 this.pStrategy = pStrategy;
                 this.dStrategy = dStrategy;
                 DMSCalc = dmsCalc;
-                SettlementProportion = PNet = DNet = 0;
+                SettlementProportion = PNet = DNet = AccSq = 0;
                 GetOutcomes(calculateAnalytically);
                 
             }
@@ -715,7 +723,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 pStrategy = new DMSStrategyWithTruncations(pPretruncation.index, pPretruncation.GetStrategyWithTruncation(dAbsoluteMin + 1E-10 /* be an infinitesimal amount more aggressive to prevent settlements in the event of equality */, true).lineSegments, pPretruncation.MinVal(), pPretruncation.MaxVal());
                 dStrategy = new DMSStrategyWithTruncations(dPretruncation.index, dPretruncation.GetStrategyWithTruncation(pAbsoluteMax - 1E-10, false).lineSegments, dPretruncation.MinVal(), dPretruncation.MaxVal());
                 DMSCalc = dmsCalc;
-                SettlementProportion = PNet = DNet = 0;
+                SettlementProportion = PNet = DNet = AccSq = 0;
                 GetOutcomes(calculateAnalytically);
             }
 
@@ -749,6 +757,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 SettlementProportion = EmpiricalOutcomes.Average(x => x.settles ? 1.0 : 0);
                 PNet = EmpiricalOutcomes.Average(x => x.outcome.pNet);
                 DNet = EmpiricalOutcomes.Average(x => x.outcome.dNet);
+                var q = DMSCalc.Q;
+                AccSq = EmpiricalOutcomes.Average(x => x.outcome.accsq(q));
             }
             private IEnumerable<(bool settles, DMSOutcome outcome)> GetOutcomesEmpirically_Helper()
             {
@@ -774,7 +784,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 string pBidsString = String.Join(",", pBids.Select(x => $"{Math.Round(x, 3)}"));
                 var dBids = dStrategy.GetBidsForSignal(10);
                 string dBidsString = String.Join(",", dBids.Select(x => $"{Math.Round(x, 3)}"));
-                return $"{pStrategy.index}, {dStrategy.index} (Settlement {Math.Round(SettlementProportion, 3)} pNet {Math.Round(PNet, 3)} dNet {Math.Round(DNet, 3)}): P {pBidsString}; D {dBidsString}";
+                return $"{pStrategy.index}, {dStrategy.index} (Settlement {Math.Round(SettlementProportion, 3)} pNet {Math.Round(PNet, 3)} dNet {Math.Round(DNet, 3)} accsq {Math.Round(AccSq, 3)}): P {pBidsString}; D {dBidsString}";
             }
         }
 

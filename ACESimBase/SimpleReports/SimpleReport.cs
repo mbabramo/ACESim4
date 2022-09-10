@@ -157,7 +157,16 @@ namespace ACESim
                             else
                             {
                                 SimpleReportColumnVariable cv = (SimpleReportColumnVariable)colItem;
-                                value = cv.Stdev ? StatCollectors[i].StandardDeviation() : StatCollectors[i].Average();
+                                value = cv.columnVariableOptions switch
+                                {
+                                    ColumnVariableOptions.Mean => StatCollectors[i].Average(),
+                                    ColumnVariableOptions.Stdev => (double)StatCollectors[i].StandardDeviation(),
+                                    ColumnVariableOptions.Min => StatCollectors[i].Min,
+                                    ColumnVariableOptions.Max => StatCollectors[i].Max,
+                                    ColumnVariableOptions.SquareOfMean => Math.Pow(StatCollectors[i].Average(), 2),
+                                    ColumnVariableOptions.AbsOfMean => Math.Abs(StatCollectors[i].Average()),
+                                    _ => throw new Exception()
+                                };
                             }
                         }
                         if (c == 0)
