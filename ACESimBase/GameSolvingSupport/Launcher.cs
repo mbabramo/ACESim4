@@ -601,6 +601,7 @@ namespace ACESim
                 developer.Reinitialize();
             ReportCollection reportCollection = new ReportCollection();
             int retriesRemaining = 20;
+            int failuresSoFar = 0;
         retry:
             try
             {
@@ -612,8 +613,15 @@ namespace ACESim
                 TabbedText.WriteLine($"Error: {e}");
                 TabbedText.WriteLine(e.StackTrace);
                 retriesRemaining--;
+                failuresSoFar++;
                 if (retriesRemaining >= 0)
+                {
+                    int delay = (int)Math.Pow(1.3, failuresSoFar);
+                    if (failuresSoFar > 1)
+                        delay += (int) (10000.0 * new Random((int)DateTime.Now.Ticks).Next());
+                    await Task.Delay(delay);
                     goto retry;
+                }
                 throw new Exception("Repeated failures");
             }
             string singleRepetitionReport = addOptionSetColumns ? SimpleReportMerging.AddCSVReportInformationColumns(reportCollection.csvReports.FirstOrDefault(), optionSetName, reportIteration, i == 0) : reportCollection.csvReports.FirstOrDefault(); 

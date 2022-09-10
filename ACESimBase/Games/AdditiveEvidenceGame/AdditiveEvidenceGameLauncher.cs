@@ -12,7 +12,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         OptionSetChoice optionSetChoice = OptionSetChoice.DMS;
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
-        public override string MasterReportNameForDistributedProcessing => "AE045";
+        public override string MasterReportNameForDistributedProcessing => "AE046";
 
         public static bool UseSpecificOnly = false;
         public static bool LimitToNonTrivialDMS = false; 
@@ -20,7 +20,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public double[] CostsLevels = UseSpecificOnly ? new double[] { 0.25 } : new double[] { 0, 0.0625, 0.125, 0.25, 0.5 };
         public double[] QualityLevels => UseSpecificOnly ? QualityLevels_Specific : new double[] { 0.2, 0.35, 0.50, 0.65, 0.8 };
         public double[] QualityLevels_Specific = new double[] { 0.35, 0.5 };
-        int numFeeShiftingThresholds = 101;
+        int numFeeShiftingThresholds = 11; // DEBUG
         public bool specificThresholdsDefined = false;
         public double[] FeeShiftingThresholds => UseSpecificOnly && specificThresholdsDefined ? SpecificThresholdLevels : Enumerable.Range(0, numFeeShiftingThresholds).Select(x => (double)(x / (numFeeShiftingThresholds - 1.0))).ToArray();
 
