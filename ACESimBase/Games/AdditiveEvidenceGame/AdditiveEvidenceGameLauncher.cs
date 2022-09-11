@@ -9,10 +9,10 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 {
     public class AdditiveEvidenceGameLauncher : Launcher
     {
-        OptionSetChoice optionSetChoice = OptionSetChoice.Main;
+        OptionSetChoice optionSetChoice = OptionSetChoice.DMS; // DEBUG
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
-        public override string MasterReportNameForDistributedProcessing => "AE047";
+        public override string MasterReportNameForDistributedProcessing => "AE048";
 
         public static bool UseSpecificOnly = false;
         public static bool LimitToNonTrivialDMS = false; 
@@ -190,7 +190,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                         switch (version)
                         {
                             case DMSVersion.DMS:
-                                optionSets.Add(GetAndTransform("orig" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.UseDMS = true; x.ModifyEvolutionSettings = e => { e.UseCustomSequenceFormInitializationAsFinalEquilibria = true; }; }));
+                                optionSets.Add(GetAndTransform("dms" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay), x => { x.UseDMS = true; x.ModifyEvolutionSettings = e => { e.UseCustomSequenceFormInitializationAsFinalEquilibria = true; }; }));
                                 break;
                             case DMSVersion.Original:
                                 // Same as above, but using random seeds

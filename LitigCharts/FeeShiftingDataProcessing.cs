@@ -137,6 +137,10 @@ namespace LitigCharts
         {
             WaitUntilFewerThanMaxProcessesAreRunning();
 
+            bool skipIfExists = true;
+            if (skipIfExists && File.Exists(combinedPath.Replace(".tex", ".pdf")))
+                return;
+
             string texFileInQuotes = $"\"{combinedPath}\"";
             string outputDirectoryInQuotes = $"\"{path}\"";
             bool backupComputer = false;

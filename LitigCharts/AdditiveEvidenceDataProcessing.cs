@@ -193,7 +193,7 @@ namespace LitigCharts
             int numMiniGraphDataSeries = lineScheme.Count();
             Random ran = new Random();
 
-            var lineGraphData = overallData.Select(macroYData => macroYData.Select(individualMiniGraphData => new TikzLineGraphData(individualMiniGraphData, lineScheme, dataSeriesNames)).ToList()).ToList();
+            var lineGraphData = overallData.Select(macroYData => macroYData.Select(individualMiniGraphData => new TikzLineGraphData(individualMiniGraphData.Select(l => l.Select(x => (x == null || x > 1.0 || x < 0.0) ? null : x).ToList()).ToList(), lineScheme, dataSeriesNames)).ToList()).ToList();
 
             TikzRepeatedGraph r = new TikzRepeatedGraph()
             {
