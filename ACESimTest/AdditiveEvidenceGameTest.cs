@@ -196,6 +196,21 @@ namespace ACESimTest
         }
 
         [TestMethod]
+        public void AdditiveEvidence_DMSCalculations_DEBUG()
+        {
+            for (double t = 0; t <= 1; t += 0.05)
+            {
+                DMSCalc dmsCalcHighCost = new DMSCalc(t, 5, 0.65);
+                var strategies = dmsCalcHighCost.GetCorrectStrategiesPretruncation();
+                Debug.Write("P: " + strategies.p + $" {Math.Round(strategies.p.GetAverageBidPretruncation(), 3)} ");
+                Debug.Write("D: " + strategies.d + $" {Math.Round(strategies.d.GetAverageBidPretruncation(), 3)} ");
+                Debug.Write(Math.Round(strategies.p.GetAverageBidPretruncation() * 0.5 + strategies.d.GetAverageBidPretruncation() * 0.5, 3));
+                Debug.WriteLine("");
+            }
+        }
+
+
+            [TestMethod]
         public void AdditiveEvidence_DMSCalculations()
         {
             DMSCalc dmsCalcHighCost = new DMSCalc(0.5, 0.5, 0.5);
@@ -392,18 +407,16 @@ namespace ACESimTest
         }
 
         [TestMethod]
-        public void AdditiveEvidence_Figures()
+        public void AdditiveEvidence_FigureC1()
         {
-            // Perform essentially the same math as DMS Fig. C-1, but using a per-case measure of accuracy.
-            // Note that we are calculating using the formulas in DMS itself, not a calculated equilibrium.
-            // The results do not match the figure closely. However, they do match very closely the results
-            // obtained by using the AdditiveEvidenceGame, if setting the players strategies in the discretized
-            // game to the strategies calculated by DMS. The reason for this is that DMS do not calculate accuracy
-            // per case, but calculate p's expected return and compare that to q, and then square it.
+            // Perform the same math as DMS Fig. C-1. The British values should be lower at the beginning and higher at the end. 
+            // This is in fact the case, and the graphs look similar, though not identical. 
             var qVals = new double[] { 0.35 };
-            var cVals = new double[] { 0, 0.0625, 0.125, 0.25, 0.5 };
+            var cVals = new double[] { 0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80 };
             string figC1_American = AccuracyTestHelper(qVals, cVals, 0);
             string figC1_English = AccuracyTestHelper(qVals, cVals, 1);
+            Debug.WriteLine(figC1_American);
+            Debug.WriteLine(figC1_English);
         }
         
         private static string AccuracyTestHelper(double[] q_vals, double[] c_vals, double threshold)

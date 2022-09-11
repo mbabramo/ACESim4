@@ -333,7 +333,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                         return RoundIfVeryClose(plaintiff ? (1.0 - T) / Q : 1.0 - 6.0 * C + (1.0 - T) / Q);
                     return RoundIfVeryClose(plaintiff ? 6.0 * C - 1.0 + (T - Q) / (1.0 - Q) : (T - Q) / (1.0 - Q));
                 case 5:
-                    return RoundIfVeryClose(plaintiff ? 6.0 * C * (1 - Q) : 1 - 6.0 * C * Q);
+                    return RoundIfVeryClose(plaintiff ? 6.0 * C * (1.0 - Q) : 1.0 - 6.0 * C * Q);
                 default:
                     throw new NotImplementedException();
             }
@@ -668,6 +668,21 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     yield return (low, high);
                 }
             }
+
+            public double GetAverageBidPretruncation()
+            {
+                double total = 0;
+                for (int i = 0; i < minForRange.Count; i++)
+                {
+                    var low = minForRange[i];
+                    var high = low + slope * (piecewiseRanges[i].high - piecewiseRanges[i].low);
+                    var midpoint = 0.5 * (low + high);
+                    var xdist = piecewiseRanges[i].high - piecewiseRanges[i].low;
+                    total += midpoint * xdist;
+                }
+                return total;
+            }
+
             public override string ToString()
             {
                 return index + ": " + String.Join(", ", piecewiseRanges.Zip(EnumerateYRanges(), (x, y) => $"({Math.Round(x.low, 3)},{Math.Round(y.low,3)})-({Math.Round(x.high, 3)},{Math.Round(y.high, 3)})")) + $" (slope {Math.Round(slope, 3)})";
@@ -698,17 +713,18 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             public DMSStrategyWithTruncations pStrategy;
             public DMSStrategyWithTruncations dStrategy;
             public DMSCalc DMSCalc;
-            public double SettlementProportion, PNet, DNet, AccSq;
+            public double SettlementProportion, PNet, DNet;
+            public double AccSq => (PNet - DMSCalc.Q) * (PNet - DMSCalc.Q);
             public bool Nontrivial => SettlementProportion is > 0 and < 1;
 
-            const int NumSignalsPerParty = 100;
+            const int NumSignalsPerParty = 1000;
 
             public DMSStrategiesPair(DMSStrategyWithTruncations pStrategy, DMSStrategyWithTruncations dStrategy, DMSCalc dmsCalc, bool calculateAnalytically)
             {
                 this.pStrategy = pStrategy;
                 this.dStrategy = dStrategy;
                 DMSCalc = dmsCalc;
-                SettlementProportion = PNet = DNet = AccSq = 0;
+                SettlementProportion = PNet = DNet = 0;
                 GetOutcomes(calculateAnalytically);
                 
             }
@@ -723,7 +739,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 pStrategy = new DMSStrategyWithTruncations(pPretruncation.index, pPretruncation.GetStrategyWithTruncation(dAbsoluteMin + 1E-10 /* be an infinitesimal amount more aggressive to prevent settlements in the event of equality */, true).lineSegments, pPretruncation.MinVal(), pPretruncation.MaxVal());
                 dStrategy = new DMSStrategyWithTruncations(dPretruncation.index, dPretruncation.GetStrategyWithTruncation(pAbsoluteMax - 1E-10, false).lineSegments, dPretruncation.MinVal(), dPretruncation.MaxVal());
                 DMSCalc = dmsCalc;
-                SettlementProportion = PNet = DNet = AccSq = 0;
+                SettlementProportion = PNet = DNet = 0;
                 GetOutcomes(calculateAnalytically);
             }
 
@@ -757,8 +773,6 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                 SettlementProportion = EmpiricalOutcomes.Average(x => x.settles ? 1.0 : 0);
                 PNet = EmpiricalOutcomes.Average(x => x.outcome.pNet);
                 DNet = EmpiricalOutcomes.Average(x => x.outcome.dNet);
-                var q = DMSCalc.Q;
-                AccSq = EmpiricalOutcomes.Average(x => x.outcome.accsq(q));
             }
             private IEnumerable<(bool settles, DMSOutcome outcome)> GetOutcomesEmpirically_Helper()
             {
