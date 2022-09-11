@@ -357,6 +357,58 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             TabbedText.WriteLine($"Produced manual reports; time {w.ElapsedMilliseconds} ms");
         }
 
+        private enum AdditiveEvidenceTreeDiagramExclusions
+        {
+            FullDiagram,
+            BeginningOfGame,
+            EndOfGame
+        }
+        private AdditiveEvidenceTreeDiagramExclusions Exclusions = AdditiveEvidenceTreeDiagramExclusions.EndOfGame;
+
+        public override (Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> excludeBelow, Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> includeBelow) GetTreeDiagramExclusions()
+        {
+            (Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> excludeBelow, Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> includeBelow)
+                = (null, null);
+            switch (Exclusions)
+            {
+                case AdditiveEvidenceTreeDiagramExclusions.FullDiagram:
+                    break;
+
+                case AdditiveEvidenceTreeDiagramExclusions.BeginningOfGame:
+                    excludeBelow = gpn =>
+                    {
+                        var edge = gpn.EdgeFromParent;
+                        if (edge == null)
+                            return false;
+                        string actionString = edge.parentNameWithActionString(this);
+                        string nodePlayerString = gpn.NodePlayerString(this);
+                        if (actionString.Contains("D Signal"))
+                            return true;
+                        return false;
+                    };
+                    break;
+
+                case AdditiveEvidenceTreeDiagramExclusions.EndOfGame:
+                    includeBelow = gpn =>
+                    {
+                        var edge = gpn.EdgeFromParent;
+                        if (edge == null)
+                            return false;
+                        string actionString = edge.parentNameWithActionString(this);
+                        string nodePlayerString = gpn.NodePlayerString(this);
+                        if (actionString.Contains("D Signal"))
+                            return true;
+                        return false;
+                    };
+                    break;
+
+                default:
+                    break;
+            }
+
+            return (excludeBelow, includeBelow);
+        }
+
         #endregion
     }
 }
