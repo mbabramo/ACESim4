@@ -219,6 +219,17 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     return 0;
                 return 0.5;
             }
+            else if (AdditiveEvidenceGameOptions.OrdinaryFeeShifting)
+            {
+                double? trialValuePreShifting = TrialValuePreShifting;
+                if (0.5 - 1E-12 < trialValuePreShifting && trialValuePreShifting < 0.5 + 1E-12)
+                    return 0.5;
+                bool shiftToDefendant = trialValuePreShifting > 0.5;
+                if (shiftToDefendant)
+                    return 0.5 + 0.5 * AdditiveEvidenceGameOptions.FeeShiftingThreshold;
+                else // shift to plaintiff
+                    return 0.5 - 0.5 * AdditiveEvidenceGameOptions.FeeShiftingThreshold;
+            }
             else
             {
                 // the regular fee shifting depends only on information available to the player, and it comes into effect only if the player wins.

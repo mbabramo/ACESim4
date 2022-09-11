@@ -33,6 +33,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         public double TrialCost;
         public bool FeeShifting;
         public bool FeeShiftingIsBasedOnMarginOfVictory;
+        public bool OrdinaryFeeShifting; // look only at whether result is > or < 0.5; fee shifting threshold then determines amount of fee shifting.
         public bool WinnerTakesAll;
         
         /// <summary>
