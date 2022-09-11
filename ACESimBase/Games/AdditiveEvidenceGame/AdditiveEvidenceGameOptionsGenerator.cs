@@ -6,8 +6,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 {
     public class AdditiveEvidenceGameOptionsGenerator
     {
-        public static byte NumOffers = 10; // having a good number here allows for more precise strategies // 5/5/3 -> 39 seconds. 6/5/3 -> 2:10, 7/... -> 4:56 8/... -> 4:29 9/... -> 7:53 10/... -> 9:50
-        public static byte NumQualityAndBiasLevels_PrivateInfo = 10; // we don't need quite as much here, since it's information that doesn't intersect between players
+        public static byte NumOffers = 2; // having a good number here allows for more precise strategies // 5/5/3 -> 39 seconds. 6/5/3 -> 2:10, 7/... -> 4:56 8/... -> 4:29 9/... -> 7:53 10/... -> 9:50
+        public static byte NumQualityAndBiasLevels_PrivateInfo = 2; // we don't need quite as much here, since it's information that doesn't intersect between players
         public static byte NumQualityAndBiasLevels_NeitherInfo = 1; // still less needed here
 
         public enum AdditiveEvidenceOptionSetChoices
@@ -18,15 +18,17 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             NoPInfo,
             NoisyWithAsymmetricInfoOnBias,
             Temporary,
+            DMSWithQuit,
         }
 
         // Note: Go to Launcher to change multiple option sets settings.
 
-        static AdditiveEvidenceOptionSetChoices AdditiveEvidenceChoice => AdditiveEvidenceOptionSetChoices.Temporary; 
+        static AdditiveEvidenceOptionSetChoices AdditiveEvidenceChoice => AdditiveEvidenceOptionSetChoices.DMSWithQuit; 
 
         public static AdditiveEvidenceGameOptions GetAdditiveEvidenceGameOptions() => AdditiveEvidenceChoice switch
         {
             AdditiveEvidenceOptionSetChoices.DMS => DariMattiacci_Saraceno_Original(0.6, 0.15, true, false, 0.5, false, false),
+            AdditiveEvidenceOptionSetChoices.DMSWithQuit => DariMattiacci_Saraceno_Original(0.6, 0.15, true, false, 0.5, true, false),
             AdditiveEvidenceOptionSetChoices.EqualStrengthInfo => EqualStrengthInfo(0.6, 0.15, true, false, 0.5, false, false),
             AdditiveEvidenceOptionSetChoices.AsymmetricInfo => AsymmetricInfo(1.0, 0.65, 0.8, 0.15, true, false, 0.25, false, false),
             AdditiveEvidenceOptionSetChoices.NoPInfo => AsymmetricInfo(1.0, 0, 0.8, 0.15, true, false, 0.25, false, false),

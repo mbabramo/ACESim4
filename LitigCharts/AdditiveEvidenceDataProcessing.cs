@@ -226,10 +226,6 @@ namespace LitigCharts
             foreach (var file in fileList)
             {
                 string mainFileName = Path.GetFileNameWithoutExtension(file.FullName);
-                if (mainFileName.Contains("AE049;dms;TrialRelativeAccuracy;full"))
-                {
-                    var DEBUG = 0;
-                }
                 if (mainFileName.EndsWith("Coordinator") || mainFileName.StartsWith("log") || mainFileName.Contains("CombineOptionSets"))
                     continue;
                 string extension = Path.GetExtension(file.FullName);

@@ -41,8 +41,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             Initialize(gameFactory);
         }
 
-        private static string PlaintiffName = "Plaintiff";
-        private static string DefendantName = "Defendant";
+        private static string PlaintiffName = "P";
+        private static string DefendantName = "D";
         private static string ResolutionPlayerName = "Resolution";
         private static string ChancePlaintiffQualityName = "ChancePlaintiffQuality";
         private static string ChanceDefendantQualityName = "ChanceDefendantQuality";
@@ -120,7 +120,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             });
             if (Options.IncludeChanceDecisionsEvenForPartyWithNoInfluence || (Options.Alpha_Bias > 0 && Options.Alpha_Plaintiff_Bias > 0)) 
             {
-                decisions.Add(new Decision("Chance_Plaintiff_Bias", "PB", true, (byte)AdditiveEvidenceGamePlayers.Chance_Plaintiff_Bias, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias)
+                decisions.Add(new Decision("P Signal" /* "Chance_Plaintiff_Bias" */, "PS", true, (byte)AdditiveEvidenceGamePlayers.Chance_Plaintiff_Bias, new byte[] { (byte)AdditiveEvidenceGamePlayers.Plaintiff, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Plaintiff_Bias)
                 {
                     IsReversible = true,
                     Unroll_Parallelize = true,
@@ -131,7 +131,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             }
             if (Options.IncludeChanceDecisionsEvenForPartyWithNoInfluence || (Options.Alpha_Bias > 0 && Options.Alpha_Defendant_Bias > 0))
             {
-                decisions.Add(new Decision("Chance_Defendant_Bias", "DB", true, (byte)AdditiveEvidenceGamePlayers.Chance_Defendant_Bias, new byte[] { (byte)AdditiveEvidenceGamePlayers.Defendant, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias)
+                decisions.Add(new Decision("D Signal" /* "Chance_Defendant_Bias" */, "DS", true, (byte)AdditiveEvidenceGamePlayers.Chance_Defendant_Bias, new byte[] { (byte)AdditiveEvidenceGamePlayers.Defendant, (byte)AdditiveEvidenceGamePlayers.Resolution }, Options.NumQualityAndBiasLevels_PrivateInfo, (byte)AdditiveEvidenceGameDecisions.Chance_Defendant_Bias)
                 {
                     IsReversible = true,
                     Unroll_Parallelize = true,
@@ -170,7 +170,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         void AddPlayerOffers(List<Decision> decisions)
         {
             var pOffer =
-                    new Decision("PlaintiffOffer", useAbbreviationsForSimplifiedGame ? "POffer" : "PO", false, (byte)AdditiveEvidenceGamePlayers.Plaintiff, new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution },
+                    new Decision("P Offer", useAbbreviationsForSimplifiedGame ? "POffer" : "PO", false, (byte)AdditiveEvidenceGamePlayers.Plaintiff, new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution },
                         Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.POffer)
                     {
                         IsReversible = true,
@@ -179,7 +179,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     };
             decisions.Add(pOffer);
             var dOffer =
-                     new Decision("DefendantOffer", useAbbreviationsForSimplifiedGame ? "DOffer" : "DO", false, (byte)AdditiveEvidenceGamePlayers.Defendant, new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution },
+                     new Decision("D Offer", useAbbreviationsForSimplifiedGame ? "DOffer" : "DO", false, (byte)AdditiveEvidenceGamePlayers.Defendant, new byte[] { (byte)AdditiveEvidenceGamePlayers.Resolution },
                          Options.NumOffers, (byte)AdditiveEvidenceGameDecisions.DOffer)
                      {
                          IsReversible = true,

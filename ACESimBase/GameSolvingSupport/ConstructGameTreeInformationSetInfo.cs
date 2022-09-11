@@ -65,7 +65,7 @@ namespace ACESimBase.GameSolvingSupport
             public string MainNodeText()
             {
                 if (anyNode.IsUtilitiesNode)
-                    return "(" + String.Join(", ", anyNode.GetNodeValues().Select(x => x.ToDecimalPlaces(4))) + ")";
+                    return "(" + String.Join(", ", anyNode.GetNodeValues().Select(x => x.ToDecimalPlaces(2))) + ")";
                 return anyNode.Decision.Name;
             }
         }
@@ -79,7 +79,7 @@ namespace ACESimBase.GameSolvingSupport
             {
                 1.0 => "1",
                 0 => "0",
-                _ => parentNode.anyNode.GetNodeValues()[action - 1].ToDecimalPlaces(3)
+                _ => parentNode.anyNode.GetNodeValues()[action - 1].ToDecimalPlaces(2)
             };
         }
 
@@ -161,7 +161,7 @@ namespace ACESimBase.GameSolvingSupport
 
         public string GenerateTikzDiagram(Func<GamePointNode, bool> excludeBelowNode, Func<GamePointNode, bool> includeBelowNode)
         {
-            const double xSpaceForNode = 6.0, ySpaceForLeaf = 0.5, circleSize = 0.4, straightAdjacentArrow = 0.4, utilitiesShiftRight = -0.45;
+            const double xSpaceForNode = 4.5, ySpaceForLeaf = 0.5, circleSize = 0.4, straightAdjacentArrow = 0.4, utilitiesShiftRight = -0.45;
             StringBuilder b = new StringBuilder();
             bool onlyIncludableRegionFound = false;
             TreeRoot.ExecuteActionsOnTree(gamePointNode =>
