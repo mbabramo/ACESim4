@@ -16,8 +16,8 @@ namespace LitigCharts
 {
     public static class AdditiveEvidenceDataProcessing
     {
-
-        static string filePrefix => new AdditiveEvidenceGameLauncher().MasterReportNameForDistributedProcessing + "-";
+        static string PrefixForEachFile => new AdditiveEvidenceGameLauncher().MasterReportNameForDistributedProcessing;
+        static string PrefixForEachFileWithHyphen => PrefixForEachFile + "-";
         
         public static void BuildReport()
         {
@@ -38,11 +38,11 @@ namespace LitigCharts
             var gameOptionsSets = launcher.GetOptionsSets();
             var map = launcher.GetAdditiveEvidenceNameMap();
             string path = Launcher.ReportFolder();
-            string outputFileFullPath = Path.Combine(path, filePrefix + $"-{endOfFileName}.csv");
+            string outputFileFullPath = Path.Combine(path, PrefixForEachFileWithHyphen + $"-{endOfFileName}.csv");
             var distinctOptionSets = gameOptionsSets.DistinctBy(x => map[x.Name]).ToList(); 
 
             bool includeHeader = true;
-            List<List<string>> outputLines = GetCSVLines(distinctOptionSets, map, rowsToGet, replacementRowNames, filePrefix, ".csv", "", path, includeHeader, columnsToGet, replacementColumnNames);
+            List<List<string>> outputLines = GetCSVLines(distinctOptionSets, map, rowsToGet, replacementRowNames, PrefixForEachFileWithHyphen, ".csv", "", path, includeHeader, columnsToGet, replacementColumnNames);
 
             string result = MakeString(outputLines);
             TextFileManage.CreateTextFile(outputFileFullPath, result);
@@ -193,7 +193,7 @@ namespace LitigCharts
             int numMiniGraphDataSeries = lineScheme.Count();
             Random ran = new Random();
 
-            var lineGraphData = overallData.Select(macroYData => macroYData.Select(individualMiniGraphData => new TikzLineGraphData(individualMiniGraphData.Select(l => l.Select(x => (x == null || x > 1.0 || x < 0.0) ? null : x).ToList()).ToList(), lineScheme, dataSeriesNames)).ToList()).ToList();
+            var lineGraphData = overallData.Select(macroYData => macroYData.Select(individualMiniGraphData => new TikzLineGraphData(individualMiniGraphData.Select(l => l.Select(x => (x == null || x > 1.01 || x < -0.1) ? null : x).ToList()).ToList(), lineScheme, dataSeriesNames)).ToList()).ToList();
 
             TikzRepeatedGraph r = new TikzRepeatedGraph()
             {
@@ -214,6 +214,105 @@ namespace LitigCharts
 
             var result = r.GetStandaloneDocument();
             return result;
+        }
+
+        public static void OrganizeIntoFolders()
+        {
+            string sourcePath = Launcher.ReportFolder();
+            string destinationPath = @"C:\Primary results";
+            var sourceDirectory = new DirectoryInfo(sourcePath);
+            List<System.IO.FileInfo> fileList = sourceDirectory.GetFiles("*.*", System.IO.SearchOption.AllDirectories).Where(x => x.Name.StartsWith(PrefixForEachFile)).ToList();
+            List<List<string>> filePaths = new List<List<string>>();
+            foreach (var file in fileList)
+            {
+                string mainFileName = Path.GetFileNameWithoutExtension(file.FullName);
+                if (mainFileName.Contains("AE049;dms;TrialRelativeAccuracy;full"))
+                {
+                    var DEBUG = 0;
+                }
+                if (mainFileName.EndsWith("Coordinator") || mainFileName.StartsWith("log") || mainFileName.Contains("CombineOptionSets"))
+                    continue;
+                string extension = Path.GetExtension(file.FullName);
+                string locationComponents = mainFileName.Replace(PrefixForEachFileWithHyphen, "").Replace(PrefixForEachFile + ";", "");
+                if (locationComponents == "-" && (extension == ".csv" || extension == ".xlsx"))
+                    locationComponents = "Aggregated Report";
+                List<string> locationComponentsList = locationComponents.Split(';').ToList();
+                int numItems = locationComponentsList.Count;
+                string lastComponent = locationComponentsList[numItems - 1];
+                if (lastComponent.StartsWith("t0") || lastComponent.StartsWith("t1"))
+                {
+                    (string original, string replacement)?[] suffixesUsed = new (string original, string replacement)?[] { ("-equ", "Equilibria"), ("-log", "Logs"), ("-heatmap-eq1", "Heatmaps") };
+                    var suffix = suffixesUsed.FirstOrDefault(x => lastComponent.EndsWith(x.Value.original));
+                    if (suffix == null)
+                    {
+                        locationComponentsList[numItems - 1] = "Reports";
+                        locationComponentsList.Add(lastComponent);
+                    }
+                    else
+                    {
+                        locationComponentsList[numItems - 1] = suffix.Value.replacement; // put "Equilibria" etc. as a folder containing all of the files for that t
+                        string lastComponentWithoutSuffix = lastComponent.Replace(suffix.Value.original, "");
+                        locationComponentsList.Add(lastComponentWithoutSuffix);
+                    }
+                }
+                else
+                {
+                    foreach (string moveFromEnd in new string[] { "full", "short" })
+                    {
+                        if (lastComponent == moveFromEnd)
+                        {
+                            locationComponentsList[numItems - 1] = locationComponentsList[numItems - 2];
+                            locationComponentsList[numItems - 2] = moveFromEnd;
+                        }
+                    }
+                }
+                numItems = locationComponentsList.Count;
+
+                for (int i = 0; i < numItems; i++)
+                {
+                    string component = locationComponentsList[i];
+                    // add a space between the variable name and number
+                    if (component.StartsWith("t") || component.StartsWith("q") || component.StartsWith("c"))
+                    {
+                        var restOfString = component[1..];
+                        if (double.TryParse(restOfString, out double _))
+                        {
+                            component = component[0] + " " + restOfString;
+                        }
+                    }
+                    // make other changes
+                    component = component.Replace("full", "Scatterplots (full)").Replace("short", "Scatterplots (short)");
+                    locationComponentsList[i] = component;
+                }
+
+                // replacement short series names with longer names
+                (string original, string replacement)?[] replacements = new (string original, string replacement)?[] { ("dms", "DMS formulas"), ("orig", "Original"), ("es", "Equal information strength"), ("noshare", "No shared information"), ("pinfo00", "P has no info"), ("pinfo25", "P 25% of info"), ("wta", "Winner take all"), ("wtaes", "Winner take all, equal information strength"), ("trialg", "Trial guaranteed"), ("wtaesra", "Winner take all, equal information strength, risk aversion") };
+                List<(string original, string replacement)?> replacementsList = replacements.ToList();
+                foreach (var r in replacements)
+                    replacementsList.Add((r.Value.original + "q", r.Value.replacement + ", with quitting"));
+                var match = replacementsList.FirstOrDefault(x => x.Value.original == locationComponentsList[0]);
+                if (match != null)
+                    locationComponentsList[0] = match.Value.replacement;
+
+                // copy to destination
+                List<string> destinationPathComponents = destinationPath.Split("/").ToList();
+                for (int i = destinationPathComponents.Count - 1; i >= 0; i--)
+                {
+                    locationComponentsList.Insert(0, destinationPathComponents[i]);
+                }
+                numItems = locationComponentsList.Count;
+                locationComponentsList[numItems - 1] = locationComponentsList[numItems - 1] + extension;
+                var exceptLast = locationComponentsList.ToArray()[..^1];
+                var targetDirectory = String.Join("\\", exceptLast);
+                if (!Directory.Exists(targetDirectory))
+                    Directory.CreateDirectory(targetDirectory);
+                string targetPath = Path.Combine(locationComponentsList.ToArray());
+                if (!File.Exists(targetPath))
+                {
+                    Console.WriteLine($"Copying {file.FullName} to {targetPath}");
+                    File.Copy(file.FullName, targetPath);
+                }
+            }
         }
     }
 }
