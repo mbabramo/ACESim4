@@ -363,7 +363,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             BeginningOfGame,
             EndOfGame
         }
-        private AdditiveEvidenceTreeDiagramExclusions Exclusions = AdditiveEvidenceTreeDiagramExclusions.EndOfGame;
+        private AdditiveEvidenceTreeDiagramExclusions Exclusions = AdditiveEvidenceTreeDiagramExclusions.FullDiagram;
 
         public override (Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> excludeBelow, Func<ConstructGameTreeInformationSetInfo.GamePointNode, bool> includeBelow) GetTreeDiagramExclusions()
         {
