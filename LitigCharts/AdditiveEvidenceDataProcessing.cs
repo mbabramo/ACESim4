@@ -23,7 +23,7 @@ namespace LitigCharts
         {
             List<string> rowsToGet = new List<string>() { "All" }; // , "Settles", "Trial", "Shifting",   };
             List<string> replacementRowNames = rowsToGet.ToList();
-            List<string> columnsToGet = new List<string>() { "Exploit", "Seconds", "All", "TrialCost", "FeeShifting", "FeeShiftingThreshold", "Alpha_Plaintiff_Quality", /* "Alpha_Plaintiff_Bias", */ "Evidence_Both_Quality", "Settles", "Trial", "PWelfare", "DWelfare", "PQuits", "DQuits", "Shifting", "ShiftingOccursIfTrial", "ShiftingValueIfTrial", "POffer", "DOffer", "DMSAcc", "DMSAccL1Norm", "AccSq", "Accuracy", "Accuracy_ForPlaintiff", "Accuracy_ForDefendant", "TrialRelativeAccSq", "TrialRelativeAccuracy", "TrialRelativeAccuracy_ForPlaintiff", "TrialRelativeAccuracy_ForDefendant", "SettlementOrJudgment", "TrialValuePreShiftingIfOccurs", "TrialValueWithShiftingIfOccurs", "ResolutionValueIncludingShiftedAmount", "SettlementValue", "PBestGuess", "DBestGuess" };
+            List<string> columnsToGet = new List<string>() { "Exploit", "Seconds", "All", "TrialCost", "FeeShifting", "FeeShiftingThreshold", "Alpha_Plaintiff_Quality", /* "Alpha_Plaintiff_Bias", */ "Evidence_Both_Quality", "Settles", "Trial", "PWelfare", "DWelfare", "PQuits", "DQuits", "Shifting", "ShiftingOccursIfTrial", "ShiftingValueIfTrial", "POffer", "DOffer", "DMSAcc", "DMSAccL1", "AccSq", "Accuracy", "Accuracy_ForPlaintiff", "Accuracy_ForDefendant", "TrialRelativeAccSq", "TrialRelativeAccuracy", "TrialRelativeAccuracy_ForPlaintiff", "TrialRelativeAccuracy_ForDefendant", "SettlementOrJudgment", "TrialValuePreShiftingIfOccurs", "TrialValueWithShiftingIfOccurs", "ResolutionValueIncludingShiftedAmount", "SettlementValue", "PBestGuess", "DBestGuess" };
             List<string> replacementColumnNames = columnsToGet.ToList();
             string endOfFileName = "";
 
@@ -64,16 +64,21 @@ namespace LitigCharts
             var groupNames = new AdditiveEvidenceGameLauncher().GetGroupNames();
             foreach (string groupName in groupNames)
             {
-                foreach ((string targetVariable, string targetAbbreviation) in new (string, string)[] { ("Trial", "L"), ("Accuracy", "A"), ("Accuracy_ForPlaintiff", "A"), ("Accuracy_ForDefendant", "A"), ("DMSAccL1Norm", "A"), ("TrialRelativeAccuracy", "A"), ("TrialRelativeAccuracy_ForPlaintiff", "A"), ("TrialRelativeAccuracy_ForDefendant", "A"), ("TrialRelativeAccSq", "A"), ("POffer", "Bid"), ("DOffer", "Bid"), ("PWelfare", "w"), ("DWelfare", "w"), ("PQuits", "Q"), ("DQuits", "Q"), ("Exploit", "E") })
+                foreach ((string targetVariable, string targetAbbreviation) in new (string, string)[] { ("Trial", "L"), ("Accuracy", "A"), ("Accuracy_ForPlaintiff", "A"), ("Accuracy_ForDefendant", "A"), ("DMSAccL1", "A"), ("TrialRelativeAccuracy", "A"), ("TrialRelativeAccuracy_ForPlaintiff", "A"), ("TrialRelativeAccuracy_ForDefendant", "A"), ("TrialRelativeAccSq", "A"), ("POffer", "Bid"), ("DOffer", "Bid"), ("PWelfare", "w"), ("DWelfare", "w"), ("PQuits", "Q"), ("DQuits", "Q"), ("Exploit", "E") })
                 {
                     string set = new AdditiveEvidenceGameLauncher().MasterReportNameForDistributedProcessing;
                     string csvFileName = set + "--.csv";
                     string fullFileName = Path.Combine(folder, csvFileName);
-                    string texContents = GenerateDiagramFromCSV(fullFileName, groupName, targetVariable, targetAbbreviation, false);
+                    string texContents = GenerateDiagramFromCSV(fullFileName, groupName, targetVariable, targetAbbreviation, HowManyQualityLevels.Full);
                     string outputFile = Path.Combine(folder, $"{set};{groupName};{targetVariable};full.tex");
                     File.WriteAllText(outputFile, texContents);
-                    texContents = GenerateDiagramFromCSV(fullFileName, groupName, targetVariable, targetAbbreviation, true);
-                    outputFile = Path.Combine(folder, $"{set};{groupName};{targetVariable};short.tex");
+                    
+                    texContents = GenerateDiagramFromCSV(fullFileName, groupName, targetVariable, targetAbbreviation, HowManyQualityLevels.Shorter);
+                    outputFile = Path.Combine(folder, $"{set};{groupName};{targetVariable};shorter.tex");
+                    File.WriteAllText(outputFile, texContents);
+
+                    texContents = GenerateDiagramFromCSV(fullFileName, groupName, targetVariable, targetAbbreviation, HowManyQualityLevels.Shortest);
+                    outputFile = Path.Combine(folder, $"{set};{groupName};{targetVariable};shortest.tex");
                     File.WriteAllText(outputFile, texContents);
                 }
             }
@@ -96,7 +101,14 @@ namespace LitigCharts
             }
         }
 
-        public static string GenerateDiagramFromCSV(string csvFileName, string groupName, string mainVarName, string mainVarLabel, bool specificQualityLevelsOnly, string qVarName = "Evidence_Both_Quality", string cVarName = "TrialCost", string tVarName = "FeeShiftingThreshold")
+        public enum HowManyQualityLevels
+        {
+            Full,
+            Shorter,
+            Shortest
+        }
+
+        public static string GenerateDiagramFromCSV(string csvFileName, string groupName, string mainVarName, string mainVarLabel, HowManyQualityLevels howManyLevels, string qVarName = "Evidence_Both_Quality", string cVarName = "TrialCost", string tVarName = "FeeShiftingThreshold")
         {
             AEDataMap.mainVarName = mainVarName;
             AEDataMap.qVarName = qVarName;
@@ -115,8 +127,14 @@ namespace LitigCharts
             }
 
             AdditiveEvidenceGameLauncher launcher = new AdditiveEvidenceGameLauncher();
-            double[] tVarVals = launcher.FeeShiftingThresholds; 
-            double[] qVarVals = specificQualityLevelsOnly ? launcher.QualityLevels_Specific : launcher.QualityLevels;
+            double[] tVarVals = launcher.FeeShiftingThresholds;
+            double[] qVarVals = howManyLevels switch
+            {
+                HowManyQualityLevels.Shortest => launcher.QualityLevels_Shortest,
+                HowManyQualityLevels.Shorter => launcher.QualityLevels_Shorter,
+                HowManyQualityLevels.Full => launcher.QualityLevels,
+                _ => throw new Exception()
+            };
             double[] cVarVals = launcher.CostsLevels;
             
             List<List<List<List<double?>>>> graphData = new List<List<List<List<double?>>>>();
@@ -253,7 +271,7 @@ namespace LitigCharts
                 }
                 else
                 {
-                    foreach (string moveFromEnd in new string[] { "full", "short" })
+                    foreach (string moveFromEnd in new string[] { "full", "shorter", "shortest" })
                     {
                         if (lastComponent == moveFromEnd)
                         {
@@ -277,7 +295,7 @@ namespace LitigCharts
                         }
                     }
                     // make other changes
-                    component = component.Replace("full", "Scatterplots (full)").Replace("short", "Scatterplots (short)");
+                    component = component.Replace("full", "Scatterplots (full)").Replace("shorter", "Scatterplots (short)").Replace("shortest", "Scatterplots (shortest)");
                     locationComponentsList[i] = component;
                 }
 
