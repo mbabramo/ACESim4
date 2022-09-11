@@ -195,20 +195,6 @@ namespace ACESimTest
             }
         }
 
-        [TestMethod]
-        public void AdditiveEvidence_DMSCalculations_DEBUG()
-        {
-            for (double t = 0; t <= 1; t += 0.05)
-            {
-                DMSCalc dmsCalcHighCost = new DMSCalc(t, 5, 0.65);
-                var strategies = dmsCalcHighCost.GetCorrectStrategiesPretruncation();
-                Debug.Write("P: " + strategies.p + $" {Math.Round(strategies.p.GetAverageBidPretruncation(), 3)} ");
-                Debug.Write("D: " + strategies.d + $" {Math.Round(strategies.d.GetAverageBidPretruncation(), 3)} ");
-                Debug.Write(Math.Round(strategies.p.GetAverageBidPretruncation() * 0.5 + strategies.d.GetAverageBidPretruncation() * 0.5, 3));
-                Debug.WriteLine("");
-            }
-        }
-
 
             [TestMethod]
         public void AdditiveEvidence_DMSCalculations()
