@@ -86,6 +86,8 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     AddDMSGameOptionSets(optionSets, DMSVersion.DMS, false);
                     AddDMSGameOptionSets(optionSets, DMSVersion.Original, false);
                     AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrength, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.OrdinaryFeeShiftingEvenStrength, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.MarginFeeShiftingEvenStrength, false);
                     AddDMSGameOptionSets(optionSets, DMSVersion.PInfo_00, false);
                     AddDMSGameOptionSets(optionSets, DMSVersion.PInfo_25, false);
                     AddDMSGameOptionSets(optionSets, DMSVersion.NoSharedInfo, false);
@@ -101,7 +103,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     AddDMSGameOptionSets(optionSets, DMSVersion.DMS, false);
                     break;
                 case OptionSetChoice.Original:
-                    AddDMSGameOptionSets(optionSets, DMSVersion.OriginalEvenPrior, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.Original, false);
                     break;
                 case OptionSetChoice.EvenStrength:
                     AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrength, false);
@@ -148,15 +150,18 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         enum DMSVersion
         {
+            DMS,
             Original,
             OriginalInitializedToDMS,
             OriginalEvenPrior,
             EvenStrength,
+            OrdinaryFeeShiftingEvenStrength,
             PInfo_00, // p has no information
             PInfo_25, // p has 25% of information
             NoSharedInfo,
             WinnerTakesAll,
             WinnerTakesAllEvenStrength,
+            WinnerTakesAllEvenStrengthRiskAversion,
             Baseline_WithTrialGuaranteed, // same as VaryNoise_25 with trial guaranteed
             VaryNoise_00, // no noise; 50% of judgment depends on shared evaluation of quality; p, d private estimates evenly determine rest of judgment
             VaryNoise_25, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p, d private estimates evenly determine rest of judgment
@@ -167,8 +172,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             NoiseWithQuality75, // 25% noise; 75% of rest of judgment depends on shared evaluation of quality; p, d private estimates evenly determine rest of judgment
             NoiseWithQuality100, // 25% noise; 100% of rest of judgment depends on shared evaluation of quality; p, d private estimates are actually irrelevant
             RevisitSpecific,
-            WinnerTakesAllEvenStrengthRiskAversion,
-            DMS,
+            MarginFeeShiftingEvenStrength,
         }
 
         private void AddDMSGameOptionSets(List<(string optionSetName, GameOptions options)> optionSets, DMSVersion version, bool withOptionNotToPlay)
@@ -209,6 +213,15 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                             case DMSVersion.EvenStrength:
                                 // even strength means that each party has the same amount of information. We still have bias here -- that is, the parties' private information has nothing to do with the merits. 
                                 optionSets.Add(GetAndTransform("es" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.EqualStrengthInfo(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay, false), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
+                                break;
+
+                            case DMSVersion.OrdinaryFeeShiftingEvenStrength:
+                                // even strength means that each party has the same amount of information. We still have bias here -- that is, the parties' private information has nothing to do with the merits. 
+                                optionSets.Add(GetAndTransform("ordes" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.EqualStrengthInfo(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay, false), x => { x.OrdinaryFeeShifting = true; x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
+                                break;
+                            case DMSVersion.MarginFeeShiftingEvenStrength:
+                                // even strength means that each party has the same amount of information. We still have bias here -- that is, the parties' private information has nothing to do with the merits. 
+                                optionSets.Add(GetAndTransform("marges" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.EqualStrengthInfo(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay, false), x => { x.OrdinaryFeeShifting = true; x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
                                 break;
                             case DMSVersion.PInfo_00:
                                 optionSets.Add(GetAndTransform("pinfo00" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.AsymmetricInfo(1.0, 0.0, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay, false), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
