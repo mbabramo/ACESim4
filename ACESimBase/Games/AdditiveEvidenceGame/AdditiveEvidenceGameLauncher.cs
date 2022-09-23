@@ -12,7 +12,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         OptionSetChoice optionSetChoice = OptionSetChoice.Main;
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
-        public override string MasterReportNameForDistributedProcessing => "AE049";
+        public override string MasterReportNameForDistributedProcessing => "AE050";
 
         public static bool UseSpecificOnly = false;
         public static bool LimitToNonTrivialDMS = false; 
@@ -86,18 +86,18 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     AddDMSGameOptionSets(optionSets, DMSVersion.DMS, false);
                     AddDMSGameOptionSets(optionSets, DMSVersion.Original, false);
                     AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrength, false);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.OrdinaryFeeShiftingEvenStrength, false);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.MarginFeeShiftingEvenStrength, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.OrdinaryFeeShifting, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.MarginFeeShifting, false);
                     AddDMSGameOptionSets(optionSets, DMSVersion.PInfo_00, false);
                     AddDMSGameOptionSets(optionSets, DMSVersion.PInfo_25, false);
                     AddDMSGameOptionSets(optionSets, DMSVersion.NoSharedInfo, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll_WithOriginalInfoAsymmetry, false);
                     AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll, false);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAllEvenStrength, false);
                     AddDMSGameOptionSets(optionSets, DMSVersion.Original, true);
                     AddDMSGameOptionSets(optionSets, DMSVersion.PInfo_25, true);
                     AddDMSGameOptionSets(optionSets, DMSVersion.NoSharedInfo, true);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAllEvenStrength, true);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAllEvenStrengthRiskAversion, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAllRiskAversion, true);
                     break;
                 case OptionSetChoice.DMS:
                     AddDMSGameOptionSets(optionSets, DMSVersion.DMS, false);
@@ -109,13 +109,13 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                     AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrength, false);
                     break;
                 case OptionSetChoice.WinnerTakeAllWithQuitting:
-                    AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll_WithOriginalInfoAsymmetry, true);
                     break;
                 case OptionSetChoice.RevisitSpecific:
                     AddDMSGameOptionSets(optionSets, DMSVersion.RevisitSpecific, false);
                     break;
                 case OptionSetChoice.WinnerTakesAll:
-                    AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll_WithOriginalInfoAsymmetry, false);
                     break;
                 case OptionSetChoice.Fast:
                     AddDMSGameOptionSets(optionSets, DMSVersion.OriginalEvenPrior, false);
@@ -155,13 +155,13 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             OriginalInitializedToDMS,
             OriginalEvenPrior,
             EvenStrength,
-            OrdinaryFeeShiftingEvenStrength,
+            OrdinaryFeeShifting,
             PInfo_00, // p has no information
             PInfo_25, // p has 25% of information
             NoSharedInfo,
+            WinnerTakesAll_WithOriginalInfoAsymmetry,
             WinnerTakesAll,
-            WinnerTakesAllEvenStrength,
-            WinnerTakesAllEvenStrengthRiskAversion,
+            WinnerTakesAllRiskAversion,
             Baseline_WithTrialGuaranteed, // same as VaryNoise_25 with trial guaranteed
             VaryNoise_00, // no noise; 50% of judgment depends on shared evaluation of quality; p, d private estimates evenly determine rest of judgment
             VaryNoise_25, // 25% noise; 50% of rest of judgment depends on shared evaluation of quality; p, d private estimates evenly determine rest of judgment
@@ -172,7 +172,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             NoiseWithQuality75, // 25% noise; 75% of rest of judgment depends on shared evaluation of quality; p, d private estimates evenly determine rest of judgment
             NoiseWithQuality100, // 25% noise; 100% of rest of judgment depends on shared evaluation of quality; p, d private estimates are actually irrelevant
             RevisitSpecific,
-            MarginFeeShiftingEvenStrength,
+            MarginFeeShifting,
         }
 
         private void AddDMSGameOptionSets(List<(string optionSetName, GameOptions options)> optionSets, DMSVersion version, bool withOptionNotToPlay)
@@ -215,11 +215,11 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                                 optionSets.Add(GetAndTransform("es" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.EqualStrengthInfo(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay, false), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
                                 break;
 
-                            case DMSVersion.OrdinaryFeeShiftingEvenStrength:
+                            case DMSVersion.OrdinaryFeeShifting:
                                 // even strength means that each party has the same amount of information. We still have bias here -- that is, the parties' private information has nothing to do with the merits. 
                                 optionSets.Add(GetAndTransform("ordes" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.EqualStrengthInfo(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay, false), x => { x.OrdinaryFeeShifting = true; x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
                                 break;
-                            case DMSVersion.MarginFeeShiftingEvenStrength:
+                            case DMSVersion.MarginFeeShifting:
                                 // even strength means that each party has the same amount of information. We still have bias here -- that is, the parties' private information has nothing to do with the merits. 
                                 optionSets.Add(GetAndTransform("marges" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.EqualStrengthInfo(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay, false), x => { x.OrdinaryFeeShifting = true; x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
                                 break;
@@ -232,13 +232,13 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
                             case DMSVersion.NoSharedInfo:
                                 optionSets.Add(GetAndTransform("noshare" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.AsymmetricInfo(1.0, 0.50, qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay, false), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
                                 break;
-                            case DMSVersion.WinnerTakesAll:
+                            case DMSVersion.WinnerTakesAll_WithOriginalInfoAsymmetry:
                                 optionSets.Add(GetAndTransform("wta" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.DariMattiacci_Saraceno_Original(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay, winnerTakesAll: true), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
                                 break;
-                            case DMSVersion.WinnerTakesAllEvenStrength:
+                            case DMSVersion.WinnerTakesAll:
                                 optionSets.Add(GetAndTransform("wtaes" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.EqualStrengthInfo(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay, winnerTakesAll: true), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; }));
                                 break;
-                            case DMSVersion.WinnerTakesAllEvenStrengthRiskAversion:
+                            case DMSVersion.WinnerTakesAllRiskAversion:
                                 optionSets.Add(GetAndTransform("wtaesra" + qForQuit, settingsString, () => AdditiveEvidenceGameOptionsGenerator.EqualStrengthInfo(qualityKnownToBoth, costs, feeShiftingThreshold != null, false, feeShiftingThreshold ?? 0, withOptionNotToPlay, winnerTakesAll: true), x => { x.ModifyEvolutionSettings = e => { e.SequenceFormUseRandomSeed = true; }; x.RiskAversion = true; }));
                                 break;
                             case DMSVersion.RevisitSpecific:

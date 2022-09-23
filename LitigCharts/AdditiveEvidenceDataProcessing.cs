@@ -23,7 +23,7 @@ namespace LitigCharts
         {
             List<string> rowsToGet = new List<string>() { "All" }; // , "Settles", "Trial", "Shifting",   };
             List<string> replacementRowNames = rowsToGet.ToList();
-            List<string> columnsToGet = new List<string>() { "Exploit", "Seconds", "All", "TrialCost", "FeeShifting", "FeeShiftingThreshold", "Alpha_Plaintiff_Quality", /* "Alpha_Plaintiff_Bias", */ "Evidence_Both_Quality", "Settles", "Trial", "PWelfare", "DWelfare", "PQuits", "DQuits", "Shifting", "ShiftingOccursIfTrial", "ShiftingValueIfTrial", "POffer", "DOffer", "DMSAcc", "DMSAccL1", "AccSq", "Accuracy", "Accuracy_ForPlaintiff", "Accuracy_ForDefendant", "TrialRelativeAccSq", "TrialRelativeAccuracy", "TrialRelativeAccuracy_ForPlaintiff", "TrialRelativeAccuracy_ForDefendant", "SettlementOrJudgment", "TrialValuePreShiftingIfOccurs", "TrialValueWithShiftingIfOccurs", "ResolutionValueIncludingShiftedAmount", "SettlementValue", "PBestGuess", "DBestGuess" };
+            List<string> columnsToGet = new List<string>() { "Exploit", "Seconds", "All", "TrialCost", "FeeShifting", "FeeShiftingThreshold", "Alpha_Plaintiff_Quality", /* "Alpha_Plaintiff_Bias", */ "Evidence_Both_Quality", "Settles", "Trial", "PWelfare", "DWelfare", "PQuits", "DQuits", "Shifting", "ShiftingOccursIfTrial", "ShiftingValueIfTrial", "POffer", "DOffer", "DMSAcc", "DMSAccL1", "DMSTrialRelAccL1", "AccSq", "Accuracy", "Accuracy_ForPlaintiff", "Accuracy_ForDefendant", "TrialRelativeAccSq", "TrialRelativeAccuracy", "TrialRelativeAccuracy_ForPlaintiff", "TrialRelativeAccuracy_ForDefendant", "SettlementOrJudgment", "TrialValuePreShiftingIfOccurs", "TrialValueWithShiftingIfOccurs", "ResolutionValueIncludingShiftedAmount", "SettlementValue", "PBestGuess", "DBestGuess" };
             List<string> replacementColumnNames = columnsToGet.ToList();
             string endOfFileName = "";
 
@@ -300,7 +300,7 @@ namespace LitigCharts
                 }
 
                 // replacement short series names with longer names
-                (string original, string replacement)?[] replacements = new (string original, string replacement)?[] { ("dms", "DMS formulas"), ("orig", "Original"), ("es", "Equal information strength"), ("noshare", "No shared information"), ("pinfo00", "P has no info"), ("pinfo25", "P 25% of info"), ("wta", "Winner take all"), ("wtaes", "Winner take all, equal information strength"), ("trialg", "Trial guaranteed"), ("wtaesra", "Winner take all, equal information strength, risk aversion") };
+                (string original, string replacement)?[] replacements = new (string original, string replacement)?[] { ("dms", "DMS formulas"), ("orig", "Original"), ("es", "Equal information strength"), ("noshare", "No shared information"), ("pinfo00", "P has no info"), ("pinfo25", "P 25% of info"), ("wta", "Winner take all (otherwise original)"), ("wtaes", "Winner take all"), ("trialg", "Trial guaranteed"), ("wtaesra", "Winner take all, risk aversion"), ("ordes", "Ordinary fee shifting"), ("marges", "Margin-of-victory shifting") };
                 List<(string original, string replacement)?> replacementsList = replacements.ToList();
                 foreach (var r in replacements)
                     replacementsList.Add((r.Value.original + "q", r.Value.replacement + ", with quitting"));
