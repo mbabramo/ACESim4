@@ -84,7 +84,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             {
                 case OptionSetChoice.Main:
                     AddDMSGameOptionSets(optionSets, DMSVersion.DMS, false);
-                    AddDMSGameOptionSets(optionSets, DMSVersion.Original, false);
+                    // DEBUG AddDMSGameOptionSets(optionSets, DMSVersion.Original, false);
                     //DEBUG
                     //AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrength, false);
                     //AddDMSGameOptionSets(optionSets, DMSVersion.OrdinaryFeeShifting, false);

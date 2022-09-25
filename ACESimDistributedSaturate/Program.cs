@@ -63,7 +63,7 @@ namespace ACESimDistributedSaturate
                         return;
                     }
                 }
-                catch
+                catch (Exception ex) when (!(ex.Message.Contains("datum")))
                 {
                     Console.WriteLine($"Task coordination file busy after {s.Elapsed}");
                 }

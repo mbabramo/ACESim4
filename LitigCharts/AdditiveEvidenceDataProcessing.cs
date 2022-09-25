@@ -64,7 +64,7 @@ namespace LitigCharts
             var groupNames = new AdditiveEvidenceGameLauncher().GetGroupNames();
             foreach (string groupName in groupNames)
             {
-                foreach ((string targetVariable, string targetAbbreviation) in new (string, string)[] { ("Trial", "$L$"), ("Accuracy", "$A$"), ("Accuracy_ForPlaintiff", "$A$"), ("Accuracy_ForDefendant", "$A$"), ("DMSAccL1", "$A$"), ("DMSTrialRelAccL1", "$A$"), ("TrialRelativeAccuracy", "$A$"), ("TrialRelativeAccuracy_ForPlaintiff", "$A$"), ("TrialRelativeAccuracy_ForDefendant", "$A$"), ("TrialRelativeAccSq", "$A$"), ("POffer", @"$\mathcal{o}$"), ("DOffer", @"$\mathcal{o}$"), ("PWelfare", @"$\mathcal{u}$"), ("DWelfare", @"$\mathcal{u}$"), ("PQuits", "$Q$"), ("DQuits", "$Q$"), ("Exploit", @"$\mathcal{E}$") })
+                foreach ((string targetVariable, string targetAbbreviation) in new (string, string)[] { ("Trial", "$L$"), ("Accuracy", "$A$"), ("Accuracy_ForPlaintiff", "$A$"), ("Accuracy_ForDefendant", "$A$"), ("DMSAccL1", "$A$"), ("DMSTrialRelAccL1", "$A$"), ("TrialRelativeAccuracy", "$A$"), ("TrialRelativeAccuracy_ForPlaintiff", "$A$"), ("TrialRelativeAccuracy_ForDefendant", "$A$"), ("TrialRelativeAccSq", "$A$"), ("POffer", @"$\mathcal{B}$"), ("DOffer", @"$\mathcal{B}$"), ("PWelfare", @"$\mathcal{U}$"), ("DWelfare", @"$\mathcal{U}$"), ("PQuits", "$Q$"), ("DQuits", "$Q$"), ("Exploit", @"$\mathcal{E}$") })
                 {
                     string set = new AdditiveEvidenceGameLauncher().MasterReportNameForDistributedProcessing;
                     string csvFileName = set + "--.csv";
@@ -151,7 +151,7 @@ namespace LitigCharts
                         bool added = false;
                         foreach (var ae in aeData)
                         {
-                            if (ae.q == qVarVal && ae.c == cVarVal && ae.t == tVarVal)
+                            if (Math.Abs((double) ae.q - qVarVal) < 0.001 && Math.Abs((double) ae.c - cVarVal) < 0.001 && Math.Abs((double) ae.t - tVarVal) < 0.001)
                             {
                                 lineInIndividualGraph.Add(ae.mainVar);
                                 added = true;
@@ -236,7 +236,7 @@ namespace LitigCharts
             {
                 majorYValueNames = qValueStrings, // major row values
                 majorYAxisLabel = "$q$",
-                yAxisLabelOffsetLeft = 1.4,
+                yAxisLabelOffsetLeft = 0.8,
                 majorXValueNames = cValueStrings, // major column values
                 majorXAxisLabel = "$c$",
                 xAxisLabelOffsetDown = 1.0,
