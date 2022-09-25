@@ -12,7 +12,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
         OptionSetChoice optionSetChoice = OptionSetChoice.Main;
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
-        public override string MasterReportNameForDistributedProcessing => "AE051";
+        public override string MasterReportNameForDistributedProcessing => "AE052";
 
         public static bool UseSpecificOnly = false;
         public static bool LimitToNonTrivialDMS = false; 
@@ -22,7 +22,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public double[] QualityLevels_Shorter = new double[] { 1.0 / 6.0, 2.0 / 6.0, 3.0 / 6.0 };
         public double[] QualityLevels_Shortest = new double[] { 2.0 / 6.0, 3.0 / 6.0 };
-        int numFeeShiftingThresholds = 11; // DEBUG 101
+        int numFeeShiftingThresholds = 101; 
         public bool specificThresholdsDefined = false;
         public double[] FeeShiftingThresholds => UseSpecificOnly && specificThresholdsDefined ? SpecificThresholdLevels : Enumerable.Range(0, numFeeShiftingThresholds).Select(x => (double)(x / (numFeeShiftingThresholds - 1.0))).ToArray();
 
@@ -84,21 +84,20 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             {
                 case OptionSetChoice.Main:
                     AddDMSGameOptionSets(optionSets, DMSVersion.DMS, false);
-                    // DEBUG AddDMSGameOptionSets(optionSets, DMSVersion.Original, false);
-                    //DEBUG
-                    //AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrength, false);
-                    //AddDMSGameOptionSets(optionSets, DMSVersion.OrdinaryFeeShifting, false);
-                    //AddDMSGameOptionSets(optionSets, DMSVersion.MarginFeeShifting, false);
-                    //AddDMSGameOptionSets(optionSets, DMSVersion.PInfo_00, false);
-                    //AddDMSGameOptionSets(optionSets, DMSVersion.PInfo_25, false);
-                    //AddDMSGameOptionSets(optionSets, DMSVersion.NoSharedInfo, false);
-                    //AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll_WithOriginalInfoAsymmetry, false);
-                    //AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll, false);
-                    //AddDMSGameOptionSets(optionSets, DMSVersion.Original, true);
-                    //AddDMSGameOptionSets(optionSets, DMSVersion.PInfo_25, true);
-                    //AddDMSGameOptionSets(optionSets, DMSVersion.NoSharedInfo, true);
-                    //AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll, true);
-                    //AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAllRiskAversion, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.Original, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.EvenStrength, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.OrdinaryFeeShifting, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.MarginFeeShifting, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.PInfo_00, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.PInfo_25, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.NoSharedInfo, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll_WithOriginalInfoAsymmetry, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll, false);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.Original, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.PInfo_25, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.NoSharedInfo, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAll, true);
+                    AddDMSGameOptionSets(optionSets, DMSVersion.WinnerTakesAllRiskAversion, true);
                     break;
                 case OptionSetChoice.DMS:
                     AddDMSGameOptionSets(optionSets, DMSVersion.DMS, false);
