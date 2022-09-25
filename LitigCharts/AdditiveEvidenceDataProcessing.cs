@@ -166,6 +166,16 @@ namespace LitigCharts
                 }
                 graphData.Add(macroRow);
             }
+
+            string qVarToString(double x) => x switch
+            {
+                1.0 / 6.0 => @"$\frac{1}{6}$",
+                2.0 / 6.0 => @"$\frac{1}{3}$",
+                3.0 / 6.0 => @"$\frac{1}{2}$",
+                4.0 / 6.0 => @"$\frac{2}{3}$",
+                5.0 / 6.0 => @"$\frac{5}{6}$",
+                _ => throw new Exception()
+            };
             string tVarToString(double x)
             {
                 if (Math.Abs(x) < 1E-6)
@@ -177,7 +187,16 @@ namespace LitigCharts
                 else
                     return "";
             }
-            string result = GenerateLatex(graphData, qVarVals.Select(q => q.ToString("0.00")).ToList(), cVarVals.Select(c => RemoveTrailingZeros(c.ToString("0.0000"))).ToList(), tVarVals.Select(t => tVarToString(t)).ToList(), mainVarLabel);
+            string cVarToString(double x) => x switch
+            {
+                0 => "$0$",
+                0.0625 => @"$\frac{1}{16}$",
+                0.125 => @"$\frac{1}{8}$",
+                0.25 => @"$\frac{1}{4}$",
+                0.5 => @"$\frac{1}{2}$",
+                _ => throw new Exception()
+            };
+            string result = GenerateLatex(graphData, qVarVals.Select(q => qVarToString(q)).ToList(), cVarVals.Select(c => cVarToString(c)).ToList(), tVarVals.Select(t => tVarToString(t)).ToList(), mainVarLabel);
             
             return result;
         }
@@ -216,13 +235,13 @@ namespace LitigCharts
             TikzRepeatedGraph r = new TikzRepeatedGraph()
             {
                 majorYValueNames = qValueStrings, // major row values
-                majorYAxisLabel = "q",
+                majorYAxisLabel = "$q$",
                 yAxisLabelOffsetLeft = 1.4,
                 majorXValueNames = cValueStrings, // major column values
-                majorXAxisLabel = "c",
+                majorXAxisLabel = "$c$",
                 xAxisLabelOffsetDown = 1.0,
                 minorXValueNames = tValueStrings,
-                minorXAxisLabel = "t",
+                minorXAxisLabel = "$t$",
                 minorYValueNames = new List<string>() { "0", "0.25", "0.5", "0.75", "1" },
                 minorYAxisLabel = microYAxisLabel,
                 graphType = TikzAxisSet.GraphType.Scatter,
