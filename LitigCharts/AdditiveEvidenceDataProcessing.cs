@@ -19,7 +19,7 @@ namespace LitigCharts
         static string PrefixForEachFile => new AdditiveEvidenceGameLauncher().MasterReportNameForDistributedProcessing;
         static string PrefixForEachFileWithHyphen => PrefixForEachFile + "-";
         
-        public static void BuildReport()
+        public static void GenerateCSV()
         {
             List<string> rowsToGet = new List<string>() { "All" }; // , "Settles", "Trial", "Shifting",   };
             List<string> replacementRowNames = rowsToGet.ToList();

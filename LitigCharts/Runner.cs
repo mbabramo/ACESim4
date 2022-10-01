@@ -5,7 +5,7 @@
 
         public static void AdditiveEvidenceArticle()
         {
-            AdditiveEvidenceDataProcessing.BuildReport();
+            AdditiveEvidenceDataProcessing.GenerateCSV();
 
             AdditiveEvidenceDataProcessing.GenerateDiagramsFromCSV();
             
