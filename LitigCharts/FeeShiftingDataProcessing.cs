@@ -137,7 +137,7 @@ namespace LitigCharts
         {
             WaitUntilFewerThanMaxProcessesAreRunning();
 
-            bool skipIfExists = true;
+            bool skipIfExists = true; 
             if (skipIfExists && File.Exists(combinedPath.Replace(".tex", ".pdf")))
                 return;
 

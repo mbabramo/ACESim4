@@ -17,7 +17,8 @@ namespace LitigCharts
             // Set the following on opening the first file
             List<List<string>> outputLines = null;
 
-            foreach (var gameOptionsSet in gameOptionsSets.Where(x => map[x.Name] == x.Name)) // for this aggregation, we want only one copy of each report, so we exclude the redundant names that include the baseline values for a noncritical set
+            var matchingSets = gameOptionsSets.Where(x => map[x.Name] == x.Name).ToList();
+            foreach (var gameOptionsSet in matchingSets) // for this aggregation, we want only one copy of each report, so we exclude the redundant names that include the baseline values for a noncritical set
             {
                 bool keepGoingOnException = false;
                 try

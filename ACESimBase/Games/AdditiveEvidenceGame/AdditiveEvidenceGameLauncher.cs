@@ -22,6 +22,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         public double[] QualityLevels_Shorter = new double[] { 1.0 / 6.0, 2.0 / 6.0, 3.0 / 6.0 };
         public double[] QualityLevels_Shortest = new double[] { 2.0 / 6.0, 3.0 / 6.0 };
+        public double[] QualityLevels_Average = new double[] { -1 };
         int numFeeShiftingThresholds = 101; 
         public bool specificThresholdsDefined = false;
         public double[] FeeShiftingThresholds => UseSpecificOnly && specificThresholdsDefined ? SpecificThresholdLevels : Enumerable.Range(0, numFeeShiftingThresholds).Select(x => (double)(x / (numFeeShiftingThresholds - 1.0))).ToArray();

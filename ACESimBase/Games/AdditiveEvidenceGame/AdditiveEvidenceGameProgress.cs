@@ -128,7 +128,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             {
                 // In the original paper, to determine whether fee shifting occurs in favor of a party, that party must win half of the judgment, and then
                 // thetaD < t (for shifting from D to P) or thetaP > 1 - t (for shifting from P to D). thetaP = zP * q. Here we are generalizing thetaP 
-                // (and below we are generalizing thetaD). The q here represents the information symmetry (serving a dual role in this model). The zP
+                // (and below we are generalizing thetaD). The q here represents the information symmetry (serving a dual role in the original model). The zP
                 // is party-specific information from 0 to 1 (in the original model, about bias).
                 double overallPartySpecificInfoBias = (AdditiveEvidenceGameOptions.Alpha_Plaintiff_Bias + AdditiveEvidenceGameOptions.Alpha_Defendant_Bias);
                 double overallPartySpecificInfoQuality = (AdditiveEvidenceGameOptions.Alpha_Plaintiff_Quality + AdditiveEvidenceGameOptions.Alpha_Defendant_Quality);
