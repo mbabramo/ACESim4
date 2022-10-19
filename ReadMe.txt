@@ -29,3 +29,6 @@ used to keep track of progress in the game is AdditiveEvienceGameProgress.
 The players, including chance players corresponding to different chance decisions, are listed in AdditiveEvidneceGamePlayers. 
 The AdditiveEvidenceGameLauncher.cs file generates options for the many different permutations executed. 
 
+For the non-discretized game described in Appendix B, the applicable code uses the prefix DMSReplication instead of the prefix AdditiveEvidence. 
+The GetLauncher() function can be changed to launch the DMSReplication game instead of the AdditiveEvidence game.
+
