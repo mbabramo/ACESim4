@@ -146,8 +146,20 @@ namespace LitigCharts
             double[] uniformStrengthLevels = Enumerable.Range(0, numStrengthPoints).Select(strengthPointIndex => Game.ConvertActionToUniformDistributionDraw((byte)(strengthPointIndex + 1), numStrengthPoints, false)).ToArray();
             List<SignalsChartNode> caseStrengthColumn;
             if (ChartIsForLiabilitySignals)
+            {
+                double[][] probabilitiesOfDiscreteSignals = Enumerable.Range(0, NumLiabilityStrengthPoints).Select(strengthPointIndex => DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(strengthPointIndex + 1, PLiabilitySignalParameters).ToArray()).ToArray();
+                StringBuilder explanation = new StringBuilder();
+                explanation.AppendLine("Probability of signals given different liabilty strengths");
+                for (int i = 0; i < NumLiabilityStrengthPoints; i++)
+                {
+                    explanation.Append("Liability Strength " + uniformStrengthLevels[i].ToDecimalPlaces(2) + ": ");
+                    for (int j = 0; j < probabilitiesOfDiscreteSignals[i].Length; j++)
+                        explanation.Append($"{probabilitiesOfDiscreteSignals[i][j].ToDecimalPlaces(2)}{(j < probabilitiesOfDiscreteSignals[i].Length - 1 ? ", " : "")}");
+                    explanation.AppendLine("");
+                }
                 caseStrengthColumn = Enumerable.Range(0, NumLiabilityStrengthPoints).Select<int, SignalsChartNode>(strengthPointIndex =>
-                new SignalsChartNode(1, strengthPointIndex, uniformStrengthLevels[strengthPointIndex], proportionOfTotalInSecondColumn[strengthPointIndex], "Liability Strength " + uniformStrengthLevels[strengthPointIndex].ToDecimalPlaces(2), DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(strengthPointIndex + 1, PLiabilitySignalParameters).ToList())).ToList();
+                new SignalsChartNode(1, strengthPointIndex, uniformStrengthLevels[strengthPointIndex], proportionOfTotalInSecondColumn[strengthPointIndex], "Liability Strength " + uniformStrengthLevels[strengthPointIndex].ToDecimalPlaces(2), probabilitiesOfDiscreteSignals[strengthPointIndex].ToList())).ToList();
+            }
             else
                 caseStrengthColumn = Enumerable.Range(0, NumDamagesStrengthPoints).Select<int, SignalsChartNode>(strengthPointIndex =>
                 new SignalsChartNode(0, strengthPointIndex, uniformStrengthLevels[strengthPointIndex], ProbabilityOfDamagesStrengthValues[strengthPointIndex], "Damages Strength " + uniformStrengthLevels[strengthPointIndex].ToDecimalPlaces(2), DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(strengthPointIndex + 1, PDamagesSignalParameters).ToList())).ToList();

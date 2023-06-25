@@ -14,7 +14,7 @@
             AdditiveEvidenceDataProcessing.OrganizeIntoFolders();
         }
 
-        private static void FeeShiftingArticle()
+        public static void FeeShiftingArticle()
         {
             bool doSignalsDiagram = false; // if so, only this will be run
             bool printIndividualLatexDiagrams = true; // this is the time consuming one
