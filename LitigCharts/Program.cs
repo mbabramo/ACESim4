@@ -16,11 +16,7 @@ namespace LitigCharts
 
         static void Main(string[] args)
         {
-            //Runner.KlermanData.Execute();
-
-            Runner.AdditiveEvidenceArticle();
-
-            //Runner.FeeShiftingArticle();
+            Runner.CostDiseaseAnalysis();
         }
     }
 }

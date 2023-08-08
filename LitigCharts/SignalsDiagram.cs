@@ -6,6 +6,7 @@ using MathNet.Numerics;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -24,8 +25,10 @@ namespace LitigCharts
         public int NumLiabilityStrengthPoints = 10, NumDamagesStrengthPoints = 10, NumLiabilitySignals = 10, NumDamagesSignals = 10;
         public const double NoiseMultiplier = 1.0;
         public double PDamagesNoiseStdev = 0.2 * NoiseMultiplier, PLiabilityNoiseStdev = 0.2 * NoiseMultiplier;
-        public double StdevNoiseToProduceLiabilityStrength = 0.35; 
+        public double StdevNoiseToProduceLiabilityStrength = 0.35;
+        public double CostPerParty = 0.2;
         public DiscreteValueSignalParameters PDamagesSignalParameters, PLiabilitySignalParameters;
+        public double ProbabilityOfLitigation = 0;
 
         public record SignalsChartNode(int column, int row, double magnitude, double proportionOfTotal, string nodeName, List<double> proportionOfThisNodeToEachInNextColumn)
         {
@@ -148,17 +151,73 @@ namespace LitigCharts
             if (ChartIsForLiabilitySignals)
             {
                 double[][] probabilitiesOfDiscreteSignals = Enumerable.Range(0, NumLiabilityStrengthPoints).Select(strengthPointIndex => DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(strengthPointIndex + 1, PLiabilitySignalParameters).ToArray()).ToArray();
+                // Estimate the probability of winning for each signal
+                double[] winWeightAtSignal = new double[NumLiabilitySignals];
+                double[] lossWeightAtSignal = new double[NumLiabilitySignals];
+                double[] winProbabilityAtSignal = new double[NumLiabilitySignals];
+                double[] caseGoesToTrial = new double[NumLiabilitySignals];
+                foreach (var trueLiabilityProb in new double[] { 1 - ExogenousProbabilityTrulyLiable, ExogenousProbabilityTrulyLiable })
+                {
+                    for (int liabilityStrengthIndex = 0; liabilityStrengthIndex < NumLiabilityStrengthPoints; liabilityStrengthIndex++)
+                    {
+                        bool plaintiffWouldWin = liabilityStrengthIndex >= NumLiabilityStrengthPoints / 2; // e.g., if 10 strength points, then 5 and up are plaintiff winners
+                        double liabilityStrengthProbability = proportionOfTotalInSecondColumn[liabilityStrengthIndex];
+                        for (int signalIndex = 0; signalIndex < NumLiabilitySignals; signalIndex++)
+                        {
+                            double pSignalProbability = probabilitiesOfDiscreteSignals[liabilityStrengthIndex][signalIndex];
+                            double combinedProbability = trueLiabilityProb * liabilityStrengthProbability * pSignalProbability;
+                            if (plaintiffWouldWin)
+                                winWeightAtSignal[signalIndex] += combinedProbability;
+                            else
+                                lossWeightAtSignal[signalIndex] += combinedProbability;
+                        }
+                    }
+                }
+                for (int signalIndex = 0; signalIndex < NumLiabilitySignals; signalIndex++)
+                    winProbabilityAtSignal[signalIndex] = winWeightAtSignal[signalIndex] / (winWeightAtSignal[signalIndex] + lossWeightAtSignal[signalIndex]);
+                // Now figure out which cases will be tried. We want to look at each combination of (pSignal, dSignal). We can calculate
+                // each party's estimate of the plaintiff's win probability at the signal. 
+                double combinedTrialPercentage = 0;
+                foreach (var trueLiabilityProb in new double[] { 1 - ExogenousProbabilityTrulyLiable, ExogenousProbabilityTrulyLiable })
+                {
+                    for (int liabilityStrengthIndex = 0; liabilityStrengthIndex < NumLiabilityStrengthPoints; liabilityStrengthIndex++)
+                    {
+                        bool plaintiffWouldWin = liabilityStrengthIndex >= NumLiabilityStrengthPoints / 2; // e.g., if 10 strength points, then 5 and up are plaintiff winners
+                        double liabilityStrengthProbability = proportionOfTotalInSecondColumn[liabilityStrengthIndex];
+                        for (int pSignalIndex = 0; pSignalIndex < NumLiabilitySignals; pSignalIndex++)
+                        {
+                            double pSignalProbability = probabilitiesOfDiscreteSignals[liabilityStrengthIndex][pSignalIndex];
+                            double combinedProbabilityWithPSignal = trueLiabilityProb * liabilityStrengthProbability * pSignalProbability;
+                            if (plaintiffWouldWin)
+                                winWeightAtSignal[pSignalIndex] += combinedProbabilityWithPSignal;
+                            else
+                                lossWeightAtSignal[pSignalIndex] += combinedProbabilityWithPSignal;
+                            double pEstimateWinProbability = winProbabilityAtSignal[pSignalIndex];
+                            for (int dSignalIndex = 0; dSignalIndex < NumLiabilitySignals; dSignalIndex++)
+                            {
+                                double dSignalProbability = probabilitiesOfDiscreteSignals[liabilityStrengthIndex][dSignalIndex];
+                                double combinedProbabilityBothParties = combinedProbabilityWithPSignal * dSignalProbability;
+                                double dEstimateWinProbability = winProbabilityAtSignal[dSignalIndex];
+                                bool goesToTrial = pEstimateWinProbability - dEstimateWinProbability > 2 * CostPerParty;
+                                if (goesToTrial)
+                                    combinedTrialPercentage += combinedProbabilityBothParties;
+                            }
+                        }
+                    }
+                }
+                ProbabilityOfLitigation = combinedTrialPercentage;
+
                 StringBuilder explanation = new StringBuilder();
                 explanation.AppendLine("Probability of signals given different liabilty strengths");
                 for (int i = 0; i < NumLiabilityStrengthPoints; i++)
                 {
-                    explanation.Append("Liability Strength " + uniformStrengthLevels[i].ToDecimalPlaces(2) + ": ");
+                    explanation.Append("Case Strength " + uniformStrengthLevels[i].ToDecimalPlaces(2) + ": ");
                     for (int j = 0; j < probabilitiesOfDiscreteSignals[i].Length; j++)
                         explanation.Append($"{probabilitiesOfDiscreteSignals[i][j].ToDecimalPlaces(2)}{(j < probabilitiesOfDiscreteSignals[i].Length - 1 ? ", " : "")}");
                     explanation.AppendLine("");
                 }
                 caseStrengthColumn = Enumerable.Range(0, NumLiabilityStrengthPoints).Select<int, SignalsChartNode>(strengthPointIndex =>
-                new SignalsChartNode(1, strengthPointIndex, uniformStrengthLevels[strengthPointIndex], proportionOfTotalInSecondColumn[strengthPointIndex], "Liability Strength " + uniformStrengthLevels[strengthPointIndex].ToDecimalPlaces(2), probabilitiesOfDiscreteSignals[strengthPointIndex].ToList())).ToList();
+                new SignalsChartNode(1, strengthPointIndex, uniformStrengthLevels[strengthPointIndex], proportionOfTotalInSecondColumn[strengthPointIndex], "Case Strength " + uniformStrengthLevels[strengthPointIndex].ToDecimalPlaces(2), probabilitiesOfDiscreteSignals[strengthPointIndex].ToList())).ToList();
             }
             else
                 caseStrengthColumn = Enumerable.Range(0, NumDamagesStrengthPoints).Select<int, SignalsChartNode>(strengthPointIndex =>
