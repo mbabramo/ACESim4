@@ -96,6 +96,7 @@ namespace ACESim
                     bool isHiddenInitially = !ConsoleProgressStringVisible;
                     if (!isHiddenInitially)
                         HideConsoleProgressString();
+
                     Console.Write(localString);
                     if (!isHiddenInitially)
                         ShowConsoleProgressString();

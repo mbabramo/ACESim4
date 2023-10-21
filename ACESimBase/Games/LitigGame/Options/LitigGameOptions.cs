@@ -285,7 +285,7 @@ namespace ACESim
         {
             return
 $@"LitigationGame: {Name}
-InvertChanceDecisions {CollapseChanceDecisions}
+CollapseChanceDecisions {CollapseChanceDecisions}
 NumOffers {NumOffers} {(IncludeEndpointsForOffers ? "(Includes endpoints)" : "")}  
 NumPotentialBargainingRounds {NumPotentialBargainingRounds}  BargainingRoundsSimultaneous {BargainingRoundsSimultaneous} SimultaneousOffersUltimatelyRevealed {SimultaneousOffersUltimatelyRevealed} 
 NumLiabilityStrengthPoints {NumLiabilityStrengthPoints} NumLiabilitySignals {NumLiabilitySignals} PLiabilityNoiseStdev {PLiabilityNoiseStdev} DLiabilityNoiseStdev {DLiabilityNoiseStdev} CourtLiabilityNoiseStdev {CourtLiabilityNoiseStdev} 

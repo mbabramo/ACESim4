@@ -67,8 +67,10 @@ namespace ACESim
         {
             Stopwatch s = new Stopwatch();
             s.Start();
-            if (OperatingSystem.IsWindows())
-                Console.SetBufferSize(1000, 32766);
+
+            // DEBUG -- this seems to cause a bug now
+            //if (OperatingSystem.IsWindows())
+            //    Console.SetBufferSize(1000, 32766);
 
             string baseOutputDirectory;
             string strategiesPath;
