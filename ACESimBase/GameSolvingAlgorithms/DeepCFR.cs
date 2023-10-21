@@ -15,7 +15,7 @@ namespace ACESim
 {
 
     // TODO
-    // 1. Once we have a PCA, see what happens to the Nash equilibria as we change settings. Where there is no unique Nash equilibrium, try to use Lemke-Howson.
+    // 1. Once we have a PCA, see what happens to the Nash equilibria as we change settings. 
     // We can also give further thought to the correlated equilibrium strategies and study whether these are consistent enough to be worth exploring. 
     // 2. Consider also the possibility of a meta-equilibrium on randomness based on distance from Nash equilibria. That is the probability that each player would play
     // a particular strategy would be be (1 / (k + d)), where d is the sum of square distances from Nash equilibria. The question is whether there is a value of k
@@ -25,6 +25,7 @@ namespace ACESim
     // for every cell of the metagame. One question is whether the metagame might produce a different equilibrium if both players recognize that they are estimating utilities
     // with some error, so what one thinks will be the Nash equilibrium in fact might not be. As currently constructed, even though the model is imperfect, once we get to 
     // the bimatrix game, the players play without error. 
+    // 3. Quantal Response Equilibrium might be another way to get at this, using the quantal response function. 
 
     [Serializable]
     public partial class DeepCFR : CounterfactualRegretMinimization
@@ -34,7 +35,7 @@ namespace ACESim
         /// <summary>
         /// This is a model that is used to provide a baseline for generating model data with DeepCFR. Each datum is a 
         /// regret value for a particular information set and action combination. The baseline multimodel includes for
-        /// each decision a collection of such information-set-and-action combinations, so the genomes are interpreted
+        /// each decision a collection of such information-set-and-action combinations, so the strategies are interpreted
         /// as lists of regret values in these combinations. Principal components analysis (PCA) can then be used to
         /// reduce model data into a few principal components.
         /// </summary>

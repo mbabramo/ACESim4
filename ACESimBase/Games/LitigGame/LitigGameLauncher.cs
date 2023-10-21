@@ -13,7 +13,7 @@ namespace ACESim
 {
     public class LitigGameLauncher : Launcher
     {
-        public override string MasterReportNameForDistributedProcessing => "FS034";
+        public override string MasterReportNameForDistributedProcessing => "FS035";
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
 
@@ -77,7 +77,7 @@ namespace ACESim
             Simple2BR,
             FeeShiftingArticle,
         }
-        OptionSetChoice OptionSetChosen = OptionSetChoice.FeeShiftingArticle;  // <<-- Choose option set here
+        OptionSetChoice OptionSetChosen = OptionSetChoice.JustOneOption;  // <<-- Choose option set here
 
         public override GameOptions GetDefaultSingleGameOptions()
         {

@@ -38,7 +38,7 @@ namespace ACESim
             FeeShiftingArticleBase,
         }
 
-        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.FeeShiftingArticleBase;
+        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.LiabilityUncertainty_2BR;
 
         public static LitigGameOptions GetLitigGameOptions() => LitigGameChoice switch
         {
