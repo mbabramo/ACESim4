@@ -38,7 +38,7 @@ namespace ACESim
             FeeShiftingArticleBase,
         }
 
-        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.LiabilityUncertainty_3BR;
+        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.LiabilityUncertainty_2BR;
 
         public static LitigGameOptions GetLitigGameOptions() => LitigGameChoice switch
         {
@@ -105,7 +105,7 @@ namespace ACESim
                     ExogenousProbabilityTrulyLiable = 0.5,
                     StdevNoiseToProduceLiabilityStrength = 0.5
                 },
-                CollapseChanceDecisions = true, // DEBUG
+                CollapseChanceDecisions = true, 
                 SkipFileAndAnswerDecisions = false, 
                 PFilingCost = 5000,
                 DAnswerCost = 5000,

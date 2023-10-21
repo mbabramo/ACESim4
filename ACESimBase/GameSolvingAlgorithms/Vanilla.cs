@@ -126,7 +126,9 @@ namespace ACESim
                         informationSet.IncrementCumulativeRegret(action, inversePi * regret * (regret > 0 ? PositiveRegretsAdjustment : NegativeRegretsAdjustment));
                     }
                     else
+                    {
                         informationSet.IncrementCumulativeRegret(action, inversePi * regret);
+                    }
                     double contributionToAverageStrategy = EvolutionSettings.UseStandardDiscounting ? pi * actionProbabilities[action - 1] * AverageStrategyAdjustment : pi * actionProbabilities[action - 1];
                     if (EvolutionSettings.ParallelOptimization)
                         informationSet.IncrementCumulativeStrategy_Parallel(action, contributionToAverageStrategy);
