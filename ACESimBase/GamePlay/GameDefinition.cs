@@ -496,7 +496,7 @@ namespace ACESim
         // When playing multiple scenarios, we can define one or more concluding scenarios
 
         public virtual bool PlayMultipleScenarios => false;
-        public virtual int NumPostWarmupPossibilities => 1;
+        public virtual int NumPostWarmupPossibilities => 11;
         public virtual int NumWarmupPossibilities => 0;
         public virtual int WarmupIterations_IfWarmingUp => 200;
         public bool UseDifferentWarmup => PlayMultipleScenarios && (NumWarmupPossibilities > 0 || NumDifferentWeightsOnOpponentsStrategy > 0);
@@ -514,7 +514,7 @@ namespace ACESim
             : 1;
         public virtual (double, double) MinMaxWeightOnOpponentsStrategyDuringWarmup => (-1, 1); // weight will be relatively small early and then increase to random numbers in range 
 
-        public static double GetParameterInRange(double min, double max, int permutationIndex, int numPermutations) => min + (max - min) * (((double)permutationIndex) / ((double)(numPermutations - 1)));
+        public static double GetParameterInRange(double min, double max, int permutationIndex, int numPermutations) => numPermutations == 1 ? 0.5*min + 0.5*max : min + (max - min) * (((double)permutationIndex) / ((double)(numPermutations - 1)));
         public double WeightOnOpponentsStrategyDuringWarmup(int weightsPermutationValue) =>  MultiplyWarmupScenariosByAlteringWeightOnOpponentsStrategy ? 
             (GetParameterInRange(MinMaxWeightOnOpponentsStrategyDuringWarmup.Item1, MinMaxWeightOnOpponentsStrategyDuringWarmup.Item2, weightsPermutationValue, NumDifferentWeightsOnOpponentsStrategyPerPlayer))
             : 0;

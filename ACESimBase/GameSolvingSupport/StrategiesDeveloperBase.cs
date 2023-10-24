@@ -707,6 +707,12 @@ namespace ACESim
         public PrincipalComponentsAnalysis PerformPrincipalComponentAnalysis(byte playerIndex)
         {
             int numVariablesInModel = ModelDataSavedForPCA.First()[playerIndex].Length;
+
+            int DEBUGCountVariation = 0;
+            for (int i = 0; i < numVariablesInModel; i++)
+                if (!ModelDataSavedForPCA.All(x => x[playerIndex][i] == x[playerIndex][0]))
+                    DEBUGCountVariation++;
+
             int numVersionsOfModel = ModelDataSavedForPCA.Count();
             double[,] originalData = new double[numVersionsOfModel, numVariablesInModel];
             for (int i = 0; i < numVersionsOfModel; i++)

@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -1274,7 +1275,7 @@ namespace ACESim
         #region Principal component analysis
 
         /// <summary>
-        /// Copies the model variables for each player (that is, the regret values in the player's information sets) into a separate float array for that player. 
+        /// Copies the model variables for each player into a separate float array for that player. 
         /// </summary>
         /// <returns></returns>
         public override float[][] GetCurrentModelVariablesForPCA()
@@ -1289,8 +1290,17 @@ namespace ACESim
                     {
                         for (int a = 1; a <= informationSet.NumPossibleActions; a++)
                         {
-                            double regret = informationSet.GetCumulativeRegret(a);
-                            modelVariablesForPlayer.Add((float) regret);
+                            bool useRegrets = false; // DEBUG // the reason for this is that it improves the model for determining whether something should be 0. still, regrets may be different orders of magnitude
+                            if (useRegrets)
+                            {
+                                double regret = informationSet.GetCumulativeRegret(a);
+                                modelVariablesForPlayer.Add((float)regret);
+                            }
+                            else
+                            {
+                                double probability = Math.Round(informationSet.GetCurrentProbability((byte) a, false), 2); // TODO: Make sure all the probabilities add up to 1. Maybe only round at the extremes (<0.01, >0.99) and always balance it out, so that we round the same number high and low. 
+                                modelVariablesForPlayer.Add((float)probability);
+                            }
                         }
                     }
                 }
