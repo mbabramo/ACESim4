@@ -920,7 +920,7 @@ namespace ACESimTest
                                                                     {
                                                                         if (aggregateAllExceptions)
                                                                             b.AppendLine($"Case number {CaseNumber}: {settings}"); 
-                                                                        else throw;
+                                                                        else throw ex;
                                                                     }
                                                                 }
                                                                 CaseNumber++;

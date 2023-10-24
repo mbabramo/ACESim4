@@ -1,6 +1,7 @@
 ﻿using ACESimBase.GameSolvingSupport;
 using ACESimBase.Util;
 using ACESimBase.Util.ArrayProcessing;
+using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -202,6 +203,7 @@ namespace ACESim
                 var result = await GenerateReports(iteration,
                     () =>
                         $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
+                ModelSuccessTrackingForIteration(iteration);
                 reportCollection.Add(result);
                 targetMet = Status.BestResponseTargetMet(EvolutionSettings.BestResponseTarget);
                 if (TraceCFR)
@@ -1290,7 +1292,7 @@ namespace ACESim
                     {
                         for (int a = 1; a <= informationSet.NumPossibleActions; a++)
                         {
-                            bool useRegrets = false; // DEBUG // the reason for this is that it improves the model for determining whether something should be 0. still, regrets may be different orders of magnitude
+                            bool useRegrets = true; // the reason for using regrets is that it improves the model for determining whether something should be 0. still, regrets may be different orders of magnitude
                             if (useRegrets)
                             {
                                 double regret = informationSet.GetCumulativeRegret(a);

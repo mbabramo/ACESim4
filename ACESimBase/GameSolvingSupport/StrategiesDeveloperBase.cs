@@ -33,14 +33,14 @@ namespace ACESim
         public const int MaxNumMainPlayers = 4; // this affects fixed-size stack-allocated buffers // TODO: Set to 2
         public const int MaxPossibleActions = 100; // same
 
-        public InformationSetLookupApproach LookupApproach { get; set; } = InformationSetLookupApproach.CachedGameHistoryOnly; 
+        public InformationSetLookupApproach LookupApproach { get; set; } = InformationSetLookupApproach.CachedGameHistoryOnly;
 
-        public bool AllowSkipEveryPermutationInitialization { get; set;}  = true;
-        public bool SkipEveryPermutationInitialization => 
-            AllowSkipEveryPermutationInitialization  
+        public bool AllowSkipEveryPermutationInitialization { get; set; } = true;
+        public bool SkipEveryPermutationInitialization =>
+            AllowSkipEveryPermutationInitialization
             && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder && (EvolutionSettings.Algorithm != GameApproximationAlgorithm.SequenceForm || EvolutionSettings.UseAcceleratedBestResponse);
 
-        bool TemporarilyDisableFullReports; 
+        bool TemporarilyDisableFullReports;
 
         [NonSerialized]
         public Stopwatch StrategiesDeveloperStopwatch = new Stopwatch();
@@ -109,7 +109,7 @@ namespace ACESim
 
         public int OverallScenarioIndex;
         DateTime Started = DateTime.Now;
-        long SecondsSoFar => (long) (DateTime.Now - Started).TotalSeconds;
+        long SecondsSoFar => (long)(DateTime.Now - Started).TotalSeconds;
 
         public async Task<ReportCollection> DevelopStrategies(string optionSetName, int? restrictToScenarioIndex, string masterReportName)
         {
@@ -175,7 +175,7 @@ namespace ACESim
                 reportCollection = await FinalizeCorrelatedEquilibrium();
             DateTime finished = DateTime.Now;
             TimeSpan timeSpan = finished - Started;
-            Status.OverallCalculationTime = (int) timeSpan.TotalSeconds;
+            Status.OverallCalculationTime = (int)timeSpan.TotalSeconds;
             return reportCollection;
         }
 
@@ -327,7 +327,7 @@ namespace ACESim
             }
 
             int highestUtilityItem = Enumerable.Range(0, numCandidates).Select((candidate, index) => (sumSqZ[candidate], index)).OrderByDescending(y => y.Item1).First().index; // item with highest sum of utilities, represented in z scores
-            int[] itemsToTryAsInitial = EvolutionSettings.ConstructCorrelatedEquilibriumMultipleTimesExPost ? Enumerable.Range(0, numCandidates).Take(EvolutionSettings.MaxNumCorrelatedEquilibriaToConstruct).ToArray() : new int[] {highestUtilityItem};
+            int[] itemsToTryAsInitial = EvolutionSettings.ConstructCorrelatedEquilibriumMultipleTimesExPost ? Enumerable.Range(0, numCandidates).Take(EvolutionSettings.MaxNumCorrelatedEquilibriaToConstruct).ToArray() : new int[] { highestUtilityItem };
             int mostItemsInAnyCorrelatedEquilibrium = 0;
             List<int> biggestCorrelatedEquilibrium = null;
             StatCollectorArray meta1 = new StatCollectorArray(), meta2 = new StatCollectorArray();
@@ -520,6 +520,63 @@ namespace ACESim
             target.GameFactory = GameFactory;
             target.Navigation = Navigation;
             target.LookupApproach = LookupApproach;
+        }
+
+        #endregion
+
+        #region Model success tracking
+
+        int? ModelSuccessTrackingLastIterationSaved = null;
+        int ModelSuccessEntriesSaved = 0;
+        float[,] ModelSuccessTracked;
+        public void ModelSuccessTrackingForIteration(int iteration)
+        {
+            if (EvolutionSettings.ModelSuccessTracking == false)
+                return;
+            if (ModelSuccessTrackingLastIterationSaved == null || ModelSuccessTrackingLastIterationSaved < iteration)
+            {
+                if (EvolutionSettings.BestResponseEveryMIterations != 1)
+                    throw new Exception("Must set best response every iteration for model success tracking"); // could be changed -- just need to figure out total number of iterations
+                int totalPlayerActions = InformationSets.Sum(x => x.NumPossibleActions);
+                const int utilityAndBestResponseDataPerPlayer = 3; // utility, utility after best response, improvement
+                int dataPerIteration = totalPlayerActions + 2 * utilityAndBestResponseDataPerPlayer + 1 /* avg adjusted best response improvement */;
+                int numIterations = EvolutionSettings.TotalIterations;
+                int adjNumIterations = numIterations - EvolutionSettings.ModelSuccessTracking_StartingIteration;
+                if (adjNumIterations <= 0)
+                    throw new Exception();
+                ModelSuccessTracked = new float[adjNumIterations, dataPerIteration];
+                ModelSuccessEntriesSaved = 0;
+            }
+            ModelSuccessTrackingLastIterationSaved = iteration;
+            int rowIndex = ModelSuccessEntriesSaved++;
+            int colIndex = 0;
+            foreach (var informationSet in InformationSets)
+            {
+                for (int a = 1; a <= informationSet.NumPossibleActions; a++)
+                {
+                    double probability = Math.Round(informationSet.GetCurrentProbability((byte)a, false), 3); // TODO: Make sure all the probabilities add up to 1. Maybe only round at the extremes (<0.01, >0.99) and always balance it out, so that we round the same number high and low. 
+                    ModelSuccessTracked[rowIndex, colIndex++] = (float)probability;
+                }
+            }
+            ModelSuccessTracked[rowIndex, colIndex++] = (float) Status.UtilitiesOverall[0];
+            ModelSuccessTracked[rowIndex, colIndex++] = (float)Status.UtilitiesOverall[1];
+            ModelSuccessTracked[rowIndex, colIndex++] = (float)Status.BestResponseUtilities[0];
+            ModelSuccessTracked[rowIndex, colIndex++] = (float)Status.BestResponseUtilities[1];
+            ModelSuccessTracked[rowIndex, colIndex++] = (float)Status.BestResponseImprovementAdj[0];
+            ModelSuccessTracked[rowIndex, colIndex++] = (float)Status.BestResponseImprovementAdj[1];
+            ModelSuccessTracked[rowIndex, colIndex++] = (float)Status.BestResponseImprovementAdjAvg;
+            if (rowIndex + 1 == ModelSuccessTracked.GetLength(0))
+            {
+                SaveModelSuccessTrackingData();
+            }
+        }
+
+        public void SaveModelSuccessTrackingData()
+        {
+            TabbedText.WriteLine($"Writing model success data ({ModelSuccessTracked.GetLength(0)} x {ModelSuccessTracked.GetLength(1)})");
+            string path = FolderFinder.GetFolderToWriteTo("Strategies").FullName;
+            string fullPath = Path.Combine(path, "success.h5");
+            HDF5Writer.WriteArrayToFile(ModelSuccessTracked, fullPath);
         }
 
         #endregion

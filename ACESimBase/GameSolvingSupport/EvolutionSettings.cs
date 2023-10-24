@@ -33,9 +33,9 @@ namespace ACESim
 
         public bool UseAcceleratedBestResponse = true; 
         public const int EffectivelyNever = 999999999;
-        public int? BestResponseEveryMIterations = 100; // For partial recall games, this is very costly, so consider using EffectivelyNever.
+        public int? BestResponseEveryMIterations = 1; // For partial recall games, this is very costly, so consider using EffectivelyNever. // overridden in Launcher
         public int? SuppressBestResponseBeforeIteration = null;
-        public bool RememberBestResponseExploitability = true;
+        public bool RememberBestResponseExploitability = false; // not needed if doing model success tracking, which remembers this and other data
         public bool UseCurrentStrategyForBestResponse = false; // requires accelerated best response
         public bool CalculatePerturbedBestResponseRefinement = false;
         public double PerturbationForBestResponseCalculation = 0.001;
@@ -74,6 +74,10 @@ namespace ACESim
         public bool SequenceFormCutOffProbabilityZeroNodes = true; // If true, then instead of setting chance nodes to no less than the lowest permissible rational value, probability is set to zero, and that part of the tree will be excised. (The algorithm will not work if probabilities are left at zero.)
 
         public string SerializeResultsPrefixPlus(int scenario, int totalScenarios) => SerializeResultsPrefix + (totalScenarios > 0 ? scenario.ToString() : "");
+
+        // MODEL SUCCESS TRACKING -- saves every probability at every information set after each iteration
+        public bool ModelSuccessTracking = true; // DEBUG
+        public int ModelSuccessTracking_StartingIteration = 1000; 
 
         // CORRELATED EQ SETTINGS -- MUST ALSO SET IN GAME DEFINITION.
         // NOTE: This is separate from correlated equilibrium computed via principal components analysis (see below)
@@ -133,7 +137,7 @@ namespace ACESim
         public bool DeepCFR_SeparateObservationsForIdenticalGameProgressTreeItems = true; // relevant only if UseWeightedData is false; with separate observations, the number of observations is proportional to their frequency in the regression; this takes longer but produces more accurate results
         public int DeepCFR_MaximumTotalObservationsPerIteration = 100_000; // when not using gameprogresstree, after this number of observations, we stop looking for more observations, even if we haven't gotten enough to fill as many iterations as desired in one or more reservoirs (in which case, we rely more on earlier observations)
 
-        public bool PCA_PerformPrincipalComponentAnalysis = true; // DEBUG
+        public bool PCA_PerformPrincipalComponentAnalysis = false;
         public double PCA_Precision = 1E-5;
         public int PCA_FirstIterationToSaveAsPCAObservation = 100; 
         public int PCA_SavePCAObservationEveryNIterationsAfterFirst = 1;
