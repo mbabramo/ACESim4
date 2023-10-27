@@ -23,6 +23,7 @@ namespace ACESim
         public const double SmallestProbabilityInAverageStrategy = 1E-5; // This is greater still -- when calculating average strategies, we disregard very small probabilities (which presumably are on their way to zero)
 
         public int InformationSetNodeNumber;
+        public int OverallIndexAmongActions;
         public bool IsChanceNode => false; 
         public bool IsUtilitiesNode => false;
 

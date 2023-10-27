@@ -73,11 +73,12 @@ namespace ACESim
         public bool SkipAltogetherIfEquilibriumFileAlreadyExists = false; // If true, and an equilibrium file exists, then we will skip and processing AND reporting. If you want to do reporting, then use PreloadedEquilibriaForSequenceForm
         public bool SequenceFormCutOffProbabilityZeroNodes = true; // If true, then instead of setting chance nodes to no less than the lowest permissible rational value, probability is set to zero, and that part of the tree will be excised. (The algorithm will not work if probabilities are left at zero.)
 
+        // SCENARIOS -- see GameDefinition, since this is game specific.
         public string SerializeResultsPrefixPlus(int scenario, int totalScenarios) => SerializeResultsPrefix + (totalScenarios > 0 ? scenario.ToString() : "");
 
         // MODEL SUCCESS TRACKING -- saves every probability at every information set after each iteration
         public bool ModelSuccessTracking = true; // DEBUG
-        public int ModelSuccessTracking_StartingIteration = 1000; 
+        public int ModelSuccessTracking_StartingIteration = 20; 
 
         // CORRELATED EQ SETTINGS -- MUST ALSO SET IN GAME DEFINITION.
         // NOTE: This is separate from correlated equilibrium computed via principal components analysis (see below)

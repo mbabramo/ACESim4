@@ -526,57 +526,112 @@ namespace ACESim
 
         #region Model success tracking
 
-        int? ModelSuccessTrackingLastIterationSaved = null;
+        // Turn on in EvolutionSettings
         int ModelSuccessEntriesSaved = 0;
-        float[,] ModelSuccessTracked;
-        public void ModelSuccessTrackingForIteration(int iteration)
+        List<float[]> ModelSuccessTracked = null;
+        int ModelSuccessTrackingDataPerIteration = -1;
+        int? ModelSuccessTrackingSaveAfterNItems = 500;
+        int ModelSuccessTrackingAdditionalToGenerate = 1000; // DEBUG
+        public void ConisderModelSuccessTrackingForIteration(int iteration)
         {
-            if (EvolutionSettings.ModelSuccessTracking == false)
+            if (EvolutionSettings.ModelSuccessTracking == false || iteration < EvolutionSettings.ModelSuccessTracking_StartingIteration)
                 return;
-            if (ModelSuccessTrackingLastIterationSaved == null || ModelSuccessTrackingLastIterationSaved < iteration)
+            bool trackingInformationSetIndices = false;
+            if (ModelSuccessTracked == null)
             {
-                if (EvolutionSettings.BestResponseEveryMIterations != 1)
-                    throw new Exception("Must set best response every iteration for model success tracking"); // could be changed -- just need to figure out total number of iterations
+                //if (EvolutionSettings.BestResponseEveryMIterations != 1)
+                //    throw new Exception("Must set best response every iteration for model success tracking"); // could be changed -- just need to figure out total number of iterations
                 int totalPlayerActions = InformationSets.Sum(x => x.NumPossibleActions);
                 const int utilityAndBestResponseDataPerPlayer = 3; // utility, utility after best response, improvement
-                int dataPerIteration = totalPlayerActions + 2 * utilityAndBestResponseDataPerPlayer + 1 /* avg adjusted best response improvement */;
+                ModelSuccessTrackingDataPerIteration = totalPlayerActions + 2 * utilityAndBestResponseDataPerPlayer + 1 /* avg adjusted best response improvement */;
                 int numIterations = EvolutionSettings.TotalIterations;
                 int adjNumIterations = numIterations - EvolutionSettings.ModelSuccessTracking_StartingIteration;
-                if (adjNumIterations <= 0)
-                    throw new Exception();
-                ModelSuccessTracked = new float[adjNumIterations, dataPerIteration];
+                //if (adjNumIterations <= 0)
+                //    throw new Exception();
+                //ModelSuccessTracked = new float[adjNumIterations, ModelSuccessTrackingDataPerIteration];
+                ModelSuccessTracked = new List<float[]>();
                 ModelSuccessEntriesSaved = 0;
             }
-            ModelSuccessTrackingLastIterationSaved = iteration;
-            int rowIndex = ModelSuccessEntriesSaved++;
+            AddModelSuccessTrackingDataForIteration();
+            TabbedText.WriteLine(ModelSuccessEntriesSaved.ToString()); // DEBUG
+            if (ModelSuccessEntriesSaved == ModelSuccessTrackingSaveAfterNItems)
+            {
+                for (int i = 0; i < ModelSuccessTrackingAdditionalToGenerate; i++)
+                    GenerateCrossoverForModelSuccessTracking(i, (int) ModelSuccessTrackingSaveAfterNItems);
+                SaveModelSuccessTrackingData();
+            }
+        }
+
+        private void AddModelSuccessTrackingDataForIteration()
+        {
             int colIndex = 0;
+            float[] dataForIteration = new float[ModelSuccessTrackingDataPerIteration];
             foreach (var informationSet in InformationSets)
             {
                 for (int a = 1; a <= informationSet.NumPossibleActions; a++)
                 {
                     double probability = Math.Round(informationSet.GetCurrentProbability((byte)a, false), 3); // TODO: Make sure all the probabilities add up to 1. Maybe only round at the extremes (<0.01, >0.99) and always balance it out, so that we round the same number high and low. 
-                    ModelSuccessTracked[rowIndex, colIndex++] = (float)probability;
+                    dataForIteration[colIndex++] = (float)probability;
                 }
             }
-            ModelSuccessTracked[rowIndex, colIndex++] = (float) Status.UtilitiesOverall[0];
-            ModelSuccessTracked[rowIndex, colIndex++] = (float)Status.UtilitiesOverall[1];
-            ModelSuccessTracked[rowIndex, colIndex++] = (float)Status.BestResponseUtilities[0];
-            ModelSuccessTracked[rowIndex, colIndex++] = (float)Status.BestResponseUtilities[1];
-            ModelSuccessTracked[rowIndex, colIndex++] = (float)Status.BestResponseImprovementAdj[0];
-            ModelSuccessTracked[rowIndex, colIndex++] = (float)Status.BestResponseImprovementAdj[1];
-            ModelSuccessTracked[rowIndex, colIndex++] = (float)Status.BestResponseImprovementAdjAvg;
-            if (rowIndex + 1 == ModelSuccessTracked.GetLength(0))
+            dataForIteration[colIndex++] = (float)Status.UtilitiesOverall[0];
+            dataForIteration[colIndex++] = (float)Status.UtilitiesOverall[1];
+            dataForIteration[colIndex++] = (float)Status.BestResponseUtilities[0];
+            dataForIteration[colIndex++] = (float)Status.BestResponseUtilities[1];
+            dataForIteration[colIndex++] = (float)Status.BestResponseImprovementAdj[0];
+            dataForIteration[colIndex++] = (float)Status.BestResponseImprovementAdj[1];
+            dataForIteration[colIndex++] = (float)Status.BestResponseImprovementAdjAvg;
+            ModelSuccessTracked.Add(dataForIteration);
+
+            ModelSuccessEntriesSaved++;
+        }
+
+
+        public void GenerateCrossoverForModelSuccessTracking(int randomizationIndex, int numPotentialSources)
+        {
+            // For each information set, we want to pick two random of our saved items and then determine how to weight them.
+            // We need to know the index
+            InformationSets.ForEach(x =>
             {
-                SaveModelSuccessTrackingData();
-            }
+                x.CreateBackup();
+
+                long revisedRandomizationIndex = 9949L * x.InformationSetNodeNumber + randomizationIndex;
+                ConsistentRandomSequenceProducer r = new ConsistentRandomSequenceProducer(revisedRandomizationIndex);
+                int savedStrategyIndexFirst = r.NextInt(numPotentialSources);
+                int savedStrategyIndexSecond;
+                do
+                {
+                    savedStrategyIndexSecond = r.NextInt(numPotentialSources);
+                }
+                while (savedStrategyIndexFirst == savedStrategyIndexSecond);
+                double weightOnFirst = r.NextDouble();
+
+                int indexOfFirstAction = x.OverallIndexAmongActions;
+                for (byte i = 0; i < x.NumPossibleActions; i++)
+                {
+                    int actionIndex = indexOfFirstAction + i;
+                    double probabilityFirst = ModelSuccessTracked[savedStrategyIndexFirst][actionIndex];
+                    double probabilitySecond = ModelSuccessTracked[savedStrategyIndexSecond][actionIndex];
+                    double probabilityWeighted = probabilityFirst * weightOnFirst + probabilitySecond * (1 - weightOnFirst);
+                    x.SetCurrentAndAverageStrategyValues(i, probabilityWeighted, probabilityWeighted);
+                }
+            });
+            ExecuteAcceleratedBestResponse(false);
+            var result = CompleteAcceleratedBestResponse();
+            AddModelSuccessTrackingDataForIteration();
+            InformationSets.ForEach(x =>
+            {
+                x.RestoreBackup();
+            });
         }
 
         public void SaveModelSuccessTrackingData()
         {
-            TabbedText.WriteLine($"Writing model success data ({ModelSuccessTracked.GetLength(0)} x {ModelSuccessTracked.GetLength(1)})");
+            TabbedText.WriteLine($"Writing model success data ({ModelSuccessTrackingSaveAfterNItems} x {ModelSuccessTrackingDataPerIteration})");
             string path = FolderFinder.GetFolderToWriteTo("Strategies").FullName;
             string fullPath = Path.Combine(path, "success.h5");
-            HDF5Writer.WriteArrayToFile(ModelSuccessTracked, fullPath);
+            var matrix = ModelSuccessTracked.SelectMany((r, i) => r.Select((val, j) => new { i, j, val })).Aggregate(new float[ModelSuccessTracked.Count, ModelSuccessTracked[0].Length], (acc, x) => { acc[x.i, x.j] = x.val; return acc; });
+            HDF5Writer.WriteArrayToFile(matrix, fullPath);
         }
 
         #endregion
@@ -1165,6 +1220,12 @@ namespace ACESim
         {
             int numInformationSets = InformationSets.Count;
             Parallel.For(0, numInformationSets, n => InformationSets[n].Initialize());
+            int numActionsSoFar = 0;
+            foreach (var informationSet in InformationSets)
+            {
+                informationSet.OverallIndexAmongActions = numActionsSoFar;
+                numActionsSoFar += informationSet.NumPossibleActions;
+            }
             if (EvolutionSettings.CreateInformationSetCharts)
                 InformationSetNode.IdentifyNodeRelationships(InformationSets);
         }

@@ -76,7 +76,7 @@ namespace ACESim
         /// </summary>
         public bool IncludeAgreementToBargainDecisions;
         /// <summary>
-        /// This can be used to set the strategy to be used when optimizing the opponent for a certain number of iterations.
+        /// This can be used to set the strategy to be used when optimizing the opponent for a certain number of iterations. Note that this applies to specific decisions.
         /// </summary>
         public LitigGameWarmStartOptions WarmStartOptions;
         /// <summary>

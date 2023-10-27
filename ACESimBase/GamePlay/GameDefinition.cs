@@ -491,19 +491,21 @@ namespace ACESim
         }
 
 
-        // It may make sense to use play multiple scenarios (a) where there is a large cost to initialization and each scenario can share the same initialization (so that we don't have to, for example, calculate accelerated best response multiple times); or (b) we want to use different settings during a "warmup phase".
+        // It may make sense to use play multiple scenarios (a) we want to use different settings during a "warmup phase", to vary the equilibrium obtained, or (b) where there is a large cost to initialization and each scenario can share the same initialization (so that we don't have to, for example, create the game tree or calculate accelerated best response multiple times), and we thus wish to do the setup once for each of a number of simulations (so, there would generally be one post-warmup phase per report to be generated for a particular set of settings). 
+        // When there are multiple scenarios, the game tree utility nodes are modified to include the alternative scenarios. This is true both for the warmup possibilities and the post warmup possibilities.
+        // We can also increase the number of scenarios by altering the weight on the opponent's strategy (i.e., we may care to some extent about the opponent's utility). That is controlled by NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios, and can be done differently for each player with VaryWeightOnOpponentsStrategySeparatelyForEachPlayer, in which case we multiply the number of scenarios by the square of NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios. The value for the weight on an opponent's strategy is controlled by MinMaxWeightOnOpponentsStrategyDuringWarmup. 
+        // We then end up with a number of permutations NumPostWarmupPossibilities * WarmupsContributionToPermutations (i.e., Max(NumWarmupPossibilities, 1)) * NumDifferentWeightsOnOpponentsStrategy. AllScenarioPermutations stores the indices to these -- for example, 0, 0, 0, 0 means the first post-warmup possibility, first warmup possibility, first weight on opponent's strategy, and first weight on other opponent's strategy. PostWarmupScenarioIndices then stores the indices within AllScenarioPermutations of the post-warmup scenarios. 
+        // Scenario indices are stored in CurrentOverallScenarioIndex, CurrentPostWarmupScenarioIndex, and nullable CurrentWarmupScenarioIndex (null after warmup). CurrentWeightOnOpponentP0 and CurrentWeightOnOpponentOtherPlayers store the weights. 
+        // DevelopStrategies iterates through scenario indices and sets OverallScenarioIndex >> ReinitializeForScenario(int overallScenarioIndex, bool warmupPhase) >> SetScenario >> GetScenarioIndexAndWeightValues, ChangeOptionsBasedOnScenario.  (Note that we can override and set restrictToScenarioIndex to something other than -1). ReinitializeForScenario is also called in BuildModelPredictingUtilitiesBasedOnPrincipalComponents, and then also ReinitializeInformationSetsIfNecessary, which resets to the baseline scenario after the warmup scenario is complete. After calling SetScenario, DevelopStrategies calls RunAlgorithm. 
 
-        // When playing multiple scenarios, we can define one or more concluding scenarios
 
         public virtual bool PlayMultipleScenarios => false;
         public virtual int NumPostWarmupPossibilities => 11;
         public virtual int NumWarmupPossibilities => 0;
-        public virtual int WarmupIterations_IfWarmingUp => 200;
+        public virtual int WarmupIterations_IfWarmingUp => 20;
         public bool UseDifferentWarmup => PlayMultipleScenarios && (NumWarmupPossibilities > 0 || NumDifferentWeightsOnOpponentsStrategy > 0);
         public int NumScenariosToInitialize => PlayMultipleScenarios ? NumPostWarmupPossibilities + NumWarmupPossibilities : 1;
         public int? IterationsForWarmupScenario => UseDifferentWarmup ? (int?) WarmupIterations_IfWarmingUp : (int?) null;
-
-
         public virtual bool MultiplyWarmupScenariosByAlteringWeightOnOpponentsStrategy => false;
         public virtual int NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios => 25;
         public virtual bool VaryWeightOnOpponentsStrategySeparatelyForEachPlayer => false;
@@ -543,7 +545,7 @@ namespace ACESim
                     foreach (var p in AllScenarioPermutations)
                         p[3] = p[2];
                 PostWarmupScenarioIndices = AllScenarioPermutations.Select((item, index) => (item, index)).GroupBy(x => x.item[0]).Select(x => x.First().index).ToArray();
-            }
+            } 
             List<int> permutation = AllScenarioPermutations[overallScenarioIndex];
             int postWarmupPermutationValue = permutation[0];
             if (!warmupPhase)
