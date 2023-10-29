@@ -530,13 +530,10 @@ namespace ACESim
         int ModelSuccessEntriesSaved = 0;
         List<float[]> ModelSuccessTracked = null;
         int ModelSuccessTrackingDataPerIteration = -1;
-        int? ModelSuccessTrackingSaveAfterNItems = 500;
-        int ModelSuccessTrackingAdditionalToGenerate = 1000; // DEBUG
         public void ConisderModelSuccessTrackingForIteration(int iteration)
         {
             if (EvolutionSettings.ModelSuccessTracking == false || iteration < EvolutionSettings.ModelSuccessTracking_StartingIteration)
                 return;
-            bool trackingInformationSetIndices = false;
             if (ModelSuccessTracked == null)
             {
                 //if (EvolutionSettings.BestResponseEveryMIterations != 1)
@@ -554,10 +551,10 @@ namespace ACESim
             }
             AddModelSuccessTrackingDataForIteration();
             TabbedText.WriteLine(ModelSuccessEntriesSaved.ToString()); // DEBUG
-            if (ModelSuccessEntriesSaved == ModelSuccessTrackingSaveAfterNItems)
+            if (ModelSuccessEntriesSaved == EvolutionSettings.ModelSuccessTrackingSaveAfterNItems)
             {
-                for (int i = 0; i < ModelSuccessTrackingAdditionalToGenerate; i++)
-                    GenerateCrossoverForModelSuccessTracking(i, (int) ModelSuccessTrackingSaveAfterNItems);
+                for (int i = 0; i < EvolutionSettings.ModelSuccessTrackingAdditionalToGenerate; i++)
+                    GenerateCrossoverForModelSuccessTracking(i, (int)EvolutionSettings.ModelSuccessTrackingSaveAfterNItems);
                 SaveModelSuccessTrackingData();
             }
         }
@@ -607,13 +604,13 @@ namespace ACESim
                 double weightOnFirst = r.NextDouble();
 
                 int indexOfFirstAction = x.OverallIndexAmongActions;
-                for (byte i = 0; i < x.NumPossibleActions; i++)
+                for (byte a = 1; a <= x.NumPossibleActions; a++)
                 {
-                    int actionIndex = indexOfFirstAction + i;
+                    int actionIndex = indexOfFirstAction + a - 1;
                     double probabilityFirst = ModelSuccessTracked[savedStrategyIndexFirst][actionIndex];
                     double probabilitySecond = ModelSuccessTracked[savedStrategyIndexSecond][actionIndex];
                     double probabilityWeighted = probabilityFirst * weightOnFirst + probabilitySecond * (1 - weightOnFirst);
-                    x.SetCurrentAndAverageStrategyValues(i, probabilityWeighted, probabilityWeighted);
+                    x.SetCurrentAndAverageStrategyValues(a, probabilityWeighted, probabilityWeighted);
                 }
             });
             ExecuteAcceleratedBestResponse(false);
@@ -627,7 +624,7 @@ namespace ACESim
 
         public void SaveModelSuccessTrackingData()
         {
-            TabbedText.WriteLine($"Writing model success data ({ModelSuccessTrackingSaveAfterNItems} x {ModelSuccessTrackingDataPerIteration})");
+            TabbedText.WriteLine($"Writing model success data ({ModelSuccessTracked.Count} x {ModelSuccessTracked[0].Length})");
             string path = FolderFinder.GetFolderToWriteTo("Strategies").FullName;
             string fullPath = Path.Combine(path, "success.h5");
             var matrix = ModelSuccessTracked.SelectMany((r, i) => r.Select((val, j) => new { i, j, val })).Aggregate(new float[ModelSuccessTracked.Count, ModelSuccessTracked[0].Length], (acc, x) => { acc[x.i, x.j] = x.val; return acc; });

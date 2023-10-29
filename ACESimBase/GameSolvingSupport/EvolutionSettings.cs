@@ -76,9 +76,11 @@ namespace ACESim
         // SCENARIOS -- see GameDefinition, since this is game specific.
         public string SerializeResultsPrefixPlus(int scenario, int totalScenarios) => SerializeResultsPrefix + (totalScenarios > 0 ? scenario.ToString() : "");
 
-        // MODEL SUCCESS TRACKING -- saves every probability at every information set after each iteration
+        // MODEL SUCCESS TRACKING -- saves every probability at every information set after each iteration. Options are set in StrategiesDeveloperBase.
         public bool ModelSuccessTracking = true; // DEBUG
-        public int ModelSuccessTracking_StartingIteration = 20; 
+        public int ModelSuccessTracking_StartingIteration => TotalIterations;
+        public int? ModelSuccessTrackingSaveAfterNItems = 500;
+        public int ModelSuccessTrackingAdditionalToGenerate = 99_500; 
 
         // CORRELATED EQ SETTINGS -- MUST ALSO SET IN GAME DEFINITION.
         // NOTE: This is separate from correlated equilibrium computed via principal components analysis (see below)
