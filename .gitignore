@@ -168,3 +168,6 @@ csvreport.csv
 standardreport
 /ReportResults
 /ReportResultsOld
+/Strategies/result.h5
+/Strategies/result.npy
+/Strategies/success.h5
