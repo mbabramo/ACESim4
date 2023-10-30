@@ -626,9 +626,43 @@ namespace ACESim
         {
             TabbedText.WriteLine($"Writing model success data ({ModelSuccessTracked.Count} x {ModelSuccessTracked[0].Length})");
             string path = FolderFinder.GetFolderToWriteTo("Strategies").FullName;
-            string fullPath = Path.Combine(path, "success.h5");
+            string fullPath = Path.Combine(path, "result.h5");
             var matrix = ModelSuccessTracked.SelectMany((r, i) => r.Select((val, j) => new { i, j, val })).Aggregate(new float[ModelSuccessTracked.Count, ModelSuccessTracked[0].Length], (acc, x) => { acc[x.i, x.j] = x.val; return acc; });
             HDF5Writer.WriteArrayToFile(matrix, fullPath);
+            string fullPathNpy = Path.Combine(path, "result.npy");
+            SaveAsNpy(matrix, fullPathNpy);
+        }
+
+        static void SaveAsNpy(float[,] matrix, string filePath)
+        {
+            using (var fs = new FileStream(filePath, FileMode.Create))
+            using (var writer = new BinaryWriter(fs))
+            {
+                // Write the magic string
+                writer.Write((byte)0x93);
+                writer.Write(Encoding.ASCII.GetBytes("NUMPY"));
+
+                // Write version
+                writer.Write((byte)1); // Major version
+                writer.Write((byte)0); // Minor version
+
+                // Construct the header
+                string header = $"{{'descr': '<f4', 'fortran_order': False, 'shape': ({matrix.GetLength(0)}, {matrix.GetLength(1)}), }}";
+                // Pad header to be multiple of 16
+                int paddingLength = 16 - ((10 + header.Length) % 16);
+                header += new string(' ', paddingLength);
+                writer.Write((ushort)header.Length);
+                writer.Write(Encoding.ASCII.GetBytes(header));
+
+                // Write matrix data
+                for (int i = 0; i < matrix.GetLength(0); i++)
+                {
+                    for (int j = 0; j < matrix.GetLength(1); j++)
+                    {
+                        writer.Write(matrix[i, j]);
+                    }
+                }
+            }
         }
 
         #endregion

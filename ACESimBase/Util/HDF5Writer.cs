@@ -1,5 +1,6 @@
 ﻿
 using HDF5CSharp;
+using HDF5CSharp.DataTypes;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -20,6 +21,14 @@ namespace ACESimBase.Util
             }
 
             Hdf5.CloseFile(fileId);
+        }
+        public static List<Hdf5Element> ReadHDF5ToList(string filePath)
+        {
+            var dataList = new List<float[]>();
+
+            var result = Hdf5.ReadFlatFileStructure(filePath);
+
+            return result;
         }
     }
 }
