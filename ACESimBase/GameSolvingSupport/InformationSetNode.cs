@@ -1326,10 +1326,6 @@ namespace ACESim
 
         public void SetCurrentProbabilities(double[] probabilities)
         {
-            double[] array = new double[NumPossibleActions];
-
-            Span<double> actionProbabilities = stackalloc double[NumPossibleActions];
-            GetCurrentProbabilities(actionProbabilities);
             for (int index = 0; index < NumPossibleActions; index++)
                 NodeInformation[currentProbabilityDimension, index] = probabilities[index];
         }

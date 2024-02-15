@@ -36,7 +36,7 @@ namespace ACESim
         public int? BestResponseEveryMIterations = 1; // For partial recall games, this is very costly, so consider using EffectivelyNever. // overridden in Launcher
         public int? SuppressBestResponseBeforeIteration = null;
         public bool RememberBestResponseExploitability = false; // not needed if doing model success tracking, which remembers this and other data
-        public bool UseCurrentStrategyForBestResponse = false; // requires accelerated best response
+        public bool UseCurrentStrategyForBestResponse = true; // DEBUG // requires accelerated best response
         public bool CalculatePerturbedBestResponseRefinement = false;
         public double PerturbationForBestResponseCalculation = 0.001;
         public int? MiniReportEveryPIterations = 1000;
