@@ -77,7 +77,7 @@ namespace ACESim
         public string SerializeResultsPrefixPlus(int scenario, int totalScenarios) => SerializeResultsPrefix + (totalScenarios > 0 ? scenario.ToString() : "");
 
         // MODEL SUCCESS TRACKING -- saves every probability at every information set after each iteration. Options are set in StrategiesDeveloperBase.
-        public bool ModelSuccessTracking = true; // DEBUG
+        public bool ModelSuccessTracking = false;
         public int ModelSuccessTracking_StartingIteration => TotalIterations;
         public int? ModelSuccessTrackingSaveAfterNItems = 500;
         public int ModelSuccessTrackingAdditionalToGenerate = 99_500; 

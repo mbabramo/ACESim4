@@ -1021,10 +1021,10 @@ namespace ACESim
 
         #region Alternative scenarios
 
-        public override bool PlayMultipleScenarios => true; // DEBUG // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
+        public override bool PlayMultipleScenarios => false; // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
 
         public override int NumPostWarmupPossibilities => 1; // We can change this, for example when doing PCA, to generate strategies that vary based on (e.g.) cost levels but that don't otherwise change the structure of the game.
-        public override int NumWarmupPossibilities => 20; // DEBUG // Note that this can be 0 (indicating that costs multiplier doesn't change). This indicates the variations on the costs multiplier; variations on weight to opponent are below. 
+        public override int NumWarmupPossibilities => 0;  // Note that this can be 0 (indicating that costs multiplier doesn't change). This indicates the variations on the costs multiplier; variations on weight to opponent are below. 
         public override int WarmupIterations_IfWarmingUp => 10; 
         public override bool MultiplyWarmupScenariosByAlteringWeightOnOpponentsStrategy => true;
         public override int NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios => 5; // should be odd if we want to include zero weight (the default) on opponent's strategy, because we also need positive and negative weights
@@ -1048,7 +1048,7 @@ namespace ACESim
         bool changeTrialCostsForPlaintiff = true;
         bool changeTrialCostsForDefendant = true;
 
-        public double CostsMultiplierMin = 1.0; // DEBUG -- must change if doing postwarmup
+        public double CostsMultiplierMin = 1.0; 
         public double CostsMultiplierMax = 1.0;
         public double CostsMultiplierMin_Warmup = 0.0;
         public double CostsMultiplierMax_Warmup = 2.0;

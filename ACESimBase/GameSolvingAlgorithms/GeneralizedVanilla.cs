@@ -83,6 +83,8 @@ namespace ACESim
             double continuousRegretsDiscountingAdjustment = EvolutionSettings.ContinuousRegretsDiscountPerIteration;
 
             Parallelizer.Go(EvolutionSettings.ParallelOptimization, 0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, PostIterationUpdater, averageStrategyAdjustment, normalizeCumulativeStrategyIncrements, resetPreviousCumulativeStrategyIncrements, continuousRegretsDiscountingAdjustment, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble, EvolutionSettings.Algorithm == GameApproximationAlgorithm.RegretMatching && EvolutionSettings.CFR_OpponentSampling, randomNumberToSelectSingleOpponentAction(n)));
+
+            // DEBUG -- we could randomize which information set is used here. 
         }
 
         private void PrintSpecfiedInformationSets(int iteration)

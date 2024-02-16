@@ -550,7 +550,7 @@ namespace ACESim
                 ModelSuccessEntriesSaved = 0;
             }
             AddModelSuccessTrackingDataForIteration();
-            TabbedText.WriteLine(ModelSuccessEntriesSaved.ToString()); // DEBUG
+            TabbedText.WriteLine(ModelSuccessEntriesSaved.ToString()); 
             if (ModelSuccessEntriesSaved == EvolutionSettings.ModelSuccessTrackingSaveAfterNItems)
             {
                 for (int i = 0; i < EvolutionSettings.ModelSuccessTrackingAdditionalToGenerate; i++)
@@ -646,14 +646,6 @@ namespace ACESim
             HDF5Writer.WriteArrayToFile(matrix, fullPath);
             string fullPathNpy = Path.Combine(path, "result.npy");
             SaveAsNpy(matrix, fullPathNpy);
-        }
-
-        static void LoadH5Data()
-        {
-            // DEBUG -- not working
-            string path = FolderFinder.GetFolderToWriteTo("Strategies").FullName;
-            string fullPath = Path.Combine(path, "input.h5");
-            var result = HDF5Writer.ReadHDF5ToList(fullPath);
         }
 
         static void SaveAsNpy(float[,] matrix, string filePath)
