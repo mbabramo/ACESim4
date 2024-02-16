@@ -80,7 +80,11 @@ namespace ACESim
         public bool ModelSuccessTracking = false;
         public int ModelSuccessTracking_StartingIteration => TotalIterations;
         public int? ModelSuccessTrackingSaveAfterNItems = 500;
-        public int ModelSuccessTrackingAdditionalToGenerate = 99_500; 
+        public int ModelSuccessTrackingAdditionalToGenerate = 99_500;
+
+        // SWAPPING OUT INFORMATION SET NODES
+        // The goal here is to encourage mixed strategies to develop within information sets rather than across information sets.
+        public bool RandomlySwapOutNodeInformations = true; // DEBUG
 
         // CORRELATED EQ SETTINGS -- MUST ALSO SET IN GAME DEFINITION.
         // NOTE: This is separate from correlated equilibrium computed via principal components analysis (see below)

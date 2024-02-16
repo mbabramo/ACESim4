@@ -56,6 +56,7 @@ namespace ACESim
         public byte PlayerIndex => Decision.PlayerIndex;
 
         public double[,] NodeInformation;
+        public List<double[,]> AlternativeNodeInformations;
         public double[,] BackupNodeInformation;
 
         public double[] MaxPossible, MinPossible;
@@ -1568,6 +1569,26 @@ namespace ACESim
             NodeInformation = (double[,])BackupNodeInformation.Clone();
             BestResponseAction = BackupBestResponseAction;
             AverageStrategyAdjustmentsSum = BackupAverageStrategyAdjustmentsSum;
+        }
+
+        public void RandomlySwapOutNodeInformation(int iteration)
+        {
+            const int numRandomAlternatives = 10;
+            if (AlternativeNodeInformations == null)
+                AlternativeNodeInformations = Enumerable.Range(0, numRandomAlternatives).Select(x => (double[,]) null).ToList();
+            int altIndex;
+            unchecked
+            {
+                Random r = new Random(iteration * 100189 + InformationSetNodeNumber);
+                altIndex = r.Next(numRandomAlternatives);
+            }
+            double[,] current = NodeInformation;
+            NodeInformation = AlternativeNodeInformations[altIndex];
+            if (NodeInformation == null)
+            {
+                ResetNodeInformation(totalDimensions, NumPossibleActions);
+            }
+            AlternativeNodeInformations[altIndex] = current;
         }
 
 
