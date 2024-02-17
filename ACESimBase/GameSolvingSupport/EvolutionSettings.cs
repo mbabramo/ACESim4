@@ -84,7 +84,7 @@ namespace ACESim
 
         // SWAPPING OUT INFORMATION SET NODES
         // The goal here is to encourage mixed strategies to develop within information sets rather than across information sets.
-        public bool RandomlySwapOutNodeInformations = true; // DEBUG
+        public bool TrackMixednessStatus = true; // DEBUG
 
         // CORRELATED EQ SETTINGS -- MUST ALSO SET IN GAME DEFINITION.
         // NOTE: This is separate from correlated equilibrium computed via principal components analysis (see below)

@@ -1,6 +1,7 @@
 ﻿using ACESim.Util;
 using ACESimBase.GameSolvingSupport;
 using ACESimBase.Util;
+using ICSharpCode.SharpZipLib.Zip;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
@@ -1571,9 +1572,11 @@ namespace ACESim
             AverageStrategyAdjustmentsSum = BackupAverageStrategyAdjustmentsSum;
         }
 
+        static Dictionary<int, string> DEBUGDict = new Dictionary<int, string>();
+
         public void RandomlySwapOutNodeInformation(int iteration)
         {
-            const int numRandomAlternatives = 10;
+            const int numRandomAlternatives = 2;
             if (AlternativeNodeInformations == null)
                 AlternativeNodeInformations = Enumerable.Range(0, numRandomAlternatives).Select(x => (double[,]) null).ToList();
             int altIndex;
@@ -1588,7 +1591,60 @@ namespace ACESim
             {
                 ResetNodeInformation(totalDimensions, NumPossibleActions);
             }
+            if (NumPossibleActions == 5 && iteration % 50 == 0)
+            {
+                var DEBUG = 0;
+                string currentState = $"Iteration {iteration} ";
+                List<double[]> randomAlternativeDoubles = new List<double[]>();
+                for (int randomAlternative = 0; randomAlternative < numRandomAlternatives; randomAlternative++)
+                {
+                    var values = Enumerable.Range(0, 5).Select(x => AlternativeNodeInformations[randomAlternative][0, x]);
+                    randomAlternativeDoubles.Add(values.OrderByDescending(x => x).ToArray());
+                    var valuesAsStrings = values.Select(x => $"{x:0.00}").ToArray();
+                    var s = String.Join(", ", valuesAsStrings) + "\n";
+                    currentState += s;
+                }
+                double averageOfHighest = randomAlternativeDoubles.Select(x => x.First()).Average();
+                if (iteration % 1000 == 0)
+                    currentState = $"I{iteration} ";
+                else
+                    currentState = "";
+                currentState += $"{averageOfHighest.ToString("0.00")} " ; // DEBUG -- displacing above
+                lock (DEBUGDict)
+                {
+                    string existing = DEBUGDict.GetValueOrDefault(InformationSetNodeNumber);
+                    if (existing == null)
+                        existing = "";
+                    DEBUGDict[InformationSetNodeNumber] = currentState + existing;
+                }
+            }
             AlternativeNodeInformations[altIndex] = current;
+        }
+
+        public void TrackMixednessStatus(int iteration)
+        {
+            if (iteration == 550)
+            {
+                var DEBUG = 0;
+            }
+            // DEBUG
+            if (NumPossibleActions == 5 && iteration % 50 == 0)
+            {
+                var highestProbability = Enumerable.Range(0, 5).Select(x => NodeInformation[0, x]).OrderByDescending(x => x).First();
+                string currentState;
+                if (iteration % 1000 == 0)
+                    currentState = $"I{iteration} ";
+                else
+                    currentState = "";
+                currentState += $"{highestProbability.ToString("0.00")} "; // DEBUG -- displacing above
+                lock (DEBUGDict)
+                {
+                    string existing = DEBUGDict.GetValueOrDefault(InformationSetNodeNumber);
+                    if (existing == null)
+                        existing = "";
+                    DEBUGDict[InformationSetNodeNumber] = currentState + existing;
+                }
+            }
         }
 
 
