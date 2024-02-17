@@ -56,7 +56,7 @@ namespace ACESim
         public byte PlayerIndex => Decision.PlayerIndex;
 
         public double[,] NodeInformation;
-        public double[,] BackupNodeInformation;
+        public double[,] BackupNodeInformation, BackupNodeInformation2;
 
         public double[] MaxPossible, MinPossible;
         public double MaxPossibleThisPlayer, MinPossibleThisPlayer;
@@ -95,12 +95,12 @@ namespace ACESim
 
         // Best response
         public byte BestResponseAction = 0;
-        public byte BackupBestResponseAction = 0;
+        public byte BackupBestResponseAction = 0, BackupBestResponseAction2 = 0;
         public bool BestResponseDeterminedFromIncrements = false; // this is used by the generalized best response algorithm to determine whether it needs to recalculate best response
 
         // sum of average strategy adjustments
         public double AverageStrategyAdjustmentsSum = 0;
-        public double BackupAverageStrategyAdjustmentsSum = 0;
+        public double BackupAverageStrategyAdjustmentsSum = 0, BackupAverageStrategyAdjustmentsSum2 = 0;
 
         #endregion
 
@@ -1568,6 +1568,21 @@ namespace ACESim
             NodeInformation = (double[,])BackupNodeInformation.Clone();
             BestResponseAction = BackupBestResponseAction;
             AverageStrategyAdjustmentsSum = BackupAverageStrategyAdjustmentsSum;
+        }
+
+
+        public void CreateBackup2()
+        {
+            BackupNodeInformation2 = (double[,])NodeInformation.Clone();
+            BackupBestResponseAction2 = BestResponseAction;
+            BackupAverageStrategyAdjustmentsSum2 = AverageStrategyAdjustmentsSum;
+        }
+
+        public void RestoreBackup2()
+        {
+            NodeInformation = (double[,])BackupNodeInformation2.Clone();
+            BestResponseAction = BackupBestResponseAction2;
+            AverageStrategyAdjustmentsSum = BackupAverageStrategyAdjustmentsSum2;
         }
 
 

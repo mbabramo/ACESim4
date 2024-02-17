@@ -46,6 +46,7 @@ namespace ACESim
         public bool RoundOffLowProbabilitiesBeforeAcceleratedBestResponse = true;
         public bool RecalculateScoreReachWhenCalculatingBestResponseImprovement = false;
         public double RoundOffThreshold = 0.005;
+        public bool RefineFinalStrategiesWithBestResponse = true; // DEBUG
         public bool SerializeResults = false;
         public bool SerializeInformationSetDataOnly = true;
         public string SerializeResultsPrefix = "serstrat";

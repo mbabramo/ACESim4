@@ -157,10 +157,11 @@ namespace ACESim
 
         int UnrollCheckpointIteration = -1; // if using checkpoints to debug unrolling, set an iteration (such as 1) here
 
+        double[] UnrollingArray;
         public async Task<ReportCollection> Unroll_SolveGeneralizedVanillaCFR()
         {
             ReportCollection reportCollection = new ReportCollection();
-            double[] array = new double[Unroll_SizeOfArray];
+            UnrollingArray = new double[Unroll_SizeOfArray];
             bool targetMet = false;
             Stopwatch s = new Stopwatch();
             s.Start();
@@ -185,7 +186,7 @@ namespace ACESim
                 StrategiesDeveloperStopwatch.Start();
                 if (EvolutionSettings.CFRBR)
                     CalculateBestResponse(false);
-                Unroll_ExecuteUnrolledCommands(array, iteration == 1 || iteration == GameDefinition.IterationsForWarmupScenario + 1);
+                Unroll_ExecuteUnrolledCommands(UnrollingArray, iteration == 1 || iteration == GameDefinition.IterationsForWarmupScenario + 1);
                 StrategiesDeveloperStopwatch.Stop();
                 if (Unroll_Commands.UseCheckpoints)
                 {
@@ -211,7 +212,7 @@ namespace ACESim
                 if (TraceCFR)
                 { // only trace through iteration
                     // There are a number of advanced settings in ArrayCommandList that must be disabled for this feature to work properly. Parallelize || RepeatIdenticalRanges || UseOrderedDestinations || UseOrderedSources must be false.
-                    string resultWithReplacementOfArray = TraceCommandList(array);
+                    string resultWithReplacementOfArray = TraceCommandList(UnrollingArray);
                 }
                 if (EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions)
                     CalculateReachProbabilitiesAndPrunability(EvolutionSettings.ParallelOptimization);
@@ -220,6 +221,63 @@ namespace ACESim
             TabbedText.SetConsoleProgressString(null);
             return reportCollection;
         }
+        
+        public override void RefineFinalStrategies()
+        {
+            if (Status.BestResponseImprovementAdjAvg == 0 || !EvolutionSettings.RefineFinalStrategiesWithBestResponse || !EvolutionSettings.UseAcceleratedBestResponse)
+                return;
+            // We will repeatedly do the following:
+            // 1. Do an iteration of CFR.
+            // 2. Identify which information sets changed during this information set.
+            // 3. For each information set that changed, do a best response calculation using that change but no other changes. If this results in an improvement (i.e., reduced exploitability), we will keep the change. If not, we will revert to the previous value.
+            double exploitabilityAtBeginningOfRound;
+            do
+            {
+                exploitabilityAtBeginningOfRound = Status.BestResponseImprovementAdjAvg;
+                double currentExploitability = exploitabilityAtBeginningOfRound;
+                List<double[]> probabilitiesPreCFR = new List<double[]>();
+                List<double[]> probabilitiesPostCFR = new List<double[]>();
+                foreach (var informationSet in InformationSets)
+                {
+                    informationSet.RoundOffLowProbabilities(true, 0.0001);
+                    double[] currentProbabilitiesForInfoSet = informationSet.GetCurrentProbabilitiesAsArray();
+                    probabilitiesPreCFR.Add(currentProbabilitiesForInfoSet);
+                }
+                Unroll_ExecuteUnrolledCommands(UnrollingArray, false); // do CFR 
+                UpdateInformationSets(EvolutionSettings.TotalIterations);
+                for (int i = 0; i < InformationSets.Count; i++)
+                {
+                    InformationSetNode informationSet = InformationSets[i];
+                    informationSet.RoundOffLowProbabilities(true, 0.0001);
+                    double[] currentProbabilitiesForInfoSet = informationSet.GetCurrentProbabilitiesAsArray();
+                    probabilitiesPostCFR.Add(currentProbabilitiesForInfoSet);
+                    informationSet.SetCurrentProbabilities(probabilitiesPreCFR[i]);
+                }
+                for (int i = 0; i < InformationSets.Count; i++)
+                {
+                    if (!probabilitiesPreCFR[i].SequenceEqual(probabilitiesPostCFR[i]))
+                    {
+                        InformationSetNode informationSet = InformationSets[i];
+                        informationSet.SetCurrentProbabilities(probabilitiesPostCFR[i]);
+                        var previousStatus = Status;
+                        CalculateBestResponse(false);
+                        var result = CompleteAcceleratedBestResponse();
+                        bool improvement = Status.BestResponseImprovementAdjAvg < currentExploitability;
+                        if (improvement)
+                            currentExploitability = Status.BestResponseImprovementAdjAvg;
+                        else
+                        {
+                            informationSet.SetCurrentProbabilities(probabilitiesPreCFR[i]);
+                            Status = previousStatus;
+                        }
+                    }
+                }
+                CalculateBestResponse(false);
+                var result2 = CompleteAcceleratedBestResponse();
+                TabbedText.WriteLine($"Refined exploitability: {Status.BestResponseImprovementAdjAvg}");
+            } while (Status.BestResponseImprovementAdjAvg < exploitabilityAtBeginningOfRound);
+        }
+
 
         private void ReinitializeInformationSetsIfNecessary(int iteration)
         {
