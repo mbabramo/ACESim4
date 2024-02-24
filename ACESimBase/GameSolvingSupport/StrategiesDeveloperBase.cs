@@ -540,7 +540,21 @@ namespace ACESim
                 //    throw new Exception("Must set best response every iteration for model success tracking"); // could be changed -- just need to figure out total number of iterations
                 int totalPlayerActions = InformationSets.Sum(x => x.NumPossibleActions);
                 const int utilityAndBestResponseDataPerPlayer = 3; // utility, utility after best response, improvement
-                ModelSuccessTrackingDataPerIteration = totalPlayerActions + 2 * utilityAndBestResponseDataPerPlayer + 1 /* avg adjusted best response improvement */;
+                ModelSuccessTrackingDataPerIteration = totalPlayerActions - InformationSets.Count() /* exclude last probability for each info set */ + 2 * utilityAndBestResponseDataPerPlayer + 1 /* avg adjusted best response improvement */;
+                // generate perfectly mixed strategies, which can be a starting point */
+                List<double> perfectlyMixed = new List<double>();
+                foreach (var informationSet in InformationSets)
+                {
+                    int numActions = informationSet.NumPossibleActions;
+                    double perfectlyMixedProbability = 1.0 / numActions;
+                    int numExcludingLast = numActions - 1;
+                    for (int a = 1; a <= numExcludingLast; a++)
+                    {
+                        perfectlyMixed.Add(perfectlyMixedProbability);
+                    }
+                }
+                string perfectlyMixedString = String.Join(",", perfectlyMixed.Select(x => x.ToString()).ToArray());
+                // continuing with setting up model success tracking
                 int numIterations = EvolutionSettings.TotalIterations;
                 int adjNumIterations = numIterations - EvolutionSettings.ModelSuccessTracking_StartingIteration;
                 //if (adjNumIterations <= 0)
@@ -565,7 +579,9 @@ namespace ACESim
             float[] dataForIteration = new float[ModelSuccessTrackingDataPerIteration];
             foreach (var informationSet in InformationSets)
             {
-                for (int a = 1; a <= informationSet.NumPossibleActions; a++)
+                int numActions = informationSet.NumPossibleActions;
+                int numExcludingLast = numActions - 1;
+                for (int a = 1; a <= numExcludingLast; a++)
                 {
                     double probability = Math.Round(informationSet.GetCurrentProbability((byte)a, false), 3); // TODO: Make sure all the probabilities add up to 1. Maybe only round at the extremes (<0.01, >0.99) and always balance it out, so that we round the same number high and low. 
                     dataForIteration[colIndex++] = (float)probability;
