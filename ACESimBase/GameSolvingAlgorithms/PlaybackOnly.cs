@@ -45,6 +45,7 @@ namespace ACESim
             Status.IterationNum = EvolutionSettings.ReportEveryNIterations ?? 0;
             ReportCollection reportCollection = null;
             bool reportForEachPastValue = false;
+#pragma warning disable CA1416
             if (reportForEachPastValue)
             {
                 int num = EvolutionSettings.RecordPastValues_NumberToRecord;

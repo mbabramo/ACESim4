@@ -96,6 +96,7 @@ namespace ACESim
                         SetPureStrategyBasedOnIndex(player1InformationSets, player1StrategyIndex, player1Permutations);
                         TabbedText.WriteLine(
                             $"Player0StrategyIndex {player0StrategyIndex} Player1StrategyIndex {player1StrategyIndex}");
+#pragma warning disable CA1416
                         await GenerateReports(0, () => "");
                         PrintGameTree();
                         TabbedText.WriteLine("");

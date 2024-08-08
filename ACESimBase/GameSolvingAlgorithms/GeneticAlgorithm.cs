@@ -57,6 +57,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             string reportString = $"{iteration}: {Pop.Members[0].GameFitness}";
             TabbedText.WriteLine(reportString);
 
+#pragma warning disable CA1416
             ReportCollection reportCollection = await GenerateReports(iteration,
                 () =>
                     $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");

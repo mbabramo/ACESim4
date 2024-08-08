@@ -250,6 +250,7 @@ namespace ACESim
             ActionStrategy = usePruning ? ActionStrategies.RegretMatchingWithPruning : ActionStrategies.RegretMatching;
             VanillaCFR_OptimizeEachPlayer(iteration, lastUtilities, usePruning);
 
+#pragma warning disable CA1416
             var result = await GenerateReports(iteration,
                 () =>
                     $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration + 1.0)))}");

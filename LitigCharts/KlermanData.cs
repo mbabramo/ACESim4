@@ -340,6 +340,7 @@ namespace LitigCharts
             filenames = CreateInformationSetCharts(path, filenames);
         }
 
+#pragma warning disable CA1416
         private static string[] CreateInformationSetCharts(string path, string[] filenames)
         {
             foreach (string filename in filenames)

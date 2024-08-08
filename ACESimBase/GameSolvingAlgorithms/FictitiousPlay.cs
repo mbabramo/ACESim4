@@ -93,6 +93,7 @@ namespace ACESim
 
             StrategiesDeveloperStopwatch.Stop();
 
+#pragma warning disable CA1416
             var result = await GenerateReports(iteration,
                 () =>
                     $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");

@@ -200,6 +200,7 @@ namespace ACESim
                     int numGeneticIterations = 1_000;
                     ACESimBase.GameSolvingAlgorithms.GeneticAlgorithm.RunFromAnotherAlgorithm(InformationSets, numGeneticIterations, CalculateBestResponseAndGetFitnessAndUtilities);
                 }
+#pragma warning disable CA1416
                 var result = await GenerateReports(iteration,
                     () =>
                         $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");

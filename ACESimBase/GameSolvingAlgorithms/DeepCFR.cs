@@ -795,7 +795,7 @@ namespace ACESim
 
             ReportCollection reportCollection = new ReportCollection();
             
-            Br.eak.Add("Report");
+            Br.Eak.Add("Report");
             bool useGameProgressTree = true;
             if (useGameProgressTree)
             {
@@ -813,7 +813,7 @@ namespace ACESim
             }
             //CalculateUtilitiesOverall();
             //TabbedText.WriteLine($"Utilities: {String.Join(",", Status.UtilitiesOverall.Select(x => x.ToSignificantFigures(4)))}");
-            Br.eak.Remove("Report");
+            Br.Eak.Remove("Report");
             TabbedText.ShowConsoleProgressString();
             return reportCollection;
         }

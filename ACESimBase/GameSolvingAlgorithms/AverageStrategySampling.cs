@@ -191,6 +191,8 @@ namespace ACESim
             }
         }
 
+#pragma warning disable CA1416
+
         public override async Task<ReportCollection> RunAlgorithm(string optionSetName)
         {
             if (NumNonChancePlayers > 2)

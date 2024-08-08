@@ -466,6 +466,7 @@ namespace ACESim
                 }
                 );
                 s.Stop();
+#pragma warning disable CA1416
                 Status.IterationNum = startingIteration = stopBefore; // this is the iteration to run next
                 var result = await GenerateReports(Status.IterationNum,
                     () =>

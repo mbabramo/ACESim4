@@ -18,6 +18,7 @@ namespace ACESimDistributed
             {
                 string arg = args[0];
                 int processorNumber = Convert.ToInt32(arg);
+#pragma warning disable CA1416
                 Process.GetCurrentProcess().ProcessorAffinity = (IntPtr)(1L << processorNumber);
                 Console.WriteLine($"Process ID {Process.GetCurrentProcess().Id} set to processor {processorNumber}");
             }

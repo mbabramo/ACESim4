@@ -2204,11 +2204,11 @@ namespace ACESim
             }
             if (doReports)
             {
-                Br.eak.Add("Report");
+                Br.Eak.Add("Report");
                 var actionStrategiesToUse = EvolutionSettings.ActionStrategiesToUseInReporting;
                 await CompleteMainReports(prefaceFn, reportCollection, actionStrategiesToUse);
                 RecallBestOverTime();
-                Br.eak.Remove("Report");
+                Br.Eak.Remove("Report");
             }
         }
 
@@ -2374,7 +2374,7 @@ namespace ACESim
             TabbedText.WriteLine($"Prepping accelerated best response...");
             Stopwatch s = new Stopwatch();
             s.Start();
-            Br.eak.Add("PREP");
+            Br.Eak.Add("PREP");
             AcceleratedBestResponsePrep prepWalk = new AcceleratedBestResponsePrep(EvolutionSettings.DistributeChanceDecisions, (byte)NumNonChancePlayers, TraceTreeWalk);
             AcceleratedBestResponsePrepResult = TreeWalk_Tree(prepWalk, new NodeActionsHistory());
             InformationSetsByDecisionIndex = InformationSets.GroupBy(x => x.DecisionIndex).OrderBy(x => x.Key).Select(x => x.ToList()).ToList();

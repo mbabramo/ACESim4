@@ -205,7 +205,7 @@ namespace ACESim
 
         public static void UpdateGameHistory(ref GameHistory gameHistory, GameDefinition gameDefinition, Decision decision, byte decisionIndex, byte action, GameProgress gameProgress)
         {
-            //if (Br.eak.Contains("Case") && decision.PlayersToInform != null && decision.PlayersToInform.Any(x => x == 2))
+            //if (Br.Eak.Contains("Case") && decision.PlayersToInform != null && decision.PlayersToInform.Any(x => x == 2))
             //{
             //    Debug.WriteLine($"RESOLUTION: {decision} {action}");
             //} 

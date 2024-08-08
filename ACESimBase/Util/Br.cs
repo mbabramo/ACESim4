@@ -17,9 +17,7 @@ using System.Threading.Tasks;
 
 namespace Br
 {
-#pragma warning disable IDE1006 // Naming Styles
-    public static class eak
-#pragma warning restore IDE1006 // Naming Styles
+    public static class Eak
     {
         public static bool Active => true; // set to false to disable this mechanism
         public static Dictionary<string, int> d = new Dictionary<string, int>();

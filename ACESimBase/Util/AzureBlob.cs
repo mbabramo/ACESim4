@@ -361,7 +361,7 @@ namespace ACESim.Util
         private static CloudBlobContainer GetContainer(string containerName, bool publicAccess)
         {
             // Retrieve storage account from connection string.
-            string storageConnectionString = cloudpw.GetCloudStorageAccountConnectionString(); // NOTE: If cloudpw is not defined, then you need to add cloudpw.cs (see email). This is not committed to git for security reasons // TODO: Use a technology like key vault to hide this. for now, though, we're just not putting the cloudpw file onto github, thus maintaining the secret.
+            string storageConnectionString = CloudPW.GetCloudStorageAccountConnectionString(); // NOTE: If cloudpw is not defined, then you need to add cloudpw.cs (see email). This is not committed to git for security reasons // TODO: Use a technology like key vault to hide this. for now, though, we're just not putting the cloudpw file onto github, thus maintaining the secret.
             CloudStorageAccount storageAccount = CloudStorageAccount.Parse(storageConnectionString
                 );
 
