@@ -1024,10 +1024,10 @@ namespace ACESim
         public override bool PlayMultipleScenarios => true; // DEBUG // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
 
         public override int NumPostWarmupPossibilities => 1; // We can change this, for example when doing PCA, to generate strategies that vary based on (e.g.) cost levels but that don't otherwise change the structure of the game.
-        public override int NumWarmupPossibilities => 20; // DEBUG // Note that this can be 0 (indicating that costs multiplier doesn't change). This indicates the variations on the costs multiplier; variations on weight to opponent are below. 
+        public override int NumWarmupPossibilities => 10; // DEBUG // Note that this can be 0 (indicating that costs multiplier doesn't change). This indicates the variations on the costs multiplier; variations on weight to opponent are below. 
         public override int WarmupIterations_IfWarmingUp => 10; 
         public override bool MultiplyWarmupScenariosByAlteringWeightOnOpponentsStrategy => true;
-        public override int NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios => 5; // should be odd if we want to include zero weight (the default) on opponent's strategy, because we also need positive and negative weights
+        public override int NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios => 10; // should be odd if we want to include zero weight (the default) on opponent's strategy, because we also need positive and negative weights
         public override bool VaryWeightOnOpponentsStrategySeparatelyForEachPlayer => true; // NOTE: If this is true, this multiplies number of scenarios by NumDifferentWeightsOnOpponentsStrategyPerWarmupScenario_IfMultiplyingScenarios^2
         public override (double, double) MinMaxWeightOnOpponentsStrategyDuringWarmup => (-0.8, 0.8); // NOTE: Don't go all the way up to 1, because then if costs multiplier is 0 (i.e., it is a zero-sum game), utility for a player will be invariant.
 

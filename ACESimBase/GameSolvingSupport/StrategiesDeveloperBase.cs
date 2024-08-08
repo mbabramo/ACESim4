@@ -530,7 +530,7 @@ namespace ACESim
         int ModelSuccessEntriesSaved = 0;
         List<float[]> ModelSuccessTracked = null;
         int ModelSuccessTrackingDataPerIteration = -1;
-        public void ConisderModelSuccessTrackingForIteration(int iteration)
+        public void ConsiderModelSuccessTrackingForIteration(int iteration)
         {
             if (EvolutionSettings.ModelSuccessTracking == false || iteration < EvolutionSettings.ModelSuccessTracking_StartingIteration)
                 return;
@@ -634,8 +634,8 @@ namespace ACESim
                 while (savedStrategyIndexFirst == savedStrategyIndexSecond);
                 double weightOnFirst = r.NextDouble();
 
-                int indexOfFirstAction = x.OverallIndexAmongActions;
-                for (byte a = 1; a <= x.NumPossibleActions; a++)
+                int indexOfFirstAction = x.OverallIndexAmongActions - x.InformationSetNodeNumber; // subtract node number to account for not including last probability
+                for (byte a = 1; a <= x.NumPossibleActions - 1; a++)
                 {
                     int actionIndex = indexOfFirstAction + a - 1;
                     double probabilityFirst = ModelSuccessTracked[savedStrategyIndexFirst][actionIndex];

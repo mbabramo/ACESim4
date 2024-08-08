@@ -78,9 +78,10 @@ namespace ACESim
 
         // MODEL SUCCESS TRACKING -- saves every probability at every information set after each iteration. Options are set in StrategiesDeveloperBase.
         public bool ModelSuccessTracking = true; // DEBUG
-        public int ModelSuccessTracking_StartingIteration => TotalIterations;
-        public int? ModelSuccessTrackingSaveAfterNItems = 500;
-        public int ModelSuccessTrackingAdditionalToGenerate = 99_500; 
+        public int ModelSuccessTracking_StartingIteration => TotalIterations; // at what point in each scenario do we use model success tracking? If one item per scenario, use TotalIterations
+        // NOTE: Should probably set below to NumPostWarmupPossibilities * WarmupsContributionToPermutations * NumDifferentWeightsOnOpponentsStrategy (based on GameDefinition scenarios)
+        public int? ModelSuccessTrackingSaveAfterNItems = 1_000; // How many items to we need to be tracking (how many scenarios, if one period per scenario) before we start generating additional items?
+        public int ModelSuccessTrackingAdditionalToGenerate = 99_000; // DEBUG 99_500; // How many additional items should we generate using crossover?
 
         // CORRELATED EQ SETTINGS -- MUST ALSO SET IN GAME DEFINITION.
         // NOTE: This is separate from correlated equilibrium computed via principal components analysis (see below)

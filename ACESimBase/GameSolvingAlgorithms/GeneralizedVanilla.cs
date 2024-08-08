@@ -203,7 +203,7 @@ namespace ACESim
                 var result = await GenerateReports(iteration,
                     () =>
                         $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
-                ConisderModelSuccessTrackingForIteration(iteration);
+                ConsiderModelSuccessTrackingForIteration(iteration);
                 reportCollection.Add(result);
                 targetMet = Status.BestResponseTargetMet(EvolutionSettings.BestResponseTarget);
                 if (TraceCFR)
