@@ -13,7 +13,7 @@ namespace ACESim
 {
     public class LitigGameLauncher : Launcher
     {
-        public override string MasterReportNameForDistributedProcessing => "FS035";
+        public override string MasterReportNameForDistributedProcessing => "FS036";
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
 
@@ -27,11 +27,11 @@ namespace ACESim
         // Fee shifting article
         public bool IncludeNonCriticalTransformations = true; 
         public FeeShiftingRule[] FeeShiftingModes = new[] { FeeShiftingRule.English_LiabilityIssue, FeeShiftingRule.MarginOfVictory_LiabilityIssue, FeeShiftingRule.Rule68_DamagesIssue, FeeShiftingRule.Rule68English_DamagesIssue };
-        public double[] CriticalCostsMultipliers = new double[] { 1.0, 0.5, 2.0 }; // 0.25, 0.5, 2.0, 4.0 };
-        public double[] AdditionalCostsMultipliers = new double[] { 1.0, 0.25, 4.0 }; // NOTE: If restoring this, also change NamesOfFeeShiftingArticleSets
+        public double[] CriticalCostsMultipliers = new double[] { 1.0,  0.25, 0.5, 2.0, 4.0 };
+        public double[] AdditionalCostsMultipliers = new double[] { 1.0, 0.125, 8.0 }; // NOTE: If restoring this, also change NamesOfFeeShiftingArticleSets
         public (double pNoiseMultiplier, double dNoiseMultiplier)[] NoiseMultipliers = new (double pNoiseMultiplier, double dNoiseMultiplier)[] { (1.0, 1.0), (0.50, 0.50), (0.5, 2.0), (2.0, 2.0), (2.0, 0.5), (0.25, 0.25), (4.0, 4.0) };
-        public double[] CriticalFeeShiftingMultipliers = new double[] { 0.0, 0.25, 0.5, 0.75, 1.0 }; // 1.5, 2.0 };
-        public double[] AdditionalFeeShiftingMultipliers = new double[] { 0.0, 1.5, 2.0 }; // added all but 0 //, 0.25, 4.0 };// NOTE: If restoring this, also change NamesOfFeeShiftingArticleSets
+        public double[] CriticalFeeShiftingMultipliers = new double[] { 0.0, 1.0, 0.5, 1.5, 2.0 }; 
+        public double[] AdditionalFeeShiftingMultipliers = new double[] { 0.0 }; // added all but 0 //, 0.25, 4.0 };// NOTE: If restoring this, also change NamesOfFeeShiftingArticleSets
         public double[] RelativeCostsMultipliers = new double[] { 1.0, 0.5, 2.0 };
         public double[] ProbabilitiesTrulyLiable = new double[] { 0.5, 0.1, 0.9 };
         public double[] StdevsNoiseToProduceLiabilityStrength = new double[] { 0.35, 0.175, 0.70 };
@@ -77,7 +77,7 @@ namespace ACESim
             Simple2BR,
             FeeShiftingArticle,
         }
-        OptionSetChoice OptionSetChosen = OptionSetChoice.JustOneOption;  // <<-- Choose option set here
+        OptionSetChoice OptionSetChosen = OptionSetChoice.FeeShiftingArticle;  // <<-- Choose option set here
 
         public override GameOptions GetDefaultSingleGameOptions()
         {
@@ -807,13 +807,13 @@ namespace ACESim
         public List<string> NamesOfFeeShiftingArticleSets => new List<string>()
         {
            // "Additional Costs Multipliers",
-            "Additional Fee Shifting Multipliers",
+           // "Additional Fee Shifting Multipliers",
            // "Additional Risk Options",
             "Core",
             "Risk Aversion",
+            "Fee Shifting Rule",
             "Noise Multipliers", // includes P & D
             "Relative Costs",
-            "Fee Shifting Rule",
             "Allowing Abandon and Defaults",
             "Probability Truly Liable",
             "Noise to Produce Case Strength",

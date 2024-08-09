@@ -99,7 +99,7 @@ namespace ACESim
         public bool DistributorChanceInputDecision;
 
         /// <summary>
-        /// True if this is a decision that should be distributed (passed forward as an array of probabilities), for example as in accelerated best resposne. This is applicable only for a decision for which DistributorChanceInputDecision is true. The decisions will generally be passed as an array only for the players for whom this does not provide private information, so ProvidesPrivateInformationFor should be set below.
+        /// True if this is a decision that should be distributed (passed forward as an array of probabilities), for example as in accelerated best resposne. This is applicable only for a decision for which DistributorChanceInputDecision is true. 
         /// </summary>
         public bool DistributableDistributorChanceInput;
 

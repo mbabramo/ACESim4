@@ -500,9 +500,9 @@ namespace ACESim
 
 
         public virtual bool PlayMultipleScenarios => false;
-        public virtual int NumPostWarmupPossibilities => 11;
+        public virtual int NumPostWarmupPossibilities => 1;
         public virtual int NumWarmupPossibilities => 0;
-        public virtual int WarmupIterations_IfWarmingUp => 20;
+        public virtual int WarmupIterations_IfWarmingUp => 200;
         public bool UseDifferentWarmup => PlayMultipleScenarios && (NumWarmupPossibilities > 0 || NumDifferentWeightsOnOpponentsStrategy > 0);
         public int NumScenariosToInitialize => PlayMultipleScenarios ? NumPostWarmupPossibilities + NumWarmupPossibilities : 1;
         public int? IterationsForWarmupScenario => UseDifferentWarmup ? (int?) WarmupIterations_IfWarmingUp : (int?) null;

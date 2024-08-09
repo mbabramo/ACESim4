@@ -21,15 +21,15 @@ namespace ACESim
 
         #region Settings
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching;  // use RegretMatching etc. for GeneralizedVanilla
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.SequenceForm;
 
         public int? AlwaysDoTaskID = null;  // set this to a task to replay a particular task (either over and over again, using ACESimDistributed, or just once, using ACESimConsole).
         public int[] LimitToTaskIDs = null; // new int[] { 12625, 12635, }; // set this to non-null to repeat specific IDs (e.g., from failures) from a distributed action set.
 
-        public const int VanillaIterations = 500; // Note: Also used for GeneralizedVanilla, DeepCFR
-        public const int VanillaReportEveryNIterations = EffectivelyNever; // DEBUG VanillaIterations; // EffectivelyNever
+        public const int VanillaIterations = 1000; // Note: Also used for GeneralizedVanilla, DeepCFR
+        public const int VanillaReportEveryNIterations = EffectivelyNever;  // EffectivelyNever
         public int? SuppressReportBeforeIteration = null;
-        public const int VanillaBestResponseEveryMIterations = VanillaIterations; // DEBUG
+        public const int VanillaBestResponseEveryMIterations = VanillaIterations; 
         public int? SuppressBestResponseBeforeIteration = null; 
         public const bool CalculatePerturbedBestResponseRefinement = true;
         public const int MiniReportEveryPIterations = EffectivelyNever;
@@ -50,7 +50,7 @@ namespace ACESim
         public int NumRepetitions = 1;
         public bool SaveToAzureBlob = false;
         public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && UseDistributedProcessingForMultipleOptionsSets; // this should be true if running on the local service fabric or usign ACESimDistributed
-        public virtual string MasterReportNameForDistributedProcessing => "R370"; // Note: Overridden in subclass.
+        public virtual string MasterReportNameForDistributedProcessing => "R371"; // Note: Overridden in subclass.
         public bool UseDistributedProcessingForMultipleOptionsSets = false; 
         public bool SeparateScenariosWhenUsingDistributedProcessing = true;
         public static bool MaxOneReportPerDistributedProcess = false;
@@ -59,7 +59,7 @@ namespace ACESim
 
         public static Launcher GetLauncher()
         {
-            return new AdditiveEvidenceGameLauncher(); // DMSReplicationGameLauncher(); LitigGameLauncher();
+            return new LitigGameLauncher();
         }
 
         #endregion

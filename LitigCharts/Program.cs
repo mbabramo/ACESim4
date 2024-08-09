@@ -18,9 +18,9 @@ namespace LitigCharts
         {
             //Runner.KlermanData.Execute();
 
-            Runner.AdditiveEvidenceArticle();
+            // Runner.AdditiveEvidenceArticle();
 
-            //Runner.FeeShiftingArticle();
+            Runner.FeeShiftingArticle();
         }
     }
 }

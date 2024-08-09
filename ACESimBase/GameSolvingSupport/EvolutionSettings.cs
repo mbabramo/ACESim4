@@ -33,10 +33,10 @@ namespace ACESim
 
         public bool UseAcceleratedBestResponse = true; 
         public const int EffectivelyNever = 999999999;
-        public int? BestResponseEveryMIterations = 1; // For partial recall games, this is very costly, so consider using EffectivelyNever. // overridden in Launcher
+        public int? BestResponseEveryMIterations = 100; // For partial recall games, this is very costly, so consider using EffectivelyNever. // overridden in Launcher
         public int? SuppressBestResponseBeforeIteration = null;
-        public bool RememberBestResponseExploitability = false; // not needed if doing model success tracking, which remembers this and other data
-        public bool UseCurrentStrategyForBestResponse = true; // DEBUG // requires accelerated best response
+        public bool RememberBestResponseExploitability = true; // not needed if doing model success tracking, which remembers this and other data
+        public bool UseCurrentStrategyForBestResponse = false; // requires accelerated best response
         public bool CalculatePerturbedBestResponseRefinement = false;
         public double PerturbationForBestResponseCalculation = 0.001;
         public int? MiniReportEveryPIterations = 1000;
@@ -62,7 +62,7 @@ namespace ACESim
         public bool ConfirmPerfectEquilibria = true; // for sequence form only
         public bool ThrowIfNotPerfectEquilibrium = true;  
         public bool TryInexactArithmeticForAdditionalEquilibria = false; 
-        public bool CreateEFGFileForSequenceForm = false;
+        public bool CreateEFGFileForSequenceForm = true;
         public bool CreateEquilibriaFileForSequenceForm = true;
         public bool UsePreloadedEquilibriaForSequenceFormIfAvailable = false;
         public bool CustomSequenceFormInitialization = true;
@@ -110,7 +110,7 @@ namespace ACESim
         public bool GenerateReportsByPlaying = true;
         public int NumRandomIterationsForSummaryTable = 1_000;
         public bool PrintGameTree = false;
-        public bool PrintedGameTreeIncludesInformationSetData = false;
+        public bool PrintedGameTreeIncludesInformationSetData = true;
         public bool PrintInformationSets = false;
         public bool AnalyzeInformationSets = false; 
         public List<int> RestrictToTheseInformationSets = null;
@@ -143,7 +143,7 @@ namespace ACESim
 
         public bool PCA_PerformPrincipalComponentAnalysis = false;
         public double PCA_Precision = 1E-5;
-        public int PCA_FirstIterationToSaveAsPCAObservation = 100; 
+        public int PCA_FirstIterationToSaveAsPCAObservation = 11; 
         public int PCA_SavePCAObservationEveryNIterationsAfterFirst = 1;
         public int[] PCA_NumVariationsPerPrincipalComponent_Obsolete = new int[] { 4, 3, 2 }; // NOTE: Not currently being used; this can be used to generate non-random permutations of principal components.
         public int PCA_NumPrincipalComponents = 3;
