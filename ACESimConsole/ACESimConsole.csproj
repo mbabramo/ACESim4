@@ -3,6 +3,8 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net8.0</TargetFrameworks>
+	  <EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
+	  <!-- DEBUG must change to use package with .Net 9 -->
     <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
 

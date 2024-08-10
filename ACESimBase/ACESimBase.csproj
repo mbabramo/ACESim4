@@ -2,7 +2,8 @@
 
   <PropertyGroup>
     <TargetFrameworks>net8.0</TargetFrameworks>
-    <NoWarn>SYSLIB0011</NoWarn>
+	  <EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization> <!-- DEBUG must change to use package with .Net 9 -->
+	  <NoWarn>SYSLIB0011</NoWarn>
     <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
 
