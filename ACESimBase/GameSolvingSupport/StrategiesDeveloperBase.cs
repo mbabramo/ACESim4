@@ -2157,7 +2157,7 @@ namespace ACESim
                     RememberBestResponseExploitabilityValues(iteration);
                     BestResponseComparison();
                 }
-                if (iteration % EvolutionSettings.CorrelatedEquilibriumCalculationsEveryNIterations == 0)
+                if (iteration % EvolutionSettings.CorrelatedEquilibriumCalculationsEveryNIterations == 0 && EvolutionSettings.CorrelatedEquilibriumCalculationsEveryNIterations != EvolutionSettings.EffectivelyNever)
                     DoCorrelatedEquilibriumCalculations(iteration);
                 if (EvolutionSettings.PrintGameTree && !suppressPrintTree)
                     PrintGameTree();
