@@ -617,7 +617,7 @@ namespace ACESim
                 if (retriesRemaining >= 0)
                 {
                     int delay = (int)Math.Pow(1.3, failuresSoFar);
-                    if (failuresSoFar > 1)
+                    if (failuresSoFar > 1 && delay < 100000)
                         delay += (int) (10000.0 * new Random((int)DateTime.Now.Ticks).Next());
                     await Task.Delay(delay);
                     goto retry;
