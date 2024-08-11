@@ -144,9 +144,9 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                     for (int offerIndex = 0; offerIndex < numOffers; offerIndex++)
                     {
                         double offerValue = offers[offerIndex];
-                        Func<ISignalOfferReportGameProgress, bool> pNumeratorFn = x => x.PFirstOffer == offerValue;
+                        Func<ISignalOfferReportGameProgress, bool> pNumeratorFn = x => (x.POffers?.Any() ?? false) && x.PFirstOffer == offerValue;
                         Func<ISignalOfferReportGameProgress, bool> pDenominatorFn = x => pFunction(x) == pSignal && (x.POffers?.Any() ?? false);
-                        Func<ISignalOfferReportGameProgress, bool> dNumeratorFn = x => x.DFirstOffer == offerValue;
+                        Func<ISignalOfferReportGameProgress, bool> dNumeratorFn = x => (x.DOffers?.Any() ?? false) && x.DFirstOffer == offerValue;
                         Func<ISignalOfferReportGameProgress, bool> dDenominatorFn = x => dFunction(x) == dSignal && (x.DOffers?.Any() ?? false);
 
                         pRow.Add(GetProportionString(pNumeratorFn, pDenominatorFn));
