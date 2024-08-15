@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace ACESimBase.Util.Tikz
 {
 
-    public record TikzAxisSet(List<string> xValueNames, List<string> yValueNames, string xAxisLabel, string yAxisLabel, TikzRectangle sourceRectangle, string boxBordersAttributes = "draw=none", string horizontalLinesAttribute = "draw=none", string verticalLinesAttribute = "draw=none", double fontScale = 1, double xAxisSpace = 2.2, double xAxisLabelOffsetDown = 1.2, double xAxisLabelOffsetRight = 0, double xAxisMarkOffset = 0, double yAxisSpace = 2.0, double yAxisLabelOffsetLeft = 1, double yAxisLabelOffsetUp = 0, double yAxisMarkOffset = 0, bool xAxisUseEndpoints = false, bool yAxisUseEndpoints = false, TikzAxisSet.GraphType graphType = TikzAxisSet.GraphType.Line, TikzLineGraphData lineGraphData = null)
+    public record TikzAxisSet(List<string> xValueNames, List<string> yValueNames, string xAxisLabel, string yAxisLabel, TikzRectangle sourceRectangle, string boxBordersAttributes = "draw=none", string horizontalLinesAttribute = "draw=none", string verticalLinesAttribute = "draw=none", double fontScale = 1, double xAxisSpace = 2.2, double xAxisLabelOffsetDown = 1.2, double xAxisLabelOffsetRight = 0, double xAxisMarkOffset = 0, double yAxisSpace = 2.0, double yAxisLabelOffsetLeft = 1, double yAxisLabelOffsetUp = 0, double yAxisMarkOffset = 0, bool xAxisUseEndpoints = false, bool yAxisUseEndpoints = false, double extraVerticalSpaceAtBottom = 0, TikzAxisSet.GraphType graphType = TikzAxisSet.GraphType.Line, TikzLineGraphData lineGraphData = null)
     {
         public enum GraphType
         {

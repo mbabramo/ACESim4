@@ -729,7 +729,8 @@ namespace ACESim
                 criticalFeeShiftingMultipleTransformations,
                 criticalRiskAversionTransformations,
                 // And then can vary ONE of these (avoiding inconsistencies with above):
-                noncriticalCostsMultiplierTransformations,
+                // IMPORTANT: When changing these, change NamesOfFeeShiftingArticleSets to match each of these
+                noncriticalCostsMultiplierTransformations, // i.e., not only the core costs multipliers and other core variables, but also the critical costs multipliers
                 noncriticalFeeShiftingMultipleTransformations,
                 noncriticalRiskAversionTransformations,
                 NoiseTransformations(includeBaselineValueForNoncritical),
@@ -809,15 +810,16 @@ namespace ACESim
            // "Additional Costs Multipliers",
            // "Additional Fee Shifting Multipliers",
            // "Additional Risk Options",
-            "Core",
+            "Costs Multipliers",
+            "Fee Shifting Multiples",
             "Risk Aversion",
-            "Fee Shifting Rule",
             "Noise Multipliers", // includes P & D
             "Relative Costs",
+            "Fee Shifting Mode",
             "Allowing Abandon and Defaults",
             "Probability Truly Liable",
             "Noise to Produce Case Strength",
-            "Issue",
+            "Liability vs Damages",
             "Proportion of Costs at Beginning",
         };
 
@@ -829,7 +831,7 @@ namespace ACESim
         {
             var varyingNothing = new List<FeeShiftingArticleVariationInfo>()
             {
-                new FeeShiftingArticleVariationInfo("Baseline", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Risk Neutral")),
+                new FeeShiftingArticleVariationInfo("Baseline", DefaultNonCriticalValues()),
             };
 
             var varyingFeeShiftingRule_LiabilityUncertain = new List<FeeShiftingArticleVariationInfo>()

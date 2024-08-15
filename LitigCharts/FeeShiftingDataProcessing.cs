@@ -32,11 +32,9 @@ namespace LitigCharts
         static string[] eqToRun => firstEqOnly ? equilibriumTypeWords_One : equilibriumTypeWords_All;
         static string[] equilibriumTypeSuffixes => firstEqOnly ? equilibriumTypeSuffixes_One : equilibriumTypeSuffixes_All;
 
-
-        // TODO: Move all this to a separate class
-
         static List<Process> ProcessesList = new List<Process>();
-        static int maxProcesses = Environment.ProcessorCount;
+        static bool UseParallel = true;
+        static int maxProcesses = UseParallel ? Environment.ProcessorCount : 1;
 
         static void CleanupCompletedProcesses()
         {
@@ -104,10 +102,22 @@ namespace LitigCharts
             foreach (var gameOptionsSet in litigGameOptionsSets)
             {
                 string filenameCore, combinedPath;
-                GetFileInfo(map, filePrefix, ".tex", firstEquilibriumFileSuffix, ref fileSuffix, path, gameOptionsSet, out filenameCore, out combinedPath);
-                if (!File.Exists(combinedPath))
-                    throw new Exception("File not found");
-                ExecuteLatexProcess(path, combinedPath);
+                bool avoidProcessingIfPDFExists = true; // DEBUG
+                bool processingNeeded = true;
+                if (avoidProcessingIfPDFExists)
+                {
+                    string fileSuffixCopy = fileSuffix;
+                    GetFileInfo(map, filePrefix, ".pdf", firstEquilibriumFileSuffix, ref fileSuffixCopy, path, gameOptionsSet, out filenameCore, out combinedPath);
+                    if (File.Exists(combinedPath))
+                        processingNeeded = false;
+                }
+                if (processingNeeded)
+                {
+                    GetFileInfo(map, filePrefix, ".tex", firstEquilibriumFileSuffix, ref fileSuffix, path, gameOptionsSet, out filenameCore, out combinedPath);
+                    if (!File.Exists(combinedPath))
+                        throw new Exception("File not found");
+                    ExecuteLatexProcess(path, combinedPath);
+                }
             }
             WaitForProcessesToFinish();
 
@@ -120,7 +130,7 @@ namespace LitigCharts
                     File.Delete(Path.Combine(path, optionSet.Name + "{suffix}.aux"));
                     File.Delete(Path.Combine(path, optionSet.Name + "{suffix}.log"));
                     File.Delete(Path.Combine(path, optionSet.Name + ".synctex.gz"));
-                    File.Delete(Path.Combine(path, optionSet.Name + "{suffix}.tex"));
+                    //File.Delete(Path.Combine(path, optionSet.Name + "{suffix}.tex"));
                     failures = 0;
                 }
                 catch
@@ -277,7 +287,7 @@ namespace LitigCharts
         private static List<LitigGameOptions> GetFeeShiftingGameOptionsSets()
         {
             var launcher = new LitigGameLauncher();
-            return launcher.GetFeeShiftingArticleGamesSets(false, true).SelectMany(x => x).ToList();
+            return launcher.GetFeeShiftingArticleGamesSets(false, false).SelectMany(x => x).ToList();
         }
 
 
@@ -349,7 +359,7 @@ namespace LitigCharts
             }
 
             var launcher = new LitigGameLauncher();
-            var sets = launcher.GetFeeShiftingArticleGamesSets(false, true);
+            var sets = launcher.GetFeeShiftingArticleGamesSets(false, false);
             var map = launcher.GetFeeShiftingArticleNameMap(); // name to find (avoids redundancies)
             var setNames = launcher.NamesOfFeeShiftingArticleSets;
             string masterReportName = launcher.MasterReportNameForDistributedProcessing;
@@ -382,6 +392,10 @@ namespace LitigCharts
                                 File.Copy(combinedNameSource, combinedNameTarget, true);
                                 if (doDeletion)
                                     File.Delete(combinedNameSource);
+                            }
+                            else
+                            {
+                                Console.WriteLine($"{combinedNameSource} does not exist");
                             }
                         }
                     }
@@ -492,7 +506,7 @@ namespace LitigCharts
             var drawCommands = r.GetStandaloneDocument();
         }
 
-        public record AggregatedGraphInfo(string topicName, List<string> columnsToGet, List<string> lineScheme, string minorXAxisLabel = "Fee Shifting Multiplier", string minorYAxisLabel = "\\$", string majorYAxisLabel = "Costs Multiplier", double? maximumValueMicroY = null, TikzAxisSet.GraphType graphType = TikzAxisSet.GraphType.Line);
+        public record AggregatedGraphInfo(string topicName, List<string> columnsToGet, List<string> lineScheme, string minorXAxisLabel = "Fee Shifting Multiplier", string minorXAxisLabelShort = "Fee Shift Mult.", string minorYAxisLabel = "\\$", string majorYAxisLabel = "Costs Multiplier", double? maximumValueMicroY = null, TikzAxisSet.GraphType graphType = TikzAxisSet.GraphType.Line);
         
         public static void ProduceLatexDiagramsAggregatingReports()
         {
@@ -505,7 +519,7 @@ namespace LitigCharts
             if (!Directory.GetDirectories(reportFolder).Any(x => x == outputFolderName))
                 Directory.CreateDirectory(outputFolderPath);
 
-            var sets = launcher.GetFeeShiftingArticleGamesSets(false, true);
+            var sets = launcher.GetFeeShiftingArticleGamesSets(false, false);
             var map = launcher.GetFeeShiftingArticleNameMap(); // name to find (avoids redundancies)
             var setNames = launcher.NamesOfFeeShiftingArticleSets;
             string masterReportName = launcher.MasterReportNameForDistributedProcessing;
@@ -515,6 +529,8 @@ namespace LitigCharts
             {
 
                 List<LitigGameLauncher.FeeShiftingArticleVariationSetInfo> variations = launcher.GetFeeShiftingArticleVariationInfoList(useRiskAversionForNonRiskReports);
+
+                // variations = new List<LitigGameLauncher.FeeShiftingArticleVariationSetInfo>() { variations[1] }; // DEBUG
 
                 var plaintiffDefendantAndOthersLineScheme = new List<string>()
                 {
@@ -561,6 +577,8 @@ namespace LitigCharts
             DeleteAuxiliaryFiles(outputFolderPath);
         }
 
+
+
         private static void ProcessForWelfareMeasure(LitigGameLauncher launcher, string pathAndFilename, string outputFolderPath, List<LitigGameLauncher.FeeShiftingArticleVariationSetInfo> variations, AggregatedGraphInfo aggregatedGraphInfo, double? limitToCostsMultiplier)
         {
             List<(string columnName, string expectedText)[]> collectedRowsToFind = new List<(string columnName, string expectedText)[]>();
@@ -579,7 +597,8 @@ namespace LitigCharts
 
                         var requirementsForEachVariation = variation.requirementsForEachVariation;
                         List<List<TikzLineGraphData>> lineGraphData = new List<List<TikzLineGraphData>>();
-                        foreach (double macroYValue in limitToCostsMultiplier == null ? launcher.CriticalCostsMultipliers.OrderBy(x => x).ToList() : new List<double> { (double) limitToCostsMultiplier })
+                        List<double> costsMultipliers = limitToCostsMultiplier == null ? launcher.CriticalCostsMultipliers.OrderBy(x => x).ToList() : new List<double> { (double)limitToCostsMultiplier }; 
+                        foreach (double macroYValue in costsMultipliers)
                         {
                             List<TikzLineGraphData> lineGraphDataForRow = new List<TikzLineGraphData>();
                             foreach (var macroXValue in requirementsForEachVariation)
@@ -658,10 +677,26 @@ namespace LitigCharts
 
             foreach (var macroRow in lineGraphData)
             {
-                for (int i = 0; i < macroRow.Count; i++)
+                for (int macroColumnIndex = 0; macroColumnIndex < macroRow.Count; macroColumnIndex++)
                 {
-                    TikzLineGraphData macroColumn = macroRow[i];
-                    macroRow[i] = macroColumn with { proportionalHeights = macroColumn.proportionalHeights.Select(x => x.Select(y => y / maximumValueMicroY).ToList()).ToList() };
+                    TikzLineGraphData macroCell = macroRow[macroColumnIndex];
+                    if (aggregatedGraphInfo.graphType == TikzAxisSet.GraphType.StackedBar)
+                    {
+                        int numThingsToStack = macroCell.proportionalHeights.Count();
+                        int numMicroXValues = macroCell.proportionalHeights.First().Count();
+                        for (int i = 0; i < numMicroXValues; i++)
+                        {
+                            double sum = macroCell.proportionalHeights.Sum(x => x[i] ?? 0);
+                            if (sum != 0)
+                            {
+                                for (int j = 0; j < numThingsToStack; j++)
+                                {
+                                    if (macroCell.proportionalHeights[j][i] != null)
+                                        macroCell.proportionalHeights[j][i] /= sum;
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -672,7 +707,7 @@ namespace LitigCharts
                 majorYValueNames = limitToCostsMultiplier == null ? launcher.CriticalCostsMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList() : new List<string>() { limitToCostsMultiplier.ToString() },
                 majorYAxisLabel = aggregatedGraphInfo.majorYAxisLabel,
                 minorXValueNames = launcher.CriticalFeeShiftingMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList(),
-                minorXAxisLabel = aggregatedGraphInfo.minorXAxisLabel,
+                minorXAxisLabel = requirementsForEachVariation.Count > 3 ? aggregatedGraphInfo.minorXAxisLabelShort :  aggregatedGraphInfo.minorXAxisLabel,
                 minorYValueNames = Enumerable.Range(0, 11).Select(y => y switch { 0 => "0", 10 => maximumValueMicroY.ToString(), _ => " " }).ToList(),
                 minorYAxisLabel = aggregatedGraphInfo.minorYAxisLabel,
                 yAxisSpaceMicro = 0.8,
@@ -693,7 +728,7 @@ namespace LitigCharts
             if (!Directory.GetDirectories(outputFolderPath).Any(x => x == subfolderName))
                 Directory.CreateDirectory(subfolderName);
 
-            string outputFilename = Path.Combine(subfolderName, $"{aggregatedGraphInfo.topicName} {(variation.nameOfSet.Contains("Baseline") == false ? "Varying " : "")}{variation.nameOfSet}{costsLevel}{equilibriumTypeAdj}.tex");
+            string outputFilename = Path.Combine(subfolderName, $"{aggregatedGraphInfo.topicName} {(variation.nameOfSet.Contains("Baseline") == false ? "Varying " : "")}{variation.nameOfSet}{costsLevel}{equilibriumTypeAdj}{(limitToCostsMultiplier != null ? $" Costs Multiplier {limitToCostsMultiplier}" : "")}.tex");
             TextFileManage.CreateTextFile(outputFilename, result);
             ExecuteLatexProcess(subfolderName, outputFilename);
         }

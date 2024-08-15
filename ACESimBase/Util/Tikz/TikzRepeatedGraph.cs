@@ -22,7 +22,7 @@ namespace ACESimBase.Util.Tikz
         public double yAxisSpaceMicro { get; init; } = 1.1;
         public double yAxisLabelOffsetMicro { get; init; } = 0.9;
 
-        public double xAxisLabelOffsetDown { get; init; } = 1.2;
+        public double xAxisLabelOffsetDown { get; init; } = 0.9; // DEBUG 1.2
 
         public double yAxisLabelOffsetLeft { get; init; } = 1;
         public bool drawInternalGraphPaperLines { get; init; } = false;
@@ -36,6 +36,8 @@ namespace ACESimBase.Util.Tikz
         private List<List<TikzAxisSet>> innerAxisSets;
         public double width => 20 + (majorXValueNames.Count() > 5 ? 4.0 * (majorXValueNames.Count() - 5) : 0);
         public double height => 2.3 + majorYValueNames.Count() * 4.0;
+
+        public double extraSpaceForLegend => (ContainsLegend() ? 1.0 : 0.0); // note that the main rectangle excludes the legend, and increasing the height of the main rectangle just stretches everything out but still doesn't leave enough space for the legend
         private TikzRectangle mainRectangle => new TikzRectangle(0, 0, width, height);
         TikzLine bottomAxisLine => outerAxisSet.BottomAxisLine;
         TikzRectangle bottomAxisAsRectangle => outerAxisSet.BottomAxisLine.ToRectangle();
@@ -46,7 +48,7 @@ namespace ACESimBase.Util.Tikz
         {
             if (Initialized)
                 return;
-            outerAxisSet = new TikzAxisSet(majorXValueNames, majorYValueNames, majorXAxisLabel, majorYAxisLabel, mainRectangle, fontScale:2, xAxisSpace:1.5, yAxisSpace: 1.7, xAxisLabelOffsetDown:0.9, yAxisLabelOffsetLeft:1.1, boxBordersAttributes: "draw=none", horizontalLinesAttribute: "draw=none", verticalLinesAttribute: "draw=none");
+            outerAxisSet = new TikzAxisSet(majorXValueNames, majorYValueNames, majorXAxisLabel, majorYAxisLabel, mainRectangle, fontScale:2, xAxisSpace:1.5, yAxisSpace: 1.7, xAxisLabelOffsetDown: xAxisLabelOffsetDown, yAxisLabelOffsetLeft:1.1, boxBordersAttributes: "draw=none", horizontalLinesAttribute: "draw=none", verticalLinesAttribute: "draw=none");
             var rectangles = outerAxisSet.IndividualCells;
             innerAxisSets = rectangles.Select((row, rowIndex) => row.Select((column, columnIndex) => new TikzAxisSet(minorXValueNames, minorYValueNames, minorXAxisLabel, minorYAxisLabel, rectangles[rowIndex][columnIndex].ConditionallyMovedToOrigin(useSaveBoxes), lineGraphData: lineGraphData[rowIndex][columnIndex], fontScale: 0.7, xAxisSpace: xAxisSpaceMicro, yAxisSpace: yAxisSpaceMicro, xAxisLabelOffsetDown: xAxisLabelOffsetMicro, xAxisLabelOffsetRight:0, yAxisLabelOffsetLeft: yAxisLabelOffsetMicro, yAxisLabelOffsetUp:0, horizontalLinesAttribute: drawInternalGraphPaperLines ? "gray!30" : "draw=none", verticalLinesAttribute: drawInternalGraphPaperLines ? "gray!30" : "draw=none", yAxisUseEndpoints: true, graphType: graphType)).ToList()).ToList();
             var firstInnerAxisSet = innerAxisSets.FirstOrDefault()?.FirstOrDefault();
@@ -64,11 +66,19 @@ namespace ACESimBase.Util.Tikz
             Initialized = true;
         }
 
-        public string GetLegend()
+        public bool ContainsLegend()
         {
             var lineGraphDataInfo = lineGraphData.First().First();
             if (lineGraphDataInfo.dataSeriesNames.All(x => x == null || x == ""))
+                return false;
+            return true;
+        }
+
+        public string GetLegend()
+        {
+            if (!ContainsLegend())
                 return "";
+            var lineGraphDataInfo = lineGraphData.First().First();
             int numberItems = lineGraphDataInfo.dataSeriesNames.Count();
             List<(string name, string attributes, bool isLast)> legendData = lineGraphDataInfo.dataSeriesNames.Zip(lineGraphDataInfo.lineAttributes, (name, attributes) => (name, attributes)).Select((item, index) => (item.name, item.attributes, index == numberItems - 1)).ToList();
             string dataSeriesDraw = String.Join(Environment.NewLine, legendData.Select(x => $@"
@@ -87,7 +97,7 @@ namespace ACESimBase.Util.Tikz
             Initialize();
             StringBuilder contentsBuilder = new StringBuilder();
             StringBuilder beforeMainPictureBuilder = new StringBuilder();
-            contentsBuilder.AppendLine($@"\clip(0, 0) rectangle + {outerAxisSet.sourceRectangle.topRight}; ");
+            contentsBuilder.AppendLine($@"\clip(0, {-extraSpaceForLegend}) rectangle + {mainRectangle.topRight.WithYTranslation(extraSpaceForLegend)}; ");
             contentsBuilder.AppendLine(outerAxisSet.GetDrawCommands());
             List<List<TikzAxisSet>> list = innerAxisSets.Select(y => y).ToList();
             for (int rowIndex = 0; rowIndex <  list.Count; rowIndex++)

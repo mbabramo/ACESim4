@@ -64,24 +64,24 @@ namespace ACESim
         public bool TryInexactArithmeticForAdditionalEquilibria = false; 
         public bool CreateEFGFileForSequenceForm = true;
         public bool CreateEquilibriaFileForSequenceForm = true;
-        public bool UsePreloadedEquilibriaForSequenceFormIfAvailable = false;
+        public bool UsePreloadedEquilibriaForSequenceFormIfAvailable = true; // DEBUG
         public bool CustomSequenceFormInitialization = true;
         public bool UseCustomSequenceFormInitializationAsFinalEquilibria = false; 
         public bool SequenceFormUseRandomSeed = false; // random seed always used for additional priors, but this can be used for just a single prior
         public bool ConsiderInitializingToMostRecentEquilibrium = false;
         public bool SequenceFormBlockDistantActionsWhenTracingEquilibrium = false;
-        public bool SkipAltogetherIfEquilibriumFileAlreadyExists = false; // If true, and an equilibrium file exists, then we will skip and processing AND reporting. If you want to do reporting, then use PreloadedEquilibriaForSequenceForm
+        public bool SkipAltogetherIfEquilibriumFileAlreadyExists = false; // If true, and an equilibrium file exists, then we will skip processing AND reporting. If you want to do reporting, then use PreloadedEquilibriaForSequenceForm
         public bool SequenceFormCutOffProbabilityZeroNodes = true; // If true, then instead of setting chance nodes to no less than the lowest permissible rational value, probability is set to zero, and that part of the tree will be excised. (The algorithm will not work if probabilities are left at zero.)
 
         // SCENARIOS -- see GameDefinition, since this is game specific.
         public string SerializeResultsPrefixPlus(int scenario, int totalScenarios) => SerializeResultsPrefix + (totalScenarios > 0 ? scenario.ToString() : "");
 
         // MODEL SUCCESS TRACKING -- saves every probability at every information set after each iteration. Options are set in StrategiesDeveloperBase.
-        public bool ModelSuccessTracking = true; // DEBUG
+        public bool ModelSuccessTracking = false;
         public int ModelSuccessTracking_StartingIteration => TotalIterations; // at what point in each scenario do we use model success tracking? If one item per scenario, use TotalIterations
         // NOTE: Should probably set below to NumPostWarmupPossibilities * WarmupsContributionToPermutations * NumDifferentWeightsOnOpponentsStrategy (based on GameDefinition scenarios)
         public int? ModelSuccessTrackingSaveAfterNItems = 1_000; // How many items to we need to be tracking (how many scenarios, if one period per scenario) before we start generating additional items?
-        public int ModelSuccessTrackingAdditionalToGenerate = 99_000; // DEBUG 99_500; // How many additional items should we generate using crossover?
+        public int ModelSuccessTrackingAdditionalToGenerate = 99_000; // How many additional items should we generate using crossover?
 
         // CORRELATED EQ SETTINGS -- MUST ALSO SET IN GAME DEFINITION.
         // NOTE: This is separate from correlated equilibrium computed via principal components analysis (see below)
