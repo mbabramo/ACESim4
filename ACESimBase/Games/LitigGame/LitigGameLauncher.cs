@@ -13,7 +13,7 @@ namespace ACESim
 {
     public class LitigGameLauncher : Launcher
     {
-        public override string MasterReportNameForDistributedProcessing => "FS036";
+        public override string MasterReportNameForDistributedProcessing => "FS037";
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
 
@@ -23,6 +23,7 @@ namespace ACESim
         public bool TestDisputeGeneratorVariations = false;
         public bool IncludeRunningSideBetVariations = false;
         public bool LimitToAmerican = true;
+        public bool UseSmallerTree = true;
 
         // Fee shifting article
         public bool IncludeNonCriticalTransformations = true; 
@@ -667,6 +668,16 @@ namespace ACESim
         {
             bool includeBaselineValueForNoncritical = false; // By setting this to false, we avoid repeating the baseline value for noncritical transformations, which would produce redundant options sets.
             GetFeeShiftingArticleGames(options, includeBaselineValueForNoncritical);
+            if (UseSmallerTree)
+            {
+                foreach (var option in options)
+                {
+                    LitigGameOptions o = (LitigGameOptions)option;
+                    o.NumLiabilitySignals = 5;
+                    o.NumLiabilityStrengthPoints = 5;
+                    o.NumOffers = 5;
+                }
+            }
         }
 
         /// <summary>
