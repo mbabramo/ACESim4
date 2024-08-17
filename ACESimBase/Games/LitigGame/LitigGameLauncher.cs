@@ -673,9 +673,18 @@ namespace ACESim
                 foreach (var option in options)
                 {
                     LitigGameOptions o = (LitigGameOptions)option;
-                    o.NumLiabilitySignals = 5;
-                    o.NumLiabilityStrengthPoints = 5;
-                    o.NumOffers = 5;
+                    const int bigTreeNumber = 10;
+                    const int littleTreeNumber = 5;
+                    if (o.NumLiabilitySignals == bigTreeNumber)
+                        o.NumLiabilitySignals = littleTreeNumber;
+                    if (o.NumLiabilityStrengthPoints == bigTreeNumber)
+                        o.NumLiabilityStrengthPoints = littleTreeNumber;
+                    if (o.NumDamagesSignals == bigTreeNumber)
+                        o.NumDamagesSignals = littleTreeNumber;
+                    if (o.NumDamagesStrengthPoints == bigTreeNumber)
+                        o.NumDamagesStrengthPoints = littleTreeNumber;
+                    if (o.NumOffers == bigTreeNumber)
+                        o.NumOffers = littleTreeNumber;
                 }
             }
         }
