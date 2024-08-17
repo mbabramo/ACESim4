@@ -106,7 +106,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                     AddAdditionalEquilibria(equilibria, additionalEquilibria);
                 }
 
-                await ProcessIdentifiedEquilibria(reportCollection, equilibria.Select(x => x.equilibrium).ToList());
+                await ProcessIdentifiedEquilibria(reportCollection, equilibria.Select(x => x.equilibrium).ToList(), EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria > 1);
             }
             else if (Approach == SequenceFormApproach.Gambit)
             {
@@ -308,11 +308,11 @@ namespace ACESimBase.GameSolvingAlgorithms
         }
 
         [SupportedOSPlatform("windows")]
-        private async Task ProcessIdentifiedEquilibria(ReportCollection reportCollection, List<double[]> equilibria)
+        private async Task ProcessIdentifiedEquilibria(ReportCollection reportCollection, List<double[]> equilibria, bool multipleEquilibriaPossible)
         {
             if (EvolutionSettings.CreateEquilibriaFileForSequenceForm)
                 CreateEquilibriaFile(equilibria);
-            await GenerateReportsFromEquilibria(equilibria, reportCollection);
+            await GenerateReportsFromEquilibria(equilibria, reportCollection, multipleEquilibriaPossible);
             if (equilibria.Any())
                 SetInformationSetsToEquilibrium(equilibria.First());
         }
@@ -943,7 +943,7 @@ namespace ACESimBase.GameSolvingAlgorithms
         {
             string output = await RunGambit(filename);
             var equilibria = ProcessGambitResults(reportCollection, output);
-            await GenerateReportsFromEquilibria(equilibria, reportCollection);
+            await GenerateReportsFromEquilibria(equilibria, reportCollection, EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria > 1);
             if (equilibria.Any())
                 SetInformationSetsToEquilibrium(equilibria.First());
         }
@@ -1111,10 +1111,10 @@ namespace ACESimBase.GameSolvingAlgorithms
         #region Equilibria and reporting
 
         [SupportedOSPlatform("windows")]
-        private async Task GenerateReportsFromEquilibria(List<double[]> equilibria, ReportCollection reportCollection)
+        private async Task GenerateReportsFromEquilibria(List<double[]> equilibria, ReportCollection reportCollection, bool multipleEquilibriaPossible)
         {
-            bool includeAverageEquilibriumReport = true;
-            bool includeCorrelatedEquilibriumReport = true;
+            bool includeAverageEquilibriumReport = multipleEquilibriaPossible;
+            bool includeCorrelatedEquilibriumReport = multipleEquilibriaPossible;
             if (includeCorrelatedEquilibriumReport)
                 SaveWeightedGameProgressesAfterEachReport = true;
             bool includeReportForFirstEquilibrium = true;
@@ -1146,8 +1146,6 @@ namespace ACESimBase.GameSolvingAlgorithms
             if ((includeReportForFirstEquilibrium && isFirst) || includeReportForEachEquilibrium)
             {
                 await AddReportForEquilibrium(reportCollection, numEquilibria, eqNum);
-                if (numEquilibria == 1)
-                    return;
             }
             if (includeCorrelatedEquilibriumReport && isLast)
             {

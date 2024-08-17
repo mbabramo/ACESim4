@@ -53,10 +53,6 @@ namespace LitigCharts
             double?[,] resultsAllRows = null;
             string filenameCore, combinedPath;
             GetFileInfo(map, filePrefix, ".csv", altFileSuffix, ref fileSuffix, path, gameOptionsSet, out filenameCore, out combinedPath);
-            if (filenameCore.Contains("Costs Multiplier 1 Fee Shifting Multiplier 2 Moderately Risk Averse Noise 0.5,2"))
-            {
-                var DEBUG = 0;
-            }
             (string columnName, string expectedText)[][] rowsToFind = new (string columnName, string expectedText)[rowsToGet.Count()][];
             for (int f = 0; f < rowsToGet.Count(); f++)
             {

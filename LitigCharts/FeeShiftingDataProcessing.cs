@@ -33,7 +33,7 @@ namespace LitigCharts
         static string[] equilibriumTypeSuffixes => firstEqOnly ? equilibriumTypeSuffixes_One : equilibriumTypeSuffixes_All;
 
         static List<Process> ProcessesList = new List<Process>();
-        static bool UseParallel = false; // DEBUG
+        static bool UseParallel = true; // DEBUG
         static int maxProcesses = UseParallel ? Environment.ProcessorCount : 1;
 
         static void CleanupCompletedProcesses()
@@ -645,11 +645,6 @@ namespace LitigCharts
                                 lineGraphData.Add(lineGraphDataForRow);
                         }
 
-                        if (pathAndFilename.Contains("Accuracy and Expenditures (Risk Averse) Varying Noise Multiplier"))
-                        {
-                            var DEBUG = 0;
-                        }
-
                         if (!stepDefiningRowsToFind)
                             CreateAggregatedLineGraphFromData(launcher, outputFolderPath, aggregatedGraphInfo, equilibriumType, variation, requirementsForEachVariation, lineGraphData, limitToCostsMultiplier);
 
@@ -672,10 +667,6 @@ namespace LitigCharts
                 costsLevel = $" Costs {limitToCostsMultiplier}";
             string equilibriumTypeAdj = equilibriumType == "First" ? "" : " (" + equilibriumType + ")";
             string outputFilename = Path.Combine(subfolderName, $"{aggregatedGraphInfo.topicName} {(variation.nameOfSet.Contains("Baseline") == false ? "Varying " : "")}{variation.nameOfSet}{costsLevel}{equilibriumTypeAdj}{(limitToCostsMultiplier != null ? $" Costs Multiplier {limitToCostsMultiplier}" : "")}.tex");
-            if (outputFilename.Contains("Accuracy and Expenditures (Risk Averse) Varying Noise Multiplier"))
-            {
-                var DEBUG = 0;
-            }
 
             // make all data proportional to rounded up maximum value
             double maximumValueMicroY;
