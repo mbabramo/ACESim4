@@ -33,12 +33,15 @@ namespace LitigCharts
         static string[] equilibriumTypeSuffixes => firstEqOnly ? equilibriumTypeSuffixes_One : equilibriumTypeSuffixes_All;
 
         static List<Process> ProcessesList = new List<Process>();
-        static bool UseParallel = true;
+        static bool UseParallel = false; // DEBUG
         static int maxProcesses = UseParallel ? Environment.ProcessorCount : 1;
 
         static void CleanupCompletedProcesses()
         {
             ProcessesList = ProcessesList.Where(x => !x.HasExited).ToList();
+            var remaining = ProcessesList.Select(x => x.StartInfo.Arguments.ToString()).ToList();
+            string remainingList = String.Join("\n", remaining);
+            Task.Delay(1000);
         }
 
         static void WaitForProcessesToFinish()
@@ -642,6 +645,11 @@ namespace LitigCharts
                                 lineGraphData.Add(lineGraphDataForRow);
                         }
 
+                        if (pathAndFilename.Contains("Accuracy and Expenditures (Risk Averse) Varying Noise Multiplier"))
+                        {
+                            var DEBUG = 0;
+                        }
+
                         if (!stepDefiningRowsToFind)
                             CreateAggregatedLineGraphFromData(launcher, outputFolderPath, aggregatedGraphInfo, equilibriumType, variation, requirementsForEachVariation, lineGraphData, limitToCostsMultiplier);
 
@@ -656,6 +664,19 @@ namespace LitigCharts
 
         private static void CreateAggregatedLineGraphFromData(LitigGameLauncher launcher, string outputFolderPath, AggregatedGraphInfo aggregatedGraphInfo, string equilibriumType, LitigGameLauncher.FeeShiftingArticleVariationSetInfo variation, List<LitigGameLauncher.FeeShiftingArticleVariationInfo> requirementsForEachVariation, List<List<TikzLineGraphData>> lineGraphData, double? limitToCostsMultiplier)
         {
+            string subfolderName = Path.Combine(outputFolderPath, variation.nameOfSet);
+            if (!Directory.GetDirectories(outputFolderPath).Any(x => x == subfolderName))
+                Directory.CreateDirectory(subfolderName);
+            string costsLevel = "";
+            if (limitToCostsMultiplier != null)
+                costsLevel = $" Costs {limitToCostsMultiplier}";
+            string equilibriumTypeAdj = equilibriumType == "First" ? "" : " (" + equilibriumType + ")";
+            string outputFilename = Path.Combine(subfolderName, $"{aggregatedGraphInfo.topicName} {(variation.nameOfSet.Contains("Baseline") == false ? "Varying " : "")}{variation.nameOfSet}{costsLevel}{equilibriumTypeAdj}{(limitToCostsMultiplier != null ? $" Costs Multiplier {limitToCostsMultiplier}" : "")}.tex");
+            if (outputFilename.Contains("Accuracy and Expenditures (Risk Averse) Varying Noise Multiplier"))
+            {
+                var DEBUG = 0;
+            }
+
             // make all data proportional to rounded up maximum value
             double maximumValueMicroY;
             if (aggregatedGraphInfo.maximumValueMicroY is not double presetMax)
@@ -719,16 +740,6 @@ namespace LitigCharts
             };
             var result = r.GetStandaloneDocument();
 
-            string costsLevel = "";
-            if (limitToCostsMultiplier != null)
-                costsLevel = $" Costs {limitToCostsMultiplier}";
-            string equilibriumTypeAdj = equilibriumType == "First" ? "" : " (" + equilibriumType + ")";
-
-            string subfolderName = Path.Combine(outputFolderPath, variation.nameOfSet);
-            if (!Directory.GetDirectories(outputFolderPath).Any(x => x == subfolderName))
-                Directory.CreateDirectory(subfolderName);
-
-            string outputFilename = Path.Combine(subfolderName, $"{aggregatedGraphInfo.topicName} {(variation.nameOfSet.Contains("Baseline") == false ? "Varying " : "")}{variation.nameOfSet}{costsLevel}{equilibriumTypeAdj}{(limitToCostsMultiplier != null ? $" Costs Multiplier {limitToCostsMultiplier}" : "")}.tex");
             TextFileManage.CreateTextFile(outputFilename, result);
             ExecuteLatexProcess(subfolderName, outputFilename);
         }

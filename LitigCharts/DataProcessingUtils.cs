@@ -53,6 +53,10 @@ namespace LitigCharts
             double?[,] resultsAllRows = null;
             string filenameCore, combinedPath;
             GetFileInfo(map, filePrefix, ".csv", altFileSuffix, ref fileSuffix, path, gameOptionsSet, out filenameCore, out combinedPath);
+            if (filenameCore.Contains("Costs Multiplier 1 Fee Shifting Multiplier 2 Moderately Risk Averse Noise 0.5,2"))
+            {
+                var DEBUG = 0;
+            }
             (string columnName, string expectedText)[][] rowsToFind = new (string columnName, string expectedText)[rowsToGet.Count()][];
             for (int f = 0; f < rowsToGet.Count(); f++)
             {
@@ -65,10 +69,10 @@ namespace LitigCharts
             for (int f = 0; f < rowsToGet.Count(); f++)
             {
                 List<string> bodyRow = new List<string>();
-                bodyRow.AddRange(gameOptionsSet.VariableSettings.OrderBy(x => x.Key.ToString()).Select(x => x.Value?.ToString()));
-                bodyRow.Add(replacementRowNames[f]);
-                bodyRow.Add(gameOptionsSet.GroupName);
-                bodyRow.Add(filenameCore); // option set name
+                bodyRow.AddRange(gameOptionsSet.VariableSettings.OrderBy(x => x.Key.ToString()).Select(x => x.Value?.ToString().Replace(",", "-")));
+                bodyRow.Add(replacementRowNames[f]?.Replace(",", "-"));
+                bodyRow.Add(gameOptionsSet.GroupName?.Replace(",", "-"));
+                bodyRow.Add(filenameCore?.Replace(",", "-")); // option set name 
                 bodyRow.AddRange(resultsAllRows.GetRow(f).Select(x => x?.ToString()));
                 outputLines.Add(bodyRow);
             }
