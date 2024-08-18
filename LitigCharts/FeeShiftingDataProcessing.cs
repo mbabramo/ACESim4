@@ -33,7 +33,7 @@ namespace LitigCharts
         static string[] equilibriumTypeSuffixes => firstEqOnly ? equilibriumTypeSuffixes_One : equilibriumTypeSuffixes_All;
 
         static List<Process> ProcessesList = new List<Process>();
-        static bool UseParallel = true; // DEBUG
+        static bool UseParallel = false; // DEBUG
         static int maxProcesses = UseParallel ? Environment.ProcessorCount : 1;
 
         static void CleanupCompletedProcesses()
@@ -93,8 +93,25 @@ namespace LitigCharts
             }
         }
 
-        internal static void ProduceLatexDiagrams(string fileSuffix)
+        internal static List<(string path, string combinedPath, string optionSetName, string fileSuffix)> GetLatexProcessPlans(IEnumerable<string> fileSuffixes)
         {
+            // combine lists from GetLatexProcessPaths for each fileSuffix
+            List<(string path, string combinedPath, string optionSetName, string fileSuffix)> result = new();
+            foreach (var fileSuffix in fileSuffixes)
+            {
+                var processPlans = GetLatexProcessPlans(fileSuffix);
+                foreach (var processPlan in processPlans)
+                {
+                    result.Add(processPlan);
+                }
+            }
+            return result;
+        }
+
+        internal static List<(string path, string combinedPath, string optionSetName, string fileSuffix)> GetLatexProcessPlans(string fileSuffix)
+        {
+            List<(string path, string combinedPath, string optionSetName, string fileSuffix)> result = new();
+
             var gameDefinition = new LitigGameDefinition();
             List<LitigGameOptions> litigGameOptionsSets = GetFeeShiftingGameOptionsSets();
             string path = Launcher.ReportFolder();
@@ -105,7 +122,7 @@ namespace LitigCharts
             foreach (var gameOptionsSet in litigGameOptionsSets)
             {
                 string filenameCore, combinedPath;
-                bool avoidProcessingIfPDFExists = true; // DEBUG
+                bool avoidProcessingIfPDFExists = true;
                 bool processingNeeded = true;
                 if (avoidProcessingIfPDFExists)
                 {
@@ -119,21 +136,40 @@ namespace LitigCharts
                     GetFileInfo(map, filePrefix, ".tex", firstEquilibriumFileSuffix, ref fileSuffix, path, gameOptionsSet, out filenameCore, out combinedPath);
                     if (!File.Exists(combinedPath))
                         throw new Exception("File not found");
-                    ExecuteLatexProcess(path, combinedPath);
+                    result.Add((path, combinedPath, gameOptionsSet.Name, fileSuffix));
                 }
             }
+            return result;
+        }
+
+        internal static void ProduceLatexDiagrams(List<(string path, string combinedPath, string optionSetName, string fileSuffix)> processPlans)
+        {
             WaitForProcessesToFinish();
 
-            foreach (var optionSet in litigGameOptionsSets)
+            int numToDo = processPlans.Count;
+            int numLaunched = 0;
+
+            foreach (var processPlan in processPlans)
+            {
+                string path = processPlan.path;
+                string combinedPath = processPlan.combinedPath;
+                string optionSetName = processPlan.optionSetName;
+                string fileSuffix = processPlan.fileSuffix;
+                ExecuteLatexProcess(path, combinedPath);
+                numLaunched++;
+            }
+
+            WaitForProcessesToFinish();
+
+            foreach (var processPlan in processPlans)
             {
                 int failures = 0;
             retry:
                 try
                 {
-                    File.Delete(Path.Combine(path, optionSet.Name + "{suffix}.aux"));
-                    File.Delete(Path.Combine(path, optionSet.Name + "{suffix}.log"));
-                    File.Delete(Path.Combine(path, optionSet.Name + ".synctex.gz"));
-                    //File.Delete(Path.Combine(path, optionSet.Name + "{suffix}.tex"));
+                    File.Delete(Path.Combine(processPlan.path, processPlan.optionSetName + $"{processPlan.fileSuffix}.aux"));
+                    File.Delete(Path.Combine(processPlan.path, processPlan.optionSetName + $"{processPlan.fileSuffix}.log"));
+                    File.Delete(Path.Combine(processPlan.path, processPlan.optionSetName + ".synctex.gz"));
                     failures = 0;
                 }
                 catch
@@ -149,10 +185,6 @@ namespace LitigCharts
         private static void ExecuteLatexProcess(string path, string combinedPath)
         {
             WaitUntilFewerThanMaxProcessesAreRunning();
-
-            bool skipIfExists = true; 
-            if (skipIfExists && File.Exists(combinedPath.Replace(".tex", ".pdf")))
-                return;
 
             string texFileInQuotes = $"\"{combinedPath}\"";
             string outputDirectoryInQuotes = $"\"{path}\"";
@@ -328,12 +360,13 @@ namespace LitigCharts
 
         internal static void ProduceLatexDiagramsFromTexFiles()
         {
+            List<(string path, string combinedPath, string optionSetName, string fileSuffix)> processesToLaunch = new List<(string path, string combinedPath, string optionSetName, string fileSuffix)>();
             foreach (string fileSuffix in equilibriumTypeSuffixes)
             {
-                FeeShiftingDataProcessing.ProduceLatexDiagrams("-scr" + fileSuffix);
-                FeeShiftingDataProcessing.ProduceLatexDiagrams("-heatmap" + fileSuffix);
-                FeeShiftingDataProcessing.ProduceLatexDiagrams("-fileans" + fileSuffix);
+                List<(string path, string combinedPath, string optionSetName, string fileSuffix)> someToDo = FeeShiftingDataProcessing.GetLatexProcessPlans(new string[] { "-scr" + fileSuffix, "-heatmap" + fileSuffix, "-fileans" + fileSuffix });
+                processesToLaunch.AddRange(someToDo);
             }
+            ProduceLatexDiagrams(processesToLaunch);
         }
 
         public static void OrganizeIntoFolders(bool doDeletion)

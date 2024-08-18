@@ -18,7 +18,7 @@
         {
             bool doSignalsDiagram = false; // if so, only this will be run
             bool printIndividualLatexDiagrams = true; // this is the time consuming one
-            bool doDeletion = printIndividualLatexDiagrams; // don't delete if we haven't done the diagrams yet
+            bool doDeletion = false; // DEBUG printIndividualLatexDiagrams; // don't delete if we haven't done the diagrams yet
             bool organizeIntoFolders = true; 
             bool printAggregatedDiagrams = true;
 
