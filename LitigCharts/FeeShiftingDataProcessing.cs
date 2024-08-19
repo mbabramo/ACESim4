@@ -33,12 +33,24 @@ namespace LitigCharts
         static string[] equilibriumTypeSuffixes => firstEqOnly ? equilibriumTypeSuffixes_One : equilibriumTypeSuffixes_All;
 
         static List<Process> ProcessesList = new List<Process>();
-        static bool UseParallel = false; // DEBUG
+        static bool UseParallel = true;
         static int maxProcesses = UseParallel ? Environment.ProcessorCount : 1;
+        static bool avoidProcessingIfPDFExists = true;
 
-        static void CleanupCompletedProcesses()
+        static void CleanupCompletedProcesses(bool killStaleProcesses)
         {
             ProcessesList = ProcessesList.Where(x => !x.HasExited).ToList();
+
+            TimeSpan maxTimeAllowed = TimeSpan.FromMinutes(2);
+            var expiredList = ProcessesList.Where(x => x.StartTime + maxTimeAllowed < DateTime.Now).ToList();
+            foreach (var expired in expiredList)
+            {
+                // terminate the process
+                expired.Kill();
+                ProcessesList.Remove(expired);
+                TabbedText.WriteLine($"Terminated process {expired.StartInfo.Arguments}");
+            }
+
             var remaining = ProcessesList.Select(x => x.StartInfo.Arguments.ToString()).ToList();
             string remainingList = String.Join("\n", remaining);
             Task.Delay(1000);
@@ -47,7 +59,9 @@ namespace LitigCharts
         static void WaitForProcessesToFinish()
         {
             while (ProcessesList.Any())
-                CleanupCompletedProcesses();
+            {
+                CleanupCompletedProcesses(true);
+            }
         }
 
         static void WaitUntilFewerThanMaxProcessesAreRunning()
@@ -55,7 +69,7 @@ namespace LitigCharts
             while (ProcessesList.Count() >= maxProcesses)
             {
                 Task.Delay(100);
-                CleanupCompletedProcesses();
+                CleanupCompletedProcesses(true);
             }
         }
 
@@ -78,6 +92,7 @@ namespace LitigCharts
                 bool includeHeatmaps = false;
                 if (result.EndsWith(".tex") && (includeHeatmaps || !result.Contains("heatmap")))
                 {
+                    TabbedText.WriteLine($"Launcing {result}");
                     ExecuteLatexProcess(path, result);
                 }
             }
@@ -122,7 +137,6 @@ namespace LitigCharts
             foreach (var gameOptionsSet in litigGameOptionsSets)
             {
                 string filenameCore, combinedPath;
-                bool avoidProcessingIfPDFExists = true;
                 bool processingNeeded = true;
                 if (avoidProcessingIfPDFExists)
                 {
@@ -155,6 +169,8 @@ namespace LitigCharts
                 string combinedPath = processPlan.combinedPath;
                 string optionSetName = processPlan.optionSetName;
                 string fileSuffix = processPlan.fileSuffix;
+                TabbedText.WriteLine($"Launching {numLaunched + 1} of {numToDo}");
+                TabbedText.WriteLine($"{optionSetName}{fileSuffix}"); // separate line for easy sorting afterwards
                 ExecuteLatexProcess(path, combinedPath);
                 numLaunched++;
             }
@@ -167,9 +183,12 @@ namespace LitigCharts
             retry:
                 try
                 {
-                    File.Delete(Path.Combine(processPlan.path, processPlan.optionSetName + $"{processPlan.fileSuffix}.aux"));
-                    File.Delete(Path.Combine(processPlan.path, processPlan.optionSetName + $"{processPlan.fileSuffix}.log"));
-                    File.Delete(Path.Combine(processPlan.path, processPlan.optionSetName + ".synctex.gz"));
+                    foreach (string suffix in new string[] { $"{processPlan.fileSuffix}.aux", $"{processPlan.fileSuffix}.log", ".synctex.gz" })
+                    {
+                        string fileToDelete = Path.Combine(processPlan.path, processPlan.optionSetName + suffix);
+                        if (File.Exists(fileToDelete))
+                            File.Delete(fileToDelete);
+                    }
                     failures = 0;
                 }
                 catch
@@ -195,16 +214,48 @@ namespace LitigCharts
             string pdflatexProgram = @$"{directory}\{programName}.exe"; // NOTE: pdflatex was original
             string arguments = @$"{texFileInQuotes} {extraHyphen}-output-directory={outputDirectoryInQuotes}";
 
+            
+
             ProcessStartInfo processStartInfo = new ProcessStartInfo(pdflatexProgram)
             {
                 Arguments = arguments,
                 UseShellExecute = false,
-                WorkingDirectory = path
+                WorkingDirectory = path,
+                RedirectStandardInput = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
             };
 
-            var handle = Process.GetCurrentProcess().MainWindowHandle;
-            Process result = Process.Start(processStartInfo);
-            ProcessesList.Add(result);
+            Process theProcess = new Process();
+            theProcess.StartInfo = processStartInfo;
+
+            StringBuilder output = new StringBuilder();
+            StringBuilder errorOutput = new StringBuilder();
+
+            //processOutput[theProcess] = output;
+
+            theProcess.OutputDataReceived += (sender, e) =>
+            {
+                if (!string.IsNullOrEmpty(e.Data))
+                {
+                    //processOutput[(Process)sender].AppendLine(e.Data);
+                }
+            };
+
+            theProcess.ErrorDataReceived += (sender, e) =>
+            {
+                if (!string.IsNullOrEmpty(e.Data))
+                {
+                    errorOutput.AppendLine(e.Data); // Optionally capture errors
+                }
+            };
+
+
+            var handle = Process.GetCurrentProcess().MainWindowHandle; 
+            theProcess.Start();
+            theProcess.BeginOutputReadLine();
+            theProcess.BeginErrorReadLine(); // Ensure error output is also captured
+            ProcessesList.Add(theProcess);
         }
 
         private static void BuildReport(List<string> rowsToGet, List<string> replacementRowNames, List<string> columnsToGet, List<string> replacementColumnNames, string endOfFileName)
@@ -360,13 +411,19 @@ namespace LitigCharts
 
         internal static void ProduceLatexDiagramsFromTexFiles()
         {
-            List<(string path, string combinedPath, string optionSetName, string fileSuffix)> processesToLaunch = new List<(string path, string combinedPath, string optionSetName, string fileSuffix)>();
-            foreach (string fileSuffix in equilibriumTypeSuffixes)
+            bool workExists = true;
+            int numAttempts = 0; // sometimes the Latex processes fail, so we try again if any of our files to create are missing
+            while (workExists && numAttempts < 5)
             {
-                List<(string path, string combinedPath, string optionSetName, string fileSuffix)> someToDo = FeeShiftingDataProcessing.GetLatexProcessPlans(new string[] { "-scr" + fileSuffix, "-heatmap" + fileSuffix, "-fileans" + fileSuffix });
-                processesToLaunch.AddRange(someToDo);
+                List<(string path, string combinedPath, string optionSetName, string fileSuffix)> processesToLaunch = new List<(string path, string combinedPath, string optionSetName, string fileSuffix)>();
+                workExists = processesToLaunch.Any() || !avoidProcessingIfPDFExists; // if we're avoiding processing if the PDF exists, then we'll indicate that there's no more work, because that's our only way of telling
+                foreach (string fileSuffix in equilibriumTypeSuffixes)
+                {
+                    List<(string path, string combinedPath, string optionSetName, string fileSuffix)> someToDo = FeeShiftingDataProcessing.GetLatexProcessPlans(new string[] { "-scr" + fileSuffix, "-heatmap" + fileSuffix, "-fileans" + fileSuffix });
+                    processesToLaunch.AddRange(someToDo);
+                }
+                ProduceLatexDiagrams(processesToLaunch);
             }
-            ProduceLatexDiagrams(processesToLaunch);
         }
 
         public static void OrganizeIntoFolders(bool doDeletion)
@@ -392,6 +449,11 @@ namespace LitigCharts
                     ("Average Equilibrium", getExtensions("Avg")),
                 }
                 );
+                for (int i = 2; i <= 100; i++)
+                {
+                    placementRules.Add(($"Additional Equilibria", getExtensions($"Eq{i}")));
+                    placementRules.Add(($"Additional Equilibria", getExtensions($"eq{i}")));
+                }
             }
 
             var launcher = new LitigGameLauncher();
@@ -411,6 +473,7 @@ namespace LitigCharts
                     if (!Directory.GetDirectories(subfolderName).Any(x => x == subsubfolderName))
                         Directory.CreateDirectory(subsubfolderName);
                 }
+                HashSet<string> alreadyDeleted = new HashSet<string>();
                 foreach (var optionsSet in setWithName.theSet)
                 {
                     string originalName = optionsSet.Name;
@@ -422,21 +485,46 @@ namespace LitigCharts
                         {
                             string combinedNameSource = Path.Combine(reportFolder, masterReportName + "-" + filenameMapped + extension);
                             string targetFileName = originalName.Replace("FSA ", "").Replace("-Eq1", "-eq1").Replace("  ", " ") + extension;
+                            if (!File.Exists(combinedNameSource))
+                                combinedNameSource = combinedNameSource.Replace("-eq1", "-Eq1");
                             if (File.Exists(combinedNameSource))
                             {
                                 string combinedNameTarget = Path.Combine(subsubfolderName, targetFileName);
                                 File.Copy(combinedNameSource, combinedNameTarget, true);
-                                if (doDeletion)
+                                if (doDeletion && !alreadyDeleted.Contains(combinedNameSource))
+                                {
+                                    alreadyDeleted.Add(combinedNameSource);
                                     File.Delete(combinedNameSource);
+                                    TabbedText.WriteLine($"Deleting {combinedNameSource}");
+                                }
                             }
                             else
                             {
-                                Console.WriteLine($"{combinedNameSource} does not exist");
+                                if (doDeletion)
+                                {
+                                    if (!placementRule.folderName.Contains("Additional Equilibria") && !alreadyDeleted.Contains(combinedNameSource))
+                                    {
+                                        TabbedText.WriteLine($"{combinedNameSource} does not exist");
+                                    }
+                                }
                             }
                         }
                     }
                     string fullOriginalFilename = Path.Combine(reportFolder, filenameMapped);
                 }
+            }
+            // move every file in reportFolder beginning with "log-p" into a folder "Process Logs" (which may or may not exist)
+            string[] logFiles = Directory.GetFiles(reportFolder).Where(x => x.Contains("log-p")).ToArray();
+            string processLogsFolder = Path.Combine(reportFolder, "Process Logs");
+            if (!Directory.GetDirectories(reportFolder).Any(x => x == processLogsFolder))
+                Directory.CreateDirectory(processLogsFolder);
+            foreach (string logFile in logFiles)
+            {
+                string targetFile = Path.Combine(processLogsFolder, Path.GetFileName(logFile));
+                if (File.Exists(targetFile))
+                    File.Delete(logFile);
+                else
+                    File.Move(logFile, targetFile);
             }
 
         }
@@ -765,7 +853,10 @@ namespace LitigCharts
             var result = r.GetStandaloneDocument();
 
             TextFileManage.CreateTextFile(outputFilename, result);
-            ExecuteLatexProcess(subfolderName, outputFilename);
+            TabbedText.WriteLine($"Launching {outputFilename}");
+            string expectedOutput = outputFilename.Replace(".tex", ".pdf");
+            if (!avoidProcessingIfPDFExists || !File.Exists(expectedOutput))
+                ExecuteLatexProcess(subfolderName, outputFilename);
         }
 
 

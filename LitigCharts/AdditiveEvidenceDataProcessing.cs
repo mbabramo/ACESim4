@@ -528,7 +528,7 @@ namespace LitigCharts
                 string targetPath = Path.Combine(locationComponentsList.ToArray());
                 if (!File.Exists(targetPath))
                 {
-                    Console.WriteLine($"Copying {file.FullName} to {targetPath}");
+                    TabbedText.WriteLine($"Copying {file.FullName} to {targetPath}");
                     File.Copy(file.FullName, targetPath);
                 }
             }

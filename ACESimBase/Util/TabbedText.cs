@@ -98,6 +98,8 @@ namespace ACESim
                         HideConsoleProgressString();
 
                     Console.Write(localString);
+                    if (localString.EndsWith("\r\n"))
+                        Console.Out.Flush();
                     if (!isHiddenInitially)
                         ShowConsoleProgressString();
                 }
