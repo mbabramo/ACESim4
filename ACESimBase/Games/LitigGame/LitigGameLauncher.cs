@@ -79,7 +79,7 @@ namespace ACESim
             FeeShiftingArticle,
             FeeShiftingArticleBaselineOnly,
         }
-        OptionSetChoice OptionSetChosen = OptionSetChoice.FeeShiftingArticle;  // <<-- Choose option set here
+        OptionSetChoice OptionSetChosen = OptionSetChoice.FeeShiftingArticleBaselineOnly;  // <<-- Choose option set here
 
         public override GameOptions GetDefaultSingleGameOptions()
         {
@@ -138,7 +138,7 @@ namespace ACESim
                     AddFeeShiftingArticleGames(optionSets);
                     break;
                 case OptionSetChoice.FeeShiftingArticleBaselineOnly:
-                    bool smallTree = true; // DEBUG
+                    bool smallTree = false;
                     AddToOptionsListWithName(optionSets, "american", LitigGameOptionsGenerator.FeeShiftingArticleBase(smallTree).WithName("FSA"));
                     var british = LitigGameOptionsGenerator.FeeShiftingArticleBase(smallTree);
                     british.LoserPays = true;
