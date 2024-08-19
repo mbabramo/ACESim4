@@ -654,8 +654,6 @@ namespace LitigCharts
 
                 List<LitigGameLauncher.FeeShiftingArticleVariationSetInfo> variations = launcher.GetFeeShiftingArticleVariationInfoList(useRiskAversionForNonRiskReports);
 
-                // variations = new List<LitigGameLauncher.FeeShiftingArticleVariationSetInfo>() { variations[1] }; // DEBUG
-
                 var plaintiffDefendantAndOthersLineScheme = new List<string>()
                 {
                   "blue, opacity=0.70, line width=0.5mm, double",

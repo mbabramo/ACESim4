@@ -105,7 +105,7 @@ namespace ACESim
                     ExogenousProbabilityTrulyLiable = 0.5,
                     StdevNoiseToProduceLiabilityStrength = 0.5
                 },
-                CollapseChanceDecisions = false,  // DEBUG?
+                CollapseChanceDecisions = true,
                 SkipFileAndAnswerDecisions = false, 
                 PFilingCost = 5000,
                 DAnswerCost = 5000,
