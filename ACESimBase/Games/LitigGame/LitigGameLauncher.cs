@@ -77,6 +77,7 @@ namespace ACESim
             Simple1BR,
             Simple2BR,
             FeeShiftingArticle,
+            FeeShiftingArticleBaselineOnly,
         }
         OptionSetChoice OptionSetChosen = OptionSetChoice.FeeShiftingArticle;  // <<-- Choose option set here
 
@@ -136,6 +137,15 @@ namespace ACESim
                 case OptionSetChoice.FeeShiftingArticle:
                     AddFeeShiftingArticleGames(optionSets);
                     break;
+                case OptionSetChoice.FeeShiftingArticleBaselineOnly:
+                    bool smallTree = true; // DEBUG
+                    AddToOptionsListWithName(optionSets, "american", LitigGameOptionsGenerator.FeeShiftingArticleBase(smallTree).WithName("FSA"));
+                    var british = LitigGameOptionsGenerator.FeeShiftingArticleBase(smallTree);
+                    british.LoserPays = true;
+                    british.LoserPaysMultiple = 1.0;
+                    AddToOptionsListWithName(optionSets, "british", british.WithName("FSA"));
+                    break;
+
             }
 
             optionSets = optionSets.OrderBy(x => x.Name).ToList();
@@ -672,6 +682,7 @@ namespace ACESim
             {
                 foreach (var option in options)
                 {
+                    // Note -- some of this is redundant, but we need to do this because of transformations to the original options that may affect damages and liability strength points.
                     LitigGameOptions o = (LitigGameOptions)option;
                     const int bigTreeNumber = 10;
                     const int littleTreeNumber = 5;
@@ -732,6 +743,18 @@ namespace ACESim
             options.AddRange(eachGameIndependently);
         }
 
+        public List<List<LitigGameOptions>> GetFeeShiftingArticleBaselineGamesSets(bool smallerTree)
+        {
+            List<List<LitigGameOptions>> result = new List<List<LitigGameOptions>>();
+            List<List<Func<LitigGameOptions, LitigGameOptions>>> allTransformations = new List<List<Func<LitigGameOptions, LitigGameOptions>>>()
+            {
+                EssentialFeeShiftingMultiplierTransformations(),
+            };
+            List<LitigGameOptions> gameOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.FeeShiftingArticleBase(smallerTree).WithName("FSA"), allTransformations);
+            result.Add(gameOptions);
+            return result;
+        }
+
         public List<List<LitigGameOptions>> GetFeeShiftingArticleGamesSets(bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical)
         {
             List<List<LitigGameOptions>> result = new List<List<LitigGameOptions>>();
@@ -790,7 +813,7 @@ namespace ACESim
                     }
                     if (noncriticalTransformation != null && !replaced)
                         transformLists.Add(noncriticalTransformation);
-                    List<LitigGameOptions> noncriticalOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.FeeShiftingArticleBase().WithName("FSA"), transformLists);
+                    List<LitigGameOptions> noncriticalOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.FeeShiftingArticleBase(UseSmallerTree).WithName("FSA"), transformLists);
                     List<(string, object)> defaultNonCriticalValues = DefaultNonCriticalValues();
                     foreach (var optionSet in noncriticalOptions)
                     {
@@ -1076,6 +1099,15 @@ namespace ACESim
                 results.Add(o => GetAndTransform_FeeShiftingMultiplier(o, multiplier));
             return results;
         }
+
+        List<Func<LitigGameOptions, LitigGameOptions>> EssentialFeeShiftingMultiplierTransformations()
+        {
+            List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
+            foreach (double multiplier in new double[] { 0, 1 })
+                results.Add(o => GetAndTransform_FeeShiftingMultiplier(o, multiplier));
+            return results;
+        }
+
         List<Func<LitigGameOptions, LitigGameOptions>> AdditionalFeeShiftingMultiplierTransformations(bool includeBaselineValue)
         {
             List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();

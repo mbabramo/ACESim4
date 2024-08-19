@@ -65,7 +65,7 @@ namespace ACESim
             LitigGameOptionSetChoices.Usual => BothUncertain_2BR(),
             LitigGameOptionSetChoices.Ambitious => Ambitious(),
             LitigGameOptionSetChoices.PerfectInfo => PerfectInformation(courtIsPerfectToo: false),
-            LitigGameOptionSetChoices.FeeShiftingArticleBase => FeeShiftingArticleBase(),
+            LitigGameOptionSetChoices.FeeShiftingArticleBase => FeeShiftingArticleBase(false),
             _ => throw new Exception()
         };
 
@@ -386,7 +386,7 @@ namespace ACESim
             return options;
         }
 
-        public static LitigGameOptions FeeShiftingArticleBase()
+        public static LitigGameOptions FeeShiftingArticleBase(bool smallerTree)
         {
             var options = BaseOptions();
 
@@ -397,8 +397,7 @@ namespace ACESim
             options.IncludeSignalsReport = false;
             options.IncludeCourtSuccessReport = false;
 
-            bool alternativeCase = false;
-            if (alternativeCase)
+            if (smallerTree)
             {
                 byte numOfEach = 5; 
                 options.NumOffers = numOfEach;
