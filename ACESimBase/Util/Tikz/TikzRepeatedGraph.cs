@@ -22,7 +22,7 @@ namespace ACESimBase.Util.Tikz
         public double yAxisSpaceMicro { get; init; } = 1.1;
         public double yAxisLabelOffsetMicro { get; init; } = 0.9;
 
-        public double xAxisLabelOffsetDown { get; init; } = 0.9; // DEBUG 1.2
+        public double xAxisLabelOffsetDown { get; init; } = 0.9; 
 
         public double yAxisLabelOffsetLeft { get; init; } = 1;
         public bool drawInternalGraphPaperLines { get; init; } = false;

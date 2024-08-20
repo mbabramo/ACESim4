@@ -23,14 +23,17 @@ namespace LitigCharts
         const string averageEquilibriumFileSuffix = "-Avg";
         const string firstEquilibriumFileSuffix = "-Eq1";
 
-        private static string[] equilibriumTypeSuffixes_All = new string[] { correlatedEquilibriumFileSuffix, averageEquilibriumFileSuffix, firstEquilibriumFileSuffix };
+        private static string[] equilibriumTypeSuffixes_Major = new string[] { correlatedEquilibriumFileSuffix, averageEquilibriumFileSuffix, firstEquilibriumFileSuffix };
         private static string[] equilibriumTypeSuffixes_One = new string[] { firstEquilibriumFileSuffix };
-        private static string[] equilibriumTypeWords_All = new string[] { "Correlated", "Average", "First" };
+        private static string[] equilibriumTypeSuffixes_AllIndividual = Enumerable.Range(1, 100).Select(x => $"-Eq{x}").ToArray();
+        private static string[] equilibriumTypeWords_Major = new string[] { "Correlated", "Average", "First" };
         private static string[] equilibriumTypeWords_One = new string[] { "First" };
+        private static string[] equilibriumTypeWords_AllIndividual = Enumerable.Range(1, 100).Select(x => $"Eq{x}").ToArray();
 
         static bool firstEqOnly => new EvolutionSettings().SequenceFormNumPriorsToUseToGenerateEquilibria == 1;
-        static string[] eqToRun => firstEqOnly ? equilibriumTypeWords_One : equilibriumTypeWords_All;
-        static string[] equilibriumTypeSuffixes => firstEqOnly ? equilibriumTypeSuffixes_One : equilibriumTypeSuffixes_All;
+        static bool allIndividual = true; // DEBUG
+        static string[] eqToRun => allIndividual ? equilibriumTypeWords_AllIndividual : (firstEqOnly ? equilibriumTypeWords_One : equilibriumTypeWords_Major);
+        static string[] equilibriumTypeSuffixes => allIndividual ? equilibriumTypeSuffixes_AllIndividual : (firstEqOnly ? equilibriumTypeSuffixes_One : equilibriumTypeSuffixes_Major);
 
         static List<Process> ProcessesList = new List<Process>();
         static bool UseParallel = true;
@@ -141,13 +144,13 @@ namespace LitigCharts
                 if (avoidProcessingIfPDFExists)
                 {
                     string fileSuffixCopy = fileSuffix;
-                    GetFileInfo(map, filePrefix, ".pdf", firstEquilibriumFileSuffix, ref fileSuffixCopy, path, gameOptionsSet, out filenameCore, out combinedPath);
+                    GetFileInfo(map, filePrefix, ".pdf", firstEquilibriumFileSuffix, ref fileSuffixCopy, path, gameOptionsSet, out filenameCore, out combinedPath, out bool exists);
                     if (File.Exists(combinedPath))
                         processingNeeded = false;
                 }
                 if (processingNeeded)
                 {
-                    GetFileInfo(map, filePrefix, ".tex", firstEquilibriumFileSuffix, ref fileSuffix, path, gameOptionsSet, out filenameCore, out combinedPath);
+                    GetFileInfo(map, filePrefix, ".tex", firstEquilibriumFileSuffix, ref fileSuffix, path, gameOptionsSet, out filenameCore, out combinedPath, out bool exists);
                     if (!File.Exists(combinedPath))
                         throw new Exception("File not found");
                     result.Add((path, combinedPath, gameOptionsSet.Name, fileSuffix));
@@ -319,7 +322,7 @@ namespace LitigCharts
                     correlatedEquilibriumFileSuffix => "Correlated",
                     averageEquilibriumFileSuffix => "Average",
                     firstEquilibriumFileSuffix => "First",
-                    _ => throw new NotImplementedException()
+                    _ => "Other"
                 };
                 foreach (List<string> bodyLine in outputLines.Skip(includeHeader ? 1 : 0))
                     bodyLine.Insert(0, equilibriumType);
@@ -710,7 +713,7 @@ namespace LitigCharts
             {
                 foreach (string equilibriumType in eqToRun)
                 {
-                    string eqAbbreviation = equilibriumType switch { "Correlated" => "-Corr", "Average" => "-Avg", "First" => "-Eq1", _ => throw new NotImplementedException() };
+                    string eqAbbreviation = equilibriumType switch { "Correlated" => "-Corr", "Average" => "-Avg", "First" => "-Eq1", _ => equilibriumType[1..] };
                     foreach (var variation in variations)
                     {
                         // This is a full report. The variation controls the big x axis. The big y axis is the costs multiplier.
@@ -857,7 +860,98 @@ namespace LitigCharts
                 ExecuteLatexProcess(subfolderName, outputFilename);
         }
 
+        public static void CalculateAverageCoefficientOfVariation()
+        {
+            string filename = "G:\\My Drive\\Articles, books in progress\\Machine learning model of litigation\\Independent signals -- small tree results\\FS037--output each equilibrium.csv";
+            int[] stringColumns = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+            int[] numericColumns = Enumerable.Range(18, 21).ToArray();
+            var fromCSVFile = GetDataFromCSV(filename, 13, "All", stringColumns, numericColumns);
+            var grouped = fromCSVFile.GroupBy(x => String.Join(",", x.stringValues));
+            List<List<double[]>> resultsForGroupedEquilibria = grouped
+                .Select(group => group.Select(x => x.numericValues).ToList())
+                .ToList();
+            CompleteCoefficientOfVariationCalculation(resultsForGroupedEquilibria, false);
+            Console.WriteLine($"Eliminating trivial equilibria");
+            resultsForGroupedEquilibria = grouped
+                .Select(group => group.Select(x => x.numericValues).ToList())
+                .ToList();
+            CompleteCoefficientOfVariationCalculation(resultsForGroupedEquilibria, true);
+        }
 
+        private static void CompleteCoefficientOfVariationCalculation(List<List<double[]>> resultsForGroupedEquilibria, bool eliminateTrivialEquilibria)
+        {
+            // We don't want multiple trivial equilibria, so we allow no more than one of each equilibrium.
+            foreach (List<double[]> resultsForGroupedEquilibrium in resultsForGroupedEquilibria)
+            {
+                List<int> itemsInListToRemove = new List<int>();
+                bool alreadyFoundPlaintiffNeverFiles = false;
+                bool alreadyFoundPlaintiffAlwaysFilesButDefendantNeverAnswers = false;
+                for (int i = 0; i < resultsForGroupedEquilibrium.Count; i++)
+                {
+                    var resultsForSingleEquilibrium = resultsForGroupedEquilibrium[i];
+                    bool plaintiffNeverFiles = resultsForSingleEquilibrium[0] == 0;
+                    if (plaintiffNeverFiles)
+                    {
+                        if (alreadyFoundPlaintiffNeverFiles || eliminateTrivialEquilibria)
+                            itemsInListToRemove.Add(i);
+                        else
+                            alreadyFoundPlaintiffNeverFiles = true;
+                    }
+                    bool plaintiffAlwaysFilesButDefendantNeverAnswers = resultsForSingleEquilibrium[0] == 1 && resultsForSingleEquilibrium[1] == 0;
+                    if (plaintiffAlwaysFilesButDefendantNeverAnswers)
+                    {
+                        if (alreadyFoundPlaintiffAlwaysFilesButDefendantNeverAnswers || eliminateTrivialEquilibria)
+                            itemsInListToRemove.Add(i);
+                        else
+                            alreadyFoundPlaintiffAlwaysFilesButDefendantNeverAnswers = true;
+                    }
+                    // now, remove the items in the list
+                    foreach (int index in itemsInListToRemove.OrderByDescending(x => x))
+                        resultsForGroupedEquilibrium.RemoveAt(index);
+                }
+            }
+            var numEquilibria = resultsForGroupedEquilibria.Select(x => x.Count()).OrderByDescending(x => x).ToArray();
+            List<double[]> coefficientsOfVariation = new List<double[]>();
+            // Now, we want to calculate the coefficient of variation for each of the numeric columns for each group. In the event that there is only a single item in a group, we count that as zero for each numeric column.
+            int[] numericColumns = Enumerable.Range(0, resultsForGroupedEquilibria.First().First().Length).ToArray(); // now, we don't have to index into the original CSV
+            foreach (var resultsForGroupedEquilibrium in resultsForGroupedEquilibria)
+            {
+                if (resultsForGroupedEquilibrium.Count <= 1)
+                {
+                    coefficientsOfVariation.Add(Enumerable.Repeat(0.0, numericColumns.Length).ToArray());
+                }
+                else
+                {
+                    var averages = numericColumns.Select(x => resultsForGroupedEquilibrium.Select(y => y[x]).Average()).ToArray();
+                    var standardDeviations = numericColumns.Select(x => Math.Sqrt(resultsForGroupedEquilibrium.Select(y => y[x]).Select(y => Math.Pow(y - averages[x], 2)).Average())).ToArray();
+                    var coefficients = numericColumns.Select(x => averages[x] == 0 ? 0 : standardDeviations[x] / averages[x]).ToArray();
+                    coefficientsOfVariation.Add(coefficients);
+                }
+            }
+            // Finally, let's get the average coefficient of variation across columns
+            var averageCoefficients = numericColumns.Select(x => coefficientsOfVariation.Select(y => y[x]).Average()).ToArray();
+            Console.WriteLine($"Average coefficient of variation: {String.Join(", ", averageCoefficients)}");
+        }
+
+        private static List<(string[] stringValues, double[] numericValues)> GetDataFromCSV(string filename, int columnToMatch, string requiredContentsOfColumnToMatch, int[] stringColumns, int[] numericColumns)
+        {
+            var lines = new List<(string[] stringValues, double[] numericValues)>();
+            using (var reader = new StreamReader(filename))
+            {
+                while (!reader.EndOfStream)
+                {
+                    var line = reader.ReadLine();
+                    var values = line.Split(',');
+                    if (values[columnToMatch] == requiredContentsOfColumnToMatch)
+                    {
+                        var stringValues = stringColumns.Select(x => values[x]).ToArray();
+                        var numericValues = numericColumns.Select(x => values[x] == "" ? 0.0 : double.Parse(values[x])).ToArray();
+                        lines.Add((stringValues, numericValues));
+                    }
+                }
+            }
+            return lines;
+        }
 
         //private string SeparateOptionSetsByRelevantVariable(List<LitigGameOptions> optionSets)
         //{

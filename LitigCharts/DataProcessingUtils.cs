@@ -52,7 +52,10 @@ namespace LitigCharts
             }
             double?[,] resultsAllRows = null;
             string filenameCore, combinedPath;
-            GetFileInfo(map, filePrefix, ".csv", altFileSuffix, ref fileSuffix, path, gameOptionsSet, out filenameCore, out combinedPath);
+            bool exists;
+            GetFileInfo(map, filePrefix, ".csv", altFileSuffix, ref fileSuffix, path, gameOptionsSet, out filenameCore, out combinedPath, out exists);
+            if (!exists)
+                return;
             (string columnName, string expectedText)[][] rowsToFind = new (string columnName, string expectedText)[rowsToGet.Count()][];
             for (int f = 0; f < rowsToGet.Count(); f++)
             {
@@ -74,13 +77,19 @@ namespace LitigCharts
             }
         }
 
-        public static void GetFileInfo(Dictionary<string, string> map, string filePrefix, string fileExtensionIncludingPeriod, string altFileSuffix, ref string fileSuffix, string path, GameOptions gameOptionsSet, out string filenameCore, out string combinedPath)
+        public static void GetFileInfo(Dictionary<string, string> map, string filePrefix, string fileExtensionIncludingPeriod, string altFileSuffix, ref string fileSuffix, string path, GameOptions gameOptionsSet, out string filenameCore, out string combinedPath, out bool exists)
         {
+            exists = true;
             filenameCore = map[gameOptionsSet.Name];
             string filename = filePrefix + filenameCore + fileSuffix + fileExtensionIncludingPeriod;
             combinedPath = Path.Combine(path, filename);
             if (!File.Exists(combinedPath))
             {
+                if (combinedPath.Contains("-Eq"))
+                {
+                    exists = false;
+                    return;
+                }
                 fileSuffix = altFileSuffix;
                 filename = filePrefix + filenameCore + fileSuffix + fileExtensionIncludingPeriod;
                 combinedPath = Path.Combine(path, filename);
@@ -89,6 +98,8 @@ namespace LitigCharts
                     fileSuffix = "";
                     filename = filePrefix + filenameCore + fileSuffix + fileExtensionIncludingPeriod;
                     combinedPath = Path.Combine(path, filename);
+                    if (!File.Exists(combinedPath))
+                        exists = false;
                 }
             }
         }
