@@ -85,7 +85,7 @@ namespace LitigCharts
             combinedPath = Path.Combine(path, filename);
             if (!File.Exists(combinedPath))
             {
-                if (combinedPath.Contains("-Eq"))
+                if (combinedPath.Contains("-Eq")) // DEBUG && altFileSuffix != "-equ")
                 {
                     exists = false;
                     return;

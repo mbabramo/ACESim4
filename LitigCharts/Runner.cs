@@ -16,11 +16,12 @@
 
         public static void FeeShiftingArticle()
         {
-            bool doCoefficientOfVariationCalculations = false; // if so, only this will be run
+            bool buildMainFeeShiftingReport = false; // DEBUG // his looks at all of the csv files containing the report outputs (e.g., Report Name.csv where there is only one equilibrium, or "-eq1", "-eq2", "-Avg", etc.), and then aggregates all of the information on the report outputs for each simulation into a CSV file, including both All cases and separate rows for various subsets of cases. Set this to false only if it has already been done. 
+            bool doCoefficientOfVariationCalculations = false; // DEBUG // if so, only this will be run. Note that this will generally be useful when there are many equilibria for a single set of parameters, not when there are many different sets of parameters.
             bool doSignalsDiagram = false; // if so, only this will be run
-            bool printIndividualLatexDiagrams = true; // this is the time consuming one
+            bool printIndividualLatexDiagrams = false; // DEBUG // this is the time consuming one
             bool doDeletion = printIndividualLatexDiagrams; // don't delete if we haven't done the diagrams yet
-            bool organizeIntoFolders = true; 
+            bool organizeIntoFolders = false; 
             bool printAggregatedDiagrams = true;
 
             if (doCoefficientOfVariationCalculations)
@@ -36,7 +37,8 @@
                 return;
             }
 
-            FeeShiftingDataProcessing.BuildMainFeeShiftingReport();
+            if (buildMainFeeShiftingReport)
+                FeeShiftingDataProcessing.BuildMainFeeShiftingReport();
             if (printIndividualLatexDiagrams)
                 FeeShiftingDataProcessing.ProduceLatexDiagramsFromTexFiles(); // this code assumes that all data (including the .tex files) are in the ReportResults folder, so must do before organization
             if (organizeIntoFolders)

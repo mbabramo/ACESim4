@@ -22,16 +22,18 @@ namespace LitigCharts
         const string correlatedEquilibriumFileSuffix = "-Corr";
         const string averageEquilibriumFileSuffix = "-Avg";
         const string firstEquilibriumFileSuffix = "-Eq1";
+        const string onlyEquilibriumFileSuffix = "";
+        static string firstOrOnlyEquilibriumFileSuffix => firstEqOnly ? onlyEquilibriumFileSuffix : firstEquilibriumFileSuffix;
 
         private static string[] equilibriumTypeSuffixes_Major = new string[] { correlatedEquilibriumFileSuffix, averageEquilibriumFileSuffix, firstEquilibriumFileSuffix };
-        private static string[] equilibriumTypeSuffixes_One = new string[] { firstEquilibriumFileSuffix };
+        private static string[] equilibriumTypeSuffixes_One = new string[] { firstOrOnlyEquilibriumFileSuffix };
         private static string[] equilibriumTypeSuffixes_AllIndividual = Enumerable.Range(1, 100).Select(x => $"-Eq{x}").ToArray();
         private static string[] equilibriumTypeWords_Major = new string[] { "Correlated", "Average", "First" };
         private static string[] equilibriumTypeWords_One = new string[] { "First" };
         private static string[] equilibriumTypeWords_AllIndividual = Enumerable.Range(1, 100).Select(x => $"Eq{x}").ToArray();
 
         static bool firstEqOnly => new EvolutionSettings().SequenceFormNumPriorsToUseToGenerateEquilibria == 1;
-        static bool allIndividual = true; // DEBUG
+        static bool allIndividual = false; // create a diagram for each individual equilibrium (e.g., 1 to 100).
         static string[] eqToRun => allIndividual ? equilibriumTypeWords_AllIndividual : (firstEqOnly ? equilibriumTypeWords_One : equilibriumTypeWords_Major);
         static string[] equilibriumTypeSuffixes => allIndividual ? equilibriumTypeSuffixes_AllIndividual : (firstEqOnly ? equilibriumTypeSuffixes_One : equilibriumTypeSuffixes_Major);
 
@@ -312,9 +314,13 @@ namespace LitigCharts
 
             foreach (string fileSuffix in equilibriumTypeSuffixes)
             {
+                string altFileSuffix = firstEquilibriumFileSuffix;
+                //DEBUG
+                //if (fileSuffix == "-Eq1")
+                //    altFileSuffix = "-equ";
                 TabbedText.WriteLine($"Processing equilibrium type {fileSuffix}");
                 bool includeHeader = firstEqOnly || fileSuffix == correlatedEquilibriumFileSuffix;
-                List<List<string>> outputLines = GetCSVLines(distinctOptionSets.Select(x => (GameOptions) x).ToList(), map, rowsToGet, replacementRowNames, filePrefix, fileSuffix, firstEquilibriumFileSuffix, path, includeHeader, columnsToGet, replacementColumnNames);
+                List<List<string>> outputLines = GetCSVLines(distinctOptionSets.Select(x => (GameOptions) x).ToList(), map, rowsToGet, replacementRowNames, filePrefix, fileSuffix, altFileSuffix, path, includeHeader, columnsToGet, replacementColumnNames);
                 if (includeHeader)
                     outputLines[0].Insert(0, "Equilibrium Type");
                 string equilibriumType = fileSuffix switch
@@ -322,6 +328,7 @@ namespace LitigCharts
                     correlatedEquilibriumFileSuffix => "Correlated",
                     averageEquilibriumFileSuffix => "Average",
                     firstEquilibriumFileSuffix => "First",
+                    "" => "Only",
                     _ => "Other"
                 };
                 foreach (List<string> bodyLine in outputLines.Skip(includeHeader ? 1 : 0))
