@@ -20,7 +20,7 @@
             bool doCoefficientOfVariationCalculations = false; // if so, only this will be run. Note that this will generally be useful when there are many equilibria for a single set of parameters, not when there are many different sets of parameters.
             bool doSignalsDiagram = false; // if so, only this will be run. This is the figure that shows how truly liable or not truly liable cases convert to litigation quality levels and how litigation quality levels convert to signals for the players.
             bool printIndividualLatexDiagrams = false; // DEBUG // this is the time consuming one
-            bool doDeletion = printIndividualLatexDiagrams; // don't delete if we haven't done the diagrams yet
+            bool doDeletion = true; // DEBUG printIndividualLatexDiagrams; // don't delete if we haven't done the diagrams yet
             bool organizeIntoFolders = true; 
             bool printAggregatedDiagrams = true;
 

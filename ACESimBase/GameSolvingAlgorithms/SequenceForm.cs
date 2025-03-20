@@ -1115,7 +1115,7 @@ namespace ACESimBase.GameSolvingAlgorithms
         {
             bool includeAverageEquilibriumReport = multipleEquilibriaPossible;
             bool includeCorrelatedEquilibriumReport = multipleEquilibriaPossible;
-            if (includeCorrelatedEquilibriumReport || EvolutionSettings.UsePreloadedEquilibriaForSequenceFormIfAvailable)
+            if (includeCorrelatedEquilibriumReport || EvolutionSettings.UsePreloadedEquilibriaForSequenceFormIfAvailable || EvolutionSettings.GenerateManualReports)
                 SaveWeightedGameProgressesAfterEachReport = true;
             bool includeReportForFirstEquilibrium = true;
             bool includeReportForEachEquilibrium = true; 

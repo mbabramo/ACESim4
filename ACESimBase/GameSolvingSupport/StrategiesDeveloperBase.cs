@@ -1643,7 +1643,7 @@ namespace ACESim
                 }
                 (int? actionPromotedInOtherInformationSet, double magnitude)[] result = DoInformationSetPressureAnalysis(true, switchMagnitude);
                 indicesOfAffectedInformationSets = result.Select((item, index) => (item, index)).Where(x => x.item.actionPromotedInOtherInformationSet != null).Select(x => (x.index, (int) x.item.actionPromotedInOtherInformationSet, x.item.magnitude)).ToList();
-                GameDefinition.MakeMarginalChangeToTestInformationSetPressure(false);
+                GameDefinition.MakeMarginalChangeToTestInformationSetPressure(false); // switch back
             }
 
             TabbedText.WriteLine("");
