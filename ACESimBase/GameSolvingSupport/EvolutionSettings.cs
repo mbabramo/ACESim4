@@ -55,7 +55,7 @@ namespace ACESim
         public int MaxParallelDepth = 3; // will be overridden by launcher
 
         // Sequence Form settings
-        public int SequenceFormNumPriorsToUseToGenerateEquilibria = 1; // DEBUG set to 100 // Potentially we may end up with this many equilibria, but often different priors lead to the same equilibrium
+        public int SequenceFormNumPriorsToUseToGenerateEquilibria = 1; // Potentially we may end up with this many equilibria, but often different priors lead to the same equilibrium
         public static int MaxIntegralUtility = 100_000; // We need to convert payoffs to integers with some desired range (e.g., 0 to 1,000,000). A greater range produces greater precision. Note that ECTA will further change the payoffs so that they're all negative. Note that in one experiment, switching from 1,000 to 10,000 on average doubled the amount of time required.
         public static int RoundOffChanceDigits = 5; // Chance numbers will also be converted to rational numbers. The digits might be the same as above.
         public bool IdentifyPressureOnInformationSets = false; // currently called only for sequence form
@@ -64,7 +64,7 @@ namespace ACESim
         public bool TryInexactArithmeticForAdditionalEquilibria = false; 
         public bool CreateEFGFileForSequenceForm = true;
         public bool CreateEquilibriaFileForSequenceForm = true;
-        public bool UsePreloadedEquilibriaForSequenceFormIfAvailable = true; // DEBUG
+        public bool UsePreloadedEquilibriaForSequenceFormIfAvailable = false;
         public bool CustomSequenceFormInitialization = true;
         public bool UseCustomSequenceFormInitializationAsFinalEquilibria = false; 
         public bool SequenceFormUseRandomSeed = false; // random seed always used for additional priors, but this can be used for just a single prior

@@ -24,12 +24,13 @@ namespace LitigCharts
         const string firstEquilibriumFileSuffix = "-Eq1";
         const string onlyEquilibriumFileSuffix = "";
         static string firstOrOnlyEquilibriumFileSuffix => firstEqOnly ? onlyEquilibriumFileSuffix : firstEquilibriumFileSuffix;
+        static string firstOrOnlyEquilibriumTypeWord => firstEqOnly ? "Only" : "First";
 
         private static string[] equilibriumTypeSuffixes_Major = new string[] { correlatedEquilibriumFileSuffix, averageEquilibriumFileSuffix, firstEquilibriumFileSuffix };
         private static string[] equilibriumTypeSuffixes_One = new string[] { firstOrOnlyEquilibriumFileSuffix };
         private static string[] equilibriumTypeSuffixes_AllIndividual = Enumerable.Range(1, 100).Select(x => $"-Eq{x}").ToArray();
         private static string[] equilibriumTypeWords_Major = new string[] { "Correlated", "Average", "First" };
-        private static string[] equilibriumTypeWords_One = new string[] { "First" };
+        private static string[] equilibriumTypeWords_One = new string[] { firstOrOnlyEquilibriumTypeWord };
         private static string[] equilibriumTypeWords_AllIndividual = Enumerable.Range(1, 100).Select(x => $"Eq{x}").ToArray();
 
         static bool firstEqOnly => new EvolutionSettings().SequenceFormNumPriorsToUseToGenerateEquilibria == 1;
@@ -315,9 +316,6 @@ namespace LitigCharts
             foreach (string fileSuffix in equilibriumTypeSuffixes)
             {
                 string altFileSuffix = firstEquilibriumFileSuffix;
-                //DEBUG
-                //if (fileSuffix == "-Eq1")
-                //    altFileSuffix = "-equ";
                 TabbedText.WriteLine($"Processing equilibrium type {fileSuffix}");
                 bool includeHeader = firstEqOnly || fileSuffix == correlatedEquilibriumFileSuffix;
                 List<List<string>> outputLines = GetCSVLines(distinctOptionSets.Select(x => (GameOptions) x).ToList(), map, rowsToGet, replacementRowNames, filePrefix, fileSuffix, altFileSuffix, path, includeHeader, columnsToGet, replacementColumnNames);
@@ -720,7 +718,7 @@ namespace LitigCharts
             {
                 foreach (string equilibriumType in eqToRun)
                 {
-                    string eqAbbreviation = equilibriumType switch { "Correlated" => "-Corr", "Average" => "-Avg", "First" => "-Eq1", _ => equilibriumType[1..] };
+                    string eqAbbreviation = equilibriumType switch { "Correlated" => "-Corr", "Average" => "-Avg", "First" => "-Eq1", "Only" => "", _ => equilibriumType[1..] };
                     foreach (var variation in variations)
                     {
                         // This is a full report. The variation controls the big x axis. The big y axis is the costs multiplier.

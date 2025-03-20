@@ -1,16 +1,22 @@
-Replication of "Modeling Fee Shifting With Computational Game Theory"
+Replication of "A Correlated Signals Algorithmic Game Theory Model of Litigation Bargaining"
 
 To replicate the article, open the ACESim solution in Visual Studio or Visual Studio Code. The code uses the open source C# programming language and .Net Core libraries,
 and it can be executed on a Windows PC. 
 
-To replicate all simulations, set the startup project to ACESimDistributed (if using just one core) or ACESimDistributedSaturate (if using many cores). 
-Create an empty folder called "C:\Primary results" on the hard drive.
+To replicate all simulations, download this repository to your hard drive. Within the ACESim4 folder will be a number of folders, such as ACESimBase, ACESimConsole, and so forth. Set the startup project to ACESimDistributed (if using just one core) or ACESimDistributedSaturate (if using many cores). 
+
 If there is a power or other failure, the code will not repeat simulations that have already completed. To execute the simulations over a number of 
-computers in the Azure cloud, set EvolutionSettings.SaveToAzureBlob to true and then create a static class in the ACESimBase > Resources folder named cloudpw. 
+computers in the Azure cloud instead of on your local machine, set EvolutionSettings.SaveToAzureBlob to true and then create a static class in the ACESimBase > Resources folder named cloudpw. 
 The function should be called GetCloudStorageAccountConnectionString() and should return a string containing valid credentials for an Azure blob account. 
 Then, rent virtual machines on Azure and run ACESimDistributed or ACESimDistributedSaturate on each of them. Different computers will then work on different simulations.
 
-The ReportResults folder will then contain many output files. These will then be organized along with diagrams in the C:\Primary results folder.
+When the code has completed executing, the results of the main simulations will be saved in the ReportResults folder. The results will be in the form of a number of .csv files and other files, such as .efg files (showing the structure of each extensive form game), .equ files (showing the equilibrium of each game), and .tex files (showing the LaTeX code for the diagrams that illustrate individual simulations). To generate diagrams that aggregate information across simulations, make sure that Texmaker is installed. Set the startup project to LitigCharts and run the code. It will then organize all of the report outputs and launch Texmaker to generate more Latex diagrams. 
+
+To rerun the simulations but for a smaller tree size but with more equilibria (as in the robustness checking), please make the following changes: (1) Remove all results from the ReportResults folder. (2) Change the UseSmallerTree variable in LitigGameLauncher to true. (3) Change the SequenceFormNumPriorsToUseToGenerateEquilibria variable in EvolutionSettings to 50. Note that this will result in many more files being produced, one for each equilibrium. You may not wish to create a pdf for each equilibrium, and thus you might change printIndividualLatexDiagrams in Runner.cs to false. 
+
+To run only the two baseline models (on the larger tree), change the OptionSetChosen variable in LitigGameLauncher to OptionSetChoice.FeeShiftingArticleBaselineOnly. If you wish to produce the coefficient-of-variation calculations in the article, set doCoefficientOfVariationCalculations in Runner.cs to true. 
+
+To produce the diagrams of signal quality, set doSiganlsDiagram in Runner.cs to true. Settings (such as noise level and whether to create a chart for liability or for damages levels) can be changed in the SignalsDiagram.cs class.
 
 Overview of code
 
