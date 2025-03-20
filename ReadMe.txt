@@ -16,7 +16,9 @@ To rerun the simulations but for a smaller tree size but with more equilibria (a
 
 To run only the two baseline models (on the larger tree), change the OptionSetChosen variable in LitigGameLauncher to OptionSetChoice.FeeShiftingArticleBaselineOnly. If you wish to produce the coefficient-of-variation calculations in the article, set doCoefficientOfVariationCalculations in Runner.cs to true. 
 
-To produce the diagrams of signal quality, set doSiganlsDiagram in Runner.cs to true. Settings (such as noise level and whether to create a chart for liability or for damages levels) can be changed in the SignalsDiagram.cs class.
+To produce the diagrams of signal quality, set doSignalsDiagram in Runner.cs to true. Settings (such as noise level and whether to create a chart for liability or for damages levels) can be changed in the SignalsDiagram.cs class.
+
+To print the game tree, set EvolutionSettings.PrintGameTree = true and EvolutionSettings.PrintedGameTreeIncludesInformationSetData = true. Then, you will want to run only a single model. Thus, set the startup project to ACESimConsole. In LitigGameOptionsGenerator.cs, you can change LitigGameChoice to LitigGameOptionSetChoices.SuperSimple, which is the very simple game with just 2 levels of litigation quality, 2 levels of signals, and 2 levels of offers. If you want to print only part of the diagram, change Exclusions in LitigGameDefinition.cs to TreeDiagramExclusions.BeginningOfGame or TreeDiagramExclusions.EndOfGame. 
 
 Overview of code
 
