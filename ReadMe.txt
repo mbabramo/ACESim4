@@ -30,15 +30,12 @@ The ACESimBase folder contains the core code for finding equilibria. The GameSol
 coordinates the use of the von Stengel et al. algorithm is located in SequenceForm.cs, which in turn executes code devoted to the algorithm (adapted from code provided von Stengel et al.)
 in the ECTAAlgorithm folder. 
 
-The code specifically relevant to the correlated signals game is contained within the AdditiveEvidneceGame folder. Some of the options used by this game are not used in this paper. 
+The code specifically relevant to the correlated signals game is contained within the ACESimBase/Games/LitigGame folder. Some of the options used by this game are not used in this paper. 
 The ManualReports folder contains code to generate the Latex code for two of the diagram types; other code to generate diagrams is in the LitigCharts project. 
-The content of spreadsheets that provide cross-tabulations of all the results is defined in the AdditiveEvidenceGameReportDefinition folder.
-The structure of the game tree, including the ordering of the decisions, is affected by AdditiveEvidenceGameDefinition.cs. 
-The game play itself is defined in AdditiveEvidenceGame.cs, and the data structure
-used to keep track of progress in the game is AdditiveEvienceGameProgress. 
-The players, including chance players corresponding to different chance decisions, are listed in AdditiveEvidneceGamePlayers. 
-The AdditiveEvidenceGameLauncher.cs file generates options for the many different permutations executed. 
-
-For the non-discretized game described in Appendix B, the applicable code uses the prefix DMSReplication instead of the prefix AdditiveEvidence. 
-The GetLauncher() function can be changed to launch the DMSReplication game instead of the AdditiveEvidence game.
+The specification of how to produce cross-tabulations of all the results is defined in the LitigGameReportDefinition.cs file.
+The structure of the game tree, including the ordering of the decisions, is affected by LitigGameDefinition.cs. 
+The game play itself is defined in LitigGame.cs, and the data structure
+used to keep track of progress in the game is in LitigGameProgress.cs. 
+The players, including chance players corresponding to different chance decisions, are listed in LitigGamePlayers.cs. 
+The LitigGameLauncher.cs file generates options for the many different permutations executed. 
 
