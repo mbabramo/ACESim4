@@ -36,9 +36,10 @@ namespace ACESim
             Ambitious,
             PerfectInfo,
             FeeShiftingArticleBase,
+            BritishRuleZeroMultiplier,
         }
 
-        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.FeeShiftingArticleBase;
+        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.BritishRuleZeroMultiplier;
 
         public static LitigGameOptions GetLitigGameOptions() => LitigGameChoice switch
         {
@@ -66,6 +67,7 @@ namespace ACESim
             LitigGameOptionSetChoices.Ambitious => Ambitious(),
             LitigGameOptionSetChoices.PerfectInfo => PerfectInformation(courtIsPerfectToo: false),
             LitigGameOptionSetChoices.FeeShiftingArticleBase => FeeShiftingArticleBase(false),
+            LitigGameOptionSetChoices.BritishRuleZeroMultiplier => BritishRuleZeroMultiplier(), 
             _ => throw new Exception()
         };
 
@@ -383,6 +385,14 @@ namespace ACESim
             options.AllowAbandonAndDefaults = true;
             options.PredeterminedAbandonAndDefaults = true;
 
+            return options;
+        }
+
+        public static LitigGameOptions BritishRuleZeroMultiplier() // used for Information set pressure analysis
+        {
+            var options = FeeShiftingArticleBase(false);
+            options.LoserPays = true;
+            options.LoserPaysMultiple = 0;
             return options;
         }
 

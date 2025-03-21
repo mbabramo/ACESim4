@@ -20,6 +20,8 @@ To produce the diagrams of signal quality, set doSignalsDiagram in Runner.cs to 
 
 To print the game tree, set EvolutionSettings.PrintGameTree = true and EvolutionSettings.PrintedGameTreeIncludesInformationSetData = true. Then, you will want to run only a single model. Thus, set the startup project to ACESimConsole. In LitigGameOptionsGenerator.cs, you can change LitigGameChoice to LitigGameOptionSetChoices.SuperSimple, which is the very simple game with just 2 levels of litigation quality, 2 levels of signals, and 2 levels of offers. If you want to print only part of the diagram, change Exclusions in LitigGameDefinition.cs to TreeDiagramExclusions.BeginningOfGame or TreeDiagramExclusions.EndOfGame. 
 
+To run the information set pressure analysis, set ACESimConsole as the startup project. Then set LitigGameChoice in LitigGameOptionsGenerator to LitigGameOptionSetChoices.BritishRuleZeroMultiplier. Set EvolutionSettings.IdentifyPressureOnInformationSets = true.
+
 Overview of code
 
 This repository contains code for applying a number of different approaches to solving extensive-form games and in particular different versions of a litigation game.
@@ -28,7 +30,7 @@ The ACESimBase folder contains the core code for finding equilibria. The GameSol
 coordinates the use of the von Stengel et al. algorithm is located in SequenceForm.cs, which in turn executes code devoted to the algorithm (adapted from code provided von Stengel et al.)
 in the ECTAAlgorithm folder. 
 
-The code specifically relevant to the additive evidence game is contained within the AdditiveEvidneceGame folder. Some of the options used by this game are not used in this paper. 
+The code specifically relevant to the correlated signals game is contained within the AdditiveEvidneceGame folder. Some of the options used by this game are not used in this paper. 
 The ManualReports folder contains code to generate the Latex code for two of the diagram types; other code to generate diagrams is in the LitigCharts project. 
 The content of spreadsheets that provide cross-tabulations of all the results is defined in the AdditiveEvidenceGameReportDefinition folder.
 The structure of the game tree, including the ordering of the decisions, is affected by AdditiveEvidenceGameDefinition.cs. 
