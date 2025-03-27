@@ -13,19 +13,11 @@ namespace ACESim
 {
     public class LitigGameLauncher : Launcher
     {
-        public override string MasterReportNameForDistributedProcessing => "FS036";
+        public override string MasterReportNameForDistributedProcessing => "ED001";
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
 
-        private bool HigherRiskAversion = false;
-        private bool PRiskAverse = false;
-        public bool DRiskAverse = false;
-        public bool TestDisputeGeneratorVariations = false;
-        public bool IncludeRunningSideBetVariations = false;
-        public bool LimitToAmerican = true;
-        public bool UseSmallerTree = false;
-
-        // Fee shifting article
+        // Endogenous disputes article
         public bool IncludeNonCriticalTransformations = true; 
         public FeeShiftingRule[] FeeShiftingModes = new[] { FeeShiftingRule.English_LiabilityIssue, FeeShiftingRule.MarginOfVictory_LiabilityIssue, FeeShiftingRule.Rule68_DamagesIssue, FeeShiftingRule.Rule68English_DamagesIssue };
         public double[] CriticalCostsMultipliers = new double[] { 1.0,  0.25, 0.5, 2.0, 4.0 };
@@ -47,39 +39,14 @@ namespace ACESim
             Rule68English_DamagesIssue,
         }
 
-        public enum RiskAversionMode
-        {
-            RiskNeutral,
-            RiskAverse,
-            VeryRiskAverse,
-            POnlyRiskAverse,
-            DOnlyRiskAverse,
-            PMoreRiskAverse,
-            DMoreRiskAverse,
-        }
-
         public override GameDefinition GetGameDefinition() => new LitigGameDefinition();
 
         private enum OptionSetChoice
         {
             JustOneOption,
-            Fast,
-            ShootoutPermutations,
-            VariousUncertainties,
-            VariedAlgorithms,
-            Custom2,
-            ShootoutGameVariations,
-            BluffingVariations,
-            KlermanEtAl,
-            KlermanEtAl_MultipleStrengthPoints,
-            KlermanEtAl_Options,
-            KlermanEtAl_DamagesUncertainty,
-            Simple1BR,
-            Simple2BR,
-            FeeShiftingArticle,
-            FeeShiftingArticleBaselineOnly,
+            EndogenousDisputesArticle,
         }
-        OptionSetChoice OptionSetChosen = OptionSetChoice.FeeShiftingArticle;  // <<-- Choose option set here
+        OptionSetChoice OptionSetChosen = OptionSetChoice.EndogenousDisputesArticle;  // <<-- Choose option set here
 
         public override GameOptions GetDefaultSingleGameOptions()
         {
@@ -93,57 +60,10 @@ namespace ACESim
             switch (OptionSetChosen)
             {
                 case OptionSetChoice.JustOneOption:
-                    AddToOptionsListWithName(optionSets, "singleoptionset", LitigGameOptionsGenerator.DamagesUncertainty_2BR());
+                    AddToOptionsListWithName(optionSets, "singleoptionset", LitigGameOptionsGenerator.EndogenousArticleBase());
                     break;
-                case OptionSetChoice.Fast:
-                    AddFast(optionSets);
-                    break;
-                case OptionSetChoice.ShootoutPermutations:
-                    AddShootoutPermutations(optionSets);
-                    break;
-                case OptionSetChoice.ShootoutGameVariations:
-                    AddShootoutGameVariations(optionSets);
-                    break;
-                case OptionSetChoice.VariousUncertainties:
-                    AddVariousUncertainties(optionSets);
-                    break;
-                case OptionSetChoice.VariedAlgorithms:
-                    AddWithVariedAlgorithms(optionSets);
-                    break;
-                case OptionSetChoice.Custom2:
-                    AddCustom2(optionSets);
-                    break;
-                case OptionSetChoice.BluffingVariations:
-                    AddBluffingOptionsSets(optionSets);
-                    break;
-                case OptionSetChoice.KlermanEtAl:
-                    AddKlermanEtAlPermutations(optionSets, LitigGameOptionsGenerator.KlermanEtAl);
-                    break;
-                case OptionSetChoice.KlermanEtAl_MultipleStrengthPoints:
-                    AddKlermanEtAlPermutations(optionSets, LitigGameOptionsGenerator.KlermanEtAl_MultipleStrengthPoints);
-                    break;
-                case OptionSetChoice.KlermanEtAl_Options:
-                    AddKlermanEtAlPermutations(optionSets, LitigGameOptionsGenerator.KlermanEtAl_WithOptions);
-                    break;
-                case OptionSetChoice.KlermanEtAl_DamagesUncertainty:
-                    AddKlermanEtAlPermutations(optionSets, LitigGameOptionsGenerator.KlermanEtAl_WithDamagesUncertainty);
-                    break;
-                case OptionSetChoice.Simple1BR:
-                    AddSimple1BRGames(optionSets);
-                    break;
-                case OptionSetChoice.Simple2BR:
-                    AddSimple2BRGames(optionSets);
-                    break;
-                case OptionSetChoice.FeeShiftingArticle:
-                    AddFeeShiftingArticleGames(optionSets);
-                    break;
-                case OptionSetChoice.FeeShiftingArticleBaselineOnly:
-                    bool smallTree = false;
-                    AddToOptionsListWithName(optionSets, "american", LitigGameOptionsGenerator.FeeShiftingArticleBase(smallTree).WithName("FSA"));
-                    var british = LitigGameOptionsGenerator.FeeShiftingArticleBase(smallTree);
-                    british.LoserPays = true;
-                    british.LoserPaysMultiple = 1.0;
-                    AddToOptionsListWithName(optionSets, "british", british.WithName("FSA"));
+                case OptionSetChoice.EndogenousDisputesArticle:
+                    AddEndogenousDisputesArticleGames(optionSets);
                     break;
 
             }
@@ -166,417 +86,6 @@ namespace ACESim
             var optionSetNames = optionSets.Select(x => x.Name).OrderBy(x => x).Distinct().ToList();
 
             return optionSets;
-        }
-
-        #region Previous papers
-
-        private void AddCustom2(List<GameOptions> optionSets)
-        {
-
-            // now, liability and damages only
-            foreach (RiskAversionMode riskAverse in new RiskAversionMode[] { RiskAversionMode.DOnlyRiskAverse })
-            {
-                foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("basecosts", 1.0) })
-                {
-                    optionSets.Add(GetAndTransformWithRiskAversion("noshootout", name, LitigGameOptionsGenerator.BothUncertain_2BR, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                    optionSets.Add(GetAndTransformWithRiskAversion("shootout", name, LitigGameOptionsGenerator.Shootout, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                }
-            }
-        }
-
-        private void AddWithVariedAlgorithms(List<GameOptions> optionSets)
-        {
-            void Helper(List<GameOptions> optionSets, string optionSetNamePrefix, Action<EvolutionSettings> modifyEvolutionSettings)
-            {
-                optionSets.Add(GetAndTransformWithRiskAversion(optionSetNamePrefix + "damages_unc", "basecosts", LitigGameOptionsGenerator.DamagesUncertainty_1BR, x => { x.CostsMultiplier = 1.0; x.ModifyEvolutionSettings = modifyEvolutionSettings; }, RiskAversionMode.RiskNeutral));
-                //optionSets.Add(GetAndTransform(optionSetNamePrefix + "damages_unc2BR", "basecosts", LitigGameOptionsGenerator.DamagesUncertainty_2BR, x => { x.CostsMultiplier = 1.0; x.ModifyEvolutionSettings = modifyEvolutionSettings; }, false));
-                optionSets.Add(GetAndTransformWithRiskAversion(optionSetNamePrefix + "liability_unc", "basecosts", LitigGameOptionsGenerator.LiabilityUncertainty_1BR, x => { x.CostsMultiplier = 1.0; x.ModifyEvolutionSettings = modifyEvolutionSettings; }, RiskAversionMode.RiskNeutral));
-                //optionSets.Add(GetAndTransform(optionSetNamePrefix + "liability_unc2BR", "basecosts", LitigGameOptionsGenerator.LiabilityUncertainty_2BR, x => { x.CostsMultiplier = 1.0; x.ModifyEvolutionSettings = modifyEvolutionSettings; }, false));
-            }
-            Helper(optionSets, "BRD", es =>
-            {
-                es.Algorithm = GameApproximationAlgorithm.BestResponseDynamics;
-            });
-            Helper(optionSets, "FP", es =>
-            {
-                es.Algorithm = GameApproximationAlgorithm.FictitiousPlay;
-            });
-            Helper(optionSets, "RM", es =>
-            {
-                es.Algorithm = GameApproximationAlgorithm.RegretMatching;
-            });
-            Helper(optionSets, "MW", es =>
-            {
-                es.Algorithm = GameApproximationAlgorithm.MultiplicativeWeights;
-            });
-        }
-
-        private void AddVariousUncertainties(List<GameOptions> optionSets)
-        {
-
-            optionSets.Add(GetAndTransformWithRiskAversion("damages_unc", "basecosts", LitigGameOptionsGenerator.DamagesUncertainty_1BR, x => { x.CostsMultiplier = 1.0; }, RiskAversionMode.RiskNeutral));
-            optionSets.Add(GetAndTransformWithRiskAversion("damages_unc2BR", "basecosts", LitigGameOptionsGenerator.DamagesUncertainty_2BR, x => { x.CostsMultiplier = 1.0; }, RiskAversionMode.RiskNeutral));
-            optionSets.Add(GetAndTransformWithRiskAversion("liability_unc", "basecosts", LitigGameOptionsGenerator.LiabilityUncertainty_1BR, x => { x.CostsMultiplier = 1.0; }, RiskAversionMode.RiskNeutral));
-            optionSets.Add(GetAndTransformWithRiskAversion("liability_unc2BR", "basecosts", LitigGameOptionsGenerator.LiabilityUncertainty_2BR, x => { x.CostsMultiplier = 1.0; }, RiskAversionMode.RiskNeutral));
-            optionSets.Add(GetAndTransformWithRiskAversion("both_unc", "basecosts", LitigGameOptionsGenerator.BothUncertain_1BR, x => { x.CostsMultiplier = 1.0; }, RiskAversionMode.RiskNeutral));
-            optionSets.Add(GetAndTransformWithRiskAversion("both_unc2BR", "basecosts", LitigGameOptionsGenerator.BothUncertain_2BR, x => { x.CostsMultiplier = 1.0; }, RiskAversionMode.RiskNeutral));
-
-        }
-
-        private void AddFast(List<GameOptions> optionSets)
-        {
-            RiskAversionMode riskAverse = RiskAversionMode.RiskNeutral;
-            foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("basecosts", 1.0), ("highcosts", 3.0) })
-            {
-                optionSets.Add(GetAndTransformWithRiskAversion("fast1", name, LitigGameOptionsGenerator.SuperSimple, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-            }
-        }
-
-        private void AddShootoutMainPermutatio(List<GameOptions> optionSets)
-        {
-            RiskAversionMode riskAverse = RiskAversionMode.RiskNeutral;
-            foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("basecosts", 1.0), ("highcosts", 3.0) })
-            {
-                optionSets.Add(GetAndTransformWithRiskAversion("noshootout", name, LitigGameOptionsGenerator.BothUncertain_2BR, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                optionSets.Add(GetAndTransformWithRiskAversion("shootout", name, LitigGameOptionsGenerator.Shootout, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                optionSets.Add(GetAndTransformWithRiskAversion("sotrip", name, LitigGameOptionsGenerator.Shootout_Triple, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-            }
-        }
-
-        private void AddShootoutPermutations(List<GameOptions> optionSets)
-        {
-            foreach (RiskAversionMode riskAverse in new RiskAversionMode[] { RiskAversionMode.RiskNeutral, RiskAversionMode.RiskAverse })
-            {
-                foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("lowcosts", 1.0 / 3.0), ("basecosts", 1.0), ("highcosts", 3.0) })
-                {
-                    //optionSets.Add(GetAndTransform("liab", name, LitigGameOptionsGenerator.LiabilityUncertainty_2BR, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                    //optionSets.Add(GetAndTransform("dam", name, LitigGameOptionsGenerator.DamagesUncertainty_2BR, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                    optionSets.Add(GetAndTransformWithRiskAversion("noshootout", name, LitigGameOptionsGenerator.BothUncertain_2BR, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                    optionSets.Add(GetAndTransformWithRiskAversion("shootout", name, LitigGameOptionsGenerator.Shootout, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                    optionSets.Add(GetAndTransformWithRiskAversion("soallrounds", name, LitigGameOptionsGenerator.Shootout_AllRounds, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                    optionSets.Add(GetAndTransformWithRiskAversion("soabandon", name, LitigGameOptionsGenerator.Shootout_IncludingAbandoment, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                    optionSets.Add(GetAndTransformWithRiskAversion("soallraban", name, LitigGameOptionsGenerator.Shootout_AllRoundsIncludingAbandoment, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                    optionSets.Add(GetAndTransformWithRiskAversion("sotrip", name, LitigGameOptionsGenerator.Shootout_Triple, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                }
-            }
-        }
-
-        int Simple1BR_maxNumLiabilityStrengthPoints = 4;
-        int Simple1BR_maxNumLiabilitySignals = 4;
-        int Simple1BR_maxNumOffers = 4;
-
-        private void AddSimple1BRGames(List<GameOptions> optionSets)
-        {
-            for (byte numLiabilityStrengthPoints = 2; numLiabilityStrengthPoints <= Simple1BR_maxNumLiabilityStrengthPoints; numLiabilityStrengthPoints++)
-                for (byte numLiabilitySignals = 2; numLiabilitySignals <= Simple1BR_maxNumLiabilitySignals; numLiabilitySignals++)
-                    for (byte numOffers = 2; numOffers <= Simple1BR_maxNumOffers; numOffers++)
-                    {
-                        optionSets.Add(GetAndTransformWithRiskAversion("simple1BR", numLiabilityStrengthPoints.ToString() + "," + numLiabilitySignals.ToString() + "," + numOffers.ToString(), LitigGameOptionsGenerator.GetSimple1BROptions, x =>
-                        {
-                            x.NumLiabilityStrengthPoints = numLiabilityStrengthPoints;
-                            x.NumLiabilitySignals = numLiabilitySignals;
-                            x.NumOffers = numOffers;
-                        }, RiskAversionMode.RiskNeutral));
-                    }
-        }
-        private void AddSimple2BRGames(List<GameOptions> optionSets)
-        {
-            for (byte numLiabilityStrengthPoints = 2; numLiabilityStrengthPoints <= Simple1BR_maxNumLiabilityStrengthPoints; numLiabilityStrengthPoints++)
-                for (byte numLiabilitySignals = 2; numLiabilitySignals <= Simple1BR_maxNumLiabilitySignals; numLiabilitySignals++)
-                    for (byte numOffers = 2; numOffers <= Simple1BR_maxNumOffers; numOffers++)
-                    {
-                        optionSets.Add(GetAndTransformWithRiskAversion("simple2BR", numLiabilityStrengthPoints.ToString() + "," + numLiabilitySignals.ToString() + "," + numOffers.ToString(), LitigGameOptionsGenerator.GetSimple2BROptions, x =>
-                        {
-                            x.NumLiabilityStrengthPoints = numLiabilityStrengthPoints;
-                            x.NumLiabilitySignals = numLiabilitySignals;
-                            x.NumOffers = numOffers;
-                        }, RiskAversionMode.RiskNeutral));
-                    }
-        }
-
-        private void AddKlermanEtAlPermutations(List<GameOptions> optionSets, Func<LitigGameOptions> myGameOptionsFunc)
-        {
-            foreach (double exogProb in new double[] { 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95 })
-            {
-                optionSets.Add(GetAndTransformWithRiskAversion("klerman", exogProb.ToString(), myGameOptionsFunc, x =>
-                {
-                    x.IncludeCourtSuccessReport = false;
-                    x.IncludeSignalsReport = false;
-                    x.FirstRowOnly = true;
-                    ((LitigGameExogenousDisputeGenerator)x.LitigGameDisputeGenerator).ExogenousProbabilityTrulyLiable = exogProb;
-                }, RiskAversionMode.RiskNeutral));
-            }
-        }
-
-        private void AddShootoutGameVariations(List<GameOptions> optionSets)
-        {
-            foreach (RiskAversionMode riskAverse in new RiskAversionMode[] { RiskAversionMode.RiskNeutral })
-            {
-                // different levels of costs, same for both parties
-                foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("basecosts", 1.0), ("lowcosts", 1.0 / 3.0), ("highcosts", 3) })
-                {
-                    optionSets.Add(GetAndTransformWithRiskAversion("noshootout", name, LitigGameOptionsGenerator.BothUncertain_2BR, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                    optionSets.Add(GetAndTransformWithRiskAversion("shootout", name, LitigGameOptionsGenerator.Shootout, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                }
-                // try lowering all costs dramatically except trial costs
-                foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("lowpretrialcosts", 1.0 / 10.0) })
-                {
-                    optionSets.Add(GetAndTransformWithRiskAversion("noshootout", name, LitigGameOptionsGenerator.BothUncertain_2BR, x => { x.CostsMultiplier = costsMultiplier; x.PTrialCosts *= 1.0 / costsMultiplier; x.DTrialCosts *= 1.0 / costsMultiplier; }, riskAverse));
-                    optionSets.Add(GetAndTransformWithRiskAversion("shootout", name, LitigGameOptionsGenerator.Shootout, x => { x.CostsMultiplier = costsMultiplier; x.PTrialCosts *= 1.0 / costsMultiplier; x.DTrialCosts *= 1.0 / costsMultiplier; }, riskAverse));
-                }
-                // Now, we'll do asymmetric trial costs. We assume that other costs are the same. This might make sense in the event that trial has a publicity cost for one party. 
-                //foreach ((string name, double dCostsMultiplier) in new (string name, double dCostsMultiplier)[] { ("phighcost", 0.5), ("dhighcost", 2.0) })
-                //{
-                //    Action<LitigGameOptions> transform = x =>
-                //    {
-                //        x.DTrialCosts *= dCostsMultiplier;
-                //        x.PTrialCosts /= dCostsMultiplier;
-                //    };
-                //    optionSets.Add(GetAndTransform("noshootout", name, LitigGameOptionsGenerator.Usual, transform, riskAverse));
-                //    optionSets.Add(GetAndTransform("shootout", name, LitigGameOptionsGenerator.Shootout, transform, riskAverse));
-                //}
-            }
-            // now, add a set with regular and asymmetric risk aversion
-            foreach (RiskAversionMode riskAverse in new RiskAversionMode[] { RiskAversionMode.RiskAverse, RiskAversionMode.POnlyRiskAverse, RiskAversionMode.DOnlyRiskAverse })
-            {
-                foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("basecosts", 1.0) })
-                {
-                    optionSets.Add(GetAndTransformWithRiskAversion("noshootout", name, LitigGameOptionsGenerator.BothUncertain_2BR, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                    optionSets.Add(GetAndTransformWithRiskAversion("shootout", name, LitigGameOptionsGenerator.Shootout, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                }
-            }
-
-            // now, vary strength of information
-            foreach (RiskAversionMode riskAverse in new RiskAversionMode[] { RiskAversionMode.RiskNeutral })
-            {
-                foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("basecosts", 1.0) })
-                {
-                    foreach ((string infoName, double pInfoChange, double dInfoChange) in new (string infoName, double pInfoChange, double dInfoChange)[] { ("betterinfo", 0.5, 0.5), ("worseinfo", 2.0, 2.0), ("dbetterinfo", 2.0, 0.5) })
-                    {
-                        Action<LitigGameOptions> transform = x =>
-                        {
-                            x.CostsMultiplier = costsMultiplier;
-                            x.PDamagesNoiseStdev *= pInfoChange;
-                            x.PLiabilityNoiseStdev *= pInfoChange;
-                            x.DDamagesNoiseStdev *= dInfoChange;
-                            x.DLiabilityNoiseStdev *= dInfoChange;
-                        };
-                        optionSets.Add(GetAndTransformWithRiskAversion("noshootout", infoName + "-" + name, LitigGameOptionsGenerator.BothUncertain_2BR, transform, riskAverse));
-                        optionSets.Add(GetAndTransformWithRiskAversion("shootout", infoName + "-" + name, LitigGameOptionsGenerator.Shootout, transform, riskAverse));
-                    }
-                }
-            }
-
-            // now, liability and damages only
-            foreach (RiskAversionMode riskAverse in new RiskAversionMode[] { RiskAversionMode.RiskNeutral })
-            {
-                foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("basecosts", 1.0) })
-                {
-                    Action<LitigGameOptions> transform = x => { };
-                    optionSets.Add(GetAndTransformWithRiskAversion("dam-noshootout", name, LitigGameOptionsGenerator.DamagesUncertainty_2BR, transform, riskAverse));
-                    optionSets.Add(GetAndTransformWithRiskAversion("dam-shootout", name, LitigGameOptionsGenerator.DamagesShootout, transform, riskAverse));
-                    optionSets.Add(GetAndTransformWithRiskAversion("liab-noshootout", name, LitigGameOptionsGenerator.LiabilityUncertainty_2BR, transform, riskAverse));
-                    optionSets.Add(GetAndTransformWithRiskAversion("liab-shootout", name, LitigGameOptionsGenerator.LiabilityShootout, transform, riskAverse));
-                }
-            }
-        }
-
-        public void AddBluffingOptionsSets(List<GameOptions> optionSets)
-        {
-            LitigGameOptions GetBluffingBase(bool hiddenOffers, bool onlyTwoRounds = false, bool liabilityAlsoUncertain = false, bool cfrPlus = false, double? costsMultiplier = null, bool pRiskAversion = false, bool dRiskAversion = false, double pNoiseMultiplier = 1.0, double dNoiseMultiplier = 1.0)
-            {
-                LitigGameOptions options = (onlyTwoRounds, liabilityAlsoUncertain) switch
-                {
-                    (false, false) => LitigGameOptionsGenerator.DamagesUncertainty_3BR(),
-                    (false, true) => LitigGameOptionsGenerator.BothUncertain_3BR(),
-                    (true, false) => LitigGameOptionsGenerator.DamagesUncertainty_2BR(),
-                    (true, true) => LitigGameOptionsGenerator.BothUncertain_2BR(),
-                };
-                options.SkipFileAndAnswerDecisions = true;
-                options.AllowAbandonAndDefaults = false;
-                if (hiddenOffers)
-                    options.SimultaneousOffersUltimatelyRevealed = false;
-                else
-                    options.SimultaneousOffersUltimatelyRevealed = true;
-                if (cfrPlus)
-                    options.ModifyEvolutionSettings = e => { e.UseCFRPlusInRegretMatching = true; };
-                if (costsMultiplier is double costsMultiplierChange)
-                    options.CostsMultiplier = costsMultiplierChange;
-                if (pRiskAversion)
-                    options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 10 * 0.000001 };
-                if (dRiskAversion)
-                    options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 10 * 0.000001 };
-                if (pNoiseMultiplier != 1.0)
-                {
-                    options.PLiabilityNoiseStdev *= pNoiseMultiplier;
-                    options.PDamagesNoiseStdev *= pNoiseMultiplier;
-                }
-                if (dNoiseMultiplier != 1.0)
-                {
-                    options.DLiabilityNoiseStdev *= dNoiseMultiplier;
-                    options.DDamagesNoiseStdev *= dNoiseMultiplier;
-                }
-                options.CourtLiabilityNoiseStdev = Math.Min(options.PLiabilityNoiseStdev, options.DLiabilityNoiseStdev);
-                options.CourtDamagesNoiseStdev = Math.Min(options.PDamagesNoiseStdev, options.DDamagesNoiseStdev);
-                return options;
-            }
-
-            AddToOptionsListWithName(optionSets, "baseline", GetBluffingBase(false));
-            AddToOptionsListWithName(optionSets, "baseline-hidden", GetBluffingBase(true));
-
-            AddToOptionsListWithName(optionSets, "twobr", GetBluffingBase(false, onlyTwoRounds: true));
-            AddToOptionsListWithName(optionSets, "twobr-hidden", GetBluffingBase(true, onlyTwoRounds: true));
-
-            AddToOptionsListWithName(optionSets, "bothunc", GetBluffingBase(false, liabilityAlsoUncertain: true));
-            AddToOptionsListWithName(optionSets, "bothunc-hidden", GetBluffingBase(true, liabilityAlsoUncertain: true));
-
-            AddToOptionsListWithName(optionSets, "cfrplus", GetBluffingBase(false, cfrPlus: true));
-            AddToOptionsListWithName(optionSets, "cfrplus-hidden", GetBluffingBase(true, cfrPlus: true));
-
-            AddToOptionsListWithName(optionSets, "locost", GetBluffingBase(false, costsMultiplier: 1.0 / 3.0));
-            AddToOptionsListWithName(optionSets, "locost-hidden", GetBluffingBase(true, costsMultiplier: 1.0 / 3.0));
-            AddToOptionsListWithName(optionSets, "hicost", GetBluffingBase(false, costsMultiplier: 3.0));
-            AddToOptionsListWithName(optionSets, "hicost-hidden", GetBluffingBase(true, costsMultiplier: 3.0));
-
-            AddToOptionsListWithName(optionSets, "pra", GetBluffingBase(false, pRiskAversion: true));
-            AddToOptionsListWithName(optionSets, "pra-hidden", GetBluffingBase(true, pRiskAversion: true));
-            AddToOptionsListWithName(optionSets, "dra", GetBluffingBase(false, dRiskAversion: true));
-            AddToOptionsListWithName(optionSets, "dra-hidden", GetBluffingBase(true, dRiskAversion: true));
-            AddToOptionsListWithName(optionSets, "bra", GetBluffingBase(false, pRiskAversion: true, dRiskAversion: true));
-            AddToOptionsListWithName(optionSets, "bra-hidden", GetBluffingBase(true, pRiskAversion: true, dRiskAversion: true));
-
-            AddToOptionsListWithName(optionSets, "goodinf", GetBluffingBase(false, pNoiseMultiplier: 0.5, dNoiseMultiplier: 0.5));
-            AddToOptionsListWithName(optionSets, "goodinf-hidden", GetBluffingBase(true, pNoiseMultiplier: 0.5, dNoiseMultiplier: 0.5));
-            AddToOptionsListWithName(optionSets, "badinf", GetBluffingBase(false, pNoiseMultiplier: 2.0, dNoiseMultiplier: 2.0));
-            AddToOptionsListWithName(optionSets, "badinf-hidden", GetBluffingBase(true, pNoiseMultiplier: 2.0, dNoiseMultiplier: 2.0));
-            AddToOptionsListWithName(optionSets, "pgdbinf", GetBluffingBase(false, pNoiseMultiplier: 0.5, dNoiseMultiplier: 2.0));
-            AddToOptionsListWithName(optionSets, "pgdbinf-hidden", GetBluffingBase(true, pNoiseMultiplier: 0.5, dNoiseMultiplier: 2.0));
-            AddToOptionsListWithName(optionSets, "pbdginf", GetBluffingBase(false, pNoiseMultiplier: 2.0, dNoiseMultiplier: 0.5));
-            AddToOptionsListWithName(optionSets, "pbdginf-hidden", GetBluffingBase(true, pNoiseMultiplier: 2.0, dNoiseMultiplier: 0.5));
-        }
-
-        public List<GameOptions> GetOptionsSets2()
-        {
-            List<GameOptions> optionSets = new List<GameOptions>();
-
-            List<ILitigGameDisputeGenerator> disputeGenerators;
-
-            if (TestDisputeGeneratorVariations)
-                disputeGenerators = new List<ILitigGameDisputeGenerator>()
-                {
-                    new LitigGameNegligenceDisputeGenerator(),
-                    new LitigGameAppropriationDisputeGenerator(),
-                    new LitigGameContractDisputeGenerator(),
-                    new LitigGameDiscriminationDisputeGenerator(),
-                };
-            else
-                disputeGenerators = new List<ILitigGameDisputeGenerator>()
-                {
-                    new LitigGameExogenousDisputeGenerator()
-                    {
-                        ExogenousProbabilityTrulyLiable = 0.5,
-                        StdevNoiseToProduceLiabilityStrength = 0.5
-                    }
-                };
-
-            foreach (double costMultiplier in CriticalCostsMultipliers)
-                foreach (ILitigGameDisputeGenerator d in disputeGenerators)
-                {
-                    var options = LitigGameOptionsGenerator.BaseOptions();
-                    options.PLiabilityNoiseStdev = options.DLiabilityNoiseStdev = 0.3;
-                    options.CostsMultiplier = costMultiplier;
-                    if (HigherRiskAversion)
-                    {
-                        if (PRiskAverse)
-                            options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { Alpha = 10.0 / 1000000.0 };
-                        if (DRiskAverse)
-                            options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { Alpha = 10.0 / 1000000.0 };
-                    }
-                    else
-                    {
-                        if (PRiskAverse)
-                            options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth };
-                        if (DRiskAverse)
-                            options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth };
-                    }
-                    options.LitigGameDisputeGenerator = d;
-                    string generatorName = d.GetGeneratorName();
-                    string fullName = generatorName;
-                    if (costMultiplier != 1)
-                        fullName += $" costs {costMultiplier}";
-                    optionSets.AddRange(GetOptionsVariations(fullName, () => options));
-                }
-            return optionSets;
-        }
-
-        private List<GameOptions> GetOptionsVariations(string description, Func<LitigGameOptions> initialOptionsFunc)
-        {
-            var list = new List<GameOptions>();
-            LitigGameOptions options;
-
-            if (!LimitToAmerican)
-            {
-                options = initialOptionsFunc();
-                options.LitigGameRunningSideBets = new LitigGameRunningSideBets()
-                {
-                    MaxChipsPerRound = 2,
-                    ValueOfChip = 50000,
-                    CountAllChipsInAbandoningRound = true,
-                    TrialCostsMultiplierAsymptote = 3.0,
-                    TrialCostsMultiplierWithDoubleStakes = 1.3,
-                };
-                AddToOptionsListWithName(list, description + " RunSide", options);
-            }
-
-            if (IncludeRunningSideBetVariations)
-            {
-                options = initialOptionsFunc();
-                options.LitigGameRunningSideBets = new LitigGameRunningSideBets()
-                {
-                    MaxChipsPerRound = 2,
-                    ValueOfChip = 50000,
-                    CountAllChipsInAbandoningRound = false,
-                    TrialCostsMultiplierAsymptote = 3.0,
-                    TrialCostsMultiplierWithDoubleStakes = 1.3,
-                };
-                AddToOptionsListWithName(list, description + " RunSideEscap", options);
-
-                options = initialOptionsFunc();
-                options.LitigGameRunningSideBets = new LitigGameRunningSideBets()
-                {
-                    MaxChipsPerRound = 2,
-                    ValueOfChip = 100000,
-                    CountAllChipsInAbandoningRound = true,
-                    TrialCostsMultiplierAsymptote = 3.0,
-                    TrialCostsMultiplierWithDoubleStakes = 1.3,
-                };
-                AddToOptionsListWithName(list, description + " RunSideLarge", options);
-
-                options = initialOptionsFunc();
-                options.LitigGameRunningSideBets = new LitigGameRunningSideBets()
-                {
-                    MaxChipsPerRound = 2,
-                    ValueOfChip = 50000,
-                    TrialCostsMultiplierAsymptote = 3.0,
-                    TrialCostsMultiplierWithDoubleStakes = 2.0,
-                };
-                AddToOptionsListWithName(list, description + " RunSideExp", options);
-            }
-
-            if (!LimitToAmerican)
-            {
-                options = initialOptionsFunc();
-                options.LoserPays = true;
-                options.LoserPaysMultiple = 1.0;
-                options.LoserPaysAfterAbandonment = false;
-                options.IncludeAgreementToBargainDecisions = true; // with the British rule, one might not want to make an offer at all
-                AddToOptionsListWithName(list, description + " British", options);
-            }
-
-            options = initialOptionsFunc();
-            AddToOptionsListWithName(list, description + " American", options);
-
-            return list;
         }
 
         void AddToOptionsListWithName(List<GameOptions> list, string name, GameOptions options)
@@ -613,103 +122,25 @@ namespace ACESim
             return gameProgress;
         }
 
-        // the following is not for the fee-shifting
 
-        GameOptions GetAndTransformWithRiskAversion(string groupName, string suffix, Func<LitigGameOptions> baseOptionsFn, Action<LitigGameOptions> transform, RiskAversionMode riskAversion)
-        {
-            LitigGameOptions o = baseOptionsFn();
-            o.GroupName = groupName;
-            transform(o);
-            string nameRevised = groupName;
-            // Note that the following alpha values are based on an initial wealth of 10, with stakes of 1
-            const double somewhatRiskAverseAlpha = 2.0;
-            const double veryRiskAverseAlpha = 4.0;
-            if (riskAversion == RiskAversionMode.RiskAverse)
-            {
-                o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = somewhatRiskAverseAlpha, LinearTransformation = true };
-                o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = somewhatRiskAverseAlpha, LinearTransformation = true };
-                nameRevised += " both risk averse";
-            }
-            else if (riskAversion == RiskAversionMode.RiskNeutral)
-            {
-                o.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = o.PInitialWealth };
-                o.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = o.DInitialWealth };
-                nameRevised += " risk neutral";
-            }
-            else if (riskAversion == RiskAversionMode.POnlyRiskAverse)
-            {
-                o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = somewhatRiskAverseAlpha, LinearTransformation = true };
-                o.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = o.DInitialWealth };
-                nameRevised += " P risk averse";
-            }
-            else if (riskAversion == RiskAversionMode.DOnlyRiskAverse)
-            {
-                o.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = o.PInitialWealth };
-                o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = somewhatRiskAverseAlpha, LinearTransformation = true };
-                nameRevised += " D risk averse";
-            }
-            else if (riskAversion == RiskAversionMode.VeryRiskAverse)
-            {
-                o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = veryRiskAverseAlpha, LinearTransformation = true };
-                o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = veryRiskAverseAlpha, LinearTransformation = true };
-                nameRevised += " both very risk averse";
-            }
-            else if (riskAversion == RiskAversionMode.PMoreRiskAverse)
-            {
-                o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = veryRiskAverseAlpha, LinearTransformation = true };
-                o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = somewhatRiskAverseAlpha, LinearTransformation = true };
-                nameRevised += " P more risk averse";
-            }
-            else if (riskAversion == RiskAversionMode.DMoreRiskAverse)
-            {
-                o.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.PInitialWealth, Alpha = somewhatRiskAverseAlpha, LinearTransformation = true };
-                o.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = o.DInitialWealth, Alpha = veryRiskAverseAlpha, LinearTransformation = true };
-                nameRevised += " D more risk averse";
-            }
-            o.Name = nameRevised;
-            return o;
-        }
+        #region Endogenous disputes article
 
-        #endregion
-
-        #region Fee shifting article
-         
-        public void AddFeeShiftingArticleGames(List<GameOptions> options)
+        public void AddEndogenousDisputesArticleGames(List<GameOptions> options)
         {
             bool includeBaselineValueForNoncritical = false; // By setting this to false, we avoid repeating the baseline value for noncritical transformations, which would produce redundant options sets.
-            GetFeeShiftingArticleGames(options, includeBaselineValueForNoncritical);
-            if (UseSmallerTree)
-            {
-                foreach (var option in options)
-                {
-                    // Note -- some of this is redundant, but we need to do this because of transformations to the original options that may affect damages and liability strength points.
-                    LitigGameOptions o = (LitigGameOptions)option;
-                    const int bigTreeNumber = 10;
-                    const int littleTreeNumber = 5;
-                    if (o.NumLiabilitySignals == bigTreeNumber)
-                        o.NumLiabilitySignals = littleTreeNumber;
-                    if (o.NumLiabilityStrengthPoints == bigTreeNumber)
-                        o.NumLiabilityStrengthPoints = littleTreeNumber;
-                    if (o.NumDamagesSignals == bigTreeNumber)
-                        o.NumDamagesSignals = littleTreeNumber;
-                    if (o.NumDamagesStrengthPoints == bigTreeNumber)
-                        o.NumDamagesStrengthPoints = littleTreeNumber;
-                    if (o.NumOffers == bigTreeNumber)
-                        o.NumOffers = littleTreeNumber;
-                }
-            }
+            GetEndogenousDisputesArticleGames(options, includeBaselineValueForNoncritical);
         }
 
         /// <summary>
         /// Return the name that a set of fee-shifting article options was run under -- taking into account that we avoid repeating redundant options sets.
         /// </summary>
         /// <returns></returns>
-        public Dictionary<string, string> GetFeeShiftingArticleNameMap()
+        public Dictionary<string, string> GetEndogenousDisputesArticleNameMap()
         {
             List<GameOptions> withRedundancies = new List<GameOptions>();
-            GetFeeShiftingArticleGames(withRedundancies, true);
+            GetEndogenousDisputesArticleGames(withRedundancies, true);
             List<GameOptions> withoutRedundancies = new List<GameOptions>();
-            GetFeeShiftingArticleGames(withoutRedundancies, false);
+            GetEndogenousDisputesArticleGames(withoutRedundancies, false);
             Dictionary<string, string> result = new Dictionary<string, string>();
             foreach (var gameOptions in withRedundancies)
             {
@@ -724,9 +155,9 @@ namespace ACESim
             return result;
         }
 
-        public void GetFeeShiftingArticleGames(List<GameOptions> options, bool allowRedundancies)
+        public void GetEndogenousDisputesArticleGames(List<GameOptions> options, bool allowRedundancies)
         {
-            var gamesSets = GetFeeShiftingArticleGamesSets(false, allowRedundancies); // each is a set with noncritical
+            var gamesSets = GetEndogenousDisputesArticleGamesSets(false, allowRedundancies); // each is a set with noncritical
             var eachGameIndependently = gamesSets.SelectMany(x => x).ToList();
 
             List<string> optionChoices = eachGameIndependently.Select(x => ToCompleteString(x.VariableSettings)).ToList();
@@ -743,19 +174,7 @@ namespace ACESim
             options.AddRange(eachGameIndependently);
         }
 
-        public List<List<LitigGameOptions>> GetFeeShiftingArticleBaselineGamesSets(bool smallerTree)
-        {
-            List<List<LitigGameOptions>> result = new List<List<LitigGameOptions>>();
-            List<List<Func<LitigGameOptions, LitigGameOptions>>> allTransformations = new List<List<Func<LitigGameOptions, LitigGameOptions>>>()
-            {
-                EssentialFeeShiftingMultiplierTransformations(),
-            };
-            List<LitigGameOptions> gameOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.FeeShiftingArticleBase(smallerTree).WithName("FSA"), allTransformations);
-            result.Add(gameOptions);
-            return result;
-        }
-
-        public List<List<LitigGameOptions>> GetFeeShiftingArticleGamesSets(bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical)
+        public List<List<LitigGameOptions>> GetEndogenousDisputesArticleGamesSets(bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical)
         {
             List<List<LitigGameOptions>> result = new List<List<LitigGameOptions>>();
             const int numCritical = 3; // critical transformations are all interacted with one another and then with each of the other transformations
@@ -787,7 +206,7 @@ namespace ACESim
             };
             List<List<Func<LitigGameOptions, LitigGameOptions>>> criticalTransformations = allTransformations.Take(numCritical).ToList();
             List<List<Func<LitigGameOptions, LitigGameOptions>>> noncriticalTransformations = allTransformations.Skip(IncludeNonCriticalTransformations ? numCritical : allTransformations.Count()).ToList();
-            List<LitigGameOptions> gameOptions = new List<LitigGameOptions>(); // ApplyPermutationsOfTransformations(() => (LitigGameOptions) LitigGameOptionsGenerator.FeeShiftingArticleBase().WithName("FSA"), transformations);
+            List<LitigGameOptions> gameOptions = new List<LitigGameOptions>(); 
             if (!useAllPermutationsOfTransformations)
             {
                 var noncriticalTransformationPlusNoTransformation = new List<List<Func<LitigGameOptions, LitigGameOptions>>>();
@@ -813,7 +232,7 @@ namespace ACESim
                     }
                     if (noncriticalTransformation != null && !replaced)
                         transformLists.Add(noncriticalTransformation);
-                    List<LitigGameOptions> noncriticalOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.FeeShiftingArticleBase(UseSmallerTree).WithName("FSA"), transformLists);
+                    List<LitigGameOptions> noncriticalOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.EndogenousArticleBase().WithName("FSA"), transformLists);
                     List<(string, object)> defaultNonCriticalValues = DefaultNonCriticalValues();
                     foreach (var optionSet in noncriticalOptions)
                     {
@@ -848,11 +267,8 @@ namespace ACESim
             };
         }
 
-        public List<string> NamesOfFeeShiftingArticleSets => new List<string>()
+        public List<string> NamesOfEndogenousArticleSets => new List<string>()
         {
-           // "Additional Costs Multipliers",
-           // "Additional Fee Shifting Multipliers",
-           // "Additional Risk Options",
             "Costs Multipliers",
             "Fee Shifting Multiples",
             "Risk Aversion",
@@ -866,121 +282,121 @@ namespace ACESim
             "Proportion of Costs at Beginning",
         };
 
-        public record FeeShiftingArticleVariationInfo(string nameOfVariation, List<(string columnName, object expectedValue)> columnMatches);
+        public record EndogenousDisputesArticleVariationInfo(string nameOfVariation, List<(string columnName, object expectedValue)> columnMatches);
 
-        public record FeeShiftingArticleVariationSetInfo(string nameOfSet, List<FeeShiftingArticleVariationInfo> requirementsForEachVariation);
+        public record EndogenousDisputesArticleVariationSetInfo(string nameOfSet, List<EndogenousDisputesArticleVariationInfo> requirementsForEachVariation);
 
-        public List<FeeShiftingArticleVariationSetInfo> GetFeeShiftingArticleVariationInfoList(bool useRiskAversionForNonRiskReports)
+        public List<EndogenousDisputesArticleVariationSetInfo> GetFeeShiftingArticleVariationInfoList(bool useRiskAversionForNonRiskReports)
         {
-            var varyingNothing = new List<FeeShiftingArticleVariationInfo>()
+            var varyingNothing = new List<EndogenousDisputesArticleVariationInfo>()
             {
-                new FeeShiftingArticleVariationInfo("Baseline", DefaultNonCriticalValues()),
+                new EndogenousDisputesArticleVariationInfo("Baseline", DefaultNonCriticalValues()),
             };
 
-            var varyingFeeShiftingRule_LiabilityUncertain = new List<FeeShiftingArticleVariationInfo>()
+            var varyingFeeShiftingRule_LiabilityUncertain = new List<EndogenousDisputesArticleVariationInfo>()
             {
                 // where liability is uncertain:
-                new FeeShiftingArticleVariationInfo("English", DefaultNonCriticalValues()),
-                new FeeShiftingArticleVariationInfo("Margin of Victory", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "Margin of Victory")),
+                new EndogenousDisputesArticleVariationInfo("English", DefaultNonCriticalValues()),
+                new EndogenousDisputesArticleVariationInfo("Margin of Victory", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "Margin of Victory")),
             };
 
-            var varyingFeeShiftingRule_DamagesUncertain = new List<FeeShiftingArticleVariationInfo>()
+            var varyingFeeShiftingRule_DamagesUncertain = new List<EndogenousDisputesArticleVariationInfo>()
             {
                 // where liability is uncertain:
-                new FeeShiftingArticleVariationInfo("English", DefaultNonCriticalValues().WithReplacement("Issue", "Damages")),
-                new FeeShiftingArticleVariationInfo("Rule 68", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "Rule 68").WithReplacement("Issue", "Damages")),
-                new FeeShiftingArticleVariationInfo("Reverse 68", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "Reverse 68").WithReplacement("Issue", "Damages")),
+                new EndogenousDisputesArticleVariationInfo("English", DefaultNonCriticalValues().WithReplacement("Issue", "Damages")),
+                new EndogenousDisputesArticleVariationInfo("Rule 68", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "Rule 68").WithReplacement("Issue", "Damages")),
+                new EndogenousDisputesArticleVariationInfo("Reverse 68", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "Reverse 68").WithReplacement("Issue", "Damages")),
             };
 
-            var varyingNoiseMultipliersBoth = new List<FeeShiftingArticleVariationInfo>()
+            var varyingNoiseMultipliersBoth = new List<EndogenousDisputesArticleVariationInfo>()
             {
-                new FeeShiftingArticleVariationInfo(".25", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "0.25").WithReplacement("Noise Multiplier D", "0.25")),
-                new FeeShiftingArticleVariationInfo(".5", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "0.5").WithReplacement("Noise Multiplier D", "0.5")),
-                new FeeShiftingArticleVariationInfo("1", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "1").WithReplacement("Noise Multiplier D", "1")),
-                new FeeShiftingArticleVariationInfo("2", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "2").WithReplacement("Noise Multiplier D", "2")),
-                new FeeShiftingArticleVariationInfo("4", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "4").WithReplacement("Noise Multiplier D", "4")),
+                new EndogenousDisputesArticleVariationInfo(".25", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "0.25").WithReplacement("Noise Multiplier D", "0.25")),
+                new EndogenousDisputesArticleVariationInfo(".5", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "0.5").WithReplacement("Noise Multiplier D", "0.5")),
+                new EndogenousDisputesArticleVariationInfo("1", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "1").WithReplacement("Noise Multiplier D", "1")),
+                new EndogenousDisputesArticleVariationInfo("2", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "2").WithReplacement("Noise Multiplier D", "2")),
+                new EndogenousDisputesArticleVariationInfo("4", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "4").WithReplacement("Noise Multiplier D", "4")),
             };
 
-            var varyingNoiseMultipliersAsymmetric = new List<FeeShiftingArticleVariationInfo>()
+            var varyingNoiseMultipliersAsymmetric = new List<EndogenousDisputesArticleVariationInfo>()
             {
-                new FeeShiftingArticleVariationInfo("Equal Information", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "1").WithReplacement("Noise Multiplier D", "1")),
-                new FeeShiftingArticleVariationInfo("P Better", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "0.5").WithReplacement("Noise Multiplier D", "2")),
-                new FeeShiftingArticleVariationInfo("D Better", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "2").WithReplacement("Noise Multiplier D", "0.5")),
+                new EndogenousDisputesArticleVariationInfo("Equal Information", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "1").WithReplacement("Noise Multiplier D", "1")),
+                new EndogenousDisputesArticleVariationInfo("P Better", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "0.5").WithReplacement("Noise Multiplier D", "2")),
+                new EndogenousDisputesArticleVariationInfo("D Better", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "2").WithReplacement("Noise Multiplier D", "0.5")),
             };
 
-            var varyingRelativeCosts = new List<FeeShiftingArticleVariationInfo>()
+            var varyingRelativeCosts = new List<EndogenousDisputesArticleVariationInfo>()
             {
-                new FeeShiftingArticleVariationInfo("P Lower Costs", DefaultNonCriticalValues().WithReplacement("Relative Costs", "0.5")),
-                new FeeShiftingArticleVariationInfo("Equal", DefaultNonCriticalValues().WithReplacement("Relative Costs", "1")),
-                new FeeShiftingArticleVariationInfo("P Higher Costs", DefaultNonCriticalValues().WithReplacement("Relative Costs", "2")),
+                new EndogenousDisputesArticleVariationInfo("P Lower Costs", DefaultNonCriticalValues().WithReplacement("Relative Costs", "0.5")),
+                new EndogenousDisputesArticleVariationInfo("Equal", DefaultNonCriticalValues().WithReplacement("Relative Costs", "1")),
+                new EndogenousDisputesArticleVariationInfo("P Higher Costs", DefaultNonCriticalValues().WithReplacement("Relative Costs", "2")),
             };
 
-            var varyingRiskAversion = new List<FeeShiftingArticleVariationInfo>()
+            var varyingRiskAversion = new List<EndogenousDisputesArticleVariationInfo>()
             {
-                new FeeShiftingArticleVariationInfo("Risk Neutral", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Risk Neutral")),
-                new FeeShiftingArticleVariationInfo("Mildly Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Mildly Risk Averse")),
-                new FeeShiftingArticleVariationInfo("Moderately Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Moderately Risk Averse")),
-                new FeeShiftingArticleVariationInfo("Highly Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Highly Risk Averse")),
+                new EndogenousDisputesArticleVariationInfo("Risk Neutral", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Risk Neutral")),
+                new EndogenousDisputesArticleVariationInfo("Mildly Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Mildly Risk Averse")),
+                new EndogenousDisputesArticleVariationInfo("Moderately Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Moderately Risk Averse")),
+                new EndogenousDisputesArticleVariationInfo("Highly Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Highly Risk Averse")),
             };
 
-            var varyingRiskAversionAsymmetry = new List<FeeShiftingArticleVariationInfo>()
+            var varyingRiskAversionAsymmetry = new List<EndogenousDisputesArticleVariationInfo>()
             {
-                new FeeShiftingArticleVariationInfo("P Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "P Risk Averse")),
-                new FeeShiftingArticleVariationInfo("D Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "D Risk Averse")),
-                new FeeShiftingArticleVariationInfo("P More Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "P More Risk Averse")),
-                new FeeShiftingArticleVariationInfo("D More Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "D More Risk Averse")),
+                new EndogenousDisputesArticleVariationInfo("P Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "P Risk Averse")),
+                new EndogenousDisputesArticleVariationInfo("D Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "D Risk Averse")),
+                new EndogenousDisputesArticleVariationInfo("P More Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "P More Risk Averse")),
+                new EndogenousDisputesArticleVariationInfo("D More Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "D More Risk Averse")),
             };
 
-            var varyingQuitRules = new List<FeeShiftingArticleVariationInfo>()
+            var varyingQuitRules = new List<EndogenousDisputesArticleVariationInfo>()
             {
-                new FeeShiftingArticleVariationInfo("Quitting Allowed", DefaultNonCriticalValues().WithReplacement("Allow Abandon and Defaults", "TRUE")),
-                new FeeShiftingArticleVariationInfo("Quitting Prohibited", DefaultNonCriticalValues().WithReplacement("Allow Abandon and Defaults", "FALSE")),
+                new EndogenousDisputesArticleVariationInfo("Quitting Allowed", DefaultNonCriticalValues().WithReplacement("Allow Abandon and Defaults", "TRUE")),
+                new EndogenousDisputesArticleVariationInfo("Quitting Prohibited", DefaultNonCriticalValues().WithReplacement("Allow Abandon and Defaults", "FALSE")),
             };
 
-            var varyingProbabilityTrulyLiable = new List<FeeShiftingArticleVariationInfo>()
+            var varyingProbabilityTrulyLiable = new List<EndogenousDisputesArticleVariationInfo>()
             {
-                new FeeShiftingArticleVariationInfo("0.1", DefaultNonCriticalValues().WithReplacement("Probability Truly Liable", "0.1")),
-                new FeeShiftingArticleVariationInfo("0.5", DefaultNonCriticalValues().WithReplacement("Probability Truly Liable", "0.5")),
-                new FeeShiftingArticleVariationInfo("0.9", DefaultNonCriticalValues().WithReplacement("Probability Truly Liable", "0.9")),
+                new EndogenousDisputesArticleVariationInfo("0.1", DefaultNonCriticalValues().WithReplacement("Probability Truly Liable", "0.1")),
+                new EndogenousDisputesArticleVariationInfo("0.5", DefaultNonCriticalValues().WithReplacement("Probability Truly Liable", "0.5")),
+                new EndogenousDisputesArticleVariationInfo("0.9", DefaultNonCriticalValues().WithReplacement("Probability Truly Liable", "0.9")),
             };
 
-            var varyingNoiseToProduceCaseStrength = new List<FeeShiftingArticleVariationInfo>()
+            var varyingNoiseToProduceCaseStrength = new List<EndogenousDisputesArticleVariationInfo>()
             {
-                new FeeShiftingArticleVariationInfo("0.175", DefaultNonCriticalValues().WithReplacement("Noise to Produce Case Strength", "0.175")),
-                new FeeShiftingArticleVariationInfo("0.35", DefaultNonCriticalValues().WithReplacement("Noise to Produce Case Strength", "0.35")),
-                new FeeShiftingArticleVariationInfo("0.70", DefaultNonCriticalValues().WithReplacement("Noise to Produce Case Strength", "0.7")),
+                new EndogenousDisputesArticleVariationInfo("0.175", DefaultNonCriticalValues().WithReplacement("Noise to Produce Case Strength", "0.175")),
+                new EndogenousDisputesArticleVariationInfo("0.35", DefaultNonCriticalValues().WithReplacement("Noise to Produce Case Strength", "0.35")),
+                new EndogenousDisputesArticleVariationInfo("0.70", DefaultNonCriticalValues().WithReplacement("Noise to Produce Case Strength", "0.7")),
             };
 
-            var varyingIssue = new List<FeeShiftingArticleVariationInfo>()
+            var varyingIssue = new List<EndogenousDisputesArticleVariationInfo>()
             {
-                new FeeShiftingArticleVariationInfo("Liability", DefaultNonCriticalValues().WithReplacement("Issue", "Liability")),
-                new FeeShiftingArticleVariationInfo("Damages", DefaultNonCriticalValues().WithReplacement("Issue", "Damages")),
+                new EndogenousDisputesArticleVariationInfo("Liability", DefaultNonCriticalValues().WithReplacement("Issue", "Liability")),
+                new EndogenousDisputesArticleVariationInfo("Damages", DefaultNonCriticalValues().WithReplacement("Issue", "Damages")),
             };
 
-            var varyingTimingOfCosts = new List<FeeShiftingArticleVariationInfo>()
+            var varyingTimingOfCosts = new List<EndogenousDisputesArticleVariationInfo>()
             {
-                new FeeShiftingArticleVariationInfo("0", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "0")),
-                new FeeShiftingArticleVariationInfo("0.25", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "0.25")),
-                new FeeShiftingArticleVariationInfo("0.5", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "0.5")),
-                new FeeShiftingArticleVariationInfo("0.75", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "0.75")),
-                new FeeShiftingArticleVariationInfo("1", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "1")),
+                new EndogenousDisputesArticleVariationInfo("0", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "0")),
+                new EndogenousDisputesArticleVariationInfo("0.25", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "0.25")),
+                new EndogenousDisputesArticleVariationInfo("0.5", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "0.5")),
+                new EndogenousDisputesArticleVariationInfo("0.75", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "0.75")),
+                new EndogenousDisputesArticleVariationInfo("1", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "1")),
             };
 
-            var tentativeResults = new List<FeeShiftingArticleVariationSetInfo>()
+            var tentativeResults = new List<EndogenousDisputesArticleVariationSetInfo>()
             {
-                new FeeShiftingArticleVariationSetInfo("Baseline", varyingNothing),
-                new FeeShiftingArticleVariationSetInfo("Fee Shifting Rule (Liability Issue)", varyingFeeShiftingRule_LiabilityUncertain),
-                new FeeShiftingArticleVariationSetInfo("Fee Shifting Rule (Damages Issue)", varyingFeeShiftingRule_DamagesUncertain),
-                new FeeShiftingArticleVariationSetInfo("Noise Multiplier", varyingNoiseMultipliersBoth),
-                new FeeShiftingArticleVariationSetInfo("Information Asymmetry", varyingNoiseMultipliersAsymmetric),
-                new FeeShiftingArticleVariationSetInfo("Relative Costs", varyingRelativeCosts),
-                new FeeShiftingArticleVariationSetInfo("Risk Aversion", varyingRiskAversion),
-                new FeeShiftingArticleVariationSetInfo("Risk Aversion Asymmetry", varyingRiskAversionAsymmetry),
-                new FeeShiftingArticleVariationSetInfo("Quitting Rules", varyingQuitRules),
-                new FeeShiftingArticleVariationSetInfo("Proportion of Cases Where D Is Truly Liable", varyingProbabilityTrulyLiable),
-                new FeeShiftingArticleVariationSetInfo("Case Strength Noise", varyingNoiseToProduceCaseStrength),
-                new FeeShiftingArticleVariationSetInfo("Issue", varyingIssue),
-                new FeeShiftingArticleVariationSetInfo("Proportion of Costs at Beginning", varyingTimingOfCosts)
+                new EndogenousDisputesArticleVariationSetInfo("Baseline", varyingNothing),
+                new EndogenousDisputesArticleVariationSetInfo("Fee Shifting Rule (Liability Issue)", varyingFeeShiftingRule_LiabilityUncertain),
+                new EndogenousDisputesArticleVariationSetInfo("Fee Shifting Rule (Damages Issue)", varyingFeeShiftingRule_DamagesUncertain),
+                new EndogenousDisputesArticleVariationSetInfo("Noise Multiplier", varyingNoiseMultipliersBoth),
+                new EndogenousDisputesArticleVariationSetInfo("Information Asymmetry", varyingNoiseMultipliersAsymmetric),
+                new EndogenousDisputesArticleVariationSetInfo("Relative Costs", varyingRelativeCosts),
+                new EndogenousDisputesArticleVariationSetInfo("Risk Aversion", varyingRiskAversion),
+                new EndogenousDisputesArticleVariationSetInfo("Risk Aversion Asymmetry", varyingRiskAversionAsymmetry),
+                new EndogenousDisputesArticleVariationSetInfo("Quitting Rules", varyingQuitRules),
+                new EndogenousDisputesArticleVariationSetInfo("Proportion of Cases Where D Is Truly Liable", varyingProbabilityTrulyLiable),
+                new EndogenousDisputesArticleVariationSetInfo("Case Strength Noise", varyingNoiseToProduceCaseStrength),
+                new EndogenousDisputesArticleVariationSetInfo("Issue", varyingIssue),
+                new EndogenousDisputesArticleVariationSetInfo("Proportion of Costs at Beginning", varyingTimingOfCosts)
             };
 
             if (useRiskAversionForNonRiskReports)
@@ -989,7 +405,7 @@ namespace ACESim
                 tentativeResults = tentativeResults.Where(x => !x.nameOfSet.StartsWith("Risk")).ToList();
                 for (int i = 0; i < tentativeResults.Count; i++)
                 {
-                    FeeShiftingArticleVariationSetInfo variationSetInfo = tentativeResults[i];
+                    EndogenousDisputesArticleVariationSetInfo variationSetInfo = tentativeResults[i];
                     tentativeResults[i] = variationSetInfo with
                     {
                         requirementsForEachVariation = variationSetInfo.requirementsForEachVariation.Select(x => x with
