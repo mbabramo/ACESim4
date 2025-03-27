@@ -19,16 +19,16 @@ namespace ACESim
         // Primary action: Appropriate (yes = 1, no = 2).
         // Post primary action: None.
 
-        public byte NumSystemicRandomnessLevels = 10;
-        public double BenefitToDefendantOfAppropriation = 25000;
-        public double CostToPlaintiffOfAppropriation = 50000;
+        public byte NumSystemicRandomnessLevels = 5;
+        public double BenefitToDefendantOfAppropriation = 0.1;
+        public double CostToPlaintiffOfAppropriation = 0.25;
         public double SocialWelfareMultiplier = 1.0;
 
         private double[][] ProbabilityLiabilityStrengthForNoiseLevel_TrulyLiable, ProbabilityLiabilityStrengthForNoiseLevel_TrulyNotLiable;
 
 
         public (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("PrePrimaryChanceActions", "Pre Primary");
-        public (string name, string abbreviation) PrimaryNameAndAbbreviation => ("PrimaryChanceActions", "Primary");
+        public (string name, string abbreviation) PrimaryNameAndAbbreviation => ("PrimaryActions", "Primary");
         public (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("PostPrimaryChanceActions", "Post Primary");
 
         public string GetActionString(byte action, byte decisionByteCode)
@@ -62,7 +62,7 @@ namespace ACESim
             primaryActions = 2;
             postPrimaryChanceActions = 0;
             prePrimaryPlayersToInform = new byte[] { (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.LiabilityStrengthChance };
-            primaryPlayersToInform = new byte[] { (byte)LitigGamePlayers.Resolution, (byte)LitigGamePlayers.LiabilityStrengthChance };
+            primaryPlayersToInform = new byte[] { (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.Resolution, (byte)LitigGamePlayers.LiabilityStrengthChance };
             postPrimaryPlayersToInform = null;
             prePrimaryUnevenChance = false;
             postPrimaryUnevenChance = true; // irrelevant

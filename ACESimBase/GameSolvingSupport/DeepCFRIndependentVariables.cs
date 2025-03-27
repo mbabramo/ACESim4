@@ -64,10 +64,16 @@ namespace ACESimBase.GameSolvingSupport
             byte symmetricActionChosen;
             if (ActionChosen == 0)
                 symmetricActionChosen = 0;
-            else if (gameDefinition.DecisionsExecutionOrder[DecisionIndex].SymmetryMap.decision == SymmetryMapOutput.ReverseAction)
-                symmetricActionChosen = (byte) (gameDefinition.DecisionsExecutionOrder[DecisionIndex].NumPossibleActions - ActionChosen + 1);
             else
-                symmetricActionChosen = ActionChosen;
+            {
+                SymmetryMapOutput symmetryMapOutput = gameDefinition.DecisionsExecutionOrder[DecisionIndex].SymmetryMap.decision;
+                if (symmetryMapOutput == SymmetryMapOutput.CantBeSymmetric)
+                    throw new NotImplementedException();
+                if (symmetryMapOutput == SymmetryMapOutput.ReverseAction)
+                    symmetricActionChosen = (byte)(gameDefinition.DecisionsExecutionOrder[DecisionIndex].NumPossibleActions - ActionChosen + 1);
+                else
+                    symmetricActionChosen = ActionChosen;
+            }
             var result = new DeepCFRIndependentVariables(0, (byte) (DecisionIndex - 1), symmetric, symmetricActionChosen, GameParameters?.ToList());
             return result;
         }

@@ -195,7 +195,7 @@ namespace ACESim
         public byte WarmStartValue;
 
         /// <summary>
-        /// Information on how information in player 0's information set or decision by a playe
+        /// Information on how information in player 0's information set or decision by a player
         /// </summary>
         public (SymmetryMapInput information, SymmetryMapOutput decision) SymmetryMap;
 

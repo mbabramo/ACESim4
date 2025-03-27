@@ -17,5 +17,9 @@
         /// Given that player 0 chooses action a for this decision of n possible actions, player 1 chooses n - a + 1 in player 1's corresponding information set.
         /// </summary>
         ReverseAction,
+        /// <summary>
+        /// This is never a symmetric decision
+        /// </summary>
+        CantBeSymmetric,
     }
 }

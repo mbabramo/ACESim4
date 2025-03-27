@@ -232,7 +232,7 @@ namespace ACESim
                 }
                 if (primaryActions > 0)
                 {
-                    decisions.Add(new Decision(disputeGenerator.PrimaryNameAndAbbreviation.name, disputeGenerator.PrimaryNameAndAbbreviation.abbreviation, true, (byte)LitigGamePlayers.PrePrimaryChance /* there is no primary chance player */, primaryPlayersToInform, primaryActions, (byte)LitigGameDecisions.PrimaryAction) { StoreActionInGameCacheItem = GameHistoryCacheIndex_PrimaryAction, IsReversible = true, CanTerminateGame = primaryActionCanTerminate, Unroll_Parallelize = disputeGenerator.GetPrimaryUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetPrimaryUnrollSettings().unrollIdentical, DistributedChanceDecision = true, SymmetryMap = (disputeGenerator.GetPrimaryUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision) });
+                    decisions.Add(new Decision(disputeGenerator.PrimaryNameAndAbbreviation.name, disputeGenerator.PrimaryNameAndAbbreviation.abbreviation, true, (byte)LitigGamePlayers.Defendant, primaryPlayersToInform, primaryActions, (byte)LitigGameDecisions.PrimaryAction) { StoreActionInGameCacheItem = GameHistoryCacheIndex_PrimaryAction, IsReversible = true, CanTerminateGame = primaryActionCanTerminate, Unroll_Parallelize = disputeGenerator.GetPrimaryUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetPrimaryUnrollSettings().unrollIdentical, DistributedChanceDecision = false, SymmetryMap = (disputeGenerator.GetPrimaryUnrollSettings().symmetryMapInput, SymmetryMapOutput.CantBeSymmetric) });
                 }
                 if (postPrimaryChanceActions > 0)
                 {

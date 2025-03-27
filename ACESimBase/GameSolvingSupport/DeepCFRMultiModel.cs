@@ -121,6 +121,8 @@ namespace ACESimBase.GameSolvingSupport
                 byte player0DecisionIndex = (byte) (decisionIndex - 1);
                 Decision player0Decision = GameDefinition.DecisionsExecutionOrder[player0DecisionIndex];
                 byte actionFromEarlierDecision = ChooseAction(player0Decision, player0DecisionIndex, regressionMachineForDecision /* NOTE: This is the regression machine for player 0 decision if this is symmetric */, randomValue, symmetricIndependentVariables, maxActionValue, numActionsToSample, probabilityUniformRandom, ref onPolicyProbabilities);
+                if (decision.SymmetryMap.decision == SymmetryMapOutput.CantBeSymmetric)
+                    throw new Exception();
                 bool reverse = decision.SymmetryMap.decision == SymmetryMapOutput.ReverseAction;
                 byte actionToChoose;
                 if (reverse)
