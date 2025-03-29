@@ -106,7 +106,7 @@ namespace ACESim
         public double[] GetLitigationIndependentWealthEffects(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             double precautionSpent = (disputeGeneratorActions.PrimaryAction - 1) * IncrementalPrecautionCost;
-            bool injuryOccurs = disputeGeneratorActions.PostPrimaryChanceAction == 2;
+            bool injuryOccurs = disputeGeneratorActions.PostPrimaryChanceAction == 1;
             if (injuryOccurs)
                 return new double[] { 0 - CostOfInjury, 0 - precautionSpent };
             else
