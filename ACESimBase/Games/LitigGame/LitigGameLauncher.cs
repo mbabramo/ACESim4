@@ -232,7 +232,7 @@ namespace ACESim
                     }
                     if (noncriticalTransformation != null && !replaced)
                         transformLists.Add(noncriticalTransformation);
-                    List<LitigGameOptions> noncriticalOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.EndogenousArticleBase().WithName("FSA"), transformLists);
+                    List<LitigGameOptions> noncriticalOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.FeeShiftingBase /* DEBUG */().WithName("ED"), transformLists);
                     List<(string, object)> defaultNonCriticalValues = DefaultNonCriticalValues();
                     foreach (var optionSet in noncriticalOptions)
                     {

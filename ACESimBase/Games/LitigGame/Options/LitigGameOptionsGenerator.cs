@@ -13,15 +13,17 @@ namespace ACESim
         public enum LitigGameOptionSetChoices
         {
             EndogenousArticleBase,
+            FeeShiftingBase,
             AppropriationGame,
         }
 
-        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.AppropriationGame;
+        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.FeeShiftingBase; // DEBUG
 
         public static LitigGameOptions GetLitigGameOptions() => LitigGameChoice switch
         {
             LitigGameOptionSetChoices.EndogenousArticleBase => EndogenousArticleBase(),
             LitigGameOptionSetChoices.AppropriationGame => AppropriationGame(),
+            LitigGameOptionSetChoices.FeeShiftingBase => FeeShiftingBase(),
             _ => throw new Exception()
         };
 
@@ -100,6 +102,15 @@ namespace ACESim
                 StdevNoiseToProduceLiabilityStrength = 0.35,
             };
 
+            return options;
+        }
+
+        public static LitigGameOptions FeeShiftingBase()
+        {
+            var options = EndogenousArticleBase();
+            options.CollapseAlternativeEndings = true;
+            options.CollapseChanceDecisions = true;
+            options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 10;
             return options;
         }
 
