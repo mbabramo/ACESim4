@@ -3666,7 +3666,7 @@ namespace ACESim
 
         #region General tree walk
 
-        public static bool TraceTreeWalk = true; // DEBUG
+        public static bool TraceTreeWalk = false;
 
         public Back TreeWalk_Tree<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, Forward forward = default)
         {
@@ -3726,8 +3726,6 @@ namespace ACESim
             return processor.ChanceNode_Backward(chanceNode, fromSuccessors, distributorChanceInputs);
         }
 
-        static int DEBUGCounter = 0;
-
         public Back TreeWalk_DecisionNode<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, InformationSetNode informationSetNode, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, Forward forward, int distributorChanceInputs, in HistoryPoint historyPoint)
         {
             Forward nextForward = processor.InformationSet_Forward(informationSetNode, predecessor, predecessorAction, predecessorDistributorChanceInputs, forward);
@@ -3741,13 +3739,7 @@ namespace ACESim
             for (byte action = 1; action <= numPossibleActionsToExplore; action++)
             {
                 if (TraceTreeWalk)
-                    TabbedText.WriteLine($"{informationSetNode.Decision.Name} ({informationSetNode.InformationSetNodeNumber}): {action} (best response value = {informationSetNode.BestResponseOptions?[action - 1]}{(informationSetNode.LastBestResponseValue == action ? "*" : "")}) DEBUG {DEBUGCounter}");
-
-                if (DEBUGCounter is 16 or 476)
-                {
-                    var DEBUGA = 0;
-                }
-                DEBUGCounter++;
+                    TabbedText.WriteLine($"{informationSetNode.Decision.Name} ({informationSetNode.InformationSetNodeNumber}): {action} (best response value = {informationSetNode.BestResponseOptions?[action - 1]}{(informationSetNode.LastBestResponseValue == action ? "*" : "")})");
 
                 if (informationSetNode.Decision.DistributorChanceInputDecision)
                     throw new NotSupportedException(); // currently, we are only passing forward an array of distributor chance inputs from chance decisions, but we could adapt this to player decisions.

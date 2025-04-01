@@ -236,7 +236,7 @@ namespace ACESim
                                     throw new Exception();
                                 playedOut.CalculateGameOutcome();
                                 LitigGameProgress.AlternativeEndings.Add((playedOut, weight));
-                                TabbedText.WriteLine($"Collapsed ending {weight} {playedOut.PFinalWealth}, {playedOut.DFinalWealth}");
+                                // TabbedText.WriteLine($"Collapsed ending {weight} {playedOut.PFinalWealth}, {playedOut.DFinalWealth}");
                             }
                         }
                     }

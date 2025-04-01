@@ -149,7 +149,6 @@ namespace ACESim
                     gameStateFromGameHistory = navigation.Strategies[nextPlayer].GetInformationSetTreeValue(informationSetsSpan); // resolution player -- we don't use the decision index
                 if (gameStateFromGameHistory == null && navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly)
                     return null; // we haven't initialized, so we need to do so and then try again.
-                // DEBUG check whether the resolution player is included on the initial liability signals
             }
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {

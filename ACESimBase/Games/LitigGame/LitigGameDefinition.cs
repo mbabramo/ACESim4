@@ -232,7 +232,7 @@ namespace ACESim
                 }
                 if (primaryActions > 0)
                 {
-                    decisions.Add(new Decision(disputeGenerator.PrimaryNameAndAbbreviation.name, disputeGenerator.PrimaryNameAndAbbreviation.abbreviation, true, (byte)LitigGamePlayers.Defendant, primaryPlayersToInform, primaryActions, (byte)LitigGameDecisions.PrimaryAction) { StoreActionInGameCacheItem = GameHistoryCacheIndex_PrimaryAction, IsReversible = true, CanTerminateGame = primaryActionCanTerminate, Unroll_Parallelize = disputeGenerator.GetPrimaryUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetPrimaryUnrollSettings().unrollIdentical, DistributedChanceDecision = false, SymmetryMap = (disputeGenerator.GetPrimaryUnrollSettings().symmetryMapInput, SymmetryMapOutput.CantBeSymmetric) });
+                    decisions.Add(new Decision(disputeGenerator.PrimaryNameAndAbbreviation.name, disputeGenerator.PrimaryNameAndAbbreviation.abbreviation, true, (byte)LitigGamePlayers.PrePrimaryChance, primaryPlayersToInform, primaryActions, (byte)LitigGameDecisions.PrimaryAction) { StoreActionInGameCacheItem = GameHistoryCacheIndex_PrimaryAction, IsReversible = true, CanTerminateGame = primaryActionCanTerminate, Unroll_Parallelize = disputeGenerator.GetPrimaryUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetPrimaryUnrollSettings().unrollIdentical, DistributedChanceDecision = true, SymmetryMap = (disputeGenerator.GetPrimaryUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision) });
                 }
                 if (postPrimaryChanceActions > 0)
                 {
@@ -253,7 +253,7 @@ namespace ACESim
             // Plaintiff and defendant signals. If a player has perfect information, then no signal is needed.
             if (Options.PLiabilityNoiseStdev != 0)
                 decisions.Add(new Decision("P Liability Signal", "PLS", true, (byte)LitigGamePlayers.PLiabilitySignalChance,
-                    Options.CollapseChanceDecisions ? new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte) LitigGamePlayers.DLiabilitySignalChance, (byte) LitigGamePlayers.CourtLiabilityChance } : new byte[] {(byte) LitigGamePlayers.Plaintiff},
+                    Options.CollapseChanceDecisions ? new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte) LitigGamePlayers.DLiabilitySignalChance, (byte) LitigGamePlayers.CourtLiabilityChance, (byte) LitigGamePlayers.Resolution /* must be included if we're collapsing end of game */ } : new byte[] {(byte) LitigGamePlayers.Plaintiff},
                     Options.NumLiabilitySignals, (byte)LitigGameDecisions.PLiabilitySignal, unevenChanceActions: true)
                 {
                     IsReversible = true,
@@ -265,7 +265,7 @@ namespace ACESim
                 });
             if (Options.DLiabilityNoiseStdev != 0)
                 decisions.Add(new Decision("D Liability Signal", "DLS", true, (byte)LitigGamePlayers.DLiabilitySignalChance,
-                    Options.CollapseChanceDecisions ? new byte[] { (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.CourtLiabilityChance } : new byte[] { (byte)LitigGamePlayers.Defendant },
+                    Options.CollapseChanceDecisions ? new byte[] { (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution } : new byte[] { (byte)LitigGamePlayers.Defendant },
                     Options.NumLiabilitySignals, (byte)LitigGameDecisions.DLiabilitySignal, unevenChanceActions: true)
                 {
                     IsReversible = true,
