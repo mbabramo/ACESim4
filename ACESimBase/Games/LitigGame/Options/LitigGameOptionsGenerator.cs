@@ -18,7 +18,7 @@ namespace ACESim
             SmallGame,
         }
 
-        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.FeeShiftingBase; // DEBUG
+        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.AppropriationGame; // DEBUG
 
         public static LitigGameOptions GetLitigGameOptions() => LitigGameChoice switch
         {
@@ -110,7 +110,7 @@ namespace ACESim
         public static LitigGameOptions FeeShiftingBase()
         {
             var options = EndogenousArticleBase();
-            options.CollapseAlternativeEndings = true;
+            options.CollapseAlternativeEndings = true; // can't do this where we're really using endogenous disputes
             options.CollapseChanceDecisions = true;
             options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 10;
             return options;
