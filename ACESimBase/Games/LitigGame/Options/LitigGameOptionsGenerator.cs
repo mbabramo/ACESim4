@@ -129,7 +129,9 @@ namespace ACESim
         public static LitigGameOptions AppropriationGame()
         {
             var options = EndogenousArticleBase();
-            
+
+            options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 5; // DEBUG
+
             options.LitigGameDisputeGenerator = new LitigGameAppropriationDisputeGenerator();
             return options;
         }

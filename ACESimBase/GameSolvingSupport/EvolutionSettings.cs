@@ -14,7 +14,7 @@ namespace ACESim
     public class EvolutionSettings
     {
         public bool DistributeChanceDecisions = false; // NOTE: Use CollapseChanceDecisions instead; it's much simpler and seems to produce slightly better performance.
-        public bool UnrollAlgorithm = true; 
+        public bool UnrollAlgorithm = false;  // DEBUG
         public bool SaveToAzureBlob = false;
         // Note: Many of the below are overridden by launcher.
         public int TotalAvgStrategySamplingCFRIterations = 100000;
@@ -109,7 +109,7 @@ namespace ACESim
 
         public bool GenerateReportsByPlaying = true;
         public int NumRandomIterationsForSummaryTable = 1_000;
-        public bool PrintGameTree = false;
+        public bool PrintGameTree = false; 
         public bool PrintedGameTreeIncludesInformationSetData = false;
         public bool PrintInformationSets = false;
         public bool AnalyzeInformationSets = false; 

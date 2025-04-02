@@ -75,6 +75,10 @@ namespace ACESimBase.Util
                     {
                         Console.Error.WriteLine("{0}: {1}", diagnostic.Id, diagnostic.GetMessage());
                     }
+
+                    string code = tree.ToString();
+                    TextCopy.ClipboardService.SetText(code);
+
                     throw new Exception("Failures occurred compiling code");
                 }
                 else
