@@ -46,7 +46,7 @@ namespace ACESim
             ProbabilityLiabilityStrengthForNoiseLevel_TrulyNotLiable = new double[NumSystemicRandomnessLevels][];
             for (byte n = 1; n <= NumSystemicRandomnessLevels; n++)
             {
-                double multiplier = (double) n / (double) NumSystemicRandomnessLevels;
+                double multiplier = (double) (n - 0.5) / (double) NumSystemicRandomnessLevels;
                 double sequenceSum = 0;
                 for (byte n2 = 1; n2 <= myGameDefinition.Options.NumLiabilityStrengthPoints; n2++)
                     sequenceSum += Math.Pow(multiplier, (n2 - 1));

@@ -130,7 +130,8 @@ namespace ACESim
         {
             var options = EndogenousArticleBase();
 
-            options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 5; // DEBUG
+            options.AllowAbandonAndDefaults = false; // DEBUG
+            options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 2; // DEBUG
 
             options.LitigGameDisputeGenerator = new LitigGameAppropriationDisputeGenerator();
             return options;
