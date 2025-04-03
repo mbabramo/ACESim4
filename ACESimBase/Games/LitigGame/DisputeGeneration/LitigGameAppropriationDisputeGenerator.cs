@@ -2,6 +2,7 @@ using ACESim.Util;
 using ACESimBase.GameSolvingSupport;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -19,7 +20,7 @@ namespace ACESim
         // Primary action: Appropriate (yes = 1, no = 2).
         // Post primary action: None.
 
-        public byte NumSystemicRandomnessLevels = 2; // DEBUG -- only working at >= 5
+        public byte NumSystemicRandomnessLevels = 2; // DEBUG -- only working at >= num offers etc -- maybe because this is less than number of offers? something is wrong with the setup
         public double BenefitToDefendantOfAppropriation = 0.1;
         public double CostToPlaintiffOfAppropriation = 0.25;
         public double SocialWelfareMultiplier = 1.0;
@@ -47,11 +48,11 @@ namespace ACESim
             {
                 double multiplier = (double) n / (double) NumSystemicRandomnessLevels;
                 double sequenceSum = 0;
-                for (byte n2 = 1; n2 <= NumSystemicRandomnessLevels; n2++)
+                for (byte n2 = 1; n2 <= myGameDefinition.Options.NumLiabilityStrengthPoints; n2++)
                     sequenceSum += Math.Pow(multiplier, (n2 - 1));
                 double startingValue = 1.0/sequenceSum;
 
-                ProbabilityLiabilityStrengthForNoiseLevel_TrulyNotLiable[n - 1] = Enumerable.Range(0, NumSystemicRandomnessLevels).Select(y => startingValue * Math.Pow(multiplier, y)).ToArray();
+                ProbabilityLiabilityStrengthForNoiseLevel_TrulyNotLiable[n - 1] = Enumerable.Range(0, myGameDefinition.Options.NumLiabilityStrengthPoints).Select(y => startingValue * Math.Pow(multiplier, y)).ToArray();
                 ProbabilityLiabilityStrengthForNoiseLevel_TrulyLiable[n - 1] = ProbabilityLiabilityStrengthForNoiseLevel_TrulyNotLiable[n - 1].Reverse().ToArray();
             }
         }
