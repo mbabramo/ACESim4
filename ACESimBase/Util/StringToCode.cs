@@ -60,7 +60,7 @@ namespace ACESimBase.Util
                 assemblyName,
                 syntaxTrees: new[] { tree },
                 references: references.ToArray(),
-                options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithAllowUnsafe(false).WithOverflowChecks(false));
+                options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithAllowUnsafe(false).WithOverflowChecks(false).WithOptimizationLevel(OptimizationLevel.Release));
             using (var ms = new MemoryStream())
             {
                 EmitResult result = compilation.Emit(ms);

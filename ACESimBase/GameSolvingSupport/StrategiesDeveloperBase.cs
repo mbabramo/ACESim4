@@ -39,7 +39,7 @@ namespace ACESim
         public bool AllowSkipEveryPermutationInitialization { get; set; } = true;
         public bool SkipEveryPermutationInitialization =>
             AllowSkipEveryPermutationInitialization
-            && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder && (EvolutionSettings.Algorithm != GameApproximationAlgorithm.SequenceForm || EvolutionSettings.UseAcceleratedBestResponse);
+            && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder && (EvolutionSettings.Algorithm is not (GameApproximationAlgorithm.SequenceForm or GameApproximationAlgorithm.RegretMatching) || EvolutionSettings.UseAcceleratedBestResponse);
 
         bool TemporarilyDisableFullReports;
 
@@ -1612,8 +1612,27 @@ namespace ACESim
             //NumInitializedGamePaths = GamePlayer.PlayAllPaths(ProcessInitializedGameProgress);
             // TODO: We could probably make things a lot faster if we used our tree algorithm, but added support for reversing a step in games. That is, it would play the actual game, but would reverse as necessary. 
             stopwatch.Stop();
-            string informationSetsString = StoreGameStateNodesInLists ? $" Total information sets: {InformationSets.Count()} chance nodes: {ChanceNodes.Count()} final nodes: {FinalUtilitiesNodes.Count()}" : "";
+            string informationSetsString = StoreGameStateNodesInLists ? GetTreeInformationString() : "";
             TabbedText.WriteLine($"... {informationSetsString} Initialization milliseconds {stopwatch.ElapsedMilliseconds}");
+        }
+        public (int Chance, int Decision, int Final) CountGameTreeNodes()
+        {
+            var processor = new TreeNodeCountingProcessor();
+
+            // The “forward” type is object here, so we can just pass null initially
+            TreeNodeCountingProcessor.NodeCounts totals
+                = TreeWalk_Tree<object, TreeNodeCountingProcessor.NodeCounts>(processor, null);
+
+            // Decompose the struct into a convenient tuple:
+            return (totals.ChanceNodes,
+                    totals.InfoSetNodes,
+                    totals.FinalNodes);
+        }
+
+        public string GetTreeInformationString()
+        {
+            var result = CountGameTreeNodes();
+            return $"Chance nodes {result.Chance} decision nodes {result.Decision} ({InformationSets.Count()} information sets) final nodes {result.Final} total nodes {result.Chance + result.Decision + result.Final}";
         }
 
         public void CalculateMinMax()
@@ -2576,7 +2595,8 @@ namespace ACESim
             AcceleratedBestResponsePrepResult = TreeWalk_Tree(prepWalk, new NodeActionsHistory());
             InformationSetsByDecisionIndex = InformationSets.GroupBy(x => x.DecisionIndex).OrderBy(x => x.Key).Select(x => x.ToList()).ToList();
             s.Stop();
-            TabbedText.WriteLine($"... {s.ElapsedMilliseconds} milliseconds. Total information sets: {InformationSets.Count()}");
+            TabbedText.WriteLine($"... {s.ElapsedMilliseconds} milliseconds. {GetTreeInformationString()}");
+
         }
 
         private (double bestResponseResult, double utilityResult, FloatSet customResult)[] ExecuteAcceleratedBestResponse(bool determineWhetherReachable)
