@@ -3733,7 +3733,7 @@ namespace ACESim
             for (byte action = 1; action <= numPossibleActionsToExplore; action++)
             {
                 if (TraceTreeWalk)
-                    TabbedText.WriteLine($"{chanceNode.Decision.Name} (C{chanceNode.ChanceNodeNumber}): {action} ({chanceNode.GetActionProbabilityString(distributorChanceInputs)})");
+                    TabbedText.WriteLine($"{chanceNode.Decision.Name} (C info set {chanceNode.ChanceNodeNumber}) (decision index {chanceNode.DecisionIndex}): {action} ({chanceNode.GetActionProbabilityString(distributorChanceInputs)})");
                 bool isDistributorChanceInputDecision = EvolutionSettings.DistributeChanceDecisions && chanceNode.Decision.DistributorChanceInputDecision;
                 int distributorChanceInputsNext = isDistributorChanceInputDecision ? distributorChanceInputs + action * chanceNode.Decision.DistributorChanceInputDecisionMultiplier : distributorChanceInputs;
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
@@ -3759,7 +3759,7 @@ namespace ACESim
             for (byte action = 1; action <= numPossibleActionsToExplore; action++)
             {
                 if (TraceTreeWalk)
-                    TabbedText.WriteLine($"{informationSetNode.Decision.Name} ({informationSetNode.InformationSetNodeNumber}): {action} (best response value = {informationSetNode.BestResponseOptions?[action - 1]}{(informationSetNode.LastBestResponseValue == action ? "*" : "")})");
+                    TabbedText.WriteLine($"{informationSetNode.Decision.Name} (player info set {informationSetNode.InformationSetNodeNumber}): {action} (best response value = {informationSetNode.BestResponseOptions?[action - 1]}{(informationSetNode.LastBestResponseValue == action ? "*" : "")})");
 
                 if (informationSetNode.Decision.DistributorChanceInputDecision)
                     throw new NotSupportedException(); // currently, we are only passing forward an array of distributor chance inputs from chance decisions, but we could adapt this to player decisions.

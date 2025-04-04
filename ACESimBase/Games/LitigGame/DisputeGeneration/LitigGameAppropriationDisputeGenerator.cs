@@ -20,7 +20,7 @@ namespace ACESim
         // Primary action: Appropriate (yes = 1, no = 2).
         // Post primary action: None.
 
-        public byte NumSystemicRandomnessLevels = 2; // DEBUG -- only working at >= num offers etc -- maybe because this is less than number of offers? something is wrong with the setup
+        public byte NumSystemicRandomnessLevels = 1;
         public double BenefitToDefendantOfAppropriation = 0.1;
         public double CostToPlaintiffOfAppropriation = 0.25;
         public double SocialWelfareMultiplier = 1.0;

@@ -211,7 +211,7 @@ namespace ACESim
 
         public override string ToString()
         {
-            return $"Information set {(AltNodeNumber ?? GetInformationSetNodeNumber())} {Decision.Name} ({Decision.Abbreviation}): DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetCurrentProbabilitiesAsString()} {GetBestResponseStringIfAvailable()}Average {GetAverageStrategiesAsString()} Regrets {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()} InformationSetContents {String.Join(";", LabeledInformationSet)}";
+            return $"Information set {(AltNodeNumber ?? GetInformationSetNodeNumber())} {Decision.Name} ({Decision.Abbreviation}): DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetCurrentProbabilitiesAsString()} {GetBestResponseStringIfAvailable()}Average {GetAverageStrategiesAsString()} Regrets {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()} InformationSetContents {String.Join(";", LabeledInformationSet.Select(x => $"(index {x.decisionIndex}, info {x.information})"))}";
         }
 
         public string GetBestResponseStringIfAvailable()
@@ -307,6 +307,9 @@ namespace ACESim
 
         #region Best response
 
+        // At the top of this region, declare:
+        private bool LogBestResponseCalculation = true;
+
         public void DetermineBestResponseAction()
         {
             double bestRatio = 0;
@@ -317,9 +320,16 @@ namespace ACESim
             {
                 double denominator = NodeInformation[bestResponseDenominatorDimension, action - 1];
                 if (denominator == 0)
+                {
+                    if (LogBestResponseCalculation)
+                        TabbedText.WriteLine($"InformationSet {InformationSetNodeNumber}, Decision {Decision.Name} | Action {action}: Denom is 0; cannot compute ratio.");
                     return; // no best response data available
-                double ratio = NodeInformation[bestResponseNumeratorDimension, action - 1] / denominator;
+                }
+                double numerator = NodeInformation[bestResponseNumeratorDimension, action - 1];
+                double ratio = numerator / denominator;
                 BestResponseOptions[action - 1] = ratio;
+                if (LogBestResponseCalculation)
+                    TabbedText.WriteLine($"InformationSet {InformationSetNodeNumber}, Decision {Decision.Name} | Action {action}: Numerator = {numerator:F10}, Denom = {denominator:F10}, Ratio = {ratio:F10}");
                 if (action == 1 || ratio > bestRatio)
                 {
                     best = action;
@@ -327,6 +337,8 @@ namespace ACESim
                 }
             }
             BestResponseAction = (byte)best;
+            if (LogBestResponseCalculation)
+                TabbedText.WriteLine($"InformationSet {InformationSetNodeNumber}, Decision {Decision.Name} | Chosen BestResponseAction = {BestResponseAction} with ratio = {bestRatio:F10}");
             BestResponseDeterminedFromIncrements = true;
         }
 
@@ -334,10 +346,7 @@ namespace ACESim
         {
             int bestResponse = BestResponseAction;
             for (int a = 1; a <= NumPossibleActions; a++)
-                if (a == bestResponse)
-                    probabilities[a - 1] = 1.0;
-                else
-                    probabilities[a - 1] = 0;
+                probabilities[a - 1] = (a == bestResponse ? 1.0 : 0);
         }
 
         public double[] GetBestResponseProbabilities()
@@ -345,17 +354,22 @@ namespace ACESim
             double[] probabilities = new double[NumPossibleActions];
             int bestResponse = BestResponseAction;
             for (int a = 1; a <= NumPossibleActions; a++)
-                if (a == bestResponse)
-                    probabilities[a - 1] = 1.0;
-                else
-                    probabilities[a - 1] = 0;
+                probabilities[a - 1] = (a == bestResponse ? 1.0 : 0);
             return probabilities;
         }
 
         public void IncrementBestResponse(int action, double piInverse, double expectedValue)
         {
+            if (LogBestResponseCalculation)
+                TabbedText.WriteLine($"InformationSet {InformationSetNodeNumber}, Decision {Decision.Name} | Action {action}: Adding piInverse {piInverse:F10}, expectedValue {expectedValue:F10}.");
+            double oldNumerator = NodeInformation[bestResponseNumeratorDimension, action - 1];
+            double oldDenom = NodeInformation[bestResponseDenominatorDimension, action - 1];
             NodeInformation[bestResponseNumeratorDimension, action - 1] += piInverse * expectedValue;
             NodeInformation[bestResponseDenominatorDimension, action - 1] += piInverse;
+            double newNumerator = NodeInformation[bestResponseNumeratorDimension, action - 1];
+            double newDenom = NodeInformation[bestResponseDenominatorDimension, action - 1];
+            if (LogBestResponseCalculation)
+                TabbedText.WriteLine($"InformationSet {InformationSetNodeNumber}, Decision {Decision.Name} | Action {action}: Numerator: {oldNumerator:F10} -> {newNumerator:F10}, Denom: {oldDenom:F10} -> {newDenom:F10}");
             BestResponseDeterminedFromIncrements = false;
         }
 
@@ -370,14 +384,13 @@ namespace ACESim
 
         #region AcceleratedBestResponse
 
-        // information for accelerated best response
         public double SelfReachProbability, OpponentsReachProbability;
         public InformationSetNode PredecessorInformationSetForPlayer;
         public byte ActionTakenAtPredecessorSet;
         public bool BestResponseMayReachHere;
         public bool LastBestResponseMayReachHere;
-        public ByteList LastActionsList => PathsFromPredecessor.Last().ActionsList; // so that we can find corresponding path in predecessor
-        
+        public ByteList LastActionsList => PathsFromPredecessor.Last().ActionsList;
+
         public List<PathFromPredecessorInfo> PathsFromPredecessor;
         /// <summary>
         /// A list for each action of the list of histories (one for each path from predecessor) from this node to possible successors given that action.
@@ -386,13 +399,9 @@ namespace ACESim
         public (bool consideredForPruning, bool prunable)[] PrunableActions;
         public double LastBestResponseValue
         {
-            get
-            {
-                var result = BestResponseOptions?[BestResponseAction - 1] ?? 0;
-                return result;
-            }
+            get { return BestResponseOptions?[BestResponseAction - 1] ?? 0; }
         }
-        public double[] BestResponseOptions; // one per action for this player
+        public double[] BestResponseOptions;
         public double[] AverageStrategyResultsForPathFromPredecessor;
         public FloatSet[] CustomResultForPathFromPredecessor;
         public int NumVisitsFromPredecessorToGetAverageStrategy;
@@ -403,15 +412,13 @@ namespace ACESim
             if (PredecessorInformationSetForPlayer == null)
                 SelfReachProbability = 1.0;
             else
-                SelfReachProbability = PredecessorInformationSetForPlayer.SelfReachProbability * PredecessorInformationSetForPlayer.GetAverageOrCurrentStrategy(ActionTakenAtPredecessorSet, !useCurrentStrategyForBestResponse);
-
+                SelfReachProbability = PredecessorInformationSetForPlayer.SelfReachProbability *
+                                       PredecessorInformationSetForPlayer.GetAverageOrCurrentStrategy(ActionTakenAtPredecessorSet, !useCurrentStrategyForBestResponse);
             OpponentsReachProbability = 0;
-
             if (PrunableActions == null)
                 PrunableActions = new (bool consideredForPruning, bool prunable)[NumPossibleActions];
             for (int i = 0; i < NumPossibleActions; i++)
-                PrunableActions[i] = (false, true); // not considered, but assume prunable if considered until shown otherwise. This may then be changed in a later information set by the code immediately below.
-
+                PrunableActions[i] = (false, true);
             double sumProbabilitiesSinceOpponentInformationSets = 0;
             foreach (var pathFromPredecessor in PathsFromPredecessor)
             {
@@ -419,17 +426,19 @@ namespace ACESim
                 double pathProbabilityFromPredecessor;
                 if (determinePrunability)
                 {
-                    (double pathProbabilityFromPredecessor2, double probabilitySinceOpponentInformationSet, InformationSetNode mostRecentOpponentInformationSet, byte actionAtOpponentInformationSet) = pathFromPredecessor.Path.GetProbabilityOfPathPlus();
-                    pathProbabilityFromPredecessor = pathProbabilityFromPredecessor2;
-                    pathFromPredecessor.MostRecentOpponentInformationSet = mostRecentOpponentInformationSet;
-                    pathFromPredecessor.ActionAtOpponentInformationSet = actionAtOpponentInformationSet;
-                    pathFromPredecessor.ProbabilityFromMostRecentOpponent = probabilitySinceOpponentInformationSet;
-                    sumProbabilitiesSinceOpponentInformationSets += probabilitySinceOpponentInformationSet;
+                    (double p, double probSinceOpponent, InformationSetNode mostRecentOpponent, byte actionAtOpponent) =
+                        pathFromPredecessor.Path.GetProbabilityOfPathPlus();
+                    pathProbabilityFromPredecessor = p;
+                    pathFromPredecessor.MostRecentOpponentInformationSet = mostRecentOpponent;
+                    pathFromPredecessor.ActionAtOpponentInformationSet = actionAtOpponent;
+                    pathFromPredecessor.ProbabilityFromMostRecentOpponent = probSinceOpponent;
+                    sumProbabilitiesSinceOpponentInformationSets += probSinceOpponent;
                 }
                 else
                     pathProbabilityFromPredecessor = pathFromPredecessor.Path.GetProbabilityOfPath(useCurrentStrategyForBestResponse);
                 double cumulativePathProbability = predecessorOpponentsReachProbability * pathProbabilityFromPredecessor;
                 pathFromPredecessor.Probability = cumulativePathProbability;
+                // No aggregated logging here.
                 OpponentsReachProbability += cumulativePathProbability;
             }
             if (determinePrunability)
@@ -441,10 +450,7 @@ namespace ACESim
                     {
                         pathFromPredecessor.MostRecentOpponentInformationSet.PrunableActions[pathFromPredecessor.ActionAtOpponentInformationSet - 1].consideredForPruning = true;
                         if (pathFromPredecessor.ProbabilityFromMostRecentOpponent / sumProbabilitiesSinceOpponentInformationSets > prunabilityThreshold)
-                        {
                             pathFromPredecessor.MostRecentOpponentInformationSet.PrunableActions[pathFromPredecessor.ActionAtOpponentInformationSet - 1].prunable = false;
-
-                        }
                     }
                 }
             }
@@ -454,47 +460,52 @@ namespace ACESim
         {
             if (BestResponseOptions == null)
                 BestResponseOptions = new double[Decision.NumPossibleActions];
-            // Note: Each time the information set was visited in the initial tree walk set up, the algorithm will have recorded one or more paths to one or more successors, combined into a single NodeActionsMultipleHistories that reflects their relative probability weight. Thus, we have one NodeActionsMultipleHistories for each possible prior history. Each path includes opponent and chance actions, and each culminates in a successor -- either a final utilities for the player or a later information set for the player that has already been calculated. To calculate the value of an action, we need to calculate the averages of the NodeActionsMultipleHistories weighted by the probability that opponents play to here. We need calculate only this player's best response value, as the best response values for other players will be calculated on their own information sets.
-
             int numPathsFromPredecessor = PathsFromPredecessor.Count();
             if (AverageStrategyResultsForPathFromPredecessor == null)
                 AverageStrategyResultsForPathFromPredecessor = new double[numPathsFromPredecessor];
-            else for (int pathToHere = 0; pathToHere < numPathsFromPredecessor; pathToHere++)
-                AverageStrategyResultsForPathFromPredecessor[pathToHere] = 0;
+            else
+                for (int i = 0; i < numPathsFromPredecessor; i++)
+                    AverageStrategyResultsForPathFromPredecessor[i] = 0;
             if (CustomResultForPathFromPredecessor == null)
                 CustomResultForPathFromPredecessor = new FloatSet[numPathsFromPredecessor];
-            else for (int pathToHere = 0; pathToHere < numPathsFromPredecessor; pathToHere++)
-                CustomResultForPathFromPredecessor[pathToHere] = new FloatSet();
+            else
+                for (int i = 0; i < numPathsFromPredecessor; i++)
+                    CustomResultForPathFromPredecessor[i] = new FloatSet();
             for (byte action = 1; action <= Decision.NumPossibleActions; action++)
             {
                 var pathsToSuccessorsForAction = PathsToSuccessors[action - 1];
                 if (pathsToSuccessorsForAction.Count() != numPathsFromPredecessor)
                     throw new Exception();
                 double averageStrategyProbability = GetAverageOrCurrentStrategy(action, !useCurrentStrategyForBestResponse);
-                double accumulatedBestResponseNumerator = 0, accumulatedBestResponseDenominatorDenominator = 0;
-                for (int pathToHere = 0; pathToHere < numPathsFromPredecessor; pathToHere++)
+                // For each path, log an input update analogous to IncrementBestResponse.
+                double accumulatedBestResponseNumerator = 0, accumulatedBestResponseDenom = 0;
+                for (int i = 0; i < numPathsFromPredecessor; i++)
                 {
-                    (double unweightedSuccessorBestResponseValue, double averageStrategyValue, FloatSet customResult) = pathsToSuccessorsForAction[pathToHere].GetProbabilityAdjustedValueOfPaths(PlayerIndex, useCurrentStrategyForBestResponse);
-                    AverageStrategyResultsForPathFromPredecessor[pathToHere] += averageStrategyValue * averageStrategyProbability; // for average strategy, we are weighting the path to successors for each path from predecessors by the average strategy probability.
-                    CustomResultForPathFromPredecessor[pathToHere] = CustomResultForPathFromPredecessor[pathToHere].Plus(customResult.Times((float) averageStrategyProbability));
-                    double opponentsReachProbabilityForPath = PathsFromPredecessor[pathToHere].Probability;
-                    double weighted = unweightedSuccessorBestResponseValue * opponentsReachProbabilityForPath;
+                    (double unweightedValue, double avgStratValue, FloatSet customResult) =
+                        pathsToSuccessorsForAction[i].GetProbabilityAdjustedValueOfPaths(PlayerIndex, useCurrentStrategyForBestResponse);
+                    double oppReachProb = PathsFromPredecessor[i].Probability;
+                    double weighted = unweightedValue * oppReachProb;
+                    if (LogBestResponseCalculation)
+                        TabbedText.WriteLine($"InformationSet {InformationSetNodeNumber}, Decision {Decision.Name} | Action {action}, Path {i}: Adding oppReachProb {oppReachProb:F10}, unweightedValue {unweightedValue:F10} (weighted = {weighted:F10})");
                     accumulatedBestResponseNumerator += weighted;
-                    accumulatedBestResponseDenominatorDenominator += opponentsReachProbabilityForPath;
+                    accumulatedBestResponseDenom += oppReachProb;
+                    AverageStrategyResultsForPathFromPredecessor[i] += avgStratValue * averageStrategyProbability;
+                    CustomResultForPathFromPredecessor[i] = CustomResultForPathFromPredecessor[i].Plus(customResult.Times((float)averageStrategyProbability));
                 }
-                BestResponseOptions[action - 1] = accumulatedBestResponseDenominatorDenominator == 0 ? 0 : accumulatedBestResponseNumerator / accumulatedBestResponseDenominatorDenominator;
-
-                if (action == 1 || BestResponseOptions[action - 1] > LastBestResponseValue)
-                {
+                double ratio = accumulatedBestResponseDenom == 0 ? 0 : accumulatedBestResponseNumerator / accumulatedBestResponseDenom;
+                BestResponseOptions[action - 1] = ratio;
+                if (LogBestResponseCalculation)
+                    TabbedText.WriteLine($"InformationSet {InformationSetNodeNumber}, Decision {Decision.Name} | Action {action}: Numerator = {accumulatedBestResponseNumerator:F10}, Denom = {accumulatedBestResponseDenom:F10}, Ratio = {ratio:F10}");
+                if (action == 1 || BestResponseOptions[action - 1] > BestResponseOptions[BestResponseAction - 1])
                     BestResponseAction = action;
-                }
             }
-            NumVisitsFromPredecessorToGetAverageStrategy = 0; // reset this so that we know which average strategy value to return
+            if (LogBestResponseCalculation)
+                TabbedText.WriteLine($"InformationSet {InformationSetNodeNumber}, Decision {Decision.Name} | Chosen BestResponseAction = {BestResponseAction} with ratio = {BestResponseOptions[BestResponseAction - 1]:F10}");
+            NumVisitsFromPredecessorToGetAverageStrategy = 0;
         }
 
         public void AcceleratedBestResponse_DetermineWhetherReachable()
         {
-            // This assumes that we have calculated best responses and already run this on prior nodes.
             if (PredecessorInformationSetForPlayer == null)
                 BestResponseMayReachHere = true;
             else
@@ -508,10 +519,10 @@ namespace ACESim
                 LastBestResponseMayReachHere = BestResponseMayReachHere;
                 return;
             }
-            const double InitialWeightMultiplier = 1.0; // greater than 1 means that we're discounting
+            const double InitialWeightMultiplier = 1.0;
             const double Curvature = 10.0;
             double weightMultiplier = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(InitialWeightMultiplier, 1.0, Curvature, (double)iteration / (double)maxIterations);
-            double weightOnBestResponse = weightMultiplier / (double)iteration;
+            double weightOnBestResponse = weightMultiplier / iteration;
             const double maxWeightOnBestResponse = 0.5;
             if (weightOnBestResponse > maxWeightOnBestResponse || !LastBestResponseMayReachHere)
                 weightOnBestResponse = maxWeightOnBestResponse;
@@ -526,7 +537,6 @@ namespace ACESim
             {
                 double currentAverageStrategyProbability = GetAverageStrategy(action);
                 double bestResponseProbability = (BestResponseAction == action) ? 1.0 : 0.0;
-                // double difference = bestResponseProbability - currentAverageStrategyProbability;
                 double successorValue = (1.0 - weightOnBestResponse) * currentAverageStrategyProbability + weightOnBestResponse * bestResponseProbability;
                 if (double.IsNaN(successorValue))
                     throw new Exception();
@@ -559,6 +569,7 @@ namespace ACESim
 
         public void PerturbAverageStrategy(double minValueForEachAction, bool includeCumulativeStrategy)
         {
+            return; // DEBUG
             double totalPerturbation = NumPossibleActions * minValueForEachAction;
             if (totalPerturbation > 1.0)
             {
@@ -578,6 +589,8 @@ namespace ACESim
         }
 
         #endregion
+
+
 
         #region Regrets
 
