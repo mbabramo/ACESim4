@@ -40,6 +40,7 @@ namespace ACESim
 
         string GetGeneratorName();
 
+        string OptionsString { get; }
         (string name, string abbreviation) PrePrimaryNameAndAbbreviation { get; }
         (string name, string abbreviation) PrimaryNameAndAbbreviation { get; }
         (string name, string abbreviation) PostPrimaryNameAndAbbreviation { get; }

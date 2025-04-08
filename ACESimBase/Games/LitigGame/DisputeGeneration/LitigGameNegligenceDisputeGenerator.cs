@@ -11,7 +11,7 @@ namespace ACESim
     public class LitigGameNegligenceDisputeGenerator : ILitigGameDisputeGenerator
     {
         public string GetGeneratorName() => "Negligence";
-
+        public string OptionsString => $"NumMarginalBenefitSchedules {NumMarginalBenefitSchedules} NumPrecautionLevels {NumPrecautionLevels} CostOfInjury {CostOfInjury} ProbabilityOfInjuryNoPrecaution {ProbabilityOfInjuryNoPrecaution} IncrementalPrecautionCost {IncrementalPrecautionCost} RiskReductionFromFirstPrecautionTaken {RiskReductionFromFirstPrecautionTaken}";
         public (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("Precaution Benefit Curve", "PrecautionBenefit");
         public (string name, string abbreviation) PrimaryNameAndAbbreviation => ("Precaution Level", "Precaution");
         public (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("Injury", "Injury");

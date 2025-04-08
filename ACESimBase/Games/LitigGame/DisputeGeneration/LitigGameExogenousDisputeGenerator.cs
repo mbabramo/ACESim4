@@ -50,7 +50,7 @@ namespace ACESim
 
             SetupInverted(litigGameDefinition);
         }
-
+        public string OptionsString => $"ExogenousProbabilityTrulyLiable {ExogenousProbabilityTrulyLiable} StdevNoiseToProduceLiabilityStrength {StdevNoiseToProduceLiabilityStrength}";
         public (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("PrePrimaryChanceActions", "Pre Primary");
         public (string name, string abbreviation) PrimaryNameAndAbbreviation => ("PrimaryChanceActions", "Primary");
         public (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("Truly Liable", "TruLiab");

@@ -21,15 +21,17 @@ namespace ACESim
         // Post primary action: None.
 
         public byte NumSystemicRandomnessLevels = 5;
-        public double BenefitToDefendantOfAppropriation = 0.1;
-        public double CostToPlaintiffOfAppropriation = 0.25;
+        public double BenefitToDefendantOfAppropriation = 0.40;
+        public double CostToPlaintiffOfAppropriation = 0.50;
         public double SocialWelfareMultiplier = 1.0;
+        public bool CountBenefitToDefendantInSocialWelfare = false;
 
         private double[][] ProbabilityLiabilityStrengthForNoiseLevel_TrulyLiable, ProbabilityLiabilityStrengthForNoiseLevel_TrulyNotLiable;
 
+        public string OptionsString => $"NumSystemicRandomnessLevels {NumSystemicRandomnessLevels} BenefitToDefendant {BenefitToDefendantOfAppropriation} CostToPlaintiff {CostToPlaintiffOfAppropriation} SocialWelfareMultiplier {SocialWelfareMultiplier} CountBenefitToDefendantInSocialWelfare {CountBenefitToDefendantInSocialWelfare}";
 
-        public (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("PrePrimaryChanceActions", "Pre Primary");
-        public (string name, string abbreviation) PrimaryNameAndAbbreviation => ("PrimaryActions", "Primary");
+        public (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("PrePrimaryChanceActions", "SystRand");
+        public (string name, string abbreviation) PrimaryNameAndAbbreviation => ("PrimaryActions", "Approp");
         public (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("PostPrimaryChanceActions", "Post Primary");
 
         public string GetActionString(byte action, byte decisionByteCode)
@@ -90,7 +92,7 @@ namespace ACESim
         {
             if (disputeGeneratorActions.PrimaryAction == 2)
                 return 0;
-            return -CostToPlaintiffOfAppropriation * SocialWelfareMultiplier;
+            return -CostToPlaintiffOfAppropriation * SocialWelfareMultiplier + (CountBenefitToDefendantInSocialWelfare ? BenefitToDefendantOfAppropriation * SocialWelfareMultiplier : 0);
         }
 
         public double[] GetLiabilityStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)

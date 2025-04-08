@@ -14,7 +14,7 @@ namespace ACESim
 
         public string GetGeneratorName() => "EqualQual";
 
-
+        public string OptionsString => $"ProbabilityTrulyLiable_LiabilityStrength75 {ProbabilityTrulyLiable_LiabilityStrength75} ProbabilityTrulyLiable_LiabilityStrength90 {ProbabilityTrulyLiable_LiabilityStrength90} NumPointsToDetermineTrulyLiable {NumPointsToDetermineTrulyLiable}";
         public (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("PrePrimaryChanceActions", "Pre Primary");
         public (string name, string abbreviation) PrimaryNameAndAbbreviation => ("PrimaryChanceActions", "Primary");
         public (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("PostPrimaryChanceActions", "Post Primary");

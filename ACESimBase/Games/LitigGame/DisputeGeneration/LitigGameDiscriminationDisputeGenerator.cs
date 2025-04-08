@@ -11,7 +11,7 @@ namespace ACESim
     {
         public string GetGeneratorName() => "Discrimination";
 
-
+        public string OptionsString => $"ProbabilityGoodEmployee {ProbabilityGoodEmployee} ProbabilityGoodEmployer {ProbabilityGoodEmployer} ProbabilityLowTasteDiscrimination {ProbabilityLowTasteDiscrimination} ProbabilityMediumTasteDiscrimination {ProbabilityMediumTasteDiscrimination} ProbabilityHighTasteDiscrimination {ProbabilityHighTasteDiscrimination} CostToEmployeeOfBeingFired {CostToEmployeeOfBeingFired} SocialCostOfFiringGoodEmployee {SocialCostOfFiringGoodEmployee} CostOfLeavingBadEmployee {CostOfLeavingBadEmployee} PrivateBenefitToBadEmployerFromFiring_LowTaste {PrivateBenefitToBadEmployerFromFiring_LowTaste} PrivateBenefitToBadEmployerFromFiring_MediumTaste {PrivateBenefitToBadEmployerFromFiring_MediumTaste} PrivateBenefitToBadEmployerFromFiring_HighTaste {PrivateBenefitToBadEmployerFromFiring_HighTaste}";
         public (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("Good or Bad Employer and Employee", "PeopleQuality");
         public (string name, string abbreviation) PrimaryNameAndAbbreviation => ("Fire", "Primary");
         public (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("PostPrimaryChanceActions", "Post Primary");
@@ -33,12 +33,12 @@ namespace ACESim
         public double ProbabilityLowTasteDiscrimination = 0.25;
         public double ProbabilityMediumTasteDiscrimination = 0.25;
         public double ProbabilityHighTasteDiscrimination = 0.25;
-        public double CostToEmployeeOfBeingFired = 100_000;
-        public double SocialCostOfFiringGoodEmployee = 100_000; // social harms extend beyond harmed employee
-        public double CostOfLeavingBadEmployee = 100_000;
-        public double PrivateBenefitToBadEmployerFromFiring_LowTaste = 75000;
-        public double PrivateBenefitToBadEmployerFromFiring_MediumTaste = 87500;
-        public double PrivateBenefitToBadEmployerFromFiring_HighTaste = 100000;
+        public double CostToEmployeeOfBeingFired = 1.0;
+        public double SocialCostOfFiringGoodEmployee = 1.0; // social harms extend beyond harmed employee
+        public double CostOfLeavingBadEmployee = 1.0;
+        public double PrivateBenefitToBadEmployerFromFiring_LowTaste = 0.75;
+        public double PrivateBenefitToBadEmployerFromFiring_MediumTaste = 0.875;
+        public double PrivateBenefitToBadEmployerFromFiring_HighTaste = 1.0;
 
         private double[] ProbabilityLiabilityStrength_StrongPlaintiffCase, ProbabilityLiabilityStrength_MediumPlaintiffCase, ProbabilityLiabilityStrength_PoorPlaintiffCase;
 

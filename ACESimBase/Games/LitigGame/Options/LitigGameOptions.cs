@@ -298,6 +298,7 @@ LoserPays {LoserPays} Multiple {LoserPaysMultiple} AfterAbandonment {LoserPaysAf
 DamagesMin {DamagesMin} DamagesMax {DamagesMax} 
 RegretAversion {RegretAversion} 
 PUtilityCalculator {PUtilityCalculator} DUtilityCalculator {DUtilityCalculator} 
+LitigGameDisputeGenerator {LitigGameDisputeGenerator?.GetType().Name} {LitigGameDisputeGenerator.OptionsString}
 WarmStartOptions {WarmStartOptions} for {WarmStartThroughIteration} iterations";
 
         }

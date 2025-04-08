@@ -15,7 +15,7 @@ namespace ACESim
     {
         public string GetGeneratorName() => "Contract";
 
-
+        public string OptionsString => $"NumBenefitLevels {NumBenefitLevels} MinBenefitOfActionToDefendant {MinBenefitOfActionToDefendant} MaxBenefitOfActionToDefendant {MaxBenefitOfActionToDefendant} CostOfActionOnPlaintiff {CostOfActionOnPlaintiff} StdevNoiseToProduceLiabilityStrength {StdevNoiseToProduceLiabilityStrength}";
         public (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("Benefit to D", "BenefitD");
         public (string name, string abbreviation) PrimaryNameAndAbbreviation => ("Take Benefit", "TakeBenefit");
         public (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("PostPrimaryChanceActions", "Post Primary");
