@@ -2590,7 +2590,6 @@ namespace ACESim
             TabbedText.WriteLine($"Prepping accelerated best response...");
             Stopwatch s = new Stopwatch();
             s.Start();
-            Br.Eak.Add("PREP");
             AcceleratedBestResponsePrep prepWalk = new AcceleratedBestResponsePrep(EvolutionSettings.DistributeChanceDecisions, (byte)NumNonChancePlayers, TraceTreeWalk);
             AcceleratedBestResponsePrepResult = TreeWalk_Tree(prepWalk, new NodeActionsHistory());
             InformationSetsByDecisionIndex = InformationSets.GroupBy(x => x.DecisionIndex).OrderBy(x => x.Key).Select(x => x.ToList()).ToList();

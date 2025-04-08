@@ -31,7 +31,7 @@ namespace ACESim
         public int? ReportEveryNIterations = 1000;
         public int? SuppressReportBeforeIteration = null;
 
-        public bool UseAcceleratedBestResponse = false;  // DEBUG
+        public bool UseAcceleratedBestResponse = true;  // DEBUG
         public const int EffectivelyNever = 999999999;
         public int? BestResponseEveryMIterations = 100; // For partial recall games, this is very costly, so consider using EffectivelyNever. // overridden in Launcher
         public int? SuppressBestResponseBeforeIteration = null;

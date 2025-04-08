@@ -19,6 +19,7 @@ namespace ACESimBase.GameSolvingSupport
             DistributingChanceActions = distributingChanceActions;
             NumNonChancePlayers = numNonChancePlayers;
             Trace = trace;
+            Trace = true; // DEBUG
         }
 
         public NodeActionsHistory InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, NodeActionsHistory fromPredecessor)
@@ -28,14 +29,18 @@ namespace ACESimBase.GameSolvingSupport
             (InformationSetNode predecessorInformationSetForPlayer, byte actionTakenThere) = historyToHere.GetLastInformationSetByPlayer(informationSet.PlayerIndex); // The predecessor may not be an information set from the same player, so we need to identify the predecessor for the same player as well as the action taken there. 
             informationSet.PredecessorInformationSetForPlayer = predecessorInformationSetForPlayer;
             informationSet.ActionTakenAtPredecessorSet = actionTakenThere;
-            NodeActionsHistory fromLastInformationSet = historyToHere.GetIncrementalHistory(informationSet.PlayerIndex);
+            NodeActionsHistory fromLastInformationSet = historyToHere.GetIncrementalHistory(informationSet.PlayerIndex, DistributingChanceActions);
             if (Trace)
-                TabbedText.WriteLine($"From predecessor information set {predecessorInformationSetForPlayer?.InformationSetNodeNumber}: {fromLastInformationSet}");
+                TabbedText.WriteLine($"From predecessor information set {predecessorInformationSetForPlayer?.InformationSetNodeNumber} to {informationSet.InformationSetNodeNumber}: {fromLastInformationSet}");
             // Now, add this history to a list of paths from the predecessor information set.
-            ByteList actionsList = historyToHere.GetActionsList(informationSet.PlayerIndex, DistributingChanceActions);
+            ByteList actionsListExcludingPlayerAndDistributedChance = historyToHere.GetActionsListExcludingPlayerAndDistributedChance(informationSet.PlayerIndex, DistributingChanceActions);
             if (informationSet.PathsFromPredecessor == null)
                 informationSet.PathsFromPredecessor = new List<PathFromPredecessorInfo>();
-            informationSet.PathsFromPredecessor.Add(new PathFromPredecessorInfo() { ActionsList = actionsList, IndexInPredecessorsPathsFromPredecessor = (predecessorInformationSetForPlayer?.PathsFromPredecessor.Count() ?? 0) - 1, Path = fromLastInformationSet });
+            if (informationSet.InformationSetNodeNumber == 3)
+            {
+                var DEBUG = 0;
+            }
+            informationSet.PathsFromPredecessor.Add(new PathFromPredecessorInfo() { ActionsListExcludingPlayerAndDistributedChance = actionsListExcludingPlayerAndDistributedChance, IndexInPredecessorsPathsFromPredecessor = (predecessorInformationSetForPlayer?.PathsFromPredecessor.Count() ?? 0) - 1, Path = fromLastInformationSet });
             return historyToHere;
         }
 
@@ -43,6 +48,10 @@ namespace ACESimBase.GameSolvingSupport
         {
             if (predecessor == null)
                 return fromPredecessor;
+            if (chanceNode.ChanceNodeNumber is 32)
+            {
+                var DEBUG = 0;
+            }
             NodeActionsHistory historyToHere = fromPredecessor.WithAppended(predecessor, predecessorAction, predecessorDistributorChanceInputs);
             return historyToHere;
         }

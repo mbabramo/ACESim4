@@ -112,9 +112,9 @@ namespace ACESim
             if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionIndex))
             {
                 TabbedText.WriteLine(
-                    $"Decision {decisionIndex} {GameDefinition.DecisionsExecutionOrder[decisionIndex].Name} playerMakingDecision {playerMakingDecision} information set {informationSet.InformationSetNodeNumber} inversePi {inversePi} depthSoFar {depthSoFar} ");
+                    $"Decision {decisionIndex} {GameDefinition.DecisionsExecutionOrder[decisionIndex].Name} playerMakingDecision {playerMakingDecision} information set {informationSet.InformationSetNodeNumber} inversePi {inversePi} depthSoFar {depthSoFar} depthToTarget {depthToTarget}"); 
             }
-            if (playerMakingDecision == playerIndex && depthSoFar > depthToTarget)
+            if (playerMakingDecision == playerIndex && depthSoFar > depthToTarget) // case in which depthSoFar == depthToTarget is addressed below
             {
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionIndex))
                     TabbedText.TabIndent();
@@ -193,7 +193,7 @@ namespace ACESim
                         nextInversePi *= actionProbabilities[action - 1];
                     if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionIndex))
                     {
-                        TabbedText.WriteLine($"action {action} for playerMakingDecision {playerMakingDecision}...");
+                        TabbedText.WriteLine($"action {action} for playerMakingDecision {playerMakingDecision} probability {actionProbabilities[action - 1]}...");
                         TabbedText.TabIndent();
                     }
                     double expectedValue;
@@ -218,12 +218,12 @@ namespace ACESim
                     else if (playerMakingDecision == playerIndex && depthToTarget == depthSoFar)
                     {
                         // This is the key part -- incrementing best responses. Note that the expected value is NOT here multiplied by this player's probability of playing to the next stage. The overall best response will depend on how often other players play to this point. We'll be calling this for EACH history that leads to this information set.
-                        informationSet.IncrementBestResponse(action, inversePi, expectedValue);
                         if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionIndex))
                         {
                             TabbedText.WriteLine(
                                 $"Incrementing best response for information set {informationSet.InformationSetNodeNumber} for action {action} inversePi {inversePi} expectedValue {expectedValue}");
                         }
+                        informationSet.IncrementBestResponse(action, inversePi, expectedValue);
                     }
                 }
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionIndex))
@@ -250,15 +250,15 @@ namespace ACESim
             if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNode.DecisionIndex))
             {
                 TabbedText.WriteLine(
-                    $"Num chance actions {numPossibleActionsToExplore} for decision {chanceNode.DecisionByteCode} {GameDefinition.DecisionsExecutionOrder[chanceNode.DecisionIndex].Name}");
+                    $"Num chance actions {numPossibleActionsToExplore} for decision {chanceNode.DecisionByteCode} {GameDefinition.DecisionsExecutionOrder[chanceNode.DecisionIndex].Name} (inversePi {inversePi})");
             }
             double expectedValueSum = 0;
             for (byte action = 1; action <= numPossibleActionsToExplore; action++)
             {
+                double probability = chanceNode.GetActionProbability(action, distributorChanceInputs);
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNode.DecisionIndex))
                     TabbedText.WriteLine(
-                        $"chance action {action} for decision {chanceNode.DecisionByteCode} {GameDefinition.DecisionsExecutionOrder[chanceNode.DecisionIndex].Name} ... ");
-                double probability = chanceNode.GetActionProbability(action, distributorChanceInputs);
+                        $"chance action {action} for decision {chanceNode.DecisionByteCode} {GameDefinition.DecisionsExecutionOrder[chanceNode.DecisionIndex].Name} (probability {probability}) ... ");
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNode.DecisionIndex))
                     TabbedText.TabIndent();
                 int distributorChanceInputsNext = distributorChanceInputs;

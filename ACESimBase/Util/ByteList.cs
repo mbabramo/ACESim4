@@ -64,5 +64,10 @@ namespace ACESimBase.Util
         {
             return TheList?.GetSequenceHashCode() ?? 0;
         }
+
+        public override string ToString()
+        {
+            return String.Join(",", TheList);
+        }
     }
 }

@@ -117,10 +117,13 @@ namespace ACESimBase.GameSolvingSupport
         /// </summary>
         /// <param name="nonChancePlayerIndex"></param>
         /// <returns></returns>
-        public NodeActionsHistory GetIncrementalHistory(byte nonChancePlayerIndex)
+        public NodeActionsHistory GetIncrementalHistory(byte nonChancePlayerIndex, bool distributingChanceActions)
         {
             int? indexOfLastInformationSetByPlayer = GetIndexOfLastInformationSetByPlayer(nonChancePlayerIndex);
-            return DeepClone(indexOfLastInformationSetByPlayer == null ? 0 : (int)indexOfLastInformationSetByPlayer + 1).WithoutDistributedChanceActions();
+            var clone = DeepClone(indexOfLastInformationSetByPlayer == null ? 0 : (int)indexOfLastInformationSetByPlayer + 1);
+            if (distributingChanceActions)
+                clone = clone.WithoutDistributedChanceActions();
+            return clone;
         }
 
         public (InformationSetNode lastInformationSet, byte actionTakenAtLastInformationSet) GetLastInformationSetByPlayer(byte nonChancePlayerIndex)
@@ -155,7 +158,7 @@ namespace ACESimBase.GameSolvingSupport
         /// <param name="excludePlayerIndex"></param>
         /// <param name="distributingChanceDecisions"></param>
         /// <returns></returns>
-        public ByteList GetActionsList(byte? excludePlayerIndex, bool distributingChanceDecisions)
+        public ByteList GetActionsListExcludingPlayerAndDistributedChance(byte? excludePlayerIndex, bool distributingChanceDecisions)
         {
             IEnumerable<byte> nodesToInclude = NodeActions
                 .Where(x => excludePlayerIndex == null || !(x.Node is InformationSetNode informationSet) || informationSet.PlayerIndex != excludePlayerIndex)
