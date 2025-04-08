@@ -6,7 +6,7 @@ namespace ACESim
 {
     public abstract partial class StrategiesDeveloperBase : IStrategiesDeveloper
     {
-        private bool TraceGEBR = true; // DEBUG
+        private bool TraceGEBR = false;
         private List<byte> TraceGEBR_SkipDecisions = new List<byte>() { };
 
         /// <summary>

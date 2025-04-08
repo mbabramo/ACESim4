@@ -309,7 +309,7 @@ namespace ACESim
 
         // Note: See also BestResponse.cs file for best response algorithm, including tracing options.
 
-        private bool LogBestResponseCalculation = true; // DEBUG // DELETE THIS AND ALL STATEMENTS
+        private bool LogBestResponseCalculation = false; // Note: This is for extra logging, since there is also logging from TraceGEBR and TraceAcceleratedBestResponsePrep
 
         public void DetermineBestResponseAction()
         {
@@ -441,18 +441,10 @@ namespace ACESim
                 }
                 else
                     pathProbabilityFromPredecessor = pathFromPredecessor.Path.GetProbabilityOfPath(useCurrentStrategyForBestResponse);
-                if (InformationSetNodeNumber == 3 && predecessorOpponentsReachProbability != 0)
-                {
-                    var DEBUG = 0;
-                }
                 double cumulativePathProbability = predecessorOpponentsReachProbability * pathProbabilityFromPredecessor;
                 pathFromPredecessor.Probability = cumulativePathProbability;
                 if (LogBestResponseCalculation)
                     TabbedText.WriteLine($"Calculating node {InformationSetNodeNumber} path {i} ({pathFromPredecessor.Path}) calculating probability as {predecessorOpponentsReachProbability} * {pathProbabilityFromPredecessor} = {cumulativePathProbability}");
-                if (Math.Abs(cumulativePathProbability - 0.77785344159999992) < 0.001 || Math.Abs(pathProbabilityFromPredecessor - 0.77785344159999992) < 0.001)
-                {
-                    var DEBUG = 0;
-                }
                 // No aggregated logging here.
                 OpponentsReachProbability += cumulativePathProbability;
             }
@@ -584,7 +576,6 @@ namespace ACESim
 
         public void PerturbAverageStrategy(double minValueForEachAction, bool includeCumulativeStrategy)
         {
-            return; // DEBUG
             double totalPerturbation = NumPossibleActions * minValueForEachAction;
             if (totalPerturbation > 1.0)
             {

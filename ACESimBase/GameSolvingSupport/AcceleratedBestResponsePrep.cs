@@ -12,14 +12,13 @@ namespace ACESimBase.GameSolvingSupport
     {
         bool DistributingChanceActions;
         byte NumNonChancePlayers;
-        public bool Trace;
+        public bool TraceAcceleratedBestResponsePrep;
 
         public AcceleratedBestResponsePrep(bool distributingChanceActions, byte numNonChancePlayers, bool trace)
         {
             DistributingChanceActions = distributingChanceActions;
             NumNonChancePlayers = numNonChancePlayers;
-            Trace = trace;
-            Trace = true; // DEBUG
+            TraceAcceleratedBestResponsePrep = trace;
         }
 
         public NodeActionsHistory InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, NodeActionsHistory fromPredecessor)
@@ -30,16 +29,12 @@ namespace ACESimBase.GameSolvingSupport
             informationSet.PredecessorInformationSetForPlayer = predecessorInformationSetForPlayer;
             informationSet.ActionTakenAtPredecessorSet = actionTakenThere;
             NodeActionsHistory fromLastInformationSet = historyToHere.GetIncrementalHistory(informationSet.PlayerIndex, DistributingChanceActions);
-            if (Trace)
+            if (TraceAcceleratedBestResponsePrep)
                 TabbedText.WriteLine($"From predecessor information set {predecessorInformationSetForPlayer?.InformationSetNodeNumber} to {informationSet.InformationSetNodeNumber}: {fromLastInformationSet}");
             // Now, add this history to a list of paths from the predecessor information set.
             ByteList actionsListExcludingPlayerAndDistributedChance = historyToHere.GetActionsListExcludingPlayerAndDistributedChance(informationSet.PlayerIndex, DistributingChanceActions);
             if (informationSet.PathsFromPredecessor == null)
                 informationSet.PathsFromPredecessor = new List<PathFromPredecessorInfo>();
-            if (informationSet.InformationSetNodeNumber == 3)
-            {
-                var DEBUG = 0;
-            }
             informationSet.PathsFromPredecessor.Add(new PathFromPredecessorInfo() { ActionsListExcludingPlayerAndDistributedChance = actionsListExcludingPlayerAndDistributedChance, IndexInPredecessorsPathsFromPredecessor = (predecessorInformationSetForPlayer?.PathsFromPredecessor.Count() ?? 0) - 1, Path = fromLastInformationSet });
             return historyToHere;
         }
@@ -48,10 +43,6 @@ namespace ACESimBase.GameSolvingSupport
         {
             if (predecessor == null)
                 return fromPredecessor;
-            if (chanceNode.ChanceNodeNumber is 32)
-            {
-                var DEBUG = 0;
-            }
             NodeActionsHistory historyToHere = fromPredecessor.WithAppended(predecessor, predecessorAction, predecessorDistributorChanceInputs);
             return historyToHere;
         }
@@ -82,7 +73,7 @@ namespace ACESimBase.GameSolvingSupport
                 bool isOwnInformationSet = informationSet.PlayerIndex == playerIndex;
                 if (isOwnInformationSet)
                 {
-                    if (Trace)
+                    if (TraceAcceleratedBestResponsePrep)
                     {
                         TabbedText.WriteLine($"Paths to successor(s): {String.Join(" | ", Enumerable.Range(1, successorsForPlayer.Count).Select(x => $"{x}: {successorsForPlayer[x - 1]}"))}");
                     }
@@ -106,7 +97,7 @@ namespace ACESimBase.GameSolvingSupport
                     NodeActionsMultipleHistories result = NodeActionsMultipleHistories.FlattenedWithPrepend(successorsForPlayer, informationSet);
                     returnList.Add(result);
                 }
-                if (Trace)
+                if (TraceAcceleratedBestResponsePrep)
                     TabbedText.WriteLine($"From successor (player {playerIndex}): {returnList.Last()}");
             }
             return returnList;
@@ -121,7 +112,7 @@ namespace ACESimBase.GameSolvingSupport
                 List<NodeActionsMultipleHistories> successorsForPlayer = multipleHistoriesByPlayer[playerIndex];
                 NodeActionsMultipleHistories result = NodeActionsMultipleHistories.FlattenedWithPrepend(successorsForPlayer, chanceNode, distributorChanceInputs, DistributingChanceActions);
                 returnList.Add(result);
-                if (Trace)
+                if (TraceAcceleratedBestResponsePrep)
                     TabbedText.WriteLine($"From successor (player {playerIndex}): {returnList.Last()}");
             }
             return returnList;
