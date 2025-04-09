@@ -21,8 +21,8 @@ namespace ACESim
         // Post primary action: None.
 
         public byte NumSystemicRandomnessLevels = 5;
-        public double BenefitToDefendantOfAppropriation = 0.40;
-        public double CostToPlaintiffOfAppropriation = 0.50;
+        public double BenefitToDefendantOfAppropriation = 0.50;
+        public double CostToPlaintiffOfAppropriation = 1.0;
         public double SocialWelfareMultiplier = 1.0;
         public bool CountBenefitToDefendantInSocialWelfare = false;
 

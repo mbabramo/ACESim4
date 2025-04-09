@@ -199,9 +199,9 @@ namespace ACESim
                 PRelativeCostsTransformations(includeBaselineValueForNoncritical),
                 FeeShiftingModeTransformations(includeBaselineValueForNoncritical),
                 AllowAbandonAndDefaultsTransformations(includeBaselineValueForNoncritical),
-                ProbabilityTrulyLiableTransformations(includeBaselineValueForNoncritical),
-                NoiseToProduceCaseStrengthTransformations(includeBaselineValueForNoncritical),
-                LiabilityVsDamagesTransformations(includeBaselineValueForNoncritical),
+                // ProbabilityTrulyLiableTransformations(includeBaselineValueForNoncritical),
+                // NoiseToProduceCaseStrengthTransformations(includeBaselineValueForNoncritical),
+                // LiabilityVsDamagesTransformations(includeBaselineValueForNoncritical),
                 ProportionOfCostsAtBeginningTransformations(includeBaselineValueForNoncritical),
             };
             List<List<Func<LitigGameOptions, LitigGameOptions>>> criticalTransformations = allTransformations.Take(numCritical).ToList();
@@ -232,7 +232,7 @@ namespace ACESim
                     }
                     if (noncriticalTransformation != null && !replaced)
                         transformLists.Add(noncriticalTransformation);
-                    List<LitigGameOptions> noncriticalOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.FeeShiftingBase /* DEBUG */().WithName("ED"), transformLists);
+                    List<LitigGameOptions> noncriticalOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.AppropriationGame().WithName("ED"), transformLists);
                     List<(string, object)> defaultNonCriticalValues = DefaultNonCriticalValues();
                     foreach (var optionSet in noncriticalOptions)
                     {
@@ -260,9 +260,9 @@ namespace ACESim
                 ("Noise Multiplier P", "1"),
                 ("Noise Multiplier D", "1"),
                 ("Allow Abandon and Defaults", "true"),
-                ("Probability Truly Liable", "0.5"),
-                ("Noise to Produce Case Strength", "0.35"),
-                ("Issue", "Liability"),
+                //("Probability Truly Liable", "0.5"),
+                //("Noise to Produce Case Strength", "0.35"),
+                //("Issue", "Liability"),
                 ("Proportion of Costs at Beginning", "0.5"),
             };
         }
@@ -276,9 +276,9 @@ namespace ACESim
             "Relative Costs",
             "Fee Shifting Mode",
             "Allowing Abandon and Defaults",
-            "Probability Truly Liable",
-            "Noise to Produce Case Strength",
-            "Liability vs Damages",
+            //"Probability Truly Liable",
+            //"Noise to Produce Case Strength",
+            //"Liability vs Damages",
             "Proportion of Costs at Beginning",
         };
 
