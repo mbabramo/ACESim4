@@ -151,7 +151,9 @@ namespace ACESim
         // We can achieve considerable improvements in performance by unrolling the algorithm. Instead of traversing the tree, we simply have a series of simple commands that can be processed on an array. The challenge is that we need to create this series of commands. This section prepares for the copying of data between information sets and the array. We can compare the outcomes of the regular algorithm and the unrolled version (which should always be equal) by using TraceCFR = true.
 
         private ArrayCommandList Unroll_Commands;
+        private static ArrayCommandList Unroll_Commands_Cached = null;
         private int Unroll_SizeOfArray;
+        private static int Unroll_SizeOfArray_Cached = -1;
 
         int UnrollCheckpointIteration = -1; // if using checkpoints to debug unrolling, set an iteration (such as 1) here
 
@@ -244,11 +246,18 @@ namespace ACESim
 
         private void Unroll_CreateUnrolledCommandList()
         {
-            TabbedText.WriteLine($"Unrolling commands...");
             Stopwatch s = new Stopwatch();
             s.Start();
             const int max_num_commands = 150_000_000;
             Unroll_InitializeInitialArrayIndices();
+            if (EvolutionSettings.ReuseUnrolledAlgorithm && Unroll_Commands_Cached != null)
+            {
+                Unroll_Commands = Unroll_Commands_Cached;
+                Unroll_SizeOfArray = Unroll_SizeOfArray_Cached;
+                TabbedText.WriteLine($"Using cached unrolled commands.");
+                return;
+            }
+            TabbedText.WriteLine($"Unrolling commands...");
             Unroll_Commands = new ArrayCommandList(max_num_commands, Unroll_InitialArrayIndex, EvolutionSettings.ParallelOptimization);
             ActionStrategy = ActionStrategies.CurrentProbability;
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
@@ -267,9 +276,13 @@ namespace ACESim
                 Unroll_Commands.EndCommandChunk();
             }
             Unroll_Commands.EndCommandChunk();
-
             Unroll_SizeOfArray = Unroll_Commands.FullArraySize;
-            TabbedText.WriteLine($"... {s.ElapsedMilliseconds} milliseconds");
+            if (EvolutionSettings.ReuseUnrolledAlgorithm)
+            {
+                Unroll_Commands_Cached = Unroll_Commands;
+                Unroll_SizeOfArray_Cached = Unroll_SizeOfArray;
+            }
+            TabbedText.WriteLine($"... {s.ElapsedMilliseconds} milliseconds (using {Unroll_Commands.FullArraySize} commands)");
         }
 
         private void Unroll_ExecuteUnrolledCommands(double[] array, bool copyChanceAndFinalUtilities)

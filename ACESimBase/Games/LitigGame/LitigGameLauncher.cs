@@ -203,7 +203,7 @@ namespace ACESim
                 NoiseTransformations(includeBaselineValueForNoncritical),
                 PRelativeCostsTransformations(includeBaselineValueForNoncritical),
                 FeeShiftingModeTransformations(includeBaselineValueForNoncritical),
-                AllowAbandonAndDefaultsTransformations(includeBaselineValueForNoncritical),
+                // DISABLED AllowAbandonAndDefaultsTransformations(includeBaselineValueForNoncritical),
                 // DISABLED ProbabilityTrulyLiableTransformations(includeBaselineValueForNoncritical),
                 // DISABLED NoiseToProduceCaseStrengthTransformations(includeBaselineValueForNoncritical),
                 // DISABLED LiabilityVsDamagesTransformations(includeBaselineValueForNoncritical),
@@ -264,7 +264,7 @@ namespace ACESim
                 ("Relative Costs", "1"),
                 ("Noise Multiplier P", "1"),
                 ("Noise Multiplier D", "1"),
-                ("Allow Abandon and Defaults", "true"),
+                // DISABLED ("Allow Abandon and Defaults", "true"),
                 // DISABLED ("Probability Truly Liable", "0.5"),
                 // DISABLED ("Noise to Produce Case Strength", "0.35"),
                 // DISABLED ("Issue", "Liability"),
@@ -280,7 +280,7 @@ namespace ACESim
             "Noise Multipliers", // includes P & D
             "Relative Costs",
             "Fee Shifting Mode",
-            "Allowing Abandon and Defaults",
+            // DISABLED "Allowing Abandon and Defaults",
             // DISABLED "Probability Truly Liable",
             // DISABLED "Noise to Produce Case Strength",
             // DISABLED "Liability vs Damages",
@@ -297,7 +297,7 @@ namespace ACESim
                 ("Relative Costs", "1"),
                 ("Noise Multiplier P", "1"),
                 ("Noise Multiplier D", "1"),
-                ("Allow Abandon and Defaults", "true"),
+                // DISABLED ("Allow Abandon and Defaults", "true"),
                 // DISABLED ("Probability Truly Liable", "0.5"),
                 // DISABLED ("Noise to Produce Case Strength", "0.35"),
                 // DISABLED ("Issue", "Liability"),
@@ -371,11 +371,12 @@ namespace ACESim
                 new EndogenousDisputesArticleVariationInfo("D More Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "D More Risk Averse")),
             };
 
-            var varyingQuitRules = new List<EndogenousDisputesArticleVariationInfo>()
-            {
-                new EndogenousDisputesArticleVariationInfo("Quitting Allowed", DefaultNonCriticalValues().WithReplacement("Allow Abandon and Defaults", "TRUE")),
-                new EndogenousDisputesArticleVariationInfo("Quitting Prohibited", DefaultNonCriticalValues().WithReplacement("Allow Abandon and Defaults", "FALSE")),
-            };
+            // DISABLED
+            //var varyingQuitRules = new List<EndogenousDisputesArticleVariationInfo>()
+            //{
+            //    new EndogenousDisputesArticleVariationInfo("Quitting Allowed", DefaultNonCriticalValues().WithReplacement("Allow Abandon and Defaults", "TRUE")),
+            //    new EndogenousDisputesArticleVariationInfo("Quitting Prohibited", DefaultNonCriticalValues().WithReplacement("Allow Abandon and Defaults", "FALSE")),
+            //};
 
             // DISABLED
             //var varyingProbabilityTrulyLiable = new List<EndogenousDisputesArticleVariationInfo>()
@@ -419,7 +420,7 @@ namespace ACESim
                 new EndogenousDisputesArticleVariationSetInfo("Relative Costs", varyingRelativeCosts),
                 new EndogenousDisputesArticleVariationSetInfo("Risk Aversion", varyingRiskAversion),
                 new EndogenousDisputesArticleVariationSetInfo("Risk Aversion Asymmetry", varyingRiskAversionAsymmetry),
-                new EndogenousDisputesArticleVariationSetInfo("Quitting Rules", varyingQuitRules),
+                // DISABLED new EndogenousDisputesArticleVariationSetInfo("Quitting Rules", varyingQuitRules),
                 // DISABLED new EndogenousDisputesArticleVariationSetInfo("Proportion of Cases Where D Is Truly Liable", varyingProbabilityTrulyLiable),
                 // DISABLED new EndogenousDisputesArticleVariationSetInfo("Case Strength Noise", varyingNoiseToProduceCaseStrength),
                 // DISABLED new EndogenousDisputesArticleVariationSetInfo("Issue", varyingIssue),
@@ -679,19 +680,22 @@ namespace ACESim
             g.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.DInitialWealth, Alpha = 2, LinearTransformation = true };
             g.VariableSettings["Risk Aversion"] = "D Risk Averse";
         });
-        List<Func<LitigGameOptions, LitigGameOptions>> AllowAbandonAndDefaultsTransformations(bool includeBaselineValue)
-        {
-            List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
-            foreach (bool allowAbandonAndDefaults in new[] { true, false }.Skip(includeBaselineValue ? 0 : 1))
-                results.Add(o => GetAndTransform_AllowAbandonAndDefaults(o, allowAbandonAndDefaults));
-            return results;
-        }
 
-        LitigGameOptions GetAndTransform_AllowAbandonAndDefaults(LitigGameOptions options, bool allowAbandonAndDefaults) => GetAndTransform(options, " Abandonable " + allowAbandonAndDefaults, g =>
-        {
-            g.AllowAbandonAndDefaults = allowAbandonAndDefaults;
-            g.VariableSettings["Allow Abandon and Defaults"] = allowAbandonAndDefaults;
-        });
+        // DISABLED
+        //List<Func<LitigGameOptions, LitigGameOptions>> AllowAbandonAndDefaultsTransformations(bool includeBaselineValue)
+        //{
+        //    List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
+        //    foreach (bool allowAbandonAndDefaults in new[] { true, false }.Skip(includeBaselineValue ? 0 : 1))
+        //        results.Add(o => GetAndTransform_AllowAbandonAndDefaults(o, allowAbandonAndDefaults));
+        //    return results;
+        //}
+
+        // DISABLED
+        //LitigGameOptions GetAndTransform_AllowAbandonAndDefaults(LitigGameOptions options, bool allowAbandonAndDefaults) => GetAndTransform(options, " Abandonable " + allowAbandonAndDefaults, g =>
+        //{
+        //    g.AllowAbandonAndDefaults = allowAbandonAndDefaults;
+        //    g.VariableSettings["Allow Abandon and Defaults"] = allowAbandonAndDefaults;
+        //});
 
         // DISABLED
         //List<Func<LitigGameOptions, LitigGameOptions>> ProbabilityTrulyLiableTransformations(bool includeBaselineValue)
