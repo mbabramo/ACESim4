@@ -24,12 +24,12 @@ namespace LitigCharts
         const string firstEquilibriumFileSuffix = "-Eq1";
         const string onlyEquilibriumFileSuffix = "";
         static string firstOrOnlyEquilibriumFileSuffix => firstEqOnly ? onlyEquilibriumFileSuffix : firstEquilibriumFileSuffix;
-        static string firstOrOnlyEquilibriumTypeWord => firstEqOnly ? "Only" : "First";
+        static string firstOrOnlyEquilibriumTypeWord => firstEqOnly ? "Only Eq" : "First Eq";
 
         private static string[] equilibriumTypeSuffixes_Major = new string[] { correlatedEquilibriumFileSuffix, averageEquilibriumFileSuffix, firstEquilibriumFileSuffix };
         private static string[] equilibriumTypeSuffixes_One = new string[] { firstOrOnlyEquilibriumFileSuffix };
         private static string[] equilibriumTypeSuffixes_AllIndividual = Enumerable.Range(1, 100).Select(x => $"-Eq{x}").ToArray();
-        private static string[] equilibriumTypeWords_Major = new string[] { "Correlated", "Average", "First" };
+        private static string[] equilibriumTypeWords_Major = new string[] { "Correlated", "Average", "First Eq" };
         private static string[] equilibriumTypeWords_One = new string[] { firstOrOnlyEquilibriumTypeWord };
         private static string[] equilibriumTypeWords_AllIndividual = Enumerable.Range(1, 100).Select(x => $"Eq{x}").ToArray();
 
@@ -134,7 +134,7 @@ namespace LitigCharts
             List<(string path, string combinedPath, string optionSetName, string fileSuffix)> result = new();
 
             var gameDefinition = new LitigGameDefinition();
-            List<LitigGameOptions> litigGameOptionsSets = GetFeeShiftingGameOptionsSets();
+            List<LitigGameOptions> litigGameOptionsSets = GetEndogenousDisputesOptionsSets();
             string path = Launcher.ReportFolder();
 
             var launcher = new LitigGameLauncher();
@@ -266,7 +266,7 @@ namespace LitigCharts
 
         private static void BuildReport(List<string> rowsToGet, List<string> replacementRowNames, List<string> columnsToGet, List<string> replacementColumnNames, string endOfFileName)
         {
-            bool onlyAllFilter = false; 
+            bool onlyAllFilter = false;
             if (onlyAllFilter)
             {
                 rowsToGet = rowsToGet.Take(1).ToList();
@@ -274,8 +274,9 @@ namespace LitigCharts
             }
 
             var launcher = new LitigGameLauncher();
-            var gameOptionsSets = GetFeeShiftingGameOptionsSets();
+            var gameOptionsSets = GetEndogenousDisputesOptionsSets();
             var map = launcher.GetEndogenousDisputesArticleNameMap(); // name to find (avoids redundancies in naming)
+            List<(string, object)> settingsToFind = GetEndogenousDisputesSettingsToFind();
             string path = Launcher.ReportFolder();
             string outputFileFullPath = Path.Combine(path, filePrefix + $"-{endOfFileName}.csv");
             string cumResults = "";
@@ -283,21 +284,6 @@ namespace LitigCharts
             var distinctOptionSets = gameOptionsSets.DistinctBy(x => map[x.Name]).ToList();
 
             // look up particular settings here if desired (not usually needed)
-            var settingsToFind = new List<(string, object)>()
-            {
-                ("Costs Multiplier", "1"),
-                ("Fee Shifting Multiplier", "0"),
-                ("Risk Aversion", "Risk Neutral"),
-                ("Fee Shifting Rule", "English"),
-                ("Relative Costs", "1"),
-                ("Noise Multiplier P", "1"),
-                ("Noise Multiplier D", "1"),
-                ("Allow Abandon and Defaults", "true"),
-                ("Probability Truly Liable", "0.5"),
-                ("Noise to Produce Case Strength", "0.35"),
-                ("Issue", "Liability"),
-                ("Proportion of Costs at Beginning", "0.5"),
-            };
             var matches = distinctOptionSets.Where(x => settingsToFind.All(y => x.VariableSettings[y.Item1].ToString() == y.Item2.ToString())).ToList();
             var namesOfMatches = matches.Select(x => x.Name).ToList();
             var mappedNamesOfMatches = namesOfMatches.Select(x => map[x]).ToList();
@@ -318,15 +304,15 @@ namespace LitigCharts
                 string altFileSuffix = firstEquilibriumFileSuffix;
                 TabbedText.WriteLine($"Processing equilibrium type {fileSuffix}");
                 bool includeHeader = firstEqOnly || fileSuffix == correlatedEquilibriumFileSuffix;
-                List<List<string>> outputLines = GetCSVLines(distinctOptionSets.Select(x => (GameOptions) x).ToList(), map, rowsToGet, replacementRowNames, filePrefix, fileSuffix, altFileSuffix, path, includeHeader, columnsToGet, replacementColumnNames);
+                List<List<string>> outputLines = GetCSVLines(distinctOptionSets.Select(x => (GameOptions)x).ToList(), map, rowsToGet, replacementRowNames, filePrefix, fileSuffix, altFileSuffix, path, includeHeader, columnsToGet, replacementColumnNames);
                 if (includeHeader)
                     outputLines[0].Insert(0, "Equilibrium Type");
                 string equilibriumType = fileSuffix switch
                 {
                     correlatedEquilibriumFileSuffix => "Correlated",
                     averageEquilibriumFileSuffix => "Average",
-                    firstEquilibriumFileSuffix => "First",
-                    "" => "Only",
+                    firstEquilibriumFileSuffix => "First Eq",
+                    "" => "Only Eq",
                     _ => "Other"
                 };
                 foreach (List<string> bodyLine in outputLines.Skip(includeHeader ? 1 : 0))
@@ -337,10 +323,17 @@ namespace LitigCharts
             TextFileManage.CreateTextFile(outputFileFullPath, cumResults);
         }
 
+        private static List<(string, object)> GetEndogenousDisputesSettingsToFind()
+        {
+
+            var launcher = new LitigGameLauncher();
+            return launcher.GetEndogenousDisputesSettingsToFind();
+        }
+
         public static void BuildOffersReport()
         {
             var gameDefinition = new LitigGameDefinition();
-            gameDefinition.Setup(GetFeeShiftingGameOptionsSets().First());
+            gameDefinition.Setup(GetEndogenousDisputesOptionsSets().First());
             var reportDefinitions = gameDefinition.GetSimpleReportDefinitions();
 
             var report = reportDefinitions.Skip(1).First();
@@ -378,7 +371,7 @@ namespace LitigCharts
             BuildReport(filtersOfRowsToGet, replacementRowNames, columnsToGet, replacementColumnNames, "offers");
         }
 
-        private static List<LitigGameOptions> GetFeeShiftingGameOptionsSets()
+        private static List<LitigGameOptions> GetEndogenousDisputesOptionsSets()
         {
             var launcher = new LitigGameLauncher();
             return launcher.GetEndogenousDisputesArticleGamesSets(false, false).SelectMany(x => x).ToList();
@@ -660,7 +653,7 @@ namespace LitigCharts
             foreach (bool useRiskAversionForNonRiskReports in new bool[] { false, true })
             {
 
-                List<LitigGameLauncher.EndogenousDisputesArticleVariationSetInfo> variations = launcher.GetFeeShiftingArticleVariationInfoList(useRiskAversionForNonRiskReports);
+                List<LitigGameLauncher.EndogenousDisputesArticleVariationSetInfo> variations = launcher.GetEndogenousDisputesArticleVariationInfoList(useRiskAversionForNonRiskReports);
 
                 var plaintiffDefendantAndOthersLineScheme = new List<string>()
                 {
@@ -718,7 +711,7 @@ namespace LitigCharts
             {
                 foreach (string equilibriumType in eqToRun)
                 {
-                    string eqAbbreviation = equilibriumType switch { "Correlated" => "-Corr", "Average" => "-Avg", "First" => "-Eq1", "Only" => "", _ => equilibriumType[1..] };
+                    string eqAbbreviation = equilibriumType switch { "Correlated" => "-Corr", "Average" => "-Avg", "First Eq" => "-Eq1", "Only Eq" => "", _ => equilibriumType[1..] };
                     foreach (var variation in variations)
                     {
                         // This is a full report. The variation controls the big x axis. The big y axis is the costs multiplier.
@@ -792,7 +785,7 @@ namespace LitigCharts
             string costsLevel = "";
             if (limitToCostsMultiplier != null)
                 costsLevel = $" Costs {limitToCostsMultiplier}";
-            string equilibriumTypeAdj = equilibriumType == "First" ? "" : " (" + equilibriumType + ")";
+            string equilibriumTypeAdj = equilibriumType == "First Eq" ? "" : " (" + equilibriumType + ")";
             string outputFilename = Path.Combine(subfolderName, $"{aggregatedGraphInfo.topicName} {(variation.nameOfSet.Contains("Baseline") == false ? "Varying " : "")}{variation.nameOfSet}{costsLevel}{equilibriumTypeAdj}{(limitToCostsMultiplier != null ? $" Costs Multiplier {limitToCostsMultiplier}" : "")}.tex");
 
             // make all data proportional to rounded up maximum value

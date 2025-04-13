@@ -13,30 +13,35 @@ namespace ACESim
 {
     public class LitigGameLauncher : Launcher
     {
-        public override string MasterReportNameForDistributedProcessing => "ED001";
+        public string MasterReportNamePrefix => "APP";
+        public override string MasterReportNameForDistributedProcessing => MasterReportNamePrefix + "001";
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
 
+        // NOTE: Options that corresponded to the previous article on fee-shifting that are no longer being generated here are commented out with word DISABLED
+
         // Endogenous disputes article
         public bool IncludeNonCriticalTransformations = true; 
-        public FeeShiftingRule[] FeeShiftingModes = new[] { FeeShiftingRule.English_LiabilityIssue, FeeShiftingRule.MarginOfVictory_LiabilityIssue, FeeShiftingRule.Rule68_DamagesIssue, FeeShiftingRule.Rule68English_DamagesIssue };
+        public FeeShiftingRule[] FeeShiftingModes = new[] { FeeShiftingRule.English_LiabilityIssue, FeeShiftingRule.MarginOfVictory_LiabilityIssue, 
+            // DISABLED FeeShiftingRule.Rule68_DamagesIssue, FeeShiftingRule.Rule68English_DamagesIssue 
+        };
         public double[] CriticalCostsMultipliers = new double[] { 1.0,  0.25, 0.5, 2.0, 4.0 };
         public double[] AdditionalCostsMultipliers = new double[] { 1.0, 0.125, 8.0 }; // NOTE: If restoring this, also change NamesOfFeeShiftingArticleSets
         public (double pNoiseMultiplier, double dNoiseMultiplier)[] NoiseMultipliers = new (double pNoiseMultiplier, double dNoiseMultiplier)[] { (1.0, 1.0), (0.50, 0.50), (0.5, 2.0), (2.0, 2.0), (2.0, 0.5), (0.25, 0.25), (4.0, 4.0) };
         public double[] CriticalFeeShiftingMultipliers = new double[] { 0.0, 1.0, 0.5, 1.5, 2.0 }; 
         public double[] AdditionalFeeShiftingMultipliers = new double[] { 0.0 }; // added all but 0 //, 0.25, 4.0 };// NOTE: If restoring this, also change NamesOfFeeShiftingArticleSets
         public double[] RelativeCostsMultipliers = new double[] { 1.0, 0.5, 2.0 };
-        public double[] ProbabilitiesTrulyLiable = new double[] { 0.5, 0.1, 0.9 };
-        public double[] StdevsNoiseToProduceLiabilityStrength = new double[] { 0.35, 0.175, 0.70 };
+        // DISABLED public double[] ProbabilitiesTrulyLiable = new double[] { 0.5, 0.1, 0.9 };
+        // DISABLED public double[] StdevsNoiseToProduceLiabilityStrength = new double[] { 0.35, 0.175, 0.70 };
         public double[] ProportionOfCostsAtBeginning = new double[] { 0.5, 0.75, 0.25, 1.0, 0.0 };
 
         public enum FeeShiftingRule
         {
             English_LiabilityIssue,
             MarginOfVictory_LiabilityIssue,
-            English_DamagesIssue,
-            Rule68_DamagesIssue,
-            Rule68English_DamagesIssue,
+            // DISABLED English_DamagesIssue,
+            // DISABLED Rule68_DamagesIssue,
+            // DISABLED Rule68English_DamagesIssue,
         }
 
         public override GameDefinition GetGameDefinition() => new LitigGameDefinition();
@@ -199,9 +204,9 @@ namespace ACESim
                 PRelativeCostsTransformations(includeBaselineValueForNoncritical),
                 FeeShiftingModeTransformations(includeBaselineValueForNoncritical),
                 AllowAbandonAndDefaultsTransformations(includeBaselineValueForNoncritical),
-                // ProbabilityTrulyLiableTransformations(includeBaselineValueForNoncritical),
-                // NoiseToProduceCaseStrengthTransformations(includeBaselineValueForNoncritical),
-                // LiabilityVsDamagesTransformations(includeBaselineValueForNoncritical),
+                // DISABLED ProbabilityTrulyLiableTransformations(includeBaselineValueForNoncritical),
+                // DISABLED NoiseToProduceCaseStrengthTransformations(includeBaselineValueForNoncritical),
+                // DISABLED LiabilityVsDamagesTransformations(includeBaselineValueForNoncritical),
                 ProportionOfCostsAtBeginningTransformations(includeBaselineValueForNoncritical),
             };
             List<List<Func<LitigGameOptions, LitigGameOptions>>> criticalTransformations = allTransformations.Take(numCritical).ToList();
@@ -232,7 +237,7 @@ namespace ACESim
                     }
                     if (noncriticalTransformation != null && !replaced)
                         transformLists.Add(noncriticalTransformation);
-                    List<LitigGameOptions> noncriticalOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.AppropriationGame().WithName("ED"), transformLists);
+                    List<LitigGameOptions> noncriticalOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.AppropriationGame().WithName(MasterReportNamePrefix), transformLists);
                     List<(string, object)> defaultNonCriticalValues = DefaultNonCriticalValues();
                     foreach (var optionSet in noncriticalOptions)
                     {
@@ -260,9 +265,9 @@ namespace ACESim
                 ("Noise Multiplier P", "1"),
                 ("Noise Multiplier D", "1"),
                 ("Allow Abandon and Defaults", "true"),
-                //("Probability Truly Liable", "0.5"),
-                //("Noise to Produce Case Strength", "0.35"),
-                //("Issue", "Liability"),
+                // DISABLED ("Probability Truly Liable", "0.5"),
+                // DISABLED ("Noise to Produce Case Strength", "0.35"),
+                // DISABLED ("Issue", "Liability"),
                 ("Proportion of Costs at Beginning", "0.5"),
             };
         }
@@ -276,17 +281,35 @@ namespace ACESim
             "Relative Costs",
             "Fee Shifting Mode",
             "Allowing Abandon and Defaults",
-            //"Probability Truly Liable",
-            //"Noise to Produce Case Strength",
-            //"Liability vs Damages",
+            // DISABLED "Probability Truly Liable",
+            // DISABLED "Noise to Produce Case Strength",
+            // DISABLED "Liability vs Damages",
             "Proportion of Costs at Beginning",
         };
+        public List<(string, object)> GetEndogenousDisputesSettingsToFind()
+        {
+            return new List<(string, object)>()
+            {
+                ("Costs Multiplier", "1"),
+                ("Fee Shifting Multiplier", "0"),
+                ("Risk Aversion", "Risk Neutral"),
+                ("Fee Shifting Rule", "English"),
+                ("Relative Costs", "1"),
+                ("Noise Multiplier P", "1"),
+                ("Noise Multiplier D", "1"),
+                ("Allow Abandon and Defaults", "true"),
+                // DISABLED ("Probability Truly Liable", "0.5"),
+                // DISABLED ("Noise to Produce Case Strength", "0.35"),
+                // DISABLED ("Issue", "Liability"),
+                ("Proportion of Costs at Beginning", "0.5"),
+            };
+        }
 
         public record EndogenousDisputesArticleVariationInfo(string nameOfVariation, List<(string columnName, object expectedValue)> columnMatches);
 
         public record EndogenousDisputesArticleVariationSetInfo(string nameOfSet, List<EndogenousDisputesArticleVariationInfo> requirementsForEachVariation);
 
-        public List<EndogenousDisputesArticleVariationSetInfo> GetFeeShiftingArticleVariationInfoList(bool useRiskAversionForNonRiskReports)
+        public List<EndogenousDisputesArticleVariationSetInfo> GetEndogenousDisputesArticleVariationInfoList(bool useRiskAversionForNonRiskReports)
         {
             var varyingNothing = new List<EndogenousDisputesArticleVariationInfo>()
             {
@@ -300,13 +323,14 @@ namespace ACESim
                 new EndogenousDisputesArticleVariationInfo("Margin of Victory", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "Margin of Victory")),
             };
 
-            var varyingFeeShiftingRule_DamagesUncertain = new List<EndogenousDisputesArticleVariationInfo>()
-            {
-                // where liability is uncertain:
-                new EndogenousDisputesArticleVariationInfo("English", DefaultNonCriticalValues().WithReplacement("Issue", "Damages")),
-                new EndogenousDisputesArticleVariationInfo("Rule 68", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "Rule 68").WithReplacement("Issue", "Damages")),
-                new EndogenousDisputesArticleVariationInfo("Reverse 68", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "Reverse 68").WithReplacement("Issue", "Damages")),
-            };
+            // DISABLED
+            //var varyingFeeShiftingRule_DamagesUncertain = new List<EndogenousDisputesArticleVariationInfo>()
+            //{
+            //    // where liability is uncertain:
+            //    new EndogenousDisputesArticleVariationInfo("English", DefaultNonCriticalValues().WithReplacement("Issue", "Damages")),
+            //    new EndogenousDisputesArticleVariationInfo("Rule 68", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "Rule 68").WithReplacement("Issue", "Damages")),
+            //    new EndogenousDisputesArticleVariationInfo("Reverse 68", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "Reverse 68").WithReplacement("Issue", "Damages")),
+            //};
 
             var varyingNoiseMultipliersBoth = new List<EndogenousDisputesArticleVariationInfo>()
             {
@@ -353,25 +377,28 @@ namespace ACESim
                 new EndogenousDisputesArticleVariationInfo("Quitting Prohibited", DefaultNonCriticalValues().WithReplacement("Allow Abandon and Defaults", "FALSE")),
             };
 
-            var varyingProbabilityTrulyLiable = new List<EndogenousDisputesArticleVariationInfo>()
-            {
-                new EndogenousDisputesArticleVariationInfo("0.1", DefaultNonCriticalValues().WithReplacement("Probability Truly Liable", "0.1")),
-                new EndogenousDisputesArticleVariationInfo("0.5", DefaultNonCriticalValues().WithReplacement("Probability Truly Liable", "0.5")),
-                new EndogenousDisputesArticleVariationInfo("0.9", DefaultNonCriticalValues().WithReplacement("Probability Truly Liable", "0.9")),
-            };
+            // DISABLED
+            //var varyingProbabilityTrulyLiable = new List<EndogenousDisputesArticleVariationInfo>()
+            //{
+            //    new EndogenousDisputesArticleVariationInfo("0.1", DefaultNonCriticalValues().WithReplacement("Probability Truly Liable", "0.1")),
+            //    new EndogenousDisputesArticleVariationInfo("0.5", DefaultNonCriticalValues().WithReplacement("Probability Truly Liable", "0.5")),
+            //    new EndogenousDisputesArticleVariationInfo("0.9", DefaultNonCriticalValues().WithReplacement("Probability Truly Liable", "0.9")),
+            //};
 
-            var varyingNoiseToProduceCaseStrength = new List<EndogenousDisputesArticleVariationInfo>()
-            {
-                new EndogenousDisputesArticleVariationInfo("0.175", DefaultNonCriticalValues().WithReplacement("Noise to Produce Case Strength", "0.175")),
-                new EndogenousDisputesArticleVariationInfo("0.35", DefaultNonCriticalValues().WithReplacement("Noise to Produce Case Strength", "0.35")),
-                new EndogenousDisputesArticleVariationInfo("0.70", DefaultNonCriticalValues().WithReplacement("Noise to Produce Case Strength", "0.7")),
-            };
+            // DISABLED
+            //var varyingNoiseToProduceCaseStrength = new List<EndogenousDisputesArticleVariationInfo>()
+            //{
+            //    new EndogenousDisputesArticleVariationInfo("0.175", DefaultNonCriticalValues().WithReplacement("Noise to Produce Case Strength", "0.175")),
+            //    new EndogenousDisputesArticleVariationInfo("0.35", DefaultNonCriticalValues().WithReplacement("Noise to Produce Case Strength", "0.35")),
+            //    new EndogenousDisputesArticleVariationInfo("0.70", DefaultNonCriticalValues().WithReplacement("Noise to Produce Case Strength", "0.7")),
+            //};
 
-            var varyingIssue = new List<EndogenousDisputesArticleVariationInfo>()
-            {
-                new EndogenousDisputesArticleVariationInfo("Liability", DefaultNonCriticalValues().WithReplacement("Issue", "Liability")),
-                new EndogenousDisputesArticleVariationInfo("Damages", DefaultNonCriticalValues().WithReplacement("Issue", "Damages")),
-            };
+            // DISABLED
+            //var varyingIssue = new List<EndogenousDisputesArticleVariationInfo>()
+            //{
+            //    new EndogenousDisputesArticleVariationInfo("Liability", DefaultNonCriticalValues().WithReplacement("Issue", "Liability")),
+            //    new EndogenousDisputesArticleVariationInfo("Damages", DefaultNonCriticalValues().WithReplacement("Issue", "Damages")),
+            //};
 
             var varyingTimingOfCosts = new List<EndogenousDisputesArticleVariationInfo>()
             {
@@ -386,16 +413,16 @@ namespace ACESim
             {
                 new EndogenousDisputesArticleVariationSetInfo("Baseline", varyingNothing),
                 new EndogenousDisputesArticleVariationSetInfo("Fee Shifting Rule (Liability Issue)", varyingFeeShiftingRule_LiabilityUncertain),
-                new EndogenousDisputesArticleVariationSetInfo("Fee Shifting Rule (Damages Issue)", varyingFeeShiftingRule_DamagesUncertain),
+                // DISABLED new EndogenousDisputesArticleVariationSetInfo("Fee Shifting Rule (Damages Issue)", varyingFeeShiftingRule_DamagesUncertain),
                 new EndogenousDisputesArticleVariationSetInfo("Noise Multiplier", varyingNoiseMultipliersBoth),
                 new EndogenousDisputesArticleVariationSetInfo("Information Asymmetry", varyingNoiseMultipliersAsymmetric),
                 new EndogenousDisputesArticleVariationSetInfo("Relative Costs", varyingRelativeCosts),
                 new EndogenousDisputesArticleVariationSetInfo("Risk Aversion", varyingRiskAversion),
                 new EndogenousDisputesArticleVariationSetInfo("Risk Aversion Asymmetry", varyingRiskAversionAsymmetry),
                 new EndogenousDisputesArticleVariationSetInfo("Quitting Rules", varyingQuitRules),
-                new EndogenousDisputesArticleVariationSetInfo("Proportion of Cases Where D Is Truly Liable", varyingProbabilityTrulyLiable),
-                new EndogenousDisputesArticleVariationSetInfo("Case Strength Noise", varyingNoiseToProduceCaseStrength),
-                new EndogenousDisputesArticleVariationSetInfo("Issue", varyingIssue),
+                // DISABLED new EndogenousDisputesArticleVariationSetInfo("Proportion of Cases Where D Is Truly Liable", varyingProbabilityTrulyLiable),
+                // DISABLED new EndogenousDisputesArticleVariationSetInfo("Case Strength Noise", varyingNoiseToProduceCaseStrength),
+                // DISABLED new EndogenousDisputesArticleVariationSetInfo("Issue", varyingIssue),
                 new EndogenousDisputesArticleVariationSetInfo("Proportion of Costs at Beginning", varyingTimingOfCosts)
             };
 
@@ -433,9 +460,9 @@ namespace ACESim
         {
             FeeShiftingRule.English_LiabilityIssue => "English",
             FeeShiftingRule.MarginOfVictory_LiabilityIssue => "Margin",
-            FeeShiftingRule.English_DamagesIssue => "English Damages Dispute",
-            FeeShiftingRule.Rule68_DamagesIssue => "Rule 68 Damages Dispute",
-            FeeShiftingRule.Rule68English_DamagesIssue => "Reverse 68 Damages Dispute",
+            // DISABLED FeeShiftingRule.English_DamagesIssue => "English Damages Dispute",
+            // DISABLED FeeShiftingRule.Rule68_DamagesIssue => "Rule 68 Damages Dispute",
+            // DISABLED FeeShiftingRule.Rule68English_DamagesIssue => "Reverse 68 Damages Dispute",
             _ => throw new NotImplementedException()
         }
         , g =>
@@ -451,39 +478,41 @@ namespace ACESim
                     g.LoserPaysOnlyLargeMarginOfVictory = true;
                     g.LoserPaysMarginOfVictoryThreshold = 0.8;
                     break;
-                case FeeShiftingRule.English_DamagesIssue:
-                    ChangeToDamagesIssue(g);
-                    g.LoserPays = true;
-                    break;
-                case FeeShiftingRule.Rule68_DamagesIssue:
-                    ChangeToDamagesIssue(g);
-                    g.Rule68 = true;
-                    g.LoserPays = false; // Note that most of our simulations use English rule, even where testing for American rule (i.e., by doing English rule with multiple of 0). So, this will be an exception, and we set loser pays to false. But when Rule 68 is triggered, there will be fee shifting, according to the LoserPaysMultiple, so that variable matters. In other words, with Rule 68 American, loser pays is set to false, but the loser pays multiple still matters, because fee-shifting is still possible.
-                    break;
-                case FeeShiftingRule.Rule68English_DamagesIssue:
-                    ChangeToDamagesIssue(g);
-                    g.Rule68 = true;
-                    g.LoserPays = true;
-                    break;
+                    // DISABLED 
+                    //case FeeShiftingRule.English_DamagesIssue:
+                    //    ChangeToDamagesIssue(g);
+                    //    g.LoserPays = true;
+                    //    break;
+                    //case FeeShiftingRule.Rule68_DamagesIssue:
+                    //    ChangeToDamagesIssue(g);
+                    //    g.Rule68 = true;
+                    //    g.LoserPays = false; // Note that most of our simulations use English rule, even where testing for American rule (i.e., by doing English rule with multiple of 0). So, this will be an exception, and we set loser pays to false. But when Rule 68 is triggered, there will be fee shifting, according to the LoserPaysMultiple, so that variable matters. In other words, with Rule 68 American, loser pays is set to false, but the loser pays multiple still matters, because fee-shifting is still possible.
+                    //    break;
+                    //case FeeShiftingRule.Rule68English_DamagesIssue:
+                    //    ChangeToDamagesIssue(g);
+                    //    g.Rule68 = true;
+                    //    g.LoserPays = true;
+                    //    break;
             }
             g.VariableSettings["Fee Shifting Rule"] = mode switch
             {
                 FeeShiftingRule.English_LiabilityIssue => "English",
                 FeeShiftingRule.MarginOfVictory_LiabilityIssue => "Margin of Victory",
-                FeeShiftingRule.English_DamagesIssue => "English",
-                FeeShiftingRule.Rule68_DamagesIssue => "Rule 68",
-                FeeShiftingRule.Rule68English_DamagesIssue => "Reverse 68",
+                // DISABLED FeeShiftingRule.English_DamagesIssue => "English",
+                // DISABLED FeeShiftingRule.Rule68_DamagesIssue => "Rule 68",
+                // DISABLED FeeShiftingRule.Rule68English_DamagesIssue => "Reverse 68",
                 _ => throw new NotImplementedException()
             };
-            g.VariableSettings["Issue"] = mode switch
-            {
-                FeeShiftingRule.English_LiabilityIssue => "Liability",
-                FeeShiftingRule.MarginOfVictory_LiabilityIssue => "Liability",
-                FeeShiftingRule.English_DamagesIssue => "Damages",
-                FeeShiftingRule.Rule68_DamagesIssue => "Damages",
-                FeeShiftingRule.Rule68English_DamagesIssue => "Damages",
-                _ => throw new NotImplementedException()
-            };
+            // DISABLED
+            //g.VariableSettings["Issue"] = mode switch
+            //{
+            //    FeeShiftingRule.English_LiabilityIssue => "Liability",
+            //    FeeShiftingRule.MarginOfVictory_LiabilityIssue => "Liability",
+            //    // DISABLED FeeShiftingRule.English_DamagesIssue => "Damages",
+            //    // DISABLED FeeShiftingRule.Rule68_DamagesIssue => "Damages",
+            //    // DISABLED FeeShiftingRule.Rule68English_DamagesIssue => "Damages",
+            //    _ => throw new NotImplementedException()
+            //};
         });
 
         List<Func<LitigGameOptions, LitigGameOptions>> CriticalCostsMultiplierTransformations(bool includeBaselineValue)
@@ -663,13 +692,15 @@ namespace ACESim
             g.AllowAbandonAndDefaults = allowAbandonAndDefaults;
             g.VariableSettings["Allow Abandon and Defaults"] = allowAbandonAndDefaults;
         });
-        List<Func<LitigGameOptions, LitigGameOptions>> ProbabilityTrulyLiableTransformations(bool includeBaselineValue)
-        {
-            List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
-            foreach (double probability in ProbabilitiesTrulyLiable.Skip(includeBaselineValue ? 0 : 1))
-                results.Add(o => GetAndTransform_ProbabilityTrulyLiable(o, probability));
-            return results;
-        }
+
+        // DISABLED
+        //List<Func<LitigGameOptions, LitigGameOptions>> ProbabilityTrulyLiableTransformations(bool includeBaselineValue)
+        //{
+        //    List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
+        //    foreach (double probability in ProbabilitiesTrulyLiable.Skip(includeBaselineValue ? 0 : 1))
+        //        results.Add(o => GetAndTransform_ProbabilityTrulyLiable(o, probability));
+        //    return results;
+        //}
 
         LitigGameOptions GetAndTransform_ProbabilityTrulyLiable(LitigGameOptions options, double probability) => GetAndTransform(options, " Truly Liable Probability " + probability, g =>
         {
@@ -678,36 +709,39 @@ namespace ACESim
             g.VariableSettings["Probability Truly Liable"] = probability;
         });
 
-        List<Func<LitigGameOptions, LitigGameOptions>> NoiseToProduceCaseStrengthTransformations(bool includeBaselineValue)
-        {
-            List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
-            foreach (double noise in StdevsNoiseToProduceLiabilityStrength.Skip(includeBaselineValue ? 0 : 1))
-                results.Add(o => GetAndTransform_NoiseToProduceCaseStrength(o, noise));
-            return results;
-        }
+        // DISABLED
+        //List<Func<LitigGameOptions, LitigGameOptions>> NoiseToProduceCaseStrengthTransformations(bool includeBaselineValue)
+        //{
+        //    List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
+        //    foreach (double noise in StdevsNoiseToProduceLiabilityStrength.Skip(includeBaselineValue ? 0 : 1))
+        //        results.Add(o => GetAndTransform_NoiseToProduceCaseStrength(o, noise));
+        //    return results;
+        //}
 
-        LitigGameOptions GetAndTransform_NoiseToProduceCaseStrength(LitigGameOptions options, double noise) => GetAndTransform(options, " Case Strength Noise " + noise, g =>
-        {
-            ((LitigGameExogenousDisputeGenerator)g.LitigGameDisputeGenerator).StdevNoiseToProduceLiabilityStrength = noise;
-            g.VariableSettings["Noise to Produce Case Strength"] = noise;
-        });
-        List<Func<LitigGameOptions, LitigGameOptions>> LiabilityVsDamagesTransformations(bool includeBaselineValue)
-        {
-            List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
-            foreach (bool liabilityIsUncertain in new[] { true, false }.Skip(includeBaselineValue ? 0 : 1))
-                results.Add(o => GetAndTransform_LiabilityVsDamages(o, liabilityIsUncertain));
-            return results;
-        }
+        // DISABLED
+        //LitigGameOptions GetAndTransform_NoiseToProduceCaseStrength(LitigGameOptions options, double noise) => GetAndTransform(options, " Case Strength Noise " + noise, g =>
+        //{
+        //    ((LitigGameExogenousDisputeGenerator)g.LitigGameDisputeGenerator).StdevNoiseToProduceLiabilityStrength = noise;
+        //    g.VariableSettings["Noise to Produce Case Strength"] = noise;
+        //});
+        //List<Func<LitigGameOptions, LitigGameOptions>> LiabilityVsDamagesTransformations(bool includeBaselineValue)
+        //{
+        //    List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
+        //    foreach (bool liabilityIsUncertain in new[] { true, false }.Skip(includeBaselineValue ? 0 : 1))
+        //        results.Add(o => GetAndTransform_LiabilityVsDamages(o, liabilityIsUncertain));
+        //    return results;
+        //}
 
-        LitigGameOptions GetAndTransform_LiabilityVsDamages(LitigGameOptions options, bool liabilityIsUncertain) => GetAndTransform(options, liabilityIsUncertain ? " Liability Dispute" : " Damages Dispute", g =>
-        {
-            if (!liabilityIsUncertain)
-            {
-                ChangeToDamagesIssue(g);
-            }
+        // DISABLED
+        //LitigGameOptions GetAndTransform_LiabilityVsDamages(LitigGameOptions options, bool liabilityIsUncertain) => GetAndTransform(options, liabilityIsUncertain ? " Liability Dispute" : " Damages Dispute", g =>
+        //{
+        //    if (!liabilityIsUncertain)
+        //    {
+        //        ChangeToDamagesIssue(g);
+        //    }
 
-            g.VariableSettings["Issue"] = liabilityIsUncertain ? "Liability" : "Damages";
-        });
+        //    g.VariableSettings["Issue"] = liabilityIsUncertain ? "Liability" : "Damages";
+        //});
 
         private static void ChangeToDamagesIssue(LitigGameOptions g)
         {

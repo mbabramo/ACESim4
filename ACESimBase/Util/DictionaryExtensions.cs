@@ -47,7 +47,7 @@ namespace ACESimBase.Util
                     hash[col.ColumnName] = col.ColumnName.Length;
                 foreach (DataRow row in dataTable.Rows)
                     for (int i = 0; i < row.ItemArray.Length; i++)
-                        if (row[i] != null)
+                        if (row[i] != null && row[i] is not System.DBNull)
                             if (((string)row[i]).Length > (int)hash[dataTable.Columns[i].ColumnName])
                                 hash[dataTable.Columns[i].ColumnName] = ((string)row[i]).Length;
                 int rowLength = (hash.Values.Count + 1) * seperator.Length;

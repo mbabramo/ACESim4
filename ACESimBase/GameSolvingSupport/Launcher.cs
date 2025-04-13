@@ -593,6 +593,8 @@ namespace ACESim
 
         private async Task<ReportCollection> GetSingleRepetitionReport(string optionSetName, int i, bool addOptionSetColumns, IStrategiesDeveloper developer, int? restrictToScenarioIndex, Action<string> logAction = null)
         {
+            int retriesRemaining = 20;
+            int failuresSoFar = 0;
             if (logAction == null)
                 logAction = s => Debug.WriteLine(s);
             developer.EvolutionSettings.GameNumber = StartGameNumber + i;
@@ -600,8 +602,6 @@ namespace ACESim
             if (i > 0)
                 developer.Reinitialize();
             ReportCollection reportCollection = new ReportCollection();
-            int retriesRemaining = 20;
-            int failuresSoFar = 0;
         retry:
             try
             {
@@ -617,6 +617,8 @@ namespace ACESim
                 if (retriesRemaining >= 0)
                 {
                     int delay = (int)Math.Pow(1.3, failuresSoFar);
+                    if (delay > 60000)
+                        delay = 50_000;
                     if (failuresSoFar > 1 && delay < 100000)
                         delay += (int) (10000.0 * new Random((int)DateTime.Now.Ticks).Next());
                     await Task.Delay(delay);
