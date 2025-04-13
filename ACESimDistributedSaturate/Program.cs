@@ -15,12 +15,12 @@ namespace ACESimDistributedSaturate
         async static Task Main(string[] args)
         {
             string currentPath = Process.GetCurrentProcess().MainModule.FileName;
-            bool allowDebugging = false; 
+            bool allowDebugging = false;
             if (!allowDebugging && currentPath.Contains("Debug"))
                 throw new Exception("Set to release mode before saturating.");
             string targetPath = currentPath.Replace("ACESimDistributedSaturate", "ACESimDistributed");
             Console.WriteLine(targetPath);
-            const int maxNumProcessors = 32; 
+            const int maxNumProcessors = 16;
             int numProcessors = Environment.ProcessorCount;
             if (numProcessors > maxNumProcessors)
                 numProcessors = maxNumProcessors;
@@ -36,6 +36,37 @@ namespace ACESimDistributedSaturate
                 if (process != null)
                     processes.Add(process);
             }
+
+            Console.WriteLine($"Press escape to kill a pending process.");
+
+            // Added task to monitor for the Escape key press and kill a pending process.
+            Task.Run(() =>
+            {
+                while (true)
+                {
+                    if (Console.KeyAvailable)
+                    {
+                        var key = Console.ReadKey(true);
+                        if (key.Key == ConsoleKey.Escape)
+                        {
+                            var procToKill = processes.FirstOrDefault(p => !p.HasExited);
+                            if (procToKill != null)
+                            {
+                                Console.WriteLine($"Escape pressed. Killing process ID: {procToKill.Id}");
+                                try
+                                {
+                                    procToKill.Kill();
+                                }
+                                catch (Exception ex)
+                                {
+                                    Console.WriteLine($"Failed to kill process {procToKill.Id}: {ex.Message}");
+                                }
+                            }
+                        }
+                    }
+                    Task.Delay(100).Wait();
+                }
+            });
 
             Stopwatch s = new Stopwatch();
             s.Start();

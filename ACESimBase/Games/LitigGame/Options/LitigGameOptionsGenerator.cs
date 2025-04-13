@@ -131,10 +131,10 @@ namespace ACESim
             var options = EndogenousArticleBase();
 
             options.AllowAbandonAndDefaults = true; 
-            options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 3; // DEBUG
+            options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 5; // DEBUG
 
             var disputeGenerator = new LitigGameAppropriationDisputeGenerator();
-            disputeGenerator.NumSystemicRandomnessLevels = 2; // DEBUG
+            disputeGenerator.NumSystemicRandomnessLevels = 5; // DEBUG
             options.LitigGameDisputeGenerator = disputeGenerator;
             return options;
         }
