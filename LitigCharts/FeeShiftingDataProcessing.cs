@@ -84,8 +84,8 @@ namespace LitigCharts
         {
             List<string> rowsToGet = new List<string> { "All", "Not Litigated", "Litigated", "Settles", "Tried", "P Loses", "P Wins", "Truly Liable", "Truly Not Liable" };
             List<string> replacementRowNames = new List<string> { "All", "Not Litigated", "Litigated", "Settles", "Tried", "P Loses", "P Wins", "Truly Liable", "Truly Not Liable" };
-            List<string> columnsToGet = new List<string> { "Exploit", "Seconds", "PFiles", "DAnswers", "POffer1", "DOffer1", "Trial", "PWinPct", "PWealth", "DWealth", "PWelfare", "DWelfare", "TotExpense", "False+", "False-", "ValIfSettled", "PDoesntFile", "DDoesntAnswer", "SettlesBR1", "PAbandonsBR1", "DDefaultsBR1", "P Loses", "P Wins" };
-            List<string> replacementColumnNames = new List<string> { "Exploitability", "Calculation Time", "P Files", "D Answers", "P Offer", "D Offer", "Trial", "P Win Probability", "P Wealth", "D Wealth", "P Welfare", "D Welfare", "Expenditures", "False Positive Inaccuracy", "False Negative Inaccuracy", "Value If Settled", "No Suit", "No Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins" };
+            List<string> columnsToGet = new List<string> { "Exploit", "Seconds", "PFiles", "DAnswers", "POffer1", "DOffer1", "Trial", "PWinPct", "PWealth", "DWealth", "TotWealth", "WealthLoss", "PWelfare", "DWelfare", "PDSWelfareLoss", "SWelfareLoss", "TotExpense", "False+", "False-", "ValIfSettled", "PDoesntFile", "DDoesntAnswer", "SettlesBR1", "PAbandonsBR1", "DDefaultsBR1", "P Loses", "P Wins" };
+            List<string> replacementColumnNames = new List<string> { "Exploitability", "Calculation Time", "P Files", "D Answers", "P Offer", "D Offer", "Trial", "P Win Probability", "P Wealth", "D Wealth", "Total Wealth", "Wealth Loss", "P Welfare", "D Welfare", "Pre-Dispute Social Welfare Loss", "Social Welfare Loss", "Expenditures", "False Positive Inaccuracy", "False Negative Inaccuracy", "Value If Settled", "No Suit", "No Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins" };
             BuildReport(rowsToGet, replacementRowNames, columnsToGet, replacementColumnNames, "output");
         }
 
@@ -631,7 +631,7 @@ namespace LitigCharts
             var drawCommands = r.GetStandaloneDocument();
         }
 
-        public record AggregatedGraphInfo(string topicName, List<string> columnsToGet, List<string> lineScheme, string minorXAxisLabel = "Fee Shifting Multiplier", string minorXAxisLabelShort = "Fee Shift Mult.", string minorYAxisLabel = "\\$", string majorYAxisLabel = "Costs Multiplier", double? maximumValueMicroY = null, TikzAxisSet.GraphType graphType = TikzAxisSet.GraphType.Line);
+        public record AggregatedGraphInfo(string topicName, List<string> columnsToGet, List<string> lineScheme, string minorXAxisLabel = "Fee Shifting Multiplier", string minorXAxisLabelShort = "Fee Shift Mult.", string minorYAxisLabel = "\\$", string majorYAxisLabel = "Costs Multiplier", double? maximumValueMicroY = null, TikzAxisSet.GraphType graphType = TikzAxisSet.GraphType.Line, Func<double?, double?> scaleMiniGraphValues = null);
         
         public static void ProduceLatexDiagramsAggregatingReports()
         {
@@ -681,6 +681,8 @@ namespace LitigCharts
                     new AggregatedGraphInfo($"Accuracy{riskAversionString}", new List<string>() { "False Positive Inaccuracy", "False Negative Inaccuracy" }, plaintiffDefendantAndOthersLineScheme.Take(2).ToList()),
                     new AggregatedGraphInfo($"Expenditures{riskAversionString}", new List<string>() { "Expenditures" }, plaintiffDefendantAndOthersLineScheme.Skip(2).Take(1).ToList()),
                     new AggregatedGraphInfo($"Offers{riskAversionString}", new List<string>() { "P Offer", "D Offer" }, plaintiffDefendantAndOthersLineScheme.Take(2).ToList()),
+                    new AggregatedGraphInfo($"Social Welfare Loss{riskAversionString}", new List<string>() { "Social Welfare Loss" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), maximumValueMicroY: 3, scaleMiniGraphValues: x => x / 3.0),
+                    new AggregatedGraphInfo($"Wealth Loss{riskAversionString}", new List<string>() { "Wealth Loss" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), maximumValueMicroY: 3, scaleMiniGraphValues:  x => x / 3.0),
                     new AggregatedGraphInfo($"Trial{riskAversionString}", new List<string>() { "Trial" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0),
                     new AggregatedGraphInfo($"Trial Outcomes{riskAversionString}", new List<string>() { "P Win Probability" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0),
                     new AggregatedGraphInfo($"Disposition{riskAversionString}", new List<string>() {"No Suit", "No Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins"}, dispositionLineScheme, minorYAxisLabel:"Proportion", maximumValueMicroY: 1.0, graphType:TikzAxisSet.GraphType.StackedBar)
@@ -704,6 +706,7 @@ namespace LitigCharts
 
         private static void ProcessForWelfareMeasure(LitigGameLauncher launcher, string pathAndFilename, string outputFolderPath, List<LitigGameLauncher.EndogenousDisputesArticleVariationSetInfo> variations, AggregatedGraphInfo aggregatedGraphInfo, double? limitToCostsMultiplier)
         {
+            Func<double?, double?> scaleMiniGraphValues = aggregatedGraphInfo.scaleMiniGraphValues ?? (x => x);
             List<(string columnName, string expectedText)[]> collectedRowsToFind = new List<(string columnName, string expectedText)[]>();
             double?[,] valuesFromCSVAllRows = null;
             int collectedValuesIndex = 0;
@@ -720,7 +723,8 @@ namespace LitigCharts
 
                         var requirementsForEachVariation = variation.requirementsForEachVariation;
                         List<List<TikzLineGraphData>> lineGraphData = new List<List<TikzLineGraphData>>();
-                        List<double> costsMultipliers = limitToCostsMultiplier == null ? launcher.CriticalCostsMultipliers.OrderBy(x => x).ToList() : new List<double> { (double)limitToCostsMultiplier }; 
+                        List<double> costsMultipliers = limitToCostsMultiplier == null ? launcher.CriticalCostsMultipliers.OrderBy(x => x).ToList() : new List<double> { (double)limitToCostsMultiplier };
+                        double maxY = 0;
                         foreach (double macroYValue in costsMultipliers)
                         {
                             List<TikzLineGraphData> lineGraphDataForRow = new List<TikzLineGraphData>();
@@ -750,19 +754,48 @@ namespace LitigCharts
                                         }
                                         for (int i = 0; i < welfareColumnsCount; i++)
                                         {
-                                            dataForMiniGraph[i].Add(valuesFromCSVAllRows[collectedValuesIndex, i]);
+                                            dataForMiniGraph[i].Add(scaleMiniGraphValues(valuesFromCSVAllRows[collectedValuesIndex, i]));
                                         }
                                         collectedValuesIndex++;
                                     }
                                 }
                                 if (!stepDefiningRowsToFind)
                                 {
+                                    if (dataForMiniGraph.Any(x => x.Any(y => y < 0)))
+                                    {
+                                        throw new Exception("Data for mini graph cannot be negative");
+                                    }
+                                    maxY = Math.Max(maxY, (dataForMiniGraph.Max(x => x.Max(y => y ?? 0))));
                                     TikzLineGraphData miniGraphData = new TikzLineGraphData(dataForMiniGraph, aggregatedGraphInfo.lineScheme, aggregatedGraphInfo.columnsToGet);
                                     lineGraphDataForRow.Add(miniGraphData);
                                 }
                             }
                             if (!stepDefiningRowsToFind)
                                 lineGraphData.Add(lineGraphDataForRow);
+                        }
+
+                        if (maxY > 1)
+                        {
+                            // round maxY up to the nearest 0.1 (e.g., 1.43 -> 1.5)
+                            maxY = Math.Ceiling(maxY * 10) / 10;
+                            // change aggregatedGraphInfo so that the microY axis value is multiplied by the new value.
+                            aggregatedGraphInfo = aggregatedGraphInfo with { maximumValueMicroY = (aggregatedGraphInfo.maximumValueMicroY ?? 1) * maxY };
+                            // now, change each individual mini graph so that the y value is divided by maxY (since we've increased the scale on the graph).
+                            foreach (var macroRow in lineGraphData)
+                            {
+                                for (int macroColumnIndex = 0; macroColumnIndex < macroRow.Count; macroColumnIndex++)
+                                {
+                                    TikzLineGraphData macroCell = macroRow[macroColumnIndex];
+                                    for (int i = 0; i < macroCell.proportionalHeights.Count(); i++)
+                                    {
+                                        for (int j = 0; j < macroCell.proportionalHeights[i].Count(); j++)
+                                        {
+                                            if (macroCell.proportionalHeights[i][j] != null)
+                                                macroCell.proportionalHeights[i][j] /= maxY;
+                                        }
+                                    }
+                                }
+                            }
                         }
 
                         if (!stepDefiningRowsToFind)

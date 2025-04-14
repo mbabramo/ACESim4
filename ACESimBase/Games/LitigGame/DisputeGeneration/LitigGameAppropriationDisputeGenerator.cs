@@ -24,7 +24,7 @@ namespace ACESim
         public double BenefitToDefendantOfAppropriation = 0.50;
         public double CostToPlaintiffOfAppropriation = 1.0;
         public double SocialWelfareMultiplier = 1.0;
-        public bool CountBenefitToDefendantInSocialWelfare = false;
+        public bool CountBenefitToDefendantInSocialWelfare = false; // note that we also have a measure for total wealth, so that's a way to assess what would happen if this is true
 
         private double[][] ProbabilityLiabilityStrengthForNoiseLevel_TrulyLiable, ProbabilityLiabilityStrengthForNoiseLevel_TrulyNotLiable;
 
