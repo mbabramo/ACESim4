@@ -90,7 +90,7 @@ namespace ACESimDistributedSaturate
                     {
                         foreach (var process in processes)
                             process.Kill();
-                        // DEBUG LitigCharts.Runner.FeeShiftingArticle(); // run the LitigCharts code // TEMPORARY CODE
+                        LitigCharts.Runner.FeeShiftingArticle(); // run the LitigCharts code // DEBUG
                         return;
                     }
                 }
