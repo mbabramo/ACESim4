@@ -30,6 +30,7 @@ namespace ACESim
         public (double pNoiseMultiplier, double dNoiseMultiplier)[] NoiseMultipliers = new (double pNoiseMultiplier, double dNoiseMultiplier)[] { (1.0, 1.0), (0.50, 0.50), (0.5, 2.0), (2.0, 2.0), (2.0, 0.5), (0.25, 0.25), (4.0, 4.0) };
         public double[] CriticalFeeShiftingMultipliers = new double[] { 0.0, 1.0, 0.5, 1.5, 2.0 }; 
         public double[] AdditionalFeeShiftingMultipliers = new double[] { 0.0 }; // added all but 0 //, 0.25, 4.0 };// NOTE: If restoring this, also change NamesOfFeeShiftingArticleSets
+        public double[] DamagesMultipliers = new double[] { 1.0, 0.5, 2.0, 4.0 };
         public double[] RelativeCostsMultipliers = new double[] { 1.0, 0.5, 2.0 };
         // DISABLED public double[] ProbabilitiesTrulyLiable = new double[] { 0.5, 0.1, 0.9 };
         // DISABLED public double[] StdevsNoiseToProduceLiabilityStrength = new double[] { 0.35, 0.175, 0.70 };
@@ -204,6 +205,7 @@ namespace ACESim
                 noncriticalRiskAversionTransformations,
                 NoiseTransformations(includeBaselineValueForNoncritical),
                 PRelativeCostsTransformations(includeBaselineValueForNoncritical),
+                DamagesMultiplierTransformations(includeBaselineValueForNoncritical),
                 FeeShiftingModeTransformations(includeBaselineValueForNoncritical),
                 // DISABLED AllowAbandonAndDefaultsTransformations(includeBaselineValueForNoncritical),
                 // DISABLED ProbabilityTrulyLiableTransformations(includeBaselineValueForNoncritical),
@@ -518,6 +520,14 @@ namespace ACESim
             //};
         });
 
+        List<Func<LitigGameOptions, LitigGameOptions>> DamagesMultiplierTransformations(bool includeBaselineValue)
+        {
+            List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
+            foreach (double multiplier in DamagesMultipliers.Skip(includeBaselineValue ? 0 : 1))
+                results.Add(o => GetAndTransform_DamagesMultiplier(o, multiplier));
+            return results;
+        }
+
         List<Func<LitigGameOptions, LitigGameOptions>> CriticalCostsMultiplierTransformations(bool includeBaselineValue)
         {
             List<Func<LitigGameOptions, LitigGameOptions>> results = new List<Func<LitigGameOptions, LitigGameOptions>>();
@@ -533,6 +543,13 @@ namespace ACESim
                 results.Add(o => GetAndTransform_CostsMultiplier(o, multiplier));
             return results;
         }
+
+        LitigGameOptions GetAndTransform_DamagesMultiplier(LitigGameOptions options, double multiplier) => GetAndTransform(options, " Damages Multiplier " + multiplier, g =>
+        {
+            g.DamagesMax = multiplier;
+            g.VariableSettings["Damages Multiplier"] = multiplier;
+        });
+
 
         LitigGameOptions GetAndTransform_CostsMultiplier(LitigGameOptions options, double multiplier) => GetAndTransform(options, " Costs Multiplier " + multiplier, g =>
         {

@@ -44,7 +44,7 @@ namespace ACESim
             options.PInitialWealth = options.DInitialWealth = 10.0;
             options.DamagesMin = 0.0;
             options.DamagesMax = 1.0;
-            // DEBUG -- change DamagesMax (thus serving as a damages multiplier)
+
             options.PTrialCosts = options.DTrialCosts = 0.15;
             options.PFilingCost = options.DAnswerCost = 0.15;
             options.PFilingCost_PortionSavedIfDDoesntAnswer = 0;
