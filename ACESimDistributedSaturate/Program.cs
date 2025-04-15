@@ -20,7 +20,7 @@ namespace ACESimDistributedSaturate
                 throw new Exception("Set to release mode before saturating.");
             string targetPath = currentPath.Replace("ACESimDistributedSaturate", "ACESimDistributed");
             Console.WriteLine(targetPath);
-            const int maxNumProcessors = 16;
+            const int maxNumProcessors = 8;
             int numProcessors = Environment.ProcessorCount;
             if (numProcessors > maxNumProcessors)
                 numProcessors = maxNumProcessors;
@@ -40,6 +40,7 @@ namespace ACESimDistributedSaturate
             Console.WriteLine($"Press escape to kill a pending process.");
 
             // Added task to monitor for the Escape key press and kill a pending process.
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
             Task.Run(() =>
             {
                 while (true)
@@ -67,6 +68,7 @@ namespace ACESimDistributedSaturate
                     Task.Delay(100).Wait();
                 }
             });
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
             Stopwatch s = new Stopwatch();
             s.Start();

@@ -287,10 +287,17 @@ namespace ACESim
 
         private void Unroll_ExecuteUnrolledCommands(double[] array, bool copyChanceAndFinalUtilities)
         {
-            Unroll_CopyInformationSetsToArray(array, copyChanceAndFinalUtilities);
-            Unroll_Commands.ExecuteAll(array, TraceCFR);
-            Unroll_CopyArrayToInformationSets(array);
-            Unroll_DetermineIterationResultForEachPlayer(array);
+            try
+            {
+                Unroll_CopyInformationSetsToArray(array, copyChanceAndFinalUtilities);
+                Unroll_Commands.ExecuteAll(array, TraceCFR);
+                Unroll_CopyArrayToInformationSets(array);
+                Unroll_DetermineIterationResultForEachPlayer(array);
+            }
+            catch
+            {
+                throw new UnrollingException(); // abort -- this is a bug likely due to the game tree being the wrong size as a result of caching
+            }
         }
 
         private void Unroll_DetermineIterationResultForEachPlayer(double[] array)
