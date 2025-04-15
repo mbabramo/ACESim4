@@ -13,7 +13,19 @@ namespace ACESim
 {
     public class LitigGameLauncher : Launcher
     {
-        public string MasterReportNamePrefix => "APP";
+        public enum UnderlyingGame
+        {
+            AppropriationGame,
+        }
+
+        public UnderlyingGame GameToPlay => UnderlyingGame.AppropriationGame;
+
+        public string MasterReportNamePrefix => GameToPlay switch
+        {
+            UnderlyingGame.AppropriationGame => "APP",
+            _ => throw new NotImplementedException("Unknown game to play: " + GameToPlay.ToString()),
+        };
+
         public override string MasterReportNameForDistributedProcessing => MasterReportNamePrefix + "001";
 
         // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
@@ -268,6 +280,7 @@ namespace ACESim
                 ("Relative Costs", "1"),
                 ("Noise Multiplier P", "1"),
                 ("Noise Multiplier D", "1"),
+                ("Damages Multiplier", "1"),
                 // DISABLED ("Allow Abandon and Defaults", "true"),
                 // DISABLED ("Probability Truly Liable", "0.5"),
                 // DISABLED ("Noise to Produce Case Strength", "0.35"),
@@ -284,6 +297,7 @@ namespace ACESim
             "Noise Multipliers", // includes P & D
             "Relative Costs",
             "Fee Shifting Mode",
+            "Damages Multiplier",
             // DISABLED "Allowing Abandon and Defaults",
             // DISABLED "Probability Truly Liable",
             // DISABLED "Noise to Produce Case Strength",
@@ -301,6 +315,7 @@ namespace ACESim
                 ("Relative Costs", "1"),
                 ("Noise Multiplier P", "1"),
                 ("Noise Multiplier D", "1"),
+                ("Damages Multiplier", "1"),
                 // DISABLED ("Allow Abandon and Defaults", "true"),
                 // DISABLED ("Probability Truly Liable", "0.5"),
                 // DISABLED ("Noise to Produce Case Strength", "0.35"),
@@ -375,6 +390,14 @@ namespace ACESim
                 new EndogenousDisputesArticleVariationInfo("D More Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "D More Risk Averse")),
             };
 
+            var varyingDamagesMultiplier = new List<EndogenousDisputesArticleVariationInfo>()
+            {
+                new EndogenousDisputesArticleVariationInfo("0.5", DefaultNonCriticalValues().WithReplacement("Damages Multiplier", "0.5")),
+                new EndogenousDisputesArticleVariationInfo("1", DefaultNonCriticalValues().WithReplacement("Damages Multiplier", "1")),
+                new EndogenousDisputesArticleVariationInfo("2", DefaultNonCriticalValues().WithReplacement("Damages Multiplier", "2")),
+                new EndogenousDisputesArticleVariationInfo("4", DefaultNonCriticalValues().WithReplacement("Damages Multiplier", "4")),
+            };
+
             // DISABLED
             //var varyingQuitRules = new List<EndogenousDisputesArticleVariationInfo>()
             //{
@@ -424,7 +447,8 @@ namespace ACESim
                 new EndogenousDisputesArticleVariationSetInfo("Relative Costs", varyingRelativeCosts),
                 new EndogenousDisputesArticleVariationSetInfo("Risk Aversion", varyingRiskAversion),
                 new EndogenousDisputesArticleVariationSetInfo("Risk Aversion Asymmetry", varyingRiskAversionAsymmetry),
-                // DISABLED new EndogenousDisputesArticleVariationSetInfo("Quitting Rules", varyingQuitRules),
+                new EndogenousDisputesArticleVariationSetInfo("Damages Multiplier", varyingDamagesMultiplier),
+                //DISABLED new EndogenousDisputesArticleVariationSetInfo("Quitting Rules", varyingQuitRules),
                 // DISABLED new EndogenousDisputesArticleVariationSetInfo("Proportion of Cases Where D Is Truly Liable", varyingProbabilityTrulyLiable),
                 // DISABLED new EndogenousDisputesArticleVariationSetInfo("Case Strength Noise", varyingNoiseToProduceCaseStrength),
                 // DISABLED new EndogenousDisputesArticleVariationSetInfo("Issue", varyingIssue),
