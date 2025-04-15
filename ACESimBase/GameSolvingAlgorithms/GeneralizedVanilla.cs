@@ -152,6 +152,7 @@ namespace ACESim
 
         private ArrayCommandList Unroll_Commands;
         private static ArrayCommandList Unroll_Commands_Cached = null;
+        private static (int Chance, int Decision, int Final) GameTreeNodeCount_Cached = default;
         private int Unroll_SizeOfArray;
         private static int Unroll_SizeOfArray_Cached = -1;
 
@@ -252,11 +253,16 @@ namespace ACESim
             Unroll_InitializeInitialArrayIndices();
             if (EvolutionSettings.ReuseUnrolledAlgorithm && Unroll_Commands_Cached != null)
             {
-                Unroll_Commands = Unroll_Commands_Cached;
-                Unroll_SizeOfArray = Unroll_SizeOfArray_Cached;
-                TabbedText.WriteLine($"Using cached unrolled commands.");
-                return;
+                (int Chance, int Decision, int Final) gameTreeNodeCount = CountGameTreeNodes();
+                if (gameTreeNodeCount == GameTreeNodeCount_Cached)
+                {
+                    Unroll_Commands = Unroll_Commands_Cached;
+                    Unroll_SizeOfArray = Unroll_SizeOfArray_Cached;
+                    TabbedText.WriteLine($"Using cached unrolled commands.");
+                    return;
+                }
             }
+            Unroll_Commands_Cached = null; // free memory
             TabbedText.WriteLine($"Unrolling commands...");
             Unroll_Commands = new ArrayCommandList(max_num_commands, Unroll_InitialArrayIndex, EvolutionSettings.ParallelOptimization);
             ActionStrategy = ActionStrategies.CurrentProbability;
@@ -281,6 +287,7 @@ namespace ACESim
             {
                 Unroll_Commands_Cached = Unroll_Commands;
                 Unroll_SizeOfArray_Cached = Unroll_SizeOfArray;
+                GameTreeNodeCount_Cached = CountGameTreeNodes();
             }
             TabbedText.WriteLine($"... {s.ElapsedMilliseconds} milliseconds (using {Unroll_Commands.FullArraySize} commands)");
         }

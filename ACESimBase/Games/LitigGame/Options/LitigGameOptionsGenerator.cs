@@ -135,6 +135,7 @@ namespace ACESim
 
             var disputeGenerator = new LitigGameAppropriationDisputeGenerator();
             disputeGenerator.NumSystemicRandomnessLevels = 5; // DEBUG
+
             options.LitigGameDisputeGenerator = disputeGenerator;
             return options;
         }

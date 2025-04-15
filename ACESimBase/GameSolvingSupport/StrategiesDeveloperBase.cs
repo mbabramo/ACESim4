@@ -2380,7 +2380,10 @@ namespace ACESim
                 if (iteration % EvolutionSettings.CorrelatedEquilibriumCalculationsEveryNIterations == 0 && EvolutionSettings.CorrelatedEquilibriumCalculationsEveryNIterations != EvolutionSettings.EffectivelyNever)
                     DoCorrelatedEquilibriumCalculations(iteration);
                 if (EvolutionSettings.PrintGameTree && !suppressPrintTree)
+                {
                     PrintGameTree();
+                    EvolutionSettings.PrintGameTree = false; // DEBUG
+                }
                 if (EvolutionSettings.PrintInformationSets)
                     PrintInformationSets();
                 if (EvolutionSettings.AnalyzeInformationSets)
