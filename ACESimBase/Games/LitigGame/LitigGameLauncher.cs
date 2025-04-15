@@ -163,7 +163,9 @@ namespace ACESim
         public void GetEndogenousDisputesArticleGames(List<GameOptions> options, bool allowRedundancies)
         {
             var gamesSets = GetEndogenousDisputesArticleGamesSets(false, allowRedundancies); // each is a set with noncritical
-            var eachGameIndependently = gamesSets.SelectMany(x => x).ToList();
+            var eachGameIndependently = gamesSets.SelectMany(x => x)
+                .OrderBy(x => x.LoserPaysOnlyLargeMarginOfVictory) // place here anything that will change the game tree size
+                .ToList();
 
             List<string> optionChoices = eachGameIndependently.Select(x => ToCompleteString(x.VariableSettings)).ToList();
             static string ToCompleteString<TKey, TValue>(IDictionary<TKey, TValue> dictionary)
@@ -477,7 +479,7 @@ namespace ACESim
                 case FeeShiftingRule.MarginOfVictory_LiabilityIssue:
                     g.LoserPays = true;
                     g.LoserPaysOnlyLargeMarginOfVictory = true;
-                    g.LoserPaysMarginOfVictoryThreshold = 0.8;
+                    g.LoserPaysMarginOfVictoryThreshold = 0.7;
                     break;
                     // DISABLED 
                     //case FeeShiftingRule.English_DamagesIssue:

@@ -31,6 +31,7 @@ namespace ACESim
 
         public byte NumMarginalBenefitSchedules = 10;
         public byte NumPrecautionLevels = 11;
+        // DEBUG -- set CostOfInjury to DamagesMax
         public double CostOfInjury = 100_000.00, ProbabilityOfInjuryNoPrecaution = 0.5, IncrementalPrecautionCost = 2_000, RiskReductionFromFirstPrecautionTaken = 0.05;
 
         private bool[][] ShouldBeLiable;

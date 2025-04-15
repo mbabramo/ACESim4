@@ -44,6 +44,7 @@ namespace ACESim
             options.PInitialWealth = options.DInitialWealth = 10.0;
             options.DamagesMin = 0.0;
             options.DamagesMax = 1.0;
+            // DEBUG -- change DamagesMax (thus serving as a damages multiplier)
             options.PTrialCosts = options.DTrialCosts = 0.15;
             options.PFilingCost = options.DAnswerCost = 0.15;
             options.PFilingCost_PortionSavedIfDDoesntAnswer = 0;
@@ -75,7 +76,7 @@ namespace ACESim
             options.LoserPays = false;
             options.LoserPaysMultiple = options.LoserPays ? 1 : 0;
             options.LoserPaysAfterAbandonment = false;
-            options.LoserPaysMarginOfVictoryThreshold = 0.8; 
+            options.LoserPaysMarginOfVictoryThreshold = 0.7; 
             options.LoserPaysOnlyLargeMarginOfVictory = false; 
 
             options.NumPotentialBargainingRounds = 1;
