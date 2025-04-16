@@ -10,6 +10,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Reflection;
+using Microsoft.Azure.KeyVault.Core;
+using System.IO;
 
 namespace ACESimBase.Util.ArrayProcessing
 {
@@ -42,7 +45,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         #region Fields and settings
 
-        public ArrayCommand[] UnderlyingCommands;a
+        public ArrayCommand[] UnderlyingCommands;
         public int NextCommandIndex;
         public int MaxCommandIndex;
         public int FirstScratchIndex;
@@ -50,7 +53,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public int MaxArrayIndex;
 
         // NEW: Toggle Roslyn or Reflection.Emit compilation
-        public bool UseRoslyn = true; // DEBUG
+        public bool UseRoslyn = true; // DEBUG -- current problem with ILChunkEmitter is that it doesn't work for large chunks (e.g., over 1,000,000). So we need to break things up, ideally using if commands.
         public bool DisableAdvancedFeatures = false;
 
         // Ordered sources: We initially develop a list of indices of the data passed to the algorithm each iteration. Before each iteration, we copy the data corresponding to these indices into the OrderedSources array in the order in which it will be needed. A command that otherwise would copy from the original data instead loads the next item in ordered sources. This may slightly improve performance because a sequence of original data will be cached. More importantly, it can improve parallelism: When a player chooses among many actions that are structurally equivalent (that is, they do not change how the game is played from that point on), we can run the same code with different slices of the OrderedSources array.
@@ -1184,17 +1187,33 @@ else
 
                 if (_compiledChunkMethods.TryGetValue(methodKey, out var delMethod))
                 {
+
                     // Prepare local cosi/codi from the chunk
                     int cosi = commandChunk.StartSourceIndices;
                     int codi = commandChunk.StartDestinationIndices;
 
-                    // Call the compiled IL delegate
-                    delMethod(
-                        commandChunk.VirtualStack,  // vs
-                        OrderedSources,            // os
-                        OrderedDestinations,       // od
-                        ref cosi,
-                        ref codi);
+                    try
+                    {
+                        // ───────────────────────────────────────
+                        //      ** critical call wrapped **
+                        // ───────────────────────────────────────
+                        delMethod(commandChunk.VirtualStack,
+                            OrderedSources,
+                            OrderedDestinations,
+                            ref cosi, ref codi);
+                    }
+                    catch (InvalidProgramException ex)
+                    {
+                        //byte[] ilByteArray = delMethod.Method.GetMethodBody().GetILAsByteArray(); // DEBUG
+                        //File.WriteAllBytes($"C:\\Users\\Admin\\Documents\\GitHub\\ACESim4\\ReportResults\\InvalidIL_{methodKey}.bin", ilByteArray);
+
+                        //  re‑throw with diagnostics so we know
+                        //  exactly which chunk produced bad IL
+                        throw new InvalidOperationException(
+                            $"Invalid IL in compiled chunk '{methodKey}' " +
+                            $"(commands {startCmd}..{endCmd}).",
+                            ex);
+                    }
                 }
                 else
                 {

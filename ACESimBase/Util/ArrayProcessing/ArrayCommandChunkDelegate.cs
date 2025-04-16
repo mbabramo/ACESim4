@@ -19,5 +19,6 @@ namespace ACESimBase.Util.ArrayProcessing
     internal struct IfBlockInfo
     {
         public Label SkipLabel; // Where to jump if condition fails
+        public bool WasMarked;
     }
 }

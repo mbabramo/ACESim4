@@ -301,9 +301,9 @@ namespace ACESim
                 Unroll_CopyArrayToInformationSets(array);
                 Unroll_DetermineIterationResultForEachPlayer(array);
             }
-            catch
+            catch (Exception ex)
             {
-                throw new UnrollingException(); // abort -- this is a bug likely due to the game tree being the wrong size as a result of caching
+                throw new UnrollingException(ex); // abort -- this may be a bug likely due to the game tree being the wrong size as a result of caching
             }
         }
 

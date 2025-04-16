@@ -96,6 +96,11 @@ namespace ACESimBase.Util.ArrayProcessing
             _il.Emit(OpCodes.Ldloc, _localCodi);
             _il.Emit(OpCodes.Stind_I4);
 
+            if (_ifBlocks.Count != 0)
+                throw new InvalidOperationException(
+                    $"Unclosed If block(s) at end of chunk " +
+                    $"{_startIndex}–{_endIndexExclusive - 1}");
+
             // Return
             _il.Emit(OpCodes.Ret);
 
@@ -580,20 +585,29 @@ namespace ACESimBase.Util.ArrayProcessing
 
         private void EmitIf()
         {
-            Label skipLabel = _il.DefineLabel();
+            var info = new IfBlockInfo { SkipLabel = _il.DefineLabel(), WasMarked = false };
 
+            // branch
             _il.Emit(OpCodes.Ldloc, _localCondition);
-            _il.Emit(OpCodes.Brfalse, skipLabel);         // CHANGED  Brfalse_S ➜ Brfalse
+            _il.Emit(OpCodes.Brfalse, info.SkipLabel);
 
-            _ifBlocks.Push(new IfBlockInfo { SkipLabel = skipLabel });
+            _ifBlocks.Push(info);
         }
 
         private void EmitEndIf()
         {
-            // pop the top if block
-            IfBlockInfo block = _ifBlocks.Pop();
-            // Mark skipLabel
-            _il.MarkLabel(block.SkipLabel);
+            if (_ifBlocks.Count == 0)
+                throw new InvalidOperationException(
+                    "EndIf encountered with empty If‑stack (unmatched EndIf).");
+
+            var blk = _ifBlocks.Pop();
+
+            // Mark the label **once** (double‑marking also throws)
+            if (blk.WasMarked)
+                throw new InvalidOperationException(
+                    "SkipLabel already marked – duplicate EndIf?");
+            blk.WasMarked = true;               // record
+            _il.MarkLabel(blk.SkipLabel);
         }
 
         #endregion

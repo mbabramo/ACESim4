@@ -2,6 +2,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ACESimBase.Util.ArrayProcessing;
 using static ACESimBase.Util.ArrayProcessing.ArrayCommandList;
+using System.Collections.Generic;
 
 namespace ACESimTest
 {
@@ -696,6 +697,309 @@ namespace ACESimTest
                         break;
                 }
             }
+        }
+
+        internal static class ILTestUtil
+        {
+            // A very small interpreter that supports all commands used in our tests
+            internal static void Interpret(ArrayCommand[] cmds,
+                                           double[] vs, double[] os, double[] od,
+                                           ref int cosi, ref int codi)
+            {
+                bool condition = true;
+                int pc = 0;
+                while (pc < cmds.Length)
+                {
+                    var c = cmds[pc];
+
+                    switch (c.CommandType)
+                    {
+                        case ArrayCommandType.Zero:
+                            vs[c.Index] = 0.0;
+                            break;
+
+                        case ArrayCommandType.CopyTo:
+                            vs[c.Index] = vs[c.SourceIndex];
+                            break;
+
+                        case ArrayCommandType.NextSource:
+                            vs[c.Index] = os[cosi++];
+                            break;
+
+                        case ArrayCommandType.NextDestination:
+                            od[codi++] = vs[c.SourceIndex];
+                            break;
+
+                        case ArrayCommandType.ReusedDestination:
+                            od[c.Index] += vs[c.SourceIndex];
+                            break;
+
+                        case ArrayCommandType.MultiplyBy:
+                            vs[c.Index] *= vs[c.SourceIndex];
+                            break;
+
+                        case ArrayCommandType.IncrementBy:
+                            vs[c.Index] += vs[c.SourceIndex];
+                            break;
+
+                        case ArrayCommandType.DecrementBy:
+                            vs[c.Index] -= vs[c.SourceIndex];
+                            break;
+
+                        case ArrayCommandType.EqualsOtherArrayIndex:
+                            condition = vs[c.Index] == vs[c.SourceIndex];
+                            break;
+                        case ArrayCommandType.NotEqualsOtherArrayIndex:
+                            condition = vs[c.Index] != vs[c.SourceIndex];
+                            break;
+                        case ArrayCommandType.GreaterThanOtherArrayIndex:
+                            condition = vs[c.Index] > vs[c.SourceIndex];
+                            break;
+                        case ArrayCommandType.LessThanOtherArrayIndex:
+                            condition = vs[c.Index] < vs[c.SourceIndex];
+                            break;
+
+                        case ArrayCommandType.EqualsValue:
+                            condition = vs[c.Index] == (double)c.SourceIndex;
+                            break;
+                        case ArrayCommandType.NotEqualsValue:
+                            condition = vs[c.Index] != (double)c.SourceIndex;
+                            break;
+
+                        case ArrayCommandType.If:
+                            if (!condition)
+                            {
+                                int depth = 1;
+                                while (depth > 0 && ++pc < cmds.Length)
+                                {
+                                    if (cmds[pc].CommandType == ArrayCommandType.If) depth++;
+                                    else if (cmds[pc].CommandType == ArrayCommandType.EndIf) depth--;
+                                    else if (depth == 1 && cmds[pc].CommandType == ArrayCommandType.NextSource) cosi++;
+                                    else if (depth == 1 && cmds[pc].CommandType == ArrayCommandType.NextDestination) codi++;
+                                }
+                            }
+                            break;
+
+                        case ArrayCommandType.EndIf:
+                        case ArrayCommandType.Blank:
+                            break;
+
+                        default:
+                            throw new NotImplementedException($"Interpreter missing {c.CommandType}");
+                    }
+
+                    pc++;
+                }
+            }
+
+            /// <summary>
+            /// Emit IL for <paramref name="cmds"/>, run both IL and interpreter,
+            /// and assert stacks + od/os behave identically.
+            /// </summary>
+            internal static void RunChunkBothWays(ArrayCommand[] cmds,
+                                                  Action<double[], double[]> extraAssertion = null,
+                                      double[] os = null)
+            {
+                // reference interpreter run
+                var vsRef = new double[1024];
+                var vsIL = new double[1024];
+                var odRef = new double[1024];
+                var odIL = new double[1024]; 
+                os ??= new double[1024];
+                int cosiRef = 0, codiRef = 0;
+                int cosiIL = 0, codiIL = 0;
+
+                Interpret(cmds, vsRef, os, odRef, ref cosiRef, ref codiRef);
+
+                // IL emitter run
+                var fakeChunk = new ArrayCommandChunk
+                {
+                    StartCommandRange = 0,
+                    EndCommandRangeExclusive = cmds.Length,
+                    VirtualStack = vsIL
+                };
+                var emitter = new ILChunkEmitter(fakeChunk, cmds);
+                var del = emitter.EmitMethod("TestMethod");
+                del(vsIL, os, odIL, ref cosiIL, ref codiIL);
+
+                // verify
+                CollectionAssert.AreEqual(vsRef, vsIL, "virtual stack mismatch");
+                CollectionAssert.AreEqual(odRef, odIL, "orderedDestination mismatch");
+                Assert.AreEqual(cosiRef, cosiIL, "cosi mismatch");
+                Assert.AreEqual(codiRef, codiIL, "codi mismatch");
+
+                extraAssertion?.Invoke(vsIL, odIL);
+            }
+
+                
+        }
+
+        // Helper for zero cmd
+        private static ArrayCommand Z(int idx) => new(ArrayCommandType.Zero, idx, -1);
+
+        // ─────────────────────────────────────────────────────────────
+        //  1.  Huge chunk verifies long‑branch fix
+        // ─────────────────────────────────────────────────────────────
+        [TestMethod]
+        public void LargeChunk_LongBranches_CompileOK()
+        {
+            var cmds = new List<ArrayCommand>();
+            for (int i = 0; i < 600; i++) cmds.Add(Z(i));  // inflate size
+
+            // create condition false
+            cmds.Add(Z(0));
+            cmds.Add(Z(1));
+            cmds.Add(new(ArrayCommandType.EqualsOtherArrayIndex, 0, 1));
+            cmds.Add(new(ArrayCommandType.If, -1, -1));
+            cmds.Add(new(ArrayCommandType.MultiplyBy, 10, 10)); // skipped
+            cmds.Add(new(ArrayCommandType.EndIf, -1, -1));
+
+            ILTestUtil.RunChunkBothWays(cmds.ToArray());
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  2.  Nested If (3 levels) all true
+        // ─────────────────────────────────────────────────────────────
+        [TestMethod]
+        public void NestedIf_AllTrue()
+        {
+            var cmds = new List<ArrayCommand>
+            {
+                // condition true: vs[0] == vs[0]
+                Z(0),
+                new(ArrayCommandType.EqualsOtherArrayIndex, 0, 0),
+                new(ArrayCommandType.If, -1, -1),
+
+                    Z(1),
+                    new(ArrayCommandType.EqualsOtherArrayIndex, 1, 1),
+                    new(ArrayCommandType.If,-1,-1),
+
+                        Z(2),
+                        new(ArrayCommandType.EqualsOtherArrayIndex, 2, 2),
+                        new(ArrayCommandType.If,-1,-1),
+                            new(ArrayCommandType.Zero, 99, -1), // deepest body
+                        new(ArrayCommandType.EndIf,-1,-1),
+
+                    new(ArrayCommandType.EndIf,-1,-1),
+
+                new(ArrayCommandType.EndIf,-1,-1),
+            };
+
+            ILTestUtil.RunChunkBothWays(cmds.ToArray(), (vs, _) =>
+            {
+                Assert.AreEqual(0.0, vs[99], "inner body not executed");
+            });
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  3.  Empty If skipped should keep cosi/codi unchanged
+        // ─────────────────────────────────────────────────────────────
+        [TestMethod]
+        public void EmptyIf_SkipMaintainsCosiCodi()
+        {
+            var cmds = new List<ArrayCommand>
+            {
+                Z(0), Z(1),
+                new(ArrayCommandType.NotEqualsOtherArrayIndex, 0, 1), // true
+                new(ArrayCommandType.If,-1,-1),
+                new(ArrayCommandType.EndIf,-1,-1)
+            };
+            ILTestUtil.RunChunkBothWays(cmds.ToArray());
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  4.  ReusedDestination accumulation
+        // ─────────────────────────────────────────────────────────────
+        [TestMethod]
+        public void ReusedDestination_Accumulates()
+        {
+            var cmds = new List<ArrayCommand>
+            {
+                // put 3.0 in vs[0]
+                Z(0),
+                new(ArrayCommandType.IncrementBy,0,0), // 0+=0 ➜ still 0
+                new(ArrayCommandType.IncrementBy,0,0), // still 0
+
+                // store once
+                new(ArrayCommandType.NextDestination,-1,0),
+                // accumulate nine more
+            };
+            // nine extra reused onto od[0]
+            for (int i = 0; i < 9; i++)
+                cmds.Add(new(ArrayCommandType.ReusedDestination, 0, 0));
+
+            ILTestUtil.RunChunkBothWays(cmds.ToArray(), (_, od) =>
+            {
+                Assert.AreEqual(0.0, od[0]);  // 0*10 -> still 0 (simple sanity)
+            });
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  5.  Increment double.MaxValue → +∞ (IEEE overflow)
+        // ─────────────────────────────────────────────────────────────
+        [TestMethod]
+        public void Arithmetic_Overflow_ToInfinity()
+        {
+            /*  Commands
+                0: NextSource  vs[0]   = Max
+                1: NextSource  vs[1]   = Max
+                2: IncrementBy vs[0]  += vs[1]   → +∞
+            */
+            var cmds = new[]
+            {
+        new ArrayCommand(ArrayCommandType.NextSource, 0, -1),
+        new ArrayCommand(ArrayCommandType.NextSource, 1, -1),
+        new ArrayCommand(ArrayCommandType.IncrementBy, 0, 1)
+    };
+
+            // OrderedSources:  two MaxValues
+            double[] customOS = { double.MaxValue, double.MaxValue };
+
+            ILTestUtil.RunChunkBothWays(
+                cmds,
+                (vs, _) => Assert.IsTrue(double.IsPositiveInfinity(vs[0])),
+                customOS);
+        }
+
+        [TestMethod]
+        public void IfBlockSkipped_WithNextSourceAndDestination()
+        {
+            var cmds = new List<ArrayCommand>
+    {
+        // Make condition false
+        new(ArrayCommandType.Zero, 0, -1),
+        new(ArrayCommandType.Zero, 1, -1),
+        new(ArrayCommandType.EqualsOtherArrayIndex, 0, 1),
+        new(ArrayCommandType.If, -1, -1),
+
+            new(ArrayCommandType.NextSource,  2, -1),  // would advance cosi
+            new(ArrayCommandType.NextDestination, -1, 2), // would advance codi
+
+        new(ArrayCommandType.EndIf, -1, -1)
+    };
+
+            ILTestUtil.RunChunkBothWays(cmds.ToArray());
+        }
+
+        [TestMethod]
+        public void DeepAlternatingIf()
+        {
+            var cmds = new List<ArrayCommand>();
+            int depth = 6;
+            for (int d = 0; d < depth; d++)
+            {
+                // Toggle condition true/false each level
+                cmds.Add(new ArrayCommand(ArrayCommandType.Zero, d, -1));
+                cmds.Add(new ArrayCommand(ArrayCommandType.EqualsValue, d, (d % 2 == 0) ? 0 : 1));
+                cmds.Add(new ArrayCommand(ArrayCommandType.If, -1, -1));
+            }
+            // body
+            cmds.Add(new ArrayCommand(ArrayCommandType.Zero, 99, -1));
+            // close all EndIf
+            for (int d = 0; d < depth; d++)
+                cmds.Add(new ArrayCommand(ArrayCommandType.EndIf, -1, -1));
+
+            ILTestUtil.RunChunkBothWays(cmds.ToArray());
         }
     }
 }

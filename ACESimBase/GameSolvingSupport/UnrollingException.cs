@@ -8,6 +8,11 @@ namespace ACESimBase.GameSolvingSupport
 {
     public class UnrollingException : Exception
     {
-        public override string Message => "Unrolling failed. This may be because the game tree was cached but doesn't fit.";
+        const string _Message = "Unrolling failed. This may be because the game tree was cached but doesn't fit.";
+
+        public UnrollingException(Exception innerException) : base(_Message, innerException)
+        {
+
+        }
     }
 }
