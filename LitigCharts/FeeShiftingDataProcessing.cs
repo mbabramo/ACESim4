@@ -673,6 +673,7 @@ namespace LitigCharts
                   "red, line width=0.5mm, densely dashed",
                 };
 
+                Debug; // do a true damages multiplier so that false positives and false negatives are scaled to the original damages. Also, see if we can do a filtered view (looking only at cases in which appropriation does or does not occur, plus different levels of systemic randomness, at least for the baseline). 
 
                 string riskAversionString = useRiskAversionForNonRiskReports ? " (Risk Averse)" : "";
                 List<AggregatedGraphInfo> welfareMeasureColumns = new List<AggregatedGraphInfo>()
