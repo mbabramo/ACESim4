@@ -477,47 +477,32 @@ namespace ACESimBase.Util.ArrayProcessing
 
         private void EmitComparison_Indices(int idx, int src, string compareType)
         {
-            // Load vs[idx]
             _il.Emit(OpCodes.Ldarg_0);
             _il.Emit(OpCodes.Ldc_I4, idx);
             _il.Emit(OpCodes.Ldelem_R8);
 
-            // Load vs[src]
             _il.Emit(OpCodes.Ldarg_0);
             _il.Emit(OpCodes.Ldc_I4, src);
             _il.Emit(OpCodes.Ldelem_R8);
 
-            // Sub => difference
             _il.Emit(OpCodes.Sub);
 
             Label labelTrue = _il.DefineLabel();
             Label labelEnd = _il.DefineLabel();
 
-            // We'll always compare difference to 0.0
             _il.Emit(OpCodes.Ldc_R8, 0.0);
 
             switch (compareType)
             {
-                case "eq":
-                    _il.Emit(OpCodes.Beq_S, labelTrue);
-                    break;
-                case "ne":
-                    _il.Emit(OpCodes.Bne_Un_S, labelTrue);
-                    break;
-                case "gt":
-                    _il.Emit(OpCodes.Bgt_S, labelTrue);
-                    break;
-                case "lt":
-                    _il.Emit(OpCodes.Blt_S, labelTrue);
-                    break;
-                default:
-                    throw new NotImplementedException();
+                case "eq": _il.Emit(OpCodes.Beq, labelTrue); break;   // CHANGED
+                case "ne": _il.Emit(OpCodes.Bne_Un, labelTrue); break;   // CHANGED
+                case "gt": _il.Emit(OpCodes.Bgt, labelTrue); break;   // CHANGED
+                case "lt": _il.Emit(OpCodes.Blt, labelTrue); break;   // CHANGED
             }
 
-            // If not taken => condition = false
             _il.Emit(OpCodes.Ldc_I4_0);
             _il.Emit(OpCodes.Stloc, _localCondition);
-            _il.Emit(OpCodes.Br_S, labelEnd);
+            _il.Emit(OpCodes.Br, labelEnd);                               // CHANGED
 
             _il.MarkLabel(labelTrue);
             _il.Emit(OpCodes.Ldc_I4_1);
@@ -572,33 +557,19 @@ namespace ACESimBase.Util.ArrayProcessing
             _il.Emit(OpCodes.Ldc_R8, 0.0);
 
             if (compareType == "eq")
-            {
-                _il.Emit(OpCodes.Beq_S, labelTrue);
-                // not eq => false
-                _il.Emit(OpCodes.Pop);
-                _il.Emit(OpCodes.Ldc_I4_0);
-                _il.Emit(OpCodes.Stloc, _localCondition);
-                _il.Emit(OpCodes.Br_S, labelEnd);
+                _il.Emit(OpCodes.Beq, labelTrue);                     // CHANGED
+            else
+                _il.Emit(OpCodes.Bne_Un, labelTrue);                     // CHANGED
 
-                _il.MarkLabel(labelTrue);
-                _il.Emit(OpCodes.Pop);
-                _il.Emit(OpCodes.Ldc_I4_1);
-                _il.Emit(OpCodes.Stloc, _localCondition);
-            }
-            else if (compareType == "ne")
-            {
-                _il.Emit(OpCodes.Bne_Un_S, labelTrue);
-                // eq => false
-                _il.Emit(OpCodes.Pop);
-                _il.Emit(OpCodes.Ldc_I4_0);
-                _il.Emit(OpCodes.Stloc, _localCondition);
-                _il.Emit(OpCodes.Br_S, labelEnd);
+            _il.Emit(OpCodes.Pop);
+            _il.Emit(OpCodes.Ldc_I4_0);
+            _il.Emit(OpCodes.Stloc, _localCondition);
+            _il.Emit(OpCodes.Br, labelEnd);                              // CHANGED
 
-                _il.MarkLabel(labelTrue);
-                _il.Emit(OpCodes.Pop);
-                _il.Emit(OpCodes.Ldc_I4_1);
-                _il.Emit(OpCodes.Stloc, _localCondition);
-            }
+            _il.MarkLabel(labelTrue);
+            _il.Emit(OpCodes.Pop);
+            _il.Emit(OpCodes.Ldc_I4_1);
+            _il.Emit(OpCodes.Stloc, _localCondition);
 
             _il.MarkLabel(labelEnd);
         }
@@ -609,17 +580,12 @@ namespace ACESimBase.Util.ArrayProcessing
 
         private void EmitIf()
         {
-            // We'll define a label to skip if condition == false.
             Label skipLabel = _il.DefineLabel();
-            // if (!localCondition) goto skipLabel
-            _il.Emit(OpCodes.Ldloc, _localCondition);
-            _il.Emit(OpCodes.Brfalse_S, skipLabel);
 
-            // push info for EndIf
-            _ifBlocks.Push(new IfBlockInfo
-            {
-                SkipLabel = skipLabel
-            });
+            _il.Emit(OpCodes.Ldloc, _localCondition);
+            _il.Emit(OpCodes.Brfalse, skipLabel);         // CHANGED  Brfalse_S ➜ Brfalse
+
+            _ifBlocks.Push(new IfBlockInfo { SkipLabel = skipLabel });
         }
 
         private void EmitEndIf()
