@@ -61,7 +61,7 @@ namespace ACESim.Util
                 BinaryFormatter formatter = new BinaryFormatter();
                 formatter.Serialize(stream, theObject);
                 stream.Seek(0, SeekOrigin.Begin);
-                AccessCondition accessCondition = leaseID == null ? null : new AccessCondition() {LeaseId = leaseID};
+                AccessCondition accessCondition = leaseID == null ? null : new AccessCondition() { LeaseId = leaseID };
                 blockBlob.UploadFromStream(stream, accessCondition, options);
                 if (leaseID != null)
                     blockBlob.ReleaseLease(accessCondition);
@@ -139,7 +139,7 @@ namespace ACESim.Util
             }
         }
 
-        
+
 
         public static byte[] GetByteArray(CloudBlockBlob blockBlob)
         {
@@ -241,9 +241,126 @@ namespace ACESim.Util
                 object finalState = transformFunction(initialState);
                 formatter = new BinaryFormatter();
                 stream.Seek(0, SeekOrigin.Begin);
-                if (finalState != null) 
+                if (finalState != null)
                     formatter.Serialize(stream, finalState);
                 return finalState;
+            }
+        }
+
+        public static string TransformSharedBlobString(string containerName, string fileName, Func<string, string> transformFunction)
+        {
+            var leasedBlob = GetLeasedBlockBlob(containerName, fileName, true);
+            return TransformSharedBlobString(leasedBlob.blob, leasedBlob.lease, transformFunction);
+        }
+
+        public static string TransformSharedBlobString(CloudBlockBlob blockBlob, string leaseID, Func<string, string> transformFunction)
+        {
+            string text = blockBlob.DownloadText();
+            string result = transformFunction(text);
+            if (result != null)
+                WriteTextToBlob(blockBlob, result, leaseID);
+            else
+                ReleaseBlobLease(blockBlob, leaseID);
+            return result;
+        }
+
+        public static string TransformSharedFileString(string path, string filename, Func<string, string> transformFunction)
+        {
+            using (FileStream stream = GetFileStream(path, filename))
+            {
+                string initialState;
+                using (StreamReader reader = new StreamReader(stream, Encoding.Default, true, 1024, true))
+                {
+                    stream.Seek(0, SeekOrigin.Begin);
+                    initialState = reader.ReadToEnd();
+                }
+                string finalState = transformFunction(initialState);
+                if (finalState != null)
+                {
+                    stream.Seek(0, SeekOrigin.Begin);
+                    stream.SetLength(0);
+                    using (StreamWriter writer = new StreamWriter(stream, Encoding.Default, 1024, true))
+                    {
+                        writer.Write(finalState);
+                        writer.Flush();
+                    }
+                }
+                stream.Close();
+                return finalState;
+            }
+        }
+
+        public static T TransformSharedBlobObjectJson<T>(string containerName, string fileName, Func<T, T> transformFunction)
+        {
+            var leasedBlob = GetLeasedBlockBlob(containerName, fileName, true);
+            return TransformSharedBlobObjectJson<T>(leasedBlob.blob, leasedBlob.lease, transformFunction);
+        }
+
+        public static T TransformSharedBlobObjectJson<T>(CloudBlockBlob blockBlob, string leaseID, Func<T, T> transformFunction)
+        {
+            string jsonText = blockBlob.DownloadText();
+            T initialState = default(T);
+            if (!string.IsNullOrEmpty(jsonText))
+            {
+                initialState = System.Text.Json.JsonSerializer.Deserialize<T>(jsonText);
+            }
+            T finalState = transformFunction(initialState);
+            if (finalState != null)
+            {
+                string outputJson = System.Text.Json.JsonSerializer.Serialize(finalState);
+                WriteTextToBlob(blockBlob, outputJson, leaseID);
+            }
+            else
+            {
+                ReleaseBlobLease(blockBlob, leaseID);
+            }
+            return finalState;
+        }
+
+        public static T TransformSharedFileObjectJson<T>(string path, string filename, Func<T, T> transformFunction)
+        {
+            using (FileStream stream = GetFileStream(path, filename))
+            {
+                string initialJson;
+                using (StreamReader reader = new StreamReader(stream, Encoding.Default, true, 1024, true))
+                {
+                    stream.Seek(0, SeekOrigin.Begin);
+                    initialJson = reader.ReadToEnd();
+                }
+                T initialState = default(T);
+                if (!string.IsNullOrEmpty(initialJson))
+                {
+                    initialState = System.Text.Json.JsonSerializer.Deserialize<T>(initialJson);
+                }
+                T finalState = transformFunction(initialState);
+                if (finalState != null)
+                {
+                    string outputJson = System.Text.Json.JsonSerializer.Serialize(finalState);
+                    stream.Seek(0, SeekOrigin.Begin);
+                    stream.SetLength(0);
+                    using (StreamWriter writer = new StreamWriter(stream, Encoding.Default, 1024, true))
+                    {
+                        writer.Write(outputJson);
+                        writer.Flush();
+                    }
+                }
+                stream.Close();
+                return finalState;
+            }
+        }
+
+
+        private static void WriteTextToBlob(CloudBlockBlob blockBlob, string text, string leaseID)
+        {
+            var options = new BlobRequestOptions()
+            {
+                ServerTimeout = TimeSpan.FromMinutes(10)
+            };
+
+            using (var stream = new MemoryStream(Encoding.Default.GetBytes(text), false))
+            {
+                AccessCondition accessCondition = leaseID == null ? null : new AccessCondition() { LeaseId = leaseID };
+                blockBlob.UploadFromStream(stream, accessCondition, options);
             }
         }
 
@@ -251,7 +368,7 @@ namespace ACESim.Util
         {
             int retryInterval = 10;
             string fullFilename = Path.Combine(path, filename);
-            retry:
+        retry:
             try
             {
                 var exists = File.Exists(fullFilename);
@@ -278,7 +395,7 @@ namespace ACESim.Util
         public static (string lease, CloudBlockBlob blob) GetLeasedBlockBlob(string containerName, string fileName, bool publicAccess)
         {
             int retryInterval = 10;
-            retry:
+        retry:
             try
             {
                 var blockBlob = GetBlockBlob(containerName, fileName, publicAccess);
@@ -296,7 +413,7 @@ namespace ACESim.Util
             { // failed to acquire lease
                 Task.Delay(retryInterval);
                 if (retryInterval < 10_000)
-                    retryInterval = (int) (retryInterval * 1.5); // use exponential backoff -- requesting lease too much causes very long delays
+                    retryInterval = (int)(retryInterval * 1.5); // use exponential backoff -- requesting lease too much causes very long delays
                 goto retry;
             }
         }
@@ -352,7 +469,7 @@ namespace ACESim.Util
         private static CloudBlockBlob GetBlockBlob(string containerName, string fileName, bool publicAccess)
         {
             var container = GetContainer(containerName, publicAccess);
-            
+
             CloudBlockBlob blockBlob = container.GetBlockBlobReference(fileName);
 
             return blockBlob;
@@ -376,7 +493,7 @@ namespace ACESim.Util
 
             if (publicAccess)
                 container.SetPermissions(
-                    new BlobContainerPermissions {PublicAccess = BlobContainerPublicAccessType.Blob});
+                    new BlobContainerPermissions { PublicAccess = BlobContainerPublicAccessType.Blob });
             return container;
         }
     }
