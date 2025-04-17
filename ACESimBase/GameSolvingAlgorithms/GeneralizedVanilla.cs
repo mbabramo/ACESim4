@@ -269,25 +269,39 @@ namespace ACESim
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
             List<int> resultIndices = new List<int>();
 
-            Unroll_Commands.StartCommandChunk(false, null, "Iteration");
-            bool takeSymmetryShortcut = NumNonChancePlayers == 2 && GameDefinition.GameIsSymmetric() && TakeShortcutInSymmetricGames;
-            for (byte p = 0; p < NumNonChancePlayers; p++)
+            int numRetries = 0;
+        retry:
+            try
             {
-                if (takeSymmetryShortcut && p == 1)
-                    continue;
-                Unroll_Commands.StartCommandChunk(false, null, "Optimizing player " + p.ToString());
-                if (TraceCFR)
-                    TabbedText.WriteLine($"Unrolling for Player {p}");
-                Unroll_GeneralizedVanillaCFR(in historyPoint, p, Unroll_InitialPiValuesIndices, Unroll_InitialAvgStratPiValuesIndices, Unroll_IterationResultForPlayersIndices[p], true, 0, takeSymmetryShortcut || p == NumNonChancePlayers - 1);
+                Unroll_Commands.StartCommandChunk(false, null, "Iteration");
+                bool takeSymmetryShortcut = NumNonChancePlayers == 2 && GameDefinition.GameIsSymmetric() && TakeShortcutInSymmetricGames;
+                for (byte p = 0; p < NumNonChancePlayers; p++)
+                {
+                    if (takeSymmetryShortcut && p == 1)
+                        continue;
+                    Unroll_Commands.StartCommandChunk(false, null, "Optimizing player " + p.ToString());
+                    if (TraceCFR)
+                        TabbedText.WriteLine($"Unrolling for Player {p}");
+                    Unroll_GeneralizedVanillaCFR(in historyPoint, p, Unroll_InitialPiValuesIndices, Unroll_InitialAvgStratPiValuesIndices, Unroll_IterationResultForPlayersIndices[p], true, 0, takeSymmetryShortcut || p == NumNonChancePlayers - 1);
+                    Unroll_Commands.EndCommandChunk();
+                }
                 Unroll_Commands.EndCommandChunk();
+                Unroll_SizeOfArray = Unroll_Commands.FullArraySize;
+                if (EvolutionSettings.ReuseUnrolledAlgorithm)
+                {
+                    Unroll_Commands_Cached = Unroll_Commands;
+                    Unroll_SizeOfArray_Cached = Unroll_SizeOfArray;
+                    GameTreeNodeCount_Cached = CountGameTreeNodes();
+                }
             }
-            Unroll_Commands.EndCommandChunk();
-            Unroll_SizeOfArray = Unroll_Commands.FullArraySize;
-            if (EvolutionSettings.ReuseUnrolledAlgorithm)
+            catch (OutOfMemoryException ex)
             {
-                Unroll_Commands_Cached = Unroll_Commands;
-                Unroll_SizeOfArray_Cached = Unroll_SizeOfArray;
-                GameTreeNodeCount_Cached = CountGameTreeNodes();
+                numRetries++;
+                if (numRetries <= 10)
+                {
+                    Task.Delay(60_000 + (int)(60000.0 * new Random((int)DateTime.Now.Ticks).Next())).Wait(); // wait a minute or so before retrying
+                    goto retry;
+                }
             }
             TabbedText.WriteLine($"... {s.ElapsedMilliseconds} milliseconds (using {Unroll_Commands.FullArraySize} commands)");
         }
