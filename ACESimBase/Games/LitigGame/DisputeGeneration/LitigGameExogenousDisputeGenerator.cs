@@ -57,7 +57,7 @@ namespace ACESim
         public string GetActionString(byte action, byte decisionByteCode)
         {
             if (decisionByteCode == (byte)LitigGameDecisions.PostPrimaryActionChance)
-                return action == 1 ? "Not Truly Liable" : "Truly Liable";
+                return action == 1 ? "Truly Not Liable" : "Truly Liable";
             return action.ToString();
         }
 

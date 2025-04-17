@@ -204,6 +204,13 @@ namespace ACESim
                     ACESimBase.GameSolvingAlgorithms.GeneticAlgorithm.RunFromAnotherAlgorithm(InformationSets, numGeneticIterations, CalculateBestResponseAndGetFitnessAndUtilities);
                 }
 #pragma warning disable CA1416
+                if (iteration == EvolutionSettings.TotalIterations && EvolutionSettings.GenerateManualReports)
+                {
+                    SaveWeightedGameProgressesAfterEachReport = true;
+                    SavedWeightedGameProgresses = new();
+                }
+                else
+                    SaveWeightedGameProgressesAfterEachReport = false;
                 var result = await GenerateReports(iteration,
                     () =>
                         $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");

@@ -137,7 +137,7 @@ namespace LitigCharts
             {
                 trueLiabilityColumn = new List<SignalsChartNode>()
                 {
-                    new SignalsChartNode(0, 0, 0, 1.0 - ExogenousProbabilityTrulyLiable, "Not Truly Liable", ProbabilitiesLiabilityStrength_TrulyNotLiable.ToList()),
+                    new SignalsChartNode(0, 0, 0, 1.0 - ExogenousProbabilityTrulyLiable, "Truly Not Liable", ProbabilitiesLiabilityStrength_TrulyNotLiable.ToList()),
                     new SignalsChartNode(0, 1, 1.0, ExogenousProbabilityTrulyLiable, "Truly Liable", ProbabilitiesLiabilityStrength_TrulyLiable.ToList()),
                 };
                 proportionOfTotalInSecondColumn = Enumerable.Range(0, NumLiabilityStrengthPoints).Select(strengthPointIndex => trueLiabilityColumn.Sum(y => y.flowValuesToNextColumn[strengthPointIndex])).ToArray();
