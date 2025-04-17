@@ -307,8 +307,12 @@ namespace ACESimBase.Util.ArrayProcessing
         private void CompleteCommandTree()
         {
             CommandTree.WalkTree(x => InsertMissingBranches((NWayTreeStorageInternal<ArrayCommandChunk>)x));
-            CommandTree.WalkTree(null, x => SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandChunk>)x)); // setting up bottom to top
-            CommandTree.WalkTree(x => SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandChunk>)x)); // must visit from top to bottom, since we may share the same virtual stack across multiple levels
+
+            HardSplitLargeLeaves(50_000);
+
+            CommandTree.WalkTree(null, x => SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandChunk>)x));
+            CommandTree.WalkTree(x => SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandChunk>)x));
+
             CommandTreeString = CommandTree.ToString();
             CompileCode();
         }
@@ -488,68 +492,89 @@ namespace ACESimBase.Util.ArrayProcessing
             if (NextCommandIndex >= UnderlyingCommands.Length)
                 throw new Exception("Commands array size must be increased.");
 
-            // store command
             UnderlyingCommands[NextCommandIndex++] = command;
 
             if (NextArrayIndex > MaxArrayIndex)
                 MaxArrayIndex = NextArrayIndex;
 
-            // track open‑If depth for this chunk
-            if (command.CommandType == ArrayCommandType.If) _openIfDepth++;
-            else if (command.CommandType == ArrayCommandType.EndIf) _openIfDepth--;
-
-            if ((NextCommandIndex - CurrentCommandChunk.StartCommandRange) % 200_000 == 0)
-                Console.WriteLine($"DBG  idx={NextCommandIndex:N0}  inChunk={NextCommandIndex - CurrentCommandChunk.StartCommandRange:N0}  hardPending={_splitPending}  hardMax={HardMaxCommandsPerChunk}"); // DEBUG
-            MaybeSplitCurrentChunk();   // may mark _splitPending or actually split
-
-            // if hard split was armed and we’re now balanced, cut the chunk
-            if (_splitPending && _openIfDepth == 0)
-            {
-                _splitPending = false;
-                bool par = CurrentCommandChunk.ChildrenParallelizable;
-                EndCommandChunk();
-                StartCommandChunk(par, null,
-                                  $"HardSplit_{NextCommandIndex}",
-                                  ignoreKeepTogether: true);   // ← bypass lock
-                                                               // new chunk → counter reset
-                _openIfDepth = 0;
-            }
+            MaybeSplitCurrentChunk();
         }
 
         private void MaybeSplitCurrentChunk()
         {
             int inChunk = NextCommandIndex - CurrentCommandChunk.StartCommandRange;
 
-            // normal window rule (only when keep‑together lock is clear)
-            if (KeepCommandsTogetherLevel == 0 &&
-                MaxCommandsPerChunk > 0 &&
-                inChunk >= MaxCommandsPerChunk)
-            {
-                SplitHere();
-                return;
-            }
-
-            // hard‑limit: arm the flag, actual split will happen when _openIfDepth==0
-            if (!_splitPending &&
-                HardMaxCommandsPerChunk > 0 &&
+            if (HardMaxCommandsPerChunk > 0 &&
                 inChunk >= HardMaxCommandsPerChunk)
             {
-                _splitPending = true;
+                SplitHere();
             }
         }
 
         private void SplitHere()
         {
-            Console.WriteLine($"*** HardSplit at idx={NextCommandIndex:N0}"); // DEBUG
-            bool par = CurrentCommandChunk.ChildrenParallelizable;
+            bool parallelizable = CurrentCommandChunk.ChildrenParallelizable;
 
-            EndCommandChunk();          // close current balanced leaf
+            EndCommandChunk();
+            StartCommandChunk(parallelizable, null,
+                              $"HardSplit_{NextCommandIndex}",
+                              ignoreKeepTogether: true);
+        }
 
-            // reset per‑chunk counters
-            _openIfDepth = 0;
-            _splitPending = false;
+        /// <summary>
+        /// Inserts synthetic child chunks so that no leaf exceeds <paramref name="max"/> commands.
+        /// Call once after <see cref="CompleteCommandList"/> and before code‑generation.
+        /// </summary>
+        public void HardSplitLargeLeaves(int max = 50_000)
+        {
+            List<NWayTreeStorageInternal<ArrayCommandChunk>> leaves =
+                new List<NWayTreeStorageInternal<ArrayCommandChunk>>();
 
-            StartCommandChunk(par, null, $"HardSplit_{NextCommandIndex}", ignoreKeepTogether: true);
+            // collect current leaves
+            CommandTree.WalkTree(n =>
+            {
+                var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
+                if (node.Branches == null || node.Branches.Length == 0)
+                    leaves.Add(node);
+            });
+
+            foreach (var leaf in leaves)
+            {
+                ArrayCommandChunk c = leaf.StoredValue;
+                int total = c.EndCommandRangeExclusive - c.StartCommandRange;
+                if (total <= max) continue;                       // already small
+
+                int start = c.StartCommandRange;
+                byte childId = 1;
+
+                while (start < c.EndCommandRangeExclusive)
+                {
+                    int end = Math.Min(start + max, c.EndCommandRangeExclusive);
+
+                    var child = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf);
+                    child.StoredValue = new ArrayCommandChunk
+                    {
+                        ChildrenParallelizable = false,
+                        StartCommandRange = start,
+                        EndCommandRangeExclusive = end,
+                        StartSourceIndices = c.StartSourceIndices,
+                        EndSourceIndicesExclusive = c.EndSourceIndicesExclusive,
+                        StartDestinationIndices = c.StartDestinationIndices,
+                        EndDestinationIndicesExclusive = c.EndDestinationIndicesExclusive,
+                        VirtualStack = c.VirtualStack,
+                        VirtualStackID = c.VirtualStackID
+                    };
+
+                    leaf.SetBranch(childId++, child);
+                    start = end;
+                }
+
+                // update parent’s metadata
+                c.LastChild = (byte)(childId - 1);
+                c.EndCommandRangeExclusive = c.StartCommandRange; // parent holds no commands
+                c.EndSourceIndicesExclusive = c.StartSourceIndices;
+                c.EndDestinationIndicesExclusive = c.StartDestinationIndices;
+            }
         }
 
 
@@ -879,7 +904,6 @@ namespace ACESimBase.Util.ArrayProcessing
             }
             else
             {
-                // NEW: Reflection.Emit approach (stub or real code)
                 CompileCode_ReflectionEmit();
             }
         }
@@ -1525,6 +1549,22 @@ else
                 }
             }
             Console.WriteLine($"Longest balanced segment = {longest:N0} commands");
+        }
+
+        // DEBUG
+        public void DumpLeafRanges(string tag)
+        {
+            Console.WriteLine($"── Leaf dump {tag} ──");
+            CommandTree.WalkTree(nodeObj =>
+            {
+                var n = (NWayTreeStorageInternal<ArrayCommandChunk>)nodeObj;
+                if (n.Branches == null || n.Branches.Length == 0)
+                {
+                    var s = n.StoredValue;
+                    int size = s.EndCommandRangeExclusive - s.StartCommandRange;
+                    Console.WriteLine($"leaf  [{s.StartCommandRange,8:N0},{s.EndCommandRangeExclusive,8:N0})  len={size:N0}");
+                }
+            });
         }
     }
 }

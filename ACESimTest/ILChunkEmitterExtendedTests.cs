@@ -31,7 +31,7 @@ namespace ACESimTest
 
             // Emit
             var emitter = new ILChunkEmitter(chunk, commands);
-            var del = emitter.EmitMethod("TestAllBlankCommands");
+            var del = emitter.EmitMethod("TestAllBlankCommands", out _);
 
             // Setup arrays
             double[] vs = new double[4];
@@ -66,7 +66,7 @@ namespace ACESimTest
             };
 
             var emitter = new ILChunkEmitter(chunk, commands);
-            var del = emitter.EmitMethod("TestEmptyChunk");
+            var del = emitter.EmitMethod("TestEmptyChunk", out _);
 
             double[] vs = new double[2] { 1.0, 2.0 };
             double[] os = new double[1];
@@ -106,7 +106,7 @@ namespace ACESimTest
             };
 
             var emitter = new ILChunkEmitter(chunk, commands);
-            var del = emitter.EmitMethod("TestLargeIndices");
+            var del = emitter.EmitMethod("TestLargeIndices", out _);
 
             // Prepare a big vs
             double[] vs = new double[1000];
@@ -177,7 +177,7 @@ namespace ACESimTest
             };
 
             var emitter = new ILChunkEmitter(chunk, commands);
-            var del = emitter.EmitMethod("TestConsecutiveIfs");
+            var del = emitter.EmitMethod("TestConsecutiveIfs", out _);
 
             double[] vs = new double[6];
             vs[2] = 50.0; // This will set vs[0] to 50 after the increment
@@ -239,7 +239,7 @@ namespace ACESimTest
             };
 
             var emitter = new ILChunkEmitter(chunk, commands);
-            var del = emitter.EmitMethod("TestNestedIf");
+            var del = emitter.EmitMethod("TestNestedIf", out _);
 
             double[] vs = new double[4];
             vs[1] = 10.0;
@@ -282,7 +282,7 @@ namespace ACESimTest
             };
 
             var emitter = new ILChunkEmitter(chunk, commands);
-            var del = emitter.EmitMethod("TestEmptyIfBody");
+            var del = emitter.EmitMethod("TestEmptyIfBody", out _);
 
             double[] vs = new double[2];
             double[] os = new double[1];
@@ -329,7 +329,7 @@ namespace ACESimTest
             };
 
             var emitter = new ILChunkEmitter(chunk, commands);
-            var del = emitter.EmitMethod("TestSkippingNextSource");
+            var del = emitter.EmitMethod("TestSkippingNextSource", out _);
 
             double[] vs = new double[3];
             vs[0] = 5.0;
@@ -372,7 +372,7 @@ namespace ACESimTest
             };
 
             var emitter = new ILChunkEmitter(chunk, commands);
-            var del = emitter.EmitMethod("TestMultipleNextSources");
+            var del = emitter.EmitMethod("TestMultipleNextSources", out _);
 
             double[] vs = new double[6];
             double[] os = new double[] { 10.0, 20.0, 30.0 };
@@ -417,7 +417,7 @@ namespace ACESimTest
             };
 
             var emitter = new ILChunkEmitter(chunk, commands);
-            var del = emitter.EmitMethod("TestSkippingNextDestination");
+            var del = emitter.EmitMethod("TestSkippingNextDestination", out _);
 
             double[] vs = new double[3];
             vs[0] = 2.0; // condition => false
@@ -461,7 +461,7 @@ namespace ACESimTest
             };
 
             var emitter = new ILChunkEmitter(chunk, commands);
-            var del = emitter.EmitMethod("TestMultipleNextDestinations");
+            var del = emitter.EmitMethod("TestMultipleNextDestinations", out _);
 
             double[] vs = new double[5];
             vs[2] = 10.0;
@@ -509,7 +509,7 @@ namespace ACESimTest
             };
 
             var emitter = new ILChunkEmitter(chunk, commands);
-            var del = emitter.EmitMethod("TestMultipleReusedDestinations");
+            var del = emitter.EmitMethod("TestMultipleReusedDestinations", out _);
 
             double[] vs = new double[1];
             vs[0] = 5.0; // We'll accumulate this in od[0]
@@ -554,7 +554,7 @@ namespace ACESimTest
             };
 
             var emitter = new ILChunkEmitter(chunk, commands);
-            var del = emitter.EmitMethod("TestReadModifyWrite");
+            var del = emitter.EmitMethod("TestReadModifyWrite", out _);
 
             double[] vs = new double[3];
             vs[1] = 3.0;
@@ -598,7 +598,7 @@ namespace ACESimTest
             var emitter = new ILChunkEmitter(chunk, commands);
             // If your code checks this earlier, it might fail in the chunk building step,
             // or if it tries to emit the IL we fail as well.
-            emitter.EmitMethod("TestNegativeIndex");
+            emitter.EmitMethod("TestNegativeIndex", out _);
         }
 
 
@@ -653,7 +653,7 @@ namespace ACESimTest
 
             // IL
             var emitter = new ILChunkEmitter(chunk, commands);
-            var del = emitter.EmitMethod("TestRandomShortSequence");
+            var del = emitter.EmitMethod("TestRandomShortSequence", out _);
             int cosi2 = 0, codi2 = 0;
             del(vs2, os, od, ref cosi2, ref codi2);
 
@@ -819,7 +819,7 @@ namespace ACESimTest
                     VirtualStack = vsIL
                 };
                 var emitter = new ILChunkEmitter(fakeChunk, cmds);
-                var del = emitter.EmitMethod("TestMethod");
+                var del = emitter.EmitMethod("TestMethod", out _);
                 del(vsIL, os, odIL, ref cosiIL, ref codiIL);
 
                 // verify

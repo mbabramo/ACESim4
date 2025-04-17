@@ -52,7 +52,7 @@ namespace ACESimTest
 
             // Emit IL
             var emitter = new ILChunkEmitter(chunk, commands);
-            var del = emitter.EmitMethod("TestBasicArithmetic");
+            var del = emitter.EmitMethod("TestBasicArithmetic", out _);
 
             // Prepare arrays
             double[] vs = new double[10]; // vs large enough
@@ -110,7 +110,7 @@ namespace ACESimTest
             };
 
             var emitter = new ILChunkEmitter(chunk, commands);
-            var del = emitter.EmitMethod("TestSourcesAndDestinations");
+            var del = emitter.EmitMethod("TestSourcesAndDestinations", out _);
 
             double[] vs = new double[5];
             double[] os = new double[] { 10.0, 20.0 };
@@ -168,7 +168,7 @@ namespace ACESimTest
             };
 
             var emitter = new ILChunkEmitter(chunk, commands);
-            var del = emitter.EmitMethod("TestReusedDestination");
+            var del = emitter.EmitMethod("TestReusedDestination", out _);
 
             double[] vs = new double[5];
             vs[1] = 5.0;  // We'll add this to vs[0]
@@ -251,7 +251,7 @@ namespace ACESimTest
             };
 
             var emitter = new ILChunkEmitter(chunk, commands);
-            var del = emitter.EmitMethod("TestFlowControlWithIf");
+            var del = emitter.EmitMethod("TestFlowControlWithIf", out _);
 
             // Setup arrays
             double[] vs = new double[6];
@@ -323,7 +323,7 @@ namespace ACESimTest
             };
 
             var emitter = new ILChunkEmitter(chunk, commands);
-            var del = emitter.EmitMethod("TestCompareValueCommands");
+            var del = emitter.EmitMethod("TestCompareValueCommands", out _);
 
             double[] vs = new double[5];
             vs[1] = 3.14;  // We'll add 3.14 to vs[0]
