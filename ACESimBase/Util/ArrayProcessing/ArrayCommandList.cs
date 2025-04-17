@@ -53,8 +53,9 @@ namespace ACESimBase.Util.ArrayProcessing
         public int MaxArrayIndex;
 
         // NEW: Toggle Roslyn or Reflection.Emit compilation
-        public bool UseRoslyn = true; // DEBUG -- current problem with ILChunkEmitter is that it doesn't work for large chunks (e.g., over 1,000,000). So we need to break things up, ideally using if commands.
-        public int MaxCommandsPerChunk { get; set; } = 10_000;
+        public bool UseRoslyn = false; // DEBUG -- current problem with ILChunkEmitter is that it doesn't work for large chunks (e.g., over 1,000,000). So we need to break things up, ideally using if commands.
+        public int MaxCommandsPerChunk { get; set; } = 10_000; 
+        public int HardMaxCommandsPerChunk { get; set; } = 50_000;   // 0 ⇒ off
         public bool DisableAdvancedFeatures = false;
 
         // Ordered sources: We initially develop a list of indices of the data passed to the algorithm each iteration. Before each iteration, we copy the data corresponding to these indices into the OrderedSources array in the order in which it will be needed. A command that otherwise would copy from the original data instead loads the next item in ordered sources. This may slightly improve performance because a sequence of original data will be cached. More importantly, it can improve parallelism: When a player chooses among many actions that are structurally equivalent (that is, they do not change how the game is played from that point on), we can run the same code with different slices of the OrderedSources array.
@@ -103,7 +104,12 @@ namespace ACESimBase.Util.ArrayProcessing
         // code or from code not using the ArrayCommandList to see where the values differ.
         public bool UseCheckpoints = false; 
         public static int CheckpointTrigger = -2; // -1 is used for other purposes, and must be negative
-        public List<double> Checkpoints;
+        public List<double> Checkpoints; 
+        
+        private ArrayCommandType _lastAddedCommandType = ArrayCommandType.Blank;
+        int _openIfDepth = 0;   // # unclosed Ifs since chunk start
+        bool _splitPending = false;
+
 
         #endregion
 
@@ -151,6 +157,7 @@ namespace ACESimBase.Util.ArrayProcessing
             if (!PerDepthStartArrayIndices.Any() && completeCommandList)
             {
                 CompleteCommandList();
+                LogBalancedSegments(50_000); // DEBUG
             }
         }
 
@@ -161,9 +168,9 @@ namespace ACESimBase.Util.ArrayProcessing
         /// <param name="runChildrenInParallel"></param>
         /// <param name="identicalStartCommandRange"></param>
         /// <param name="name"></param>
-        public void StartCommandChunk(bool runChildrenInParallel, int? identicalStartCommandRange, string name = "")
+        public void StartCommandChunk(bool runChildrenInParallel, int? identicalStartCommandRange, string name = "", bool ignoreKeepTogether = false)
         {
-            if (KeepCommandsTogetherLevel > 0)
+            if (KeepCommandsTogetherLevel > 0 && !ignoreKeepTogether)
                 return;
             //TabbedText.WriteLine($"Starting {name} {NextCommandIndex}");
             //TabbedText.TabIndent();
@@ -463,58 +470,89 @@ namespace ACESimBase.Util.ArrayProcessing
         #endregion
 
         #region Command creation
-
         private void AddCommand(ArrayCommand command)
         {
-            //Debug.WriteLine($"Addcommand {NextCommandIndex}: {command}");
             if (NextCommandIndex == 0 && command.CommandType != ArrayCommandType.Blank)
                 InsertBlankCommand();
+
             if (RepeatingExistingCommandRange)
             {
-                ArrayCommand existingCommand = UnderlyingCommands[NextCommandIndex];
-                if (!command.Equals(existingCommand) && (!ReuseDestinations || command.CommandType != ArrayCommandType.ReusedDestination)) // note that goto may be specified later
+                ArrayCommand existing = UnderlyingCommands[NextCommandIndex];
+                if (!command.Equals(existing) &&
+                    (!ReuseDestinations || command.CommandType != ArrayCommandType.ReusedDestination))
                     throw new Exception("Expected repeated command to be equal but it wasn't");
-                //TabbedText.WriteLine($"Repeating {NextCommandIndex}: {existingCommand}");
                 NextCommandIndex++;
                 return;
             }
-            //TabbedText.WriteLine($"Adding at {NextCommandIndex}: {command}"); 
+
             if (NextCommandIndex >= UnderlyingCommands.Length)
                 throw new Exception("Commands array size must be increased.");
-            UnderlyingCommands[NextCommandIndex] = command;
-            NextCommandIndex++;
+
+            // store command
+            UnderlyingCommands[NextCommandIndex++] = command;
+
             if (NextArrayIndex > MaxArrayIndex)
                 MaxArrayIndex = NextArrayIndex;
-            MaybeSplitCurrentChunk();
+
+            // track open‑If depth for this chunk
+            if (command.CommandType == ArrayCommandType.If) _openIfDepth++;
+            else if (command.CommandType == ArrayCommandType.EndIf) _openIfDepth--;
+
+            if ((NextCommandIndex - CurrentCommandChunk.StartCommandRange) % 200_000 == 0)
+                Console.WriteLine($"DBG  idx={NextCommandIndex:N0}  inChunk={NextCommandIndex - CurrentCommandChunk.StartCommandRange:N0}  hardPending={_splitPending}  hardMax={HardMaxCommandsPerChunk}"); // DEBUG
+            MaybeSplitCurrentChunk();   // may mark _splitPending or actually split
+
+            // if hard split was armed and we’re now balanced, cut the chunk
+            if (_splitPending && _openIfDepth == 0)
+            {
+                _splitPending = false;
+                bool par = CurrentCommandChunk.ChildrenParallelizable;
+                EndCommandChunk();
+                StartCommandChunk(par, null,
+                                  $"HardSplit_{NextCommandIndex}",
+                                  ignoreKeepTogether: true);   // ← bypass lock
+                                                               // new chunk → counter reset
+                _openIfDepth = 0;
+            }
         }
 
         private void MaybeSplitCurrentChunk()
         {
-            // off switch or inside an If/EndIf “keep‑together” region → skip
-            if (MaxCommandsPerChunk <= 0 || KeepCommandsTogetherLevel > 0)
+            int inChunk = NextCommandIndex - CurrentCommandChunk.StartCommandRange;
+
+            // normal window rule (only when keep‑together lock is clear)
+            if (KeepCommandsTogetherLevel == 0 &&
+                MaxCommandsPerChunk > 0 &&
+                inChunk >= MaxCommandsPerChunk)
+            {
+                SplitHere();
                 return;
+            }
 
-            // size of *leaf* we’re currently filling
-            int commandsInChunk = NextCommandIndex - CurrentCommandChunk.StartCommandRange;
-            if (commandsInChunk < MaxCommandsPerChunk)
-                return;
-
-            // We are at/over the limit → close this chunk and open a sibling.
-            // Save parent’s parallelisation flag before closing, because EndCommandChunk()
-            // resets CurrentCommandChunk to the parent.
-            bool siblingsRunInParallel = CurrentCommandChunk.ChildrenParallelizable;
-
-            // Close the leaf (does NOT change NextCommandIndex).
-            EndCommandChunk();
-
-            // Immediately open a sequential sibling that continues recording.
-            // identicalStartCommandRange = null  → not a “repeated” chunk.
-            StartCommandChunk(
-                runChildrenInParallel: siblingsRunInParallel,
-                identicalStartCommandRange: null,
-                name: $"AutoSplit_{NextCommandIndex}"
-            );
+            // hard‑limit: arm the flag, actual split will happen when _openIfDepth==0
+            if (!_splitPending &&
+                HardMaxCommandsPerChunk > 0 &&
+                inChunk >= HardMaxCommandsPerChunk)
+            {
+                _splitPending = true;
+            }
         }
+
+        private void SplitHere()
+        {
+            Console.WriteLine($"*** HardSplit at idx={NextCommandIndex:N0}"); // DEBUG
+            bool par = CurrentCommandChunk.ChildrenParallelizable;
+
+            EndCommandChunk();          // close current balanced leaf
+
+            // reset per‑chunk counters
+            _openIfDepth = 0;
+            _splitPending = false;
+
+            StartCommandChunk(par, null, $"HardSplit_{NextCommandIndex}", ignoreKeepTogether: true);
+        }
+
+
 
         // First, methods to create commands that use new spots in the array
 
@@ -765,8 +803,8 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void InsertEndIfCommand()
         {
-            AddCommand(new ArrayCommand(ArrayCommandType.EndIf, -1, -1));
             EndKeepCommandsTogether();
+            AddCommand(new ArrayCommand(ArrayCommandType.EndIf, -1, -1));
         }
 
         /// <summary>
@@ -788,7 +826,7 @@ namespace ACESimBase.Util.ArrayProcessing
         [NonSerialized]
         Type AutogeneratedCodeType;
         public bool AutogeneratedCodeIsPrecompiled = false; // We can autogenerate and then just save to a c# file, so long as the game structure doesn't change. But we still need to initialize our game tree, since we use it to calculate our ordered sources. In that case, we don't need to autogenerate the code.
-        bool CopyVirtualStackToLocalVariables = true; // A complication here is that this may cause the stack to become too large
+        bool CopyVirtualStackToLocalVariables => UseRoslyn; // A complication here is that this may cause the stack to become too large, so we can set to false to avoid that problem
 
         private void CompileCode()
         {
@@ -867,8 +905,11 @@ namespace ACESimBase.Util.ArrayProcessing
                     string methodKey = $"Chunk_{startCmd}_{endCmd - 1}";
 
                     // Build the IL
-                    var emitter = new ILChunkEmitter(chunk, UnderlyingCommands);
-                    ArrayCommandChunkDelegate del = emitter.EmitMethod(methodKey);
+                    var emitter = new ILChunkEmitter(chunk, UnderlyingCommands); 
+                    ArrayCommandChunkDelegate del = emitter.EmitMethod(methodKey,   /*out*/
+                                                   out int ilBytes);
+                    Console.WriteLine(
+                        $"[IL] chunk {methodKey} — {numCommands:N0} commands, {ilBytes:N0} IL bytes");
 
                     // Store the delegate
                     _compiledChunkMethods[methodKey] = del;
@@ -1455,5 +1496,35 @@ else
         }
 
         #endregion
+
+        // DEBUG
+        public void LogBalancedSegments(int printEvery = 10_000)
+        {
+            int depth = 0;
+            int segLen = 0;
+            int longest = 0;
+            int segStart = 0;
+
+            for (int i = 0; i < MaxCommandIndex; i++)
+            {
+                var t = UnderlyingCommands[i].CommandType;
+                if (t == ArrayCommandType.If) depth++;
+                if (t == ArrayCommandType.EndIf) depth--;
+
+                segLen++;
+
+                if (depth == 0)
+                {
+                    // a balanced segment just closed
+                    if (segLen >= printEvery)
+                        Console.WriteLine($"SEG [{segStart,8:N0}–{i,8:N0}]  len={segLen:N0}");
+
+                    if (segLen > longest) longest = segLen;
+                    segStart = i + 1;
+                    segLen = 0;
+                }
+            }
+            Console.WriteLine($"Longest balanced segment = {longest:N0} commands");
+        }
     }
 }

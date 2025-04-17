@@ -36,7 +36,7 @@ namespace ACESimBase.Util.ArrayProcessing
         /// Creates a DynamicMethod and emits all instructions for the chunk,
         /// returning an executable delegate.
         /// </summary>
-        public ArrayCommandChunkDelegate EmitMethod(string methodName = null)
+        public ArrayCommandChunkDelegate EmitMethod(string methodName, out int ilBytes)
         {
             if (methodName == null)
             {
@@ -103,6 +103,8 @@ namespace ACESimBase.Util.ArrayProcessing
 
             // Return
             _il.Emit(OpCodes.Ret);
+            
+            ilBytes = _il.ILOffset;
 
             // Create the delegate
             var finalDel = (ArrayCommandChunkDelegate)dynMethod.CreateDelegate(typeof(ArrayCommandChunkDelegate));
