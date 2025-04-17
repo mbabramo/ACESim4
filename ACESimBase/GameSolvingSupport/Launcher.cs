@@ -302,6 +302,8 @@ namespace ACESim
                         {
                             TabbedText.WriteLineEvenIfDisabled($"Task to do: {taskToDo}");
                             Console.Title = tasksToDo.First().ToString();
+                            Stopwatch st = new Stopwatch();
+                            st.Start();
                             logAction($"Beginning task {taskToDo.TaskType} (ID {taskToDo.ID}) time {DateTime.Now}");
                             try
                             {
@@ -314,7 +316,7 @@ namespace ACESim
                             {
                                 AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), $"FAILURE {taskToDo.TaskType} ID {taskToDo.ID}.txt", true, ex + "\n" + TabbedText.AccumulatedText.ToString(), SaveToAzureBlob);
                             }
-                            logAction($"Completed task {taskToDo.TaskType} (ID {taskToDo.ID}) time {DateTime.Now}");
+                            logAction($"Completed task {taskToDo.TaskType} (ID {taskToDo.ID}) time {DateTime.Now} total seconds {st.ElapsedMilliseconds / 1000}");
                             tasksToDo.Remove(taskToDo);
                             if (tasksCompleted == null)
                                 tasksCompleted = new List<IndividualTask>();

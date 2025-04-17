@@ -314,7 +314,7 @@ namespace ACESim
                     goto retry;
                 }
             }
-            TabbedText.WriteLine($"... {s.ElapsedMilliseconds} milliseconds (using {Unroll_Commands.FullArraySize} commands)");
+            TabbedText.WriteLine($"... {s.ElapsedMilliseconds} milliseconds (using {Unroll_Commands.FullArraySize} array size and {Unroll_Commands.MaxCommandIndex} commands)");
         }
 
         private void Unroll_ExecuteUnrolledCommands(double[] array, bool copyChanceAndFinalUtilities)

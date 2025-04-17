@@ -54,6 +54,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         // NEW: Toggle Roslyn or Reflection.Emit compilation
         public bool UseRoslyn = true; // DEBUG -- current problem with ILChunkEmitter is that it doesn't work for large chunks (e.g., over 1,000,000). So we need to break things up, ideally using if commands.
+        public int MaxCommandsPerChunk { get; set; } = 10_000;
         public bool DisableAdvancedFeatures = false;
 
         // Ordered sources: We initially develop a list of indices of the data passed to the algorithm each iteration. Before each iteration, we copy the data corresponding to these indices into the OrderedSources array in the order in which it will be needed. A command that otherwise would copy from the original data instead loads the next item in ordered sources. This may slightly improve performance because a sequence of original data will be cached. More importantly, it can improve parallelism: When a player chooses among many actions that are structurally equivalent (that is, they do not change how the game is played from that point on), we can run the same code with different slices of the OrderedSources array.
@@ -484,6 +485,35 @@ namespace ACESimBase.Util.ArrayProcessing
             NextCommandIndex++;
             if (NextArrayIndex > MaxArrayIndex)
                 MaxArrayIndex = NextArrayIndex;
+            MaybeSplitCurrentChunk();
+        }
+
+        private void MaybeSplitCurrentChunk()
+        {
+            // off switch or inside an If/EndIf “keep‑together” region → skip
+            if (MaxCommandsPerChunk <= 0 || KeepCommandsTogetherLevel > 0)
+                return;
+
+            // size of *leaf* we’re currently filling
+            int commandsInChunk = NextCommandIndex - CurrentCommandChunk.StartCommandRange;
+            if (commandsInChunk < MaxCommandsPerChunk)
+                return;
+
+            // We are at/over the limit → close this chunk and open a sibling.
+            // Save parent’s parallelisation flag before closing, because EndCommandChunk()
+            // resets CurrentCommandChunk to the parent.
+            bool siblingsRunInParallel = CurrentCommandChunk.ChildrenParallelizable;
+
+            // Close the leaf (does NOT change NextCommandIndex).
+            EndCommandChunk();
+
+            // Immediately open a sequential sibling that continues recording.
+            // identicalStartCommandRange = null  → not a “repeated” chunk.
+            StartCommandChunk(
+                runChildrenInParallel: siblingsRunInParallel,
+                identicalStartCommandRange: null,
+                name: $"AutoSplit_{NextCommandIndex}"
+            );
         }
 
         // First, methods to create commands that use new spots in the array
