@@ -426,109 +426,111 @@ namespace LitigCharts
                 ProduceLatexDiagrams(processesToLaunch);
             }
         }
-
         public static void OrganizeIntoFolders(bool doDeletion)
         {
             string reportFolder = Launcher.ReportFolder();
-            string[] filesInFolder = DeleteAuxiliaryFiles(reportFolder);
-            filesInFolder = Directory.GetFiles(reportFolder);
 
-            string[] getExtensions(string eqType) => new string[] { firstEqOnly ? $".csv" : $"-{eqType}.csv", $"-heatmap-{eqType}.pdf", $"-heatmap-{eqType}.tex", $"-fileans-{eqType}.pdf", $"-fileans-{eqType}.tex", $"-scr-{eqType}.pdf", $"-scr-{eqType}.tex", $"-scr-{eqType}.csv" };
-            List<(string folderName, string[] extensions)> placementRules = new List<(string folderName, string[] extensions)>()
-            {
-                ("First Equilibrium", getExtensions("Eq1")),
-                ("First Equilibrium", getExtensions("eq1")), // we're inconsistent in capitalization
-                ("EFG Files", new string[] { ".efg" }),
-                ("Equilibria Files", new string[] { "-equ.csv" }),
-                ("Logs", new string[] { "-log.txt" }),
-            };
+            // Create a root folder for all individual simulation results
+            string individualResultsRoot = Path.Combine(reportFolder, "Individual Simulation Results");
+            if (!Directory.Exists(individualResultsRoot))
+                Directory.CreateDirectory(individualResultsRoot);
+
+            // Clean up auxiliary files
+            DeleteAuxiliaryFiles(reportFolder);
+            // Refresh file list
+            string[] filesInFolder = Directory.GetFiles(reportFolder);
+
+            // Define placement rules for moving files into subfolders
+            string[] getExtensions(string eqType) => new string[] {
+        firstEqOnly ? ".csv" : $"-{eqType}.csv",
+        $"-heatmap-{eqType}.pdf", $"-heatmap-{eqType}.tex",
+        $"-fileans-{eqType}.pdf", $"-fileans-{eqType}.tex",
+        $"-scr-{eqType}.pdf", $"-scr-{eqType}.tex", $"-scr-{eqType}.csv"
+    };
+            var placementRules = new List<(string folderName, string[] extensions)>()
+    {
+        ("First Equilibrium", getExtensions("Eq1")),
+        ("EFG Files", new string[] { ".efg" }),
+        ("Equilibria Files", new string[] { "-equ.csv" }),
+        ("Logs", new string[] { "-log.txt" }),
+    };
             if (!firstEqOnly)
             {
-                placementRules.InsertRange(0, new List<(string folderName, string[] extensions)>()
-                {
-                    ("Correlated Equilibrium", getExtensions("Corr")),
-                    ("Average Equilibrium", getExtensions("Avg")),
-                }
-                );
+                placementRules.InsertRange(0, new List<(string, string[])>()
+        {
+            ("Correlated Equilibrium", getExtensions("Corr")),
+            ("Average Equilibrium", getExtensions("Avg")),
+        });
                 for (int i = 2; i <= 100; i++)
                 {
-                    placementRules.Add(($"Additional Equilibria", getExtensions($"Eq{i}")));
-                    placementRules.Add(($"Additional Equilibria", getExtensions($"eq{i}")));
+                    placementRules.Add(("Additional Equilibria", getExtensions($"Eq{i}")));
                 }
             }
 
             var launcher = new LitigGameLauncher();
             var sets = launcher.GetEndogenousDisputesArticleGamesSets(false, false);
-            var map = launcher.GetEndogenousDisputesArticleNameMap(); // name to find (avoids redundancies)
+            var map = launcher.GetEndogenousDisputesArticleNameMap();
             var setNames = launcher.NamesOfEndogenousArticleSets;
             string masterReportName = launcher.MasterReportNameForDistributedProcessing;
-            List<(List<LitigGameOptions> theSet, string setName)> setsWithNames = sets.Zip(setNames, (s, sn) => (s, sn)).ToList();
-            foreach (var setWithName in setsWithNames)
+            var setsWithNames = sets.Zip(setNames, (s, sn) => (theSet: s, setName: sn));
+
+            foreach (var (theSet, setName) in setsWithNames)
             {
-                string subfolderName = Path.Combine(reportFolder, setWithName.setName);
-                if (!Directory.GetDirectories(reportFolder).Any(x => x == subfolderName))
-                    Directory.CreateDirectory(subfolderName);
-                foreach (string folderName in placementRules.Select(x => x.folderName))
+                // Create a folder for this simulation under the individual results root
+                string simulationFolder = Path.Combine(individualResultsRoot, setName);
+                if (!Directory.Exists(simulationFolder))
+                    Directory.CreateDirectory(simulationFolder);
+
+                // Create subfolders for each placement rule
+                foreach (var (folderName, _) in placementRules)
                 {
-                    var subsubfolderName = Path.Combine(subfolderName, folderName);
-                    if (!Directory.GetDirectories(subfolderName).Any(x => x == subsubfolderName))
-                        Directory.CreateDirectory(subsubfolderName);
+                    string subFolder = Path.Combine(simulationFolder, folderName);
+                    if (!Directory.Exists(subFolder))
+                        Directory.CreateDirectory(subFolder);
                 }
-                HashSet<string> alreadyDeleted = new HashSet<string>();
-                foreach (var optionsSet in setWithName.theSet)
+
+                var deletedSources = new HashSet<string>();
+                // Move/copy files according to the rules
+                foreach (var optionsSet in theSet)
                 {
                     string originalName = optionsSet.Name;
-                    string filenameMapped = map[originalName];
-                    foreach (var placementRule in placementRules)
+                    string mappedName = map[originalName];
+                    foreach (var (folderName, extensions) in placementRules)
                     {
-                        var subsubfolderName = Path.Combine(subfolderName, placementRule.folderName);
-                        foreach (var extension in placementRule.extensions)
+                        string targetDir = Path.Combine(simulationFolder, folderName);
+                        foreach (var ext in extensions)
                         {
-                            string combinedNameSource = Path.Combine(reportFolder, masterReportName + "-" + filenameMapped + extension);
-                            string targetFileName = originalName.Replace("FSA ", "").Replace("-Eq1", "-eq1").Replace("  ", " ") + extension;
-                            if (!File.Exists(combinedNameSource))
-                                combinedNameSource = combinedNameSource.Replace("-eq1", "-Eq1");
-                            if (File.Exists(combinedNameSource))
+                            string sourcePath = Path.Combine(reportFolder, $"{masterReportName}-{mappedName}{ext}");
+                            if (!File.Exists(sourcePath)) continue;
+
+                            string targetFileName = originalName.Replace("FSA ", "").Replace("-Eq1", "-eq1").Replace("  ", " ") + ext;
+                            string destPath = Path.Combine(targetDir, targetFileName);
+                            File.Copy(sourcePath, destPath, true);
+
+                            if (doDeletion && !deletedSources.Contains(sourcePath))
                             {
-                                string combinedNameTarget = Path.Combine(subsubfolderName, targetFileName);
-                                File.Copy(combinedNameSource, combinedNameTarget, true);
-                                if (doDeletion && !alreadyDeleted.Contains(combinedNameSource))
-                                {
-                                    alreadyDeleted.Add(combinedNameSource);
-                                    File.Delete(combinedNameSource);
-                                    TabbedText.WriteLine($"Deleting {combinedNameSource}");
-                                }
-                            }
-                            else
-                            {
-                                if (doDeletion)
-                                {
-                                    if (!placementRule.folderName.Contains("Additional Equilibria") && !alreadyDeleted.Contains(combinedNameSource))
-                                    {
-                                        TabbedText.WriteLine($"{combinedNameSource} does not exist");
-                                    }
-                                }
+                                File.Delete(sourcePath);
+                                deletedSources.Add(sourcePath);
+                                TabbedText.WriteLine($"Deleting {sourcePath}");
                             }
                         }
                     }
-                    string fullOriginalFilename = Path.Combine(reportFolder, filenameMapped);
                 }
             }
-            // move every file in reportFolder beginning with "log-p" into a folder "Process Logs" (which may or may not exist)
-            string[] logFiles = Directory.GetFiles(reportFolder).Where(x => x.Contains("log-p")).ToArray();
-            string processLogsFolder = Path.Combine(reportFolder, "Process Logs");
-            if (!Directory.GetDirectories(reportFolder).Any(x => x == processLogsFolder))
-                Directory.CreateDirectory(processLogsFolder);
-            foreach (string logFile in logFiles)
-            {
-                string targetFile = Path.Combine(processLogsFolder, Path.GetFileName(logFile));
-                if (File.Exists(targetFile))
-                    File.Delete(logFile);
-                else
-                    File.Move(logFile, targetFile);
-            }
 
+            // Move process log files into "Process Logs" at top level
+            string processLogsFolder = Path.Combine(reportFolder, "Process Logs");
+            if (!Directory.Exists(processLogsFolder))
+                Directory.CreateDirectory(processLogsFolder);
+
+            foreach (var logFile in Directory.GetFiles(reportFolder).Where(f => Path.GetFileName(f).Contains("log-p")))
+            {
+                string dest = Path.Combine(processLogsFolder, Path.GetFileName(logFile));
+                if (File.Exists(dest)) File.Delete(logFile);
+                else File.Move(logFile, dest);
+            }
         }
+
 
 
 
