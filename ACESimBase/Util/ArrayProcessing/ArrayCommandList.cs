@@ -1204,9 +1204,6 @@ else
                     }
                     catch (InvalidProgramException ex)
                     {
-                        //byte[] ilByteArray = delMethod.Method.GetMethodBody().GetILAsByteArray(); // DEBUG
-                        //File.WriteAllBytes($"C:\\Users\\Admin\\Documents\\GitHub\\ACESim4\\ReportResults\\InvalidIL_{methodKey}.bin", ilByteArray);
-
                         //  re‑throw with diagnostics so we know
                         //  exactly which chunk produced bad IL
                         throw new InvalidOperationException(

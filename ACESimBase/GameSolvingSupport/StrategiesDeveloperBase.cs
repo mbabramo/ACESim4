@@ -2398,7 +2398,8 @@ namespace ACESim
                 if (EvolutionSettings.PrintGameTree && !suppressPrintTree)
                 {
                     PrintGameTree();
-                    EvolutionSettings.PrintGameTree = false; // DEBUG
+                    if (EvolutionSettings.KeepPrintingGameTree)
+                        EvolutionSettings.PrintGameTree = false;
                 }
                 if (EvolutionSettings.PrintInformationSets)
                     PrintInformationSets();

@@ -15,7 +15,7 @@ namespace ACESim
     {
         public bool DistributeChanceDecisions = false; // NOTE: Use CollapseChanceDecisions instead; it's much simpler and seems to produce slightly better performance.
         public bool UnrollAlgorithm = true;
-        public bool ReuseUnrolledAlgorithm = true; // DEBUG // Should be TRUE only if the same tree structure is used for every observation.
+        public bool ReuseUnrolledAlgorithm = true; // if the tree structure is the same, then it will be reused (but final utilities etc. will be updated)
         public bool SaveToAzureBlob = false;
         // Note: Many of the below are overridden by launcher.
         public int TotalAvgStrategySamplingCFRIterations = 100000;
@@ -32,7 +32,7 @@ namespace ACESim
         public int? ReportEveryNIterations = 1000;
         public int? SuppressReportBeforeIteration = null;
 
-        public bool UseAcceleratedBestResponse = true;  // DEBUG
+        public bool UseAcceleratedBestResponse = true; 
         public const int EffectivelyNever = 999999999;
         public int? BestResponseEveryMIterations = 100; // For partial recall games, this is very costly, so consider using EffectivelyNever. // overridden in Launcher
         public int? SuppressBestResponseBeforeIteration = null;
@@ -111,6 +111,7 @@ namespace ACESim
         public bool GenerateReportsByPlaying = true;
         public int NumRandomIterationsForSummaryTable = 1_000;
         public bool PrintGameTree = false;
+        public bool KeepPrintingGameTree = false; // after printing once, keep printing again
         public bool PrintedGameTreeIncludesInformationSetData = false;
         public bool PrintInformationSets = false;
         public bool AnalyzeInformationSets = false; 
