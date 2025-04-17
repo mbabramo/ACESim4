@@ -247,32 +247,32 @@ namespace ACESim
 
         private void Unroll_CreateUnrolledCommandList()
         {
+            int numRetries = 0;
             Stopwatch s = new Stopwatch();
             s.Start();
-            const int max_num_commands = 150_000_000;
-            Unroll_InitializeInitialArrayIndices();
-            if (EvolutionSettings.ReuseUnrolledAlgorithm && Unroll_Commands_Cached != null)
-            {
-                (int Chance, int Decision, int Final) gameTreeNodeCount = CountGameTreeNodes();
-                if (gameTreeNodeCount == GameTreeNodeCount_Cached)
-                {
-                    Unroll_Commands = Unroll_Commands_Cached;
-                    Unroll_SizeOfArray = Unroll_SizeOfArray_Cached;
-                    TabbedText.WriteLine($"Using cached unrolled commands.");
-                    return;
-                }
-            }
-            Unroll_Commands_Cached = null; // free memory
-            TabbedText.WriteLine($"Unrolling commands...");
-            Unroll_Commands = new ArrayCommandList(max_num_commands, Unroll_InitialArrayIndex, EvolutionSettings.ParallelOptimization);
-            ActionStrategy = ActionStrategies.CurrentProbability;
-            HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
-            List<int> resultIndices = new List<int>();
-
-            int numRetries = 0;
         retry:
             try
             {
+                const int max_num_commands = 150_000_000;
+                Unroll_InitializeInitialArrayIndices();
+                if (EvolutionSettings.ReuseUnrolledAlgorithm && Unroll_Commands_Cached != null)
+                {
+                    (int Chance, int Decision, int Final) gameTreeNodeCount = CountGameTreeNodes();
+                    if (gameTreeNodeCount == GameTreeNodeCount_Cached)
+                    {
+                        Unroll_Commands = Unroll_Commands_Cached;
+                        Unroll_SizeOfArray = Unroll_SizeOfArray_Cached;
+                        TabbedText.WriteLine($"Using cached unrolled commands.");
+                        return;
+                    }
+                }
+                Unroll_Commands_Cached = null; // free memory
+                TabbedText.WriteLine($"Unrolling commands...");
+                Unroll_Commands = new ArrayCommandList(max_num_commands, Unroll_InitialArrayIndex, EvolutionSettings.ParallelOptimization);
+                ActionStrategy = ActionStrategies.CurrentProbability;
+                HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
+                List<int> resultIndices = new List<int>();
+
                 Unroll_Commands.StartCommandChunk(false, null, "Iteration");
                 bool takeSymmetryShortcut = NumNonChancePlayers == 2 && GameDefinition.GameIsSymmetric() && TakeShortcutInSymmetricGames;
                 for (byte p = 0; p < NumNonChancePlayers; p++)
@@ -294,12 +294,14 @@ namespace ACESim
                     GameTreeNodeCount_Cached = CountGameTreeNodes();
                 }
             }
-            catch (OutOfMemoryException ex)
+            catch (OutOfMemoryException)
             {
                 numRetries++;
                 if (numRetries <= 10)
                 {
-                    Task.Delay(60_000 + (int)(60000.0 * new Random((int)DateTime.Now.Ticks).Next())).Wait(); // wait a minute or so before retrying
+                    int delayPeriod = 60_000 + (int)(60000.0 * new Random((int)DateTime.Now.Ticks).Next());
+                    TabbedText.WriteLine($"Delaying {delayPeriod} milliseconds");
+                    Task.Delay(delayPeriod).Wait(); // wait a minute or so before retrying
                     goto retry;
                 }
             }

@@ -44,6 +44,7 @@ namespace ACESim
             options.PInitialWealth = options.DInitialWealth = 10.0;
             options.DamagesMin = 0.0;
             options.DamagesMax = 1.0;
+            options.DamagesMultiplier = 1.0;
 
             options.PTrialCosts = options.DTrialCosts = 0.15;
             options.PFilingCost = options.DAnswerCost = 0.15;

@@ -63,7 +63,7 @@ namespace ACESimTest
             ApplyAfterAbandonment_AverageAllRounds
         }
 
-        private const double PartyLiabilityNoise = 0.2, PartyDamagesNoise = 0.25, InitialWealth = 1_000_000, DamagesAlleged = 100_000, DamagesMinMaxRatio = 0.5, CostsMultiplier = 1.1, PFileCost = 3000, DAnswerCost = 2000, PTrialCosts = 4000, DTrialCosts = 6000, PerRoundBargainingCost = 1000, RegretAversion = 0.25, LoserPaysMultiple = 1.5, ValueOfChip = 8000;
+        private const double PartyLiabilityNoise = 0.2, PartyDamagesNoise = 0.25, InitialWealth = 1_000_000, DamagesAlleged = 100_000, DamagesMinMaxRatio = 0.5, DamagesMultiplier = 1.5, CostsMultiplier = 1.1, PFileCost = 3000, DAnswerCost = 2000, PTrialCosts = 4000, DTrialCosts = 6000, PerRoundBargainingCost = 1000, RegretAversion = 0.25, LoserPaysMultiple = 1.5, ValueOfChip = 8000;
         private const byte MaxChipsPerRound = 3;
         private const byte NumLiabilityStrengthPoints = 8;
         private const byte NumLiabilitySignals = 10;
@@ -109,6 +109,7 @@ namespace ACESimTest
                 DInitialWealth = InitialWealth,
                 DamagesMin = allowDamagesVariation ? DamagesAlleged * DamagesMinMaxRatio : DamagesAlleged,
                 DamagesMax = DamagesAlleged,
+                DamagesMultiplier = DamagesMultiplier,
                 NumLiabilityStrengthPoints = NumLiabilityStrengthPoints,
                 NumLiabilitySignals = NumLiabilitySignals,
                 NumDamagesStrengthPoints = allowDamagesVariation ? NumDamagesStrengthPoints : (byte)0,
@@ -345,7 +346,7 @@ namespace ACESimTest
                 {
                     CalculateBargainingRoundExpenses(offer.bargainingRoundNumber, options, out double pBargainingRoundExpenses, out double dBargainingRoundExpenses);
                     double offerToP = EquallySpaced.GetLocationOfEquallySpacedPoint((byte) (offer.offerMove - 1), NumOffers, true);
-                    double roundAdjustedOfferToP = InitialWealth + offerToP * DamagesAlleged - PFileCost * CostsMultiplier - pBargainingRoundExpenses * CostsMultiplier;
+                    double roundAdjustedOfferToP = InitialWealth + offerToP * DamagesAlleged * DamagesMultiplier - PFileCost * CostsMultiplier - pBargainingRoundExpenses * CostsMultiplier;
                     if (bestOffers.bestRejectedOfferToP == null || roundAdjustedOfferToP > bestOffers.bestRejectedOfferToP)
                         bestOffers.bestRejectedOfferToP = roundAdjustedOfferToP;
                 }
@@ -353,7 +354,7 @@ namespace ACESimTest
                 {
                     CalculateBargainingRoundExpenses(offer.bargainingRoundNumber, options, out double pBargainingRoundExpenses, out double dBargainingRoundExpenses);
                     double offerToD = EquallySpaced.GetLocationOfEquallySpacedPoint((byte) (offer.offerMove - 1), NumOffers, true);
-                    double roundAdjustedOfferToD = InitialWealth - offerToD * DamagesAlleged - DAnswerCost * CostsMultiplier - dBargainingRoundExpenses * CostsMultiplier; 
+                    double roundAdjustedOfferToD = InitialWealth - offerToD * DamagesAlleged * DamagesMultiplier - DAnswerCost * CostsMultiplier - dBargainingRoundExpenses * CostsMultiplier; 
                     if (bestOffers.bestRejectedOfferToD == null || roundAdjustedOfferToD > bestOffers.bestRejectedOfferToD)
                         bestOffers.bestRejectedOfferToD = roundAdjustedOfferToD;
                 }
@@ -659,7 +660,7 @@ namespace ACESimTest
             bool pWins = pReadyToAbandonRound == null && dReadyToDefaultRound != null ||
                          pReadyToAbandonRound != null && dReadyToDefaultRound != null && pFiles && mutualGiveUpResult == 2;
 
-            double damagesImposed = pWins ? options.DamagesMax : 0;
+            double damagesImposed = pWins ? options.DamagesMax * options.DamagesMultiplier: 0;
 
             myGameProgress.GameComplete.Should().BeTrue();
             myGameProgress.CaseSettles.Should().BeFalse();
@@ -838,9 +839,8 @@ namespace ACESimTest
             myGameProgress.GameComplete.Should().BeTrue();
             myGameProgress.CaseSettles.Should().BeTrue();
             CalculateBargainingRoundExpenses(numActualRounds, options, out double pBargainingRoundExpenses, out double dBargainingRoundExpenses);
-            double pFinalWealthExpected = options.PInitialWealth - options.PFilingCost * options.CostsMultiplier + settlementProportion * options.DamagesMax - pBargainingRoundExpenses * options.CostsMultiplier;
-            double dFinalWealthExpected = options.DInitialWealth - options.DAnswerCost * options.CostsMultiplier - settlementProportion * options.DamagesMax -
-                                          dBargainingRoundExpenses * options.CostsMultiplier;
+            double pFinalWealthExpected = options.PInitialWealth - options.PFilingCost * options.CostsMultiplier + settlementProportion * options.DamagesMax * options.DamagesMultiplier - pBargainingRoundExpenses * options.CostsMultiplier;
+            double dFinalWealthExpected = options.DInitialWealth - options.DAnswerCost * options.CostsMultiplier - settlementProportion * options.DamagesMax * options.DamagesMultiplier - dBargainingRoundExpenses * options.CostsMultiplier;
             CheckFinalWelfare(myGameProgress, pFinalWealthExpected, dFinalWealthExpected, bestOffers);
 
             //var informationSetHistories = myGameProgress.GameHistory.GetInformationSetHistoryItems().ToList();
@@ -960,12 +960,12 @@ namespace ACESimTest
                 courtLiabilityResult = plaintiffWins ? (byte)liabilityResultPWinsNotEnough : (byte)liabilityResultDWinsNotEnough;
             }
             byte courtDamagesResultIfAllowVariation = CDamagesSignal;
-            double damagesIfAwarded = DamagesAlleged;
+            double damagesIfAwarded = DamagesAlleged * DamagesMultiplier;
             if (allowDamagesVariation)
             {
                 double damagesProportionWithVariation = EquallySpaced.GetLocationOfEquallySpacedPoint(courtDamagesResultIfAllowVariation - 1 /* make it zero-based */, NumDamagesSignals, true);
-                double minDamages = DamagesAlleged * DamagesMinMaxRatio;
-                damagesIfAwarded = minDamages + damagesProportionWithVariation * (DamagesAlleged - minDamages);
+                double minDamages = DamagesAlleged * DamagesMultiplier * DamagesMinMaxRatio;
+                damagesIfAwarded = minDamages + damagesProportionWithVariation * (DamagesAlleged * DamagesMultiplier - minDamages);
             }
             var actions = GetPlayerActions(true, true, LiabilityStrength, PLiabilitySignal, DLiabilitySignal, DamagesStrength, PDamagesSignal, DDamagesSignal, simulatingBargainingFailure, sideBetChallenges, runningSideBetChallenges, bargainingMoves, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, null, null, 0, courtLiabilityResult, courtDamagesResultIfAllowVariation);
             var myGameProgress = LitigGameLauncher.PlayLitigGameOnce(options, actions);
@@ -987,7 +987,8 @@ namespace ACESimTest
                 bool pChallengesD = sideBetChallenges == SideBetChallenges.PChallenges || sideBetChallenges == SideBetChallenges.BothChallenge;
                 bool dChallengesP = sideBetChallenges == SideBetChallenges.DChallenges || sideBetChallenges == SideBetChallenges.BothChallenge;
                 bool challengerLoses = pChallengesD && !plaintiffWins || dChallengesP && plaintiffWins;
-                double multiplier = challengerLoses ? DamagesMultipleForChallengerToPay : DamagesMultipleForChallengedToPay;
+                double multiplier = challengerLoses ? DamagesMultipleForChallengerToPay : DamagesMultipleForChallengedToPay; // these are specifically the multipliers associated with side bet challenges
+                multiplier *= DamagesMultiplier; // this is the regular damages multiplier
                 double totalTransfer = multiplier * DamagesAlleged;
                 if (plaintiffWins)
                     sideBetTransferFromP = 0 - totalTransfer;
@@ -1052,7 +1053,7 @@ namespace ACESimTest
                     applicableOffers2.AddRange(applicableDOffers);
                     pricePoint = applicableOffers2.Average();
                 }
-                shootoutsTransferToP = (resolutionForShootout - pricePoint * options.DamagesMax) * options.ShootoutStrength;
+                shootoutsTransferToP = (resolutionForShootout - pricePoint * options.DamagesMax * options.DamagesMultiplier) * options.ShootoutStrength;
             }
 
             return shootoutsTransferToP;

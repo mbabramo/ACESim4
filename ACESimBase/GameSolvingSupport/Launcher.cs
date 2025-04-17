@@ -627,6 +627,8 @@ namespace ACESim
                         delay += (int) (10000.0 * new Random((int)DateTime.Now.Ticks).Next());
                     if (delay > 100_000)
                         delay = 100_000;
+                    logAction($"Delaying {delay} milliseconds");
+                    TabbedText.WriteLine($"Delaying {delay} milliseconds");
                     await Task.Delay(delay);
                     goto retry;
                 }

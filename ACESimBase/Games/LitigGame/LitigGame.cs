@@ -310,8 +310,8 @@ namespace ACESim
             }
             else if (!dAnswers || dDefaults)
             { // defendant pays full damages (but no trial costs)
-                outcome.PChangeWealth += gameDefinition.Options.DamagesMax;
-                outcome.DChangeWealth -= gameDefinition.Options.DamagesMax;
+                outcome.PChangeWealth += gameDefinition.Options.DamagesMax * gameDefinition.Options.DamagesMultiplier;
+                outcome.DChangeWealth -= gameDefinition.Options.DamagesMax * gameDefinition.Options.DamagesMultiplier;
                 outcome.TrialOccurs = false;
             }
             else if (settlementValue != null)
@@ -331,7 +331,7 @@ namespace ACESim
 
             if (gameDefinition.Options.LitigGamePretrialDecisionGeneratorGenerator != null)
             {
-                gameDefinition.Options.LitigGamePretrialDecisionGeneratorGenerator.GetEffectOnPlayerWelfare(gameDefinition, outcome.TrialOccurs, pWinsAtTrial, gameDefinition.Options.DamagesMax, pretrialActions, out double effectOnP, out double effectOnD);
+                gameDefinition.Options.LitigGamePretrialDecisionGeneratorGenerator.GetEffectOnPlayerWelfare(gameDefinition, outcome.TrialOccurs, pWinsAtTrial, gameDefinition.Options.DamagesMax * gameDefinition.Options.DamagesMultiplier, pretrialActions, out double effectOnP, out double effectOnD);
                 outcome.PChangeWealth += effectOnP;
                 outcome.DChangeWealth += effectOnD;
             }
@@ -393,8 +393,8 @@ namespace ACESim
                         shootoutOffer = applicableOffers.Average();
                     }
                     double shootoutStrength = gameDefinition.Options.ShootoutStrength;
-                    double costToP = shootoutOffer * gameDefinition.Options.DamagesMax * shootoutStrength;
-                    double extraDamages = (dDefaults ? gameDefinition.Options.DamagesMax : (damagesAwarded ?? 0)) * shootoutStrength;
+                    double costToP = shootoutOffer * gameDefinition.Options.DamagesMax * gameDefinition.Options.DamagesMultiplier * shootoutStrength;
+                    double extraDamages = (dDefaults ? gameDefinition.Options.DamagesMax * gameDefinition.Options.DamagesMultiplier : (damagesAwarded ?? 0)) * shootoutStrength;
                     double netBenefitToP = extraDamages - costToP;
                     outcome.PChangeWealth += netBenefitToP;
                     outcome.DChangeWealth -= netBenefitToP;

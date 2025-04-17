@@ -231,13 +231,16 @@ namespace ACESim
         public double DInitialWealth;
 
         /// <summary>
-        /// The minimum amount of damages that a plaintiff might be awarded
+        /// The minimum amount of damages that a plaintiff might be awarded (ignoring any damages multiplier)
         /// </summary>
         public double DamagesMin;
         /// <summary>
-        /// The maximum amount of damages that a plaintiff might be awarded
+        /// The maximum amount of damages that a plaintiff might be awarded (ignoring any damages multiplier)
         /// </summary>
         public double DamagesMax;
+        /// <summary>
+        /// A multiplier to be applied to damages awarded to the plaintiff. This can be used to model punitive damages or other multipliers. This does not count as the "correct" value in calculating false positive or false negative inaccuracy. 
+        public double DamagesMultiplier = 1.0; 
 
         /// <summary>
         /// The degree of regret aversion. If a party finishes with wealth w0 but could have finished with wealth w1, where w1 > w0, then the party experiences effective wealth of w0 - RegretAversion*(w1 - w0)
@@ -278,7 +281,7 @@ namespace ACESim
                 NumDamagesSignals = 3;
         }
 
-        public bool IsSymmetric() => LitigGameDisputeGenerator.SupportsSymmetry() && BargainingRoundsSimultaneous && SkipFileAndAnswerDecisions /* Note: If changing this, must ensure PFilingCost == DAnswerCost */ && PLiabilityNoiseStdev == DLiabilityNoiseStdev && PDamagesNoiseStdev == DDamagesNoiseStdev && PTrialCosts == DTrialCosts && PTrialCosts_Original == DTrialCosts_Original && PInitialWealth + DamagesMax == DInitialWealth && (NumLiabilityStrengthPoints == 1 || NumDamagesStrengthPoints == 1) /* If BOTH liability and damages are uncertain, then suppose there is a 50% chance of liability and a 50% chance of high or zero damages; in this case, there is a 25% expectation of damages, so the game is not symmetric, as the defendant in effect has two ways to win */;
+        public bool IsSymmetric() => LitigGameDisputeGenerator.SupportsSymmetry() && BargainingRoundsSimultaneous && SkipFileAndAnswerDecisions /* Note: If changing this, must ensure PFilingCost == DAnswerCost */ && PLiabilityNoiseStdev == DLiabilityNoiseStdev && PDamagesNoiseStdev == DDamagesNoiseStdev && PTrialCosts == DTrialCosts && PTrialCosts_Original == DTrialCosts_Original && PInitialWealth + DamagesMax * DamagesMultiplier == DInitialWealth && (NumLiabilityStrengthPoints == 1 || NumDamagesStrengthPoints == 1) /* If BOTH liability and damages are uncertain, then suppose there is a 50% chance of liability and a 50% chance of high or zero damages; in this case, there is a 25% expectation of damages, so the game is not symmetric, as the defendant in effect has two ways to win */;
 
 
         public override string ToString()
@@ -295,7 +298,7 @@ CostsMultiplier {CostsMultiplier} PTrialCosts {PTrialCosts} DTrialCosts {DTrialC
 LoserPays {LoserPays} Multiple {LoserPaysMultiple} AfterAbandonment {LoserPaysAfterAbandonment} Rule68 {Rule68} Margin {LoserPaysOnlyLargeMarginOfVictory} ({LoserPaysMarginOfVictoryThreshold})
 {(ShootoutSettlements ? $@"ShootoutSettlements ShootoutStrength {ShootoutStrength} ShootoutOfferValueIsAveraged {ShootoutOfferValueIsAveraged} ShootoutsApplyAfterAbandonment {ShootoutsApplyAfterAbandonment}
 " : "")}PInitialWealth {PInitialWealth} DInitialWealth {DInitialWealth} 
-DamagesMin {DamagesMin} DamagesMax {DamagesMax} 
+DamagesMin {DamagesMin} DamagesMax {DamagesMax} DamagesMultiplier {DamagesMultiplier}
 RegretAversion {RegretAversion} 
 PUtilityCalculator {PUtilityCalculator} DUtilityCalculator {DUtilityCalculator} 
 LitigGameDisputeGenerator {LitigGameDisputeGenerator?.GetType().Name} {LitigGameDisputeGenerator.OptionsString}

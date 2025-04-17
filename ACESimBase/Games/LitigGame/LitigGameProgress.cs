@@ -157,13 +157,13 @@ namespace ACESim
             {
                 if (playersMovingSimultaneously || !pGoesFirstIfNotSimultaneous)
                 { // defendant has made an offer this round
-                    var pMissedOpportunity = LitigGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, gameDefinition.Options.PInitialWealth, gameDefinition.Options.DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, (double) DLastOffer * (double)gameDefinition.Options.DamagesMax, true /* ignored */, false /* ignored */, 0, (byte) (BargainingRoundsComplete + 1), null, null, POffers, PResponses, DOffers, DResponses);
+                    var pMissedOpportunity = LitigGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, gameDefinition.Options.PInitialWealth, gameDefinition.Options.DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, (double) DLastOffer * (double)gameDefinition.Options.DamagesMax * gameDefinition.Options.DamagesMultiplier, true /* ignored */, false /* ignored */, 0, (byte) (BargainingRoundsComplete + 1), null, null, POffers, PResponses, DOffers, DResponses);
                     if (pMissedOpportunity.PFinalWealth > PFinalWealthWithBestOffer || PFinalWealthWithBestOffer == null)
                         PFinalWealthWithBestOffer = pMissedOpportunity.PFinalWealth;
                 }
                 if (playersMovingSimultaneously || pGoesFirstIfNotSimultaneous)
                 { // plaintiff has made an offer this round
-                    var dMissedOpportunity = LitigGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, gameDefinition.Options.PInitialWealth, gameDefinition.Options.DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, (double)PLastOffer * (double)gameDefinition.Options.DamagesMax, true /* ignored */, false /* ignored */, 0, (byte)(BargainingRoundsComplete + 1), null, null, POffers, PResponses, DOffers, DResponses);
+                    var dMissedOpportunity = LitigGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, gameDefinition.Options.PInitialWealth, gameDefinition.Options.DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, (double)PLastOffer * (double)gameDefinition.Options.DamagesMax * gameDefinition.Options.DamagesMultiplier, true /* ignored */, false /* ignored */, 0, (byte)(BargainingRoundsComplete + 1), null, null, POffers, PResponses, DOffers, DResponses);
                     if (dMissedOpportunity.DFinalWealth > DFinalWealthWithBestOffer || DFinalWealthWithBestOffer == null)
                         DFinalWealthWithBestOffer = dMissedOpportunity.DFinalWealth;
                 }
@@ -260,11 +260,11 @@ namespace ACESim
         {
             // assumes that a settlement has been reached
             if (playersMovingSimultaneously)
-                SettlementValue = (PLastOffer + DLastOffer) * (double)LitigGameDefinition.Options.DamagesMax / 2.0;
+                SettlementValue = (PLastOffer + DLastOffer) * (double)LitigGameDefinition.Options.DamagesMax * LitigGameDefinition.Options.DamagesMultiplier / 2.0;
             else if (pGoesFirstIfNotSimultaneous)
-                SettlementValue = PLastOffer * (double)LitigGameDefinition.Options.DamagesMax;
+                SettlementValue = PLastOffer * (double)LitigGameDefinition.Options.DamagesMax * LitigGameDefinition.Options.DamagesMultiplier;
             else
-                SettlementValue = DLastOffer * (double)LitigGameDefinition.Options.DamagesMax;
+                SettlementValue = DLastOffer * (double)LitigGameDefinition.Options.DamagesMax * LitigGameDefinition.Options.DamagesMultiplier;
         }
 
         public override LitigGameProgress DeepCopy()
@@ -469,7 +469,7 @@ namespace ACESim
                 bool courtWouldDecideDamages = gameDefinition.Options.NumDamagesStrengthPoints > 1;
                 if (!courtWouldDecideDamages)
                 {
-                    DamagesAwarded = (double)gameDefinition.Options.DamagesMax;
+                    DamagesAwarded = (double)gameDefinition.Options.DamagesMax * LitigGameDefinition.Options.DamagesMultiplier;
                     GameComplete = true;
                 }
             }
@@ -483,7 +483,7 @@ namespace ACESim
                 damagesProportion = 1.0;
             else
                 damagesProportion = LitigGame.ConvertActionToUniformDistributionDraw(action, gameDefinition.Options.NumDamagesSignals, true);
-            DamagesAwarded = (double)(gameDefinition.Options.DamagesMin + (gameDefinition.Options.DamagesMax - gameDefinition.Options.DamagesMin) * damagesProportion);
+            DamagesAwarded = LitigGameDefinition.Options.DamagesMultiplier * ((double)(gameDefinition.Options.DamagesMin + (gameDefinition.Options.DamagesMax - gameDefinition.Options.DamagesMin) * damagesProportion));
             GameComplete = true;
         }
 
@@ -563,6 +563,7 @@ namespace ACESim
                 return;
             }
             double correctDamagesIfTrulyLiable;
+            // Note: The damages multiplier is not part of the "correct damages." 
             if (o.NumDamagesStrengthPoints <= 1)
                 correctDamagesIfTrulyLiable = (double)o.DamagesMax;
             else

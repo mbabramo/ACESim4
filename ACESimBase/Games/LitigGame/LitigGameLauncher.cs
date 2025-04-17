@@ -570,7 +570,7 @@ namespace ACESim
 
         LitigGameOptions GetAndTransform_DamagesMultiplier(LitigGameOptions options, double multiplier) => GetAndTransform(options, " Damages Multiplier " + multiplier, g =>
         {
-            g.DamagesMax = multiplier;
+            g.DamagesMultiplier = multiplier;
             g.VariableSettings["Damages Multiplier"] = multiplier;
         });
 

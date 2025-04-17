@@ -75,7 +75,7 @@ namespace ACESim
         {
             if (TrialCostsMultiplierAsymptote == 1.0)
                 return 1.0;
-            double stakesRatio = (gameDefinition.Options.DamagesMax + totalChipsThatCount * ValueOfChip) / gameDefinition.Options.DamagesMax;
+            double stakesRatio = (gameDefinition.Options.DamagesMax * gameDefinition.Options.DamagesMultiplier + totalChipsThatCount * ValueOfChip) / (gameDefinition.Options.DamagesMax * gameDefinition.Options.DamagesMultiplier);
             // y = (asymptote - 1)*(x - 1)/(x - k) + 1, where x is the stakes ratio and y is the spending ratio. Thus, when x = 1, y = 1. 
             double k = (TrialCostsMultiplierAsymptote - 1.0)*(2.0 - 1.0) / (TrialCostsMultiplierWithDoubleStakes - 1.0) - 2.0;
             double trialCostsMultiplier = (TrialCostsMultiplierAsymptote - 1.0) * (stakesRatio - 1) / (stakesRatio + k) + 1.0;
