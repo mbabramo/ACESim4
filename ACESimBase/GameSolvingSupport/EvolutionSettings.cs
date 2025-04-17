@@ -64,7 +64,7 @@ namespace ACESim
         public bool ThrowIfNotPerfectEquilibrium = true;  
         public bool TryInexactArithmeticForAdditionalEquilibria = false; 
         public bool CreateEFGFileForSequenceForm = true;
-        public bool CreateEquilibriaFileForSequenceForm = true;
+        public bool CreateEquilibriaFile = true;
         public bool UsePreloadedEquilibriaIfAvailable = false;
         public bool CustomSequenceFormInitialization = true;
         public bool UseCustomSequenceFormInitializationAsFinalEquilibria = false; 

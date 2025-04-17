@@ -146,7 +146,7 @@ namespace ACESim
         [SupportedOSPlatform("windows")]
         public async Task ProcessIdentifiedEquilibria(ReportCollection reportCollection, List<double[]> equilibria, bool multipleEquilibriaPossible)
         {
-            if (EvolutionSettings.CreateEquilibriaFileForSequenceForm)
+            if (EvolutionSettings.CreateEquilibriaFile)
                 CreateEquilibriaFile(equilibria);
             await GenerateReportsFromEquilibria(equilibria, reportCollection, multipleEquilibriaPossible);
             if (equilibria.Any())
@@ -199,6 +199,22 @@ namespace ACESim
                     }
                 }
             }
+        }
+
+        public double[] GetEquilibriumFromInformationSets()
+        {
+            var infoSets = InformationSets.OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetNodeNumber).ToList();
+            double[] actionProbabilities = new double[infoSets.Sum(x => x.Decision.NumPossibleActions)];
+            int totalNumbersProcessed = 0;
+            for (int i = 0; i < infoSets.Count(); i++)
+            {
+                InformationSetNode infoSet = infoSets[i];
+                for (byte a = 1; a <= infoSet.Decision.NumPossibleActions; a++)
+                {
+                    actionProbabilities[totalNumbersProcessed++] = infoSet.GetAverageOrCurrentStrategy(a, false);
+                }
+            }
+            return actionProbabilities;
         }
 
         public static void SetToEquilibriumConstructingAverage(List<InformationSetNode> infoSets, double[] actionProbabilities, int eqNum, bool recordProbabilitiesAsPastValues)

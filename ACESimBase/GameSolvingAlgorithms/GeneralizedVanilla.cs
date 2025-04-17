@@ -220,6 +220,8 @@ namespace ACESim
                 ReinitializeInformationSetsIfNecessary(iteration);
             }
             TabbedText.SetConsoleProgressString(null);
+            if (EvolutionSettings.GenerateManualReports)
+                GenerateManualReports("");
             return reportCollection;
         }
 
