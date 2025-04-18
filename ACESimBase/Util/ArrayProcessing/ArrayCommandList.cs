@@ -1763,9 +1763,27 @@ else
             /*────────────────  build slices  ────────────────────────────*/
             while (sliceStart < bodyEnd)
             {
-                int remaining = bodyEnd - sliceStart;
-                int wantSize = Math.Min(remaining, max);
-                int sliceEnd = sliceStart + wantSize;       // strictly < bodyEnd
+                /* advance sliceEnd until BOTH conditions hold:
+                 *        (a) length ≤ max  (stop once we reach max or bodyEnd)
+                 *        (b) nesting depth back to 0  (so we never split an open If)
+                 */
+                int sliceEnd = sliceStart;
+                int depth = 0;
+                while (sliceEnd < bodyEnd)
+                {
+                    var t = UnderlyingCommands[sliceEnd].CommandType;
+                    if (t == ArrayCommandType.If) depth++;
+                    if (t == ArrayCommandType.EndIf) depth--;
+
+                    /* stop when we’ve hit the size limit and balanced all nested Ifs */
+                    if (depth == 0 &&
+                        (sliceEnd - sliceStart + 1 >= max || sliceEnd + 1 == bodyEnd))
+                    {
+                        sliceEnd++;      // include current command
+                        break;
+                    }
+                    sliceEnd++;          // otherwise keep extending
+                }
 
                 var child = new NWayTreeStorageInternal<ArrayCommandChunk>(gate);
                 child.StoredValue = new ArrayCommandChunk
@@ -1783,19 +1801,16 @@ else
                 };
                 gate.SetBranch(childId, child);
 
-                /* branch‑ID bookkeeping, capped at 254 (0 is unused) */
                 bool atCap = (childId == byte.MaxValue - 1);
                 if (atCap)
-                {
-                    // absorb any remainder of the body into this last child
-                    sliceStart = bodyEnd;            // exit loop next iteration
-                }
+                    sliceStart = bodyEnd;        // force loop exit
                 else
                 {
                     childId++;
-                    sliceStart = sliceEnd;           // advance to next slice
+                    sliceStart = sliceEnd;       // next slice begins where we left off
                 }
             }
+
 
             /*─────────── finalise gate metadata ───────────*/
             // gate now spans If … EndIf  (inclusive)
