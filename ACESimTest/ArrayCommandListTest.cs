@@ -7,6 +7,7 @@ using ACESim.Util;
 using ACESimBase.Util.ArrayProcessing;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using TorchSharp.Modules;
 using static ACESimBase.Util.ArrayProcessing.ArrayCommandList;
 
 namespace ACESimTest
@@ -580,6 +581,133 @@ namespace ACESimTest
             return root;
         }
 
+        /// <summary>
+        /// Flat command list used by Split/Insert unit‑tests:
+        ///   • cmds 0‑1 prefix  (two <see cref="ArrayCommandType.IncrementBy"/>)
+        ///   • cmd  2   “If”
+        ///   • cmds 3‑17 (15 IncrementBy) ► oversize body
+        ///   • cmd  18  “EndIf”
+        ///   • cmds 19‑20 postfix (two IncrementBy)
+        /// Total = 21 commands.
+        /// </summary>
+        private static List<ArrayCommand> BuildFlatSample()
+        {
+            var cmds = new List<ArrayCommand>();
+
+            // prefix (0‑1)
+            cmds.Add(new ArrayCommand(ArrayCommandType.IncrementBy, 0, 0));
+            cmds.Add(new ArrayCommand(ArrayCommandType.IncrementBy, 0, 0));
+
+            // If token (2)
+            cmds.Add(new ArrayCommand(ArrayCommandType.If, -1, -1));
+
+            // body (3‑17) – 15 increment commands
+            for (int i = 0; i < 15; i++)
+                cmds.Add(new ArrayCommand(ArrayCommandType.IncrementBy, 0, 0));
+
+            // EndIf token (18)
+            cmds.Add(new ArrayCommand(ArrayCommandType.EndIf, -1, -1));
+
+            // postfix (19‑20)
+            cmds.Add(new ArrayCommand(ArrayCommandType.IncrementBy, 0, 0));
+            cmds.Add(new ArrayCommand(ArrayCommandType.IncrementBy, 0, 0));
+
+            return cmds;
+        }
+
+        /// <summary>
+        /// Build a flat command list with
+        ///   • <paramref name="prefixLen"/>  IncrementBy commands before the If
+        ///   • one If token
+        ///   • <paramref name="bodyLen"/>    IncrementBy commands in the body
+        ///   • EndIf token
+        ///   • <paramref name="postfixLen"/> IncrementBy commands after EndIf
+        /// </summary>
+        private static List<ArrayCommand> BuildCustomFlat(
+            int prefixLen, int bodyLen, int postfixLen)
+        {
+            var cmds = new List<ArrayCommand>();
+
+            for (int i = 0; i < prefixLen; i++) cmds.Add(new(ArrayCommandType.IncrementBy, 0, 0));
+            int ifIdx = cmds.Count;
+            cmds.Add(new(ArrayCommandType.If, -1, -1));
+
+            for (int i = 0; i < bodyLen; i++) cmds.Add(new(ArrayCommandType.IncrementBy, 0, 0));
+            int endIfIdx = cmds.Count;
+            cmds.Add(new(ArrayCommandType.EndIf, -1, -1));
+
+            for (int i = 0; i < postfixLen; i++) cmds.Add(new(ArrayCommandType.IncrementBy, 0, 0));
+
+            return cmds;
+        }
+
+        /// Build an ACL whose *entire* command list is a single oversized If‑body
+        /// (size = bodyLen) so that HoistPlanner emits exactly one PlanEntry.
+        private static ArrayCommandList BuildFlatOversizeACL(
+            int bodyLen, int threshold)
+        {
+            var cmds = BuildCustomFlat(prefixLen: 0, bodyLen, postfixLen: 0);
+
+            var acl = CreateStubACL(cmds, threshold);
+            // Give every command a distinct ID so the mutator re‑generates stacks
+            acl.MaxArrayIndex = 0;           // minimal virtual stack
+            return acl;
+        }
+
+
+
+        /// <summary>
+        /// Build an <see cref="ArrayCommandList"/> from an existing command array
+        /// without going through the normal AddCommand pipeline.  
+        /// Intended for **unit‑tests only**.
+        /// </summary>
+        /// <param name="cmds">The complete list of commands that will become the ACL’s program.</param>
+        /// <param name="maxPerChunk">Value to assign to <c>MaxCommandsPerChunk</c>
+        private static ArrayCommandList CreateStubACL(
+    IList<ArrayCommand> cmds,
+    int maxPerChunk)
+        {
+            // 1) Allocate with a generous command capacity.
+            var acl = new ArrayCommandList(
+                maxNumCommands: cmds.Count + 10,
+                initialArrayIndex: 0,
+                parallelize: false)
+            {
+                MaxCommandsPerChunk = maxPerChunk
+            };
+
+            // 2) Drop the finished command list straight in.
+            acl.UnderlyingCommands = cmds.ToArray();
+
+            // 3) Bring the bookkeeping counters in‑sync.
+            acl.NextCommandIndex = cmds.Count;
+            acl.MaxCommandIndex = cmds.Count;
+
+            // 4) Derive MaxArrayIndex from the commands we have.
+            int maxIdx = -1;
+            foreach (var c in cmds)
+            {
+                int s = c.GetSourceIndexIfUsed();
+                int t = c.GetTargetIndexIfUsed();
+                if (s > maxIdx) maxIdx = s;
+                if (t > maxIdx) maxIdx = t;
+            }
+            acl.MaxArrayIndex = maxIdx;
+
+            // 5) Provide a minimal one‑leaf command tree that spans the whole list.
+            var root = new NWayTreeStorageInternal<ArrayCommandChunk>(null);
+            root.StoredValue = new ArrayCommandChunk
+            {
+                ID = 0,
+                StartCommandRange = 0,
+                EndCommandRangeExclusive = cmds.Count
+            };
+            acl.CommandTree = root;
+
+            return acl;
+        }
+
+
         /// 1) Nested If inside an oversize body – planner should still
         ///    report exactly **one** outer‑level If/EndIf pair.
         [TestMethod]
@@ -686,6 +814,332 @@ namespace ACESimTest
             Assert.IsTrue(plan.All(p => p.BodyLen == 18), "each body should be 18 cmds");
         }
 
+        /*────────────────────────────────────────────────────────────
+ * 1) EnsureTreeExists creates a one‑leaf root when missing
+ *───────────────────────────────────────────────────────────*/
+        [TestMethod]
+        public void EnsureTreeExists_CreatesSyntheticRoot()
+        {
+            var cmds = BuildCustomFlat(1, 2, 1);
+            var acl = CreateStubACL(cmds, 10);
+            acl.CommandTree = null;                 // simulate “no tree yet”
+
+            var root = HoistMutator.EnsureTreeExists(acl);
+
+            Assert.IsNotNull(root);
+            Assert.AreEqual(0, root.StoredValue.StartCommandRange);
+            Assert.AreEqual(cmds.Count, root.StoredValue.EndCommandRangeExclusive);
+            Assert.IsTrue(root.Branches == null || root.Branches.Length == 0,
+                "synthetic root should be a single leaf");
+        }
+
+        /*────────────────────────────────────────────────────────────
+ *  ApplyPlan correctly hoists one oversized leaf
+ *───────────────────────────────────────────────────────────*/
+        [TestMethod]
+        public void ApplyPlan_SingleOversizeLeaf()
+        {
+            const int THRESH = 6;
+            var acl = BuildFlatOversizeACL(bodyLen: 20, threshold: THRESH);
+
+            // Planner
+            var planner = new HoistPlanner(acl.UnderlyingCommands, THRESH);
+            var plan = planner.BuildPlan(
+                (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree);
+
+            // Mutator
+            HoistMutator.ApplyPlan(acl, plan);
+
+            // Assertions
+            acl.CommandTree.WalkTree(nodeObj =>
+            {
+                var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)nodeObj;
+                if (leaf.Branches?.Length > 0) return;   // skip non‑leaf nodes
+
+                int len = leaf.StoredValue.EndCommandRangeExclusive -
+                          leaf.StoredValue.StartCommandRange;
+                Assert.IsTrue(len <= THRESH, "leaf exceeds threshold");
+
+                // balanced If / EndIf
+                int ifs = 0, ends = 0;
+                for (int i = leaf.StoredValue.StartCommandRange;
+                         i < leaf.StoredValue.EndCommandRangeExclusive; i++)
+                {
+                    var t = acl.UnderlyingCommands[i].CommandType;
+                    if (t == ArrayCommandType.If) ifs++;
+                    if (t == ArrayCommandType.EndIf) ends++;
+                }
+                Assert.AreEqual(ifs, ends, "unbalanced leaf");
+
+                // every leaf must have a virtual stack
+                Assert.IsNotNull(leaf.StoredValue.VirtualStack,
+                    "leaf missing VirtualStack");
+            });
+        }
+
+
+        /*────────────────────────────────────────────────────────────
+         * 3) ApplyPlan hoists two leaves and updates parent.LastChild
+         *───────────────────────────────────────────────────────────*/
+        [TestMethod]
+        public void ApplyPlan_MultipleLeaves()
+        {
+            // build two oversize leaves back‑to‑back
+            const int THRESH = 5;
+            var cmds = new List<ArrayCommand>();
+            cmds.AddRange(BuildCustomFlat(0, 12, 0));   // first leaf  (0‑13)
+            int secondStart = cmds.Count;
+            cmds.AddRange(BuildCustomFlat(0, 12, 0));   // second leaf (14‑27)
+
+            // create root with two branches to mimic separate leaves
+            var root = new NWayTreeStorageInternal<ArrayCommandChunk>(null);
+            var left = new NWayTreeStorageInternal<ArrayCommandChunk>(root);
+            var right = new NWayTreeStorageInternal<ArrayCommandChunk>(root);
+
+            left.StoredValue = new ArrayCommandChunk
+            {
+                ID = 1,
+                StartCommandRange = 0,
+                EndCommandRangeExclusive = secondStart
+            };
+            right.StoredValue = new ArrayCommandChunk
+            {
+                ID = 2,
+                StartCommandRange = secondStart,
+                EndCommandRangeExclusive = cmds.Count
+            };
+            root.SetBranch(1, left);
+            root.SetBranch(2, right);
+            root.StoredValue = new ArrayCommandChunk { LastChild = 2 };
+
+            var acl = CreateStubACL(cmds, THRESH);
+            acl.CommandTree = root;
+
+            // planner + mutator
+            var plan = new HoistPlanner(acl.UnderlyingCommands, THRESH).BuildPlan(root);
+            HoistMutator.ApplyPlan(acl, plan);
+
+            // root should still have two children (left = Prefix slice, right same)
+            Assert.AreEqual(2, root.StoredValue.LastChild);
+        }
+
+
+        [TestMethod]
+        public void SplitCreatesAllThreeSlices()
+        {
+            // flat 0‑20 command list with If at 2 and EndIf at 18
+            var cmds = BuildFlatSample();            // helper from previous test
+            var acl = CreateStubACL(cmds, 6);       // helper we added earlier
+
+            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var split = HoistMutator.SplitOversizeLeaf(acl, leaf, 2, 18);
+
+            Assert.AreEqual((0, 2), (split.Prefix.StoredValue.StartCommandRange,
+                                     split.Prefix.StoredValue.EndCommandRangeExclusive));
+            Assert.AreEqual((2, 19), (split.Gate.StoredValue.StartCommandRange,
+                                     split.Gate.StoredValue.EndCommandRangeExclusive));
+            Assert.AreEqual((19, 21), (split.Postfix!.StoredValue.StartCommandRange,
+                                     split.Postfix.StoredValue.EndCommandRangeExclusive));
+        }
+
+        [TestMethod]
+        public void InsertSplitAddsBranchesInOrder()
+        {
+            var cmds = BuildFlatSample();
+            var acl = CreateStubACL(cmds, 6);
+            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var split = HoistMutator.SplitOversizeLeaf(acl, leaf, 2, 18);
+
+            HoistMutator.InsertSplitIntoTree(split);
+
+            Assert.AreEqual(2, leaf.StoredValue.LastChild);         // 0=prefix,1=gate,2=postfix
+            Assert.AreSame(split.Gate, leaf.GetBranch(1));
+            Assert.AreSame(split.Postfix, leaf.GetBranch(2));
+        }
+
+        /*───────────────────────────────────────────────────────────────
+ * 1)  If … EndIf is the *final* thing in the leaf ⇒ no postfix
+ *──────────────────────────────────────────────────────────────*/
+        [TestMethod]
+        public void SplitWithoutPostfix()
+        {
+            // Build commands identical to BuildFlatSample BUT drop the postfix.
+            var cmds = BuildFlatSample();
+            cmds.RemoveRange(19, 2);           // remove cmds 19‑20
+
+            var acl = CreateStubACL(cmds, maxPerChunk: 6);
+            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+
+            var split = HoistMutator.SplitOversizeLeaf(acl, leaf, ifIdx: 2, endIfIdx: 18);
+            HoistMutator.InsertSplitIntoTree(split);
+
+            Assert.IsNull(split.Postfix, "postfix slice should be null");
+            Assert.AreEqual(1, leaf.StoredValue.LastChild, "LastChild should be 1");
+        }
+
+        /*───────────────────────────────────────────────────────────────
+         * 2)  Every child under Conditional gate ≤ threshold
+         *──────────────────────────────────────────────────────────────*/
+        [TestMethod]
+        public void ChildrenRespectThreshold()
+        {
+            const int THRESH = 4;
+
+            // oversize body (25 cmds) so we know we’ll get several children
+            var cmds = new List<ArrayCommand>();
+            cmds.Add(new ArrayCommand(ArrayCommandType.If, -1, -1));      // 0
+            for (int i = 0; i < 25; i++)                                 // 1‑25
+                cmds.Add(new ArrayCommand(ArrayCommandType.IncrementBy, 0, 0));
+            cmds.Add(new ArrayCommand(ArrayCommandType.EndIf, -1, -1));   // 26
+
+            var acl = CreateStubACL(cmds, THRESH);
+            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var split = HoistMutator.SplitOversizeLeaf(acl, leaf, 0, 26);
+            HoistMutator.InsertSplitIntoTree(split);
+            acl.SliceBodyIntoChildren(split.Gate);   // same call ReplaceLeafWithGate does
+
+            foreach (var child in split.Gate.Branches.Where(b => b != null))
+            {
+                int len = child.StoredValue.EndCommandRangeExclusive -
+                          child.StoredValue.StartCommandRange;
+                Assert.IsTrue(len <= THRESH, $"child length {len} exceeds threshold");
+            }
+        }
+
+        /*───────────────────────────────────────────────────────────────
+         * 3)  Gate children cover the body exactly ‑‑ no gaps/dupes
+         *──────────────────────────────────────────────────────────────*/
+        [TestMethod]
+        public void NoOverlapOrGapsInGateChildren()
+        {
+            const int THRESH = 6;
+
+            var cmds = BuildFlatSample();                 // 21 cmds (0‑20)
+            var acl = CreateStubACL(cmds, THRESH);
+            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var split = HoistMutator.SplitOversizeLeaf(acl, leaf, 2, 18);
+            HoistMutator.InsertSplitIntoTree(split);
+            acl.SliceBodyIntoChildren(split.Gate);
+
+            var seen = new HashSet<int>();
+
+            foreach (var child in split.Gate.Branches.Where(b => b != null))
+                for (int i = child.StoredValue.StartCommandRange;
+                         i < child.StoredValue.EndCommandRangeExclusive; i++)
+                    Assert.IsTrue(seen.Add(i), $"command {i} duplicated across children");
+
+            // the If/EndIf *tokens* themselves must be excluded
+            var expected = Enumerable.Range(3, 16);  // indices 3‑18
+            CollectionAssert.AreEquivalent(expected.ToList(), seen.ToList(),
+                "children range mismatch (gap or extra)");
+        }
+
+        /*────────────────────────────────────────────────────────────
+         * 1) If at index 0  → no prefix slice
+         *───────────────────────────────────────────────────────────*/
+        [TestMethod]
+        public void Split_NoPrefix_HasPostfix()
+        {
+            const int THRESH = 4;
+
+            var cmds = BuildCustomFlat(prefixLen: 0, bodyLen: 10, postfixLen: 2);
+            var acl = CreateStubACL(cmds, THRESH);
+
+            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var split = HoistMutator.SplitOversizeLeaf(acl, leaf, 0, 11); // If at 0, EndIf at 11
+            HoistMutator.InsertSplitIntoTree(split);
+
+            /* prefix slice must be empty (0‑0) */
+            Assert.AreEqual(0, leaf.StoredValue.StartCommandRange);
+            Assert.AreEqual(0, leaf.StoredValue.EndCommandRangeExclusive);
+
+            /* gate + postfix must be present and correctly wired */
+            Assert.IsNotNull(split.Gate);
+            Assert.IsNotNull(split.Postfix);
+            Assert.AreEqual(2, leaf.StoredValue.LastChild);   // 0=prefix,1=gate,2=postfix
+        }
+
+
+        /*────────────────────────────────────────────────────────────
+         * 2) list is exactly  If body EndIf  (no prefix, no postfix)
+         *───────────────────────────────────────────────────────────*/
+        [TestMethod]
+        public void Split_NoPrefix_NoPostfix()
+        {
+            const int THRESH = 5;
+            var cmds = BuildCustomFlat(0, 12, 0);
+            var acl = CreateStubACL(cmds, THRESH);
+            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var split = HoistMutator.SplitOversizeLeaf(acl, leaf, 0, 13);
+            HoistMutator.InsertSplitIntoTree(split);
+
+            Assert.IsNull(split.Postfix);
+            Assert.AreEqual(1, leaf.StoredValue.LastChild);
+        }
+
+        /*────────────────────────────────────────────────────────────
+         * 3) body size == threshold ⇒ gate gets ONE child
+         *───────────────────────────────────────────────────────────*/
+        [TestMethod]
+        public void Split_BodyEqualsThreshold_OneChild()
+        {
+            const int THRESH = 6;
+            var cmds = BuildCustomFlat(2, THRESH, 1);         // body 6 == threshold
+            var acl = CreateStubACL(cmds, THRESH);
+            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var split = HoistMutator.SplitOversizeLeaf(acl, leaf, 2, 9);
+            HoistMutator.InsertSplitIntoTree(split);
+            acl.SliceBodyIntoChildren(split.Gate);
+
+            Assert.AreEqual(1, split.Gate.StoredValue.LastChild,
+                "body == threshold should produce exactly one child");
+        }
+
+        /*────────────────────────────────────────────────────────────
+         * 4) tiny threshold (2)  → many small children
+         *───────────────────────────────────────────────────────────*/
+        [TestMethod]
+        public void Split_TinyThreshold_ManyChildren()
+        {
+            const int THRESH = 2;
+            var cmds = BuildCustomFlat(1, 11, 1);
+            var acl = CreateStubACL(cmds, THRESH);
+            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var split = HoistMutator.SplitOversizeLeaf(acl, leaf, 1, 13);
+            HoistMutator.InsertSplitIntoTree(split);
+            acl.SliceBodyIntoChildren(split.Gate);
+
+            int childCount = split.Gate.StoredValue.LastChild;
+            Assert.IsTrue(childCount >= 6, "tiny threshold should yield many children");
+
+            foreach (var ch in split.Gate.Branches.Where(b => b != null))
+            {
+                int len = ch.StoredValue.EndCommandRangeExclusive - ch.StoredValue.StartCommandRange;
+                Assert.IsTrue(len <= THRESH, $"child length {len} > threshold");
+            }
+        }
+
+        /*────────────────────────────────────────────────────────────
+         * 5) huge body tests LastChild byte overflow guard
+         *───────────────────────────────────────────────────────────*/
+        [TestMethod]
+        public void Split_HugeBody_ChildCountUnder256()
+        {
+            const int THRESH = 3;
+            const int BODY = 800;       // 800 / 3  ≈ 267  (> 255 without gate+postfix)
+            var cmds = BuildCustomFlat(2, BODY, 2);
+            var acl = CreateStubACL(cmds, THRESH);
+            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var split = HoistMutator.SplitOversizeLeaf(acl, leaf, 2, BODY + 3);
+            HoistMutator.InsertSplitIntoTree(split);
+            acl.SliceBodyIntoChildren(split.Gate);
+
+            byte last = split.Gate.StoredValue.LastChild;
+            Assert.IsTrue(last < 255,
+                $"LastChild overflow: {last} children (max 254 allowed in byte)");
+        }
+
+
 
         [TestMethod]
         public void MutatorAppliesPlanEntries()
@@ -775,15 +1229,16 @@ namespace ACESimTest
                 "State mismatch after hoisted execution");
         }
 
+
         /* ---------------------------------------------------------------------------
-   Mutator unit test – minimal repro
-   • Build a leaf that has      [ 2 prefix cmds ][ If … body(15) … EndIf ][ 2 postfix cmds ]
-   • threshold = 6   → body must be sliced into 3 children (6,6,3)
-   • The mutator must:
-       – keep prefix & postfix in their own leaves
-       – NOT duplicate any command across leaves
-       – keep every leaf size ≤ threshold
---------------------------------------------------------------------------- */
+           Mutator unit test – minimal repro
+           • Build a leaf that has      [ 2 prefix cmds ][ If … body(15) … EndIf ][ 2 postfix cmds ]
+           • threshold = 6   → body must be sliced into 3 children (6,6,3)
+           • The mutator must:
+               – keep prefix & postfix in their own leaves
+               – NOT duplicate any command across leaves
+               – keep every leaf size ≤ threshold
+        --------------------------------------------------------------------------- */
         [TestMethod]
         public void MutatorSlicesBodyWithoutDuplication()
         {
@@ -816,7 +1271,7 @@ namespace ACESimTest
             var root = new NWayTreeStorageInternal<ArrayCommandChunk>(null);
             root.StoredValue = new ArrayCommandChunk
             {
-                ID = 1,
+                ID = 0,
                 StartCommandRange = 0,
                 EndCommandRangeExclusive = cmds.Count
             };
@@ -826,10 +1281,7 @@ namespace ACESimTest
             var plan = planner.BuildPlan(root);
             Assert.AreEqual(1, plan.Count, "expect exactly one oversize leaf");
 
-            var aclStub = new ArrayCommandList(maxNumCommands: 1000, initialArrayIndex: 0, parallelize: false)
-            { MaxCommandsPerChunk = THRESHOLD };
-            aclStub.CommandTree = root;
-            aclStub.UnderlyingCommands = cmds.ToArray();
+            var aclStub = CreateStubACL(cmds, THRESHOLD);
 
             HoistMutator.ApplyPlan(aclStub, plan);
 

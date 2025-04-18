@@ -96,131 +96,89 @@ namespace ACESimBase.Util.ArrayProcessing
             return found;
         }
 
-        // ─────────────────────────────────────────────────────────────────────────────
-        //  Replace the oversize LEAF by a Conditional‑gate node, keeping the same
-        //  branch‑index it originally occupied in its parent.
-        // ─────────────────────────────────────────────────────────────────────────────
-        /* drop‑in replacement – same signature */
-        /* drop‑in replacement */
+        internal record LeafSplit(
+            NWayTreeStorageInternal<ArrayCommandChunk> Prefix,
+            NWayTreeStorageInternal<ArrayCommandChunk> Gate,
+            NWayTreeStorageInternal<ArrayCommandChunk>? Postfix);
+
+        internal static LeafSplit SplitOversizeLeaf(
+            ArrayCommandList acl,
+            NWayTreeStorageInternal<ArrayCommandChunk> leaf,
+            int ifIdx,          // index of the “If” token
+            int endIfIdx)       // index of the matching “EndIf” token
+        {
+            int spanStart = leaf.StoredValue.StartCommandRange;
+            int spanEnd = leaf.StoredValue.EndCommandRangeExclusive;
+            int afterEnd = endIfIdx + 1;
+
+            // ── prefix: shrink existing node
+            leaf.StoredValue.EndCommandRangeExclusive = ifIdx;
+
+            // helper to clone basic metadata + stack ref
+            ArrayCommandChunk MetaFrom(ArrayCommandChunk src) => new()
+            {
+                VirtualStack = src.VirtualStack,
+                VirtualStackID = src.VirtualStackID,
+                ChildrenParallelizable = false
+            };
+
+            // ── gate node
+            var gate = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf);
+            gate.StoredValue = MetaFrom(leaf.StoredValue);
+            gate.StoredValue.Name = "Conditional";
+            gate.StoredValue.StartCommandRange = ifIdx;
+            gate.StoredValue.EndCommandRangeExclusive = afterEnd;
+
+            // ── postfix slice (optional)
+            NWayTreeStorageInternal<ArrayCommandChunk>? postfix = null;
+            if (afterEnd < spanEnd)
+            {
+                postfix = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf);
+                postfix.StoredValue = MetaFrom(leaf.StoredValue);
+                postfix.StoredValue.Name = "Postfix";
+                postfix.StoredValue.StartCommandRange = afterEnd;
+                postfix.StoredValue.EndCommandRangeExclusive = spanEnd;
+            }
+
+            return new LeafSplit(leaf, gate, postfix);
+        }
+
+        /// <summary>
+        /// Attach <paramref name="split"/> to the original leaf’s parent so the new
+        /// branch‑IDs become
+        ///     • 0 – prefix  (already in place)
+        ///     • 1 – Conditional gate
+        ///     • 2 – Postfix  (only if it exists)
+        /// and update <c>LastChild</c> accordingly.
+        /// </summary>
+        internal static void InsertSplitIntoTree(
+            LeafSplit split,
+            byte firstBranchId = 1)   // we always put the gate at branch‑ID 1
+        {
+            var parent = split.Prefix;
+
+            // Branch‑ID 1 → Conditional gate
+            parent.SetBranch(firstBranchId, split.Gate);
+
+            // Branch‑ID 2 → Postfix slice (when present)
+            if (split.Postfix != null)
+                parent.SetBranch((byte)(firstBranchId + 1), split.Postfix);
+
+            /* ── update LastChild to the highest ID we just used ────────────── */
+            parent.StoredValue.LastChild =
+                (byte)((split.Postfix != null) ? firstBranchId + 1   // gate + postfix
+                                               : firstBranchId);     // gate only
+        }
+
+
         private static void ReplaceLeafWithGate(
                 ArrayCommandList acl,
                 NWayTreeStorageInternal<ArrayCommandChunk> leaf,
-                HoistPlanner.PlanEntry planEntry)
+                HoistPlanner.PlanEntry entry)
         {
-            bool isRoot = leaf.Parent == null;
-            NWayTreeStorageInternal<ArrayCommandChunk> gateNode;
-
-            /* ────────────────────────── 0. pre‑diag ─────────────────────────── */
-            Debug.WriteLine(
-                $"[REPL]  leafID={leaf.StoredValue.ID}  " +
-                $"range=[{leaf.StoredValue.StartCommandRange},{leaf.StoredValue.EndCommandRangeExclusive})"); // DEBUG
-
-            /* ─────────────── 1. create (or reuse) the Conditional gate ───────── */
-            if (isRoot)
-            {
-                gateNode = leaf;
-                gateNode.StoredValue.Name = "Conditional";
-                gateNode.StoredValue.ChildrenParallelizable = false;
-                Debug.WriteLine("        (root replaced in‑place)"); // DEBUG
-            }
-            else
-            {
-                var parent = (NWayTreeStorageInternal<ArrayCommandChunk>)leaf.Parent;
-
-                gateNode = new NWayTreeStorageInternal<ArrayCommandChunk>(parent);
-                gateNode.StoredValue = new ArrayCommandChunk
-                {
-                    Name = "Conditional",
-                    StartCommandRange = leaf.StoredValue.StartCommandRange,
-                    EndCommandRangeExclusive = leaf.StoredValue.EndCommandRangeExclusive,
-                    StartSourceIndices = leaf.StoredValue.StartSourceIndices,
-                    EndSourceIndicesExclusive = leaf.StoredValue.EndSourceIndicesExclusive,
-                    StartDestinationIndices = leaf.StoredValue.StartDestinationIndices,
-                    EndDestinationIndicesExclusive = leaf.StoredValue.EndDestinationIndicesExclusive,
-                    ChildrenParallelizable = false,
-                    /* critical: preserve stack reference */
-                    VirtualStack = leaf.StoredValue.VirtualStack
-                };
-
-                // swap into the exact same branch slot
-                byte slot = 0;
-                for (byte i = 1; i <= parent.StoredValue.LastChild; i++)
-                    if (ReferenceEquals(parent.GetBranch(i), leaf)) { slot = i; break; }
-
-                if (slot == 0) throw new InvalidOperationException("leaf not found in parent");
-                parent.SetBranch(slot, gateNode);
-                Debug.WriteLine($"        inserted gate into parent‑slot {slot}"); // DEBUG
-            }
-
-            /* ─────────────── 2. slice the If‑body into child leaves ──────────── */
-            int max = acl.MaxCommandsPerChunk;
-            int bodyStart = planEntry.IfIdx + 1;   // first cmd inside body
-            int bodyEnd = planEntry.EndIfIdx;    // EndIf *not* included
-
-            Debug.WriteLine(
-                $"[SLICE] gateID={gateNode.StoredValue.ID}  body=[{bodyStart},{bodyEnd})  max={max}"); // DEBUG
-
-            byte childId = 1;
-            for (int s = bodyStart; s < bodyEnd;)
-            {
-                int e = Math.Min(s + max, bodyEnd);
-
-                var child = new NWayTreeStorageInternal<ArrayCommandChunk>(gateNode);
-                child.StoredValue = new ArrayCommandChunk
-                {
-                    StartCommandRange = s,
-                    EndCommandRangeExclusive = e,
-                    ChildrenParallelizable = false,
-                    /* inherit same stack ref so lengths line up */
-                    VirtualStack = leaf.StoredValue.VirtualStack
-                };
-
-                gateNode.SetBranch(childId, child);
-
-                Debug.WriteLine(
-                    $"        • child {childId}  range=[{s},{e})  " +
-                    $"stackLen={(child.StoredValue.VirtualStack?.Length ?? 0)}");// DEBUG
-
-                childId++;
-                s = e;
-            }
-            gateNode.StoredValue.LastChild = (byte)(childId - 1);
-
-            /* ────────────────────────── post‑diag ────────────────────────────── */
-            Debug.WriteLine(
-                $"[DONE]  gateID={gateNode.StoredValue.ID}  " +
-                $"children={gateNode.StoredValue.LastChild}\n"); // DEBUG
-        }
-
-
-
-
-        /// Helper to create a new node with minimal metadata
-        private static NWayTreeStorageInternal<ArrayCommandList.ArrayCommandChunk>
-            NewNode(NWayTreeStorageInternal<ArrayCommandList.ArrayCommandChunk> parent,
-                    string name, int startCmd, int endCmd)
-        {
-            var node = new NWayTreeStorageInternal<ArrayCommandList.ArrayCommandChunk>(parent);
-            node.StoredValue = new ArrayCommandList.ArrayCommandChunk
-            {
-                ID = ArrayCommandList.ArrayCommandChunk.NextID++,
-                Name = name,
-                StartCommandRange = startCmd,
-                EndCommandRangeExclusive = endCmd
-            };
-            return node;
-        }
-
-        /// Locate which branch index in <parent> points to <child>
-        private static byte FindSlotInParent(
-            NWayTreeStorageInternal<ArrayCommandList.ArrayCommandChunk> parent,
-            NWayTreeStorageInternal<ArrayCommandList.ArrayCommandChunk> child)
-        {
-            for (byte i = 0; i <= parent.StoredValue.LastChild; i++)
-                if (parent.GetBranch(i) == child)
-                    return i;
-
-            throw new InvalidOperationException("child not found in parent branches");
+            var split = SplitOversizeLeaf(acl, leaf, entry.IfIdx, entry.EndIfIdx);
+            InsertSplitIntoTree(split);
+            acl.SliceBodyIntoChildren(split.Gate);   // unchanged helper – still private
         }
     }
 }

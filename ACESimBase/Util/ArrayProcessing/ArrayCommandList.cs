@@ -1741,7 +1741,7 @@ else
         /// the EndIf token**, ensuring every leaf is balanced.
         /// After slicing the gate itself is reduced to the single If token.
         /// </summary>
-        private void SliceBodyIntoChildren(NWayTreeStorageInternal<ArrayCommandChunk> gate)
+        public void SliceBodyIntoChildren(NWayTreeStorageInternal<ArrayCommandChunk> gate)
         {
             int max = MaxCommandsPerChunk;
             var gInfo = gate.StoredValue;
@@ -1762,15 +1762,16 @@ else
 
             while (sliceStart < bodyEnd)
             {
-                // leave room so the last slice can extend through EndIf
+                /* size of the next slice (may be trimmed below) */
                 int remaining = bodyEnd - sliceStart;
                 int wantSize = Math.Min(remaining, max);
                 int sliceEnd = sliceStart + wantSize;
 
-                // if this will be the *last* slice, extend to include EndIf
+                /* if this is the natural last slice, extend through EndIf */
                 if (sliceEnd >= bodyEnd)
-                    sliceEnd = pair.endIfIdx + 1;        // include EndIf token
+                    sliceEnd = pair.endIfIdx + 1;          // include EndIf token
 
+                /* build the child node */
                 var child = new NWayTreeStorageInternal<ArrayCommandChunk>(gate);
                 child.StoredValue = new ArrayCommandChunk
                 {
@@ -1785,10 +1786,28 @@ else
 
                     ExecId = _nextExecId++
                 };
-                gate.SetBranch(childId++, child);
 
-                sliceStart = sliceEnd;           // advance
+                gate.SetBranch(childId, child);
+
+                /* ----------------  branch‑ID bookkeeping  ---------------- */
+                bool atCap = (childId == byte.MaxValue - 1);   // 254 (0 is unused)
+                if (atCap)
+                {
+                    /* absorb any remainder (including EndIf) into this final child */
+                    sliceStart = pair.endIfIdx + 1;            // loop will exit
+                }
+                else
+                {
+                    childId++;                                 // prepare ID for next slice
+                    sliceStart = sliceEnd;                     // advance normally
+                }
             }
+
+            /* gate now holds only the If token; record children count */
+            gInfo.EndCommandRangeExclusive = pair.ifIdx + 1;
+            gInfo.LastChild = (childId == byte.MaxValue - 1) ? childId
+                                                             : (byte)(childId - 1);
+
 
             // gate now holds only the single If token
             gInfo.EndCommandRangeExclusive = pair.ifIdx + 1;
