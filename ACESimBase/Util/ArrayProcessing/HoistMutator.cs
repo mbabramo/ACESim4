@@ -99,7 +99,7 @@ namespace ACESimBase.Util.ArrayProcessing
         internal record LeafSplit(
             NWayTreeStorageInternal<ArrayCommandChunk> Prefix,
             NWayTreeStorageInternal<ArrayCommandChunk> Gate,
-            NWayTreeStorageInternal<ArrayCommandChunk>? Postfix);
+            NWayTreeStorageInternal<ArrayCommandChunk> Postfix);
 
         internal static LeafSplit SplitOversizeLeaf(
             ArrayCommandList acl,
@@ -130,7 +130,7 @@ namespace ACESimBase.Util.ArrayProcessing
             gate.StoredValue.EndCommandRangeExclusive = afterEnd;
 
             // ── postfix slice (optional)
-            NWayTreeStorageInternal<ArrayCommandChunk>? postfix = null;
+            NWayTreeStorageInternal<ArrayCommandChunk> postfix = null;
             if (afterEnd < spanEnd)
             {
                 postfix = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf);
