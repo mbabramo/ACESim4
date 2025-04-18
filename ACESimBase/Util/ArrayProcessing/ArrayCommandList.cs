@@ -1200,27 +1200,27 @@ else
 
                 _nextExecId = 0;
                 CommandTree.WalkTree(
-                    /* on enter */    n => {
-                                          var c = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
-                                          c.CopyParentVirtualStack();
-                                          c.ResetIncrementsForParent();
-                                      },
-                    /* on exec */     n => {
-                                          var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
-                                          var chunk = node.StoredValue;
-                                          if (chunk.Skip) return;
+                    /* on enter */ n => {
+                                       var c = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
+                                       c.CopyParentVirtualStack();
+                                       c.ResetIncrementsForParent();
+                                   },
+                    /* on exec  */ n => {
+                                       var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
+                                       var chunk = node.StoredValue;
+                                       if (chunk.Skip) return;
 
-                                          if (node.Branches == null || !node.Branches.Any())
-                                          {
-                                              int id = _nextExecId++;
-                                              chunk.ID = id;
-                                              Checkpoints.Add(id);
-                                              ExecuteSectionOfCommands(chunk);
-                                          }
+                                       if (node.Branches == null || node.Branches.Length == 0)
+                                       {
+                                           int id = _nextExecId++;
+                                           chunk.ID = id;
+                                           Checkpoints.Add(id);
+                                           ExecuteSectionOfCommands(chunk);
+                                       }
 
-                                          chunk.CopyIncrementsToParentIfNecessary();
-                                      },
-                    /* parallel? */   n => false
+                                       chunk.CopyIncrementsToParentIfNecessary();
+                                   },
+                    /* parallel?*/ n => false
                 );
 
                 CopyOrderedDestinations(array);
@@ -1228,46 +1228,31 @@ else
             }
 
             // ----------------------------------------------------------------
-            // 2) PARALLEL / REPEAT‑IDENTICAL‑RANGES MODE
+            // 2) CHUNK‑BASED EXECUTION (always, even when not parallel)
             // ----------------------------------------------------------------
-            if (DoParallel || RepeatIdenticalRanges)
-            {
-                if (!UseOrderedSources || !UseOrderedDestinations)
-                    throw new Exception("Must use ordered sources and destinations with parallelizable and/or RepeatIdenticalRanges");
+            PrepareOrderedSourcesAndDestinations(array);
 
-                PrepareOrderedSourcesAndDestinations(array);
+            CommandTree.WalkTree(
+                /* on enter */ n => {
+                                   var c = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
+                                   c.CopyParentVirtualStack();
+                                   c.ResetIncrementsForParent();
+                               },
+                /* on exec  */ n => {
+                                   var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
+                                   var chunk = node.StoredValue;
+                                   if (chunk.Skip) return;
+                                   if (node.Branches == null || node.Branches.Length == 0)
+                                       ExecuteSectionOfCommands(chunk);
+                                   chunk.CopyIncrementsToParentIfNecessary();
+                               },
+                /* parallel?*/ n => ((ArrayCommandChunk)((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue).ChildrenParallelizable
+            );
 
-                CommandTree.WalkTree(
-                    n => {
-                        var c = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
-                        c.CopyParentVirtualStack();
-                        c.ResetIncrementsForParent();
-                    },
-                    n => {
-                        var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
-                        var chunk = node.StoredValue;
-                        if (chunk.Skip) return;
-                        if (node.Branches == null || !node.Branches.Any())
-                            ExecuteSectionOfCommands(chunk);
-                        chunk.CopyIncrementsToParentIfNecessary();
-                    },
-                    n => {
-                        var chunk = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
-                        return Parallelize && chunk.ChildrenParallelizable;
-                    }
-                );
-
-                CopyOrderedDestinations(array);
-                return;
-            }
-
-            // ----------------------------------------------------------------
-            // 3) FLAT INTERPRETER MODE
-            // ----------------------------------------------------------------
-            // For the flat interpreter we now defer entirely to ExecuteAllCommands,
-            // which will do its own PrepareOrdered…/CopyOrdered… so it matches this flow.
-            ExecuteAllCommands(array);
+            CopyOrderedDestinations(array);
+            return;
         }
+
 
 
 
