@@ -1270,6 +1270,11 @@ else
 
         public double[] ExecuteAllCommands(double[] array)
         {
+            Debug.WriteLine(
+                $"[LOG] ExecuteAllCommands: arrayLen={array.Length}, " +
+                $"DoParallel={DoParallel}, RepeatIdenticalRanges={RepeatIdenticalRanges}, " +
+                $"ReuseScratchSlots={ReuseScratchSlots}, FirstScratchIndex={FirstScratchIndex}"
+                    ); // DEBUG
             // in flat (sequential) mode, always run over the full array;
             // in parallel/unrolled modes we still use your existing slice logic
             Span<double> virtualStack;
@@ -1280,7 +1285,10 @@ else
             }
             else
             {
+                int scratchLen = array.Length - FirstScratchIndex; // DEBUG
                 // existing behavior for ordered sources/destinations
+                Debug.WriteLine($"[LOG]  -> slicing scratch: idx={FirstScratchIndex}, len={scratchLen}"); // DEBUG
+
                 virtualStack = (UseOrderedSources && UseOrderedDestinations)
                     ? new Span<double>(array).Slice(FirstScratchIndex)
                     : new Span<double>(array);
@@ -1451,29 +1459,48 @@ else
         private void ExecuteSectionOfCommands(Span<double> virtualStack, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int currentOrderedDestinationIndex)
         {
             Debug.WriteLine(
-    $"[DBG] ExecuteSectionOfCommands: stackLen={virtualStack.Length}  " +
-    $"cmdRange=[{startCommandIndex}..{endCommandIndexInclusive}]  " +
-    $"srcStart={currentOrderedSourceIndex}  dstStart={currentOrderedDestinationIndex}"
-); // DEBUG
+                $"[DBG] ExecuteSectionOfCommands: stackLen={virtualStack.Length}  " +
+                $"cmdRange=[{startCommandIndex}..{endCommandIndexInclusive}]  " +
+                $"srcStart={currentOrderedSourceIndex}  dstStart={currentOrderedDestinationIndex}"
+            ); // DEBUG
             bool conditionMet = false;
             int commandIndex = startCommandIndex;
             while (commandIndex <= endCommandIndexInclusive)
             {
-                // log what slot we’re about to pull from…
-                System.Diagnostics.Debug.WriteLine(
-                    $"[DBG] about to fetch UnderlyingCommands[{commandIndex}] " +
-                    $"(virtualStack.Length={virtualStack.Length})"
-                ); // DEBUG
 
                 ArrayCommand command = UnderlyingCommands[commandIndex];
 
-                // now log the two key indices on that command
-                System.Diagnostics.Debug.WriteLine(
-                    $"[DBG]  got cmd#{commandIndex}: " +
-                    $"CommandType={command.CommandType}, " +
-                    $"cmd.Index={command.Index}, " +
-                    $"cmd.SourceIndex={command.SourceIndex}"
-                ); // DEBUG
+                if (command.Index < 0 || command.Index >= virtualStack.Length)
+                {
+                    Debug.WriteLine(
+                        $"[ERROR] cmd#{commandIndex} ({command.CommandType}): " +
+                        $"Index={command.Index} out of [0..{virtualStack.Length - 1}]");
+                }
+                // check command.SourceIndex (only for those commands that use it as an array slot)
+                if (command.SourceIndex >= 0
+                    && command.SourceIndex < virtualStack.Length == false)
+                {
+                    Debug.WriteLine(
+                        $"[ERROR] cmd#{commandIndex} ({command.CommandType}): " +
+                        $"SourceIndex={command.SourceIndex} out of [0..{virtualStack.Length - 1}]");
+                }
+                // check destination pointer
+                if ((command.CommandType == ArrayCommandType.NextDestination ||
+                     command.CommandType == ArrayCommandType.ReusedDestination)
+                    && currentOrderedDestinationIndex >= OrderedDestinations.Length)
+                {
+                    Debug.WriteLine(
+                        $"[ERROR] cmd#{commandIndex} ({command.CommandType}): " +
+                        $"dstPtr={currentOrderedDestinationIndex} >= OrderedDestinations.Length={OrderedDestinations.Length}");
+                }
+                // check source pointer
+                if (command.CommandType == ArrayCommandType.NextSource
+                    && currentOrderedSourceIndex >= OrderedSources.Length)
+                {
+                    Debug.WriteLine(
+                        $"[ERROR] cmd#{commandIndex} ({command.CommandType}): " +
+                        $"srcPtr={currentOrderedSourceIndex} >= OrderedSources.Length={OrderedSources.Length}");
+                }
 
                 //System.Diagnostics.Debug.WriteLine(command);
                 switch (command.CommandType)

@@ -218,7 +218,7 @@ namespace ACESimTest
             {
                 if (i == 0 && repeatIdenticalChunk)
                     repeatedCommandIndex = cl.NextCommandIndex;
-                Debug.WriteLine($"Repeated command index {repeatedCommandIndex}");
+                // DEBUG Debug.WriteLine($"Repeated command index {repeatedCommandIndex}");
                 cl.StartCommandChunk(false, repeatIdenticalChunk && i != 0 ? (int?) repeatedCommandIndex : null);
                 cl.IncrementDepth(); // NOTE -- this is critical. We must increment depth here (and decrement below) so that the increments are copied from the child virtual stack back to the parent.
                 for (int j = numPotentialIncrementsWithin - 1; j >= 0; j--) // go backward to make it easier to follow algorithm
