@@ -14,6 +14,7 @@ using System.Reflection;
 using Microsoft.Azure.KeyVault.Core;
 using System.IO;
 using Tensorflow;
+using static TorchSharp.torch;
 
 namespace ACESimBase.Util.ArrayProcessing
 {
@@ -245,6 +246,40 @@ namespace ACESimBase.Util.ArrayProcessing
                 EndCommandChunk();
             CompleteCommandTree();
         }
+
+        // ░░ ArrayCommandList.cs ░░───────────────────────────────────────────────
+        public void RebuildCommandTree()
+        {
+            /* 1) make a brand‑new root leaf that spans the full command list */
+            var root = new NWayTreeStorageInternal<ArrayCommandChunk>(null);
+            root.StoredValue = new ArrayCommandChunk
+            {
+                ID = 0,
+                Name = "root",
+                StartCommandRange = 0,
+                EndCommandRangeExclusive = NextCommandIndex,
+                StartSourceIndices = 0,
+                EndSourceIndicesExclusive = 0,
+                StartDestinationIndices = 0,
+                EndDestinationIndicesExclusive = 0
+            };
+
+            CommandTree = root;   // ‹‑‑ replace the previous tree completely
+
+            /* 2) run the same passes used in CompleteCommandList()  */
+            CommandTree.WalkTree(x =>
+                InsertMissingBranches((NWayTreeStorageInternal<ArrayCommandChunk>)x));
+
+            // (Hoisting already done before the mutator, so we do not call it here.)
+
+            CommandTree.WalkTree(null, x =>
+                SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandChunk>)x));
+            CommandTree.WalkTree(x =>
+                SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandChunk>)x));
+
+            CommandTreeString = CommandTree.ToString();
+        }
+
 
         /// <summary>
         /// Looks to see whether there are sequences of commands that are not specifically included within chunks. If so, chunks are created for those commands. 
@@ -1695,8 +1730,10 @@ else
                 if (tri.ifIdx != -1)
                 {
                     // create gate chunk once, then stop processing this leaf
-                    InsertGateChunk(leaf, tri.ifIdx, tri.endIfIdx);
-                    SliceBodyIntoChildren(leaf.GetBranch(1) as NWayTreeStorageInternal<ArrayCommandChunk>);
+                    var gate = InsertGateChunk(leaf, tri.ifIdx, tri.endIfIdx);
+                    System.Diagnostics.Debug.WriteLine(
+    $"[CALL] SliceBodyIntoChildren on gateID={gate.StoredValue.ID}"); // DEBUG
+                    SliceBodyIntoChildren(gate);
                     return;
                 }
 
@@ -1706,29 +1743,40 @@ else
         }
 
         /// <summary>
-        /// Under <paramref name="gate"/> (name=="Conditional"),
-        /// move the commands strictly between its If and EndIf into
-        /// new child slices, each ≤ <see cref="MaxCommandsPerChunk"/>.
+        /// Under <paramref name="gate"/> (name=="Conditional")
+        /// create child slices for the body so that **the last slice also contains
+        /// the EndIf token**, ensuring every leaf is balanced.
+        /// After slicing the gate itself is reduced to the single If token.
         /// </summary>
         private void SliceBodyIntoChildren(NWayTreeStorageInternal<ArrayCommandChunk> gate)
         {
             int max = MaxCommandsPerChunk;
             var gInfo = gate.StoredValue;
+            System.Diagnostics.Debug.WriteLine(
+            $"[SLICE] gateID={gInfo.ID}  range=[{gInfo.StartCommandRange}," +
+            $"{gInfo.EndCommandRangeExclusive})  name={gInfo.Name}"); // DEBUG
 
-            // locate the If and matching EndIf inside this gate
-            var pair = FindOutermostIf(gInfo.StartCommandRange, gInfo.EndCommandRangeExclusive);
-            if (pair.ifIdx == -1) return;               // should not happen
+            var pair = FindOutermostIf(gInfo.StartCommandRange,
+                                       gInfo.EndCommandRangeExclusive);
+            if (pair.ifIdx == -1) return;        // should not happen
 
             int bodyStart = pair.ifIdx + 1;
-            int bodyEnd = pair.endIfIdx;              // non‑inclusive
-            if (bodyStart >= bodyEnd) return;           // empty body
+            int bodyEnd = pair.endIfIdx;       // EndIf itself handled later
+            if (bodyStart >= bodyEnd) return;    // empty body
 
             int sliceStart = bodyStart;
-            byte childId = 1;                         // append after any existing
+            byte childId = 1;
 
             while (sliceStart < bodyEnd)
             {
-                int sliceEnd = Math.Min(sliceStart + max, bodyEnd);
+                // leave room so the last slice can extend through EndIf
+                int remaining = bodyEnd - sliceStart;
+                int wantSize = Math.Min(remaining, max);
+                int sliceEnd = sliceStart + wantSize;
+
+                // if this will be the *last* slice, extend to include EndIf
+                if (sliceEnd >= bodyEnd)
+                    sliceEnd = pair.endIfIdx + 1;        // include EndIf token
 
                 var child = new NWayTreeStorageInternal<ArrayCommandChunk>(gate);
                 child.StoredValue = new ArrayCommandChunk
@@ -1741,18 +1789,18 @@ else
                     EndSourceIndicesExclusive = gInfo.EndSourceIndicesExclusive,
                     StartDestinationIndices = gInfo.StartDestinationIndices,
                     EndDestinationIndicesExclusive = gInfo.EndDestinationIndicesExclusive,
+
                     ExecId = _nextExecId++
                 };
                 gate.SetBranch(childId++, child);
-                sliceStart = sliceEnd;
+
+                sliceStart = sliceEnd;           // advance
             }
 
-            // shrink gate so it holds only If + EndIf
-            gInfo.EndCommandRangeExclusive = pair.endIfIdx + 1;
+            // gate now holds only the single If token
+            gInfo.EndCommandRangeExclusive = pair.ifIdx + 1;
             gInfo.LastChild = (byte)(childId - 1);
         }
-
-
 
         /// <summary>
         /// Turn <paramref name="leaf"/> (which is oversize) into a parent that
@@ -1761,7 +1809,7 @@ else
         /// Body commands <c>[ifIdx+1, endIfIdx)</c> are still inside that gate
         /// chunk for now – they will be split in Step 2.
         /// </summary>
-        private void InsertGateChunk(NWayTreeStorageInternal<ArrayCommandChunk> leaf,
+        private NWayTreeStorageInternal<ArrayCommandChunk> InsertGateChunk(NWayTreeStorageInternal<ArrayCommandChunk> leaf,
                                      int ifIdx, int endIfIdx)
         {
             var parentInfo = leaf.StoredValue;
@@ -1790,6 +1838,7 @@ else
             /* ── wire into tree ──────────────────────────────────────────── */
             leaf.SetBranch(1, gateNode);            // branch #1 (0 is unused/prefix)
             leaf.StoredValue.LastChild = 1;
+            return gateNode;                 // ← return for immediate use
         }
 
 
