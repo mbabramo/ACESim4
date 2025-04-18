@@ -1187,16 +1187,66 @@ else
             if (CommandTreeString == null)
                 throw new Exception("CommandTree not created yet.");
 
+            // tracing only works on the flat interpreter
             if (tracing && (DoParallel || RepeatIdenticalRanges || UseOrderedDestinations || UseOrderedSources))
                 throw new Exception("Cannot trace unrolling with any of these options.");
 
+            // ----------------------------------------------------------------
+            // 1) CHECKPOINT MODE (leaf‑by‑leaf IDs)
+            // ----------------------------------------------------------------
+            if (Checkpoints != null)
+            {
+                PrepareOrderedSourcesAndDestinations(array);
+                _nextExecId = 0;
+
+                CommandTree.WalkTree(
+                    /* on enter */ n =>
+                                   {
+                                       var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
+                                       var c = node.StoredValue;
+                                       if (node.Parent == null)
+                                           c.VirtualStack = array;       // root uses real array
+                                       else
+                                           c.CopyParentVirtualStack();   // children get a copy
+                                       c.ResetIncrementsForParent();
+                                   },
+                    /* on exec  */ n =>
+                                   {
+                                       var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
+                                       var chunk = node.StoredValue;
+                                       if (chunk.Skip) return;
+
+                                       if (node.Branches == null || node.Branches.Length == 0)
+                                       {
+                                           int id = _nextExecId++;
+                                           chunk.ID = id;
+                                           Checkpoints.Add(id);
+                                           ExecuteSectionOfCommands(chunk);
+                                       }
+
+                                       chunk.CopyIncrementsToParentIfNecessary();
+                                   },
+                    /* parallel?*/ n => false
+                );
+
+                CopyOrderedDestinations(array);
+                return;
+            }
+
+            // ----------------------------------------------------------------
+            // 2) CHUNK‑BASED EXECUTION (always, even when not parallel)
+            // ----------------------------------------------------------------
             PrepareOrderedSourcesAndDestinations(array);
 
             CommandTree.WalkTree(
                 /* on enter */ n =>
                                {
-                                   var c = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
-                                   c.CopyParentVirtualStack();
+                                   var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
+                                   var c = node.StoredValue;
+                                   if (node.Parent == null)
+                                       c.VirtualStack = array;       // root uses real array
+                                   else
+                                       c.CopyParentVirtualStack();   // children get a copy
                                    c.ResetIncrementsForParent();
                                },
                 /* on exec  */ n =>
@@ -1205,25 +1255,17 @@ else
                                    var chunk = node.StoredValue;
                                    if (chunk.Skip) return;
 
-                                   // Log before
-                                   Debug.WriteLine(
-                             $"[LOG] Chunk {chunk.ID} entering  range=[{chunk.StartCommandRange},{chunk.EndCommandRangeExclusive})  array[1]={array[1]}");
-
                                    ExecuteSectionOfCommands(chunk);
-
-                                   // Log after
-                                   Debug.WriteLine(
-                             $"[LOG] Chunk {chunk.ID} exited   range=[{chunk.StartCommandRange},{chunk.EndCommandRangeExclusive})  array[1]={array[1]}  vsSlot0={chunk.VirtualStack[0]}, vsSlot1={chunk.VirtualStack[1]}");
-
                                    chunk.CopyIncrementsToParentIfNecessary();
                                },
                 /* parallel?*/ n =>
-                  ((ArrayCommandChunk)((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue)
-                    .ChildrenParallelizable
+                    ((ArrayCommandChunk)((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue)
+                        .ChildrenParallelizable
             );
 
             CopyOrderedDestinations(array);
         }
+
 
 
 
