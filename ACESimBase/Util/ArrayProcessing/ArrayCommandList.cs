@@ -1450,11 +1450,31 @@ else
 
         private void ExecuteSectionOfCommands(Span<double> virtualStack, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int currentOrderedDestinationIndex)
         {
+            Debug.WriteLine(
+    $"[DBG] ExecuteSectionOfCommands: stackLen={virtualStack.Length}  " +
+    $"cmdRange=[{startCommandIndex}..{endCommandIndexInclusive}]  " +
+    $"srcStart={currentOrderedSourceIndex}  dstStart={currentOrderedDestinationIndex}"
+); // DEBUG
             bool conditionMet = false;
             int commandIndex = startCommandIndex;
             while (commandIndex <= endCommandIndexInclusive)
             {
+                // log what slot we’re about to pull from…
+                System.Diagnostics.Debug.WriteLine(
+                    $"[DBG] about to fetch UnderlyingCommands[{commandIndex}] " +
+                    $"(virtualStack.Length={virtualStack.Length})"
+                ); // DEBUG
+
                 ArrayCommand command = UnderlyingCommands[commandIndex];
+
+                // now log the two key indices on that command
+                System.Diagnostics.Debug.WriteLine(
+                    $"[DBG]  got cmd#{commandIndex}: " +
+                    $"CommandType={command.CommandType}, " +
+                    $"cmd.Index={command.Index}, " +
+                    $"cmd.SourceIndex={command.SourceIndex}"
+                ); // DEBUG
+
                 //System.Diagnostics.Debug.WriteLine(command);
                 switch (command.CommandType)
                 {
