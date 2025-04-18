@@ -55,8 +55,8 @@ namespace ACESimBase.Util.ArrayProcessing
         public int MaxArrayIndex;
 
         // NEW: Toggle Roslyn or Reflection.Emit compilation
-        public bool UseRoslyn = false; // DEBUG -- current problem with ILChunkEmitter is that it doesn't work for large chunks (e.g., over 1,000,000). So we need to break things up, ideally using if commands.
-        public int MaxCommandsPerChunk { get; set; } = 1_000; // DEBUG
+        public bool UseRoslyn = true; // DEBUG -- current problem with ILChunkEmitter is that it doesn't work for large chunks (e.g., over 1,000,000). So we need to break things up, ideally using if commands.
+        public int MaxCommandsPerChunk { get; set; } = 1_000; // DEBUG // Use int.MaxValue to disable. Note that scratch slots will be reused only if this is the case.
         public bool DisableAdvancedFeatures = false;
 
         // Ordered sources: We initially develop a list of indices of the data passed to the algorithm each iteration. Before each iteration, we copy the data corresponding to these indices into the OrderedSources array in the order in which it will be needed. A command that otherwise would copy from the original data instead loads the next item in ordered sources. This may slightly improve performance because a sequence of original data will be cached. More importantly, it can improve parallelism: When a player chooses among many actions that are structurally equivalent (that is, they do not change how the game is played from that point on), we can run the same code with different slices of the OrderedSources array.
@@ -66,6 +66,7 @@ namespace ACESimBase.Util.ArrayProcessing
         // Ordered destinations: Similarly, when the unrolled algorithm changes the data passed to it (for example, incrementing regrets in CFR), instead of directly incrementing the data, we develop in advance a list of the indices that will be changed. Then, when running the algorithm, we store the actual data that needs to be changed in an array, and on completion of the algorithm, we run through that array and change the data at the specified index for each item. This enhances parallelism because we don't have to lock around each data change, instead locking only around the final set of changes. This also may facilitate spreading the algorithm across machines, since each CPU can simply report the set of changes to make.
         public bool UseOrderedDestinations => !DisableAdvancedFeatures && true;
         public bool ReuseDestinations => !DisableAdvancedFeatures && false; // NOTE: Not currently working (must adapt to source code generation). If true, then we will not add a new ordered destination index for a destination location already used within code executed not in parallel. Instead, we will just increment the previous destination.
+        public bool ReuseScratchSlots => MaxCommandsPerChunk == int.MaxValue;
         public List<int> OrderedDestinationIndices;
         public double[] OrderedDestinations;
         public List<int>[] OrderedDestinationsInverted; // here, the outer array is the same size as the target array, and the inner list consists of the items to add up for that array index.
@@ -85,7 +86,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public Stack<int> PerDepthStartArrayIndices;
         int NextVirtualStackID = 0;
 
-        bool RepeatIdenticalRanges => !DisableAdvancedFeatures && true; // instead of repeating identical sequences of commands, we run the same sequence twice
+        bool RepeatIdenticalRanges => !DisableAdvancedFeatures && ReuseScratchSlots; // instead of repeating identical sequences of commands, we run the same sequence twice
         public Stack<int?> RepeatingExistingCommandRangeStack;
         public bool RepeatingExistingCommandRange = false; // when this is true, we don't need to add new commands
 
@@ -148,7 +149,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public void DecrementDepth(bool completeCommandList = false)
         {
             var popResult = PerDepthStartArrayIndices.Pop();
-            if (RepeatIdenticalRanges)
+            if (RepeatIdenticalRanges && ReuseScratchSlots)
             {
                 NextArrayIndex = popResult;
             }
@@ -220,7 +221,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 //TabbedText.WriteLine($"Planning to copy increments {String.Join(",", copyIncrementsToParent)} on {commandChunkBeingEnded.ID} with stackid {commandChunkBeingEnded.VirtualStackID} to parentsid {commandChunkBeingEnded.ParentVirtualStackID}");
             }
             commandChunkBeingEnded.CopyIncrementsToParent = copyIncrementsToParent;
-            if (endingRepeatedChunk && RepeatingExistingCommandRangeStack.Any())
+            if (endingRepeatedChunk && RepeatIdenticalRanges && RepeatingExistingCommandRangeStack.Any())
             {
                 RepeatingExistingCommandRangeStack.Pop();
                 if (!RepeatingExistingCommandRangeStack.Any())
@@ -715,7 +716,10 @@ namespace ACESimBase.Util.ArrayProcessing
             int spaceForProduct = CopyToNew(indexOfIncrementProduct1, false);
             MultiplyBy(spaceForProduct, indexOfIncrementProduct2);
             Increment(index, targetOriginal, spaceForProduct);
-            NextArrayIndex--; // we've set aside an array index to be used for this command. But we no longer need it, so we can now allocate it to some other purpose (e.g., incrementing by another product)
+            if (ReuseScratchSlots)
+            {
+                NextArrayIndex--;
+            }
         }
 
         public void DecrementArrayBy(int[] indices, int indexOfDecrement)
@@ -742,7 +746,10 @@ namespace ACESimBase.Util.ArrayProcessing
             int spaceForProduct = CopyToNew(indexOfDecrementProduct1, false);
             MultiplyBy(spaceForProduct, indexOfDecrementProduct2);
             Decrement(index, spaceForProduct);
-            NextArrayIndex--; // we've set aside an array index to be used for this command. But we no longer need it, so we can now allocate it to some other purpose (e.g., Decrementing by another product)
+            if (ReuseScratchSlots)
+            {
+                NextArrayIndex--; // we've set aside an array index to be used for this command. But we no longer need it, so we can now allocate it to some other purpose (e.g., Decrementing by another product)
+            }
         }
 
         // Flow control. We do flow control by a combination of comparison commands and go to commands. When a comparison is made, if the comparison fails, the next command is skipped. Thus, the combination of the comparison and the go to command ensures that the go to command will be obeyed only if the comparison succeeds.
@@ -1178,57 +1185,106 @@ else
             if (CommandTreeString == null)
                 throw new Exception("CommandTree not created yet.");
             PrepareOrderedSourcesAndDestinations(array);
-            if (tracing && (DoParallel || RepeatIdenticalRanges || UseOrderedDestinations || UseOrderedSources)) 
+
+            // tracing only works on the flat interpreter
+            if (tracing && (DoParallel || RepeatIdenticalRanges || UseOrderedDestinations || UseOrderedSources))
                 throw new Exception("Cannot trace unrolling with any of these options."); // NOTE: We can use checkpoints instead of tracing
-            if (DoParallel || RepeatIdenticalRanges)
+
+            // ----------------------------------------------------------------
+            // 1) CHECKPOINT MODE: if you've given me a List<double> in Checkpoints,
+            //    walk the tree serially and record an execution‐ID at each leaf.
+            // ----------------------------------------------------------------
+            if (Checkpoints != null)
+            {
+                // reset the static ID counter
+                _nextExecId = 0;
+
+                CommandTree.WalkTree(
+                    // on entering any chunk, copy down the virtual‐stack state
+                    n =>
+                    {
+                        var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
+                        var chunk = node.StoredValue;
+                        chunk.CopyParentVirtualStack();
+                        chunk.ResetIncrementsForParent();
+                    },
+                    // on executing a chunk, if it's a leaf, assign & record an ID
+                    n =>
+                    {
+                        var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
+                        var chunk = node.StoredValue;
+                        if (chunk.Skip) return;
+
+                        // only leaf chunks actually run commands
+                        if (node.Branches == null || !node.Branches.Any())
+                        {
+                            int id = _nextExecId++;
+                            chunk.ID = id;
+                            Checkpoints.Add(id);
+                            ExecuteSectionOfCommands(chunk);
+                        }
+
+                        chunk.CopyIncrementsToParentIfNecessary();
+                    },
+                    // force purely serial traversal
+                    n => false
+                );
+            }
+            // ----------------------------------------------------------------
+            // 2) EXISTING PARALLEL / REPEAT‐IDENTICAL‐RANGES MODE (unchanged)
+            // ----------------------------------------------------------------
+            else if (DoParallel || RepeatIdenticalRanges)
             {
                 if (!UseOrderedSources || !UseOrderedDestinations)
                     throw new Exception("Must use ordered sources and destinations with parallelizable and/or RepeatIdenticalRanges");
-                CommandTree.WalkTree(n =>
-                {
-                    var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
-                    var commandChunk = node.StoredValue;
-                    //Debug.WriteLine($"Arriving at {commandChunk.ID}");
-                    commandChunk.CopyParentVirtualStack();
-                    commandChunk.ResetIncrementsForParent(); // the parent virtual stack may have already received increments from another node being run in parallel to this one. Those may have been copied here. So, we set the increments here  for the parent to zero here to avoid double-counting. Note that we are not changing the increments IN the parent here, but the increments HERE for the parent.
-                }, n =>
-                {
-                    var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
-                    var commandChunk = node.StoredValue;
-                    //Debug.WriteLine($"Executing commands in {commandChunk}");
-                    if (!commandChunk.Skip)
-                    {
-                        if (node.Branches == null || !node.Branches.Any())
-                        {
-                            ExecuteSectionOfCommands(commandChunk);
-                        }
-                        commandChunk.CopyIncrementsToParentIfNecessary();
-                    }
-                    //Debug.WriteLine($"Done executing commands in {commandChunk}");
-                }, n =>
-                {
-                    var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
-                    return Parallelize && node.StoredValue.ChildrenParallelizable;
-                });
 
+                CommandTree.WalkTree(
+                    n =>
+                    {
+                        var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
+                        var chunk = node.StoredValue;
+                        chunk.CopyParentVirtualStack();
+                        chunk.ResetIncrementsForParent();
+                    },
+                    n =>
+                    {
+                        var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
+                        var chunk = node.StoredValue;
+                        if (chunk.Skip) return;
+                        if (node.Branches == null || !node.Branches.Any())
+                            ExecuteSectionOfCommands(chunk);
+                        chunk.CopyIncrementsToParentIfNecessary();
+                    },
+                    n =>
+                    {
+                        var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
+                        return Parallelize && node.StoredValue.ChildrenParallelizable;
+                    }
+                );
             }
+            // ----------------------------------------------------------------
+            // 3) FLAT INTERPRETER MODE (unchanged)
+            // ----------------------------------------------------------------
             else
             {
                 array = ExecuteAllCommands(array);
             }
-            //for (int i = 0; i < OrderedDestinations.Length; i++)
-            //    System.Diagnostics.Debug.WriteLine($"{i}: {OrderedDestinations[i]}");
-            //PrintCommandLog();
 
             CopyOrderedDestinations(array);
         }
 
+
         public double[] ExecuteAllCommands(double[] array)
         {
-            Span<double> virtualStack = UseOrderedSources && UseOrderedDestinations ? new Span<double>(array).Slice(FirstScratchIndex) : new Span<double>(array);
-            ExecuteSectionOfCommands(virtualStack, 0, MaxCommandIndex, 0, 0);
+            Span<double> virtualStack = UseOrderedSources && UseOrderedDestinations
+                ? new Span<double>(array).Slice(FirstScratchIndex)
+                : new Span<double>(array);
+            // Subtract 1 so our inclusive end bound is the last valid command index:
+            ExecuteSectionOfCommands(virtualStack, 0, MaxCommandIndex - 1, 0, 0);
             return array;
         }
+
+
         /// <summary>
         /// Execute one command‑chunk, honoring the global skip‑depth so that slices
         /// of an If‑body whose condition evaluated to <c>false</c> in a previous
