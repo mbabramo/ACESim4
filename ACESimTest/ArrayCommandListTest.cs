@@ -790,48 +790,69 @@ namespace ACESimTest
             /// Walk the <paramref name="plan"/> list produced by <see cref="HoistPlanner"/>
             /// and mutate <paramref name="acl.CommandTree"/> in‑place.
             /// </summary>
-            public static void ApplyPlan(
+            internal static void ApplyPlan(
     ArrayCommandList acl,
-    IList<ArrayCommandListTest.HoistPlanner.PlanEntry> seedPlan)
+    IList<ArrayCommandListTest.HoistPlanner.PlanEntry> plan)
             {
-                // We’ll process the initial plan, then keep re‑planning until
-                // no oversize leaves remain.
-                var planner = new ArrayCommandListTest.HoistPlanner(
-                                  acl.UnderlyingCommands, acl.MaxCommandsPerChunk);
-
-                // work list for the current pass
-                var pending = new Queue<ArrayCommandListTest.HoistPlanner.PlanEntry>(seedPlan);
-
-                while (pending.Count > 0)
+                // ── 1. apply every PlanEntry ─────────────────────────────────────────────
+                foreach (var entry in plan)
                 {
-                    // ── 1. consume every plan entry currently pending ────────────
-                    while (pending.Count > 0)
-                    {
-                        var entry = pending.Dequeue();
+                    // locate oversize leaf
+                    var leaf = FindLeafById(
+                        (NWayTreeStorageInternal<ArrayCommandList.ArrayCommandChunk>)acl.CommandTree,
+                        entry.LeafId);
 
-                        // locate the (still‑existing) leaf by ID
-                        var leaf = FindLeafById(
-                            (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree,
-                            entry.LeafId);
+                    if (leaf == null)
+                        throw new InvalidOperationException($"Leaf {entry.LeafId} not found");
 
-                        if (leaf == null) continue;              // leaf already replaced
-
-                        ReplaceLeafWithGate(acl, leaf, entry);   // splice in the gate
-                    }
-
-                    // ── 2. make another planning pass on the *mutated* tree ───────
-                    var newPlan = planner.BuildPlan(
-                        (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree);
-
-                    foreach (var e in newPlan) pending.Enqueue(e);
-                    // loop will stop when ‘newPlan’ is empty
+                    // splice in gate + children
+                    ReplaceLeafWithGate(acl, leaf, entry);
                 }
+
+                // ── 2. rebuild virtual‑stack metadata & CoSI/CoDI after mutation ─────────
+                acl.CommandTree.WalkTree(
+                    x => acl.SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandList.ArrayCommandChunk>)x),
+                    x => acl.SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandList.ArrayCommandChunk>)x));
+
+                acl.CommandTreeString = acl.CommandTree.ToString();   // keep string snapshot fresh
             }
+
 
 
             // ------------------------------------------------------------------
             // helpers
             // ------------------------------------------------------------------
+
+            /// <summary>
+            /// Ensure <paramref name="acl"/> has a CommandTree.  
+            /// If it is still null we create a synthetic root leaf that spans the
+            /// whole command list – just enough for the mutator and for ExecuteAll.
+            /// </summary>
+            private static NWayTreeStorageInternal<ArrayCommandChunk>
+            EnsureTreeExists(ArrayCommandList acl)
+            {
+                if (acl.CommandTree != null)
+                {
+                    if (acl.CommandTreeString == null)
+                        acl.CommandTreeString = acl.CommandTree.ToString();
+                    return (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+                }
+
+                var root = new NWayTreeStorageInternal<ArrayCommandChunk>(parent: null);
+                root.StoredValue = new ArrayCommandChunk
+                {
+                    ID = 0,
+                    StartCommandRange = 0,
+                    EndCommandRangeExclusive = acl.NextCommandIndex,
+                    StartSourceIndices = 0,
+                    EndSourceIndicesExclusive = 0,
+                    StartDestinationIndices = 0,
+                    EndDestinationIndicesExclusive = 0
+                };
+                acl.CommandTree = root;
+                acl.CommandTreeString = acl.CommandTree.ToString();
+                return root;
+            }
 
             private static NWayTreeStorageInternal<ArrayCommandList.ArrayCommandChunk>
                 FindLeafById(NWayTreeStorageInternal<ArrayCommandList.ArrayCommandChunk> root,

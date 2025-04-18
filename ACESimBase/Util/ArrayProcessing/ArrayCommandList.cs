@@ -90,7 +90,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public bool RepeatingExistingCommandRange = false; // when this is true, we don't need to add new commands
 
         public NWayTreeStorageInternal<ArrayCommandChunk> CommandTree;
-        string CommandTreeString;
+        public string CommandTreeString;
         List<byte> CurrentCommandTreeLocation = new List<byte>();
         NWayTreeStorageInternal<ArrayCommandChunk> CurrentNode => (NWayTreeStorageInternal<ArrayCommandChunk>) CommandTree.GetNode(CurrentCommandTreeLocation);
         ArrayCommandChunk CurrentCommandChunk => CurrentNode.StoredValue;
@@ -349,7 +349,7 @@ namespace ACESimBase.Util.ArrayProcessing
             CompileCode();
         }
 
-        private void SetupVirtualStack(NWayTreeStorageInternal<ArrayCommandChunk> node)
+        public void SetupVirtualStack(NWayTreeStorageInternal<ArrayCommandChunk> node)
         {
             ArrayCommandChunk c = node.StoredValue;
             c.VirtualStack = new double[MaxArrayIndex + 1];
@@ -467,7 +467,7 @@ namespace ACESimBase.Util.ArrayProcessing
             return (indicesReadFromStack, indicesInitiallySetInStack);
         }
 
-        private void SetupVirtualStackRelationships(NWayTreeStorageInternal<ArrayCommandChunk> node)
+        public void SetupVirtualStackRelationships(NWayTreeStorageInternal<ArrayCommandChunk> node)
         {
             if (node.Parent != null)
             {
