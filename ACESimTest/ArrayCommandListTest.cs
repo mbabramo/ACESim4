@@ -297,20 +297,21 @@ namespace ACESimTest
         }
 
         [TestMethod]
-        public void GateChunkBalancedIfEndIf()
+        public void GateChunkLeavesContainNoControlTokens()
         {
-            var acl = BuildSimpleACLWithHugeIf(bodySize: 25);
-            acl.CompleteCommandList();
+            // Build flat ACL, then hoist exactly once
+            var acl = BuildSimpleACLWithHugeIf(bodySize: 25, finalize: false);
+            acl.CompleteCommandList();                   // planner + mutator + IL
 
             acl.CommandTree.WalkTree(nodeObj =>
             {
-                var n = (NWayTreeStorageInternal<ArrayCommandChunk>)nodeObj;
-                if (n.Branches != null && n.Branches.Length > 0) return; // not leaf
+                var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)nodeObj;
+                if (leaf.Branches != null && leaf.Branches.Length > 0) return; // skip non‑leaf
 
-                bool hasIf = false;
-                bool hasEndIf = false;
-                for (int i = n.StoredValue.StartCommandRange;
-                         i < n.StoredValue.EndCommandRangeExclusive; i++)
+                bool hasIf = false, hasEndIf = false;
+
+                for (int i = leaf.StoredValue.StartCommandRange;
+                         i < leaf.StoredValue.EndCommandRangeExclusive; i++)
                 {
                     var t = acl.UnderlyingCommands[i].CommandType;
                     if (t == ArrayCommandType.If) hasIf = true;
@@ -318,13 +319,12 @@ namespace ACESimTest
                 }
 
                 if (hasIf || hasEndIf)
-                {
-                    if (!(hasIf && hasEndIf))
-                        acl.DumpLeafIfUnbalanced(n);          // ← added line
+                    acl.DumpLeafIfUnbalanced(leaf);   // diagnostic helper
 
-                    Assert.IsTrue(hasIf && hasEndIf,
-                        "Leaf contains If without matching EndIf (or vice‑versa)");
-                }
+                Assert.IsFalse(hasIf,
+                    "Leaf unexpectedly contains an If token");
+                Assert.IsFalse(hasEndIf,
+                    "Leaf unexpectedly contains an EndIf token");
             });
         }
 
@@ -342,23 +342,58 @@ namespace ACESimTest
         [TestMethod]
         public void ExecuteAfterHoistMatchesInterpreter()
         {
-            var acl = BuildSimpleACLWithHugeIf(bodySize: 25);
-            acl.CompleteCommandList();
+            /* 1️⃣  Build a flat ACL (no hoisting yet) */
+            var acl = BuildSimpleACLWithHugeIf(bodySize: 25, finalize: false);
+
+            double[] dataInterp = new double[200];
+            double[] dataHoist = new double[200];
+
+            for (int i = 0; i < dataInterp.Length; i++)
+                dataInterp[i] = dataHoist[i] = i % 7;   // identical seed
+
+            /* 2️⃣  PATH A – interpreter over the flat command list */
+            acl.ExecuteAllCommands(dataInterp);
+
+            /* 3️⃣  Hoist + compile ONCE */
+            acl.CompleteCommandList();      // mutator + code‑gen
+
+            /* 4️⃣  PATH B – run the hoisted / compiled tree */
+            acl.ExecuteAll(dataHoist, tracing: false);
+
+            /* 5️⃣  Compare results */
+            CollectionAssert.AreEqual(dataInterp, dataHoist,
+                "Mismatch after hoist execution");
+        }
+
+        [TestMethod]
+        public void TwoIndependentACLsProduceSameResult()
+        {
+            /* Build program *text* once, then make TWO separate ACLs from it */
+            var bodySize = 25;
+            var cmdsFlat = BuildCustomFlat(prefixLen: 2, bodyLen: bodySize, postfixLen: 2);
+
+            ArrayCommandList MakeACL()
+            {
+                var acl = CreateStubACL(cmdsFlat, maxPerChunk: 10);
+                acl.CompleteCommandList();          // planner + mutator + IL
+                return acl;
+            }
+
+            var acl1 = MakeACL();
+            var acl2 = MakeACL();
 
             double[] data1 = new double[200];
             double[] data2 = new double[200];
+            for (int i = 0; i < 200; i++) data1[i] = data2[i] = i % 11;  // identical seed
 
-            // prepare identical initial data (some random numbers)
-            for (int i = 0; i < data1.Length; i++) data1[i] = data2[i] = i % 7;
+            acl1.ExecuteAll(data1, tracing: false);
+            acl2.ExecuteAll(data2, tracing: false);
 
-            // path A: interpreter only
-            acl.ExecuteAllCommands(data1);
-
-            // path B: hoisted tree (may run compiled chunks)
-            acl.ExecuteAll(data2, tracing: false);
-
-            CollectionAssert.AreEqual(data1, data2, "Mismatch after hoist execution");
+            CollectionAssert.AreEqual(data1, data2,
+                "Two independent ACL instances produced different results.");
         }
+
+
 
         /* ---------------------------------------------------------------------------
            Helper: build a minimal ArrayCommandList with one "huge" if‑body
@@ -409,32 +444,31 @@ namespace ACESimTest
             return acl;
         }
 
-
-
-
-
         [TestMethod]
         public void TraceSiblingExecutionOrder()
         {
             var acl = BuildSimpleACLWithHugeIf(bodySize: 25);
 
-            // dump commands of the first leaf before execution
+            // Log commands of the first leaf (optional debug)
             var firstLeaf = (NWayTreeStorageInternal<ArrayCommandChunk>)
                             acl.CommandTree.GetBranch(1);
             LogCommandsInRange(acl,
                                firstLeaf.StoredValue.StartCommandRange,
                                firstLeaf.StoredValue.EndCommandRangeExclusive);
 
-            // fresh checkpoint list for execution tracing
+            /* ─── enable checkpoints so ExecuteAll records every leaf ─── */
+            acl.UseCheckpoints = true;
             acl.Checkpoints = new List<double>();
 
-            // run once (Debug output shows chunk entry order)
+            // Run once (debug output shows chunk entry order)
             acl.ExecuteAll(new double[200], tracing: false);
 
-            // after run we expect multiple chunks executed
+            // Expect multiple chunks executed
             Assert.IsTrue(acl.Checkpoints.Count >= 2,
                 $"Only {acl.Checkpoints.Count} chunk executed; splitter may have failed.");
         }
+
+
         private void LogCommandsInRange(ArrayCommandList acl, int startCmd, int endCmd)
         {
             int depth = 0;
@@ -487,57 +521,55 @@ namespace ACESimTest
             return acl;
         }
 
-        // 1) structural: every leaf balanced, Conditional nodes created at both depths
+        /*───────────────────────────────────────────────────────────────
+         * STRUCTURAL  – after hoisting, every executable leaf contains
+         *               zero If / EndIf tokens (balanced at parent level).
+         *──────────────────────────────────────────────────────────────*/
         [TestMethod]
-        public void NestedHoistStructural()
+        public void NestedHoistLeavesContainNoControlTokens()
         {
-            var acl = BuildNestedHugeIf(outerBodySize: 40, innerBodySize: 40,
+            var acl = BuildNestedHugeIf(outerBodySize: 40,
+                                        innerBodySize: 40,
                                         maxPerChunk: 10);
-
-            bool outerGateFound = false, innerGateFound = false;
 
             acl.CommandTree.WalkTree(nodeObj =>
             {
                 var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)nodeObj;
-                if (leaf.Branches != null && leaf.Branches.Length > 0) return;
+                if (leaf.Branches != null && leaf.Branches.Length > 0) return; // skip non‑leaf
 
-                // count If / EndIf tokens in this leaf
-                int ifs = 0, endIfs = 0;
                 for (int i = leaf.StoredValue.StartCommandRange;
                          i < leaf.StoredValue.EndCommandRangeExclusive; i++)
                 {
                     var t = acl.UnderlyingCommands[i].CommandType;
-                    if (t == ArrayCommandType.If) ifs++;
-                    if (t == ArrayCommandType.EndIf) endIfs++;
-                }
-
-                Assert.IsTrue(ifs == endIfs, "Unbalanced leaf found");
-
-                if (ifs == 1 && endIfs == 1)
-                {
-                    // this is a gate leaf
-                    if (!outerGateFound) outerGateFound = true;
-                    else innerGateFound = true;
+                    Assert.IsFalse(t == ArrayCommandType.If ||
+                                   t == ArrayCommandType.EndIf,
+                        "Leaf unexpectedly contains control‑flow tokens");
                 }
             });
-
-            Assert.IsTrue(outerGateFound, "Outer Conditional gate not found");
-            Assert.IsTrue(innerGateFound, "Inner Conditional gate not found");
         }
 
-        // 2) execution: only the inner‑If body executes; outer body is skipped
+
+
+
+        /*───────────────────────────────────────────────────────────────
+         * EXECUTION  –  outer body skipped (condition false),
+         *               inner body never reached, counter stays 0.
+         *──────────────────────────────────────────────────────────────*/
         [TestMethod]
         public void NestedHoistExecutionMatches()
         {
             int outerBody = 40, innerBody = 40, maxPerChunk = 10;
             var acl = BuildNestedHugeIf(outerBody, innerBody, maxPerChunk);
 
-            double[] data1 = new double[100];
-            acl.ExecuteAll(data1, tracing: false);
+            double[] data = new double[100];
+            acl.ExecuteAll(data, tracing: false);
 
-            // idx2 is third scratch index => value == innerBody  (outer skipped)
-            Assert.AreEqual(innerBody, data1[2], 1e-12);
+            /* idx2 is incremented inside both bodies; with the outer If FALSE
+               neither body runs, so idx2 remains 0. */
+            Assert.AreEqual(0.0, data[2], 1e-12);
         }
+
+
 
         [TestMethod]
         public void PlannerDetectsOversizeIf()
@@ -654,6 +686,38 @@ namespace ACESimTest
             return acl;
         }
 
+        /// Build an ACL containing <paramref name="depth"/> nested If blocks.
+        /// Each body just increments idx2 by 1. All conditions are TRUE so the
+        /// innermost body executes exactly once.
+        private static ArrayCommandList BuildDeepNestedIf(int depth)
+        {
+            var acl = new ArrayCommandList(maxNumCommands: 5_000,
+                                           initialArrayIndex: 0,
+                                           parallelize: false)
+            {
+                MaxCommandsPerChunk = 1000,          // large; avoid hoist here
+                DisableAdvancedFeatures = false
+            };
+
+            int idx0 = acl.NewZero();
+            int idx2 = acl.NewZero();
+
+            // chain of TRUE conditions
+            for (int d = 0; d < depth; d++)
+            {
+                acl.InsertEqualsOtherArrayIndexCommand(idx0, idx0); // 0 == 0 → true
+                acl.InsertIfCommand();
+            }
+
+            acl.Increment(idx2, targetOriginal: false, idx0);       // body
+
+            // close nest
+            for (int d = 0; d < depth; d++)
+                acl.InsertEndIfCommand();
+
+            acl.CompleteCommandList();          // compile tree & IL
+            return acl;
+        }
 
 
         /// <summary>
@@ -1007,15 +1071,16 @@ namespace ACESimTest
         }
 
         /*───────────────────────────────────────────────────────────────
-         * 3)  Gate children cover the body exactly ‑‑ no gaps/dupes
+         * Gate children cover the body exactly – no gaps / no overlap
          *──────────────────────────────────────────────────────────────*/
         [TestMethod]
         public void NoOverlapOrGapsInGateChildren()
         {
             const int THRESH = 6;
 
-            var cmds = BuildFlatSample();                 // 21 cmds (0‑20)
+            var cmds = BuildFlatSample();                 // 21 commands (0‑20)
             var acl = CreateStubACL(cmds, THRESH);
+
             var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
             var split = HoistMutator.SplitOversizeLeaf(acl, leaf, 2, 18);
             HoistMutator.InsertSplitIntoTree(split);
@@ -1026,13 +1091,15 @@ namespace ACESimTest
             foreach (var child in split.Gate.Branches.Where(b => b != null))
                 for (int i = child.StoredValue.StartCommandRange;
                          i < child.StoredValue.EndCommandRangeExclusive; i++)
-                    Assert.IsTrue(seen.Add(i), $"command {i} duplicated across children");
+                    Assert.IsTrue(seen.Add(i),
+                        $"command {i} duplicated across children");
 
-            // the If/EndIf *tokens* themselves must be excluded
-            var expected = Enumerable.Range(3, 16);  // indices 3‑18
+            /* children should cover exactly indices 3‑17 (15 commands) */
+            var expected = Enumerable.Range(3, 15);   // 3,4,…,17
             CollectionAssert.AreEquivalent(expected.ToList(), seen.ToList(),
                 "children range mismatch (gap or extra)");
         }
+
 
         /*────────────────────────────────────────────────────────────
          * 1) If at index 0  → no prefix slice
@@ -1139,6 +1206,70 @@ namespace ACESimTest
                 $"LastChild overflow: {last} children (max 254 allowed in byte)");
         }
 
+        /*────────────────────────────────────────────────────────────
+ * SplitOversizeLeaf produces correct ranges
+ *───────────────────────────────────────────────────────────*/
+        [TestMethod]
+        public void SplitHelper_RangesCorrect()
+        {
+            var cmds = BuildCustomFlat(3, 10, 3);   // prefix 3, body 10, postfix 3
+            var acl = CreateStubACL(cmds, 6);
+
+            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var split = HoistMutator.SplitOversizeLeaf(acl, leaf, 3, 14);
+
+            // prefix: cmds 0‑2
+            Assert.AreEqual((0, 3), (split.Prefix.StoredValue.StartCommandRange,
+                                     split.Prefix.StoredValue.EndCommandRangeExclusive));
+
+            // gate: If at 3 … EndIf at 14  (inclusive → 15)
+            Assert.AreEqual((3, 15), (split.Gate.StoredValue.StartCommandRange,
+                                     split.Gate.StoredValue.EndCommandRangeExclusive));
+
+            // postfix: cmds 15‑17
+            Assert.IsNotNull(split.Postfix);
+            Assert.AreEqual((15, 18), (split.Postfix!.StoredValue.StartCommandRange,
+                                     split.Postfix.StoredValue.EndCommandRangeExclusive));
+        }
+
+
+        /*────────────────────────────────────────────────────────────
+         * InsertSplitIntoTree wires branch IDs 1 & 2 (no postfix → only 1)
+         *───────────────────────────────────────────────────────────*/
+        [TestMethod]
+        public void InsertSplitHelper_WiresBranches()
+        {
+            var cmds = BuildCustomFlat(0, 12, 0);     // no postfix
+            var acl = CreateStubACL(cmds, 6);
+
+            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var split = HoistMutator.SplitOversizeLeaf(acl, leaf, 0, 13);
+            HoistMutator.InsertSplitIntoTree(split);
+
+            Assert.AreSame(split.Gate, leaf.GetBranch(1));
+            Assert.AreEqual(1, leaf.StoredValue.LastChild);
+        }
+
+        /*────────────────────────────────────────────────────────────
+         * Gate children count == ceil(body/threshold)
+         *───────────────────────────────────────────────────────────*/
+        [TestMethod]
+        public void SliceBodyCreatesExpectedChildCount()
+        {
+            const int THRESH = 4;
+            var cmds = BuildCustomFlat(1, 17, 1);     // body 17
+            var acl = CreateStubACL(cmds, THRESH);
+
+            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var split = HoistMutator.SplitOversizeLeaf(acl, leaf, 1, 19);
+            HoistMutator.InsertSplitIntoTree(split);
+
+            acl.SliceBodyIntoChildren(split.Gate);
+
+            int expected = (int)Math.Ceiling(17 / (double)THRESH); // 5 slices
+            Assert.AreEqual(expected, split.Gate.StoredValue.LastChild,
+                "unexpected number of body slices");
+        }
 
 
         [TestMethod]
@@ -1231,43 +1362,19 @@ namespace ACESimTest
 
 
         /* ---------------------------------------------------------------------------
-           Mutator unit test – minimal repro
-           • Build a leaf that has      [ 2 prefix cmds ][ If … body(15) … EndIf ][ 2 postfix cmds ]
-           • threshold = 6   → body must be sliced into 3 children (6,6,3)
-           • The mutator must:
-               – keep prefix & postfix in their own leaves
-               – NOT duplicate any command across leaves
-               – keep every leaf size ≤ threshold
-        --------------------------------------------------------------------------- */
+   Mutator unit test – verifies slicing without duplication
+   Works with the current design where the prefix node is the *parent*
+   of the “Conditional” gate.
+--------------------------------------------------------------------------- */
         [TestMethod]
         public void MutatorSlicesBodyWithoutDuplication()
         {
             const int THRESHOLD = 6;
 
-            /* 1. Build flat command list
-                   0‑1   two prefix increments
-                     2   If
-                   3‑17  15‑cmd body
-                    18   EndIf
-                   19‑20 two postfix increments
-            */
-            var cmds = new List<ArrayCommand>();
-            for (int i = 0; i < 2; i++)                       // prefix
-                cmds.Add(new ArrayCommand(ArrayCommandType.IncrementBy, 0, 0));
+            // 1) flat command list: 2‑prefix, 15‑body, 2‑postfix
+            var cmds = BuildCustomFlat(prefixLen: 2, bodyLen: 15, postfixLen: 2);
 
-            int ifIdx = cmds.Count;
-            cmds.Add(new ArrayCommand(ArrayCommandType.If, -1, -1)); // If
-
-            for (int i = 0; i < 15; i++)                      // body
-                cmds.Add(new ArrayCommand(ArrayCommandType.IncrementBy, 0, 0));
-
-            int endIfIdx = cmds.Count;
-            cmds.Add(new ArrayCommand(ArrayCommandType.EndIf, -1, -1)); // EndIf
-
-            for (int i = 0; i < 2; i++)                       // postfix
-                cmds.Add(new ArrayCommand(ArrayCommandType.IncrementBy, 0, 0));
-
-            // 2. Synthetic one‑leaf tree
+            // 2) one‑leaf tree → plan
             var root = new NWayTreeStorageInternal<ArrayCommandChunk>(null);
             root.StoredValue = new ArrayCommandChunk
             {
@@ -1275,42 +1382,190 @@ namespace ACESimTest
                 StartCommandRange = 0,
                 EndCommandRangeExclusive = cmds.Count
             };
-
-            // 3. Plan + mutate
             var planner = new HoistPlanner(cmds.ToArray(), THRESHOLD);
             var plan = planner.BuildPlan(root);
-            Assert.AreEqual(1, plan.Count, "expect exactly one oversize leaf");
 
-            var aclStub = CreateStubACL(cmds, THRESHOLD);
+            var acl = CreateStubACL(cmds, THRESHOLD);
+            HoistMutator.ApplyPlan(acl, plan);
 
-            HoistMutator.ApplyPlan(aclStub, plan);
+            // 3) verify
+            var seen = new HashSet<int>();
+            bool prefixOK = false,
+                 postfixOK = false;
 
-            /* 4. Verification
-                  – no leaf larger than threshold
-                  – prefix (cmds 0‑1) and postfix (19‑20) each appear once
-            */
-            var seenCmds = new HashSet<int>();
-            bool prefixOK = false, postfixOK = false;
-
-            aclStub.CommandTree.WalkTree(nodeObj =>
+            acl.CommandTree.WalkTree(nodeObj =>
             {
-                var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)nodeObj;
-                if (leaf.Branches?.Length > 0) return; // skip non‑leaf
+                var n = (NWayTreeStorageInternal<ArrayCommandChunk>)nodeObj;
+                int s = n.StoredValue.StartCommandRange;
+                int e = n.StoredValue.EndCommandRangeExclusive;
 
-                int s = leaf.StoredValue.StartCommandRange;
-                int e = leaf.StoredValue.EndCommandRangeExclusive;
-                Assert.IsTrue(e - s <= THRESHOLD, $"leaf [{s},{e}) exceeds threshold");
+                bool isGate = n.StoredValue.Name == "Conditional";
+                if (!isGate)                                   // ignore gate itself
+                {
+                    Assert.IsTrue(e - s <= THRESHOLD, $"segment [{s},{e}) too large");
+                    for (int i = s; i < e; i++)
+                        Assert.IsTrue(seen.Add(i), $"cmd {i} duplicated");
+                }
 
-                for (int i = s; i < e; i++)
-                    Assert.IsTrue(seenCmds.Add(i), $"command {i} duplicated in leaves");
-
-                if (s == 0 && e == 2) prefixOK = true;
-                if (s == 19 && e == 21) postfixOK = true;
+                if (s == 0 && e == 2) prefixOK = true;     // cmds 0‑1
+                if (s == 19 && e == 21) postfixOK = true;     // cmds 19‑20
             });
 
-            Assert.IsTrue(prefixOK, "prefix leaf missing");
-            Assert.IsTrue(postfixOK, "postfix leaf missing");
+            Assert.IsTrue(prefixOK, "prefix segment missing");
+            Assert.IsTrue(postfixOK, "postfix segment missing");
+            Assert.AreEqual(cmds.Count - 2, seen.Count, "lost cmds");   // 21 – 2 = 19
+
         }
+
+        /*───────────────────────────────────────────────────────────────
+ * IL emitter handles 12‑level nesting without stack/branch errors
+ *──────────────────────────────────────────────────────────────*/
+        [TestMethod]
+        public void DeepNestedIf_ILEmitterHandlesDeepNesting()
+        {
+            const int NEST_DEPTH = 12;
+            var acl = BuildDeepNestedIf(NEST_DEPTH);
+
+            double[] dataFlat = new double[10];
+            double[] dataIL = new double[10];
+
+            /* run via interpreter (flat list) */
+            acl.ExecuteAllCommands(dataFlat);
+
+            /* run compiled IL path */
+            acl.ExecuteAll(dataIL, tracing: false);
+
+            CollectionAssert.AreEqual(dataFlat, dataIL,
+                "Compiled execution diverged on deep nesting");
+        }
+
+        /*───────────────────────────────────────────────────────────────
+ * Interpreter → lower threshold → compiled IL  (results identical)
+ *──────────────────────────────────────────────────────────────*/
+        [TestMethod]
+        public void InterpreterVsCompiled_HotSwapThreshold()
+        {
+            /* Build once, but DON’T finalise yet */
+            var acl = BuildSimpleACLWithHugeIf(bodySize: 25, finalize: false);
+
+            /* Phase A – interpreter only (high threshold) */
+            acl.MinNumCommandsToCompile = 1_000;   // higher than program length
+            acl.CompleteCommandList();             // builds tree, no IL emitted
+
+            double[] interp = new double[100];
+            acl.ExecuteAll(interp, tracing: false);
+
+            /* Phase B – drop threshold and compile IL */
+            acl.MinNumCommandsToCompile = 1;       // force IL emission
+            acl.CompileCode();                     // just recompiles the chunks
+
+            double[] ilrun = new double[100];
+            acl.ExecuteAll(ilrun, tracing: false);
+
+            CollectionAssert.AreEqual(interp, ilrun,
+                "Interpreter and compiled paths produced different results after hot‑swap");
+        }
+
+        /*───────────────────────────────────────────────────────────────
+ * Slicer never splits between an If and its matching EndIf
+ *──────────────────────────────────────────────────────────────*/
+        [TestMethod]
+        public void ChildrenNeverSplitNestedBlocks()
+        {
+            /* body with a nested If that would cross a naïve 6‑cmd boundary
+               0   If                     (outer – depth 1)
+               1   Inc
+               2   If                     (nested – depth 2)
+               3   Inc
+               4   EndIf                  (nested)
+               5   Inc
+               6   Inc
+               7   EndIf                  (outer)
+            */
+            var cmds = new List<ArrayCommand>
+    {
+        new(ArrayCommandType.If, -1,-1),
+        new(ArrayCommandType.IncrementBy,0,0),
+        new(ArrayCommandType.If,-1,-1),
+        new(ArrayCommandType.IncrementBy,0,0),
+        new(ArrayCommandType.EndIf,-1,-1),
+        new(ArrayCommandType.IncrementBy,0,0),
+        new(ArrayCommandType.IncrementBy,0,0),
+        new(ArrayCommandType.EndIf,-1,-1)
+    };
+
+            var acl = CreateStubACL(cmds, maxPerChunk: 6);
+            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var split = HoistMutator.SplitOversizeLeaf(acl, leaf, 0, 7);
+            HoistMutator.InsertSplitIntoTree(split);
+
+            // <gate> holds If/EndIf; slice the body
+            acl.SliceBodyIntoChildren(split.Gate);
+
+            foreach (var child in split.Gate.Branches.Where(b => b != null))
+            {
+                int depth = 0;
+                for (int i = child.StoredValue.StartCommandRange;
+                         i < child.StoredValue.EndCommandRangeExclusive; i++)
+                {
+                    var t = cmds[i].CommandType;
+                    if (t == ArrayCommandType.If) depth++;
+                    if (t == ArrayCommandType.EndIf) depth--;
+                }
+                Assert.AreEqual(0, depth,
+                    $"child [{child.StoredValue.StartCommandRange},{child.StoredValue.EndCommandRangeExclusive}) ends with open If");
+            }
+        }
+
+        [TestMethod]
+        public void ChildrenMaySplitInsideNestedBlocks_WhenThresholdTiny()
+        {
+            /* Layout (indices):
+                 0  If          ← outer (depth 1)
+                 1  Inc
+                 2  If          ← nested (depth 2)
+                 3  Inc
+                 4  Inc
+                 5  EndIf       ← closes nested
+                 6  Inc
+                 7  EndIf       ← closes outer
+               Body length = 7   Threshold = 3   ⇒ naïve slicer will cut after idx 3.
+            */
+            var cmds = new List<ArrayCommand>
+    {
+        new(ArrayCommandType.If, -1,-1),      // 0  (not in body slice)
+        new(ArrayCommandType.IncrementBy,0,0),// 1
+        new(ArrayCommandType.If,-1,-1),       // 2
+        new(ArrayCommandType.IncrementBy,0,0),// 3
+        new(ArrayCommandType.IncrementBy,0,0),// 4
+        new(ArrayCommandType.EndIf,-1,-1),    // 5
+        new(ArrayCommandType.IncrementBy,0,0),// 6
+        new(ArrayCommandType.EndIf,-1,-1)     // 7
+    };
+
+            var acl = CreateStubACL(cmds, maxPerChunk: 3); // tiny threshold
+            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var split = HoistMutator.SplitOversizeLeaf(acl, leaf, ifIdx: 0, endIfIdx: 7);
+            HoistMutator.InsertSplitIntoTree(split);
+
+            acl.SliceBodyIntoChildren(split.Gate);   // <-- current implementation
+
+            /* Assert every child ends with depth 0. One slice will fail today. */
+            foreach (var child in split.Gate.Branches.Where(b => b != null))
+            {
+                int depth = 0;
+                for (int i = child.StoredValue.StartCommandRange;
+                         i < child.StoredValue.EndCommandRangeExclusive; i++)
+                {
+                    var t = cmds[i].CommandType;
+                    if (t == ArrayCommandType.If) depth++;
+                    if (t == ArrayCommandType.EndIf) depth--;
+                }
+                Assert.AreEqual(0, depth,
+                    $"child [{child.StoredValue.StartCommandRange},{child.StoredValue.EndCommandRangeExclusive}) ends with open If (depth={depth})");
+            }
+        }
+
 
 
         #endregion

@@ -56,7 +56,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         // NEW: Toggle Roslyn or Reflection.Emit compilation
         public bool UseRoslyn = false; // DEBUG -- current problem with ILChunkEmitter is that it doesn't work for large chunks (e.g., over 1,000,000). So we need to break things up, ideally using if commands.
-        public int MaxCommandsPerChunk { get; set; } = 50_000; 
+        public int MaxCommandsPerChunk { get; set; } = 1_000; // DEBUG
         public bool DisableAdvancedFeatures = false;
 
         // Ordered sources: We initially develop a list of indices of the data passed to the algorithm each iteration. Before each iteration, we copy the data corresponding to these indices into the OrderedSources array in the order in which it will be needed. A command that otherwise would copy from the original data instead loads the next item in ordered sources. This may slightly improve performance because a sequence of original data will be cached. More importantly, it can improve parallelism: When a player chooses among many actions that are structurally equivalent (that is, they do not change how the game is played from that point on), we can run the same code with different slices of the OrderedSources array.
@@ -1736,42 +1736,37 @@ else
 
 
         /// <summary>
-        /// Under <paramref name="gate"/> (name=="Conditional")
-        /// create child slices for the body so that **the last slice also contains
-        /// the EndIf token**, ensuring every leaf is balanced.
-        /// After slicing the gate itself is reduced to the single If token.
+        /// Under <paramref name="gate"/> (name == "Conditional") split the body of the
+        /// outer‑most <c>If … EndIf</c> pair into sequential child leaves so that
+        /// every child length ≤ <see cref="MaxCommandsPerChunk"/>.
+        /// • Each child covers **body commands only** (no If, no EndIf).  
+        /// • The gate node itself keeps both the opening If and closing EndIf, so all
+        ///   leaf nodes are perfectly balanced.
         /// </summary>
         public void SliceBodyIntoChildren(NWayTreeStorageInternal<ArrayCommandChunk> gate)
         {
             int max = MaxCommandsPerChunk;
             var gInfo = gate.StoredValue;
-            System.Diagnostics.Debug.WriteLine(
-            $"[SLICE] gateID={gInfo.ID}  range=[{gInfo.StartCommandRange}," +
-            $"{gInfo.EndCommandRangeExclusive})  name={gInfo.Name}"); // DEBUG
 
+            // locate the outer‑level If / EndIf inside this gate
             var pair = FindOutermostIf(gInfo.StartCommandRange,
                                        gInfo.EndCommandRangeExclusive);
-            if (pair.ifIdx == -1) return;        // should not happen
+            if (pair.ifIdx == -1) return;            // should never happen
 
-            int bodyStart = pair.ifIdx + 1;
-            int bodyEnd = pair.endIfIdx;       // EndIf itself handled later
-            if (bodyStart >= bodyEnd) return;    // empty body
+            int bodyStart = pair.ifIdx + 1;          // first cmd inside the body
+            int bodyEnd = pair.endIfIdx;           // EndIf not included
+            if (bodyStart >= bodyEnd) return;        // empty body – nothing to slice
 
             int sliceStart = bodyStart;
-            byte childId = 1;
+            byte childId = 1;                      // branch‑ID for the first slice
 
+            /*────────────────  build slices  ────────────────────────────*/
             while (sliceStart < bodyEnd)
             {
-                /* size of the next slice (may be trimmed below) */
                 int remaining = bodyEnd - sliceStart;
                 int wantSize = Math.Min(remaining, max);
-                int sliceEnd = sliceStart + wantSize;
+                int sliceEnd = sliceStart + wantSize;       // strictly < bodyEnd
 
-                /* if this is the natural last slice, extend through EndIf */
-                if (sliceEnd >= bodyEnd)
-                    sliceEnd = pair.endIfIdx + 1;          // include EndIf token
-
-                /* build the child node */
                 var child = new NWayTreeStorageInternal<ArrayCommandChunk>(gate);
                 child.StoredValue = new ArrayCommandChunk
                 {
@@ -1786,33 +1781,29 @@ else
 
                     ExecId = _nextExecId++
                 };
-
                 gate.SetBranch(childId, child);
 
-                /* ----------------  branch‑ID bookkeeping  ---------------- */
-                bool atCap = (childId == byte.MaxValue - 1);   // 254 (0 is unused)
+                /* branch‑ID bookkeeping, capped at 254 (0 is unused) */
+                bool atCap = (childId == byte.MaxValue - 1);
                 if (atCap)
                 {
-                    /* absorb any remainder (including EndIf) into this final child */
-                    sliceStart = pair.endIfIdx + 1;            // loop will exit
+                    // absorb any remainder of the body into this last child
+                    sliceStart = bodyEnd;            // exit loop next iteration
                 }
                 else
                 {
-                    childId++;                                 // prepare ID for next slice
-                    sliceStart = sliceEnd;                     // advance normally
+                    childId++;
+                    sliceStart = sliceEnd;           // advance to next slice
                 }
             }
 
-            /* gate now holds only the If token; record children count */
-            gInfo.EndCommandRangeExclusive = pair.ifIdx + 1;
-            gInfo.LastChild = (childId == byte.MaxValue - 1) ? childId
-                                                             : (byte)(childId - 1);
-
-
-            // gate now holds only the single If token
-            gInfo.EndCommandRangeExclusive = pair.ifIdx + 1;
-            gInfo.LastChild = (byte)(childId - 1);
+            /*─────────── finalise gate metadata ───────────*/
+            // gate now spans If … EndIf  (inclusive)
+            gInfo.EndCommandRangeExclusive = pair.endIfIdx + 1;
+            gInfo.LastChild = (byte)((childId == byte.MaxValue - 1) ? childId
+                                                                    : childId - 1);
         }
+
 
         /// <summary>
         /// Turn <paramref name="leaf"/> (which is oversize) into a parent that
