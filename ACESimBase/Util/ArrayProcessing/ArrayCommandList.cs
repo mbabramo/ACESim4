@@ -1188,34 +1188,28 @@ else
 
             // tracing only works on the flat interpreter
             if (tracing && (DoParallel || RepeatIdenticalRanges || UseOrderedDestinations || UseOrderedSources))
-                throw new Exception("Cannot trace unrolling with any of these options."); // NOTE: We can use checkpoints instead of tracing
+                throw new Exception("Cannot trace unrolling with any of these options.");
+            // NOTE: We can use checkpoints instead of tracing
 
             // ----------------------------------------------------------------
-            // 1) CHECKPOINT MODE: if you've given me a List<double> in Checkpoints,
-            //    walk the tree serially and record an execution‐ID at each leaf.
+            // 1) CHECKPOINT MODE: record execution‑IDs leaf‑by‑leaf
             // ----------------------------------------------------------------
             if (Checkpoints != null)
             {
-                // reset the static ID counter
                 _nextExecId = 0;
-
                 CommandTree.WalkTree(
-                    // on entering any chunk, copy down the virtual‐stack state
                     n =>
                     {
-                        var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
-                        var chunk = node.StoredValue;
+                        var chunk = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
                         chunk.CopyParentVirtualStack();
                         chunk.ResetIncrementsForParent();
                     },
-                    // on executing a chunk, if it's a leaf, assign & record an ID
                     n =>
                     {
                         var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
                         var chunk = node.StoredValue;
                         if (chunk.Skip) return;
 
-                        // only leaf chunks actually run commands
                         if (node.Branches == null || !node.Branches.Any())
                         {
                             int id = _nextExecId++;
@@ -1226,12 +1220,11 @@ else
 
                         chunk.CopyIncrementsToParentIfNecessary();
                     },
-                    // force purely serial traversal
-                    n => false
+                    parallel: n => false
                 );
             }
             // ----------------------------------------------------------------
-            // 2) EXISTING PARALLEL / REPEAT‐IDENTICAL‐RANGES MODE (unchanged)
+            // 2) EXISTING PARALLEL / REPEAT‑IDENTICAL‑RANGES MODE
             // ----------------------------------------------------------------
             else if (DoParallel || RepeatIdenticalRanges)
             {
@@ -1241,8 +1234,7 @@ else
                 CommandTree.WalkTree(
                     n =>
                     {
-                        var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
-                        var chunk = node.StoredValue;
+                        var chunk = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
                         chunk.CopyParentVirtualStack();
                         chunk.ResetIncrementsForParent();
                     },
@@ -1251,19 +1243,21 @@ else
                         var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
                         var chunk = node.StoredValue;
                         if (chunk.Skip) return;
+
                         if (node.Branches == null || !node.Branches.Any())
                             ExecuteSectionOfCommands(chunk);
+
                         chunk.CopyIncrementsToParentIfNecessary();
                     },
-                    n =>
+                    parallel: n =>
                     {
-                        var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
-                        return Parallelize && node.StoredValue.ChildrenParallelizable;
+                        var chunk = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
+                        return Parallelize && chunk.ChildrenParallelizable;
                     }
                 );
             }
             // ----------------------------------------------------------------
-            // 3) FLAT INTERPRETER MODE (unchanged)
+            // 3) FLAT INTERPRETER MODE
             // ----------------------------------------------------------------
             else
             {
@@ -1276,13 +1270,34 @@ else
 
         public double[] ExecuteAllCommands(double[] array)
         {
-            Span<double> virtualStack = UseOrderedSources && UseOrderedDestinations
-                ? new Span<double>(array).Slice(FirstScratchIndex)
-                : new Span<double>(array);
-            // Subtract 1 so our inclusive end bound is the last valid command index:
-            ExecuteSectionOfCommands(virtualStack, 0, MaxCommandIndex - 1, 0, 0);
+            // in flat (sequential) mode, always run over the full array;
+            // in parallel/unrolled modes we still use your existing slice logic
+            Span<double> virtualStack;
+            if (!DoParallel && !RepeatIdenticalRanges)
+            {
+                // flat interpreter: whole-array scratch region
+                virtualStack = new Span<double>(array);
+            }
+            else
+            {
+                // existing behavior for ordered sources/destinations
+                virtualStack = (UseOrderedSources && UseOrderedDestinations)
+                    ? new Span<double>(array).Slice(FirstScratchIndex)
+                    : new Span<double>(array);
+            }
+
+            // run all commands in one go
+            ExecuteSectionOfCommands(
+                virtualStack,
+                /* startCmd= */      0,
+                /* endCmdInclusive= */MaxCommandIndex - 1,
+                /* startSrcIndex= */ 0,
+                /* startDstIndex= */ 0
+            );
+
             return array;
         }
+
 
 
         /// <summary>
