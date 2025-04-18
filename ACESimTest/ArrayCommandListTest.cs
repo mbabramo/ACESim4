@@ -791,25 +791,43 @@ namespace ACESimTest
             /// and mutate <paramref name="acl.CommandTree"/> in‑place.
             /// </summary>
             public static void ApplyPlan(
-                ArrayCommandList acl,
-                IList<ArrayCommandListTest.HoistPlanner.PlanEntry> plan)
+    ArrayCommandList acl,
+    IList<ArrayCommandListTest.HoistPlanner.PlanEntry> seedPlan)
             {
-                var root = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+                // We’ll process the initial plan, then keep re‑planning until
+                // no oversize leaves remain.
+                var planner = new ArrayCommandListTest.HoistPlanner(
+                                  acl.UnderlyingCommands, acl.MaxCommandsPerChunk);
 
-                foreach (var entry in plan)
+                // work list for the current pass
+                var pending = new Queue<ArrayCommandListTest.HoistPlanner.PlanEntry>(seedPlan);
+
+                while (pending.Count > 0)
                 {
-                    // 1) locate oversize leaf by ID
-                    var leaf = FindLeafById(root, entry.LeafId);
-                    if (leaf == null)
-                        throw new InvalidOperationException($"Leaf {entry.LeafId} not found");
+                    // ── 1. consume every plan entry currently pending ────────────
+                    while (pending.Count > 0)
+                    {
+                        var entry = pending.Dequeue();
 
-                    // 2) splice in Conditional gate + child slices
-                    ReplaceLeafWithGate(leaf, entry);   // ← acl param removed
+                        // locate the (still‑existing) leaf by ID
+                        var leaf = FindLeafById(
+                            (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree,
+                            entry.LeafId);
+
+                        if (leaf == null) continue;              // leaf already replaced
+
+                        ReplaceLeafWithGate(acl, leaf, entry);   // splice in the gate
+                    }
+
+                    // ── 2. make another planning pass on the *mutated* tree ───────
+                    var newPlan = planner.BuildPlan(
+                        (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree);
+
+                    foreach (var e in newPlan) pending.Enqueue(e);
+                    // loop will stop when ‘newPlan’ is empty
                 }
-
-                // ⭐ NEW – scrap the old tree and rebuild from the mutated command list
-                acl.RebuildCommandTree();
             }
+
 
             // ------------------------------------------------------------------
             // helpers
@@ -836,6 +854,7 @@ namespace ACESimTest
             //  branch‑index it originally occupied in its parent.
             // ─────────────────────────────────────────────────────────────────────────────
             private static void ReplaceLeafWithGate(
+                    ArrayCommandList acl,
                     NWayTreeStorageInternal<ArrayCommandChunk> leaf,
                     HoistPlanner.PlanEntry planEntry)
             {
@@ -879,12 +898,10 @@ namespace ACESimTest
                    3.  Slice the If‑body into ≤MaxCommandsPerChunk children.
                        Each slice becomes a child‑leaf of the new gate.
                 ------------------------------------------------------------------ */
-                int max = leaf.StoredValue.VirtualStack?.Length > 0
-                          ? leaf.StoredValue.VirtualStack.Length   // keep same stack size
-                          : int.MaxValue;
-
+                int max = acl.MaxCommandsPerChunk;          // ← **critical change**
                 int bodyStart = planEntry.IfIdx + 1;
-                int bodyEnd = planEntry.EndIfIdx;      // EndIf index *not* included
+                int bodyEnd = planEntry.EndIfIdx;         // EndIf not included
+
 
                 byte childId = 1;
                 for (int sliceStart = bodyStart; sliceStart < bodyEnd;)
@@ -910,8 +927,6 @@ namespace ACESimTest
                 ------------------------------------------------------------------ */
                 parent.SetBranch(leafBranchId, gateNode);
             }
-
-
 
 
             /// Helper to create a new node with minimal metadata
