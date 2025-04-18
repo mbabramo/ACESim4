@@ -360,6 +360,16 @@ namespace ACESimTest
             /* 4️⃣  PATH B – run the hoisted / compiled tree */
             acl.ExecuteAll(dataHoist, tracing: false);
 
+            // after your existing calls to ExecuteAllCommands and ExecuteAll…
+            for (int i = 0; i < dataInterp.Length; i++)
+            {
+                if (dataInterp[i] != dataHoist[i])
+                {
+                    Debug.WriteLine($"First mismatch at index {i}: interp={dataInterp[i]}, hoist={dataHoist[i]}");
+                    break;
+                }
+            }
+
             /* 5️⃣  Compare results */
             CollectionAssert.AreEqual(dataInterp, dataHoist,
                 "Mismatch after hoist execution");

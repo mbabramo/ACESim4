@@ -1179,130 +1179,123 @@ else
         #endregion
 
         #region Command execution
-
+        // ───────────────────────────────────────────────────────────────────────────
+        // 1) Main entry point: hoisted & un‑hoisted all go through this.
+        // ───────────────────────────────────────────────────────────────────────────
         public void ExecuteAll(double[] array, bool tracing)
         {
             if (CommandTreeString == null)
                 throw new Exception("CommandTree not created yet.");
-            PrepareOrderedSourcesAndDestinations(array);
 
             // tracing only works on the flat interpreter
             if (tracing && (DoParallel || RepeatIdenticalRanges || UseOrderedDestinations || UseOrderedSources))
                 throw new Exception("Cannot trace unrolling with any of these options.");
-            // NOTE: We can use checkpoints instead of tracing
 
             // ----------------------------------------------------------------
-            // 1) CHECKPOINT MODE: record execution‑IDs leaf‑by‑leaf
+            // 1) CHECKPOINT MODE (leaf‑by‑leaf IDs)
             // ----------------------------------------------------------------
             if (Checkpoints != null)
             {
+                PrepareOrderedSourcesAndDestinations(array);
+
                 _nextExecId = 0;
                 CommandTree.WalkTree(
-                    n =>
-                    {
-                        var chunk = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
-                        chunk.CopyParentVirtualStack();
-                        chunk.ResetIncrementsForParent();
-                    },
-                    n =>
-                    {
-                        var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
-                        var chunk = node.StoredValue;
-                        if (chunk.Skip) return;
+                    /* on enter */    n => {
+                                          var c = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
+                                          c.CopyParentVirtualStack();
+                                          c.ResetIncrementsForParent();
+                                      },
+                    /* on exec */     n => {
+                                          var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
+                                          var chunk = node.StoredValue;
+                                          if (chunk.Skip) return;
 
-                        if (node.Branches == null || !node.Branches.Any())
-                        {
-                            int id = _nextExecId++;
-                            chunk.ID = id;
-                            Checkpoints.Add(id);
-                            ExecuteSectionOfCommands(chunk);
-                        }
+                                          if (node.Branches == null || !node.Branches.Any())
+                                          {
+                                              int id = _nextExecId++;
+                                              chunk.ID = id;
+                                              Checkpoints.Add(id);
+                                              ExecuteSectionOfCommands(chunk);
+                                          }
 
-                        chunk.CopyIncrementsToParentIfNecessary();
-                    },
-                    parallel: n => false
+                                          chunk.CopyIncrementsToParentIfNecessary();
+                                      },
+                    /* parallel? */   n => false
                 );
+
+                CopyOrderedDestinations(array);
+                return;
             }
+
             // ----------------------------------------------------------------
-            // 2) EXISTING PARALLEL / REPEAT‑IDENTICAL‑RANGES MODE
+            // 2) PARALLEL / REPEAT‑IDENTICAL‑RANGES MODE
             // ----------------------------------------------------------------
-            else if (DoParallel || RepeatIdenticalRanges)
+            if (DoParallel || RepeatIdenticalRanges)
             {
                 if (!UseOrderedSources || !UseOrderedDestinations)
                     throw new Exception("Must use ordered sources and destinations with parallelizable and/or RepeatIdenticalRanges");
 
+                PrepareOrderedSourcesAndDestinations(array);
+
                 CommandTree.WalkTree(
-                    n =>
-                    {
-                        var chunk = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
-                        chunk.CopyParentVirtualStack();
-                        chunk.ResetIncrementsForParent();
+                    n => {
+                        var c = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
+                        c.CopyParentVirtualStack();
+                        c.ResetIncrementsForParent();
                     },
-                    n =>
-                    {
+                    n => {
                         var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
                         var chunk = node.StoredValue;
                         if (chunk.Skip) return;
-
                         if (node.Branches == null || !node.Branches.Any())
                             ExecuteSectionOfCommands(chunk);
-
                         chunk.CopyIncrementsToParentIfNecessary();
                     },
-                    parallel: n =>
-                    {
+                    n => {
                         var chunk = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
                         return Parallelize && chunk.ChildrenParallelizable;
                     }
                 );
+
+                CopyOrderedDestinations(array);
+                return;
             }
+
             // ----------------------------------------------------------------
             // 3) FLAT INTERPRETER MODE
             // ----------------------------------------------------------------
-            else
-            {
-                array = ExecuteAllCommands(array);
-            }
-
-            CopyOrderedDestinations(array);
+            // For the flat interpreter we now defer entirely to ExecuteAllCommands,
+            // which will do its own PrepareOrdered…/CopyOrdered… so it matches this flow.
+            ExecuteAllCommands(array);
         }
 
 
+
+        // ───────────────────────────────────────────────────────────────────────────
+        // 2) Flat‑interpreter entry point (called directly by tests before hoist,
+        //    and internally above for the non‑parallel branch).
+        // ───────────────────────────────────────────────────────────────────────────
         public double[] ExecuteAllCommands(double[] array)
         {
-            Debug.WriteLine(
-                $"[LOG] ExecuteAllCommands: arrayLen={array.Length}, " +
-                $"DoParallel={DoParallel}, RepeatIdenticalRanges={RepeatIdenticalRanges}, " +
-                $"ReuseScratchSlots={ReuseScratchSlots}, FirstScratchIndex={FirstScratchIndex}"
-                    ); // DEBUG
-            // in flat (sequential) mode, always run over the full array;
-            // in parallel/unrolled modes we still use your existing slice logic
-            Span<double> virtualStack;
-            if (!DoParallel && !RepeatIdenticalRanges)
-            {
-                // flat interpreter: whole-array scratch region
-                virtualStack = new Span<double>(array);
-            }
-            else
-            {
-                int scratchLen = array.Length - FirstScratchIndex; // DEBUG
-                // existing behavior for ordered sources/destinations
-                Debug.WriteLine($"[LOG]  -> slicing scratch: idx={FirstScratchIndex}, len={scratchLen}"); // DEBUG
+            if (MaxCommandIndex == 0)
+                CompleteCommandList();
 
-                virtualStack = (UseOrderedSources && UseOrderedDestinations)
-                    ? new Span<double>(array).Slice(FirstScratchIndex)
-                    : new Span<double>(array);
-            }
+            // — only in the flat (un‑hoisted) path do we need to set up and tear down —
+            PrepareOrderedSourcesAndDestinations(array);
 
-            // run all commands in one go
+            // pick our scratch region: in flat mode we run over the entire array.
+            Span<double> virtualStack = new Span<double>(array);
+
+            // run every command (inclusive end = MaxCommandIndex‑1)
             ExecuteSectionOfCommands(
                 virtualStack,
                 /* startCmd= */      0,
-                /* endCmdInclusive= */MaxCommandIndex - 1,
+                /* endCmdInclusive= */ MaxCommandIndex - 1,
                 /* startSrcIndex= */ 0,
                 /* startDstIndex= */ 0
             );
 
+            CopyOrderedDestinations(array);
             return array;
         }
 
