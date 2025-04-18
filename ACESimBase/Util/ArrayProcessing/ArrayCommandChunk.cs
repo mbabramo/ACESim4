@@ -38,10 +38,7 @@ namespace ACESimBase.Util.ArrayProcessing
             public bool Skip; 
             public int SourcesInBody;
             public int DestinationsInBody;
-            public int ExecId = int.MinValue;   // unassigned == int.MinValue
-
-
-            public List<IfBodyInfo> LargeBodies;   
+            public int ExecId = int.MinValue;   // unassigned == int.MinValue 
 
             public ArrayCommandChunk()
             {
