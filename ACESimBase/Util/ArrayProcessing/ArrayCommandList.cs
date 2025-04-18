@@ -394,6 +394,15 @@ namespace ACESimBase.Util.ArrayProcessing
 
         private (int[] indicesReadFromStack, int[] indicesSetInStack) DetermineWhenIndicesFirstLastUsed(int startRange, int endRangeExclusive, int?[] firstReadFromStack, int?[] firstSetInStack, int?[] lastSetInStack, int?[] lastUsed, int?[] translationToLocalIndex)
         {
+            // DEBUG
+            const bool LOG_STACK_DIAG = true;            // flip to false to silence
+            if (LOG_STACK_DIAG)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[DIAG]  Analyse [{startRange},{endRangeExclusive})  " +
+                    $"stackLen={firstReadFromStack.Length}");
+            }
+
             HashSet<int> indicesUsed = new HashSet<int>();
             for (int commandIndex = startRange; commandIndex < endRangeExclusive; commandIndex++)
             {
@@ -1698,49 +1707,33 @@ else
         }
 
 
+        /// <summary>
+        /// Detect oversized leaves that contain an outer‑level If…EndIf pair and
+        /// hoist them into a Conditional gate with size‑bounded children.  All the
+        /// detailed work is delegated to <see cref="HoistPlanner"/> (read‑only pass)
+        /// and <see cref="HoistMutator"/> (mutation pass).
+        /// </summary>
         private void HoistAndSplitLargeIfBodies()
         {
-            int max = MaxCommandsPerChunk;
+            // 1) Ensure we have at least a trivial one‑leaf tree to analyse.
+            var root = HoistMutator.EnsureTreeExists(this);
 
-            CommandTree.WalkTree(nodeObj =>
-            {
-                var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)nodeObj;
+            // 2) Build a read‑only plan of which leaves need hoisting.
+            var planner = new HoistPlanner(UnderlyingCommands, MaxCommandsPerChunk);
+            var plan = planner.BuildPlan(root);
 
-                // true leaves only
-                if (leaf.Branches != null && leaf.Branches.Length > 0)
-                    return;
+            // 3) If nothing to do, return immediately.
+            if (plan.Count == 0)
+                return;
 
-                // already a Conditional gate?  don't re‑process
-                if (leaf.StoredValue.Name == "Conditional")
-                    return;
+            // 4) Apply the mutations in‑place (gate insertion + body slicing).
+            HoistMutator.ApplyPlan(this, plan);
 
-                int leafSize = leaf.StoredValue.EndCommandRangeExclusive
-                             - leaf.StoredValue.StartCommandRange;
-                if (leafSize <= max) return;
-
-                var tri = FindOutermostIf(leaf.StoredValue.StartCommandRange,
-                                          leaf.StoredValue.EndCommandRangeExclusive);
-
-                System.Diagnostics.Debug.WriteLine(
-                    $"[OVERSIZE] leafID={leaf.StoredValue.ID}  " +
-                    $"range=[{leaf.StoredValue.StartCommandRange}," +
-                    $"{leaf.StoredValue.EndCommandRangeExclusive})  " +
-                    $"If={tri.ifIdx}  EndIf={tri.endIfIdx}  bodyLen={tri.bodySize}");
-
-                if (tri.ifIdx != -1)
-                {
-                    // create gate chunk once, then stop processing this leaf
-                    var gate = InsertGateChunk(leaf, tri.ifIdx, tri.endIfIdx);
-                    System.Diagnostics.Debug.WriteLine(
-    $"[CALL] SliceBodyIntoChildren on gateID={gate.StoredValue.ID}"); // DEBUG
-                    SliceBodyIntoChildren(gate);
-                    return;
-                }
-
-                // no flow‑control → regular hard split
-                SplitLeafIntoBalancedSegments(leaf, max);
-            });
+            // 5) OPTIONAL: refresh the cached pretty‑print string so that any
+            //    subsequent debugging or assertions show the new structure.
+            CommandTreeString = CommandTree.ToString();
         }
+
 
         /// <summary>
         /// Under <paramref name="gate"/> (name=="Conditional")

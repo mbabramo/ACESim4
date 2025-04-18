@@ -1,6 +1,7 @@
 ﻿using ACESim;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -54,7 +55,7 @@ namespace ACESimBase.Util.ArrayProcessing
         /// If it is still null we create a synthetic root leaf that spans the
         /// whole command list – just enough for the mutator and for ExecuteAll.
         /// </summary>
-        private static NWayTreeStorageInternal<ArrayCommandChunk> EnsureTreeExists(ArrayCommandList acl)
+        public static NWayTreeStorageInternal<ArrayCommandChunk> EnsureTreeExists(ArrayCommandList acl)
         {
             if (acl.CommandTree != null)
             {
@@ -99,80 +100,99 @@ namespace ACESimBase.Util.ArrayProcessing
         //  Replace the oversize LEAF by a Conditional‑gate node, keeping the same
         //  branch‑index it originally occupied in its parent.
         // ─────────────────────────────────────────────────────────────────────────────
+        /* drop‑in replacement – same signature */
+        /* drop‑in replacement */
         private static void ReplaceLeafWithGate(
                 ArrayCommandList acl,
                 NWayTreeStorageInternal<ArrayCommandChunk> leaf,
                 HoistPlanner.PlanEntry planEntry)
         {
-            var parent = (NWayTreeStorageInternal<ArrayCommandChunk>)leaf.Parent;
-            if (parent == null)
-                throw new InvalidOperationException("root cannot be replaced");
+            bool isRoot = leaf.Parent == null;
+            NWayTreeStorageInternal<ArrayCommandChunk> gateNode;
 
-            /* ------------------------------------------------------------------
-               1.  Determine which branch‑slot in the parent the old leaf used.
-                   We keep that slot number for the new gate to avoid gaps.
-            ------------------------------------------------------------------ */
-            byte leafBranchId = 0;
-            for (byte i = 1; i <= parent.StoredValue.LastChild; i++)
+            /* ────────────────────────── 0. pre‑diag ─────────────────────────── */
+            Debug.WriteLine(
+                $"[REPL]  leafID={leaf.StoredValue.ID}  " +
+                $"range=[{leaf.StoredValue.StartCommandRange},{leaf.StoredValue.EndCommandRangeExclusive})"); // DEBUG
+
+            /* ─────────────── 1. create (or reuse) the Conditional gate ───────── */
+            if (isRoot)
             {
-                if (ReferenceEquals(parent.GetBranch(i), leaf))
-                {
-                    leafBranchId = i;
-                    break;
-                }
+                gateNode = leaf;
+                gateNode.StoredValue.Name = "Conditional";
+                gateNode.StoredValue.ChildrenParallelizable = false;
+                Debug.WriteLine("        (root replaced in‑place)"); // DEBUG
             }
-            if (leafBranchId == 0)
-                throw new InvalidOperationException("leaf not found in parent.Branches");
-
-            /* ------------------------------------------------------------------
-               2.  Create the Conditional gate node that will *replace* the leaf
-            ------------------------------------------------------------------ */
-            var gateNode = new NWayTreeStorageInternal<ArrayCommandChunk>(parent);
-            gateNode.StoredValue = new ArrayCommandChunk
+            else
             {
-                Name = "Conditional",
-                StartCommandRange = leaf.StoredValue.StartCommandRange,
-                EndCommandRangeExclusive = leaf.StoredValue.EndCommandRangeExclusive,
-                StartSourceIndices = leaf.StoredValue.StartSourceIndices,
-                EndSourceIndicesExclusive = leaf.StoredValue.EndSourceIndicesExclusive,
-                StartDestinationIndices = leaf.StoredValue.StartDestinationIndices,
-                EndDestinationIndicesExclusive = leaf.StoredValue.EndDestinationIndicesExclusive,
-                ChildrenParallelizable = false
-            };
+                var parent = (NWayTreeStorageInternal<ArrayCommandChunk>)leaf.Parent;
 
-            /* ------------------------------------------------------------------
-               3.  Slice the If‑body into ≤MaxCommandsPerChunk children.
-                   Each slice becomes a child‑leaf of the new gate.
-            ------------------------------------------------------------------ */
-            int max = acl.MaxCommandsPerChunk;          // ← **critical change**
-            int bodyStart = planEntry.IfIdx + 1;
-            int bodyEnd = planEntry.EndIfIdx;         // EndIf not included
-
-
-            byte childId = 1;
-            for (int sliceStart = bodyStart; sliceStart < bodyEnd;)
-            {
-                int sliceEnd = Math.Min(sliceStart + max, bodyEnd);
-
-                var childLeaf = new NWayTreeStorageInternal<ArrayCommandChunk>(gateNode);
-                childLeaf.StoredValue = new ArrayCommandChunk
+                gateNode = new NWayTreeStorageInternal<ArrayCommandChunk>(parent);
+                gateNode.StoredValue = new ArrayCommandChunk
                 {
-                    StartCommandRange = sliceStart,
-                    EndCommandRangeExclusive = sliceEnd,
-                    ChildrenParallelizable = false
+                    Name = "Conditional",
+                    StartCommandRange = leaf.StoredValue.StartCommandRange,
+                    EndCommandRangeExclusive = leaf.StoredValue.EndCommandRangeExclusive,
+                    StartSourceIndices = leaf.StoredValue.StartSourceIndices,
+                    EndSourceIndicesExclusive = leaf.StoredValue.EndSourceIndicesExclusive,
+                    StartDestinationIndices = leaf.StoredValue.StartDestinationIndices,
+                    EndDestinationIndicesExclusive = leaf.StoredValue.EndDestinationIndicesExclusive,
+                    ChildrenParallelizable = false,
+                    /* critical: preserve stack reference */
+                    VirtualStack = leaf.StoredValue.VirtualStack
                 };
 
-                gateNode.SetBranch(childId++, childLeaf);
-                sliceStart = sliceEnd;
+                // swap into the exact same branch slot
+                byte slot = 0;
+                for (byte i = 1; i <= parent.StoredValue.LastChild; i++)
+                    if (ReferenceEquals(parent.GetBranch(i), leaf)) { slot = i; break; }
+
+                if (slot == 0) throw new InvalidOperationException("leaf not found in parent");
+                parent.SetBranch(slot, gateNode);
+                Debug.WriteLine($"        inserted gate into parent‑slot {slot}"); // DEBUG
+            }
+
+            /* ─────────────── 2. slice the If‑body into child leaves ──────────── */
+            int max = acl.MaxCommandsPerChunk;
+            int bodyStart = planEntry.IfIdx + 1;   // first cmd inside body
+            int bodyEnd = planEntry.EndIfIdx;    // EndIf *not* included
+
+            Debug.WriteLine(
+                $"[SLICE] gateID={gateNode.StoredValue.ID}  body=[{bodyStart},{bodyEnd})  max={max}"); // DEBUG
+
+            byte childId = 1;
+            for (int s = bodyStart; s < bodyEnd;)
+            {
+                int e = Math.Min(s + max, bodyEnd);
+
+                var child = new NWayTreeStorageInternal<ArrayCommandChunk>(gateNode);
+                child.StoredValue = new ArrayCommandChunk
+                {
+                    StartCommandRange = s,
+                    EndCommandRangeExclusive = e,
+                    ChildrenParallelizable = false,
+                    /* inherit same stack ref so lengths line up */
+                    VirtualStack = leaf.StoredValue.VirtualStack
+                };
+
+                gateNode.SetBranch(childId, child);
+
+                Debug.WriteLine(
+                    $"        • child {childId}  range=[{s},{e})  " +
+                    $"stackLen={(child.StoredValue.VirtualStack?.Length ?? 0)}");// DEBUG
+
+                childId++;
+                s = e;
             }
             gateNode.StoredValue.LastChild = (byte)(childId - 1);
 
-            /* ------------------------------------------------------------------
-               4.  Replace the old leaf in its parent *at the very same slot*.
-                   No other parent metadata needs changing.
-            ------------------------------------------------------------------ */
-            parent.SetBranch(leafBranchId, gateNode);
+            /* ────────────────────────── post‑diag ────────────────────────────── */
+            Debug.WriteLine(
+                $"[DONE]  gateID={gateNode.StoredValue.ID}  " +
+                $"children={gateNode.StoredValue.LastChild}\n"); // DEBUG
         }
+
+
 
 
         /// Helper to create a new node with minimal metadata

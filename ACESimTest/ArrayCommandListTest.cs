@@ -775,6 +775,90 @@ namespace ACESimTest
                 "State mismatch after hoisted execution");
         }
 
+        /* ---------------------------------------------------------------------------
+   Mutator unit test – minimal repro
+   • Build a leaf that has      [ 2 prefix cmds ][ If … body(15) … EndIf ][ 2 postfix cmds ]
+   • threshold = 6   → body must be sliced into 3 children (6,6,3)
+   • The mutator must:
+       – keep prefix & postfix in their own leaves
+       – NOT duplicate any command across leaves
+       – keep every leaf size ≤ threshold
+--------------------------------------------------------------------------- */
+        [TestMethod]
+        public void MutatorSlicesBodyWithoutDuplication()
+        {
+            const int THRESHOLD = 6;
+
+            /* 1. Build flat command list
+                   0‑1   two prefix increments
+                     2   If
+                   3‑17  15‑cmd body
+                    18   EndIf
+                   19‑20 two postfix increments
+            */
+            var cmds = new List<ArrayCommand>();
+            for (int i = 0; i < 2; i++)                       // prefix
+                cmds.Add(new ArrayCommand(ArrayCommandType.IncrementBy, 0, 0));
+
+            int ifIdx = cmds.Count;
+            cmds.Add(new ArrayCommand(ArrayCommandType.If, -1, -1)); // If
+
+            for (int i = 0; i < 15; i++)                      // body
+                cmds.Add(new ArrayCommand(ArrayCommandType.IncrementBy, 0, 0));
+
+            int endIfIdx = cmds.Count;
+            cmds.Add(new ArrayCommand(ArrayCommandType.EndIf, -1, -1)); // EndIf
+
+            for (int i = 0; i < 2; i++)                       // postfix
+                cmds.Add(new ArrayCommand(ArrayCommandType.IncrementBy, 0, 0));
+
+            // 2. Synthetic one‑leaf tree
+            var root = new NWayTreeStorageInternal<ArrayCommandChunk>(null);
+            root.StoredValue = new ArrayCommandChunk
+            {
+                ID = 1,
+                StartCommandRange = 0,
+                EndCommandRangeExclusive = cmds.Count
+            };
+
+            // 3. Plan + mutate
+            var planner = new HoistPlanner(cmds.ToArray(), THRESHOLD);
+            var plan = planner.BuildPlan(root);
+            Assert.AreEqual(1, plan.Count, "expect exactly one oversize leaf");
+
+            var aclStub = new ArrayCommandList(maxNumCommands: 1000, initialArrayIndex: 0, parallelize: false)
+            { MaxCommandsPerChunk = THRESHOLD };
+            aclStub.CommandTree = root;
+            aclStub.UnderlyingCommands = cmds.ToArray();
+
+            HoistMutator.ApplyPlan(aclStub, plan);
+
+            /* 4. Verification
+                  – no leaf larger than threshold
+                  – prefix (cmds 0‑1) and postfix (19‑20) each appear once
+            */
+            var seenCmds = new HashSet<int>();
+            bool prefixOK = false, postfixOK = false;
+
+            aclStub.CommandTree.WalkTree(nodeObj =>
+            {
+                var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)nodeObj;
+                if (leaf.Branches?.Length > 0) return; // skip non‑leaf
+
+                int s = leaf.StoredValue.StartCommandRange;
+                int e = leaf.StoredValue.EndCommandRangeExclusive;
+                Assert.IsTrue(e - s <= THRESHOLD, $"leaf [{s},{e}) exceeds threshold");
+
+                for (int i = s; i < e; i++)
+                    Assert.IsTrue(seenCmds.Add(i), $"command {i} duplicated in leaves");
+
+                if (s == 0 && e == 2) prefixOK = true;
+                if (s == 19 && e == 21) postfixOK = true;
+            });
+
+            Assert.IsTrue(prefixOK, "prefix leaf missing");
+            Assert.IsTrue(postfixOK, "postfix leaf missing");
+        }
 
 
         #endregion
