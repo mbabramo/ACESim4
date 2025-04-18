@@ -13,6 +13,7 @@ using System.Runtime.CompilerServices;
 using System.Reflection;
 using Microsoft.Azure.KeyVault.Core;
 using System.IO;
+using Tensorflow;
 
 namespace ACESimBase.Util.ArrayProcessing
 {
@@ -54,8 +55,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         // NEW: Toggle Roslyn or Reflection.Emit compilation
         public bool UseRoslyn = false; // DEBUG -- current problem with ILChunkEmitter is that it doesn't work for large chunks (e.g., over 1,000,000). So we need to break things up, ideally using if commands.
-        public int MaxCommandsPerChunk { get; set; } = 10_000; 
-        public int HardMaxCommandsPerChunk { get; set; } = 50_000;   // 0 ⇒ off
+        public int MaxCommandsPerChunk { get; set; } = 50_000; 
         public bool DisableAdvancedFeatures = false;
 
         // Ordered sources: We initially develop a list of indices of the data passed to the algorithm each iteration. Before each iteration, we copy the data corresponding to these indices into the OrderedSources array in the order in which it will be needed. A command that otherwise would copy from the original data instead loads the next item in ordered sources. This may slightly improve performance because a sequence of original data will be cached. More importantly, it can improve parallelism: When a player chooses among many actions that are structurally equivalent (that is, they do not change how the game is played from that point on), we can run the same code with different slices of the OrderedSources array.
@@ -104,11 +104,9 @@ namespace ACESimBase.Util.ArrayProcessing
         // code or from code not using the ArrayCommandList to see where the values differ.
         public bool UseCheckpoints = false; 
         public static int CheckpointTrigger = -2; // -1 is used for other purposes, and must be negative
-        public List<double> Checkpoints; 
-        
-        private ArrayCommandType _lastAddedCommandType = ArrayCommandType.Blank;
-        int _openIfDepth = 0;   // # unclosed Ifs since chunk start
-        bool _splitPending = false;
+        public List<double> Checkpoints;
+        private const bool TraceChunks = true;     // flip to false when done
+        private static readonly object TraceLock = new();
 
 
         #endregion
@@ -308,7 +306,7 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             CommandTree.WalkTree(x => InsertMissingBranches((NWayTreeStorageInternal<ArrayCommandChunk>)x));
 
-            HardSplitLargeLeaves(50_000);
+            HoistAndSplitLargeIfBodies();
 
             CommandTree.WalkTree(null, x => SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandChunk>)x));
             CommandTree.WalkTree(x => SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandChunk>)x));
@@ -496,86 +494,8 @@ namespace ACESimBase.Util.ArrayProcessing
 
             if (NextArrayIndex > MaxArrayIndex)
                 MaxArrayIndex = NextArrayIndex;
-
-            MaybeSplitCurrentChunk();
         }
 
-        private void MaybeSplitCurrentChunk()
-        {
-            int inChunk = NextCommandIndex - CurrentCommandChunk.StartCommandRange;
-
-            if (HardMaxCommandsPerChunk > 0 &&
-                inChunk >= HardMaxCommandsPerChunk)
-            {
-                SplitHere();
-            }
-        }
-
-        private void SplitHere()
-        {
-            bool parallelizable = CurrentCommandChunk.ChildrenParallelizable;
-
-            EndCommandChunk();
-            StartCommandChunk(parallelizable, null,
-                              $"HardSplit_{NextCommandIndex}",
-                              ignoreKeepTogether: true);
-        }
-
-        /// <summary>
-        /// Inserts synthetic child chunks so that no leaf exceeds <paramref name="max"/> commands.
-        /// Call once after <see cref="CompleteCommandList"/> and before code‑generation.
-        /// </summary>
-        public void HardSplitLargeLeaves(int max = 50_000)
-        {
-            List<NWayTreeStorageInternal<ArrayCommandChunk>> leaves =
-                new List<NWayTreeStorageInternal<ArrayCommandChunk>>();
-
-            // collect current leaves
-            CommandTree.WalkTree(n =>
-            {
-                var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
-                if (node.Branches == null || node.Branches.Length == 0)
-                    leaves.Add(node);
-            });
-
-            foreach (var leaf in leaves)
-            {
-                ArrayCommandChunk c = leaf.StoredValue;
-                int total = c.EndCommandRangeExclusive - c.StartCommandRange;
-                if (total <= max) continue;                       // already small
-
-                int start = c.StartCommandRange;
-                byte childId = 1;
-
-                while (start < c.EndCommandRangeExclusive)
-                {
-                    int end = Math.Min(start + max, c.EndCommandRangeExclusive);
-
-                    var child = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf);
-                    child.StoredValue = new ArrayCommandChunk
-                    {
-                        ChildrenParallelizable = false,
-                        StartCommandRange = start,
-                        EndCommandRangeExclusive = end,
-                        StartSourceIndices = c.StartSourceIndices,
-                        EndSourceIndicesExclusive = c.EndSourceIndicesExclusive,
-                        StartDestinationIndices = c.StartDestinationIndices,
-                        EndDestinationIndicesExclusive = c.EndDestinationIndicesExclusive,
-                        VirtualStack = c.VirtualStack,
-                        VirtualStackID = c.VirtualStackID
-                    };
-
-                    leaf.SetBranch(childId++, child);
-                    start = end;
-                }
-
-                // update parent’s metadata
-                c.LastChild = (byte)(childId - 1);
-                c.EndCommandRangeExclusive = c.StartCommandRange; // parent holds no commands
-                c.EndSourceIndicesExclusive = c.StartSourceIndices;
-                c.EndDestinationIndicesExclusive = c.StartDestinationIndices;
-            }
-        }
 
 
 
@@ -853,7 +773,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public bool AutogeneratedCodeIsPrecompiled = false; // We can autogenerate and then just save to a c# file, so long as the game structure doesn't change. But we still need to initialize our game tree, since we use it to calculate our ordered sources. In that case, we don't need to autogenerate the code.
         bool CopyVirtualStackToLocalVariables => UseRoslyn; // A complication here is that this may cause the stack to become too large, so we can set to false to avoid that problem
 
-        private void CompileCode()
+        public void CompileCode()
         {
             // This is your existing gate to skip codegen for certain conditions
             if (!AutogenerateCode || !RepeatIdenticalRanges || !UseOrderedDestinations || !UseOrderedSources)
@@ -1248,7 +1168,7 @@ else
             CopyOrderedDestinations(array);
         }
 
-        private double[] ExecuteAllCommands(double[] array)
+        public double[] ExecuteAllCommands(double[] array)
         {
             Span<double> virtualStack = UseOrderedSources && UseOrderedDestinations ? new Span<double>(array).Slice(FirstScratchIndex) : new Span<double>(array);
             ExecuteSectionOfCommands(virtualStack, 0, MaxCommandIndex, 0, 0);
@@ -1257,6 +1177,33 @@ else
 
         private void ExecuteSectionOfCommands(ArrayCommandChunk commandChunk)
         {
+            // DEBUG
+            System.Diagnostics.Debug.WriteLine(
+    $"▶ enter  chunkID={commandChunk.ID,4}  " +
+    $"[{commandChunk.StartCommandRange,8}-{commandChunk.EndCommandRangeExclusive,8})  " +
+    $"srcIdx={commandChunk.StartSourceIndices}/" +
+    $"{commandChunk.EndSourceIndicesExclusive}  " +
+    $"dstIdx={commandChunk.StartDestinationIndices}/" +
+    $"{commandChunk.EndDestinationIndicesExclusive}");
+            const int InspectChunkId = 42;      // ← change to the ID you care about
+            if (commandChunk.ID == InspectChunkId)
+            {
+                for (int i = commandChunk.StartCommandRange;
+                         i < commandChunk.EndCommandRangeExclusive; i++)
+                {
+                    System.Diagnostics.Debug.WriteLine($"   cmd {i,8}: {UnderlyingCommands[i]}");
+                }
+            }
+            // END DEBUG area
+
+            if (UseCheckpoints &&
+        commandChunk.ExecId != int.MinValue)   // tag assigned in hoist pass
+            {
+                if (Checkpoints == null)               // list may not exist yet
+                    Checkpoints = new List<double>();
+                Checkpoints.Add(commandChunk.ExecId);  // positive = leaf, negative = Conditional
+            }
+
             if (UseRoslyn)
             {
                 // Roslyn path
@@ -1388,6 +1335,12 @@ else
                             int numIf = 1;
                             while (numIf > 0)
                             {
+                                if (UseCheckpoints && CurrentCommandChunk.ExecId != int.MinValue
+                   && commandIndex == CurrentCommandChunk.StartCommandRange) // once per chunk
+                                {
+                                    Checkpoints.Add(CurrentCommandChunk.ExecId);
+                                }
+
                                 commandIndex++;
                                 var commandType = UnderlyingCommands[commandIndex].CommandType;
                                 if (commandType == ArrayCommandType.If)
@@ -1521,6 +1474,8 @@ else
 
         #endregion
 
+        #region Logging
+
         // DEBUG
         public void LogBalancedSegments(int printEvery = 10_000)
         {
@@ -1566,5 +1521,272 @@ else
                 }
             });
         }
+
+        #endregion
+
+        #region Breaking up large chunks
+
+        // ----------  helper record  ----------
+        public struct IfBodyInfo
+        {
+            public int IfIndex;            // position of the “If” command
+            public int EndIfIndex;         // position of its matching “EndIf”
+            public int BodySize;           // # commands strictly inside the pair
+            public int SourcesInBody;      // # NextSource commands in the body
+            public int DestinationsInBody; // # NextDestination commands in the body
+        }
+
+        // ----------  scanner  ----------
+        /// <summary>
+        /// Examine the command span <c>[start, endExclusive)</c> (typically a leaf
+        /// chunk) and return information for every <c>If … EndIf</c> pair whose body
+        /// exceeds <see cref="MaxCommandsPerChunk"/>.
+        /// The list is ordered by the position of the <c>If</c> tokens (inner‑most
+        /// bodies are reported before their enclosing parents).
+        /// </summary>
+        private List<IfBodyInfo> FindIfBodies(int start, int endExclusive)
+        {
+            var largeBodies = new List<IfBodyInfo>();
+            var openIfs = new Stack<int>();   // holds command indices of open “If”s
+
+            for (int i = start; i < endExclusive; i++)
+            {
+                var type = UnderlyingCommands[i].CommandType;
+
+                if (type == ArrayCommandType.If)
+                {
+                    openIfs.Push(i);
+                }
+                else if (type == ArrayCommandType.EndIf)
+                {
+                    if (openIfs.Count == 0)
+                        throw new InvalidOperationException($"Unmatched EndIf at cmd {i}.");
+
+                    int ifIdx = openIfs.Pop();
+                    int bodyStart = ifIdx + 1;
+                    int bodyEndExcl = i;                 // EndIf not part of body
+                    int bodySize = bodyEndExcl - bodyStart;
+
+                    if (bodySize > MaxCommandsPerChunk)   // only “too big” bodies matter
+                    {
+                        int srcCnt = 0, dstCnt = 0;
+
+                        for (int j = bodyStart; j < bodyEndExcl; j++)
+                        {
+                            var t = UnderlyingCommands[j].CommandType;
+                            if (t == ArrayCommandType.NextSource) srcCnt++;
+                            else if (t == ArrayCommandType.NextDestination) dstCnt++;
+                        }
+
+                        largeBodies.Add(new IfBodyInfo
+                        {
+                            IfIndex = ifIdx,
+                            EndIfIndex = i,
+                            BodySize = bodySize,
+                            SourcesInBody = srcCnt,
+                            DestinationsInBody = dstCnt
+                        });
+                    }
+                }
+            }
+
+            if (openIfs.Count != 0)
+                throw new InvalidOperationException("Unmatched If/EndIf in command list.");
+
+            largeBodies.Sort((a, b) => - a.IfIndex.CompareTo(b.IfIndex));
+
+
+            return largeBodies;
+        }
+
+
+        /****************************************************************************************
+         *  HoistAndSplitLargeIfBodies
+         *  ------------------------------------------------------------------
+         *  ❶  Pass 1 – scan every *leaf* chunk, find all If‑bodies whose size
+         *     exceeds MaxCommandsPerChunk, and attach that information to the
+         *     leaf’s   StoredValue.LargeBodies   list.
+         *
+         *  ❷  Pass 2 – repeatedly pick the first item in any LargeBodies list,
+         *     call  HoistSingleLargeBody(..)  (defined below) to turn that body
+         *     into a Conditional‑chunk whose children are ≤ MaxCommandsPerChunk.
+         *     We loop until no leaf has pending large bodies.
+         *
+         *  After this routine finishes the command‑tree contains **no** linear
+         *  chunk longer than MaxCommandsPerChunk and every oversized If‑block
+         *  has been “hoisted” so it can be skipped in O(1) when the condition
+         *  is false.
+         ****************************************************************************************/
+        private void HoistAndSplitLargeIfBodies()
+        {
+            /* ---------- ❶  mark large bodies ---------------------------------- */
+            CommandTree.WalkTree(nodeObj =>
+            {
+                var node = (NWayTreeStorageInternal<ArrayCommandChunk>)nodeObj;
+
+                // only examine current leaves
+                if (node.Branches != null && node.Branches.Length > 0)
+                    return;
+
+                var ck = node.StoredValue;
+
+                var bigBodies = FindIfBodies(ck.StartCommandRange,
+                                             ck.EndCommandRangeExclusive);
+
+                if (bigBodies.Count == 0)
+                    return;
+
+                // attach list (inner bodies first)
+                ck.LargeBodies = bigBodies;
+            });
+
+            /* ---------- ❷  iteratively hoist one body at a time --------------- */
+            bool changed;
+            do
+            {
+                changed = false;
+
+                CommandTree.WalkTree(nodeObj =>
+                {
+                    var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)nodeObj;
+
+                    // leaf?
+                    if (leaf.Branches != null && leaf.Branches.Length > 0)
+                        return;
+
+                    var c = leaf.StoredValue;
+                    if (c.LargeBodies == null || c.LargeBodies.Count == 0)
+                        return;
+
+                    // hoist the first (inner‑most) body in this leaf
+                    HoistSingleLargeBody(leaf);
+                    changed = true;                    // another sweep needed
+                });
+            }
+            while (changed);
+
+            int nextId = 0;
+            CommandTree.WalkTree(nodeObj =>
+            {
+                var n = (NWayTreeStorageInternal<ArrayCommandChunk>)nodeObj;
+                if (n.Branches == null || n.Branches.Length == 0)          // leaf
+                    n.StoredValue.ExecId = nextId++;                      // +id  (≥0)
+                else if (n.StoredValue?.Name == "Conditional")             // gate
+                    n.StoredValue.ExecId = -nextId++;                      // -id  (<0)
+            });
+
+        }
+
+        /*────────────────────────────────────────────────────────────────────────────
+         * Helper: count NextSource / NextDestination in a command span
+         *───────────────────────────────────────────────────────────────────────────*/
+        private int CountNextSources(int start, int endExclusive)
+        {
+            int n = 0;
+            for (int i = start; i < endExclusive; i++)
+                if (UnderlyingCommands[i].CommandType == ArrayCommandType.NextSource)
+                    n++;
+            return n;
+        }
+        private int CountNextDestinations(int start, int endExclusive)
+        {
+            int n = 0;
+            for (int i = start; i < endExclusive; i++)
+                if (UnderlyingCommands[i].CommandType == ArrayCommandType.NextDestination)
+                    n++;
+            return n;
+        }
+
+        /*────────────────────────────────────────────────────────────────────────────
+         * HoistSingleLargeBody  (see previous message for full implementation)
+         *───────────────────────────────────────────────────────────────────────────*/
+
+
+        /// <summary>
+        /// Within the given <paramref name="leaf"/> (which currently contains
+        /// an oversized If‑body), split *that body only* into sequential child
+        /// chunks, each at most <see cref="MaxCommandsPerChunk"/> commands long.
+        /// The original leaf keeps all its commands (pre‑body, If, EndIf,
+        /// post‑body), but now owns branch children that cover the sliced body
+        /// regions.  This preserves execution order and balanced If/EndIf while
+        /// satisfying IL branch‑distance limits.
+        /// </summary>
+        private void HoistSingleLargeBody(
+                   NWayTreeStorageInternal<ArrayCommandChunk> leaf)
+        {
+            var leafChunk = leaf.StoredValue;
+            var body = leafChunk.LargeBodies[0];     // first oversized body
+
+            /* ───────────────────────────────────────────────────────────────
+               Calculate ranges
+                   spanB = body of the If (exclusive of If / EndIf)
+            ─────────────────────────────────────────────────────────────── */
+            int spanB_Start = body.IfIndex + 1;
+            int spanB_End = body.EndIfIndex;            // exclusive
+
+            /* Helper: how many source/destination commands appear *before* slice? */
+            int srcBeforeSpanB = CountNextSources(
+                                    leafChunk.StartCommandRange, spanB_Start);
+            int dstBeforeSpanB = CountNextDestinations(
+                                    leafChunk.StartCommandRange, spanB_Start);
+
+            /* ───────────────────────────────────────────────────────────────
+               Slice the body into child chunks inside the same leaf
+            ─────────────────────────────────────────────────────────────── */
+            byte childId = 1;
+            int sliceStart = spanB_Start;
+
+            while (sliceStart < spanB_End)
+            {
+                int sliceEnd = Math.Min(sliceStart + MaxCommandsPerChunk, spanB_End);
+
+                var sliceNode = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf);
+
+                sliceNode.StoredValue = new ArrayCommandChunk
+                {
+                    StartCommandRange = sliceStart,
+                    EndCommandRangeExclusive = sliceEnd,
+
+                    StartSourceIndices = leafChunk.StartSourceIndices
+                                                    + srcBeforeSpanB
+                                                    + CountNextSources(spanB_Start,
+                                                                       sliceStart),
+                    EndSourceIndicesExclusive = leafChunk.StartSourceIndices
+                                                    + srcBeforeSpanB
+                                                    + CountNextSources(spanB_Start,
+                                                                       sliceEnd),
+
+                    StartDestinationIndices = leafChunk.StartDestinationIndices
+                                                    + dstBeforeSpanB
+                                                    + CountNextDestinations(spanB_Start,
+                                                                            sliceStart),
+                    EndDestinationIndicesExclusive = leafChunk.StartDestinationIndices
+                                                    + dstBeforeSpanB
+                                                    + CountNextDestinations(spanB_Start,
+                                                                            sliceEnd),
+
+                    ChildrenParallelizable = false
+                };
+
+                leaf.SetBranch(childId, sliceNode);
+                childId++;
+                sliceStart = sliceEnd;
+            }
+
+            leafChunk.LastChild = (byte)(childId - 1);
+
+            /* ───────────────────────────────────────────────────────────────
+               Remove the processed body record so outer bodies (if any) can
+               be handled in a later pass.
+            ─────────────────────────────────────────────────────────────── */
+            leafChunk.LargeBodies.RemoveAt(0);
+        }
+
+
+
+
+
+
+        #endregion
     }
 }

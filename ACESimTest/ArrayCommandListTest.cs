@@ -7,6 +7,7 @@ using ACESim.Util;
 using ACESimBase.Util.ArrayProcessing;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using static ACESimBase.Util.ArrayProcessing.ArrayCommandList;
 
 namespace ACESimTest
 {
@@ -258,5 +259,162 @@ namespace ACESimTest
             sourceValues[destinationIndicesStart] = 0;
             sourceValues[destinationIndicesStart + 1] = 0;
         }
+
+        // Paste inside your test class ------------------------------------------------
+        [TestMethod]
+        public void HoistCreatesConditionalNode()
+        {
+            var acl = BuildSimpleACLWithHugeIf(bodySize: 25);  // > threshold (10)
+            acl.CompleteCommandList();                         // triggers hoist
+
+            int threshold = acl.MaxCommandsPerChunk;           // 10
+            bool conditionalSeen = false;
+            bool oversizeLeaf = false;
+
+            acl.CommandTree.WalkTree(nodeObj =>
+            {
+                var n = (NWayTreeStorageInternal<ArrayCommandChunk>)nodeObj;
+                if (n.StoredValue?.Name == "Conditional")
+                    conditionalSeen = true;
+
+                if (n.Branches == null || n.Branches.Length == 0) // leaf
+                {
+                    int len = n.StoredValue.EndCommandRangeExclusive -
+                              n.StoredValue.StartCommandRange;
+                    if (len > threshold)
+                        oversizeLeaf = true;
+                }
+            });
+
+            Assert.IsTrue(conditionalSeen, "No Conditional node created");
+            Assert.IsFalse(oversizeLeaf, "Leaf exceeds threshold after hoist");
+        }
+
+        [TestMethod]
+        public void GateChunkBalancedIfEndIf()
+        {
+            var acl = BuildSimpleACLWithHugeIf(bodySize: 25);
+            acl.CompleteCommandList();
+
+            acl.CommandTree.WalkTree(nodeObj =>
+            {
+                var n = (NWayTreeStorageInternal<ArrayCommandChunk>)nodeObj;
+                if (n.Branches != null && n.Branches.Length > 0) return; // not leaf
+
+                bool hasIf = false;
+                bool hasEndIf = false;
+                for (int i = n.StoredValue.StartCommandRange;
+                         i < n.StoredValue.EndCommandRangeExclusive; i++)
+                {
+                    var t = acl.UnderlyingCommands[i].CommandType;
+                    if (t == ArrayCommandType.If) hasIf = true;
+                    if (t == ArrayCommandType.EndIf) hasEndIf = true;
+                }
+                if (hasIf || hasEndIf)
+                    Assert.IsTrue(hasIf && hasEndIf,
+                        "Leaf contains If without matching EndIf (or vice‑versa)");
+            });
+        }
+
+        [TestMethod]
+        public void EmitILAfterHoistNoException()
+        {
+            var acl = BuildSimpleACLWithHugeIf(bodySize: 25);
+            acl.CompleteCommandList();  // includes hoist
+
+            // Should *not* throw InvalidOperationException
+            acl.CompileCode();
+        }
+
+        [TestMethod]
+        public void ExecuteAfterHoistMatchesInterpreter()
+        {
+            var acl = BuildSimpleACLWithHugeIf(bodySize: 25);
+            acl.CompleteCommandList();
+
+            double[] data1 = new double[200];
+            double[] data2 = new double[200];
+
+            // prepare identical initial data (some random numbers)
+            for (int i = 0; i < data1.Length; i++) data1[i] = data2[i] = i % 7;
+
+            // path A: interpreter only
+            acl.ExecuteAllCommands(data1);
+
+            // path B: hoisted tree (may run compiled chunks)
+            acl.ExecuteAll(data2, tracing: false);
+
+            CollectionAssert.AreEqual(data1, data2, "Mismatch after hoist execution");
+        }
+
+        /* ---------------------------------------------------------------------------
+           Helper: build a minimal ArrayCommandList with one "huge" if‑body
+        --------------------------------------------------------------------------- */
+        private static ArrayCommandList BuildSimpleACLWithHugeIf(int bodySize)
+        {
+            var acl = new ArrayCommandList(maxNumCommands: 10_000,
+                                           initialArrayIndex: 0,
+                                           parallelize: false)
+            {
+                MaxCommandsPerChunk = 10,      // tiny threshold for tests
+                UseCheckpoints = true
+            };
+
+            /* ---------- OPEN CHUNK --------------------------------------- */
+            acl.StartCommandChunk(runChildrenInParallel: false,
+                                  identicalStartCommandRange: null,
+                                  name: "test");
+
+            int idx0 = acl.NewZero();
+            int idx1 = acl.NewZero();
+            int idx2 = acl.NewZero();
+
+            acl.InsertNotEqualsOtherArrayIndexCommand(idx0, idx1);  // condition true
+            acl.InsertIfCommand();
+
+            for (int i = 0; i < bodySize; i++)
+                acl.Increment(idx2, targetOriginal: false, idx0);
+
+            acl.InsertEndIfCommand();
+
+            /* ---------- CLOSE CHUNK -------------------------------------- */
+            acl.EndCommandChunk();
+
+            acl.CompleteCommandList();          // now hoist pass will run
+            return acl;
+        }
+
+
+
+        [TestMethod]
+        public void TraceSiblingExecutionOrder()
+        {
+            // build a tiny command list that forces hoisting (threshold = 10)
+            var acl = BuildSimpleACLWithHugeIf(bodySize: 25);   // helper from earlier
+
+            // ensure checkpoints infrastructure is active without relying on Roslyn
+            acl.Checkpoints = new List<double>();               // fresh empty list
+
+            // run once – during execution each leaf / conditional chunk records its ExecId
+            acl.ExecuteAll(new double[200], tracing: false);
+
+            // Sanity check: we should have recorded at least two chunk executions
+            Assert.IsTrue(acl.Checkpoints.Count >= 2,
+                          "Expected at least two chunks to execute.");
+
+            // Build a readable arrow sequence from the numeric ExecIds
+            string seq = string.Join(" → ", acl.Checkpoints.Select(d => d.ToString("0")));
+            Console.WriteLine($"EXECUTION ORDER: {seq}");
+
+            // First executed chunk should be a leaf (ExecId >= 0),
+            // second executed chunk should be the Conditional node (ExecId < 0).
+            Assert.IsTrue(acl.Checkpoints[0] >= 0,
+                $"First chunk executed was not a leaf.  Order: {seq}");
+            Assert.IsTrue(acl.Checkpoints[1] < 0,
+                $"Second chunk executed was not the conditional node.  Order: {seq}");
+        }
+
+
+
     }
 }

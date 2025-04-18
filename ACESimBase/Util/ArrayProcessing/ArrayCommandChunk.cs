@@ -2,6 +2,7 @@
 using ACESim.Util;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
@@ -32,9 +33,15 @@ namespace ACESimBase.Util.ArrayProcessing
             public double[] ParentVirtualStack;
             public int ParentVirtualStackID;
             public string CompiledCode;
-            internal string Name;
+            public string Name;
             internal int[] CopyIncrementsToParent;
-            public bool Skip;
+            public bool Skip; 
+            public int SourcesInBody;
+            public int DestinationsInBody;
+            public int ExecId = int.MinValue;   // unassigned == int.MinValue
+
+
+            public List<IfBodyInfo> LargeBodies;   
 
             public ArrayCommandChunk()
             {
