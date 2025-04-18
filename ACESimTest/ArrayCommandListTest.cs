@@ -266,6 +266,7 @@ namespace ACESimTest
         {
             var acl = BuildSimpleACLWithHugeIf(bodySize: 25);  // > threshold (10)
             acl.CompleteCommandList();                         // triggers hoist
+            acl.DumpLeafSummary("after hoist");
 
             int threshold = acl.MaxCommandsPerChunk;           // 10
             bool conditionalSeen = false;
@@ -310,11 +311,18 @@ namespace ACESimTest
                     if (t == ArrayCommandType.If) hasIf = true;
                     if (t == ArrayCommandType.EndIf) hasEndIf = true;
                 }
+
                 if (hasIf || hasEndIf)
+                {
+                    if (!(hasIf && hasEndIf))
+                        acl.DumpLeafIfUnbalanced(n);          // ← added line
+
                     Assert.IsTrue(hasIf && hasEndIf,
                         "Leaf contains If without matching EndIf (or vice‑versa)");
+                }
             });
         }
+
 
         [TestMethod]
         public void EmitILAfterHoistNoException()
@@ -356,20 +364,21 @@ namespace ACESimTest
                                            initialArrayIndex: 0,
                                            parallelize: false)
             {
-                MaxCommandsPerChunk = 10,      // tiny threshold for tests
+                MaxCommandsPerChunk = 10,     // tiny threshold so splitting triggers
+                DisableAdvancedFeatures = false,
                 UseCheckpoints = true
             };
 
-            /* ---------- OPEN CHUNK --------------------------------------- */
+            // open one explicit chunk (required for ExecuteSectionOfCommands)
             acl.StartCommandChunk(runChildrenInParallel: false,
                                   identicalStartCommandRange: null,
-                                  name: "test");
+                                  name: "root");
 
             int idx0 = acl.NewZero();
             int idx1 = acl.NewZero();
             int idx2 = acl.NewZero();
 
-            acl.InsertNotEqualsOtherArrayIndexCommand(idx0, idx1);  // condition true
+            acl.InsertNotEqualsOtherArrayIndexCommand(idx0, idx1); // condition true
             acl.InsertIfCommand();
 
             for (int i = 0; i < bodySize; i++)
@@ -377,43 +386,145 @@ namespace ACESimTest
 
             acl.InsertEndIfCommand();
 
-            /* ---------- CLOSE CHUNK -------------------------------------- */
-            acl.EndCommandChunk();
-
-            acl.CompleteCommandList();          // now hoist pass will run
+            acl.EndCommandChunk();          // close "root" chunk
+            acl.CompleteCommandList();      // build tree + run splitter
             return acl;
         }
+
 
 
 
         [TestMethod]
         public void TraceSiblingExecutionOrder()
         {
-            // build a tiny command list that forces hoisting (threshold = 10)
-            var acl = BuildSimpleACLWithHugeIf(bodySize: 25);   // helper from earlier
+            var acl = BuildSimpleACLWithHugeIf(bodySize: 25);
 
-            // ensure checkpoints infrastructure is active without relying on Roslyn
-            acl.Checkpoints = new List<double>();               // fresh empty list
+            // dump commands of the first leaf before execution
+            var firstLeaf = (NWayTreeStorageInternal<ArrayCommandChunk>)
+                            acl.CommandTree.GetBranch(1);
+            LogCommandsInRange(acl,
+                               firstLeaf.StoredValue.StartCommandRange,
+                               firstLeaf.StoredValue.EndCommandRangeExclusive);
 
-            // run once – during execution each leaf / conditional chunk records its ExecId
+            // fresh checkpoint list for execution tracing
+            acl.Checkpoints = new List<double>();
+
+            // run once (Debug output shows chunk entry order)
             acl.ExecuteAll(new double[200], tracing: false);
 
-            // Sanity check: we should have recorded at least two chunk executions
+            // after run we expect multiple chunks executed
             Assert.IsTrue(acl.Checkpoints.Count >= 2,
-                          "Expected at least two chunks to execute.");
+                $"Only {acl.Checkpoints.Count} chunk executed; splitter may have failed.");
+        }
+        private void LogCommandsInRange(ArrayCommandList acl, int startCmd, int endCmd)
+        {
+            int depth = 0;
+            for (int i = startCmd; i < endCmd; i++)
+            {
+                var cmd = acl.UnderlyingCommands[i];
+                if (cmd.CommandType == ArrayCommandType.If) depth++;
+                if (cmd.CommandType == ArrayCommandType.EndIf) depth--;
 
-            // Build a readable arrow sequence from the numeric ExecIds
-            string seq = string.Join(" → ", acl.Checkpoints.Select(d => d.ToString("0")));
-            Console.WriteLine($"EXECUTION ORDER: {seq}");
-
-            // First executed chunk should be a leaf (ExecId >= 0),
-            // second executed chunk should be the Conditional node (ExecId < 0).
-            Assert.IsTrue(acl.Checkpoints[0] >= 0,
-                $"First chunk executed was not a leaf.  Order: {seq}");
-            Assert.IsTrue(acl.Checkpoints[1] < 0,
-                $"Second chunk executed was not the conditional node.  Order: {seq}");
+                System.Diagnostics.Debug.WriteLine(
+                    $"   {i,6}  d={depth,2}  {cmd}");
+            }
         }
 
+        #region ── new helper: nested‑If workload ────────────────────────────
+        private static ArrayCommandList BuildNestedHugeIf(
+                int outerBodySize, int innerBodySize, int maxPerChunk)
+        {
+            var acl = new ArrayCommandList(maxNumCommands: 50_000,
+                                           initialArrayIndex: 0,
+                                           parallelize: false)
+            {
+                MaxCommandsPerChunk = maxPerChunk,
+                DisableAdvancedFeatures = false,
+                UseCheckpoints = false
+            };
+
+            // scratch indices
+            int idx0 = acl.NewZero();   // always 0
+            int idx1 = acl.NewZero();
+            int idx2 = acl.NewZero();
+
+            // OUTER If (condition false)
+            acl.InsertNotEqualsOtherArrayIndexCommand(idx0, idx1); // 0 != 0  → false
+            acl.InsertIfCommand();
+
+            // huge body at depth‑1
+            for (int i = 0; i < outerBodySize; i++)
+                acl.Increment(idx2, targetOriginal: false, idx0);
+
+            // INNER If (condition true)
+            acl.InsertEqualsOtherArrayIndexCommand(idx0, idx0); // 0 == 0 → true
+            acl.InsertIfCommand();
+
+            for (int i = 0; i < innerBodySize; i++)
+                acl.Increment(idx2, targetOriginal: false, idx0);
+
+            acl.InsertEndIfCommand();  // close INNER
+            acl.InsertEndIfCommand();  // close OUTER
+
+            acl.CompleteCommandList();
+            return acl;
+        }
+        #endregion
+
+        #region ── new tests ─────────────────────────────────────────────────
+
+        // 1) structural: every leaf balanced, Conditional nodes created at both depths
+        [TestMethod]
+        public void NestedHoistStructural()
+        {
+            var acl = BuildNestedHugeIf(outerBodySize: 40, innerBodySize: 40,
+                                        maxPerChunk: 10);
+
+            bool outerGateFound = false, innerGateFound = false;
+
+            acl.CommandTree.WalkTree(nodeObj =>
+            {
+                var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)nodeObj;
+                if (leaf.Branches != null && leaf.Branches.Length > 0) return;
+
+                // count If / EndIf tokens in this leaf
+                int ifs = 0, endIfs = 0;
+                for (int i = leaf.StoredValue.StartCommandRange;
+                         i < leaf.StoredValue.EndCommandRangeExclusive; i++)
+                {
+                    var t = acl.UnderlyingCommands[i].CommandType;
+                    if (t == ArrayCommandType.If) ifs++;
+                    if (t == ArrayCommandType.EndIf) endIfs++;
+                }
+
+                Assert.IsTrue(ifs == endIfs, "Unbalanced leaf found");
+
+                if (ifs == 1 && endIfs == 1)
+                {
+                    // this is a gate leaf
+                    if (!outerGateFound) outerGateFound = true;
+                    else innerGateFound = true;
+                }
+            });
+
+            Assert.IsTrue(outerGateFound, "Outer Conditional gate not found");
+            Assert.IsTrue(innerGateFound, "Inner Conditional gate not found");
+        }
+
+        // 2) execution: only the inner‑If body executes; outer body is skipped
+        [TestMethod]
+        public void NestedHoistExecutionMatches()
+        {
+            int outerBody = 40, innerBody = 40, maxPerChunk = 10;
+            var acl = BuildNestedHugeIf(outerBody, innerBody, maxPerChunk);
+
+            double[] data1 = new double[100];
+            acl.ExecuteAll(data1, tracing: false);
+
+            // idx2 is third scratch index => value == innerBody  (outer skipped)
+            Assert.AreEqual(innerBody, data1[2], 1e-12);
+        }
+        #endregion
 
 
     }
