@@ -1736,14 +1736,12 @@ else
 
 
         /// <summary>
-        /// Under <paramref name="gate"/> (name == "Conditional") split the body of the
-        /// outer‑most <c>If … EndIf</c> pair into sequential child leaves so that
-        /// every child length ≤ <see cref="MaxCommandsPerChunk"/>.
-        /// • Each child covers **body commands only** (no If, no EndIf).  
-        /// • The gate node itself keeps both the opening If and closing EndIf, so all
-        ///   leaf nodes are perfectly balanced.
+        /// Split the body of the outermost <c>If … EndIf</c> under
+        /// <paramref name="gate"/> into child leaves, each no longer than
+        /// <see cref="MaxCommandsPerChunk"/> and never crossing a nested block.
         /// </summary>
-        public void SliceBodyIntoChildren(NWayTreeStorageInternal<ArrayCommandChunk> gate)
+        public void SliceBodyIntoChildren(
+            NWayTreeStorageInternal<ArrayCommandChunk> gate)
         {
             int max = MaxCommandsPerChunk;
             var gInfo = gate.StoredValue;
@@ -1753,70 +1751,71 @@ else
                                        gInfo.EndCommandRangeExclusive);
             if (pair.ifIdx == -1) return;            // should never happen
 
-            int bodyStart = pair.ifIdx + 1;          // first cmd inside the body
-            int bodyEnd = pair.endIfIdx;           // EndIf not included
-            if (bodyStart >= bodyEnd) return;        // empty body – nothing to slice
+            int bodyStart = pair.ifIdx + 1;
+            int bodyEnd = pair.endIfIdx;          // EndIf excluded
+            if (bodyStart >= bodyEnd) return;       // empty body
 
             int sliceStart = bodyStart;
-            byte childId = 1;                      // branch‑ID for the first slice
+            byte childId = 1;                     // branch‑ID 0 is prefix
 
-            /*────────────────  build slices  ────────────────────────────*/
-            while (sliceStart < bodyEnd)
+            while (sliceStart < bodyEnd && childId < byte.MaxValue)
             {
-                /* advance sliceEnd until BOTH conditions hold:
-                 *        (a) length ≤ max  (stop once we reach max or bodyEnd)
-                 *        (b) nesting depth back to 0  (so we never split an open If)
-                 */
-                int sliceEnd = sliceStart;
-                int depth = 0;
-                while (sliceEnd < bodyEnd)
-                {
-                    var t = UnderlyingCommands[sliceEnd].CommandType;
-                    if (t == ArrayCommandType.If) depth++;
-                    if (t == ArrayCommandType.EndIf) depth--;
+                int sliceEnd = FindSliceEnd(sliceStart, bodyEnd, max);
 
-                    /* stop when we’ve hit the size limit and balanced all nested Ifs */
-                    if (depth == 0 &&
-                        (sliceEnd - sliceStart + 1 >= max || sliceEnd + 1 == bodyEnd))
-                    {
-                        sliceEnd++;      // include current command
-                        break;
-                    }
-                    sliceEnd++;          // otherwise keep extending
-                }
+                var child = MakeChildChunk(gate, gInfo, sliceStart, sliceEnd);
+                gate.SetBranch(childId++, child);
 
-                var child = new NWayTreeStorageInternal<ArrayCommandChunk>(gate);
-                child.StoredValue = new ArrayCommandChunk
-                {
-                    ChildrenParallelizable = false,
-                    StartCommandRange = sliceStart,
-                    EndCommandRangeExclusive = sliceEnd,
-
-                    StartSourceIndices = gInfo.StartSourceIndices,
-                    EndSourceIndicesExclusive = gInfo.EndSourceIndicesExclusive,
-                    StartDestinationIndices = gInfo.StartDestinationIndices,
-                    EndDestinationIndicesExclusive = gInfo.EndDestinationIndicesExclusive,
-
-                    ExecId = _nextExecId++
-                };
-                gate.SetBranch(childId, child);
-
-                bool atCap = (childId == byte.MaxValue - 1);
-                if (atCap)
-                    sliceStart = bodyEnd;        // force loop exit
-                else
-                {
-                    childId++;
-                    sliceStart = sliceEnd;       // next slice begins where we left off
-                }
+                sliceStart = sliceEnd;              // next slice starts here
             }
 
-
-            /*─────────── finalise gate metadata ───────────*/
-            // gate now spans If … EndIf  (inclusive)
+            /* Gate node keeps If…EndIf inclusive */
             gInfo.EndCommandRangeExclusive = pair.endIfIdx + 1;
-            gInfo.LastChild = (byte)((childId == byte.MaxValue - 1) ? childId
-                                                                    : childId - 1);
+            gInfo.LastChild = (byte)(childId - 1);
+        }
+
+        /// Return the first command index ≥ <paramref name="sliceStart"/> that:
+        ///   • brings nesting depth back to 0, AND
+        ///   • either reaches <paramref name="max"/> commands or hits <paramref name="bodyEnd"/>.
+        private int FindSliceEnd(int sliceStart, int bodyEnd, int max)
+        {
+            int depth = 0, sliceEnd = sliceStart;
+            while (sliceEnd < bodyEnd)
+            {
+                var t = UnderlyingCommands[sliceEnd].CommandType;
+                if (t == ArrayCommandType.If) depth++;
+                if (t == ArrayCommandType.EndIf) depth--;
+
+                sliceEnd++;
+
+                bool reachedMax = sliceEnd - sliceStart >= max;
+                bool atBoundary = depth == 0 && (reachedMax || sliceEnd == bodyEnd);
+                if (atBoundary) break;
+            }
+            return sliceEnd;
+        }
+
+        /// Create a child chunk that copies stack/buffer metadata from <paramref name="gInfo"/>.
+        private NWayTreeStorageInternal<ArrayCommandChunk> MakeChildChunk(
+            NWayTreeStorageInternal<ArrayCommandChunk> gate,
+            ArrayCommandChunk gInfo,
+            int sliceStart,
+            int sliceEnd)
+        {
+            var child = new NWayTreeStorageInternal<ArrayCommandChunk>(gate);
+            child.StoredValue = new ArrayCommandChunk
+            {
+                ChildrenParallelizable = false,
+                StartCommandRange = sliceStart,
+                EndCommandRangeExclusive = sliceEnd,
+
+                StartSourceIndices = gInfo.StartSourceIndices,
+                EndSourceIndicesExclusive = gInfo.EndSourceIndicesExclusive,
+                StartDestinationIndices = gInfo.StartDestinationIndices,
+                EndDestinationIndicesExclusive = gInfo.EndDestinationIndicesExclusive,
+
+                ExecId = _nextExecId++
+            };
+            return child;
         }
 
 
