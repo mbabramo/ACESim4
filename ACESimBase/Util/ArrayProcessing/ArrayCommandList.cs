@@ -1191,32 +1191,23 @@ else
             if (tracing && (DoParallel || RepeatIdenticalRanges || UseOrderedDestinations || UseOrderedSources))
                 throw new Exception("Cannot trace unrolling with any of these options.");
 
-            // ----------------------------------------------------------------
             // 1) CHECKPOINT MODE (leaf‑by‑leaf IDs)
-            // ----------------------------------------------------------------
             if (Checkpoints != null)
             {
                 PrepareOrderedSourcesAndDestinations(array);
                 _nextExecId = 0;
-
                 CommandTree.WalkTree(
-                    /* on enter */ n =>
-                                   {
-                                       var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
-                                       var c = node.StoredValue;
-                                       if (node.Parent == null)
-                                           c.VirtualStack = array;       // root uses real array
-                                       else
-                                           c.CopyParentVirtualStack();   // children get a copy
+                    /* on enter */ n => {
+                                       var c = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
+                                       c.CopyParentVirtualStack();
                                        c.ResetIncrementsForParent();
                                    },
-                    /* on exec  */ n =>
-                                   {
+                    /* on exec  */ n => {
                                        var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
                                        var chunk = node.StoredValue;
                                        if (chunk.Skip) return;
 
-                                       if (node.Branches == null || node.Branches.Length == 0)
+                                       if (node.Branches == null || !node.Branches.Any())
                                        {
                                            int id = _nextExecId++;
                                            chunk.ID = id;
@@ -1228,43 +1219,53 @@ else
                                    },
                     /* parallel?*/ n => false
                 );
-
                 CopyOrderedDestinations(array);
                 return;
             }
 
-            // ----------------------------------------------------------------
-            // 2) CHUNK‑BASED EXECUTION (always, even when not parallel)
-            // ----------------------------------------------------------------
-            PrepareOrderedSourcesAndDestinations(array);
+            // 2) FLAT‑INTERPRETER FALLBACK when no hoist/parallel/repeat/child‑increments
+            bool hasChildIncrements = false;
+            CommandTree.WalkTree(nodeObj =>
+            {
+                var node = (NWayTreeStorageInternal<ArrayCommandChunk>)nodeObj;
+                if (node.StoredValue.CopyIncrementsToParent != null)
+                    hasChildIncrements = true;
+            });
+            bool needChunked = DoParallel || RepeatIdenticalRanges || hasChildIncrements;
 
+            if (!needChunked)
+            {
+                // fast path: no chunk machinery needed
+                ExecuteAllCommands(array);
+                return;
+            }
+
+            // 3) CHUNKED EXECUTION (for parallel/repeat/hoist/child‑increments)
+            PrepareOrderedSourcesAndDestinations(array);
             CommandTree.WalkTree(
-                /* on enter */ n =>
-                               {
-                                   var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
-                                   var c = node.StoredValue;
-                                   if (node.Parent == null)
-                                       c.VirtualStack = array;       // root uses real array
-                                   else
-                                       c.CopyParentVirtualStack();   // children get a copy
+                /* on enter */ n => {
+                                   var c = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
+                                   c.CopyParentVirtualStack();
                                    c.ResetIncrementsForParent();
                                },
-                /* on exec  */ n =>
-                               {
+                /* on exec  */ n => {
                                    var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
                                    var chunk = node.StoredValue;
                                    if (chunk.Skip) return;
 
-                                   ExecuteSectionOfCommands(chunk);
+                                   if (node.Branches == null || !node.Branches.Any())
+                                       ExecuteSectionOfCommands(chunk);
+
                                    chunk.CopyIncrementsToParentIfNecessary();
                                },
                 /* parallel?*/ n =>
-                    ((ArrayCommandChunk)((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue)
-                        .ChildrenParallelizable
+                    DoParallel
+                    && ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue.ChildrenParallelizable
             );
-
             CopyOrderedDestinations(array);
         }
+
+
 
 
 
