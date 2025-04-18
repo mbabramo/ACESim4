@@ -56,7 +56,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         // NEW: Toggle Roslyn or Reflection.Emit compilation
         public bool UseRoslyn = true; // DEBUG -- current problem with ILChunkEmitter is that it doesn't work for large chunks (e.g., over 1,000,000). So we need to break things up, ideally using if commands.
-        public int MaxCommandsPerChunk { get; set; } = 100_000; // DEBUG // Use int.MaxValue to disable. Note that scratch slots will be reused only if this is the case.
+        public int MaxCommandsPerChunk { get; set; } = 1_000; // DEBUG // Use int.MaxValue to disable. Note that scratch slots will be reused only if this is the case.
         public bool DisableAdvancedFeatures = false;
 
         // Ordered sources: We initially develop a list of indices of the data passed to the algorithm each iteration. Before each iteration, we copy the data corresponding to these indices into the OrderedSources array in the order in which it will be needed. A command that otherwise would copy from the original data instead loads the next item in ordered sources. This may slightly improve performance because a sequence of original data will be cached. More importantly, it can improve parallelism: When a player chooses among many actions that are structurally equivalent (that is, they do not change how the game is played from that point on), we can run the same code with different slices of the OrderedSources array.
@@ -1182,6 +1182,7 @@ else
         // ───────────────────────────────────────────────────────────────────────────
         // 1) Main entry point: hoisted & un‑hoisted all go through this.
         // ───────────────────────────────────────────────────────────────────────────
+
         public void ExecuteAll(double[] array, bool tracing)
         {
             if (CommandTreeString == null)
@@ -1191,9 +1192,7 @@ else
             if (tracing && (DoParallel || RepeatIdenticalRanges || UseOrderedDestinations || UseOrderedSources))
                 throw new Exception("Cannot trace unrolling with any of these options.");
 
-            // ----------------------------------------------------------------
-            // 1) CHECKPOINT MODE (leaf‑by‑leaf IDs)
-            // ----------------------------------------------------------------
+            // 1) CHECKPOINT MODE (leaf‐by‐leaf IDs)
             if (Checkpoints != null)
             {
                 PrepareOrderedSourcesAndDestinations(array);
@@ -1202,20 +1201,10 @@ else
                 CommandTree.WalkTree(
                     /* on enter */ n =>
                                    {
-                                       var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
-                                       var chunk = node.StoredValue;
-
-                                       // root always writes into the real array
-                                       if (node.Parent == null)
-                                       {
-                                           chunk.VirtualStack = array;
-                                       }
-                                       else
-                                       {
-                                           // children always copy parent in checkpoint mode
-                                           chunk.CopyParentVirtualStack();
-                                       }
-                                       chunk.ResetIncrementsForParent();
+                                       var c = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
+                                       // always pull in parent scratch for checkpoint mode
+                                       c.CopyParentVirtualStack();
+                                       c.ResetIncrementsForParent();
                                    },
                     /* on exec  */ n =>
                                    {
@@ -1240,51 +1229,31 @@ else
                 return;
             }
 
-            // ----------------------------------------------------------------
-            // 2) FLAT‑INTERPRETER FALLBACK when nothing special requested
-            // ----------------------------------------------------------------
+            // 2) FAST FLAT INTERPRETER FALLBACK
             bool hasChildIncrements = false;
             CommandTree.WalkTree(n =>
             {
-                var chunk = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
-                if (chunk.CopyIncrementsToParent != null)
+                var c = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
+                if (c.CopyIncrementsToParent != null)
                     hasChildIncrements = true;
             });
             bool needChunked = DoParallel || RepeatIdenticalRanges || hasChildIncrements;
             if (!needChunked)
             {
+                // nothing special requested → just run the original flat interpreter
                 ExecuteAllCommands(array);
                 return;
             }
 
-            // ----------------------------------------------------------------
-            // 3) CHUNK‑BASED EXECUTION (parallel / hoist / child‑increments)
-            // ----------------------------------------------------------------
+            // 3) CHUNKED EXECUTION (parallel / repeat / child‑increments)
             PrepareOrderedSourcesAndDestinations(array);
-
             CommandTree.WalkTree(
                 /* on enter */ n =>
                                {
-                                   var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
-                                   var chunk = node.StoredValue;
-
-                                   if (node.Parent == null)
-                                   {
-                                       // root writes into real array
-                                       chunk.VirtualStack = array;
-                                   }
-                                   else if (!chunk.ChildrenParallelizable)
-                                   {
-                                       // sequential child shares parent's stack (writes into real array too)
-                                       chunk.VirtualStack = node.Parent.StoredValue.VirtualStack;
-                                   }
-                                   else
-                                   {
-                                       // parallel child uses its own scratch: pull in current values
-                                       chunk.CopyParentVirtualStack();
-                                   }
-
-                                   chunk.ResetIncrementsForParent();
+                                   var c = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
+                                   // copy in the parent scratch region, zero the slots we’ll later accumulate
+                                   c.CopyParentVirtualStack();
+                                   c.ResetIncrementsForParent();
                                },
                 /* on exec  */ n =>
                                {
@@ -1295,13 +1264,13 @@ else
                                    if (node.Branches == null || !node.Branches.Any())
                                        ExecuteSectionOfCommands(chunk);
 
+                                   // push up any child‐to‐parent increments
                                    chunk.CopyIncrementsToParentIfNecessary();
                                },
                 /* parallel?*/ n =>
                     DoParallel
                     && ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue.ChildrenParallelizable
             );
-
             CopyOrderedDestinations(array);
         }
 
