@@ -56,7 +56,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         // NEW: Toggle Roslyn or Reflection.Emit compilation
         public bool UseRoslyn = true; // DEBUG -- current problem with ILChunkEmitter is that it doesn't work for large chunks (e.g., over 1,000,000). So we need to break things up, ideally using if commands.
-        public int MaxCommandsPerChunk { get; set; } = 1_000; // DEBUG // Use int.MaxValue to disable. Note that scratch slots will be reused only if this is the case.
+        public int MaxCommandsPerChunk { get; set; } = 100_000; // DEBUG // Use int.MaxValue to disable. Note that scratch slots will be reused only if this is the case.
         public bool DisableAdvancedFeatures = false;
 
         // Ordered sources: We initially develop a list of indices of the data passed to the algorithm each iteration. Before each iteration, we copy the data corresponding to these indices into the OrderedSources array in the order in which it will be needed. A command that otherwise would copy from the original data instead loads the next item in ordered sources. This may slightly improve performance because a sequence of original data will be cached. More importantly, it can improve parallelism: When a player chooses among many actions that are structurally equivalent (that is, they do not change how the game is played from that point on), we can run the same code with different slices of the OrderedSources array.
@@ -1191,18 +1191,34 @@ else
             if (tracing && (DoParallel || RepeatIdenticalRanges || UseOrderedDestinations || UseOrderedSources))
                 throw new Exception("Cannot trace unrolling with any of these options.");
 
+            // ----------------------------------------------------------------
             // 1) CHECKPOINT MODE (leaf‑by‑leaf IDs)
+            // ----------------------------------------------------------------
             if (Checkpoints != null)
             {
                 PrepareOrderedSourcesAndDestinations(array);
                 _nextExecId = 0;
+
                 CommandTree.WalkTree(
-                    /* on enter */ n => {
-                                       var c = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
-                                       c.CopyParentVirtualStack();
-                                       c.ResetIncrementsForParent();
+                    /* on enter */ n =>
+                                   {
+                                       var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
+                                       var chunk = node.StoredValue;
+
+                                       // root always writes into the real array
+                                       if (node.Parent == null)
+                                       {
+                                           chunk.VirtualStack = array;
+                                       }
+                                       else
+                                       {
+                                           // children always copy parent in checkpoint mode
+                                           chunk.CopyParentVirtualStack();
+                                       }
+                                       chunk.ResetIncrementsForParent();
                                    },
-                    /* on exec  */ n => {
+                    /* on exec  */ n =>
+                                   {
                                        var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
                                        var chunk = node.StoredValue;
                                        if (chunk.Skip) return;
@@ -1219,36 +1235,59 @@ else
                                    },
                     /* parallel?*/ n => false
                 );
+
                 CopyOrderedDestinations(array);
                 return;
             }
 
-            // 2) FLAT‑INTERPRETER FALLBACK when no hoist/parallel/repeat/child‑increments
+            // ----------------------------------------------------------------
+            // 2) FLAT‑INTERPRETER FALLBACK when nothing special requested
+            // ----------------------------------------------------------------
             bool hasChildIncrements = false;
-            CommandTree.WalkTree(nodeObj =>
+            CommandTree.WalkTree(n =>
             {
-                var node = (NWayTreeStorageInternal<ArrayCommandChunk>)nodeObj;
-                if (node.StoredValue.CopyIncrementsToParent != null)
+                var chunk = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
+                if (chunk.CopyIncrementsToParent != null)
                     hasChildIncrements = true;
             });
             bool needChunked = DoParallel || RepeatIdenticalRanges || hasChildIncrements;
-
             if (!needChunked)
             {
-                // fast path: no chunk machinery needed
                 ExecuteAllCommands(array);
                 return;
             }
 
-            // 3) CHUNKED EXECUTION (for parallel/repeat/hoist/child‑increments)
+            // ----------------------------------------------------------------
+            // 3) CHUNK‑BASED EXECUTION (parallel / hoist / child‑increments)
+            // ----------------------------------------------------------------
             PrepareOrderedSourcesAndDestinations(array);
+
             CommandTree.WalkTree(
-                /* on enter */ n => {
-                                   var c = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
-                                   c.CopyParentVirtualStack();
-                                   c.ResetIncrementsForParent();
+                /* on enter */ n =>
+                               {
+                                   var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
+                                   var chunk = node.StoredValue;
+
+                                   if (node.Parent == null)
+                                   {
+                                       // root writes into real array
+                                       chunk.VirtualStack = array;
+                                   }
+                                   else if (!chunk.ChildrenParallelizable)
+                                   {
+                                       // sequential child shares parent's stack (writes into real array too)
+                                       chunk.VirtualStack = node.Parent.StoredValue.VirtualStack;
+                                   }
+                                   else
+                                   {
+                                       // parallel child uses its own scratch: pull in current values
+                                       chunk.CopyParentVirtualStack();
+                                   }
+
+                                   chunk.ResetIncrementsForParent();
                                },
-                /* on exec  */ n => {
+                /* on exec  */ n =>
+                               {
                                    var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
                                    var chunk = node.StoredValue;
                                    if (chunk.Skip) return;
@@ -1262,13 +1301,9 @@ else
                     DoParallel
                     && ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue.ChildrenParallelizable
             );
+
             CopyOrderedDestinations(array);
         }
-
-
-
-
-
 
 
 
