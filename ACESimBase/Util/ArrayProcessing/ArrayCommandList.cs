@@ -838,7 +838,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public void CompileCode()
         {
             // This is your existing gate to skip codegen for certain conditions
-            if (!AutogenerateCode || !RepeatIdenticalRanges || !UseOrderedDestinations || !UseOrderedSources)
+            if (!AutogenerateCode || /* DEBUG !RepeatIdenticalRanges || */ !UseOrderedDestinations || !UseOrderedSources)
                 return;
 
             // Decide which approach to use
