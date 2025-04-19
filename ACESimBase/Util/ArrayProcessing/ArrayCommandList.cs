@@ -603,8 +603,11 @@ namespace ACESimBase.Util.ArrayProcessing
             // share the same virtual‑stack whenever
             //   • the parent runs its children sequentially  OR
             //   • *this* child is guaranteed to run sequentially
-            bool shareStack = !parent.ChildrenParallelizable
-                           || !child.ChildrenParallelizable;
+            bool shareStack =
+                    (!parent.ChildrenParallelizable  // parent runs sequentially  OR
+                  || !child.ChildrenParallelizable)  // this child runs sequentially
+                 && !child.RequiresPrivateStack;     // … *unless* the child knows it has to merge
+
 
 #if DEBUG
             if (parent.ChildrenParallelizable && !child.ChildrenParallelizable && shareStack)
@@ -1399,8 +1402,7 @@ else
                     /* enter */ n =>
                                 {
                                     var c = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
-                                    c.CopyParentVirtualStack();
-                                    c.ResetIncrementsForParent();
+                                    c.CopyParentVirtualStack();                 // ★ changed
                                 },
                     /* exec */ n =>
                                {
@@ -1412,6 +1414,7 @@ else
                                        ExecuteSectionOfCommands(chunk);
 
                                    chunk.CopyIncrementsToParentIfNecessary();
+                                   chunk.ResetIncrementsForParent();           // ★ changed
                                },
                     /* parallel? */ _ => false
                 );
@@ -1444,7 +1447,9 @@ else
                  || hasSkippedLeaves;
 
 #if DEBUG
-            Debug.WriteLine($"[ExecuteAll]  needChunked={needChunked}  (parallel={DoParallel}, repeat={RepeatIdenticalRanges}, childInc={hasChildIncrements}, skipped={hasSkippedLeaves})");
+            Debug.WriteLine($"[ExecuteAll]  needChunked={needChunked}  "
+                          + $"(parallel={DoParallel}, repeat={RepeatIdenticalRanges}, "
+                          + $"childInc={hasChildIncrements}, skipped={hasSkippedLeaves})");
 #endif
 
             if (!needChunked)
@@ -1473,8 +1478,7 @@ else
                 /* enter */ n =>
                             {
                                 var c = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
-                                c.CopyParentVirtualStack();
-                                c.ResetIncrementsForParent();
+                                c.CopyParentVirtualStack();                     // ★ changed
                             },
                 /* exec */ n =>
                            {
@@ -1486,6 +1490,7 @@ else
                                    ExecuteSectionOfCommands(chunk);
 
                                chunk.CopyIncrementsToParentIfNecessary();
+                               chunk.ResetIncrementsForParent();               // ★ changed
                            },
                 /* parallel? */ n =>
                     DoParallel &&
@@ -1499,6 +1504,7 @@ else
             Debug.WriteLine("══════════════════════════════════════════════════════");
 #endif
         }
+
 
 
 
@@ -2185,6 +2191,7 @@ else
                 var child = MakeChildChunk(gate, gInfo, slicePos, sliceEnd);
                 var info = child.StoredValue;
 
+                info.RequiresPrivateStack = true;
                 info.StartSourceIndices = curSrcIdx;
                 info.EndSourceIndicesExclusive = curSrcIdx + srcIncr;
                 info.StartDestinationIndices = curDstIdx;

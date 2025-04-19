@@ -25,6 +25,7 @@ namespace ACESimBase.Util.ArrayProcessing
             public static int NextID = 0;
             public int ID;
             public bool ChildrenParallelizable;
+            public bool RequiresPrivateStack;
             public byte LastChild;
             public int StartCommandRange, EndCommandRangeExclusive;
             public int StartSourceIndices, EndSourceIndicesExclusive;
