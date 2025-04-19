@@ -1579,25 +1579,36 @@ namespace ACESimTest
         [TestMethod]
         public void HoistedChildIncrementsAreMerged()
         {
-            var acl = new ArrayCommandList(100, 1, parallelize: false)
-            { MaxCommandsPerChunk = 1, DisableAdvancedFeatures = false };      // force hoisting/slicing
+            // — build a tiny ACL that is guaranteed to be hoisted/sliced —
+            var acl = new ArrayCommandList(100, /*firstScratchIdx*/ 1, parallelize: false)
+            {
+                MaxCommandsPerChunk = 1,      // force 1‑command slices
+                DisableAdvancedFeatures = false
+            };
 
-            acl.StartCommandChunk(false, null);
+            /* We *want* the hoisted children of this root chunk to run in parallel
+               so that each slice receives its own private virtual stack.           */
+            bool runChildrenInParallel = true;
+            Debug.WriteLine($"[TEST] Creating root chunk with parallel={runChildrenInParallel}");
+            acl.StartCommandChunk(runChildrenInParallel, identicalStartCommandRange: null);
+
             int scratch = acl.CopyToNew(0, fromOriginalSources: true);   // vs[1] = 1
-            acl.InsertNotEqualsValueCommand(scratch, 0);                   // 1 != 0, so always true
+            acl.InsertNotEqualsValueCommand(scratch, 0);                 // 1 != 0  → always true
             acl.InsertIfCommand();
-            acl.Increment(scratch, false, scratch);                 // double
-            acl.Increment(scratch, false, scratch);                 // double again
+            acl.Increment(scratch, targetOriginal: false, indexOfIncrement: scratch); // *=2
+            acl.Increment(scratch, targetOriginal: false, indexOfIncrement: scratch); // *=2 again
             acl.InsertEndIfCommand();
-            acl.Increment(0, true, scratch);                            // write back
+            acl.Increment(0, targetOriginal: true, indexOfIncrement: scratch);        // write back
             acl.EndCommandChunk();
+
             acl.CompleteCommandList();
 
             double[] data = { 1 };
             acl.ExecuteAll(data, tracing: false);
 
-            Assert.AreEqual(4, data[0]);  // fails before patch, passes after
+            Assert.AreEqual(4, data[0]);  // should now pass
         }
+
 
         [TestMethod]
         public void HoistedChildIncrementTransfersScratchToParent_WithStubHelpers()

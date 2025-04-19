@@ -1,6 +1,7 @@
 ﻿using ACESim;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -54,6 +55,8 @@ namespace ACESimBase.Util.ArrayProcessing
                     FindOutermostIf(info.StartCommandRange, info.EndCommandRangeExclusive);
                 if (ifIdx != -1)
                 {
+                    Debug.WriteLine($"[HOIST‑CAND] leafID={info.ID} size={size} " +
+                                    $"parentParall={info.ChildrenParallelizable}");
                     int bodyLen = (endIfIdx - ifIdx) - 1;
                     plan.Add(new PlanEntry(info.ID, ifIdx, endIfIdx, bodyLen));
                 }

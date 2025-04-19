@@ -13,6 +13,15 @@ namespace ACESimBase.Util.ArrayProcessing
         [Serializable]
         public class ArrayCommandChunk
         {
+#if DEBUG
+            internal bool _loggedInit;
+            internal bool ChildrenParallelizableLogged
+            {
+                get => _loggedInit;
+                set => _loggedInit = value;
+            }
+#endif
+
             public static int NextID = 0;
             public int ID;
             public bool ChildrenParallelizable;
@@ -69,20 +78,28 @@ namespace ACESimBase.Util.ArrayProcessing
 
             public void CopyParentVirtualStack()
             {
+                // copy only when stacks are distinct and a parent exists – original guard
                 if (ParentVirtualStack != VirtualStack && ParentVirtualStack != null)
                 {
-                    //Debug.Write($"Copying stack from {ParentVirtualStackID} to {VirtualStackID}: "); 
+                    Debug.WriteLine(
+                        $"[CPS‑BEGIN] child={ID,4}  parentVS={ParentVirtualStackID,4}  "
+                      + $"indices=[{string.Join(",", IndicesReadFromStack)}]");
+
                     foreach (int index in IndicesReadFromStack)
                     {
-                        VirtualStack[index] = ParentVirtualStack[index];
-                        //Debug.Write($"{index}:{VirtualStack[index]}, "); 
+                        double before = VirtualStack[index];
+                        double src = ParentVirtualStack[index];
+
+                        VirtualStack[index] = src;            // ← original assignment
+
+                        Debug.WriteLine($"   • idx={index}  {before} → {src}");
                     }
-                    //Debug.WriteLine(""); 
-                    //int stackSize = Math.Min(VirtualStack.Length, ParentVirtualStack.Length);
-                    //for (int i = 0; i < stackSize; i++)
-                    //    VirtualStack[i] = ParentVirtualStack[i];
+
+                    Debug.WriteLine(
+                        $"[CPS‑END]   child={ID,4}  vs0={(VirtualStack.Length > 0 ? VirtualStack[0].ToString() : "∅")}");
                 }
             }
+
 
             public void CopyIncrementsToParentIfNecessary()
             {
@@ -134,15 +151,16 @@ namespace ACESimBase.Util.ArrayProcessing
                 if (CopyIncrementsToParent == null || ParentVirtualStack == null)
                     return;
                 if (ReferenceEquals(VirtualStack, ParentVirtualStack))
-                    return;     // nothing to clear when stacks are shared
+                    return;    // shared stack – nothing to clear
 
-                Debug.WriteLine($"[RST‑BEG] slice={ID}  zeroing idxs=" +
-                                $"[{string.Join(",", CopyIncrementsToParent)}]");
+                Debug.WriteLine(
+                    $"[RST‑BEG] slice={ID,4}  zeroing idxs=[{string.Join(",", CopyIncrementsToParent)}]  "
+                  + $"vs0={VirtualStack[0]}");
 
                 foreach (int idx in CopyIncrementsToParent)
-                    VirtualStack[idx] = 0;
+                    VirtualStack[idx] = 0;                     // ← original logic
 
-                Debug.WriteLine($"[RST‑END] slice={ID} reset complete");
+                Debug.WriteLine($"[RST‑END] slice={ID,4}  vs0={VirtualStack[0]}");
             }
 
 

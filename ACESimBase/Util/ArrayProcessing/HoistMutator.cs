@@ -107,6 +107,9 @@ namespace ACESimBase.Util.ArrayProcessing
             int ifIdx,
             int endIfIdx)
         {
+            Debug.WriteLine($"[SPLIT] leaf={leaf.StoredValue.ID}  "
+              + $"gateParall={leaf.StoredValue.ChildrenParallelizable}");
+
             int spanStart = leaf.StoredValue.StartCommandRange;
             int spanEnd = leaf.StoredValue.EndCommandRangeExclusive;
             int afterEnd = endIfIdx + 1;
@@ -122,12 +125,21 @@ namespace ACESimBase.Util.ArrayProcessing
             leaf.StoredValue.Skip = false;             // ← changed line
 
             /* helper to copy basic meta‑data */
-            ArrayCommandChunk MetaFrom(ArrayCommandChunk src) => new()
+            ArrayCommandChunk MetaFrom(ArrayCommandChunk src)
             {
-                VirtualStack = src.VirtualStack,
-                VirtualStackID = src.VirtualStackID,
-                ChildrenParallelizable = false
-            };
+                var copy = new ArrayCommandChunk
+                {
+                    VirtualStack = src.VirtualStack,
+                    VirtualStackID = src.VirtualStackID,
+                    ChildrenParallelizable = src.ChildrenParallelizable
+                };
+                
+                Debug.WriteLine(
+                    $"[FLAG‑SET] id={copy.ID,4}  ChildrenParallelizable={copy.ChildrenParallelizable}  "
+                  + $"(copied from parentID={src.ID,4}) in MetaFrom");
+
+                return copy;
+            }
 
             /* ── 2. create the Conditional gate ──────────────────────────────── */
             var gate = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf);
@@ -135,6 +147,18 @@ namespace ACESimBase.Util.ArrayProcessing
             gate.StoredValue.Name = "Conditional";
             gate.StoredValue.StartCommandRange = ifIdx;
             gate.StoredValue.EndCommandRangeExclusive = afterEnd;
+
+#if DEBUG
+            Debug.WriteLine($"[PARA‑CHK] leafID={leaf.StoredValue.ID,4}  "
+                          + $"parent.ChildrenParallelizable={leaf.StoredValue.ChildrenParallelizable}  "
+                          + $"gateID={gate.StoredValue.ID,4}  "
+                          + $"gate.ChildrenParallelizable={gate.StoredValue.ChildrenParallelizable}");
+#endif
+
+            Debug.WriteLine($"[SPLIT‑GATE] parentLeafID={leaf.StoredValue.ID}  "
+              + $"gateID={gate.StoredValue.ID}  "
+              + $"parent.ChildrenParallelizable={leaf.StoredValue.ChildrenParallelizable}  "
+              + $"gate.ChildrenParallelizable={gate.StoredValue.ChildrenParallelizable}");
 
             /* ── 3. optional postfix slice ───────────────────────────────────── */
             NWayTreeStorageInternal<ArrayCommandChunk> postfix = null;

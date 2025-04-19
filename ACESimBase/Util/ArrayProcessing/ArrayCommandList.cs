@@ -15,6 +15,7 @@ using Microsoft.Azure.KeyVault.Core;
 using System.IO;
 using Tensorflow;
 using static TorchSharp.torch;
+using NumpyDotNet;
 
 namespace ACESimBase.Util.ArrayProcessing
 {
@@ -175,6 +176,10 @@ namespace ACESimBase.Util.ArrayProcessing
         /// <param name="name"></param>
         public void StartCommandChunk(bool runChildrenInParallel, int? identicalStartCommandRange, string name = "", bool ignoreKeepTogether = false)
         {
+            Debug.WriteLine(
+                $"[CHUNK‑NEW] nextCmd={NextCommandIndex}  name=\"{name}\"  " +
+                $"runChildrenInParallel={runChildrenInParallel}");
+
             if (KeepCommandsTogetherLevel > 0 && !ignoreKeepTogether)
                 return;
             //TabbedText.WriteLine($"Starting {name} {NextCommandIndex}");
@@ -209,6 +214,21 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void EndCommandChunk(int[] copyIncrementsToParent = null, bool endingRepeatedChunk = false)
         {
+#if DEBUG
+            {
+                string Dump(int[] a) => a == null ? "null" : string.Join(",", a);
+                var child = CurrentCommandChunk;                 // chunk being ended *now*
+                string map = child?.TranslationToLocalIndex == null
+                    ? "∅"
+                    : string.Join(",", child.TranslationToLocalIndex
+                                          .Select((t, i) => t is null ? null : $"{i}->{t}")
+                                          .Where(s => s != null));
+
+                Debug.WriteLine($"[EC‑TOP] endingID={child?.ID,4}  stackID={child?.VirtualStackID,3}  "
+                              + $"CopyIncParam=[{Dump(copyIncrementsToParent)}]  "
+                              + $"TransMap=[{map}]");
+            }
+#endif
 #if DEBUG
             var chunkId = CurrentCommandChunk?.ID ?? -1;
             Debug.WriteLine(
@@ -293,6 +313,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandChunk>)x));
 
             CommandTreeString = CommandTree.ToString();
+            LogFlags("POST‑REBUILD");
         }
 
 
@@ -351,6 +372,21 @@ namespace ACESimBase.Util.ArrayProcessing
             }
         }
 
+#if DEBUG
+        void LogFlags(string phase)
+        {
+            CommandTree.WalkTree(n =>
+            {
+                var c = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
+                if (!c.ChildrenParallelizableLogged)
+                {
+                    Debug.WriteLine($"[FLAG‑{phase}] id={c.ID,4}  ChildrenParallelizable={c.ChildrenParallelizable}");
+                    c.ChildrenParallelizableLogged = true;    // print only first time we visit
+                }
+            });
+        }
+#endif
+
         private void CompleteCommandTree()
         {
             CommandTree.WalkTree(x => InsertMissingBranches((NWayTreeStorageInternal<ArrayCommandChunk>)x));
@@ -361,7 +397,8 @@ namespace ACESimBase.Util.ArrayProcessing
             CommandTree.WalkTree(x => SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandChunk>)x));
 
             CommandTreeString = CommandTree.ToString();
-            CompileCode();
+            CompileCode(); 
+            LogFlags("POST‑COMPLETE");
         }
 
         public void SetupVirtualStack(NWayTreeStorageInternal<ArrayCommandChunk> node)
@@ -488,45 +525,63 @@ namespace ACESimBase.Util.ArrayProcessing
             }
             int[] indicesReadFromStack = Enumerable.Range(0, firstReadFromStack.Length).Where(x => firstReadFromStack[x] != null).ToArray();
             int[] indicesInitiallySetInStack = Enumerable.Range(0, firstSetInStack.Length).Where(x => firstSetInStack[x] != null).ToArray();
+            Debug.WriteLine(
+    $"[IDX‑ANAL] range=[{startRange},{endRangeExclusive})  "
+  + $"read=[{string.Join(",", indicesReadFromStack)}]  "
+  + $"set=[{string.Join(",", indicesInitiallySetInStack)}]");
+
+#if DEBUG
+            {
+                const int probe = 1;                                // slot we care about
+                if (probe < firstReadFromStack.Length)              // guard for small stacks
+                {
+                    string fr = firstReadFromStack[probe]?.ToString() ?? "–";
+                    string fs = firstSetInStack[probe]?.ToString() ?? "–";
+                    Debug.WriteLine($"[DWS‑IDX1] [{startRange},{endRangeExclusive})  "
+                                  + $"firstRead={fr}  firstSet={fs}");
+                }
+            }
+#endif
+
+
             return (indicesReadFromStack, indicesInitiallySetInStack);
         }
 
         public void SetupVirtualStackRelationships(
-        NWayTreeStorageInternal<ArrayCommandChunk> node)
+    NWayTreeStorageInternal<ArrayCommandChunk> node)
         {
             var parentNode = (NWayTreeStorageInternal<ArrayCommandChunk>)node.Parent;
-            if (parentNode == null) return;                 // root → nothing to wire
+            if (parentNode == null) return;                   // root
 
             var child = node.StoredValue;
             var parent = parentNode.StoredValue;
 
             bool shareStack = !parent.ChildrenParallelizable;
 
+            Debug.WriteLine(
+    $"[REL‑DECIDE] pID={parent.ID,4} cID={child.ID,4} " +
+    $"share={shareStack}  reason={(shareStack ? "parent‑not‑parallel" : "parallel")}");
+
+
+            /* original logic unchanged */
             if (shareStack)
             {
-                /* Sequential siblings share the SAME backing array. */
                 child.VirtualStack = parent.VirtualStack;
                 child.VirtualStackID = parent.VirtualStackID;
-                child.ParentVirtualStack = parent.VirtualStack;   // ← record for completeness
+                child.ParentVirtualStack = parent.VirtualStack;
                 child.ParentVirtualStackID = parent.VirtualStackID;
             }
             else
             {
-                /* Parallel siblings: child keeps its own stack but needs a handle to
-                   the parent so CopyIncrementsToParentIfNecessary() can merge later. */
                 child.ParentVirtualStack = parent.VirtualStack;
                 child.ParentVirtualStackID = parent.VirtualStackID;
-                /* child.VirtualStack was already allocated in SetupVirtualStack(node) */
             }
 
-#if DEBUG
-            System.Diagnostics.Debug.WriteLine(
-                $"[REL] childID={child.ID,4}  parentID={parent.ID,4}  " +
-                $"share={(shareStack ? "YES" : "NO ")}  " +
-                 $"parent.ChildrenParallelizable={parent.ChildrenParallelizable}" +
-                $"child.VS={child.VirtualStackID,4}  par.VS={parent.VirtualStackID,4}");
-#endif
+            Debug.WriteLine(
+                $"[REL‑DONE]  pVS={parent.VirtualStackID,3}  cVS={child.VirtualStackID,3}  "
+              + $"CopyInc={child.CopyIncrementsToParent?.Length ?? 0}");
         }
+
 
 
         private int HighestSourceIndexInCommandRange(int startRange, int endRangeExclusive)
@@ -1525,19 +1580,30 @@ else
         }
 
 
-        private void ExecuteSectionOfCommands(Span<double> virtualStack, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int currentOrderedDestinationIndex)
+        /* small local helpers for the new traces */ // DEBUG -- delete after logging
+        double Before(int idx, Span<double> virtualStack)
+        {
+            return (idx >= 0 && idx < virtualStack.Length) ? virtualStack[idx] : double.NaN;
+        }
+
+        private void ExecuteSectionOfCommands(
+    Span<double> virtualStack,
+    int startCommandIndex,
+    int endCommandIndexInclusive,
+    int currentOrderedSourceIndex,
+    int currentOrderedDestinationIndex)
         {
             Debug.WriteLine(
                 $"[DBG] ExecuteSectionOfCommands: stackLen={virtualStack.Length}  " +
                 $"cmdRange=[{startCommandIndex}..{endCommandIndexInclusive}]  " +
-                $"srcStart={currentOrderedSourceIndex}  dstStart={currentOrderedDestinationIndex}"
-            ); // DEBUG
+                $"srcStart={currentOrderedSourceIndex}  dstStart={currentOrderedDestinationIndex}");
 
             bool conditionMet = false;
             int commandIndex = startCommandIndex;
+
+
             while (commandIndex <= endCommandIndexInclusive)
             {
-
                 ArrayCommand command = UnderlyingCommands[commandIndex];
 
                 if (command.CommandType == ArrayCommandType.NextDestination)
@@ -1546,76 +1612,91 @@ else
                                     $"dstPtr={currentOrderedDestinationIndex}");
                 }
 
+                /* bounds & pointer sanity checks (unchanged) */
                 if (command.Index < 0 || command.Index >= virtualStack.Length)
-                {
-                    Debug.WriteLine(
-                        $"[ERROR] cmd#{commandIndex} ({command.CommandType}): " +
-                        $"Index={command.Index} out of [0..{virtualStack.Length - 1}]");
-                }
-                // check command.SourceIndex (only for those commands that use it as an array slot)
-                if (command.SourceIndex >= 0
-                    && command.SourceIndex < virtualStack.Length == false)
-                {
-                    Debug.WriteLine(
-                        $"[ERROR] cmd#{commandIndex} ({command.CommandType}): " +
-                        $"SourceIndex={command.SourceIndex} out of [0..{virtualStack.Length - 1}]");
-                }
-                // check destination pointer
-                if ((command.CommandType == ArrayCommandType.NextDestination ||
-                     command.CommandType == ArrayCommandType.ReusedDestination)
-                    && currentOrderedDestinationIndex >= OrderedDestinations.Length)
-                {
-                    Debug.WriteLine(
-                        $"[ERROR] cmd#{commandIndex} ({command.CommandType}): " +
-                        $"dstPtr={currentOrderedDestinationIndex} >= OrderedDestinations.Length={OrderedDestinations.Length}");
-                }
-                // check source pointer
-                if (command.CommandType == ArrayCommandType.NextSource
-                    && currentOrderedSourceIndex >= OrderedSources.Length)
-                {
-                    Debug.WriteLine(
-                        $"[ERROR] cmd#{commandIndex} ({command.CommandType}): " +
-                        $"srcPtr={currentOrderedSourceIndex} >= OrderedSources.Length={OrderedSources.Length}");
-                }
+                    Debug.WriteLine($"[ERROR] cmd#{commandIndex} ({command.CommandType}): " +
+                                    $"Index={command.Index} out of [0..{virtualStack.Length - 1}]");
 
-                //System.Diagnostics.Debug.WriteLine(command);
+                if (command.SourceIndex >= 0 &&
+                    command.SourceIndex >= virtualStack.Length)
+                    Debug.WriteLine($"[ERROR] cmd#{commandIndex} ({command.CommandType}): " +
+                                    $"SourceIndex={command.SourceIndex} out of [0..{virtualStack.Length - 1}]");
+
+                if ((command.CommandType == ArrayCommandType.NextDestination ||
+                     command.CommandType == ArrayCommandType.ReusedDestination) &&
+                    currentOrderedDestinationIndex >= OrderedDestinations.Length)
+                    Debug.WriteLine($"[ERROR] cmd#{commandIndex} ({command.CommandType}): " +
+                                    $"dstPtr={currentOrderedDestinationIndex} >= OrderedDestinations.Length={OrderedDestinations.Length}");
+
+                if (command.CommandType == ArrayCommandType.NextSource &&
+                    currentOrderedSourceIndex >= OrderedSources.Length)
+                    Debug.WriteLine($"[ERROR] cmd#{commandIndex} ({command.CommandType}): " +
+                                    $"srcPtr={currentOrderedSourceIndex} >= OrderedSources.Length={OrderedSources.Length}");
+
+                /*──────────────────────────────────────────── switch ───────────────*/
                 switch (command.CommandType)
                 {
                     case ArrayCommandType.Zero:
                         virtualStack[command.Index] = 0;
                         break;
+
                     case ArrayCommandType.CopyTo:
                         if (UseCheckpoints && command.Index == CheckpointTrigger)
                         {
-                            if (Checkpoints != null)
-                                Checkpoints.Add(virtualStack[command.SourceIndex]);
+                            Checkpoints?.Add(virtualStack[command.SourceIndex]);
                         }
                         else
                             virtualStack[command.Index] = virtualStack[command.SourceIndex];
                         break;
+
                     case ArrayCommandType.NextSource:
                         virtualStack[command.Index] = OrderedSources[currentOrderedSourceIndex++];
                         break;
-                    case ArrayCommandType.NextDestination:
-                        double value = virtualStack[command.SourceIndex];
-                        OrderedDestinations[currentOrderedDestinationIndex++] = value;
-                        Debug.WriteLine($"[DST‑AFT] slice {CurrentCommandChunk.ID} dstPtr now {currentOrderedDestinationIndex}");
 
+                    case ArrayCommandType.NextDestination:
+                        {
+                            double value = virtualStack[command.SourceIndex];
+                            OrderedDestinations[currentOrderedDestinationIndex++] = value;
+                            Debug.WriteLine($"[DST‑AFT] slice {CurrentCommandChunk.ID} dstPtr now {currentOrderedDestinationIndex}");
+                        }
                         break;
+
                     case ArrayCommandType.ReusedDestination:
-                        value = virtualStack[command.SourceIndex];
-                        int reusedDestination = command.Index;
-                        OrderedDestinations[reusedDestination] += value;
+                        {
+                            double value = virtualStack[command.SourceIndex];
+                            int reused = command.Index;
+                            OrderedDestinations[reused] += value;
+                        }
                         break;
+
                     case ArrayCommandType.MultiplyBy:
                         virtualStack[command.Index] *= virtualStack[command.SourceIndex];
                         break;
+
+                    /* ─── NEW detailed traces ────────────────────────────────────── */
                     case ArrayCommandType.IncrementBy:
-                        virtualStack[command.Index] += virtualStack[command.SourceIndex];
+                        {
+                            double oldVal = Before(command.Index, virtualStack);
+                            double delta = virtualStack[command.SourceIndex];
+                            virtualStack[command.Index] = oldVal + delta;
+                            Debug.WriteLine(
+                                $"[INC] slice {CurrentCommandChunk.ID} cmd#{commandIndex} " +
+                                $"idx={command.Index}  {oldVal} + {delta} → {virtualStack[command.Index]}");
+                        }
                         break;
+
                     case ArrayCommandType.DecrementBy:
-                        virtualStack[command.Index] -= virtualStack[command.SourceIndex];
+                        {
+                            double oldVal = Before(command.Index, virtualStack);
+                            double delta = virtualStack[command.SourceIndex];
+                            virtualStack[command.Index] = oldVal - delta;
+                            Debug.WriteLine(
+                                $"[DEC] slice {CurrentCommandChunk.ID} cmd#{commandIndex} " +
+                                $"idx={command.Index}  {oldVal} - {delta} → {virtualStack[command.Index]}");
+                        }
                         break;
+
+                    /* ─── comparisons ────────────────────────────────────────────── */
                     case ArrayCommandType.EqualsOtherArrayIndex:
                         conditionMet = virtualStack[command.Index] == virtualStack[command.SourceIndex];
                         break;
@@ -1628,46 +1709,47 @@ else
                     case ArrayCommandType.LessThanOtherArrayIndex:
                         conditionMet = virtualStack[command.Index] < virtualStack[command.SourceIndex];
                         break;
-                    // in next two, sourceindex represents a value, not an array index
+
                     case ArrayCommandType.EqualsValue:
                         conditionMet = virtualStack[command.Index] == command.SourceIndex;
                         break;
                     case ArrayCommandType.NotEqualsValue:
                         conditionMet = virtualStack[command.Index] != command.SourceIndex;
                         break;
+
+                    /* ─── flow control ───────────────────────────────────────────── */
                     case ArrayCommandType.If:
                         if (!conditionMet)
                         {
-#if DEBUG
-                            System.Diagnostics.Debug.WriteLine(
-                                $"SKIP If at cmd {commandIndex} in chunk {CurrentCommandChunk.ID}");
-#endif
-                            int numIf = 1;
-                            while (numIf > 0)
+                            /* skip body exactly as before */
+                            int depth = 1;
+                            while (depth > 0)
                             {
                                 commandIndex++;
                                 var ct = UnderlyingCommands[commandIndex].CommandType;
-                                if (ct == ArrayCommandType.If) numIf++;
-                                else if (ct == ArrayCommandType.EndIf) numIf--;
+                                if (ct == ArrayCommandType.If) depth++;
+                                else if (ct == ArrayCommandType.EndIf) depth--;
                                 else if (ct == ArrayCommandType.NextSource) currentOrderedSourceIndex++;
                                 else if (ct == ArrayCommandType.NextDestination) currentOrderedDestinationIndex++;
                             }
-                            /* If we exited because we ran out of commands in this chunk,
-                               numIf > 0.  Carry the remaining depth across chunks. */
-                            if (numIf > 0) _globalSkipDepth += numIf;
+                            if (depth > 0) _globalSkipDepth += depth;
                         }
                         break;
+
                     case ArrayCommandType.EndIf:
                         break;
+
                     case ArrayCommandType.Blank:
                         break;
+
                     default:
                         throw new NotImplementedException();
                 }
-                //LogCommand(commandIndex, virtualStack);
+
                 commandIndex++;
             }
         }
+
 
         #endregion
 
