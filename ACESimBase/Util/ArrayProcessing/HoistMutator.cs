@@ -73,7 +73,8 @@ namespace ACESimBase.Util.ArrayProcessing
                 StartSourceIndices = 0,
                 EndSourceIndicesExclusive = 0,
                 StartDestinationIndices = 0,
-                EndDestinationIndicesExclusive = 0
+                EndDestinationIndicesExclusive = 0,
+                Skip = true
             };
             acl.CommandTree = root;
             acl.CommandTreeString = acl.CommandTree.ToString();
