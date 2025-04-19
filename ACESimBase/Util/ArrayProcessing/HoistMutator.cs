@@ -102,23 +102,26 @@ namespace ACESimBase.Util.ArrayProcessing
             NWayTreeStorageInternal<ArrayCommandChunk> Postfix);
 
         internal static LeafSplit SplitOversizeLeaf(
-    ArrayCommandList acl,
-    NWayTreeStorageInternal<ArrayCommandChunk> leaf,
-    int ifIdx,          // index of the “If” token
-    int endIfIdx)       // index of the matching “EndIf” token
+            ArrayCommandList acl,
+            NWayTreeStorageInternal<ArrayCommandChunk> leaf,
+            int ifIdx,
+            int endIfIdx)
         {
             int spanStart = leaf.StoredValue.StartCommandRange;
             int spanEnd = leaf.StoredValue.EndCommandRangeExclusive;
             int afterEnd = endIfIdx + 1;
 
-            // ── prefix: shrink existing node to commands *before* the If
+            /* ── 1. shrink original node to the prefix BEFORE the If ─────────── */
             leaf.StoredValue.EndCommandRangeExclusive = ifIdx;
 
-            /* the leaf’s body has been hoisted into children; prevent the
-               leaf itself from being executed a second time. */
-            leaf.StoredValue.Skip = true;
+            /* ‼ Do NOT mark the prefix for skipping – it contains essential
+                   initialisation work (e.g. CopyToNew) that must still run. */
+#if DEBUG
+            Debug.WriteLine($"[FIX] Prefix slice {leaf.StoredValue.ID} will execute (Skip=false)");
+#endif
+            leaf.StoredValue.Skip = false;             // ← changed line
 
-            // helper to clone basic metadata + stack ref
+            /* helper to copy basic meta‑data */
             ArrayCommandChunk MetaFrom(ArrayCommandChunk src) => new()
             {
                 VirtualStack = src.VirtualStack,
@@ -126,14 +129,14 @@ namespace ACESimBase.Util.ArrayProcessing
                 ChildrenParallelizable = false
             };
 
-            // ── gate node
+            /* ── 2. create the Conditional gate ──────────────────────────────── */
             var gate = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf);
             gate.StoredValue = MetaFrom(leaf.StoredValue);
             gate.StoredValue.Name = "Conditional";
             gate.StoredValue.StartCommandRange = ifIdx;
             gate.StoredValue.EndCommandRangeExclusive = afterEnd;
 
-            // ── postfix slice (optional)
+            /* ── 3. optional postfix slice ───────────────────────────────────── */
             NWayTreeStorageInternal<ArrayCommandChunk> postfix = null;
             if (afterEnd < spanEnd)
             {
@@ -146,6 +149,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
             return new LeafSplit(leaf, gate, postfix);
         }
+
 
 
         /// <summary>

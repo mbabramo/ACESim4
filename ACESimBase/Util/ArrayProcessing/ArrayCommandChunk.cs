@@ -84,73 +84,68 @@ namespace ACESimBase.Util.ArrayProcessing
                 }
             }
 
+            public void CopyIncrementsToParentIfNecessary()
+            {
+                // ── fast‑exit guards ───────────────────────────────────────────────────────
+                if (CopyIncrementsToParent == null || CopyIncrementsToParent.Length == 0)
+                    return;
+                if (ParentVirtualStack == null)
+                {
+                    Debug.WriteLine($"[INC‑SKIP] child={ID}  NO‑PARENT");
+                    return;
+                }
+
+                bool sharing = ReferenceEquals(ParentVirtualStack, VirtualStack);
+                if (sharing)
+                {
+                    // Having a list here is unexpected and could lead to double‑adds later.
+                    Debug.WriteLine($"[INC‑WARN] child={ID} shares parent stack yet " +
+                                    $"CopyIncrements is non‑empty → NO merge performed");
+                    return;
+                }
+
+                // ── verbose, but extremely helpful when tracking duplicate merges ─────────
+                string DumpValues(double[] stack, IEnumerable<int> idxs) =>
+                    string.Join(", ", idxs.Select(i => $"{i}:{stack[i]}"));
+
+                Debug.WriteLine($"[MERGE‑BEG] child={ID} → parentVS={ParentVirtualStackID}  " +
+                                $"idxs=[{string.Join(",", CopyIncrementsToParent)}]");
+                Debug.WriteLine($"           childVals  [{DumpValues(VirtualStack, CopyIncrementsToParent)}]");
+                Debug.WriteLine($"           parentVals [{DumpValues(ParentVirtualStack, CopyIncrementsToParent)}]");
+
+                // ── real work ─────────────────────────────────────────────────────────────
+                foreach (int idx in CopyIncrementsToParent)
+                {
+                    double delta = VirtualStack[idx];
+                    if (delta == 0) continue;
+
+                    double before = ParentVirtualStack[idx];
+                    Interlocking.Add(ref ParentVirtualStack[idx], delta);
+                    double after = ParentVirtualStack[idx];
+
+                    Debug.WriteLine($"   • idx={idx}  +={delta}   {before} → {after}");
+                }
+
+                Debug.WriteLine($"[MERGE‑END] parentVals [{DumpValues(ParentVirtualStack, CopyIncrementsToParent)}]");
+            }
+
             public void ResetIncrementsForParent()
             {
                 if (CopyIncrementsToParent == null || ParentVirtualStack == null)
                     return;
                 if (ReferenceEquals(VirtualStack, ParentVirtualStack))
-                    return;
+                    return;     // nothing to clear when stacks are shared
 
-#if DEBUG
-                Debug.WriteLine($"[RST‑BEF] slice {ID} has CopyInc = " +
-                    $"{string.Join(',', CopyIncrementsToParent ?? Array.Empty<int>())}");
-#endif
+                Debug.WriteLine($"[RST‑BEG] slice={ID}  zeroing idxs=" +
+                                $"[{string.Join(",", CopyIncrementsToParent)}]");
 
                 foreach (int idx in CopyIncrementsToParent)
                     VirtualStack[idx] = 0;
 
-#if DEBUG
-                Debug.WriteLine($"[RST‑AFT] slice {ID} reset complete");
-#endif
+                Debug.WriteLine($"[RST‑END] slice={ID} reset complete");
             }
 
 
-            public void CopyIncrementsToParentIfNecessary()
-            {
-                // nothing to do?
-                if (CopyIncrementsToParent == null || CopyIncrementsToParent.Length == 0)
-                    return;
-
-                if (ParentVirtualStack == null)
-                {
-#if DEBUG
-                    System.Diagnostics.Debug.WriteLine(
-                        $"[INC] childID={ID,4}  NO‑PARENT; list len={CopyIncrementsToParent.Length}");
-#endif
-                    return;                                 // should never happen
-                }
-                if (CopyIncrementsToParent != null)
-                {
-                    Debug.WriteLine($"[MERGE] slice {ID}  -> parentVS[{ParentVirtualStackID}]  " +
-                                    $"indices={string.Join(",", CopyIncrementsToParent)}"); // DEBUG
-                }
-
-                bool sharing = ReferenceEquals(ParentVirtualStack, VirtualStack);
-
-#if DEBUG
-                System.Diagnostics.Debug.WriteLine(
-                    $"[INC] childID={ID,4}  share={(sharing ? "YES" : "NO ")}  " +
-                    $"copy {{{string.Join(",", CopyIncrementsToParent)}}}");
-#endif
-
-                // If we *share* the parent stack there is nothing to merge.
-                // Having a non‑empty list in that case is a logic error worth flagging.
-                if (sharing)
-                {
-                    Debug.WriteLine($"[INC‑SKIP] slice {ID} shares parent – merge skipped"); // DEBUG
-                    return;
-                }
-
-                /* real merge for private‑stack children */
-                foreach (int idx in CopyIncrementsToParent)
-                {
-                    double val = VirtualStack[idx];
-                    if (val == 0) continue;                 // skip zeros (cheap)
-
-                    // atomic add – implementation provided elsewhere in your codebase
-                    Interlocking.Add(ref ParentVirtualStack[idx], val);
-                }
-            }
 
         }
     }

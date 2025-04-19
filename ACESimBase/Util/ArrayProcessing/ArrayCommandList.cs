@@ -410,7 +410,7 @@ namespace ACESimBase.Util.ArrayProcessing
         private (int[] indicesReadFromStack, int[] indicesSetInStack) DetermineWhenIndicesFirstLastUsed(int startRange, int endRangeExclusive, int?[] firstReadFromStack, int?[] firstSetInStack, int?[] lastSetInStack, int?[] lastUsed, int?[] translationToLocalIndex)
         {
             // DEBUG
-            const bool LOG_STACK_DIAG = true;            // flip to false to silence
+            const bool LOG_STACK_DIAG = false;            // flip to false to silence
             if (LOG_STACK_DIAG)
             {
                 System.Diagnostics.Debug.WriteLine(
@@ -2025,7 +2025,10 @@ else
             /* gate now spans If … EndIf inclusive */
             gInfo.EndCommandRangeExclusive = endIfIdxExcl + 1;
             gInfo.LastChild = (byte)(bId - 1);
-            gInfo.Skip = true;        // gate must not re‑execute body
+#if DEBUG
+            Debug.WriteLine($"[CREATESLICES] Gate chunk {gInfo.ID} will execute (Skip=false)");
+#endif
+            gInfo.Skip = false;        // gate must not re‑execute body
 
 #if DEBUG
             /* one‑time diagnostic dump for the slices we just built */
