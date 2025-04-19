@@ -174,32 +174,41 @@ namespace ACESimBase.Util.ArrayProcessing
         /// <param name="runChildrenInParallel"></param>
         /// <param name="identicalStartCommandRange"></param>
         /// <param name="name"></param>
-        public void StartCommandChunk(bool runChildrenInParallel, int? identicalStartCommandRange, string name = "", bool ignoreKeepTogether = false)
+        public void StartCommandChunk(
+    bool runChildrenInParallel,
+    int? identicalStartCommandRange,
+    string name = "",
+    bool ignoreKeepTogether = false)
         {
+#if DEBUG
             Debug.WriteLine(
                 $"[CHUNK‑NEW] nextCmd={NextCommandIndex}  name=\"{name}\"  " +
-                $"runChildrenInParallel={runChildrenInParallel}");
+                $"runChildrenInParallel={runChildrenInParallel}  "
+              + $"identicalStart={identicalStartCommandRange?.ToString() ?? "null"}");
+#endif
 
             if (KeepCommandsTogetherLevel > 0 && !ignoreKeepTogether)
                 return;
-            //TabbedText.WriteLine($"Starting {name} {NextCommandIndex}");
-            //TabbedText.TabIndent();
+
             if (RepeatIdenticalRanges && identicalStartCommandRange is int identical)
             {
-                // TabbedText.WriteLine($"Repeating identical range (instead of {NextCommandIndex} using {identicalStartCommandRange})");
                 RepeatingExistingCommandRangeStack.Push(identicalStartCommandRange);
                 NextCommandIndex = identical;
                 RepeatingExistingCommandRange = true;
             }
+
             var currentNode = CurrentNode;
-            var currentNodeIsInParallel = CurrentNode?.StoredValue.ChildrenParallelizable ?? false;
+            var currentNodeIsInParallel = currentNode?.StoredValue.ChildrenParallelizable ?? false;
             if (currentNodeIsInParallel)
                 ReusableOrderedDestinationIndices = new Dictionary<int, int>();
+
             if (currentNode.StoredValue.LastChild == 255)
                 throw new Exception("Too many tree branches");
+
             byte nextChild = (byte)(currentNode.StoredValue.LastChild + 1);
-            NWayTreeStorageInternal<ArrayCommandChunk> childNode = new NWayTreeStorageInternal<ArrayCommandChunk>(CurrentNode);
-            childNode.StoredValue = new ArrayCommandChunk()
+
+            var childNode = new NWayTreeStorageInternal<ArrayCommandChunk>(currentNode);
+            childNode.StoredValue = new ArrayCommandChunk
             {
                 Name = name,
                 ChildrenParallelizable = runChildrenInParallel,
@@ -207,10 +216,20 @@ namespace ACESimBase.Util.ArrayProcessing
                 StartSourceIndices = OrderedSourceIndices?.Count() ?? 0,
                 StartDestinationIndices = OrderedDestinationIndices?.Count() ?? 0
             };
-            CurrentNode.SetBranch(nextChild, childNode);
-            CurrentNode.StoredValue.LastChild = nextChild;
+
+            currentNode.SetBranch(nextChild, childNode);
+            currentNode.StoredValue.LastChild = nextChild;
             CurrentCommandTreeLocation.Add(nextChild);
+
+#if DEBUG
+            Debug.WriteLine(
+                $"[START‑CHUNK] parentID={currentNode.StoredValue.ID}  "
+              + $"childID={childNode.StoredValue.ID}  branch={nextChild}  "
+              + $"ChildrenParallelizable={childNode.StoredValue.ChildrenParallelizable}  "
+              + $"startCmd={childNode.StoredValue.StartCommandRange}");
+#endif
         }
+
 
         public void EndCommandChunk(int[] copyIncrementsToParent = null, bool endingRepeatedChunk = false)
         {
@@ -404,8 +423,21 @@ namespace ACESimBase.Util.ArrayProcessing
         public void SetupVirtualStack(NWayTreeStorageInternal<ArrayCommandChunk> node)
         {
             ArrayCommandChunk c = node.StoredValue;
+
+#if DEBUG
+            if (c.VirtualStack != null)
+                Debug.WriteLine($"[VS‑WARN] id={c.ID}  already has VS={c.VirtualStackID}  "
+                              + "→ allocating another one now");
+#endif
+
+            /* allocate a brand‑new scratch array */
             c.VirtualStack = new double[MaxArrayIndex + 1];
             c.VirtualStackID = NextVirtualStackID++;
+
+#if DEBUG
+            Debug.WriteLine($"[VS‑ALLOC] id={c.ID}  newVS={c.VirtualStackID}");
+#endif
+
             if (node.Branches == null || node.Branches.Length == 0)
             {
                 c.FirstReadFromStack = new int?[MaxArrayIndex + 1];
@@ -413,13 +445,24 @@ namespace ACESimBase.Util.ArrayProcessing
                 c.LastSetInStack = new int?[MaxArrayIndex + 1];
                 c.LastUsed = new int?[MaxArrayIndex + 1];
                 c.TranslationToLocalIndex = new int?[MaxArrayIndex + 1];
-                (c.IndicesReadFromStack, c.IndicesInitiallySetInStack) = DetermineWhenIndicesFirstLastUsed(c.StartCommandRange, c.EndCommandRangeExclusive, c.FirstReadFromStack, c.FirstSetInStack, c.LastSetInStack, c.LastUsed, c.TranslationToLocalIndex);
+
+                (c.IndicesReadFromStack, c.IndicesInitiallySetInStack) =
+                    DetermineWhenIndicesFirstLastUsed(
+                        c.StartCommandRange,
+                        c.EndCommandRangeExclusive,
+                        c.FirstReadFromStack,
+                        c.FirstSetInStack,
+                        c.LastSetInStack,
+                        c.LastUsed,
+                        c.TranslationToLocalIndex);
             }
             else
             {
                 DetermineSourcesUsedFromChildren(node);
             }
         }
+
+
 
         private static void DetermineSourcesUsedFromChildren(
           NWayTreeStorageInternal<ArrayCommandChunk> node)
@@ -563,6 +606,11 @@ namespace ACESimBase.Util.ArrayProcessing
             bool shareStack = !parent.ChildrenParallelizable
                            || !child.ChildrenParallelizable;
 
+#if DEBUG
+            if (parent.ChildrenParallelizable && !child.ChildrenParallelizable && shareStack)
+                Debug.WriteLine($"[WARN] parent {parent.ID} ChildrenParallelizable=true, "
+                              + $"child {child.ID} false  →  shareStack={shareStack} (will re‑use VS)");
+
             Debug.WriteLine(
                 $"[REL‑DECIDE] pID={parent.ID,4} cID={child.ID,4} "
               + $"share={shareStack}  reason="
@@ -570,9 +618,14 @@ namespace ACESimBase.Util.ArrayProcessing
                     ? (!parent.ChildrenParallelizable ? "parent‑not‑parallel"
                                                        : "child‑not‑parallel")
                     : "parallel"));
+#endif
 
             if (shareStack)
             {
+#if DEBUG
+                Debug.WriteLine($"[VS‑OVWR] child {child.ID}  VS {child.VirtualStackID} "
+                              + $"→ parent VS {parent.VirtualStackID}");
+#endif
                 child.VirtualStack = parent.VirtualStack;
                 child.VirtualStackID = parent.VirtualStackID;
                 child.ParentVirtualStack = parent.VirtualStack;
@@ -584,13 +637,16 @@ namespace ACESimBase.Util.ArrayProcessing
                 child.ParentVirtualStackID = parent.VirtualStackID;
             }
 
+#if DEBUG
             Debug.WriteLine(
                 $"[REL‑DONE]  pVS={parent.VirtualStackID,3}  cVS={child.VirtualStackID,3}  "
               + $"CopyInc={child.CopyIncrementsToParent?.Length ?? 0}");
             Debug.WriteLine(
-                $"[CHECK‑LIST] chunk {child.ID}  Read=[{string.Join(",", child.IndicesReadFromStack ?? Array.Empty<int>())}]  "
-              + $"Inc=[{string.Join(",", child.CopyIncrementsToParent ?? Array.Empty<int>())}]");
+                $"[CHECK‑LIST] chunk {child.ID}  Read=[{string.Join(',', child.IndicesReadFromStack ?? Array.Empty<int>())}]  "
+              + $"Inc=[{string.Join(',', child.CopyIncrementsToParent ?? Array.Empty<int>())}]");
+#endif
         }
+
 
 
 
@@ -1453,6 +1509,9 @@ else
         // ───────────────────────────────────────────────────────────────────────────
         public double[] ExecuteAllCommands(double[] array)
         {
+#if DEBUG
+            Debug.WriteLine("[ExecuteAllCommands]  BEGIN");
+#endif
             if (MaxCommandIndex == 0)
                 CompleteCommandList();
 
@@ -1472,6 +1531,9 @@ else
             );
 
             CopyOrderedDestinations(array);
+#if DEBUG
+            Debug.WriteLine("[ExecuteAllCommands]  END");
+#endif
             return array;
         }
 
@@ -1485,7 +1547,6 @@ else
         /// </summary>
         private void ExecuteSectionOfCommands(ArrayCommandChunk commandChunk)
         {
-
             /* ───── Cross‑chunk skipping ─────────────────────────────────── */
             if (_globalSkipDepth > 0)
             {
@@ -1493,70 +1554,33 @@ else
                 return;                                // skip real execution
             }
 
+#if DEBUG
+            Debug.WriteLine($"[INT‑ENTER] id={commandChunk.ID}  "
+                          + $"VS={commandChunk.VirtualStackID}  "
+                          + $"pVS={commandChunk.ParentVirtualStackID}");
+#endif
+
             /* ────────── LOG: chunk entry ────────── */
             Debug.WriteLine(
                 $"[CHUNK] id={commandChunk.ID,3}  cmds=[{commandChunk.StartCommandRange},{commandChunk.EndCommandRangeExclusive})  " +
                 $"cosi→{commandChunk.StartSourceIndices}  codi→{commandChunk.StartDestinationIndices}  " +
-                $"copyUp={Format(cp: commandChunk.CopyIncrementsToParent)}");// DEBUG
+                $"copyUp={Format(cp: commandChunk.CopyIncrementsToParent)}");
 
             static string Format(int[] cp)
-                => cp == null ? "∅" : $"[{string.Join(",", cp)}]"; // DEBUG
+                => cp == null ? "∅" : $"[{string.Join(",", cp)}]";
 
-            /* ───── DEBUG: chunk entry log (unchanged) ───────────────────── */
-            System.Diagnostics.Debug.WriteLine(
-                $"▶ enter  chunkID={commandChunk.ID,4}  " +
-                $"[{commandChunk.StartCommandRange,8}-{commandChunk.EndCommandRangeExclusive,8})  " +
-                $"srcIdx={commandChunk.StartSourceIndices}/" +
-                $"{commandChunk.EndSourceIndicesExclusive}  " +
-                $"dstIdx={commandChunk.StartDestinationIndices}/" +
-                $"{commandChunk.EndDestinationIndicesExclusive}");
-
-            Debug.WriteLine($"[ENTER] chunk {CurrentCommandChunk.ID}  " +
-                $"path={string.Join(".", CurrentPath())}  " +
-                $"range=[{CurrentCommandChunk.StartCommandRange}," +
-                $"{CurrentCommandChunk.EndCommandRangeExclusive})");
-
-            IEnumerable<int> CurrentPath() // DEBUG
-            {
-                var n = CurrentNode;
-                var rev = new Stack<int>();
-                while (n.Parent != null)
-                {
-                    rev.Push(n.StoredValue.ID);    // assumes BranchId property or similar helper
-                    n = (NWayTreeStorageInternal<ArrayCommandChunk>)n.Parent;
-                }
-                return rev;
-            }
-
-            const int InspectChunkId = 42;                 // change for ad‑hoc dumps
-            if (commandChunk.ID == InspectChunkId)
-            {
-                for (int i = commandChunk.StartCommandRange;
-                         i < commandChunk.EndCommandRangeExclusive; i++)
-                    System.Diagnostics.Debug.WriteLine($"   cmd {i,8}: {UnderlyingCommands[i]}");
-            }
-
-            /* ───── DEBUG: checkpoint tag (unchanged) ────────────────────── */
-            if (UseCheckpoints && commandChunk.ExecId != int.MinValue)
-            {
-                Checkpoints ??= new List<double>();
-                Checkpoints.Add(commandChunk.ExecId);          // +ve leaf, ‑ve gate
-            }
+#if DEBUG
+            Debug.WriteLine($"[CHUNK‑ENTER] id={commandChunk.ID}");
+#endif
 
             /* ───── Roslyn path ──────────────────────────────────────────── */
             if (UseRoslyn)
             {
                 bool compiled = ExecuteAutogeneratedCode(commandChunk);
-                if (!compiled)
-                {
-                    ExecuteSectionOfCommands(
-                        new Span<double>(commandChunk.VirtualStack),
-                        commandChunk.StartCommandRange,
-                        commandChunk.EndCommandRangeExclusive - 1,
-                        commandChunk.StartSourceIndices,
-                        commandChunk.StartDestinationIndices);
-                }
-                return;
+#if DEBUG
+                if (compiled) Debug.WriteLine($"[CHUNK‑ROS]  id={commandChunk.ID}  ran‑compiled");
+#endif
+                if (compiled) return;
             }
 
             /* ───── Reflection‑Emit / interpreter path ───────────────────── */
@@ -1568,33 +1592,32 @@ else
 
             if (!containsFlow && _compiledChunkMethods.TryGetValue(key, out var del))
             {
-                /* run compiled delegate */
+#if DEBUG
+                Debug.WriteLine($"[CHUNK‑IL ]  id={commandChunk.ID}");
+#endif
                 int cosi = commandChunk.StartSourceIndices;
                 int codi = commandChunk.StartDestinationIndices;
-                try
-                {
-                    del(commandChunk.VirtualStack,
-                        OrderedSources,
-                        OrderedDestinations,
-                        ref cosi, ref codi);
-                }
-                catch (InvalidProgramException ex)
-                {
-                    throw new InvalidOperationException(
-                        $"Invalid IL in compiled chunk '{key}' " +
-                        $"(commands {startCmd}..{endCmd}).", ex);
-                }
+                del(commandChunk.VirtualStack,
+                    OrderedSources,
+                    OrderedDestinations,
+                    ref cosi, ref codi);
             }
             else
             {
-                /* interpret either because no delegate or chunk has flow‑control */
+#if DEBUG
+                Debug.WriteLine($"[CHUNK‑INT]  id={commandChunk.ID}");
+#endif
                 ExecuteSectionOfCommands(
                     new Span<double>(commandChunk.VirtualStack),
-                    startCmd, endCmd,
+                    startCmd,
+                    endCmd,
                     commandChunk.StartSourceIndices,
                     commandChunk.StartDestinationIndices);
             }
         }
+
+
+
 
 
 
@@ -2203,8 +2226,8 @@ else
 
 
         private void BuildStackInfo(
-                NWayTreeStorageInternal<ArrayCommandChunk> gate,
-                IEnumerable<NWayTreeStorageInternal<ArrayCommandChunk>> slices)
+        NWayTreeStorageInternal<ArrayCommandChunk> gate,
+        IEnumerable<NWayTreeStorageInternal<ArrayCommandChunk>> slices)
         {
             /* gate must have a stack BEFORE we wire its children */
             SetupVirtualStack(gate);
@@ -2214,8 +2237,16 @@ else
             {
                 SetupVirtualStack(s);
                 SetupVirtualStackRelationships(s);
+#if DEBUG
+                var c = s.StoredValue;
+                Debug.WriteLine(
+                    $"[STACK‑INFO] id={c.ID}  VS={c.VirtualStackID}  "
+                  + $"pVS={c.ParentVirtualStackID}  "
+                  + $"ChildrenParallelizable={c.ChildrenParallelizable}");
+#endif
             }
         }
+
 
         /// <summary>
         /// Find every slice that owns a private virtual‑stack array and make sure
@@ -2231,6 +2262,11 @@ else
             foreach (var slice in slices)
             {
                 var info = slice.StoredValue;
+
+#if DEBUG
+                Debug.WriteLine($"[ATTACH] child {info.ID}  LastSet null? {info.LastSetInStack == null}  "
+                              + $"sharesParent? {ReferenceEquals(info.VirtualStack, info.ParentVirtualStack)}");
+#endif
 
                 // If the slice shares the parent's stack, or there is no parent, no copy‑up is needed.
                 if (ReferenceEquals(info.VirtualStack, info.ParentVirtualStack) ||
@@ -2285,15 +2321,15 @@ else
 
         /// Create a child chunk that copies stack/buffer metadata from <paramref name="gInfo"/>.
         private NWayTreeStorageInternal<ArrayCommandChunk> MakeChildChunk(
-            NWayTreeStorageInternal<ArrayCommandChunk> gate,
-            ArrayCommandChunk gInfo,
-            int sliceStart,
-            int sliceEnd)
+        NWayTreeStorageInternal<ArrayCommandChunk> gate,
+        ArrayCommandChunk gInfo,
+        int sliceStart,
+        int sliceEnd)
         {
             var child = new NWayTreeStorageInternal<ArrayCommandChunk>(gate);
             child.StoredValue = new ArrayCommandChunk
             {
-                ChildrenParallelizable = false,
+                ChildrenParallelizable = false,          // (unchanged)
                 StartCommandRange = sliceStart,
                 EndCommandRangeExclusive = sliceEnd,
 
@@ -2304,8 +2340,14 @@ else
 
                 ExecId = _nextExecId++
             };
+
+#if DEBUG
+            Debug.WriteLine($"[MAKE] new slice {child.StoredValue.ID} created  " +
+                            $"ChildrenParallelizable={child.StoredValue.ChildrenParallelizable}");
+#endif
             return child;
         }
+
 
         #endregion
 
