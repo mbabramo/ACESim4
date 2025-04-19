@@ -515,12 +515,19 @@ namespace ACESimBase.Util.ArrayProcessing
                     // NOTE: If we get an IndexOutOfRangeException or other problem here,
                     // it may because of a failure to copy increments to parent when ending
                     // a chunk.
-                    if (firstReadFromStack[virtualStackIndex] == null && firstSetInStack[virtualStackIndex] == null)
+                    if (firstReadFromStack[virtualStackIndex] == null &&
+    firstSetInStack[virtualStackIndex] == null)
                     {
-                        if (UnderlyingCommands[commandIndex].CommandType >= ArrayCommandType.MultiplyBy && UnderlyingCommands[commandIndex].CommandType <= ArrayCommandType.DecrementBy)
+                        var t = UnderlyingCommands[commandIndex].CommandType;
+
+                        if (t >= ArrayCommandType.MultiplyBy && t <= ArrayCommandType.DecrementBy)
+                        {
+                            // read‑modify‑write → also mark first read
                             firstReadFromStack[virtualStackIndex] = commandIndex;
-                        else
-                            firstSetInStack[virtualStackIndex] = commandIndex;
+                        }
+
+                        // either way, this is the first write
+                        firstSetInStack[virtualStackIndex] = commandIndex;
                     }
                     lastSetInStack[virtualStackIndex] = commandIndex;
                     lastUsed[virtualStackIndex] = commandIndex;
