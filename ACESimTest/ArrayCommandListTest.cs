@@ -1586,11 +1586,11 @@ namespace ACESimTest
                 DisableAdvancedFeatures = false
             };
 
-            /* We *want* the hoisted children of this root chunk to run in parallel
+            /* We *want* the hoisted children of this root chunk to be designated as able to be run in parallel
                so that each slice receives its own private virtual stack.           */
-            bool runChildrenInParallel = true;
-            Debug.WriteLine($"[TEST] Creating root chunk with parallel={runChildrenInParallel}");
-            acl.StartCommandChunk(runChildrenInParallel, identicalStartCommandRange: null);
+            bool requiresPrivateStack = true;
+            Debug.WriteLine($"[TEST] Creating root chunk with requiresPrivateStack={requiresPrivateStack}");
+            acl.StartCommandChunk(requiresPrivateStack, identicalStartCommandRange: null);
 
             int scratch = acl.CopyToNew(0, fromOriginalSources: true);   // vs[1] = 1
             acl.InsertNotEqualsValueCommand(scratch, 0);                 // 1 != 0  → always true

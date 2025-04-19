@@ -542,6 +542,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 }
             }
 #endif
+            Debug.WriteLine($"[CHECK‑LIST] chunk ?  Read=[{string.Join(",", indicesReadFromStack)}]  Inc=?");
 
 
             return (indicesReadFromStack, indicesInitiallySetInStack);
@@ -579,7 +580,10 @@ namespace ACESimBase.Util.ArrayProcessing
 
             Debug.WriteLine(
                 $"[REL‑DONE]  pVS={parent.VirtualStackID,3}  cVS={child.VirtualStackID,3}  "
-              + $"CopyInc={child.CopyIncrementsToParent?.Length ?? 0}");
+              + $"CopyInc={child.CopyIncrementsToParent?.Length ?? 0}"); 
+            Debug.WriteLine($"[CHECK‑LIST] chunk {child.ID}  Read=[{string.Join(",", child.IndicesReadFromStack ?? Array.Empty<int>())}]  Inc=[{string.Join(",", child.CopyIncrementsToParent ?? Array.Empty<int>())}]");
+
+
         }
 
 
@@ -1290,22 +1294,17 @@ else
                                     c.CopyParentVirtualStack();
                                     c.ResetIncrementsForParent();
                                 },
-                    /* exec  */ n =>
-                                {
-                                    var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
-                                    var chunk = node.StoredValue;
-                                    if (chunk.Skip) return;
+                    /* exec */ n =>
+                               {
+                                   var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
+                                   var chunk = node.StoredValue;
+                                   if (chunk.Skip) return;
 
-                                    if (node.Branches == null || node.Branches.Length == 0)
-                                    {
-                                        int id = _nextExecId++;
-                                        chunk.ID = id;
-                                        Checkpoints.Add(id);
-                                        ExecuteSectionOfCommands(chunk);
-                                    }
+                                   if (node.Branches == null || node.Branches.Length == 0)
+                                       ExecuteSectionOfCommands(chunk);
 
-                                    chunk.CopyIncrementsToParentIfNecessary();
-                                },
+                                   chunk.CopyIncrementsToParentIfNecessary();
+                               },
                     /* parallel? */ n => false
                 );
 
@@ -1317,24 +1316,23 @@ else
              * 2)  Decide flat vs. chunked
              *────────────────────────────*/
             bool hasChildIncrements = false;
-            bool hasSkippedLeaves = false;          // NEW  ←――――――――――――――――
+            bool hasSkippedLeaves = false;
 
             CommandTree.WalkTree(n =>
             {
                 var c = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
                 if (c.CopyIncrementsToParent != null) hasChildIncrements = true;
-                if (c.Skip) hasSkippedLeaves = true;   // NEW
+                if (c.Skip) hasSkippedLeaves = true;
             });
 
             bool needChunked =
                     DoParallel
                  || RepeatIdenticalRanges
                  || hasChildIncrements
-                 || hasSkippedLeaves;                 // NEW  ←――――――――――――――――
+                 || hasSkippedLeaves;
 
             if (!needChunked)
             {
-                /* run the original flat interpreter */
                 ExecuteAllCommands(array);
                 return;
             }
@@ -1351,17 +1349,17 @@ else
                                 c.CopyParentVirtualStack();
                                 c.ResetIncrementsForParent();
                             },
-                /* exec  */ n =>
-                            {
-                                var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
-                                var chunk = node.StoredValue;
-                                if (chunk.Skip) return;
+                /* exec */ n =>
+                           {
+                               var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
+                               var chunk = node.StoredValue;
+                               if (chunk.Skip) return;
 
-                                if (node.Branches == null || node.Branches.Length == 0)
-                                    ExecuteSectionOfCommands(chunk);
+                               if (node.Branches == null || node.Branches.Length == 0)
+                                   ExecuteSectionOfCommands(chunk);
 
-                                chunk.CopyIncrementsToParentIfNecessary();
-                            },
+                               chunk.CopyIncrementsToParentIfNecessary();
+                           },
                 /* parallel? */ n =>
                     DoParallel &&
                     ((NWayTreeStorageInternal<ArrayCommandChunk>)n)
@@ -1370,8 +1368,6 @@ else
 
             CopyOrderedDestinations(array);
         }
-
-
 
 
 
