@@ -1617,38 +1617,38 @@ namespace ACESimTest
         [TestMethod]
         public void HoistedChildIncrementTransfersScratchToParent_WithStubHelpers()
         {
-            // 1️⃣  Build a flat command list:
-            //     • 0 prefix
-            //     • 2 body increments of vs[0] by vs[0], so equivalent to vs[0] = 3*vs[0] (so bodyLen>threshold forces hoist)
-            //     • 0 postfix
-            var cmds = BuildCustomFlat(prefixLen: 0, bodyLen: 2, postfixLen: 0);
+            /* 1️⃣  Build a flat command list:
+                   • always‑true guard                (cmd 0)
+                   • If                               (cmd 1)
+                   • 2 × IncrementBy 0,0              (cmd 2‑3)   ── body
+                   • EndIf                            (cmd 4)
+                   • IncrementBy 0,0                  (cmd 5)     ── copy‑back        */
+            var cmds = new List<ArrayCommand>
+            {
+                // guard:  vs[0] != 0  →  true
+                new ArrayCommand(ArrayCommandType.NotEqualsValue, index: 0, sourceIndex: 0),
+                new ArrayCommand(ArrayCommandType.If,           -1, -1),
+                new ArrayCommand(ArrayCommandType.IncrementBy,   0,  0),
+                new ArrayCommand(ArrayCommandType.IncrementBy,   0,  0),
+                new ArrayCommand(ArrayCommandType.EndIf,        -1, -1),
+                new ArrayCommand(ArrayCommandType.IncrementBy,   0,  0)   // final copy‑back
+            };
 
-            // 2️⃣  Create a stub ACL with threshold=1 to force hoisting on that 2‑cmd body
+            /* 2️⃣  Stub ACL with threshold 1 so the 2‑command body is hoisted */
             var acl = CreateStubACL(cmds, maxPerChunk: 1);
 
-            // 3️⃣  Now, append one more IncrementBy to copy our scratch slot (idx=0) into original dest (dst=0)
-            //     This mirrors how Increment(targetOriginal: true) would work.
-            //     (Because CreateStubACL leaves NextSource/NextDestination wiring up to you,
-            //      we’re just reusing the same pattern of “make cmd” + “wire tree.”)
-            var extend = acl.UnderlyingCommands.ToList();
-            extend.Add(new ArrayCommand(ArrayCommandType.IncrementBy, index: 0, sourceIndex: 0)); // equivalent to vs[0] = 2*vs[0].
-            acl.UnderlyingCommands = extend.ToArray();
-            acl.NextCommandIndex = acl.UnderlyingCommands.Length;
-            acl.MaxCommandIndex = acl.NextCommandIndex;
-            // bump MaxArrayIndex so that scratch slot 0 is visible as used
-            acl.MaxArrayIndex = 0;
-
-            // 4️⃣  Completes the tree and does the planner+mutator+IL gen
+            /* 3️⃣  Complete planner + mutator + IL generation */
             acl.CompleteCommandList();
 
-            // 5️⃣  Execute — start with values[0]=1; expect scratch doubled twice → 4, written back
-            double[] data = new double[] { 1.0 };
+            /* 4️⃣  Execute – start with values[0] = 1.
+                    Arithmetic: 1 →×2→ 2 →×2→ 4 →×2→ 8            */
+            double[] data = { 1.0 };
             acl.ExecuteAll(data, tracing: false);
 
-            // 6️⃣  If the child’s two increments weren’t merged via CopyIncrementsToParent,
-            //     we’d only see 1, not 4.
-            Assert.AreEqual(4.0, data[0], 1e-12);
+            /* 5️⃣  Validate result */
+            Assert.AreEqual(8.0, data[0], 1e-12);
         }
+
 
         [TestMethod]
         public void RandomizedInterpreterVsCompiledAcrossThresholds()
