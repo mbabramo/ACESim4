@@ -102,17 +102,21 @@ namespace ACESimBase.Util.ArrayProcessing
             NWayTreeStorageInternal<ArrayCommandChunk> Postfix);
 
         internal static LeafSplit SplitOversizeLeaf(
-            ArrayCommandList acl,
-            NWayTreeStorageInternal<ArrayCommandChunk> leaf,
-            int ifIdx,          // index of the “If” token
-            int endIfIdx)       // index of the matching “EndIf” token
+    ArrayCommandList acl,
+    NWayTreeStorageInternal<ArrayCommandChunk> leaf,
+    int ifIdx,          // index of the “If” token
+    int endIfIdx)       // index of the matching “EndIf” token
         {
             int spanStart = leaf.StoredValue.StartCommandRange;
             int spanEnd = leaf.StoredValue.EndCommandRangeExclusive;
             int afterEnd = endIfIdx + 1;
 
-            // ── prefix: shrink existing node
+            // ── prefix: shrink existing node to commands *before* the If
             leaf.StoredValue.EndCommandRangeExclusive = ifIdx;
+
+            /* the leaf’s body has been hoisted into children; prevent the
+               leaf itself from being executed a second time. */
+            leaf.StoredValue.Skip = true;
 
             // helper to clone basic metadata + stack ref
             ArrayCommandChunk MetaFrom(ArrayCommandChunk src) => new()
@@ -142,6 +146,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
             return new LeafSplit(leaf, gate, postfix);
         }
+
 
         /// <summary>
         /// Attach <paramref name="split"/> to the original leaf’s parent so the new
