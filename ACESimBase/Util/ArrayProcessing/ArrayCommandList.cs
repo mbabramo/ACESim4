@@ -209,6 +209,14 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void EndCommandChunk(int[] copyIncrementsToParent = null, bool endingRepeatedChunk = false)
         {
+#if DEBUG
+            var chunkId = CurrentCommandChunk?.ID ?? -1;
+            Debug.WriteLine(
+                $"[END] chunk {chunkId} sets CopyIncrementsToParent = " +
+                $"{(copyIncrementsToParent == null ? "null"
+                                                   : string.Join(',', copyIncrementsToParent))}");
+#endif
+
             if (KeepCommandsTogetherLevel > 0)
                 return;
             //TabbedText.WriteLine($"Ending");
@@ -515,6 +523,7 @@ namespace ACESimBase.Util.ArrayProcessing
             System.Diagnostics.Debug.WriteLine(
                 $"[REL] childID={child.ID,4}  parentID={parent.ID,4}  " +
                 $"share={(shareStack ? "YES" : "NO ")}  " +
+                 $"parent.ChildrenParallelizable={parent.ChildrenParallelizable}" +
                 $"child.VS={child.VirtualStackID,4}  par.VS={parent.VirtualStackID,4}");
 #endif
         }
@@ -1349,7 +1358,6 @@ else
         /// </summary>
         private void ExecuteSectionOfCommands(ArrayCommandChunk commandChunk)
         {
-            Debug.WriteLine($"chunk {commandChunk.ID} starts with cosi={commandChunk.StartSourceIndices}, codi={commandChunk.StartDestinationIndices}"); // DEBUG
 
             /* ───── Cross‑chunk skipping ─────────────────────────────────── */
             if (_globalSkipDepth > 0)
@@ -1357,6 +1365,15 @@ else
                 ScanChunkForSkipDepth(commandChunk);   // update depth counters only
                 return;                                // skip real execution
             }
+
+            /* ────────── LOG: chunk entry ────────── */
+            Debug.WriteLine(
+                $"[CHUNK] id={commandChunk.ID,3}  cmds=[{commandChunk.StartCommandRange},{commandChunk.EndCommandRangeExclusive})  " +
+                $"cosi→{commandChunk.StartSourceIndices}  codi→{commandChunk.StartDestinationIndices}  " +
+                $"copyUp={Format(cp: commandChunk.CopyIncrementsToParent)}");// DEBUG
+
+            static string Format(int[] cp)
+                => cp == null ? "∅" : $"[{string.Join(",", cp)}]"; // DEBUG
 
             /* ───── DEBUG: chunk entry log (unchanged) ───────────────────── */
             System.Diagnostics.Debug.WriteLine(
@@ -1366,6 +1383,23 @@ else
                 $"{commandChunk.EndSourceIndicesExclusive}  " +
                 $"dstIdx={commandChunk.StartDestinationIndices}/" +
                 $"{commandChunk.EndDestinationIndicesExclusive}");
+
+            Debug.WriteLine($"[ENTER] chunk {CurrentCommandChunk.ID}  " +
+                $"path={string.Join(".", CurrentPath())}  " +
+                $"range=[{CurrentCommandChunk.StartCommandRange}," +
+                $"{CurrentCommandChunk.EndCommandRangeExclusive})");
+
+            IEnumerable<int> CurrentPath() // DEBUG
+            {
+                var n = CurrentNode;
+                var rev = new Stack<int>();
+                while (n.Parent != null)
+                {
+                    rev.Push(n.StoredValue.ID);    // assumes BranchId property or similar helper
+                    n = (NWayTreeStorageInternal<ArrayCommandChunk>)n.Parent;
+                }
+                return rev;
+            }
 
             const int InspectChunkId = 42;                 // change for ad‑hoc dumps
             if (commandChunk.ID == InspectChunkId)
@@ -1498,12 +1532,19 @@ else
                 $"cmdRange=[{startCommandIndex}..{endCommandIndexInclusive}]  " +
                 $"srcStart={currentOrderedSourceIndex}  dstStart={currentOrderedDestinationIndex}"
             ); // DEBUG
+
             bool conditionMet = false;
             int commandIndex = startCommandIndex;
             while (commandIndex <= endCommandIndexInclusive)
             {
 
                 ArrayCommand command = UnderlyingCommands[commandIndex];
+
+                if (command.CommandType == ArrayCommandType.NextDestination)
+                {
+                    Debug.WriteLine($"[DST‑BEF] slice {CurrentCommandChunk.ID} cmd#{commandIndex} " +
+                                    $"dstPtr={currentOrderedDestinationIndex}");
+                }
 
                 if (command.Index < 0 || command.Index >= virtualStack.Length)
                 {
@@ -1558,6 +1599,8 @@ else
                     case ArrayCommandType.NextDestination:
                         double value = virtualStack[command.SourceIndex];
                         OrderedDestinations[currentOrderedDestinationIndex++] = value;
+                        Debug.WriteLine($"[DST‑AFT] slice {CurrentCommandChunk.ID} dstPtr now {currentOrderedDestinationIndex}");
+
                         break;
                     case ArrayCommandType.ReusedDestination:
                         value = virtualStack[command.SourceIndex];
@@ -1920,38 +1963,86 @@ else
             return (pair.ifIdx, pair.endIfIdx);
         }
 
+        /// <summary>
+        /// Split the If‑body held by <paramref name="gate"/> into child slices
+        /// that each contain at most <c>MaxCommandsPerChunk</c> commands.
+        /// The method now also assigns the *correct* ordered‑source (cosi) and
+        /// ordered‑destination (codi) pointers to every child, so siblings start
+        /// exactly where the previous slice left off.
+        /// </summary>
         private IList<NWayTreeStorageInternal<ArrayCommandChunk>> CreateSlices(
                 NWayTreeStorageInternal<ArrayCommandChunk> gate,
                 int ifIdx,
                 int endIfIdxExcl)
         {
-            int bodyStart = ifIdx + 1, bodyEnd = endIfIdxExcl; // EndIf excluded
-            if (bodyStart >= bodyEnd) return Array.Empty<NWayTreeStorageInternal<ArrayCommandChunk>>();
+            int bodyStart = ifIdx + 1, bodyEnd = endIfIdxExcl;           // EndIf excluded
+            if (bodyStart >= bodyEnd)
+                return Array.Empty<NWayTreeStorageInternal<ArrayCommandChunk>>();
 
             var slices = new List<NWayTreeStorageInternal<ArrayCommandChunk>>();
             var gInfo = gate.StoredValue;
+
+            // running ordered‑source / ordered‑destination pointers, inherited from gate
+            int curSrcIdx = gInfo.StartSourceIndices;
+            int curDstIdx = gInfo.StartDestinationIndices;
+
             int slicePos = bodyStart;
-            byte bId = 1;                     // 0 = prefix
+            byte bId = 1;                                           // 0 = prefix slice
 
             while (slicePos < bodyEnd && bId < byte.MaxValue)
             {
+                /* 1️⃣  decide slice end, respecting nesting depth and MaxCommandsPerChunk */
                 int sliceEnd = FindSliceEnd(slicePos, bodyEnd, MaxCommandsPerChunk);
-                var child = MakeChildChunk(gate, gInfo, slicePos, sliceEnd);
 
+                /* 2️⃣  count NextSource / NextDestination inside the slice */
+                int srcIncr = 0, dstIncr = 0;
+                for (int i = slicePos; i < sliceEnd; i++)
+                {
+                    var t = UnderlyingCommands[i].CommandType;
+                    if (t == ArrayCommandType.NextSource) srcIncr++;
+                    if (t == ArrayCommandType.NextDestination) dstIncr++;
+                }
+
+                /* 3️⃣  create child chunk and assign *accurate* pointer ranges */
+                var child = MakeChildChunk(gate, gInfo, slicePos, sliceEnd);
+                var info = child.StoredValue;
+
+                info.StartSourceIndices = curSrcIdx;
+                info.EndSourceIndicesExclusive = curSrcIdx + srcIncr;
+                info.StartDestinationIndices = curDstIdx;
+                info.EndDestinationIndicesExclusive = curDstIdx + dstIncr;
+
+                /* 4️⃣  wire into tree, collect for caller */
                 gate.SetBranch(bId++, child);
                 slices.Add(child);
+
+                /* 5️⃣  advance cumulative pointers + move to next slice */
+                curSrcIdx += srcIncr;
+                curDstIdx += dstIncr;
                 slicePos = sliceEnd;
             }
 
-            /* gate now spans If…EndIf inclusive */
+            /* gate now spans If … EndIf inclusive */
             gInfo.EndCommandRangeExclusive = endIfIdxExcl + 1;
             gInfo.LastChild = (byte)(bId - 1);
+            gInfo.Skip = true;        // gate must not re‑execute body
 
-            // original body lives in new children now; don't execute it twice.
-            gInfo.Skip = true; 
+#if DEBUG
+            /* one‑time diagnostic dump for the slices we just built */
+            foreach (var s in slices)
+            {
+                var c = s.StoredValue;
+                Debug.WriteLine(
+                    $"[SLICE] id={c.ID,3}  cmds=[{c.StartCommandRange},{c.EndCommandRangeExclusive})  " +
+                    $"cosi {c.StartSourceIndices}->{c.EndSourceIndicesExclusive}  " +
+                    $"codi {c.StartDestinationIndices}->{c.EndDestinationIndicesExclusive}");
+            }
+#endif
 
             return slices;
         }
+        // ──────────────────────────────────────────────────────────────────────────────
+
 
         private void BuildStackInfo(
                 NWayTreeStorageInternal<ArrayCommandChunk> gate,
@@ -2008,7 +2099,23 @@ else
 
                 if (toCopy.Count > 0)
                     ch.CopyIncrementsToParent = toCopy.ToArray();
+
+                Debug.WriteLine($"[SLICE‑INFO] new child {ch.ID} has CopyInc = " +
+                        $"{(ch.CopyIncrementsToParent == null ? "null"
+                           : string.Join(",", ch.CopyIncrementsToParent))}"); // DEBUG
             }
+#if DEBUG
+            Debug.WriteLine($"[COPY‑LISTS] gate {gateInfo.ID}  " +
+                string.Join(" | ", slices.Select((sl, idx) =>
+                {
+                    var c = sl.StoredValue;
+                    return $"child{idx}:{Fmt(c.StartDestinationIndices)}→{Fmt(c.EndDestinationIndicesExclusive)}";
+                })));
+
+            static string Fmt(int v) => v.ToString();
+#endif
+
+
         }
 
 

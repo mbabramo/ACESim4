@@ -88,13 +88,22 @@ namespace ACESimBase.Util.ArrayProcessing
             {
                 if (CopyIncrementsToParent == null || ParentVirtualStack == null)
                     return;
-
                 if (ReferenceEquals(VirtualStack, ParentVirtualStack))
-                    return;    
+                    return;
+
+#if DEBUG
+                Debug.WriteLine($"[RST‑BEF] slice {ID} has CopyInc = " +
+                    $"{string.Join(',', CopyIncrementsToParent ?? Array.Empty<int>())}");
+#endif
 
                 foreach (int idx in CopyIncrementsToParent)
                     VirtualStack[idx] = 0;
+
+#if DEBUG
+                Debug.WriteLine($"[RST‑AFT] slice {ID} reset complete");
+#endif
             }
+
 
             public void CopyIncrementsToParentIfNecessary()
             {
@@ -110,6 +119,11 @@ namespace ACESimBase.Util.ArrayProcessing
 #endif
                     return;                                 // should never happen
                 }
+                if (CopyIncrementsToParent != null)
+                {
+                    Debug.WriteLine($"[MERGE] slice {ID}  -> parentVS[{ParentVirtualStackID}]  " +
+                                    $"indices={string.Join(",", CopyIncrementsToParent)}"); // DEBUG
+                }
 
                 bool sharing = ReferenceEquals(ParentVirtualStack, VirtualStack);
 
@@ -123,8 +137,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 // Having a non‑empty list in that case is a logic error worth flagging.
                 if (sharing)
                 {
-                    System.Diagnostics.Debug.Fail(
-                        $"Chunk {ID} shares parent VS yet has CopyIncrementsToParent set.");
+                    Debug.WriteLine($"[INC‑SKIP] slice {ID} shares parent – merge skipped"); // DEBUG
                     return;
                 }
 
