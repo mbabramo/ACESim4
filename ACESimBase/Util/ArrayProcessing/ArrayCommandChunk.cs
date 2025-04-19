@@ -97,21 +97,47 @@ namespace ACESimBase.Util.ArrayProcessing
 
             public void CopyIncrementsToParentIfNecessary()
             {
-                if (ParentVirtualStack != VirtualStack && ParentVirtualStack != null && CopyIncrementsToParent != null)
+                // nothing to do?
+                if (CopyIncrementsToParent == null || CopyIncrementsToParent.Length == 0)
+                    return;
+
+                if (ParentVirtualStack == null)
                 {
-                    //Debug.WriteLine($"Copying increments for chunk {ID} {String.Join(",", CopyIncrementsToParent.Select(x => VirtualStack[x]))}"); 
-                    foreach (int index in CopyIncrementsToParent)
-                    {
-                        double value = VirtualStack[index];
-                        if (value != 0)
-                        {
-                            double result = Interlocking.Add(ref ParentVirtualStack[index], value);
-                            //Debug.WriteLine($"Result {result} "); 
-                        }
-                    }
+#if DEBUG
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[INC] childID={ID,4}  NO‑PARENT; list len={CopyIncrementsToParent.Length}");
+#endif
+                    return;                                 // should never happen
                 }
-                //else Debug.WriteLine($"Not copying increments for chunk {ID}"); 
+
+                bool sharing = ReferenceEquals(ParentVirtualStack, VirtualStack);
+
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine(
+                    $"[INC] childID={ID,4}  share={(sharing ? "YES" : "NO ")}  " +
+                    $"copy {{{string.Join(",", CopyIncrementsToParent)}}}");
+#endif
+
+                // If we *share* the parent stack there is nothing to merge.
+                // Having a non‑empty list in that case is a logic error worth flagging.
+                if (sharing)
+                {
+                    System.Diagnostics.Debug.Fail(
+                        $"Chunk {ID} shares parent VS yet has CopyIncrementsToParent set.");
+                    return;
+                }
+
+                /* real merge for private‑stack children */
+                foreach (int idx in CopyIncrementsToParent)
+                {
+                    double val = VirtualStack[idx];
+                    if (val == 0) continue;                 // skip zeros (cheap)
+
+                    // atomic add – implementation provided elsewhere in your codebase
+                    Interlocking.Add(ref ParentVirtualStack[idx], val);
+                }
             }
+
         }
     }
 }

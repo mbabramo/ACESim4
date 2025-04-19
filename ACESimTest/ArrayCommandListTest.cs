@@ -1584,7 +1584,7 @@ namespace ACESimTest
 
             acl.StartCommandChunk(false, null);
             int scratch = acl.CopyToNew(0, fromOriginalSources: true);   // vs[1] = 1
-            acl.InsertEqualsValueCommand(scratch, 0);                   // always false
+            acl.InsertNotEqualsValueCommand(scratch, 0);                   // 1 != 0, so always true
             acl.InsertIfCommand();
             acl.Increment(scratch, false, scratch);                 // double
             acl.Increment(scratch, false, scratch);                 // double again
