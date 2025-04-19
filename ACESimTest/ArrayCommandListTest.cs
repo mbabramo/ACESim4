@@ -1542,16 +1542,16 @@ namespace ACESimTest
                Body length = 7   Threshold = 3   ⇒ naïve slicer will cut after idx 3.
             */
             var cmds = new List<ArrayCommand>
-    {
-        new(ArrayCommandType.If, -1,-1),      // 0  (not in body slice)
-        new(ArrayCommandType.IncrementBy,0,0),// 1
-        new(ArrayCommandType.If,-1,-1),       // 2
-        new(ArrayCommandType.IncrementBy,0,0),// 3
-        new(ArrayCommandType.IncrementBy,0,0),// 4
-        new(ArrayCommandType.EndIf,-1,-1),    // 5
-        new(ArrayCommandType.IncrementBy,0,0),// 6
-        new(ArrayCommandType.EndIf,-1,-1)     // 7
-    };
+        {
+            new(ArrayCommandType.If, -1,-1),      // 0  (not in body slice)
+            new(ArrayCommandType.IncrementBy,0,0),// 1
+            new(ArrayCommandType.If,-1,-1),       // 2
+            new(ArrayCommandType.IncrementBy,0,0),// 3
+            new(ArrayCommandType.IncrementBy,0,0),// 4
+            new(ArrayCommandType.EndIf,-1,-1),    // 5
+            new(ArrayCommandType.IncrementBy,0,0),// 6
+            new(ArrayCommandType.EndIf,-1,-1)     // 7
+        };
 
             var acl = CreateStubACL(cmds, maxPerChunk: 3); // tiny threshold
             var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
@@ -1565,7 +1565,7 @@ namespace ACESimTest
             {
                 int depth = 0;
                 for (int i = child.StoredValue.StartCommandRange;
-                         i < child.StoredValue.EndCommandRangeExclusive; i++)
+                            i < child.StoredValue.EndCommandRangeExclusive; i++)
                 {
                     var t = cmds[i].CommandType;
                     if (t == ArrayCommandType.If) depth++;
@@ -1576,7 +1576,144 @@ namespace ACESimTest
             }
         }
 
+        [TestMethod]
+        public void HoistedChildIncrementsAreMerged()
+        {
+            var acl = new ArrayCommandList(100, 1, parallelize: false)
+            { MaxCommandsPerChunk = 1 };      // force hoisting/slicing
 
+            acl.StartCommandChunk(false, null);
+            int scratch = acl.CopyToNew(0, fromOriginalSources: true);   // vs[1] = 1
+            acl.InsertEqualsValueCommand(scratch, 0);                   // always false
+            acl.InsertIfCommand();
+            acl.Increment(scratch, false, scratch);                 // double
+            acl.Increment(scratch, false, scratch);                 // double again
+            acl.InsertEndIfCommand();
+            acl.Increment(0, true, scratch);                            // write back
+            acl.EndCommandChunk();
+            acl.CompleteCommandList();
+
+            double[] data = { 1 };
+            acl.ExecuteAll(data, tracing: false);
+
+            Assert.AreEqual(4, data[0]);  // fails before patch, passes after
+        }
+
+        [TestMethod]
+        public void HoistedChildIncrementTransfersScratchToParent_WithStubHelpers()
+        {
+            // 1️⃣  Build a flat command list:
+            //     • 0 prefix
+            //     • 2 body increments of vs[0] by vs[0], so equivalent to vs[0] = 3*vs[0] (so bodyLen>threshold forces hoist)
+            //     • 0 postfix
+            var cmds = BuildCustomFlat(prefixLen: 0, bodyLen: 2, postfixLen: 0);
+
+            // 2️⃣  Create a stub ACL with threshold=1 to force hoisting on that 2‑cmd body
+            var acl = CreateStubACL(cmds, maxPerChunk: 1);
+
+            // 3️⃣  Now, append one more IncrementBy to copy our scratch slot (idx=0) into original dest (dst=0)
+            //     This mirrors how Increment(targetOriginal: true) would work.
+            //     (Because CreateStubACL leaves NextSource/NextDestination wiring up to you,
+            //      we’re just reusing the same pattern of “make cmd” + “wire tree.”)
+            var extend = acl.UnderlyingCommands.ToList();
+            extend.Add(new ArrayCommand(ArrayCommandType.IncrementBy, index: 0, sourceIndex: 0)); // equivalent to vs[0] = 2*vs[0].
+            acl.UnderlyingCommands = extend.ToArray();
+            acl.NextCommandIndex = acl.UnderlyingCommands.Length;
+            acl.MaxCommandIndex = acl.NextCommandIndex;
+            // bump MaxArrayIndex so that scratch slot 0 is visible as used
+            acl.MaxArrayIndex = 0;
+
+            // 4️⃣  Completes the tree and does the planner+mutator+IL gen
+            acl.CompleteCommandList();
+
+            // 5️⃣  Execute — start with values[0]=1; expect scratch doubled twice → 4, written back
+            double[] data = new double[] { 1.0 };
+            acl.ExecuteAll(data, tracing: false);
+
+            // 6️⃣  If the child’s two increments weren’t merged via CopyIncrementsToParent,
+            //     we’d only see 1, not 4.
+            Assert.AreEqual(4.0, data[0], 1e-12);
+        }
+
+        [TestMethod]
+        public void RandomizedInterpreterVsCompiledAcrossThresholds()
+        {
+            var rnd = new Random(123456);
+            const int iterations = 10;
+
+            for (int iter = 0; iter < iterations; iter++)
+            {
+                // random initial value in original[0]
+                double initialValue = rnd.NextDouble() * 10.0;
+
+                // random body length between 3 and 7
+                int bodyLen = rnd.Next(3, 8);
+                int[] ops = new int[bodyLen];
+                for (int i = 0; i < bodyLen; i++)
+                    ops[i] = rnd.Next(3); // 0=copy,1=mul,2=inc
+
+                // test thresholds from 1 (always hoist) up to bodyLen+1 (never hoist)
+                for (int threshold = 1; threshold <= bodyLen + 1; threshold++)
+                {
+                    var acl = new ArrayCommandList(
+                        maxNumCommands: 1000,
+                        initialArrayIndex: 1,
+                        parallelize: false)
+                    {
+                        MaxCommandsPerChunk = threshold
+                    };
+
+                    // root chunk
+                    acl.StartCommandChunk(runChildrenInParallel: false,
+                                          identicalStartCommandRange: null,
+                                          name: "root");
+
+                    // copy original[0] → scratch
+                    int scratch = acl.CopyToNew(0, fromOriginalSources: true);
+
+                    // always‐true guard
+                    acl.InsertEqualsOtherArrayIndexCommand(scratch, scratch);
+                    acl.InsertIfCommand();
+
+                    // random scratch operations
+                    foreach (int op in ops)
+                    {
+                        switch (op)
+                        {
+                            case 0:
+                                scratch = acl.CopyToNew(scratch, fromOriginalSources: false);
+                                break;
+                            case 1:
+                                scratch = acl.MultiplyToNew(scratch, fromOriginalSources: false, scratch);
+                                break;
+                            default:
+                                acl.Increment(scratch, targetOriginal: false, indexOfIncrement: scratch);
+                                break;
+                        }
+                    }
+
+                    acl.InsertEndIfCommand();
+
+                    // write back into original[0]
+                    acl.Increment(0, targetOriginal: true, indexOfIncrement: scratch);
+
+                    acl.EndCommandChunk();
+                    acl.CompleteCommandList();
+
+                    // execute both paths
+                    double[] flatResult = { initialValue };
+                    double[] hoistResult = { initialValue };
+
+                    acl.ExecuteAllCommands(flatResult);
+                    acl.ExecuteAll(hoistResult, tracing: false);
+
+                    Assert.AreEqual(
+                        flatResult[0],
+                        hoistResult[0],
+                        $"Iteration {iter}, threshold {threshold}: expected {flatResult[0]}, got {hoistResult[0]}");
+                }
+            }
+        }
 
         #endregion
 

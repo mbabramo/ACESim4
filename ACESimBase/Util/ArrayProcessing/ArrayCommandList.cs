@@ -1853,42 +1853,164 @@ else
 
 
         /// <summary>
-        /// Split the body of the outermost <c>If … EndIf</c> under
-        /// <paramref name="gate"/> into child leaves, each no longer than
-        /// <see cref="MaxCommandsPerChunk"/> and never crossing a nested block.
+        /// Split the outer‑level If‑body that lives under <paramref name="gate"/>
+        /// into children whose length ≤ <see cref="MaxCommandsPerChunk"/>.
+        /// After slicing, we:
+        ///   • build virtual‑stack metadata for every new child, and
+        ///   • populate each child’s <c>CopyIncrementsToParent</c> when it
+        ///     ended up with its own stack (parallelisable siblings).
         /// </summary>
         public void SliceBodyIntoChildren(
             NWayTreeStorageInternal<ArrayCommandChunk> gate)
         {
-            int max = MaxCommandsPerChunk;
+            // 1️⃣  Build the slices
+            var children = CreateBodySlices(gate);
+
+            // 2️⃣  Populate stack‑usage arrays (FirstRead/LastSet/…)
+            BuildVirtualStackInfo(children, gate);
+
+            // 3️⃣  Work out which indices must be merged to the parent
+            AttachCopyIncrementLists(children, gate.StoredValue);
+        }
+
+        /*──────────────────────── helpers ───────────────────────*/
+
+        private IList<NWayTreeStorageInternal<ArrayCommandChunk>>
+        CreateBodySlices(NWayTreeStorageInternal<ArrayCommandChunk> gate)
+        {
             var gInfo = gate.StoredValue;
-
-            // locate the outer‑level If / EndIf inside this gate
             var pair = FindOutermostIf(gInfo.StartCommandRange,
-                                       gInfo.EndCommandRangeExclusive);
-            if (pair.ifIdx == -1) return;            // should never happen
+                                        gInfo.EndCommandRangeExclusive);
+            if (pair.ifIdx == -1) return Array.Empty<
+                   NWayTreeStorageInternal<ArrayCommandChunk>>();
 
-            int bodyStart = pair.ifIdx + 1;
-            int bodyEnd = pair.endIfIdx;          // EndIf excluded
-            if (bodyStart >= bodyEnd) return;       // empty body
+            int bodyStart = pair.ifIdx + 1,
+                bodyEnd = pair.endIfIdx;          // EndIf excluded
 
             int sliceStart = bodyStart;
             byte childId = 1;                     // branch‑ID 0 is prefix
+            var made = new List<NWayTreeStorageInternal<ArrayCommandChunk>>();
 
             while (sliceStart < bodyEnd && childId < byte.MaxValue)
             {
-                int sliceEnd = FindSliceEnd(sliceStart, bodyEnd, max);
-
+                int sliceEnd = FindSliceEnd(sliceStart, bodyEnd, MaxCommandsPerChunk);
                 var child = MakeChildChunk(gate, gInfo, sliceStart, sliceEnd);
-                gate.SetBranch(childId++, child);
 
-                sliceStart = sliceEnd;              // next slice starts here
+                gate.SetBranch(childId++, child);
+                made.Add(child);
+                sliceStart = sliceEnd;
             }
 
-            /* Gate node keeps If…EndIf inclusive */
+            /* gate spans If…EndIf inclusive */
             gInfo.EndCommandRangeExclusive = pair.endIfIdx + 1;
             gInfo.LastChild = (byte)(childId - 1);
+
+            return made;
         }
+
+        private void BuildVirtualStackInfo(
+            IEnumerable<NWayTreeStorageInternal<ArrayCommandChunk>> children, NWayTreeStorageInternal<ArrayCommandChunk> gate)
+        {
+            SetupVirtualStack(gate);
+
+            foreach (var node in children)
+            {
+                SetupVirtualStack(node);
+                SetupVirtualStackRelationships(node);
+            }
+        }
+
+        private void AttachCopyIncrementLists(
+            IList<NWayTreeStorageInternal<ArrayCommandChunk>> children,
+            ArrayCommandChunk gateInfo)
+        {
+            int n = children.Count;
+
+            // For quick look‑up of “first read after slice k”
+            bool ReadLater(int fromInclusive, int stackIdx)
+            {
+                for (int s = fromInclusive; s < n; s++)
+                    if (children[s].StoredValue.FirstReadFromStack?[stackIdx] != null)
+                        return true;
+                return false;
+            }
+
+            for (int c = 0; c < n; c++)
+            {
+                var ch = children[c].StoredValue;
+                var pArr = ch.ParentVirtualStack;
+
+                // share? → nothing to merge
+                if (ReferenceEquals(ch.VirtualStack, pArr) || pArr == null)
+                    continue;
+
+                var toCopy = new List<int>();
+                var lastSet = ch.LastSetInStack;
+
+                if (lastSet != null)
+                {
+                    for (int i = 0; i < lastSet.Length; i++)
+                    {
+                        if (lastSet[i] == null) continue;
+
+                        bool needed =
+                               ReadLater(c + 1, i)                         // later sibling
+                            || gateInfo.LastUsed?[i] != null;              // parent after EndIf
+
+                        if (needed) toCopy.Add(i);
+                    }
+                }
+
+                if (toCopy.Count > 0)
+                    ch.CopyIncrementsToParent = toCopy.ToArray();
+            }
+        }
+
+
+
+        private static void AttachIncrementLists(
+        NWayTreeStorageInternal<ArrayCommandChunk> gate)
+        {
+            var children = gate.Branches.Cast<NWayTreeStorageInternal<ArrayCommandChunk>>().ToArray();
+            int n = children.Length;
+
+            // 1) gather for every index the last child that writes it
+            Dictionary<int, int> lastWriter = new();
+            for (int c = 0; c < n; c++)
+            {
+                var ch = children[c].StoredValue;
+                if (ch.LastSetInStack == null) continue;
+                for (int i = 0; i < ch.LastSetInStack.Length; i++)
+                    if (ch.LastSetInStack[i] != null)
+                        lastWriter[i] = c;
+            }
+
+            // 2) for each child build CopyIncrementsToParent[]
+            for (int c = 0; c < n; c++)
+            {
+                var ch = children[c].StoredValue;
+                var copy = new List<int>();
+
+                if (ch.LastSetInStack == null) continue;
+
+                for (int i = 0; i < ch.LastSetInStack.Length; i++)
+                {
+                    if (ch.LastSetInStack[i] == null) continue;
+
+                    bool neededLater =
+                           lastWriter[i] > c              // a later slice writes it again
+                        || children.Skip(c + 1).Any(sib =>
+                                sib.StoredValue.FirstReadFromStack?[i] != null);
+
+                    if (neededLater)
+                        copy.Add(i);
+                }
+
+                if (copy.Count > 0)
+                    ch.CopyIncrementsToParent = copy.ToArray();
+            }
+        }
+
 
         /// Return the first command index ≥ <paramref name="sliceStart"/> that:
         ///   • brings nesting depth back to 0, AND
