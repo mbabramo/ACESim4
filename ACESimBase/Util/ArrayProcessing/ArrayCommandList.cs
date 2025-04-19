@@ -1411,7 +1411,8 @@ else
                                    var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
                                    var chunk = node.StoredValue;
                                    if (chunk.Skip) return;
-
+                                   if (UseCheckpoints && Checkpoints != null && node.IsLeaf())
+                                       Checkpoints.Add(chunk.ID);          
                                    if (node.Branches == null || node.Branches.Length == 0)
                                        ExecuteSectionOfCommands(chunk);
 
@@ -1915,6 +1916,12 @@ else
             Array.Clear(OrderedDestinations, 0, destinationsCount);
         }
 
+        /// <summary>
+        /// Copies (and, when necessary, merges) the values that were queued in
+        /// <see cref="OrderedDestinations"/> back into the real data array.
+        /// The result now matches the parallel path exactly: every original slot
+        /// is written **once** with its final total – never “old + delta”.
+        /// </summary>
         public void CopyOrderedDestinations(double[] array)
         {
 #if DEBUG
@@ -1928,85 +1935,101 @@ else
                             $"mode={(DoParallel ? "parallel" : "serial")}");
 #endif
 
+            /* ───────────────────────────── 1. PARALLEL ────────────────────────── */
             if (DoParallel)
             {
-                // --- build or validate the inverted mapping (unchanged logic) ---
+                // (unchanged – still builds the inverted map and assigns totals)
                 if (OrderedDestinationsInverted == null)
                 {
                     OrderedDestinationsInverted = new List<int>[array.Length];
+
                     for (int currentOrderedDestinationIndex = startOrderedDestinationIndex;
                          currentOrderedDestinationIndex < endOrderedDestinationIndexExclusive;
                          currentOrderedDestinationIndex++)
                     {
-                        int destinationIndex = OrderedDestinationIndices[currentOrderedDestinationIndex];
-                        if (OrderedDestinationsInverted[destinationIndex] == null)
-                            OrderedDestinationsInverted[destinationIndex] = new List<int>();
-                        OrderedDestinationsInverted[destinationIndex].Add(currentOrderedDestinationIndex);
-
+                        int destIdx = OrderedDestinationIndices[currentOrderedDestinationIndex];
+                        (OrderedDestinationsInverted[destIdx] ??=
+                            new List<int>()).Add(currentOrderedDestinationIndex);
 #if DEBUG
-                        Debug.WriteLine($"[OD‑MAP] dst={destinationIndex}  srcODIdx={currentOrderedDestinationIndex}");
+                        Debug.WriteLine($"[OD‑MAP] dst={destIdx}  srcODIdx={currentOrderedDestinationIndex}");
 #endif
                     }
 
                     int nonNullCount = OrderedDestinationsInverted.Count(x => x != null);
-                    OrderedDestinationsInvertedWithTarget = new (int targetIndex, List<int> sourceIndices)[nonNullCount];
-                    int totalCopied = 0;
+                    OrderedDestinationsInvertedWithTarget =
+                        new (int targetIndex, List<int> sourceIndices)[nonNullCount];
+
+                    int t = 0;
                     for (int i = 0; i < array.Length; i++)
-                    {
                         if (OrderedDestinationsInverted[i] != null)
-                            OrderedDestinationsInvertedWithTarget[totalCopied++] = (i, OrderedDestinationsInverted[i]);
-                    }
+                            OrderedDestinationsInvertedWithTarget[t++] = (i, OrderedDestinationsInverted[i]);
                 }
                 else if (OrderedDestinationsInverted.Length != array.Length)
                     throw new Exception();
 
-                int numItemsInTargetArray = OrderedDestinationsInvertedWithTarget.Length;
+                int numTargets = OrderedDestinationsInvertedWithTarget.Length;
 
-                Parallelizer.Go(true, 0, numItemsInTargetArray, i =>
+                Parallelizer.Go(true, 0, numTargets, i =>
                 {
-                    var targetAndSourceIndices = OrderedDestinationsInvertedWithTarget[i];
-                    List<int> indicesToCopy = targetAndSourceIndices.sourceIndices;
-                    if (indicesToCopy != null)
+                    var (targetIndex, srcList) = OrderedDestinationsInvertedWithTarget[i];
+                    if (srcList == null) return;
+
+                    double total = 0;
+                    foreach (int src in srcList)
                     {
-                        double total = 0;
-                        foreach (int indexToCopy in indicesToCopy)
-                        {
-                            total += OrderedDestinations[indexToCopy];
+                        total += OrderedDestinations[src];
 #if DEBUG
-                            Debug.WriteLine($"[OD‑ACC] tgt={targetAndSourceIndices.targetIndex}  +=" +
-                                            $"OD[{indexToCopy}]={OrderedDestinations[indexToCopy]}");
+                        Debug.WriteLine($"[OD‑ACC] tgt={targetIndex}  +=" +
+                                        $"OD[{src}]={OrderedDestinations[src]}");
 #endif
-                        }
-#if DEBUG
-                        Debug.WriteLine($"[OD‑WR ] tgt={targetAndSourceIndices.targetIndex}  total={total}");
-#endif
-                        array[targetAndSourceIndices.targetIndex] = total;
                     }
+#if DEBUG
+                    Debug.WriteLine($"[OD‑WR ] tgt={targetIndex}  total={total}");
+#endif
+                    array[targetIndex] = total;
                 });
             }
+
+            /* ───────────────────────────── 2. SERIAL ──────────────────────────── */
             else
             {
-                for (int currentOrderedDestinationIndex = startOrderedDestinationIndex;
-                     currentOrderedDestinationIndex < endOrderedDestinationIndexExclusive;
-                     currentOrderedDestinationIndex++)
+                // Aggregate first (handles duplicates) → single overwrite per slot.
+                var totals = new Dictionary<int, double>(endOrderedDestinationIndexExclusive);
+
+                for (int idx = startOrderedDestinationIndex;
+                     idx < endOrderedDestinationIndexExclusive;
+                     idx++)
                 {
-                    int destinationIndex = OrderedDestinationIndices[currentOrderedDestinationIndex];
+                    int dest = OrderedDestinationIndices[idx];
+                    double delta = OrderedDestinations[idx];
+
+                    if (totals.TryGetValue(dest, out double running))
+                        totals[dest] = running + delta;
+                    else
+                        totals.Add(dest, delta);
+
 #if DEBUG
-                    double before = array[destinationIndex];
-                    double delta = OrderedDestinations[currentOrderedDestinationIndex];
+                    Debug.WriteLine($"[OD‑ACC] dst={dest}  += {delta}  runningTotal={totals[dest]}");
 #endif
-                    array[destinationIndex] += OrderedDestinations[currentOrderedDestinationIndex];
+                }
+
+                foreach (var (dest, total) in totals)
+                {
 #if DEBUG
-                    Debug.WriteLine($"[OD‑SER] dst={destinationIndex}  {before} + {delta} → {array[destinationIndex]}");
+                    double before = array[dest];
+                    Debug.WriteLine($"[OD‑WR ] dst={dest}  {before} → {total}");
 #endif
+                    array[dest] = total;
                 }
             }
 
 #if DEBUG
-            Debug.WriteLine("[OD‑END] first 10 array vals → " + string.Join(", ", array.Take(10)));
+            Debug.WriteLine("[OD‑END] first 10 array vals → " +
+                            string.Join(", ", array.Take(10)));
             Debug.WriteLine("══════════════════════════════════════════════════════");
 #endif
         }
+
 
         #endregion
 
