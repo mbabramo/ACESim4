@@ -16,6 +16,7 @@ using System.IO;
 using Tensorflow;
 using static TorchSharp.torch;
 using NumpyDotNet;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ACESimBase.Util.ArrayProcessing
 {
@@ -2262,48 +2263,73 @@ else
         /// of a hoisted If‑body had no CopyIncrementsToParent list and its delta
         /// was silently lost.
         /// </summary>
+        /// <summary>
+        /// For every child slice that owns its own virtual‑stack array, ensure its full
+        /// read/write footprint is merged into the parent.  Then give the gate itself a
+        /// copy‑list that forwards the accumulated delta one level up.
+        /// </summary>
+        /// <summary>
+        /// For every slice that **owns a private virtual‑stack array** we
+        /// (1) give the slice its own CopyIncrementsToParent list, *and*  
+        /// (2) – if the gate itself also owns a private stack – build the
+        /// union of those indices and assign it to the gate, so the gate’s
+        /// deltas are merged one level higher.
+        ///
+        /// This restores the lost “+1 +2 ⇒ +3” behaviour that the failing
+        /// test is checking.
+        /// </summary>
+        /// <summary>
+        /// Give every child slice (and, when needed, the gate itself)
+        /// a complete CopyIncrementsToParent list so that no delta is lost.
+        /// </summary>
         private void AttachCopyLists(
                 ArrayCommandChunk gateInfo,
                 IList<NWayTreeStorageInternal<ArrayCommandChunk>> slices)
         {
+            var unionForGate = new HashSet<int>();
+
             foreach (var slice in slices)
             {
                 var info = slice.StoredValue;
 
-#if DEBUG
-                Debug.WriteLine($"[ATTACH] child {info.ID}  LastSet null? {info.LastSetInStack == null}  "
-                              + $"sharesParent? {ReferenceEquals(info.VirtualStack, info.ParentVirtualStack)}");
-#endif
+                if (ReferenceEquals(info.VirtualStack, gateInfo.ParentVirtualStack))
+                    continue;            // ← slice shares the root stack, no merge needed
 
-                // If the slice shares the parent's stack, or there is no parent, no copy‑up is needed.
+                /* ── skip if slice shares its parent or never writes ─────────────── */
                 if (ReferenceEquals(info.VirtualStack, info.ParentVirtualStack) ||
-                    info.ParentVirtualStack == null)
+                    info.ParentVirtualStack == null ||
+                    info.LastSetInStack == null)
                     continue;
 
-                // Nothing to merge if the slice never writes.
-                if (info.LastSetInStack == null)
-                    continue;
-
+                /* ── build the slice‑local copy list ─────────────────────────────── */
                 var toCopy = new List<int>();
-
-                // Copy every index that is written at least once in this slice.
                 for (int i = 0; i < info.LastSetInStack.Length; i++)
                     if (info.LastSetInStack[i] != null)
                         toCopy.Add(i);
 
-                if (toCopy.Count > 0)
-                    info.CopyIncrementsToParent = toCopy.ToArray();
+                if (toCopy.Count == 0) continue;
 
+                info.CopyIncrementsToParent = toCopy.ToArray();
 #if DEBUG
-                Debug.WriteLine($"[SLICE‑INFO] new child {info.ID} has CopyInc = " +
-                                $"{(info.CopyIncrementsToParent == null
-                                      ? "null"
-                                      : string.Join(',', info.CopyIncrementsToParent))}");
+                Debug.WriteLine($"[SLICE‑INFO] child {info.ID} CopyInc=[{string.Join(",", toCopy)}]");
 #endif
+                /* ── remember for the gate’s own merge list ─────────────────────── */
+                foreach (int idx in toCopy) unionForGate.Add(idx);
             }
+
+            /* ── if the gate has its own stack, it must also merge up ───────────── */
+            bool gateHasPrivateStack =
+                    gateInfo.ParentVirtualStack != null &&
+                    !ReferenceEquals(gateInfo.VirtualStack, gateInfo.ParentVirtualStack);
+
+            if (unionForGate.Count > 0)
+                gateInfo.CopyIncrementsToParent = unionForGate.ToArray();
+#if DEBUG
+            if (gateHasPrivateStack)
+                Debug.WriteLine($"[GATE‑INFO] gate {gateInfo.ID} CopyInc=[{string.Join(",", unionForGate)}]");
+            ValidateIncrementCopying(gateInfo, slices);
+#endif
         }
-
-
 
         /// Return the first command index ≥ <paramref name="sliceStart"/> that:
         ///   • brings nesting depth back to 0, AND
@@ -2404,6 +2430,51 @@ else
                     $"range=[{s.StartCommandRange},{s.EndCommandRangeExclusive})");
             });
         }
+
+        [Conditional("DEBUG")]
+        private void ValidateIncrementCopying(
+        ArrayCommandChunk gate,
+        IList<NWayTreeStorageInternal<ArrayCommandChunk>> slices)
+        {
+            /* ❶  build the union of indices every PRIVATE child will merge up */
+            var expectedUnion = new HashSet<int>();
+
+            foreach (var node in slices)
+            {
+                var child = node.StoredValue;
+
+                bool hasPrivateStack =
+                       child.ParentVirtualStack != null &&
+                      !ReferenceEquals(child.VirtualStack, child.ParentVirtualStack);
+
+                if (!hasPrivateStack) continue;   // sharing → no merge list needed
+
+                Debug.Assert(child.CopyIncrementsToParent != null &&
+                             child.CopyIncrementsToParent.Length > 0,
+                     $"❌ slice {child.ID} owns a stack but has no CopyInc list");
+
+                foreach (int idx in child.CopyIncrementsToParent)
+                    expectedUnion.Add(idx);
+            }
+
+            /* ❷  if the gate itself owns a private stack, it must copy that union */
+            bool gateHasPrivateStack =
+                   gate.ParentVirtualStack != null &&
+                  !ReferenceEquals(gate.VirtualStack, gate.ParentVirtualStack);
+
+            if (gateHasPrivateStack)
+            {
+                Debug.Assert(gate.CopyIncrementsToParent != null,
+                     $"❌ gate {gate.ID} owns a stack but CopyInc list is null");
+
+                Debug.Assert(expectedUnion.SetEquals(gate.CopyIncrementsToParent),
+                     $"❌ gate {gate.ID} CopyInc mismatch – " +
+                     $"expected [{string.Join(',', expectedUnion)}], " +
+                     $"actual [{string.Join(',', gate.CopyIncrementsToParent ?? Array.Empty<int>())}]");
+            }
+        }
+
+
 
         #endregion
     }

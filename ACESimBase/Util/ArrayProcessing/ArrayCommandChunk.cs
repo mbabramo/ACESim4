@@ -101,6 +101,14 @@ namespace ACESimBase.Util.ArrayProcessing
                 }
             }
 
+#if DEBUG
+            private static void LogMerge(int childId, double before, double delta, double after,
+                                         int idx, int parentVsId)
+            {
+                Debug.WriteLine(
+                    $"[MERGE] child={childId} idx={idx}  +={delta}   {before}→{after}  →pVS{parentVsId}");
+            }
+#endif
 
             public void CopyIncrementsToParentIfNecessary()
             {
@@ -147,15 +155,13 @@ namespace ACESimBase.Util.ArrayProcessing
                 /* ── real work: add only the true delta (child – parent) ───────────── */
                 foreach (int idx in CopyIncrementsToParent)
                 {
-                    double child = VirtualStack[idx];
                     double before = ParentVirtualStack[idx];
-                    double delta = child - before;          // ← difference, not absolute value
+                    double delta = VirtualStack[idx] - before;
                     if (delta == 0) continue;
 
-                    Interlocking.Add(ref ParentVirtualStack[idx], delta);
+                    ParentVirtualStack[idx] = before + delta;          // plain write is fine
 #if DEBUG
-                    double after = ParentVirtualStack[idx];
-                    Debug.WriteLine($"   • idx={idx}  +={delta}   {before} → {after}");
+                    Debug.WriteLine($"[MERGE] chunk={ID} idx={idx}  +={delta}   {before}→{before + delta}");
 #endif
                 }
 
