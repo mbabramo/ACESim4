@@ -144,15 +144,14 @@ namespace ACESimBase.Util.ArrayProcessing
                 Debug.WriteLine($"           parentVals [{DumpValues(ParentVirtualStack, CopyIncrementsToParent)}]");
 #endif
 
-                /* ── real work ─────────────────────────────────────────────────────── */
+                /* ── real work: add only the true delta (child – parent) ───────────── */
                 foreach (int idx in CopyIncrementsToParent)
                 {
-                    double delta = VirtualStack[idx];
+                    double child = VirtualStack[idx];
+                    double before = ParentVirtualStack[idx];
+                    double delta = child - before;          // ← difference, not absolute value
                     if (delta == 0) continue;
 
-#if DEBUG
-                    double before = ParentVirtualStack[idx];
-#endif
                     Interlocking.Add(ref ParentVirtualStack[idx], delta);
 #if DEBUG
                     double after = ParentVirtualStack[idx];
@@ -164,6 +163,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 Debug.WriteLine($"[MERGE‑END] parentVals [{DumpValues(ParentVirtualStack, CopyIncrementsToParent)}]");
 #endif
             }
+
 
 
             public void ResetIncrementsForParent()
