@@ -209,28 +209,28 @@ namespace ACESimBase.Util.ArrayProcessing
         /// (prefix + gate + postfix), then slices the body inside the gate.
         /// </summary>
         private static void ReplaceLeafWithGate(
-            ArrayCommandList acl,
-            NWayTreeStorageInternal<ArrayCommandChunk> leaf,
-            HoistPlanner.PlanEntry entry)
+    ArrayCommandList acl,
+    NWayTreeStorageInternal<ArrayCommandChunk> leaf,
+    HoistPlanner.PlanEntry entry)
         {
-            /* 1) split the leaf into prefix / gate / (optional) postfix */
+            /* split the oversize leaf */
             var split = SplitOversizeLeaf(acl, leaf, entry.IfIdx, entry.EndIfIdx);
 
-            /* 2) wire those slices into the tree */
+            /* attach gate & postfix FIRST */
             InsertSplitIntoTree(split);
 
-            /* 3) ── NEW ──  
-             * If prefix or postfix still owns real commands, wrap it into a
-             * dedicated leaf so that the parent becomes a pure container. */
+            /* now wrap prefix (and postfix) so they become true leaves
+               – prefix is inserted at branch 0, before the gate          */
             if (split.Prefix != null)
                 WrapSliceIntoLeaf(acl, split.Prefix);
 
             if (split.Postfix != null)
                 WrapSliceIntoLeaf(acl, split.Postfix);
 
-            /* 4) slice the body inside the gate into threshold‑sized children */
+            /* finally slice the big body inside the gate */
             acl.SliceBodyIntoChildren(split.Gate);
         }
+
 
 
 
@@ -243,18 +243,14 @@ namespace ACESimBase.Util.ArrayProcessing
         /// </summary>
         public static void WrapSliceIntoLeaf(
             ArrayCommandList acl,
-            NWayTreeStorageInternal<ArrayCommandChunk> slice)
+            NWayTreeStorageInternal<ArrayCommandChunk> sliceParent)
         {
-            var parentChunk = slice.StoredValue;
-            if (parentChunk == null)
-                return;
+            var parentChunk = sliceParent.StoredValue;
+            if (parentChunk == null) return;
+            if (parentChunk.StartCommandRange >= parentChunk.EndCommandRangeExclusive) return;
 
-            /* already empty → nothing to do */
-            if (parentChunk.StartCommandRange >= parentChunk.EndCommandRangeExclusive)
-                return;
-
-            /* 1) clone the chunk meta into a fresh ArrayCommandChunk ---------------- */
-            var childChunk = new ArrayCommandChunk
+            /* 1️⃣  clone the metadata */
+            var leafChunk = new ArrayCommandChunk
             {
                 Name = parentChunk.Name + ".leaf",
                 StartCommandRange = parentChunk.StartCommandRange,
@@ -264,7 +260,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 StartDestinationIndices = parentChunk.StartDestinationIndices,
                 EndDestinationIndicesExclusive = parentChunk.EndDestinationIndicesExclusive,
 
-                /* virtual‑stack bookkeeping */
+                // keep all virtual‑stack fields identical
                 VirtualStack = parentChunk.VirtualStack,
                 VirtualStackID = parentChunk.VirtualStackID,
                 ParentVirtualStack = parentChunk.ParentVirtualStack,
@@ -280,30 +276,43 @@ namespace ACESimBase.Util.ArrayProcessing
                 LastUsed = parentChunk.LastUsed
             };
 
-            /* 2) attach new leaf as the next branch under the parent ---------------- */
-            byte newBranchId = (byte)(parentChunk.LastChild + 1);
-            var leafNode = new NWayTreeStorageInternal<ArrayCommandChunk>(slice)
+            /* 2️⃣  choose insert position = 1  (before gate/body branches) */
+            const byte insertId = 1;
+
+            /* 3️⃣  shift existing branches ≥ insertId up by 1 */
+            if (parentChunk.LastChild >= insertId)
             {
-                StoredValue = childChunk
+                for (int b = parentChunk.LastChild; b >= insertId; b--)
+                {
+                    var old = sliceParent.GetBranch((byte)b);
+                    sliceParent.SetBranch((byte)(b + 1), old);
+                }
+            }
+
+            /* 4️⃣  attach the new leaf */
+            var newLeafNode = new NWayTreeStorageInternal<ArrayCommandChunk>(sliceParent)
+            {
+                StoredValue = leafChunk
             };
-            slice.SetBranch(newBranchId, leafNode);
-            parentChunk.LastChild = newBranchId;
+            sliceParent.SetBranch(insertId, newLeafNode);
+            parentChunk.LastChild++;
 
-            /* 3) move CopyIncrements‑list down; clear on the container -------------- */
+            /* 5️⃣  parent becomes container only */
             parentChunk.CopyIncrementsToParent = null;
-
-            /* 4) wipe the command range on the container so it holds *no* ops ------- */
-            parentChunk.StartCommandRange = parentChunk.EndCommandRangeExclusive;
-            parentChunk.StartSourceIndices = parentChunk.EndSourceIndicesExclusive;
-            parentChunk.StartDestinationIndices = parentChunk.EndDestinationIndicesExclusive;
-            parentChunk.Name = parentChunk.Name + ".container";
+            parentChunk.StartCommandRange = parentChunk.EndCommandRangeExclusive; // empty
+            parentChunk.StartSourceIndices =
+                parentChunk.EndSourceIndicesExclusive = parentChunk.StartSourceIndices;
+            parentChunk.StartDestinationIndices =
+                parentChunk.EndDestinationIndicesExclusive = parentChunk.StartDestinationIndices;
+            parentChunk.Name += ".container";
 
 #if DEBUG
             System.Diagnostics.Debug.WriteLine(
-                $"[WRAP]  parentID={parentChunk.ID}  newLeafID={childChunk.ID}  " +
-                $"range=[{childChunk.StartCommandRange},{childChunk.EndCommandRangeExclusive})");
+                $"[WRAP] parentID={parentChunk.ID}  newLeafID={leafChunk.ID}  " +
+                $"insert@{insertId}  range=[{leafChunk.StartCommandRange},{leafChunk.EndCommandRangeExclusive})");
 #endif
         }
+
 
 
     }

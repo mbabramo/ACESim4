@@ -1630,6 +1630,7 @@ else
                                     $"srcPtr={currentOrderedSourceIndex} >= OrderedSources.Length={OrderedSources.Length}");
 
                 /*──────────────────────────────────────────── switch ───────────────*/
+
                 switch (command.CommandType)
                 {
                     case ArrayCommandType.Zero:
