@@ -112,7 +112,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
             public void CopyIncrementsToParentIfNecessary()
             {
-                /* ── fast‑exit guard #1: nothing to copy ───────────────────────────── */
+                /* fast‑exit #1 */
                 if (CopyIncrementsToParent == null || CopyIncrementsToParent.Length == 0)
                 {
 #if DEBUG
@@ -121,7 +121,7 @@ namespace ACESimBase.Util.ArrayProcessing
                     return;
                 }
 
-                /* ── fast‑exit guard #2: no parent stack ───────────────────────────── */
+                /* fast‑exit #2 */
                 if (ParentVirtualStack == null)
                 {
 #if DEBUG
@@ -133,7 +133,6 @@ namespace ACESimBase.Util.ArrayProcessing
                 bool sharing = ReferenceEquals(ParentVirtualStack, VirtualStack);
                 if (sharing)
                 {
-                    // Having a list here is unexpected and could lead to double‑adds later.
 #if DEBUG
                     Debug.WriteLine($"[INC‑WARN] child={ID} shares parent stack yet " +
                                     $"CopyIncrements is non‑empty → NO merge performed");
@@ -141,32 +140,28 @@ namespace ACESimBase.Util.ArrayProcessing
                     return;
                 }
 
-                /* ── verbose, but extremely helpful when tracking duplicate merges ── */
-                string DumpValues(double[] stack, IEnumerable<int> idxs) =>
-                    string.Join(", ", idxs.Select(i => $"{i}:{stack[i]}"));
-
 #if DEBUG
+                string Dump(double[] s) => string.Join(", ", CopyIncrementsToParent.Select(i => $"{i}:{s[i]}"));
                 Debug.WriteLine($"[MERGE‑BEG] child={ID} → parentVS={ParentVirtualStackID}  " +
-                                $"idxs=[{string.Join(",", CopyIncrementsToParent)}]");
-                Debug.WriteLine($"           childVals  [{DumpValues(VirtualStack, CopyIncrementsToParent)}]");
-                Debug.WriteLine($"           parentVals [{DumpValues(ParentVirtualStack, CopyIncrementsToParent)}]");
+                                $"idxs=[{string.Join("/", CopyIncrementsToParent)}]");
+                Debug.WriteLine($"           childVals  [{Dump(VirtualStack)}]");
+                Debug.WriteLine($"           parentVals [{Dump(ParentVirtualStack)}]");
 #endif
 
-                /* ── real work: add only the true delta (child – parent) ───────────── */
                 foreach (int idx in CopyIncrementsToParent)
                 {
                     double before = ParentVirtualStack[idx];
                     double delta = VirtualStack[idx] - before;
                     if (delta == 0) continue;
 
-                    ParentVirtualStack[idx] = before + delta;          // plain write is fine
+                    ParentVirtualStack[idx] = before + delta;
 #if DEBUG
                     Debug.WriteLine($"[MERGE] chunk={ID} idx={idx}  +={delta}   {before}→{before + delta}");
 #endif
                 }
 
 #if DEBUG
-                Debug.WriteLine($"[MERGE‑END] parentVals [{DumpValues(ParentVirtualStack, CopyIncrementsToParent)}]");
+                Debug.WriteLine($"[MERGE‑END] parentVals [{Dump(ParentVirtualStack)}]");
 #endif
             }
 
