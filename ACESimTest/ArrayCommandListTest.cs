@@ -1580,7 +1580,7 @@ namespace ACESimTest
         public void HoistedChildIncrementsAreMerged()
         {
             var acl = new ArrayCommandList(100, 1, parallelize: false)
-            { MaxCommandsPerChunk = 1 };      // force hoisting/slicing
+            { MaxCommandsPerChunk = 1, DisableAdvancedFeatures = false };      // force hoisting/slicing
 
             acl.StartCommandChunk(false, null);
             int scratch = acl.CopyToNew(0, fromOriginalSources: true);   // vs[1] = 1

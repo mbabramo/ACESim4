@@ -86,13 +86,14 @@ namespace ACESimBase.Util.ArrayProcessing
 
             public void ResetIncrementsForParent()
             {
-                if (ParentVirtualStack != VirtualStack && ParentVirtualStack != null && CopyIncrementsToParent != null)
-                {
-                    foreach (int index in CopyIncrementsToParent)
-                    {
-                        VirtualStack[index] = 0;
-                    }
-                }
+                if (CopyIncrementsToParent == null || ParentVirtualStack == null)
+                    return;
+
+                if (ReferenceEquals(VirtualStack, ParentVirtualStack))
+                    return;    
+
+                foreach (int idx in CopyIncrementsToParent)
+                    VirtualStack[idx] = 0;
             }
 
             public void CopyIncrementsToParentIfNecessary()
