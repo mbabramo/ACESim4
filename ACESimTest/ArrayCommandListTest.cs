@@ -1583,7 +1583,9 @@ namespace ACESimTest
             var acl = new ArrayCommandList(100, /*firstScratchIdx*/ 1, parallelize: false)
             {
                 MaxCommandsPerChunk = 1,      // force 1‑command slices
-                DisableAdvancedFeatures = false
+                DisableAdvancedFeatures = false,
+                MinNumCommandsToCompile = 0, // DEBUG
+                UseRoslyn = true // DEBUG
             };
 
             /* We *want* the hoisted children of this root chunk to be designated as able to be run in parallel

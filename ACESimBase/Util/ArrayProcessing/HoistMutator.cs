@@ -242,15 +242,15 @@ namespace ACESimBase.Util.ArrayProcessing
         /// bearing commands *and* now has child branches.
         /// </summary>
         public static void WrapSliceIntoLeaf(
-            ArrayCommandList acl,
-            NWayTreeStorageInternal<ArrayCommandChunk> sliceParent)
+    ArrayCommandList acl,
+    NWayTreeStorageInternal<ArrayCommandChunk> sliceParent)
         {
             var parentChunk = sliceParent.StoredValue;
             if (parentChunk == null) return;
             if (parentChunk.StartCommandRange >= parentChunk.EndCommandRangeExclusive) return;
 
             /* 1️⃣  clone the metadata */
-            var leafChunk = new ArrayCommandChunk
+            var leafChunk = new ArrayCommandList.ArrayCommandChunk
             {
                 Name = parentChunk.Name + ".leaf",
                 StartCommandRange = parentChunk.StartCommandRange,
@@ -260,12 +260,13 @@ namespace ACESimBase.Util.ArrayProcessing
                 StartDestinationIndices = parentChunk.StartDestinationIndices,
                 EndDestinationIndicesExclusive = parentChunk.EndDestinationIndicesExclusive,
 
-                // keep all virtual‑stack fields identical
+                // virtual‑stack wiring
                 VirtualStack = parentChunk.VirtualStack,
                 VirtualStackID = parentChunk.VirtualStackID,
                 ParentVirtualStack = parentChunk.ParentVirtualStack,
                 ParentVirtualStackID = parentChunk.ParentVirtualStackID,
-                ChildrenParallelizable = parentChunk.ChildrenParallelizable,
+
+                // carry over analysis metadata unchanged
                 TranslationToLocalIndex = parentChunk.TranslationToLocalIndex,
                 IndicesReadFromStack = parentChunk.IndicesReadFromStack,
                 IndicesInitiallySetInStack = parentChunk.IndicesInitiallySetInStack,
@@ -273,33 +274,30 @@ namespace ACESimBase.Util.ArrayProcessing
                 FirstReadFromStack = parentChunk.FirstReadFromStack,
                 FirstSetInStack = parentChunk.FirstSetInStack,
                 LastSetInStack = parentChunk.LastSetInStack,
-                LastUsed = parentChunk.LastUsed
+                LastUsed = parentChunk.LastUsed,
+
+                // NEW: a real leaf executes sequentially → not parallelizable
+                ChildrenParallelizable = false
             };
 
-            /* 2️⃣  choose insert position = 1  (before gate/body branches) */
+            /* 2️⃣ insert the leaf at branch 1 (before the gate) */
             const byte insertId = 1;
-
-            /* 3️⃣  shift existing branches ≥ insertId up by 1 */
             if (parentChunk.LastChild >= insertId)
             {
                 for (int b = parentChunk.LastChild; b >= insertId; b--)
-                {
-                    var old = sliceParent.GetBranch((byte)b);
-                    sliceParent.SetBranch((byte)(b + 1), old);
-                }
+                    sliceParent.SetBranch((byte)(b + 1), sliceParent.GetBranch((byte)b));
             }
 
-            /* 4️⃣  attach the new leaf */
-            var newLeafNode = new NWayTreeStorageInternal<ArrayCommandChunk>(sliceParent)
+            var newLeafNode = new NWayTreeStorageInternal<ArrayCommandList.ArrayCommandChunk>(sliceParent)
             {
                 StoredValue = leafChunk
             };
             sliceParent.SetBranch(insertId, newLeafNode);
             parentChunk.LastChild++;
 
-            /* 5️⃣  parent becomes container only */
+            /* 3️⃣ parent becomes a pure container (unchanged from original code) */
             parentChunk.CopyIncrementsToParent = null;
-            parentChunk.StartCommandRange = parentChunk.EndCommandRangeExclusive; // empty
+            parentChunk.StartCommandRange = parentChunk.EndCommandRangeExclusive;
             parentChunk.StartSourceIndices =
                 parentChunk.EndSourceIndicesExclusive = parentChunk.StartSourceIndices;
             parentChunk.StartDestinationIndices =
@@ -308,10 +306,11 @@ namespace ACESimBase.Util.ArrayProcessing
 
 #if DEBUG
             System.Diagnostics.Debug.WriteLine(
-                $"[WRAP] parentID={parentChunk.ID}  newLeafID={leafChunk.ID}  " +
-                $"insert@{insertId}  range=[{leafChunk.StartCommandRange},{leafChunk.EndCommandRangeExclusive})");
+                $"[WRAP] parentID={parentChunk.ID}  newLeafID={leafChunk.ID}  "
+              + $"insert@{insertId}  range=[{leafChunk.StartCommandRange},{leafChunk.EndCommandRangeExclusive})");
 #endif
         }
+
 
 
 
