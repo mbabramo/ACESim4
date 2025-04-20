@@ -60,9 +60,19 @@ namespace ACESimTest
 
                     int totalCmds = fuzzer.Acl.NextCommandIndex;
 
-                    for (int th = totalCmds + 1; th >= 1; th--)
+                    // We want to try different threshold numbers, but no more than three per iteration.
+                    // Choose at random from the range [1, totalCmds + 1] (inclusive).
+                    const int numThresholdsToTry = 3;
+                    var thresholds = new HashSet<int>();
+                    while (thresholds.Count < Math.Min(numThresholdsToTry, totalCmds + 1))
                     {
-                        Debug.WriteLine($"Threshold {th}");
+                        int threshold = rnd.Next(1, totalCmds + 2);
+                        thresholds.Add(threshold);
+                    }
+
+                    foreach (int th in thresholds)
+                    {
+                        Debug.WriteLine($"Iteration {iter}; Threshold {th}");
                         Debug.WriteLine($"------------------");
                         foreach (bool useRoslyn in new[] { true, false })
                         {

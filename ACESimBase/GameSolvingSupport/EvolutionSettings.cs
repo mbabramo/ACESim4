@@ -15,6 +15,7 @@ namespace ACESim
     {
         public bool DistributeChanceDecisions = false; // NOTE: Use CollapseChanceDecisions instead; it's much simpler and seems to produce slightly better performance.
         public bool UnrollAlgorithm = true;
+        public bool IncludeCommentsWhenUnrolling = true; // DEBUG
         public bool ReuseUnrolledAlgorithm = true; // if the tree structure is the same, then it will be reused (but final utilities etc. will be updated)
         public bool SaveToAzureBlob = false;
         // Note: Many of the below are overridden by launcher.

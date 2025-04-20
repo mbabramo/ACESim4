@@ -283,15 +283,23 @@ namespace ACESim
                 List<int> resultIndices = new List<int>();
 
                 Unroll_Commands.StartCommandChunk(false, null, "Iteration");
+                if (EvolutionSettings.IncludeCommentsWhenUnrolling)
+                    Unroll_Commands.InsertComment("--- BEGIN ITERATION ARRAY BUILD ---");
+
                 bool takeSymmetryShortcut = NumNonChancePlayers == 2 && GameDefinition.GameIsSymmetric() && TakeShortcutInSymmetricGames;
                 for (byte p = 0; p < NumNonChancePlayers; p++)
                 {
                     if (takeSymmetryShortcut && p == 1)
                         continue;
                     Unroll_Commands.StartCommandChunk(false, null, "Optimizing player " + p.ToString());
+                    if (EvolutionSettings.IncludeCommentsWhenUnrolling)
+                        Unroll_Commands.InsertComment($"Player {p}: optimization block start");
                     if (TraceCFR)
                         TabbedText.WriteLine($"Unrolling for Player {p}");
                     Unroll_GeneralizedVanillaCFR(in historyPoint, p, Unroll_InitialPiValuesIndices, Unroll_InitialAvgStratPiValuesIndices, Unroll_IterationResultForPlayersIndices[p], true, 0, takeSymmetryShortcut || p == NumNonChancePlayers - 1);
+
+                    if (EvolutionSettings.IncludeCommentsWhenUnrolling)
+                        Unroll_Commands.InsertComment($"Player {p}: optimization block end");
                     Unroll_Commands.EndCommandChunk();
                 }
                 Unroll_Commands.EndCommandChunk();
@@ -640,6 +648,9 @@ namespace ACESim
             byte playerMakingDecision = informationSet.PlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
             int[] actionProbabilities;
+
+            if (EvolutionSettings.IncludeCommentsWhenUnrolling)
+                Unroll_Commands.InsertComment($"Decision  {decisionNum} InfoSet {informationSet.InformationSetNodeNumber} player {playerMakingDecision}");
             if (EvolutionSettings.CFRBR && playerMakingDecision != playerBeingOptimized)
             {
                 actionProbabilities = Unroll_Commands.NewZeroArray(informationSet.NumPossibleActions);
@@ -670,6 +681,8 @@ namespace ACESim
             }
             for (byte action = 1; action <= numPossibleActions; action++)
             {
+                if (EvolutionSettings.IncludeCommentsWhenUnrolling)
+                    Unroll_Commands.InsertComment($"Decision  {decisionNum} InfoSet {informationSet.InformationSetNodeNumber} player {playerMakingDecision} Action {action}");
                 int distributorChanceInputsNext = distributorChanceInputs;
                 if (informationSet.Decision.DistributorChanceInputDecision)
                     distributorChanceInputsNext += action * informationSet.Decision.DistributorChanceInputDecisionMultiplier;
@@ -715,6 +728,10 @@ namespace ACESim
                     // Get the best response indices to write to -- note that we're not reading the value in
                     int bestResponseNumerator = Unroll_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNodeNumber, action);
                     int bestResponseDenominator = Unroll_GetInformationSetIndex_BestResponseDenominator(informationSet.InformationSetNodeNumber, action);
+
+
+                    if (EvolutionSettings.IncludeCommentsWhenUnrolling)
+                        Unroll_Commands.InsertComment($"Decision  {decisionNum} InfoSet {informationSet.InformationSetNodeNumber} player {playerMakingDecision} updating regrets");
                     Unroll_Commands.IncrementByProduct(bestResponseNumerator, true, inversePiAvgStrat, innerResult[Unroll_Result_BestResponseIndex]); // since we are not using these internal to the tree walk, we target originals
                     Unroll_Commands.Increment(bestResponseDenominator, true, inversePiAvgStrat);
                     Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_CurrentVsCurrentIndex], algorithmIsLowestDepth, probabilityOfAction, innerResult[Unroll_Result_CurrentVsCurrentIndex]);
@@ -748,6 +765,8 @@ namespace ACESim
                 int smallestPossible = Unroll_Commands.CopyToNew(Unroll_SmallestProbabilityRepresentedIndex, true);
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
+                    if (EvolutionSettings.IncludeCommentsWhenUnrolling)
+                        Unroll_Commands.InsertComment($"Decision  {decisionNum} InfoSet {informationSet.InformationSetNodeNumber} player {playerMakingDecision} Action {action} incrementing regrets");
                     int pi = Unroll_Commands.CopyToNew(piValues[playerBeingOptimized], false); 
                     Unroll_Commands.CreateCheckpoint(pi);
                     Unroll_Commands.InsertLessThanOtherArrayIndexCommand(pi, smallestPossible);
@@ -804,6 +823,9 @@ namespace ACESim
             Unroll_Commands.IncrementDepth();
             IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             ChanceNode chanceNode = (ChanceNode)gameStateForCurrentPlayer;
+
+            if (EvolutionSettings.IncludeCommentsWhenUnrolling)
+                Unroll_Commands.InsertComment($"Chance node {chanceNode.Decision.Name} (node {chanceNode.ChanceNodeNumber})");
             byte numPossibleActions = chanceNode.Decision.NumPossibleActions;
             byte numPossibleActionsToExplore = numPossibleActions;
             if (EvolutionSettings.DistributeChanceDecisions && chanceNode.Decision.DistributedChanceDecision)
@@ -819,6 +841,8 @@ namespace ACESim
             int? firstCommandToRepeat = null;
             for (byte action = 1; action <= numPossibleActionsToExplore; action++)
             {
+                if (EvolutionSettings.IncludeCommentsWhenUnrolling)
+                    Unroll_Commands.InsertComment($"Chance node {chanceNode.Decision.Name} (node {chanceNode.ChanceNodeNumber}) action {action}");
                 if (chanceNode.Decision.Unroll_Parallelize)
                 {
                     //TabbedText.WriteLine($"Starting command chunk serial {Unroll_Commands.NextCommandIndex}");
@@ -844,6 +868,8 @@ namespace ACESim
 
         private void Unroll_GeneralizedVanillaCFR_ChanceNode_NextAction(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, ChanceNode chanceNode, byte action, int[] resultArray, bool algorithmIsLowestDepth, int distributorChanceInputs)
         {
+            if (EvolutionSettings.IncludeCommentsWhenUnrolling)
+                Unroll_Commands.InsertComment($"Chance node {chanceNode.Decision.Name} (node {chanceNode.ChanceNodeNumber}) action {action} -> next action");
             Unroll_Commands.IncrementDepth();
             int actionProbabilityIndex = Unroll_GetChanceNodeIndex_ProbabilityForAction(chanceNode.ChanceNodeNumber, distributorChanceInputs, action);
             int actionProbability = Unroll_Commands.CopyToNew(actionProbabilityIndex, true);
@@ -890,6 +916,8 @@ namespace ACESim
 
         private void Unroll_GetNextPiValues(int[] currentPiValues, byte playerIndex, int probabilityToMultiplyBy, bool changeOtherPlayers, int[] resultArray)
         {
+            if (EvolutionSettings.IncludeCommentsWhenUnrolling)
+                Unroll_Commands.InsertComment($"Compute next π: current pi Values: {String.Join(",", currentPiValues)} player index {playerIndex}");
             Unroll_Commands.IncrementDepth();
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
