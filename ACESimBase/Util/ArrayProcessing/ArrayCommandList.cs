@@ -1217,7 +1217,7 @@ bool condition = true;
 
 
             // we limit the max number of local vars that we will create (if copying at all) to avoid stack overflow. later indices in the virtual stack have priority, because these are reused the most often.
-            const int maxLocalVariables = 200;
+            const int maxLocalVariables = int.MaxValue;
             IEnumerable<int> localVariables = c.TranslationToLocalIndex.Where(x => x != null).Select(x => (int)x);
             int numLocalVariables = localVariables.Any() ? localVariables.Max() : 0;
             int minLocalVarNumber = Math.Max(numLocalVariables - maxLocalVariables, 0);

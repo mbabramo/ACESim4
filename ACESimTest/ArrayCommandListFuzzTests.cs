@@ -52,7 +52,7 @@ namespace ACESimTest
                     fuzzer.BuildRandomAcl(maxDepth, maxBody);
 
                     // 2) Compute the reference result *once* with the flat interpreter
-                    var interp = fuzzer.CloneFor(threshold: 1, useRoslyn: false);
+                    var interp = fuzzer.CloneFor(threshold: int.MaxValue, useRoslyn: false);
                     interp.DisableAdvancedFeatures = true;
                     interp.MinNumCommandsToCompile = int.MaxValue;
                     double[] expected = fuzzer.MakeInitialData();

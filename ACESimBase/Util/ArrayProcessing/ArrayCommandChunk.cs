@@ -112,6 +112,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
             public void CopyIncrementsToParentIfNecessary()
             {
+                throw new Exception("DEBUG");
                 /* fast‑exit #1 */
                 if (CopyIncrementsToParent == null || CopyIncrementsToParent.Length == 0)
                 {
