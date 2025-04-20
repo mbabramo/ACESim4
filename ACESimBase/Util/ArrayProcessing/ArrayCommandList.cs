@@ -1499,8 +1499,6 @@ else
                 return;
             }
 
-            throw new Exception("DEBUG");
-
 #if DEBUG
             TabbedText.WriteLine("[ExecuteAll]  PATH → chunked tree walk");
 #endif
@@ -1557,20 +1555,37 @@ else
             if (MaxCommandIndex == 0)
                 CompleteCommandList();
 
-            // — only in the flat (un‑hoisted) path do we need to set up and tear down —
+            // only the flat (un‑hoisted) path sets these up/tears them down
             PrepareOrderedSourcesAndDestinations(array);
 
-            // pick our scratch region: in flat mode we run over the entire array.
-            Span<double> virtualStack = new Span<double>(array);
+            /* 1️⃣  choose a stack that can hold every index the ACL may touch          */
+            int stackLen = MaxArrayIndex + 1;          // highest index + 1
+            bool usingScratch = array.Length < stackLen;   // need private buffer?
+            double[] stackBuf = usingScratch ? new double[stackLen] : array;
 
-            // run every command (inclusive end = MaxCommandIndex‑1)
+            /* 2️⃣  if we allocated a private buffer, copy the “original” region       */
+            if (usingScratch && FirstScratchIndex > 0)
+            {
+                int originals = Math.Min(FirstScratchIndex, array.Length);
+                Array.Copy(array, 0, stackBuf, 0, originals);
+            }
+
+            Span<double> virtualStack = stackBuf;
+
+            /* 3️⃣  interpret all commands (inclusive end = MaxCommandIndex‑1)         */
             ExecuteSectionOfCommands(
                 virtualStack,
-                /* startCmd= */      0,
-                /* endCmdInclusive= */ MaxCommandIndex - 1,
-                /* startSrcIndex= */ 0,
-                /* startDstIndex= */ 0
-            );
+                startCommandIndex: 0,
+                endCommandIndexInclusive: MaxCommandIndex - 1,
+                currentOrderedSourceIndex: 0,
+                currentOrderedDestinationIndex: 0);
+
+            /* 4️⃣  copy results for the original region back to the caller (only
+                    needed when we ran on a private scratch buffer)                    */
+            if (usingScratch && FirstScratchIndex > 0)
+            {
+                Array.Copy(stackBuf, 0, array, 0, FirstScratchIndex);
+            }
 
             CopyOrderedDestinations(array);
 #if DEBUG
@@ -1578,6 +1593,7 @@ else
 #endif
             return array;
         }
+
 
 
 
