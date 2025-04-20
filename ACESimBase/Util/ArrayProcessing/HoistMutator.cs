@@ -110,7 +110,7 @@ namespace ACESimBase.Util.ArrayProcessing
             int ifIdx,
             int endIfIdx)
         {
-            Debug.WriteLine($"[SPLIT] leaf={leaf.StoredValue.ID}  "
+            TabbedText.WriteLine($"[SPLIT] leaf={leaf.StoredValue.ID}  "
               + $"gateParall={leaf.StoredValue.ChildrenParallelizable}");
 
             int spanStart = leaf.StoredValue.StartCommandRange;
@@ -123,7 +123,7 @@ namespace ACESimBase.Util.ArrayProcessing
             /* ‼ Do NOT mark the prefix for skipping – it contains essential
                    initialisation work (e.g. CopyToNew) that must still run. */
 #if DEBUG
-            Debug.WriteLine($"[FIX] Prefix slice {leaf.StoredValue.ID} will execute (Skip=false)");
+            TabbedText.WriteLine($"[FIX] Prefix slice {leaf.StoredValue.ID} will execute (Skip=false)");
 #endif
             leaf.StoredValue.Skip = false;             // ← changed line
 
@@ -137,7 +137,7 @@ namespace ACESimBase.Util.ArrayProcessing
                     ChildrenParallelizable = src.ChildrenParallelizable
                 };
                 
-                Debug.WriteLine(
+                TabbedText.WriteLine(
                     $"[FLAG‑SET] id={copy.ID,4}  ChildrenParallelizable={copy.ChildrenParallelizable}  "
                   + $"(copied from parentID={src.ID,4}) in MetaFrom");
 
@@ -152,13 +152,13 @@ namespace ACESimBase.Util.ArrayProcessing
             gate.StoredValue.EndCommandRangeExclusive = afterEnd;
 
 #if DEBUG
-            Debug.WriteLine($"[PARA‑CHK] leafID={leaf.StoredValue.ID,4}  "
+            TabbedText.WriteLine($"[PARA‑CHK] leafID={leaf.StoredValue.ID,4}  "
                           + $"parent.ChildrenParallelizable={leaf.StoredValue.ChildrenParallelizable}  "
                           + $"gateID={gate.StoredValue.ID,4}  "
                           + $"gate.ChildrenParallelizable={gate.StoredValue.ChildrenParallelizable}");
 #endif
 
-            Debug.WriteLine($"[SPLIT‑GATE] parentLeafID={leaf.StoredValue.ID}  "
+            TabbedText.WriteLine($"[SPLIT‑GATE] parentLeafID={leaf.StoredValue.ID}  "
               + $"gateID={gate.StoredValue.ID}  "
               + $"parent.ChildrenParallelizable={leaf.StoredValue.ChildrenParallelizable}  "
               + $"gate.ChildrenParallelizable={gate.StoredValue.ChildrenParallelizable}");
@@ -308,7 +308,7 @@ namespace ACESimBase.Util.ArrayProcessing
             parentChunk.Name += ".container";
 
 #if DEBUG
-            System.Diagnostics.Debug.WriteLine(
+            TabbedText.WriteLine(
                 $"[WRAP] parentID={parentChunk.ID}  newLeafID={leafChunk.ID}  "
               + $"insert@{insertId}  range=[{leafChunk.StartCommandRange},{leafChunk.EndCommandRangeExclusive})");
 #endif

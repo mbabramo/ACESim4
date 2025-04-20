@@ -183,7 +183,7 @@ namespace ACESimBase.Util.ArrayProcessing
     bool ignoreKeepTogether = false)
         {
 #if DEBUG
-            Debug.WriteLine(
+            TabbedText.WriteLine(
                 $"[CHUNK‑NEW] nextCmd={NextCommandIndex}  name=\"{name}\"  " +
                 $"runChildrenInParallel={runChildrenInParallel}  "
               + $"identicalStart={identicalStartCommandRange?.ToString() ?? "null"}");
@@ -226,7 +226,7 @@ namespace ACESimBase.Util.ArrayProcessing
             CurrentCommandTreeLocation.Add(nextChild);
 
 #if DEBUG
-            Debug.WriteLine(
+            TabbedText.WriteLine(
                 $"[START‑CHUNK] parentID={currentNode.StoredValue.ID}  "
               + $"childID={childNode.StoredValue.ID}  branch={nextChild}  "
               + $"ChildrenParallelizable={childNode.StoredValue.ChildrenParallelizable}  "
@@ -247,14 +247,14 @@ namespace ACESimBase.Util.ArrayProcessing
                                           .Select((t, i) => t is null ? null : $"{i}->{t}")
                                           .Where(s => s != null));
 
-                Debug.WriteLine($"[EC‑TOP] endingID={child?.ID,4}  stackID={child?.VirtualStackID,3}  "
+                TabbedText.WriteLine($"[EC‑TOP] endingID={child?.ID,4}  stackID={child?.VirtualStackID,3}  "
                               + $"CopyIncParam=[{Dump(copyIncrementsToParent)}]  "
                               + $"TransMap=[{map}]");
             }
 #endif
 #if DEBUG
             var chunkId = CurrentCommandChunk?.ID ?? -1;
-            Debug.WriteLine(
+            TabbedText.WriteLine(
                 $"[END] chunk {chunkId} sets CopyIncrementsToParent = " +
                 $"{(copyIncrementsToParent == null ? "null"
                                                    : string.Join(',', copyIncrementsToParent))}");
@@ -417,7 +417,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
 #if DEBUG
             if (c.VirtualStack != null)
-                Debug.WriteLine($"[VS‑WARN] id={c.ID}  already has VS={c.VirtualStackID}  "
+                TabbedText.WriteLine($"[VS‑WARN] id={c.ID}  already has VS={c.VirtualStackID}  "
                               + "→ allocating another one now");
 #endif
 
@@ -426,7 +426,7 @@ namespace ACESimBase.Util.ArrayProcessing
             c.VirtualStackID = NextVirtualStackID++;
 
 #if DEBUG
-            Debug.WriteLine($"[VS‑ALLOC] id={c.ID}  newVS={c.VirtualStackID}");
+            TabbedText.WriteLine($"[VS‑ALLOC] id={c.ID}  newVS={c.VirtualStackID}");
 #endif
 
             if (node.Branches == null || node.Branches.Length == 0)
@@ -484,7 +484,7 @@ namespace ACESimBase.Util.ArrayProcessing
             const bool LOG_STACK_DIAG = false;            // flip to false to silence
             if (LOG_STACK_DIAG)
             {
-                System.Diagnostics.Debug.WriteLine(
+                TabbedText.WriteLine(
                     $"[DIAG]  Analyse [{startRange},{endRangeExclusive})  " +
                     $"stackLen={firstReadFromStack.Length}");
             }
@@ -566,7 +566,7 @@ namespace ACESimBase.Util.ArrayProcessing
             }
             int[] indicesReadFromStack = Enumerable.Range(0, firstReadFromStack.Length).Where(x => firstReadFromStack[x] != null).ToArray();
             int[] indicesInitiallySetInStack = Enumerable.Range(0, firstSetInStack.Length).Where(x => firstSetInStack[x] != null).ToArray();
-            Debug.WriteLine(
+            TabbedText.WriteLine(
     $"[IDX‑ANAL] range=[{startRange},{endRangeExclusive})  "
   + $"read=[{string.Join(",", indicesReadFromStack)}]  "
   + $"set=[{string.Join(",", indicesInitiallySetInStack)}]");
@@ -578,12 +578,12 @@ namespace ACESimBase.Util.ArrayProcessing
                 {
                     string fr = firstReadFromStack[probe]?.ToString() ?? "–";
                     string fs = firstSetInStack[probe]?.ToString() ?? "–";
-                    Debug.WriteLine($"[DWS‑IDX1] [{startRange},{endRangeExclusive})  "
+                    TabbedText.WriteLine($"[DWS‑IDX1] [{startRange},{endRangeExclusive})  "
                                   + $"firstRead={fr}  firstSet={fs}");
                 }
             }
 #endif
-            Debug.WriteLine($"[CHECK‑LIST] chunk ?  Read=[{string.Join(",", indicesReadFromStack)}]  Inc=?");
+            TabbedText.WriteLine($"[CHECK‑LIST] chunk ?  Read=[{string.Join(",", indicesReadFromStack)}]  Inc=?");
 
 
             return (indicesReadFromStack, indicesInitiallySetInStack);
@@ -609,10 +609,10 @@ namespace ACESimBase.Util.ArrayProcessing
 
 #if DEBUG
             if (parent.ChildrenParallelizable && !child.ChildrenParallelizable && shareStack)
-                Debug.WriteLine($"[WARN] parent {parent.ID} ChildrenParallelizable=true, "
+                TabbedText.WriteLine($"[WARN] parent {parent.ID} ChildrenParallelizable=true, "
                               + $"child {child.ID} false  →  shareStack={shareStack} (will re‑use VS)");
 
-            Debug.WriteLine(
+            TabbedText.WriteLine(
                 $"[REL‑DECIDE] pID={parent.ID,4} cID={child.ID,4} "
               + $"share={shareStack}  reason="
               + (shareStack
@@ -624,7 +624,7 @@ namespace ACESimBase.Util.ArrayProcessing
             if (shareStack)
             {
 #if DEBUG
-                Debug.WriteLine($"[VS‑OVWR] child {child.ID}  VS {child.VirtualStackID} "
+                TabbedText.WriteLine($"[VS‑OVWR] child {child.ID}  VS {child.VirtualStackID} "
                               + $"→ parent VS {parent.VirtualStackID}");
 #endif
                 child.VirtualStack = parent.VirtualStack;
@@ -639,10 +639,10 @@ namespace ACESimBase.Util.ArrayProcessing
             }
 
 #if DEBUG
-            Debug.WriteLine(
+            TabbedText.WriteLine(
                 $"[REL‑DONE]  pVS={parent.VirtualStackID,3}  cVS={child.VirtualStackID,3}  "
               + $"CopyInc={child.CopyIncrementsToParent?.Length ?? 0}");
-            Debug.WriteLine(
+            TabbedText.WriteLine(
                 $"[CHECK‑LIST] chunk {child.ID}  Read=[{string.Join(',', child.IndicesReadFromStack ?? Array.Empty<int>())}]  "
               + $"Inc=[{string.Join(',', child.CopyIncrementsToParent ?? Array.Empty<int>())}]");
 #endif
@@ -1040,7 +1040,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 CodeGenerationBuilder = new StringBuilder();
                 AutogeneratedCodeType = StringToCode.LoadCode(codeString, fullyQualifiedClassName);
 #if DEBUG
-                System.Diagnostics.Debug.WriteLine(
+                TabbedText.WriteLine(
                     $"[ROS‑COMPILE]  "
                   + $"methods={string.Join(", ", CompiledFunctions)}  "
                   + $"UseRoslyn={UseRoslyn}");
@@ -1077,7 +1077,7 @@ namespace ACESimBase.Util.ArrayProcessing
                     var emitter = new ILChunkEmitter(chunk, UnderlyingCommands); 
                     ArrayCommandChunkDelegate del = emitter.EmitMethod(methodKey,   /*out*/
                                                    out int ilBytes);
-                    Debug.WriteLine(
+                    TabbedText.WriteLine(
                         $"[IL] chunk {methodKey} — {numCommands:N0} commands, {ilBytes:N0} IL bytes"); // DEBUG
 
                     // Store the delegate
@@ -1089,14 +1089,14 @@ namespace ACESimBase.Util.ArrayProcessing
         private bool ExecuteAutogeneratedCode(ArrayCommandChunk chunk)
         {
 #if DEBUG
-            Debug.WriteLine($"[ROS‑TRY] chunkID={chunk.ID}  startCmd={chunk.StartCommandRange}");
+            TabbedText.WriteLine($"[ROS‑TRY] chunkID={chunk.ID}  startCmd={chunk.StartCommandRange}");
 #endif
 
             // Only do this if we're using Roslyn
             if (!UseRoslyn)
             {
 #if DEBUG
-                Debug.WriteLine($"[ROS‑SKIP] id={chunk.ID}  (UseRoslyn==false)");
+                TabbedText.WriteLine($"[ROS‑SKIP] id={chunk.ID}  (UseRoslyn==false)");
 #endif
                 return false;
             }
@@ -1107,13 +1107,13 @@ namespace ACESimBase.Util.ArrayProcessing
             if (!CompiledFunctions.Contains(fnName))
             {
 #if DEBUG
-                Debug.WriteLine($"[ROS‑SKIP] id={chunk.ID}  (method {fnName} not compiled)");
+                TabbedText.WriteLine($"[ROS‑SKIP] id={chunk.ID}  (method {fnName} not compiled)");
 #endif
                 return false;
             }
 
 #if DEBUG
-            Debug.WriteLine($"[ROS‑RUN] id={chunk.ID}  fn={fnName}");
+            TabbedText.WriteLine($"[ROS‑RUN] id={chunk.ID}  fn={fnName}");
 #endif
             InvokeAutogeneratedCode(chunk, fnName);
             return true;
@@ -1123,7 +1123,7 @@ namespace ACESimBase.Util.ArrayProcessing
         private void InvokeAutogeneratedCode(ArrayCommandChunk chunk, string fnName)
         {
 #if DEBUG
-            Debug.WriteLine($"[ROS‑CALL] fn={fnName}  chunkID={chunk.ID} virtualStack={String.Join(",",chunk.VirtualStack)} orderedSources={String.Join(",",OrderedSources)} orderedDestinations={String.Join(",", OrderedDestinations)}");
+            TabbedText.WriteLine($"[ROS‑CALL] fn={fnName}  chunkID={chunk.ID} virtualStack={String.Join(",",chunk.VirtualStack)} orderedSources={String.Join(",",OrderedSources)} orderedDestinations={String.Join(",", OrderedDestinations)}");
 #endif
             var method = AutogeneratedCodeType.GetMethod(fnName);
             try
@@ -1137,14 +1137,14 @@ namespace ACESimBase.Util.ArrayProcessing
             chunk.StartDestinationIndices
                 });
 #if DEBUG
-                Debug.WriteLine($"[ROS‑CALL_AFT] fn={fnName}  chunkID={chunk.ID} virtualStack={String.Join(",", chunk.VirtualStack)} orderedSources={String.Join(",", OrderedSources)} orderedDestinations={String.Join(",", OrderedDestinations)}");
+                TabbedText.WriteLine($"[ROS‑CALL_AFT] fn={fnName}  chunkID={chunk.ID} virtualStack={String.Join(",", chunk.VirtualStack)} orderedSources={String.Join(",", OrderedSources)} orderedDestinations={String.Join(",", OrderedDestinations)}");
 #endif
             }
 
             catch (TargetInvocationException tie)
             {
 #if DEBUG
-                Debug.WriteLine($"[ROS‑ERR]  {tie.InnerException?.GetType().Name}: {tie.InnerException?.Message}");
+                TabbedText.WriteLine($"[ROS‑ERR]  {tie.InnerException?.GetType().Name}: {tie.InnerException?.Message}");
 #endif
                 throw;
             }
@@ -1389,8 +1389,8 @@ else
         public void ExecuteAll(double[] array, bool tracing)
         {
 #if DEBUG
-            Debug.WriteLine("══════════════════════════════════════════════════════");
-            Debug.WriteLine($"[ExecuteAll]  arrayLen={array?.Length ?? 0}  tracing={tracing}");
+            TabbedText.WriteLine("══════════════════════════════════════════════════════");
+            TabbedText.WriteLine($"[ExecuteAll]  arrayLen={array?.Length ?? 0}  tracing={tracing}");
 #endif
 
             // tracing works only on the flat interpreter
@@ -1404,7 +1404,7 @@ else
             if (Checkpoints != null)
             {
 #if DEBUG
-                Debug.WriteLine("[ExecuteAll]  MODE → Checkpoint sweep");
+                TabbedText.WriteLine("[ExecuteAll]  MODE → Checkpoint sweep");
 #endif
                 PrepareOrderedSourcesAndDestinations(array);
                 _nextExecId = 0;
@@ -1433,8 +1433,8 @@ else
 
                 CopyOrderedDestinations(array);
 #if DEBUG
-                Debug.WriteLine("[ExecuteAll]  END (checkpoint mode)");
-                Debug.WriteLine("══════════════════════════════════════════════════════");
+                TabbedText.WriteLine("[ExecuteAll]  END (checkpoint mode)");
+                TabbedText.WriteLine("══════════════════════════════════════════════════════");
 #endif
                 return;
             }
@@ -1459,7 +1459,7 @@ else
                  || hasSkippedLeaves;
 
 #if DEBUG
-            Debug.WriteLine($"[ExecuteAll]  needChunked={needChunked}  "
+            TabbedText.WriteLine($"[ExecuteAll]  needChunked={needChunked}  "
                           + $"(parallel={DoParallel}, repeat={RepeatIdenticalRanges}, "
                           + $"childInc={hasChildIncrements}, skipped={hasSkippedLeaves})");
 #endif
@@ -1467,18 +1467,18 @@ else
             if (!needChunked)
             {
 #if DEBUG
-                Debug.WriteLine("[ExecuteAll]  PATH → flat interpreter");
+                TabbedText.WriteLine("[ExecuteAll]  PATH → flat interpreter");
 #endif
                 ExecuteAllCommands(array);
 #if DEBUG
-                Debug.WriteLine("[ExecuteAll]  END (flat)");
-                Debug.WriteLine("══════════════════════════════════════════════════════");
+                TabbedText.WriteLine("[ExecuteAll]  END (flat)");
+                TabbedText.WriteLine("══════════════════════════════════════════════════════");
 #endif
                 return;
             }
 
 #if DEBUG
-            Debug.WriteLine("[ExecuteAll]  PATH → chunked tree walk");
+            TabbedText.WriteLine("[ExecuteAll]  PATH → chunked tree walk");
 #endif
 
             /*─────────────────────────────
@@ -1512,8 +1512,8 @@ else
 
             CopyOrderedDestinations(array);
 #if DEBUG
-            Debug.WriteLine("[ExecuteAll]  END (chunked)");
-            Debug.WriteLine("══════════════════════════════════════════════════════");
+            TabbedText.WriteLine("[ExecuteAll]  END (chunked)");
+            TabbedText.WriteLine("══════════════════════════════════════════════════════");
 #endif
         }
 
@@ -1528,7 +1528,7 @@ else
         public double[] ExecuteAllCommands(double[] array)
         {
 #if DEBUG
-            Debug.WriteLine("[ExecuteAllCommands]  BEGIN");
+            TabbedText.WriteLine("[ExecuteAllCommands]  BEGIN");
 #endif
             if (MaxCommandIndex == 0)
                 CompleteCommandList();
@@ -1550,7 +1550,7 @@ else
 
             CopyOrderedDestinations(array);
 #if DEBUG
-            Debug.WriteLine("[ExecuteAllCommands]  END");
+            TabbedText.WriteLine("[ExecuteAllCommands]  END");
 #endif
             return array;
         }
@@ -1569,20 +1569,20 @@ else
             if (_globalSkipDepth > 0)
             {
 #if DEBUG
-                Debug.WriteLine($"[SKIP‑CHK] id={commandChunk.ID}  depth={_globalSkipDepth}");
+                TabbedText.WriteLine($"[SKIP‑CHK] id={commandChunk.ID}  depth={_globalSkipDepth}");
 #endif
                 ScanChunkForSkipDepth(commandChunk);   // update depth counters only
                 return;                                // skip real execution
             }
 
 #if DEBUG
-            Debug.WriteLine($"[INT‑ENTER] id={commandChunk.ID}  "
+            TabbedText.WriteLine($"[INT‑ENTER] id={commandChunk.ID}  "
                           + $"VS={commandChunk.VirtualStackID}  "
                           + $"pVS={commandChunk.ParentVirtualStackID}");
 #endif
 
             /* ────────── LOG: chunk entry ────────── */
-            Debug.WriteLine(
+            TabbedText.WriteLine(
                 $"[CHUNK] id={commandChunk.ID,3}  cmds=[{commandChunk.StartCommandRange},{commandChunk.EndCommandRangeExclusive})  " +
                 $"cosi→{commandChunk.StartSourceIndices}  codi→{commandChunk.StartDestinationIndices}  " +
                 $"copyUp={Format(cp: commandChunk.CopyIncrementsToParent)}");
@@ -1590,7 +1590,7 @@ else
             static string Format(int[] cp) => cp == null ? "∅" : $"[{string.Join(",", cp)}]";
 
 #if DEBUG
-            Debug.WriteLine($"[CHUNK‑ENTER] id={commandChunk.ID}");
+            TabbedText.WriteLine($"[CHUNK‑ENTER] id={commandChunk.ID}");
 #endif
 
             /* ───── Roslyn path ──────────────────────────────────────────── */
@@ -1598,7 +1598,7 @@ else
             {
                 bool compiled = ExecuteAutogeneratedCode(commandChunk);
 #if DEBUG
-                Debug.WriteLine(compiled
+                TabbedText.WriteLine(compiled
                     ? $"[CHUNK‑ROS]  id={commandChunk.ID}  ran‑compiled"
                     : $"[CHUNK‑ROS]  id={commandChunk.ID}  NO‑compiled‑method");
 #endif
@@ -1615,7 +1615,7 @@ else
             if (!containsFlow && _compiledChunkMethods.TryGetValue(key, out var del))
             {
 #if DEBUG
-                Debug.WriteLine($"[CHUNK‑IL ]  id={commandChunk.ID}  delKey={key}");
+                TabbedText.WriteLine($"[CHUNK‑IL ]  id={commandChunk.ID}  delKey={key}");
 #endif
                 int cosi = commandChunk.StartSourceIndices;
                 int codi = commandChunk.StartDestinationIndices;
@@ -1624,13 +1624,13 @@ else
                     OrderedDestinations,
                     ref cosi, ref codi);
 #if DEBUG
-                Debug.WriteLine($"[IL‑EXIT] id={commandChunk.ID}  cosi→{cosi}  codi→{codi}  vs0={commandChunk.VirtualStack[0]}");
+                TabbedText.WriteLine($"[IL‑EXIT] id={commandChunk.ID}  cosi→{cosi}  codi→{codi}  vs0={commandChunk.VirtualStack[0]}");
 #endif
             }
             else
             {
 #if DEBUG
-                Debug.WriteLine($"[CHUNK‑INT]  id={commandChunk.ID}  interp cmds={startCmd}..{endCmd}");
+                TabbedText.WriteLine($"[CHUNK‑INT]  id={commandChunk.ID}  interp cmds={startCmd}..{endCmd}");
 #endif
                 ExecuteSectionOfCommands(
                     new Span<double>(commandChunk.VirtualStack),
@@ -1639,7 +1639,7 @@ else
                     commandChunk.StartSourceIndices,
                     commandChunk.StartDestinationIndices);
 #if DEBUG
-                Debug.WriteLine($"[INT‑EXIT] id={commandChunk.ID}  vs0={commandChunk.VirtualStack[0]}");
+                TabbedText.WriteLine($"[INT‑EXIT] id={commandChunk.ID}  vs0={commandChunk.VirtualStack[0]}");
 #endif
             }
         }
@@ -1717,7 +1717,7 @@ else
     int currentOrderedDestinationIndex)
         {
 #if DEBUG
-            Debug.WriteLine($"[DBG] ExecuteSectionOfCommands: stackLen={virtualStack.Length}  " +
+            TabbedText.WriteLine($"[DBG] ExecuteSectionOfCommands: stackLen={virtualStack.Length}  " +
                             $"cmdRange=[{startCommandIndex}..{endCommandIndexInclusive}]  " +
                             $"srcStart={currentOrderedSourceIndex}  dstStart={currentOrderedDestinationIndex}");
 #endif
@@ -1733,29 +1733,29 @@ else
                 if (command.CommandType == ArrayCommandType.NextDestination)
                 {
 #if DEBUG
-                    Debug.WriteLine($"[DST‑BEF] slice {CurrentCommandChunk.ID} cmd#{commandIndex} " +
+                    TabbedText.WriteLine($"[DST‑BEF] slice {CurrentCommandChunk.ID} cmd#{commandIndex} " +
                                     $"dstPtr={currentOrderedDestinationIndex}");
 #endif
                 }
 
                 /* bounds checks (unchanged) */
                 if (command.Index < 0 || command.Index >= virtualStack.Length)
-                    Debug.WriteLine($"[ERROR] cmd#{commandIndex} ({command.CommandType}): " +
+                    TabbedText.WriteLine($"[ERROR] cmd#{commandIndex} ({command.CommandType}): " +
                                     $"Index={command.Index} out of [0..{virtualStack.Length - 1}]");
 
                 if (command.SourceIndex >= 0 && command.SourceIndex >= virtualStack.Length)
-                    Debug.WriteLine($"[ERROR] cmd#{commandIndex} ({command.CommandType}): " +
+                    TabbedText.WriteLine($"[ERROR] cmd#{commandIndex} ({command.CommandType}): " +
                                     $"SourceIndex={command.SourceIndex} out of [0..{virtualStack.Length - 1}]");
 
                 if ((command.CommandType == ArrayCommandType.NextDestination ||
                      command.CommandType == ArrayCommandType.ReusedDestination) &&
                     currentOrderedDestinationIndex >= OrderedDestinations.Length)
-                    Debug.WriteLine($"[ERROR] cmd#{commandIndex} ({command.CommandType}): " +
+                    TabbedText.WriteLine($"[ERROR] cmd#{commandIndex} ({command.CommandType}): " +
                                     $"dstPtr={currentOrderedDestinationIndex} >= OrderedDestinations.Length={OrderedDestinations.Length}");
 
                 if (command.CommandType == ArrayCommandType.NextSource &&
                     currentOrderedSourceIndex >= OrderedSources.Length)
-                    Debug.WriteLine($"[ERROR] cmd#{commandIndex} ({command.CommandType}): " +
+                    TabbedText.WriteLine($"[ERROR] cmd#{commandIndex} ({command.CommandType}): " +
                                     $"srcPtr={currentOrderedSourceIndex} >= OrderedSources.Length={OrderedSources.Length}");
 
                 /*──────────────── switch over command type ───────────────*/
@@ -1780,11 +1780,11 @@ else
                         {
                             double value = virtualStack[command.SourceIndex];
 #if DEBUG
-                            Debug.WriteLine($"[OD‑IMM] NextDest  odIdx={currentOrderedDestinationIndex}  val={value}");
+                            TabbedText.WriteLine($"[OD‑IMM] NextDest  odIdx={currentOrderedDestinationIndex}  val={value}");
 #endif
                             OrderedDestinations[currentOrderedDestinationIndex++] = value;
 #if DEBUG
-                            Debug.WriteLine($"[DST‑AFT] slice {CurrentCommandChunk.ID} dstPtr now {currentOrderedDestinationIndex}");
+                            TabbedText.WriteLine($"[DST‑AFT] slice {CurrentCommandChunk.ID} dstPtr now {currentOrderedDestinationIndex}");
 #endif
                         }
                         break;
@@ -1794,7 +1794,7 @@ else
                             double value = virtualStack[command.SourceIndex];
 #if DEBUG
                             double before = OrderedDestinations[command.Index];
-                            Debug.WriteLine($"[OD‑IMM] ReusedDest idx={command.Index}  {before} += {value} → {before + value}");
+                            TabbedText.WriteLine($"[OD‑IMM] ReusedDest idx={command.Index}  {before} += {value} → {before + value}");
 #endif
                             OrderedDestinations[command.Index] += value;
                         }
@@ -1811,7 +1811,7 @@ else
                             double delta = virtualStack[command.SourceIndex];
                             virtualStack[command.Index] = oldVal + delta;
 #if DEBUG
-                            Debug.WriteLine($"[INC] slice {CurrentCommandChunk.ID} cmd#{commandIndex} " +
+                            TabbedText.WriteLine($"[INC] slice {CurrentCommandChunk.ID} cmd#{commandIndex} " +
                                             $"idx={command.Index}  {oldVal} + {delta} → {virtualStack[command.Index]}");
 #endif
                         }
@@ -1823,7 +1823,7 @@ else
                             double delta = virtualStack[command.SourceIndex];
                             virtualStack[command.Index] = oldVal - delta;
 #if DEBUG
-                            Debug.WriteLine($"[DEC] slice {CurrentCommandChunk.ID} cmd#{commandIndex} " +
+                            TabbedText.WriteLine($"[DEC] slice {CurrentCommandChunk.ID} cmd#{commandIndex} " +
                                             $"idx={command.Index}  {oldVal} - {delta} → {virtualStack[command.Index]}");
 #endif
                         }
@@ -1935,13 +1935,13 @@ else
         public void CopyOrderedDestinations(double[] array)
         {
 #if DEBUG
-            Debug.WriteLine("══════════════════════════════════════════════════════");
+            TabbedText.WriteLine("══════════════════════════════════════════════════════");
 #endif
             int startOrderedDestinationIndex = 0;
             int endOrderedDestinationIndexExclusive = OrderedDestinationIndices.Count();
 
 #if DEBUG
-            Debug.WriteLine($"[OD‑HDR] copy {startOrderedDestinationIndex}..{endOrderedDestinationIndexExclusive - 1}  " +
+            TabbedText.WriteLine($"[OD‑HDR] copy {startOrderedDestinationIndex}..{endOrderedDestinationIndexExclusive - 1}  " +
                             $"mode={(DoParallel ? "parallel" : "serial")}");
 #endif
 
@@ -1961,7 +1961,7 @@ else
                         (OrderedDestinationsInverted[destIdx] ??=
                             new List<int>()).Add(currentOrderedDestinationIndex);
 #if DEBUG
-                        Debug.WriteLine($"[OD‑MAP] dst={destIdx}  srcODIdx={currentOrderedDestinationIndex}");
+                        TabbedText.WriteLine($"[OD‑MAP] dst={destIdx}  srcODIdx={currentOrderedDestinationIndex}");
 #endif
                     }
 
@@ -1989,12 +1989,12 @@ else
                     {
                         total += OrderedDestinations[src];
 #if DEBUG
-                        Debug.WriteLine($"[OD‑ACC] tgt={targetIndex}  +=" +
+                        TabbedText.WriteLine($"[OD‑ACC] tgt={targetIndex}  +=" +
                                         $"OD[{src}]={OrderedDestinations[src]}");
 #endif
                     }
 #if DEBUG
-                    Debug.WriteLine($"[OD‑WR ] tgt={targetIndex}  total={total}");
+                    TabbedText.WriteLine($"[OD‑WR ] tgt={targetIndex}  total={total}");
 #endif
                     array[targetIndex] = total;
                 });
@@ -2019,7 +2019,7 @@ else
                         totals.Add(dest, delta);
 
 #if DEBUG
-                    Debug.WriteLine($"[OD‑ACC] dst={dest}  += {delta}  runningTotal={totals[dest]}");
+                    TabbedText.WriteLine($"[OD‑ACC] dst={dest}  += {delta}  runningTotal={totals[dest]}");
 #endif
                 }
 
@@ -2027,16 +2027,16 @@ else
                 {
 #if DEBUG
                     double before = array[dest];
-                    Debug.WriteLine($"[OD‑WR ] dst={dest}  {before} → {total}");
+                    TabbedText.WriteLine($"[OD‑WR ] dst={dest}  {before} → {total}");
 #endif
                     array[dest] = total;
                 }
             }
 
 #if DEBUG
-            Debug.WriteLine("[OD‑END] first 10 array vals → " +
+            TabbedText.WriteLine("[OD‑END] first 10 array vals → " +
                             string.Join(", ", array.Take(10)));
-            Debug.WriteLine("══════════════════════════════════════════════════════");
+            TabbedText.WriteLine("══════════════════════════════════════════════════════");
 #endif
         }
 
@@ -2294,7 +2294,7 @@ else
             gInfo.EndCommandRangeExclusive = endIfIdxExcl + 1;
             gInfo.LastChild = (byte)(bId - 1);
 #if DEBUG
-            Debug.WriteLine($"[CREATESLICES] Gate chunk {gInfo.ID} will execute (Skip=false)");
+            TabbedText.WriteLine($"[CREATESLICES] Gate chunk {gInfo.ID} will execute (Skip=false)");
 #endif
             gInfo.Skip = false;        // gate must not re‑execute body
 
@@ -2303,7 +2303,7 @@ else
             foreach (var s in slices)
             {
                 var c = s.StoredValue;
-                Debug.WriteLine(
+                TabbedText.WriteLine(
                     $"[SLICE] id={c.ID,3}  cmds=[{c.StartCommandRange},{c.EndCommandRangeExclusive})  " +
                     $"cosi {c.StartSourceIndices}->{c.EndSourceIndicesExclusive}  " +
                     $"codi {c.StartDestinationIndices}->{c.EndDestinationIndicesExclusive}");
@@ -2329,7 +2329,7 @@ else
                 SetupVirtualStackRelationships(s);
 #if DEBUG
                 var c = s.StoredValue;
-                Debug.WriteLine(
+                TabbedText.WriteLine(
                     $"[STACK‑INFO] id={c.ID}  VS={c.VirtualStackID}  "
                   + $"pVS={c.ParentVirtualStackID}  "
                   + $"ChildrenParallelizable={c.ChildrenParallelizable}");
@@ -2393,7 +2393,7 @@ else
 
                 info.CopyIncrementsToParent = toCopy.ToArray();
 #if DEBUG
-                Debug.WriteLine($"[SLICE‑INFO] child {info.ID} CopyInc=[{string.Join(",", toCopy)}]");
+                TabbedText.WriteLine($"[SLICE‑INFO] child {info.ID} CopyInc=[{string.Join(",", toCopy)}]");
 #endif
                 /* ── remember for the gate’s own merge list ─────────────────────── */
                 foreach (int idx in toCopy) unionForGate.Add(idx);
@@ -2408,7 +2408,7 @@ else
                 gateInfo.CopyIncrementsToParent = unionForGate.ToArray();
 #if DEBUG
             if (gateHasPrivateStack)
-                Debug.WriteLine($"[GATE‑INFO] gate {gateInfo.ID} CopyInc=[{string.Join(",", unionForGate)}]");
+                TabbedText.WriteLine($"[GATE‑INFO] gate {gateInfo.ID} CopyInc=[{string.Join(",", unionForGate)}]");
             ValidateIncrementCopying(gateInfo, slices);
 #endif
         }
@@ -2457,7 +2457,7 @@ else
             };
 
 #if DEBUG
-            Debug.WriteLine($"[MAKE] new slice {child.StoredValue.ID} created  " +
+            TabbedText.WriteLine($"[MAKE] new slice {child.StoredValue.ID} created  " +
                             $"ChildrenParallelizable={child.StoredValue.ChildrenParallelizable}");
 #endif
             return child;
@@ -2482,18 +2482,18 @@ else
 
             if (ifCount != endIfCount)
             {
-                System.Diagnostics.Debug.WriteLine(
+                TabbedText.WriteLine(
                    $"❌  Unbalanced leaf ID={st.ID}  if={ifCount}  endif={endIfCount}  " +
                    $"range=[{st.StartCommandRange},{st.EndCommandRangeExclusive})");
 
                 for (int i = st.StartCommandRange; i < st.EndCommandRangeExclusive; i++)
-                    System.Diagnostics.Debug.WriteLine($"   {i,8}: {UnderlyingCommands[i]}");
+                    TabbedText.WriteLine($"   {i,8}: {UnderlyingCommands[i]}");
             }
         }
         [Conditional("DEBUG")]
         public void DumpLeafSummary(string tag = "")
         {
-            System.Diagnostics.Debug.WriteLine($"── Tree dump {tag} ──");
+            TabbedText.WriteLine($"── Tree dump {tag} ──");
             CommandTree.WalkTree(nodeObj =>
             {
                 var n = (NWayTreeStorageInternal<ArrayCommandChunk>)nodeObj;
@@ -2506,7 +2506,7 @@ else
                     if (t == ArrayCommandType.If) ifs++;
                     if (t == ArrayCommandType.EndIf) endIfs++;
                 }
-                System.Diagnostics.Debug.WriteLine(
+                TabbedText.WriteLine(
                     $"leaf ID={s.ID,3}  name={s.Name,-12}  " +
                     $"exec={s.ExecId,4}  if={ifs}  endif={endIfs}  " +
                     $"range=[{s.StartCommandRange},{s.EndCommandRangeExclusive})");
@@ -2591,7 +2591,7 @@ else
                 var c = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
                 if (!c.ChildrenParallelizableLogged)
                 {
-                    Debug.WriteLine($"[FLAG‑{phase}] id={c.ID,4}  ChildrenParallelizable={c.ChildrenParallelizable}");
+                    TabbedText.WriteLine($"[FLAG‑{phase}] id={c.ID,4}  ChildrenParallelizable={c.ChildrenParallelizable}");
                     c.ChildrenParallelizableLogged = true;    // print only first time we visit
                 }
             });

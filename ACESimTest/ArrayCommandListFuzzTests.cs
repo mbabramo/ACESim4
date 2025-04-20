@@ -1,7 +1,9 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using ACESim;
 using ACESimBase.Util.ArrayProcessing;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -32,6 +34,8 @@ namespace ACESimTest
         public void InterpreterVsCompiled_AllThresholds()
         {
             if (!RunFuzzTest) return;
+            TabbedText.WriteToConsole = false; // DEBUG
+            TabbedText.DisableOutput();// DEBUG
 
             for (int stage = 0; stage < Stages.Length; stage++)
             {
@@ -48,25 +52,25 @@ namespace ACESimTest
                     fuzzer.BuildRandomAcl(maxDepth, maxBody);
 
                     // 2) Compute the reference result *once* with the flat interpreter
-                    //    (no Roslyn, no IL, never compile any chunk)
                     var interp = fuzzer.CloneFor(threshold: 1, useRoslyn: false);
                     interp.DisableAdvancedFeatures = true;
                     interp.MinNumCommandsToCompile = int.MaxValue;
-                    double[] expected = fuzzer.MakeInitialData(); // this is random initial data, but it will then be changed, as the ordered destinations will be passed back. Some of the values will just be scratch values but they will end up being 0 both initially and at the end
+                    double[] expected = fuzzer.MakeInitialData();
                     interp.ExecuteAll(expected, tracing: false);
 
-                    // 3) Now pick a few random thresholds to exercise the compiled path
+                    // 3) Pick random thresholds to exercise the compiled path
                     int totalCmds = fuzzer.Acl.NextCommandIndex;
                     const int numThresholds = 3;
                     var thresholds = new HashSet<int>();
                     while (thresholds.Count < Math.Min(numThresholds, totalCmds + 1))
                         thresholds.Add(rnd.Next(1, totalCmds + 2));
 
-                    // 4) For each threshold, test both Roslyn & IL against the interpreter baseline
+                    // 4) For each threshold, test Roslyn & IL vs. interpreter
                     foreach (int th in thresholds)
                     {
-                        Debug.WriteLine($"Iteration {iter}; Threshold {th}");
-                        Debug.WriteLine(new string('-', 30));
+                        Debug.WriteLine($"Stage {stage} of {Stages.Length}; Iteration {iter} of {iters}; Threshold {th}");
+                        TabbedText.WriteLine($"Stage {stage} of {Stages.Length}; Iteration {iter} of {iters}; Threshold {th}");
+                        TabbedText.WriteLine(new string('-', 30));
 
                         foreach (bool useRoslyn in new[] { true, false })
                         {
@@ -80,7 +84,6 @@ namespace ACESimTest
                                 double tol = Math.Max(1e-9, Math.Abs(expected[idx]) / 1000.0);
                                 if (Math.Abs(expected[idx] - actual[idx]) > tol)
                                 {
-                                    // this will now catch the hoist bug
                                     Dump(seed, stage, th, useRoslyn, idx, expected[idx], actual[idx]);
                                     Assert.Fail("Compiled result mismatch vs. interpreter baseline");
                                 }
@@ -91,10 +94,9 @@ namespace ACESimTest
             }
         }
 
-
         private static void Dump(int seed, int stage, int th, bool roslyn, int idx, double exp, double act)
         {
-            Debug.WriteLine($"FAIL seed={seed} stage={stage} th={th} roslyn={roslyn} idx={idx} exp={exp} act={act}");
+            TabbedText.WriteLine($"FAIL seed={seed} stage={stage} th={th} roslyn={roslyn} idx={idx} exp={exp} act={act}");
         }
     }
 
@@ -126,13 +128,11 @@ namespace ACESimTest
             {
                 MinNumCommandsToCompile = minCompile,
                 DisableAdvancedFeatures = false,
-                MaxCommandsPerChunk = 1_000_000 // large but keeps ReuseScratchSlots=false  // will be reset per CloneFor
+                MaxCommandsPerChunk = 1_000_000 // keeps ReuseScratchSlots = false
             };
 
             EmitChunk(0, maxDepth, maxBody);
             Acl.CompleteCommandList();
-            // basic structural assertions are disabled for now; ACL itself will throw if bad
-
         }
 
         public ArrayCommandList CloneFor(int threshold, bool useRoslyn)
@@ -147,7 +147,7 @@ namespace ACESimTest
                 UseRoslyn = useRoslyn
             };
 
-            /* 1️⃣  Copy the raw command stream */
+            /* 1️⃣  Copy raw commands */
             Array.Copy(Acl.UnderlyingCommands,
                        clone.UnderlyingCommands,
                        Acl.NextCommandIndex);
@@ -155,13 +155,13 @@ namespace ACESimTest
             clone.NextArrayIndex = Acl.NextArrayIndex;
             clone.MaxArrayIndex = Acl.MaxArrayIndex;
 
-            /* 2️⃣  Copy ordered‑index metadata so NextSource / NextDestination work */
+            /* 2️⃣  Copy ordered‑index metadata */
             clone.OrderedSourceIndices = new List<int>(Acl.OrderedSourceIndices);
             clone.OrderedDestinationIndices = new List<int>(Acl.OrderedDestinationIndices);
             clone.ReusableOrderedDestinationIndices =
                 new Dictionary<int, int>(Acl.ReusableOrderedDestinationIndices);
 
-            /* 3️⃣  Rebuild CommandTree using the cloned lists */
+            /* 3️⃣  Rebuild command tree */
             clone.RebuildCommandTree();
             return clone;
         }
@@ -178,12 +178,19 @@ namespace ACESimTest
         {
             Acl.StartCommandChunk(false, null);
 
+            /* ── 30 % chance: child reads parent‑written scratch before any write ── */
+            if (_scratch.Count > 0 && _rnd.NextDouble() < 0.30)
+            {
+                int p = _scratch[_rnd.Next(_scratch.Count)];
+                Acl.CopyToNew(p, false);   // read‑only → primes IndicesReadFromStack
+            }
+
             int localDepth = 0;
             var copyUp = new List<int>();
 
             EmitLinear(_rnd.Next(4, maxBody + 1), copyUp, ref localDepth);
 
-            // Optional nested child (unchanged logic)
+            /* optional nested child */
             if (depth < maxDepth)
             {
                 int guard = EnsureScratch();
@@ -193,16 +200,15 @@ namespace ACESimTest
                 Acl.InsertEndIfCommand();
             }
 
-            // close any still‑open depth levels
+            /* close any open depth */
             CloseDepth(ref localDepth);
 
-            // End chunk – 50 % of the time include the copy list (if any)
+            /* 50 % chance to pass increment‑to‑parent list */
             if (copyUp.Count == 0 || _rnd.NextDouble() < 0.50)
                 Acl.EndCommandChunk();
             else
                 Acl.EndCommandChunk(copyUp.ToArray(), false);
         }
-
 
         private void EmitLinear(int count, List<int> copyUp, ref int localDepth)
         {
@@ -210,17 +216,17 @@ namespace ACESimTest
                 EmitRandomCommand(copyUp, ref localDepth);
         }
 
-        // --------------------------------------------------------------------------
-        // EmitRandomCommand – now takes depth bookkeeping args
-        // --------------------------------------------------------------------------
+        /* ------------------------------------------------------------------ */
+        /* EmitRandomCommand – random op plus depth bookkeeping               */
+        /* ------------------------------------------------------------------ */
         private void EmitRandomCommand(List<int> copyUp, ref int localDepth)
         {
-            // 1️⃣ randomly push / pop depth (20 % chance)
+            /* 1️⃣ depth push/pop (20 % chance) */
             MaybeToggleDepth(ref localDepth, copyUp);
-            if (_rnd.NextDouble() < 0.20) return;   // depth toggle consumed this slot
+            if (_rnd.NextDouble() < 0.20) return;   // depth op consumed this slot
 
-            // 2️⃣ original 12‑way random command
-            switch (_rnd.Next(0, 12))
+            /* 2️⃣ choose command – now 13 cases (0‑12) */
+            switch (_rnd.Next(0, 13))
             {
                 case 0: CopyOriginalToNew(); break;
                 case 1: CopyScratchToNew(); break;
@@ -233,27 +239,25 @@ namespace ACESimTest
                 case 8: ComparisonValue(); break;
                 case 9: ComparisonIndices(); break;
                 case 10: NextSourceDrain(); break;
-                default: IncrementByProduct(); break;
+                case 11: ReadParentScratch(); break;   /* NEW */
+                default: IncrementByProduct(); break;  // case 12
             }
         }
-
 
         /*----------------- command emit helpers -----------------*/
         private void MaybeToggleDepth(ref int localDepth, List<int> copyUp)
         {
-            if (_rnd.NextDouble() >= 0.20) return;          // 80 % of the time do nothing
+            if (_rnd.NextDouble() >= 0.20) return;  // 80 % do nothing
 
             if (localDepth == 0 || _rnd.NextDouble() < 0.50)
-            {   // ── push ──
+            {   // push
                 Acl.IncrementDepth();
                 localDepth++;
-
-                // pick an existing scratch value whose delta we’ll bubble up
                 int s = EnsureScratch();
-                copyUp.Add(s);
+                copyUp.Add(s);                      // bubble this index up
             }
             else
-            {   // ── pop ──
+            {   // pop
                 Acl.DecrementDepth();
                 localDepth--;
             }
@@ -264,6 +268,13 @@ namespace ACESimTest
             while (localDepth-- > 0) Acl.DecrementDepth();
         }
 
+        /* parent‑value read without prior local write */
+        private void ReadParentScratch()
+        {
+            if (_scratch.Count == 0) { CopyOriginalToNew(); return; }
+            int s = _scratch[_rnd.Next(_scratch.Count)];
+            Acl.CopyToNew(s, false);   // read only
+        }
 
         void CopyOriginalToNew()
         {
@@ -301,15 +312,9 @@ namespace ACESimTest
             int idx = _scratch[_rnd.Next(_scratch.Count)];
             switch (_rnd.Next(3))
             {
-                case 0:
-                    Acl.Increment(idx, targetOriginal: false, indexOfIncrement: idx);
-                    break;
-                case 1:
-                    Acl.Decrement(idx, indexOfDecrement: idx);
-                    break;
-                default:
-                    Acl.MultiplyBy(idx, idx);
-                    break;
+                case 0: Acl.Increment(idx, false, idx); break;
+                case 1: Acl.Decrement(idx, idx); break;
+                default: Acl.MultiplyBy(idx, idx); break;
             }
         }
         void IncrementOriginal()
@@ -327,7 +332,6 @@ namespace ACESimTest
         {
             int idx = EnsureScratch();
             int val;
-            // SourceIndex must be ≥‑1 (constructor restriction). Choose small non‑negative constants.
             do { val = _rnd.Next(0, 5); } while (val == -2);
 
             if (_rnd.NextDouble() < 0.5)
@@ -359,8 +363,6 @@ namespace ACESimTest
             int tgt = _scratch[_rnd.Next(_scratch.Count)];
             int a = _scratch[_rnd.Next(_scratch.Count)];
             int b = _scratch[_rnd.Next(_scratch.Count)];
-            // With MaxCommandsPerChunk != Int32.MaxValue, ReuseScratchSlots is false,
-            // so ArrayCommandList will NOT decrement NextArrayIndex internally.
             Acl.IncrementByProduct(tgt, false, a, b);
         }
 

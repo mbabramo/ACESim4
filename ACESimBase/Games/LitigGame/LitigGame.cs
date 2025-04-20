@@ -146,7 +146,7 @@ namespace ACESim
                     break;
                 case (byte)LitigGameDecisions.CourtDecisionLiability:
                     LitigGameProgress.CourtReceivesLiabilitySignal(action, LitigGameDefinition);
-                    //System.Diagnostics.TabbedText.WriteLine($"Quality {MyProgress.LiabilityStrengthUniform} Court noise action {action} => {courtNoiseNormalDraw} => signal {courtLiabilitySignal} PWins {MyProgress.PWinsAtTrial}");
+                    //TabbedText.WriteLine($"Quality {MyProgress.LiabilityStrengthUniform} Court noise action {action} => {courtNoiseNormalDraw} => signal {courtLiabilitySignal} PWins {MyProgress.PWinsAtTrial}");
                     break;
                 case (byte)LitigGameDecisions.CourtDecisionDamages:
                     LitigGameProgress.CourtReceivesDamagesSignal(action, LitigGameDefinition);

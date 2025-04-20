@@ -82,7 +82,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 // copy only when stacks are distinct and a parent exists – original guard
                 if (ParentVirtualStack != VirtualStack && ParentVirtualStack != null)
                 {
-                    Debug.WriteLine(
+                    TabbedText.WriteLine(
                         $"[CPS‑BEGIN] child={ID,4}  parentVS={ParentVirtualStackID,4}  "
                       + $"indices=[{string.Join(",", IndicesReadFromStack)}]");
 
@@ -93,10 +93,10 @@ namespace ACESimBase.Util.ArrayProcessing
 
                         VirtualStack[index] = src;            // ← original assignment
 
-                        Debug.WriteLine($"   • idx={index}  {before} → {src}");
+                        TabbedText.WriteLine($"   • idx={index}  {before} → {src}");
                     }
 
-                    Debug.WriteLine(
+                    TabbedText.WriteLine(
                         $"[CPS‑END]   child={ID,4}  vs0={(VirtualStack.Length > 0 ? VirtualStack[0].ToString() : "∅")}");
                 }
             }
@@ -105,7 +105,7 @@ namespace ACESimBase.Util.ArrayProcessing
             private static void LogMerge(int childId, double before, double delta, double after,
                                          int idx, int parentVsId)
             {
-                Debug.WriteLine(
+                TabbedText.WriteLine(
                     $"[MERGE] child={childId} idx={idx}  +={delta}   {before}→{after}  →pVS{parentVsId}");
             }
 #endif
@@ -116,7 +116,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 if (CopyIncrementsToParent == null || CopyIncrementsToParent.Length == 0)
                 {
 #if DEBUG
-                    Debug.WriteLine($"[INC‑SKIP] child={ID}  empty‑list");
+                    TabbedText.WriteLine($"[INC‑SKIP] child={ID}  empty‑list");
 #endif
                     return;
                 }
@@ -125,7 +125,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 if (ParentVirtualStack == null)
                 {
 #if DEBUG
-                    Debug.WriteLine($"[INC‑SKIP] child={ID}  NO‑PARENT");
+                    TabbedText.WriteLine($"[INC‑SKIP] child={ID}  NO‑PARENT");
 #endif
                     return;
                 }
@@ -134,7 +134,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 if (sharing)
                 {
 #if DEBUG
-                    Debug.WriteLine($"[INC‑WARN] child={ID} shares parent stack yet " +
+                    TabbedText.WriteLine($"[INC‑WARN] child={ID} shares parent stack yet " +
                                     $"CopyIncrements is non‑empty → NO merge performed");
 #endif
                     return;
@@ -142,10 +142,10 @@ namespace ACESimBase.Util.ArrayProcessing
 
 #if DEBUG
                 string Dump(double[] s) => string.Join(", ", CopyIncrementsToParent.Select(i => $"{i}:{s[i]}"));
-                Debug.WriteLine($"[MERGE‑BEG] child={ID} → parentVS={ParentVirtualStackID}  " +
+                TabbedText.WriteLine($"[MERGE‑BEG] child={ID} → parentVS={ParentVirtualStackID}  " +
                                 $"idxs=[{string.Join("/", CopyIncrementsToParent)}]");
-                Debug.WriteLine($"           childVals  [{Dump(VirtualStack)}]");
-                Debug.WriteLine($"           parentVals [{Dump(ParentVirtualStack)}]");
+                TabbedText.WriteLine($"           childVals  [{Dump(VirtualStack)}]");
+                TabbedText.WriteLine($"           parentVals [{Dump(ParentVirtualStack)}]");
 #endif
 
                 foreach (int idx in CopyIncrementsToParent)
@@ -156,12 +156,12 @@ namespace ACESimBase.Util.ArrayProcessing
 
                     ParentVirtualStack[idx] = before + delta;
 #if DEBUG
-                    Debug.WriteLine($"[MERGE] chunk={ID} idx={idx}  +={delta}   {before}→{before + delta}");
+                    TabbedText.WriteLine($"[MERGE] chunk={ID} idx={idx}  +={delta}   {before}→{before + delta}");
 #endif
                 }
 
 #if DEBUG
-                Debug.WriteLine($"[MERGE‑END] parentVals [{Dump(ParentVirtualStack)}]");
+                TabbedText.WriteLine($"[MERGE‑END] parentVals [{Dump(ParentVirtualStack)}]");
 #endif
             }
 
@@ -174,14 +174,14 @@ namespace ACESimBase.Util.ArrayProcessing
                 if (ReferenceEquals(VirtualStack, ParentVirtualStack))
                     return;    // shared stack – nothing to clear
 
-                Debug.WriteLine(
+                TabbedText.WriteLine(
                     $"[RST‑BEG] slice={ID,4}  zeroing idxs=[{string.Join(",", CopyIncrementsToParent)}]  "
                   + $"vs0={VirtualStack[0]}");
 
                 foreach (int idx in CopyIncrementsToParent)
                     VirtualStack[idx] = 0;                     // ← original logic
 
-                Debug.WriteLine($"[RST‑END] slice={ID,4}  vs0={VirtualStack[0]}");
+                TabbedText.WriteLine($"[RST‑END] slice={ID,4}  vs0={VirtualStack[0]}");
             }
 
 
