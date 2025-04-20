@@ -7,6 +7,7 @@ using ACESim;
 using ACESimBase.Util.ArrayProcessing;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using static ACESimBase.Util.ArrayProcessing.ArrayCommandList;
 
 namespace ACESimTest
 {
@@ -34,8 +35,8 @@ namespace ACESimTest
         public void InterpreterVsCompiled_AllThresholds()
         {
             if (!RunFuzzTest) return;
-            TabbedText.WriteToConsole = false; // DEBUG
-            TabbedText.DisableOutput();// DEBUG
+            //TabbedText.WriteToConsole = false; // DEBUG
+            //TabbedText.DisableOutput();// DEBUG
 
             for (int stage = 0; stage < Stages.Length; stage++)
             {
@@ -64,6 +65,7 @@ namespace ACESimTest
                     var thresholds = new HashSet<int>();
                     while (thresholds.Count < Math.Min(numThresholds, totalCmds + 1))
                         thresholds.Add(rnd.Next(1, totalCmds + 2));
+                    thresholds.Add(1); // always test threshold=1
 
                     // 4) For each threshold, test Roslyn & IL vs. interpreter
                     foreach (int th in thresholds)
@@ -75,6 +77,7 @@ namespace ACESimTest
                         foreach (bool useRoslyn in new[] { true, false })
                         {
                             var acl = fuzzer.CloneFor(th, useRoslyn);
+
                             double[] actual = fuzzer.MakeInitialData();
                             acl.ExecuteAll(actual, tracing: false);
 
@@ -143,11 +146,11 @@ namespace ACESimTest
             {
                 DisableAdvancedFeatures = false,
                 MinNumCommandsToCompile = Acl.MinNumCommandsToCompile,
-                MaxCommandsPerChunk = threshold,
+                MaxCommandsPerChunk = threshold,     // << clone‑specific limit
                 UseRoslyn = useRoslyn
             };
 
-            /* 1️⃣  Copy raw commands */
+            /* 1️⃣  copy raw commands */
             Array.Copy(Acl.UnderlyingCommands,
                        clone.UnderlyingCommands,
                        Acl.NextCommandIndex);
@@ -155,16 +158,27 @@ namespace ACESimTest
             clone.NextArrayIndex = Acl.NextArrayIndex;
             clone.MaxArrayIndex = Acl.MaxArrayIndex;
 
-            /* 2️⃣  Copy ordered‑index metadata */
+            /* 2️⃣  copy ordered‑index metadata */
             clone.OrderedSourceIndices = new List<int>(Acl.OrderedSourceIndices);
             clone.OrderedDestinationIndices = new List<int>(Acl.OrderedDestinationIndices);
             clone.ReusableOrderedDestinationIndices =
                 new Dictionary<int, int>(Acl.ReusableOrderedDestinationIndices);
 
-            /* 3️⃣  Rebuild command tree */
-            clone.RebuildCommandTree();
+            /* 3️⃣  rebuild the tree for THIS chunk limit */
+            clone.CommandTree = new NWayTreeStorageInternal<ArrayCommandList.ArrayCommandChunk>(null);
+            clone.CommandTree.StoredValue = new ArrayCommandList.ArrayCommandChunk
+            {
+                StartCommandRange = 0,
+                EndCommandRangeExclusive = Acl.NextCommandIndex,
+                StartSourceIndices = 0,
+                StartDestinationIndices = 0
+            };
+
+            clone.FinaliseCommandTree();               // ← key line
+
             return clone;
         }
+
 
         public double[] MakeInitialData()
         {
@@ -221,11 +235,28 @@ namespace ACESimTest
         /* ------------------------------------------------------------------ */
         private void EmitRandomCommand(List<int> copyUp, ref int localDepth)
         {
-            /* 1️⃣ depth push/pop (20 % chance) */
+            /* 1️⃣  depth push / pop (20 % chance) */
             MaybeToggleDepth(ref localDepth, copyUp);
-            if (_rnd.NextDouble() < 0.20) return;   // depth op consumed this slot
+            if (_rnd.NextDouble() < 0.20)
+                return;                                    // depth op consumed this slot
 
-            /* 2️⃣ choose command – now 13 cases (0‑12) */
+            /* ────────────────────────────────────────────────────────────────────
+             *  ensure occasional writes to scratch
+             *  ------------------------------------------------
+             *  If we already have at least one scratch slot, randomly (15 %) emit
+             *  a direct in‑place increment.  This guarantees that the body of an
+             *  If‑slice is never completely read‑only, so AttachCopyLists will
+             *  assign a non‑empty CopyIncrementsToParent list.
+             * ──────────────────────────────────────────────────────────────────── */
+            if (_scratch.Count > 0 && _rnd.NextDouble() < 0.15)
+            {
+                int tgt = _scratch[_rnd.Next(_scratch.Count)];
+                int src = _scratch[_rnd.Next(_scratch.Count)];
+                Acl.Increment(tgt, false, src);            // ← definite write
+                return;
+            }
+
+            /* 2️⃣  choose command – still the original 13 cases (0‑12) */
             switch (_rnd.Next(0, 13))
             {
                 case 0: CopyOriginalToNew(); break;
@@ -239,10 +270,11 @@ namespace ACESimTest
                 case 8: ComparisonValue(); break;
                 case 9: ComparisonIndices(); break;
                 case 10: NextSourceDrain(); break;
-                case 11: ReadParentScratch(); break;   /* NEW */
-                default: IncrementByProduct(); break;  // case 12
+                case 11: ReadParentScratch(); break; 
+                default: IncrementByProduct(); break;   
             }
         }
+
 
         /*----------------- command emit helpers -----------------*/
         private void MaybeToggleDepth(ref int localDepth, List<int> copyUp)
@@ -339,19 +371,48 @@ namespace ACESimTest
             else
                 Acl.InsertNotEqualsValueCommand(idx, val);
         }
+        /* ------------------------------------------------------------------ */
+        /* ComparisonIndices – 4‑way random comparison between two stack idx  */
+        /*           (now with 50 % chance to do  a == a)                     */
+        /* ------------------------------------------------------------------ */
+        /* --------------------------------------------------------------- */
+        /*  ComparisonIndices                                              */
+        /*  – 4 original cases (==, !=, >, <)                               */
+        /*  – NEW: 50 % of the time emit   EqualsOtherArrayIndex(a, a)      */
+        /*         so the condition is guaranteed TRUE and the If‑body      */
+        /*         always executes.                                         */
+        /* --------------------------------------------------------------- */
         void ComparisonIndices()
         {
-            if (_scratch.Count < 2) { CopyScratchToNew(); return; }
-            int a = _scratch[_rnd.Next(_scratch.Count)];
-            int b = _scratch[_rnd.Next(_scratch.Count)];
+            // If we don’t yet have two scratch slots, fall back to a copy
+            if (_scratch.Count < 1)
+            { CopyScratchToNew(); return; }
+
+            /* 50 % chance to compare a slot with itself (a == a) */
+            if (_rnd.NextDouble() < 0.50)
+            {
+                int a = _scratch[_rnd.Next(_scratch.Count)];
+                Acl.InsertEqualsOtherArrayIndexCommand(a, a);   // always true
+                return;
+            }
+
+            /* Original behaviour (needs two distinct indices) */
+            if (_scratch.Count < 2)
+            { CopyScratchToNew(); return; }
+
+            int i1 = _scratch[_rnd.Next(_scratch.Count)];
+            int i2 = _scratch[_rnd.Next(_scratch.Count)];
+
             switch (_rnd.Next(4))
             {
-                case 0: Acl.InsertEqualsOtherArrayIndexCommand(a, b); break;
-                case 1: Acl.InsertNotEqualsOtherArrayIndexCommand(a, b); break;
-                case 2: Acl.InsertGreaterThanOtherArrayIndexCommand(a, b); break;
-                default: Acl.InsertLessThanOtherArrayIndexCommand(a, b); break;
+                case 0: Acl.InsertEqualsOtherArrayIndexCommand(i1, i2); break;
+                case 1: Acl.InsertNotEqualsOtherArrayIndexCommand(i1, i2); break;
+                case 2: Acl.InsertGreaterThanOtherArrayIndexCommand(i1, i2); break;
+                default: Acl.InsertLessThanOtherArrayIndexCommand(i1, i2); break;
             }
         }
+
+
         void NextSourceDrain()
         {
             int src = SrcStart + _rnd.Next(OrigCt);

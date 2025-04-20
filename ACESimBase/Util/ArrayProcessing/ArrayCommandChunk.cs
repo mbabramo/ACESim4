@@ -44,7 +44,11 @@ namespace ACESimBase.Util.ArrayProcessing
             public int ParentVirtualStackID;
             public string CompiledCode;
             public string Name;
-            internal int[] CopyIncrementsToParent;
+            internal int[] CopyIncrementsToParent
+            {
+                get;
+                set;
+            }
             public bool Skip; 
             public int SourcesInBody;
             public int DestinationsInBody;

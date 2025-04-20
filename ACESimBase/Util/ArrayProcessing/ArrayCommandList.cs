@@ -297,6 +297,28 @@ namespace ACESimBase.Util.ArrayProcessing
             });
         }
 
+        /// <summary>
+        /// Rebuilds the command‑tree and all virtual‑stack metadata for the **current**
+        /// value of <see cref="MaxCommandsPerChunk"/>.  Does the same work that
+        /// <c>CompleteCommandList()</c> performs immediately after hoisting, but can be
+        /// called later on a clone whose chunk‑limit differs from the original.
+        /// </summary>
+        public void FinaliseCommandTree()
+        {
+            // 1) Ensure every gap between children is covered by an explicit branch
+            CommandTree.WalkTree(x =>
+                InsertMissingBranches((NWayTreeStorageInternal<ArrayCommandChunk>)x));
+
+            // 2) Hoist oversized If‑bodies using *this* MaxCommandsPerChunk
+            HoistAndSplitLargeIfBodies();
+
+            // 3) Allocate virtual‑stack arrays and wire parent/child relationships
+            CommandTree.WalkTree(null, x =>
+                SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandChunk>)x));
+            CommandTree.WalkTree(x =>
+                SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandChunk>)x));
+        }
+
         public void CompleteCommandList()
         {
             MaxCommandIndex = NextCommandIndex;
@@ -1477,6 +1499,8 @@ else
                 return;
             }
 
+            throw new Exception("DEBUG");
+
 #if DEBUG
             TabbedText.WriteLine("[ExecuteAll]  PATH → chunked tree walk");
 #endif
@@ -2433,6 +2457,7 @@ else
             }
             return sliceEnd;
         }
+
 
         /// Create a child chunk that copies stack/buffer metadata from <paramref name="gInfo"/>.
         private NWayTreeStorageInternal<ArrayCommandChunk> MakeChildChunk(
