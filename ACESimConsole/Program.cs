@@ -31,7 +31,7 @@ namespace ACESim
             SelectDMSReplicationGame
         }
 
-        public static AvailableGames GameToPlay = AvailableGames.SelectLitigGame;
+        public static AvailableGames GameToPlay = AvailableGames.SelectEFGFileGame; // DEBUG
         public static bool LaunchSingleOptionsSetOnly = true;
 
         [STAThread]
