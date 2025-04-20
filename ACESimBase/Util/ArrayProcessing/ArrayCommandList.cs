@@ -189,6 +189,8 @@ namespace ACESimBase.Util.ArrayProcessing
               + $"identicalStart={identicalStartCommandRange?.ToString() ?? "null"}");
 #endif
 
+            runChildrenInParallel = false; // DEBUG SUPERDEBUG
+
             if (KeepCommandsTogetherLevel > 0 && !ignoreKeepTogether)
                 return;
 

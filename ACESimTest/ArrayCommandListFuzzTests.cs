@@ -178,8 +178,12 @@ namespace ACESimTest
         {
             Acl.StartCommandChunk(false, null);
 
-            EmitLinear(_rnd.Next(4, maxBody + 1));
+            int localDepth = 0;
+            var copyUp = new List<int>();
 
+            EmitLinear(_rnd.Next(4, maxBody + 1), copyUp, ref localDepth);
+
+            // Optional nested child (unchanged logic)
             if (depth < maxDepth)
             {
                 int guard = EnsureScratch();
@@ -189,16 +193,33 @@ namespace ACESimTest
                 Acl.InsertEndIfCommand();
             }
 
-            Acl.EndCommandChunk();
+            // close any still‑open depth levels
+            CloseDepth(ref localDepth);
+
+            // End chunk – 50 % of the time include the copy list (if any)
+            if (copyUp.Count == 0 || _rnd.NextDouble() < 0.50)
+                Acl.EndCommandChunk();
+            else
+                Acl.EndCommandChunk(copyUp.ToArray(), false);
         }
 
-        private void EmitLinear(int count)
+
+        private void EmitLinear(int count, List<int> copyUp, ref int localDepth)
         {
-            for (int i = 0; i < count; i++) EmitRandomCommand();
+            for (int i = 0; i < count; i++)
+                EmitRandomCommand(copyUp, ref localDepth);
         }
 
-        private void EmitRandomCommand()
+        // --------------------------------------------------------------------------
+        // EmitRandomCommand – now takes depth bookkeeping args
+        // --------------------------------------------------------------------------
+        private void EmitRandomCommand(List<int> copyUp, ref int localDepth)
         {
+            // 1️⃣ randomly push / pop depth (20 % chance)
+            MaybeToggleDepth(ref localDepth, copyUp);
+            if (_rnd.NextDouble() < 0.20) return;   // depth toggle consumed this slot
+
+            // 2️⃣ original 12‑way random command
             switch (_rnd.Next(0, 12))
             {
                 case 0: CopyOriginalToNew(); break;
@@ -216,7 +237,34 @@ namespace ACESimTest
             }
         }
 
+
         /*----------------- command emit helpers -----------------*/
+        private void MaybeToggleDepth(ref int localDepth, List<int> copyUp)
+        {
+            if (_rnd.NextDouble() >= 0.20) return;          // 80 % of the time do nothing
+
+            if (localDepth == 0 || _rnd.NextDouble() < 0.50)
+            {   // ── push ──
+                Acl.IncrementDepth();
+                localDepth++;
+
+                // pick an existing scratch value whose delta we’ll bubble up
+                int s = EnsureScratch();
+                copyUp.Add(s);
+            }
+            else
+            {   // ── pop ──
+                Acl.DecrementDepth();
+                localDepth--;
+            }
+        }
+
+        private void CloseDepth(ref int localDepth)
+        {
+            while (localDepth-- > 0) Acl.DecrementDepth();
+        }
+
+
         void CopyOriginalToNew()
         {
             int src = SrcStart + _rnd.Next(OrigCt);
