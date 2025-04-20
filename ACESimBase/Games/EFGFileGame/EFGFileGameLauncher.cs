@@ -18,7 +18,7 @@ namespace ACESimBase.Games.EFGFileGame
         {
             //return new EFGFileGameOptions() { EFGFileName = "C:\\Users\\Admin\\Documents\\GitHub\\ACESim4\\ACESimBase\\Games\\EFGFileGame\\pennies.efg" };
 
-            return new EFGFileGameOptions() { EFGFileName = "C:\\Users\\Admin\\Documents\\GitHub\\ACESim4\\ACESimBase\\Games\\EFGFileGame\\bayes1a.efg"  };
+            return new EFGFileGameOptions() { EFGFileName = "C:\\Users\\Admin\\Documents\\GitHub\\ACESim4\\ACESimBase\\Games\\EFGFileGame\\el_farol_bar.efg"  };
         }
 
         public override List<GameOptions> GetOptionsSets()
