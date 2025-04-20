@@ -23,6 +23,7 @@ namespace ACESimBase.Util.ArrayProcessing
         NotEqualsValue,
         If,
         EndIf,
+        Comment,
         Blank,
     }
 }

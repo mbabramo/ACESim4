@@ -190,6 +190,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 case ArrayCommandType.LessThanOtherArrayIndex:
                 case ArrayCommandType.EqualsValue:
                 case ArrayCommandType.NotEqualsValue:
+                case ArrayCommandType.Comment:
                 case ArrayCommandType.Blank:
                     // Typically we skip checks. Or if e.g. you do "vs[index]" inside these commands, 
                     // then you'd check index >= 0 / sourceIndex >= 0. 
@@ -276,6 +277,7 @@ namespace ACESimBase.Util.ArrayProcessing
                     EmitEndIf();
                     break;
 
+                case ArrayCommandType.Comment:
                 case ArrayCommandType.Blank:
                     // no-op
                     break;

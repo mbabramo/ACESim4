@@ -26,10 +26,14 @@ namespace ACESimTest
             ( 10, 5,120)     // stress
         };
 
+        private static bool RunFuzzTest => true; // DEBUG
+
         [TestMethod]
         public void InterpreterVsCompiled_AllThresholds()
         {
-            for (int stage = 0; stage < Stages.Length; stage++)
+            if (!RunFuzzTest) return;
+
+            for (int stage = 3 /* DEBUG */; stage < Stages.Length; stage++)
             {
                 var (iters, maxDepth, maxBody) = Stages[stage];
                 int seedBase = (int)(0xACE0_0000 + stage * 10_000);

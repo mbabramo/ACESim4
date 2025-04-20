@@ -79,6 +79,8 @@ namespace ACESimBase.Util.ArrayProcessing
         public Dictionary<int, int> ReusableOrderedDestinationIndices;
         public bool Parallelize;
 
+        public List<string> CommentTable = new();
+
         private Dictionary<string, ArrayCommandChunkDelegate> _compiledChunkMethods
     = new Dictionary<string, ArrayCommandChunkDelegate>();
 
@@ -388,21 +390,6 @@ namespace ACESimBase.Util.ArrayProcessing
                 node.Branches = children.ToArray();
             }
         }
-
-#if DEBUG
-        void LogFlags(string phase)
-        {
-            CommandTree.WalkTree(n =>
-            {
-                var c = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
-                if (!c.ChildrenParallelizableLogged)
-                {
-                    Debug.WriteLine($"[FLAG‑{phase}] id={c.ID,4}  ChildrenParallelizable={c.ChildrenParallelizable}");
-                    c.ChildrenParallelizableLogged = true;    // print only first time we visit
-                }
-            });
-        }
-#endif
 
         private void CompleteCommandTree()
         {
@@ -988,6 +975,14 @@ namespace ACESimBase.Util.ArrayProcessing
             return commandIndex;
         }
 
+        public void InsertComment(string text)
+        {
+            int id = CommentTable.Count;
+            CommentTable.Add(text);
+            // we store the comment’s row‑id in SourceIndex
+            AddCommand(new ArrayCommand(ArrayCommandType.Comment, -1, id));
+        }
+
         #endregion
 
         #region Code generation
@@ -1353,6 +1348,10 @@ else
     cosi += {sourceIncrements};
     codi += {destinationIncrements};
 }}");
+                        break;
+                    case ArrayCommandType.Comment:
+                        string cmt = CommentTable[command.SourceIndex];
+                        b.AppendLine($"// {cmt}");
                         break;
                     case ArrayCommandType.Blank:
                         break;
@@ -1865,6 +1864,7 @@ else
                         }
                         break;
                     case ArrayCommandType.EndIf:
+                    case ArrayCommandType.Comment:
                     case ArrayCommandType.Blank:
                         break;
                     default:
@@ -2510,11 +2510,12 @@ else
         }
 
         [Conditional("DEBUG")]
+        [Conditional("DEBUG")]
         private void ValidateIncrementCopying(
-        ArrayCommandChunk gate,
-        IList<NWayTreeStorageInternal<ArrayCommandChunk>> slices)
+    ArrayCommandChunk gate,
+    IList<NWayTreeStorageInternal<ArrayCommandChunk>> slices)
         {
-            /* ❶  build the union of indices every PRIVATE child will merge up */
+            /* ❶  Build the union of indices every CHILD *that writes* will merge up */
             var expectedUnion = new HashSet<int>();
 
             foreach (var node in slices)
@@ -2525,33 +2526,73 @@ else
                        child.ParentVirtualStack != null &&
                       !ReferenceEquals(child.VirtualStack, child.ParentVirtualStack);
 
-                if (!hasPrivateStack) continue;   // sharing → no merge list needed
+                if (!hasPrivateStack)
+                    continue;                        // shared stack → no merge list needed
 
-                Debug.Assert(child.CopyIncrementsToParent != null &&
-                             child.CopyIncrementsToParent.Length > 0,
-                     $"❌ slice {child.ID} owns a stack but has no CopyInc list");
+                bool childWrites =
+                    child.LastSetInStack != null &&
+                    child.LastSetInStack.Any(x => x != null);
 
-                foreach (int idx in child.CopyIncrementsToParent)
-                    expectedUnion.Add(idx);
+                if (childWrites)
+                {
+                    Debug.Assert(child.CopyIncrementsToParent != null &&
+                                 child.CopyIncrementsToParent.Length > 0,
+                        $"❌ slice {child.ID} owns a stack *and writes* but has no CopyInc list");
+
+                    foreach (int idx in child.CopyIncrementsToParent)
+                        expectedUnion.Add(idx);
+                }
+                else
+                {   // never wrote → ensure we *didn’t* create a pointless list
+                    Debug.Assert(child.CopyIncrementsToParent == null ||
+                                 child.CopyIncrementsToParent.Length == 0,
+                        $"❌ slice {child.ID} never writes but has CopyInc entries");
+                }
             }
 
-            /* ❷  if the gate itself owns a private stack, it must copy that union */
+            /* ❷  If the gate itself owns a private stack, it must copy the union ‑‑
+                   but only when that union is non‑empty                                */
             bool gateHasPrivateStack =
                    gate.ParentVirtualStack != null &&
                   !ReferenceEquals(gate.VirtualStack, gate.ParentVirtualStack);
 
-            if (gateHasPrivateStack)
+            if (!gateHasPrivateStack)
+                return;
+
+            if (expectedUnion.Count == 0)
+            {
+                Debug.Assert(gate.CopyIncrementsToParent == null ||
+                             gate.CopyIncrementsToParent.Length == 0,
+                    $"❌ gate {gate.ID} should have no CopyInc entries – children wrote nothing");
+            }
+            else
             {
                 Debug.Assert(gate.CopyIncrementsToParent != null,
-                     $"❌ gate {gate.ID} owns a stack but CopyInc list is null");
+                    $"❌ gate {gate.ID} owns a stack but CopyInc list is null");
 
                 Debug.Assert(expectedUnion.SetEquals(gate.CopyIncrementsToParent),
-                     $"❌ gate {gate.ID} CopyInc mismatch – " +
-                     $"expected [{string.Join(',', expectedUnion)}], " +
-                     $"actual [{string.Join(',', gate.CopyIncrementsToParent ?? Array.Empty<int>())}]");
+                    $"❌ gate {gate.ID} CopyInc mismatch – expected " +
+                    $"[{string.Join(',', expectedUnion)}], actual " +
+                    $"[{string.Join(',', gate.CopyIncrementsToParent ?? Array.Empty<int>())}]");
             }
         }
 
+
+
+#if DEBUG
+        void LogFlags(string phase)
+        {
+            CommandTree.WalkTree(n =>
+            {
+                var c = ((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue;
+                if (!c.ChildrenParallelizableLogged)
+                {
+                    Debug.WriteLine($"[FLAG‑{phase}] id={c.ID,4}  ChildrenParallelizable={c.ChildrenParallelizable}");
+                    c.ChildrenParallelizableLogged = true;    // print only first time we visit
+                }
+            });
+        }
+#endif
 
 
         #endregion

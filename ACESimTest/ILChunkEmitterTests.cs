@@ -1116,6 +1116,7 @@ namespace ACESimTest
                             break;
 
                         case ArrayCommandType.EndIf:
+                        case ArrayCommandType.Comment: // only for Roslyn
                         case ArrayCommandType.Blank:
                             break;
 

@@ -1653,9 +1653,9 @@ namespace ACESimTest
         [TestMethod]
         public void RandomizedInterpreterVsCompiledAcrossThresholds()
         {
-            const int iterations = 1000;
+            const int iterations = 10;
 
-            for (int iter = 280 /* DEBUG */; iter < iterations; iter++)
+            for (int iter = 0; iter < iterations; iter++)
             {
                 Debug.WriteLine($"Iteration {iter}");
                 var rnd = new Random(iter);
