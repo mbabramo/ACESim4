@@ -50,7 +50,7 @@ namespace ACESimTest
                     fuzzer.BuildRandomAcl(maxDepth, maxBody);
 
                     Debug.WriteLine(@$"=== Command Tree ===
-{fuzzer.Acl.CommandTreeString}
+{fuzzer.Acl.CommandTree.ToString()}
 ----------------------");
                     for (int i = 0; i < fuzzer.Acl.NextCommandIndex; i++)
                         Debug.WriteLine($"{i,3}: {fuzzer.Acl.UnderlyingCommands[i]}");
@@ -120,7 +120,7 @@ namespace ACESimTest
         public void BuildRandomAcl(int maxDepth, int maxBody)
         {
             int maxAlloc = 60_000;
-            int minCompile = _rnd.Next(0, 6);    // 0‑5
+            int minCompile = _rnd.Next(0, 3);
 
             Acl = new ArrayCommandList(maxAlloc, DstStart + OrigCt, parallelize: false)
             {

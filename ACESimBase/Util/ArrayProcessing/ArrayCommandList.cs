@@ -54,8 +54,9 @@ namespace ACESimBase.Util.ArrayProcessing
         public int MaxArrayIndex;
 
         // NEW: Toggle Roslyn or Reflection.Emit compilation
+        public int MinNumCommandsToCompile = 25;
         public bool UseRoslyn = true; // DEBUG -- current problem with ILChunkEmitter is that it doesn't work for large chunks (e.g., over 1,000,000). So we need to break things up, ideally using if commands.
-        public int MaxCommandsPerChunk { get; set; } = 100_000; // DEBUG // Use int.MaxValue to disable. Note that scratch slots will be reused only if this is the case.
+        public int MaxCommandsPerChunk { get; set; } = 10_000; // DEBUG // Use int.MaxValue to disable. Note that scratch slots will be reused only if this is the case.
         public bool DisableAdvancedFeatures = false;
 
         bool AutogenerateCode => !DisableAdvancedFeatures && true;
@@ -81,6 +82,8 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public List<string> CommentTable = new();
 
+        public bool RecordCommandTreeString = false;
+
         private Dictionary<string, ArrayCommandChunkDelegate> _compiledChunkMethods
     = new Dictionary<string, ArrayCommandChunkDelegate>();
 
@@ -105,7 +108,6 @@ namespace ACESimBase.Util.ArrayProcessing
 
         StringBuilder CodeGenerationBuilder = new StringBuilder();
         HashSet<string> CompiledFunctions = new HashSet<string>();
-        public int MinNumCommandsToCompile = 25;
 
         // Checkpoints: If we want to figure out why the compiled code is not working, we can use checkpoints. 
         // Wherever the command is copy to index -2, that will be interpreted as an instruction to add the value
@@ -331,7 +333,8 @@ namespace ACESimBase.Util.ArrayProcessing
             CommandTree.WalkTree(x =>
                 SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandChunk>)x));
 
-            CommandTreeString = CommandTree.ToString();
+            if (RecordCommandTreeString)
+                CommandTreeString = CommandTree.ToString();
             LogFlags("POST‑REBUILD");
         }
 
@@ -400,7 +403,8 @@ namespace ACESimBase.Util.ArrayProcessing
             CommandTree.WalkTree(null, x => SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandChunk>)x));
             CommandTree.WalkTree(x => SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandChunk>)x));
 
-            CommandTreeString = CommandTree.ToString();
+            if (RecordCommandTreeString)
+                CommandTreeString = CommandTree.ToString();
             CompileCode(); 
             LogFlags("POST‑COMPLETE");
         }
@@ -1387,9 +1391,6 @@ else
             Debug.WriteLine($"[ExecuteAll]  arrayLen={array?.Length ?? 0}  tracing={tracing}");
 #endif
 
-            if (CommandTreeString == null)
-                throw new Exception("CommandTree not created yet.");
-
             // tracing works only on the flat interpreter
             if (tracing &&
                 (DoParallel || RepeatIdenticalRanges || UseOrderedDestinations || UseOrderedSources))
@@ -2190,7 +2191,8 @@ else
 
             // 5) OPTIONAL: refresh the cached pretty‑print string so that any
             //    subsequent debugging or assertions show the new structure.
-            CommandTreeString = CommandTree.ToString();
+            if (RecordCommandTreeString)
+                CommandTreeString = CommandTree.ToString();
         }
 
 

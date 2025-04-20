@@ -47,7 +47,8 @@ namespace ACESimBase.Util.ArrayProcessing
                 x => acl.SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandList.ArrayCommandChunk>)x),
                 x => acl.SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandList.ArrayCommandChunk>)x));
 
-            acl.CommandTreeString = acl.CommandTree.ToString();   // keep string snapshot fresh
+            if (acl.RecordCommandTreeString)
+                acl.CommandTreeString = acl.CommandTree.ToString();   // keep string snapshot fresh
         }
 
         /// <summary>
@@ -59,7 +60,7 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             if (acl.CommandTree != null)
             {
-                if (acl.CommandTreeString == null)
+                if (acl.CommandTreeString == null && acl.RecordCommandTreeString)
                     acl.CommandTreeString = acl.CommandTree.ToString();
                 return (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
             }
@@ -77,7 +78,8 @@ namespace ACESimBase.Util.ArrayProcessing
                 Skip = true
             };
             acl.CommandTree = root;
-            acl.CommandTreeString = acl.CommandTree.ToString();
+            if (acl.RecordCommandTreeString)
+                acl.CommandTreeString = acl.CommandTree.ToString();
             return root;
         }
 
