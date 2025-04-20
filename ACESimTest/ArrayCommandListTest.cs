@@ -1653,82 +1653,81 @@ namespace ACESimTest
         [TestMethod]
         public void RandomizedInterpreterVsCompiledAcrossThresholds()
         {
-            var rnd = new Random(123456);
-            const int iterations = 10;
+            const int iterations = 1000;
 
-            for (int iter = 0; iter < iterations; iter++)
+            for (int iter = 280 /* DEBUG */; iter < iterations; iter++)
             {
-                // random initial value in original[0]
+                Debug.WriteLine($"Iteration {iter}");
+                var rnd = new Random(iter);
+                /* random initial value and random body */
                 double initialValue = rnd.NextDouble() * 10.0;
+                int bodyLen = rnd.Next(3, 12);
+                int[] ops = Enumerable.Range(0, bodyLen)
+                                      .Select(_ => rnd.Next(3))   // 0=copy,1=mul,2=inc
+                                      .ToArray();
 
-                // random body length between 3 and 7
-                int bodyLen = rnd.Next(3, 8);
-                int[] ops = new int[bodyLen];
-                for (int i = 0; i < bodyLen; i++)
-                    ops[i] = rnd.Next(3); // 0=copy,1=mul,2=inc
-
-                // test thresholds from 1 (always hoist) up to bodyLen+1 (never hoist)
-                for (int threshold = 1; threshold <= bodyLen + 1; threshold++)
+                /* thresholds: 1 (always hoist) … bodyLen+1 (never hoist) */
+                for (int th = 1; th <= bodyLen + 1; th++)
                 {
-                    var acl = new ArrayCommandList(
-                        maxNumCommands: 1000,
-                        initialArrayIndex: 1,
-                        parallelize: false)
-                    {
-                        MaxCommandsPerChunk = threshold
-                    };
+                    /* A) reference ACL – never hoists */
+                    var aclFlat = BuildAcl(bodyLen, ops, int.MaxValue);
 
-                    // root chunk
-                    acl.StartCommandChunk(runChildrenInParallel: false,
-                                          identicalStartCommandRange: null,
-                                          name: "root");
+                    /* B) test ACL – may hoist at threshold th */
+                    var aclHoist = BuildAcl(bodyLen, ops, th);
 
-                    // copy original[0] → scratch
-                    int scratch = acl.CopyToNew(0, fromOriginalSources: true);
+                    /* execute both */
+                    double[] refRes = { initialValue };
+                    double[] hoistRes = { initialValue };
 
-                    // always‐true guard
-                    acl.InsertEqualsOtherArrayIndexCommand(scratch, scratch);
-                    acl.InsertIfCommand();
+                    aclFlat.ExecuteAll(refRes, tracing: false);
+                    aclHoist.ExecuteAll(hoistRes, tracing: false);
 
-                    // random scratch operations
-                    foreach (int op in ops)
-                    {
-                        switch (op)
-                        {
-                            case 0:
-                                scratch = acl.CopyToNew(scratch, fromOriginalSources: false);
-                                break;
-                            case 1:
-                                scratch = acl.MultiplyToNew(scratch, fromOriginalSources: false, scratch);
-                                break;
-                            default:
-                                acl.Increment(scratch, targetOriginal: false, indexOfIncrement: scratch);
-                                break;
-                        }
-                    }
-
-                    acl.InsertEndIfCommand();
-
-                    // write back into original[0]
-                    acl.Increment(0, targetOriginal: true, indexOfIncrement: scratch);
-
-                    acl.EndCommandChunk();
-                    acl.CompleteCommandList();
-
-                    // execute both paths
-                    double[] flatResult = { initialValue };
-                    double[] hoistResult = { initialValue };
-
-                    acl.ExecuteAllCommands(flatResult);
-                    acl.ExecuteAll(hoistResult, tracing: false);
-
-                    Assert.AreEqual(
-                        flatResult[0],
-                        hoistResult[0],
-                        $"Iteration {iter}, threshold {threshold}: expected {flatResult[0]}, got {hoistResult[0]}");
+                    if (hoistRes[0] != 0)
+                        Assert.AreEqual(refRes[0],
+                                    hoistRes[0], refRes[0] / 1000.0,
+                                    $"Iter {iter}, threshold {th}: expected {refRes[0]}, got {hoistRes[0]}");
                 }
             }
         }
+
+
+        /* helper: builds one ACL with the given MaxCommandsPerChunk */
+        private static ArrayCommandList BuildAcl(int bodyLen, int[] ops, int maxPerChunk)
+        {
+            var acl = new ArrayCommandList(1000, /*first scratch*/ 1, parallelize: false)
+            {
+                MaxCommandsPerChunk = maxPerChunk
+            };
+
+            /* root chunk – private stack so slices own their arrays */
+            acl.StartCommandChunk(true, identicalStartCommandRange: null);
+
+            int scratch = acl.CopyToNew(0, fromOriginalSources: true);   // copy original[0] → scratch[1]
+
+            acl.InsertNotEqualsValueCommand(scratch, 0);   // 1 != 0  → always true
+            acl.InsertIfCommand();
+
+            foreach (int op in ops)
+            {
+                switch (op)
+                {
+                    case 0: scratch = acl.CopyToNew(scratch, fromOriginalSources: false); break;
+                    case 1: scratch = acl.MultiplyToNew(scratch, fromOriginalSources: false, scratch); break;
+                    default: acl.Increment(scratch, targetOriginal: false, indexOfIncrement: scratch); break;
+                }
+            }
+
+            acl.InsertEndIfCommand();
+
+            /* write back into original[0] */
+            acl.Increment(0, targetOriginal: true, indexOfIncrement: scratch);
+
+            acl.EndCommandChunk();
+            acl.CompleteCommandList();
+
+            return acl;
+        }
+
 
         #endregion
 

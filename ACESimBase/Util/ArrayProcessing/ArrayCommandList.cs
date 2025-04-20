@@ -55,7 +55,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         // NEW: Toggle Roslyn or Reflection.Emit compilation
         public bool UseRoslyn = true; // DEBUG -- current problem with ILChunkEmitter is that it doesn't work for large chunks (e.g., over 1,000,000). So we need to break things up, ideally using if commands.
-        public int MaxCommandsPerChunk { get; set; } = 1_000; // DEBUG // Use int.MaxValue to disable. Note that scratch slots will be reused only if this is the case.
+        public int MaxCommandsPerChunk { get; set; } = 100_000; // DEBUG // Use int.MaxValue to disable. Note that scratch slots will be reused only if this is the case.
         public bool DisableAdvancedFeatures = false;
 
         bool AutogenerateCode => !DisableAdvancedFeatures && true;
