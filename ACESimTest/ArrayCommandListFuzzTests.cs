@@ -26,19 +26,19 @@ namespace ACESimTest
             ( 10, 5,120)     // stress
         };
 
-        private static bool RunFuzzTest => true; // DEBUG
+        private static bool RunFuzzTest => false; // DEBUG
 
         [TestMethod]
         public void InterpreterVsCompiled_AllThresholds()
         {
             if (!RunFuzzTest) return;
 
-            for (int stage = 3 /* DEBUG */; stage < Stages.Length; stage++)
+            for (int stage = 0; stage < Stages.Length; stage++)
             {
                 var (iters, maxDepth, maxBody) = Stages[stage];
                 int seedBase = (int)(0xACE0_0000 + stage * 10_000);
 
-                for (int iter = 1 /* DEBUG */; iter < iters; iter++)
+                for (int iter = 0; iter < iters; iter++)
                 {
                     Debug.WriteLine("");
                     Debug.WriteLine("");
