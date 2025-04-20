@@ -26,7 +26,7 @@ namespace ACESimTest
             ( 10, 5,120)     // stress
         };
 
-        private static bool RunFuzzTest => false; // DEBUG
+        private static bool RunFuzzTest => true; // DEBUG
 
         [TestMethod]
         public void InterpreterVsCompiled_AllThresholds()
@@ -40,53 +40,49 @@ namespace ACESimTest
 
                 for (int iter = 0; iter < iters; iter++)
                 {
-                    Debug.WriteLine("");
-                    Debug.WriteLine("");
-                    Debug.WriteLine(@$"--- Iteration {iter} ---");
                     int seed = seedBase + iter;
                     var rnd = new Random(seed);
 
+                    // 1) Build the *un‑thresholded* ACL (MaxCommandsPerChunk=1_000_000)
                     var fuzzer = new CommandFuzzer(rnd);
                     fuzzer.BuildRandomAcl(maxDepth, maxBody);
 
-                    Debug.WriteLine(@$"=== Command Tree ===
-{fuzzer.Acl.CommandTree.ToString()}
-----------------------");
-                    for (int i = 0; i < fuzzer.Acl.NextCommandIndex; i++)
-                        Debug.WriteLine($"{i,3}: {fuzzer.Acl.UnderlyingCommands[i]}");
+                    // 2) Compute the reference result *once* with the flat interpreter
+                    //    (no Roslyn, no IL, never compile any chunk)
+                    var interp = fuzzer.CloneFor(threshold: 1, useRoslyn: false);
+                    interp.DisableAdvancedFeatures = true;
+                    interp.MinNumCommandsToCompile = int.MaxValue;
+                    double[] expected = fuzzer.MakeInitialData(); // this is random initial data, but it will then be changed, as the ordered destinations will be passed back. Some of the values will just be scratch values but they will end up being 0 both initially and at the end
+                    interp.ExecuteAll(expected, tracing: false);
 
-                    double[] expected = fuzzer.MakeInitialData();
-                    fuzzer.Acl.ExecuteAll(expected, tracing: false);
-
+                    // 3) Now pick a few random thresholds to exercise the compiled path
                     int totalCmds = fuzzer.Acl.NextCommandIndex;
-
-                    // We want to try different threshold numbers, but no more than three per iteration.
-                    // Choose at random from the range [1, totalCmds + 1] (inclusive).
-                    const int numThresholdsToTry = 3;
+                    const int numThresholds = 3;
                     var thresholds = new HashSet<int>();
-                    while (thresholds.Count < Math.Min(numThresholdsToTry, totalCmds + 1))
-                    {
-                        int threshold = rnd.Next(1, totalCmds + 2);
-                        thresholds.Add(threshold);
-                    }
+                    while (thresholds.Count < Math.Min(numThresholds, totalCmds + 1))
+                        thresholds.Add(rnd.Next(1, totalCmds + 2));
 
+                    // 4) For each threshold, test both Roslyn & IL against the interpreter baseline
                     foreach (int th in thresholds)
                     {
                         Debug.WriteLine($"Iteration {iter}; Threshold {th}");
-                        Debug.WriteLine($"------------------");
+                        Debug.WriteLine(new string('-', 30));
+
                         foreach (bool useRoslyn in new[] { true, false })
                         {
                             var acl = fuzzer.CloneFor(th, useRoslyn);
                             double[] actual = fuzzer.MakeInitialData();
                             acl.ExecuteAll(actual, tracing: false);
 
-                            for (int idx = 0; idx < expected.Length; idx++)
+                            int outputCount = fuzzer.OutputSize;
+                            for (int idx = 0; idx < outputCount; idx++)
                             {
                                 double tol = Math.Max(1e-9, Math.Abs(expected[idx]) / 1000.0);
                                 if (Math.Abs(expected[idx] - actual[idx]) > tol)
                                 {
+                                    // this will now catch the hoist bug
                                     Dump(seed, stage, th, useRoslyn, idx, expected[idx], actual[idx]);
-                                    Assert.Fail("Value mismatch exceeds tolerance");
+                                    Assert.Fail("Compiled result mismatch vs. interpreter baseline");
                                 }
                             }
                         }
@@ -94,6 +90,7 @@ namespace ACESimTest
                 }
             }
         }
+
 
         private static void Dump(int seed, int stage, int th, bool roslyn, int idx, double exp, double act)
         {
@@ -110,6 +107,9 @@ namespace ACESimTest
         private const int SrcStart = 0;   // originals 0‑9
         private const int DstStart = 10;  // originals 10‑19
         private const int OrigCt = 10;
+        private const int ScratchSize = 400;
+
+        public int OutputSize => DstStart + OrigCt;
 
         private readonly List<int> _scratch = new();
         public ArrayCommandList Acl { get; private set; }
@@ -168,7 +168,7 @@ namespace ACESimTest
 
         public double[] MakeInitialData()
         {
-            double[] data = new double[DstStart + OrigCt + 400];
+            double[] data = new double[OutputSize + ScratchSize];
             for (int i = 0; i < DstStart + OrigCt; i++) data[i] = (i % 17) - 8;
             return data;
         }
