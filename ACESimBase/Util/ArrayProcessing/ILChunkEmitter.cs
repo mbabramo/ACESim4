@@ -33,83 +33,83 @@ namespace ACESimBase.Util.ArrayProcessing
         }
 
         /// <summary>
-        /// Creates a DynamicMethod and emits all instructions for the chunk,
-        /// returning an executable delegate.
+        /// Creates a DynamicMethod for this chunk and returns the compiled delegate.
+        /// Signature: void (double[] vs, double[] os, double[] od,
+        ///                  ref int cosi, ref int codi, ref bool condition)
         /// </summary>
         public ArrayCommandChunkDelegate EmitMethod(string methodName, out int ilBytes)
         {
             if (methodName == null)
-            {
-                // Example name: "Chunk_0_19" meaning chunk from commands 0..19
                 methodName = $"Chunk_{_startIndex}_{_endIndexExclusive - 1}";
-            }
 
-            // Our method signature: void (double[] vs, double[] os, double[] od, ref int cosi, ref int codi)
-            var parameters = new Type[]
+            var parameters = new[]
             {
-                typeof(double[]), // vs
-                typeof(double[]), // os
-                typeof(double[]), // od
-                typeof(int).MakeByRefType(), // cosi (by ref)
-                typeof(int).MakeByRefType(), // codi (by ref)
-            };
+        typeof(double[]),               // 0  vs
+        typeof(double[]),               // 1  os
+        typeof(double[]),               // 2  od
+        typeof(int).MakeByRefType(),    // 3  cosi  (ref)
+        typeof(int).MakeByRefType(),    // 4  codi  (ref)
+        typeof(bool).MakeByRefType()    // 5  condition (ref)  ← NEW
+    };
 
-            var dynMethod = new DynamicMethod(
-                name: methodName,
-                returnType: null,   // void
+            var dm = new DynamicMethod(
+                methodName,
+                returnType: null,                         // void
                 parameterTypes: parameters,
-                m: typeof(ArrayCommandList).Module, // or some relevant module
-                skipVisibility: true
-            );
+                m: typeof(ArrayCommandList).Module,
+                skipVisibility: true);
 
-            _il = dynMethod.GetILGenerator();
+            _il = dm.GetILGenerator();
 
-            // Declare local variables
-            _localCosi = _il.DeclareLocal(typeof(int));      // local #0
-            _localCodi = _il.DeclareLocal(typeof(int));      // local #1
-            _localCondition = _il.DeclareLocal(typeof(bool));// local #2
+            /* locals: 0‑cosi, 1‑codi, 2‑condition */
+            _localCosi = _il.DeclareLocal(typeof(int));
+            _localCodi = _il.DeclareLocal(typeof(int));
+            _localCondition = _il.DeclareLocal(typeof(bool));
 
-            // Initialize localCosi = cosi
-            _il.Emit(OpCodes.Ldarg_3);    // ref cosi
-            _il.Emit(OpCodes.Ldind_I4);   // read int
+            /* localCosi = *cosi */
+            _il.Emit(OpCodes.Ldarg_3);
+            _il.Emit(OpCodes.Ldind_I4);
             _il.Emit(OpCodes.Stloc, _localCosi);
 
-            // Initialize localCodi = codi
-            _il.Emit(OpCodes.Ldarg_S, 4); // ref codi
-            _il.Emit(OpCodes.Ldind_I4);   // read int
+            /* localCodi = *codi */
+            _il.Emit(OpCodes.Ldarg_S, 4);
+            _il.Emit(OpCodes.Ldind_I4);
             _il.Emit(OpCodes.Stloc, _localCodi);
 
-            // Emit each command
-            for (int cmdIndex = _startIndex; cmdIndex < _endIndexExclusive; cmdIndex++)
-            {
-                var cmd = _commands[cmdIndex];
-                EmitCommand(cmd);
-            }
+            /* localCondition = *condition */
+            _il.Emit(OpCodes.Ldarg_S, 5);
+            _il.Emit(OpCodes.Ldind_I1);
+            _il.Emit(OpCodes.Stloc, _localCondition);
 
-            // Write localCosi back to cosi
-            _il.Emit(OpCodes.Ldarg_3);    // ref cosi
+            /* emit IL for every command in the slice */
+            for (int cmd = _startIndex; cmd < _endIndexExclusive; cmd++)
+                EmitCommand(_commands[cmd]);
+
+            /* *cosi = localCosi */
+            _il.Emit(OpCodes.Ldarg_3);
             _il.Emit(OpCodes.Ldloc, _localCosi);
             _il.Emit(OpCodes.Stind_I4);
 
-            // Write localCodi back to codi
-            _il.Emit(OpCodes.Ldarg_S, 4); // ref codi
+            /* *codi = localCodi */
+            _il.Emit(OpCodes.Ldarg_S, 4);
             _il.Emit(OpCodes.Ldloc, _localCodi);
             _il.Emit(OpCodes.Stind_I4);
 
+            /* *condition = localCondition */
+            _il.Emit(OpCodes.Ldarg_S, 5);
+            _il.Emit(OpCodes.Ldloc, _localCondition);
+            _il.Emit(OpCodes.Stind_I1);
+
             if (_ifBlocks.Count != 0)
                 throw new InvalidOperationException(
-                    $"Unclosed If block(s) at end of chunk " +
-                    $"{_startIndex}–{_endIndexExclusive - 1}");
+                    $"Unclosed If block(s) in chunk {_startIndex}–{_endIndexExclusive - 1}");
 
-            // Return
             _il.Emit(OpCodes.Ret);
-            
-            ilBytes = _il.ILOffset;
 
-            // Create the delegate
-            var finalDel = (ArrayCommandChunkDelegate)dynMethod.CreateDelegate(typeof(ArrayCommandChunkDelegate));
-            return finalDel;
+            ilBytes = _il.ILOffset;
+            return (ArrayCommandChunkDelegate)dm.CreateDelegate(typeof(ArrayCommandChunkDelegate));
         }
+
 
         /// <summary>
         /// Master switch on the command type. 

@@ -12,7 +12,8 @@ namespace ACESimBase.Util.ArrayProcessing
         double[] os,
         double[] od,
         ref int cosi,
-        ref int codi
+        ref int codi,
+        ref bool condition
     );
 
     // A small helper to keep track of an "If" block
