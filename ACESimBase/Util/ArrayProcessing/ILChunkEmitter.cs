@@ -44,13 +44,13 @@ namespace ACESimBase.Util.ArrayProcessing
 
             var parameters = new[]
             {
-        typeof(double[]),               // 0  vs
-        typeof(double[]),               // 1  os
-        typeof(double[]),               // 2  od
-        typeof(int).MakeByRefType(),    // 3  cosi  (ref)
-        typeof(int).MakeByRefType(),    // 4  codi  (ref)
-        typeof(bool).MakeByRefType()    // 5  condition (ref)  ← NEW
-    };
+                typeof(double[]),               // 0  vs
+                typeof(double[]),               // 1  os
+                typeof(double[]),               // 2  od
+                typeof(int).MakeByRefType(),    // 3  cosi  (ref)
+                typeof(int).MakeByRefType(),    // 4  codi  (ref)
+                typeof(bool).MakeByRefType()    // 5  condition (ref)  ← NEW
+            };
 
             var dm = new DynamicMethod(
                 methodName,

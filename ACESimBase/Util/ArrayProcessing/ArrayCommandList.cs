@@ -1082,7 +1082,7 @@ namespace ACESimBase.Util.ArrayProcessing
         // NEW: Stub or placeholder for Reflection.Emit approach:
         private void CompileCode_ReflectionEmit()
         {
-            _compiledChunkMethods.Clear(); // optional, if you want to rebuild each time
+            _compiledChunkMethods.Clear();
 
             // Walk the CommandTree, compile any chunk with enough commands
             CommandTree.WalkTree(nodeObj =>
