@@ -9,26 +9,23 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
     /// Executes ArrayCommandChunks by a (placeholder) IL-based approach.
     /// Currently supports only Zero commands by delegating to interpreter logic.
     /// </summary>
-    public class ILChunkExecutor : IChunkExecutor
+    public class ILChunkExecutor : ChunkExecutorBase
     {
-        private readonly ArrayCommand[] _commands;
-
-        public ILChunkExecutor(ArrayCommand[] commands)
+        public ILChunkExecutor(ArrayCommand[] underlyingCommands, int startIndex, int endIndexExclusive) : base(underlyingCommands, startIndex, endIndexExclusive)
         {
-            _commands = commands;
         }
 
-        public void AddToGeneration(ArrayCommandChunk chunk)
+        public override void AddToGeneration(ArrayCommandChunk chunk)
         {
             // Placeholder: would queue for IL emit
         }
 
-        public void PerformGeneration()
+        public override void PerformGeneration()
         {
             // Placeholder: would emit DynamicMethods here
         }
 
-        public void Execute(
+        public override void Execute(
             ArrayCommandChunk chunk,
             double[] virtualStack,
             double[] orderedSources,
@@ -37,16 +34,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             ref int codi,
             ref bool condition)
         {
-            // For now, interpret only Zero commands
-            for (int i = chunk.StartCommandRange; i < chunk.EndCommandRangeExclusive; i++)
-            {
-                var cmd = _commands[i];
-                if (cmd.CommandType == ArrayCommandType.Zero)
-                    virtualStack[cmd.Index] = 0.0;
-                else
-                    throw new NotImplementedException(
-                        $"ILChunkExecutor: unsupported command {cmd.CommandType}");
-            }
+            throw new NotImplementedException();
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using ACESimBase.Util.ArrayProcessing;
+using System;
 using static ACESimBase.Util.ArrayProcessing.ArrayCommandList;
 
 namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
@@ -17,6 +18,8 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
     /// </summary>
     public interface IChunkExecutor
     {
+        Span<ArrayCommand> Commands { get; }
+
         /// <summary>
         /// Queue <paramref name="chunk"/> for later batch code‑generation.  Executions
         /// should not occur until <see cref="PerformGeneration"/> has been called.

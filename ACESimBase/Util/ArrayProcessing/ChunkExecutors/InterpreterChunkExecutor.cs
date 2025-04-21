@@ -9,26 +9,23 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
     /// Executes ArrayCommandChunks by interpreting each command in sequence.
     /// Currently supports only Zero commands (further command types will throw).
     /// </summary>
-    public class InterpreterChunkExecutor : IChunkExecutor
+    public class InterpreterChunkExecutor : ChunkExecutorBase
     {
-        private readonly ArrayCommand[] _commands;
-
-        public InterpreterChunkExecutor(ArrayCommand[] commands)
+        public InterpreterChunkExecutor(ArrayCommand[] commands) : base(commands, 0, commands.Length)
         {
-            _commands = commands;
         }
 
-        public void AddToGeneration(ArrayCommandChunk chunk)
+        public override void AddToGeneration(ArrayCommandChunk chunk)
         {
             // No generation needed for interpretation
         }
 
-        public void PerformGeneration()
+        public override void PerformGeneration()
         {
             // No-op
         }
 
-        public void Execute(
+        public override void Execute(
             ArrayCommandChunk chunk,
             double[] virtualStack,
             double[] orderedSources,
@@ -39,7 +36,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         {
             for (int i = chunk.StartCommandRange; i < chunk.EndCommandRangeExclusive; i++)
             {
-                var cmd = _commands[i];
+                var cmd = Commands[i];
                 switch (cmd.CommandType)
                 {
                     case ArrayCommandType.Zero:

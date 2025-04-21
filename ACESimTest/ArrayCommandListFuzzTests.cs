@@ -166,8 +166,8 @@ namespace ACESimTest
                 new Dictionary<int, int>(Acl.ReusableOrderedDestinationIndices);
 
             /* 3️⃣  rebuild the tree for THIS chunk limit */
-            clone.CommandTree = new NWayTreeStorageInternal<ArrayCommandList.ArrayCommandChunk>(null);
-            clone.CommandTree.StoredValue = new ArrayCommandList.ArrayCommandChunk
+            clone.CommandTree = new NWayTreeStorageInternal<ArrayCommandChunk>(null);
+            clone.CommandTree.StoredValue = new ArrayCommandChunk
             {
                 StartCommandRange = 0,
                 EndCommandRangeExclusive = Acl.NextCommandIndex,

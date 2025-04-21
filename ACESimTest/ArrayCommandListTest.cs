@@ -373,7 +373,7 @@ namespace ACESimTest
             TabbedText.WriteLine("==== Commands by node ====");
             acl.CommandTree.WalkTree(nodeObj =>
             {
-                var n = (NWayTreeStorageInternal<ArrayCommandList.ArrayCommandChunk>)nodeObj;
+                var n = (NWayTreeStorageInternal<ArrayCommandChunk>)nodeObj;
                 var info = n.StoredValue;
                 TabbedText.WriteLine($"Node ID {info.ID}  cmds [{info.StartCommandRange},{info.EndCommandRangeExclusive})");
                 for (int i = info.StartCommandRange; i < info.EndCommandRangeExclusive; i++)

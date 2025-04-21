@@ -33,7 +33,7 @@ namespace ACESimBase.Util.ArrayProcessing
             {
                 // locate oversize leaf
                 var leaf = FindLeafById(
-                    (NWayTreeStorageInternal<ArrayCommandList.ArrayCommandChunk>)acl.CommandTree,
+                    (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree,
                     entry.LeafId);
 
                 if (leaf == null)
@@ -45,8 +45,8 @@ namespace ACESimBase.Util.ArrayProcessing
 
             // ── 2. rebuild virtual‑stack metadata & CoSI/CoDI after mutation ─────────
             acl.CommandTree.WalkTree(
-                x => acl.SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandList.ArrayCommandChunk>)x),
-                x => acl.SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandList.ArrayCommandChunk>)x));
+                x => acl.SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandChunk>)x),
+                x => acl.SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandChunk>)x));
 
             if (acl.RecordCommandTreeString)
                 acl.CommandTreeString = acl.CommandTree.ToString();   // keep string snapshot fresh
@@ -84,15 +84,15 @@ namespace ACESimBase.Util.ArrayProcessing
             return root;
         }
 
-        private static NWayTreeStorageInternal<ArrayCommandList.ArrayCommandChunk>
-            FindLeafById(NWayTreeStorageInternal<ArrayCommandList.ArrayCommandChunk> root,
+        private static NWayTreeStorageInternal<ArrayCommandChunk>
+            FindLeafById(NWayTreeStorageInternal<ArrayCommandChunk> root,
                          int id)
         {
-            NWayTreeStorageInternal<ArrayCommandList.ArrayCommandChunk> found = null;
+            NWayTreeStorageInternal<ArrayCommandChunk> found = null;
 
             root.WalkTree(nodeObj =>
             {
-                var n = (NWayTreeStorageInternal<ArrayCommandList.ArrayCommandChunk>)nodeObj;
+                var n = (NWayTreeStorageInternal<ArrayCommandChunk>)nodeObj;
                 if (n.StoredValue.ID == id)
                     found = n;
             });
@@ -254,7 +254,7 @@ namespace ACESimBase.Util.ArrayProcessing
             if (parentChunk.StartCommandRange >= parentChunk.EndCommandRangeExclusive) return;
 
             /* 1️⃣  clone the metadata */
-            var leafChunk = new ArrayCommandList.ArrayCommandChunk
+            var leafChunk = new ArrayCommandChunk
             {
                 Name = parentChunk.Name + ".leaf",
                 StartCommandRange = parentChunk.StartCommandRange,
@@ -292,7 +292,7 @@ namespace ACESimBase.Util.ArrayProcessing
                     sliceParent.SetBranch((byte)(b + 1), sliceParent.GetBranch((byte)b));
             }
 
-            var newLeafNode = new NWayTreeStorageInternal<ArrayCommandList.ArrayCommandChunk>(sliceParent)
+            var newLeafNode = new NWayTreeStorageInternal<ArrayCommandChunk>(sliceParent)
             {
                 StoredValue = leafChunk
             };

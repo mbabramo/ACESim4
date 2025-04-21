@@ -92,12 +92,12 @@ namespace ACESimTest
     [TestClass]
     public class ChunkExecutorTests_IL : ChunkExecutorTestBase
     {
-        protected override IChunkExecutor CreateExecutor() => new ILChunkExecutor(UnderlyingCommands);
+        protected override IChunkExecutor CreateExecutor() => new ILChunkExecutor(UnderlyingCommands, 0, UnderlyingCommands.Length);
     }
 
     [TestClass]
     public class ChunkExecutorTests_Roslyn : ChunkExecutorTestBase
     {
-        protected override IChunkExecutor CreateExecutor() => new RoslynChunkExecutor(UnderlyingCommands);
+        protected override IChunkExecutor CreateExecutor() => new RoslynChunkExecutor(UnderlyingCommands, 0, UnderlyingCommands.Length, false);
     }
 }
