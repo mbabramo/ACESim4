@@ -1287,14 +1287,12 @@ namespace ACESimBase.Util.ArrayProcessing
 
             CompiledFunctions.Add(fnName);
         }
-
-
         private string GenerateSourceTextForChunk(ArrayCommandChunk c)
         {
             int startCmd = c.StartCommandRange;
             int endCmd = c.EndCommandRangeExclusive - 1;
 
-            /* collect direct child slices when this chunk is a hoisted Conditional gate */
+            /* ── gather direct child slices if this is the Conditional gate ── */
             List<ArrayCommandChunk> childSlices = null;
             if (c.Name == "Conditional")
             {
@@ -1312,20 +1310,25 @@ namespace ACESimBase.Util.ArrayProcessing
 
             var b = new StringBuilder();
 
-            /* header – note added ref bool */
+            /* ── method header ── */
             b.AppendLine($@"public static void Execute{startCmd}to{endCmd}(
     double[] vs, double[] os, double[] od,
     ref int cosi, ref int codi, ref bool condition)
 {{");
 
-            /* optional locals */
+            /* ── declare & initialise locals (if translation present) ───────────── */
             if (CopyVirtualStackToLocalVariables && trans.Length > 0)
             {
-                foreach (int lv in trans.Where(t => t is int)
-                                        .Cast<int>()
-                                        .Distinct()
-                                        .OrderBy(i => i))
-                    b.AppendLine($"    double i_{lv} = 0;");
+                var emitted = new HashSet<int>();               // ensure each i_k once
+
+                for (int g = 0; g < trans.Length; g++)
+                {
+                    if (trans[g] is int loc && emitted.Add(loc))
+                    {
+                        // loc  = local variable index (k)   •   g = global VS index
+                        b.AppendLine($"    double i_{loc} = vs[{g}];");
+                    }
+                }
                 b.AppendLine();
             }
 
@@ -1352,26 +1355,76 @@ namespace ACESimBase.Util.ArrayProcessing
 
                 switch (ac.CommandType)
                 {
-                    case ArrayCommandType.Zero: b.AppendLine($"    {tgtStr} = 0;"); break;
-                    case ArrayCommandType.CopyTo:
-                        b.AppendLine(UseCheckpoints && ac.Index == CheckpointTrigger
-                            ? $"    Checkpoints.Add({srcStr});"
-                            : $"    {tgtStr} = {srcStr};");
+                    /* ── writes to VS ─────────────────────────── */
+                    case ArrayCommandType.Zero:
+                        if (tgtStr.StartsWith("i_"))
+                        {
+                            b.AppendLine($"    {tgtStr} = 0;");
+                            b.AppendLine($"    vs[{ac.Index}] = {tgtStr};");
+                        }
+                        else
+                            b.AppendLine($"    {tgtStr} = 0;");
                         break;
 
+                    case ArrayCommandType.CopyTo:
+                        {
+                            bool hasAlias = tgtStr.StartsWith("i_");
+                            string rhs = srcStr;              // simplified: always read from VS
+                            if (UseCheckpoints && ac.Index == CheckpointTrigger)
+                            {
+                                b.AppendLine($"    Checkpoints.Add({rhs});");
+                            }
+                            else if (hasAlias)
+                            {
+                                b.AppendLine($"    {tgtStr} = {rhs};");
+                                b.AppendLine($"    vs[{ac.Index}] = {tgtStr};");
+                            }
+                            else
+                            {
+                                b.AppendLine($"    {tgtStr} = {rhs};");
+                                // ensure the backing VS slot is updated even when no alias was used
+                                if (tgtStr != $"vs[{ac.Index}]")
+                                    b.AppendLine($"    vs[{ac.Index}] = {tgtStr};");
+                            }
+                            break;
+                        }
+
+                    case ArrayCommandType.IncrementBy:
+                    case ArrayCommandType.DecrementBy:
+                    case ArrayCommandType.MultiplyBy:
+                        {
+                            string op = ac.CommandType switch
+                            {
+                                ArrayCommandType.IncrementBy => "+=",
+                                ArrayCommandType.DecrementBy => "-=",
+                                _ => "*="
+                            };
+                            if (tgtStr.StartsWith("i_"))
+                            {
+                                b.AppendLine($"    {tgtStr} {op} {srcStr};");
+                                b.AppendLine($"    vs[{ac.Index}] = {tgtStr};");
+                            }
+                            else
+                                b.AppendLine($"    {tgtStr} {op} {srcStr};");
+                            break;
+                        }
+
+                    /* ── pointer‑advancing ────────────────────── */
                     case ArrayCommandType.NextSource:
                         b.AppendLine($"    {tgtStr} = os[cosi++];");
-                        for (int i = 0; i < srcIncr.Count; i++) srcIncr[i]++; break;
+                        for (int i = 0; i < srcIncr.Count; i++) srcIncr[i]++;
+                        break;
 
                     case ArrayCommandType.NextDestination:
                         b.AppendLine($"    od[codi++] = {srcStr};");
-                        for (int i = 0; i < dstIncr.Count; i++) dstIncr[i]++; break;
+                        for (int i = 0; i < dstIncr.Count; i++) dstIncr[i]++;
+                        break;
 
-                    case ArrayCommandType.ReusedDestination: b.AppendLine($"    od[{ac.Index}] += {srcStr};"); break;
-                    case ArrayCommandType.MultiplyBy: b.AppendLine($"    {tgtStr} *= {srcStr};"); break;
-                    case ArrayCommandType.IncrementBy: b.AppendLine($"    {tgtStr} += {srcStr};"); break;
-                    case ArrayCommandType.DecrementBy: b.AppendLine($"    {tgtStr} -= {srcStr};"); break;
+                    case ArrayCommandType.ReusedDestination:
+                        b.AppendLine($"    od[{ac.Index}] += {srcStr};");
+                        break;
 
+                    /* ── comparisons ─────────────────────────── */
                     case ArrayCommandType.EqualsOtherArrayIndex: b.AppendLine($"    condition = {tgtStr} == {srcStr};"); break;
                     case ArrayCommandType.NotEqualsOtherArrayIndex: b.AppendLine($"    condition = {tgtStr} != {srcStr};"); break;
                     case ArrayCommandType.GreaterThanOtherArrayIndex: b.AppendLine($"    condition = {tgtStr} >  {srcStr};"); break;
@@ -1379,9 +1432,11 @@ namespace ACESimBase.Util.ArrayProcessing
                     case ArrayCommandType.EqualsValue: b.AppendLine($"    condition = {tgtStr} == (double){ac.SourceIndex};"); break;
                     case ArrayCommandType.NotEqualsValue: b.AppendLine($"    condition = {tgtStr} != (double){ac.SourceIndex};"); break;
 
+                    /* ── control flow ─────────────────────────── */
                     case ArrayCommandType.If:
                         srcIncr.Add(0); dstIncr.Add(0);
-                        b.AppendLine("    if (condition)\n    {"); break;
+                        b.AppendLine("    if (condition)\n    {");
+                        break;
 
                     case ArrayCommandType.EndIf:
                         {
@@ -1390,7 +1445,6 @@ namespace ACESimBase.Util.ArrayProcessing
 
                             b.AppendLine("    }");
 
-                            /* emit pointer compensation only for non‑gate slices */
                             if ((childSlices == null || childSlices.Count == 0) && (sInc != 0 || dInc != 0))
                                 b.AppendLine($@"    else {{
         cosi += {sInc};
@@ -1400,11 +1454,12 @@ namespace ACESimBase.Util.ArrayProcessing
                         }
 
                     case ArrayCommandType.Comment:
-                        b.AppendLine($"    // {CommentTable[ac.SourceIndex]}"); break;
+                        b.AppendLine($"    // {CommentTable[ac.SourceIndex]}");
+                        break;
                 }
             }
 
-            /* if this chunk is the Conditional gate, invoke its body slices */
+            /* ── Conditional gate: dispatch body slices ── */
             if (childSlices != null && childSlices.Count > 0)
             {
                 b.AppendLine("    if (!condition) return;");
@@ -1417,6 +1472,8 @@ namespace ACESimBase.Util.ArrayProcessing
             b.AppendLine("}");
             return b.ToString();
         }
+
+
 
 
 
