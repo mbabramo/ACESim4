@@ -1,8 +1,11 @@
-﻿using System;
+﻿// File: ChunkExecutorTests.cs
+
+using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ACESimBase.Util.ArrayProcessing;
 using ACESimBase.Util.ArrayProcessing.ChunkExecutors;
 using static ACESimBase.Util.ArrayProcessing.ArrayCommandList;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace ACESimTest
@@ -23,28 +26,34 @@ namespace ACESimTest
         /// </summary>
         protected ArrayCommandChunk ArrangeChunk(params ArrayCommand[] commands)
         {
-            var chunk = new ArrayCommandChunk();
-            chunk.StartCommandRange = 0;
-            chunk.EndCommandRangeExclusive = commands.Length;
+            var chunk = new ArrayCommandChunk
+            {
+                StartCommandRange = 0,
+                EndCommandRangeExclusive = commands.Length
+            };
             // Attach underlying commands buffer (executor implementations must reference this)
             UnderlyingCommands = commands;
             // Prepare a default virtual stack of adequate size
-            chunk.VirtualStack = new double[commands.Max(c => Math.Max(c.GetTargetIndexIfUsed(), c.GetSourceIndexIfUsed()) + 1) + 1];
+            int maxIndex = 0;
+            foreach (var c in commands)
+                maxIndex = Math.Max(maxIndex,
+                    Math.Max(c.GetSourceIndexIfUsed(), c.GetTargetIndexIfUsed()));
+            chunk.VirtualStack = new double[maxIndex + 1];
             return chunk;
         }
 
         /// <summary>
         /// UnderlyingCommands buffer for executors to read from.
-        /// Implementations should read from this static field.
         /// </summary>
         protected ArrayCommand[] UnderlyingCommands;
 
         /// <summary>
         /// Execute the chunk with the given executor.
         /// </summary>
-        protected double[] ActExecute(ArrayCommandChunk chunk,
-                                      double[] orderedSources,
-                                      double[] orderedDestinations)
+        protected double[] ActExecute(
+            ArrayCommandChunk chunk,
+            double[] orderedSources,
+            double[] orderedDestinations)
         {
             var executor = CreateExecutor();
             executor.AddToGeneration(chunk);
@@ -67,37 +76,471 @@ namespace ACESimTest
         [TestMethod]
         public void TestZeroCommand()
         {
-            // Arrange a single Zero command at index 2
             var cmd = new ArrayCommand(ArrayCommandType.Zero, 2, -1);
             var chunk = ArrangeChunk(cmd);
-            var os = Array.Empty<double>();
-            var od = Array.Empty<double>();
-
-            // Act
-            var vs = ActExecute(chunk, os, od);
-
-            // Assert
+            chunk.VirtualStack[2] = 123.4; // set non-default
+            var vs = ActExecute(chunk, Array.Empty<double>(), Array.Empty<double>());
             Assert.AreEqual(0.0, vs[2], 1e-9);
         }
 
-        // Additional tests for CopyTo, IncrementBy, MultiplyBy, If/EndIf, etc.
+        [TestMethod]
+        public void TestCopyToCommand()
+        {
+            var cmd = new ArrayCommand(ArrayCommandType.CopyTo, 1, 0);
+            var chunk = ArrangeChunk(cmd);
+            chunk.VirtualStack[0] = 5.5;
+            var vs = ActExecute(chunk, Array.Empty<double>(), Array.Empty<double>());
+            Assert.AreEqual(5.5, vs[1], 1e-9);
+        }
+
+        [TestMethod]
+        public void TestNextSourceCommand()
+        {
+            var cmd = new ArrayCommand(ArrayCommandType.NextSource, 0, -1);
+            var chunk = ArrangeChunk(cmd);
+            double[] os = { 9.9 };
+            var vs = ActExecute(chunk, os, Array.Empty<double>());
+            Assert.AreEqual(9.9, vs[0], 1e-9);
+        }
+
+        [TestMethod]
+        public void TestNextDestinationCommand()
+        {
+            var cmd = new ArrayCommand(ArrayCommandType.NextDestination, -1, 1);
+            var chunk = ArrangeChunk(cmd);
+            chunk.VirtualStack[1] = 7.7;
+            double[] od = new double[1];
+            // execute: writes vs[1] into od[0]
+            var vs = ActExecute(chunk, Array.Empty<double>(), od);
+            Assert.AreEqual(7.7, od[0], 1e-9);
+        }
+
+        [TestMethod]
+        public void TestReusedDestinationCommand()
+        {
+            var cmd = new ArrayCommand(ArrayCommandType.ReusedDestination, 1, 0);
+            var chunk = ArrangeChunk(cmd);
+            chunk.VirtualStack[0] = 4.2;
+            double[] od = { 0.0, 10.0 };
+            var vs = ActExecute(chunk, Array.Empty<double>(), od);
+            Assert.AreEqual(14.2, od[1], 1e-9);
+        }
+
+        [TestMethod]
+        public void TestMultiplyByCommand()
+        {
+            var cmd = new ArrayCommand(ArrayCommandType.MultiplyBy, 0, 1);
+            var chunk = ArrangeChunk(cmd);
+            chunk.VirtualStack[0] = 2.0;
+            chunk.VirtualStack[1] = 3.5;
+            var vs = ActExecute(chunk, Array.Empty<double>(), Array.Empty<double>());
+            Assert.AreEqual(7.0, vs[0], 1e-9);
+        }
+
+        [TestMethod]
+        public void TestIncrementByCommand()
+        {
+            var cmd = new ArrayCommand(ArrayCommandType.IncrementBy, 0, 1);
+            var chunk = ArrangeChunk(cmd);
+            chunk.VirtualStack[0] = 5.0;
+            chunk.VirtualStack[1] = 2.5;
+            var vs = ActExecute(chunk, Array.Empty<double>(), Array.Empty<double>());
+            Assert.AreEqual(7.5, vs[0], 1e-9);
+        }
+
+        [TestMethod]
+        public void TestDecrementByCommand()
+        {
+            var cmd = new ArrayCommand(ArrayCommandType.DecrementBy, 0, 1);
+            var chunk = ArrangeChunk(cmd);
+            chunk.VirtualStack[0] = 5.0;
+            chunk.VirtualStack[1] = 1.5;
+            var vs = ActExecute(chunk, Array.Empty<double>(), Array.Empty<double>());
+            Assert.AreEqual(3.5, vs[0], 1e-9);
+        }
+
+        [TestMethod]
+        public void TestIfConditionTrue()
+        {
+            var cmds = new[]
+            {
+                new ArrayCommand(ArrayCommandType.EqualsValue,        1, 1),  //  VS[1]==1 → true
+                new ArrayCommand(ArrayCommandType.If,                 -1, -1),
+                new ArrayCommand(ArrayCommandType.Zero,                1, -1), // should run
+                new ArrayCommand(ArrayCommandType.EndIf,              -1, -1)
+            };
+            var chunk = ArrangeChunk(cmds);
+            chunk.VirtualStack[1] = 1.0;
+            var vs = ActExecute(chunk, Array.Empty<double>(), Array.Empty<double>());
+            Assert.AreEqual(0.0, vs[1], 1e-9);
+        }
+
+        [TestMethod]
+        public void TestIfConditionFalse()
+        {
+            var cmds = new[]
+            {
+                new ArrayCommand(ArrayCommandType.EqualsValue,        1, 99), // false
+                new ArrayCommand(ArrayCommandType.If,                 -1, -1),
+                new ArrayCommand(ArrayCommandType.Zero,                1, -1), // should skip
+                new ArrayCommand(ArrayCommandType.EndIf,              -1, -1)
+            };
+            var chunk = ArrangeChunk(cmds);
+            chunk.VirtualStack[1] = 7.7;
+            var vs = ActExecute(chunk, Array.Empty<double>(), Array.Empty<double>());
+            Assert.AreEqual(7.7, vs[1], 1e-9);
+        }
+
+        [TestMethod]
+        public void TestMixedArithmeticSequences()
+        {
+            var cases = new[]
+            {
+        new
+        {
+            // Test 1: ((((vs[0]) + vs[0]) * (vs[0] + vs[0])) - vs[0]) copied to vs[1]
+            Commands = new[]
+            {
+                // 1) vs[1] = 0                               (reserve slot)
+                new ArrayCommand(ArrayCommandType.Zero,        1, -1),
+
+                // 2) vs[2] = 0                               (reserve scratch)
+                new ArrayCommand(ArrayCommandType.Zero,        2, -1),
+
+                // 3) vs[2] = vs[0]                           // seed from vs[0]
+                new ArrayCommand(ArrayCommandType.CopyTo,      2, 0),
+
+                // 4) vs[2] += vs[0]                          // 5 + 5 = 10
+                new ArrayCommand(ArrayCommandType.IncrementBy, 2, 0),
+
+                // 5) vs[2] *= vs[2]                          // 10 * 10 = 100
+                new ArrayCommand(ArrayCommandType.MultiplyBy,  2, 2),
+
+                // 6) vs[2] -= vs[0]                          // 100 - 5 = 95
+                new ArrayCommand(ArrayCommandType.DecrementBy, 2, 0),
+
+                // 7) vs[1] = vs[2]                           // copy result
+                new ArrayCommand(ArrayCommandType.CopyTo,      1, 2)
+            },
+            InitialStack   = new double[] { 5.0 }, // vs[0]=5
+            OutputIndex    = 1,
+            ExpectedValue  = 95.0
+        },
+        new
+        {
+            // Test 2: ((vs[0] * vs[0]) + vs[0]) copied to vs[3]
+            Commands = new[]
+            {
+                // 1) vs[3] = 0                               (reserve slot)
+                new ArrayCommand(ArrayCommandType.Zero,        3, -1),
+
+                // 2) vs[4] = 0                               (reserve scratch)
+                new ArrayCommand(ArrayCommandType.Zero,        4, -1),
+
+                // 3) vs[4] = vs[0]                           // seed
+                new ArrayCommand(ArrayCommandType.CopyTo,      4, 0),
+
+                // 4) vs[4] *= vs[0]                          // square: 3*3=9
+                new ArrayCommand(ArrayCommandType.MultiplyBy,  4, 0),
+
+                // 5) vs[4] += vs[0]                          // add: 9+3=12
+                new ArrayCommand(ArrayCommandType.IncrementBy, 4, 0),
+
+                // 6) vs[3] = vs[4]                           // copy result
+                new ArrayCommand(ArrayCommandType.CopyTo,      3, 4)
+            },
+            InitialStack   = new double[] { 3.0 }, // vs[0]=3
+            OutputIndex    = 3,
+            ExpectedValue  = 12.0
+        },
+        new
+        {
+            // Test 3: (vs[0] + vs[1]) * (vs[0] - vs[1]) copied to vs[5]
+            Commands = new[]
+            {
+                // 1) vs[2] = 0                               (reserve for sum)
+                new ArrayCommand(ArrayCommandType.Zero,        2, -1),
+
+                // 2) vs[3] = 0                               (reserve for diff)
+                new ArrayCommand(ArrayCommandType.Zero,        3, -1),
+
+                // 3) vs[2] = vs[0]                           // seed sum
+                new ArrayCommand(ArrayCommandType.CopyTo,      2, 0),
+
+                // 4) vs[2] += vs[1]                          // sum: a+b
+                new ArrayCommand(ArrayCommandType.IncrementBy, 2, 1),
+
+                // 5) vs[3] = vs[0]                           // seed diff
+                new ArrayCommand(ArrayCommandType.CopyTo,      3, 0),
+
+                // 6) vs[3] -= vs[1]                          // diff: a-b
+                new ArrayCommand(ArrayCommandType.DecrementBy, 3, 1),
+
+                // 7) vs[2] *= vs[3]                          // product: (a+b)*(a-b)
+                new ArrayCommand(ArrayCommandType.MultiplyBy,  2, 3),
+
+                // 8) vs[5] = vs[2]                           // copy final result
+                new ArrayCommand(ArrayCommandType.CopyTo,      5, 2)
+            },
+            InitialStack   = new double[] { 7.0, 3.0 }, // vs[0]=7, vs[1]=3
+            OutputIndex    = 5,
+            ExpectedValue  = (7.0 + 3.0) * (7.0 - 3.0)    // 10 * 4 = 40
+        },
+        new
+        {
+            // Test 4: (vs[0]^2) - vs[0] copied to vs[1]
+            Commands = new[]
+            {
+                // 1) vs[1] = 0                               (reserve slot)
+                new ArrayCommand(ArrayCommandType.Zero,        1, -1),
+
+                // 2) vs[1] = vs[0]                           // seed
+                new ArrayCommand(ArrayCommandType.CopyTo,      1, 0),
+
+                // 3) vs[1] *= vs[0]                          // square
+                new ArrayCommand(ArrayCommandType.MultiplyBy,  1, 0),
+
+                // 4) vs[1] -= vs[0]                          // subtract original
+                new ArrayCommand(ArrayCommandType.DecrementBy, 1, 0)
+            },
+            InitialStack   = new double[] { 4.0 }, // vs[0]=4
+            OutputIndex    = 1,
+            ExpectedValue  = 4.0*4.0 - 4.0         // 16 - 4 = 12
+        }
+    };
+
+            foreach (var tc in cases)
+            {
+                // Arrange
+                var chunk = ArrangeChunk(tc.Commands);
+                for (int i = 0; i < tc.InitialStack.Length; i++)
+                    chunk.VirtualStack[i] = tc.InitialStack[i];
+
+                // Act
+                var vs = ActExecute(chunk, Array.Empty<double>(), Array.Empty<double>());
+
+                // Assert
+                Assert.AreEqual(
+                    tc.ExpectedValue,
+                    vs[tc.OutputIndex],
+                    1e-9,
+                    $"Failed for OutputIndex={tc.OutputIndex}; sequence = {string.Join("→", tc.Commands.Select(c => c.CommandType))}");
+            }
+        }
+
+
+
+
+        [TestMethod]
+        public void TestOrderedSrcsAndDests()
+        {
+            var cmds = new[]
+            {
+        new ArrayCommand(ArrayCommandType.NextSource,      0, -1), // vs[0] := os[0]
+        new ArrayCommand(ArrayCommandType.NextSource,      1, -1), // vs[1] := os[1]
+        new ArrayCommand(ArrayCommandType.IncrementBy,     0, 1),  // vs[0] += vs[1]
+        new ArrayCommand(ArrayCommandType.NextDestination, -1, 0), // od[0] := vs[0]
+        new ArrayCommand(ArrayCommandType.NextDestination, -1, 1)  // od[1] := vs[1]
+    };
+            var chunk = ArrangeChunk(cmds);
+            double[] os = { 2.0, 3.0 };
+            double[] od = new double[2];
+            var vs = ActExecute(chunk, os, od);
+
+            // vs[0] = 2+3 = 5
+            Assert.AreEqual(5.0, vs[0], 1e-9);
+            Assert.AreEqual(3.0, vs[1], 1e-9);
+
+            // od[0] = vs[0], od[1] = vs[1]
+            Assert.AreEqual(5.0, od[0], 1e-9);
+            Assert.AreEqual(3.0, od[1], 1e-9);
+
+            // And confirm pointers on chunk
+            Assert.AreEqual(2, chunk.StartSourceIndices);
+            Assert.AreEqual(2, chunk.StartDestinationIndices);
+        }
+
+        [TestMethod]
+        public void TestReusedDestinationsDoNotAdvancePointer()
+        {
+            var cmds = new[]
+            {
+        new ArrayCommand(ArrayCommandType.CopyTo,        0, 0),   // vs[0] := vs[0]
+        new ArrayCommand(ArrayCommandType.NextDestination,-1, 0), // od[0] = vs[0]
+        new ArrayCommand(ArrayCommandType.ReusedDestination, 0, 0),// od[0] += vs[0]
+        new ArrayCommand(ArrayCommandType.NextDestination,-1, 0)  // od[1] = vs[0]
+    };
+            var chunk = ArrangeChunk(cmds);
+            chunk.VirtualStack[0] = 7.0;
+            double[] od = new double[2];
+            ActExecute(chunk, Array.Empty<double>(), od);
+
+            // od[0] = 7 + 7 = 14, od[1] = 7
+            Assert.AreEqual(14.0, od[0], 1e-9);
+            Assert.AreEqual(7.0, od[1], 1e-9);
+
+            // pointers
+            Assert.AreEqual(0, chunk.StartSourceIndices);      // no NextSource used
+            Assert.AreEqual(2, chunk.StartDestinationIndices); // two NextDestination calls
+        }
+
+        [TestMethod]
+        public void TestComparisonOperatorsDirectly()
+        {
+            // Each tuple: (cmdType, leftValue, rightValueOrIndex, isIndexCompare, expectedBool)
+            var cases = new (ArrayCommandType cmdType, double left, double right, bool isIndex, bool expected)[]
+            {
+        // EqualsOtherArrayIndex
+        (ArrayCommandType.EqualsOtherArrayIndex,      5, 5,  true,  true),
+        (ArrayCommandType.EqualsOtherArrayIndex,      5, 4,  true,  false),
+        (ArrayCommandType.EqualsOtherArrayIndex,      4, 5,  true,  false),
+
+        // NotEqualsOtherArrayIndex
+        (ArrayCommandType.NotEqualsOtherArrayIndex,   5, 5,  true,  false),
+        (ArrayCommandType.NotEqualsOtherArrayIndex,   5, 4,  true,  true),
+        (ArrayCommandType.NotEqualsOtherArrayIndex,   4, 5,  true,  true),
+
+        // GreaterThanOtherArrayIndex (left > right)
+        (ArrayCommandType.GreaterThanOtherArrayIndex, 5, 4,  true,  true),
+        (ArrayCommandType.GreaterThanOtherArrayIndex, 5, 5,  true,  false),
+        (ArrayCommandType.GreaterThanOtherArrayIndex, 4, 5,  true,  false),
+
+        // LessThanOtherArrayIndex (left < right)
+        (ArrayCommandType.LessThanOtherArrayIndex,    4, 5,  true,  true),
+        (ArrayCommandType.LessThanOtherArrayIndex,    5, 5,  true,  false),
+        (ArrayCommandType.LessThanOtherArrayIndex,    5, 4,  true,  false),
+
+        // EqualsValue
+        (ArrayCommandType.EqualsValue,                3, 3,  false, true),
+        (ArrayCommandType.EqualsValue,                3, 4,  false, false),
+        (ArrayCommandType.EqualsValue,                4, 3,  false, false),
+
+        // NotEqualsValue
+        (ArrayCommandType.NotEqualsValue,             3, 3,  false, false),
+        (ArrayCommandType.NotEqualsValue,             3, 4,  false, true),
+        (ArrayCommandType.NotEqualsValue,             4, 3,  false, true),
+            };
+
+            foreach (var (cmdType, leftVal, rightVal, isIndex, expected) in cases)
+            {
+                int leftIdx = 0;
+                int src = isIndex ? 1 : (int)rightVal;
+
+                // Build the chunk with a single comparison
+                var cmd = new ArrayCommand(cmdType, leftIdx, src);
+                var chunk = ArrangeChunk(cmd);
+
+                // Seed the stack
+                chunk.VirtualStack[leftIdx] = leftVal;
+                if (isIndex)
+                    chunk.VirtualStack[1] = rightVal;
+
+                // Execute
+                var executor = CreateExecutor();
+                executor.AddToGeneration(chunk);
+                executor.PerformGeneration();
+
+                int cosi = 0, codi = 0;
+                bool condition = true;
+                executor.Execute(
+                    chunk,
+                    chunk.VirtualStack,
+                    Array.Empty<double>(),
+                    Array.Empty<double>(),
+                    ref cosi,
+                    ref codi,
+                    ref condition);
+
+                // Assert
+                Assert.AreEqual(
+                    expected,
+                    condition,
+                    $"Comparison {cmdType} failed for left={leftVal}, right={rightVal}");
+            }
+        }
+
+
+
+
+        [TestMethod]
+        public void TestNestedIfPointerAdvancesOnSkip()
+        {
+            var cmds = new[]
+            {
+        // Compare vs[0] == 999? false
+        new ArrayCommand(ArrayCommandType.EqualsValue,       0, 999),
+        new ArrayCommand(ArrayCommandType.If,               -1, -1),
+            // skipped:
+            new ArrayCommand(ArrayCommandType.NextSource,   0, -1),
+            new ArrayCommand(ArrayCommandType.NextDestination, -1, 0),
+        new ArrayCommand(ArrayCommandType.EndIf,            -1, -1),
+        // real NextSource:
+        new ArrayCommand(ArrayCommandType.NextSource,       1, -1)
+    };
+            var chunk = ArrangeChunk(cmds);
+            double[] os = { 11, 22 };
+            double[] od = new double[1];
+            var vs = ActExecute(chunk, os, od);
+
+            // The skipped NextSource / NextDestination still consumed os[0] and reserved od[0]
+            Assert.AreEqual(2, chunk.StartSourceIndices, "cosi should be 2");
+            Assert.AreEqual(1, chunk.StartDestinationIndices, "codi should be 1");
+            // And vs[1] gets the second source:
+            Assert.AreEqual(22, vs[1], 1e-9);
+        }
+
+        [TestMethod]
+        public void TestCommentAndBlankNoops()
+        {
+            var cmds = new[]
+            {
+        new ArrayCommand(ArrayCommandType.Blank,   -1, -1),
+        new ArrayCommand(ArrayCommandType.Comment, -1,  0),
+        new ArrayCommand(ArrayCommandType.Zero,     2, -1)
+    };
+            var chunk = ArrangeChunk(cmds);
+            chunk.VirtualStack[2] = 5.0;
+            var vs = ActExecute(chunk, Array.Empty<double>(), Array.Empty<double>());
+            Assert.AreEqual(0.0, vs[2], 1e-9);
+        }
+
     }
 
     [TestClass]
     public class ChunkExecutorTests_Interpreter : ChunkExecutorTestBase
     {
-        protected override IChunkExecutor CreateExecutor() => new InterpreterChunkExecutor(UnderlyingCommands);
+        protected override IChunkExecutor CreateExecutor() =>
+            new InterpreterChunkExecutor(UnderlyingCommands);
     }
 
     [TestClass]
     public class ChunkExecutorTests_IL : ChunkExecutorTestBase
     {
-        protected override IChunkExecutor CreateExecutor() => new ILChunkExecutor(UnderlyingCommands, 0, UnderlyingCommands.Length);
+        protected override IChunkExecutor CreateExecutor() =>
+            new ILChunkExecutor(UnderlyingCommands, 0, UnderlyingCommands.Length);
     }
 
     [TestClass]
     public class ChunkExecutorTests_Roslyn : ChunkExecutorTestBase
     {
-        protected override IChunkExecutor CreateExecutor() => new RoslynChunkExecutor(UnderlyingCommands, 0, UnderlyingCommands.Length, false);
+        protected override IChunkExecutor CreateExecutor() =>
+            new RoslynChunkExecutor(
+                UnderlyingCommands,
+                0,
+                UnderlyingCommands.Length,
+                useCheckpoints: false,
+                null);
+    }
+
+    [TestClass]
+    public class ChunkExecutorTests_Roslyn_WithPlanner : ChunkExecutorTestBase
+    {
+        protected override IChunkExecutor CreateExecutor() =>
+            new RoslynChunkExecutor(
+                UnderlyingCommands,
+                0,
+                UnderlyingCommands.Length,
+                useCheckpoints: false,
+                LocalVariablePlanner.PlanLocals(UnderlyingCommands, 0, UnderlyingCommands.Length, 1, null));
     }
 }

@@ -187,6 +187,10 @@ public class ArrayCommandChunk
         TabbedText.WriteLine($"[RST‑END] slice={ID,4}  vs0={VirtualStack[0]}");
     }
 
+    public override int GetHashCode()
+    {
+        return (ID, StartCommandRange, EndCommandRangeExclusive).GetHashCode();
+    }
 
 
 }
