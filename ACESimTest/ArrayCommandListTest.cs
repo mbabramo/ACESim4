@@ -297,6 +297,103 @@ namespace ACESimTest
         }
 
         [TestMethod]
+        public void Hoist_TrueConditionEvaluatedCorrectly()
+        {
+            // Build the smallest program that still has an If / EndIf.
+            var acl = new ArrayCommandList(maxNumCommands: 50,
+                                           initialArrayIndex: 0,
+                                           parallelize: false)
+            {
+                MaxCommandsPerChunk = 1,  // force every command into its own chunk
+                UseRoslyn = true,
+                MinNumCommandsToCompile = 1
+            };
+
+            acl.StartCommandChunk(false, null, "root");
+
+            int idx0 = acl.NewZero();                    // vs[0] = 0
+            int idx1 = acl.NewZero();                    // vs[1] = 0
+
+            acl.InsertEqualsValueCommand(idx0, 0);       // condition: true
+            acl.InsertIfCommand();                       // open If
+            acl.Increment(idx1, false, idx0);            // body (1 command)
+            acl.InsertEndIfCommand();                    // close If
+
+            acl.EndCommandChunk();
+
+            // Hoist, split, and compile (Roslyn).
+            acl.CompleteCommandList();
+
+            // Execute once – should run without exception.
+            double[] data = new double[5];
+            acl.ExecuteAll(data, tracing: false);
+
+            Assert.AreEqual(0.0, data[1], 1e-12);
+        }
+
+        [TestMethod]
+        public void Hoist_FalseConditionEvaluatedCorrectly()
+        {
+            /* ---------- constants ---------- */
+            const int SRC_START = 0;
+            const int DST_START = 10;
+            const int ORIG_CT = 10;                  // originals 0‑9 and 10‑19
+            const int SRC2 = SRC_START + 2;       // original value 20
+            const int DEST0 = DST_START;           // destination slot 10
+
+            /* ---------- build ACL (compiled path only) ---------- */
+            var acl = new ArrayCommandList(maxNumCommands: 50,
+                                           initialArrayIndex: DST_START + ORIG_CT,
+                                           parallelize: false)
+            {
+                MaxCommandsPerChunk = 1,   // worst‑case hoist
+                UseRoslyn = true,
+                MinNumCommandsToCompile = 1,
+                RecordCommandTreeString = true
+            };
+
+            acl.StartCommandChunk(false, null, "root");
+
+            int idx0 = acl.NewZero();                       // vs[0] = 0
+            int idxConst = acl.CopyToNew(SRC2, true);           // vs[1] = 20
+
+            acl.InsertNotEqualsValueCommand(idx0, 0);           // FALSE at run time
+            acl.InsertIfCommand();
+            acl.Increment(DEST0, true, idxConst);               // body (should be skipped)
+            acl.InsertEndIfCommand();
+
+            acl.EndCommandChunk();
+            acl.CompleteCommandList();                          // hoist + code‑gen
+
+            /* ---------- dump tree structure ---------- */
+            TabbedText.WriteLine("==== Command‑tree ====");
+            TabbedText.WriteLine(acl.CommandTreeString);           // pretty string snapshot
+
+            TabbedText.WriteLine("==== Commands by node ====");
+            acl.CommandTree.WalkTree(nodeObj =>
+            {
+                var n = (NWayTreeStorageInternal<ArrayCommandList.ArrayCommandChunk>)nodeObj;
+                var info = n.StoredValue;
+                TabbedText.WriteLine($"Node ID {info.ID}  cmds [{info.StartCommandRange},{info.EndCommandRangeExclusive})");
+                for (int i = info.StartCommandRange; i < info.EndCommandRangeExclusive; i++)
+                    TabbedText.WriteLine($"   {i}: {acl.UnderlyingCommands[i]}");
+            });
+
+            /* ---------- prepare data and run ---------- */
+            double[] data = new double[DST_START + ORIG_CT];
+            for (int i = 0; i < ORIG_CT; i++) data[i] = i * 10;   // sources 0‑9 = 0,10,20,…
+
+            acl.ExecuteAll(data, tracing: false);
+
+            /* ---------- verify destination stayed zero ---------- */
+            Assert.AreEqual(0.0, data[DEST0], 1e-12,
+                "Body slice executed even though condition was false.");
+        }
+
+
+
+
+        [TestMethod]
         public void GateChunkLeavesContainNoControlTokens()
         {
             // Build flat ACL, then hoist exactly once
