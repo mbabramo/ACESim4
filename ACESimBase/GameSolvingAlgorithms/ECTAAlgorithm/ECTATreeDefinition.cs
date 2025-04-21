@@ -1,16 +1,16 @@
-﻿using ACESim;
-using JetBrains.Annotations;
+﻿using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static ACESimBase.Util.CPrint;
+using static ACESimBase.Util.Reporting.CPrint;
 using static ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm.ColumnPrinter;
-using static ACESim.ArrayFormConversionExtension;
+using static ACESimBase.Util.ArrayManipulation.ArrayFormConversionExtension;
 using System.Numerics;
 using ACESimBase.GameSolvingSupport;
-using ACESimBase.Util;
+using ACESimBase.Util.Randomization;
+using ACESimBase.Util.Debugging;
 
 namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {

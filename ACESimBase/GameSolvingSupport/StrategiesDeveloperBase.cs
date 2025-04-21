@@ -1,6 +1,5 @@
-using ACESim;
 using ACESimBase.GameSolvingSupport;
-using static ACESim.SummaryStatistics;
+using static ACESimBase.Util.Statistical.SummaryStatistics;
 using ACESimBase.Util;
 using System;
 using System.Collections.Generic;
@@ -12,7 +11,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using JetBrains.Annotations;
-using ACESim.Util;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Runtime.CompilerServices;
 using System.Net.Http.Headers;
@@ -21,6 +19,15 @@ using NeuralNetworkNET.APIs.Datasets;
 using Rationals;
 using System.Runtime.Versioning;
 using ACESimBase.Games.EFGFileGame;
+using ACESimBase.Util.Statistical;
+using ACESimBase.Util.Serialization;
+using ACESimBase.Util.Debugging;
+using ACESimBase.Util.Randomization;
+using ACESimBase.Util.NWayTreeStorage;
+using ACESimBase.Util.Collections;
+using ACESimBase.Util.Reporting;
+using ACESimBase.Util.Parallelization;
+using ACESimBase.Util.CodeGen;
 
 namespace ACESim
 {
@@ -2439,11 +2446,11 @@ namespace ACESim
             }
             if (doReports)
             {
-                Br.Eak.Add("Report");
+                Eak.Add("Report");
                 var actionStrategiesToUse = EvolutionSettings.ActionStrategiesToUseInReporting;
                 await CompleteMainReports(prefaceFn, reportCollection, actionStrategiesToUse);
                 RecallBestOverTime();
-                Br.Eak.Remove("Report");
+                Eak.Remove("Report");
             }
         }
 

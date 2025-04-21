@@ -1,12 +1,11 @@
-﻿using ACESim;
-using ACESim.Util;
-using ACESimBase.Util;
+﻿using ACESim.Util;
 using System;
 using System.IO;
 using CsvHelper;
 using System.Linq;
 using System.Text;
 using System.Collections.Generic;
+using ACESimBase.Util.Serialization;
 
 namespace LitigCharts
 {
@@ -344,11 +343,11 @@ namespace LitigCharts
         private static string[] CreateInformationSetCharts(string path, string[] filenames)
         {
             foreach (string filename in filenames)
-                ACESimBase.Util.InformationSetCharts.PlotPAndD_WithHidden(path, filename, numRounds: 3, numSignals: 5, numOffers: 5);
+                ACESimBase.Util.Reporting.InformationSetCharts.PlotPAndD_WithHidden(path, filename, numRounds: 3, numSignals: 5, numOffers: 5);
 
             filenames = new[] { "R079 twobr" };
             foreach (string filename in filenames)
-                ACESimBase.Util.InformationSetCharts.PlotPAndD_WithHidden(path, filename, numRounds: 2, numSignals: 5, numOffers: 5);
+                ACESimBase.Util.Reporting.InformationSetCharts.PlotPAndD_WithHidden(path, filename, numRounds: 2, numSignals: 5, numOffers: 5);
             return filenames;
         }
     }

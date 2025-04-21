@@ -4,12 +4,12 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static ACESimBase.Util.CPrint;
+using static ACESimBase.Util.Reporting.CPrint;
 using static ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm.ColumnPrinter;
-using static ACESim.ArrayFormConversionExtension;
-using ACESim;
+using static ACESimBase.Util.ArrayManipulation.ArrayFormConversionExtension;
 using ACESimBase.GameSolvingSupport;
 using Rationals;
+using ACESimBase.Util.Debugging;
 
 namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {

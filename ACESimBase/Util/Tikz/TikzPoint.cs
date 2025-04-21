@@ -1,4 +1,4 @@
-﻿using ACESim;
+﻿using ACESimBase.Util.Reporting;
 using System;
 
 namespace ACESimBase.Util.Tikz

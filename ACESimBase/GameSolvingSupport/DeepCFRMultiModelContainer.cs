@@ -1,4 +1,5 @@
 ﻿using ACESim;
+using ACESimBase.Util.Statistical;
 using System;
 using System.Collections;
 using System.Collections.Generic;

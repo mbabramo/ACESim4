@@ -7,6 +7,7 @@ using ACESim;
 using ACESim.Util;
 using ACESimBase.Games.AdditiveEvidenceGame;
 using ACESimBase.Util;
+using ACESimBase.Util.Statistical;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 

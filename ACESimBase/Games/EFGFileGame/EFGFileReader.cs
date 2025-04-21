@@ -1,5 +1,5 @@
 ﻿using ACESim;
-using ACESimBase.Util;
+using ACESimBase.Util.Collections;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging.Abstractions;
 using Rationals;

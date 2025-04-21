@@ -1,7 +1,7 @@
 using ACESim.Util;
 using ACESim.Util.DiscreteProbabilities;
 using ACESimBase.GameSolvingSupport;
-using ACESimBase.Util;
+using ACESimBase.Util.ArrayManipulation;
 using ACESimBase.Util.DiscreteProbabilities;
 using Microsoft.Extensions.Options;
 using System;

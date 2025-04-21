@@ -1,5 +1,4 @@
 ﻿using ACESim;
-using ACESimBase.Util;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,6 +17,10 @@ using ACESimBase.Games.EFGFileGame;
 using Microsoft.Azure.Storage;
 using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
+using ACESimBase.Util.ArrayManipulation;
+using ACESimBase.Util.Parallelization;
+using ACESimBase.Util.Serialization;
+using ACESimBase.Util.Debugging;
 
 namespace ACESimBase.GameSolvingAlgorithms
 {

@@ -1,5 +1,8 @@
 ﻿using ACESim;
-using ACESimBase.Util;
+using ACESimBase.Util.Collections;
+using ACESimBase.Util.Randomization;
+using ACESimBase.Util.Reporting;
+using ACESimBase.Util.Statistical;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;

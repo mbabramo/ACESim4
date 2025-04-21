@@ -3,10 +3,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using ACESim;
-using ACESim.Util;
 using ACESimBase.Games.EFGFileGame;
 using ACESimBase.GameSolvingSupport;
-using ACESimBase.Util;
+using ACESimBase.Util.Collections;
+using ACESimBase.Util.Mathematics;
+using ACESimBase.Util.Randomization;
+using ACESimBase.Util.Serialization;
+using ACESimBase.Util.Statistical;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 

@@ -1,7 +1,11 @@
-﻿using ACESim.Util;
-using ACESimBase;
+﻿using ACESimBase;
 using ACESimBase.GameSolvingSupport;
-using ACESimBase.Util;
+using ACESimBase.Util.Collections;
+using ACESimBase.Util.Debugging;
+using ACESimBase.Util.Parallelization;
+using ACESimBase.Util.Reporting;
+using ACESimBase.Util.Statistical;
+using ACESimBase.Util.TaskManagement;
 using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
@@ -795,7 +799,7 @@ namespace ACESim
 
             ReportCollection reportCollection = new ReportCollection();
             
-            Br.Eak.Add("Report");
+            Eak.Add("Report");
             bool useGameProgressTree = true;
             if (useGameProgressTree)
             {
@@ -813,7 +817,7 @@ namespace ACESim
             }
             //CalculateUtilitiesOverall();
             //TabbedText.WriteLine($"Utilities: {String.Join(",", Status.UtilitiesOverall.Select(x => x.ToSignificantFigures(4)))}");
-            Br.Eak.Remove("Report");
+            Eak.Remove("Report");
             TabbedText.ShowConsoleProgressString();
             return reportCollection;
         }

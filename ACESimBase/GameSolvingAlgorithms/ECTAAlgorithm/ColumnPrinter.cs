@@ -1,16 +1,16 @@
-﻿using ACESim;
+﻿using ACESimBase.Util.Debugging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static ACESimBase.Util.CPrint;
+using static ACESimBase.Util.Reporting.CPrint;
 
 namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
-	/// <summary>
-	/// A fairly literal conversion of the column printing routines from the ECTA code. It takes advantage of the CPrint static class to emulate C printing functions. These ultimately call Console.Write.
-	/// </summary>
+    /// <summary>
+    /// A fairly literal conversion of the column printing routines from the ECTA code. It takes advantage of the CPrint static class to emulate C printing functions. These ultimately call Console.Write.
+    /// </summary>
     public static class ColumnPrinter
     {
 		private static int COLBUFSIZE = 3_000_000;

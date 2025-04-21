@@ -1,6 +1,10 @@
-﻿using ACESim.Util;
-using ACESimBase.GameSolvingSupport;
-using ACESimBase.Util;
+﻿using ACESimBase.GameSolvingSupport;
+using ACESimBase.Util.Collections;
+using ACESimBase.Util.Debugging;
+using ACESimBase.Util.Mathematics;
+using ACESimBase.Util.Randomization;
+using ACESimBase.Util.Reporting;
+using ACESimBase.Util.TaskManagement;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
@@ -900,7 +904,7 @@ namespace ACESim
         {
             Span<double> probabilitiesToSet = stackalloc double[NumPossibleActions];
             GetRegretMatchingProbabilities(probabilitiesToSet);
-            return Util.ListExtensions.GetSpanAsList(probabilitiesToSet, NumPossibleActions);
+            return ListExtensions.GetSpanAsList(probabilitiesToSet, NumPossibleActions);
         }
 
         public List<double> GetEqualProbabilitiesList()
@@ -908,7 +912,7 @@ namespace ACESim
             // NOTE: Not thread-safe
             Span<double> probabilitiesToSet = stackalloc double[NumPossibleActions];
             GetEqualProbabilitiesRegretMatching(probabilitiesToSet);
-            return Util.ListExtensions.GetSpanAsList(probabilitiesToSet, NumPossibleActions);
+            return ListExtensions.GetSpanAsList(probabilitiesToSet, NumPossibleActions);
         }
 
         public void GetRegretMatchingProbabilities(Span<double> probabilitiesToSet)

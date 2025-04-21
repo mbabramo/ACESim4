@@ -5,6 +5,8 @@ using System.Linq;
 using System.Threading;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using ACESimBase.Util.Statistical;
+using ACESimBase.Util.Debugging;
 
 namespace ACESim
 {

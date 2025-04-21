@@ -5,7 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
-using ACESim.Util;
+using ACESimBase.Util.NWayTreeStorage;
+using ACESimBase.Util.Serialization;
 
 namespace ACESim
 {

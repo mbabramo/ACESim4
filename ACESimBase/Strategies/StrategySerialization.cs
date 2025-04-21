@@ -5,7 +5,8 @@ using System.Text;
 using System.Diagnostics;
 using System.IO;
 using System.Collections;
-using ACESim.Util;
+using ACESimBase.Util.Serialization;
+using ACESimBase.Util.Debugging;
 
 namespace ACESim
 {

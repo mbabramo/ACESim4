@@ -1,5 +1,7 @@
 ﻿using ACESim;
 using ACESimBase.Util;
+using ACESimBase.Util.ArrayManipulation;
+using ACESimBase.Util.Serialization;
 using System;
 using System.Collections.Generic;
 using System.IO;

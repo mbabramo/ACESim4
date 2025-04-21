@@ -1,6 +1,8 @@
 using ACESim.Util;
 using ACESimBase;
 using ACESimBase.GameSolvingSupport;
+using ACESimBase.Util.Collections;
+using ACESimBase.Util.Mathematics;
 using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;

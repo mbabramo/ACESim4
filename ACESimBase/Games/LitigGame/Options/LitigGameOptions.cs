@@ -1,8 +1,8 @@
 using System;
-using ACESim.Util;
 using System.Collections.Generic;
 using System.Linq;
 using ACESim.Util.DiscreteProbabilities;
+using ACESimBase.Util.Mathematics;
 
 namespace ACESim
 {

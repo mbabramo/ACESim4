@@ -1,6 +1,8 @@
 ﻿using ACESim;
-using ACESim.Util;
 using ACESimBase.Games.AdditiveEvidenceGame;
+using ACESimBase.Util.Collections;
+using ACESimBase.Util.Reporting;
+using ACESimBase.Util.Statistical;
 using ACESimBase.Util.Tikz;
 using System;
 using System.Collections.Generic;

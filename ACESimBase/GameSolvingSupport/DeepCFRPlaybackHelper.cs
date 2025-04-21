@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using ACESimBase.Util.Statistical;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace ACESimBase.GameSolvingSupport

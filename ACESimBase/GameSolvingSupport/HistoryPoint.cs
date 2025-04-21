@@ -1,4 +1,5 @@
-﻿using ACESim.Util;
+﻿using ACESimBase.Util.Collections;
+using ACESimBase.Util.NWayTreeStorage;
 using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
@@ -139,7 +140,7 @@ namespace ACESim
                 GameHistory.GetCurrentInformationSetForPlayer(nextPlayer, historyToPoint.NextActionsAndDecisionsHistoryIndex, historyToPoint.ActionsHistory, historyToPoint.InformationSetMembership, historyToPoint.DecisionsDeferred, informationSetsSpan);
                 if (GameProgressLogger.LoggingOn)
                 {
-                    var informationSetList = Util.ListExtensions.GetSpan255TerminatedAsList(informationSetsSpan);
+                    var informationSetList = ListExtensions.GetSpan255TerminatedAsList(informationSetsSpan);
                     var actionsToHere = String.Join(",", historyToPoint.GetActionsAsList());
                     GameProgressLogger.Log($"Player {nextPlayer} decision: {nextDecision?.Name ?? "Resolution"} information set: {String.Join(",", informationSetList)} actions to here: {actionsToHere}");
                 }

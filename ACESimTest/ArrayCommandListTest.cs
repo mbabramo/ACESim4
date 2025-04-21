@@ -2,9 +2,10 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using ACESim;
 using ACESim.Util;
 using ACESimBase.Util.ArrayProcessing;
+using ACESimBase.Util.Debugging;
+using ACESimBase.Util.NWayTreeStorage;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using TorchSharp.Modules;

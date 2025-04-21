@@ -1,4 +1,5 @@
-﻿using ACESim;
+﻿using ACESimBase.Util.Debugging;
+using ACESimBase.Util.Reporting;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;

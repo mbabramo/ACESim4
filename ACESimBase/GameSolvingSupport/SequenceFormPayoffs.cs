@@ -1,4 +1,4 @@
-﻿using ACESimBase.Util;
+﻿using ACESimBase.Util.Mathematics;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;

@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using ACESim;
-using ACESim.Util;
 using ACESimBase.Util;
+using ACESimBase.Util.Collections;
+using ACESimBase.Util.Debugging;
 
 namespace ACESimBase.GameSolvingSupport
 {

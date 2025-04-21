@@ -7,7 +7,10 @@ using ACESim;
 using ACESim.Util;
 using ACESim.Util.DiscreteProbabilities;
 using ACESimBase.Util;
+using ACESimBase.Util.Debugging;
 using ACESimBase.Util.DiscreteProbabilities;
+using ACESimBase.Util.Mathematics;
+using ACESimBase.Util.Statistical;
 using FluentAssertions;
 using JetBrains.Annotations;
 using MathNet.Numerics;
@@ -612,16 +615,16 @@ namespace ACESimTest
                             continue; // only need to test both values of plaintiff wins if both give up.
                         if (CaseNumber == int.MaxValue)
                         {
-                            Br.Eak.Add("Case");
-                            Br.Eak.Add(CaseNumber.ToString());
+                            Eak.Add("Case");
+                            Eak.Add(CaseNumber.ToString());
                             GameProgressLogger.LoggingOn = true;
                             GameProgressLogger.DetailedLogging = true;
                             GameProgressLogger.OutputLogMessages = true;
                         }
                         else
                         {
-                            Br.Eak.Remove("Case");
-                            Br.Eak.Remove(CaseNumber.ToString());
+                            Eak.Remove("Case");
+                            Eak.Remove(CaseNumber.ToString());
                             GameProgressLogger.LoggingOn = false;
                             GameProgressLogger.OutputLogMessages = false;
                         }
@@ -800,13 +803,13 @@ namespace ACESimTest
                             {
                                 if (CaseNumber == 9999999)
                                 {
-                                    Br.Eak.Add("Case");
+                                    Eak.Add("Case");
                                     GameProgressLogger.LoggingOn = true;
                                     GameProgressLogger.OutputLogMessages = true;
                                 }
                                 else
                                 {
-                                    Br.Eak.Remove("Case");
+                                    Eak.Remove("Case");
                                     GameProgressLogger.LoggingOn = false;
                                     GameProgressLogger.OutputLogMessages = false;
                                 }
@@ -846,7 +849,7 @@ namespace ACESimTest
             //var informationSetHistories = myGameProgress.GameHistory.GetInformationSetHistoryItems().ToList();
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet, out string resolutionSet);
             var expectedPartyInformationSets = ConstructExpectedPartyInformationSets(LiabilityStrength, PLiabilitySignal, DLiabilitySignal, allowDamagesVariation, PDamagesSignal, DDamagesSignal, true, true, simulatingBargainingFailure, runningSideBetChallenges, bargainingRoundMoves, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, allowAbandonAndDefault, null, null);
-            Br.Eak.IfAdded("Case");
+            Eak.IfAdded("Case");
             string expectedResolutionSet = ConstructExpectedResolutionSet_CaseSettles(LiabilityStrength, allowDamagesVariation, DamagesStrength, true, true, simulatingBargainingFailure,  bargainingRoundMoves, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, allowAbandonAndDefault, SideBetChallenges.Irrelevant, runningSideBetChallenges);
             pInformationSet.Should().Be(expectedPartyInformationSets.pInformationSet);
             dInformationSet.Should().Be(expectedPartyInformationSets.dInformationSet);
@@ -889,14 +892,14 @@ namespace ACESimTest
                                                                 var skipThis = false;
                                                                 if (CaseNumber == int.MaxValue)
                                                                 {
-                                                                    Br.Eak.Add("Case");
+                                                                    Eak.Add("Case");
                                                                     GameProgressLogger.LoggingOn = true;
                                                                     GameProgressLogger.DetailedLogging = true;
                                                                     GameProgressLogger.OutputLogMessages = true;
                                                                 }
                                                                 else
                                                                 {
-                                                                    Br.Eak.Remove("Case");
+                                                                    Eak.Remove("Case");
                                                                     //skipThis = true; 
                                                                     GameProgressLogger.LoggingOn = false;
                                                                     GameProgressLogger.DetailedLogging = false;

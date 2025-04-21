@@ -9,7 +9,10 @@ using ACESimBase.Games.LitigGame;
 using ACESimBase.Games.LitigGame.ManualReports;
 using ACESimBase.GameSolvingSupport;
 using ACESimBase.Util;
+using ACESimBase.Util.ArrayManipulation;
 using ACESimBase.Util.DiscreteProbabilities;
+using ACESimBase.Util.Reporting;
+using ACESimBase.Util.Statistical;
 using JetBrains.Annotations;
 
 namespace ACESim

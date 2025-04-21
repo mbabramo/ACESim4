@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ACESim.Util;
+using ACESimBase.Util.Mathematics;
 
 namespace ACESim
 {

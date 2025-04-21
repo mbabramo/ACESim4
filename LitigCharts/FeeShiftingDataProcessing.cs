@@ -1,6 +1,7 @@
 ﻿using ACESim;
-using ACESim.Util;
-using ACESimBase.Util;
+using ACESimBase.Util.Collections;
+using ACESimBase.Util.Debugging;
+using ACESimBase.Util.Serialization;
 using ACESimBase.Util.Tikz;
 using JetBrains.Annotations;
 using System;

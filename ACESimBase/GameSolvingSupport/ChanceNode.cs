@@ -1,4 +1,5 @@
-﻿using Rationals;
+﻿using ACESimBase.Util.Reporting;
+using Rationals;
 using System;
 using System.Collections.Generic;
 using System.Linq;

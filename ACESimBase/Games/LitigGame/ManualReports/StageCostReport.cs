@@ -1,5 +1,4 @@
 ﻿using ACESim;
-using ACESimBase.Util;
 using MathNet.Numerics;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
@@ -9,7 +8,9 @@ using System.Text;
 using System.Threading.Tasks;
 using ACESimBase.Util.Tikz;
 using System.Diagnostics;
-using ACESim.Util;
+using ACESimBase.Util.Collections;
+using ACESimBase.Util.Reporting;
+using ACESimBase.Util.Mathematics;
 
 namespace ACESimBase.Games.LitigGame.ManualReports
 {

@@ -5,6 +5,10 @@ using System.Text;
 using System.Diagnostics;
 using ACESimBase.Util;
 using ACESimBase.GameSolvingSupport;
+using ACESimBase.Util.Collections;
+using ACESimBase.Util.Reporting;
+using ACESimBase.Util.Randomization;
+using ACESimBase.Util.Debugging;
 
 namespace ACESim
 {

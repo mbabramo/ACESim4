@@ -3,15 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static ACESim.ArrayFormConversionExtension;
+using static ACESimBase.Util.ArrayManipulation.ArrayFormConversionExtension;
 using static ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm.ColumnPrinter;
-using static ACESimBase.Util.CPrint;
+using static ACESimBase.Util.Reporting.CPrint;
 using JetBrains.Annotations;
 using System.Numerics;
-using ACESim;
 using ACESimBase.GameSolvingSupport;
-using ACESimBase.Util;
 using System.Diagnostics;
+using ACESimBase.Util.Collections;
+using ACESimBase.Util.Debugging;
 
 namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {

@@ -1,6 +1,8 @@
 ﻿using ACESim;
 using ACESimBase.Games.LitigGame.ManualReports;
 using ACESimBase.GameSolvingSupport;
+using ACESimBase.Util.Debugging;
+using ACESimBase.Util.Statistical;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;

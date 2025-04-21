@@ -1,7 +1,7 @@
 ﻿#define SAFETYCHECKS
 
-using ACESim.Util;
-using ACESimBase.Util;
+using ACESimBase.Util.Collections;
+using ACESimBase.Util.Debugging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;

@@ -1,6 +1,7 @@
-﻿using ACESimBase;
-using ACESimBase.GameSolvingSupport;
-using ACESimBase.Util;
+﻿using ACESimBase.GameSolvingSupport;
+using ACESimBase.Util.Mathematics;
+using ACESimBase.Util.Randomization;
+using ACESimBase.Util.Statistical;
 using System;
 using System.Collections;
 using System.Collections.Generic;

@@ -1,4 +1,4 @@
-﻿using ACESim;
+﻿using ACESimBase.Util.Reporting;
 
 namespace ACESimBase.GameSolvingSupport
 {

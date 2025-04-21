@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using ACESim;
 using System.Threading;
 using System.Reflection;
 using System.Security;
@@ -16,6 +15,7 @@ using ACESimBase.Games.AdditiveEvidenceGame;
 using ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm;
 using ACESimBase.Games.EFGFileGame;
 using ACESimBase.Games.DMSReplicationGame;
+using ACESimBase.Util.Debugging;
 
 namespace ACESim
 {

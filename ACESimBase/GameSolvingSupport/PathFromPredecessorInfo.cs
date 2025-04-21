@@ -1,5 +1,5 @@
 ﻿using ACESimBase.GameSolvingSupport;
-using ACESimBase.Util;
+using ACESimBase.Util.Collections;
 using System;
 
 namespace ACESim

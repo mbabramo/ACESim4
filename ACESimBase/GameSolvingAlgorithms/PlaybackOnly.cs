@@ -1,5 +1,6 @@
 ﻿using ACESimBase.Util;
 using ACESimBase.Util.ArrayProcessing;
+using ACESimBase.Util.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;

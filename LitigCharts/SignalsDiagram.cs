@@ -1,6 +1,7 @@
 ﻿using ACESim;
 using ACESim.Util.DiscreteProbabilities;
 using ACESimBase.Util.DiscreteProbabilities;
+using ACESimBase.Util.Reporting;
 using ACESimBase.Util.Tikz;
 using MathNet.Numerics;
 using Microsoft.CodeAnalysis.CSharp.Syntax;

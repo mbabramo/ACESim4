@@ -1,9 +1,14 @@
-﻿using ACESim;
-using ACESim.Util;
-using ACESimBase.Games.AdditiveEvidenceGame;
+﻿using ACESimBase.Games.AdditiveEvidenceGame;
 using ACESimBase.Games.DMSReplicationGame;
 using ACESimBase.GameSolvingAlgorithms;
 using ACESimBase.GameSolvingSupport;
+using ACESimBase.Util.Cloud;
+using ACESimBase.Util.Collections;
+using ACESimBase.Util.Debugging;
+using ACESimBase.Util.NWayTreeStorage;
+using ACESimBase.Util.Parallelization;
+using ACESimBase.Util.Serialization;
+using ACESimBase.Util.TaskManagement;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -712,7 +717,7 @@ namespace ACESim
                 try
                 {
                     string azureBlobInterimReportName = azureBlobReportName + $" I{optionSetIndex}:{repetition}";
-                    var task = Util.RunAzureFunction.RunFunction(apiURL2, new { optionSet = $"{optionSetIndex}", repetition = $"{repetition}", azureBlobReportName = azureBlobReportName }, azureBlobInterimReportName);
+                    var task = RunAzureFunction.RunFunction(apiURL2, new { optionSet = $"{optionSetIndex}", repetition = $"{repetition}", azureBlobReportName = azureBlobReportName }, azureBlobInterimReportName);
                     result = await task;
                     if (result.Success)
                     {

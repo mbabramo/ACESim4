@@ -1,4 +1,6 @@
-﻿namespace ACESim
+﻿using ACESimBase.Util.Randomization;
+
+namespace ACESim
 {
     public readonly struct DeepCFRObservationNum
     {

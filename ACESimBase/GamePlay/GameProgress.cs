@@ -1,4 +1,6 @@
-﻿using System;
+﻿using ACESimBase.Util.Collections;
+using ACESimBase.Util.Debugging;
+using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -28,6 +30,7 @@ namespace ACESim
 
         public double DummyVariable = 1.0; // used by reporting module
         public IterationID IterationID;
+
         [FieldwiseComparisonSkip]
         public GameDefinition GameDefinition;
         public List<GameModuleProgress> GameModuleProgresses;

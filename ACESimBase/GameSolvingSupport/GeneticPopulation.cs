@@ -1,12 +1,13 @@
-﻿using ACESim;
-using ACESimBase.Util;
+﻿using ACESimBase.Util.Mathematics;
+using ACESimBase.Util.Randomization;
+using ACESimBase.Util.Statistical;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace ACESim
 {
-        public class GeneticPopulation
+    public class GeneticPopulation
         {
             const int popSize = 30;
             const int numToKeep = 5;

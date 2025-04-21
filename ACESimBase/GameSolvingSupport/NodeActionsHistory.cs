@@ -1,5 +1,6 @@
 ﻿using ACESim;
-using ACESimBase.Util;
+using ACESimBase.Util.Collections;
+using ACESimBase.Util.Reporting;
 using System;
 using System.Collections.Generic;
 using System.Linq;

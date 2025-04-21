@@ -1,4 +1,5 @@
-﻿using ACESimBase.Util;
+﻿using ACESimBase.Util.Mathematics;
+using ACESimBase.Util.Statistical;
 using System;
 using System.Linq;
 

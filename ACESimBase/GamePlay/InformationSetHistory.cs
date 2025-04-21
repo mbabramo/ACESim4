@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ACESimBase.Util.Collections;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -41,7 +42,7 @@ namespace ACESim
 
         public List<byte> GetInformationSetForPlayerAsList()
         {
-            return Util.ListExtensions.GetSpan255TerminatedAsList(InformationSetForPlayer);
+            return ListExtensions.GetSpan255TerminatedAsList(InformationSetForPlayer);
         }
 
         public (byte playerIndex, List<byte>) GetPlayerAndInformationSetAsList()

@@ -1,6 +1,8 @@
 ﻿using ACESim;
 using ACESimBase.Games.AdditiveEvidenceGame;
 using ACESimBase.Util;
+using ACESimBase.Util.Debugging;
+using ACESimBase.Util.Serialization;
 using ACESimBase.Util.Tikz;
 using CsvHelper;
 using CsvHelper.Configuration;

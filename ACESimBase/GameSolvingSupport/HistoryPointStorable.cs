@@ -1,4 +1,6 @@
-﻿namespace ACESim
+﻿using ACESimBase.Util.NWayTreeStorage;
+
+namespace ACESim
 {
     public struct HistoryPointStorable
     {
