@@ -22,7 +22,7 @@ namespace ACESimTest.ArrayProcessingTests
         {
             int[] maxDepths = { 0, 1, 2, 3 };
             int?[] maxCommands = { 3, 5, 10, null };
-            (int dIndex, int cIndex, int s)? jumpToIteration = (0, 2, 21); // DEBUG
+            (int dIndex, int cIndex, int s)? jumpToIteration = (1, 2, 51); // DEBUG
             bool jump = jumpToIteration != null;
             for (int depthIndex = 0; depthIndex < maxDepths.Length; depthIndex++)
             {

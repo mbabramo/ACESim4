@@ -319,14 +319,42 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     break;
 
                 case ArrayCommandType.IncrementBy:
-                    cb.AppendLine($"{W(cmd.Index)} += {R(cmd.SourceIndex)};");
-                    MarkWritten(cmd.Index);
-                    break;
+                    {
+                        // If the destination slot is promoted to a local variable we can
+                        // safely use the compound operator.  When it’s still an array slot
+                        // (`mem[...]`) the C# ‘+=’ translates to a *double read*
+                        //   tmp = mem[i];                // 1st read
+                        //   mem[i] = tmp + rhs;          // 2nd read (after we already wrote)
+                        // …which breaks when the same slot is also being written elsewhere
+                        // in the generated method.  Emit an explicit read‑modify‑write
+                        // instead so the value is fetched exactly once.
+                        bool local = _plan.SlotToLocal.ContainsKey(cmd.Index);
+                        string lhs = W(cmd.Index);         // write‑target
+                        string rhs = R(cmd.SourceIndex);   // value we’re adding
+
+                        if (local)
+                            cb.AppendLine($"{lhs} += {rhs};");
+                        else
+                            cb.AppendLine($"{lhs} = {lhs} + {rhs};");   // single‑read path
+
+                        MarkWritten(cmd.Index);
+                        break;
+                    }
 
                 case ArrayCommandType.DecrementBy:
-                    cb.AppendLine($"{W(cmd.Index)} -= {R(cmd.SourceIndex)};");
-                    MarkWritten(cmd.Index);
-                    break;
+                    {
+                        bool local = _plan.SlotToLocal.ContainsKey(cmd.Index);
+                        string lhs = W(cmd.Index);
+                        string rhs = R(cmd.SourceIndex);
+
+                        if (local)
+                            cb.AppendLine($"{lhs} -= {rhs};");
+                        else
+                            cb.AppendLine($"{lhs} = {lhs} - {rhs};");
+
+                        MarkWritten(cmd.Index);
+                        break;
+                    }
 
                 // ────────── pure reads / destination writes ──────────
                 case ArrayCommandType.NextDestination:

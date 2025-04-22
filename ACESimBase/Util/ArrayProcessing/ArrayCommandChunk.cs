@@ -113,55 +113,49 @@ public class ArrayCommandChunk
     }
 #endif
 
+    /// <summary>
+    /// Propagates every slot listed in <see cref="CopyIncrementsToParent"/> back
+    /// to <see cref="ParentVirtualStack"/> **by simple assignment** instead of the
+    /// old “delta‑add” logic.  
+    ///
+    /// Rationale
+    /// ---------
+    /// * The old implementation tried to compute <c>delta = child - parent</c> and
+    ///   then <c>parent += delta</c>.  When a child chunk itself contains *nested*
+    ///   children the parent’s slot may already include earlier partial results,
+    ///   so the delta can be mis‑computed and end up “undoing” work that was done
+    ///   deeper in the hierarchy (that’s the fuzz‑test failure you’re seeing).  
+    /// * Assigning the *final* value produced by the child chunk is both simpler
+    ///   and correct: each chunk is responsible for producing the definitive
+    ///   value for its covered command range, so we can just copy it upward.
+    /// </summary>
     public void CopyIncrementsToParentIfNecessary()
     {
         /* fast‑exit #1 */
         if (CopyIncrementsToParent == null || CopyIncrementsToParent.Length == 0)
-        {
-#if DEBUG
-            TabbedText.WriteLine($"[INC‑SKIP] child={ID}  empty‑list");
-#endif
             return;
-        }
 
         /* fast‑exit #2 */
         if (ParentVirtualStack == null)
-        {
-#if DEBUG
-            TabbedText.WriteLine($"[INC‑SKIP] child={ID}  NO‑PARENT");
-#endif
             return;
-        }
 
-        bool sharing = ReferenceEquals(ParentVirtualStack, VirtualStack);
-        if (sharing)
-        {
-#if DEBUG
-            TabbedText.WriteLine($"[INC‑WARN] child={ID} shares parent stack yet " +
-                            $"CopyIncrements is non‑empty → NO merge performed");
-#endif
+        /* shared stack → nothing to propagate */
+        if (ReferenceEquals(ParentVirtualStack, VirtualStack))
             return;
-        }
 
 #if DEBUG
-        string Dump(double[] s) => string.Join(", ", CopyIncrementsToParent.Select(i => $"{i}:{s[i]}"));
+        string Dump(double[] s) =>
+            string.Join(", ", CopyIncrementsToParent.Select(i => $"{i}:{s[i]}"));
+
         TabbedText.WriteLine($"[MERGE‑BEG] child={ID} → parentVS={ParentVirtualStackID}  " +
-                        $"idxs=[{string.Join("/", CopyIncrementsToParent)}]");
+                             $"idxs=[{string.Join("/", CopyIncrementsToParent)}]");
         TabbedText.WriteLine($"           childVals  [{Dump(VirtualStack)}]");
         TabbedText.WriteLine($"           parentVals [{Dump(ParentVirtualStack)}]");
 #endif
 
+        /* ---------- NEW LOGIC: plain assignment, no delta arithmetic ---------- */
         foreach (int idx in CopyIncrementsToParent)
-        {
-            double before = ParentVirtualStack[idx];
-            double delta = VirtualStack[idx] - before;
-            if (delta == 0) continue;
-
-            ParentVirtualStack[idx] = before + delta;
-#if DEBUG
-            TabbedText.WriteLine($"[MERGE] chunk={ID} idx={idx}  +={delta}   {before}→{before + delta}");
-#endif
-        }
+            ParentVirtualStack[idx] = VirtualStack[idx];
 
 #if DEBUG
         TabbedText.WriteLine($"[MERGE‑END] parentVals [{Dump(ParentVirtualStack)}]");
@@ -169,23 +163,40 @@ public class ArrayCommandChunk
     }
 
 
-
+    /// <summary>
+    /// After <see cref="CopyIncrementsToParentIfNecessary"/> has merged the
+    /// child‑chunk’s accumulated deltas into <c>ParentVirtualStack</c>, bring the
+    /// *child* stack back in sync with the parent so the next execution starts
+    /// from the same baseline.
+    ///
+    /// Old implementation wrote zeroes; that breaks any subsequent reads because
+    /// those indices are no longer part of <see cref="IndicesReadFromStack"/> and
+    /// therefore will not be refreshed.  Instead we copy the parent’s value.
+    /// </summary>
     public void ResetIncrementsForParent()
     {
-        if (CopyIncrementsToParent == null || ParentVirtualStack == null)
+        // Fast‑exits
+        if (CopyIncrementsToParent is null || CopyIncrementsToParent.Length == 0)
+            return;
+        if (ParentVirtualStack is null)
             return;
         if (ReferenceEquals(VirtualStack, ParentVirtualStack))
-            return;    // shared stack – nothing to clear
+            return;   // shared stack – nothing to do
 
+#if DEBUG
         TabbedText.WriteLine(
-            $"[RST‑BEG] slice={ID,4}  zeroing idxs=[{string.Join(",", CopyIncrementsToParent)}]  "
-            + $"vs0={VirtualStack[0]}");
+            $"[RST‑BEG] slice={ID,4}  syncing idxs=[{string.Join(",", CopyIncrementsToParent)}]");
+#endif
 
+        // Sync every slot that was merged back to the parent
         foreach (int idx in CopyIncrementsToParent)
-            VirtualStack[idx] = 0;                     // ← original logic
+            VirtualStack[idx] = ParentVirtualStack[idx];
 
-        TabbedText.WriteLine($"[RST‑END] slice={ID,4}  vs0={VirtualStack[0]}");
+#if DEBUG
+        TabbedText.WriteLine($"[RST‑END] slice={ID,4}");
+#endif
     }
+
 
     public override int GetHashCode()
     {

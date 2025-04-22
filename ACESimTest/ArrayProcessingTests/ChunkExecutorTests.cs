@@ -656,7 +656,22 @@ namespace ACESimTest.ArrayProcessingTests
                 }
             }
         }
-
+        [TestMethod]
+        public void TestSkippedBranchFlush()
+        {
+            var cmds = new[]
+            {
+        new ArrayCommand(ArrayCommandType.CopyTo,      1, 0),
+        new ArrayCommand(ArrayCommandType.EqualsValue, 1, 0),
+        new ArrayCommand(ArrayCommandType.If,         -1, -1),
+        new ArrayCommand(ArrayCommandType.Zero,        1, -1),
+        new ArrayCommand(ArrayCommandType.EndIf,      -1, -1)
+    };
+            var chunk = ArrangeChunk(cmds);
+            chunk.VirtualStack[0] = 7.7;              // Set vs[0] non-zero so cond will be false
+            var vs = ActExecute(chunk, Array.Empty<double>(), Array.Empty<double>());
+            Assert.AreEqual(7.7, vs[1], 1e-9, "vs[1] should remain 7.7 if branch is correctly skipped");
+        }
     }
 
     [TestClass]
