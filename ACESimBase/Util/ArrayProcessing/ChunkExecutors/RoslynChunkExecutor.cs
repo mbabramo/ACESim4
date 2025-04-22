@@ -25,6 +25,19 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         public bool PreserveGeneratedCode { get; set; } = false;
         public string GeneratedCode { get; private set; } = string.Empty;
 
+        private sealed class IfContext
+        {
+            public readonly int SrcSkip;
+            public readonly int DstSkip;
+            public readonly List<(int slot, int local)> Flushes = new();
+
+            public IfContext(int srcSkip, int dstSkip)
+            {
+                SrcSkip = srcSkip;
+                DstSkip = dstSkip;
+            }
+        }
+
         public RoslynChunkExecutor(ArrayCommand[] commands,
                            int start, int end,
                            bool useCheckpoints,
@@ -166,7 +179,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             }
 
             var skipMap = PrecomputePointerSkips(c);
-            var ifStack = new Stack<(int src, int dst)>();
+            var ifStack = new Stack<IfContext>();
 
             string fn = FnName(c);
             _src.AppendLine(
@@ -194,7 +207,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
     ArrayCommandChunk c,
     CodeBuilder cb,
     Dictionary<int, (int src, int dst)> skipMap,
-    Stack<(int src, int dst)> ifStack,
+    Stack<IfContext> ifStack,
     HashSet<int> usedSlots)
         {
             // preload every slot that is ever used
@@ -227,7 +240,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             IntervalIndex intervalIx,
             LocalBindingState bind,
             Dictionary<int, (int src, int dst)> skipMap,
-            Stack<(int src, int dst)> ifStack,
+            Stack<IfContext> ifStack,
             HashSet<int> usedSlots)
         {
             Span<ArrayCommand> cmds = Commands;
@@ -261,7 +274,9 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
                     if (bind.NeedsFlushBeforeReuse(local, out int boundSlot) && boundSlot == endSlot)
                     {
-                        cb.AppendLine($"vs[{endSlot}] = l{local};");
+                        cb.AppendLine($"vs[{endSlot}] = l{local};"); 
+                        if (ifStack.Count > 0)
+                            ifStack.Peek().Flushes.Add((endSlot, local));
                         bind.FlushLocal(local);
                     }
                     bind.Release(local);
@@ -282,7 +297,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             ArrayCommand cmd,
             CodeBuilder cb,
             Dictionary<int, (int src, int dst)> skipMap,
-            Stack<(int src, int dst)> ifStack,
+            Stack<IfContext> ifStack,
             LocalBindingState? bind)
         {
             // Helper – mark the local dirty if we know which local owns <slot>
@@ -387,15 +402,27 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
                 // ────────── control flow ──────────
                 case ArrayCommandType.If:
-                    ifStack.Push(skipMap.TryGetValue(cmdIndex, out var c) ? c : (0, 0));
-                    cb.AppendLine("if(cond){"); cb.Indent();
-                    break;
+                    {
+                        var sk = skipMap.TryGetValue(cmdIndex, out var c) ? c :((int src, int dst)) (0, 0);
+                        ifStack.Push(new IfContext(sk.src, sk.dst)); // ① push context
+                        cb.AppendLine("if(cond){"); cb.Indent();
+                        break;
+                    }
 
                 case ArrayCommandType.EndIf:
-                    var counts = ifStack.Pop();
-                    cb.Unindent();
-                    cb.AppendLine($"}} else {{ i+={counts.src}; o+={counts.dst}; }}");
-                    break;
+                    {
+                        var ctx = ifStack.Pop();                     // ② pop context
+                        cb.Unindent();
+                        cb.AppendLine("} else {");                   // ③ begin `else`
+
+                        // ④ flush any locals whose final write occurred inside the skipped branch
+                        foreach (var (slot, local) in ctx.Flushes)
+                            cb.AppendLine($"vs[{slot}] = l{local};");
+
+                        // ⑤ advance ordered‑source/destination pointers
+                        cb.AppendLine($"i+={ctx.SrcSkip}; o+={ctx.DstSkip}; }}");
+                        break;
+                    }
 
                 // comments / blanks – ignore
                 case ArrayCommandType.Comment:
