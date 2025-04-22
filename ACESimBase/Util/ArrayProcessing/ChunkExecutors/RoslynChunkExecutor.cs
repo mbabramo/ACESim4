@@ -25,18 +25,30 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         public bool PreserveGeneratedCode { get; set; } = false;
         public string GeneratedCode { get; private set; } = string.Empty;
 
+        // ──────────────────────────────────────────────────────────────────────────────
+        // Tracks data while we are inside an `if(cond){…}` block.
+        // ──────────────────────────────────────────────────────────────────────────────
         private sealed class IfContext
         {
             public readonly int SrcSkip;
             public readonly int DstSkip;
+
+            /// <summary>dirtyBefore[l] == true  ⇒ local <l> was both “bound” and “dirty”
+            /// at the *moment we entered* the ‘if’.</summary>
+            public readonly bool[] DirtyBefore;
+
+            /// <summary>(slot,local) pairs whose *last* flush happens inside the branch
+            /// *and* whose local was already dirty on entry (→ needs mirroring in ELSE).</summary>
             public readonly List<(int slot, int local)> Flushes = new();
 
-            public IfContext(int srcSkip, int dstSkip)
+            public IfContext(int srcSkip, int dstSkip, bool[] dirtyBefore)
             {
                 SrcSkip = srcSkip;
                 DstSkip = dstSkip;
+                DirtyBefore = dirtyBefore;
             }
         }
+
 
         public RoslynChunkExecutor(ArrayCommand[] commands,
                            int start, int end,
@@ -274,9 +286,13 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
                     if (bind.NeedsFlushBeforeReuse(local, out int boundSlot) && boundSlot == endSlot)
                     {
-                        cb.AppendLine($"vs[{endSlot}] = l{local};"); 
-                        if (ifStack.Count > 0)
+                        cb.AppendLine($"vs[{endSlot}] = l{local};");
+                        if (bind != null &&
+                            ifStack.Count > 0 &&
+                            ifStack.Peek().DirtyBefore[local])
+                        {
                             ifStack.Peek().Flushes.Add((endSlot, local));
+                        }
                         bind.FlushLocal(local);
                     }
                     bind.Release(local);
@@ -403,8 +419,24 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 // ────────── control flow ──────────
                 case ArrayCommandType.If:
                     {
-                        var sk = skipMap.TryGetValue(cmdIndex, out var c) ? c :((int src, int dst)) (0, 0);
-                        ifStack.Push(new IfContext(sk.src, sk.dst)); // ① push context
+                        var sk = skipMap.TryGetValue(cmdIndex, out var c)
+                                ? c
+                                : (src: 0, dst: 0);
+
+                        // ── snapshot “dirty” status for every local at entry ──
+                        var dirty = new bool[_plan.LocalCount];
+
+                        if (bind != null)               // reuse‑mode only
+                        {
+                            for (int l = 0; l < _plan.LocalCount; l++)
+                            {
+                                int tmp;
+                                dirty[l] = bind.NeedsFlushBeforeReuse(l, out tmp);
+                            }
+                        }
+                        // else: all false ⇒ no locals need mirroring in ELSE
+
+                        ifStack.Push(new IfContext(sk.src, sk.dst, dirty));
                         cb.AppendLine("if(cond){"); cb.Indent();
                         break;
                     }
