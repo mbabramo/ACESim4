@@ -9,7 +9,7 @@ namespace ACESimTest
     [TestClass]
     public class FuzzChunkExecutorTests
     {
-        private const int Runs = 5000; // DEBUG
+        private const int Runs = 100; // DEBUG
         private const int OrigSlotCount = 8;
         private const int MaxSources = 20;
         private const int MaxDests = 20;
@@ -17,25 +17,25 @@ namespace ACESimTest
         [TestMethod]
         public void Fuzz_CompareExecutors_ByDepthThenSize()
         {
-            int[] depths = { 0, 1, 2, 3 };
-            int?[] sizes = { 3, 5, 10, null };
-            for (int depthIndex = 0; depthIndex < depths.Length; depthIndex++)
+            int[] maxDepths = { 0, 1, 2, 3 };
+            int?[] maxCommands = { 3, 5, 10, null };
+            for (int depthIndex = 0; depthIndex < maxDepths.Length; depthIndex++)
             {
-                int maxDepth = depths[depthIndex];
-                for (int i = 0; i < sizes.Length; i++)
+                int maxDepth = maxDepths[depthIndex];
+                for (int i = 0; i < maxCommands.Length; i++)
                 {
-                    int? size = sizes[i];
+                    int? maxCommand = maxCommands[i];
                     for (int seed = 0; seed < Runs; seed++)
                     {
-                        maxDepth = 1; size = 5; seed = 2143; // DEBUG
+                        // maxDepth = 1; maxCommand = 5; seed = 2143; // DEBUG
                         // build with a very small maxBody (we only care about total truncation here)
                         var builder = new FuzzCommandBuilder(seed, OrigSlotCount);
                         var cmds = builder.Build(
                             maxDepth: maxDepth,
-                            maxBody: size ?? 50,
-                            maxCommands: size);
+                            maxBody: maxCommand ?? 50,
+                            maxCommands: maxCommand);
 
-                        var stage = $"D{maxDepth}-C{(size.HasValue ? size.Value.ToString() : "full")}";
+                        var stage = $"D{maxDepth}-C{(maxCommand.HasValue ? maxCommand.Value.ToString() : "full")}";
                         try
                         {
                             CompareExecutors(cmds, seed, stage);
