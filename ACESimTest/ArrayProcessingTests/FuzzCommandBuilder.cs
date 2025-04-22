@@ -33,7 +33,11 @@ namespace ACESimTest.ArrayProcessingTests
             _acl.StartCommandChunk(runChildrenInParallel: false, identicalStartCommandRange: null);
             int localDepth = 0;
             EmitChunk(0, maxDepth, maxBody, ref localDepth);
-            while (localDepth-- > 0) _acl.DecrementDepth();
+            while (localDepth > 0)
+            {
+                _acl.DecrementDepth();
+                localDepth--;
+            }
             _acl.EndCommandChunk();
 
             var full = _acl.UnderlyingCommands;

@@ -22,7 +22,7 @@ namespace ACESimTest.ArrayProcessingTests
         {
             int[] maxDepths = { 0, 1, 2, 3 };
             int?[] maxCommands = { 3, 5, 10, null };
-            (int dIndex, int cIndex, int s)? jumpToIteration = (1, 2, 51); // DEBUG
+            (int dIndex, int cIndex, int s)? jumpToIteration = (1, 3, 10); // DEBUG
             bool jump = jumpToIteration != null;
             for (int depthIndex = 0; depthIndex < maxDepths.Length; depthIndex++)
             {
@@ -114,7 +114,7 @@ namespace ACESimTest.ArrayProcessingTests
             rosLoc.AddToGeneration(chunk);
             rosLoc.PreserveGeneratedCode = true;
             rosLoc.PerformGeneration(); 
-            generatedCode = "\r\n // Generated code \r\n" + rosLoc.GeneratedCode;
+            generatedCode = "\r\n // Generated code (with variable reuse) \r\n" + rosLoc.GeneratedCode;
             rosLoc.Execute(chunk, vsLoc, os0, odLoc, ref cosi2, ref codi2, ref cond2);
 
             Assert.AreEqual(cosi0, cosi2, $"Seed {seed} {iterationInfo}: cosi mismatch with locals {generatedCode}");
