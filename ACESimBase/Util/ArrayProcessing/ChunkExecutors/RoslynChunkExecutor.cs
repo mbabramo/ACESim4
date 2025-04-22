@@ -197,18 +197,22 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
     Stack<(int src, int dst)> ifStack,
     HashSet<int> usedSlots)
         {
+            // preload every slot that is ever used
             foreach (var kv in _plan.SlotToLocal)
                 if (usedSlots.Contains(kv.Key))
                     cb.AppendLine($"l{kv.Value} = vs[{kv.Key}];");
 
             Span<ArrayCommand> cmds = Commands;
             for (int ci = c.StartCommandRange; ci < c.EndCommandRangeExclusive; ci++)
-                EmitCmdBasic(ci, cmds[ci], cb, skipMap, ifStack);
+                // bind == null → no dirty tracking in this mode
+                EmitCmdBasic(ci, cmds[ci], cb, skipMap, ifStack, bind: null);
 
+            // write all locals back – safe because mapping never changes
             foreach (var kv in _plan.SlotToLocal)
                 if (usedSlots.Contains(kv.Key))
                     cb.AppendLine($"vs[{kv.Key}] = l{kv.Value};");
         }
+
 
 
 
@@ -223,82 +227,158 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
     HashSet<int> usedSlots)
         {
             Span<ArrayCommand> cmds = Commands;
+
             for (int ci = c.StartCommandRange; ci < c.EndCommandRangeExclusive; ci++)
             {
                 int d = depth.GetDepth(ci);
 
+                // ───── interval starts ─────
                 if (intervalIx.TryStart(ci, out int slot))
                 {
                     int local = _plan.SlotToLocal[slot];
+
                     if (bind.TryReuse(local, slot, d, out int flushSlot))
                     {
+                        // flush previous slot if the local was dirty
                         if (flushSlot != -1)
                             cb.AppendLine($"vs[{flushSlot}] = l{local};");
+
+                        // load the new slot
                         cb.AppendLine($"l{local} = vs[{slot}];");
                         bind.StartInterval(slot, local, d);
                     }
                 }
 
-                EmitCmdBasic(ci, cmds[ci], cb, skipMap, ifStack);
+                // ───── the command itself ─────
+                EmitCmdBasic(ci, cmds[ci], cb, skipMap, ifStack, bind);
 
+                // ───── interval ends ─────
                 if (intervalIx.TryEnd(ci, out int endSlot))
                 {
                     int local = _plan.SlotToLocal[endSlot];
+
+                    // if still dirty, flush exactly once here
+                    if (bind.NeedsFlushBeforeReuse(local, out _))
+                    {
+                        cb.AppendLine($"vs[{endSlot}] = l{local};");
+                        bind.FlushLocal(local);
+                    }
+
                     bind.Release(local);
                 }
             }
 
-            foreach (var kv in _plan.SlotToLocal)
-                if (usedSlots.Contains(kv.Key))
-                    cb.AppendLine($"vs[{kv.Key}] = l{kv.Value};");
+            // ⟹ No blanket tail‑flush – every dirty local was handled above.
         }
 
-
-
-        private void EmitCmdBasic(int cmdIndex, ArrayCommand cmd, CodeBuilder cb,
-                                   Dictionary<int, (int src, int dst)> skipMap,
-                                   Stack<(int src, int dst)> ifStack)
+        /// <summary>
+        /// Emit one ArrayCommand.  When <paramref name="bind"/> is non‑null
+        /// (i.e. local‑reuse mode) we call <c>bind.MarkWritten()</c> for every
+        /// command that writes to its target VS slot so that the dirty‑bit is
+        /// accurate.
+        /// </summary>
+        private void EmitCmdBasic(
+            int cmdIndex,
+            ArrayCommand cmd,
+            CodeBuilder cb,
+            Dictionary<int, (int src, int dst)> skipMap,
+            Stack<(int src, int dst)> ifStack,
+            LocalBindingState? bind)
         {
+            // Helper – mark the local dirty if we know which local owns <slot>
+            void MarkWritten(int slot)
+            {
+                if (bind != null && _plan.SlotToLocal.TryGetValue(slot, out int localId))
+                    bind.MarkWritten(localId);
+            }
+
             string R(int slot) => _plan.SlotToLocal.TryGetValue(slot, out int l) ? $"l{l}" : $"vs[{slot}]";
             string W(int slot) => R(slot);
 
             switch (cmd.CommandType)
             {
-                case ArrayCommandType.Zero: cb.AppendLine($"{W(cmd.Index)} = 0;"); break;
-                case ArrayCommandType.CopyTo: cb.AppendLine($"{W(cmd.Index)} = {R(cmd.SourceIndex)};"); break;
-                case ArrayCommandType.MultiplyBy: cb.AppendLine($"{W(cmd.Index)} *= {R(cmd.SourceIndex)};"); break;
-                case ArrayCommandType.IncrementBy: cb.AppendLine($"{W(cmd.Index)} += {R(cmd.SourceIndex)};"); break;
-                case ArrayCommandType.DecrementBy: cb.AppendLine($"{W(cmd.Index)} -= {R(cmd.SourceIndex)};"); break;
+                // ────────── write‑only / read‑modify‑write commands ──────────
+                case ArrayCommandType.Zero:
+                    cb.AppendLine($"{W(cmd.Index)} = 0;");
+                    MarkWritten(cmd.Index);
+                    break;
 
-                case ArrayCommandType.NextSource: cb.AppendLine($"{W(cmd.Index)} = os[i++];"); break;
-                case ArrayCommandType.NextDestination: cb.AppendLine($"od[o++] = {R(cmd.SourceIndex)};"); break;
-                case ArrayCommandType.ReusedDestination: cb.AppendLine($"od[{cmd.Index}] += {R(cmd.SourceIndex)};"); break;
+                case ArrayCommandType.CopyTo:
+                    cb.AppendLine($"{W(cmd.Index)} = {R(cmd.SourceIndex)};");
+                    MarkWritten(cmd.Index);
+                    break;
 
-                case ArrayCommandType.EqualsOtherArrayIndex: cb.AppendLine($"cond = {R(cmd.Index)} == {R(cmd.SourceIndex)};"); break;
-                case ArrayCommandType.NotEqualsOtherArrayIndex: cb.AppendLine($"cond = {R(cmd.Index)} != {R(cmd.SourceIndex)};"); break;
-                case ArrayCommandType.GreaterThanOtherArrayIndex: cb.AppendLine($"cond = {R(cmd.Index)} > {R(cmd.SourceIndex)};"); break;
-                case ArrayCommandType.LessThanOtherArrayIndex: cb.AppendLine($"cond = {R(cmd.Index)} < {R(cmd.SourceIndex)};"); break;
-                case ArrayCommandType.EqualsValue: cb.AppendLine($"cond = {R(cmd.Index)} == (double){cmd.SourceIndex};"); break;
-                case ArrayCommandType.NotEqualsValue: cb.AppendLine($"cond = {R(cmd.Index)} != (double){cmd.SourceIndex};"); break;
+                case ArrayCommandType.NextSource:
+                    cb.AppendLine($"{W(cmd.Index)} = os[i++];");
+                    MarkWritten(cmd.Index);
+                    break;
 
+                case ArrayCommandType.MultiplyBy:
+                    cb.AppendLine($"{W(cmd.Index)} *= {R(cmd.SourceIndex)};");
+                    MarkWritten(cmd.Index);
+                    break;
+
+                case ArrayCommandType.IncrementBy:
+                    cb.AppendLine($"{W(cmd.Index)} += {R(cmd.SourceIndex)};");
+                    MarkWritten(cmd.Index);
+                    break;
+
+                case ArrayCommandType.DecrementBy:
+                    cb.AppendLine($"{W(cmd.Index)} -= {R(cmd.SourceIndex)};");
+                    MarkWritten(cmd.Index);
+                    break;
+
+                // ────────── pure reads / destination writes ──────────
+                case ArrayCommandType.NextDestination:
+                    cb.AppendLine($"od[o++] = {R(cmd.SourceIndex)};");
+                    break;
+
+                case ArrayCommandType.ReusedDestination:
+                    cb.AppendLine($"od[{cmd.Index}] += {R(cmd.SourceIndex)};");
+                    break;
+
+                // ────────── comparisons ──────────
+                case ArrayCommandType.EqualsOtherArrayIndex:
+                    cb.AppendLine($"cond = {R(cmd.Index)} == {R(cmd.SourceIndex)};");
+                    break;
+                case ArrayCommandType.NotEqualsOtherArrayIndex:
+                    cb.AppendLine($"cond = {R(cmd.Index)} != {R(cmd.SourceIndex)};");
+                    break;
+                case ArrayCommandType.GreaterThanOtherArrayIndex:
+                    cb.AppendLine($"cond = {R(cmd.Index)} > {R(cmd.SourceIndex)};");
+                    break;
+                case ArrayCommandType.LessThanOtherArrayIndex:
+                    cb.AppendLine($"cond = {R(cmd.Index)} < {R(cmd.SourceIndex)};");
+                    break;
+                case ArrayCommandType.EqualsValue:
+                    cb.AppendLine($"cond = {R(cmd.Index)} == (double){cmd.SourceIndex};");
+                    break;
+                case ArrayCommandType.NotEqualsValue:
+                    cb.AppendLine($"cond = {R(cmd.Index)} != (double){cmd.SourceIndex};");
+                    break;
+
+                // ────────── control flow ──────────
                 case ArrayCommandType.If:
                     ifStack.Push(skipMap.TryGetValue(cmdIndex, out var c) ? c : (0, 0));
-                    cb.AppendLine("if(cond){");
-                    cb.Indent();
+                    cb.AppendLine("if(cond){"); cb.Indent();
                     break;
+
                 case ArrayCommandType.EndIf:
                     var counts = ifStack.Pop();
                     cb.Unindent();
                     cb.AppendLine($"}} else {{ i+={counts.src}; o+={counts.dst}; }}");
                     break;
 
+                // comments / blanks – ignore
                 case ArrayCommandType.Comment:
                 case ArrayCommandType.Blank:
                     break;
+
                 default:
                     throw new NotImplementedException($"Unhandled command {cmd.CommandType}");
             }
         }
+
         private Dictionary<int, (int src, int dst)> PrecomputePointerSkips(
     ArrayCommandChunk c)
         {
