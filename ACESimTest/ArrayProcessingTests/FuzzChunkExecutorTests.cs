@@ -12,7 +12,7 @@ namespace ACESimTest.ArrayProcessingTests
     [TestClass]
     public class FuzzChunkExecutorTests
     {
-        private const int Runs = 100; // DEBUG
+        private const int Runs = 1000; // DEBUG
         private const int OrigSlotCount = 8;
         private const int MaxSources = 20;
         private const int MaxDests = 20;
@@ -21,8 +21,8 @@ namespace ACESimTest.ArrayProcessingTests
         public void Fuzz_CompareExecutors_ByDepthThenSize()
         {
             int[] maxDepths = { 0, 1, 2, 3 };
-            int?[] maxCommands = { 3, 5, 10, null };
-            (int dIndex, int cIndex, int s)? jumpToIteration = (1, 2, 51); // DEBUG
+            int?[] maxCommands = { 3, 5, 10, 18 };
+            (int dIndex, int cIndex, int s)? jumpToIteration = (2, 3, 198); // DEBUG
             bool jump = jumpToIteration != null;
             for (int depthIndex = 0; depthIndex < maxDepths.Length; depthIndex++)
             {

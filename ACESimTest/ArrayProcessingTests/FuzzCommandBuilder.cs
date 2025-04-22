@@ -7,11 +7,14 @@ namespace ACESimTest.ArrayProcessingTests
 {
     /// <summary>
     /// Builds a random ArrayCommand[] using your EmitChunk/EmitRandomCommand logic.
+    /// Adds a tiny post‑pass that removes immediately‑repeated Zero‑to‑same‑slot
+    /// commands so the generated code no longer ends with hundreds of
+    /// `l0 = 0;` lines.
     /// </summary>
     public class FuzzCommandBuilder
     {
         private readonly Random _rnd;
-        private readonly List<int> _scratch = new List<int>();
+        private readonly List<int> _scratch = new();
         private readonly ArrayCommandList _acl;
         private readonly int _origCount;
 
@@ -23,8 +26,9 @@ namespace ACESimTest.ArrayProcessingTests
         }
 
         /// <summary>
-        /// Build a single chunk, then (if maxCommands!=null) truncate to at most that many commands,
-        /// rebalance any unmatched If/EndIf, and return the resulting ArrayCommand[].
+        /// Build a single chunk, then (if maxCommands!=null) truncate to at most that
+        /// many commands, rebalance any unmatched If/EndIf, collapse redundant
+        /// Zero‑Existing streaks, and return the resulting ArrayCommand[].
         /// </summary>
         public ArrayCommand[] Build(int maxDepth = 2, int maxBody = 8, int? maxCommands = null)
         {
@@ -37,20 +41,42 @@ namespace ACESimTest.ArrayProcessingTests
             _acl.EndCommandChunk();
 
             var full = _acl.UnderlyingCommands;
-            if (!maxCommands.HasValue || full.Length <= maxCommands.Value)
-                return full;
 
-            // 2) truncate
-            var prefix = full.Take(maxCommands.Value).ToList();
+            // 2) optionally truncate
+            if (maxCommands.HasValue && full.Length > maxCommands.Value)
+            {
+                full = full.Take(maxCommands.Value).ToArray();
 
-            // 3) rebalance If/EndIf
-            int opens = prefix.Count(c => c.CommandType == ArrayCommandType.If)
-                      - prefix.Count(c => c.CommandType == ArrayCommandType.EndIf);
-            for (int i = 0; i < opens; i++)
-                prefix.Add(new ArrayCommand(ArrayCommandType.EndIf, -1, -1));
+                // rebalance If/EndIf so the chunk remains well‑formed
+                int opens = full.Count(c => c.CommandType == ArrayCommandType.If) -
+                            full.Count(c => c.CommandType == ArrayCommandType.EndIf);
+                if (opens > 0)
+                {
+                    Array.Resize(ref full, full.Length + opens);
+                    for (int i = full.Length - opens; i < full.Length; i++)
+                        full[i] = new ArrayCommand(ArrayCommandType.EndIf, -1, -1);
+                }
+            }
 
-            return prefix.ToArray();
+            // 3) remove redundant consecutive Zero‑Existing commands
+            var cleaned = new List<ArrayCommand>(full.Length);
+            foreach (var cmd in full)
+            {
+                if (cmd.CommandType == ArrayCommandType.Zero &&
+                    cleaned.Count > 0 &&
+                    cleaned[^1].CommandType == ArrayCommandType.Zero &&
+                    cleaned[^1].Index == cmd.Index)
+                {
+                    // drop duplicate
+                    continue;
+                }
+                cleaned.Add(cmd);
+            }
+
+            return cleaned.ToArray();
         }
+
+        // ---------------- existing generation helpers below ----------------
 
         private void EmitChunk(int depth, int maxDepth, int maxBody, ref int localDepth)
         {
@@ -206,6 +232,17 @@ namespace ACESimTest.ArrayProcessingTests
         private void ZeroScratch()
         {
             int idx = EnsureScratch();
+
+            // guard: if the previous *emitted* command already zeroed this same
+            // slot, skip emitting another redundant zero
+            var cmds = _acl.UnderlyingCommands;
+            if (cmds.Length > 0)
+            {
+                var prev = cmds[^1];
+                if (prev.CommandType == ArrayCommandType.Zero && prev.Index == idx)
+                    return; // redundant
+            }
+
             _acl.ZeroExisting(idx);
         }
 

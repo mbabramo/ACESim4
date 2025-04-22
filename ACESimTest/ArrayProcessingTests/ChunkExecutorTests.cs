@@ -672,6 +672,48 @@ namespace ACESimTest.ArrayProcessingTests
             var vs = ActExecute(chunk, Array.Empty<double>(), Array.Empty<double>());
             Assert.AreEqual(7.7, vs[1], 1e-9, "vs[1] should remain 7.7 if branch is correctly skipped");
         }
+        [TestMethod]
+        public void TestNextSource_SkippedIf_LocalReuse_Fails()
+        {
+            var cmds = new[]
+    {
+        // ─────────── Preamble ───────────
+        // vs[0] = 0   (writes slot‑0, but we never change it again)
+        new ArrayCommand(ArrayCommandType.NextSource,       0, -1),
+
+        // vs[1] = 1   (writes slot‑1 **only to the local**)   ← dirty on entry
+        new ArrayCommand(ArrayCommandType.NextSource,       1, -1),
+
+        // cond ← (vs[0] != 0) ▶ FALSE  → outer branch is skipped
+        new ArrayCommand(ArrayCommandType.NotEqualsValue,   0,  0),
+
+        // ─────────── Outer IF (skipped) ───────────
+        new ArrayCommand(ArrayCommandType.If,              -1, -1),
+
+            // inner‑if guard (any comparison that *mentions slot‑1*)
+            new ArrayCommand(ArrayCommandType.EqualsValue, 1, 1),
+            new ArrayCommand(ArrayCommandType.If,         -1, -1),
+
+                // last *use* of slot‑1 – makes the interval end *inside* ​the skipped branch
+                new ArrayCommand(ArrayCommandType.IncrementBy, 1, 1),
+
+            new ArrayCommand(ArrayCommandType.EndIf,       -1, -1),
+
+        new ArrayCommand(ArrayCommandType.EndIf,            -1, -1),
+    };
+
+
+            // Arrange
+            var chunk = ArrangeChunk(cmds);
+            double[] os = { 0.0, 1.0 };                   // deliberately 0 then 1
+
+            // Act
+            var vs = ActExecute(chunk, os, Array.Empty<double>());
+
+            // Assert – should be 1.0 even though branch was skipped
+            Assert.AreEqual(1.0, vs[1], 1e-9,
+                "vs[1] should remain 1 if NextSource wrote back correctly across skipped branch");
+        }
     }
 
     [TestClass]
