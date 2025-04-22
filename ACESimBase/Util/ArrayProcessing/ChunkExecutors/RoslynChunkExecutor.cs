@@ -8,6 +8,7 @@ using System.Text;
 using ACESimBase.Util.ArrayProcessing;
 using ACESimBase.Util.ArrayProcessing.ChunkExecutors;
 using ACESimBase.Util.CodeGen;
+using Google.Protobuf.Reflection;
 
 namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 {
@@ -21,6 +22,8 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         private Type _cgType;
 
         public bool ReuseLocals { get; init; } = true;
+        public bool PreserveGeneratedCode { get; set; } = false;
+        public string GeneratedCode { get; private set; } = string.Empty;
 
         public RoslynChunkExecutor(ArrayCommand[] commands,
                            int start, int end,
@@ -111,12 +114,15 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             _src.Clear();
             _src.AppendLine("using System; namespace CG { static class G {");
 
-            foreach (var chunk in _scheduled)
-                GenerateSourceForChunk(chunk);
+            GenerateSourceForChunks(_scheduled);
 
             _src.AppendLine("}} // CG.G");
 
-            _cgType = StringToCode.LoadCode(_src.ToString(), "CG.G");
+            string code = _src.ToString();
+            if (PreserveGeneratedCode)
+                GeneratedCode = code;
+
+            _cgType = StringToCode.LoadCode(code, "CG.G");
             foreach (var c in _scheduled)
             {
                 var mi = _cgType!.GetMethod(FnName(c), BindingFlags.Static | BindingFlags.Public)!;
@@ -135,6 +141,12 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
         private static string FnName(ArrayCommandChunk c)
             => $"S{c.StartCommandRange}_{c.EndCommandRangeExclusive - 1}";
+
+        private void GenerateSourceForChunks(IEnumerable<ArrayCommandChunk> chunks)
+        {
+            foreach (var c in chunks)
+                GenerateSourceForChunk(c);
+        }
 
         private void GenerateSourceForChunk(ArrayCommandChunk c)
         {
