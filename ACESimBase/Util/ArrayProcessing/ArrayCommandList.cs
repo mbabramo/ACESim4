@@ -363,7 +363,6 @@ namespace ACESimBase.Util.ArrayProcessing
 
             if (RecordCommandTreeString)
                 CommandTreeString = CommandTree.ToString();
-            LogFlags("POST‑REBUILD");
         }
 
 
@@ -434,7 +433,6 @@ namespace ACESimBase.Util.ArrayProcessing
             if (RecordCommandTreeString)
                 CommandTreeString = CommandTree.ToString();
             CompileCode(); 
-            LogFlags("POST‑COMPLETE");
         }
 
         public void SetupVirtualStack(NWayTreeStorageInternal<ArrayCommandChunk> node)

@@ -287,11 +287,12 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     if (bind.NeedsFlushBeforeReuse(local, out int boundSlot) && boundSlot == endSlot)
                     {
                         cb.AppendLine($"vs[{endSlot}] = l{local};");
-                        if (bind != null &&
-                            ifStack.Count > 0 &&
-                            ifStack.Peek().DirtyBefore[local])
+                        if (bind != null && ifStack.Count > 0)
                         {
-                            ifStack.Peek().Flushes.Add((endSlot, local));
+                            // propagate to *all* enclosing IFs that saw this local dirty on entry
+                            foreach (var ctx in ifStack)
+                                if (ctx.DirtyBefore[local])
+                                ctx.Flushes.Add((endSlot, local));
                         }
                         bind.FlushLocal(local);
                     }
@@ -340,7 +341,16 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     break;
 
                 case ArrayCommandType.NextSource:
-                    cb.AppendLine($"{W(cmd.Index)} = os[i++];");
+                    // If the slot is promoted to a local, update BOTH the local and vs[slot]
+                    if (_plan.SlotToLocal.TryGetValue(cmd.Index, out int loc))
+                    {
+                        cb.AppendLine($"l{loc} = os[i++];");
+                        cb.AppendLine($"vs[{cmd.Index}] = l{loc};");   // write‑through
+                    }
+                    else
+                    {
+                        cb.AppendLine($"vs[{cmd.Index}] = os[i++];");
+                    }
                     MarkWritten(cmd.Index);
                     break;
 
