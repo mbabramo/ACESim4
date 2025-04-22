@@ -37,33 +37,78 @@ internal sealed class DepthMap
     public int GetDepth(int commandIndex) => _depthAt[commandIndex - _offset];
 }
 
-/// <summary>Fast look‑ups for “interval starts/ends at this command?”</summary>
+/// <summary>
+/// Fast look‑ups for “interval starts/ends at this command?”
+/// Supports *multiple* VS slots beginning or ending on the same instruction.
+/// </summary>
 internal sealed class IntervalIndex
 {
-    private readonly Dictionary<int, int> _first = new();
-    private readonly Dictionary<int, int> _last = new();
+    private readonly Dictionary<int, List<int>> _first;
+    private readonly Dictionary<int, List<int>> _last;
 
     public IntervalIndex(int capacity = 16)
     {
-        _first = new Dictionary<int, int>(capacity);
-        _last = new Dictionary<int, int>(capacity);
+        _first = new Dictionary<int, List<int>>(capacity);
+        _last = new Dictionary<int, List<int>>(capacity);
     }
 
     public IntervalIndex(LocalsAllocationPlan plan)
     {
+        _first = new();
+        _last = new();
+
         foreach (var iv in plan.Intervals)
         {
-            _first[iv.First] = iv.Slot;
-            _last[iv.Last] = iv.Slot;
+            (_first.TryGetValue(iv.First, out var fl) ? fl : _first[iv.First] = new())
+                .Add(iv.Slot);
+
+            (_last.TryGetValue(iv.Last, out var ll) ? ll : _last[iv.Last] = new())
+                .Add(iv.Slot);
         }
     }
 
-    public void AddStart(int cmdIndex, int slot) => _first[cmdIndex] = slot;
-    public void AddEnd(int cmdIndex, int slot) => _last[cmdIndex] = slot;
+    public void AddStart(int cmdIndex, int slot) =>
+        (_first.TryGetValue(cmdIndex, out var list) ? list : _first[cmdIndex] = new())
+            .Add(slot);
 
-    public bool TryStart(int cmd, out int slot) => _first.TryGetValue(cmd, out slot);
-    public bool TryEnd(int cmd, out int slot) => _last.TryGetValue(cmd, out slot);
+    public void AddEnd(int cmdIndex, int slot) =>
+        (_last.TryGetValue(cmdIndex, out var list) ? list : _last[cmdIndex] = new())
+            .Add(slot);
+
+    /// <summary>All VS slots whose interval *starts* at <paramref name="cmd"/>.</summary>
+    public IEnumerable<int> StartSlots(int cmd) =>
+        _first.TryGetValue(cmd, out var list) ? list : Array.Empty<int>();
+
+    /// <summary>All VS slots whose interval *ends*   at <paramref name="cmd"/>.</summary>
+    public IEnumerable<int> EndSlots(int cmd) =>
+        _last.TryGetValue(cmd, out var list) ? list : Array.Empty<int>();
+
+    /* --------------------------------------------------------------------
+       Legacy helpers (still used elsewhere): return the *first* slot only.
+       ------------------------------------------------------------------*/
+    public bool TryStart(int cmd, out int slot)
+    {
+        if (_first.TryGetValue(cmd, out var list) && list.Count > 0)
+        {
+            slot = list[0];
+            return true;
+        }
+        slot = default;
+        return false;
+    }
+
+    public bool TryEnd(int cmd, out int slot)
+    {
+        if (_last.TryGetValue(cmd, out var list) && list.Count > 0)
+        {
+            slot = list[0];
+            return true;
+        }
+        slot = default;
+        return false;
+    }
 }
+
 
 /// <summary>
 /// Tracks which C# <c>localId</c> is bound to which VS slot, whether it is dirty,

@@ -23,17 +23,19 @@ namespace ACESimTest.ArrayProcessingTests
             int[] maxDepths = { 0, 1, 2, 3 };
             int?[] maxCommands = { 3, 5, 10, null };
             (int dIndex, int cIndex, int s)? jumpToIteration = (0, 2, 21); // DEBUG
+            bool jump = jumpToIteration != null;
             for (int depthIndex = 0; depthIndex < maxDepths.Length; depthIndex++)
             {
                 for (int maxCommandIndex = 0; maxCommandIndex < maxCommands.Length; maxCommandIndex++)
                 {
                     for (int seed = 0; seed < Runs; seed++)
                     {
-                        if (jumpToIteration.HasValue)
+                        if (jump)
                         {
                             depthIndex = jumpToIteration.Value.dIndex;
                             maxCommandIndex = jumpToIteration.Value.cIndex;
                             seed = jumpToIteration.Value.s;
+                            jump = false;
                         }
                         int maxDepth = maxDepths[depthIndex];
                         int? maxCommand = maxCommands[maxCommandIndex];

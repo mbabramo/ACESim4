@@ -216,15 +216,19 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
 
 
+        /// <summary>
+        /// Generate source for a chunk in local‑reuse mode, now flushing *all* slots
+        /// whose intervals end on a given instruction.
+        /// </summary>
         private void EmitReusingBody(
-    ArrayCommandChunk c,
-    CodeBuilder cb,
-    DepthMap depth,
-    IntervalIndex intervalIx,
-    LocalBindingState bind,
-    Dictionary<int, (int src, int dst)> skipMap,
-    Stack<(int src, int dst)> ifStack,
-    HashSet<int> usedSlots)
+            ArrayCommandChunk c,
+            CodeBuilder cb,
+            DepthMap depth,
+            IntervalIndex intervalIx,
+            LocalBindingState bind,
+            Dictionary<int, (int src, int dst)> skipMap,
+            Stack<(int src, int dst)> ifStack,
+            HashSet<int> usedSlots)
         {
             Span<ArrayCommand> cmds = Commands;
 
@@ -233,43 +237,39 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 int d = depth.GetDepth(ci);
 
                 // ───── interval starts ─────
-                if (intervalIx.TryStart(ci, out int slot))
+                foreach (int slot in intervalIx.StartSlots(ci))
                 {
                     int local = _plan.SlotToLocal[slot];
 
                     if (bind.TryReuse(local, slot, d, out int flushSlot))
                     {
-                        // flush previous slot if the local was dirty
                         if (flushSlot != -1)
                             cb.AppendLine($"vs[{flushSlot}] = l{local};");
 
-                        // load the new slot
                         cb.AppendLine($"l{local} = vs[{slot}];");
                         bind.StartInterval(slot, local, d);
                     }
                 }
 
-                // ───── the command itself ─────
+                // ───── emit the command ─────
                 EmitCmdBasic(ci, cmds[ci], cb, skipMap, ifStack, bind);
 
                 // ───── interval ends ─────
-                if (intervalIx.TryEnd(ci, out int endSlot))
+                foreach (int endSlot in intervalIx.EndSlots(ci))
                 {
                     int local = _plan.SlotToLocal[endSlot];
 
-                    // if still dirty, flush exactly once here
-                    if (bind.NeedsFlushBeforeReuse(local, out _))
+                    if (bind.NeedsFlushBeforeReuse(local, out int boundSlot) && boundSlot == endSlot)
                     {
                         cb.AppendLine($"vs[{endSlot}] = l{local};");
                         bind.FlushLocal(local);
                     }
-
                     bind.Release(local);
                 }
             }
-
-            // ⟹ No blanket tail‑flush – every dirty local was handled above.
+            // ⟹ no blanket tail‑flush – every dirty local handled above.
         }
+
 
         /// <summary>
         /// Emit one ArrayCommand.  When <paramref name="bind"/> is non‑null
