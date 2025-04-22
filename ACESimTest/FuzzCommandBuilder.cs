@@ -15,38 +15,41 @@ namespace ACESimTest
         private readonly ArrayCommandList _acl;
         private readonly int _origCount;
 
-        /// <summary>
-        /// Seeded builder. origCount is the number of original slots (0..origCount-1).
-        /// </summary>
         public FuzzCommandBuilder(int seed, int origCount)
         {
             _rnd = new Random(seed);
             _origCount = origCount;
-            // allocate up to 1000 commands, scratch slots start at origCount
-            _acl = new ArrayCommandList(
-                maxNumCommands: 1000,
-                initialArrayIndex: origCount,
-                parallelize: false
-            );
+            _acl = new ArrayCommandList(maxNumCommands: 1000, initialArrayIndex: origCount, parallelize: false);
         }
 
         /// <summary>
-        /// Emit one random chunk, with nesting depth ≤ maxDepth and
-        /// between 4 and maxBody commands per linear section.
+        /// Build a single chunk, then (if maxCommands!=null) truncate to at most that many commands,
+        /// rebalance any unmatched If/EndIf, and return the resulting ArrayCommand[].
         /// </summary>
-        public ArrayCommand[] Build(int maxDepth = 2, int maxBody = 8)
+        public ArrayCommand[] Build(int maxDepth = 2, int maxBody = 8, int? maxCommands = null)
         {
+            // 1) generate the full chunk
             _scratch.Clear();
             _acl.StartCommandChunk(runChildrenInParallel: false, identicalStartCommandRange: null);
             int localDepth = 0;
             EmitChunk(0, maxDepth, maxBody, ref localDepth);
-
-            // close any remaining nested depths
-            while (localDepth-- > 0)
-                _acl.DecrementDepth();
-
+            while (localDepth-- > 0) _acl.DecrementDepth();
             _acl.EndCommandChunk();
-            return _acl.UnderlyingCommands;
+
+            var full = _acl.UnderlyingCommands;
+            if (!maxCommands.HasValue || full.Length <= maxCommands.Value)
+                return full;
+
+            // 2) truncate
+            var prefix = full.Take(maxCommands.Value).ToList();
+
+            // 3) rebalance If/EndIf
+            int opens = prefix.Count(c => c.CommandType == ArrayCommandType.If)
+                      - prefix.Count(c => c.CommandType == ArrayCommandType.EndIf);
+            for (int i = 0; i < opens; i++)
+                prefix.Add(new ArrayCommand(ArrayCommandType.EndIf, -1, -1));
+
+            return prefix.ToArray();
         }
 
         private void EmitChunk(int depth, int maxDepth, int maxBody, ref int localDepth)

@@ -9,108 +9,120 @@ namespace ACESimTest
     [TestClass]
     public class FuzzChunkExecutorTests
     {
-        private const int Runs = 200;
+        private const int Runs = 5000; // DEBUG
         private const int OrigSlotCount = 8;
         private const int MaxSources = 20;
         private const int MaxDests = 20;
 
-        /// <summary>
-        /// For each seed, build a random chunk, then compare:
-        ///   • InterpreterChunkExecutor  
-        ///   • ILChunkExecutor  
-        ///   • RoslynChunkExecutor (no locals)  
-        ///   • RoslynChunkExecutor (with locals)
-        /// </summary>
         [TestMethod]
-        public void Fuzz_CompareExecutors()
+        public void Fuzz_CompareExecutors_ByDepthThenSize()
         {
-            for (int seed = 0; seed < Runs; seed++)
+            int[] depths = { 0, 1, 2, 3 };
+            int?[] sizes = { 3, 5, 10, null };
+            for (int depthIndex = 0; depthIndex < depths.Length; depthIndex++)
             {
-                // 1) Generate a random command array
-                var builder = new FuzzCommandBuilder(seed, OrigSlotCount);
-                var cmds = builder.Build(maxDepth: 3, maxBody: 10);
-
-                // 2) Prepare a chunk descriptor
-                var chunk = new ArrayCommandChunk
+                int maxDepth = depths[depthIndex];
+                for (int i = 0; i < sizes.Length; i++)
                 {
-                    StartCommandRange = 0,
-                    EndCommandRangeExclusive = cmds.Length,
-                    VirtualStack = new double[OrigSlotCount + cmds.Length + 1]
-                };
+                    int? size = sizes[i];
+                    for (int seed = 0; seed < Runs; seed++)
+                    {
+                        maxDepth = 1; size = 5; seed = 2143; // DEBUG
+                        // build with a very small maxBody (we only care about total truncation here)
+                        var builder = new FuzzCommandBuilder(seed, OrigSlotCount);
+                        var cmds = builder.Build(
+                            maxDepth: maxDepth,
+                            maxBody: size ?? 50,
+                            maxCommands: size);
 
-                // 3) Prepare inputs
-                var os0 = Enumerable.Range(0, MaxSources).Select(i => (double)i).ToArray();
-                var od0 = new double[MaxDests];
-                var vsInterp = new double[chunk.VirtualStack.Length];
-                Array.Copy(vsInterp, chunk.VirtualStack, vsInterp.Length);
-                int cosi0 = 0, codi0 = 0; bool cond0 = true;
-
-                // Interpreter baseline
-                var interp = new InterpreterChunkExecutor(cmds);
-                interp.Execute(chunk, vsInterp, os0, od0, ref cosi0, ref codi0, ref cond0);
-
-                // 4) IL executor
-                //var vsIL = new double[chunk.VirtualStack.Length];
-                //var odIL = new double[MaxDests];
-                //int cosi1 = 0, codi1 = 0; bool cond1 = true;
-                //var ilExec = new ILChunkExecutor(cmds, 0, cmds.Length);
-                //ilExec.AddToGeneration(chunk);
-                //ilExec.PerformGeneration();
-                //ilExec.Execute(chunk, vsIL, os0, odIL, ref cosi1, ref codi1, ref cond1);
-
-                //Assert.AreEqual(cosi0, cosi1, $"Seed {seed}: IL cosi");
-                //Assert.AreEqual(codi0, codi1, $"Seed {seed}: IL codi");
-                //Assert.AreEqual(cond0, cond1, $"Seed {seed}: IL condition");
-                //CollectionAssert.AreEqual(vsInterp, vsIL, $"Seed {seed}: IL vs");
-                //CollectionAssert.AreEqual(od0, odIL, $"Seed {seed}: IL od");
-
-                // DEBUG -- we need IL with and without locals.
-
-                // 5) Roslyn without locals
-                var vsRNo = new double[chunk.VirtualStack.Length];
-                var odRNo = new double[MaxDests];
-                int cosi2 = 0, codi2 = 0; bool cond2 = true;
-                var rosNoLoc = new RoslynChunkExecutor(cmds, 0, cmds.Length, useCheckpoints: false);
-                rosNoLoc.AddToGeneration(chunk);
-                rosNoLoc.PerformGeneration();
-                rosNoLoc.Execute(chunk, vsRNo, os0, odRNo, ref cosi2, ref codi2, ref cond2);
-
-                Assert.AreEqual(cosi0, cosi2, $"Seed {seed}: Roslyn↑ cosi");
-                Assert.AreEqual(codi0, codi2, $"Seed {seed}: Roslyn↑ codi");
-                Assert.AreEqual(cond0, cond2, $"Seed {seed}: Roslyn↑ condition");
-                CollectionAssert.AreEqual(vsInterp, vsRNo, $"Seed {seed}: Roslyn↑ vs");
-                CollectionAssert.AreEqual(od0, odRNo, $"Seed {seed}: Roslyn↑ od");
-
-                // 6) Roslyn with locals
-                var plan = LocalVariablePlanner.PlanLocals(
-                    cmds,
-                    start: 0,
-                    end: cmds.Length,
-                    minUses: 2,
-                    maxLocals: OrigSlotCount);
-
-                var vsRLoc = new double[chunk.VirtualStack.Length];
-                var odRLoc = new double[MaxDests];
-                int cosi3 = 0, codi3 = 0; bool cond3 = true;
-
-                // (Assumes you've added an overload taking a LocalAllocationPlan)
-                var rosWithLoc = new RoslynChunkExecutor(
-                    cmds,
-                    0,
-                    cmds.Length,
-                    useCheckpoints: false,
-                    localPlan: plan);
-
-                rosWithLoc.AddToGeneration(chunk);
-                rosWithLoc.PerformGeneration();
-                rosWithLoc.Execute(chunk, vsRLoc, os0, odRLoc, ref cosi3, ref codi3, ref cond3);
-
-                Assert.AreEqual(cosi0, cosi3, $"Seed {seed}: Roslyn★ cosi");
-                Assert.AreEqual(codi0, codi3, $"Seed {seed}: Roslyn★ codi");
-                Assert.AreEqual(cond0, cond3, $"Seed {seed}: Roslyn★ condition");
-                CollectionAssert.AreEqual(vsInterp, vsRLoc, $"Seed {seed}: Roslyn★ vs");
-                CollectionAssert.AreEqual(od0, odRLoc, $"Seed {seed}: Roslyn★ od");
+                        var stage = $"D{maxDepth}-C{(size.HasValue ? size.Value.ToString() : "full")}";
+                        try
+                        {
+                            CompareExecutors(cmds, seed, stage);
+                        }
+                        catch (AssertFailedException ex)
+                        {
+                            var dump = string.Join(
+                                Environment.NewLine,
+                                cmds.Select((c, i) => $"{i:000}: {c.CommandType,-25} idx={c.Index,3} src={c.SourceIndex,3}")
+                            );
+                            Assert.Fail(
+                                $"Seed {seed}, {stage} failed:{Environment.NewLine}" +
+                                $"{ex.Message}{Environment.NewLine}{Environment.NewLine}" +
+                                $"Commands:{Environment.NewLine}{dump}"
+                            );
+                        }
+                    }
+                }
             }
+        }
+
+        private void CompareExecutors(ArrayCommand[] cmds, int seed, string stage)
+        {
+            // prepare chunk bounds
+            var chunk = new ArrayCommandChunk
+            {
+                StartCommandRange = 0,
+                EndCommandRangeExclusive = cmds.Length,
+                VirtualStack = new double[OrigSlotCount + cmds.Length + 1]
+            };
+
+            // inputs
+            var os0 = Enumerable.Range(0, MaxSources).Select(i => (double)i).ToArray();
+            var od0 = new double[MaxDests];
+
+            // Interpreter baseline
+            var vsInterp = new double[chunk.VirtualStack.Length];
+            int cosi0 = 0, codi0 = 0; bool cond0 = true;
+            var interp = new InterpreterChunkExecutor(cmds);
+            interp.Execute(chunk, vsInterp, os0, od0, ref cosi0, ref codi0, ref cond0);
+
+            // Roslyn without locals
+            var vsNoLoc = new double[chunk.VirtualStack.Length];
+            var odNoLoc = new double[MaxDests];
+            int cosi1 = 0, codi1 = 0; bool cond1 = true;
+            var rosNoLoc = new RoslynChunkExecutor(cmds, 0, cmds.Length, useCheckpoints: false);
+            rosNoLoc.AddToGeneration(chunk);
+            rosNoLoc.PerformGeneration();
+            rosNoLoc.Execute(chunk, vsNoLoc, os0, odNoLoc, ref cosi1, ref codi1, ref cond1);
+
+            Assert.AreEqual(cosi0, cosi1, $"Seed {seed} {stage}: cosi mismatch");
+            Assert.AreEqual(codi0, codi1, $"Seed {seed} {stage}: codi mismatch");
+            Assert.AreEqual(cond0, cond1, $"Seed {seed} {stage}: condition mismatch");
+            CollectionAssert.AreEqual(vsInterp, vsNoLoc, $"Seed {seed} {stage}: vs mismatch");
+            CollectionAssert.AreEqual(od0, odNoLoc, $"Seed {seed} {stage}: od mismatch");
+
+            // Roslyn with locals
+            var plan = LocalVariablePlanner.PlanLocals(
+                cmds,
+                start: 0,
+                end: cmds.Length,
+                minUses: 2,
+                maxLocals: OrigSlotCount
+            );
+
+            var vsLoc = new double[chunk.VirtualStack.Length];
+            var odLoc = new double[MaxDests];
+            int cosi2 = 0, codi2 = 0; bool cond2 = true;
+            var rosLoc = new RoslynChunkExecutor(
+                cmds, 0, cmds.Length, useCheckpoints: false, localPlan: plan);
+            rosLoc.AddToGeneration(chunk);
+            rosLoc.PerformGeneration();
+            rosLoc.Execute(chunk, vsLoc, os0, odLoc, ref cosi2, ref codi2, ref cond2);
+
+            Assert.AreEqual(cosi0, cosi2, $"Seed {seed} {stage}: cosi mismatch with locals");
+            Assert.AreEqual(codi0, codi2, $"Seed {seed} {stage}: codi mismatch with locals");
+            Assert.AreEqual(cond0, cond2, $"Seed {seed} {stage}: condition mismatch with locals");
+            CollectionAssert.AreEqual(vsInterp, vsLoc, $"Seed {seed} {stage}: vs mismatch with locals");
+            CollectionAssert.AreEqual(od0, odLoc, $"Seed {seed} {stage}: od mismatch with locals");
+        }
+
+        private string Describe(ArrayCommand[] cmds)
+        {
+            return string.Join(
+                Environment.NewLine,
+                cmds.Select((c, i) => $"{i:000}: {c.CommandType,-25} idx={c.Index,3} src={c.SourceIndex,3}")
+            );
         }
     }
 }

@@ -10,7 +10,8 @@ using ACESimBase.Util.ArrayProcessing;   // for ArrayCommandChunk, ArrayCommandC
 using ACESimBase.Util.NWayTreeStorage;
 using static ACESimBase.Util.ArrayProcessing.ArrayCommandList; // for Commands, CheckpointTrigger
 using ACESimBase.Util.CodeGen;           // for StringToCode
-using ACESimBase.Util.ArrayProcessing.ChunkExecutors; // for LocalAllocationPlan
+using ACESimBase.Util.ArrayProcessing.ChunkExecutors;
+using System.Linq; // for LocalAllocationPlan
 
 namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 {
@@ -137,159 +138,184 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         }
 
         /// <summary>
-        /// Generates a single static method for the given chunk, emitting:
-        ///  • optional local declarations + prologue
-        ///  • per-command logic (using locals where mapped)
-        ///  • epilogue writing locals back to vs[]
+        /// Fully‑rewritten GenerateSourceTextForChunk that produces a single
+        ///   if (condition) { … } else { cosi += n; codi += m; }
+        /// block for every outer‑level If/EndIf pair and makes pointer bumps
+        /// unconditional.  Drop‑in replacement for RoslynChunkExecutor.
         /// </summary>
         private void GenerateSourceTextForChunk(ArrayCommandChunk c)
         {
-            var plan = _localPlan;
+            /* ------------------------------------------------------------------
+             * basic info + helpers
+             * ----------------------------------------------------------------*/
             int start = c.StartCommandRange;
-            int end = c.EndCommandRangeExclusive - 1;
+            int end = c.EndCommandRangeExclusive - 1;       // inclusive
             string fn = $"Execute{start}to{end}";
 
-            // Method signature
-            _codeGen.AppendLine($@"    public static void {fn}(
-      double[] vs, double[] os, double[] od,
-      ref int cosi, ref int codi, ref bool condition)
-    {{");
+            // Emit with two‑space indent inside method body
+            void Emit(string line) => _codeGen.AppendLine("      " + line);
 
-            // 1) Declare and load locals from vs[]
-            if (plan != null && plan.LocalCount > 0)
+            string Read(int slot) => _localPlan != null && _localPlan.SlotToLocal.TryGetValue(slot, out var l)
+                                        ? $"l{l}" : $"vs[{slot}]";
+            string Write(int slot) => _localPlan != null && _localPlan.SlotToLocal.TryGetValue(slot, out var l)
+                                        ? $"l{l}" : $"vs[{slot}]";
+
+            _codeGen.AppendLine($"    public static void {fn}(");
+            _codeGen.AppendLine("      double[] vs, double[] os, double[] od,");
+            _codeGen.AppendLine("      ref int cosi, ref int codi, ref bool condition)");
+            _codeGen.AppendLine("    {");
+
+            /* ---------- locals prologue (optional) ------------------------- */
+            if (_localPlan != null && _localPlan.LocalCount > 0)
             {
-                // declare locals
-                _codeGen.Append("      ");
-                for (int i = 0; i < plan.LocalCount; i++)
-                {
-                    _codeGen.Append($"double l{i}");
-                    _codeGen.Append(i + 1 < plan.LocalCount ? ", " : ";");
-                }
-                _codeGen.AppendLine();
+                string localsDecl = string.Join(", ", Enumerable.Range(0, _localPlan.LocalCount).Select(i => $"l{i}"));
+                Emit($"double {localsDecl};");
 
-                // prologue: copy vs[] → locals
-                foreach (var kv in plan.SlotToLocal)
-                {
-                    int slot = kv.Key, loc = kv.Value;
-                    _codeGen.AppendLine($"      l{loc} = vs[{slot}];");
-                }
+                foreach (var kv in _localPlan.SlotToLocal)
+                    Emit($"l{kv.Value} = vs[{kv.Key}];");
+
                 _codeGen.AppendLine();
             }
 
-            // 2) Emit each command, replacing vs[...] with locals when appropriate
+            /* ---------- state for If/EndIf handling ------------------------ */
+            var srcIncr = new Stack<int>();   // per‑depth NextSource count
+            var dstIncr = new Stack<int>();   // per‑depth NextDestination count
+
+            int tmpId = 0;                   // unique temp names
+
             foreach (var cmd in Commands)
             {
-                // helpers to choose between local or direct vs access
-                string Read(int slot) =>
-                    (plan != null && plan.SlotToLocal.TryGetValue(slot, out var L))
-                        ? $"l{L}"
-                        : $"vs[{slot}]";
-                string Write(int slot) =>
-                    (plan != null && plan.SlotToLocal.TryGetValue(slot, out var L2))
-                        ? $"l{L2}"
-                        : $"vs[{slot}]";
-
                 switch (cmd.CommandType)
                 {
+                    /* ------------------------------------------------------ */
+                    case ArrayCommandType.If:
+                        Emit("if (condition)");
+                        Emit("{");
+                        srcIncr.Push(0);
+                        dstIncr.Push(0);
+                        break;
+
+                    case ArrayCommandType.EndIf:
+                        {
+                            int s = srcIncr.Pop();
+                            int d = dstIncr.Pop();
+                            Emit("}");
+                            if (s != 0 || d != 0)
+                            {
+                                string elseLine = "else { ";
+                                if (s != 0) elseLine += $"cosi += {s}; ";
+                                if (d != 0) elseLine += $"codi += {d}; ";
+                                elseLine += "}";
+                                Emit(elseLine);
+                            }
+                            break;
+                        }
+
+                    /* ------------------------------------------------------ */
+                    case ArrayCommandType.NextSource:
+                        {
+                            string tmp = $"__src{tmpId++}";
+                            Emit($"var {tmp} = os[cosi++];");          // unconditional bump
+                            Emit($"{Write(cmd.Index)} = {tmp};");
+                            if (srcIncr.Count > 0)
+                            {
+                                int top = srcIncr.Pop();
+                                srcIncr.Push(top + 1);
+                            }
+                            break;
+                        }
+
+                    case ArrayCommandType.NextDestination:
+                        {
+                            string val = $"__val{tmpId++}";
+                            Emit($"var {val} = {Read(cmd.SourceIndex)};");
+                            string dstVar = $"__dst{tmpId++}";
+                            Emit($"var {dstVar} = codi++;");
+                            Emit($"od[{dstVar}] = {val};");
+                            if (dstIncr.Count > 0)
+                            {
+                                int top = dstIncr.Pop();
+                                dstIncr.Push(top + 1);
+                            }
+                            break;
+                        }
+
+                    case ArrayCommandType.ReusedDestination:
+                        Emit($"od[{cmd.Index}] += {Read(cmd.SourceIndex)};");
+                        break;
+
+                    /* -------- write commands (no additional branching) ---- */
                     case ArrayCommandType.Zero:
-                        _codeGen.AppendLine($"      {Write(cmd.Index)} = 0;");
+                        Emit($"{Write(cmd.Index)} = 0;");
                         break;
 
                     case ArrayCommandType.CopyTo:
                         if (_useCheckpoints && cmd.Index == CheckpointTrigger)
-                            _codeGen.AppendLine($"      Checkpoints.Add({Read(cmd.SourceIndex)});");
+                            Emit($"Checkpoints.Add({Read(cmd.SourceIndex)});");
                         else
-                            _codeGen.AppendLine($"      {Write(cmd.Index)} = {Read(cmd.SourceIndex)};");
-                        break;
-
-                    case ArrayCommandType.NextSource:
-                        _codeGen.AppendLine($"      {Write(cmd.Index)} = os[cosi++];");
-                        break;
-
-                    case ArrayCommandType.NextDestination:
-                        _codeGen.AppendLine($"      od[codi++] = {Read(cmd.SourceIndex)};");
-                        break;
-
-                    case ArrayCommandType.ReusedDestination:
-                        _codeGen.AppendLine($"      od[{cmd.Index}] += {Read(cmd.SourceIndex)};");
+                            Emit($"{Write(cmd.Index)} = {Read(cmd.SourceIndex)};");
                         break;
 
                     case ArrayCommandType.MultiplyBy:
-                        _codeGen.AppendLine($"      {Write(cmd.Index)} *= {Read(cmd.SourceIndex)};");
+                        Emit($"{Write(cmd.Index)} *= {Read(cmd.SourceIndex)};");
                         break;
 
                     case ArrayCommandType.IncrementBy:
-                        _codeGen.AppendLine($"      {Write(cmd.Index)} += {Read(cmd.SourceIndex)};");
+                        Emit($"{Write(cmd.Index)} += {Read(cmd.SourceIndex)};");
                         break;
 
                     case ArrayCommandType.DecrementBy:
-                        _codeGen.AppendLine($"      {Write(cmd.Index)} -= {Read(cmd.SourceIndex)};");
+                        Emit($"{Write(cmd.Index)} -= {Read(cmd.SourceIndex)};");
                         break;
 
-                    // ── Comparisons ─────────────────────────────────────────────────
+                    /* -------- comparisons update the shared flag ---------- */
                     case ArrayCommandType.EqualsOtherArrayIndex:
-                        _codeGen.AppendLine($"      condition = {Read(cmd.Index)} == {Read(cmd.SourceIndex)};");
+                        Emit($"condition = {Read(cmd.Index)} == {Read(cmd.SourceIndex)};");
                         break;
-
                     case ArrayCommandType.NotEqualsOtherArrayIndex:
-                        _codeGen.AppendLine($"      condition = {Read(cmd.Index)} != {Read(cmd.SourceIndex)};");
+                        Emit($"condition = {Read(cmd.Index)} != {Read(cmd.SourceIndex)};");
                         break;
-
                     case ArrayCommandType.GreaterThanOtherArrayIndex:
-                        _codeGen.AppendLine($"      condition = {Read(cmd.Index)} >  {Read(cmd.SourceIndex)};");
+                        Emit($"condition = {Read(cmd.Index)} >  {Read(cmd.SourceIndex)};");
                         break;
-
                     case ArrayCommandType.LessThanOtherArrayIndex:
-                        _codeGen.AppendLine($"      condition = {Read(cmd.Index)} <  {Read(cmd.SourceIndex)};");
+                        Emit($"condition = {Read(cmd.Index)} <  {Read(cmd.SourceIndex)};");
                         break;
-
                     case ArrayCommandType.EqualsValue:
-                        _codeGen.AppendLine($"      condition = {Read(cmd.Index)} == {cmd.SourceIndex};");
+                        Emit($"condition = {Read(cmd.Index)} == (double){cmd.SourceIndex};");
                         break;
-
                     case ArrayCommandType.NotEqualsValue:
-                        _codeGen.AppendLine($"      condition = {Read(cmd.Index)} != {cmd.SourceIndex};");
+                        Emit($"condition = {Read(cmd.Index)} != (double){cmd.SourceIndex};");
                         break;
 
-                    // ── Flow control ────────────────────────────────────────────────
-                    case ArrayCommandType.If:
-                        _codeGen.AppendLine("      if (condition)");
-                        _codeGen.AppendLine("      {");
-                        break;
-
-                    case ArrayCommandType.EndIf:
-                        _codeGen.AppendLine("      }");
-                        break;
-
-                    // ── No‑ops ───────────────────────────────────────────────────────
+                    /* -------- no‑ops ------------------------------------- */
                     case ArrayCommandType.Comment:
-                        _codeGen.AppendLine("      // Comment");
+                        Emit($"// Comment #{cmd.SourceIndex}");
                         break;
-
                     case ArrayCommandType.Blank:
-                        _codeGen.AppendLine("      // Blank");
+                        /* nothing */
                         break;
 
                     default:
-                        throw new NotImplementedException(
-                            $"RoslynChunkExecutor: unimplemented command {cmd.CommandType}");
+                        throw new NotImplementedException($"Unhandled command {cmd.CommandType}");
                 }
             }
 
-            // 3) Epilogue: write locals back to vs[]
-            if (plan != null && plan.LocalCount > 0)
+            /* -------- epilogue: write modified locals back to VS -------- */
+            if (_localPlan != null && _localPlan.LocalCount > 0)
             {
-                _codeGen.AppendLine();
-                foreach (var kv in plan.SlotToLocal)
-                {
-                    int slot = kv.Key, loc = kv.Value;
-                    _codeGen.AppendLine($"      vs[{slot}] = l{loc};");
-                }
+                foreach (var kv in _localPlan.SlotToLocal)
+                    Emit($"vs[{kv.Key}] = l{kv.Value};");
             }
 
-            // 4) Close method
-            _codeGen.AppendLine("    }");
-            _codeGen.AppendLine();
+            _codeGen.AppendLine("    }");  // end of method
         }
+
+
+
+
+
+
+
     }
 }
