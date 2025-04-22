@@ -1,172 +1,203 @@
-﻿// File: Util/LocalVariablePlanner.cs
+﻿// ------------------------------------------------------------------------------------
+//  LocalsAllocationPlan & LocalVariablePlanner (depth‑aware)
+//  --------------------------------------------------------
+//  ACESimBase.Util.ArrayProcessing.ChunkExecutors
+// ------------------------------------------------------------------------------------
+
+namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors;
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
+// ============================================================================
+//  LocalsAllocationPlan
+// ============================================================================
+
+/// <summary>
+/// Immutable description of how VS (virtual‑stack) slots are mapped to C# local
+/// variables for a contiguous slice of <see cref="ArrayCommand"/>s.  Produced by
+/// <see cref="LocalVariablePlanner"/> and consumed by Roslyn / IL generators.
+/// </summary>
+public sealed class LocalsAllocationPlan
 {
-    public class LocalAllocationPlan
+    /// <summary>
+    /// A live‑interval for a single VS slot.
+    /// </summary>
+    public readonly record struct Interval(int Slot, int First, int Last, int BindDepth);
+
+    // ----------------------------- core data -----------------------------
+    public int LocalCount => _localCount;
+    public IReadOnlyDictionary<int, int> SlotToLocal => _slotToLocal;
+    public IReadOnlyList<Interval> Intervals => _intervals;
+
+    // --------------------------- helper maps ----------------------------
+    public IReadOnlyDictionary<int, int> FirstUseToSlot => _firstUseToSlot;
+    public IReadOnlyDictionary<int, int> LastUseToSlot => _lastUseToSlot;
+    public IReadOnlyDictionary<int, int> SlotBindDepth => _slotBindDepth;
+
+    // ----------------------------- backing ------------------------------
+    private readonly Dictionary<int, int> _slotToLocal = new();
+    private readonly List<Interval> _intervals = new();
+    private readonly Dictionary<int, int> _firstUseToSlot = new();
+    private readonly Dictionary<int, int> _lastUseToSlot = new();
+    private readonly Dictionary<int, int> _slotBindDepth = new();
+    private int _localCount;
+
+    internal void AddInterval(int slot, int first, int last, int bindDepth, int local)
     {
-        public int LocalCount { get; internal set; }
-        public Dictionary<int, int> SlotToLocal { get; } = new Dictionary<int, int>();
-        public List<(int slot, int first, int last)> Intervals { get; }
-            = new List<(int, int, int)>();
+        _intervals.Add(new Interval(slot, first, last, bindDepth));
+        _slotToLocal[slot] = local;
+        _firstUseToSlot[first] = slot;
+        _lastUseToSlot[last] = slot;
+        _slotBindDepth[slot] = bindDepth;
+        if (local + 1 > _localCount)
+            _localCount = local + 1;
     }
 
-    public static class LocalVariablePlanner
-    {
-        /// <summary>
-        /// Analyze commands[start..end) and allocate up to maxLocals locals
-        /// for VS slots used at least minUses times.  If more slots qualify
-        /// than maxLocals, the hottest ones (by total uses) are chosen.
-        /// </summary>
-        public static LocalAllocationPlan PlanLocals(
-            ArrayCommand[] commands,
-            int start,
-            int end,
-            int minUses = 3,
-            int? maxLocals = null)
-        {
-            // 1) Gather use counts & first/last indices
-            var useCounts = new Dictionary<int, int>();
-            var firstUse = new Dictionary<int, int>();
-            var lastUse = new Dictionary<int, int>();
-            for (int i = start; i < end; i++)
-            {
-                var cmd = commands[i];
-                foreach (var slot in GetReadSlots(cmd).Concat(GetWriteSlots(cmd)))
-                {
-                    if (!useCounts.ContainsKey(slot))
-                    {
-                        useCounts[slot] = 0;
-                        firstUse[slot] = i;
-                    }
-                    useCounts[slot]++;
-                    lastUse[slot] = i;
-                }
-            }
+    public override string ToString()
+      => $"Locals={LocalCount}, Intervals=[" + string.Join(", ", _intervals) + "]";
+}
 
-            // 2) Build intervals for slots ≥ minUses
-            var intervals = useCounts
-                .Where(kv => kv.Value >= minUses)
-                .Select(kv => (slot: kv.Key,
-                               uses: kv.Value,
-                               first: firstUse[kv.Key],
-                               last: lastUse[kv.Key]))
+// ============================================================================
+//  LocalVariablePlanner
+// ============================================================================
+
+/// <summary>
+/// Computes a <see cref="LocalsAllocationPlan"/> for a (start,end) slice of
+/// <see cref="ArrayCommand"/>s, with control‑flow‑depth awareness so that a local
+/// is never rebound to a different VS slot while still inside a deeper branch
+/// than where it was originally bound.
+/// </summary>
+public static class LocalVariablePlanner
+{
+    public static LocalsAllocationPlan PlanLocals(
+        ArrayCommand[] commands,
+        int start,
+        int end,
+        int minUses = 3,
+        int? maxLocals = null)
+    {
+        if (start >= end)
+            return new LocalsAllocationPlan();
+
+        // ------------------------------------------------------------------
+        // 1. Build depth map  (depthAt[i] == syntactic depth of command i)
+        // ------------------------------------------------------------------
+        var depthAt = new int[end];
+        int depth = 0;
+        for (int i = start; i < end; i++)
+        {
+            var t = commands[i].CommandType;
+            if (t == ArrayCommandType.EndIf) depth--;
+            depthAt[i] = depth;
+            if (t == ArrayCommandType.If) depth++;
+        }
+
+        // ------------------------------------------------------------------
+        // 2. Collect use‑counts and first/last indices per slot
+        // ------------------------------------------------------------------
+        var useCount = new Dictionary<int, int>();
+        var firstIdx = new Dictionary<int, int>();
+        var lastIdx = new Dictionary<int, int>();
+
+        for (int i = start; i < end; i++)
+        {
+            foreach (int slot in GetReadSlots(commands[i]).Concat(GetWriteSlots(commands[i])))
+            {
+                if (!useCount.ContainsKey(slot))
+                {
+                    useCount[slot] = 0;
+                    firstIdx[slot] = i;
+                }
+                useCount[slot]++;
+                lastIdx[slot] = i;
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // 3. Filter by minUses and (optional) maxLocals
+        // ------------------------------------------------------------------
+        var intervals = useCount
+            .Where(kv => kv.Value >= minUses)
+            .Select(kv => new {
+                Slot = kv.Key,
+                Uses = kv.Value,
+                First = firstIdx[kv.Key],
+                Last = lastIdx[kv.Key],
+                BindDepth = depthAt[firstIdx[kv.Key]]
+            })
+            .ToList();
+
+        // Sort by hotness then first occurrence when capped
+        if (maxLocals.HasValue && intervals.Count > maxLocals.Value)
+        {
+            intervals = intervals
+                .OrderByDescending(iv => iv.Uses)
+                .ThenBy(iv => iv.First)
+                .Take(maxLocals.Value)
                 .ToList();
+        }
 
-            // 3) If capped, pick the hottest maxLocals slots
-            if (maxLocals.HasValue && intervals.Count > maxLocals.Value)
+        // Sort by First for interval‑allocation sweep
+        intervals.Sort((a, b) => a.First.CompareTo(b.First));
+
+        // ------------------------------------------------------------------
+        // 4. Depth‑aware linear‑scan allocation
+        // ------------------------------------------------------------------
+        var plan = new LocalsAllocationPlan();
+        var active = new List<(int Slot, int End, int Local, int BindDepth)>();
+        var freeList = new Stack<int>();
+        int nextLocal = 0;
+
+        foreach (var iv in intervals)
+        {
+            // Evict locals that have expired AND whose bind‑depth is shallower/equal
+            for (int j = active.Count - 1; j >= 0; j--)
             {
-                intervals = intervals
-                    .OrderByDescending(iv => iv.uses)
-                    .ThenBy(iv => iv.first)
-                    .Take(maxLocals.Value)
-                    .ToList();
-            }
-
-            // 4) Sort by start for interval allocation
-            intervals.Sort((a, b) => a.first.CompareTo(b.first));
-
-            var plan = new LocalAllocationPlan();
-            plan.Intervals.AddRange(intervals.Select(iv => (iv.slot, iv.first, iv.last)));
-
-            // 5) Allocate locals via a simple free‑list
-            var active = new List<(int slot, int end, int local)>();
-            var freeLocals = new Stack<int>();
-            int nextLocal = 0;
-
-            foreach (var (slot, first, last) in plan.Intervals)
-            {
-                // Evict expired
-                for (int j = active.Count - 1; j >= 0; j--)
+                var a = active[j];
+                if (a.End < iv.First && depthAt[iv.First] <= a.BindDepth)
                 {
-                    if (active[j].end < first)
-                    {
-                        freeLocals.Push(active[j].local);
-                        active.RemoveAt(j);
-                    }
+                    freeList.Push(a.Local);
+                    active.RemoveAt(j);
                 }
-
-                // Assign a local
-                int local = freeLocals.Count > 0
-                    ? freeLocals.Pop()
-                    : nextLocal++;
-
-                plan.SlotToLocal[slot] = local;
-                active.Add((slot, last, local));
             }
 
-            plan.LocalCount = nextLocal;
-            return plan;
+            int local = freeList.Count > 0 ? freeList.Pop() : nextLocal++;
+            plan.AddInterval(iv.Slot, iv.First, iv.Last, iv.BindDepth, local);
+            active.Add((iv.Slot, iv.Last, local, iv.BindDepth));
         }
 
-        private static IEnumerable<int> GetReadSlots(ArrayCommand cmd)
-        {
-            switch (cmd.CommandType)
-            {
-                case ArrayCommandType.Zero:
-                    return Array.Empty<int>();
-                case ArrayCommandType.CopyTo:
-                    return new[] { cmd.SourceIndex };
-                case ArrayCommandType.NextSource:
-                    return Array.Empty<int>();
-                case ArrayCommandType.NextDestination:
-                case ArrayCommandType.ReusedDestination:
-                    return new[] { cmd.SourceIndex };
-                case ArrayCommandType.MultiplyBy:
-                case ArrayCommandType.IncrementBy:
-                case ArrayCommandType.DecrementBy:
-                    return new[] { cmd.Index, cmd.SourceIndex };
-                case ArrayCommandType.EqualsOtherArrayIndex:
-                case ArrayCommandType.NotEqualsOtherArrayIndex:
-                case ArrayCommandType.GreaterThanOtherArrayIndex:
-                case ArrayCommandType.LessThanOtherArrayIndex:
-                    return new[] { cmd.Index, cmd.SourceIndex };
-                case ArrayCommandType.EqualsValue:
-                case ArrayCommandType.NotEqualsValue:
-                    return new[] { cmd.Index };
-                case ArrayCommandType.If:
-                case ArrayCommandType.EndIf:
-                case ArrayCommandType.Comment:
-                case ArrayCommandType.Blank:
-                    return Array.Empty<int>();
-                default:
-                    throw new NotImplementedException($"Unknown command {cmd.CommandType}");
-            }
-        }
 
-        private static IEnumerable<int> GetWriteSlots(ArrayCommand cmd)
-        {
-            switch (cmd.CommandType)
-            {
-                case ArrayCommandType.Zero:
-                case ArrayCommandType.CopyTo:
-                case ArrayCommandType.NextSource:
-                    return new[] { cmd.Index };
-                case ArrayCommandType.NextDestination:
-                case ArrayCommandType.ReusedDestination:
-                    return Array.Empty<int>();
-                case ArrayCommandType.MultiplyBy:
-                case ArrayCommandType.IncrementBy:
-                case ArrayCommandType.DecrementBy:
-                    return new[] { cmd.Index };
-                case ArrayCommandType.EqualsOtherArrayIndex:
-                case ArrayCommandType.NotEqualsOtherArrayIndex:
-                case ArrayCommandType.GreaterThanOtherArrayIndex:
-                case ArrayCommandType.LessThanOtherArrayIndex:
-                case ArrayCommandType.EqualsValue:
-                case ArrayCommandType.NotEqualsValue:
-                    return Array.Empty<int>();
-                case ArrayCommandType.If:
-                case ArrayCommandType.EndIf:
-                case ArrayCommandType.Comment:
-                case ArrayCommandType.Blank:
-                    return Array.Empty<int>();
-                default:
-                    throw new NotImplementedException($"Unknown command {cmd.CommandType}");
-            }
-        }
+        return plan;
     }
+
+    // ------------------------------ helpers ------------------------------
+    private static IEnumerable<int> GetReadSlots(ArrayCommand cmd) => cmd.CommandType switch
+    {
+        ArrayCommandType.CopyTo => new[] { cmd.SourceIndex },
+        ArrayCommandType.NextDestination => new[] { cmd.SourceIndex },
+        ArrayCommandType.ReusedDestination => new[] { cmd.SourceIndex },
+        ArrayCommandType.MultiplyBy or
+        ArrayCommandType.IncrementBy or
+        ArrayCommandType.DecrementBy => new[] { cmd.Index, cmd.SourceIndex },
+        ArrayCommandType.EqualsOtherArrayIndex or
+        ArrayCommandType.NotEqualsOtherArrayIndex or
+        ArrayCommandType.GreaterThanOtherArrayIndex or
+        ArrayCommandType.LessThanOtherArrayIndex => new[] { cmd.Index, cmd.SourceIndex },
+        ArrayCommandType.EqualsValue or
+        ArrayCommandType.NotEqualsValue => new[] { cmd.Index },
+        _ => Array.Empty<int>()
+    };
+
+    private static IEnumerable<int> GetWriteSlots(ArrayCommand cmd) => cmd.CommandType switch
+    {
+        ArrayCommandType.Zero or
+        ArrayCommandType.CopyTo or
+        ArrayCommandType.NextSource => new[] { cmd.Index },
+        ArrayCommandType.MultiplyBy or
+        ArrayCommandType.IncrementBy or
+        ArrayCommandType.DecrementBy => new[] { cmd.Index },
+        _ => Array.Empty<int>()
+    };
 }

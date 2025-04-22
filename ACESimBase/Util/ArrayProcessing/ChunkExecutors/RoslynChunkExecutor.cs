@@ -18,7 +18,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
     public class RoslynChunkExecutor : ChunkExecutorBase
     {
         private readonly bool _useCheckpoints;
-        private readonly LocalAllocationPlan _localPlan;
+        private readonly LocalsAllocationPlan _localPlan;
         private readonly StringBuilder _codeGen = new StringBuilder();
         private readonly List<ArrayCommandChunk> _scheduled = new List<ArrayCommandChunk>();
         private readonly Dictionary<ArrayCommandChunk, ArrayCommandChunkDelegate> _compiledDelegates
@@ -40,7 +40,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             int startIndex,
             int endIndexExclusive,
             bool useCheckpoints,
-            LocalAllocationPlan localPlan
+            LocalsAllocationPlan localPlan
         ) : base(underlyingCommands, startIndex, endIndexExclusive)
         {
             _useCheckpoints = useCheckpoints;
