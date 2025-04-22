@@ -287,11 +287,11 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     if (bind.NeedsFlushBeforeReuse(local, out int boundSlot) && boundSlot == endSlot)
                     {
                         cb.AppendLine($"vs[{endSlot}] = l{local};");
-                        if (bind != null && ifStack.Count > 0)
+                        if (bind != null &&
+                            ifStack.Count > 0 &&
+                            ifStack.Peek().DirtyBefore[local])
                         {
-                            var ctx = ifStack.Peek();
-                            if (ctx.DirtyBefore[local])
-                                ctx.Flushes.Add((endSlot, local));
+                            ifStack.Peek().Flushes.Add((endSlot, local));
                         }
                         bind.FlushLocal(local);
                     }
@@ -443,30 +443,18 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
                 case ArrayCommandType.EndIf:
                     {
-                        var ctx = ifStack.Pop();
+                        var ctx = ifStack.Pop();                     // ② pop context
                         cb.Unindent();
-                        cb.AppendLine("} else {");
+                        cb.AppendLine("} else {");                   // ③ begin `else`
 
-                        // (a) flush every local that was dirty when we *entered* the branch
-                        for (int loc = 0; loc < ctx.DirtyBefore.Length; loc++)
-                            if (ctx.DirtyBefore[loc])
-                            {
-                                int slot = _plan.SlotToLocal.First(kv => kv.Value == loc).Key;
-                                cb.AppendLine($"vs[{slot}] = l{loc};");
-                                // hint to state‑tracker – treated as flushed
-                                if (bind != null) bind.FlushLocal(loc);
-                            }
-
-                        // (b) flush slots whose *final* write occurred inside the branch
+                        // ④ flush any locals whose final write occurred inside the skipped branch
                         foreach (var (slot, local) in ctx.Flushes)
-                            if (!ctx.DirtyBefore[local])              // avoid duplicate write
-                                cb.AppendLine($"vs[{slot}] = l{local};");
+                            cb.AppendLine($"vs[{slot}] = l{local};");
 
-                        // (c) advance ordered‑source / destination pointers
+                        // ⑤ advance ordered‑source/destination pointers
                         cb.AppendLine($"i+={ctx.SrcSkip}; o+={ctx.DstSkip}; }}");
                         break;
                     }
-
 
                 // comments / blanks – ignore
                 case ArrayCommandType.Comment:
