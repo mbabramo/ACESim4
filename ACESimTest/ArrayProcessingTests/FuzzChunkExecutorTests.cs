@@ -90,11 +90,11 @@ namespace ACESimTest.ArrayProcessingTests
             var vsNoLoc = new double[chunk.VirtualStack.Length];
             var odNoLoc = new double[MaxDests];
             int cosi1 = 0, codi1 = 0; bool cond1 = true;
-            var rosNoLoc = new RoslynChunkExecutor(cmds, 0, cmds.Length, useCheckpoints: false);
+            var rosNoLoc = new RoslynChunkExecutor(cmds, 0, cmds.Length, useCheckpoints: false, localVariableReuse: false);
             rosNoLoc.AddToGeneration(chunk);
             rosNoLoc.PreserveGeneratedCode = true;
             rosNoLoc.PerformGeneration();
-            string generatedCode = "\r\n // Generated code \r\n" + rosNoLoc.GeneratedCode;
+            string generatedCode = "\r\n // Generated code (no local variable reuse) \r\n" + rosNoLoc.GeneratedCode;
             rosNoLoc.Execute(chunk, vsNoLoc, os0, odNoLoc, ref cosi1, ref codi1, ref cond1);
 
             Assert.AreEqual(cosi0, cosi1, $"Seed {seed} {iterationInfo}: cosi mismatch {generatedCode}");
