@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using ACESimBase.Util.ArrayProcessing;
@@ -21,15 +22,81 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
         public bool ReuseLocals { get; init; } = true;
 
-        public RoslynChunkExecutor(ArrayCommand[] commands, int start, int end,
-                                   bool useCheckpoints, bool localVariableReuse = true)
-            : base(commands, start, end)
+        public RoslynChunkExecutor(ArrayCommand[] commands,
+                           int start, int end,
+                           bool useCheckpoints,
+                           bool localVariableReuse = true)
+    : base(commands, start, end)
         {
             _useCheckpoints = useCheckpoints;
             ReuseLocals = localVariableReuse;
-            _plan = LocalVariablePlanner.PlanLocals(commands, start, end,
-                                                    minUses: ReuseLocals ? 3 : 1);
+
+            _plan = ReuseLocals
+                ? LocalVariablePlanner.PlanLocals(commands, start, end)
+                : BuildNoReusePlan(commands, start, end);
         }
+
+        private static LocalsAllocationPlan BuildNoReusePlan(ArrayCommand[] cmds, int start, int end)
+        {
+            static IEnumerable<int> GetSlots(ArrayCommand c)
+            {
+                // ----- write slots -----
+                switch (c.CommandType)
+                {
+                    // commands that *only* write to c.Index
+                    case ArrayCommandType.Zero:
+                    case ArrayCommandType.NextSource:
+
+                    // read‑write commands – they still write to c.Index
+                    case ArrayCommandType.CopyTo:
+                    case ArrayCommandType.MultiplyBy:
+                    case ArrayCommandType.IncrementBy:
+                    case ArrayCommandType.DecrementBy:
+                        if (c.Index >= 0)
+                            yield return c.Index;
+                        break;
+
+                    // all other commands do not write to a VS slot
+                    default:
+                        break;
+                }
+
+                // ----- read slots -----
+                switch (c.CommandType)
+                {
+                    case ArrayCommandType.CopyTo:
+                    case ArrayCommandType.NextDestination:
+                    case ArrayCommandType.ReusedDestination:
+                    case ArrayCommandType.MultiplyBy:
+                    case ArrayCommandType.IncrementBy:
+                    case ArrayCommandType.DecrementBy:
+                    case ArrayCommandType.EqualsOtherArrayIndex:
+                    case ArrayCommandType.NotEqualsOtherArrayIndex:
+                    case ArrayCommandType.GreaterThanOtherArrayIndex:
+                    case ArrayCommandType.LessThanOtherArrayIndex:
+                        if (c.SourceIndex >= 0) yield return c.SourceIndex;
+                        break;
+
+                        // EqualsValue / NotEqualsValue use SourceIndex as a *constant* → nothing to add
+                }
+            }
+
+            var plan = new LocalsAllocationPlan();
+            var slots = new HashSet<int>();
+
+            for (int i = start; i < end; i++)
+                foreach (int s in GetSlots(cmds[i]))
+                    slots.Add(s);
+
+            int local = 0;
+            foreach (int slot in slots.OrderBy(s => s))
+                plan.AddInterval(slot, first: start, last: end - 1, bindDepth: 0, local: local++);
+
+            return plan;
+        }
+
+
+
 
         public override void AddToGeneration(ArrayCommandChunk chunk)
         {
@@ -71,16 +138,27 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
         private void GenerateSourceForChunk(ArrayCommandChunk c)
         {
-            var depthMap = new DepthMap(Commands.ToArray(), c.StartCommandRange, c.EndCommandRangeExclusive);
-            var intervalIdx = new IntervalIndex(_plan);
+            var depthMap = new DepthMap(Commands.ToArray(),
+                                          c.StartCommandRange,
+                                          c.EndCommandRangeExclusive);
+            var intervalIx = new IntervalIndex(_plan);
             var bind = new LocalBindingState(_plan.LocalCount);
             var cb = new CodeBuilder();
+
+            var usedSlots = new HashSet<int>();
+            for (int i = c.StartCommandRange; i < c.EndCommandRangeExclusive; i++)
+            {
+                var cmd = Commands[i];
+                if (cmd.Index >= 0) usedSlots.Add(cmd.Index);
+                if (cmd.SourceIndex >= 0) usedSlots.Add(cmd.SourceIndex);
+            }
 
             var skipMap = PrecomputePointerSkips(c);
             var ifStack = new Stack<(int src, int dst)>();
 
             string fn = FnName(c);
-            _src.AppendLine($"public static void {fn}(double[]vs,double[]os,double[]od,ref int i,ref int o,ref bool cond){{");
+            _src.AppendLine(
+                $"public static void {fn}(double[]vs,double[]os,double[]od,ref int i,ref int o,ref bool cond){{");
             cb.Indent();
 
             for (int l = 0; l < _plan.LocalCount; l++)
@@ -88,40 +166,56 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             cb.AppendLine();
 
             if (ReuseLocals)
-                EmitReusingBody(c, cb, depthMap, intervalIdx, bind, skipMap, ifStack);
+                EmitReusingBody(c, cb, depthMap, intervalIx, bind,
+                                skipMap, ifStack, usedSlots);
             else
-                EmitZeroReuseBody(c, cb, skipMap, ifStack);
+                EmitZeroReuseBody(c, cb, skipMap, ifStack, usedSlots);
 
             cb.Unindent();
             _src.AppendLine(cb.ToString());
             _src.AppendLine("}");
         }
 
-        private void EmitZeroReuseBody(ArrayCommandChunk c, CodeBuilder cb,
-                                        Dictionary<int, (int src, int dst)> skipMap,
-                                        Stack<(int src, int dst)> ifStack)
+
+
+        private void EmitZeroReuseBody(
+    ArrayCommandChunk c,
+    CodeBuilder cb,
+    Dictionary<int, (int src, int dst)> skipMap,
+    Stack<(int src, int dst)> ifStack,
+    HashSet<int> usedSlots)
         {
             foreach (var kv in _plan.SlotToLocal)
-                cb.AppendLine($"l{kv.Value} = vs[{kv.Key}];");
+                if (usedSlots.Contains(kv.Key))
+                    cb.AppendLine($"l{kv.Value} = vs[{kv.Key}];");
 
             Span<ArrayCommand> cmds = Commands;
             for (int ci = c.StartCommandRange; ci < c.EndCommandRangeExclusive; ci++)
                 EmitCmdBasic(ci, cmds[ci], cb, skipMap, ifStack);
 
             foreach (var kv in _plan.SlotToLocal)
-                cb.AppendLine($"vs[{kv.Key}] = l{kv.Value};");
+                if (usedSlots.Contains(kv.Key))
+                    cb.AppendLine($"vs[{kv.Key}] = l{kv.Value};");
         }
 
-        private void EmitReusingBody(ArrayCommandChunk c, CodeBuilder cb, DepthMap depth,
-                                      IntervalIndex intervalIdx, LocalBindingState bind,
-                                      Dictionary<int, (int src, int dst)> skipMap,
-                                      Stack<(int src, int dst)> ifStack)
+
+
+        private void EmitReusingBody(
+    ArrayCommandChunk c,
+    CodeBuilder cb,
+    DepthMap depth,
+    IntervalIndex intervalIx,
+    LocalBindingState bind,
+    Dictionary<int, (int src, int dst)> skipMap,
+    Stack<(int src, int dst)> ifStack,
+    HashSet<int> usedSlots)
         {
             Span<ArrayCommand> cmds = Commands;
             for (int ci = c.StartCommandRange; ci < c.EndCommandRangeExclusive; ci++)
             {
                 int d = depth.GetDepth(ci);
-                if (intervalIdx.TryStart(ci, out int slot))
+
+                if (intervalIx.TryStart(ci, out int slot))
                 {
                     int local = _plan.SlotToLocal[slot];
                     if (bind.TryReuse(local, slot, d, out int flushSlot))
@@ -135,15 +229,19 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
                 EmitCmdBasic(ci, cmds[ci], cb, skipMap, ifStack);
 
-                if (intervalIdx.TryEnd(ci, out int endSlot))
+                if (intervalIx.TryEnd(ci, out int endSlot))
                 {
                     int local = _plan.SlotToLocal[endSlot];
                     bind.Release(local);
                 }
             }
+
             foreach (var kv in _plan.SlotToLocal)
-                cb.AppendLine($"vs[{kv.Key}] = l{kv.Value};");
+                if (usedSlots.Contains(kv.Key))
+                    cb.AppendLine($"vs[{kv.Key}] = l{kv.Value};");
         }
+
+
 
         private void EmitCmdBasic(int cmdIndex, ArrayCommand cmd, CodeBuilder cb,
                                    Dictionary<int, (int src, int dst)> skipMap,
@@ -189,43 +287,39 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     throw new NotImplementedException($"Unhandled command {cmd.CommandType}");
             }
         }
-
-        private Dictionary<int, (int src, int dst)> PrecomputePointerSkips(ArrayCommandChunk c)
+        private Dictionary<int, (int src, int dst)> PrecomputePointerSkips(
+    ArrayCommandChunk c)
         {
-            var result = new Dictionary<int, (int src, int dst)>();
+            var map = new Dictionary<int, (int src, int dst)>();
             var stack = new Stack<int>();
-            var cmds = Commands;
 
             for (int i = c.StartCommandRange; i < c.EndCommandRangeExclusive; i++)
             {
-                switch (cmds[i].CommandType)
+                switch (Commands[i].CommandType)
                 {
                     case ArrayCommandType.If:
                         stack.Push(i);
-                        result[i] = (0, 0);
+                        map[i] = (0, 0);
                         break;
+
                     case ArrayCommandType.EndIf:
                         stack.Pop();
                         break;
+
                     case ArrayCommandType.NextSource:
-                        if (stack.Count > 0)
-                        {
-                            int ifIdx = stack.Peek();
-                            var cur = result[ifIdx];
-                            result[ifIdx] = (cur.src + 1, cur.dst);
-                        }
+                        foreach (int ifIdx in stack)
+                            map[ifIdx] = (map[ifIdx].src + 1, map[ifIdx].dst);
                         break;
+
                     case ArrayCommandType.NextDestination:
-                        if (stack.Count > 0)
-                        {
-                            int ifIdx = stack.Peek();
-                            var cur = result[ifIdx];
-                            result[ifIdx] = (cur.src, cur.dst + 1);
-                        }
+                        foreach (int ifIdx in stack)
+                            map[ifIdx] = (map[ifIdx].src, map[ifIdx].dst + 1);
                         break;
                 }
             }
-            return result;
+            return map;
         }
+
+
     }
 }
