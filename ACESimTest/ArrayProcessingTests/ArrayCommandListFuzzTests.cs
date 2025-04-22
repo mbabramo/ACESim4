@@ -10,7 +10,7 @@ using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using static ACESimBase.Util.ArrayProcessing.ArrayCommandList;
 
-namespace ACESimTest
+namespace ACESimTest.ArrayProcessingTests
 {
     /*───────────────────────────────────────────────────────────────────────────
      * Robust fuzz test exercising interpreter vs. compiled (IL & Roslyn) with
@@ -184,7 +184,7 @@ namespace ACESimTest
         public double[] MakeInitialData()
         {
             double[] data = new double[OutputSize + ScratchSize];
-            for (int i = 0; i < DstStart + OrigCt; i++) data[i] = (i % 17) - 8;
+            for (int i = 0; i < DstStart + OrigCt; i++) data[i] = i % 17 - 8;
             return data;
         }
 
@@ -271,8 +271,8 @@ namespace ACESimTest
                 case 8: ComparisonValue(); break;
                 case 9: ComparisonIndices(); break;
                 case 10: NextSourceDrain(); break;
-                case 11: ReadParentScratch(); break; 
-                default: IncrementByProduct(); break;   
+                case 11: ReadParentScratch(); break;
+                default: IncrementByProduct(); break;
             }
         }
 

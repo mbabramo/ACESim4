@@ -137,6 +137,12 @@ internal sealed class LocalBindingState
         }
         return list.ToArray();
     }
+    public void Release(int localId)
+    {
+        _localToSlot[localId] = null;
+        _dirty[localId] = false;
+        _bindDepth[localId] = 0;
+    }
 
     /*──────────── internal helper used by the generator ────────────*/
     private void Bind(int localId, int slot, int depth)

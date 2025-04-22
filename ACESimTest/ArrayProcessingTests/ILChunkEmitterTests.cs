@@ -4,7 +4,7 @@ using ACESimBase.Util.ArrayProcessing;
 using static ACESimBase.Util.ArrayProcessing.ArrayCommandList;
 using System.Collections.Generic;
 
-namespace ACESimTest
+namespace ACESimTest.ArrayProcessingTests
 {
     [TestClass]
     public class ILChunkEmitterTests
@@ -246,9 +246,9 @@ namespace ACESimTest
                         case ArrayCommandType.LessThanOtherArrayIndex:
                             condition = vs[c.Index] < vs[c.SourceIndex]; break;
                         case ArrayCommandType.EqualsValue:
-                            condition = vs[c.Index] == (double)c.SourceIndex; break;
+                            condition = vs[c.Index] == c.SourceIndex; break;
                         case ArrayCommandType.NotEqualsValue:
-                            condition = vs[c.Index] != (double)c.SourceIndex; break;
+                            condition = vs[c.Index] != c.SourceIndex; break;
 
                         case ArrayCommandType.If:
                             if (!condition)

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ACESimBase.Util.ArrayProcessing;
 
-namespace ACESimTest
+namespace ACESimTest.ArrayProcessingTests
 {
     /// <summary>
     /// Builds a random ArrayCommand[] using your EmitChunk/EmitRandomCommand logic.

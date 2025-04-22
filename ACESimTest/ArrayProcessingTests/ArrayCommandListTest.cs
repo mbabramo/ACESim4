@@ -11,7 +11,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using TorchSharp.Modules;
 using static ACESimBase.Util.ArrayProcessing.ArrayCommandList;
 
-namespace ACESimTest
+namespace ACESimTest.ArrayProcessingTests
 {
     [TestClass]
     public class ArrayCommandListTest
@@ -56,7 +56,7 @@ namespace ACESimTest
             const int totalDestinationIndices = 10;
             const int destinationIndicesStart = sourceIndicesStart + totalSourceIndices;
             const int totalIndices = sourceIndicesStart + totalSourceIndices + totalDestinationIndices;
-            
+
             double[] values = new double[20] { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
             const int initialArrayIndex = totalIndices;
@@ -99,7 +99,7 @@ namespace ACESimTest
             const int destinationIndicesStart = sourceIndicesStart + totalSourceIndices;
             const int totalIndices = sourceIndicesStart + totalSourceIndices + totalDestinationIndices;
 
-            double[] sourceValues = new double[20] { 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }; 
+            double[] sourceValues = new double[20] { 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
             int[] sourceIndices = new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
             const int initialArrayIndex = totalIndices;
@@ -203,7 +203,7 @@ namespace ACESimTest
             int anotherValue = cl.CopyToNew(sourceIndices[5], true);
             int yetAnother = cl.CopyToNew(anotherValue, false);
 
-            const int numParallelChunks = 50; 
+            const int numParallelChunks = 50;
             const int numPotentialIncrementsWithin = 10;
             const int excludeIndexFromIncrement = 3;
 
@@ -220,7 +220,7 @@ namespace ACESimTest
                 if (i == 0 && repeatIdenticalChunk)
                     repeatedCommandIndex = cl.NextCommandIndex;
                 // DEBUG Debug.WriteLine($"Repeated command index {repeatedCommandIndex}");
-                cl.StartCommandChunk(false, repeatIdenticalChunk && i != 0 ? (int?) repeatedCommandIndex : null);
+                cl.StartCommandChunk(false, repeatIdenticalChunk && i != 0 ? repeatedCommandIndex : null);
                 cl.IncrementDepth(); // NOTE -- this is critical. We must increment depth here (and decrement below) so that the increments are copied from the child virtual stack back to the parent.
                 for (int j = numPotentialIncrementsWithin - 1; j >= 0; j--) // go backward to make it easier to follow algorithm
                     if (j != excludeIndexFromIncrement)
@@ -586,7 +586,7 @@ namespace ACESimTest
                 if (cmd.CommandType == ArrayCommandType.If) depth++;
                 if (cmd.CommandType == ArrayCommandType.EndIf) depth--;
 
-                System.Diagnostics.Debug.WriteLine(
+                Debug.WriteLine(
                     $"   {i,6}  d={depth,2}  {cmd}");
             }
         }
@@ -1017,7 +1017,7 @@ namespace ACESimTest
             // Planner
             var planner = new HoistPlanner(acl.UnderlyingCommands, THRESH);
             var plan = planner.BuildPlan(
-                (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree);
+                acl.CommandTree);
 
             // Mutator
             HoistMutator.ApplyPlan(acl, plan);
@@ -1103,7 +1103,7 @@ namespace ACESimTest
             var cmds = BuildFlatSample();            // helper from previous test
             var acl = CreateStubACL(cmds, 6);       // helper we added earlier
 
-            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var leaf = acl.CommandTree;
             var split = HoistMutator.SplitOversizeLeaf(acl, leaf, 2, 18);
 
             Assert.AreEqual((0, 2), (split.Prefix.StoredValue.StartCommandRange,
@@ -1119,7 +1119,7 @@ namespace ACESimTest
         {
             var cmds = BuildFlatSample();
             var acl = CreateStubACL(cmds, 6);
-            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var leaf = acl.CommandTree;
             var split = HoistMutator.SplitOversizeLeaf(acl, leaf, 2, 18);
 
             HoistMutator.InsertSplitIntoTree(split);
@@ -1140,7 +1140,7 @@ namespace ACESimTest
             cmds.RemoveRange(19, 2);           // remove cmds 19‑20
 
             var acl = CreateStubACL(cmds, maxPerChunk: 6);
-            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var leaf = acl.CommandTree;
 
             var split = HoistMutator.SplitOversizeLeaf(acl, leaf, ifIdx: 2, endIfIdx: 18);
             HoistMutator.InsertSplitIntoTree(split);
@@ -1165,7 +1165,7 @@ namespace ACESimTest
             cmds.Add(new ArrayCommand(ArrayCommandType.EndIf, -1, -1));   // 26
 
             var acl = CreateStubACL(cmds, THRESH);
-            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var leaf = acl.CommandTree;
             var split = HoistMutator.SplitOversizeLeaf(acl, leaf, 0, 26);
             HoistMutator.InsertSplitIntoTree(split);
             acl.SliceBodyIntoChildren(split.Gate);   // same call ReplaceLeafWithGate does
@@ -1189,7 +1189,7 @@ namespace ACESimTest
             var cmds = BuildFlatSample();                 // 21 commands (0‑20)
             var acl = CreateStubACL(cmds, THRESH);
 
-            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var leaf = acl.CommandTree;
             var split = HoistMutator.SplitOversizeLeaf(acl, leaf, 2, 18);
             HoistMutator.InsertSplitIntoTree(split);
             acl.SliceBodyIntoChildren(split.Gate);
@@ -1220,7 +1220,7 @@ namespace ACESimTest
             var cmds = BuildCustomFlat(prefixLen: 0, bodyLen: 10, postfixLen: 2);
             var acl = CreateStubACL(cmds, THRESH);
 
-            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var leaf = acl.CommandTree;
             var split = HoistMutator.SplitOversizeLeaf(acl, leaf, 0, 11); // If at 0, EndIf at 11
             HoistMutator.InsertSplitIntoTree(split);
 
@@ -1244,7 +1244,7 @@ namespace ACESimTest
             const int THRESH = 5;
             var cmds = BuildCustomFlat(0, 12, 0);
             var acl = CreateStubACL(cmds, THRESH);
-            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var leaf = acl.CommandTree;
             var split = HoistMutator.SplitOversizeLeaf(acl, leaf, 0, 13);
             HoistMutator.InsertSplitIntoTree(split);
 
@@ -1261,7 +1261,7 @@ namespace ACESimTest
             const int THRESH = 6;
             var cmds = BuildCustomFlat(2, THRESH, 1);         // body 6 == threshold
             var acl = CreateStubACL(cmds, THRESH);
-            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var leaf = acl.CommandTree;
             var split = HoistMutator.SplitOversizeLeaf(acl, leaf, 2, 9);
             HoistMutator.InsertSplitIntoTree(split);
             acl.SliceBodyIntoChildren(split.Gate);
@@ -1279,7 +1279,7 @@ namespace ACESimTest
             const int THRESH = 2;
             var cmds = BuildCustomFlat(1, 11, 1);
             var acl = CreateStubACL(cmds, THRESH);
-            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var leaf = acl.CommandTree;
             var split = HoistMutator.SplitOversizeLeaf(acl, leaf, 1, 13);
             HoistMutator.InsertSplitIntoTree(split);
             acl.SliceBodyIntoChildren(split.Gate);
@@ -1304,7 +1304,7 @@ namespace ACESimTest
             const int BODY = 800;       // 800 / 3  ≈ 267  (> 255 without gate+postfix)
             var cmds = BuildCustomFlat(2, BODY, 2);
             var acl = CreateStubACL(cmds, THRESH);
-            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var leaf = acl.CommandTree;
             var split = HoistMutator.SplitOversizeLeaf(acl, leaf, 2, BODY + 3);
             HoistMutator.InsertSplitIntoTree(split);
             acl.SliceBodyIntoChildren(split.Gate);
@@ -1323,7 +1323,7 @@ namespace ACESimTest
             var cmds = BuildCustomFlat(3, 10, 3);   // prefix 3, body 10, postfix 3
             var acl = CreateStubACL(cmds, 6);
 
-            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var leaf = acl.CommandTree;
             var split = HoistMutator.SplitOversizeLeaf(acl, leaf, 3, 14);
 
             // prefix: cmds 0‑2
@@ -1350,7 +1350,7 @@ namespace ACESimTest
             var cmds = BuildCustomFlat(0, 12, 0);     // no postfix
             var acl = CreateStubACL(cmds, 6);
 
-            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var leaf = acl.CommandTree;
             var split = HoistMutator.SplitOversizeLeaf(acl, leaf, 0, 13);
             HoistMutator.InsertSplitIntoTree(split);
 
@@ -1368,7 +1368,7 @@ namespace ACESimTest
             var cmds = BuildCustomFlat(1, 17, 1);     // body 17
             var acl = CreateStubACL(cmds, THRESH);
 
-            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var leaf = acl.CommandTree;
             var split = HoistMutator.SplitOversizeLeaf(acl, leaf, 1, 19);
             HoistMutator.InsertSplitIntoTree(split);
 
@@ -1385,9 +1385,9 @@ namespace ACESimTest
         {
             var acl = BuildSimpleACLWithHugeIf(25, finalize: false);
             var plan = new HoistPlanner(acl.UnderlyingCommands, 10)
-                           .BuildPlan((NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree);
+                           .BuildPlan(acl.CommandTree);
 
-            HoistMutator.ApplyPlan(acl, plan); 
+            HoistMutator.ApplyPlan(acl, plan);
 
         }
 
@@ -1397,9 +1397,9 @@ namespace ACESimTest
             // build ACL with an oversize If body (25 > threshold 10)
             var acl = BuildSimpleACLWithHugeIf(25, finalize: false);
             var plan = new HoistPlanner(acl.UnderlyingCommands, 10)
-                           .BuildPlan((NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree);
+                           .BuildPlan(acl.CommandTree);
 
-            HoistMutator.ApplyPlan(acl, plan); 
+            HoistMutator.ApplyPlan(acl, plan);
 
 
             // every leaf must now have matching If / EndIf counts
@@ -1428,7 +1428,7 @@ namespace ACESimTest
             int max = acl.MaxCommandsPerChunk;              // 10
 
             var plan = new HoistPlanner(acl.UnderlyingCommands, max)
-                           .BuildPlan((NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree);
+                           .BuildPlan(acl.CommandTree);
             HoistMutator.ApplyPlan(acl, plan);
 
 
@@ -1451,8 +1451,8 @@ namespace ACESimTest
             var acl = BuildSimpleACLWithHugeIf(25, finalize: false);
             var cmds = acl.UnderlyingCommands;
             var plan = new HoistPlanner(cmds, 10)
-                           .BuildPlan((NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree);
-            HoistMutator.ApplyPlan(acl, plan); 
+                           .BuildPlan(acl.CommandTree);
+            HoistMutator.ApplyPlan(acl, plan);
 
 
             double[] dataInterp = new double[200];
@@ -1603,7 +1603,7 @@ namespace ACESimTest
     };
 
             var acl = CreateStubACL(cmds, maxPerChunk: 6);
-            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var leaf = acl.CommandTree;
             var split = HoistMutator.SplitOversizeLeaf(acl, leaf, 0, 7);
             HoistMutator.InsertSplitIntoTree(split);
 
@@ -1652,7 +1652,7 @@ namespace ACESimTest
         };
 
             var acl = CreateStubACL(cmds, maxPerChunk: 3); // tiny threshold
-            var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
+            var leaf = acl.CommandTree;
             var split = HoistMutator.SplitOversizeLeaf(acl, leaf, ifIdx: 0, endIfIdx: 7);
             HoistMutator.InsertSplitIntoTree(split);
 

@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ACESimBase.Util.ArrayProcessing;
 using ACESimBase.Util.ArrayProcessing.ChunkExecutors;
 
-namespace ACESimTest
+namespace ACESimTest.ArrayProcessingTests
 {
     [TestClass]
     public class LocalVariablePlannerTests

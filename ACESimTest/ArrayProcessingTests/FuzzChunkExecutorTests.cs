@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ACESimBase.Util.ArrayProcessing;
 using ACESimBase.Util.ArrayProcessing.ChunkExecutors;
 
-namespace ACESimTest
+namespace ACESimTest.ArrayProcessingTests
 {
     [TestClass]
     public class FuzzChunkExecutorTests
@@ -92,20 +92,11 @@ namespace ACESimTest
             CollectionAssert.AreEqual(vsInterp, vsNoLoc, $"Seed {seed} {stage}: vs mismatch");
             CollectionAssert.AreEqual(od0, odNoLoc, $"Seed {seed} {stage}: od mismatch");
 
-            // Roslyn with locals
-            var plan = LocalVariablePlanner.PlanLocals(
-                cmds,
-                start: 0,
-                end: cmds.Length,
-                minUses: 2,
-                maxLocals: OrigSlotCount
-            );
-
             var vsLoc = new double[chunk.VirtualStack.Length];
             var odLoc = new double[MaxDests];
             int cosi2 = 0, codi2 = 0; bool cond2 = true;
             var rosLoc = new RoslynChunkExecutor(
-                cmds, 0, cmds.Length, useCheckpoints: false, localPlan: plan);
+                cmds, 0, cmds.Length, useCheckpoints: false, localVariableReuse: true);
             rosLoc.AddToGeneration(chunk);
             rosLoc.PerformGeneration();
             rosLoc.Execute(chunk, vsLoc, os0, odLoc, ref cosi2, ref codi2, ref cond2);

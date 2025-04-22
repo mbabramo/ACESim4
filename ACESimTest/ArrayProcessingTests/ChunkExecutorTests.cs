@@ -8,7 +8,7 @@ using static ACESimBase.Util.ArrayProcessing.ArrayCommandList;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ACESimTest
+namespace ACESimTest.ArrayProcessingTests
 {
     /// <summary>
     /// Direct, chunk‑level tests for IChunkExecutor implementations.
@@ -529,7 +529,7 @@ namespace ACESimTest
                 0,
                 UnderlyingCommands.Length,
                 useCheckpoints: false,
-                null);
+                localVariableReuse: false);
     }
 
     [TestClass]
@@ -541,6 +541,6 @@ namespace ACESimTest
                 0,
                 UnderlyingCommands.Length,
                 useCheckpoints: false,
-                LocalVariablePlanner.PlanLocals(UnderlyingCommands, 0, UnderlyingCommands.Length, 1, null));
+                localVariableReuse: true);
     }
 }
