@@ -90,7 +90,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     sb.AppendLine(_smallExecutor.GeneratedCode);
                 if (!string.IsNullOrEmpty(_largeExecutor.GeneratedCode))
                     sb.AppendLine(_largeExecutor.GeneratedCode);
-                GeneratedCode = sb.ToString();
+                GeneratedCode = sb.ToString(); // this won't compile, but it's used only for debugging
             }
         }
 

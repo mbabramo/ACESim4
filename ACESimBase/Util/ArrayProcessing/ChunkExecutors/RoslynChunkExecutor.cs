@@ -1,6 +1,7 @@
 ﻿// RoslynChunkExecutor.cs – generated‑code executor
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -16,7 +17,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
     {
         private readonly LocalsAllocationPlan _plan;
         private readonly List<ArrayCommandChunk> _scheduled = new();
-        private readonly Dictionary<ArrayCommandChunk, ArrayCommandChunkDelegate> _compiled = new();
+        private readonly ConcurrentDictionary<ArrayCommandChunk, ArrayCommandChunkDelegate> _compiled = new();
         private readonly StringBuilder _src = new();
         private Type _cgType;
 
@@ -68,6 +69,8 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
         public override void PerformGeneration()
         {
+            // This will be called only once. Execution will happen many times.
+
             if (_scheduled.Count == 0) return;
 
             _src.Clear();
@@ -94,8 +97,8 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                                       ref int cosi, ref int codi, ref bool cond)
         {
             _compiled[chunk](vs, os, od, ref cosi, ref codi, ref cond);
-            chunk.StartSourceIndices += cosi;
-            chunk.StartDestinationIndices += codi;
+            chunk.StartSourceIndices = cosi;
+            chunk.StartDestinationIndices = codi;
         }
 
         private static string FnName(ArrayCommandChunk c)

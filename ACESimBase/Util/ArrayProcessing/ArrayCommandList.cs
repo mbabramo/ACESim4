@@ -100,7 +100,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public Stack<int> PerDepthStartArrayIndices;
         int NextVirtualStackID = 0;
 
-        bool RepeatIdenticalRanges => !DisableAdvancedFeatures && ReuseScratchSlots; // instead of repeating identical sequences of commands, we run the same sequence twice
+        public bool RepeatIdenticalRanges => !DisableAdvancedFeatures && ReuseScratchSlots; // instead of repeating identical sequences of commands, we run the same sequence twice
         public Stack<int?> RepeatingExistingCommandRangeStack;
         public bool RepeatingExistingCommandRange = false; // when this is true, we don't need to add new commands
 

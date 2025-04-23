@@ -74,8 +74,8 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             try
             {
                 _compiled[chunk](vs, os, od, ref cosi, ref codi, ref cond);
-                chunk.StartSourceIndices += cosi;
-                chunk.StartDestinationIndices += codi;
+                chunk.StartSourceIndices = cosi;
+                chunk.StartDestinationIndices = codi;
             }
             catch (Exception ex)
             {
