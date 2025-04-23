@@ -1098,11 +1098,10 @@ namespace ACESimBase.Util.ArrayProcessing
                     string methodKey = $"Chunk_{startCmd}_{endCmd - 1}";
 
                     // Build the IL
-                    var emitter = new ILChunkEmitter(chunk, UnderlyingCommands); 
-                    ArrayCommandChunkDelegate del = emitter.EmitMethod(methodKey,   /*out*/
-                                                   out int ilBytes);
-                    TabbedText.WriteLine(
-                        $"[IL] chunk {methodKey} — {numCommands:N0} commands, {ilBytes:N0} IL bytes"); // DEBUG
+                    //var emitter = new ILChunkEmitter(chunk, UnderlyingCommands); 
+                    ArrayCommandChunkDelegate del = null; // DEBUG emitter.EmitMethod(methodKey,   /*out*/ out int ilBytes);
+                    //TabbedText.WriteLine(
+                    //    $"[IL] chunk {methodKey} — {numCommands:N0} commands, {ilBytes:N0} IL bytes"); // DEBUG
 
                     // Store the delegate
                     _compiledChunkMethods[methodKey] = del;

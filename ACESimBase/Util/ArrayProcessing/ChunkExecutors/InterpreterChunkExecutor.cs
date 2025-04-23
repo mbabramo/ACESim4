@@ -12,8 +12,9 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
     /// </summary>
     public class InterpreterChunkExecutor : ChunkExecutorBase
     {
-        public InterpreterChunkExecutor(ArrayCommand[] commands)
-            : base(commands, 0, commands.Length)
+        public InterpreterChunkExecutor(ArrayCommand[] commands,
+                           int start, int end, bool useCheckpoints)
+            : base(commands, start, end, useCheckpoints)
         {
         }
 

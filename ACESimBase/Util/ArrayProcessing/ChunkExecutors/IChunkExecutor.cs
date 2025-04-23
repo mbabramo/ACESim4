@@ -21,6 +21,17 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         Span<ArrayCommand> Commands { get; }
 
         /// <summary>
+        /// If <c>true</c>, the executor will preserve the generated code
+        /// </summary>
+        bool PreserveGeneratedCode { get; set; }
+        /// <summary>
+        /// The generated code, if preserved
+        /// </summary>
+        string GeneratedCode { get; }
+
+        bool UseCheckpoints { get; }
+
+        /// <summary>
         /// Queue <paramref name="chunk"/> for later batch code‑generation.  Executions
         /// should not occur until <see cref="PerformGeneration"/> has been called.
         /// </summary>
@@ -53,11 +64,5 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             ref int cosi,
             ref int codi,
             ref bool condition);
-
-        /// <summary>
-        /// If <c>true</c>, the executor will preserve the generated code
-        /// </summary>
-        bool PreserveGeneratedCode { get; set; }
-        string GeneratedCode { get; protected set; }
     }
 }

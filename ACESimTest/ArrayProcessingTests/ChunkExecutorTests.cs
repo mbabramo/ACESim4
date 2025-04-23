@@ -715,43 +715,69 @@ namespace ACESimTest.ArrayProcessingTests
                 "vs[1] should remain 1 if NextSource wrote back correctly across skipped branch");
         }
     }
-
     [TestClass]
     public class ChunkExecutorTests_Interpreter : ChunkExecutorTestBase
     {
         protected override IChunkExecutor CreateExecutor() =>
-            new InterpreterChunkExecutor(UnderlyingCommands);
+            ChunkExecutorFactory.Create(
+                ChunkExecutorKind.Interpreted,
+                UnderlyingCommands,
+                0,
+                UnderlyingCommands.Length,
+                useCheckpoints: false);
     }
 
     [TestClass]
     public class ChunkExecutorTests_IL : ChunkExecutorTestBase
     {
         protected override IChunkExecutor CreateExecutor() =>
-            new ILChunkExecutor(UnderlyingCommands, 0, UnderlyingCommands.Length);
+            ChunkExecutorFactory.Create(
+                ChunkExecutorKind.IL,
+                UnderlyingCommands,
+                0,
+                UnderlyingCommands.Length,
+                useCheckpoints: false);
     }
 
     [TestClass]
     public class ChunkExecutorTests_Roslyn : ChunkExecutorTestBase
     {
         protected override IChunkExecutor CreateExecutor() =>
-            new RoslynChunkExecutor(
+            ChunkExecutorFactory.Create(
+                ChunkExecutorKind.Roslyn,
                 UnderlyingCommands,
                 0,
                 UnderlyingCommands.Length,
-                useCheckpoints: false,
-                localVariableReuse: false);
+                useCheckpoints: false);
     }
 
     [TestClass]
     public class ChunkExecutorTests_Roslyn_WithPlanner : ChunkExecutorTestBase
     {
         protected override IChunkExecutor CreateExecutor() =>
-            new RoslynChunkExecutor(
+            ChunkExecutorFactory.Create(
+                ChunkExecutorKind.RoslynWithLocalVariableRecycling,
+                UnderlyingCommands,
+                0,
+                UnderlyingCommands.Length,
+                useCheckpoints: false);
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    //  NEW: Roslyn (local-reuse) + Interpreter fallback
+    //      — Interpreter for chunks ≤ 5 commands, Roslyn for larger.
+    // ────────────────────────────────────────────────────────────────
+    [TestClass]
+    public class ChunkExecutorTests_Roslyn_Fallback : ChunkExecutorTestBase
+    {
+        protected override IChunkExecutor CreateExecutor() =>
+            ChunkExecutorFactory.Create(
+                ChunkExecutorKind.RoslynWithLocalVariableRecycling,
                 UnderlyingCommands,
                 0,
                 UnderlyingCommands.Length,
                 useCheckpoints: false,
-                localVariableReuse: true);
+                fallbackThreshold: 5);   // “small” chunk = 5 cmds or fewer
     }
 
 

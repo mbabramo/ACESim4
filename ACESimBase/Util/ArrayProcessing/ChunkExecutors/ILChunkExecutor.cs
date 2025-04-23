@@ -29,7 +29,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         private readonly Dictionary<ArrayCommandChunk, ArrayCommandChunkDelegate> _compiled = new();
         private StringBuilder? _trace;
 
-        public ILChunkExecutor(ArrayCommand[] cmds, int start, int end) : base(cmds, start, end) { }
+        public ILChunkExecutor(ArrayCommand[] cmds, int start, int end) : base(cmds, start, end, false /* not yet implemented DEBUG */) { }
 
         public override void AddToGeneration(ArrayCommandChunk ch) { if (!_compiled.ContainsKey(ch)) _queue.Add(ch); }
 
