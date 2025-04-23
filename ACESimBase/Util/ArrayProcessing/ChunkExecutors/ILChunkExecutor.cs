@@ -91,6 +91,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             void EmitLb(OpCode op, LocalBuilder lb) { il.Emit(op, lb); Trace($"  {op} V_{lb.LocalIndex}"); }
 
             var tmp = il.DeclareLocal(typeof(double));
+            var tmpI = il.DeclareLocal(typeof(int));
 
             void LdcI4(int v)
             {
@@ -310,20 +311,24 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
             void StoreCond(bool invert)
             {
+                // stack: [value]
                 if (invert)
                 {
                     Emit0(OpCodes.Ldc_I4_0);
-                    Emit0(OpCodes.Ceq);
+                    Emit0(OpCodes.Ceq); // toggle boolean
                 }
 
-                EmitI(OpCodes.Ldarg, 5);
-                Emit0(OpCodes.Stind_I1);
+                // Preserve value, push address, then restore value so order is value, address
+                EmitLb(OpCodes.Stloc, tmpI);      // tmpI = value (pop)
+                EmitI(OpCodes.Ldarg, 5);          // push &cond (address)
+                EmitLb(OpCodes.Ldloc, tmpI);      // push value again
+                Emit0(OpCodes.Stind_I1);          // *cond = value
             }
         }
 
         private Dictionary<int, (int srcSkip, int dstSkip)> PrecomputePointerSkips(ArrayCommandChunk chunk)
         {
-            var map = new Dictionary<int, (int src, int dst)>();
+            var map = new Dictionary<int, (int srcSkip, int dstSkip)>();
             var stack = new Stack<int>();
 
             for (int i = chunk.StartCommandRange; i < chunk.EndCommandRangeExclusive; i++)
@@ -339,11 +344,11 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                         break;
                     case ArrayCommandType.NextSource:
                         foreach (var idx in stack)
-                            map[idx] = (map[idx].src + 1, map[idx].dst);
+                            map[idx] = (map[idx].srcSkip + 1, map[idx].dstSkip);
                         break;
                     case ArrayCommandType.NextDestination:
                         foreach (var idx in stack)
-                            map[idx] = (map[idx].src, map[idx].dst + 1);
+                            map[idx] = (map[idx].srcSkip, map[idx].dstSkip + 1);
                         break;
                 }
             }
