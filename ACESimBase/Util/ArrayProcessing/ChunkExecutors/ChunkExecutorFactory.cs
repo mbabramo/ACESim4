@@ -76,7 +76,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 //       dedicated implementation and update the mapping below.
                 ChunkExecutorKind.IL => new ILChunkExecutor(commands, start, end),
 
-                ChunkExecutorKind.ILWithLocalVariableRecycling => new ILChunkExecutor(commands, start, end),
+                ChunkExecutorKind.ILWithLocalVariableRecycling => throw new NotImplementedException(),
 
                 _ => throw new ArgumentOutOfRangeException(nameof(kind))
             };

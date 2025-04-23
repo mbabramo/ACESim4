@@ -71,6 +71,65 @@ public sealed class LocalsAllocationPlan
 /// </summary>
 public static class LocalVariablePlanner
 {
+    public static LocalsAllocationPlan PlanNoReuse(ArrayCommand[] cmds, int start, int end)
+    {
+        static IEnumerable<int> GetSlots(ArrayCommand c)
+        {
+            // ----- write slots -----
+            switch (c.CommandType)
+            {
+                // commands that *only* write to c.Index
+                case ArrayCommandType.Zero:
+                case ArrayCommandType.NextSource:
+
+                // read‑write commands – they still write to c.Index
+                case ArrayCommandType.CopyTo:
+                case ArrayCommandType.MultiplyBy:
+                case ArrayCommandType.IncrementBy:
+                case ArrayCommandType.DecrementBy:
+                    if (c.Index >= 0)
+                        yield return c.Index;
+                    break;
+
+                // all other commands do not write to a VS slot
+                default:
+                    break;
+            }
+
+            // ----- read slots -----
+            switch (c.CommandType)
+            {
+                case ArrayCommandType.CopyTo:
+                case ArrayCommandType.NextDestination:
+                case ArrayCommandType.ReusedDestination:
+                case ArrayCommandType.MultiplyBy:
+                case ArrayCommandType.IncrementBy:
+                case ArrayCommandType.DecrementBy:
+                case ArrayCommandType.EqualsOtherArrayIndex:
+                case ArrayCommandType.NotEqualsOtherArrayIndex:
+                case ArrayCommandType.GreaterThanOtherArrayIndex:
+                case ArrayCommandType.LessThanOtherArrayIndex:
+                    if (c.SourceIndex >= 0) yield return c.SourceIndex;
+                    break;
+
+                    // EqualsValue / NotEqualsValue use SourceIndex as a *constant* → nothing to add
+            }
+        }
+
+        var plan = new LocalsAllocationPlan();
+        var slots = new HashSet<int>();
+
+        for (int i = start; i < end; i++)
+            foreach (int s in GetSlots(cmds[i]))
+                slots.Add(s);
+
+        int local = 0;
+        foreach (int slot in slots.OrderBy(s => s))
+            plan.AddInterval(slot, first: start, last: end - 1, bindDepth: 0, local: local++);
+
+        return plan;
+    }
+
     public static LocalsAllocationPlan PlanLocals(
         ArrayCommand[] commands,
         int start,
