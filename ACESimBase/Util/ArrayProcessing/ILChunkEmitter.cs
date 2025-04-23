@@ -99,10 +99,11 @@ namespace ACESimBase.Util.ArrayProcessing
         // ───────────────────────── array ops (fixed order) ────────────────────
         private void EmitZero(int dst)
         {
-            _il.Emit(OpCodes.Ldarg_0);       // array
+            // Correct operand order for stelem.r8:  array, index, value
+            _il.Emit(OpCodes.Ldarg_0);       // array  (vs)
             _il.Emit(OpCodes.Ldc_I4, dst);   // index
             _il.Emit(OpCodes.Ldc_R8, 0.0);   // value
-            _il.Emit(OpCodes.Stelem_R8);
+            _il.Emit(OpCodes.Stelem_R8);     // vs[dst] = 0.0
         }
 
         private void EmitCopyTo(int dst, int src)
