@@ -54,7 +54,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         ///     routed all larger chunks.
         /// </param>
         /// <returns>A ready‑to‑use <see cref="ChunkExecutorBase"/> instance.</returns>
-        public static ChunkExecutorBase Create(
+        public static IChunkExecutor Create(
             ChunkExecutorKind kind,
             ArrayCommand[] commands,
             int start,

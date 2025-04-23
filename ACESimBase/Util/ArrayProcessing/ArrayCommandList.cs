@@ -91,7 +91,7 @@ namespace ACESimBase.Util.ArrayProcessing
         private Dictionary<string, ArrayCommandChunkDelegate> _compiledChunkMethods
     = new Dictionary<string, ArrayCommandChunkDelegate>();
 
-        private bool DoParallel => !DisableAdvancedFeatures && Parallelize;
+        public bool DoParallel => !DisableAdvancedFeatures && Parallelize;
 
         // If true, then when a command refers to an array index, 0 refers to FirstScratchIndex.
         public bool ScratchIndicesStartAt0 => UseOrderedSources && UseOrderedDestinations;
