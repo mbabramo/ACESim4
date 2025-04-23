@@ -1,16 +1,18 @@
-﻿// ILChunkExecutor.cs – step 4 → step 5 pre‑refactor: helpers ready for local‑reuse
-// ----------------------------------------------------------------------------------
-//  This version contains *only* Step 1 of the porting plan: a refactor of the
-//  Load / Store helpers so they are aware of LocalBindingState.  Behaviour is
-//  100 % identical when ReuseLocals == false, so the existing green tests keep
-//  passing.  No interval binding / depth logic has been activated yet.
-// ----------------------------------------------------------------------------------
+﻿// ILChunkExecutor.cs – step 4 → step 5a
+// -----------------------------------------------------------------------------
+//  * Step-1:   refactor Load/Store helpers to understand LocalBindingState
+//  * Step-2a:  add DepthMap & IntervalIndex scaffolding (not yet used at runtime)
+//  Behaviour is still identical to the original zero-reuse IL path: the new
+//  helpers remain dormant until we flip ReuseLocals == true in a later step.
+// -----------------------------------------------------------------------------
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection.Emit;
 using System.Text;
 using static ACESimBase.Util.ArrayProcessing.ArrayCommandList;
+using ACESimBase.Util.ArrayProcessing.ChunkExecutors;   // LocalsAllocationPlan, LocalBindingState
 
 namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 {
@@ -20,14 +22,14 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         private readonly Dictionary<ArrayCommandChunk, ArrayCommandChunkDelegate> _compiled = new();
         private StringBuilder? _trace;
 
-        // ──────────────────────────────────────────────────────────────────────────
-        //  Locals‑reuse scaffolding
-        // ──────────────────────────────────────────────────────────────────────────
+        // ──────────────────────────────────────────────────────────────
+        //  Locals-reuse scaffolding
+        // ──────────────────────────────────────────────────────────────
         public bool ReuseLocals { get; init; } = false;
         private readonly LocalsAllocationPlan _plan;
 
         public ILChunkExecutor(ArrayCommand[] cmds, int start, int end, bool localVariableReuse = false)
-            : base(cmds, start, end, /*useCheckpoints:*/ false)
+            : base(cmds, start, end, /*useCheckpoints*/ false)
         {
             ReuseLocals = localVariableReuse;
             _plan = ReuseLocals
@@ -36,7 +38,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         }
 
         // ----------------------------------------------------------------------
-        //  Chunk‑generation public API
+        //  Chunk-generation public API
         // ----------------------------------------------------------------------
         public override void AddToGeneration(ArrayCommandChunk chunk)
         {
@@ -56,7 +58,8 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 foreach (var chunk in _queue)
                 {
                     var dm = BuildDynamicMethod(chunk, out var src);
-                    _compiled[chunk] = (ArrayCommandChunkDelegate)dm.CreateDelegate(typeof(ArrayCommandChunkDelegate));
+                    _compiled[chunk] =
+                        (ArrayCommandChunkDelegate)dm.CreateDelegate(typeof(ArrayCommandChunkDelegate));
                     if (PreserveGeneratedCode)
                         _trace!.Append(src);
                 }
@@ -71,8 +74,13 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             }
         }
 
-        public override void Execute(ArrayCommandChunk chunk, double[] vs, double[] os, double[] od,
-            ref int cosi, ref int codi, ref bool cond)
+        public override void Execute(ArrayCommandChunk chunk,
+                                     double[] vs,
+                                     double[] os,
+                                     double[] od,
+                                     ref int cosi,
+                                     ref int codi,
+                                     ref bool cond)
         {
             try
             {
@@ -87,9 +95,10 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             }
         }
 
-        // ----------------------------------------------------------------------
-        //  IL generation – slot‑local mapping (zero‑reuse today, reuse coming)
-        // ----------------------------------------------------------------------
+        // ======================================================================
+        //  IL generation – zero-reuse path (ReuseLocals==false) – unchanged
+        //  Helpers are now future-proof for the reuse path but remain inactive.
+        // ======================================================================
         private DynamicMethod BuildDynamicMethod(ArrayCommandChunk chunk, out string? trace)
         {
             var dm = new DynamicMethod(
@@ -111,19 +120,19 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             var sb = PreserveGeneratedCode ? new StringBuilder() : null;
             void TraceIL(string s) => sb?.AppendLine(s);
 
-            // ── small wrappers to make IL readable and traceable
+            // ── readability wrappers
             void Emit0(OpCode op) { il.Emit(op); TraceIL($"  {op}"); }
             void EmitI(OpCode op, int arg) { il.Emit(op, arg); TraceIL($"  {op} {arg}"); }
             void EmitR(OpCode op, double arg) { il.Emit(op, arg); TraceIL($"  {op} {arg}"); }
             void EmitL(OpCode op, Label lbl) { il.Emit(op, lbl); TraceIL($"  {op} L{lbl.GetHashCode():x}"); }
-            void EmitLb(OpCode op, LocalBuilder local) { il.Emit(op, local); TraceIL($"  {op} V_{local.LocalIndex}"); }
+            void EmitLb(OpCode op, LocalBuilder lb) { il.Emit(op, lb); TraceIL($"  {op} V_{lb.LocalIndex}"); }
 
             // legacy temps
             var tmp = il.DeclareLocal(typeof(double));
             var tmpI = il.DeclareLocal(typeof(int));
 
             // ────────────────────────────────────────────────────────────────
-            //  Allocate LocalBuilder array from the plan
+            //  LocalBuilder array from the plan
             // ────────────────────────────────────────────────────────────────
             LocalBuilder[]? locals = null;
             if (_plan.LocalCount > 0)
@@ -133,19 +142,17 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     locals[l] = il.DeclareLocal(typeof(double));
             }
 
-            bool useLocals = !ReuseLocals && locals != null;
+            bool useLocals = !ReuseLocals && locals != null;    // ← zero-reuse only
 
-            // ────────────────────────────────────────────────────────────────
-            //  NEW: live‑binding state (only populated when ReuseLocals==true)
-            // ────────────────────────────────────────────────────────────────
+            // placeholder binding table – will be used when ReuseLocals==true
             LocalBindingState? bind = ReuseLocals ? new LocalBindingState(_plan.LocalCount) : null;
 
             // ------------------------------------------------------------------
-            //  Centralised helpers – consult _plan *and* the live binding table
+            //  Centralised helpers
             // ------------------------------------------------------------------
             void Load(int slot)
             {
-                // (1) reuse‑path – use currently‑bound local (if any)
+                // (1) live bound local (inactive for now)
                 if (bind != null &&
                     _plan.SlotToLocal.TryGetValue(slot, out int l1) &&
                     bind.IsBound(l1, slot))
@@ -154,59 +161,52 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     return;
                 }
 
-                // (2) zero‑reuse path – dedicated local for the slot
+                // (2) zero-reuse dedicated local
                 if (!ReuseLocals && _plan.SlotToLocal.TryGetValue(slot, out int l2))
                 {
                     EmitLb(OpCodes.Ldloc, locals![l2]);
                     return;
                 }
 
-                // (3) fallback – read directly from vs[]
+                // (3) fallback: vs[slot]
                 LoadVs(slot);
             }
 
             void Store(int slot)
             {
-                // pop → tmp
-                EmitLb(OpCodes.Stloc, tmp);
+                EmitLb(OpCodes.Stloc, tmp); // pop → tmp
 
-                // (1) reuse‑path – write through the bound local if any
                 if (bind != null &&
                     _plan.SlotToLocal.TryGetValue(slot, out int l1) &&
                     bind.IsBound(l1, slot))
                 {
                     EmitLb(OpCodes.Ldloc, tmp);
                     EmitLb(OpCodes.Stloc, locals![l1]);
-                    MarkWritten(slot);
-                    return;
                 }
-
-                // (2) zero‑reuse path – dedicated local
-                if (!ReuseLocals && _plan.SlotToLocal.TryGetValue(slot, out int l2))
+                else if (!ReuseLocals && _plan.SlotToLocal.TryGetValue(slot, out int l2))
                 {
                     EmitLb(OpCodes.Ldloc, tmp);
                     EmitLb(OpCodes.Stloc, locals![l2]);
-                    MarkWritten(slot);
-                    return;
+                }
+                else
+                {
+                    Emit0(OpCodes.Ldarg_0);       // vs
+                    LdcI4(slot);
+                    EmitLb(OpCodes.Ldloc, tmp);
+                    Emit0(OpCodes.Stelem_R8);
                 }
 
-                // (3) write directly to vs[]
-                Emit0(OpCodes.Ldarg_0);          // vs
-                LdcI4(slot);
-                EmitLb(OpCodes.Ldloc, tmp);
-                Emit0(OpCodes.Stelem_R8);
                 MarkWritten(slot);
             }
 
             void MarkWritten(int slot)
             {
-                if (bind != null &&
-                    _plan.SlotToLocal.TryGetValue(slot, out int l))
+                if (bind != null && _plan.SlotToLocal.TryGetValue(slot, out int l))
                     bind.MarkWritten(l);
             }
 
             // ------------------------------------------------------------------
-            //  Original helpers (array‑based) – unchanged
+            //  Array helpers
             // ------------------------------------------------------------------
             void LdcI4(int v)
             {
@@ -259,34 +259,22 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 Emit0(OpCodes.Ldelem_R8);
             }
 
-            void StoreVs(int idx)
-            {
-                EmitLb(OpCodes.Stloc, tmp);
-                Emit0(OpCodes.Ldarg_0);
-                LdcI4(idx);
-                EmitLb(OpCodes.Ldloc, tmp);
-                Emit0(OpCodes.Stelem_R8);
-            }
-
             // ------------------------------------------------------------------
-            //  Pre‑load per‑slot locals (only zero‑reuse mode)
+            //  Pre-load dedicated locals (zero-reuse only)
             // ------------------------------------------------------------------
             if (useLocals)
             {
                 foreach (var kv in _plan.SlotToLocal)
                 {
-                    int slot = kv.Key;
-                    int local = kv.Value;
-
                     Emit0(OpCodes.Ldarg_0);
-                    LdcI4(slot);
+                    LdcI4(kv.Key);
                     Emit0(OpCodes.Ldelem_R8);
-                    EmitLb(OpCodes.Stloc, locals![local]);
+                    EmitLb(OpCodes.Stloc, locals![kv.Value]);
                 }
             }
 
             // ------------------------------------------------------------------
-            //  Emit main chunk body
+            //  Main chunk body
             // ------------------------------------------------------------------
             var skipMap = PrecomputePointerSkips(chunk);
             var ifStack = new Stack<(Label elseLbl, Label endLbl, int srcSkip, int dstSkip)>();
@@ -296,20 +284,16 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 var cmd = Commands[ci];
                 switch (cmd.CommandType)
                 {
-                    // ───────────────────── writes / R‑M‑W ─────────────────────
+                    // ─────── writes / R-M-W ───────
                     case ArrayCommandType.Zero:
-                        LdcR8(0.0);
-                        Store(cmd.Index);
-                        break;
+                        LdcR8(0.0); Store(cmd.Index); break;
 
                     case ArrayCommandType.CopyTo:
-                        Load(cmd.SourceIndex);
-                        Store(cmd.Index);
-                        break;
+                        Load(cmd.SourceIndex); Store(cmd.Index); break;
 
                     case ArrayCommandType.NextSource:
-                        Emit0(OpCodes.Ldarg_1);
-                        EmitI(OpCodes.Ldarg, 3);
+                        Emit0(OpCodes.Ldarg_1);        // os
+                        EmitI(OpCodes.Ldarg, 3);       // &cosi
                         Emit0(OpCodes.Ldind_I4);
                         Emit0(OpCodes.Ldelem_R8);
                         Store(cmd.Index);
@@ -337,10 +321,10 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                         Store(cmd.Index);
                         break;
 
-                    // ───────────────────── destination writes ─────────────────────
+                    // ─────── destination writes ───────
                     case ArrayCommandType.NextDestination:
-                        Emit0(OpCodes.Ldarg_2);
-                        EmitI(OpCodes.Ldarg, 4);
+                        Emit0(OpCodes.Ldarg_2);        // od
+                        EmitI(OpCodes.Ldarg, 4);       // &codi
                         Emit0(OpCodes.Ldind_I4);
                         Load(cmd.SourceIndex);
                         Emit0(OpCodes.Stelem_R8);
@@ -360,50 +344,21 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                         Emit0(OpCodes.Stelem_R8);
                         break;
 
-                    // ───────────────────── comparisons ─────────────────────
+                    // ─────── comparisons ───────
                     case ArrayCommandType.EqualsOtherArrayIndex:
-                        Load(cmd.Index);
-                        Load(cmd.SourceIndex);
-                        Emit0(OpCodes.Ceq);
-                        StoreCond(false);
-                        break;
-
+                        Load(cmd.Index); Load(cmd.SourceIndex); Emit0(OpCodes.Ceq); StoreCond(false); break;
                     case ArrayCommandType.NotEqualsOtherArrayIndex:
-                        Load(cmd.Index);
-                        Load(cmd.SourceIndex);
-                        Emit0(OpCodes.Ceq);
-                        StoreCond(true);
-                        break;
-
+                        Load(cmd.Index); Load(cmd.SourceIndex); Emit0(OpCodes.Ceq); StoreCond(true); break;
                     case ArrayCommandType.GreaterThanOtherArrayIndex:
-                        Load(cmd.Index);
-                        Load(cmd.SourceIndex);
-                        Emit0(OpCodes.Cgt);
-                        StoreCond(false);
-                        break;
-
+                        Load(cmd.Index); Load(cmd.SourceIndex); Emit0(OpCodes.Cgt); StoreCond(false); break;
                     case ArrayCommandType.LessThanOtherArrayIndex:
-                        Load(cmd.Index);
-                        Load(cmd.SourceIndex);
-                        Emit0(OpCodes.Clt);
-                        StoreCond(false);
-                        break;
-
+                        Load(cmd.Index); Load(cmd.SourceIndex); Emit0(OpCodes.Clt); StoreCond(false); break;
                     case ArrayCommandType.EqualsValue:
-                        Load(cmd.Index);
-                        LdcR8(cmd.SourceIndex);
-                        Emit0(OpCodes.Ceq);
-                        StoreCond(false);
-                        break;
-
+                        Load(cmd.Index); LdcR8(cmd.SourceIndex); Emit0(OpCodes.Ceq); StoreCond(false); break;
                     case ArrayCommandType.NotEqualsValue:
-                        Load(cmd.Index);
-                        LdcR8(cmd.SourceIndex);
-                        Emit0(OpCodes.Ceq);
-                        StoreCond(true);
-                        break;
+                        Load(cmd.Index); LdcR8(cmd.SourceIndex); Emit0(OpCodes.Ceq); StoreCond(true); break;
 
-                    // ───────────────────── control‑flow ─────────────────────
+                    // ─────── control-flow ───────
                     case ArrayCommandType.If:
                         {
                             var elseLbl = il.DefineLabel();
@@ -424,16 +379,14 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                             EmitL(OpCodes.Br_S, ctx.endLbl);
 
                             il.MarkLabel(ctx.elseLbl);
-                            if (ctx.srcSkip > 0)
-                                AdvanceRefInt(3, ctx.srcSkip);
-                            if (ctx.dstSkip > 0)
-                                AdvanceRefInt(4, ctx.dstSkip);
+                            if (ctx.srcSkip > 0) AdvanceRefInt(3, ctx.srcSkip);
+                            if (ctx.dstSkip > 0) AdvanceRefInt(4, ctx.dstSkip);
 
                             il.MarkLabel(ctx.endLbl);
                             break;
                         }
 
-                    // ignore (comments / blanks)
+                    // ─────── no-ops ───────
                     case ArrayCommandType.Comment:
                     case ArrayCommandType.Blank:
                         break;
@@ -444,18 +397,15 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             }
 
             // ------------------------------------------------------------------
-            //  Tail‑flush locals back to vs[] (zero‑reuse mode only, unchanged)
+            //  Tail-flush dedicated locals (zero-reuse only)
             // ------------------------------------------------------------------
             if (useLocals)
             {
                 foreach (var kv in _plan.SlotToLocal)
                 {
-                    int slot = kv.Key;
-                    int local = kv.Value;
-
                     Emit0(OpCodes.Ldarg_0);          // vs
-                    LdcI4(slot);
-                    EmitLb(OpCodes.Ldloc, locals![local]);
+                    LdcI4(kv.Key);
+                    EmitLb(OpCodes.Ldloc, locals![kv.Value]);
                     Emit0(OpCodes.Stelem_R8);
                 }
             }
@@ -464,7 +414,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             trace = sb?.ToString();
             return dm;
 
-            // helper – writes the top‑of‑stack bool into *cond (possibly inverted)
+            // helper – write TOS bool into *cond (possible inversion)
             void StoreCond(bool invert)
             {
                 if (invert)
@@ -480,10 +430,11 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             }
         }
 
-        // ////////////////////////////////////////////////////////////////////////////
-        //  Utilities identical to RoslynChunkExecutor
-        // ////////////////////////////////////////////////////////////////////////////
-        private Dictionary<int, (int srcSkip, int dstSkip)> PrecomputePointerSkips(ArrayCommandChunk chunk)
+        // =========================================================================
+        //  Utilities identical in spirit to RoslynChunkExecutor
+        // =========================================================================
+        private Dictionary<int, (int srcSkip, int dstSkip)>
+            PrecomputePointerSkips(ArrayCommandChunk chunk)
         {
             var map = new Dictionary<int, (int srcSkip, int dstSkip)>();
             var stack = new Stack<int>();
@@ -513,6 +464,57 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 }
             }
             return map;
+        }
+
+        // ======================================================================
+        //  Step 2-a scaffolding – minimal versions of Roslyn helpers
+        // ======================================================================
+
+        /// <summary>Lightweight depth map (syntactic If/EndIf nesting depth).</summary>
+        private sealed class DepthMap
+        {
+            private readonly int[] _depth;
+            public DepthMap(ArrayCommand[] cmds, int start, int end)
+            {
+                _depth = new int[cmds.Length];
+                int d = 0;
+                for (int i = start; i < end; i++)
+                {
+                    if (cmds[i].CommandType == ArrayCommandType.EndIf)
+                        d--;
+                    _depth[i] = d;
+                    if (cmds[i].CommandType == ArrayCommandType.If)
+                        d++;
+                }
+            }
+            public int GetDepth(int i) => _depth[i];
+        }
+
+        /// <summary>
+        /// Index of interval start/end slots for fast lookup during generation.
+        /// Only used once we enable local-reuse.
+        /// </summary>
+        private sealed class IntervalIndex
+        {
+            private readonly Dictionary<int, List<int>> _starts = new();
+            private readonly Dictionary<int, List<int>> _ends = new();
+
+            public IntervalIndex(LocalsAllocationPlan plan)
+            {
+                foreach (var iv in plan.Intervals)
+                {
+                    if (!_starts.ContainsKey(iv.First)) _starts[iv.First] = new();
+                    if (!_ends.ContainsKey(iv.Last)) _ends[iv.Last] = new();
+                    _starts[iv.First].Add(iv.Slot);
+                    _ends[iv.Last].Add(iv.Slot);
+                }
+            }
+
+            public IEnumerable<int> StartSlots(int cmdIdx) =>
+                _starts.TryGetValue(cmdIdx, out var list) ? list : Enumerable.Empty<int>();
+
+            public IEnumerable<int> EndSlots(int cmdIdx) =>
+                _ends.TryGetValue(cmdIdx, out var list) ? list : Enumerable.Empty<int>();
         }
     }
 }
