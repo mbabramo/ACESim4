@@ -1,9 +1,11 @@
-﻿// ILChunkExecutor.cs – step 4 → step 5a
+﻿// ILChunkExecutor.cs – local-reuse fully enabled (steps 2-b + 3)
 // -----------------------------------------------------------------------------
-//  * Step-1:   refactor Load/Store helpers to understand LocalBindingState
-//  * Step-2a:  add DepthMap & IntervalIndex scaffolding (not yet used at runtime)
-//  Behaviour is still identical to the original zero-reuse IL path: the new
-//  helpers remain dormant until we flip ReuseLocals == true in a later step.
+//  • binding-aware Load/Store/MarkWritten helpers (step 1)
+//  • DepthMap & IntervalIndex scaffolding (step 2-a)
+//  • interval-sweep + branch-skip flushing (steps 2-b + 3)
+//  Behaviour:
+//     – when ReuseLocals == false  → original zero-reuse fast path
+//     – when ReuseLocals == true   → depth-aware local recycling (parity with Roslyn)
 // -----------------------------------------------------------------------------
 
 using System;
@@ -12,7 +14,7 @@ using System.Linq;
 using System.Reflection.Emit;
 using System.Text;
 using static ACESimBase.Util.ArrayProcessing.ArrayCommandList;
-using ACESimBase.Util.ArrayProcessing.ChunkExecutors;   // LocalsAllocationPlan, LocalBindingState
+using ACESimBase.Util.ArrayProcessing.ChunkExecutors;   // LocalBindingState, LocalsAllocationPlan
 
 namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 {
@@ -22,8 +24,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         private readonly Dictionary<ArrayCommandChunk, ArrayCommandChunkDelegate> _compiled = new();
         private StringBuilder? _trace;
 
-        // ──────────────────────────────────────────────────────────────
-        //  Locals-reuse scaffolding
         // ──────────────────────────────────────────────────────────────
         public bool ReuseLocals { get; init; } = false;
         private readonly LocalsAllocationPlan _plan;
@@ -37,9 +37,9 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 : LocalVariablePlanner.PlanNoReuse(cmds, start, end);
         }
 
-        // ----------------------------------------------------------------------
-        //  Chunk-generation public API
-        // ----------------------------------------------------------------------
+        // ------------------------------------------------------------------
+        //  Public API
+        // ------------------------------------------------------------------
         public override void AddToGeneration(ArrayCommandChunk chunk)
         {
             if (!_compiled.ContainsKey(chunk))
@@ -58,15 +58,11 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 foreach (var chunk in _queue)
                 {
                     var dm = BuildDynamicMethod(chunk, out var src);
-                    _compiled[chunk] =
-                        (ArrayCommandChunkDelegate)dm.CreateDelegate(typeof(ArrayCommandChunkDelegate));
-                    if (PreserveGeneratedCode)
-                        _trace!.Append(src);
+                    _compiled[chunk] = (ArrayCommandChunkDelegate)dm.CreateDelegate(typeof(ArrayCommandChunkDelegate));
+                    if (PreserveGeneratedCode) _trace!.Append(src);
                 }
-
                 _queue.Clear();
-                if (PreserveGeneratedCode)
-                    GeneratedCode = _trace!.ToString();
+                if (PreserveGeneratedCode) GeneratedCode = _trace!.ToString();
             }
             catch (Exception ex)
             {
@@ -75,12 +71,8 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         }
 
         public override void Execute(ArrayCommandChunk chunk,
-                                     double[] vs,
-                                     double[] os,
-                                     double[] od,
-                                     ref int cosi,
-                                     ref int codi,
-                                     ref bool cond)
+                                     double[] vs, double[] os, double[] od,
+                                     ref int cosi, ref int codi, ref bool cond)
         {
             try
             {
@@ -95,10 +87,9 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             }
         }
 
-        // ======================================================================
-        //  IL generation – zero-reuse path (ReuseLocals==false) – unchanged
-        //  Helpers are now future-proof for the reuse path but remain inactive.
-        // ======================================================================
+        // ==================================================================
+        //  IL generation – zero-reuse + reuse
+        // ==================================================================
         private DynamicMethod BuildDynamicMethod(ArrayCommandChunk chunk, out string? trace)
         {
             var dm = new DynamicMethod(
@@ -118,22 +109,20 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
             var il = dm.GetILGenerator();
             var sb = PreserveGeneratedCode ? new StringBuilder() : null;
-            void TraceIL(string s) => sb?.AppendLine(s);
+            void T(string s) => sb?.AppendLine(s);
 
-            // ── readability wrappers
-            void Emit0(OpCode op) { il.Emit(op); TraceIL($"  {op}"); }
-            void EmitI(OpCode op, int arg) { il.Emit(op, arg); TraceIL($"  {op} {arg}"); }
-            void EmitR(OpCode op, double arg) { il.Emit(op, arg); TraceIL($"  {op} {arg}"); }
-            void EmitL(OpCode op, Label lbl) { il.Emit(op, lbl); TraceIL($"  {op} L{lbl.GetHashCode():x}"); }
-            void EmitLb(OpCode op, LocalBuilder lb) { il.Emit(op, lb); TraceIL($"  {op} V_{lb.LocalIndex}"); }
+            // ─── wrappers ───
+            void E0(OpCode op) { il.Emit(op); T($"  {op}"); }
+            void EI(OpCode op, int arg) { il.Emit(op, arg); T($"  {op} {arg}"); }
+            void ER(OpCode op, double arg) { il.Emit(op, arg); T($"  {op} {arg}"); }
+            void EL(OpCode op, Label lbl) { il.Emit(op, lbl); T($"  {op} L{lbl.GetHashCode():x}"); }
+            void ELb(OpCode op, LocalBuilder lb) { il.Emit(op, lb); T($"  {op} V_{lb.LocalIndex}"); }
 
-            // legacy temps
+            // temps
             var tmp = il.DeclareLocal(typeof(double));
             var tmpI = il.DeclareLocal(typeof(int));
 
-            // ────────────────────────────────────────────────────────────────
-            //  LocalBuilder array from the plan
-            // ────────────────────────────────────────────────────────────────
+            // ─── locals array ───
             LocalBuilder[]? locals = null;
             if (_plan.LocalCount > 0)
             {
@@ -142,149 +131,171 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     locals[l] = il.DeclareLocal(typeof(double));
             }
 
-            bool useLocals = !ReuseLocals && locals != null;    // ← zero-reuse only
-
-            // placeholder binding table – will be used when ReuseLocals==true
+            bool zeroReuse = !ReuseLocals && locals != null;
             LocalBindingState? bind = ReuseLocals ? new LocalBindingState(_plan.LocalCount) : null;
 
-            // ------------------------------------------------------------------
-            //  Centralised helpers
-            // ------------------------------------------------------------------
-            void Load(int slot)
+            // ─── integer constants ───
+            void LdcI4(int v)
             {
-                // (1) live bound local (inactive for now)
-                if (bind != null &&
-                    _plan.SlotToLocal.TryGetValue(slot, out int l1) &&
-                    bind.IsBound(l1, slot))
+                switch (v)
                 {
-                    EmitLb(OpCodes.Ldloc, locals![l1]);
-                    return;
+                    case -1: E0(OpCodes.Ldc_I4_M1); return;
+                    case 0: E0(OpCodes.Ldc_I4_0); return;
+                    case 1: E0(OpCodes.Ldc_I4_1); return;
+                    case 2: E0(OpCodes.Ldc_I4_2); return;
+                    case 3: E0(OpCodes.Ldc_I4_3); return;
+                    case 4: E0(OpCodes.Ldc_I4_4); return;
+                    case 5: E0(OpCodes.Ldc_I4_5); return;
+                    case 6: E0(OpCodes.Ldc_I4_6); return;
+                    case 7: E0(OpCodes.Ldc_I4_7); return;
+                    case 8: E0(OpCodes.Ldc_I4_8); return;
                 }
-
-                // (2) zero-reuse dedicated local
-                if (!ReuseLocals && _plan.SlotToLocal.TryGetValue(slot, out int l2))
-                {
-                    EmitLb(OpCodes.Ldloc, locals![l2]);
-                    return;
-                }
-
-                // (3) fallback: vs[slot]
-                LoadVs(slot);
-            }
-
-            void Store(int slot)
-            {
-                EmitLb(OpCodes.Stloc, tmp); // pop → tmp
-
-                if (bind != null &&
-                    _plan.SlotToLocal.TryGetValue(slot, out int l1) &&
-                    bind.IsBound(l1, slot))
-                {
-                    EmitLb(OpCodes.Ldloc, tmp);
-                    EmitLb(OpCodes.Stloc, locals![l1]);
-                }
-                else if (!ReuseLocals && _plan.SlotToLocal.TryGetValue(slot, out int l2))
-                {
-                    EmitLb(OpCodes.Ldloc, tmp);
-                    EmitLb(OpCodes.Stloc, locals![l2]);
-                }
+                if (v >= sbyte.MinValue && v <= sbyte.MaxValue)
+                    EI(OpCodes.Ldc_I4_S, (sbyte)v);
                 else
-                {
-                    Emit0(OpCodes.Ldarg_0);       // vs
-                    LdcI4(slot);
-                    EmitLb(OpCodes.Ldloc, tmp);
-                    Emit0(OpCodes.Stelem_R8);
-                }
+                    EI(OpCodes.Ldc_I4, v);
+            }
+            void LdcR8(double d) => ER(OpCodes.Ldc_R8, d);
 
-                MarkWritten(slot);
+            // ─── ref-int helpers ───
+            void IncrementRefInt(int idx)
+            {
+                EI(OpCodes.Ldarg, idx);
+                E0(OpCodes.Dup);
+                E0(OpCodes.Ldind_I4);
+                E0(OpCodes.Ldc_I4_1);
+                E0(OpCodes.Add);
+                E0(OpCodes.Stind_I4);
+            }
+            void AdvanceRefInt(int idx, int delta)
+            {
+                if (delta == 0) return;
+                EI(OpCodes.Ldarg, idx);
+                E0(OpCodes.Dup);
+                E0(OpCodes.Ldind_I4);
+                LdcI4(delta);
+                E0(OpCodes.Add);
+                E0(OpCodes.Stind_I4);
             }
 
+            // ─── vs[] direct read ───
+            void LoadVs(int slot)
+            {
+                E0(OpCodes.Ldarg_0);
+                LdcI4(slot);
+                E0(OpCodes.Ldelem_R8);
+            }
+
+            // ─── Load / Store / MarkWritten ───
             void MarkWritten(int slot)
             {
                 if (bind != null && _plan.SlotToLocal.TryGetValue(slot, out int l))
                     bind.MarkWritten(l);
             }
 
-            // ------------------------------------------------------------------
-            //  Array helpers
-            // ------------------------------------------------------------------
-            void LdcI4(int v)
+            void Load(int slot)
             {
-                switch (v)
+                if (bind != null &&
+                    _plan.SlotToLocal.TryGetValue(slot, out int lb) &&
+                    bind.IsBound(lb, slot))
                 {
-                    case -1: Emit0(OpCodes.Ldc_I4_M1); return;
-                    case 0: Emit0(OpCodes.Ldc_I4_0); return;
-                    case 1: Emit0(OpCodes.Ldc_I4_1); return;
-                    case 2: Emit0(OpCodes.Ldc_I4_2); return;
-                    case 3: Emit0(OpCodes.Ldc_I4_3); return;
-                    case 4: Emit0(OpCodes.Ldc_I4_4); return;
-                    case 5: Emit0(OpCodes.Ldc_I4_5); return;
-                    case 6: Emit0(OpCodes.Ldc_I4_6); return;
-                    case 7: Emit0(OpCodes.Ldc_I4_7); return;
-                    case 8: Emit0(OpCodes.Ldc_I4_8); return;
+                    ELb(OpCodes.Ldloc, locals![lb]);
+                    return;
                 }
-                if (v >= sbyte.MinValue && v <= sbyte.MaxValue)
-                    EmitI(OpCodes.Ldc_I4_S, (sbyte)v);
+                if (zeroReuse && _plan.SlotToLocal.TryGetValue(slot, out int lz))
+                {
+                    ELb(OpCodes.Ldloc, locals![lz]);
+                    return;
+                }
+                LoadVs(slot);
+            }
+
+            void Store(int slot)
+            {
+                ELb(OpCodes.Stloc, tmp);   // pop → tmp
+
+                if (bind != null &&
+                    _plan.SlotToLocal.TryGetValue(slot, out int lb) &&
+                    bind.IsBound(lb, slot))
+                {
+                    ELb(OpCodes.Ldloc, tmp);
+                    ELb(OpCodes.Stloc, locals![lb]);
+                }
+                else if (zeroReuse && _plan.SlotToLocal.TryGetValue(slot, out int lz))
+                {
+                    ELb(OpCodes.Ldloc, tmp);
+                    ELb(OpCodes.Stloc, locals![lz]);
+                }
                 else
-                    EmitI(OpCodes.Ldc_I4, v);
+                {
+                    E0(OpCodes.Ldarg_0);
+                    LdcI4(slot);
+                    ELb(OpCodes.Ldloc, tmp);
+                    E0(OpCodes.Stelem_R8);
+                }
+                MarkWritten(slot);
             }
 
-            void LdcR8(double d) => EmitR(OpCodes.Ldc_R8, d);
-
-            void IncrementRefInt(int argIdx)
-            {
-                EmitI(OpCodes.Ldarg, argIdx);
-                Emit0(OpCodes.Dup);
-                Emit0(OpCodes.Ldind_I4);
-                Emit0(OpCodes.Ldc_I4_1);
-                Emit0(OpCodes.Add);
-                Emit0(OpCodes.Stind_I4);
-            }
-
-            void AdvanceRefInt(int argIdx, int delta)
-            {
-                if (delta == 0) return;
-                EmitI(OpCodes.Ldarg, argIdx);
-                Emit0(OpCodes.Dup);
-                Emit0(OpCodes.Ldind_I4);
-                LdcI4(delta);
-                Emit0(OpCodes.Add);
-                Emit0(OpCodes.Stind_I4);
-            }
-
-            void LoadVs(int idx)
-            {
-                Emit0(OpCodes.Ldarg_0);
-                LdcI4(idx);
-                Emit0(OpCodes.Ldelem_R8);
-            }
-
-            // ------------------------------------------------------------------
-            //  Pre-load dedicated locals (zero-reuse only)
-            // ------------------------------------------------------------------
-            if (useLocals)
+            // ─── preload dedicated locals (zero-reuse) ───
+            if (zeroReuse)
             {
                 foreach (var kv in _plan.SlotToLocal)
                 {
-                    Emit0(OpCodes.Ldarg_0);
+                    E0(OpCodes.Ldarg_0);
                     LdcI4(kv.Key);
-                    Emit0(OpCodes.Ldelem_R8);
-                    EmitLb(OpCodes.Stloc, locals![kv.Value]);
+                    E0(OpCodes.Ldelem_R8);
+                    ELb(OpCodes.Stloc, locals![kv.Value]);
                 }
             }
 
-            // ------------------------------------------------------------------
-            //  Main chunk body
-            // ------------------------------------------------------------------
-            var skipMap = PrecomputePointerSkips(chunk);
-            var ifStack = new Stack<(Label elseLbl, Label endLbl, int srcSkip, int dstSkip)>();
+            // ─── helpers for reuse mode ───
+            DepthMap? depthMap = null;
+            IntervalIndex? intervalIx = null;
+            if (ReuseLocals)
+            {
+                depthMap = new DepthMap(Commands.ToArray(), chunk.StartCommandRange, chunk.EndCommandRangeExclusive);
+                intervalIx = new IntervalIndex(_plan);
+            }
 
+            var skipMap = PrecomputePointerSkips(chunk);
+            var ifStack = new Stack<IfContext>();
+
+            // ------------------------------------------------------------------
+            //  Emit commands
+            // ------------------------------------------------------------------
             for (int ci = chunk.StartCommandRange; ci < chunk.EndCommandRangeExclusive; ci++)
             {
+                // ───── interval starts (reuse mode) ─────
+                if (ReuseLocals)
+                {
+                    int d = depthMap!.GetDepth(ci);
+                    foreach (int slot in intervalIx!.StartSlots(ci))
+                    {
+                        int local = _plan.SlotToLocal[slot];
+                        if (bind!.TryReuse(local, slot, d, out int flushSlot))
+                        {
+                            if (flushSlot != -1)
+                            {
+                                E0(OpCodes.Ldarg_0);
+                                LdcI4(flushSlot);
+                                ELb(OpCodes.Ldloc, locals![local]);
+                                E0(OpCodes.Stelem_R8);
+                            }
+                            E0(OpCodes.Ldarg_0);
+                            LdcI4(slot);
+                            E0(OpCodes.Ldelem_R8);
+                            ELb(OpCodes.Stloc, locals![local]);
+                            bind.StartInterval(slot, local, d);
+                        }
+                    }
+                }
+
                 var cmd = Commands[ci];
+
+                // ───── emit main op ─────
                 switch (cmd.CommandType)
                 {
-                    // ─────── writes / R-M-W ───────
+                    // ── writes / R-M-W ──
                     case ArrayCommandType.Zero:
                         LdcR8(0.0); Store(cmd.Index); break;
 
@@ -292,101 +303,91 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                         Load(cmd.SourceIndex); Store(cmd.Index); break;
 
                     case ArrayCommandType.NextSource:
-                        Emit0(OpCodes.Ldarg_1);        // os
-                        EmitI(OpCodes.Ldarg, 3);       // &cosi
-                        Emit0(OpCodes.Ldind_I4);
-                        Emit0(OpCodes.Ldelem_R8);
+                        E0(OpCodes.Ldarg_1);  // os
+                        EI(OpCodes.Ldarg, 3); E0(OpCodes.Ldind_I4); E0(OpCodes.Ldelem_R8);
                         Store(cmd.Index);
                         IncrementRefInt(3);
                         break;
 
                     case ArrayCommandType.MultiplyBy:
-                        Load(cmd.Index);
-                        Load(cmd.SourceIndex);
-                        Emit0(OpCodes.Mul);
-                        Store(cmd.Index);
-                        break;
-
+                        Load(cmd.Index); Load(cmd.SourceIndex); E0(OpCodes.Mul); Store(cmd.Index); break;
                     case ArrayCommandType.IncrementBy:
-                        Load(cmd.Index);
-                        Load(cmd.SourceIndex);
-                        Emit0(OpCodes.Add);
-                        Store(cmd.Index);
-                        break;
-
+                        Load(cmd.Index); Load(cmd.SourceIndex); E0(OpCodes.Add); Store(cmd.Index); break;
                     case ArrayCommandType.DecrementBy:
-                        Load(cmd.Index);
-                        Load(cmd.SourceIndex);
-                        Emit0(OpCodes.Sub);
-                        Store(cmd.Index);
-                        break;
+                        Load(cmd.Index); Load(cmd.SourceIndex); E0(OpCodes.Sub); Store(cmd.Index); break;
 
-                    // ─────── destination writes ───────
+                    // ── destination writes ──
                     case ArrayCommandType.NextDestination:
-                        Emit0(OpCodes.Ldarg_2);        // od
-                        EmitI(OpCodes.Ldarg, 4);       // &codi
-                        Emit0(OpCodes.Ldind_I4);
+                        E0(OpCodes.Ldarg_2);
+                        EI(OpCodes.Ldarg, 4); E0(OpCodes.Ldind_I4);
                         Load(cmd.SourceIndex);
-                        Emit0(OpCodes.Stelem_R8);
+                        E0(OpCodes.Stelem_R8);
                         IncrementRefInt(4);
                         break;
 
                     case ArrayCommandType.ReusedDestination:
-                        Emit0(OpCodes.Ldarg_2);
-                        LdcI4(cmd.Index);
-                        Emit0(OpCodes.Ldelem_R8);
-                        Load(cmd.SourceIndex);
-                        Emit0(OpCodes.Add);
-                        EmitLb(OpCodes.Stloc, tmp);
-                        Emit0(OpCodes.Ldarg_2);
-                        LdcI4(cmd.Index);
-                        EmitLb(OpCodes.Ldloc, tmp);
-                        Emit0(OpCodes.Stelem_R8);
+                        E0(OpCodes.Ldarg_2); LdcI4(cmd.Index); E0(OpCodes.Ldelem_R8);
+                        Load(cmd.SourceIndex); E0(OpCodes.Add); ELb(OpCodes.Stloc, tmp);
+                        E0(OpCodes.Ldarg_2); LdcI4(cmd.Index); ELb(OpCodes.Ldloc, tmp); E0(OpCodes.Stelem_R8);
                         break;
 
-                    // ─────── comparisons ───────
+                    // ── comparisons ──
                     case ArrayCommandType.EqualsOtherArrayIndex:
-                        Load(cmd.Index); Load(cmd.SourceIndex); Emit0(OpCodes.Ceq); StoreCond(false); break;
+                        Load(cmd.Index); Load(cmd.SourceIndex); E0(OpCodes.Ceq); StoreCond(false); break;
                     case ArrayCommandType.NotEqualsOtherArrayIndex:
-                        Load(cmd.Index); Load(cmd.SourceIndex); Emit0(OpCodes.Ceq); StoreCond(true); break;
+                        Load(cmd.Index); Load(cmd.SourceIndex); E0(OpCodes.Ceq); StoreCond(true); break;
                     case ArrayCommandType.GreaterThanOtherArrayIndex:
-                        Load(cmd.Index); Load(cmd.SourceIndex); Emit0(OpCodes.Cgt); StoreCond(false); break;
+                        Load(cmd.Index); Load(cmd.SourceIndex); E0(OpCodes.Cgt); StoreCond(false); break;
                     case ArrayCommandType.LessThanOtherArrayIndex:
-                        Load(cmd.Index); Load(cmd.SourceIndex); Emit0(OpCodes.Clt); StoreCond(false); break;
+                        Load(cmd.Index); Load(cmd.SourceIndex); E0(OpCodes.Clt); StoreCond(false); break;
                     case ArrayCommandType.EqualsValue:
-                        Load(cmd.Index); LdcR8(cmd.SourceIndex); Emit0(OpCodes.Ceq); StoreCond(false); break;
+                        Load(cmd.Index); LdcR8(cmd.SourceIndex); E0(OpCodes.Ceq); StoreCond(false); break;
                     case ArrayCommandType.NotEqualsValue:
-                        Load(cmd.Index); LdcR8(cmd.SourceIndex); Emit0(OpCodes.Ceq); StoreCond(true); break;
+                        Load(cmd.Index); LdcR8(cmd.SourceIndex); E0(OpCodes.Ceq); StoreCond(true); break;
 
-                    // ─────── control-flow ───────
+                    // ── control-flow ──
                     case ArrayCommandType.If:
                         {
                             var elseLbl = il.DefineLabel();
                             var endLbl = il.DefineLabel();
-
-                            EmitI(OpCodes.Ldarg, 5);
-                            Emit0(OpCodes.Ldind_I1);
-                            EmitL(OpCodes.Brfalse_S, elseLbl);
+                            EI(OpCodes.Ldarg, 5); E0(OpCodes.Ldind_I1); EL(OpCodes.Brfalse_S, elseLbl);
 
                             var sk = skipMap[ci];
-                            ifStack.Push((elseLbl, endLbl, sk.srcSkip, sk.dstSkip));
+                            bool[]? dirty = null;
+                            List<(int slot, int local)>? flushes = null;
+                            if (ReuseLocals)
+                            {
+                                dirty = new bool[_plan.LocalCount];
+                                flushes = new List<(int, int)>();
+                                for (int l = 0; l < _plan.LocalCount; l++)
+                                    dirty[l] = bind!.NeedsFlushBeforeReuse(l, out _);
+                            }
+                            ifStack.Push(new IfContext(elseLbl, endLbl, sk.srcSkip, sk.dstSkip, dirty, flushes));
                             break;
                         }
 
                     case ArrayCommandType.EndIf:
                         {
                             var ctx = ifStack.Pop();
-                            EmitL(OpCodes.Br_S, ctx.endLbl);
+                            EL(OpCodes.Br_S, ctx.EndLabel);
 
-                            il.MarkLabel(ctx.elseLbl);
-                            if (ctx.srcSkip > 0) AdvanceRefInt(3, ctx.srcSkip);
-                            if (ctx.dstSkip > 0) AdvanceRefInt(4, ctx.dstSkip);
+                            il.MarkLabel(ctx.ElseLabel);
+                            if (ctx.Flushes is not null)
+                            {
+                                foreach (var (slot, local) in ctx.Flushes)
+                                {
+                                    E0(OpCodes.Ldarg_0); LdcI4(slot);
+                                    ELb(OpCodes.Ldloc, locals![local]); E0(OpCodes.Stelem_R8);
+                                }
+                            }
+                            if (ctx.SrcSkip > 0) AdvanceRefInt(3, ctx.SrcSkip);
+                            if (ctx.DstSkip > 0) AdvanceRefInt(4, ctx.DstSkip);
 
-                            il.MarkLabel(ctx.endLbl);
+                            il.MarkLabel(ctx.EndLabel);
                             break;
                         }
 
-                    // ─────── no-ops ───────
+                    // ── no-ops ──
                     case ArrayCommandType.Comment:
                     case ArrayCommandType.Blank:
                         break;
@@ -394,44 +395,73 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     default:
                         throw new NotImplementedException(cmd.CommandType.ToString());
                 }
+
+                // ───── interval ends (reuse mode) ─────
+                if (ReuseLocals)
+                {
+                    foreach (int slot in intervalIx!.EndSlots(ci))
+                    {
+                        int local = _plan.SlotToLocal[slot];
+                        if (bind!.NeedsFlushBeforeReuse(local, out int bound) && bound == slot)
+                        {
+                            E0(OpCodes.Ldarg_0); LdcI4(slot); ELb(OpCodes.Ldloc, locals![local]); E0(OpCodes.Stelem_R8);
+                            foreach (var ctx in ifStack)
+                                if (ctx.DirtyBefore?[local] == true)
+                                    ctx.Flushes!.Add((slot, local));
+                            bind.FlushLocal(local);
+                        }
+                        bind.Release(local);
+                    }
+                }
             }
 
-            // ------------------------------------------------------------------
-            //  Tail-flush dedicated locals (zero-reuse only)
-            // ------------------------------------------------------------------
-            if (useLocals)
+            // ─── tail flush for zero-reuse ───
+            if (zeroReuse)
             {
                 foreach (var kv in _plan.SlotToLocal)
                 {
-                    Emit0(OpCodes.Ldarg_0);          // vs
-                    LdcI4(kv.Key);
-                    EmitLb(OpCodes.Ldloc, locals![kv.Value]);
-                    Emit0(OpCodes.Stelem_R8);
+                    E0(OpCodes.Ldarg_0); LdcI4(kv.Key); ELb(OpCodes.Ldloc, locals![kv.Value]); E0(OpCodes.Stelem_R8);
                 }
             }
 
-            Emit0(OpCodes.Ret);
+            E0(OpCodes.Ret);
             trace = sb?.ToString();
             return dm;
 
-            // helper – write TOS bool into *cond (possible inversion)
+            // helper – write bool TOS into *cond (invert option)
             void StoreCond(bool invert)
             {
-                if (invert)
-                {
-                    Emit0(OpCodes.Ldc_I4_0);
-                    Emit0(OpCodes.Ceq);
-                }
-
-                EmitLb(OpCodes.Stloc, tmpI);
-                EmitI(OpCodes.Ldarg, 5);
-                EmitLb(OpCodes.Ldloc, tmpI);
-                Emit0(OpCodes.Stind_I1);
+                if (invert) { E0(OpCodes.Ldc_I4_0); E0(OpCodes.Ceq); }
+                ELb(OpCodes.Stloc, tmpI);
+                EI(OpCodes.Ldarg, 5); ELb(OpCodes.Ldloc, tmpI); E0(OpCodes.Stind_I1);
             }
         }
 
         // =========================================================================
-        //  Utilities identical in spirit to RoslynChunkExecutor
+        //  IfContext
+        // =========================================================================
+        private sealed class IfContext
+        {
+            public readonly Label ElseLabel;
+            public readonly Label EndLabel;
+            public readonly int SrcSkip;
+            public readonly int DstSkip;
+            public readonly bool[]? DirtyBefore;
+            public readonly List<(int slot, int local)>? Flushes;
+
+            public IfContext(Label elseLbl, Label endLbl, int src, int dst, bool[]? dirty, List<(int, int)>? fl)
+            {
+                ElseLabel = elseLbl;
+                EndLabel = endLbl;
+                SrcSkip = src;
+                DstSkip = dst;
+                DirtyBefore = dirty;
+                Flushes = fl;
+            }
+        }
+
+        // =========================================================================
+        //  Utilities identical to RoslynChunkExecutor
         // =========================================================================
         private Dictionary<int, (int srcSkip, int dstSkip)>
             PrecomputePointerSkips(ArrayCommandChunk chunk)
@@ -447,18 +477,15 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                         stack.Push(i);
                         map[i] = (0, 0);
                         break;
-
                     case ArrayCommandType.EndIf:
                         stack.Pop();
                         break;
-
                     case ArrayCommandType.NextSource:
-                        foreach (var idx in stack)
+                        foreach (int idx in stack)
                             map[idx] = (map[idx].srcSkip + 1, map[idx].dstSkip);
                         break;
-
                     case ArrayCommandType.NextDestination:
-                        foreach (var idx in stack)
+                        foreach (int idx in stack)
                             map[idx] = (map[idx].srcSkip, map[idx].dstSkip + 1);
                         break;
                 }
@@ -466,11 +493,9 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             return map;
         }
 
-        // ======================================================================
-        //  Step 2-a scaffolding – minimal versions of Roslyn helpers
-        // ======================================================================
-
-        /// <summary>Lightweight depth map (syntactic If/EndIf nesting depth).</summary>
+        // =========================================================================
+        //  DepthMap & IntervalIndex (minimal versions)
+        // =========================================================================
         private sealed class DepthMap
         {
             private readonly int[] _depth;
@@ -480,20 +505,14 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 int d = 0;
                 for (int i = start; i < end; i++)
                 {
-                    if (cmds[i].CommandType == ArrayCommandType.EndIf)
-                        d--;
+                    if (cmds[i].CommandType == ArrayCommandType.EndIf) d--;
                     _depth[i] = d;
-                    if (cmds[i].CommandType == ArrayCommandType.If)
-                        d++;
+                    if (cmds[i].CommandType == ArrayCommandType.If) d++;
                 }
             }
             public int GetDepth(int i) => _depth[i];
         }
 
-        /// <summary>
-        /// Index of interval start/end slots for fast lookup during generation.
-        /// Only used once we enable local-reuse.
-        /// </summary>
         private sealed class IntervalIndex
         {
             private readonly Dictionary<int, List<int>> _starts = new();
@@ -510,11 +529,11 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 }
             }
 
-            public IEnumerable<int> StartSlots(int cmdIdx) =>
-                _starts.TryGetValue(cmdIdx, out var list) ? list : Enumerable.Empty<int>();
+            public IEnumerable<int> StartSlots(int idx) =>
+                _starts.TryGetValue(idx, out var l) ? l : Enumerable.Empty<int>();
 
-            public IEnumerable<int> EndSlots(int cmdIdx) =>
-                _ends.TryGetValue(cmdIdx, out var list) ? list : Enumerable.Empty<int>();
+            public IEnumerable<int> EndSlots(int idx) =>
+                _ends.TryGetValue(idx, out var l) ? l : Enumerable.Empty<int>();
         }
     }
 }
