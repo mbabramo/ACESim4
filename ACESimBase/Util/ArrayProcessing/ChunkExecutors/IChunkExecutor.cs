@@ -53,5 +53,11 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             ref int cosi,
             ref int codi,
             ref bool condition);
+
+        /// <summary>
+        /// If <c>true</c>, the executor will preserve the generated code
+        /// </summary>
+        bool PreserveGeneratedCode { get; set; }
+        string GeneratedCode { get; protected set; }
     }
 }

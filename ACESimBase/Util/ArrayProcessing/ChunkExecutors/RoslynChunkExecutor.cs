@@ -22,8 +22,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         private Type _cgType;
 
         public bool ReuseLocals { get; init; } = true;
-        public bool PreserveGeneratedCode { get; set; } = false;
-        public string GeneratedCode { get; private set; } = string.Empty;
 
         // ──────────────────────────────────────────────────────────────────────────────
         // Tracks data while we are inside an `if(cond){…}` block.

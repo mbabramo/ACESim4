@@ -9,6 +9,9 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
     public abstract class ChunkExecutorBase : IChunkExecutor
     {
 
+        public bool PreserveGeneratedCode { get; set; } = true;
+        public string GeneratedCode { get; set; } = string.Empty;
+
         private ArrayCommand[] UnderlyingCommands;
         private int StartIndex;
         private int EndIndexExclusive;

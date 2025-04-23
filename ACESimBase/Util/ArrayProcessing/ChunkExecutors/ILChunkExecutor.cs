@@ -24,10 +24,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 {
     internal sealed class ILChunkExecutor : ChunkExecutorBase
     {
-        // ───────── diagnostics ─────────
-        public bool PreserveGeneratedCode { get; set; } = true;
-        public string GeneratedCode { get; private set; } = string.Empty;
-
         // ───────── state ─────────
         private readonly List<ArrayCommandChunk> _queue = new();
         private readonly Dictionary<ArrayCommandChunk, ArrayCommandChunkDelegate> _compiled = new();
@@ -42,21 +38,35 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             if (_queue.Count == 0) return;
             if (PreserveGeneratedCode) _trace = new StringBuilder();
 
-            foreach (var ch in _queue)
+            try
             {
-                var dm = BuildDynamicMethod(ch, out var src);
-                _compiled[ch] = (ArrayCommandChunkDelegate)dm.CreateDelegate(typeof(ArrayCommandChunkDelegate));
-                if (PreserveGeneratedCode) _trace!.Append(src);
+                foreach (var ch in _queue)
+                {
+                    var dm = BuildDynamicMethod(ch, out var src);
+                    _compiled[ch] = (ArrayCommandChunkDelegate)dm.CreateDelegate(typeof(ArrayCommandChunkDelegate));
+                    if (PreserveGeneratedCode) _trace!.Append(src);
+                }
+                _queue.Clear();
+                if (PreserveGeneratedCode) GeneratedCode = _trace!.ToString();
             }
-            _queue.Clear();
-            if (PreserveGeneratedCode) GeneratedCode = _trace!.ToString();
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Error generating IL for chunk \n{_trace}", ex);
+            }
         }
 
         public override void Execute(ArrayCommandChunk ch, double[] vs, double[] os, double[] od, ref int cosi, ref int codi, ref bool cond)
         {
-            _compiled[ch](vs, os, od, ref cosi, ref codi, ref cond);
-            ch.StartSourceIndices += cosi;
-            ch.StartDestinationIndices += codi;
+            try
+            {
+                _compiled[ch](vs, os, od, ref cosi, ref codi, ref cond);
+                ch.StartSourceIndices += cosi;
+                ch.StartDestinationIndices += codi;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Error executing chunk {ch.StartCommandRange}-{ch.EndCommandRangeExclusive - 1}.\n{GeneratedCode}", ex);
+            }
         }
 
         // ─────────────────────────────────────────────────────────────────────
