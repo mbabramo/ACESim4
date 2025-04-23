@@ -1,12 +1,9 @@
-﻿// ILChunkExecutor.cs – step 4: slot-scoped locals with *zero reuse*
+﻿// ILChunkExecutor.cs – step 4 → step 5 pre‑refactor: helpers ready for local‑reuse
 // ----------------------------------------------------------------------------------
-//  Behaviour: when ReuseLocals == false we now map every VS slot that appears in the
-//  chunk to a dedicated IL local variable.  We preload those locals at entry, use
-//  them for *all* subsequent reads/writes via the centralised helpers, then flush
-//  them back to the vs[] array right before `ret`.  Because each slot has its own
-//  local there is no aliasing, so control-flow tracking is unnecessary.
-//
-//  The public flag is still *false* by default so external behaviour is identical.
+//  This version contains *only* Step 1 of the porting plan: a refactor of the
+//  Load / Store helpers so they are aware of LocalBindingState.  Behaviour is
+//  100 % identical when ReuseLocals == false, so the existing green tests keep
+//  passing.  No interval binding / depth logic has been activated yet.
 // ----------------------------------------------------------------------------------
 
 using System;
@@ -24,7 +21,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         private StringBuilder? _trace;
 
         // ──────────────────────────────────────────────────────────────────────────
-        //  Locals-reuse scaffolding
+        //  Locals‑reuse scaffolding
         // ──────────────────────────────────────────────────────────────────────────
         public bool ReuseLocals { get; init; } = false;
         private readonly LocalsAllocationPlan _plan;
@@ -39,7 +36,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         }
 
         // ----------------------------------------------------------------------
-        //  Chunk-generation public API
+        //  Chunk‑generation public API
         // ----------------------------------------------------------------------
         public override void AddToGeneration(ArrayCommandChunk chunk)
         {
@@ -91,7 +88,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         }
 
         // ----------------------------------------------------------------------
-        //  IL generation – slot-local mapping when ReuseLocals == false
+        //  IL generation – slot‑local mapping (zero‑reuse today, reuse coming)
         // ----------------------------------------------------------------------
         private DynamicMethod BuildDynamicMethod(ArrayCommandChunk chunk, out string? trace)
         {
@@ -138,27 +135,78 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
             bool useLocals = !ReuseLocals && locals != null;
 
+            // ────────────────────────────────────────────────────────────────
+            //  NEW: live‑binding state (only populated when ReuseLocals==true)
+            // ────────────────────────────────────────────────────────────────
+            LocalBindingState? bind = ReuseLocals ? new LocalBindingState(_plan.LocalCount) : null;
+
             // ------------------------------------------------------------------
-            //  Centralised helpers – consult _plan when useLocals == true
+            //  Centralised helpers – consult _plan *and* the live binding table
             // ------------------------------------------------------------------
             void Load(int slot)
             {
-                if (useLocals && _plan.SlotToLocal.TryGetValue(slot, out int l))
-                    EmitLb(OpCodes.Ldloc, locals![l]);
-                else
-                    LoadVs(slot);
+                // (1) reuse‑path – use currently‑bound local (if any)
+                if (bind != null &&
+                    _plan.SlotToLocal.TryGetValue(slot, out int l1) &&
+                    bind.IsBound(l1, slot))
+                {
+                    EmitLb(OpCodes.Ldloc, locals![l1]);
+                    return;
+                }
+
+                // (2) zero‑reuse path – dedicated local for the slot
+                if (!ReuseLocals && _plan.SlotToLocal.TryGetValue(slot, out int l2))
+                {
+                    EmitLb(OpCodes.Ldloc, locals![l2]);
+                    return;
+                }
+
+                // (3) fallback – read directly from vs[]
+                LoadVs(slot);
             }
 
             void Store(int slot)
             {
-                if (useLocals && _plan.SlotToLocal.TryGetValue(slot, out int l))
-                    EmitLb(OpCodes.Stloc, locals![l]);
-                else
-                    StoreVs(slot);
+                // pop → tmp
+                EmitLb(OpCodes.Stloc, tmp);
+
+                // (1) reuse‑path – write through the bound local if any
+                if (bind != null &&
+                    _plan.SlotToLocal.TryGetValue(slot, out int l1) &&
+                    bind.IsBound(l1, slot))
+                {
+                    EmitLb(OpCodes.Ldloc, tmp);
+                    EmitLb(OpCodes.Stloc, locals![l1]);
+                    MarkWritten(slot);
+                    return;
+                }
+
+                // (2) zero‑reuse path – dedicated local
+                if (!ReuseLocals && _plan.SlotToLocal.TryGetValue(slot, out int l2))
+                {
+                    EmitLb(OpCodes.Ldloc, tmp);
+                    EmitLb(OpCodes.Stloc, locals![l2]);
+                    MarkWritten(slot);
+                    return;
+                }
+
+                // (3) write directly to vs[]
+                Emit0(OpCodes.Ldarg_0);          // vs
+                LdcI4(slot);
+                EmitLb(OpCodes.Ldloc, tmp);
+                Emit0(OpCodes.Stelem_R8);
+                MarkWritten(slot);
+            }
+
+            void MarkWritten(int slot)
+            {
+                if (bind != null &&
+                    _plan.SlotToLocal.TryGetValue(slot, out int l))
+                    bind.MarkWritten(l);
             }
 
             // ------------------------------------------------------------------
-            //  Original helpers (array-based)
+            //  Original helpers (array‑based) – unchanged
             // ------------------------------------------------------------------
             void LdcI4(int v)
             {
@@ -221,7 +269,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             }
 
             // ------------------------------------------------------------------
-            //  Pre-load per-slot locals (only in zero-reuse mode)
+            //  Pre‑load per‑slot locals (only zero‑reuse mode)
             // ------------------------------------------------------------------
             if (useLocals)
             {
@@ -248,7 +296,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 var cmd = Commands[ci];
                 switch (cmd.CommandType)
                 {
-                    // ───────────────────── writes / R-M-W ─────────────────────
+                    // ───────────────────── writes / R‑M‑W ─────────────────────
                     case ArrayCommandType.Zero:
                         LdcR8(0.0);
                         Store(cmd.Index);
@@ -355,7 +403,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                         StoreCond(true);
                         break;
 
-                    // ───────────────────── control-flow ─────────────────────
+                    // ───────────────────── control‑flow ─────────────────────
                     case ArrayCommandType.If:
                         {
                             var elseLbl = il.DefineLabel();
@@ -385,7 +433,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                             break;
                         }
 
-                    // ignore
+                    // ignore (comments / blanks)
                     case ArrayCommandType.Comment:
                     case ArrayCommandType.Blank:
                         break;
@@ -396,7 +444,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             }
 
             // ------------------------------------------------------------------
-            //  Tail-flush all locals back to vs[] (only zero-reuse mode)
+            //  Tail‑flush locals back to vs[] (zero‑reuse mode only, unchanged)
             // ------------------------------------------------------------------
             if (useLocals)
             {
@@ -416,7 +464,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             trace = sb?.ToString();
             return dm;
 
-            // helper – writes the top-of-stack bool into *cond (possibly inverted)
+            // helper – writes the top‑of‑stack bool into *cond (possibly inverted)
             void StoreCond(bool invert)
             {
                 if (invert)

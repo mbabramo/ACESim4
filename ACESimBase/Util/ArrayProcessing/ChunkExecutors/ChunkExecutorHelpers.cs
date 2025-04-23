@@ -129,6 +129,12 @@ internal sealed class LocalBindingState
 
     /*──────────── public helpers expected by unit‑tests ────────────*/
 
+    /// <summary>
+    /// Returns <c>true</c> iff <paramref name="local"/> is *currently*
+    /// bound to <paramref name="slot"/>.
+    /// </summary>
+    public bool IsBound(int local, int slot) => _localToSlot[local] == slot;
+
     public void StartInterval(int slot, int local, int bindDepth)
         => Bind(local, slot, bindDepth);
 
