@@ -740,6 +740,18 @@ namespace ACESimTest.ArrayProcessingTests
     }
 
     [TestClass]
+    public class ChunkExecutorTests_ILWithPlanner : ChunkExecutorTestBase
+    {
+        protected override IChunkExecutor CreateExecutor() =>
+            ChunkExecutorFactory.Create(
+                ChunkExecutorKind.ILWithLocalVariableRecycling,
+                UnderlyingCommands,
+                0,
+                UnderlyingCommands.Length,
+                useCheckpoints: false);
+    }
+
+    [TestClass]
     public class ChunkExecutorTests_Roslyn : ChunkExecutorTestBase
     {
         protected override IChunkExecutor CreateExecutor() =>

@@ -71,12 +71,9 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
                 ChunkExecutorKind.RoslynWithLocalVariableRecycling => new RoslynChunkExecutor(commands, start, end, useCheckpoints, localVariableReuse: true),
 
-                // NOTE: The current ILChunkExecutor always performs depth‑aware local reuse.
-                //       If a non‑recycling variant is desired in the future, introduce a
-                //       dedicated implementation and update the mapping below.
-                ChunkExecutorKind.IL => new ILChunkExecutor(commands, start, end),
+                ChunkExecutorKind.IL => new ILChunkExecutor(commands, start, end, false),
 
-                ChunkExecutorKind.ILWithLocalVariableRecycling => throw new NotImplementedException(),
+                ChunkExecutorKind.ILWithLocalVariableRecycling => new ILChunkExecutor(commands, start, end, true),
 
                 _ => throw new ArgumentOutOfRangeException(nameof(kind))
             };

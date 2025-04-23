@@ -1,4 +1,4 @@
-﻿// ILChunkExecutor.cs
+﻿// ILChunkExecutor.cs – with locals-plan scaffolding (steps 1–2)
 
 using System;
 using System.Collections.Generic;
@@ -14,8 +14,22 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         private readonly Dictionary<ArrayCommandChunk, ArrayCommandChunkDelegate> _compiled = new();
         private StringBuilder? _trace;
 
-        public ILChunkExecutor(ArrayCommand[] cmds, int start, int end)
-            : base(cmds, start, end, false) { }
+        // ──────────────────────────────────────────────────────────────────────────
+        //  Locals-plan scaffolding (step 1)
+        // ──────────────────────────────────────────────────────────────────────────
+        public bool ReuseLocals { get; init; } = false;
+        private readonly LocalsAllocationPlan _plan;
+        // (step 2) we will populate IL locals later – kept here for future use
+        // private LocalBuilder[]? _locals;
+
+        public ILChunkExecutor(ArrayCommand[] cmds, int start, int end, bool localVariableReuse = false)
+            : base(cmds, start, end, false)
+        {
+            ReuseLocals = localVariableReuse;
+            _plan = ReuseLocals
+                ? LocalVariablePlanner.PlanLocals(cmds, start, end)
+                : LocalVariablePlanner.PlanNoReuse(cmds, start, end);
+        }
 
         public override void AddToGeneration(ArrayCommandChunk chunk)
         {
@@ -92,6 +106,19 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
             var tmp = il.DeclareLocal(typeof(double));
             var tmpI = il.DeclareLocal(typeof(int));
+
+            // ──────────────────────────────────────────────────────────────────
+            //  step 2: declare C# locals according to the allocation plan
+            //          (still unused, so we ignore the returned array)
+            // ──────────────────────────────────────────────────────────────────
+            if (_plan.LocalCount > 0)
+            {
+                var locals = new LocalBuilder[_plan.LocalCount];
+                for (int l = 0; l < _plan.LocalCount; l++)
+                    locals[l] = il.DeclareLocal(typeof(double));
+
+                _ = locals; // silence unused-variable warning – future steps will use this
+            }
 
             void LdcI4(int v)
             {
