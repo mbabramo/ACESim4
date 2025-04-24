@@ -145,7 +145,7 @@ namespace ACESimBase.Util.ArrayProcessing
             _currentPath.Add(branch);
         }
 
-        public void EndCommandChunk(int[]? copyIncrementsToParent = null, bool endingRepeatedChunk = false)
+        public void EndCommandChunk(int[] copyIncrementsToParent = null, bool endingRepeatedChunk = false)
         {
             if (_keepTogetherLevel > 0)
                 return;

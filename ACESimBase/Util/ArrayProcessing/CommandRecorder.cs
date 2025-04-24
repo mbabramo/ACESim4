@@ -278,14 +278,14 @@ namespace ACESimBase.Util.ArrayProcessing
 
         internal void StartCommandChunk(bool runChildrenParallel,
                                         int? identicalStartCmdRange,
-                                        string? name = null,
+                                        string name = null,
                                         bool ignoreKeepTogether = false) =>
             _acl.StartCommandChunk(runChildrenParallel,
                                    identicalStartCmdRange,
                                    name,
                                    ignoreKeepTogether);
 
-        internal void EndCommandChunk(int[]? copyToParent = null,
+        internal void EndCommandChunk(int[] copyToParent = null,
                                       bool endingRepeatedChunk = false) =>
             _acl.EndCommandChunk(copyToParent, endingRepeatedChunk);
 

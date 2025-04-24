@@ -252,7 +252,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             CodeBuilder cb,
             Dictionary<int, (int src, int dst)> skipMap,
             Stack<IfContext> ifStack,
-            LocalBindingState? bind)
+            LocalBindingState bind)
         {
             // Helper – mark the local dirty if we know which local owns <slot>
             void MarkWritten(int slot)

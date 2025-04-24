@@ -19,7 +19,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         private readonly Dictionary<ArrayCommandChunk, ArrayCommandChunkDelegate> _compiled = new();
         private readonly LocalsAllocationPlan _plan;
         private readonly IReadOnlyDictionary<int, int> _slotToLocal; // hot-path cache
-        private StringBuilder? _trace;
+        private StringBuilder _trace;
 
         public bool ReuseLocals { get; init; }
 
@@ -56,10 +56,10 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     var dm = BuildDynamicMethod(chunk, out var src);
                     _compiled[chunk] =
                         (ArrayCommandChunkDelegate)dm.CreateDelegate(typeof(ArrayCommandChunkDelegate));
-                    if (PreserveGeneratedCode) _trace!.Append(src);
+                    if (PreserveGeneratedCode && _trace != null) _trace.Append(src);
                 }
                 _pending.Clear();
-                if (PreserveGeneratedCode) GeneratedCode = _trace!.ToString();
+                if (PreserveGeneratedCode && _trace != null) GeneratedCode = _trace.ToString();
             }
             catch (Exception ex)
             {
@@ -88,7 +88,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         // ==================================================================
         //  IL generation
         // ==================================================================
-        private DynamicMethod BuildDynamicMethod(ArrayCommandChunk chunk, out string? trace)
+        private DynamicMethod BuildDynamicMethod(ArrayCommandChunk chunk, out string trace)
         {
             var dm = new DynamicMethod(
                 $"IL_{chunk.StartCommandRange}_{chunk.EndCommandRangeExclusive - 1}",
@@ -121,7 +121,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             var tmp = il.DeclareLocal(typeof(double));
             var tmpI = il.DeclareLocal(typeof(int));
 
-            LocalBuilder[]? locals = null;
+            LocalBuilder[] locals = null;
             if (_plan.LocalCount > 0)
             {
                 locals = new LocalBuilder[_plan.LocalCount];
@@ -196,12 +196,12 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             {
                 if (bind != null && slotMap.TryGetValue(slot, out var lR) && bind.IsBound(lR, slot))
                 {
-                    ELb(OpCodes.Ldloc, locals![lR]);
+                    ELb(OpCodes.Ldloc, locals[lR]);
                     return;
                 }
                 if (zeroReuse && slotMap.TryGetValue(slot, out var lZ))
                 {
-                    ELb(OpCodes.Ldloc, locals![lZ]);
+                    ELb(OpCodes.Ldloc, locals[lZ]);
                     return;
                 }
                 LoadVs(slot);
@@ -214,12 +214,12 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 if (bind != null && slotMap.TryGetValue(slot, out var lR) && bind.IsBound(lR, slot))
                 {
                     ELb(OpCodes.Ldloc, tmp);
-                    ELb(OpCodes.Stloc, locals![lR]);
+                    ELb(OpCodes.Stloc, locals[lR]);
                 }
                 else if (zeroReuse && slotMap.TryGetValue(slot, out var lZ))
                 {
                     ELb(OpCodes.Ldloc, tmp);
-                    ELb(OpCodes.Stloc, locals![lZ]);
+                    ELb(OpCodes.Stloc, locals[lZ]);
                 }
                 else
                 {
@@ -239,13 +239,13 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     E0(OpCodes.Ldarg_0);
                     LdcI4(kv.Key);
                     E0(OpCodes.Ldelem_R8);
-                    ELb(OpCodes.Stloc, locals![kv.Value]);
+                    ELb(OpCodes.Stloc, locals[kv.Value]);
                 }
             }
 
             /* reuse helpers -----------------------------------------------*/
-            DepthMap? depthMap = null;
-            IntervalIndex? intervalIx = null;
+            DepthMap depthMap = null;
+            IntervalIndex intervalIx = null;
             if (ReuseLocals)
             {
                 depthMap = new DepthMap(Commands.ToArray(), chunk.StartCommandRange, chunk.EndCommandRangeExclusive);
@@ -263,23 +263,23 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 // ---- interval starts (reuse) ----
                 if (ReuseLocals)
                 {
-                    int d = depthMap!.GetDepth(ci);
-                    foreach (int slot in intervalIx!.StartSlots(ci))
+                    int d = depthMap.GetDepth(ci);
+                    foreach (int slot in intervalIx.StartSlots(ci))
                     {
                         int local = slotMap[slot];
-                        if (bind!.TryReuse(local, slot, d, out int flushSlot))
+                        if (bind.TryReuse(local, slot, d, out int flushSlot))
                         {
                             if (flushSlot != -1)
                             {
                                 E0(OpCodes.Ldarg_0);
                                 LdcI4(flushSlot);
-                                ELb(OpCodes.Ldloc, locals![local]);
+                                ELb(OpCodes.Ldloc, locals[local]);
                                 E0(OpCodes.Stelem_R8);
                             }
                             E0(OpCodes.Ldarg_0);
                             LdcI4(slot);
                             E0(OpCodes.Ldelem_R8);
-                            ELb(OpCodes.Stloc, locals![local]);
+                            ELb(OpCodes.Stloc, locals[local]);
                             bind.StartInterval(slot, local, d);
                         }
                     }
@@ -350,15 +350,15 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                             EI(OpCodes.Ldarg, 5); E0(OpCodes.Ldind_I1); EL(OpCodes.Brfalse_S, elseLbl);
 
                             var sk = skipMap[ci];
-                            bool[]? dirty = null;
-                            List<(int slot, int local)>? flushes = null;
+                            bool[] dirty = null;
+                            List<(int slot, int local)> flushes = null;
 
                             if (ReuseLocals)
                             {
                                 dirty = new bool[_plan.LocalCount];
                                 flushes = new List<(int, int)>();
                                 for (int l = 0; l < _plan.LocalCount; l++)
-                                    dirty[l] = bind!.NeedsFlushBeforeReuse(l, out _);
+                                    dirty[l] = bind.NeedsFlushBeforeReuse(l, out _);
                             }
                             ifStack.Push(new IfContext(elseLbl, endLbl, sk.srcSkip, sk.dstSkip, dirty, flushes));
                             break;
@@ -371,10 +371,10 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
                             il.MarkLabel(ctx.ElseLabel);
                             if (ctx.Flushes != null)
-                                foreach (var (slot, local) in ctx.Flushes)
+                                foreach (var fl in ctx.Flushes)
                                 {
-                                    E0(OpCodes.Ldarg_0); LdcI4(slot);
-                                    ELb(OpCodes.Ldloc, locals![local]); E0(OpCodes.Stelem_R8);
+                                    E0(OpCodes.Ldarg_0); LdcI4(fl.slot);
+                                    ELb(OpCodes.Ldloc, locals[fl.local]); E0(OpCodes.Stelem_R8);
                                 }
 
                             if (ctx.SrcSkip > 0) AdvanceRefInt(3, ctx.SrcSkip);
@@ -396,16 +396,16 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 // ---- interval ends (reuse) ----
                 if (ReuseLocals)
                 {
-                    foreach (int slot in intervalIx!.EndSlots(ci))
+                    foreach (int slot in intervalIx.EndSlots(ci))
                     {
                         int local = slotMap[slot];
 
-                        if (bind!.NeedsFlushBeforeReuse(local, out int bound) && bound == slot)
+                        if (bind.NeedsFlushBeforeReuse(local, out int bound) && bound == slot)
                         {
-                            E0(OpCodes.Ldarg_0); LdcI4(slot); ELb(OpCodes.Ldloc, locals![local]); E0(OpCodes.Stelem_R8);
+                            E0(OpCodes.Ldarg_0); LdcI4(slot); ELb(OpCodes.Ldloc, locals[local]); E0(OpCodes.Stelem_R8);
                             foreach (var ctx in ifStack)
-                                if (ctx.DirtyBefore?[local] == true)
-                                    ctx.Flushes!.Add((slot, local));
+                                if (ctx.DirtyBefore != null && ctx.DirtyBefore[local])
+                                    ctx.Flushes.Add((slot, local));
                             bind.FlushLocal(local);
                         }
                         bind.Release(local);
@@ -418,7 +418,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             {
                 foreach (var kv in slotMap)
                 {
-                    E0(OpCodes.Ldarg_0); LdcI4(kv.Key); ELb(OpCodes.Ldloc, locals![kv.Value]); E0(OpCodes.Stelem_R8);
+                    E0(OpCodes.Ldarg_0); LdcI4(kv.Key); ELb(OpCodes.Ldloc, locals[kv.Value]); E0(OpCodes.Stelem_R8);
                 }
             }
 
@@ -444,11 +444,11 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             public readonly Label EndLabel;
             public readonly int SrcSkip;
             public readonly int DstSkip;
-            public readonly bool[]? DirtyBefore;
-            public readonly List<(int slot, int local)>? Flushes;
+            public readonly bool[] DirtyBefore;
+            public readonly List<(int slot, int local)> Flushes;
 
-            public IfContext(Label elseLbl, Label endLbl, int src, int dst, bool[]? dirty,
-                             List<(int, int)>? fl)
+            public IfContext(Label elseLbl, Label endLbl, int src, int dst, bool[] dirty,
+                             List<(int, int)> fl)
             {
                 ElseLabel = elseLbl;
                 EndLabel = endLbl;
