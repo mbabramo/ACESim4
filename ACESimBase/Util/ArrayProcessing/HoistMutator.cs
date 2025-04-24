@@ -232,7 +232,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 WrapSliceIntoLeaf(acl, split.Postfix);
 
             /* finally slice the big body inside the gate */
-            acl.SliceBodyIntoChildren(split.Gate);
+            SliceBodyIntoChildren(acl, split.Gate);
         }
 
 
@@ -315,8 +315,215 @@ namespace ACESimBase.Util.ArrayProcessing
 #endif
         }
 
+        // ═════════════════════════════════════════════════════════════
+        //  Internal helper – cut an If-body into ≤MaxCommandsPerChunk
+        // ═════════════════════════════════════════════════════════════
+        private static void SliceBodyIntoChildren(
+            ArrayCommandList acl,
+            NWayTreeStorageInternal<ArrayCommandChunk> gate)
+        {
+            /* locate the outermost If…EndIf inside this gate */
+            (int ifIdx, int endIfIdx) = FindBodySpan(acl, gate.StoredValue);
+            if (ifIdx < 0) return;
 
+            /* 1️⃣ slice the body and wire children under the gate */
+            var slices = CreateSlices(acl, gate, ifIdx, endIfIdx);
 
+            /* 2️⃣ ensure every node (gate + slices) has stack metadata */
+            BuildStackInfo(acl, gate, slices);
+
+            /* 3️⃣ add CopyIncrementsToParent where a slice owns its own stack */
+            AttachCopyLists(gate.StoredValue, slices);
+        }
+
+        /*──────────────────────── helper trio ───────────────────────*/
+
+        private static (int ifIdx, int endIfIdx) FindBodySpan(
+                ArrayCommandList acl, ArrayCommandChunk g)
+            => FindOutermostIf(acl, g.StartCommandRange, g.EndCommandRangeExclusive);
+
+        private static IList<NWayTreeStorageInternal<ArrayCommandChunk>> CreateSlices(
+                ArrayCommandList acl,
+                NWayTreeStorageInternal<ArrayCommandChunk> gate,
+                int ifIdx,
+                int endIfIdxExcl)
+        {
+            int bodyStart = ifIdx + 1, bodyEnd = endIfIdxExcl;           // EndIf excluded
+            if (bodyStart >= bodyEnd)
+                return Array.Empty<NWayTreeStorageInternal<ArrayCommandChunk>>();
+
+            var slices = new List<NWayTreeStorageInternal<ArrayCommandChunk>>();
+            var gInfo = gate.StoredValue;
+
+            // running ordered-source / ordered-dest pointers, inherited from gate
+            int curSrcIdx = gInfo.StartSourceIndices;
+            int curDstIdx = gInfo.StartDestinationIndices;
+
+            int slicePos = bodyStart;
+            byte bId = 1;                                           // 0 = prefix slice
+
+            while (slicePos < bodyEnd && bId < byte.MaxValue)
+            {
+                /* decide slice end, respecting nesting depth & MaxCommandsPerChunk */
+                int sliceEnd = FindSliceEnd(acl, slicePos, bodyEnd, acl.MaxCommandsPerChunk);
+
+                /* count buffer-pointer advances inside the slice */
+                int srcIncr = 0, dstIncr = 0;
+                for (int i = slicePos; i < sliceEnd; i++)
+                {
+                    var t = acl.UnderlyingCommands[i].CommandType;
+                    if (t == ArrayCommandType.NextSource) srcIncr++;
+                    if (t == ArrayCommandType.NextDestination) dstIncr++;
+                }
+
+                /* create child chunk and assign accurate pointer ranges */
+                var child = MakeChildChunk(acl, gate, gInfo, slicePos, sliceEnd);
+                var info = child.StoredValue;
+
+                info.RequiresPrivateStack = true;
+                info.StartSourceIndices = curSrcIdx;
+                info.EndSourceIndicesExclusive = curSrcIdx + srcIncr;
+                info.StartDestinationIndices = curDstIdx;
+                info.EndDestinationIndicesExclusive = curDstIdx + dstIncr;
+
+                gate.SetBranch(bId++, child);
+                slices.Add(child);
+
+                curSrcIdx += srcIncr;
+                curDstIdx += dstIncr;
+                slicePos = sliceEnd;
+            }
+
+            gInfo.EndCommandRangeExclusive = endIfIdxExcl + 1;
+            gInfo.LastChild = (byte)(bId - 1);
+            gInfo.Skip = false;          // gate must run once
+
+            return slices;
+        }
+
+        private static void BuildStackInfo(
+                ArrayCommandList acl,
+                NWayTreeStorageInternal<ArrayCommandChunk> gate,
+                IEnumerable<NWayTreeStorageInternal<ArrayCommandChunk>> slices)
+        {
+            acl.SetupVirtualStack(gate);
+            acl.SetupVirtualStackRelationships(gate);
+
+            foreach (var s in slices)
+            {
+                acl.SetupVirtualStack(s);
+                acl.SetupVirtualStackRelationships(s);
+            }
+        }
+
+        private static void AttachCopyLists(
+                ArrayCommandChunk gateInfo,
+                IList<NWayTreeStorageInternal<ArrayCommandChunk>> slices)
+        {
+            var unionForGate = new HashSet<int>();
+
+            foreach (var slice in slices)
+            {
+                var info = slice.StoredValue;
+
+                if (ReferenceEquals(info.VirtualStack, gateInfo.ParentVirtualStack))
+                    continue;                   // shared root stack → no merge list
+
+                bool sharesParent = ReferenceEquals(info.VirtualStack, info.ParentVirtualStack);
+                bool neverWrites = info.LastSetInStack == null;
+
+                if (sharesParent || info.ParentVirtualStack == null || neverWrites)
+                    continue;
+
+                var toCopy = new List<int>();
+                for (int i = 0; i < info.LastSetInStack.Length; i++)
+                    if (info.LastSetInStack[i] != null) toCopy.Add(i);
+
+                if (toCopy.Count == 0) continue;
+
+                info.CopyIncrementsToParent = toCopy.ToArray();
+                foreach (int idx in toCopy) unionForGate.Add(idx);
+            }
+
+            bool gateHasPrivateStack =
+                    gateInfo.ParentVirtualStack != null &&
+                   !ReferenceEquals(gateInfo.VirtualStack, gateInfo.ParentVirtualStack);
+
+            if (unionForGate.Count > 0 && gateHasPrivateStack)
+                gateInfo.CopyIncrementsToParent = unionForGate.ToArray();
+        }
+
+        /*──────────────────────── leaf helpers ──────────────────────*/
+
+        private static int FindSliceEnd(
+                ArrayCommandList acl, int sliceStart, int bodyEnd, int max)
+        {
+            int depth = 0, sliceEnd = sliceStart;
+            while (sliceEnd < bodyEnd)
+            {
+                var t = acl.UnderlyingCommands[sliceEnd].CommandType;
+                if (t == ArrayCommandType.If) depth++;
+                if (t == ArrayCommandType.EndIf) depth--;
+
+                sliceEnd++;
+
+                bool reachedMax = sliceEnd - sliceStart >= max;
+                bool atBoundary = depth == 0 && (reachedMax || sliceEnd == bodyEnd);
+                if (atBoundary) break;
+            }
+            return sliceEnd;
+        }
+
+        private static NWayTreeStorageInternal<ArrayCommandChunk> MakeChildChunk(
+                ArrayCommandList acl,
+                NWayTreeStorageInternal<ArrayCommandChunk> gate,
+                ArrayCommandChunk gInfo,
+                int sliceStart,
+                int sliceEnd)
+        {
+            var child = new NWayTreeStorageInternal<ArrayCommandChunk>(gate);
+            child.StoredValue = new ArrayCommandChunk
+            {
+                ChildrenParallelizable = false,
+                StartCommandRange = sliceStart,
+                EndCommandRangeExclusive = sliceEnd,
+
+                StartSourceIndices = gInfo.StartSourceIndices,
+                EndSourceIndicesExclusive = gInfo.EndSourceIndicesExclusive,
+                StartDestinationIndices = gInfo.StartDestinationIndices,
+                EndDestinationIndicesExclusive = gInfo.EndDestinationIndicesExclusive,
+
+                ExecId = acl.NextExecId()   // see accessor note below
+            };
+            return child;
+        }
+
+        private static (int ifIdx, int endIfIdx) FindOutermostIf(
+        ArrayCommandList acl, int fromCmd, int toCmd)
+        {
+            int depth = 0;
+            int ifIdx = -1;
+
+            var cmds = acl.UnderlyingCommands;
+
+            for (int i = fromCmd; i < toCmd; i++)
+            {
+                var t = cmds[i].CommandType;
+
+                if (t == ArrayCommandType.If)
+                {
+                    if (depth == 0 && ifIdx == -1) ifIdx = i;   // first outer-level If
+                    depth++;
+                }
+                else if (t == ArrayCommandType.EndIf)
+                {
+                    depth--;
+                    if (depth == 0 && ifIdx != -1)
+                        return (ifIdx, i);                      // found matching EndIf
+                }
+            }
+            return (-1, -1);                                    // no pair found
+        }
 
     }
 }

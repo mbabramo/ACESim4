@@ -104,6 +104,9 @@ namespace ACESimBase.Util.ArrayProcessing
             return target;
         }
 
+        public int[] CopyToNew(int[] sourceIndices, bool fromOriginalSources) =>
+    sourceIndices.Select(idx => CopyToNew(idx, fromOriginalSources)).ToArray();
+
         /// <summary>Multiply slot <paramref name="idx"/> by <paramref name="multIdx"/>.</summary>
         public void MultiplyBy(int idx, int multIdx) =>
             AddCommand(new ArrayCommand(ArrayCommandType.MultiplyBy, idx, multIdx));
@@ -296,6 +299,20 @@ namespace ACESimBase.Util.ArrayProcessing
 
         internal void RegisterDestinationIndex(int idx) =>
             _acl.OrderedDestinationIndices.Add(idx);
+
+        #endregion
+
+
+        #region Comments
+
+        public List<string> CommentTable = new List<string>();
+        public void InsertComment(string text)
+        {
+            int id = CommentTable.Count;
+            CommentTable.Add(text);
+            // we store the comment’s row‑id in SourceIndex
+            AddCommand(new ArrayCommand(ArrayCommandType.Comment, -1, id));
+        }
 
         #endregion
     }
