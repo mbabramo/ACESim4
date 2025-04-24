@@ -161,6 +161,12 @@ namespace ACESimBase.Util.ArrayProcessing
             if (_keepTogetherLevel > 0)
                 return;
 
+            if (_currentPath.Count == 0)
+            {
+                // We’re already at the root; nothing to pop or update.
+                return;
+            }
+
             var finished = CurrentChunk;
             finished.EndCommandRangeExclusive = NextCommandIndex;
             finished.EndSourceIndicesExclusive = OrderedSourceIndices.Count;
