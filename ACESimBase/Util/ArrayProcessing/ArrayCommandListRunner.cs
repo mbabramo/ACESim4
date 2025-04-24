@@ -14,6 +14,60 @@ using ACESimBase.Util.NWayTreeStorage;
 
 namespace ACESimBase.Util.ArrayProcessing
 {
+    using System.Collections.Generic;
+    using ACESimBase.Util.ArrayProcessing;
+    using ACESimBase.Util.ArrayProcessing.ChunkExecutors;
+    using ACESimBase.Util.NWayTreeStorage;
+
+    public static class ArrayCommandListRunnerExtensions
+    {
+        /// <summary>
+        /// Finalises <paramref name="acl"/>, builds an <see cref="IChunkExecutor"/>
+        /// (default = interpreter), compiles once, then executes.
+        /// </summary>
+        /// <param name="acl">Prepared command list.</param>
+        /// <param name="data">In-place data array.</param>
+        /// <param name="tracing">Trace flag (same meaning as the old ExecuteAll).</param>
+        /// <param name="kind">
+        ///     Executor backend; <c>null</c> ⇒ <see cref="ChunkExecutorKind.Interpreted"/>.
+        /// </param>
+        /// <param name="fallbackThreshold">
+        ///     Optional “small-chunk” threshold (routes short slices to an interpreter
+        ///     when a code-gen backend is chosen).
+        /// </param>
+        public static void ExecuteAll(
+            this ArrayCommandList acl,
+            double[] data,
+            bool tracing = false,
+            ChunkExecutorKind? kind = null,
+            int? fallbackThreshold = null)
+        {
+            // ❶  Bake the tree (hoisting & stack metadata)
+            if (acl.MaxCommandIndex == 0)
+                acl.CompleteCommandList();
+
+            // ❷  Collect all chunks
+            var chunks = new List<ArrayCommandChunk>();
+            acl.CommandTree!.WalkTree(n =>
+                chunks.Add(((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue));
+
+            // ❸  Create executor (interpreter is default)
+            var exec = ChunkExecutorFactory.Create(
+                kind ?? ChunkExecutorKind.Interpreted,
+                acl.UnderlyingCommands,
+                start: 0,
+                end: acl.MaxCommandIndex,
+                useCheckpoints: acl.UseCheckpoints,
+                fallbackThreshold: fallbackThreshold);        // optional
+
+            // ❹  Compile once and run
+            var runner = new ArrayCommandListRunner(chunks, exec);
+            runner.Run(acl, data, tracing);
+        }
+    }
+
+
+
     /// <summary>
     /// Orchestrates run‑time execution of an <see cref="ArrayCommandList"/>.
     /// The class is <b>stateless across runs</b> except for the executors it
@@ -32,8 +86,8 @@ namespace ACESimBase.Util.ArrayProcessing
         private int _globalSkipDepth = 0; // nested‑If skip counter
         private int _pendingSrcAdvance = 0;
         private int _pendingDstAdvance = 0;
-        public ArrayCommandListRunner(IChunkExecutor compiledExecutor,
-                                      IEnumerable<ArrayCommandChunk> commandChunks)
+
+        public ArrayCommandListRunner(IEnumerable<ArrayCommandChunk> commandChunks, IChunkExecutor compiledExecutor = null)
         {
             _compiled = compiledExecutor ?? throw new ArgumentNullException(nameof(compiledExecutor));
             foreach (var c in commandChunks)

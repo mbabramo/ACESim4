@@ -107,6 +107,19 @@ namespace ACESimBase.Util.ArrayProcessing
         public int[] CopyToNew(int[] sourceIndices, bool fromOriginalSources) =>
     sourceIndices.Select(idx => CopyToNew(idx, fromOriginalSources)).ToArray();
 
+        public void CopyToExisting(int index, int sourceIndex)
+        {
+            AddCommand(new ArrayCommand(ArrayCommandType.CopyTo, index, sourceIndex));
+        }
+
+        public void CopyToExisting(int[] indices, int[] sourceIndices)
+        {
+            for (int i = 0; i < indices.Length; i++)
+            {
+                CopyToExisting(indices[i], sourceIndices[i]);
+            }
+        }
+
         /// <summary>Multiply slot <paramref name="idx"/> by <paramref name="multIdx"/>.</summary>
         public void MultiplyBy(int idx, int multIdx) =>
             AddCommand(new ArrayCommand(ArrayCommandType.MultiplyBy, idx, multIdx));
