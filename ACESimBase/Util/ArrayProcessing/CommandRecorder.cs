@@ -5,33 +5,34 @@ using System.Linq;
 namespace ACESimBase.Util.ArrayProcessing
 {
     /// <summary>
-    /// Records commands, allocates scratch slots and manages author‑time state
-    /// for an owning <see cref="ArrayCommandList"/> instance.  After building is
-    /// complete the command list can be executed by <see cref="ArrayCommandListRunner"/>.
+    /// Records commands, allocates scratch slots and writes <see cref="ArrayCommand"/>
+    /// instances into the owning <see cref="ArrayCommandList"/>.  The class mirrors
+    /// the counters in the ACL while building, then hands off execution to
+    /// <see cref="ArrayCommandListRunner"/>.
+    /// <para><strong>Thread-safety:</strong> one <see cref="CommandRecorder"/> <em>must not</em>
+    /// be shared across threads; all members are unsynchronised.</para>
     /// </summary>
     public sealed class CommandRecorder
     {
         private readonly ArrayCommandList _acl;
 
-        // local author‑time counters (kept in sync with the ACL for introspection)
+        // Counters mirrored into the ACL for introspection / later execution
         private int _nextArrayIndex;
         private int _maxArrayIndex;
         private int _nextCommandIndex;
 
-        // depth‑based scratch rewind support
+        // Depth-based scratch rewind
         private readonly Stack<int> _depthStartSlots = new();
 
         public CommandRecorder(ArrayCommandList owner)
         {
             _acl = owner ?? throw new ArgumentNullException(nameof(owner));
-            _nextArrayIndex = _acl.NextArrayIndex;
-            _maxArrayIndex = _acl.MaxArrayIndex;
-            _nextCommandIndex = _acl.NextCommandIndex;
+            _nextArrayIndex = owner.NextArrayIndex;
+            _maxArrayIndex = owner.MaxArrayIndex;
+            _nextCommandIndex = owner.NextCommandIndex;
         }
 
-        // ───────────────────────────────────────────────────────────────────────────────
-        //  Helpers
-        // ───────────────────────────────────────────────────────────────────────────────
+        #region InternalHelpers
         private void SyncCounters()
         {
             _acl.NextArrayIndex = _nextArrayIndex;
@@ -41,7 +42,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         private void AddCommand(ArrayCommand cmd)
         {
-            // Support repeat‑identical‑range optimisation
+            // Repeat-identical-range optimisation → verify identity
             if (_acl.RepeatingExistingCommandRange)
             {
                 var existing = _acl.UnderlyingCommands[_nextCommandIndex];
@@ -52,20 +53,23 @@ namespace ACESimBase.Util.ArrayProcessing
                 return;
             }
 
-            // Ensure capacity
+            // Ensure capacity (hard ceiling = 1 billion commands to prevent OOM)
+            const int HARD_LIMIT = 1_000_000_000;
             if (_nextCommandIndex >= _acl.UnderlyingCommands.Length)
+            {
+                if (_acl.UnderlyingCommands.Length >= HARD_LIMIT)
+                    throw new InvalidOperationException("Command buffer exceeded hard limit.");
                 Array.Resize(ref _acl.UnderlyingCommands, _acl.UnderlyingCommands.Length * 2);
+            }
 
             _acl.UnderlyingCommands[_nextCommandIndex++] = cmd;
-
-            // Track highest scratch slot
-            if (_nextArrayIndex > _maxArrayIndex)
-                _maxArrayIndex = _nextArrayIndex;
-
+            if (_nextArrayIndex > _maxArrayIndex) _maxArrayIndex = _nextArrayIndex;
             SyncCounters();
         }
+        #endregion
 
-        // ─────────────────────────────────── scratch‑slot allocation ─────────────────────────────────────
+        #region ScratchAllocation
+        /// <summary>Create one scratch slot initialised to 0.</summary>
         public int NewZero()
         {
             int slot = _nextArrayIndex++;
@@ -73,23 +77,18 @@ namespace ACESimBase.Util.ArrayProcessing
             return slot;
         }
 
+        /// <summary>Create <paramref name="size"/> consecutive scratch slots initialised to 0.</summary>
+        public int[] NewZeroArray(int size) => Enumerable.Range(0, size).Select(_ => NewZero()).ToArray();
+
+        /// <summary>Reserve a scratch slot without initialising its value.</summary>
         public int NewUninitialized() => _nextArrayIndex++;
 
-        public int[] NewZeroArray(int size)
-        {
-            var arr = new int[size];
-            for (int i = 0; i < size; i++) arr[i] = NewZero();
-            return arr;
-        }
+        public int[] NewUninitializedArray(int size) =>
+            Enumerable.Range(0, size).Select(_ => NewUninitialized()).ToArray();
+        #endregion
 
-        public int[] NewUninitializedArray(int size)
-        {
-            var arr = new int[size];
-            for (int i = 0; i < size; i++) arr[i] = NewUninitialized();
-            return arr;
-        }
-
-        // ───────────────────────────────────── copy / arithmetic helpers ─────────────────────────────────
+        #region CopyArithmeticPrimitives
+        /// <summary>Copy value from <paramref name="sourceIdx"/> into a <em>new</em> scratch slot.</summary>
         public int CopyToNew(int sourceIdx, bool fromOriginalSources)
         {
             int target = _nextArrayIndex++;
@@ -105,26 +104,26 @@ namespace ACESimBase.Util.ArrayProcessing
             return target;
         }
 
-        public int[] CopyToNew(int[] srcs, bool fromOriginal)
-            => srcs.Select(s => CopyToNew(s, fromOriginal)).ToArray();
+        /// <summary>Multiply slot <paramref name="idx"/> by <paramref name="multIdx"/>.</summary>
+        public void MultiplyBy(int idx, int multIdx) =>
+            AddCommand(new ArrayCommand(ArrayCommandType.MultiplyBy, idx, multIdx));
 
-        public void MultiplyBy(int idx, int multIdx)
-            => AddCommand(new ArrayCommand(ArrayCommandType.MultiplyBy, idx, multIdx));
-
+        /// <summary>Increment or stage-increment slot <paramref name="idx"/> by value from <paramref name="incIdx"/>.</summary>
         public void Increment(int idx, bool targetOriginal, int incIdx)
         {
             if (targetOriginal && _acl.UseOrderedDestinations)
             {
                 if (_acl.ReuseDestinations &&
-                    _acl.ReusableOrderedDestinationIndices.TryGetValue(idx, out int existingOd))
+                    _acl.ReusableOrderedDestinationIndices.TryGetValue(idx, out int existing))
                 {
-                    AddCommand(new ArrayCommand(ArrayCommandType.ReusedDestination, existingOd, incIdx));
+                    AddCommand(new ArrayCommand(ArrayCommandType.ReusedDestination, existing, incIdx));
                 }
                 else
                 {
                     _acl.OrderedDestinationIndices.Add(idx);
                     if (_acl.ReuseDestinations)
-                        _acl.ReusableOrderedDestinationIndices[idx] = _acl.OrderedDestinationIndices.Count - 1;
+                        _acl.ReusableOrderedDestinationIndices[idx] =
+                            _acl.OrderedDestinationIndices.Count - 1;
                     AddCommand(new ArrayCommand(ArrayCommandType.NextDestination, -1, incIdx));
                 }
             }
@@ -134,40 +133,170 @@ namespace ACESimBase.Util.ArrayProcessing
             }
         }
 
-        public void Decrement(int idx, int decIdx)
-            => AddCommand(new ArrayCommand(ArrayCommandType.DecrementBy, idx, decIdx));
+        public void Decrement(int idx, int decIdx) =>
+            AddCommand(new ArrayCommand(ArrayCommandType.DecrementBy, idx, decIdx));
+        #endregion
 
-        // ───────────────────────────────────── flow‑control helpers ─────────────────────────────────────
-        public void InsertIf() => AddCommand(new ArrayCommand(ArrayCommandType.If, -1, -1));
-        public void InsertEndIf() => AddCommand(new ArrayCommand(ArrayCommandType.EndIf, -1, -1));
+        #region ZeroHelpers
+        public void ZeroExisting(int index) =>
+            AddCommand(new ArrayCommand(ArrayCommandType.Zero, index, -1));
 
-        // ───────────────────────────────────── depth management ─────────────────────────────────────────
-        public void IncrementDepth() => _depthStartSlots.Push(_nextArrayIndex);
-
-        public void DecrementDepth(bool completeCommandList = false)
+        public void ZeroExisting(int[] indices)
         {
-            if (_depthStartSlots.Count == 0)
-                throw new InvalidOperationException("DecrementDepth called without matching IncrementDepth");
+            foreach (var i in indices) ZeroExisting(i);
+        }
+        #endregion
 
+        #region ProduceNewSlotHelpers
+        public int AddToNew(int idx1, bool fromOriginalSources, int idx2)
+        {
+            int res = CopyToNew(idx1, fromOriginalSources);
+            Increment(res, false, idx2);
+            return res;
+        }
+
+        public int MultiplyToNew(int idx1, bool fromOriginalSources, int idx2)
+        {
+            int res = CopyToNew(idx1, fromOriginalSources);
+            MultiplyBy(res, idx2);
+            return res;
+        }
+        #endregion
+
+        #region ArrayArithmeticHelpers
+        private static void EnsureEqualLengths(string aName, int aLen,
+                                               string bName, int bLen)
+        {
+            if (aLen != bLen)
+                throw new ArgumentException(
+                    $"{aName} length {aLen} ≠ {bName} length {bLen}");
+        }
+
+        public void MultiplyArrayBy(int[] targets, int multiplierIdx)
+        {
+            foreach (var t in targets) MultiplyBy(t, multiplierIdx);
+        }
+
+        public void MultiplyArrayBy(int[] targets, int[] multipliers)
+        {
+            EnsureEqualLengths(nameof(targets), targets.Length,
+                               nameof(multipliers), multipliers.Length);
+            for (int i = 0; i < targets.Length; i++)
+                MultiplyBy(targets[i], multipliers[i]);
+        }
+
+        public void IncrementArrayBy(int[] targets, bool targetOriginals, int incIdx)
+        {
+            foreach (var t in targets) Increment(t, targetOriginals, incIdx);
+        }
+
+        public void IncrementArrayBy(int[] targets, bool targetOriginals, int[] incIdxs)
+        {
+            EnsureEqualLengths(nameof(targets), targets.Length,
+                               nameof(incIdxs), incIdxs.Length);
+            for (int i = 0; i < targets.Length; i++)
+                Increment(targets[i], targetOriginals, incIdxs[i]);
+        }
+
+        public void IncrementByProduct(int targetIdx, bool targetOriginal,
+                                       int factor1Idx, int factor2Idx,
+                                       bool reuseTmp = true)
+        {
+            int tmp = CopyToNew(factor1Idx, false);
+            MultiplyBy(tmp, factor2Idx);
+            Increment(targetIdx, targetOriginal, tmp);
+            if (reuseTmp && _acl.ReuseScratchSlots) _nextArrayIndex--; // reclaim
+        }
+
+        public void DecrementArrayBy(int[] targets, int decIdx)
+        {
+            foreach (var t in targets) Decrement(t, decIdx);
+        }
+
+        public void DecrementArrayBy(int[] targets, int[] decIdxs)
+        {
+            EnsureEqualLengths(nameof(targets), targets.Length,
+                               nameof(decIdxs), decIdxs.Length);
+            for (int i = 0; i < targets.Length; i++)
+                Decrement(targets[i], decIdxs[i]);
+        }
+
+        public void DecrementByProduct(int targetIdx, int factor1Idx, int factor2Idx,
+                                       bool reuseTmp = true)
+        {
+            int tmp = CopyToNew(factor1Idx, false);
+            MultiplyBy(tmp, factor2Idx);
+            Decrement(targetIdx, tmp);
+            if (reuseTmp && _acl.ReuseScratchSlots) _nextArrayIndex--; // reclaim
+        }
+        #endregion
+
+        #region ComparisonFlowControl
+        public void InsertIf() =>
+            AddCommand(new ArrayCommand(ArrayCommandType.If, -1, -1));
+
+        public void InsertEndIf() =>
+            AddCommand(new ArrayCommand(ArrayCommandType.EndIf, -1, -1));
+
+        public void InsertEqualsOtherArrayIndexCommand(int i1, int i2) =>
+            AddCommand(new ArrayCommand(ArrayCommandType.EqualsOtherArrayIndex, i1, i2));
+
+        public void InsertNotEqualsOtherArrayIndexCommand(int i1, int i2) =>
+            AddCommand(new ArrayCommand(ArrayCommandType.NotEqualsOtherArrayIndex, i1, i2));
+
+        public void InsertGreaterThanOtherArrayIndexCommand(int i1, int i2) =>
+            AddCommand(new ArrayCommand(ArrayCommandType.GreaterThanOtherArrayIndex, i1, i2));
+
+        public void InsertLessThanOtherArrayIndexCommand(int i1, int i2) =>
+            AddCommand(new ArrayCommand(ArrayCommandType.LessThanOtherArrayIndex, i1, i2));
+
+        public void InsertEqualsValueCommand(int idx, int v) =>
+    AddCommand(new ArrayCommand(ArrayCommandType.EqualsValue, idx, v));
+
+        public void InsertNotEqualsValueCommand(int idx, int v) =>
+            AddCommand(new ArrayCommand(ArrayCommandType.NotEqualsValue, idx, v));
+        #endregion  // ComparisonFlowControl
+
+
+        #region DepthAndChunkFacade   // (internal – builder-only)
+
+        internal void IncrementDepth() => _depthStartSlots.Push(_nextArrayIndex);
+
+        internal void DecrementDepth(bool completeCommandList = false)
+        {
             int rewind = _depthStartSlots.Pop();
             if (_acl.RepeatIdenticalRanges && _acl.ReuseScratchSlots)
                 _nextArrayIndex = rewind;
 
             SyncCounters();
-
             if (_depthStartSlots.Count == 0 && completeCommandList)
                 _acl.CompleteCommandList();
         }
 
-        // ───────────────────────────────────── chunk helpers (delegated) ────────────────────────────────
-        public void StartCommandChunk(bool runChildrenParallel, int? identicalStartCmdRange, string? name = null, bool ignoreKeepTogether = false)
-            => _acl.StartCommandChunk(runChildrenParallel, identicalStartCmdRange, name, ignoreKeepTogether);
+        internal void StartCommandChunk(bool runChildrenParallel,
+                                        int? identicalStartCmdRange,
+                                        string? name = null,
+                                        bool ignoreKeepTogether = false) =>
+            _acl.StartCommandChunk(runChildrenParallel,
+                                   identicalStartCmdRange,
+                                   name,
+                                   ignoreKeepTogether);
 
-        public void EndCommandChunk(int[]? copyIncrements = null, bool endingRepeatedChunk = false)
-            => _acl.EndCommandChunk(copyIncrements, endingRepeatedChunk);
+        internal void EndCommandChunk(int[]? copyToParent = null,
+                                      bool endingRepeatedChunk = false) =>
+            _acl.EndCommandChunk(copyToParent, endingRepeatedChunk);
 
-        // ───────────────────────────────── ordered‑buffer hooks (rarely used directly) ──────────────────
-        public void RegisterSourceIndex(int idx) => _acl.OrderedSourceIndices.Add(idx);
-        public void RegisterDestinationIndex(int idx) => _acl.OrderedDestinationIndices.Add(idx);
+        #endregion  // DepthAndChunkFacade
+
+
+        #region OrderedBufferHooks   // rarely used directly
+
+        internal void RegisterSourceIndex(int idx) =>
+            _acl.OrderedSourceIndices.Add(idx);
+
+        internal void RegisterDestinationIndex(int idx) =>
+            _acl.OrderedDestinationIndices.Add(idx);
+
+        #endregion
     }
 }
