@@ -190,7 +190,7 @@ namespace ACESimTest.ArrayProcessingTests
         private void MultiplyToNew()
         {
             int s = EnsureScratch();
-            int idx = _acl.MultiplyToNew(s, fromOriginalSources: false, index2: s);
+            int idx = _acl.MultiplyToNew(s, fromOriginalSources: false, idx2: s);
             _scratch.Add(idx);
         }
 

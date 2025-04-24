@@ -316,7 +316,7 @@ namespace ACESimBase.Util.ArrayProcessing
         #endregion
 
 
-        #region Comments
+        #region Comments and blank commands
 
         public List<string> CommentTable = new List<string>();
         public void InsertComment(string text)
@@ -325,6 +325,17 @@ namespace ACESimBase.Util.ArrayProcessing
             CommentTable.Add(text);
             // we store the comment’s row‑id in SourceIndex
             AddCommand(new ArrayCommand(ArrayCommandType.Comment, -1, id));
+        }
+
+        /// <summary>
+        /// Insert a placeholder “Blank” command and return its position in the command buffer
+        /// (note: this is a *command* index, not an array index).
+        /// </summary>
+        public int InsertBlankCommand()
+        {
+            int cmdIndex = _nextCommandIndex;                 // position before adding the blank
+            AddCommand(new ArrayCommand(ArrayCommandType.Blank, -1, -1));
+            return cmdIndex;
         }
 
         #endregion

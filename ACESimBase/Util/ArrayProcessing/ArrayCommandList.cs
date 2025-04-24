@@ -28,12 +28,13 @@ namespace ACESimBase.Util.ArrayProcessing
         public int FirstScratchIndex;
         public int NextArrayIndex;
         public int MaxArrayIndex;
+        public int FullArraySize => FirstScratchIndex + (DoParallel ? 0 : MaxArrayIndex);
 
         // ──────────────────────────────────────────────────────────────────────
         //  Ordered‑buffer index lists (filled at author‑time only)
         // ──────────────────────────────────────────────────────────────────────
-        public readonly List<int> OrderedSourceIndices = new();
-        public readonly List<int> OrderedDestinationIndices = new();
+        public List<int> OrderedSourceIndices = new();
+        public List<int> OrderedDestinationIndices = new();
         public Dictionary<int, int> ReusableOrderedDestinationIndices = new();
 
         // ──────────────────────────────────────────────────────────────────────
@@ -80,16 +81,16 @@ namespace ACESimBase.Util.ArrayProcessing
         // ──────────────────────────────────────────────────────────────────────
         private readonly Stack<int> _depthStartSlots = new();
         private readonly Stack<int?> _repeatRangeStack = new();
-        private bool _repeatingRange = false;
+        public bool RepeatingExistingCommandRange = false;
         private int _keepTogetherLevel = 0;
 
 
         // ──────────────────────────────────────────────────────────────────────
         //  Construction
         // ──────────────────────────────────────────────────────────────────────
-        public ArrayCommandList(int capacity, int initialArrayIndex, bool parallelize)
+        public ArrayCommandList(int maxNumCommands, int initialArrayIndex, bool parallelize)
         {
-            UnderlyingCommands = new ArrayCommand[capacity];
+            UnderlyingCommands = new ArrayCommand[maxNumCommands];
 
             FirstScratchIndex = initialArrayIndex;
             NextArrayIndex = initialArrayIndex;
@@ -125,16 +126,16 @@ namespace ACESimBase.Util.ArrayProcessing
         // ──────────────────────────────────────────────────────────────────────
         //  Chunk helpers
         // ──────────────────────────────────────────────────────────────────────
-        public void StartCommandChunk(bool runChildrenParallel, int? identicalStartRange, string name = "", bool ignoreKeepTogether = false)
+        public void StartCommandChunk(bool runChildrenInParallel, int? identicalStartCommandRange, string name = "", bool ignoreKeepTogether = false)
         {
             if (_keepTogetherLevel > 0 && !ignoreKeepTogether)
                 return;
 
-            if (RepeatIdenticalRanges && identicalStartRange is int identical)
+            if (RepeatIdenticalRanges && identicalStartCommandRange is int identical)
             {
                 _repeatRangeStack.Push(identical);
                 NextCommandIndex = identical;
-                _repeatingRange = true;
+                RepeatingExistingCommandRange = true;
             }
 
             var parent = CurrentNode;
@@ -144,7 +145,7 @@ namespace ACESimBase.Util.ArrayProcessing
             child.StoredValue = new ArrayCommandChunk
             {
                 Name = name,
-                ChildrenParallelizable = runChildrenParallel,
+                ChildrenParallelizable = runChildrenInParallel,
                 StartCommandRange = NextCommandIndex,
                 StartSourceIndices = OrderedSourceIndices.Count,
                 StartDestinationIndices = OrderedDestinationIndices.Count
@@ -175,7 +176,7 @@ namespace ACESimBase.Util.ArrayProcessing
             if (endingRepeatedChunk && RepeatIdenticalRanges && _repeatRangeStack.Any())
             {
                 _repeatRangeStack.Pop();
-                if (_repeatRangeStack.Count == 0) _repeatingRange = false;
+                if (_repeatRangeStack.Count == 0) RepeatingExistingCommandRange = false;
             }
         }
 
@@ -457,12 +458,12 @@ namespace ACESimBase.Util.ArrayProcessing
         public void MultiplyArrayBy(int[] targets, int[] multipliers) =>
             Recorder.MultiplyArrayBy(targets, multipliers);
 
-        public void Increment(int idx, bool targetOriginal, int incIdx) =>
-            Recorder.Increment(idx, targetOriginal, incIdx);
-        public void IncrementArrayBy(int[] targets, bool targetOriginals, int incIdx) =>
-            Recorder.IncrementArrayBy(targets, targetOriginals, incIdx);
-        public void IncrementArrayBy(int[] targets, bool targetOriginals, int[] incIdxs) =>
-            Recorder.IncrementArrayBy(targets, targetOriginals, incIdxs);
+        public void Increment(int idx, bool targetOriginal, int indexOfIncrement) =>
+            Recorder.Increment(idx, targetOriginal, indexOfIncrement);
+        public void IncrementArrayBy(int[] targets, bool targetOriginals, int indexOfIncrement) =>
+            Recorder.IncrementArrayBy(targets, targetOriginals, indexOfIncrement);
+        public void IncrementArrayBy(int[] targets, bool targetOriginals, int[] indicesOfIncrements) =>
+            Recorder.IncrementArrayBy(targets, targetOriginals, indicesOfIncrements);
         public void IncrementByProduct(int targetIdx, bool targetOriginal,
                                        int factor1Idx, int factor2Idx, bool reuseTmp = true) =>
             Recorder.IncrementByProduct(targetIdx, targetOriginal, factor1Idx, factor2Idx, reuseTmp);
@@ -493,6 +494,7 @@ namespace ACESimBase.Util.ArrayProcessing
             Recorder.InsertNotEqualsValueCommand(idx, v);
 
         public void InsertComment(string comment) => Recorder.InsertComment(comment);
+        public void InsertBlankCommand() => Recorder.InsertBlankCommand();
 
         #endregion
 

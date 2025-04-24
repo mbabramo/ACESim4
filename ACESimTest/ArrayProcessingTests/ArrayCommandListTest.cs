@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using ACESim.Util;
 using ACESimBase.Util.ArrayProcessing;
+using ACESimBase.Util.ArrayProcessing.ChunkExecutors;
 using ACESimBase.Util.Debugging;
 using ACESimBase.Util.NWayTreeStorage;
 using FluentAssertions;
@@ -105,7 +106,6 @@ namespace ACESimTest.ArrayProcessingTests
             const int initialArrayIndex = totalIndices;
             const int maxNumCommands = 100;
             var cl = new ArrayCommandList(maxNumCommands, initialArrayIndex, false);
-            cl.MinNumCommandsToCompile = 1;
             cl.StartCommandChunk(false, null, "Chunk");
 
             int[] copiedValues = cl.CopyToNew(sourceIndices, true);
@@ -167,7 +167,7 @@ namespace ACESimTest.ArrayProcessingTests
 
 
             cl.CompleteCommandList();
-            cl.ExecuteAll(sourceValues, false);
+            cl.ExecuteAll(sourceValues, false, ChunkExecutorKind.Roslyn);
             sourceValues[destinationIndicesStart + 1].Should().BeApproximately(681, 0.001);
         }
 
@@ -424,17 +424,6 @@ namespace ACESimTest.ArrayProcessingTests
                 Assert.IsFalse(hasEndIf,
                     "Leaf unexpectedly contains an EndIf token");
             });
-        }
-
-
-        [TestMethod]
-        public void EmitILAfterHoistNoException()
-        {
-            var acl = BuildSimpleACLWithHugeIf(bodySize: 25);
-            acl.CompleteCommandList();  // includes hoist
-
-            // Should *not* throw InvalidOperationException
-            acl.CompileCode();
         }
 
         [TestMethod]

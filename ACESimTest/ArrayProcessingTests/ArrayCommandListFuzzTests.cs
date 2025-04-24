@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using ACESimBase.Util.ArrayProcessing;
+using ACESimBase.Util.ArrayProcessing.ChunkExecutors;
 using ACESimBase.Util.Debugging;
 using ACESimBase.Util.NWayTreeStorage;
 using FluentAssertions;
@@ -54,11 +55,10 @@ namespace ACESimTest.ArrayProcessingTests
                     fuzzer.BuildRandomAcl(maxDepth, maxBody);
 
                     // 2) Compute the reference result *once* with the flat interpreter
-                    var interp = fuzzer.CloneFor(threshold: int.MaxValue, useRoslyn: false);
+                    var interp = fuzzer.CloneFor(threshold: int.MaxValue);
                     interp.DisableAdvancedFeatures = true;
-                    interp.MinNumCommandsToCompile = int.MaxValue;
                     double[] expected = fuzzer.MakeInitialData();
-                    interp.ExecuteAll(expected, tracing: false);
+                    interp.ExecuteAll(expected, false, ChunkExecutorKind.Interpreted, int.MaxValue);
 
                     // 3) Pick random thresholds to exercise the compiled path
                     int totalCmds = fuzzer.Acl.NextCommandIndex;
@@ -75,12 +75,12 @@ namespace ACESimTest.ArrayProcessingTests
                         TabbedText.WriteLine($"Stage {stage} of {Stages.Length}; Iteration {iter} of {iters}; Threshold {th}");
                         TabbedText.WriteLine(new string('-', 30));
 
-                        foreach (bool useRoslyn in new[] { true, false })
+                        foreach (ChunkExecutorKind kind in new ChunkExecutorKind[] { ChunkExecutorKind.Roslyn, ChunkExecutorKind.IL, ChunkExecutorKind.RoslynWithLocalVariableRecycling, ChunkExecutorKind.ILWithLocalVariableRecycling })
                         {
-                            var acl = fuzzer.CloneFor(th, useRoslyn);
+                            var acl = fuzzer.CloneFor(th);
 
                             double[] actual = fuzzer.MakeInitialData();
-                            acl.ExecuteAll(actual, tracing: false);
+                            acl.ExecuteAll(actual, false, kind, null);
 
                             int outputCount = fuzzer.OutputSize;
                             for (int idx = 0; idx < outputCount; idx++)
@@ -88,7 +88,7 @@ namespace ACESimTest.ArrayProcessingTests
                                 double tol = Math.Max(1e-9, Math.Abs(expected[idx]) / 1000.0);
                                 if (Math.Abs(expected[idx] - actual[idx]) > tol)
                                 {
-                                    Dump(seed, stage, th, useRoslyn, idx, expected[idx], actual[idx]);
+                                    Dump(seed, stage, th, idx, expected[idx], actual[idx]);
                                     Assert.Fail("Compiled result mismatch vs. interpreter baseline");
                                 }
                             }
@@ -98,9 +98,9 @@ namespace ACESimTest.ArrayProcessingTests
             }
         }
 
-        private static void Dump(int seed, int stage, int th, bool roslyn, int idx, double exp, double act)
+        private static void Dump(int seed, int stage, int th, int idx, double exp, double act)
         {
-            TabbedText.WriteLine($"FAIL seed={seed} stage={stage} th={th} roslyn={roslyn} idx={idx} exp={exp} act={act}");
+            TabbedText.WriteLine($"FAIL seed={seed} stage={stage} th={th} idx={idx} exp={exp} act={act}");
         }
     }
 
@@ -130,7 +130,6 @@ namespace ACESimTest.ArrayProcessingTests
 
             Acl = new ArrayCommandList(maxAlloc, DstStart + OrigCt, parallelize: false)
             {
-                MinNumCommandsToCompile = minCompile,
                 DisableAdvancedFeatures = false,
                 MaxCommandsPerChunk = 1_000_000 // keeps ReuseScratchSlots = false
             };
@@ -139,16 +138,14 @@ namespace ACESimTest.ArrayProcessingTests
             Acl.CompleteCommandList();
         }
 
-        public ArrayCommandList CloneFor(int threshold, bool useRoslyn)
+        public ArrayCommandList CloneFor(int threshold)
         {
             var clone = new ArrayCommandList(Acl.UnderlyingCommands.Length,
                                              DstStart + OrigCt,
                                              parallelize: false)
             {
                 DisableAdvancedFeatures = false,
-                MinNumCommandsToCompile = Acl.MinNumCommandsToCompile,
-                MaxCommandsPerChunk = threshold,     // << clone‑specific limit
-                UseRoslyn = useRoslyn
+                MaxCommandsPerChunk = threshold
             };
 
             /* 1️⃣  copy raw commands */
@@ -175,7 +172,7 @@ namespace ACESimTest.ArrayProcessingTests
                 StartDestinationIndices = 0
             };
 
-            clone.FinaliseCommandTree();               // ← key line
+            clone.FinaliseCommandTree();
 
             return clone;
         }
