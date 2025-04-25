@@ -245,7 +245,7 @@ namespace ACESimBase.Util.ArrayProcessing
         /// created by <see cref="SplitOversizeLeaf"/> when that slice still owns data‑
         /// bearing commands *and* now has child branches.
         /// </summary>
-        public static void WrapSliceIntoLeaf(
+        private static void WrapSliceIntoLeaf(
     ArrayCommandList acl,
     NWayTreeStorageInternal<ArrayCommandChunk> sliceParent)
         {

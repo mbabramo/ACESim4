@@ -277,16 +277,32 @@ namespace ACESimBase.Util.ArrayProcessing
             node.Branches = children.ToArray();
         }
 
+        /// <summary>
+        /// Hoist all oversize <c>If … EndIf</c> bodies until every executable
+        /// leaf is ≤ <see cref="MaxCommandsPerChunk"/>.  
+        /// The loop re-runs the planner after each mutation so newly created
+        /// slices are re-examined, guaranteeing convergence without deep recursion.
+        /// </summary>
         private void HoistAndSplitLargeIfBodies()
         {
-            if (MaxCommandsPerChunk == int.MaxValue) return;
+            // Fast-exit when hoisting is disabled
+            if (MaxCommandsPerChunk == int.MaxValue)
+                return;
 
-            var planner = new HoistPlanner(UnderlyingCommands, MaxCommandsPerChunk);
-            var plan = planner.BuildPlan(CommandTree);
-            if (plan.Count == 0) return;
+            // Keep planning / mutating until the planner reports “no work left”
+            while (true)
+            {
+                var planner = new HoistPlanner(UnderlyingCommands, MaxCommandsPerChunk);
+                var plan = planner.BuildPlan(CommandTree);
 
-            HoistMutator.ApplyPlan(this, plan);
+                if (plan.Count == 0)
+                    break;                          // ✅ tree fully compliant
+
+                HoistMutator.ApplyPlan(this, plan); // mutates CommandTree in-place
+            }
         }
+
+
 
         // ──────────────────────────────────────────────────────────────────────
         //  Virtual‑stack allocation and relationships

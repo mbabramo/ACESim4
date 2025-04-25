@@ -242,5 +242,31 @@ namespace ACESimTest.ArrayProcessingTests
                             stack.Push(child);
             }
         }
+
+        public static IEnumerable<string> DumpTree(ArrayCommandList acl)
+        {
+            if (acl?.CommandTree == null)
+                throw new ArgumentNullException(nameof(acl));
+
+            var list = new List<string>();
+
+            acl.CommandTree.WalkTree(nodeObj =>
+            {
+                var n = (NWayTreeStorageInternal<ArrayCommandChunk>)nodeObj;
+                var v = n.StoredValue;
+                var cmds = Enumerable.Range(v.StartCommandRange,
+                                            v.EndCommandRangeExclusive - v.StartCommandRange)
+                                     .Select(i => acl.UnderlyingCommands[i].CommandType.ToString())
+                                     .ToArray();
+                string cmdList = cmds.Length == 0 ? "-" : string.Join(",", cmds);
+
+                list.Add($"ID{v.ID}{(string.IsNullOrEmpty(v.Name) ? "" : $" {v.Name}")} "
+                       + $"[{v.StartCommandRange},{v.EndCommandRangeExclusive}) "
+                       + $"Children={n.Branches?.Count(b => b is not null) ?? 0} "
+                       + $"Cmds:{cmdList}");
+            });
+
+            return list;
+        }
     }
 }
