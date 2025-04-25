@@ -462,49 +462,32 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         // -----------------------------------------------------------------
         //  Utilities identical to RoslynChunkExecutor
         // -----------------------------------------------------------------
-        private Dictionary<int, (int srcSkip, int dstSkip)>
-        PrecomputePointerSkips(ArrayCommandChunk chunk)
+        private Dictionary<int, (int srcSkip, int dstSkip)> PrecomputePointerSkips(ArrayCommandChunk chunk)
         {
             var map = new Dictionary<int, (int srcSkip, int dstSkip)>();
-            var stack = new Stack<int>();          // holds command indices of open Ifs
-            int depth = 0;                         // current nesting level *inside*
-                                                   // the chunk (may start > 0)
+            var stack = new Stack<int>();
 
             for (int i = chunk.StartCommandRange; i < chunk.EndCommandRangeExclusive; i++)
             {
                 switch (Commands[i].CommandType)
                 {
-                    /* ── open a new outer-level If that starts *inside* this chunk ── */
                     case ArrayCommandType.If:
-                        depth++;
-                        stack.Push(i);             // remember the If’s position
-                        map[i] = (0, 0);           // initialise skip counters
+                        stack.Push(i);
+                        map[i] = (0, 0);
                         break;
-
-                    /* ── close an If ─────────────────────────────────────────────── */
                     case ArrayCommandType.EndIf:
-                        if (depth == 0)             // this EndIf closes an If that
-                            break;                  // started *before* the chunk → ignore
-                        depth--;
-                        stack.Pop();                // matched pair – safe to pop
+                        stack.Pop();
                         break;
-
-                    /* ── pointer advances inside a still-open If ─────────────────── */
                     case ArrayCommandType.NextSource:
-                        foreach (int idx in stack)
-                            map[idx] = (map[idx].srcSkip + 1, map[idx].dstSkip);
+                        foreach (int idx in stack) map[idx] = (map[idx].srcSkip + 1, map[idx].dstSkip);
                         break;
-
                     case ArrayCommandType.NextDestination:
-                        foreach (int idx in stack)
-                            map[idx] = (map[idx].srcSkip, map[idx].dstSkip + 1);
+                        foreach (int idx in stack) map[idx] = (map[idx].srcSkip, map[idx].dstSkip + 1);
                         break;
                 }
             }
-
             return map;
         }
-
 
         /* -------------------------------------------------------------- */
         /*  Minimal DepthMap & IntervalIndex                              */
