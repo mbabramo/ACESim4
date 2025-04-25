@@ -272,5 +272,21 @@ namespace ACESimTest.ArrayProcessingTests
 
             return list;
         }
+
+
+        //───────────────────────────────────────────────────────────────────────
+        //  🔍  Helper – locate the first Conditional gate in <acl>
+        //───────────────────────────────────────────────────────────────────────
+        public static NWayTreeStorageInternal<ArrayCommandChunk> FindFirstConditional(this ArrayCommandList acl)
+        {
+            NWayTreeStorageInternal<ArrayCommandChunk> gate = null;
+            acl.CommandTree.WalkTree(n =>
+            {
+                var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
+                if (node.StoredValue.Name == "Conditional" && gate == null)
+                    gate = node;
+            });
+            return gate;
+        }
     }
 }
