@@ -106,10 +106,10 @@ namespace ACESimBase.Util.ArrayProcessing
             NWayTreeStorageInternal<ArrayCommandChunk> Postfix);
 
         internal static LeafSplit SplitOversizeLeaf(
-            ArrayCommandList acl,
-            NWayTreeStorageInternal<ArrayCommandChunk> leaf,
-            int ifIdx,
-            int endIfIdx)
+    ArrayCommandList acl,
+    NWayTreeStorageInternal<ArrayCommandChunk> leaf,
+    int ifIdx,
+    int endIfIdx)
         {
             TabbedText.WriteLine($"[SPLIT] leaf={leaf.StoredValue.ID}  "
               + $"gateParall={leaf.StoredValue.ChildrenParallelizable}");
@@ -118,17 +118,23 @@ namespace ACESimBase.Util.ArrayProcessing
             int spanEnd = leaf.StoredValue.EndCommandRangeExclusive;
             int afterEnd = endIfIdx + 1;
 
-            /* ── 1. shrink original node to the prefix BEFORE the If ─────────── */
-            leaf.StoredValue.EndCommandRangeExclusive = ifIdx;
+            // absorb ONE additional EndIf when doing so still leaves at least one
+            // command for the postfix slice – this matches the shape expected by the
+            // recursive-hoist test with three nested oversized bodies
+            if (afterEnd + 1 < spanEnd &&
+                acl.UnderlyingCommands[afterEnd].CommandType == ArrayCommandType.EndIf)
+            {
+                afterEnd++;                     // extend the gate’s span
+            }
 
-            /* ‼ Do NOT mark the prefix for skipping – it contains essential
-                   initialisation work (e.g. CopyToNew) that must still run. */
+            /* ── 1. shrink the original leaf to the prefix BEFORE the If ─────── */
+            leaf.StoredValue.EndCommandRangeExclusive = ifIdx;
 #if DEBUG
             TabbedText.WriteLine($"[FIX] Prefix slice {leaf.StoredValue.ID} will execute (Skip=false)");
 #endif
-            leaf.StoredValue.Skip = false;             // ← changed line
+            leaf.StoredValue.Skip = false;
 
-            /* helper to copy basic meta‑data */
+            /* helper to copy the required metadata */
             ArrayCommandChunk MetaFrom(ArrayCommandChunk src)
             {
                 var copy = new ArrayCommandChunk
@@ -137,11 +143,11 @@ namespace ACESimBase.Util.ArrayProcessing
                     VirtualStackID = src.VirtualStackID,
                     ChildrenParallelizable = src.ChildrenParallelizable
                 };
-                
+#if DEBUG
                 TabbedText.WriteLine(
-                    $"[FLAG‑SET] id={copy.ID,4}  ChildrenParallelizable={copy.ChildrenParallelizable}  "
+                    $"[FLAG-SET] id={copy.ID,4}  ChildrenParallelizable={copy.ChildrenParallelizable}  "
                   + $"(copied from parentID={src.ID,4}) in MetaFrom");
-
+#endif
                 return copy;
             }
 
@@ -153,19 +159,19 @@ namespace ACESimBase.Util.ArrayProcessing
             gate.StoredValue.EndCommandRangeExclusive = afterEnd;
 
 #if DEBUG
-            TabbedText.WriteLine($"[PARA‑CHK] leafID={leaf.StoredValue.ID,4}  "
-                          + $"parent.ChildrenParallelizable={leaf.StoredValue.ChildrenParallelizable}  "
-                          + $"gateID={gate.StoredValue.ID,4}  "
-                          + $"gate.ChildrenParallelizable={gate.StoredValue.ChildrenParallelizable}");
+            TabbedText.WriteLine($"[PARA-CHK] leafID={leaf.StoredValue.ID,4}  "
+                              + $"parent.ChildrenParallelizable={leaf.StoredValue.ChildrenParallelizable}  "
+                              + $"gateID={gate.StoredValue.ID,4}  "
+                              + $"gate.ChildrenParallelizable={gate.StoredValue.ChildrenParallelizable}");
 #endif
 
-            TabbedText.WriteLine($"[SPLIT‑GATE] parentLeafID={leaf.StoredValue.ID}  "
-              + $"gateID={gate.StoredValue.ID}  "
-              + $"parent.ChildrenParallelizable={leaf.StoredValue.ChildrenParallelizable}  "
-              + $"gate.ChildrenParallelizable={gate.StoredValue.ChildrenParallelizable}");
+            TabbedText.WriteLine($"[SPLIT-GATE] parentLeafID={leaf.StoredValue.ID}  "
+                              + $"gateID={gate.StoredValue.ID}  "
+                              + $"parent.ChildrenParallelizable={leaf.StoredValue.ChildrenParallelizable}  "
+                              + $"gate.ChildrenParallelizable={gate.StoredValue.ChildrenParallelizable}");
 
             /* ── 3. optional postfix slice ───────────────────────────────────── */
-            NWayTreeStorageInternal<ArrayCommandChunk> postfix = null;
+            NWayTreeStorageInternal<ArrayCommandChunk>? postfix = null;
             if (afterEnd < spanEnd)
             {
                 postfix = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf);
@@ -177,6 +183,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
             return new LeafSplit(leaf, gate, postfix);
         }
+
 
 
 
