@@ -436,6 +436,7 @@ namespace ACESimTest.ArrayProcessingTests
                 ArrayProcessingTestHelpers.AssertLeafSizeUnder(acl, THRESHOLD);
             });
         }
+
         // ────────────────────────────────────────────────────────────────────────────
         //  ChildrenParallelizable_FlagPropagation
         // ────────────────────────────────────────────────────────────────────────────
