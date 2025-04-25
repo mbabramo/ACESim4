@@ -69,8 +69,8 @@ namespace ACESimTest.ArrayProcessingTests
         /// to form the entire program contained in one leaf.
         /// </summary>
         public static ArrayCommandList CreateStubAcl(
-            IList<ArrayCommand> cmds,
-            int maxCommandsPerChunk)
+    IList<ArrayCommand> cmds,
+    int maxCommandsPerChunk)
         {
             if (cmds is null) throw new ArgumentNullException(nameof(cmds));
 
@@ -82,7 +82,10 @@ namespace ACESimTest.ArrayProcessingTests
             acl.UnderlyingCommands = cmds.ToArray();
             acl.NextCommandIndex = cmds.Count;
             acl.MaxCommandIndex = cmds.Count;
-            acl.MaxArrayIndex = cmds.Max(c => Math.Max(c.GetSourceIndexIfUsed(), c.GetTargetIndexIfUsed()));
+
+            acl.MaxArrayIndex = cmds.Count > 0
+                ? cmds.Max(c => Math.Max(c.GetSourceIndexIfUsed(), c.GetTargetIndexIfUsed()))
+                : -1;                                        // no indices used when empty
 
             var root = new NWayTreeStorageInternal<ArrayCommandChunk>(null);
             root.StoredValue = new ArrayCommandChunk
@@ -94,6 +97,7 @@ namespace ACESimTest.ArrayProcessingTests
             acl.CommandTree = root;
             return acl;
         }
+
 
         /// <summary>
         /// Build and finalise a simple ACL that contains one oversize <c>If…EndIf</c>

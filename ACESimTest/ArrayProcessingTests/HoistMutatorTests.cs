@@ -11,11 +11,90 @@ namespace ACESimTest.ArrayProcessingTests
     [TestClass]
     public class HoistMutatorTests
     {
-        // -----------------------------------------------------------------------------
-        //  SimpleHoist  –  verifies the exact tree listing before and after hoisting
-        // -----------------------------------------------------------------------------
+        // ---------------------------------------------------------------------
+        //  EmptyCommandList_NoHoist  –  empty program should stay a single leaf
+        // ---------------------------------------------------------------------
         [TestMethod]
-        public void SimpleHoist()
+        public void EmptyCommandList_NoHoist()
+        {
+            ArrayProcessingTestHelpers.WithDeterministicIds(() =>
+            {
+                const int THRESHOLD = 2;
+                var acl = ArrayProcessingTestHelpers.CreateStubAcl(
+                    new List<ArrayCommand>(), THRESHOLD);
+
+                var expected = new[] { "ID0 [0,0) Children=0 Cmds:-" };
+                ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expected);
+
+                acl.FinaliseCommandTree();
+                ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expected);
+            });
+        }
+
+        // ---------------------------------------------------------------------
+        //  NoIfCommands_NoHoist  –  short list without If/EndIf needs no change
+        // ---------------------------------------------------------------------
+        [TestMethod]
+        public void NoIfCommands_NoHoist()
+        {
+            ArrayProcessingTestHelpers.WithDeterministicIds(() =>
+            {
+                const int THRESHOLD = 10;
+
+                var cmds = new List<ArrayCommand>
+                {
+                    new(ArrayCommandType.Zero,        0, -1),
+                    new(ArrayCommandType.IncrementBy, 0,  0)
+                };
+                var acl = ArrayProcessingTestHelpers.CreateStubAcl(cmds, THRESHOLD);
+
+                var expected = new[]
+                {
+                    "ID0 [0,2) Children=0 Cmds:Zero,IncrementBy"
+                };
+                ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expected);
+
+                acl.FinaliseCommandTree();
+                ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expected);
+            });
+        }
+
+        // ---------------------------------------------------------------------
+        //  SmallIfBody_BelowThreshold  –  body < threshold so hoist not applied
+        // ---------------------------------------------------------------------
+        [TestMethod]
+        public void SmallIfBody_BelowThreshold_NoHoist()
+        {
+            ArrayProcessingTestHelpers.WithDeterministicIds(() =>
+            {
+                const int THRESHOLD = 10;
+
+                var cmds = new List<ArrayCommand>
+                {
+                    new(ArrayCommandType.Zero,        0, -1),
+                    new(ArrayCommandType.EqualsValue, 0,  0),
+                    new(ArrayCommandType.If,         -1, -1),
+                    new(ArrayCommandType.IncrementBy, 0,  0),
+                    new(ArrayCommandType.EndIf,      -1, -1)
+                };
+                var acl = ArrayProcessingTestHelpers.CreateStubAcl(cmds, THRESHOLD);
+
+                var expected = new[]
+                {
+                    "ID0 [0,5) Children=0 Cmds:Zero,EqualsValue,If,IncrementBy,EndIf"
+                };
+                ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expected);
+
+                acl.FinaliseCommandTree();
+                ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expected);
+            });
+        }
+
+        // ---------------------------------------------------------------------
+        //  OversizeIfBody_HoistsAndSplits  –  verifies exact rewrite behaviour
+        // ---------------------------------------------------------------------
+        [TestMethod]
+        public void OversizeIfBody_HoistsAndSplits()
         {
             ArrayProcessingTestHelpers.WithDeterministicIds(() =>
             {
@@ -24,16 +103,16 @@ namespace ACESimTest.ArrayProcessingTests
                 const int THRESHOLD = 2;
 
                 var cmds = new List<ArrayCommand>
-        {
-            new(ArrayCommandType.Zero,        0,  -1),
-            new(ArrayCommandType.EqualsValue, 0,   0),
-            new(ArrayCommandType.If,         -1,  -1),
-            new(ArrayCommandType.IncrementBy, 0,   0),
-            new(ArrayCommandType.IncrementBy, 0,   0),
-            new(ArrayCommandType.IncrementBy, 0,   0),
-            new(ArrayCommandType.IncrementBy, 0,   0),
-            new(ArrayCommandType.EndIf,      -1,  -1)
-        };
+                {
+                    new(ArrayCommandType.Zero,        0,  -1),
+                    new(ArrayCommandType.EqualsValue, 0,   0),
+                    new(ArrayCommandType.If,         -1,  -1),
+                    new(ArrayCommandType.IncrementBy, 0,   0),
+                    new(ArrayCommandType.IncrementBy, 0,   0),
+                    new(ArrayCommandType.IncrementBy, 0,   0),
+                    new(ArrayCommandType.IncrementBy, 0,   0),
+                    new(ArrayCommandType.EndIf,      -1,  -1)
+                };
 
                 var acl = ArrayProcessingTestHelpers.CreateStubAcl(cmds, THRESHOLD);
 
@@ -42,9 +121,9 @@ namespace ACESimTest.ArrayProcessingTests
 
                 string[] expectedBefore =
                 {
-            // The root is an executable leaf because we have not run hoisting yet.
-            "ID0 [0,8) Children=0 Cmds:Zero,EqualsValue,If,IncrementBy,IncrementBy,IncrementBy,IncrementBy,EndIf"
-        };
+                    // The root is an executable leaf because we have not run hoisting yet.
+                    "ID0 [0,8) Children=0 Cmds:Zero,EqualsValue,If,IncrementBy,IncrementBy,IncrementBy,IncrementBy,EndIf"
+                };
 
                 before.Should().Equal(
                     expectedBefore,
@@ -71,23 +150,17 @@ namespace ACESimTest.ArrayProcessingTests
                  */
                 string[] expectedAfter =
                 {
-            "ID0 .container [2,2) Children=2 Cmds:-",
-            "ID3 .leaf [0,2) Children=0 Cmds:Zero,EqualsValue",
-            "ID2 Conditional [2,8) Children=2 Cmds:If,IncrementBy,IncrementBy,IncrementBy,IncrementBy,EndIf",
-            "ID4 [3,5) Children=0 Cmds:IncrementBy,IncrementBy",
-            "ID5 [5,7) Children=0 Cmds:IncrementBy,IncrementBy"
-        };
+                    "ID0 .container [2,2) Children=2 Cmds:-",
+                    "ID3 .leaf [0,2) Children=0 Cmds:Zero,EqualsValue",
+                    "ID2 Conditional [2,8) Children=2 Cmds:If,IncrementBy,IncrementBy,IncrementBy,IncrementBy,EndIf",
+                    "ID4 [3,5) Children=0 Cmds:IncrementBy,IncrementBy",
+                    "ID5 [5,7) Children=0 Cmds:IncrementBy,IncrementBy"
+                };
 
                 after.Should().Equal(
                     expectedAfter,
                     "hoisting should rewrite the tree exactly as specified");
             });
         }
-
-
-
-
-
-
     }
 }
