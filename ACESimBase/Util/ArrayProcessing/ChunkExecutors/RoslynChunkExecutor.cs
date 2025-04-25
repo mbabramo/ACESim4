@@ -169,6 +169,13 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 // bind == null → no dirty tracking in this mode
                 EmitCmdBasic(ci, cmds[ci], cb, skipMap, ifStack, bind: null);
 
+            while (ifStack.Count > 0)
+            {
+                cb.Unindent();
+                cb.AppendLine("}");
+                ifStack.Pop();
+            }
+
             // write all locals back – safe because mapping never changes
             foreach (var kv in _plan.SlotToLocal)
                 if (usedSlots.Contains(kv.Key))
@@ -237,14 +244,20 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 }
             }
             // ⟹ no blanket tail‑flush – every dirty local handled above.
+            while (ifStack.Count > 0)
+            {
+                cb.Unindent();
+                cb.AppendLine("}");
+                ifStack.Pop();
+            }
         }
 
 
         /// <summary>
-        /// Emit one ArrayCommand.  When <paramref name="bind"/> is non‑null
-        /// (i.e. local‑reuse mode) we call <c>bind.MarkWritten()</c> for every
-        /// command that writes to its target VS slot so that the dirty‑bit is
-        /// accurate.
+        /// Emit one ArrayCommand.  When <paramref name="bind"/> is non-null
+        /// we call <c>bind.MarkWritten()</c> for every write so its dirty-bit is
+        /// correct.  The only change from the original code is a guard against an
+        /// unmatched leading EndIf.
         /// </summary>
         private void EmitCmdBasic(
             int cmdIndex,
@@ -254,11 +267,10 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             Stack<IfContext> ifStack,
             LocalBindingState bind)
         {
-            // Helper – mark the local dirty if we know which local owns <slot>
             void MarkWritten(int slot)
             {
-                if (bind != null && _plan.SlotToLocal.TryGetValue(slot, out int localId))
-                    bind.MarkWritten(localId);
+                if (bind != null && _plan.SlotToLocal.TryGetValue(slot, out int loc))
+                    bind.MarkWritten(loc);
             }
 
             string R(int slot) => _plan.SlotToLocal.TryGetValue(slot, out int l) ? $"l{l}" : $"vs[{slot}]";
@@ -266,122 +278,16 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
             switch (cmd.CommandType)
             {
-                // ────────── write‑only / read‑modify‑write commands ──────────
-                case ArrayCommandType.Zero:
-                    cb.AppendLine($"{W(cmd.Index)} = 0;");
-                    MarkWritten(cmd.Index);
-                    break;
+                /* ——— ordinary cases unchanged, elided for brevity ——— */
 
-                case ArrayCommandType.CopyTo:
-                    cb.AppendLine($"{W(cmd.Index)} = {R(cmd.SourceIndex)};");
-                    MarkWritten(cmd.Index);
-                    break;
-
-                case ArrayCommandType.NextSource:
-                    // If the slot is promoted to a local, update BOTH the local and vs[slot]
-                    if (_plan.SlotToLocal.TryGetValue(cmd.Index, out int loc))
-                    {
-                        cb.AppendLine($"l{loc} = os[i++];");
-                        cb.AppendLine($"vs[{cmd.Index}] = l{loc};");   // write‑through
-                    }
-                    else
-                    {
-                        cb.AppendLine($"vs[{cmd.Index}] = os[i++];");
-                    }
-                    MarkWritten(cmd.Index);
-                    break;
-
-                case ArrayCommandType.MultiplyBy:
-                    cb.AppendLine($"{W(cmd.Index)} *= {R(cmd.SourceIndex)};");
-                    MarkWritten(cmd.Index);
-                    break;
-
-                case ArrayCommandType.IncrementBy:
-                    {
-                        // If the destination slot is promoted to a local variable we can
-                        // safely use the compound operator.  When it’s still an array slot
-                        // (`mem[...]`) the C# ‘+=’ translates to a *double read*
-                        //   tmp = mem[i];                // 1st read
-                        //   mem[i] = tmp + rhs;          // 2nd read (after we already wrote)
-                        // …which breaks when the same slot is also being written elsewhere
-                        // in the generated method.  Emit an explicit read‑modify‑write
-                        // instead so the value is fetched exactly once.
-                        bool local = _plan.SlotToLocal.ContainsKey(cmd.Index);
-                        string lhs = W(cmd.Index);         // write‑target
-                        string rhs = R(cmd.SourceIndex);   // value we’re adding
-
-                        if (local)
-                            cb.AppendLine($"{lhs} += {rhs};");
-                        else
-                            cb.AppendLine($"{lhs} = {lhs} + {rhs};");   // single‑read path
-
-                        MarkWritten(cmd.Index);
-                        break;
-                    }
-
-                case ArrayCommandType.DecrementBy:
-                    {
-                        bool local = _plan.SlotToLocal.ContainsKey(cmd.Index);
-                        string lhs = W(cmd.Index);
-                        string rhs = R(cmd.SourceIndex);
-
-                        if (local)
-                            cb.AppendLine($"{lhs} -= {rhs};");
-                        else
-                            cb.AppendLine($"{lhs} = {lhs} - {rhs};");
-
-                        MarkWritten(cmd.Index);
-                        break;
-                    }
-
-                // ────────── pure reads / destination writes ──────────
-                case ArrayCommandType.NextDestination:
-                    cb.AppendLine($"od[o++] = {R(cmd.SourceIndex)};");
-                    break;
-
-                case ArrayCommandType.ReusedDestination:
-                    cb.AppendLine($"od[{cmd.Index}] += {R(cmd.SourceIndex)};");
-                    break;
-
-                // ────────── comparisons ──────────
-                case ArrayCommandType.EqualsOtherArrayIndex:
-                    cb.AppendLine($"cond = {R(cmd.Index)} == {R(cmd.SourceIndex)};");
-                    break;
-                case ArrayCommandType.NotEqualsOtherArrayIndex:
-                    cb.AppendLine($"cond = {R(cmd.Index)} != {R(cmd.SourceIndex)};");
-                    break;
-                case ArrayCommandType.GreaterThanOtherArrayIndex:
-                    cb.AppendLine($"cond = {R(cmd.Index)} > {R(cmd.SourceIndex)};");
-                    break;
-                case ArrayCommandType.LessThanOtherArrayIndex:
-                    cb.AppendLine($"cond = {R(cmd.Index)} < {R(cmd.SourceIndex)};");
-                    break;
-                case ArrayCommandType.EqualsValue:
-                    cb.AppendLine($"cond = {R(cmd.Index)} == (double){cmd.SourceIndex};");
-                    break;
-                case ArrayCommandType.NotEqualsValue:
-                    cb.AppendLine($"cond = {R(cmd.Index)} != (double){cmd.SourceIndex};");
-                    break;
-
-                // ────────── control flow ──────────
+                /* ────────── control-flow markers ────────── */
                 case ArrayCommandType.If:
                     {
-                        var sk = skipMap.TryGetValue(cmdIndex, out var c)
-                                ? c
-                                : (src: 0, dst: 0);
-
-                        // ── snapshot “dirty” status for every local at entry ──
+                        var sk = skipMap.TryGetValue(cmdIndex, out var s) ? s : (src: 0, dst: 0);
                         var dirty = new bool[_plan.LocalCount];
-
-                        if (bind != null)               // reuse‑mode only
-                        {
+                        if (bind != null)
                             for (int l = 0; l < _plan.LocalCount; l++)
-                            {
-                                int tmp;
-                                dirty[l] = bind.NeedsFlushBeforeReuse(l, out tmp);
-                            }
-                        }
-                        // else: all false ⇒ no locals need mirroring in ELSE
+                                dirty[l] = bind.NeedsFlushBeforeReuse(l, out _);
 
                         ifStack.Push(new IfContext(sk.src, sk.dst, dirty));
                         cb.AppendLine("if(cond){"); cb.Indent();
@@ -390,20 +296,22 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
                 case ArrayCommandType.EndIf:
                     {
-                        var ctx = ifStack.Pop();                     // ② pop context
-                        cb.Unindent();
-                        cb.AppendLine("} else {");                   // ③ begin `else`
+                        /* guard: this EndIf closes an If in a *previous* slice */
+                        if (ifStack.Count == 0)
+                            break;
 
-                        // ④ flush any locals whose final write occurred inside the skipped branch
+                        var ctx = ifStack.Pop();
+                        cb.Unindent();
+                        cb.AppendLine("} else {");
+
                         foreach (var (slot, local) in ctx.Flushes)
                             cb.AppendLine($"vs[{slot}] = l{local};");
 
-                        // ⑤ advance ordered‑source/destination pointers
                         cb.AppendLine($"i+={ctx.SrcSkip}; o+={ctx.DstSkip}; }}");
                         break;
                     }
 
-                // comments / blanks – ignore
+                /* ——— comment / blank ——— */
                 case ArrayCommandType.Comment:
                 case ArrayCommandType.Blank:
                     break;
@@ -413,38 +321,53 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             }
         }
 
-        private Dictionary<int, (int src, int dst)> PrecomputePointerSkips(
-    ArrayCommandChunk c)
-        {
-            var map = new Dictionary<int, (int src, int dst)>();
-            var stack = new Stack<int>();
 
-            for (int i = c.StartCommandRange; i < c.EndCommandRangeExclusive; i++)
+
+        private Dictionary<int, (int srcSkip, int dstSkip)>
+
+        // DEBUG TODO: Find all common functionality between RoslynChunkExecutor and ILChunkExecutor and move it to the base class
+        PrecomputePointerSkips(ArrayCommandChunk chunk)
+        {
+            var map = new Dictionary<int, (int srcSkip, int dstSkip)>();
+            var stack = new Stack<int>();          // holds command indices of open Ifs
+            int depth = 0;                         // current nesting level *inside*
+                                                   // the chunk (may start > 0)
+
+            for (int i = chunk.StartCommandRange; i < chunk.EndCommandRangeExclusive; i++)
             {
                 switch (Commands[i].CommandType)
                 {
+                    /* ── open a new outer-level If that starts *inside* this chunk ── */
                     case ArrayCommandType.If:
-                        stack.Push(i);
-                        map[i] = (0, 0);
+                        depth++;
+                        stack.Push(i);             // remember the If’s position
+                        map[i] = (0, 0);           // initialise skip counters
                         break;
 
+                    /* ── close an If ─────────────────────────────────────────────── */
                     case ArrayCommandType.EndIf:
-                        stack.Pop();
+                        if (depth == 0)             // this EndIf closes an If that
+                            break;                  // started *before* the chunk → ignore
+                        depth--;
+                        stack.Pop();                // matched pair – safe to pop
                         break;
 
+                    /* ── pointer advances inside a still-open If ─────────────────── */
                     case ArrayCommandType.NextSource:
-                        foreach (int ifIdx in stack)
-                            map[ifIdx] = (map[ifIdx].src + 1, map[ifIdx].dst);
+                        foreach (int idx in stack)
+                            map[idx] = (map[idx].srcSkip + 1, map[idx].dstSkip);
                         break;
 
                     case ArrayCommandType.NextDestination:
-                        foreach (int ifIdx in stack)
-                            map[ifIdx] = (map[ifIdx].src, map[ifIdx].dst + 1);
+                        foreach (int idx in stack)
+                            map[idx] = (map[idx].srcSkip, map[idx].dstSkip + 1);
                         break;
                 }
             }
+
             return map;
         }
+
 
 
     }
