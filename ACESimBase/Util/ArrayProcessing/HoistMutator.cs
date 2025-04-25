@@ -536,7 +536,7 @@ namespace ACESimBase.Util.ArrayProcessing
             return child;
         }
 
-        private static (int ifIdx, int endIfIdx) FindOutermostIf(
+        internal static (int ifIdx, int endIfIdx) FindOutermostIf(
         ArrayCommandList acl, int fromCmd, int toCmd)
         {
             int depth = 0;
