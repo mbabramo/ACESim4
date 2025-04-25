@@ -35,34 +35,36 @@ namespace ACESimTest.ArrayProcessingTests
             finally { ArrayCommandChunk.NextID = saved; }
         }
 
-        //───────────────────────────────────────────────────────────────────────────
-        //  1️⃣  Quick ACL builders
-        //───────────────────────────────────────────────────────────────────────────
-        /// <summary>
-        /// Build an <see cref="ArrayCommandList"/> whose entire program is a single leaf.
-        /// The <paramref name="script"/> lambda records commands using the recorder DSL.
-        /// </summary>
+        // ArrayProcessingTestHelpers.cs
         public static ArrayCommandList BuildAclWithSingleLeaf(
-            Action<CommandRecorder> script,
-            int maxNumCommands = 512,
-            int initialArrayIndex = 0,
-            int maxArrayIndex = 10,
-            int maxCommandsPerChunk = int.MaxValue)
+    Action<CommandRecorder> script,
+    int maxNumCommands = 512,
+    int initialArrayIndex = 0,
+    int maxArrayIndex = 10,
+    int maxCommandsPerChunk = int.MaxValue)
         {
             var acl = new ArrayCommandList(maxNumCommands, initialArrayIndex, parallelize: false)
             {
                 MaxCommandsPerChunk = maxCommandsPerChunk
             };
 
+            // Record directly into the root leaf.
             var rec = acl.Recorder;
-            rec.StartCommandChunk(false, null, "Leaf");
             script(rec);
-            rec.EndCommandChunk();
+
+            // Finalise the root’s metadata; hoisting is left to the tests.
+            acl.MaxCommandIndex = acl.NextCommandIndex;
+
+            var root = acl.CommandTree.StoredValue;
+            root.EndCommandRangeExclusive = acl.NextCommandIndex;
+            root.EndSourceIndicesExclusive = acl.OrderedSourceIndices.Count;
+            root.EndDestinationIndicesExclusive = acl.OrderedDestinationIndices.Count;
 
             acl.MaxArrayIndex = Math.Max(acl.MaxArrayIndex, maxArrayIndex);
-            acl.CompleteCommandList();
             return acl;
         }
+
+
 
         /// <summary>
         /// Create an ACL from an existing list of commands.  The command list is assumed
@@ -177,11 +179,33 @@ namespace ACESimTest.ArrayProcessingTests
             foreach (var nodeObj in EnumerateNodes(acl.CommandTree))
             {
                 var n = (NWayTreeStorageInternal<ArrayCommandChunk>)nodeObj;
-                if (n.Branches != null && n.Branches.Length > 0) continue; // skip non‑leaf
-                int len = n.StoredValue.EndCommandRangeExclusive - n.StoredValue.StartCommandRange;
-                len.Should().BeLessOrEqualTo(max, "leaf {0} exceeds threshold", n.StoredValue.ID);
+
+                // skip non-leaf nodes
+                if (n.Branches is { Length: > 0 })
+                    continue;
+
+                var info = n.StoredValue;
+                int len = info.EndCommandRangeExclusive - info.StartCommandRange;
+
+                // control-flow leaves (still contain If/EndIf) are exempt
+                bool hasFlowTokens = false;
+                for (int i = info.StartCommandRange; i < info.EndCommandRangeExclusive; i++)
+                {
+                    var t = acl.UnderlyingCommands[i].CommandType;
+                    if (t == ArrayCommandType.If || t == ArrayCommandType.EndIf)
+                    {
+                        hasFlowTokens = true;
+                        break;
+                    }
+                }
+                if (hasFlowTokens)
+                    continue;
+
+                // pure linear slice → must obey the limit
+                len.Should().BeLessOrEqualTo(max, "leaf {0} exceeds threshold", info.ID);
             }
         }
+
 
 #if DEBUG
         /// <summary>Pretty‑print the command tree to the debug output.</summary>

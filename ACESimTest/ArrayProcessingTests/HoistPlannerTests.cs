@@ -132,5 +132,35 @@ namespace ACESimTest.ArrayProcessingTests
             plan.Select(p => p.LeafId).Should().BeInAscendingOrder();
             plan.Select(p => p.BodyLen).Should().OnlyContain(len => len >= limit);
         }
+
+        [TestMethod]
+        public void Planner_PicksInnermost_WhenNestedOversize()
+        {
+            // Threshold 2 → every body of length 4 is oversize
+            const int LIMIT = 2;
+            var acl = BuildAcl(rec =>
+            {
+                rec.InsertEqualsValueCommand(0, 0); rec.InsertIf();           // outer (0..)
+                rec.InsertEqualsValueCommand(0, 0); rec.InsertIf();           // middle
+                rec.InsertEqualsValueCommand(0, 0); rec.InsertIf();           // inner
+                for (int i = 0; i < 4; i++) rec.Increment(0, false, 0);       // body len 4
+                rec.InsertEndIf(); rec.InsertEndIf(); rec.InsertEndIf();      // close all
+            });
+
+            var planner = new HoistPlanner(acl.UnderlyingCommands, LIMIT);
+            var plan = planner.BuildPlan(
+                (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree);
+
+            // We expect EXACTLY ONE plan entry and it must point at the innermost If
+            plan.Should().HaveCount(1, "only the deepest oversize block should be hoisted");
+            var entry = plan.Single();
+
+            entry.LeafId.Should().Be(1, "all commands are in the single real leaf");
+            entry.BodyLen.Should().Be(4);
+            entry.IfIdx.Should().Be(5);
+            entry.EndIfIdx.Should().Be(10);
+
+        }
+
     }
 }

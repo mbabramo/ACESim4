@@ -38,33 +38,84 @@ namespace ACESimBase.Util.ArrayProcessing
         /// <summary>
         /// Return a deterministic list of oversize leaves that need hoisting.
         /// </summary>
-        public IList<PlanEntry> BuildPlan(
-            NWayTreeStorageInternal<ArrayCommandChunk> root)
+        public IList<PlanEntry> BuildPlan(NWayTreeStorageInternal<ArrayCommandChunk> root)
         {
+            if (root is null) throw new ArgumentNullException(nameof(root));
+
             var plan = new List<PlanEntry>();
 
             root.WalkTree(nodeObj =>
             {
                 var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)nodeObj;
-                if (leaf.Branches != null && leaf.Branches.Length > 0) return;
+                if (leaf.Branches is { Length: > 0 }) return;          // skip non-leaf
 
                 var info = leaf.StoredValue;
                 int size = info.EndCommandRangeExclusive - info.StartCommandRange;
-                if (size <= _max) return;
+                if (size <= _max) return;                              // leaf within limit
 
-                var (ifIdx, endIfIdx) =
-                    FindOutermostIf(info.StartCommandRange, info.EndCommandRangeExclusive);
-                if (ifIdx != -1)
+                foreach (var (ifIdx, endIfIdx, bodyLen) in
+                         FindInnermostOversizeBodies(info.StartCommandRange,
+                                                     info.EndCommandRangeExclusive))
                 {
-                    TabbedText.WriteLine($"[HOIST‑CAND] leafID={info.ID} size={size} " +
-                                    $"parentParall={info.ChildrenParallelizable}");
-                    int bodyLen = (endIfIdx - ifIdx) - 1;
                     plan.Add(new PlanEntry(info.ID, ifIdx, endIfIdx, bodyLen));
                 }
             });
 
             return plan;
         }
+
+        /// <summary>
+        /// Enumerates every <em>innermost</em> If … EndIf pair whose body exceeds the
+        /// size threshold inside the span <c>[start, end)</c>.  
+        /// Sibling oversize blocks are all returned; nested chains keep only the
+        /// deepest (smallest-span) member.
+        /// </summary>
+        private IEnumerable<(int ifIdx, int endIfIdx, int bodyLen)>
+    FindInnermostOversizeBodies(int start, int end)
+        {
+            var raw = new List<(int ifIdx, int endIfIdx)>();
+            var open = new Stack<int>();
+
+            for (int i = start; i < end; i++)
+            {
+                switch (_cmds[i].CommandType)
+                {
+                    case ArrayCommandType.If:
+                        open.Push(i);
+                        break;
+
+                    case ArrayCommandType.EndIf when open.Count > 0:
+                        int ifIdx = open.Pop();
+                        int bodyLen = (i - ifIdx) - 1;
+                        if (bodyLen >= _max)                          // inclusive check
+                            raw.Add((ifIdx, i));
+                        break;
+                }
+            }
+
+            if (raw.Count == 0) yield break;
+
+            raw.Sort((a, b) => a.ifIdx.CompareTo(b.ifIdx));
+
+            var filtered = new List<(int ifIdx, int endIfIdx)>();
+            foreach (var cand in raw)                                // keep innermost
+            {
+                while (filtered.Count > 0 &&
+                       filtered[^1].ifIdx <= cand.ifIdx &&
+                       filtered[^1].endIfIdx >= cand.endIfIdx)
+                {
+                    filtered.RemoveAt(filtered.Count - 1);           // drop ancestor
+                }
+                filtered.Add(cand);
+            }
+
+            foreach (var (ifIdx, endIfIdx) in filtered)
+                yield return (ifIdx, endIfIdx, (endIfIdx - ifIdx) - 1);
+        }
+
+
+
+
 
         /// <summary>
         /// Scan [_start, _end) and return indices of the first outer‑level

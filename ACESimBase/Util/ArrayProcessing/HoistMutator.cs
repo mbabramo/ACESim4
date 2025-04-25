@@ -208,32 +208,55 @@ namespace ACESimBase.Util.ArrayProcessing
         }
 
 
-        /// <summary>
-        /// Replaces an oversize <paramref name="leaf"/> with a three‑slice split
-        /// (prefix + gate + postfix), then slices the body inside the gate.
-        /// </summary>
         private static void ReplaceLeafWithGate(
     ArrayCommandList acl,
     NWayTreeStorageInternal<ArrayCommandChunk> leaf,
     HoistPlanner.PlanEntry entry)
         {
-            /* split the oversize leaf */
+            // 1. Split the oversize leaf into prefix / gate / postfix
             var split = SplitOversizeLeaf(acl, leaf, entry.IfIdx, entry.EndIfIdx);
 
-            /* attach gate & postfix FIRST */
+            // 2. Splice the gate (and the optional postfix slice) under the prefix node
             InsertSplitIntoTree(split);
 
-            /* now wrap prefix (and postfix) so they become true leaves
-               – prefix is inserted at branch 0, before the gate          */
-            if (split.Prefix != null)
-                WrapSliceIntoLeaf(acl, split.Prefix);
+            // 3. The prefix node has just become a parent – wrap its own commands
+            WrapSliceIntoLeaf(acl, split.Prefix);
 
-            if (split.Postfix != null)
+            // 4. Wrap the postfix only when it contains buffer-advance commands;
+            //    that is the case that needs a container/leaf pair for pointer tracking.
+            if (split.Postfix != null &&
+                ContainsBufferAdvanceCommands(acl, split.Postfix.StoredValue))
+            {
+                split.Postfix.StoredValue.Name = "Postfix";
                 WrapSliceIntoLeaf(acl, split.Postfix);
+            }
 
-            /* finally slice the big body inside the gate */
+            // 5. Finally slice the large If-body that lives inside the new gate
             SliceBodyIntoChildren(acl, split.Gate);
         }
+
+
+        /// <summary>
+        /// Returns <c>true</c> when the slice contains <c>NextSource</c> or
+        /// <c>NextDestination</c> commands – the only case where we need the
+        /// Postfix.container / Postfix.leaf pair.
+        /// </summary>
+        private static bool ContainsBufferAdvanceCommands(
+            ArrayCommandList acl,
+            ArrayCommandChunk info)
+        {
+            for (int i = info.StartCommandRange; i < info.EndCommandRangeExclusive; i++)
+            {
+                var t = acl.UnderlyingCommands[i].CommandType;
+                if (t == ArrayCommandType.NextSource ||
+                    t == ArrayCommandType.NextDestination)
+                    return true;
+            }
+            return false;
+        }
+
+
+
 
 
 

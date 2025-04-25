@@ -249,13 +249,13 @@ namespace ACESimTest.ArrayProcessingTests
                 // 4. After hoisting – only the inner body wrapped.
                 string[] expectedAfter =
                 {
-            "ID0 .container [4,4) Children=3 Cmds:-",
-            "ID3 .leaf [0,4) Children=0 Cmds:Zero,EqualsValue,If,EqualsValue",
-            "ID1 Conditional [4,10) Children=2 Cmds:If,IncrementBy,IncrementBy,IncrementBy,IncrementBy,EndIf",
-            "ID4 [5,7) Children=0 Cmds:IncrementBy,IncrementBy",
-            "ID5 [7,9) Children=0 Cmds:IncrementBy,IncrementBy",
-            "ID2 [10,11) Children=0 Cmds:EndIf"
-        };
+                    "ID0 .container [4,4) Children=3 Cmds:-",
+                    "ID4 .leaf [0,4) Children=0 Cmds:Zero,EqualsValue,If,EqualsValue",
+                    "ID2 Conditional [4,10) Children=2 Cmds:If,IncrementBy,IncrementBy,IncrementBy,IncrementBy,EndIf",
+                    "ID5 [5,7) Children=0 Cmds:IncrementBy,IncrementBy",
+                    "ID6 [7,9) Children=0 Cmds:IncrementBy,IncrementBy",
+                    "ID3 Postfix [10,11) Children=0 Cmds:EndIf"
+                };
                 ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expectedAfter);
 
                 ArrayProcessingTestHelpers.AssertLeafSizeUnder(acl, THRESHOLD);
@@ -517,9 +517,6 @@ namespace ACESimTest.ArrayProcessingTests
 
 
 
-        // ────────────────────────────────────────────────────────────────────────────
-        //  PointerAdvance_WhileSkippingFalseBranch
-        // ────────────────────────────────────────────────────────────────────────────
         [TestMethod]
         public void PointerAdvance_WhileSkippingFalseBranch()
         {
@@ -529,8 +526,8 @@ namespace ACESimTest.ArrayProcessingTests
 
                 var acl = ArrayProcessingTestHelpers.BuildAclWithSingleLeaf(rec =>
                 {
-                    int idx0 = rec.CopyToNew(0, true);          // os[0] == 0
-                    rec.InsertEqualsValueCommand(idx0, 999);    // false condition
+                    int idx0 = rec.CopyToNew(0, true);
+                    rec.InsertEqualsValueCommand(idx0, 999);   // false condition
                     rec.InsertIf();
 
                     for (int i = 0; i < 4; i++)
@@ -544,30 +541,36 @@ namespace ACESimTest.ArrayProcessingTests
                     rec.Increment(0, true, srcAfter);
                 }, maxCommandsPerChunk: THRESHOLD);
 
-                // before
                 string[] expectedBefore =
                 {
-            "ID0 [0,14) Children=0 Cmds:CopyTo,EqualsValue,If,NextSource,NextDestination,NextSource,NextDestination,NextSource,NextDestination,NextSource,NextDestination,EndIf,NextSource,NextDestination"
+            "ID0 [0,14) Children=0 Cmds:NextSource,EqualsValue,If," +
+            "NextSource,NextDestination,NextSource,NextDestination," +
+            "NextSource,NextDestination,NextSource,NextDestination," +
+            "EndIf,NextSource,NextDestination"
         };
                 ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expectedBefore);
 
                 acl.FinaliseCommandTree();
 
-                // after
                 string[] expectedAfter =
                 {
-            "ID0 .container [3,3) Children=2 Cmds:-",
-            "ID3 .leaf [0,3) Children=0 Cmds:CopyTo,EqualsValue,If",
-            "ID1 Conditional [3,13) Children=2 Cmds:If,NextSource,NextDestination,NextSource,NextDestination,NextSource,NextDestination,NextSource,NextDestination,EndIf",
-            "ID4 [4,8) Children=0 Cmds:NextSource,NextDestination,NextSource,NextDestination",
-            "ID5 [8,12) Children=0 Cmds:NextSource,NextDestination,NextSource,NextDestination",
-            "ID2 [13,14) Children=0 Cmds:NextSource,NextDestination"
+            "ID0 .container [2,2) Children=3 Cmds:-",
+            "ID3 .leaf [0,2) Children=0 Cmds:NextSource,EqualsValue",
+            "ID1 Conditional [2,12) Children=4 Cmds:If,NextSource,NextDestination," +
+                "NextSource,NextDestination,NextSource,NextDestination," +
+                "NextSource,NextDestination,EndIf",
+            "ID5 [3,5) Children=0 Cmds:NextSource,NextDestination",
+            "ID6 [5,7) Children=0 Cmds:NextSource,NextDestination",
+            "ID7 [7,9) Children=0 Cmds:NextSource,NextDestination",
+            "ID8 [9,11) Children=0 Cmds:NextSource,NextDestination",
+            "ID2 Postfix.container [14,14) Children=1 Cmds:-",
+            "ID4 Postfix.leaf [12,14) Children=0 Cmds:NextSource,NextDestination"
         };
                 ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expectedAfter);
-
-                // Detailed pointer-advance behaviour is covered by execution-level tests.
             });
         }
+
+
 
 
     }
