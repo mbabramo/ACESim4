@@ -360,7 +360,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                                 for (int l = 0; l < _plan.LocalCount; l++)
                                     dirty[l] = bind.NeedsFlushBeforeReuse(l, out _);
                             }
-                            ifStack.Push(new IfContext(elseLbl, endLbl, sk.srcSkip, sk.dstSkip, dirty, flushes));
+                            ifStack.Push(new IfContext(elseLbl, endLbl, sk.src, sk.dst, dirty, flushes));
                             break;
                         }
 
@@ -457,36 +457,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 DirtyBefore = dirty;
                 Flushes = fl;
             }
-        }
-
-        // -----------------------------------------------------------------
-        //  Utilities identical to RoslynChunkExecutor
-        // -----------------------------------------------------------------
-        private Dictionary<int, (int srcSkip, int dstSkip)> PrecomputePointerSkips(ArrayCommandChunk chunk)
-        {
-            var map = new Dictionary<int, (int srcSkip, int dstSkip)>();
-            var stack = new Stack<int>();
-
-            for (int i = chunk.StartCommandRange; i < chunk.EndCommandRangeExclusive; i++)
-            {
-                switch (Commands[i].CommandType)
-                {
-                    case ArrayCommandType.If:
-                        stack.Push(i);
-                        map[i] = (0, 0);
-                        break;
-                    case ArrayCommandType.EndIf:
-                        stack.Pop();
-                        break;
-                    case ArrayCommandType.NextSource:
-                        foreach (int idx in stack) map[idx] = (map[idx].srcSkip + 1, map[idx].dstSkip);
-                        break;
-                    case ArrayCommandType.NextDestination:
-                        foreach (int idx in stack) map[idx] = (map[idx].srcSkip, map[idx].dstSkip + 1);
-                        break;
-                }
-            }
-            return map;
         }
 
         /* -------------------------------------------------------------- */

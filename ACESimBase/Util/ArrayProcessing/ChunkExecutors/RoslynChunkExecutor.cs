@@ -413,39 +413,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             }
         }
 
-        private Dictionary<int, (int src, int dst)> PrecomputePointerSkips(
-    ArrayCommandChunk c)
-        {
-            var map = new Dictionary<int, (int src, int dst)>();
-            var stack = new Stack<int>();
-
-            for (int i = c.StartCommandRange; i < c.EndCommandRangeExclusive; i++)
-            {
-                switch (Commands[i].CommandType)
-                {
-                    case ArrayCommandType.If:
-                        stack.Push(i);
-                        map[i] = (0, 0);
-                        break;
-
-                    case ArrayCommandType.EndIf:
-                        stack.Pop();
-                        break;
-
-                    case ArrayCommandType.NextSource:
-                        foreach (int ifIdx in stack)
-                            map[ifIdx] = (map[ifIdx].src + 1, map[ifIdx].dst);
-                        break;
-
-                    case ArrayCommandType.NextDestination:
-                        foreach (int ifIdx in stack)
-                            map[ifIdx] = (map[ifIdx].src, map[ifIdx].dst + 1);
-                        break;
-                }
-            }
-            return map;
-        }
-
 
     }
 }

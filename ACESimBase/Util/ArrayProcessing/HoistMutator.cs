@@ -343,31 +343,40 @@ namespace ACESimBase.Util.ArrayProcessing
             => FindOutermostIf(acl, g.StartCommandRange, g.EndCommandRangeExclusive);
 
         private static IList<NWayTreeStorageInternal<ArrayCommandChunk>> CreateSlices(
-                ArrayCommandList acl,
-                NWayTreeStorageInternal<ArrayCommandChunk> gate,
-                int ifIdx,
-                int endIfIdxExcl)
+        ArrayCommandList acl,
+        NWayTreeStorageInternal<ArrayCommandChunk> gate,
+        int ifIdx,
+        int endIfIdxExcl)
         {
-            int bodyStart = ifIdx + 1, bodyEnd = endIfIdxExcl;           // EndIf excluded
+            int bodyStart = ifIdx + 1, bodyEnd = endIfIdxExcl;         // EndIf excluded
             if (bodyStart >= bodyEnd)
                 return Array.Empty<NWayTreeStorageInternal<ArrayCommandChunk>>();
 
             var slices = new List<NWayTreeStorageInternal<ArrayCommandChunk>>();
             var gInfo = gate.StoredValue;
 
-            // running ordered-source / ordered-dest pointers, inherited from gate
             int curSrcIdx = gInfo.StartSourceIndices;
             int curDstIdx = gInfo.StartDestinationIndices;
 
             int slicePos = bodyStart;
-            byte bId = 1;                                           // 0 = prefix slice
+            byte bId = 1;                                         // 0 = prefix slice
 
             while (slicePos < bodyEnd && bId < byte.MaxValue)
             {
-                /* decide slice end, respecting nesting depth & MaxCommandsPerChunk */
+                /* cut only at outer-level (depth-1) boundaries */
                 int sliceEnd = FindSliceEnd(acl, slicePos, bodyEnd, acl.MaxCommandsPerChunk);
 
-                /* count buffer-pointer advances inside the slice */
+                /* if that fragment itself exceeds the chunk limit, recurse */
+                if (sliceEnd - slicePos > acl.MaxCommandsPerChunk)
+                {
+                    var oversize = MakeChildChunk(acl, gate, gInfo, slicePos, sliceEnd);
+                    gate.SetBranch(bId++, oversize);
+                    SliceBodyIntoChildren(acl, oversize);          // ← recursive split
+                    slicePos = sliceEnd;
+                    continue;
+                }
+
+                /* count pointer advances inside this slice */
                 int srcIncr = 0, dstIncr = 0;
                 for (int i = slicePos; i < sliceEnd; i++)
                 {
@@ -376,7 +385,7 @@ namespace ACESimBase.Util.ArrayProcessing
                     if (t == ArrayCommandType.NextDestination) dstIncr++;
                 }
 
-                /* create child chunk and assign accurate pointer ranges */
+                /* create child slice & wire into tree */
                 var child = MakeChildChunk(acl, gate, gInfo, slicePos, sliceEnd);
                 var info = child.StoredValue;
 
@@ -394,12 +403,14 @@ namespace ACESimBase.Util.ArrayProcessing
                 slicePos = sliceEnd;
             }
 
+            /* gate now spans If … EndIf inclusive */
             gInfo.EndCommandRangeExclusive = endIfIdxExcl + 1;
             gInfo.LastChild = (byte)(bId - 1);
-            gInfo.Skip = false;          // gate must run once
+            gInfo.Skip = false;    // gate must run once
 
             return slices;
         }
+
 
         private static void BuildStackInfo(
                 ArrayCommandList acl,
@@ -455,24 +466,51 @@ namespace ACESimBase.Util.ArrayProcessing
 
         /*──────────────────────── leaf helpers ──────────────────────*/
 
+        /// Decide the end (exclusive) of the next slice.
+        ///
+        ///  •  slicePos ........ first cmd of body still to place (depth == 1)
+        ///  •  bodyEnd ......... index of the gate’s matching EndIf  (depth→0)
+        ///  •  limit ........... MaxCommandsPerChunk
+        ///
+        /// Returns the last command *exclusive* so that
+        ///   – cut is at depth 1
+        ///   – cut is **not** an EndIf
+        ///   – the slice has ≤ limit commands, or it spans to bodyEnd if no
+        ///     depth-1 boundary exists inside the limit.
+        /*──────────────────────── leaf helpers ──────────────────────*/
         private static int FindSliceEnd(
                 ArrayCommandList acl, int sliceStart, int bodyEnd, int max)
         {
-            int depth = 0, sliceEnd = sliceStart;
-            while (sliceEnd < bodyEnd)
+            int depth = 1;                 // we are inside the outer If-body
+            int seen = 0;                 // commands since sliceStart
+            int lastOuter = sliceStart;        // last depth-1, non-EndIf boundary
+            Span<ArrayCommand> cmds = acl.UnderlyingCommands;
+
+            for (int i = sliceStart; i < bodyEnd; i++)
             {
-                var t = acl.UnderlyingCommands[sliceEnd].CommandType;
+                var t = cmds[i].CommandType;
+
                 if (t == ArrayCommandType.If) depth++;
                 if (t == ArrayCommandType.EndIf) depth--;
 
-                sliceEnd++;
+                seen++;
 
-                bool reachedMax = sliceEnd - sliceStart >= max;
-                bool atBoundary = depth == 0 && (reachedMax || sliceEnd == bodyEnd);
-                if (atBoundary) break;
+                /* remember the most recent OUTER-LEVEL position that isn’t an EndIf */
+                if (depth == 1 && t != ArrayCommandType.EndIf)
+                    lastOuter = i + 1;            // +1 because slice end is *exclusive*
+
+                /* size limit reached → cut at safest remembered boundary            */
+                if (seen >= max && lastOuter > sliceStart)
+                    return lastOuter;
+
+                /* reached the matching EndIf → body finished                        */
+                if (depth == 0)
+                    return i;                     // slice ends right before EndIf
             }
-            return sliceEnd;
+            return bodyEnd;                       // fallback (shouldn’t occur)
         }
+
+
 
         private static NWayTreeStorageInternal<ArrayCommandChunk> MakeChildChunk(
                 ArrayCommandList acl,
