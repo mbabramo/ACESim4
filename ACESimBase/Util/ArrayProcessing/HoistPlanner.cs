@@ -71,7 +71,7 @@ namespace ACESimBase.Util.ArrayProcessing
         /// deepest (smallest-span) member.
         /// </summary>
         private IEnumerable<(int ifIdx, int endIfIdx, int bodyLen)>
-    FindInnermostOversizeBodies(int start, int end)
+        FindInnermostOversizeBodies(int start, int end)
         {
             var raw = new List<(int ifIdx, int endIfIdx)>();
             var open = new Stack<int>();
@@ -93,12 +93,39 @@ namespace ACESimBase.Util.ArrayProcessing
                 }
             }
 
-            if (raw.Count == 0) yield break;
+            if (raw.Count == 0)
+            {
+                // If no complete oversize pairs were found, check for an open If 
+                // that spans beyond this leaf (unclosed within [start,end)).
+                if (open.Count > 0)
+                {
+                    int openIfIdx = open.Pop();  // innermost unclosed If
+                                                 // Find the matching EndIf in the remaining commands (beyond 'end')
+                    int depth = 1;
+                    int j = end;
+                    while (j < _cmds.Length && depth > 0)
+                    {
+                        if (_cmds[j].CommandType == ArrayCommandType.If) depth++;
+                        if (_cmds[j].CommandType == ArrayCommandType.EndIf) depth--;
+                        j++;
+                    }
+                    if (depth == 0)
+                    {
+                        int endIfIdx = j - 1;
+                        int bodyLen = (endIfIdx - openIfIdx) - 1;
+                        // Only plan hoist if this open If is not the only one (i.e., 
+                        // there was another If outside it), or if it indeed exceeds size.
+                        if (bodyLen >= _max && open.Count > 0)
+                            yield return (openIfIdx, endIfIdx, bodyLen);
+                    }
+                }
+                yield break;
+            }
 
+            // ... (existing filtering logic below remains unchanged) ...
             raw.Sort((a, b) => a.ifIdx.CompareTo(b.ifIdx));
-
             var filtered = new List<(int ifIdx, int endIfIdx)>();
-            foreach (var cand in raw)                                // keep innermost
+            foreach (var cand in raw)
             {
                 while (filtered.Count > 0 &&
                        filtered[^1].ifIdx <= cand.ifIdx &&
@@ -112,6 +139,7 @@ namespace ACESimBase.Util.ArrayProcessing
             foreach (var (ifIdx, endIfIdx) in filtered)
                 yield return (ifIdx, endIfIdx, (endIfIdx - ifIdx) - 1);
         }
+
 
 
 
