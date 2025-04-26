@@ -314,9 +314,10 @@ namespace ACESimBase.Util.ArrayProcessing
         //  Internal helper – cut an If-body into ≤MaxCommandsPerChunk
         // ═════════════════════════════════════════════════════════════
         private static void SliceBodyIntoChildren(
-    ArrayCommandList acl,
-    NWayTreeStorageInternal<ArrayCommandChunk> gate)
+            ArrayCommandList acl,
+            NWayTreeStorageInternal<ArrayCommandChunk> gate)
         {
+            // Locate the outermost If … EndIf inside this gate
             (int ifIdx, int endIfIdx) = FindBodySpan(acl, gate.StoredValue);
             if (ifIdx < 0) return;
 
@@ -324,20 +325,34 @@ namespace ACESimBase.Util.ArrayProcessing
             TabbedText.WriteLine($"[Slice] gateID={gate.StoredValue.ID}  If={ifIdx}  EndIf={endIfIdx}");
 #endif
 
+            // Capture the span that SplitOversizeLeaf assigned — it may already
+            // include an extra EndIf that we do not want to lose.
+            int originalEnd = gate.StoredValue.EndCommandRangeExclusive;   //  ← NEW
+
+            // 1. Slice the body and wire children under the gate
             var slices = CreateSlices(acl, gate, ifIdx, endIfIdx);
 
 #if DEBUG
             TabbedText.WriteLine($"[Slice]   created {slices.Count} slice(s) inside gateID={gate.StoredValue.ID}");
             foreach (var s in slices)
-            {
-                var info = s.StoredValue;
-                TabbedText.WriteLine($"           • sliceID={info.ID}  [{info.StartCommandRange},{info.EndCommandRangeExclusive})");
-            }
+                TabbedText.WriteLine($"           • sliceID={s.StoredValue.ID}  [{s.StoredValue.StartCommandRange},{s.StoredValue.EndCommandRangeExclusive})");
 #endif
 
+            // 2. Ensure every node (gate + slices) has stack metadata
             BuildStackInfo(acl, gate, slices);
+
+            // 3. Add CopyIncrementsToParent where a slice owns its own stack
             AttachCopyLists(gate.StoredValue, slices);
+
+            // ------------------------------------------------------------------
+            // FIX: keep whichever span is longer so we do *not* discard an extra
+            // EndIf previously absorbed by SplitOversizeLeaf.
+            // ------------------------------------------------------------------
+            var gInfo = gate.StoredValue;
+            gInfo.EndCommandRangeExclusive =
+                Math.Max(originalEnd, endIfIdx + 1);                       //  ← NEW
         }
+
 
 
         /*──────────────────────── helper trio ───────────────────────*/
