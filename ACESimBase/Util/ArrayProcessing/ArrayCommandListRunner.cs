@@ -17,6 +17,7 @@ namespace ACESimBase.Util.ArrayProcessing
     using System.Collections.Generic;
     using ACESimBase.Util.ArrayProcessing;
     using ACESimBase.Util.ArrayProcessing.ChunkExecutors;
+    using ACESimBase.Util.Debugging;
     using ACESimBase.Util.NWayTreeStorage;
 
     public static class ArrayCommandListRunnerExtensions
@@ -174,6 +175,9 @@ namespace ACESimBase.Util.ArrayProcessing
         // ──────────────────────────────────────────────────────────────────────
         private void ExecuteChunk(ArrayCommandChunk c, ArrayCommandList acl)
         {
+#if DEBUG
+            TabbedText.WriteLine($"[Runner] ExecuteChunk {c.ID} StartSourceIndices: {c.StartSourceIndices} StartDestinationIndices {c.StartDestinationIndices} ");
+#endif
             // Skip entire chunk when inside a false branch
             if (_globalSkipDepth > 0) { ScanForNestedIfs(c, acl); return; }
             // Apply any carry-over from previously skipped chunks
