@@ -150,46 +150,5 @@ namespace ACESimBase.Util.ArrayProcessing
                 yield return (ifIdx, endIfIdx, (endIfIdx - ifIdx) - 1);
         }
 
-
-
-
-
-
-        /// <summary>
-        /// Scan [_start, _end) and return indices of the first outer‑level
-        /// If and its matching EndIf.  Returns (-1,-1) if none.
-        /// </summary>
-        private (int ifIdx, int endIfIdx) FindOutermostIf(int start, int end)
-        {
-            int depth = 0;
-            for (int i = start; i < end; i++)
-            {
-                switch (_cmds[i].CommandType)
-                {
-                    case ArrayCommandType.If:
-                        if (depth == 0)
-                        {
-                            // find its matching EndIf
-                            int j = i + 1;
-                            int d = 1;
-                            while (j < end && d > 0)
-                            {
-                                if (_cmds[j].CommandType == ArrayCommandType.If) d++;
-                                if (_cmds[j].CommandType == ArrayCommandType.EndIf) d--;
-                                j++;
-                            }
-                            if (d == 0)
-                                return (i, j - 1); // j stepped past EndIf
-                        }
-                        depth++;
-                        break;
-
-                    case ArrayCommandType.EndIf:
-                        depth--;
-                        break;
-                }
-            }
-            return (-1, -1); // none
-        }
     }
 }

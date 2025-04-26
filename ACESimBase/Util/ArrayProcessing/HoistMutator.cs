@@ -70,39 +70,6 @@ namespace ACESimBase.Util.ArrayProcessing
 #endif
         }
 
-
-        /// <summary>
-        /// Ensure <paramref name="acl"/> has a CommandTree.  
-        /// If it is still null we create a synthetic root leaf that spans the
-        /// whole command list – just enough for the mutator and for ExecuteAll.
-        /// </summary>
-        public static NWayTreeStorageInternal<ArrayCommandChunk> EnsureTreeExists(ArrayCommandList acl)
-        {
-            if (acl.CommandTree != null)
-            {
-                if (acl.CommandTreeString == null && acl.RecordCommandTreeString)
-                    acl.CommandTreeString = acl.CommandTree.ToString();
-                return (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree;
-            }
-
-            var root = new NWayTreeStorageInternal<ArrayCommandChunk>(parent: null);
-            root.StoredValue = new ArrayCommandChunk
-            {
-                ID = 0,
-                StartCommandRange = 0,
-                EndCommandRangeExclusive = acl.NextCommandIndex,
-                StartSourceIndices = 0,
-                EndSourceIndicesExclusive = 0,
-                StartDestinationIndices = 0,
-                EndDestinationIndicesExclusive = 0,
-                Skip = true
-            };
-            acl.CommandTree = root;
-            if (acl.RecordCommandTreeString)
-                acl.CommandTreeString = acl.CommandTree.ToString();
-            return root;
-        }
-
         private static NWayTreeStorageInternal<ArrayCommandChunk>
             FindLeafById(NWayTreeStorageInternal<ArrayCommandChunk> root,
                          int id)
@@ -125,10 +92,10 @@ namespace ACESimBase.Util.ArrayProcessing
             NWayTreeStorageInternal<ArrayCommandChunk> Postfix);
 
         internal static LeafSplit SplitOversizeLeaf(
-    ArrayCommandList acl,
-    NWayTreeStorageInternal<ArrayCommandChunk> leaf,
-    int ifIdx,
-    int endIfIdx)
+            ArrayCommandList acl,
+            NWayTreeStorageInternal<ArrayCommandChunk> leaf,
+            int ifIdx,
+            int endIfIdx)
         {
 #if DEBUG
             TabbedText.WriteLine($"[Split] leaf={leaf.StoredValue.ID}  " +
