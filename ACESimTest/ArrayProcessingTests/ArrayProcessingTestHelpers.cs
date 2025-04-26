@@ -150,6 +150,21 @@ namespace ACESimTest.ArrayProcessingTests
             return acl;
         }
 
+        /// <summary>Allocate and seed an array with a deterministic pattern.</summary>
+        public static double[] Seed(int length, Func<int, double> f)
+        {
+            var a = new double[length];
+            for (int i = 0; i < length; i++) a[i] = f(i);
+            return a;
+        }
+
+        /// <summary>Quick one-liner to create a new ACL with common defaults.</summary>
+        public static ArrayCommandList NewAcl(int maxCmds = 1_000,
+                                              int initialIdx = 0,
+                                              bool parallel = false,
+                                              int maxPerChunk = 50)
+            => new(maxCmds, initialIdx, parallel) { MaxCommandsPerChunk = maxPerChunk };
+
         /* --------------------------------------------------------------------
            SECTION 2  Assertion helpers
            ------------------------------------------------------------------*/
