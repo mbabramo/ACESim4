@@ -428,5 +428,30 @@ namespace ACESimTest.ArrayProcessingTests
                     .Should().Be(W(expectedFinalTree), "final structure");
             });
         }
+
+        [TestMethod]
+        public void LinearOversizeBody_RemainsWhole_WhenNoSplitPoint()
+        {
+            const int Max = 5;
+            var acl = ArrayProcessingTestHelpers.BuildAclWithSingleLeaf(
+                rec => rec.InsertBlankCommands(40),
+                maxNumCommands: 42,
+                maxCommandsPerChunk: Max);
+
+            HoistMutator.MutateUntilAsBalancedAsPossible(acl);
+
+            // every *executable* leaf either ≤ Max or > Max with no split-point
+            foreach (var leaf in acl.PureSlices())
+            {
+                int len = leaf.StoredValue.EndCommandRangeExclusive -
+                          leaf.StoredValue.StartCommandRange;
+
+                if (len > Max)
+                    len.Should().Be(40, "linear bodies stay whole");
+                else
+                    len.Should().BeLessOrEqualTo(Max, "splittable bodies are bounded");
+            }
+        }
+
     }
 }

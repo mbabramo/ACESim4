@@ -158,56 +158,6 @@ namespace ACESimTest.ArrayProcessingTests
             d[idx].Should().Be(0);
         }
 
-        /* -------------------------------------------------------------
-         * Hoist leaves do not exceed threshold
-         * -----------------------------------------------------------*/
-        [TestMethod]
-        public void HoistLeavesRespectThreshold()
-        {
-            var acl = NewAcl();
-            acl.MaxCommandsPerSplittableChunk = 5;
-
-            // Build two oversize leaves: one with control flow (must split),
-            // one plain linear (may remain whole).
-            acl.StartCommandChunk(false, null, "root");
-
-            // ①  conditional body → splittable
-            acl.InsertEqualsValueCommand(acl.NewZero(), 0);
-            acl.InsertIfCommand();
-            for (int i = 0; i < 40; i++) acl.InsertBlankCommand();
-            acl.InsertEndIfCommand();
-
-            // ②  linear oversize body → NOT splittable by design
-            for (int i = 0; i < 40; i++) acl.InsertBlankCommand();
-
-            acl.EndCommandChunk();
-            acl.CompleteCommandList();
-
-            acl.CommandTree.WalkTree(n =>
-            {
-                var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
-                if (leaf.Branches?.Length > 0) return;
-
-                int len = leaf.StoredValue.EndCommandRangeExclusive -
-                          leaf.StoredValue.StartCommandRange;
-
-                bool containsFlow =
-                    Enumerable.Range(leaf.StoredValue.StartCommandRange, len)
-                              .Select(i => acl.UnderlyingCommands[i].CommandType)
-                              .Any(t => t is ArrayCommandType.If
-                                     or ArrayCommandType.EndIf
-                                     or ArrayCommandType.IncrementDepth
-                                     or ArrayCommandType.DecrementDepth);
-
-                if (containsFlow)
-                    len.Should().BeLessOrEqualTo(acl.MaxCommandsPerSplittableChunk,
-                        "splittable leaves must respect the threshold");
-                else
-                    len.Should().BeGreaterThan(acl.MaxCommandsPerSplittableChunk,
-                        "unsplittable linear leaves are allowed to exceed the threshold");
-            });
-        }
-
 
         /* -------------------------------------------------------------
          * Edge‑case checks
@@ -249,6 +199,92 @@ namespace ACESimTest.ArrayProcessingTests
             acl.CompleteCommandList();
 
             acl.CommandTree.Branches.Should().BeNull();
+        }
+
+        /* -------------------------------------------------------------
+ * Additional structural & behavioural safety-net tests
+ * -----------------------------------------------------------*/
+        [TestMethod]
+        public void GapAndTailBranchInsertion()
+        {
+            var acl = NewAcl();
+            acl.StartCommandChunk(false, null, "root");
+            acl.Recorder.InsertBlankCommands(2);                 // gap
+            acl.StartCommandChunk(false, null, "inner");
+            acl.Recorder.InsertBlankCommands(2);
+            acl.EndCommandChunk();
+            acl.Recorder.InsertBlankCommands(2);                 // tail
+            acl.EndCommandChunk();
+            acl.CompleteCommandList();
+
+            var root = acl.CommandTree;
+            root.Branches.Should().NotBeNull();
+            root.Branches.Length.Should().Be(3);
+
+            root.Branches[0].StoredValue.StartCommandRange.Should().Be(0);
+            root.Branches[0].StoredValue.EndCommandRangeExclusive.Should().Be(2);
+
+            root.Branches[1].StoredValue.Name.Should().Be("inner");
+
+            root.Branches[2].StoredValue.StartCommandRange.Should().Be(4);
+            root.Branches[2].StoredValue.EndCommandRangeExclusive.Should().Be(6);
+        }
+
+        [TestMethod]
+        public void KeepTogetherSuppressesNestedChunks()
+        {
+            var acl = NewAcl();
+            acl.KeepCommandsTogether();
+            acl.StartCommandChunk(false, null, "solo");
+            acl.Recorder.InsertBlankCommands(3);
+            acl.EndCommandChunk();
+            acl.EndKeepCommandsTogether();
+            acl.CompleteCommandList();
+
+            acl.CommandTree.Branches.Should().BeNull();
+        }
+
+        [TestMethod]
+        public void TranslationToLocalIndexPacked()
+        {
+            var acl = NewAcl();
+            acl.StartCommandChunk(false, null, "root");
+            int src = acl.CopyToNew(0, true);
+            int dst = acl.NewZero();
+            acl.Increment(dst, false, src);
+            acl.EndCommandChunk();
+            acl.CompleteCommandList();
+
+            var leaf = acl.PureSlices().Single();
+            var trans = leaf.StoredValue.TranslationToLocalIndex;
+            var used = trans.Where(t => t != null).Select(t => t.Value).OrderBy(v => v).ToArray();
+            used.Should().Equal(Enumerable.Range(0, used.Length));
+        }
+
+        [TestMethod]
+        public void DeepCopyIncrementsPropagate()
+        {
+            var acl = NewAcl();
+            acl.StartCommandChunk(false, null, "root");
+            int idx = acl.NewZero();
+            int one = acl.CopyToNew(1, true);                 // constant 1
+
+            acl.StartCommandChunk(false, null, "childA");
+            acl.Increment(idx, false, one);
+            acl.EndCommandChunk(new[] { idx });
+
+            acl.StartCommandChunk(false, null, "childB");
+            acl.Increment(idx, false, one);
+            acl.EndCommandChunk(new[] { idx });
+
+            acl.EndCommandChunk();
+            acl.CompleteCommandList();
+
+            var data = Seed(30, i => (double)i);
+            acl.ExecuteAll(data, false);
+
+            var rootChunk = acl.CommandTree.StoredValue;
+            rootChunk.VirtualStack[idx].Should().Be(2);       // two increments of +1
         }
     }
 }

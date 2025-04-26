@@ -115,14 +115,15 @@ namespace ACESimBase.Util.ArrayProcessing
         // ──────────────────────────────────────────────────────────────────────
         public void StartCommandChunk(bool runChildrenInParallel, int? identicalStartCommandRange, string name = "", bool ignoreKeepTogether = false)
         {
-            if (_currentPath.Count == 0 && !_rootChunkInitialised)
+            if (_currentPath.Count == 0
+                && !_rootChunkInitialised
+                && string.Equals(name, "root", StringComparison.OrdinalIgnoreCase))  // ← tighten guard
             {
-                // decorate the implicit root slice instead of creating a child
                 var root = CurrentChunk;
                 if (!string.IsNullOrEmpty(name))
                     root.Name = name;
                 root.ChildrenParallelizable = runChildrenInParallel;
-                _rootChunkInitialised = true;          // ✅ only the first call hits
+                _rootChunkInitialised = true;
                 return;
             }
 
