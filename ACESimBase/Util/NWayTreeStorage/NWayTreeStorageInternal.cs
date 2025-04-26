@@ -1,4 +1,5 @@
-﻿using ACESimBase.Util.Parallelization;
+﻿using ACESimBase.Util.Debugging;
+using ACESimBase.Util.Parallelization;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -159,6 +160,12 @@ namespace ACESimBase.Util.NWayTreeStorage
 
         public override void SetBranch(byte index, NWayTreeStorage<T> tree)
         {
+#if DEBUG
+            // quick trace so we can see what happens during the failing test
+            TabbedText.WriteLine(
+                $"[SET] branch={index}  beforeLen={(Branches?.Length ?? 0)}");
+#endif
+
             if (ParallelEnabled)
             {
                 CompleteSetBranchWithLock(index, tree);
@@ -167,7 +174,13 @@ namespace ACESimBase.Util.NWayTreeStorage
             {
                 CompleteSetBranch(index, tree);
             }
+
+#if DEBUG
+            TabbedText.WriteLine(
+                $"[SET] branch={index}  afterLen={(Branches?.Length ?? 0)}");
+#endif
         }
+
         private void CompleteSetBranchWithLock(byte index, NWayTreeStorage<T> tree)
         {
             lock (this)

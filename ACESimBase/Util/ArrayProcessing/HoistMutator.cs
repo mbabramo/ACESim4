@@ -19,23 +19,33 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             if (acl == null) throw new ArgumentNullException(nameof(acl));
             if (acl.MaxCommandsPerChunk == int.MaxValue)
-                return; // hoisting disabled
+                return;           // hoisting disabled
 
+            int round = 0;
             while (true)
             {
+                round++;
                 var planner = new HoistPlanner(acl.UnderlyingCommands, acl.MaxCommandsPerChunk);
                 var plan = planner.BuildPlan(acl.CommandTree);
 
 #if DEBUG
-                TabbedText.WriteLine($"[MUTATE] planCount={plan.Count}");
+                TabbedText.WriteLine($"[MUTATE] round={round}  planCount={plan.Count}");
 #endif
 
                 if (plan.Count == 0)
-                    break; // tree already balanced
+                {
+#if DEBUG
+                    TabbedText.WriteLine("── final tree ──");
+                    TabbedText.WriteLine(acl.CommandTree.ToTreeString(_ => "Leaf"));
+                    TabbedText.WriteLine("───────────────");
+#endif
+                    break;        // tree already balanced
+                }
 
                 ApplyPlan(acl, plan);
             }
         }
+
 
         /// <summary>
         /// Applies a single split plan to the command tree.
@@ -48,11 +58,12 @@ namespace ACESimBase.Util.ArrayProcessing
             foreach (var entry in plan)
             {
 #if DEBUG
-                TabbedText.WriteLine($"[APPLY] leafId={entry.LeafId} kind={entry.Kind} span=[{entry.StartIdx},{entry.EndIdxExclusive})");
+                TabbedText.WriteLine(
+                    $"[APPLY] leafId={entry.LeafId} kind={entry.Kind} span=[{entry.StartIdx},{entry.EndIdxExclusive})");
 #endif
                 var leaf = FindLeaf(acl.CommandTree, entry.LeafId);
                 if (leaf == null || (leaf.Branches?.Length ?? 0) > 0)
-                    continue;                           // ignore – node became container
+                    continue;                           // node is no longer a leaf
 
                 switch (entry.Kind)
                 {
@@ -70,7 +81,14 @@ namespace ACESimBase.Util.ArrayProcessing
             acl.CommandTree.WalkTree(
                 n => acl.SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandChunk>)n),
                 n => acl.SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandChunk>)n));
+
+#if DEBUG
+            TabbedText.WriteLine("── tree after ApplyPlan ──");
+            TabbedText.WriteLine(acl.CommandTree.ToTreeString(_ => "Leaf"));
+            TabbedText.WriteLine("─────────────────────────");
+#endif
         }
+
 
         // ───────────────────────────────────────────── helpers ──
         private static NWayTreeStorageInternal<ArrayCommandChunk>? FindLeaf(
@@ -127,9 +145,9 @@ namespace ACESimBase.Util.ArrayProcessing
         }
 
         private static void SplitAtDepthRegion(ArrayCommandList acl,
-                                               NWayTreeStorageInternal<ArrayCommandChunk> leaf,
-                                               int spanStart,
-                                               int spanEndEx)
+                                       NWayTreeStorageInternal<ArrayCommandChunk> leaf,
+                                       int spanStart,
+                                       int spanEndEx)
         {
             var info = leaf.StoredValue;
             int prefixEnd = spanStart;
@@ -154,7 +172,6 @@ namespace ACESimBase.Util.ArrayProcessing
             for (int pos = bodyStart; pos < bodyEnd;)
             {
                 int sliceEnd = Math.Min(pos + max, bodyEnd);
-
                 var slice = new NWayTreeStorageInternal<ArrayCommandChunk>(region)
                 {
                     StoredValue = CloneMeta(info, pos, sliceEnd)
@@ -165,14 +182,18 @@ namespace ACESimBase.Util.ArrayProcessing
 #endif
                 pos = sliceEnd;
             }
+
             region.StoredValue.LastChild = (byte)(branch - 1);
             region.StoredValue.StartCommandRange = region.StoredValue.EndCommandRangeExclusive;
 
 #if DEBUG
-            TabbedText.WriteLine($"[DEPTH-SPLIT-END] region ID{region.StoredValue.ID} children={branch - 1}");
+            TabbedText.WriteLine($"[DEPTH-SPLIT-END] region ID{region.StoredValue.ID} children={branch - 1} branchesArray={(region.Branches?.Length ?? 0)}");
 #endif
 
             WrapCommandsIntoLeaf(acl, leaf);
+#if DEBUG
+            TabbedText.WriteLine($"[DBG-DEPTH] container ID{leaf.StoredValue.ID} range=[{leaf.StoredValue.StartCommandRange},{leaf.StoredValue.EndCommandRangeExclusive})");
+#endif
         }
 
         private static ArrayCommandChunk CloneMeta(ArrayCommandChunk src, int start, int endEx)
@@ -190,9 +211,12 @@ namespace ACESimBase.Util.ArrayProcessing
         }
 
         private static void WrapCommandsIntoLeaf(ArrayCommandList acl,
-                                                 NWayTreeStorageInternal<ArrayCommandChunk> container)
+                                             NWayTreeStorageInternal<ArrayCommandChunk> container)
         {
             var meta = container.StoredValue;
+#if DEBUG
+            TabbedText.WriteLine($"[WRAP-CHECK] ID{meta.ID} start={meta.StartCommandRange} end={meta.EndCommandRangeExclusive}");
+#endif
             if (meta.StartCommandRange >= meta.EndCommandRangeExclusive)
                 return;
 

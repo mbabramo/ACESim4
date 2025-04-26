@@ -36,8 +36,6 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public IList<PlanEntry> BuildPlan(NWayTreeStorageInternal<ArrayCommandChunk> root)
         {
-            if (root == null) throw new ArgumentNullException(nameof(root));
-
 #if DEBUG
             TabbedText.WriteLine($"[Planner] BuildPlan (max={_max})");
 #endif
@@ -46,13 +44,16 @@ namespace ACESimBase.Util.ArrayProcessing
             root.WalkTree(nObj =>
             {
                 var node = (NWayTreeStorageInternal<ArrayCommandChunk>)nObj;
-                if (node.Branches is { Length: > 0 })
-                    return;
+                if (node.Branches is { Length: > 0 }) return;
 
                 var info = node.StoredValue;
                 int len = info.EndCommandRangeExclusive - info.StartCommandRange;
-                if (len <= _max)
-                    return;
+
+#if DEBUG
+                if (len > _max)
+                    TabbedText.WriteLine($"  • leaf ID{info.ID} len={len}");
+#endif
+                if (len <= _max) return;
 
                 foreach (var entry in BuildPlanForLeaf(info))
                     plan.Add(entry);
@@ -60,8 +61,14 @@ namespace ACESimBase.Util.ArrayProcessing
 
             plan.Sort((a, b) => a.LeafId != b.LeafId ? a.LeafId.CompareTo(b.LeafId)
                                                      : a.StartIdx.CompareTo(b.StartIdx));
+
+#if DEBUG
+            foreach (var e in plan)
+                TabbedText.WriteLine($"    → plan ID{e.LeafId} {e.Kind} [{e.StartIdx},{e.EndIdxExclusive})");
+#endif
             return plan;
         }
+
 
         private IEnumerable<PlanEntry> BuildPlanForLeaf(ArrayCommandChunk leaf)
         {

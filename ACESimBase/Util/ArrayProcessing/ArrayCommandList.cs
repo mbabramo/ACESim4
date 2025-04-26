@@ -204,10 +204,16 @@ namespace ACESimBase.Util.ArrayProcessing
         // ──────────────────────────────────────────────────────────────────────
         //  Tree‑maintenance helpers (copied from original implementation)
         // ──────────────────────────────────────────────────────────────────────
+        // fills the Branches array with existing children plus any gap/tail nodes
         private void InsertMissingBranches(NWayTreeStorageInternal<ArrayCommandChunk> node)
         {
             byte lastChild = node.StoredValue.LastChild;
             if (lastChild == 0) return;
+
+#if DEBUG
+            TabbedText.WriteLine(
+                $"[BRANCHES] parent ID{node.StoredValue.ID}  lastChild={lastChild}");
+#endif
 
             var children = new List<NWayTreeStorageInternal<ArrayCommandChunk>>();
             int curCmd = node.StoredValue.StartCommandRange;
@@ -233,6 +239,11 @@ namespace ACESimBase.Util.ArrayProcessing
                         EndDestinationIndicesExclusive = bVal.StartDestinationIndices
                     };
                     children.Add(gap);
+
+#if DEBUG
+                    TabbedText.WriteLine(
+                        $"    ↳ [GAP] ID{gap.StoredValue.ID} cmds=[{curCmd},{bVal.StartCommandRange})");
+#endif
                 }
 
                 children.Add(branch);
@@ -257,11 +268,22 @@ namespace ACESimBase.Util.ArrayProcessing
                         EndDestinationIndicesExclusive = node.StoredValue.EndDestinationIndicesExclusive
                     };
                     children.Add(tail);
+
+#if DEBUG
+                    TabbedText.WriteLine(
+                        $"    ↳ [TAIL] ID{tail.StoredValue.ID} cmds=[{curCmd},{tail.StoredValue.EndCommandRangeExclusive})");
+#endif
                 }
             }
 
             node.Branches = children.ToArray();
+
+#if DEBUG
+            TabbedText.WriteLine(
+                $"[BRANCHES-END] parent ID{node.StoredValue.ID}  branches={node.Branches.Length}");
+#endif
         }
+
 
         /// <summary>
         /// Hoist all oversize <c>If … EndIf</c> bodies until every executable
