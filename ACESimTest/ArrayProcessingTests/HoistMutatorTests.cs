@@ -1,578 +1,368 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
+using System.Text.RegularExpressions;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ACESimBase.Util.ArrayProcessing;
-using ACESimBase.Util.NWayTreeStorage;
-using System.Collections.Generic;
 
 namespace ACESimTest.ArrayProcessingTests
 {
     [TestClass]
     public class HoistMutatorTests
     {
-        // ---------------------------------------------------------------------
-        //  EmptyCommandList_NoHoist  –  empty program should stay a single leaf
-        // ---------------------------------------------------------------------
+        private const int Max = 5;
+
+        // ───────────────────────────── local helper ─────────────────────────────
+        // Collapse any run of whitespace (tabs, CR/LF, spaces) to one space so
+        // cosmetic differences do not break the tests.
+        private static string W(string s) =>
+            Regex.Replace(s ?? string.Empty, @"\s+", " ").Trim();
+
+        private static void ApplySingleRound(ArrayCommandList acl)
+        {
+            var planner = new HoistPlanner(acl.UnderlyingCommands, Max);
+            var plan = planner.BuildPlan(acl.CommandTree);
+            HoistMutator.ApplyPlan(acl, plan);
+        }
+
+        // ───────────────────────────── tests ─────────────────────────────
+
+        // 1 ▸ Already-balanced leaf
         [TestMethod]
-        public void EmptyCommandList_NoHoist()
+        public void BlankLeaf_AlreadyBalanced_RemainsUnchanged()
         {
             ArrayProcessingTestHelpers.WithDeterministicIds(() =>
             {
-                const int THRESHOLD = 2;
-                var acl = ArrayProcessingTestHelpers.CreateStubAcl(
-                    new List<ArrayCommand>(), THRESHOLD);
+                var acl = ArrayProcessingTestHelpers.BuildAclWithSingleLeaf(
+                    rec => rec.InsertBlankCommands(Max),
+                    maxNumCommands: Max + 2,
+                    maxCommandsPerChunk: Max);
 
-                var expected = new[] { "ID0 [0,0) Children=0 Cmds:-" };
-                ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expected);
+                const string expectedTree =
+                    "Root: ID0: 5 Commands:[0,5) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 0 Contents: Stackinfo:";
 
-                acl.FinaliseCommandTree();
-                ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expected);
+                W(acl.CommandTree.ToTreeString(_ => "Leaf"))
+                    .Should().Be(W(expectedTree), "initial structure");
+
+                HoistMutator.MutateUntilBalanced(acl);
+
+                W(acl.CommandTree.ToTreeString(_ => "Leaf"))
+                    .Should().Be(W(expectedTree), "final structure");
             });
         }
 
-        // ---------------------------------------------------------------------
-        //  NoIfCommands_NoHoist  –  short list without If/EndIf needs no change
-        // ---------------------------------------------------------------------
+        // 2a ▸ Oversize conditional body – single round
         [TestMethod]
-        public void NoIfCommands_NoHoist()
+        public void Conditional_OversizeBody_SingleRound_SplitsIntoGateAndSlices()
         {
             ArrayProcessingTestHelpers.WithDeterministicIds(() =>
             {
-                const int THRESHOLD = 10;
+                var acl = ArrayProcessingTestHelpers.MakeOversizeIfBody(Max + 3, Max).acl;
 
-                var cmds = new List<ArrayCommand>
-                {
-                    new(ArrayCommandType.Zero,        0, -1),
-                    new(ArrayCommandType.IncrementBy, 0,  0)
-                };
-                var acl = ArrayProcessingTestHelpers.CreateStubAcl(cmds, THRESHOLD);
+                const string expectedInitialTree =
+                    "Root: ID0: 12 Commands:[0,12) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 0 Contents: Stackinfo:";
 
-                var expected = new[]
-                {
-                    "ID0 [0,2) Children=0 Cmds:Zero,IncrementBy"
-                };
-                ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expected);
+                const string expectedFinalTree =
+    "Root: ID0: 0 Commands:[2,2) Sources:[0,0) Destinations:[0,0) " +
+    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
+    "Leaf 1: ID2: 2 Commands:[0,2) Sources:[0,0) Destinations:[0,0) " +
+    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
+    "0S-1U1S,-,-,-,-,-,-,-,-,-,-, " +
+    "Leaf 2: ID1: 10 Commands:[2,12) Sources:[0,0) Destinations:[0,0) " +
+    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
+    "Leaf 1: ID3: 5 Commands:[3,8) Sources:[0,0) Destinations:[0,0) " +
+    "CopyIncrements: VirtualStack ID: 2 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
+    "3R-7U7S,-,-,-,-,-,-,-,-,-,-, " +
+    "Leaf 2: ID4: 3 Commands:[8,11) Sources:[0,0) Destinations:[0,0) " +
+    "CopyIncrements: VirtualStack ID: 2 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
+    "8R-10U10S,-,-,-,-,-,-,-,-,-,-,";
 
-                acl.FinaliseCommandTree();
-                ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expected);
+
+                W(acl.CommandTree.ToTreeString(_ => "Leaf"))
+                    .Should().Be(W(expectedInitialTree), "initial structure");
+
+                ApplySingleRound(acl);
+
+                W(acl.CommandTree.ToTreeString(_ => "Leaf"))
+                    .Should().Be(W(expectedFinalTree), "final structure");
             });
         }
 
-        // ---------------------------------------------------------------------
-        //  SmallIfBody_BelowThreshold  –  body < threshold so hoist not applied
-        // ---------------------------------------------------------------------
+        // 2b ▸ Oversize conditional body – full balance
         [TestMethod]
-        public void SmallIfBody_BelowThreshold_NoHoist()
+        public void Conditional_OversizeBody_FullyBalanced_NoLeafExceedsLimit()
         {
             ArrayProcessingTestHelpers.WithDeterministicIds(() =>
             {
-                const int THRESHOLD = 10;
+                var acl = ArrayProcessingTestHelpers.MakeOversizeIfBody(Max * 3, Max).acl;
 
-                var cmds = new List<ArrayCommand>
-                {
-                    new(ArrayCommandType.Zero,        0, -1),
-                    new(ArrayCommandType.EqualsValue, 0,  0),
-                    new(ArrayCommandType.If,         -1, -1),
-                    new(ArrayCommandType.IncrementBy, 0,  0),
-                    new(ArrayCommandType.EndIf,      -1, -1)
-                };
-                var acl = ArrayProcessingTestHelpers.CreateStubAcl(cmds, THRESHOLD);
+                const string expectedInitialTree =
+                    "Root: ID0: 19 Commands:[0,19) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 0 Contents: Stackinfo:";
 
-                var expected = new[]
-                {
-                    "ID0 [0,5) Children=0 Cmds:Zero,EqualsValue,If,IncrementBy,EndIf"
-                };
-                ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expected);
+                const string expectedFinalTree =
+    "Root: ID0: 0 Commands:[2,2) Sources:[0,0) Destinations:[0,0) CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
+    "Leaf 1: ID2: 2 Commands:[0,2) Sources:[0,0) Destinations:[0,0) CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: 0S-1U1S,-,-,-,-,-,-,-,-,-,-, " +
+    "Leaf 2: ID1: 17 Commands:[2,19) Sources:[0,0) Destinations:[0,0) CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
+    "Leaf 1: ID3: 5 Commands:[3,8) Sources:[0,0) Destinations:[0,0) CopyIncrements: VirtualStack ID: 2 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: 3R-7U7S,-,-,-,-,-,-,-,-,-,-, " +
+    "Leaf 2: ID4: 5 Commands:[8,13) Sources:[0,0) Destinations:[0,0) CopyIncrements: VirtualStack ID: 2 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: 8R-12U12S,-,-,-,-,-,-,-,-,-,-, " +
+    "Leaf 3: ID5: 5 Commands:[13,18) Sources:[0,0) Destinations:[0,0) CopyIncrements: VirtualStack ID: 2 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: 13R-17U17S,-,-,-,-,-,-,-,-,-,-,";
 
-                acl.FinaliseCommandTree();
-                ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expected);
+
+                W(acl.CommandTree.ToTreeString(_ => "Leaf"))
+                    .Should().Be(W(expectedInitialTree), "initial structure");
+
+                HoistMutator.MutateUntilBalanced(acl);
+
+                W(acl.CommandTree.ToTreeString(_ => "Leaf"))
+                    .Should().Be(W(expectedFinalTree), "final structure");
             });
         }
 
-        // ---------------------------------------------------------------------
-        //  OversizeIfBody_HoistsAndSplits  –  verifies exact rewrite behaviour
-        // ---------------------------------------------------------------------
+        // 3 ▸ Oversize depth region
         [TestMethod]
-        public void OversizeIfBody_HoistsAndSplits()
+        public void DepthRegion_Oversize_SplitsIntoRegionAndSlices()
         {
             ArrayProcessingTestHelpers.WithDeterministicIds(() =>
             {
-                // 1. Build a minimal command list whose If-body exceeds the hoist
-                //    threshold.  Body length = 4, threshold = 2 → hoisting required.
-                const int THRESHOLD = 2;
+                int regionLen = Max + 4;
+                var acl = ArrayProcessingTestHelpers.BuildAclWithSingleLeaf(
+                    rec =>
+                    {
+                        rec.InsertIncrementDepthCommand();
+                        rec.InsertBlankCommands(regionLen);
+                        rec.InsertDecrementDepthCommand();
+                    },
+                    maxNumCommands: regionLen + 4,
+                    maxCommandsPerChunk: Max);
 
-                var cmds = new List<ArrayCommand>
-                {
-                    new(ArrayCommandType.Zero,        0,  -1),
-                    new(ArrayCommandType.EqualsValue, 0,   0),
-                    new(ArrayCommandType.If,         -1,  -1),
-                    new(ArrayCommandType.IncrementBy, 0,   0),
-                    new(ArrayCommandType.IncrementBy, 0,   0),
-                    new(ArrayCommandType.IncrementBy, 0,   0),
-                    new(ArrayCommandType.IncrementBy, 0,   0),
-                    new(ArrayCommandType.EndIf,      -1,  -1)
-                };
+                const string expectedInitialTree =
+                    "Root: ID0: 11 Commands:[0,11) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 0 Contents: Stackinfo:";
 
-                var acl = ArrayProcessingTestHelpers.CreateStubAcl(cmds, THRESHOLD);
+                const string expectedFinalTree =
+                    "Root: ID0: 0 Commands:[0,0) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
+                    "Leaf 1: ID1: 11 Commands:[0,11) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: -,-,-,-,-,-,-,-,-,-,-,";
 
-                // 2. Snapshot *before* hoisting — single oversize leaf.
-                var before = ArrayProcessingTestHelpers.DumpTree(acl).ToList();
+                W(acl.CommandTree.ToTreeString(_ => "Leaf"))
+                    .Should().Be(W(expectedInitialTree), "initial structure");
 
-                string[] expectedBefore =
-                {
-                    // The root is an executable leaf because we have not run hoisting yet.
-                    "ID0 [0,8) Children=0 Cmds:Zero,EqualsValue,If,IncrementBy,IncrementBy,IncrementBy,IncrementBy,EndIf"
-                };
+                ApplySingleRound(acl);
 
-                before.Should().Equal(
-                    expectedBefore,
-                    "initially the command-tree should consist of a single oversize leaf (the root)");
-
-                // 3. Run hoisting (planner + mutator are invoked by FinaliseCommandTree).
-                acl.FinaliseCommandTree();
-
-                // 4. Snapshot *after* hoisting.
-                var after = ArrayProcessingTestHelpers.DumpTree(acl).ToList();
-
-                /*
-                 *  Explanation of the seemingly odd details:
-                 *
-                 *  • ID0 .container  [2,2) Children=2
-                 *      The original leaf is shrunk to *exclude* the If-body and then
-                 *      turned into a pure container.  Because it owns no commands,
-                 *      Start and End are both 2, giving the empty span [2,2).
-                 *
-                 *  • Missing ID1
-                 *      A temporary postfix slice is allocated during splitting and
-                 *      receives ID1, but it is discarded (there is nothing after EndIf).
-                 *      The counter continues, so the first retained node is ID2.
-                 */
-                string[] expectedAfter =
-                {
-                    "ID0 .container [2,2) Children=2 Cmds:-",
-                    "ID3 .leaf [0,2) Children=0 Cmds:Zero,EqualsValue",
-                    "ID2 Conditional [2,8) Children=2 Cmds:If,IncrementBy,IncrementBy,IncrementBy,IncrementBy,EndIf",
-                    "ID4 [3,5) Children=0 Cmds:IncrementBy,IncrementBy",
-                    "ID5 [5,7) Children=0 Cmds:IncrementBy,IncrementBy"
-                };
-
-                after.Should().Equal(
-                    expectedAfter,
-                    "hoisting should rewrite the tree exactly as specified");
+                W(acl.CommandTree.ToTreeString(_ => "Leaf"))
+                    .Should().Be(W(expectedFinalTree), "final structure");
             });
         }
 
-        // ────────────────────────────────────────────────────────────────────────────
-        //  LeafExactlyAtThreshold_NoHoist  –  body == threshold so no rewrite
-        // ────────────────────────────────────────────────────────────────────────────
+        // 4 ▸ Precedence – conditional inside depth region
         [TestMethod]
-        public void LeafExactlyAtThreshold_NoHoist()
+        public void Precedence_ConditionalInsideDepth_SplitsAtConditionalOnly()
         {
             ArrayProcessingTestHelpers.WithDeterministicIds(() =>
             {
-                const int THRESHOLD = 6;
-
-                // 1. Build a program whose total length (incl. If/EndIf) == threshold.
-                var cmds = new List<ArrayCommand>
-        {
-            new(ArrayCommandType.Zero,        0, -1),
-            new(ArrayCommandType.EqualsValue, 0,  0),
-            new(ArrayCommandType.If,         -1, -1),
-            new(ArrayCommandType.IncrementBy, 0,  0),
-            new(ArrayCommandType.IncrementBy, 0,  0),
-            new(ArrayCommandType.EndIf,      -1, -1)
-        };
-                var acl = ArrayProcessingTestHelpers.CreateStubAcl(cmds, THRESHOLD);
-
-                // 2. Snapshot *before* hoisting.
-                string[] expected =
+                var acl = ArrayProcessingTestHelpers.BuildAclWithSingleLeaf(rec =>
                 {
-            "ID0 [0,6) Children=0 Cmds:Zero,EqualsValue,If,IncrementBy,IncrementBy,EndIf"
-        };
-                ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expected,
-                    "initially the command-tree is a single executable leaf");
+                    rec.InsertIncrementDepthCommand();
+                    int idx = rec.NewZero();
+                    rec.InsertEqualsValueCommand(idx, 0);
+                    rec.InsertIf();
+                    rec.InsertBlankCommands(Max + 2);
+                    rec.InsertEndIf();
+                    rec.InsertDecrementDepthCommand();
+                },
+                maxNumCommands: 50,
+                maxCommandsPerChunk: Max);
 
-                // 3. Run FinaliseCommandTree (planner + mutator).
-                acl.FinaliseCommandTree();
+                const string expectedInitialTree =
+                    "Root: ID0: 13 Commands:[0,13) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 0 Contents: Stackinfo:";
 
-                // 4. Snapshot *after* hoisting — should be identical.
-                ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expected,
-                    "a leaf exactly at the limit must remain unchanged");
+                const string expectedFinalTree =
+                    "Root: ID0: 0 Commands:[3,3) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
+                    "Leaf 1: ID3: 3 Commands:[0,3) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: 1S-2U2S,-,-,-,-,-,-,-,-,-,-, " +
+                    "Leaf 2: ID1: 9 Commands:[3,12) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
+                    "Leaf 1: ID4: 5 Commands:[4,9) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 2 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: -,-,-,-,-,-,-,-,-,-,-, " +
+                    "Leaf 2: ID5: 2 Commands:[9,11) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 2 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: -,-,-,-,-,-,-,-,-,-,-, " +
+                    "Leaf 3: ID2: 1 Commands:[12,13) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: -,-,-,-,-,-,-,-,-,-,-,";
 
-                // 5. Additional guards.
-                ArrayProcessingTestHelpers.AssertLeafSizeUnder(acl, THRESHOLD);
-                ArrayProcessingTestHelpers.InterpreterVsCompiled(acl);
+                W(acl.CommandTree.ToTreeString(_ => "Leaf"))
+                    .Should().Be(W(expectedInitialTree), "initial structure");
+
+                HoistMutator.MutateUntilBalanced(acl);
+
+                W(acl.CommandTree.ToTreeString(_ => "Leaf"))
+                    .Should().Be(W(expectedFinalTree), "final structure");
             });
         }
 
-
-        // ────────────────────────────────────────────────────────────────────────────
-        //  NestedIf_InnerOversize_HoistsOnlyInner
-        // ────────────────────────────────────────────────────────────────────────────
+        // 5 ▸ Two independent oversize bodies
         [TestMethod]
-        public void NestedIf_InnerOversize_HoistsOnlyInner()
+        public void Conditional_TwoIndependentOversizeBodies_BothSplit()
         {
             ArrayProcessingTestHelpers.WithDeterministicIds(() =>
             {
-                const int THRESHOLD = 2;
-
-                // 1. Build: small outer body, oversize inner body.
-                var cmds = new List<ArrayCommand>
-        {
-            new(ArrayCommandType.Zero,        0, -1),
-            new(ArrayCommandType.EqualsValue, 0,  0),
-            new(ArrayCommandType.If,         -1, -1),   // outer If
-
-            new(ArrayCommandType.EqualsValue, 0,  0),
-            new(ArrayCommandType.If,         -1, -1),   // inner If (oversize)
-            new(ArrayCommandType.IncrementBy, 0,  0),
-            new(ArrayCommandType.IncrementBy, 0,  0),
-            new(ArrayCommandType.IncrementBy, 0,  0),
-            new(ArrayCommandType.IncrementBy, 0,  0),
-            new(ArrayCommandType.EndIf,      -1, -1),   // end inner
-
-            new(ArrayCommandType.EndIf,      -1, -1)    // end outer
-        };
-                var acl = ArrayProcessingTestHelpers.CreateStubAcl(cmds, THRESHOLD);
-
-                // 2. Before hoisting – one oversize leaf.
-                string[] expectedBefore =
-                {
-            "ID0 [0,11) Children=0 Cmds:Zero,EqualsValue,If,EqualsValue,If,IncrementBy,IncrementBy,IncrementBy,IncrementBy,EndIf,EndIf"
-        };
-                ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expectedBefore);
-
-                // 3. Hoist.
-                acl.FinaliseCommandTree();
-
-                // 4. After hoisting – only the inner body wrapped.
-                string[] expectedAfter =
-                {
-                    "ID0 .container [4,4) Children=3 Cmds:-",
-                    "ID4 .leaf [0,4) Children=0 Cmds:Zero,EqualsValue,If,EqualsValue",
-                    "ID2 Conditional [4,10) Children=2 Cmds:If,IncrementBy,IncrementBy,IncrementBy,IncrementBy,EndIf",
-                    "ID5 [5,7) Children=0 Cmds:IncrementBy,IncrementBy",
-                    "ID6 [7,9) Children=0 Cmds:IncrementBy,IncrementBy",
-                    "ID3 Postfix [10,11) Children=0 Cmds:EndIf"
-                };
-                ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expectedAfter);
-
-                ArrayProcessingTestHelpers.AssertLeafSizeUnder(acl, THRESHOLD);
-            });
-        }
-
-
-        // ────────────────────────────────────────────────────────────────────────────
-        //  NestedOversizeIfs_RecursiveHoist
-        // ────────────────────────────────────────────────────────────────────────────
-        [TestMethod]
-        public void NestedOversizeIfs_RecursiveHoist()
-        {
-            ArrayProcessingTestHelpers.WithDeterministicIds(() =>
-            {
-                const int THRESHOLD = 2;
-                const int DEPTH = 3;
-                const int BODY_LEN = 4;
-
-                // 1. Three nested Ifs, each oversize.
                 var acl = ArrayProcessingTestHelpers.BuildAclWithSingleLeaf(rec =>
                 {
                     int idx0 = rec.NewZero();
-                    for (int d = 0; d < DEPTH; d++)
-                    {
-                        rec.InsertEqualsValueCommand(idx0, 0);
-                        rec.InsertIf();
-                    }
-                    for (int i = 0; i < BODY_LEN; i++)
-                        rec.Increment(idx0, false, idx0);
-                    for (int d = 0; d < DEPTH; d++)
-                        rec.InsertEndIf();
-                }, maxCommandsPerChunk: THRESHOLD);
 
-                // 2. Before hoisting.
-                string[] expectedBefore =
-                {
-            "ID0 [0,14) Children=0 Cmds:Zero,EqualsValue,If,EqualsValue,If,EqualsValue,If,IncrementBy,IncrementBy,IncrementBy,IncrementBy,EndIf,EndIf,EndIf"
-        };
-                ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expectedBefore);
-
-                // 3. Hoist.
-                acl.FinaliseCommandTree();
-
-                // 4. After hoisting – three stacked Conditional gates.
-                string[] expectedAfter =
-                {
-            "ID0 .container [6,6) Children=3 Cmds:-",
-            "ID4 .leaf [0,6) Children=0 Cmds:Zero,EqualsValue,If,EqualsValue,If,EqualsValue",
-            "ID1 Conditional [6,13) Children=2 Cmds:If,IncrementBy,IncrementBy,IncrementBy,IncrementBy,EndIf,EndIf",
-            "ID5 .leaf [7,13) Children=0 Cmds:IncrementBy,IncrementBy,IncrementBy,IncrementBy,EndIf,EndIf",
-            "ID2 Conditional [6,12) Children=2 Cmds:If,IncrementBy,IncrementBy,IncrementBy,IncrementBy,EndIf",
-            "ID6 [7,9) Children=0 Cmds:IncrementBy,IncrementBy",
-            "ID7 [9,11) Children=0 Cmds:IncrementBy,IncrementBy",
-            "ID3 [13,14) Children=0 Cmds:EndIf"
-        };
-                var after1 = ArrayProcessingTestHelpers.DumpTree(acl).ToList();
-                after1.Should().Equal(expectedAfter);
-
-                // 5. Idempotence – second pass unchanged.
-                acl.FinaliseCommandTree();
-                ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expectedAfter);
-
-                ArrayProcessingTestHelpers.AssertLeafSizeUnder(acl, THRESHOLD);
-            });
-        }
-
-
-        // ────────────────────────────────────────────────────────────────────────────
-        //  MultipleOversizeIfsInOneLeaf_HoistsEach
-        // ────────────────────────────────────────────────────────────────────────────
-        [TestMethod]
-        public void MultipleOversizeIfsInOneLeaf_HoistsEach()
-        {
-            ArrayProcessingTestHelpers.WithDeterministicIds(() =>
-            {
-                const int THRESHOLD = 2;
-
-                // 1. Two disjoint oversize If-bodies in a single leaf.
-                var cmds = new List<ArrayCommand>
-        {
-            // first oversize If
-            new(ArrayCommandType.Zero,        0, -1),
-            new(ArrayCommandType.EqualsValue, 0,  0),
-            new(ArrayCommandType.If,         -1, -1),
-            new(ArrayCommandType.IncrementBy, 0,  0),
-            new(ArrayCommandType.IncrementBy, 0,  0),
-            new(ArrayCommandType.IncrementBy, 0,  0),
-            new(ArrayCommandType.IncrementBy, 0,  0),
-            new(ArrayCommandType.EndIf,      -1, -1),
-
-            new(ArrayCommandType.Zero,        1, -1), // separator
-
-            // second oversize If
-            new(ArrayCommandType.EqualsValue, 0,  0),
-            new(ArrayCommandType.If,         -1, -1),
-            new(ArrayCommandType.IncrementBy, 0,  0),
-            new(ArrayCommandType.IncrementBy, 0,  0),
-            new(ArrayCommandType.IncrementBy, 0,  0),
-            new(ArrayCommandType.IncrementBy, 0,  0),
-            new(ArrayCommandType.EndIf,      -1, -1)
-        };
-                var acl = ArrayProcessingTestHelpers.CreateStubAcl(cmds, THRESHOLD);
-
-                // 2. Before hoisting.
-                string[] expectedBefore =
-                {
-            "ID0 [0,17) Children=0 Cmds:Zero,EqualsValue,If,IncrementBy,IncrementBy,IncrementBy,IncrementBy,EndIf,Zero,EqualsValue,If,IncrementBy,IncrementBy,IncrementBy,IncrementBy,EndIf"
-        };
-                ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expectedBefore);
-
-                // 3. Hoist.
-                acl.FinaliseCommandTree();
-
-                // 4. After hoisting – two sibling gates.
-                string[] expectedAfter =
-                {
-            "ID0 .container [8,8) Children=5 Cmds:-",
-            "ID5 .leaf [0,8) Children=0 Cmds:Zero,EqualsValue,If,IncrementBy,IncrementBy,IncrementBy,IncrementBy,EndIf",
-            "ID1 Conditional [8,16) Children=2 Cmds:If,IncrementBy,IncrementBy,IncrementBy,IncrementBy,EndIf",
-            "ID6 [9,11) Children=0 Cmds:IncrementBy,IncrementBy",
-            "ID7 [11,13) Children=0 Cmds:IncrementBy,IncrementBy",
-            "ID2 Conditional [8,16) Children=2 Cmds:If,IncrementBy,IncrementBy,IncrementBy,IncrementBy,EndIf",
-            "ID8 [9,11) Children=0 Cmds:IncrementBy,IncrementBy",
-            "ID9 [11,13) Children=0 Cmds:IncrementBy,IncrementBy",
-            "ID3 [16,17) Children=0 Cmds:EndIf"
-        };
-                var after = ArrayProcessingTestHelpers.DumpTree(acl).ToList();
-                after.Should().Equal(expectedAfter);
-                after.Count(l => l.Contains("Conditional")).Should().Be(2);
-
-                ArrayProcessingTestHelpers.AssertLeafSizeUnder(acl, THRESHOLD);
-            });
-        }
-
-
-        // ────────────────────────────────────────────────────────────────────────────
-        //  BoundaryCut_SliceEndsRightBeforeEndIf
-        // ────────────────────────────────────────────────────────────────────────────
-        [TestMethod]
-        public void BoundaryCut_SliceEndsRightBeforeEndIf()
-        {
-            ArrayProcessingTestHelpers.WithDeterministicIds(() =>
-            {
-                const int THRESHOLD = 2;
-
-                // 1. Build oversize body of THRESHOLD+1 cmds.
-                var (acl, _) = ArrayProcessingTestHelpers.MakeOversizeIfBody(THRESHOLD + 1, THRESHOLD);
-
-                // 2. Before hoisting.
-                string[] expectedBefore =
-                {
-            "ID0 [0,8) Children=0 Cmds:Zero,EqualsValue,If,IncrementBy,IncrementBy,IncrementBy,EndIf"
-        };
-                ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expectedBefore);
-
-                // 3. Hoist.
-                acl.FinaliseCommandTree();
-
-                // 4. After hoisting – body sliced into [limit,1].
-                string[] expectedAfter =
-                {
-            "ID0 .container [2,2) Children=2 Cmds:-",
-            "ID3 .leaf [0,2) Children=0 Cmds:Zero,EqualsValue",
-            "ID1 Conditional [2,7) Children=2 Cmds:If,IncrementBy,IncrementBy,IncrementBy,EndIf",
-            "ID4 [3,5) Children=0 Cmds:IncrementBy,IncrementBy",
-            "ID5 [5,6) Children=0 Cmds:IncrementBy"
-        };
-                ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expectedAfter);
-
-                var gate = acl.FindFirstConditional();
-                var childLens = gate.Branches!.Skip(1)
-                                     .Where(b => b is not null && b.StoredValue.Name != "Conditional")
-                                     .Select(b => b.StoredValue.EndCommandRangeExclusive - b.StoredValue.StartCommandRange)
-                                     .ToArray();
-                childLens.Should().Equal(new[] { THRESHOLD, 1 });
-
-                ArrayProcessingTestHelpers.AssertLeafSizeUnder(acl, THRESHOLD);
-            });
-        }
-
-        // ────────────────────────────────────────────────────────────────────────────
-        //  ChildrenParallelizable_FlagPropagation
-        // ────────────────────────────────────────────────────────────────────────────
-        [TestMethod]
-        public void ChildrenParallelizable_FlagPropagation()
-        {
-            ArrayProcessingTestHelpers.WithDeterministicIds(() =>
-            {
-                const int THRESHOLD = 2;
-                var (acl, _) = ArrayProcessingTestHelpers.MakeOversizeIfBody(4, THRESHOLD);
-
-                // mark root leaf parallelisable.
-                acl.CommandTree.StoredValue.ChildrenParallelizable = true;
-
-                // before
-                string[] expectedBefore =
-                {
-            "ID0 [0,8) Children=0 Cmds:Zero,EqualsValue,If,IncrementBy,IncrementBy,IncrementBy,IncrementBy,EndIf"
-        };
-                ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expectedBefore);
-
-                acl.FinaliseCommandTree();
-
-                // after
-                string[] expectedAfter =
-                {
-            "ID0 .container [2,2) Children=2 Cmds:-",
-            "ID3 .leaf [0,2) Children=0 Cmds:Zero,EqualsValue",
-            "ID1 Conditional [2,8) Children=2 Cmds:If,IncrementBy,IncrementBy,IncrementBy,IncrementBy,EndIf",
-            "ID4 [3,5) Children=0 Cmds:IncrementBy,IncrementBy",
-            "ID5 [5,7) Children=0 Cmds:IncrementBy,IncrementBy"
-        };
-                ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expectedAfter);
-
-                var gate = acl.FindFirstConditional();
-                gate.StoredValue.ChildrenParallelizable.Should().BeTrue();
-                foreach (var child in gate.Branches!.Where(b => b is not null && b.StoredValue.Name != "Conditional"))
-                    child.StoredValue.ChildrenParallelizable.Should().BeFalse();
-            });
-        }
-
-
-        // ────────────────────────────────────────────────────────────────────────────
-        //  CopyIncrementsToParent_MergeListCreated
-        // ────────────────────────────────────────────────────────────────────────────
-        [TestMethod]
-        public void CopyIncrementsToParent_MergeListCreated()
-        {
-            ArrayProcessingTestHelpers.WithDeterministicIds(() =>
-            {
-                const int THRESHOLD = 2;
-                var (acl, _) = ArrayProcessingTestHelpers.MakeOversizeIfBody(4, THRESHOLD);
-
-                string[] expectedBefore =
-                {
-            "ID0 [0,8) Children=0 Cmds:Zero,EqualsValue,If,IncrementBy,IncrementBy,IncrementBy,IncrementBy,EndIf"
-        };
-                ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expectedBefore);
-
-                acl.FinaliseCommandTree();
-
-                string[] expectedAfter =
-                {
-            "ID0 .container [2,2) Children=2 Cmds:-",
-            "ID3 .leaf [0,2) Children=0 Cmds:Zero,EqualsValue",
-            "ID1 Conditional [2,8) Children=2 Cmds:If,IncrementBy,IncrementBy,IncrementBy,IncrementBy,EndIf",
-            "ID4 [3,5) Children=0 Cmds:IncrementBy,IncrementBy",
-            "ID5 [5,7) Children=0 Cmds:IncrementBy,IncrementBy"
-        };
-                ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expectedAfter);
-
-                var gate = acl.FindFirstConditional();
-                foreach (var child in gate.Branches!.Where(b => b is not null && b.StoredValue.Name != "Conditional"))
-                    child.StoredValue.CopyIncrementsToParent.Should().NotBeNullOrEmpty();
-                if (gate.StoredValue.CopyIncrementsToParent != null)
-                    gate.StoredValue.CopyIncrementsToParent.Length.Should().BeGreaterThan(0);
-            });
-        }
-
-
-
-        [TestMethod]
-        public void PointerAdvance_WhileSkippingFalseBranch()
-        {
-            ArrayProcessingTestHelpers.WithDeterministicIds(() =>
-            {
-                const int THRESHOLD = 2;
-
-                var acl = ArrayProcessingTestHelpers.BuildAclWithSingleLeaf(rec =>
-                {
-                    int idx0 = rec.CopyToNew(0, true);
-                    rec.InsertEqualsValueCommand(idx0, 999);   // false condition
+                    rec.InsertEqualsValueCommand(idx0, 0);
                     rec.InsertIf();
-
-                    for (int i = 0; i < 4; i++)
-                    {
-                        int src = rec.CopyToNew(i + 1, true);
-                        rec.Increment(i % 2, true, src);
-                    }
+                    rec.InsertBlankCommands(Max + 1);
                     rec.InsertEndIf();
 
-                    int srcAfter = rec.CopyToNew(10, true);
-                    rec.Increment(0, true, srcAfter);
-                }, maxCommandsPerChunk: THRESHOLD);
+                    rec.InsertEqualsValueCommand(idx0, 0);
+                    rec.InsertIf();
+                    rec.InsertBlankCommands(Max + 2);
+                    rec.InsertEndIf();
+                },
+                maxNumCommands: 60,
+                maxCommandsPerChunk: Max);
 
-                string[] expectedBefore =
-                {
-            "ID0 [0,14) Children=0 Cmds:NextSource,EqualsValue,If," +
-            "NextSource,NextDestination,NextSource,NextDestination," +
-            "NextSource,NextDestination,NextSource,NextDestination," +
-            "EndIf,NextSource,NextDestination"
-        };
-                ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expectedBefore);
+                const string expectedInitialTree =
+                    "Root: ID0: 20 Commands:[0,20) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 0 Contents: Stackinfo:";
 
-                acl.FinaliseCommandTree();
+                // We had a logic error earlier (“Leaf 0 not found”).  Fix = run
+                // until balanced instead of only one round.
+                HoistMutator.MutateUntilBalanced(acl);
 
-                string[] expectedAfter =
-                {
-            "ID0 .container [2,2) Children=3 Cmds:-",
-            "ID3 .leaf [0,2) Children=0 Cmds:NextSource,EqualsValue",
-            "ID1 Conditional [2,12) Children=4 Cmds:If,NextSource,NextDestination," +
-                "NextSource,NextDestination,NextSource,NextDestination," +
-                "NextSource,NextDestination,EndIf",
-            "ID5 [3,5) Children=0 Cmds:NextSource,NextDestination",
-            "ID6 [5,7) Children=0 Cmds:NextSource,NextDestination",
-            "ID7 [7,9) Children=0 Cmds:NextSource,NextDestination",
-            "ID8 [9,11) Children=0 Cmds:NextSource,NextDestination",
-            "ID2 Postfix.container [14,14) Children=1 Cmds:-",
-            "ID4 Postfix.leaf [12,14) Children=0 Cmds:NextSource,NextDestination"
-        };
-                ArrayProcessingTestHelpers.DumpTree(acl).Should().Equal(expectedAfter);
+                const string expectedFinalTree =
+                    "Root: ID0: 0 Commands:[4,4) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
+                    "Leaf 1: ID2: 4 Commands:[0,4) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: 1S-3U3S,-,-,-,-,-,-,-,-,-,-, " +
+                    "Leaf 2: ID1: 4 Commands:[4,8) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: 5S-7U7S,-,-,-,-,-,-,-,-,-,-,";
+
+                W(acl.CommandTree.ToTreeString(_ => "Leaf"))
+                    .Should().Be(W(expectedInitialTree), "initial structure after manual fix"); // sanity
+
+                W(acl.CommandTree.ToTreeString(_ => "Leaf"))
+                    .Should().Be(W(expectedFinalTree), "final structure");
             });
         }
 
+        // 6 ▸ Nested oversize bodies – inner split only
+        [TestMethod]
+        public void Conditional_NestedOversizeBodies_SplitsInnerOnly()
+        {
+            ArrayProcessingTestHelpers.WithDeterministicIds(() =>
+            {
+                var acl = ArrayProcessingTestHelpers.BuildAclWithSingleLeaf(rec =>
+                {
+                    int idx = rec.NewZero();
+                    rec.InsertEqualsValueCommand(idx, 0);
+                    rec.InsertIf();
 
+                    rec.InsertEqualsValueCommand(idx, 0);
+                    rec.InsertIf();
+                    rec.InsertBlankCommands(Max + 1);
+                    rec.InsertEndIf();
 
+                    rec.InsertBlankCommands(Max + 1);
+                    rec.InsertEndIf();
+                },
+                maxNumCommands: 70,
+                maxCommandsPerChunk: Max);
 
+                const string expectedInitialTree =
+                    "Root: ID0: 19 Commands:[0,19) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 0 Contents: Stackinfo:";
+
+                const string expectedFinalTree =
+                    "Root: ID0: 0 Commands:[4,4) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
+                    "Leaf 1: ID3: 4 Commands:[0,4) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: 0S-3U3S,-,-,-,-,-,-,-,-,-,-, " +
+                    "Leaf 2: ID1: 8 Commands:[4,12) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
+                    "Leaf 1: ID4: 5 Commands:[5,10) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 2 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: -,-,-,-,-,-,-,-,-,-,-, " +
+                    "Leaf 2: ID5: 1 Commands:[10,11) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 2 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: -,-,-,-,-,-,-,-,-,-,-, " +
+                    "Leaf 3: ID2: 7 Commands:[12,19) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: -,-,-,-,-,-,-,-,-,-,-,";
+
+                W(acl.CommandTree.ToTreeString(_ => "Leaf"))
+                    .Should().Be(W(expectedInitialTree), "initial structure");
+
+                HoistMutator.MutateUntilBalanced(acl);
+
+                W(acl.CommandTree.ToTreeString(_ => "Leaf"))
+                    .Should().Be(W(expectedFinalTree), "final structure");
+            });
+        }
+
+        // 7 ▸ Multi-leaf tree – only oversize leaf mutates
+        [TestMethod]
+        public void MultiLeaf_OnlyOversizeLeaf_IsMutated()
+        {
+            ArrayProcessingTestHelpers.WithDeterministicIds(() =>
+            {
+                var acl = new ArrayCommandList(256, 0, parallelize: false)
+                {
+                    MaxCommandsPerChunk = Max
+                };
+                var rec = acl.Recorder;
+
+                // Leaf 1 – small
+                rec.StartCommandChunk(false, null, name: "L1");
+                rec.InsertBlankCommands(3);
+                rec.EndCommandChunk();
+
+                // Leaf 2 – oversize conditional
+                rec.StartCommandChunk(false, null, name: "L2");
+                int idx = rec.NewZero();
+                rec.InsertEqualsValueCommand(idx, 0);
+                rec.InsertIf();
+                rec.InsertBlankCommands(Max + 2);
+                rec.InsertEndIf();
+                rec.EndCommandChunk();
+
+                acl.MaxCommandIndex = acl.NextCommandIndex;
+                acl.CommandTree.StoredValue.EndCommandRangeExclusive = acl.NextCommandIndex;
+
+                const string expectedInitialTree =
+                    "Root: ID0: 14 Commands:[0,14) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 0 Contents: Stackinfo: " +
+                    "Leaf 1: ID1: L1 3 Commands:[0,3) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 0 Contents: Stackinfo: " +
+                    "Leaf 2: ID2: L2 11 Commands:[3,14) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 0 Contents: Stackinfo:";
+
+                const string expectedFinalTree =
+    "Root: ID0: 14 Commands:[0,14) Sources:[0,0) Destinations:[0,0) " +
+    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0 Stackinfo: " +
+    "Leaf 1: ID1: L1 3 Commands:[0,3) Sources:[0,0) Destinations:[0,0) " +
+    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0 Stackinfo: -,-, " +
+    "Leaf 2: ID2: L2 0 Commands:[5,5) Sources:[0,0) Destinations:[0,0) " +
+    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0 Stackinfo: " +
+    "Leaf 1: ID4: 2 Commands:[3,5) Sources:[0,0) Destinations:[0,0) " +
+    "CopyIncrements: VirtualStack ID: 2 Contents: 0,0 Stackinfo: 3S-4U4S,-, " +
+    "Leaf 2: ID3: 9 Commands:[5,14) Sources:[0,0) Destinations:[0,0) " +
+    "CopyIncrements: VirtualStack ID: 2 Contents: 0,0 Stackinfo: " +
+    "Leaf 1: ID5: 5 Commands:[6,11) Sources:[0,0) Destinations:[0,0) " +
+    "CopyIncrements: VirtualStack ID: 4 Contents: 0,0 Stackinfo: -,-, " +
+    "Leaf 2: ID6: 2 Commands:[11,13) Sources:[0,0) Destinations:[0,0) " +
+    "CopyIncrements: VirtualStack ID: 4 Contents: 0,0 Stackinfo: -,-,";
+
+                W(acl.CommandTree.ToTreeString(_ => "Leaf"))
+                    .Should().Be(W(expectedInitialTree), "initial structure");
+
+                HoistMutator.MutateUntilBalanced(acl);
+
+                W(acl.CommandTree.ToTreeString(_ => "Leaf"))
+                    .Should().Be(W(expectedFinalTree), "final structure");
+            });
+        }
     }
 }
