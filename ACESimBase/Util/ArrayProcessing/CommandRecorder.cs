@@ -276,10 +276,15 @@ namespace ACESimBase.Util.ArrayProcessing
 
         #region DepthAndChunkFacade   // (internal – builder-only)
 
-        internal void IncrementDepth() => _depthStartSlots.Push(_nextArrayIndex);
+        internal void IncrementDepth()
+        {
+            _depthStartSlots.Push(_nextArrayIndex);
+            InsertIncrementDepthCommand();
+        }
 
         internal void DecrementDepth(bool completeCommandList = false)
         {
+            InsertDecrementDepthCommand();
             int rewind = _depthStartSlots.Pop();
             if (_acl.RepeatIdenticalRanges && _acl.ReuseScratchSlots)
                 _nextArrayIndex = rewind;
@@ -335,6 +340,22 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             int cmdIndex = _nextCommandIndex;                 // position before adding the blank
             AddCommand(new ArrayCommand(ArrayCommandType.Blank, -1, -1));
+            return cmdIndex;
+        }
+
+
+        public int InsertIncrementDepthCommand()
+        {
+            int cmdIndex = _nextCommandIndex;                 // position before adding the blank
+            AddCommand(new ArrayCommand(ArrayCommandType.IncrementDepth, -1, -1));
+            return cmdIndex;
+        }
+
+
+        public int InsertDecrementDepthCommand()
+        {
+            int cmdIndex = _nextCommandIndex;                 // position before adding the blank
+            AddCommand(new ArrayCommand(ArrayCommandType.DecrementDepth, -1, -1));
             return cmdIndex;
         }
 

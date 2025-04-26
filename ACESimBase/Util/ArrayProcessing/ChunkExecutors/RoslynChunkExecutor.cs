@@ -406,6 +406,8 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 // comments / blanks – ignore
                 case ArrayCommandType.Comment:
                 case ArrayCommandType.Blank:
+                case ArrayCommandType.IncrementDepth:
+                case ArrayCommandType.DecrementDepth:
                     break;
 
                 default:

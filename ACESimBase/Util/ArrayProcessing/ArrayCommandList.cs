@@ -108,20 +108,6 @@ namespace ACESimBase.Util.ArrayProcessing
             };
         }
 
-        // ──────────────────────────────────────────────────────────────────────
-        //  Depth helpers
-        // ──────────────────────────────────────────────────────────────────────
-        public void IncrementDepth() => _depthStartSlots.Push(NextArrayIndex);
-
-        public void DecrementDepth(bool completeCommandList = false)
-        {
-            int rewind = _depthStartSlots.Pop();
-            if (RepeatIdenticalRanges && ReuseScratchSlots)
-                NextArrayIndex = rewind;
-
-            if (_depthStartSlots.Count == 0 && completeCommandList)
-                CompleteCommandList();
-        }
 
         // ──────────────────────────────────────────────────────────────────────
         //  Chunk helpers
@@ -517,6 +503,10 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void InsertComment(string comment) => Recorder.InsertComment(comment);
         public void InsertBlankCommand() => Recorder.InsertBlankCommand();
+
+        public void IncrementDepth() => Recorder.IncrementDepth();
+
+        public void DecrementDepth(bool completeCommandList = false) => Recorder.DecrementDepth(completeCommandList);
 
         #endregion
 

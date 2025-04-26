@@ -494,10 +494,12 @@ namespace ACESimTest.ArrayProcessingTests
         {
             var cmds = new[]
             {
-        new ArrayCommand(ArrayCommandType.Blank,   -1, -1),
-        new ArrayCommand(ArrayCommandType.Comment, -1,  0),
-        new ArrayCommand(ArrayCommandType.Zero,     2, -1)
-    };
+                new ArrayCommand(ArrayCommandType.Blank,   -1, -1),
+                new ArrayCommand(ArrayCommandType.IncrementDepth,   -1, -1),
+                new ArrayCommand(ArrayCommandType.DecrementDepth,   -1, -1),
+                new ArrayCommand(ArrayCommandType.Comment, -1,  0),
+                new ArrayCommand(ArrayCommandType.Zero,     2, -1)
+            };
             var chunk = ArrangeChunk(cmds);
             chunk.VirtualStack[2] = 5.0;
             var vs = ActExecute(chunk, Array.Empty<double>(), Array.Empty<double>());

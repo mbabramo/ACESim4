@@ -129,6 +129,8 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     case ArrayCommandType.EndIf:
                     case ArrayCommandType.Comment:
                     case ArrayCommandType.Blank:
+                    case ArrayCommandType.IncrementDepth:
+                    case ArrayCommandType.DecrementDepth:
                         // no action
                         break;
 
