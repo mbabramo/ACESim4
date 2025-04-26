@@ -25,32 +25,51 @@ namespace ACESimBase.Util.ArrayProcessing
         /// and mutate <paramref name="acl.CommandTree"/> in‑place.
         /// </summary>
         public static void ApplyPlan(
-            ArrayCommandList acl,
-            IList<HoistPlanner.PlanEntry> plan)
+    ArrayCommandList acl,
+    IList<HoistPlanner.PlanEntry> plan)
         {
-            // ── 1. apply every PlanEntry ─────────────────────────────────────────────
+#if DEBUG
+            TabbedText.WriteLine($"[Mutator] ══ ApplyPlan: {plan.Count} entry/entries ══");
+#endif
+
+            // 1. mutate every PlanEntry
             foreach (var entry in plan)
             {
-                // locate oversize leaf
+#if DEBUG
+                TabbedText.WriteLine($"[Mutator]   processing leaf={entry.LeafId}  If={entry.IfIdx}  EndIf={entry.EndIfIdx}  body={entry.BodyLen}");
+#endif
                 var leaf = FindLeafById(
                     (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree,
-                    entry.LeafId);
+                    entry.LeafId) ?? throw new InvalidOperationException($"Leaf {entry.LeafId} not found");
 
-                if (leaf == null)
-                    throw new InvalidOperationException($"Leaf {entry.LeafId} not found");
-
-                // splice in gate + children
                 ReplaceLeafWithGate(acl, leaf, entry);
             }
 
-            // ── 2. rebuild virtual‑stack metadata & CoSI/CoDI after mutation ─────────
+            // 2. rebuild metadata after mutation
             acl.CommandTree.WalkTree(
                 x => acl.SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandChunk>)x),
                 x => acl.SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandChunk>)x));
 
             if (acl.RecordCommandTreeString)
-                acl.CommandTreeString = acl.CommandTree.ToString();   // keep string snapshot fresh
+                acl.CommandTreeString = acl.CommandTree.ToString();
+
+#if DEBUG
+            int maxLeaf = 0;
+            acl.CommandTree.WalkTree(n =>
+            {
+                var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
+                if (node.Branches is null or { Length: 0 })
+                {
+                    var s = node.StoredValue;
+                    int len = s.EndCommandRangeExclusive - s.StartCommandRange;
+                    if (len > maxLeaf) maxLeaf = len;
+                }
+            });
+            TabbedText.WriteLine($"[Mutator]   max-leaf-size after hoist = {maxLeaf}");
+            TabbedText.WriteLine($"[Mutator] ════════════════════════════════");
+#endif
         }
+
 
         /// <summary>
         /// Ensure <paramref name="acl"/> has a CommandTree.  
@@ -111,80 +130,61 @@ namespace ACESimBase.Util.ArrayProcessing
     int ifIdx,
     int endIfIdx)
         {
-            TabbedText.WriteLine($"[SPLIT] leaf={leaf.StoredValue.ID}  "
-              + $"gateParall={leaf.StoredValue.ChildrenParallelizable}");
+#if DEBUG
+            TabbedText.WriteLine($"[Split] leaf={leaf.StoredValue.ID}  " +
+                                 $"If={ifIdx}  EndIf={endIfIdx}");
+#endif
 
             int spanStart = leaf.StoredValue.StartCommandRange;
             int spanEnd = leaf.StoredValue.EndCommandRangeExclusive;
             int afterEnd = endIfIdx + 1;
 
-            // absorb ONE additional EndIf when doing so still leaves at least one
-            // command for the postfix slice – this matches the shape expected by the
-            // recursive-hoist test with three nested oversized bodies
+            // absorb one extra EndIf when safe (matches existing test expectations)
             if (afterEnd + 1 < spanEnd &&
                 acl.UnderlyingCommands[afterEnd].CommandType == ArrayCommandType.EndIf)
-            {
-                afterEnd++;                     // extend the gate’s span
-            }
+                afterEnd++;
 
-            /* ── 1. shrink the original leaf to the prefix BEFORE the If ─────── */
+            // 1️⃣ shrink original leaf to prefix
             leaf.StoredValue.EndCommandRangeExclusive = ifIdx;
-#if DEBUG
-            TabbedText.WriteLine($"[FIX] Prefix slice {leaf.StoredValue.ID} will execute (Skip=false)");
-#endif
             leaf.StoredValue.Skip = false;
 
-            /* helper to copy the required metadata */
-            ArrayCommandChunk MetaFrom(ArrayCommandChunk src)
+            ArrayCommandChunk MetaFrom(ArrayCommandChunk src) => new()
             {
-                var copy = new ArrayCommandChunk
-                {
-                    VirtualStack = src.VirtualStack,
-                    VirtualStackID = src.VirtualStackID,
-                    ChildrenParallelizable = src.ChildrenParallelizable
-                };
-#if DEBUG
-                TabbedText.WriteLine(
-                    $"[FLAG-SET] id={copy.ID,4}  ChildrenParallelizable={copy.ChildrenParallelizable}  "
-                  + $"(copied from parentID={src.ID,4}) in MetaFrom");
-#endif
-                return copy;
-            }
+                VirtualStack = src.VirtualStack,
+                VirtualStackID = src.VirtualStackID,
+                ChildrenParallelizable = src.ChildrenParallelizable
+            };
 
-            /* ── 2. create the Conditional gate ──────────────────────────────── */
-            var gate = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf);
-            gate.StoredValue = MetaFrom(leaf.StoredValue);
+            // 2️⃣ create Conditional gate
+            var gate = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf)
+            {
+                StoredValue = MetaFrom(leaf.StoredValue)
+            };
             gate.StoredValue.Name = "Conditional";
             gate.StoredValue.StartCommandRange = ifIdx;
             gate.StoredValue.EndCommandRangeExclusive = afterEnd;
 
-#if DEBUG
-            TabbedText.WriteLine($"[PARA-CHK] leafID={leaf.StoredValue.ID,4}  "
-                              + $"parent.ChildrenParallelizable={leaf.StoredValue.ChildrenParallelizable}  "
-                              + $"gateID={gate.StoredValue.ID,4}  "
-                              + $"gate.ChildrenParallelizable={gate.StoredValue.ChildrenParallelizable}");
-#endif
-
-            TabbedText.WriteLine($"[SPLIT-GATE] parentLeafID={leaf.StoredValue.ID}  "
-                              + $"gateID={gate.StoredValue.ID}  "
-                              + $"parent.ChildrenParallelizable={leaf.StoredValue.ChildrenParallelizable}  "
-                              + $"gate.ChildrenParallelizable={gate.StoredValue.ChildrenParallelizable}");
-
-            /* ── 3. optional postfix slice ───────────────────────────────────── */
+            // 3️⃣ optional postfix slice
             NWayTreeStorageInternal<ArrayCommandChunk>? postfix = null;
             if (afterEnd < spanEnd)
             {
-                postfix = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf);
-                postfix.StoredValue = MetaFrom(leaf.StoredValue);
+                postfix = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf)
+                {
+                    StoredValue = MetaFrom(leaf.StoredValue)
+                };
                 postfix.StoredValue.Name = "Postfix";
                 postfix.StoredValue.StartCommandRange = afterEnd;
                 postfix.StoredValue.EndCommandRangeExclusive = spanEnd;
             }
 
+#if DEBUG
+            TabbedText.WriteLine($"[Split]   prefix→ID {leaf.StoredValue.ID}  " +
+                                 $"gate→ID {gate.StoredValue.ID}  " +
+                                 $"postfix→ID {(postfix?.StoredValue.ID.ToString() ?? "∅")}");
+#endif
+
             return new LeafSplit(leaf, gate, postfix);
         }
-
-
 
 
         /// <summary>
@@ -196,41 +196,46 @@ namespace ACESimBase.Util.ArrayProcessing
         /// and update <c>LastChild</c> accordingly.
         /// </summary>
         internal static void InsertSplitIntoTree(
-            LeafSplit split,
-            byte firstBranchId = 1)   // we always put the gate at branch‑ID 1
+    LeafSplit split,
+    byte firstBranchId = 1)
         {
+#if DEBUG
+            TabbedText.WriteLine($"[Tree] insert under parentID={split.Prefix.StoredValue.ID}  " +
+                                 $"gateID={split.Gate.StoredValue.ID}  " +
+                                 $"postfixID={(split.Postfix?.StoredValue.ID.ToString() ?? "∅")}");
+#endif
+
             var parent = split.Prefix;
 
-            // Branch‑ID 1 → Conditional gate
             parent.SetBranch(firstBranchId, split.Gate);
 
-            // Branch‑ID 2 → Postfix slice (when present)
             if (split.Postfix != null)
                 parent.SetBranch((byte)(firstBranchId + 1), split.Postfix);
 
-            /* ── update LastChild to the highest ID we just used ────────────── */
             parent.StoredValue.LastChild =
-                (byte)((split.Postfix != null) ? firstBranchId + 1   // gate + postfix
-                                               : firstBranchId);     // gate only
+                (byte)((split.Postfix != null) ? firstBranchId + 1 : firstBranchId);
         }
-
 
         private static void ReplaceLeafWithGate(
     ArrayCommandList acl,
     NWayTreeStorageInternal<ArrayCommandChunk> leaf,
     HoistPlanner.PlanEntry entry)
         {
-            // 1. Split the oversize leaf into prefix / gate / postfix
+#if DEBUG
+            TabbedText.WriteLine($"[Mutator] ── ReplaceLeafWithGate ──  " +
+                                 $"leaf={leaf.StoredValue.ID}  If={entry.IfIdx}  EndIf={entry.EndIfIdx}");
+#endif
+
+            // 1. split oversize leaf
             var split = SplitOversizeLeaf(acl, leaf, entry.IfIdx, entry.EndIfIdx);
 
-            // 2. Splice the gate (and the optional postfix slice) under the prefix node
+            // 2. splice gate (+ optional postfix) under prefix node
             InsertSplitIntoTree(split);
 
-            // 3. The prefix node has just become a parent – wrap its own commands
+            // 3. prefix now a container → wrap its own commands into a new leaf
             WrapSliceIntoLeaf(acl, split.Prefix);
 
-            // 4. Wrap the postfix only when it contains buffer-advance commands;
-            //    that is the case that needs a container/leaf pair for pointer tracking.
+            // 4. optional postfix leaf when buffer-advance cmds present
             if (split.Postfix != null &&
                 ContainsBufferAdvanceCommands(acl, split.Postfix.StoredValue))
             {
@@ -238,9 +243,14 @@ namespace ACESimBase.Util.ArrayProcessing
                 WrapSliceIntoLeaf(acl, split.Postfix);
             }
 
-            // 5. Finally slice the large If-body that lives inside the new gate
+            // 5. slice the large If-body inside the new gate
             SliceBodyIntoChildren(acl, split.Gate);
+
+#if DEBUG
+            TabbedText.WriteLine($"[Mutator] ─────────────────────────");
+#endif
         }
+
 
 
         /// <summary>
@@ -283,7 +293,6 @@ namespace ACESimBase.Util.ArrayProcessing
             if (parentChunk == null) return;
             if (parentChunk.StartCommandRange >= parentChunk.EndCommandRangeExclusive) return;
 
-            /* 1️⃣  clone the metadata */
             var leafChunk = new ArrayCommandChunk
             {
                 Name = parentChunk.Name + ".leaf",
@@ -293,14 +302,10 @@ namespace ACESimBase.Util.ArrayProcessing
                 EndSourceIndicesExclusive = parentChunk.EndSourceIndicesExclusive,
                 StartDestinationIndices = parentChunk.StartDestinationIndices,
                 EndDestinationIndicesExclusive = parentChunk.EndDestinationIndicesExclusive,
-
-                // virtual‑stack wiring
                 VirtualStack = parentChunk.VirtualStack,
                 VirtualStackID = parentChunk.VirtualStackID,
                 ParentVirtualStack = parentChunk.ParentVirtualStack,
                 ParentVirtualStackID = parentChunk.ParentVirtualStackID,
-
-                // carry over analysis metadata unchanged
                 TranslationToLocalIndex = parentChunk.TranslationToLocalIndex,
                 IndicesReadFromStack = parentChunk.IndicesReadFromStack,
                 IndicesInitiallySetInStack = parentChunk.IndicesInitiallySetInStack,
@@ -309,12 +314,9 @@ namespace ACESimBase.Util.ArrayProcessing
                 FirstSetInStack = parentChunk.FirstSetInStack,
                 LastSetInStack = parentChunk.LastSetInStack,
                 LastUsed = parentChunk.LastUsed,
-
-                // NEW: a real leaf executes sequentially → not parallelizable
                 ChildrenParallelizable = false
             };
 
-            /* 2️⃣ insert the leaf at branch 1 (before the gate) */
             const byte insertId = 1;
             if (parentChunk.LastChild >= insertId)
             {
@@ -329,42 +331,47 @@ namespace ACESimBase.Util.ArrayProcessing
             sliceParent.SetBranch(insertId, newLeafNode);
             parentChunk.LastChild++;
 
-            /* 3️⃣ parent becomes a pure container (unchanged from original code) */
             parentChunk.CopyIncrementsToParent = null;
             parentChunk.StartCommandRange = parentChunk.EndCommandRangeExclusive;
-            parentChunk.StartSourceIndices =
-                parentChunk.EndSourceIndicesExclusive = parentChunk.StartSourceIndices;
-            parentChunk.StartDestinationIndices =
-                parentChunk.EndDestinationIndicesExclusive = parentChunk.StartDestinationIndices;
+            parentChunk.StartSourceIndices = parentChunk.EndSourceIndicesExclusive = parentChunk.StartSourceIndices;
+            parentChunk.StartDestinationIndices = parentChunk.EndDestinationIndicesExclusive = parentChunk.StartDestinationIndices;
             parentChunk.Name += ".container";
 
 #if DEBUG
-            TabbedText.WriteLine(
-                $"[WRAP] parentID={parentChunk.ID}  newLeafID={leafChunk.ID}  "
-              + $"insert@{insertId}  range=[{leafChunk.StartCommandRange},{leafChunk.EndCommandRangeExclusive})");
+            TabbedText.WriteLine($"[Wrap] parentID={parentChunk.ID}  newLeafID={leafChunk.ID}");
 #endif
         }
+
 
         // ═════════════════════════════════════════════════════════════
         //  Internal helper – cut an If-body into ≤MaxCommandsPerChunk
         // ═════════════════════════════════════════════════════════════
         private static void SliceBodyIntoChildren(
-            ArrayCommandList acl,
-            NWayTreeStorageInternal<ArrayCommandChunk> gate)
+    ArrayCommandList acl,
+    NWayTreeStorageInternal<ArrayCommandChunk> gate)
         {
-            /* locate the outermost If…EndIf inside this gate */
             (int ifIdx, int endIfIdx) = FindBodySpan(acl, gate.StoredValue);
             if (ifIdx < 0) return;
 
-            /* 1️⃣ slice the body and wire children under the gate */
+#if DEBUG
+            TabbedText.WriteLine($"[Slice] gateID={gate.StoredValue.ID}  If={ifIdx}  EndIf={endIfIdx}");
+#endif
+
             var slices = CreateSlices(acl, gate, ifIdx, endIfIdx);
 
-            /* 2️⃣ ensure every node (gate + slices) has stack metadata */
-            BuildStackInfo(acl, gate, slices);
+#if DEBUG
+            TabbedText.WriteLine($"[Slice]   created {slices.Count} slice(s) inside gateID={gate.StoredValue.ID}");
+            foreach (var s in slices)
+            {
+                var info = s.StoredValue;
+                TabbedText.WriteLine($"           • sliceID={info.ID}  [{info.StartCommandRange},{info.EndCommandRangeExclusive})");
+            }
+#endif
 
-            /* 3️⃣ add CopyIncrementsToParent where a slice owns its own stack */
+            BuildStackInfo(acl, gate, slices);
             AttachCopyLists(gate.StoredValue, slices);
         }
+
 
         /*──────────────────────── helper trio ───────────────────────*/
 

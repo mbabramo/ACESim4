@@ -42,16 +42,20 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             if (root is null) throw new ArgumentNullException(nameof(root));
 
+#if DEBUG
+            TabbedText.WriteLine($"[Planner] ── BuildPlan (max={_max}) ──");
+#endif
+
             var plan = new List<PlanEntry>();
 
             root.WalkTree(nodeObj =>
             {
                 var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)nodeObj;
-                if (leaf.Branches is { Length: > 0 }) return;          // skip non-leaf
+                if (leaf.Branches is { Length: > 0 }) return;           // skip non-leaf
 
                 var info = leaf.StoredValue;
                 int size = info.EndCommandRangeExclusive - info.StartCommandRange;
-                if (size <= _max) return;                              // leaf within limit
+                if (size <= _max) return;                               // within limit
 
                 foreach (var (ifIdx, endIfIdx, bodyLen) in
                          FindInnermostOversizeBodies(info.StartCommandRange,
@@ -61,8 +65,16 @@ namespace ACESimBase.Util.ArrayProcessing
                 }
             });
 
+#if DEBUG
+            TabbedText.WriteLine($"[Planner]   entries={plan.Count}");
+            foreach (var e in plan)
+                TabbedText.WriteLine($"           • leaf={e.LeafId}  If={e.IfIdx}  EndIf={e.EndIfIdx}  body={e.BodyLen}");
+            TabbedText.WriteLine($"[Planner] ────────────────────────────────");
+#endif
+
             return plan;
         }
+
 
         /// <summary>
         /// Enumerates every <em>innermost</em> If … EndIf pair whose body exceeds the
@@ -70,8 +82,7 @@ namespace ACESimBase.Util.ArrayProcessing
         /// Sibling oversize blocks are all returned; nested chains keep only the
         /// deepest (smallest-span) member.
         /// </summary>
-        private IEnumerable<(int ifIdx, int endIfIdx, int bodyLen)>
-        FindInnermostOversizeBodies(int start, int end)
+        private IEnumerable<(int ifIdx, int endIfIdx, int bodyLen)> FindInnermostOversizeBodies(int start, int end)
         {
             var raw = new List<(int ifIdx, int endIfIdx)>();
             var open = new Stack<int>();
@@ -100,7 +111,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 if (open.Count > 0)
                 {
                     int openIfIdx = open.Pop();  // innermost unclosed If
-                                                 // Find the matching EndIf in the remaining commands (beyond 'end')
+                    // Find the matching EndIf in the remaining commands (beyond 'end')
                     int depth = 1;
                     int j = end;
                     while (j < _cmds.Length && depth > 0)
@@ -122,7 +133,6 @@ namespace ACESimBase.Util.ArrayProcessing
                 yield break;
             }
 
-            // ... (existing filtering logic below remains unchanged) ...
             raw.Sort((a, b) => a.ifIdx.CompareTo(b.ifIdx));
             var filtered = new List<(int ifIdx, int endIfIdx)>();
             foreach (var cand in raw)
