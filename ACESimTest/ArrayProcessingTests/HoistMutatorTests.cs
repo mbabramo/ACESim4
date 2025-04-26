@@ -142,16 +142,32 @@ namespace ACESimTest.ArrayProcessingTests
                     "CopyIncrements: VirtualStack ID: 0 Contents: Stackinfo:";
 
                 const string expectedFinalTree =
-                    "Root: ID0: 0 Commands:[0,0) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
-                    "Leaf 1: ID1: 0 Commands:[11,11) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
-                    "Leaf 1: ID2: 5 Commands:[1,6) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 1 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
-                    "-,-,-,-,-,-,-,-,-,-,-, " +
-                    "Leaf 2: ID3: 4 Commands:[6,10) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 1 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
-                    "-,-,-,-,-,-,-,-,-,-,-,";
+                    // Root node after the split.
+                    // - It now holds zero commands because the oversize block has been hoisted out.
+                    // - It still prints its VirtualStack (ID 0) and a 0-filled “Contents” preview.
+                    "Root: ID0: 0 Commands:[0,0) Sources:[0,0) Destinations:[0,0) "
+                    + "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: "
+
+                    // ── Region container (ID1) ─────────────────────────────────────────────
+                    // • Marks the IncrementDepth … DecrementDepth span.
+                    // • Has 0 commands because its entire body is delegated to child slices.
+                    // • Shares the root’s VirtualStack (ID 0) – the scope marker does not need
+                    //   a private stack itself.
+                    + "Leaf 1: ID1: 0 Commands:[11,11) Sources:[0,0) Destinations:[0,0) "
+                    + "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: "
+
+                        // First slice (ID2) – commands 1-5 of the region body.
+                        // • Uses a *new* stack context (ID 1) because the region encloses a deeper
+                        //   scope than the root.
+                        + "Leaf 1: ID2: 5 Commands:[1,6) Sources:[0,0) Destinations:[0,0) "
+                        + "CopyIncrements: VirtualStack ID: 1 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: "
+                        + "-,-,-,-,-,-,-,-,-,-,-, "
+
+                        // Second slice (ID3) – commands 6-9 of the region body.
+                        + "Leaf 2: ID3: 4 Commands:[6,10) Sources:[0,0) Destinations:[0,0) "
+                        + "CopyIncrements: VirtualStack ID: 1 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: "
+                        + "-,-,-,-,-,-,-,-,-,-,-,";    // trailing comma keeps formatting identical
+
 
 
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
