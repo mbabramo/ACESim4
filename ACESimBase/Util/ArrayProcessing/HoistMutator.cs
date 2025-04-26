@@ -26,6 +26,10 @@ namespace ACESimBase.Util.ArrayProcessing
                 var planner = new HoistPlanner(acl.UnderlyingCommands, acl.MaxCommandsPerChunk);
                 var plan = planner.BuildPlan(acl.CommandTree);
 
+#if DEBUG
+                TabbedText.WriteLine($"[MUTATE] planCount={plan.Count}");
+#endif
+
                 if (plan.Count == 0)
                     break; // tree already balanced
 
@@ -43,11 +47,12 @@ namespace ACESimBase.Util.ArrayProcessing
 
             foreach (var entry in plan)
             {
-                // Skip plan entries whose node has turned into an internal container
-                // (most often the original leaf ID 0 after an earlier split).
+#if DEBUG
+                TabbedText.WriteLine($"[APPLY] leafId={entry.LeafId} kind={entry.Kind} span=[{entry.StartIdx},{entry.EndIdxExclusive})");
+#endif
                 var leaf = FindLeaf(acl.CommandTree, entry.LeafId);
                 if (leaf == null || (leaf.Branches?.Length ?? 0) > 0)
-                    continue;                           // ← just ignore and move on
+                    continue;                           // ignore – node became container
 
                 switch (entry.Kind)
                 {
@@ -62,7 +67,6 @@ namespace ACESimBase.Util.ArrayProcessing
                 }
             }
 
-
             acl.CommandTree.WalkTree(
                 n => acl.SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandChunk>)n),
                 n => acl.SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandChunk>)n));
@@ -76,6 +80,9 @@ namespace ACESimBase.Util.ArrayProcessing
             root.WalkTree(nObj =>
             {
                 var n = (NWayTreeStorageInternal<ArrayCommandChunk>)nObj;
+#if DEBUG
+                TabbedText.WriteLine($"[FIND] visit ID{n.StoredValue.ID} children={(n.Branches?.Length ?? 0)}");
+#endif
                 if (n.Branches is { Length: > 0 }) return;
                 if (n.StoredValue.ID == id) target = n;
             });
@@ -88,6 +95,9 @@ namespace ACESimBase.Util.ArrayProcessing
                                                int spanEndEx)
         {
             var info = leaf.StoredValue;
+#if DEBUG
+            TabbedText.WriteLine($"[COND-SPLIT] leaf ID{info.ID} span=[{spanStart},{spanEndEx})");
+#endif
             int prefixEnd = spanStart;
             int postfixStart = spanEndEx;
             int postfixEnd = info.EndCommandRangeExclusive;
@@ -116,55 +126,30 @@ namespace ACESimBase.Util.ArrayProcessing
             SliceConditionalBody(acl, gateNode);
         }
 
-
         private static void SplitAtDepthRegion(ArrayCommandList acl,
-                                       NWayTreeStorageInternal<ArrayCommandChunk> leaf,
-                                       int spanStart,
-                                       int spanEndEx)
+                                               NWayTreeStorageInternal<ArrayCommandChunk> leaf,
+                                               int spanStart,
+                                               int spanEndEx)
         {
-            /*  Final shape                               (Max = acl.MaxCommandsPerChunk)
-
-                    Root (ID0)  0 cmds
-                      └─ prefix-holder (ID1, 0 cmds)  ← original leaf, now a pure container
-                           └─ region-container (ID2, 0 cmds) ──┐
-                               ├─ slice₁  ID3  cmds=[body0 .. body0+Max)
-                               └─ slice₂  ID4  cmds=[…]      (≤ Max each)
-
-                * IncrementDepth / DecrementDepth tokens live only in the original command
-                  buffer; no executable slice contains them.
-                * Region-container’s command range is reset to zero so it does not appear
-                  in “leaf-only” dumps.
-                * Both slices share the region-container’s virtual stack, therefore both
-                  print **VirtualStack ID 2** — matching the test’s expected output.
-            */
-
-            var info = leaf.StoredValue;           // ID1 initially
-            int prefixEnd = spanStart;                  // before IncrementDepth
-            int bodyStart = spanStart + 1;              // first body command
-            int bodyEnd = spanEndEx - 1;            // last  body command
+            var info = leaf.StoredValue;
+            int prefixEnd = spanStart;
+            int bodyStart = spanStart + 1;
+            int bodyEnd = spanEndEx - 1;
             int max = acl.MaxCommandsPerChunk;
 
 #if DEBUG
-            TabbedText.WriteLine(
-                $"[DEPTH-SPLIT] leaf=ID{info.ID}  body=[{bodyStart},{bodyEnd})  Max={max}");
+            TabbedText.WriteLine($"[DEPTH-SPLIT] leaf ID{info.ID} body=[{bodyStart},{bodyEnd}) max={max}");
 #endif
 
-            // ─── 1 ▸ shrink the *original* leaf to its prefix (may be 0-length) ─────
             info.EndCommandRangeExclusive = prefixEnd;
 
-            // ─── 2 ▸ create the region container as the leaf’s first child ──────────
             var region = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf)
             {
-                StoredValue = CloneMeta(info, spanStart, spanEndEx)   // IncDepth…DecDepth span
+                StoredValue = CloneMeta(info, spanStart, spanEndEx)
             };
             leaf.SetBranch(1, region);
             leaf.StoredValue.LastChild = 1;
 
-#if DEBUG
-            TabbedText.WriteLine($"   ↳ [REGION] →ID{region.StoredValue.ID}");
-#endif
-
-            // ─── 3 ▸ slice the body under the region container ──────────────────────
             byte branch = 1;
             for (int pos = bodyStart; pos < bodyEnd;)
             {
@@ -175,22 +160,20 @@ namespace ACESimBase.Util.ArrayProcessing
                     StoredValue = CloneMeta(info, pos, sliceEnd)
                 };
                 region.SetBranch(branch++, slice);
-
 #if DEBUG
-                TabbedText.WriteLine(
-                    $"       ↳ [SLICE] branch={branch - 1} cmds=[{pos},{sliceEnd}) →ID{slice.StoredValue.ID}");
+                TabbedText.WriteLine($"       ↳ [SLICE] ID{slice.StoredValue.ID} cmds=[{pos},{sliceEnd})");
 #endif
                 pos = sliceEnd;
             }
             region.StoredValue.LastChild = (byte)(branch - 1);
-
-            // Mark the region node as a *pure container* so it never appears as a leaf
             region.StoredValue.StartCommandRange = region.StoredValue.EndCommandRangeExclusive;
-            // and likewise for the prefix holder, if its range collapsed to zero.
+
+#if DEBUG
+            TabbedText.WriteLine($"[DEPTH-SPLIT-END] region ID{region.StoredValue.ID} children={branch - 1}");
+#endif
+
             WrapCommandsIntoLeaf(acl, leaf);
         }
-
-
 
         private static ArrayCommandChunk CloneMeta(ArrayCommandChunk src, int start, int endEx)
         {
@@ -224,6 +207,10 @@ namespace ACESimBase.Util.ArrayProcessing
             container.SetBranch(1, leaf);
             meta.LastChild += 1;
             meta.StartCommandRange = meta.EndCommandRangeExclusive;
+
+#if DEBUG
+            TabbedText.WriteLine($"[WRAP] container ID{meta.ID} → leaf ID{leaf.StoredValue.ID}");
+#endif
         }
 
         private static void SliceConditionalBody(ArrayCommandList acl,
@@ -245,6 +232,9 @@ namespace ACESimBase.Util.ArrayProcessing
                     depth--;
                     if (depth == 0)
                     {
+#if DEBUG
+                        TabbedText.WriteLine($"[CONDBODY] gate ID{gInfo.ID} body=[{ifIdx + 1},{i})");
+#endif
                         CreateSlices(acl, gate, ifIdx + 1, i);
                         break;
                     }
@@ -269,6 +259,9 @@ namespace ACESimBase.Util.ArrayProcessing
                     StoredValue = CloneMeta(gInfo, sliceStart, sliceEnd)
                 };
                 gate.SetBranch(branch++, slice);
+#if DEBUG
+                TabbedText.WriteLine($"       ↳ [GATE-SLICE] ID{slice.StoredValue.ID} cmds=[{sliceStart},{sliceEnd})");
+#endif
                 sliceStart = sliceEnd;
             }
             gInfo.LastChild = (byte)(branch - 1);
