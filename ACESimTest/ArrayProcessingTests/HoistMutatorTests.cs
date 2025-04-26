@@ -144,8 +144,12 @@ namespace ACESimTest.ArrayProcessingTests
                 const string expectedFinalTree =
                     "Root: ID0: 0 Commands:[0,0) Sources:[0,0) Destinations:[0,0) " +
                     "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
-                    "Leaf 1: ID1: 11 Commands:[0,11) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: -,-,-,-,-,-,-,-,-,-,-,";
+                    "Leaf 1: ID2: 5 Commands:[1,6) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 2 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
+                    "-,-,-,-,-,-,-,-,-,-,-, " +
+                    "Leaf 2: ID3: 4 Commands:[6,10) Sources:[0,0) Destinations:[0,0) " +
+                    "CopyIncrements: VirtualStack ID: 2 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
+                    "-,-,-,-,-,-,-,-,-,-,-,";
 
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedInitialTree), "initial structure");
@@ -156,6 +160,7 @@ namespace ACESimTest.ArrayProcessingTests
                     .Should().Be(W(expectedFinalTree), "final structure");
             });
         }
+
 
         // 4 ▸ Precedence – conditional inside depth region
         [TestMethod]

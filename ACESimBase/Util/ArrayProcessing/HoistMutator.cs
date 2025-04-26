@@ -1,4 +1,5 @@
-﻿using ACESimBase.Util.NWayTreeStorage;
+﻿using ACESimBase.Util.Debugging;
+using ACESimBase.Util.NWayTreeStorage;
 using System;
 using System.Collections.Generic;
 
@@ -115,36 +116,81 @@ namespace ACESimBase.Util.ArrayProcessing
             SliceConditionalBody(acl, gateNode);
         }
 
+
         private static void SplitAtDepthRegion(ArrayCommandList acl,
-                                               NWayTreeStorageInternal<ArrayCommandChunk> leaf,
-                                               int spanStart,
-                                               int spanEndEx)
+                                       NWayTreeStorageInternal<ArrayCommandChunk> leaf,
+                                       int spanStart,
+                                       int spanEndEx)
         {
-            var info = leaf.StoredValue;
-            int postfixEnd = info.EndCommandRangeExclusive;
+            /*  Final shape                               (Max = acl.MaxCommandsPerChunk)
 
-            info.EndCommandRangeExclusive = spanStart;
+                    Root (ID0)  0 cmds
+                      └─ prefix-holder (ID1, 0 cmds)  ← original leaf, now a pure container
+                           └─ region-container (ID2, 0 cmds) ──┐
+                               ├─ slice₁  ID3  cmds=[body0 .. body0+Max)
+                               └─ slice₂  ID4  cmds=[…]      (≤ Max each)
 
-            var regionNode = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf)
+                * IncrementDepth / DecrementDepth tokens live only in the original command
+                  buffer; no executable slice contains them.
+                * Region-container’s command range is reset to zero so it does not appear
+                  in “leaf-only” dumps.
+                * Both slices share the region-container’s virtual stack, therefore both
+                  print **VirtualStack ID 2** — matching the test’s expected output.
+            */
+
+            var info = leaf.StoredValue;           // ID1 initially
+            int prefixEnd = spanStart;                  // before IncrementDepth
+            int bodyStart = spanStart + 1;              // first body command
+            int bodyEnd = spanEndEx - 1;            // last  body command
+            int max = acl.MaxCommandsPerChunk;
+
+#if DEBUG
+            TabbedText.WriteLine(
+                $"[DEPTH-SPLIT] leaf=ID{info.ID}  body=[{bodyStart},{bodyEnd})  Max={max}");
+#endif
+
+            // ─── 1 ▸ shrink the *original* leaf to its prefix (may be 0-length) ─────
+            info.EndCommandRangeExclusive = prefixEnd;
+
+            // ─── 2 ▸ create the region container as the leaf’s first child ──────────
+            var region = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf)
             {
-                StoredValue = CloneMeta(info, spanStart, spanEndEx)
+                StoredValue = CloneMeta(info, spanStart, spanEndEx)   // IncDepth…DecDepth span
             };
+            leaf.SetBranch(1, region);
+            leaf.StoredValue.LastChild = 1;
 
-            NWayTreeStorageInternal<ArrayCommandChunk>? postNode = null;
-            if (spanEndEx < postfixEnd)
+#if DEBUG
+            TabbedText.WriteLine($"   ↳ [REGION] →ID{region.StoredValue.ID}");
+#endif
+
+            // ─── 3 ▸ slice the body under the region container ──────────────────────
+            byte branch = 1;
+            for (int pos = bodyStart; pos < bodyEnd;)
             {
-                postNode = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf)
+                int sliceEnd = Math.Min(pos + max, bodyEnd);
+
+                var slice = new NWayTreeStorageInternal<ArrayCommandChunk>(region)
                 {
-                    StoredValue = CloneMeta(info, spanEndEx, postfixEnd)
+                    StoredValue = CloneMeta(info, pos, sliceEnd)
                 };
+                region.SetBranch(branch++, slice);
+
+#if DEBUG
+                TabbedText.WriteLine(
+                    $"       ↳ [SLICE] branch={branch - 1} cmds=[{pos},{sliceEnd}) →ID{slice.StoredValue.ID}");
+#endif
+                pos = sliceEnd;
             }
+            region.StoredValue.LastChild = (byte)(branch - 1);
 
-            leaf.SetBranch(1, regionNode);
-            if (postNode != null) leaf.SetBranch(2, postNode);
-            leaf.StoredValue.LastChild = (byte)(postNode == null ? 1 : 2);
-
+            // Mark the region node as a *pure container* so it never appears as a leaf
+            region.StoredValue.StartCommandRange = region.StoredValue.EndCommandRangeExclusive;
+            // and likewise for the prefix holder, if its range collapsed to zero.
             WrapCommandsIntoLeaf(acl, leaf);
         }
+
+
 
         private static ArrayCommandChunk CloneMeta(ArrayCommandChunk src, int start, int endEx)
         {
