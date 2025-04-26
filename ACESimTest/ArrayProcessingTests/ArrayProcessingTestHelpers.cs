@@ -312,5 +312,74 @@ namespace ACESimTest.ArrayProcessingTests
             });
             return gate;
         }
+
+        /// <summary>
+        ///   Create an ACL that contains one oversize IncrementDepth…DecrementDepth region.
+        /// </summary>
+        public static (ArrayCommandList acl, int regionLen) MakeOversizeDepthRegion(
+            int regionLen,
+            int threshold)
+        {
+            ArrayCommandList acl = BuildAclWithSingleLeaf(rec =>
+            {
+                rec.InsertIncrementDepthCommand();
+                for (int i = 0; i < regionLen; i++)
+                    rec.InsertBlankCommand();
+                rec.InsertDecrementDepthCommand();
+            },
+            maxNumCommands: regionLen + 2,
+            maxCommandsPerChunk: threshold);
+
+            acl.MaxCommandsPerChunk = threshold;
+            return (acl, regionLen);
+        }
+
+        /// <summary>
+        ///   Convenience helper: emit <paramref name="count"/> blank commands.
+        /// </summary>
+        public static void InsertBlankCommands(this CommandRecorder rec, int count)
+        {
+            if (rec == null) throw new ArgumentNullException(nameof(rec));
+            for (int i = 0; i < count; i++)
+                rec.InsertBlankCommand();
+        }
+
+        /// <summary>
+        ///   Build an ACL whose root owns exactly two child leaves constructed by
+        ///   <paramref name="first"/> and <paramref name="second"/>.
+        /// </summary>
+        public static ArrayCommandList BuildAclWithTwoLeaves(
+            Action<CommandRecorder> first,
+            Action<CommandRecorder> second,
+            int maxCommandsPerChunk)
+        {
+            if (first == null) throw new ArgumentNullException(nameof(first));
+            if (second == null) throw new ArgumentNullException(nameof(second));
+
+            var acl = new ArrayCommandList(1024, 0, parallelize: false)
+            {
+                MaxCommandsPerChunk = maxCommandsPerChunk
+            };
+
+            var rec = acl.Recorder;
+
+            rec.StartCommandChunk(false, null, name: "L1");
+            first(rec);
+            rec.EndCommandChunk();
+
+            rec.StartCommandChunk(false, null, name: "L2");
+            second(rec);
+            rec.EndCommandChunk();
+
+            acl.MaxCommandIndex = acl.NextCommandIndex;
+
+            var root = acl.CommandTree.StoredValue;
+            root.EndCommandRangeExclusive = acl.NextCommandIndex;
+            root.EndSourceIndicesExclusive = acl.OrderedSourceIndices.Count;
+            root.EndDestinationIndicesExclusive = acl.OrderedDestinationIndices.Count;
+
+            return acl;
+        }
+
     }
 }

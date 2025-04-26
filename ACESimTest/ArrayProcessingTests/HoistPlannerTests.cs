@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -10,157 +11,296 @@ namespace ACESimTest.ArrayProcessingTests
     [TestClass]
     public class HoistPlannerTests
     {
-        //------------------------------------------------------------------
-        //  Test‑level hooks & helpers
-        //------------------------------------------------------------------
-        [TestInitialize]
-        public void ResetIds() => ArrayCommandChunk.NextID = 0;
+        private const int Max = 5;
 
-        /// <summary>
-        /// Builds an <see cref="ArrayCommandList"/> containing **one real leaf**
-        /// called <c>TestLeaf</c>.  The caller supplies <paramref name="script"/>
-        /// that records commands into that leaf.  We also ensure <c>MaxArrayIndex</c>
-        /// is set high enough so that <see cref="SetupVirtualStack"/> can allocate
-        /// a non‑zero sized stack even when the script only touches “existing”
-        /// array slots (index 0, 1, 2, …).
-        /// </summary>
-        private static ArrayCommandList BuildAcl(Action<CommandRecorder> script, int maxIndex = 10)
+        // ───────────────────────────────────────── helpers ────────────────────────────────────────
+        private static ArrayCommandList BlankLeaf(int len, int maxPerChunk)
         {
-            const int BufferSize = 512;
-            var acl = new ArrayCommandList(BufferSize, initialArrayIndex: 0, parallelize: false)
-            {
-                // Disable built‑in hoist so the planner is the only splitter
-                MaxCommandsPerChunk = int.MaxValue,
-                MaxArrayIndex = maxIndex          // allocate virtual stack
-            };
-
-            var rec = acl.Recorder;
-
-            // Single leaf so we know its Chunk‑ID deterministically = 1
-            rec.StartCommandChunk(runChildrenParallel: false,
-                                  identicalStartCmdRange: null,
-                                  name: "TestLeaf");
-            script(rec);
-            rec.EndCommandChunk();
-
-            acl.CompleteCommandList(); // root + single leaf (ids: 0 & 1)
-            return acl;
+            return ArrayProcessingTestHelpers.BuildAclWithSingleLeaf(
+                rec => rec.InsertBlankCommands(len),
+                maxNumCommands: len + 2,
+                maxCommandsPerChunk: maxPerChunk);
         }
 
-        //------------------------------------------------------------------
-        //  Unit tests for HoistPlanner
-        //------------------------------------------------------------------
+        private static (ArrayCommandList acl, int ifIdx, int endIfIdx) BuildOversizeIf(int bodyLen, int maxPerChunk)
+        {
+            var (acl, _) = ArrayProcessingTestHelpers.MakeOversizeIfBody(bodyLen, maxPerChunk);
+            int ifIdx = Array.FindIndex(acl.UnderlyingCommands, c => c.CommandType == ArrayCommandType.If);
+            int endIfIdx = Array.FindIndex(acl.UnderlyingCommands, c => c.CommandType == ArrayCommandType.EndIf);
+            return (acl, ifIdx, endIfIdx);
+        }
+
+        private static (ArrayCommandList acl, int incIdx, int decIdx) BuildOversizeDepthRegion(int regionLen, int maxPerChunk)
+        {
+            var acl = ArrayProcessingTestHelpers.BuildAclWithSingleLeaf(
+                rec =>
+                {
+                    rec.InsertIncrementDepthCommand();
+                    rec.InsertBlankCommands(regionLen);
+                    rec.InsertDecrementDepthCommand();
+                },
+                maxNumCommands: regionLen + 4,
+                maxCommandsPerChunk: maxPerChunk);
+
+            int incIdx = Array.FindIndex(acl.UnderlyingCommands, c => c.CommandType == ArrayCommandType.IncrementDepth);
+            int decIdx = Array.FindIndex(acl.UnderlyingCommands, c => c.CommandType == ArrayCommandType.DecrementDepth);
+            return (acl, incIdx, decIdx);
+        }
+
+        private static IList<HoistPlanner.PlanEntry> Plan(ArrayCommandList acl, int max)
+            => new HoistPlanner(acl.UnderlyingCommands, max).BuildPlan(acl.CommandTree);
+
+        // ───────────────────────────────────────── baseline ───────────────────────────────────────
+        [DataTestMethod]
+        [DataRow(4)]
+        [DataRow(Max)]
+        public void Baseline_LengthLessOrEqual_Max_YieldsEmptyPlan(int length)
+        {
+            ArrayProcessingTestHelpers.WithDeterministicIds(() =>
+            {
+                var acl = BlankLeaf(length, Max);
+                Plan(acl, Max).Should().BeEmpty();
+            });
+        }
 
         [TestMethod]
-        public void Planner_ReturnsSingleOversize()
+        public void Pathological_LinearOversizeLeaf_YieldsEmptyPlan()
         {
-            int limit = 3;
-            var acl = BuildAcl(rec =>
+            ArrayProcessingTestHelpers.WithDeterministicIds(() =>
             {
+                var acl = BlankLeaf(Max + 3, Max);
+                Plan(acl, Max).Should().BeEmpty();
+            });
+        }
+
+        // ────────────────────────────────── conditional slicing ───────────────────────────────────
+        [TestMethod]
+        public void Conditional_SingleOversizeBody_ReturnsOneEntry()
+        {
+            ArrayProcessingTestHelpers.WithDeterministicIds(() =>
+            {
+                int bodyLen = Max + 1;
+                var (acl, ifIdx, endIfIdx) = BuildOversizeIf(bodyLen, Max);
+                var plan = Plan(acl, Max);
+                plan.Should().HaveCount(1);
+                var entry = plan.Single();
+                entry.Kind.Should().Be(HoistPlanner.SplitKind.Conditional);
+                entry.StartIdx.Should().Be(ifIdx);
+                entry.EndIdxExclusive.Should().Be(endIfIdx + 1);
+            });
+        }
+
+        [TestMethod]
+        public void Conditional_TwoNonOverlappingBodies_ReturnsTwoSortedEntries()
+        {
+            ArrayProcessingTestHelpers.WithDeterministicIds(() =>
+            {
+                var acl = ArrayProcessingTestHelpers.BuildAclWithSingleLeaf(rec =>
+                {
+                    int idx0 = rec.NewZero();
+
+                    rec.InsertEqualsValueCommand(idx0, 0);
+                    rec.InsertIf();
+                    rec.InsertBlankCommands(Max + 1);
+                    rec.InsertEndIf();
+
+                    rec.InsertEqualsValueCommand(idx0, 0);
+                    rec.InsertIf();
+                    rec.InsertBlankCommands(Max + 2);
+                    rec.InsertEndIf();
+                },
+                maxNumCommands: 30,
+                maxCommandsPerChunk: Max);
+
+                var plan = Plan(acl, Max).ToList();
+                plan.Should().HaveCount(2)
+                     .And.BeInAscendingOrder(p => p.StartIdx)
+                     .And.AllSatisfy(e => e.Kind.Should().Be(HoistPlanner.SplitKind.Conditional));
+            });
+        }
+
+        [TestMethod]
+        public void Conditional_NestedOversizeBodies_ReturnsInnerOnly()
+        {
+            ArrayProcessingTestHelpers.WithDeterministicIds(() =>
+            {
+                var acl = ArrayProcessingTestHelpers.BuildAclWithSingleLeaf(rec =>
+                {
+                    int idx = rec.NewZero();
+                    rec.InsertEqualsValueCommand(idx, 0);
+                    rec.InsertIf();
+
+                    rec.InsertEqualsValueCommand(idx, 0);
+                    rec.InsertIf();
+                    rec.InsertBlankCommands(Max + 1);
+                    rec.InsertEndIf();
+
+                    rec.InsertBlankCommands(Max + 1);
+                    rec.InsertEndIf();
+                },
+                maxNumCommands: 40,
+                maxCommandsPerChunk: Max);
+
+                var plan = Plan(acl, Max);
+                plan.Should().HaveCount(1);
+                plan.Single().Kind.Should().Be(HoistPlanner.SplitKind.Conditional);
+            });
+        }
+
+        [TestMethod]
+        public void Conditional_BodyLengthBelowThreshold_YieldsEmptyPlan()
+        {
+            ArrayProcessingTestHelpers.WithDeterministicIds(() =>
+            {
+                var (acl, _, _) = BuildOversizeIf(Max - 1, Max);
+                Plan(acl, Max).Should().BeEmpty();
+            });
+        }
+
+        // ───────────────────────────────────── depth slicing ──────────────────────────────────────
+        [TestMethod]
+        public void Depth_SingleOversizeRegion_ReturnsOneEntry()
+        {
+            ArrayProcessingTestHelpers.WithDeterministicIds(() =>
+            {
+                int regionLen = Max + 2;
+                var (acl, incIdx, decIdx) = BuildOversizeDepthRegion(regionLen, Max);
+                var plan = Plan(acl, Max);
+                plan.Should().HaveCount(1);
+                var entry = plan.Single();
+                entry.Kind.Should().Be(HoistPlanner.SplitKind.Depth);
+                entry.StartIdx.Should().Be(incIdx);
+                entry.EndIdxExclusive.Should().Be(decIdx + 1);
+            });
+        }
+
+        [TestMethod]
+        public void Depth_TwoNonOverlappingRegions_ReturnsTwoSortedEntries()
+        {
+            ArrayProcessingTestHelpers.WithDeterministicIds(() =>
+            {
+                var acl = ArrayProcessingTestHelpers.BuildAclWithSingleLeaf(rec =>
+                {
+                    rec.InsertIncrementDepthCommand();
+                    rec.InsertBlankCommands(Max + 1);
+                    rec.InsertDecrementDepthCommand();
+
+                    rec.InsertIncrementDepthCommand();
+                    rec.InsertBlankCommands(Max + 2);
+                    rec.InsertDecrementDepthCommand();
+                },
+                maxNumCommands: 40,
+                maxCommandsPerChunk: Max);
+
+                var plan = Plan(acl, Max).ToList();
+                plan.Should().HaveCount(2)
+                     .And.BeInAscendingOrder(p => p.StartIdx)
+                     .And.AllSatisfy(e => e.Kind.Should().Be(HoistPlanner.SplitKind.Depth));
+            });
+        }
+
+        [TestMethod]
+        public void Depth_NestedOversizeRegions_ReturnsOuterOnly()
+        {
+            ArrayProcessingTestHelpers.WithDeterministicIds(() =>
+            {
+                var acl = ArrayProcessingTestHelpers.BuildAclWithSingleLeaf(rec =>
+                {
+                    rec.InsertIncrementDepthCommand();
+                    rec.InsertBlankCommands(2);
+
+                    rec.InsertIncrementDepthCommand();
+                    rec.InsertBlankCommands(Max + 1);
+                    rec.InsertDecrementDepthCommand();
+
+                    rec.InsertBlankCommands(Max + 1);
+                    rec.InsertDecrementDepthCommand();
+                },
+                maxNumCommands: 50,
+                maxCommandsPerChunk: Max);
+
+                var plan = Plan(acl, Max);
+                plan.Should().HaveCount(1);
+                plan.Single().Kind.Should().Be(HoistPlanner.SplitKind.Depth);
+            });
+        }
+
+        [TestMethod]
+        public void Depth_RegionBelowThreshold_YieldsEmptyPlan()
+        {
+            ArrayProcessingTestHelpers.WithDeterministicIds(() =>
+            {
+                /*  A depth region is considered for splitting inclusive of its
+                    IncrementDepth and DecrementDepth tokens.  Therefore the
+                    *body* length must be at least (Max – 2) smaller than the
+                    threshold to stay safely below it. */
+                var (acl, _, _) = BuildOversizeDepthRegion(Max - 3 /* body */, Max);
+                Plan(acl, Max).Should().BeEmpty();
+            });
+        }
+
+        // ───────────────────────────────────────── precedence rule ──        // ───────────────────────────────────── precedence rule ─────────────────────────────────────
+        [TestMethod]
+        public void Precedence_ConditionalInsideDepthRegion_WinsOverDepth()
+        {
+            ArrayProcessingTestHelpers.WithDeterministicIds(() =>
+            {
+                var acl = ArrayProcessingTestHelpers.BuildAclWithSingleLeaf(rec =>
+                {
+                    rec.InsertIncrementDepthCommand();
+                    int idx0 = rec.NewZero();
+                    rec.InsertEqualsValueCommand(idx0, 0);
+                    rec.InsertIf();
+                    rec.InsertBlankCommands(Max + 1);
+                    rec.InsertEndIf();
+                    rec.InsertDecrementDepthCommand();
+                },
+                maxNumCommands: 40,
+                maxCommandsPerChunk: Max);
+
+                var plan = Plan(acl, Max);
+                plan.Should().HaveCount(1);
+                plan.Single().Kind.Should().Be(HoistPlanner.SplitKind.Conditional);
+            });
+        }
+
+        // ───────────────────────────────────── multi-leaf order ───────────────────────────────────
+        [TestMethod]
+        public void MultiLeaf_OnlyOversizeLeafProducesEntries()
+        {
+            ArrayProcessingTestHelpers.WithDeterministicIds(() =>
+            {
+                var acl = new ArrayCommandList(256, 0, parallelize: false) { MaxCommandsPerChunk = Max };
+                var rec = acl.Recorder;
+
+                rec.StartCommandChunk(false, null, name: "L1");
+                rec.InsertBlankCommands(2);
+                rec.EndCommandChunk();
+
+                rec.StartCommandChunk(false, null, name: "L2");
+                int idx0 = rec.NewZero();
+                rec.InsertEqualsValueCommand(idx0, 0);
                 rec.InsertIf();
-                rec.ZeroExisting(0);
-                rec.ZeroExisting(1);
-                rec.ZeroExisting(2); // body length 3 > limit
+                rec.InsertBlankCommands(Max + 2);
                 rec.InsertEndIf();
+                rec.EndCommandChunk();
+
+                acl.MaxCommandIndex = acl.NextCommandIndex;
+                acl.CommandTree.StoredValue.EndCommandRangeExclusive = acl.NextCommandIndex;
+
+                int leaf2Id = -1;
+                acl.CommandTree.WalkTree(nObj =>
+                {
+                    var n = (NWayTreeStorageInternal<ArrayCommandChunk>)nObj;
+                    if (n.StoredValue.Name == "L2")
+                        leaf2Id = n.StoredValue.ID;
+                });
+                leaf2Id.Should().BeGreaterThan(0);
+
+                var plan = Plan(acl, Max);
+                plan.Should().NotBeEmpty()
+                     .And.AllSatisfy(e => e.LeafId.Should().Be(leaf2Id));
             });
-
-            var planner = new HoistPlanner(acl.UnderlyingCommands, limit);
-            var plan = planner.BuildPlan((NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree);
-
-            plan.Should().HaveCount(1);
-            var entry = plan.Single();
-            entry.LeafId.Should().Be(1);
-            entry.BodyLen.Should().BeGreaterOrEqualTo(limit);
-            entry.IfIdx.Should().Be(0);
-            entry.EndIfIdx.Should().Be(4);
         }
-
-        [TestMethod]
-        public void Planner_IgnoresOversizeWithoutIf()
-        {
-            int limit = 3;
-            var acl = BuildAcl(rec =>
-            {
-                rec.ZeroExisting(0);
-                rec.ZeroExisting(1);
-                rec.ZeroExisting(2);
-                rec.ZeroExisting(3);
-            });
-
-            var planner = new HoistPlanner(acl.UnderlyingCommands, limit);
-            var plan = planner.BuildPlan((NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree);
-
-            plan.Should().BeEmpty();
-        }
-
-        [TestMethod]
-        public void Planner_MultipleOversizeLeaves()
-        {
-            int limit = 2;
-            const int BufferSize = 512;
-            var acl = new ArrayCommandList(BufferSize, 0, false)
-            {
-                MaxCommandsPerChunk = int.MaxValue,
-                MaxArrayIndex = 10
-            };
-            var rec = acl.Recorder;
-
-            // Leaf1 – oversize with If
-            rec.StartCommandChunk(false, null, "Leaf1");
-            rec.InsertIf();
-            rec.ZeroExisting(0);
-            rec.ZeroExisting(1);
-            rec.InsertEndIf();
-            rec.EndCommandChunk();
-
-            // Leaf2 – oversize with If (longer)
-            rec.StartCommandChunk(false, null, "Leaf2");
-            rec.InsertIf();
-            rec.ZeroExisting(0);
-            rec.ZeroExisting(1);
-            rec.ZeroExisting(2);
-            rec.InsertEndIf();
-            rec.EndCommandChunk();
-
-            acl.MaxArrayIndex = 10; // ensure stack size
-            acl.CompleteCommandList();
-
-            var planner = new HoistPlanner(acl.UnderlyingCommands, limit);
-            var plan = planner.BuildPlan((NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree);
-
-            plan.Should().HaveCount(2);
-            plan.Select(p => p.LeafId).Should().BeInAscendingOrder();
-            plan.Select(p => p.BodyLen).Should().OnlyContain(len => len >= limit);
-        }
-
-        [TestMethod]
-        public void Planner_PicksInnermost_WhenNestedOversize()
-        {
-            // Threshold 2 → every body of length 4 is oversize
-            const int LIMIT = 2;
-            var acl = BuildAcl(rec =>
-            {
-                rec.InsertEqualsValueCommand(0, 0); rec.InsertIf();           // outer (0..)
-                rec.InsertEqualsValueCommand(0, 0); rec.InsertIf();           // middle
-                rec.InsertEqualsValueCommand(0, 0); rec.InsertIf();           // inner
-                for (int i = 0; i < 4; i++) rec.Increment(0, false, 0);       // body len 4
-                rec.InsertEndIf(); rec.InsertEndIf(); rec.InsertEndIf();      // close all
-            });
-
-            var planner = new HoistPlanner(acl.UnderlyingCommands, LIMIT);
-            var plan = planner.BuildPlan(
-                (NWayTreeStorageInternal<ArrayCommandChunk>)acl.CommandTree);
-
-            // We expect EXACTLY ONE plan entry and it must point at the innermost If
-            plan.Should().HaveCount(1, "only the deepest oversize block should be hoisted");
-            var entry = plan.Single();
-
-            entry.LeafId.Should().Be(1, "all commands are in the single real leaf");
-            entry.BodyLen.Should().Be(4);
-            entry.IfIdx.Should().Be(5);
-            entry.EndIfIdx.Should().Be(10);
-
-        }
-
     }
 }

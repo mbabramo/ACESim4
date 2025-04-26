@@ -2,153 +2,154 @@
 using ACESimBase.Util.NWayTreeStorage;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static ACESimBase.Util.ArrayProcessing.ArrayCommandList;
 
 namespace ACESimBase.Util.ArrayProcessing
 {
-    // The HoistPlanner performs a **read‑only sweep** over the current command
-    // tree to discover “problem” leaves:  those whose linear sequence of commands
-    // exceeds MaxCommandsPerChunk *and* contains an outer‑level If … EndIf pair.
-    // For every such leaf it records a **plan entry** that stores the leaf‑ID and
-    // the exact span of the oversized If‑body (indices of the If, matching EndIf,
-    // and the body length).  No mutations are made; the output is simply a
-    // deterministic, reproducible list of places where a Conditional gate needs to
-    // be inserted so the tree can be split safely without breaking control‑flow.
+    /// <summary>
+    /// HoistPlanner scans executable leaves and produces a deterministic plan
+    /// to split oversize leaves at balanced If/EndIf or IncrementDepth/DecrementDepth
+    /// boundaries so every resulting leaf respects the configured command limit.
+    /// </summary>
     public sealed class HoistPlanner
     {
         private readonly ArrayCommand[] _cmds;
         private readonly int _max;
 
+        public enum SplitKind
+        {
+            Conditional,
+            Depth
+        }
+
         public record PlanEntry(
             int LeafId,
-            int IfIdx,
-            int EndIfIdx,
-            int BodyLen);
+            SplitKind Kind,
+            int StartIdx,
+            int EndIdxExclusive);
 
         public HoistPlanner(ArrayCommand[] cmds, int maxCommandsPerChunk)
         {
-            _cmds = cmds;
+            _cmds = cmds ?? throw new ArgumentNullException(nameof(cmds));
             _max = maxCommandsPerChunk;
         }
 
-        /// <summary>
-        /// Return a deterministic list of oversize leaves that need hoisting.
-        /// </summary>
         public IList<PlanEntry> BuildPlan(NWayTreeStorageInternal<ArrayCommandChunk> root)
         {
-            if (root is null) throw new ArgumentNullException(nameof(root));
+            if (root == null) throw new ArgumentNullException(nameof(root));
 
 #if DEBUG
-            TabbedText.WriteLine($"[Planner] ── BuildPlan (max={_max}) ──");
+            TabbedText.WriteLine($"[Planner] BuildPlan (max={_max})");
 #endif
-
             var plan = new List<PlanEntry>();
 
-            root.WalkTree(nodeObj =>
+            root.WalkTree(nObj =>
             {
-                var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)nodeObj;
-                if (leaf.Branches is { Length: > 0 }) return;           // skip non-leaf
+                var node = (NWayTreeStorageInternal<ArrayCommandChunk>)nObj;
+                if (node.Branches is { Length: > 0 })
+                    return;
 
-                var info = leaf.StoredValue;
-                int size = info.EndCommandRangeExclusive - info.StartCommandRange;
-                if (size <= _max) return;                               // within limit
+                var info = node.StoredValue;
+                int len = info.EndCommandRangeExclusive - info.StartCommandRange;
+                if (len <= _max)
+                    return;
 
-                foreach (var (ifIdx, endIfIdx, bodyLen) in
-                         FindInnermostOversizeBodies(info.StartCommandRange,
-                                                     info.EndCommandRangeExclusive))
-                {
-                    plan.Add(new PlanEntry(info.ID, ifIdx, endIfIdx, bodyLen));
-                }
+                foreach (var entry in BuildPlanForLeaf(info))
+                    plan.Add(entry);
             });
 
-#if DEBUG
-            TabbedText.WriteLine($"[Planner]   entries={plan.Count}");
-            foreach (var e in plan)
-                TabbedText.WriteLine($"           • leaf={e.LeafId}  If={e.IfIdx}  EndIf={e.EndIfIdx}  body={e.BodyLen}");
-            TabbedText.WriteLine($"[Planner] ────────────────────────────────");
-#endif
-
+            plan.Sort((a, b) => a.LeafId != b.LeafId ? a.LeafId.CompareTo(b.LeafId)
+                                                     : a.StartIdx.CompareTo(b.StartIdx));
             return plan;
         }
 
-
-        /// <summary>
-        /// Enumerates every <em>innermost</em> If … EndIf pair whose body exceeds the
-        /// size threshold inside the span <c>[start, end)</c>.  
-        /// Sibling oversize blocks are all returned; nested chains keep only the
-        /// deepest (smallest-span) member.
-        /// </summary>
-        private IEnumerable<(int ifIdx, int endIfIdx, int bodyLen)> FindInnermostOversizeBodies(int start, int end)
+        private IEnumerable<PlanEntry> BuildPlanForLeaf(ArrayCommandChunk leaf)
         {
-            var raw = new List<(int ifIdx, int endIfIdx)>();
-            var open = new Stack<int>();
+            int start = leaf.StartCommandRange;
+            int end = leaf.EndCommandRangeExclusive;
 
-            for (int i = start; i < end; i++)
+            var conditionals = FindOversizeConditionals(start, end).ToList();
+            if (conditionals.Count > 0)
             {
-                switch (_cmds[i].CommandType)
-                {
-                    case ArrayCommandType.If:
-                        open.Push(i);
-                        break;
-
-                    case ArrayCommandType.EndIf when open.Count > 0:
-                        int ifIdx = open.Pop();
-                        int bodyLen = (i - ifIdx) - 1;
-                        if (bodyLen >= _max)                          // inclusive check
-                            raw.Add((ifIdx, i));
-                        break;
-                }
-            }
-
-            if (raw.Count == 0)
-            {
-                // If no complete oversize pairs were found, check for an open If 
-                // that spans beyond this leaf (unclosed within [start,end)).
-                if (open.Count > 0)
-                {
-                    int openIfIdx = open.Pop();  // innermost unclosed If
-                    // Find the matching EndIf in the remaining commands (beyond 'end')
-                    int depth = 1;
-                    int j = end;
-                    while (j < _cmds.Length && depth > 0)
-                    {
-                        if (_cmds[j].CommandType == ArrayCommandType.If) depth++;
-                        if (_cmds[j].CommandType == ArrayCommandType.EndIf) depth--;
-                        j++;
-                    }
-                    if (depth == 0)
-                    {
-                        int endIfIdx = j - 1;
-                        int bodyLen = (endIfIdx - openIfIdx) - 1;
-                        // Only plan hoist if this open If is not the only one (i.e., 
-                        // there was another If outside it), or if it indeed exceeds size.
-                        if (bodyLen >= _max && open.Count > 0)
-                            yield return (openIfIdx, endIfIdx, bodyLen);
-                    }
-                }
+                foreach (var (s, e) in conditionals)
+                    yield return new PlanEntry(leaf.ID, SplitKind.Conditional, s, e);
                 yield break;
             }
 
-            raw.Sort((a, b) => a.ifIdx.CompareTo(b.ifIdx));
-            var filtered = new List<(int ifIdx, int endIfIdx)>();
-            foreach (var cand in raw)
+            var depthRegions = FindOversizeDepthRegions(start, end).ToList();
+            if (depthRegions.Count > 0)
             {
-                while (filtered.Count > 0 &&
-                       filtered[^1].ifIdx <= cand.ifIdx &&
-                       filtered[^1].endIfIdx >= cand.endIfIdx)
-                {
-                    filtered.RemoveAt(filtered.Count - 1);           // drop ancestor
-                }
-                filtered.Add(cand);
+                foreach (var (s, e) in depthRegions)
+                    yield return new PlanEntry(leaf.ID, SplitKind.Depth, s, e);
             }
-
-            foreach (var (ifIdx, endIfIdx) in filtered)
-                yield return (ifIdx, endIfIdx, (endIfIdx - ifIdx) - 1);
         }
 
+        private IEnumerable<(int start, int end)> FindOversizeConditionals(int from, int to)
+        {
+            var stack = new Stack<int>();
+            var pairs = new List<(int, int)>();
+
+            for (int i = from; i < to; i++)
+            {
+                var t = _cmds[i].CommandType;
+                if (t == ArrayCommandType.If)
+                    stack.Push(i);
+                else if (t == ArrayCommandType.EndIf && stack.Count > 0)
+                {
+                    int open = stack.Pop();
+                    int bodyLen = (i - open) - 1;
+                    if (bodyLen >= _max)
+                        pairs.Add((open, i));
+                }
+            }
+
+            if (pairs.Count == 0)
+                yield break;
+
+            pairs.Sort((a, b) => a.Item1.CompareTo(b.Item1));
+            var filtered = new List<(int, int)>();
+            foreach (var p in pairs)
+            {
+                while (filtered.Count > 0 &&
+                       filtered[^1].Item1 <= p.Item1 &&
+                       filtered[^1].Item2 >= p.Item2)
+                    filtered.RemoveAt(filtered.Count - 1);
+                filtered.Add(p);
+            }
+
+            foreach (var (s, e) in filtered)
+                yield return (s, e + 1);
+        }
+
+        private IEnumerable<(int start, int end)> FindOversizeDepthRegions(int from, int to)
+        {
+            var openings = new Stack<int>();
+            var regions = new List<(int, int)>();
+            int depth = 0;
+
+            for (int i = from; i < to; i++)
+            {
+                var t = _cmds[i].CommandType;
+                if (t == ArrayCommandType.IncrementDepth)
+                {
+                    if (depth == 0)
+                        openings.Push(i);
+                    depth++;
+                }
+                else if (t == ArrayCommandType.DecrementDepth)
+                {
+                    depth--;
+                    if (depth == 0 && openings.Count > 0)
+                    {
+                        int start = openings.Pop();
+                        int end = i + 1;
+                        if (end - start >= _max)
+                            regions.Add((start, end));
+                    }
+                }
+            }
+
+            return regions;
+        }
     }
 }

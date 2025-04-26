@@ -271,21 +271,10 @@ namespace ACESimBase.Util.ArrayProcessing
         /// </summary>
         private void HoistAndSplitLargeIfBodies()
         {
-            // Fast-exit when hoisting is disabled
             if (MaxCommandsPerChunk == int.MaxValue)
-                return;
+                return;               // hoisting disabled
 
-            // Keep planning / mutating until the planner reports “no work left”
-            while (true)
-            {
-                var planner = new HoistPlanner(UnderlyingCommands, MaxCommandsPerChunk);
-                var plan = planner.BuildPlan(CommandTree);
-
-                if (plan.Count == 0)
-                    break;                          // ✅ tree fully compliant
-
-                HoistMutator.ApplyPlan(this, plan); // mutates CommandTree in-place
-            }
+            HoistMutator.MutateUntilBalanced(this);
         }
 
 
