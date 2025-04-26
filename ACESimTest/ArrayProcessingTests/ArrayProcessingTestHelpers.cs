@@ -10,14 +10,14 @@ using ACESimBase.Util.NWayTreeStorage;
 namespace ACESimTest.ArrayProcessingTests
 {
     /// <summary>
-    /// Test‑only helpers and structural assertions for the ArrayProcessing
+    /// Test-only helpers and structural assertions for the ArrayProcessing
     /// subsystem.  No production code depends on this file.
     /// </summary>
     internal static class ArrayProcessingTestHelpers
     {
-        //───────────────────────────────────────────────────────────────────────
-        //  0️⃣  Global‑state helpers
-        //───────────────────────────────────────────────────────────────────────
+        /* --------------------------------------------------------------------
+           SECTION 0  Global-state helpers
+           ------------------------------------------------------------------*/
         public static void ResetIds() => ArrayCommandChunk.NextID = 0;
 
         public static void WithDeterministicIds(Action body)
@@ -28,9 +28,9 @@ namespace ACESimTest.ArrayProcessingTests
             finally { ArrayCommandChunk.NextID = saved; }
         }
 
-        //───────────────────────────────────────────────────────────────────────
-        //  1️⃣  ACL construction helpers
-        //───────────────────────────────────────────────────────────────────────
+        /* --------------------------------------------------------------------
+           SECTION 1  ACL construction helpers
+           ------------------------------------------------------------------*/
         public static ArrayCommandList BuildAclWithSingleLeaf(
             Action<CommandRecorder> script,
             int maxNumCommands = 512,
@@ -73,7 +73,7 @@ namespace ACESimTest.ArrayProcessingTests
                 ? cmds.Max(c => Math.Max(c.GetSourceIndexIfUsed(), c.GetTargetIndexIfUsed()))
                 : -1;
 
-            var root = new NWayTreeStorageInternal<ArrayCommandChunk>(null)
+            acl.CommandTree = new NWayTreeStorageInternal<ArrayCommandChunk>(null)
             {
                 StoredValue = new ArrayCommandChunk
                 {
@@ -82,7 +82,6 @@ namespace ACESimTest.ArrayProcessingTests
                     EndCommandRangeExclusive = cmds.Count
                 }
             };
-            acl.CommandTree = root;
             return acl;
         }
 
@@ -151,9 +150,9 @@ namespace ACESimTest.ArrayProcessingTests
             return acl;
         }
 
-        //───────────────────────────────────────────────────────────────────────
-        //  2️⃣  Assertion helpers
-        //───────────────────────────────────────────────────────────────────────
+        /* --------------------------------------------------------------------
+           SECTION 2  Assertion helpers
+           ------------------------------------------------------------------*/
         public static void AssertBalancedIfTokens(ArrayCommandList acl, ArrayCommandChunk chunk)
         {
             if (acl is null) throw new ArgumentNullException(nameof(acl));
@@ -174,8 +173,8 @@ namespace ACESimTest.ArrayProcessingTests
         {
             foreach (var node in acl.PureSlices())
             {
-                var info = node.StoredValue;
-                int len = info.EndCommandRangeExclusive - info.StartCommandRange;
+                int len = node.StoredValue.EndCommandRangeExclusive -
+                          node.StoredValue.StartCommandRange;
                 len.Should().BeLessOrEqualTo(max);
             }
         }
@@ -202,9 +201,9 @@ namespace ACESimTest.ArrayProcessingTests
             }
         }
 
-        //───────────────────────────────────────────────────────────────────────
-        //  3️⃣  Debug helpers
-        //───────────────────────────────────────────────────────────────────────
+        /* --------------------------------------------------------------------
+           SECTION 3  Debug helpers
+           ------------------------------------------------------------------*/
         public static IEnumerable<string> DumpTree(ArrayCommandList acl)
         {
             if (acl?.CommandTree == null)
@@ -219,15 +218,18 @@ namespace ACESimTest.ArrayProcessingTests
                                              v.EndCommandRangeExclusive - v.StartCommandRange)
                                       .Select(i => acl.UnderlyingCommands[i].CommandType.ToString());
                 string cmdList = !cmds.Any() ? "-" : string.Join(",", cmds);
-                list.Add($"ID{v.ID}{(string.IsNullOrEmpty(v.Name) ? "" : $" {v.Name}")} [{{v.StartCommandRange}},{{v.EndCommandRangeExclusive}}) " +
-                         $"Children={{n.Branches?.Count(b => b is not null) ?? 0}} Cmds:{cmdList}");
+                list.Add(
+                    $"ID{v.ID}{(string.IsNullOrEmpty(v.Name) ? "" : $" {v.Name}")} " +
+                    $"[{v.StartCommandRange},{v.EndCommandRangeExclusive}) " +
+                    $"Children={{n.Branches?.Count(b => b is not null) ?? 0}} " +
+                    $"Cmds:{cmdList}");
             });
             return list;
         }
 
-        //───────────────────────────────────────────────────────────────────────
-        //  4️⃣  Mini‑DSL extensions
-        //───────────────────────────────────────────────────────────────────────
+        /* --------------------------------------------------------------------
+           SECTION 4  Mini-DSL extensions for recording commands
+           ------------------------------------------------------------------*/
         public static void InsertBlankCommands(this CommandRecorder rec, int count)
         {
             if (rec == null) throw new ArgumentNullException(nameof(rec));
@@ -235,25 +237,91 @@ namespace ACESimTest.ArrayProcessingTests
                 rec.InsertBlankCommand();
         }
 
-        //───────────────────────────────────────────────────────────────────────
-        //  5️⃣  Conditional helpers
-        //───────────────────────────────────────────────────────────────────────
-        public static NWayTreeStorageInternal<ArrayCommandChunk> FindFirstConditional(this ArrayCommandList acl)
-        {
-            NWayTreeStorageInternal<ArrayCommandChunk> gate = null;
-            acl.CommandTree.WalkTree(n =>
+        /* --------------------------------------------------------------------
+           SECTION 5  Gate helpers (added)
+           ------------------------------------------------------------------*/
+        public static NWayTreeStorageInternal<ArrayCommandChunk>? FirstGate(this ArrayCommandList acl) =>
+            acl.Nodes()
+               .OfType<NWayTreeStorageInternal<ArrayCommandChunk>>()
+               .FirstOrDefault(n =>
+               {
+                   var info = n.StoredValue;
+                   if (n.Branches is not { Length: > 0 }) return false;
+                   if (info.StartCommandRange >= info.EndCommandRangeExclusive) return false;
+                   return acl.UnderlyingCommands[info.StartCommandRange].CommandType == ArrayCommandType.If;
+               });
+
+        public static int GateCount(this ArrayCommandList acl) =>
+            acl.Nodes().Count(n =>
             {
-                var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
-                if (node.StoredValue.Name == "Conditional" && gate == null)
-                    gate = node;
+                var info = n.StoredValue;
+                if (n.Branches is not { Length: > 0 }) return false;
+                if (info.StartCommandRange >= info.EndCommandRangeExclusive) return false;
+                return acl.UnderlyingCommands[info.StartCommandRange].CommandType == ArrayCommandType.If;
             });
-            return gate;
+
+        /* --------------------------------------------------------------------
+           SECTION 6  DSL helpers – build ACLs from compact token scripts
+           ------------------------------------------------------------------*/
+        public static ArrayCommandList BuildAclFromScript(string script, int maxCommandsPerChunk)
+        {
+            if (script is null) throw new ArgumentNullException(nameof(script));
+
+            var map = new Dictionary<string, ArrayCommandType>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Zero"] = ArrayCommandType.Zero,
+                ["EqualsValue"] = ArrayCommandType.EqualsValue,
+                ["IncrementBy"] = ArrayCommandType.IncrementBy,
+                ["DecrementBy"] = ArrayCommandType.DecrementBy,
+                ["If"] = ArrayCommandType.If,
+                ["EndIf"] = ArrayCommandType.EndIf,
+                ["IncrementDepth"] = ArrayCommandType.IncrementDepth,
+                ["DecrementDepth"] = ArrayCommandType.DecrementDepth,
+                ["NextSource"] = ArrayCommandType.NextSource,
+                ["NextDestination"] = ArrayCommandType.NextDestination
+            };
+
+            static ArrayCommand Cmd(ArrayCommandType t) => t switch
+            {
+                ArrayCommandType.Zero => new(t, 0, -1),
+                ArrayCommandType.EqualsValue => new(t, 0, 0),
+                ArrayCommandType.IncrementBy => new(t, 0, 0),
+                ArrayCommandType.DecrementBy => new(t, 0, 0),
+                ArrayCommandType.If => new(t, -1, -1),
+                ArrayCommandType.EndIf => new(t, -1, -1),
+                ArrayCommandType.IncrementDepth => new(t, -1, -1),
+                ArrayCommandType.DecrementDepth => new(t, -1, -1),
+                ArrayCommandType.NextSource => new(t, 0, -1),
+                ArrayCommandType.NextDestination => new(t, -1, 0),
+                _ => throw new NotSupportedException($"Unhandled token {t}")
+            };
+
+            var cmds = new List<ArrayCommand>();
+            var separators = new[] { '×', 'x' };
+
+            foreach (var raw in script.Split((char[])null, StringSplitOptions.RemoveEmptyEntries))
+            {
+                var parts = raw.Split(separators, StringSplitOptions.RemoveEmptyEntries);
+                string key = parts[0];
+                int repeat = parts.Length == 2 && int.TryParse(parts[1], out int n) ? n : 1;
+
+                if (!map.TryGetValue(key, out var type))
+                    throw new ArgumentException($"Unknown token '{key}'.", nameof(script));
+
+                for (int i = 0; i < repeat; i++)
+                    cmds.Add(Cmd(type));
+            }
+
+            return CreateStubAcl(cmds, maxCommandsPerChunk);
         }
+
+        public static ArrayCommandList Acl(string tokens, int threshold) =>
+            BuildAclFromScript(tokens, threshold);
     }
 
-    //───────────────────────────────────────────────────────────────────────────
-    //  Structural comparers & traversal extensions
-    //───────────────────────────────────────────────────────────────────────────
+    /* ------------------------------------------------------------------------
+       Structural comparers & traversal extensions
+       ----------------------------------------------------------------------*/
     internal static class TreeAssert
     {
         public static void AreEqual(NWayTreeStorageInternal<ArrayCommandChunk> expected,
@@ -278,15 +346,19 @@ namespace ACESimTest.ArrayProcessingTests
                 AreEqual(expChildren[i], actChildren[i], because);
         }
 
-        public static void AreEqual(ArrayCommandList expected, ArrayCommandList actual, string because = "")
+        public static void AreEqual(ArrayCommandList expected,
+                                    ArrayCommandList actual,
+                                    string because = "")
             => AreEqual(expected.CommandTree, actual.CommandTree, because);
 
         private static NWayTreeStorageInternal<ArrayCommandChunk>[] ChildList(
-            NWayTreeStorageInternal<ArrayCommandChunk> node)
-            => node.Branches?
-                   .Where(b => b is not null)
-                   .Cast<NWayTreeStorageInternal<ArrayCommandChunk>>()
-                   .ToArray() ?? Array.Empty<NWayTreeStorageInternal<ArrayCommandChunk>>();
+            NWayTreeStorageInternal<ArrayCommandChunk> node) =>
+            node.Branches == null
+                ? Array.Empty<NWayTreeStorageInternal<ArrayCommandChunk>>()
+                : node.Branches
+                      .Where(b => b is NWayTreeStorageInternal<ArrayCommandChunk>)
+                      .Select(b => (NWayTreeStorageInternal<ArrayCommandChunk>)b!)
+                      .ToArray();
     }
 
     internal static class TreeTraversalExtensions
