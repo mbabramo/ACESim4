@@ -216,40 +216,57 @@ namespace ACESimTest.ArrayProcessingTests
 
                     rec.InsertEqualsValueCommand(idx0, 0);
                     rec.InsertIf();
-                    rec.InsertBlankCommands(Max + 1);
+                    rec.InsertBlankCommands(Max + 1);   // first oversize region
                     rec.InsertEndIf();
 
                     rec.InsertEqualsValueCommand(idx0, 0);
                     rec.InsertIf();
-                    rec.InsertBlankCommands(Max + 2);
+                    rec.InsertBlankCommands(Max + 2);   // second oversize region
                     rec.InsertEndIf();
                 },
                 maxNumCommands: 60,
                 maxCommandsPerChunk: Max);
 
+                // ───── initial tree (after helpers create the single leaf) ─────
                 const string expectedInitialTree =
-                    "Root: ID0: 20 Commands:[0,20) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 0 Contents: Stackinfo:";
+    "Root: ID0: 20 Commands:[0,20) Sources:[0,0) Destinations:[0,0) " +
+    "CopyIncrements: VirtualStack ID: 0 Contents: Stackinfo:";
 
-                // We had a logic error earlier (“Leaf 0 not found”).  Fix = run
-                // until balanced instead of only one round.
+                W(acl.CommandTree.ToTreeString(_ => "Leaf"))
+                    .Should().Be(W(expectedInitialTree), "initial structure");
+
+                // ───── mutate until the two oversize segments are split ─────
                 HoistMutator.MutateUntilBalanced(acl);
 
                 const string expectedFinalTree =
-                    "Root: ID0: 0 Commands:[4,4) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
-                    "Leaf 1: ID2: 4 Commands:[0,4) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: 1S-3U3S,-,-,-,-,-,-,-,-,-,-, " +
-                    "Leaf 2: ID1: 4 Commands:[4,8) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: 5S-7U7S,-,-,-,-,-,-,-,-,-,-,";
+    "Root: ID0: 0 Commands:[2,2) Sources:[0,0) Destinations:[0,0) " +
+    "CopyIncrements: VirtualStack ID: 6 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
+    "Leaf 1: ID3: 2 Commands:[0,2) Sources:[0,0) Destinations:[0,0) " +
+    "CopyIncrements: VirtualStack ID: 6 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: 0S-1U1S,-,-,-,-,-,-,-,-,-,-, " +
+    "Leaf 2: ID1: 8 Commands:[2,10) Sources:[0,0) Destinations:[0,0) " +
+    "CopyIncrements: VirtualStack ID: 6 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
+    "Leaf 1: ID4: 5 Commands:[3,8) Sources:[0,0) Destinations:[0,0) " +
+    "CopyIncrements: VirtualStack ID: 8 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: -,-,-,-,-,-,-,-,-,-,-, " +
+    "Leaf 2: ID5: 1 Commands:[8,9) Sources:[0,0) Destinations:[0,0) " +
+    "CopyIncrements: VirtualStack ID: 8 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: -,-,-,-,-,-,-,-,-,-,-, " +
+    "Leaf 3: ID2: 0 Commands:[11,11) Sources:[0,0) Destinations:[0,0) " +
+    "CopyIncrements: VirtualStack ID: 6 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: 10S-10U10S,-,-,-,-,-,-,-,-,-,-, " +
+    "Leaf 1: ID7: 1 Commands:[10,11) Sources:[0,0) Destinations:[0,0) " +
+    "CopyIncrements: VirtualStack ID: 11 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: 10S-10U10S,-,-,-,-,-,-,-,-,-,-, " +
+    "Leaf 2: ID6: 9 Commands:[11,20) Sources:[0,0) Destinations:[0,0) " +
+    "CopyIncrements: VirtualStack ID: 11 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
+    "Leaf 1: ID8: 5 Commands:[12,17) Sources:[0,0) Destinations:[0,0) " +
+    "CopyIncrements: VirtualStack ID: 13 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: -,-,-,-,-,-,-,-,-,-,-, " +
+    "Leaf 2: ID9: 2 Commands:[17,19) Sources:[0,0) Destinations:[0,0) " +
+    "CopyIncrements: VirtualStack ID: 13 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: -,-,-,-,-,-,-,-,-,-,-,";
 
-                W(acl.CommandTree.ToTreeString(_ => "Leaf"))
-                    .Should().Be(W(expectedInitialTree), "initial structure after manual fix"); // sanity
 
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedFinalTree), "final structure");
             });
         }
+
+
 
         // 6 ▸ Nested oversize bodies – inner split only
         [TestMethod]

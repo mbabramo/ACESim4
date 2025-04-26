@@ -42,8 +42,11 @@ namespace ACESimBase.Util.ArrayProcessing
 
             foreach (var entry in plan)
             {
-                var leaf = FindLeaf(acl.CommandTree, entry.LeafId) ??
-                           throw new InvalidOperationException($"Leaf {entry.LeafId} not found");
+                // Skip plan entries whose node has turned into an internal container
+                // (most often the original leaf ID 0 after an earlier split).
+                var leaf = FindLeaf(acl.CommandTree, entry.LeafId);
+                if (leaf == null || (leaf.Branches?.Length ?? 0) > 0)
+                    continue;                           // ← just ignore and move on
 
                 switch (entry.Kind)
                 {
@@ -57,6 +60,7 @@ namespace ACESimBase.Util.ArrayProcessing
                         throw new ArgumentOutOfRangeException();
                 }
             }
+
 
             acl.CommandTree.WalkTree(
                 n => acl.SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandChunk>)n),
