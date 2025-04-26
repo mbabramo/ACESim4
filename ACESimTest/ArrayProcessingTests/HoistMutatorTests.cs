@@ -46,7 +46,7 @@ namespace ACESimTest.ArrayProcessingTests
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedTree), "initial structure");
 
-                HoistMutator.MutateUntilBalanced(acl);
+                HoistMutator.MutateUntilAsBalancedAsPossible(acl);
 
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedTree), "final structure");
@@ -134,7 +134,7 @@ namespace ACESimTest.ArrayProcessingTests
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedInitialTree), "initial structure");
 
-                HoistMutator.MutateUntilBalanced(acl);
+                HoistMutator.MutateUntilAsBalancedAsPossible(acl);
 
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedFinalTree), "final structure");
@@ -235,7 +235,7 @@ namespace ACESimTest.ArrayProcessingTests
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedInitialTree), "initial structure");
 
-                HoistMutator.MutateUntilBalanced(acl);
+                HoistMutator.MutateUntilAsBalancedAsPossible(acl);
 
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedFinalTree), "final structure");
@@ -273,7 +273,7 @@ namespace ACESimTest.ArrayProcessingTests
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedInitialTree), "initial structure");
 
-                HoistMutator.MutateUntilBalanced(acl);
+                HoistMutator.MutateUntilAsBalancedAsPossible(acl);
 
                 /*  expectedFinalTree
                     ─────────────────
@@ -354,7 +354,7 @@ namespace ACESimTest.ArrayProcessingTests
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedInitialTree), "initial structure");
 
-                HoistMutator.MutateUntilBalanced(acl);
+                HoistMutator.MutateUntilAsBalancedAsPossible(acl);
 
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedFinalTree), "final structure");
@@ -369,7 +369,7 @@ namespace ACESimTest.ArrayProcessingTests
             {
                 var acl = new ArrayCommandList(256, 0, parallelize: false)
                 {
-                    MaxCommandsPerChunk = Max
+                    MaxCommandsPerSplittableChunk = Max
                 };
                 var rec = acl.Recorder;
 
@@ -422,7 +422,7 @@ namespace ACESimTest.ArrayProcessingTests
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedInitialTree), "initial structure");
 
-                HoistMutator.MutateUntilBalanced(acl);
+                HoistMutator.MutateUntilAsBalancedAsPossible(acl);
 
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedFinalTree), "final structure");

@@ -131,7 +131,7 @@ namespace ACESimTest.ArrayProcessingTests
             Acl = new ArrayCommandList(maxAlloc, DstStart + OrigCt, parallelize: false)
             {
                 DisableAdvancedFeatures = false,
-                MaxCommandsPerChunk = 1_000_000 // keeps ReuseScratchSlots = false
+                MaxCommandsPerSplittableChunk = 1_000_000 // keeps ReuseScratchSlots = false
             };
 
             EmitChunk(0, maxDepth, maxBody);
@@ -145,7 +145,7 @@ namespace ACESimTest.ArrayProcessingTests
                                              parallelize: false)
             {
                 DisableAdvancedFeatures = false,
-                MaxCommandsPerChunk = threshold
+                MaxCommandsPerSplittableChunk = threshold
             };
 
             /* 1️⃣  copy raw commands */

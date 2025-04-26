@@ -137,7 +137,7 @@ namespace ACESimTest.ArrayProcessingTests
         public void RepeatIdenticalRange(bool parallel)
         {
             var acl = NewAcl(parallel: parallel);
-            acl.MaxCommandsPerChunk = int.MaxValue; // enables RepeatIdenticalRanges
+            acl.MaxCommandsPerSplittableChunk = int.MaxValue; // enables RepeatIdenticalRanges
 
             acl.StartCommandChunk(false, null, "root");
             int idx = acl.NewZero();
@@ -165,9 +165,21 @@ namespace ACESimTest.ArrayProcessingTests
         public void HoistLeavesRespectThreshold()
         {
             var acl = NewAcl();
-            acl.MaxCommandsPerChunk = 5;
+            acl.MaxCommandsPerSplittableChunk = 5;
+
+            // Build two oversize leaves: one with control flow (must split),
+            // one plain linear (may remain whole).
             acl.StartCommandChunk(false, null, "root");
+
+            // ①  conditional body → splittable
+            acl.InsertEqualsValueCommand(acl.NewZero(), 0);
+            acl.InsertIfCommand();
             for (int i = 0; i < 40; i++) acl.InsertBlankCommand();
+            acl.InsertEndIfCommand();
+
+            // ②  linear oversize body → NOT splittable by design
+            for (int i = 0; i < 40; i++) acl.InsertBlankCommand();
+
             acl.EndCommandChunk();
             acl.CompleteCommandList();
 
@@ -175,10 +187,27 @@ namespace ACESimTest.ArrayProcessingTests
             {
                 var leaf = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
                 if (leaf.Branches?.Length > 0) return;
-                int len = leaf.StoredValue.EndCommandRangeExclusive - leaf.StoredValue.StartCommandRange;
-                len.Should().BeLessOrEqualTo(acl.MaxCommandsPerChunk);
+
+                int len = leaf.StoredValue.EndCommandRangeExclusive -
+                          leaf.StoredValue.StartCommandRange;
+
+                bool containsFlow =
+                    Enumerable.Range(leaf.StoredValue.StartCommandRange, len)
+                              .Select(i => acl.UnderlyingCommands[i].CommandType)
+                              .Any(t => t is ArrayCommandType.If
+                                     or ArrayCommandType.EndIf
+                                     or ArrayCommandType.IncrementDepth
+                                     or ArrayCommandType.DecrementDepth);
+
+                if (containsFlow)
+                    len.Should().BeLessOrEqualTo(acl.MaxCommandsPerSplittableChunk,
+                        "splittable leaves must respect the threshold");
+                else
+                    len.Should().BeGreaterThan(acl.MaxCommandsPerSplittableChunk,
+                        "unsplittable linear leaves are allowed to exceed the threshold");
             });
         }
+
 
         /* -------------------------------------------------------------
          * Edge‑case checks
@@ -187,7 +216,7 @@ namespace ACESimTest.ArrayProcessingTests
         public void MaxCommandsPerChunkIntMaxDisablesHoist()
         {
             var acl = NewAcl();
-            acl.MaxCommandsPerChunk = int.MaxValue;
+            acl.MaxCommandsPerSplittableChunk = int.MaxValue;
             acl.StartCommandChunk(false, null, "root");
             for (int i = 0; i < 20; i++) acl.InsertBlankCommand();
             acl.EndCommandChunk();
@@ -213,7 +242,7 @@ namespace ACESimTest.ArrayProcessingTests
         public void LinearOversizeListWithoutIfIsNotHoisted()
         {
             var acl = NewAcl();
-            acl.MaxCommandsPerChunk = 5;
+            acl.MaxCommandsPerSplittableChunk = 5;
             acl.StartCommandChunk(false, null, "root");
             for (int i = 0; i < 50; i++) acl.InsertBlankCommand();
             acl.EndCommandChunk();

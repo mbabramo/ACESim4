@@ -15,17 +15,17 @@ namespace ACESimBase.Util.ArrayProcessing
         /// Repeatedly plans and applies splits until every executable leaf is
         /// within the maximum command limit configured in <paramref name="acl"/>.
         /// </summary>
-        public static void MutateUntilBalanced(ArrayCommandList acl)
+        public static void MutateUntilAsBalancedAsPossible(ArrayCommandList acl)
         {
             if (acl == null) throw new ArgumentNullException(nameof(acl));
-            if (acl.MaxCommandsPerChunk == int.MaxValue)
+            if (acl.MaxCommandsPerSplittableChunk == int.MaxValue)
                 return;           // hoisting disabled
 
             int round = 0;
             while (true)
             {
                 round++;
-                var planner = new HoistPlanner(acl.UnderlyingCommands, acl.MaxCommandsPerChunk);
+                var planner = new HoistPlanner(acl.UnderlyingCommands, acl.MaxCommandsPerSplittableChunk);
                 var plan = planner.BuildPlan(acl.CommandTree);
 
 #if DEBUG
@@ -91,10 +91,10 @@ namespace ACESimBase.Util.ArrayProcessing
 
 
         // ───────────────────────────────────────────── helpers ──
-        private static NWayTreeStorageInternal<ArrayCommandChunk>? FindLeaf(
+        private static NWayTreeStorageInternal<ArrayCommandChunk> FindLeaf(
             NWayTreeStorageInternal<ArrayCommandChunk> root, int id)
         {
-            NWayTreeStorageInternal<ArrayCommandChunk>? target = null;
+            NWayTreeStorageInternal<ArrayCommandChunk> target = null;
             root.WalkTree(nObj =>
             {
                 var n = (NWayTreeStorageInternal<ArrayCommandChunk>)nObj;
@@ -127,7 +127,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 StoredValue = CloneMeta(info, spanStart, spanEndEx)
             };
 
-            NWayTreeStorageInternal<ArrayCommandChunk>? postNode = null;
+            NWayTreeStorageInternal<ArrayCommandChunk> postNode = null;
             if (postfixStart < postfixEnd)
             {
                 postNode = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf)
@@ -153,7 +153,7 @@ namespace ACESimBase.Util.ArrayProcessing
             int prefixEnd = spanStart;
             int bodyStart = spanStart + 1;
             int bodyEnd = spanEndEx - 1;
-            int max = acl.MaxCommandsPerChunk;
+            int max = acl.MaxCommandsPerSplittableChunk;
 
 #if DEBUG
             TabbedText.WriteLine($"[DEPTH-SPLIT] leaf ID{info.ID} body=[{bodyStart},{bodyEnd}) max={max}");
@@ -272,7 +272,7 @@ namespace ACESimBase.Util.ArrayProcessing
                                          int bodyEnd)
         {
             var gInfo = gate.StoredValue;
-            int max = acl.MaxCommandsPerChunk;
+            int max = acl.MaxCommandsPerSplittableChunk;
             int sliceStart = bodyStart;
             byte branch = 1;
             while (sliceStart < bodyEnd)

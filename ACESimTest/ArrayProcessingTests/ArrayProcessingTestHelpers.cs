@@ -40,7 +40,7 @@ namespace ACESimTest.ArrayProcessingTests
         {
             var acl = new ArrayCommandList(maxNumCommands, initialArrayIndex, parallelize: false)
             {
-                MaxCommandsPerChunk = maxCommandsPerChunk
+                MaxCommandsPerSplittableChunk = maxCommandsPerChunk
             };
 
             var rec = acl.Recorder;
@@ -62,7 +62,7 @@ namespace ACESimTest.ArrayProcessingTests
 
             var acl = new ArrayCommandList(cmds.Count + 10, 0, parallelize: false)
             {
-                MaxCommandsPerChunk = maxCommandsPerChunk
+                MaxCommandsPerSplittableChunk = maxCommandsPerChunk
             };
 
             acl.UnderlyingCommands = cmds.ToArray();
@@ -99,7 +99,7 @@ namespace ACESimTest.ArrayProcessingTests
             maxNumCommands: bodyLen + 5,
             maxCommandsPerChunk: threshold);
 
-            acl.MaxCommandsPerChunk = threshold;
+            acl.MaxCommandsPerSplittableChunk = threshold;
             return (acl, bodyLen);
         }
 
@@ -117,7 +117,7 @@ namespace ACESimTest.ArrayProcessingTests
             maxNumCommands: regionLen + 2,
             maxCommandsPerChunk: threshold);
 
-            acl.MaxCommandsPerChunk = threshold;
+            acl.MaxCommandsPerSplittableChunk = threshold;
             return (acl, regionLen);
         }
 
@@ -131,7 +131,7 @@ namespace ACESimTest.ArrayProcessingTests
 
             var acl = new ArrayCommandList(1024, 0, parallelize: false)
             {
-                MaxCommandsPerChunk = maxCommandsPerChunk
+                MaxCommandsPerSplittableChunk = maxCommandsPerChunk
             };
             var rec = acl.Recorder;
 
@@ -163,7 +163,7 @@ namespace ACESimTest.ArrayProcessingTests
                                               int initialIdx = 0,
                                               bool parallel = false,
                                               int maxPerChunk = 50)
-            => new(maxCmds, initialIdx, parallel) { MaxCommandsPerChunk = maxPerChunk };
+            => new(maxCmds, initialIdx, parallel) { MaxCommandsPerSplittableChunk = maxPerChunk };
 
         /* --------------------------------------------------------------------
            SECTION 2  Assertion helpers
@@ -256,7 +256,7 @@ namespace ACESimTest.ArrayProcessingTests
         /* --------------------------------------------------------------------
            SECTION 5  Gate helpers (added)
            ------------------------------------------------------------------*/
-        public static NWayTreeStorageInternal<ArrayCommandChunk>? FirstGate(this ArrayCommandList acl) =>
+        public static NWayTreeStorageInternal<ArrayCommandChunk> FirstGate(this ArrayCommandList acl) =>
             acl.Nodes()
                .OfType<NWayTreeStorageInternal<ArrayCommandChunk>>()
                .FirstOrDefault(n =>

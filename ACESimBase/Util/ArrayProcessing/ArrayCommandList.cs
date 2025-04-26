@@ -42,11 +42,11 @@ namespace ACESimBase.Util.ArrayProcessing
         // ──────────────────────────────────────────────────────────────────────
         public bool DisableAdvancedFeatures = false;
         public bool Parallelize = false;
-        public int MaxCommandsPerChunk = 1_000;
+        public int MaxCommandsPerSplittableChunk = 1_000;
         public bool UseOrderedSources => !DisableAdvancedFeatures;
         public bool UseOrderedDestinations => !DisableAdvancedFeatures;
         public bool DoParallel => !DisableAdvancedFeatures && Parallelize;
-        public bool ReuseScratchSlots => MaxCommandsPerChunk == int.MaxValue;
+        public bool ReuseScratchSlots => MaxCommandsPerSplittableChunk == int.MaxValue;
         public bool ReuseDestinations = false;
         public bool RepeatIdenticalRanges => ReuseScratchSlots && !DisableAdvancedFeatures;
 
@@ -83,6 +83,7 @@ namespace ACESimBase.Util.ArrayProcessing
         private readonly Stack<int?> _repeatRangeStack = new();
         public bool RepeatingExistingCommandRange = false;
         private int _keepTogetherLevel = 0;
+        private bool _rootChunkInitialised = false;
 
 
         // ──────────────────────────────────────────────────────────────────────
@@ -114,6 +115,17 @@ namespace ACESimBase.Util.ArrayProcessing
         // ──────────────────────────────────────────────────────────────────────
         public void StartCommandChunk(bool runChildrenInParallel, int? identicalStartCommandRange, string name = "", bool ignoreKeepTogether = false)
         {
+            if (_currentPath.Count == 0 && !_rootChunkInitialised)
+            {
+                // decorate the implicit root slice instead of creating a child
+                var root = CurrentChunk;
+                if (!string.IsNullOrEmpty(name))
+                    root.Name = name;
+                root.ChildrenParallelizable = runChildrenInParallel;
+                _rootChunkInitialised = true;          // ✅ only the first call hits
+                return;
+            }
+
             if (_keepTogetherLevel > 0 && !ignoreKeepTogether)
                 return;
 
@@ -144,6 +156,14 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void EndCommandChunk(int[] copyIncrementsToParent = null, bool endingRepeatedChunk = false)
         {
+            if (_currentPath.Count == 0)
+            {
+                var root = CurrentChunk;
+                root.EndCommandRangeExclusive = NextCommandIndex;
+                root.EndSourceIndicesExclusive = OrderedSourceIndices.Count;
+                root.EndDestinationIndicesExclusive = OrderedDestinationIndices.Count;
+                return;            // nothing else to pop
+            }
             if (_keepTogetherLevel > 0)
                 return;
 
@@ -287,16 +307,16 @@ namespace ACESimBase.Util.ArrayProcessing
 
         /// <summary>
         /// Hoist all oversize <c>If … EndIf</c> bodies until every executable
-        /// leaf is ≤ <see cref="MaxCommandsPerChunk"/>.  
+        /// leaf is ≤ <see cref="MaxCommandsPerSplittableChunk"/>.  
         /// The loop re-runs the planner after each mutation so newly created
         /// slices are re-examined, guaranteeing convergence without deep recursion.
         /// </summary>
         private void HoistAndSplitLargeIfBodies()
         {
-            if (MaxCommandsPerChunk == int.MaxValue)
+            if (MaxCommandsPerSplittableChunk == int.MaxValue)
                 return;               // hoisting disabled
 
-            HoistMutator.MutateUntilBalanced(this);
+            HoistMutator.MutateUntilAsBalancedAsPossible(this);
         }
 
 
@@ -343,20 +363,19 @@ namespace ACESimBase.Util.ArrayProcessing
             var child = node.StoredValue;
             var parent = parentNode.StoredValue;
 
-            bool share = (!parent.ChildrenParallelizable || !child.ChildrenParallelizable) && !child.RequiresPrivateStack;
+            // share only when *both* slices are single-threaded
+            bool share = !parent.ChildrenParallelizable
+                         && !child.ChildrenParallelizable
+                         && !child.RequiresPrivateStack;
 
             if (share)
             {
                 child.VirtualStack = parent.VirtualStack;
                 child.VirtualStackID = parent.VirtualStackID;
-                child.ParentVirtualStack = parent.VirtualStack;
-                child.ParentVirtualStackID = parent.VirtualStackID;
             }
-            else
-            {
-                child.ParentVirtualStack = parent.VirtualStack;
-                child.ParentVirtualStackID = parent.VirtualStackID;
-            }
+
+            child.ParentVirtualStack = parent.VirtualStack;
+            child.ParentVirtualStackID = parent.VirtualStackID;
         }
 
         private void DetermineSourcesUsedFromChildren(NWayTreeStorageInternal<ArrayCommandChunk> node)
