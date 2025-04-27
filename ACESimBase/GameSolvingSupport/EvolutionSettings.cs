@@ -16,7 +16,7 @@ namespace ACESim
     public class EvolutionSettings
     {
         public bool DistributeChanceDecisions = false; // NOTE: Use CollapseChanceDecisions instead; it's much simpler and seems to produce slightly better performance.
-        public bool UnrollAlgorithm = false; // DEBUG
+        public bool UnrollAlgorithm = true; // DEBUG
         public bool IncludeCommentsWhenUnrolling = false;
         public bool UnrollAllowParallelize = false; // DEBUG
         public ChunkExecutorKind Unroll_ChunkExecutorKind = ChunkExecutorKind.Interpreted; // DEBUG -- must for now use Interpreted or Roslyn or IL
