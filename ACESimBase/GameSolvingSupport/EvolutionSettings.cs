@@ -19,7 +19,7 @@ namespace ACESim
         public bool UnrollAlgorithm = true; // DEBUG
         public bool IncludeCommentsWhenUnrolling = false;
         public bool UnrollAllowParallelize = false; // DEBUG
-        public ChunkExecutorKind Unroll_ChunkExecutorKind = ChunkExecutorKind.RoslynWithLocalVariableRecycling; // DEBUG -- must for now use Interpreted or Roslyn or IL
+        public ChunkExecutorKind Unroll_ChunkExecutorKind = ChunkExecutorKind.Roslyn; // DEBUG -- must for now use Interpreted or Roslyn or IL
         public bool ReuseUnrolledAlgorithm = true; // if the tree structure is the same, then it will be reused (but final utilities etc. will be updated)
         public bool SaveToAzureBlob = false;
         // Note: Many of the below are overridden by launcher.
