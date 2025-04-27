@@ -1,9 +1,9 @@
 ﻿// -----------------------------------------------------------------------------
 //  ArrayCommandListRunner.cs   (refactored to use OrderedBufferManager)
 // -----------------------------------------------------------------------------
-//  Executes a prepared ArrayCommandList by traversing its chunk‑tree and
+//  Executes a prepared ArrayCommandList by traversing its chunk-tree and
 //  delegating each chunk to an IChunkExecutor.  All staging / merging of
-//  ordered‑sources and ordered‑destinations is now delegated to
+//  ordered-sources and ordered-destinations is now delegated to
 //  OrderedBufferManager instead of living inside ArrayCommandList.
 // -----------------------------------------------------------------------------
 
@@ -47,14 +47,6 @@ namespace ACESimBase.Util.ArrayProcessing
             // Bake the tree (hoisting & stack metadata)
             if (acl.MaxCommandIndex == 0)
                 acl.CompleteCommandList();
-#if DEBUG
-            TabbedText.WriteLine("Commands:");
-            TabbedText.WriteLine(acl.CommandListString());
-            TabbedText.WriteLine("");
-            TabbedText.WriteLine("Tree:");
-            TabbedText.WriteLine(acl.CommandTreeString);
-#endif
-
 
             // Collect all chunks
             var chunks = new List<ArrayCommandChunk>();
@@ -100,10 +92,10 @@ namespace ACESimBase.Util.ArrayProcessing
 
 
     /// <summary>
-    /// Orchestrates run‑time execution of an <see cref="ArrayCommandList"/>.
+    /// Orchestrates run-time execution of an <see cref="ArrayCommandList"/>.
     /// The class is <b>stateless across runs</b> except for the executors it
     /// holds, so it can be reused to execute the same ACL on multiple data
-    /// arrays without re‑compilation.  All per‑run staging of ordered buffers is
+    /// arrays without re-compilation.  All per-run staging of ordered buffers is
     /// now handled by <see cref="OrderedBufferManager"/>.
     /// </summary>
     public sealed class ArrayCommandListRunner
@@ -114,7 +106,8 @@ namespace ACESimBase.Util.ArrayProcessing
         private OrderedBufferManager _buffers = null!;  // created in Run()
 
         private bool _condition = true;   // current If/EndIf condition flag
-        private int _globalSkipDepth = 0; // nested‑If skip counter
+        private int _globalSkipDepth = 0; // nested-If skip counter
+        private readonly Stack<bool> _skipStack = new(); // Conditional gate stack
         private int _pendingSrcAdvance = 0;
         private int _pendingDstAdvance = 0;
 
@@ -134,6 +127,7 @@ namespace ACESimBase.Util.ArrayProcessing
             // ── reset per-run state ──
             _condition = true;
             _globalSkipDepth = 0;
+            _skipStack.Clear();
 
             if (acl is null) throw new ArgumentNullException(nameof(acl));
             if (data is null) throw new ArgumentNullException(nameof(data));
@@ -147,7 +141,7 @@ namespace ACESimBase.Util.ArrayProcessing
             _buffers.PrepareBuffers(data, acl.DoParallel);
 
             //------------------------------------------------------------------
-            // 2️⃣  Depth‑first traversal with pre/post hooks
+            // 2️⃣  Depth-first traversal with pre/post hooks
             //------------------------------------------------------------------
             acl.CommandTree!.WalkTree(
                 beforeDescending: n => Pre((NWayTreeStorageInternal<ArrayCommandChunk>)n, acl),
@@ -161,7 +155,7 @@ namespace ACESimBase.Util.ArrayProcessing
         }
 
         // ──────────────────────────────────────────────────────────────────────
-        //  Pre‑order action  – stack sync + evaluate Conditional gate
+        //  Pre-order action  – stack sync + evaluate Conditional gate
         // ──────────────────────────────────────────────────────────────────────
         private void Pre(NWayTreeStorageInternal<ArrayCommandChunk> node, ArrayCommandList acl)
         {
@@ -171,21 +165,33 @@ namespace ACESimBase.Util.ArrayProcessing
             if (c.Skip) return;
 
             if (c.Name == "Conditional")
-                ExecuteChunk(c, acl);
+            {
+                ExecuteChunk(c, acl);           // runs If / EndIf tokens
+
+                bool skipThisBranch = !_condition; // branch active?
+                _skipStack.Push(skipThisBranch);
+                if (skipThisBranch)
+                    _globalSkipDepth++;          // activate skipping for body
+
+                return;                          // gate has no body commands
+            }
         }
 
         // ──────────────────────────────────────────────────────────────────────
-        //  Post‑order action – run leaf, merge increments
+        //  Post-order action – run leaf, merge increments
         // ──────────────────────────────────────────────────────────────────────
         private void Post(NWayTreeStorageInternal<ArrayCommandChunk> node, ArrayCommandList acl)
         {
             var c = node.StoredValue;
             if (c.Skip) return;
 
-            // Body slices of a Conditional gate were executed by the gate itself
-            if (node.Parent is NWayTreeStorageInternal<ArrayCommandChunk> p &&
-                p.StoredValue?.Name == "Conditional")
+            if (c.Name == "Conditional")
+            {
+                bool skipped = _skipStack.Pop();   // exit gate
+                if (skipped && _globalSkipDepth > 0)
+                    _globalSkipDepth--;            // end of skipped span
                 return;
+            }
 
             bool isLeaf = node.Branches is null || node.Branches.Length == 0;
             if (isLeaf && c.Name != "Conditional")
@@ -218,10 +224,8 @@ namespace ACESimBase.Util.ArrayProcessing
                 _pendingSrcAdvance = _pendingDstAdvance = 0;
             }
 
-            int len = c.EndCommandRangeExclusive - c.StartCommandRange;
-
-            int cosi = c.StartSourceIndices;      // current ordered‑source ptr (by ref)
-            int codi = c.StartDestinationIndices; // current ordered‑dest   ptr (by ref)
+            int cosi = c.StartSourceIndices;      // current ordered-source ptr (by ref)
+            int codi = c.StartDestinationIndices; // current ordered-dest   ptr (by ref)
 
             _compiled.Execute(c,
                               c.VirtualStack,

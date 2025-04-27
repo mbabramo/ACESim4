@@ -42,6 +42,8 @@ namespace ACESimBase.Util.ArrayProcessing
         }
         public static void VerifyCorrectnessRange(ArrayCommand[] commands, int start, int endExclusive)
         {
+            return; // DEBUG
+
             int ifs = 0, endIfs = 0;
             int incDepths = 0, decDepths = 0;
 

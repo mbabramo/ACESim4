@@ -29,20 +29,25 @@ namespace ACESimBase.Util.ArrayProcessing
                 var plan = planner.BuildPlan(acl.CommandTree);
 
 #if DEBUG
-                TabbedText.WriteLine($"[MUTATE] round={round}  planCount={plan.Count}");
+                if (round == 1)
+                {
+                    TabbedText.WriteLine($"[MUTATE] max={acl.MaxCommandsPerSplittableChunk} round={round}  planCount={plan.Count}");
+                    TabbedText.WriteLine("Commands:");
+                    TabbedText.WriteLine(acl.CommandListString());
+                    TabbedText.WriteLine($"Before mutation");
+                    TabbedText.WriteLine(acl.CommandTree.ToTreeString(_ => "Leaf"));
+                }
+#endif
+
+                ApplyPlan(acl, plan);
+
+#if DEBUG
+                TabbedText.WriteLine($"After round {round}");
+                TabbedText.WriteLine(acl.CommandTree.ToTreeString(_ => "Leaf"));
 #endif
 
                 if (plan.Count == 0)
-                {
-#if DEBUG
-                    TabbedText.WriteLine("── final tree ──");
-                    TabbedText.WriteLine(acl.CommandTree.ToTreeString(_ => "Leaf"));
-                    TabbedText.WriteLine("───────────────");
-#endif
                     break;        // tree already balanced
-                }
-
-                ApplyPlan(acl, plan);
             }
         }
 
@@ -119,49 +124,61 @@ namespace ACESimBase.Util.ArrayProcessing
             TabbedText.WriteLine($"[COND-SPLIT] leaf ID{info.ID} span=[{spanStart},{spanEndEx})");
 #endif
 
-            int prefixEnd = spanStart;
-            int postfixStart = spanEndEx;
-            int postfixEnd = info.EndCommandRangeExclusive;
+            int ifIdx = spanStart;           // 'If' token
+            int endifIdx = spanEndEx - 1;        // 'EndIf' token
+            int bodyStart = ifIdx + 1;            // first body command
+            int bodyEnd = endifIdx;             // exclusive
 
-            // Prefix becomes the truncated range of the original leaf.
-            info.EndCommandRangeExclusive = prefixEnd;
+            // DO NOT shrink parent's StartCommandRange or EndCommandRangeExclusive!
 
-            // Gate node holds the entire [If … EndIf] pair.
+            // Create quarantine node that holds the If/EndIf only
             var gateNode = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf)
             {
-                StoredValue = CloneMeta(info, spanStart, spanEndEx)
+                StoredValue = new ArrayCommandChunk
+                {
+                    Name = "Conditional",
+                    Skip = true,
+                    ChildrenParallelizable = false,
+                    StartCommandRange = ifIdx,
+                    EndCommandRangeExclusive = spanEndEx
+                }
             };
 
-            // Optional suffix node for commands after the EndIf.
-            NWayTreeStorageInternal<ArrayCommandChunk>? postNode = null;
-            if (postfixStart < postfixEnd)
+            // Create body node (body-only commands inside gate)
+            var bodyNode = new NWayTreeStorageInternal<ArrayCommandChunk>(gateNode)
             {
-                postNode = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf)
+                StoredValue = CloneMeta(info, bodyStart, bodyEnd)
+            };
+            gateNode.SetBranch(1, bodyNode);
+            gateNode.StoredValue.LastChild = 1;
+
+            // Optional suffix after EndIf
+            NWayTreeStorageInternal<ArrayCommandChunk>? suffixNode = null;
+            if (spanEndEx < info.EndCommandRangeExclusive)
+            {
+                suffixNode = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf)
                 {
-                    StoredValue = CloneMeta(info, postfixStart, postfixEnd)
+                    StoredValue = CloneMeta(info, spanEndEx, info.EndCommandRangeExclusive)
                 };
             }
 
-            // Attach children: branch-0 is the (wrapped) prefix leaf that will be added
-            // later by WrapCommandsIntoLeaf; branch-1 is the gate; branch-2 is the suffix.
+            // Wire up branches: branch 1 = gate node, branch 2 = suffix (if any)
             leaf.SetBranch(1, gateNode);
-            if (postNode != null)
-                leaf.SetBranch(2, postNode);
+            if (suffixNode != null)
+                leaf.SetBranch(2, suffixNode);
 
-            leaf.StoredValue.LastChild = (byte)(postNode == null ? 1 : 2);
+            leaf.StoredValue.LastChild = (byte)(suffixNode == null ? 1 : 2);
 
-            // Ensure any remaining prefix commands are wrapped into a dedicated leaf.
-            WrapCommandsIntoLeaf(acl, leaf);
-
-            // Deliberately DO NOT slice the gate body here. The gate remains a leaf,
-            // so the planner will revisit it on the next pass and apply the usual
-            // Conditional/Depth logic, preserving balanced If/EndIf pairs.
+            // No prefix in this corrected version. 
+            // We do NOT call WrapCommandsIntoLeaf because the parent is untouched.
         }
 
-        private static void SplitAtDepthRegion(ArrayCommandList acl,
-                                       NWayTreeStorageInternal<ArrayCommandChunk> leaf,
-                                       int spanStart,
-                                       int spanEndEx)
+
+        private static void SplitAtDepthRegion(
+    ArrayCommandList acl,
+    NWayTreeStorageInternal<ArrayCommandChunk> leaf,
+    int spanStart,
+    int spanEndEx)
         {
             var info = leaf.StoredValue;
             int prefixEnd = spanStart;
@@ -173,7 +190,7 @@ namespace ACESimBase.Util.ArrayProcessing
             TabbedText.WriteLine($"[DEPTH-SPLIT] leaf ID{info.ID} body=[{bodyStart},{bodyEnd}) max={max}");
 #endif
 
-            info.EndCommandRangeExclusive = prefixEnd;
+            // Do NOT change parent's StartCommandRange or EndCommandRangeExclusive!
 
             var region = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf)
             {
@@ -198,7 +215,6 @@ namespace ACESimBase.Util.ArrayProcessing
             }
 
             region.StoredValue.LastChild = (byte)(branch - 1);
-            region.StoredValue.StartCommandRange = region.StoredValue.EndCommandRangeExclusive;
 
 #if DEBUG
             TabbedText.WriteLine($"[DEPTH-SPLIT-END] region ID{region.StoredValue.ID} children={branch - 1} branchesArray={(region.Branches?.Length ?? 0)}");
@@ -209,6 +225,7 @@ namespace ACESimBase.Util.ArrayProcessing
             TabbedText.WriteLine($"[DBG-DEPTH] container ID{leaf.StoredValue.ID} range=[{leaf.StoredValue.StartCommandRange},{leaf.StoredValue.EndCommandRangeExclusive})");
 #endif
         }
+
 
         private static ArrayCommandChunk CloneMeta(ArrayCommandChunk src, int start, int endEx)
         {

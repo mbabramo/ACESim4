@@ -22,7 +22,7 @@ namespace ACESimBase.Util.ArrayProcessing
         private int _nextCommandIndex;
 
         // Depth-based scratch rewind
-        private readonly Stack<int> _depthStartSlots = new();
+        internal readonly Stack<int> _depthStartSlots = new();
 
         public CommandRecorder(ArrayCommandList owner)
         {
