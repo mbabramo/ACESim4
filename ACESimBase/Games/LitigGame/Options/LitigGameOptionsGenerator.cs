@@ -19,7 +19,7 @@ namespace ACESim
             SmallGame,
         }
 
-        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.SmallGame; // DEBUG
+        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.AppropriationGame; // DEBUG
 
         public static LitigGameOptions GetLitigGameOptions() => LitigGameChoice switch
         {
@@ -137,7 +137,7 @@ namespace ACESim
             options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 5; // DEBUG
 
             var disputeGenerator = new LitigGameAppropriationDisputeGenerator();
-            disputeGenerator.NumSystemicRandomnessLevels = 1; // DEBUG
+            disputeGenerator.NumSystemicRandomnessLevels = 3; // DEBUG
 
             options.LitigGameDisputeGenerator = disputeGenerator;
             return options;

@@ -16,10 +16,10 @@ namespace ACESim
     public class EvolutionSettings
     {
         public bool DistributeChanceDecisions = false; // NOTE: Use CollapseChanceDecisions instead; it's much simpler and seems to produce slightly better performance.
-        public bool UnrollAlgorithm = true; // DEBUG
+        public bool UnrollAlgorithm = false; // DEBUG
         public bool IncludeCommentsWhenUnrolling = false;
         public bool UnrollAllowParallelize = false; // DEBUG
-        public ChunkExecutorKind Unroll_ChunkExecutorKind = ChunkExecutorKind.Roslyn; // DEBUG -- must for now use Interpreted or Roslyn or IL
+        public ChunkExecutorKind Unroll_ChunkExecutorKind = ChunkExecutorKind.Interpreted; // DEBUG -- must for now use Interpreted or Roslyn or IL
         public bool ReuseUnrolledAlgorithm = true; // if the tree structure is the same, then it will be reused (but final utilities etc. will be updated)
         public bool SaveToAzureBlob = false;
         // Note: Many of the below are overridden by launcher.
