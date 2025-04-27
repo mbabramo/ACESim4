@@ -588,8 +588,6 @@ namespace ACESimBase.Util.ArrayProcessing
         public void DecrementByProduct(int targetIdx, int factor1Idx, int factor2Idx, bool reuseTmp = true) =>
             Recorder.DecrementByProduct(targetIdx, factor1Idx, factor2Idx, reuseTmp);
 
-
-        public void InsertTrueCommand() => Recorder.InsertTrue();
         public void InsertIfCommand() => Recorder.InsertIf();
         public void InsertEndIfCommand() => Recorder.InsertEndIf();
 

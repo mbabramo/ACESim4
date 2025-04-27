@@ -29,15 +29,15 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         }
 
         public override void Execute(
-    ArrayCommandChunk chunk,
-    double[] virtualStack,
-    double[] orderedSources,
-    double[] orderedDestinations,
-    ref int cosi,
-    ref int codi,
-    ref bool condition)
+            ArrayCommandChunk chunk,
+            double[] virtualStack,
+            double[] orderedSources,
+            double[] orderedDestinations,
+            ref int cosi,
+            ref int codi,
+            ref bool condition)
         {
-            bool skipTrueIf = false;                               // NEW
+            // condition carries the result of the last comparison
             for (int idx = chunk.StartCommandRange; idx < chunk.EndCommandRangeExclusive; idx++)
             {
                 var cmd = Commands[idx];
@@ -89,11 +89,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                         }
                         break;
 
-                    case ArrayCommandType.True:                     // NEW
-                        skipTrueIf = true;
-                        condition = true;
-                        break;
-
+                    // comparisons set the branch condition
                     case ArrayCommandType.EqualsOtherArrayIndex:
                         condition = virtualStack[cmd.Index] == virtualStack[cmd.SourceIndex];
                         break;
@@ -113,12 +109,9 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                         condition = virtualStack[cmd.Index] != cmd.SourceIndex;
                         break;
 
+                    // flow‑control: skip until matching EndIf if condition is false
                     case ArrayCommandType.If:
-                        if (skipTrueIf)
-                        {
-                            skipTrueIf = false;
-                        }
-                        else if (!condition)
+                        if (!condition)
                         {
                             int depth = 1;
                             while (depth > 0)
@@ -138,6 +131,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     case ArrayCommandType.Blank:
                     case ArrayCommandType.IncrementDepth:
                     case ArrayCommandType.DecrementDepth:
+                        // no action
                         break;
 
                     default:
@@ -148,6 +142,5 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             chunk.StartSourceIndices = cosi;
             chunk.StartDestinationIndices = codi;
         }
-
     }
 }

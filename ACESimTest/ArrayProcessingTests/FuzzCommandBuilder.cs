@@ -94,10 +94,7 @@ namespace ACESimTest.ArrayProcessingTests
             if (depth < maxDepth)
             {
                 int guard = EnsureScratch();
-                if (_rnd.NextDouble() < 0.5)
-                    _acl.InsertTrueCommand();
-                else
-                    _acl.InsertNotEqualsValueCommand(guard, 0);
+                _acl.InsertNotEqualsValueCommand(guard, 0);
                 _acl.InsertIfCommand();
                 EmitChunk(depth + 1, maxDepth, maxBody, ref localDepth);
                 _acl.InsertEndIfCommand();
