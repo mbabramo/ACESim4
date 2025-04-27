@@ -58,6 +58,7 @@ public class ArrayCommandChunk
         ID = NextID++;
     }
 
+    public void VerifyCorrectness(ArrayCommand[] underlyingCommands) => ArrayCommand.VerifyCorrectnessRange(underlyingCommands, StartCommandRange, EndCommandRangeExclusive);
 
     public override string ToString()
     {

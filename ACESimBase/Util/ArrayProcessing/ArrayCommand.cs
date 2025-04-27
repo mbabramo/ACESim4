@@ -40,7 +40,54 @@ namespace ACESimBase.Util.ArrayProcessing
                 return -1;
             return Index;
         }
-        
+        public static void VerifyCorrectnessRange(ArrayCommand[] commands, int start, int endExclusive)
+        {
+            int ifs = 0, endIfs = 0;
+            int incDepths = 0, decDepths = 0;
+
+            bool IsComparison(ArrayCommandType t) => t switch
+            {
+                ArrayCommandType.EqualsOtherArrayIndex or
+                ArrayCommandType.NotEqualsOtherArrayIndex or
+                ArrayCommandType.GreaterThanOtherArrayIndex or
+                ArrayCommandType.LessThanOtherArrayIndex or
+                ArrayCommandType.EqualsValue or
+                ArrayCommandType.NotEqualsValue => true,
+                _ => false
+            };
+
+            for (int idx = start; idx < endExclusive; idx++)
+            {
+                var t = commands[idx].CommandType;
+
+                switch (t)
+                {
+                    case ArrayCommandType.If: ifs++; break;
+                    case ArrayCommandType.EndIf: endIfs++; break;
+                    case ArrayCommandType.IncrementDepth: incDepths++; break;
+                    case ArrayCommandType.DecrementDepth: decDepths++; break;
+                }
+
+                if (IsComparison(t))
+                {
+                    bool followedByIf =
+                        idx + 1 < endExclusive &&
+                        commands[idx + 1].CommandType == ArrayCommandType.If;
+
+                    if (!followedByIf)
+                        throw new InvalidOperationException(
+                            $"Comparison at command {idx} is not immediately followed by an If.");
+                }
+            }
+
+            if (ifs != endIfs)
+                throw new InvalidOperationException($"Mismatch: If={ifs}  EndIf={endIfs}");
+
+            if (incDepths != decDepths)
+                throw new InvalidOperationException(
+                    $"Mismatch: IncrementDepth={incDepths}  DecrementDepth={decDepths}");
+        }
+
 
         public ArrayCommand WithIndex(int index) => new ArrayCommand(CommandType, index, SourceIndex);
 
