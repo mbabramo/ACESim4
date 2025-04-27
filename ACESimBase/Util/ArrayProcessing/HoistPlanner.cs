@@ -36,7 +36,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public IList<PlanEntry> BuildPlan(NWayTreeStorageInternal<ArrayCommandChunk> root)
         {
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
             TabbedText.WriteLine($"[Planner] BuildPlan (max={_max})");
 #endif
             var plan = new List<PlanEntry>();
@@ -49,7 +49,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 var info = node.StoredValue;
                 int len = info.EndCommandRangeExclusive - info.StartCommandRange;
 
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
                 if (len > _max)
                     TabbedText.WriteLine($"  • leaf ID{info.ID} len={len}");
 #endif
@@ -62,7 +62,7 @@ namespace ACESimBase.Util.ArrayProcessing
             plan.Sort((a, b) => a.LeafId != b.LeafId ? a.LeafId.CompareTo(b.LeafId)
                                                      : a.StartIdx.CompareTo(b.StartIdx));
 
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
             foreach (var e in plan)
                 TabbedText.WriteLine($"    → plan ID{e.LeafId} {e.Kind} [{e.StartIdx},{e.EndIdxExclusive})");
 #endif

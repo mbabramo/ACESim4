@@ -12,7 +12,7 @@ namespace ACESimBase.Util.ArrayProcessing;
 [Serializable]
 public class ArrayCommandChunk
 {
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
     internal bool _loggedInit;
     internal bool ChildrenParallelizableLogged
     {
@@ -85,9 +85,11 @@ public class ArrayCommandChunk
         // copy only when stacks are distinct and a parent exists – original guard
         if (ParentVirtualStack != VirtualStack && ParentVirtualStack != null)
         {
+#if OUTPUT_HOISTING_INFO
             TabbedText.WriteLine(
                 $"[CPS‑BEGIN] child={ID,4}  parentVS={ParentVirtualStackID,4}  "
                 + $"indices=[{string.Join(",", IndicesReadFromStack)}]");
+#endif
 
             foreach (int index in IndicesReadFromStack)
             {
@@ -96,15 +98,19 @@ public class ArrayCommandChunk
 
                 VirtualStack[index] = src;            // ← original assignment
 
+#if OUTPUT_HOISTING_INFO
                 TabbedText.WriteLine($"   • idx={index}  {before} → {src}");
+#endif
             }
 
+#if OUTPUT_HOISTING_INFO
             TabbedText.WriteLine(
                 $"[CPS‑END]   child={ID,4}  vs0={(VirtualStack.Length > 0 ? VirtualStack[0].ToString() : "∅")}");
+#endif
         }
     }
 
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
     private static void LogMerge(int childId, double before, double delta, double after,
                                     int idx, int parentVsId)
     {
@@ -143,7 +149,7 @@ public class ArrayCommandChunk
         if (ReferenceEquals(ParentVirtualStack, VirtualStack))
             return;
 
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
         string Dump(double[] s) =>
             string.Join(", ", CopyIncrementsToParent.Select(i => $"{i}:{s[i]}"));
 
@@ -157,7 +163,7 @@ public class ArrayCommandChunk
         foreach (int idx in CopyIncrementsToParent)
             ParentVirtualStack[idx] = VirtualStack[idx];
 
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
         TabbedText.WriteLine($"[MERGE‑END] parentVals [{Dump(ParentVirtualStack)}]");
 #endif
     }
@@ -183,7 +189,7 @@ public class ArrayCommandChunk
         if (ReferenceEquals(VirtualStack, ParentVirtualStack))
             return;   // shared stack – nothing to do
 
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
         TabbedText.WriteLine(
             $"[RST‑BEG] slice={ID,4}  syncing idxs=[{string.Join(",", CopyIncrementsToParent)}]");
 #endif
@@ -192,7 +198,7 @@ public class ArrayCommandChunk
         foreach (int idx in CopyIncrementsToParent)
             VirtualStack[idx] = ParentVirtualStack[idx];
 
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
         TabbedText.WriteLine($"[RST‑END] slice={ID,4}");
 #endif
     }

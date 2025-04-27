@@ -152,6 +152,7 @@ namespace ACESim
         // We can achieve considerable improvements in performance by unrolling the algorithm. Instead of traversing the tree, we simply have a series of simple commands that can be processed on an array. The challenge is that we need to create this series of commands. This section prepares for the copying of data between information sets and the array. We can compare the outcomes of the regular algorithm and the unrolled version (which should always be equal) by using TraceCFR = true.
 
         private ArrayCommandList Unroll_Commands;
+        private ArrayCommandListRunner Unroll_CommandListRunner;
         private static ArrayCommandList Unroll_Commands_Cached = null;
         private static (int Chance, int Decision, int Final) GameTreeNodeCount_Cached = default;
         private int Unroll_SizeOfArray;
@@ -311,6 +312,7 @@ namespace ACESim
                     Unroll_SizeOfArray_Cached = Unroll_SizeOfArray;
                     GameTreeNodeCount_Cached = CountGameTreeNodes();
                 }
+                Unroll_CommandListRunner = Unroll_Commands.GetRunner(kind: EvolutionSettings.Unroll_ChunkExecutorKind, null);
             }
             catch (OutOfMemoryException)
             {
@@ -331,7 +333,7 @@ namespace ACESim
             try
             {
                 Unroll_CopyInformationSetsToArray(array, copyChanceAndFinalUtilities);
-                Unroll_Commands.ExecuteAll(array, TraceCFR);
+                Unroll_CommandListRunner.Run(Unroll_Commands, array, TraceCFR);
                 Unroll_CopyArrayToInformationSets(array);
                 Unroll_DetermineIterationResultForEachPlayer(array);
             }
@@ -833,7 +835,7 @@ namespace ACESim
                 numPossibleActionsToExplore = 1;
             var historyPointCopy = historyPoint; // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use GeneralizedVanillaCFR much.
             int[] probabilityAdjustedInnerResult = Unroll_Commands.NewZeroArray(3); // must allocate this outside the parallel loop, because if we have commands writing to an array created in the parallel loop, the array indices will change
-            if (chanceNode.Decision.Unroll_Parallelize)
+            if (chanceNode.Decision.Unroll_Parallelize && EvolutionSettings.UnrollAllowParallelize)
             {
                 //TabbedText.WriteLine($"Starting command chunk parallel {Unroll_Commands.NextCommandIndex}");
                 Unroll_Commands.StartCommandChunk(true, null, chanceNode.Decision.Name);
@@ -844,7 +846,7 @@ namespace ACESim
             {
                 if (EvolutionSettings.IncludeCommentsWhenUnrolling)
                     Unroll_Commands.InsertComment($"Chance node {chanceNode.Decision.Name} (node {chanceNode.ChanceNodeNumber}) action {action}");
-                if (chanceNode.Decision.Unroll_Parallelize)
+                if (chanceNode.Decision.Unroll_Parallelize && EvolutionSettings.UnrollAllowParallelize)
                 {
                     //TabbedText.WriteLine($"Starting command chunk serial {Unroll_Commands.NextCommandIndex}");
                     Unroll_Commands.StartCommandChunk(false /* inner commands are run sequentially */, firstCommandToRepeat, chanceNode.Decision.Name + "=" + action.ToString());
@@ -858,10 +860,10 @@ namespace ACESim
                         chanceNode, action, probabilityAdjustedInnerResult, false, distributorChanceInputs);
                 Unroll_Commands.IncrementArrayBy(resultArray, algorithmIsLowestDepth, probabilityAdjustedInnerResult);
 
-                if (chanceNode.Decision.Unroll_Parallelize)
+                if (chanceNode.Decision.Unroll_Parallelize && EvolutionSettings.UnrollAllowParallelize)
                     Unroll_Commands.EndCommandChunk(algorithmIsLowestDepth ? null : resultArray, action != 1);
             }
-            if (chanceNode.Decision.Unroll_Parallelize)
+            if (chanceNode.Decision.Unroll_Parallelize && EvolutionSettings.UnrollAllowParallelize)
                 Unroll_Commands.EndCommandChunk();
 
             Unroll_Commands.DecrementDepth();

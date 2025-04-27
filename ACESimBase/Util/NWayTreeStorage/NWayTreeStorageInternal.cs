@@ -160,7 +160,7 @@ namespace ACESimBase.Util.NWayTreeStorage
 
         public override void SetBranch(byte index, NWayTreeStorage<T> tree)
         {
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
             // quick trace so we can see what happens during the failing test
             TabbedText.WriteLine(
                 $"[SET] branch={index}  beforeLen={(Branches?.Length ?? 0)}");
@@ -175,7 +175,7 @@ namespace ACESimBase.Util.NWayTreeStorage
                 CompleteSetBranch(index, tree);
             }
 
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
             TabbedText.WriteLine(
                 $"[SET] branch={index}  afterLen={(Branches?.Length ?? 0)}");
 #endif

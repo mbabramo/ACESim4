@@ -28,13 +28,13 @@ namespace ACESimBase.Util.ArrayProcessing
                 var planner = new HoistPlanner(acl.UnderlyingCommands, acl.MaxCommandsPerSplittableChunk);
                 var plan = planner.BuildPlan(acl.CommandTree);
 
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
                 TabbedText.WriteLine($"[MUTATE] round={round}  planCount={plan.Count}");
 #endif
 
                 if (plan.Count == 0)
                 {
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
                     TabbedText.WriteLine("── final tree ──");
                     TabbedText.WriteLine(acl.CommandTree.ToTreeString(_ => "Leaf"));
                     TabbedText.WriteLine("───────────────");
@@ -57,7 +57,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
             foreach (var entry in plan)
             {
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
                 TabbedText.WriteLine(
                     $"[APPLY] leafId={entry.LeafId} kind={entry.Kind} span=[{entry.StartIdx},{entry.EndIdxExclusive})");
 #endif
@@ -82,7 +82,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 n => acl.SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandChunk>)n),
                 n => acl.SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandChunk>)n));
 
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
             TabbedText.WriteLine("── tree after ApplyPlan ──");
             TabbedText.WriteLine(acl.CommandTree.ToTreeString(_ => "Leaf"));
             TabbedText.WriteLine("─────────────────────────");
@@ -98,7 +98,7 @@ namespace ACESimBase.Util.ArrayProcessing
             root.WalkTree(nObj =>
             {
                 var n = (NWayTreeStorageInternal<ArrayCommandChunk>)nObj;
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
                 TabbedText.WriteLine($"[FIND] visit ID{n.StoredValue.ID} children={(n.Branches?.Length ?? 0)}");
 #endif
                 if (n.Branches is { Length: > 0 }) return;
@@ -115,7 +115,7 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             var info = leaf.StoredValue;
 
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
             TabbedText.WriteLine($"[COND-SPLIT] leaf ID{info.ID} span=[{spanStart},{spanEndEx})");
 #endif
 
@@ -133,7 +133,7 @@ namespace ACESimBase.Util.ArrayProcessing
             };
 
             // Optional suffix node for commands after the EndIf.
-            NWayTreeStorageInternal<ArrayCommandChunk>? postNode = null;
+            NWayTreeStorageInternal<ArrayCommandChunk> postNode = null;
             if (postfixStart < postfixEnd)
             {
                 postNode = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf)
@@ -169,7 +169,7 @@ namespace ACESimBase.Util.ArrayProcessing
             int bodyEnd = spanEndEx - 1;
             int max = acl.MaxCommandsPerSplittableChunk;
 
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
             TabbedText.WriteLine($"[DEPTH-SPLIT] leaf ID{info.ID} body=[{bodyStart},{bodyEnd}) max={max}");
 #endif
 
@@ -191,7 +191,7 @@ namespace ACESimBase.Util.ArrayProcessing
                     StoredValue = CloneMeta(info, pos, sliceEnd)
                 };
                 region.SetBranch(branch++, slice);
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
                 TabbedText.WriteLine($"       ↳ [SLICE] ID{slice.StoredValue.ID} cmds=[{pos},{sliceEnd})");
 #endif
                 pos = sliceEnd;
@@ -200,12 +200,12 @@ namespace ACESimBase.Util.ArrayProcessing
             region.StoredValue.LastChild = (byte)(branch - 1);
             region.StoredValue.StartCommandRange = region.StoredValue.EndCommandRangeExclusive;
 
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
             TabbedText.WriteLine($"[DEPTH-SPLIT-END] region ID{region.StoredValue.ID} children={branch - 1} branchesArray={(region.Branches?.Length ?? 0)}");
 #endif
 
             WrapCommandsIntoLeaf(acl, leaf);
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
             TabbedText.WriteLine($"[DBG-DEPTH] container ID{leaf.StoredValue.ID} range=[{leaf.StoredValue.StartCommandRange},{leaf.StoredValue.EndCommandRangeExclusive})");
 #endif
         }
@@ -228,7 +228,7 @@ namespace ACESimBase.Util.ArrayProcessing
                                              NWayTreeStorageInternal<ArrayCommandChunk> container)
         {
             var meta = container.StoredValue;
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
             TabbedText.WriteLine($"[WRAP-CHECK] ID{meta.ID} start={meta.StartCommandRange} end={meta.EndCommandRangeExclusive}");
 #endif
             if (meta.StartCommandRange >= meta.EndCommandRangeExclusive)
@@ -246,7 +246,7 @@ namespace ACESimBase.Util.ArrayProcessing
             meta.LastChild += 1;
             meta.StartCommandRange = meta.EndCommandRangeExclusive;
 
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
             TabbedText.WriteLine($"[WRAP] container ID{meta.ID} → leaf ID{leaf.StoredValue.ID}");
 #endif
         }
@@ -271,7 +271,7 @@ namespace ACESimBase.Util.ArrayProcessing
                     depth--;
                     if (depth == 0)
                     {
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
                         TabbedText.WriteLine($"[CONDBODY] gate ID{gInfo.ID} body=[{ifIdx + 1},{i})");
 #endif
                         CreateSlices(acl, gate, ifIdx + 1, i);
@@ -298,7 +298,7 @@ namespace ACESimBase.Util.ArrayProcessing
                     StoredValue = CloneMeta(gInfo, sliceStart, sliceEnd)
                 };
                 gate.SetBranch(branch++, slice);
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
                 TabbedText.WriteLine($"       ↳ [GATE-SLICE] ID{slice.StoredValue.ID} cmds=[{sliceStart},{sliceEnd})");
 #endif
                 sliceStart = sliceEnd;

@@ -45,9 +45,15 @@ namespace ACESimBase.Util.ArrayProcessing
             int? fallbackThreshold = null)
         {
             // Bake the tree (hoisting & stack metadata)
+            ArrayCommandListRunner runner = GetRunner(acl, kind, fallbackThreshold);
+            runner.Run(acl, data, tracing);
+        }
+
+        public static ArrayCommandListRunner GetRunner(this ArrayCommandList acl, ChunkExecutorKind? kind, int? fallbackThreshold)
+        {
             if (acl.MaxCommandIndex == 0)
                 acl.CompleteCommandList();
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
             TabbedText.WriteLine("Commands:");
             TabbedText.WriteLine(acl.CommandListString());
             TabbedText.WriteLine("");
@@ -93,7 +99,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
             // Compile once and run
             var runner = new ArrayCommandListRunner(chunks, exec);
-            runner.Run(acl, data, tracing);
+            return runner;
         }
     }
 
@@ -205,7 +211,7 @@ namespace ACESimBase.Util.ArrayProcessing
         // ──────────────────────────────────────────────────────────────────────
         private void ExecuteChunk(ArrayCommandChunk c, ArrayCommandList acl)
         {
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
             TabbedText.WriteLine($"[Runner] ExecuteChunk {c.ID} StartSourceIndices: {c.StartSourceIndices} StartDestinationIndices {c.StartDestinationIndices} ");
 #endif
             // Skip entire chunk when inside a false branch

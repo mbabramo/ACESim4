@@ -42,13 +42,13 @@ namespace ACESimBase.Util.ArrayProcessing
         // ──────────────────────────────────────────────────────────────────────
         public bool DisableAdvancedFeatures = false;
         public bool Parallelize = false;
-        public int MaxCommandsPerSplittableChunk = 1_000;
+        public int MaxCommandsPerSplittableChunk = 1_000_000; // DEBUG: Until we fix the behavior of hoisting, we need to just use the flat option.
         public bool UseOrderedSources => !DisableAdvancedFeatures;
         public bool UseOrderedDestinations => !DisableAdvancedFeatures;
         public bool DoParallel => !DisableAdvancedFeatures && Parallelize;
-        public bool ReuseScratchSlots => MaxCommandsPerSplittableChunk == int.MaxValue;
+        public bool ReuseScratchSlots => false; // DEBUG MaxCommandsPerSplittableChunk == int.MaxValue;
         public bool ReuseDestinations = false;
-        public bool RepeatIdenticalRanges => ReuseScratchSlots && !DisableAdvancedFeatures;
+        public bool RepeatIdenticalRanges => /* ReuseScratchSlots DEBUG && */ !DisableAdvancedFeatures;
 
         // ──────────────────────────────────────────────────────────────────────
         //  Chunk tree
@@ -304,7 +304,7 @@ namespace ACESimBase.Util.ArrayProcessing
             byte lastChild = node.StoredValue.LastChild;
             if (lastChild == 0) return;
 
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
             TabbedText.WriteLine(
                 $"[BRANCHES] parent ID{node.StoredValue.ID}  lastChild={lastChild}");
 #endif
@@ -334,7 +334,7 @@ namespace ACESimBase.Util.ArrayProcessing
                     };
                     children.Add(gap);
 
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
                     TabbedText.WriteLine(
                         $"    ↳ [GAP] ID{gap.StoredValue.ID} cmds=[{curCmd},{bVal.StartCommandRange})");
 #endif
@@ -363,7 +363,7 @@ namespace ACESimBase.Util.ArrayProcessing
                     };
                     children.Add(tail);
 
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
                     TabbedText.WriteLine(
                         $"    ↳ [TAIL] ID{tail.StoredValue.ID} cmds=[{curCmd},{tail.StoredValue.EndCommandRangeExclusive})");
 #endif
@@ -372,7 +372,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
             node.Branches = children.ToArray();
 
-#if DEBUG
+#if OUTPUT_HOISTING_INFO
             TabbedText.WriteLine(
                 $"[BRANCHES-END] parent ID{node.StoredValue.ID}  branches={node.Branches.Length}");
 #endif

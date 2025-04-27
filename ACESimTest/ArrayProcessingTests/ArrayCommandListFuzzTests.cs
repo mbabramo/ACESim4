@@ -100,7 +100,9 @@ namespace ACESimTest.ArrayProcessingTests
 
         private static void Dump(int seed, int stage, int th, int idx, double exp, double act)
         {
+#if OUTPUT_HOISTING_INFO
             TabbedText.WriteLine($"FAIL seed={seed} stage={stage} th={th} idx={idx} exp={exp} act={act}");
+#endif
         }
     }
 
