@@ -333,6 +333,12 @@ namespace ACESimBase.Util.ArrayProcessing
         }
 
         /// <summary>
+        /// Insert a placeholder “True” command. This will always precede an "if" command.
+        /// </summary>
+        public void InsertTrue() =>
+    AddCommand(new ArrayCommand(ArrayCommandType.True, -1, -1));
+
+        /// <summary>
         /// Insert a placeholder “Blank” command and return its position in the command buffer
         /// (note: this is a *command* index, not an array index).
         /// </summary>

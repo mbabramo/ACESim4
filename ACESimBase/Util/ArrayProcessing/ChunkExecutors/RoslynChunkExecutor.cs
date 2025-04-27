@@ -20,6 +20,9 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         private readonly ConcurrentDictionary<ArrayCommandChunk, ArrayCommandChunkDelegate> _compiled = new();
         private readonly StringBuilder _src = new();
         private Type _cgType;
+        private bool _ignoreNextIf;
+        private readonly Stack<bool> _trueIfStack = new();
+
 
         public bool ReuseLocals { get; init; } = true;
 
@@ -119,6 +122,8 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             var bind = new LocalBindingState(_plan.LocalCount);
             var cb = new CodeBuilder();
 
+            _ignoreNextIf = false;
+            _trueIfStack.Clear();
             var usedSlots = new HashSet<int>();
             for (int i = c.StartCommandRange; i < c.EndCommandRangeExclusive; i++)
             {
@@ -364,44 +369,44 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     break;
 
                 // ────────── control flow ──────────
+                case ArrayCommandType.True:                         // new
+                    _ignoreNextIf = true;
+                    break;
+
                 case ArrayCommandType.If:
+                    if (_ignoreNextIf)                              // new
+                    {
+                        _ignoreNextIf = false;
+                        _trueIfStack.Push(true);
+                        break;
+                    }
+                    _trueIfStack.Push(false);                       // new
                     {
                         var sk = skipMap.TryGetValue(cmdIndex, out var c)
                                 ? c
                                 : (src: 0, dst: 0);
-
-                        // ── snapshot “dirty” status for every local at entry ──
-                        var dirty = new bool[_plan.LocalCount];
-
-                        if (bind != null)               // reuse‑mode only
-                        {
+                        var dirty = bind == null ? null : new bool[_plan.LocalCount];
+                        if (bind != null)
                             for (int l = 0; l < _plan.LocalCount; l++)
-                            {
-                                int tmp;
-                                dirty[l] = bind.NeedsFlushBeforeReuse(l, out tmp);
-                            }
-                        }
-                        // else: all false ⇒ no locals need mirroring in ELSE
-
+                                dirty[l] = bind.NeedsFlushBeforeReuse(l, out _);
                         ifStack.Push(new IfContext(sk.src, sk.dst, dirty));
                         cb.AppendLine("if(cond){"); cb.Indent();
-                        break;
                     }
+                    break;
 
                 case ArrayCommandType.EndIf:
+                    if (_trueIfStack.Count > 0 && _trueIfStack.Pop())   // new
+                        break;
                     {
-                        var ctx = ifStack.Pop();                     // ② pop context
+                        var ctx = ifStack.Pop();
                         cb.Unindent();
-                        cb.AppendLine("} else {");                   // ③ begin `else`
-
-                        // ④ flush any locals whose final write occurred inside the skipped branch
+                        cb.AppendLine("} else {");
                         foreach (var (slot, local) in ctx.Flushes)
                             cb.AppendLine($"vs[{slot}] = l{local};");
-
-                        // ⑤ advance ordered‑source/destination pointers
                         cb.AppendLine($"i+={ctx.SrcSkip}; o+={ctx.DstSkip}; }}");
-                        break;
                     }
+                    break;
+
 
                 // comments / blanks – ignore
                 case ArrayCommandType.Comment:

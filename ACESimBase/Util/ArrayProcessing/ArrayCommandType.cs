@@ -21,6 +21,7 @@ namespace ACESimBase.Util.ArrayProcessing
         LessThanOtherArrayIndex,
         EqualsValue,
         NotEqualsValue,
+        True,
         If,
         EndIf,
         IncrementDepth,

@@ -95,12 +95,12 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 typeof(void),
                 new[]
                 {
-                    typeof(double[]),              // 0 vs
-                    typeof(double[]),              // 1 os
-                    typeof(double[]),              // 2 od
-                    typeof(int).MakeByRefType(),   // 3 cosi
-                    typeof(int).MakeByRefType(),   // 4 codi
-                    typeof(bool).MakeByRefType()   // 5 cond
+            typeof(double[]),              // 0 vs
+            typeof(double[]),              // 1 os
+            typeof(double[]),              // 2 od
+            typeof(int).MakeByRefType(),   // 3 cosi
+            typeof(int).MakeByRefType(),   // 4 codi
+            typeof(bool).MakeByRefType()   // 5 cond
                 },
                 typeof(ILChunkExecutor).Module,
                 skipVisibility: true);
@@ -131,7 +131,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
             bool zeroReuse = !ReuseLocals && locals != null;
             var bind = ReuseLocals ? new LocalBindingState(_plan.LocalCount) : null;
-            var slotMap = _slotToLocal;          // local alias
+            var slotMap = _slotToLocal;
 
             /* small‐const helper ------------------------------------------*/
             void LdcI4(int v)
@@ -209,7 +209,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
             void Store(int slot)
             {
-                ELb(OpCodes.Stloc, tmp);          // pop → tmp
+                ELb(OpCodes.Stloc, tmp);
 
                 if (bind != null && slotMap.TryGetValue(slot, out var lR) && bind.IsBound(lR, slot))
                 {
@@ -231,7 +231,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 MarkWritten(slot);
             }
 
-            /* zero-reuse preload ------------------------------------------*/
             if (zeroReuse)
             {
                 foreach (var kv in slotMap)
@@ -243,7 +242,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 }
             }
 
-            /* reuse helpers -----------------------------------------------*/
             DepthMap depthMap = null;
             IntervalIndex intervalIx = null;
             if (ReuseLocals)
@@ -255,12 +253,11 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             var skipMap = PrecomputePointerSkips(chunk);
             var ifStack = new Stack<IfContext>();
 
-            /* -------------------------------------------------------------*/
-            /* emit commands                                                 */
-            /* -------------------------------------------------------------*/
+            bool ignoreNextIf = false;                            // added
+            var trueIfStack = new Stack<bool>();                  // added
+
             for (int ci = chunk.StartCommandRange; ci < chunk.EndCommandRangeExclusive; ci++)
             {
-                // ---- interval starts (reuse) ----
                 if (ReuseLocals)
                 {
                     int d = depthMap.GetDepth(ci);
@@ -287,10 +284,8 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
                 var cmd = Commands[ci];
 
-                /* -------- main opcode switch --------*/
                 switch (cmd.CommandType)
                 {
-                    /* writes / R-M-W */
                     case ArrayCommandType.Zero:
                         LdcR8(0.0); Store(cmd.Index); break;
 
@@ -313,7 +308,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     case ArrayCommandType.DecrementBy:
                         Load(cmd.Index); Load(cmd.SourceIndex); E0(OpCodes.Sub); Store(cmd.Index); break;
 
-                    /* destination writes */
                     case ArrayCommandType.NextDestination:
                         E0(OpCodes.Ldarg_2);
                         EI(OpCodes.Ldarg, 4); E0(OpCodes.Ldind_I4);
@@ -328,7 +322,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                         E0(OpCodes.Ldarg_2); LdcI4(cmd.Index); ELb(OpCodes.Ldloc, tmp); E0(OpCodes.Stelem_R8);
                         break;
 
-                    /* comparisons → cond */
                     case ArrayCommandType.EqualsOtherArrayIndex:
                         Load(cmd.Index); Load(cmd.SourceIndex); E0(OpCodes.Ceq); StoreCond(false); break;
                     case ArrayCommandType.NotEqualsOtherArrayIndex:
@@ -342,9 +335,20 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     case ArrayCommandType.NotEqualsValue:
                         Load(cmd.Index); LdcR8(cmd.SourceIndex); E0(OpCodes.Ceq); StoreCond(true); break;
 
-                    /* control-flow */
+                    case ArrayCommandType.True:                     // added
+                        ignoreNextIf = true;
+                        break;
+
                     case ArrayCommandType.If:
                         {
+                            if (ignoreNextIf)
+                            {
+                                ignoreNextIf = false;
+                                trueIfStack.Push(true);
+                                ifStack.Push(new IfContext(default, default, 0, 0, null, null));
+                                break;
+                            }
+                            trueIfStack.Push(false);
                             var elseLbl = il.DefineLabel();
                             var endLbl = il.DefineLabel();
                             EI(OpCodes.Ldarg, 5); E0(OpCodes.Ldind_I1); EL(OpCodes.Brfalse_S, elseLbl);
@@ -366,6 +370,12 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
                     case ArrayCommandType.EndIf:
                         {
+                            bool skip = trueIfStack.Pop();
+                            if (skip)
+                            {
+                                ifStack.Pop();
+                                break;
+                            }
                             var ctx = ifStack.Pop();
                             EL(OpCodes.Br_S, ctx.EndLabel);
 
@@ -384,7 +394,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                             break;
                         }
 
-                    /* ignore */
                     case ArrayCommandType.Comment:
                     case ArrayCommandType.Blank:
                     case ArrayCommandType.IncrementDepth:
@@ -395,7 +404,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                         throw new NotImplementedException(cmd.CommandType.ToString());
                 }
 
-                // ---- interval ends (reuse) ----
                 if (ReuseLocals)
                 {
                     foreach (int slot in intervalIx.EndSlots(ci))
@@ -415,7 +423,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 }
             }
 
-            /* tail flush for zero-reuse */
             if (zeroReuse)
             {
                 foreach (var kv in slotMap)
@@ -428,7 +435,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             trace = sb?.ToString();
             return dm;
 
-            /* helper – spill bool TOS into *cond (invert optional) */
             void StoreCond(bool invert)
             {
                 if (invert) { E0(OpCodes.Ldc_I4_0); E0(OpCodes.Ceq); }
@@ -436,6 +442,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 EI(OpCodes.Ldarg, 5); ELb(OpCodes.Ldloc, tmpI); E0(OpCodes.Stind_I1);
             }
         }
+
 
         // -----------------------------------------------------------------
         //  IfContext
