@@ -39,7 +39,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 }
 #endif
 
-                ApplyPlan(acl, plan);
+                ApplyPlan(acl, plan); 
 
 #if DEBUG
                 TabbedText.WriteLine($"After round {round} max={acl.MaxCommandsPerSplittableChunk}");
