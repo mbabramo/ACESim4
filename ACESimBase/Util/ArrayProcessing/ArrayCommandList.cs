@@ -42,7 +42,7 @@ namespace ACESimBase.Util.ArrayProcessing
         // ──────────────────────────────────────────────────────────────────────
         public bool DisableAdvancedFeatures = false;
         public bool Parallelize = false;
-        public int MaxCommandsPerSplittableChunk = 1_000;
+        public int MaxCommandsPerSplittableChunk = 1_000_000_000; // DEBUG -- can fix later so that we can have multiple chunks
         public bool UseOrderedSources => !DisableAdvancedFeatures;
         public bool UseOrderedDestinations => !DisableAdvancedFeatures;
         public bool DoParallel => !DisableAdvancedFeatures && Parallelize;
@@ -116,7 +116,7 @@ namespace ACESimBase.Util.ArrayProcessing
         // ──────────────────────────────────────────────────────────────────────
         public void StartCommandChunk(bool runChildrenInParallel, int? identicalStartCommandRange, string name = "", bool ignoreKeepTogether = false)
         {
-            if (MakeStartCommandChunkEquivalentToDepth && NextArrayIndex > 0 && OuterChunkCreated)
+            if (MakeStartCommandChunkEquivalentToDepth) // DEBUG && NextArrayIndex > 0 && OuterChunkCreated)
             {
                 IncrementDepth();
                 return;
@@ -165,12 +165,6 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void EndCommandChunk(int[] copyIncrementsToParent = null, bool endingRepeatedChunk = false)
         {
-            if (MakeStartCommandChunkEquivalentToDepth && _depthStartSlots.Any())
-            {
-                DecrementDepth();
-                return;
-            }
-
             if (_currentPath.Count == 0)
             {
                 var root = CurrentChunk;
@@ -179,6 +173,12 @@ namespace ACESimBase.Util.ArrayProcessing
                 root.EndDestinationIndicesExclusive = OrderedDestinationIndices.Count;
                 return;            // nothing else to pop
             }
+            if (MakeStartCommandChunkEquivalentToDepth) // DEBUG && _depthStartSlots.Any())
+            {
+                DecrementDepth();
+                return;
+            }
+
             if (_keepTogetherLevel > 0)
                 return;
 

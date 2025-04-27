@@ -37,8 +37,8 @@ namespace ACESimTest.ArrayProcessingTests
         public void InterpreterVsCompiled_AllThresholds()
         {
             if (!RunFuzzTest) return;
-            //TabbedText.WriteToConsole = false; // DEBUG
-            //TabbedText.DisableOutput();// DEBUG
+            TabbedText.WriteToConsole = false; // if false, outputs to debugging
+            //TabbedText.DisableOutput();
 
             for (int stage = 0; stage < Stages.Length; stage++)
             {
@@ -134,7 +134,7 @@ namespace ACESimTest.ArrayProcessingTests
                 MaxCommandsPerSplittableChunk = 1_000_000 // keeps ReuseScratchSlots = false
             };
 
-            EmitChunk(0, maxDepth, maxBody);
+            EmitChunk(0, maxDepth, maxBody, true);
             Acl.CompleteCommandList();
         }
 
@@ -186,11 +186,10 @@ namespace ACESimTest.ArrayProcessingTests
         }
 
         /*----------------- emit program -----------------*/
-        private void EmitChunk(int depth, int maxDepth, int maxBody)
+        private void EmitChunk(int depth, int maxDepth, int maxBody, bool startOfChunk)
         {
-            bool realChunk = depth == 0;            // only the first call opens a chunk
 
-            if (realChunk)
+            if (startOfChunk)
                 Acl.StartCommandChunk(false, null);
             else
                 Acl.IncrementDepth();               // synthetic child scope
@@ -213,14 +212,14 @@ namespace ACESimTest.ArrayProcessingTests
                 int guard = EnsureScratch();
                 Acl.InsertNotEqualsValueCommand(guard, 0);
                 Acl.InsertIfCommand();
-                EmitChunk(depth + 1, maxDepth, maxBody);
+                EmitChunk(depth + 1, maxDepth, maxBody, false);
                 Acl.InsertEndIfCommand();
             }
 
             /* close any open depth */
             CloseDepth(ref localDepth);
 
-            if (realChunk)
+            if (startOfChunk)
             {
                 /* 50 % chance to pass increment-to-parent list */
                 if (copyUp.Count == 0 || _rnd.NextDouble() < 0.50)

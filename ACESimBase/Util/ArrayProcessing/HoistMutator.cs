@@ -42,7 +42,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 ApplyPlan(acl, plan);
 
 #if DEBUG
-                TabbedText.WriteLine($"After round {round}");
+                TabbedText.WriteLine($"After round {round} max={acl.MaxCommandsPerSplittableChunk}");
                 TabbedText.WriteLine(acl.CommandTree.ToTreeString(_ => "Leaf"));
 #endif
 
@@ -86,12 +86,6 @@ namespace ACESimBase.Util.ArrayProcessing
             acl.CommandTree.WalkTree(
                 n => acl.SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandChunk>)n),
                 n => acl.SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandChunk>)n));
-
-#if DEBUG
-            TabbedText.WriteLine("── tree after ApplyPlan ──");
-            TabbedText.WriteLine(acl.CommandTree.ToTreeString(_ => "Leaf"));
-            TabbedText.WriteLine("─────────────────────────");
-#endif
         }
 
 
