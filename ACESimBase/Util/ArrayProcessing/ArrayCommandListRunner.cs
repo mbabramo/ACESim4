@@ -122,30 +122,54 @@ namespace ACESimBase.Util.ArrayProcessing
         private bool _condition = true;   // current If/EndIf condition flag
         private int _globalSkipDepth = 0; // nested‑If skip counter
         private int _pendingSrcAdvance = 0;
-        private int _pendingDstAdvance = 0;
+        private int _pendingDstAdvance = 0; 
+        private readonly List<ArrayCommandChunk> _chunks;
+        private readonly int[] _srcStartBaselines;
+        private readonly int[] _dstStartBaselines;
 
-        public ArrayCommandListRunner(IEnumerable<ArrayCommandChunk> commandChunks, IChunkExecutor compiledExecutor = null)
+        public ArrayCommandListRunner(IEnumerable<ArrayCommandChunk> commandChunks,
+                                  IChunkExecutor compiledExecutor = null)
         {
-            _compiled = compiledExecutor ?? throw new ArgumentNullException(nameof(compiledExecutor));
-            foreach (var c in commandChunks.Where(x => x.EndCommandRangeExclusive > x.StartCommandRange))
+            _compiled  = compiledExecutor ?? throw new ArgumentNullException(nameof(compiledExecutor));
+
+            // materialise the slice list once so we can iterate repeatedly
+            _chunks = commandChunks
+                        .Where(c => c.EndCommandRangeExclusive > c.StartCommandRange)
+                        .ToList();
+
+            _srcStartBaselines = _chunks.Select(c => c.StartSourceIndices).ToArray();
+            _dstStartBaselines = _chunks.Select(c => c.StartDestinationIndices).ToArray();
+
+            // register all slices with the executor and compile once
+            foreach (var c in _chunks)
                 _compiled.AddToGeneration(c);
             _compiled.PerformGeneration();
         }
+
 
         /// <summary>
         /// Executes <paramref name="acl"/> once against <paramref name="data"/>.
         /// </summary>
         public void Run(ArrayCommandList acl, double[] data, bool tracing = false)
         {
+            // ── restore each slice’s cursors to their original positions ──
+            for (int i = 0; i < _chunks.Count; i++)
+            {
+                _chunks[i].StartSourceIndices = _srcStartBaselines[i];
+                _chunks[i].StartDestinationIndices = _dstStartBaselines[i];
+            }
+
             // ── reset per-run state ──
             _condition = true;
             _globalSkipDepth = 0;
+            _pendingSrcAdvance = 0;
+            _pendingDstAdvance = 0;
 
             if (acl is null) throw new ArgumentNullException(nameof(acl));
             if (data is null) throw new ArgumentNullException(nameof(data));
 
             //------------------------------------------------------------------
-            // 1️⃣  Stage ordered buffers using OrderedBufferManager
+            // 1️⃣  Stage ordered buffers
             //------------------------------------------------------------------
             _buffers = new OrderedBufferManager();
             _buffers.SourceIndices.AddRange(acl.OrderedSourceIndices);
@@ -153,7 +177,7 @@ namespace ACESimBase.Util.ArrayProcessing
             _buffers.PrepareBuffers(data, acl.DoParallel);
 
             //------------------------------------------------------------------
-            // 2️⃣  Depth‑first traversal with pre/post hooks
+            // 2️⃣  Depth-first traversal with pre/post hooks
             //------------------------------------------------------------------
             acl.CommandTree!.WalkTree(
                 beforeDescending: n => Pre((NWayTreeStorageInternal<ArrayCommandChunk>)n, acl),
@@ -165,6 +189,7 @@ namespace ACESimBase.Util.ArrayProcessing
             //------------------------------------------------------------------
             _buffers.FlushDestinations(data, acl.DoParallel);
         }
+
 
         // ──────────────────────────────────────────────────────────────────────
         //  Pre‑order action  – stack sync + evaluate Conditional gate
