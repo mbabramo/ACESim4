@@ -110,7 +110,12 @@ namespace ACESimBase.Util.ArrayProcessing
                 }
             }
 
-            if (pairs.Count == 0)
+            // Ignore the degenerate case: exactly one oversize pair that
+            // starts at 'from' and ends at 'to-1'  (i.e. the whole leaf)
+            if (pairs.Count == 0 ||
+                (pairs.Count == 1 &&
+                 pairs[0].Item1 == from &&
+                 pairs[0].Item2 == to - 1))
                 yield break;
 
             pairs.Sort((a, b) => a.Item1.CompareTo(b.Item1));

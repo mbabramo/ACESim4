@@ -71,7 +71,7 @@ namespace ACESimTest.ArrayProcessingTests
                     // 4) For each threshold, test Roslyn & IL vs. interpreter
                     foreach (int th in thresholds)
                     {
-                        Debug.WriteLine($"Stage {stage} of {Stages.Length}; Iteration {iter} of {iters}; Threshold {th}");
+                        TabbedText.WriteLine($"Stage {stage} of {Stages.Length}; Iteration {iter} of {iters}; Threshold {th}");
                         TabbedText.WriteLine($"Stage {stage} of {Stages.Length}; Iteration {iter} of {iters}; Threshold {th}");
                         TabbedText.WriteLine(new string('-', 30));
 

@@ -107,27 +107,33 @@ namespace ACESimBase.Util.ArrayProcessing
             return target;
         }
 
-        private static void SplitAtConditional(ArrayCommandList acl,
-                                               NWayTreeStorageInternal<ArrayCommandChunk> leaf,
-                                               int spanStart,
-                                               int spanEndEx)
+        private static void SplitAtConditional(
+    ArrayCommandList acl,
+    NWayTreeStorageInternal<ArrayCommandChunk> leaf,
+    int spanStart,
+    int spanEndEx)
         {
             var info = leaf.StoredValue;
+
 #if DEBUG
             TabbedText.WriteLine($"[COND-SPLIT] leaf ID{info.ID} span=[{spanStart},{spanEndEx})");
 #endif
+
             int prefixEnd = spanStart;
             int postfixStart = spanEndEx;
             int postfixEnd = info.EndCommandRangeExclusive;
 
+            // Prefix becomes the truncated range of the original leaf.
             info.EndCommandRangeExclusive = prefixEnd;
 
+            // Gate node holds the entire [If … EndIf] pair.
             var gateNode = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf)
             {
                 StoredValue = CloneMeta(info, spanStart, spanEndEx)
             };
 
-            NWayTreeStorageInternal<ArrayCommandChunk> postNode = null;
+            // Optional suffix node for commands after the EndIf.
+            NWayTreeStorageInternal<ArrayCommandChunk>? postNode = null;
             if (postfixStart < postfixEnd)
             {
                 postNode = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf)
@@ -136,12 +142,20 @@ namespace ACESimBase.Util.ArrayProcessing
                 };
             }
 
+            // Attach children: branch-0 is the (wrapped) prefix leaf that will be added
+            // later by WrapCommandsIntoLeaf; branch-1 is the gate; branch-2 is the suffix.
             leaf.SetBranch(1, gateNode);
-            if (postNode != null) leaf.SetBranch(2, postNode);
+            if (postNode != null)
+                leaf.SetBranch(2, postNode);
+
             leaf.StoredValue.LastChild = (byte)(postNode == null ? 1 : 2);
 
+            // Ensure any remaining prefix commands are wrapped into a dedicated leaf.
             WrapCommandsIntoLeaf(acl, leaf);
-            SliceConditionalBody(acl, gateNode);
+
+            // Deliberately DO NOT slice the gate body here. The gate remains a leaf,
+            // so the planner will revisit it on the next pass and apply the usual
+            // Conditional/Depth logic, preserving balanced If/EndIf pairs.
         }
 
         private static void SplitAtDepthRegion(ArrayCommandList acl,
@@ -237,6 +251,7 @@ namespace ACESimBase.Util.ArrayProcessing
 #endif
         }
 
+        // DEBUG -- not used now
         private static void SliceConditionalBody(ArrayCommandList acl,
                                                  NWayTreeStorageInternal<ArrayCommandChunk> gate)
         {

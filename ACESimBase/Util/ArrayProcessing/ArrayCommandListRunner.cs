@@ -15,6 +15,7 @@ using ACESimBase.Util.NWayTreeStorage;
 namespace ACESimBase.Util.ArrayProcessing
 {
     using System.Collections.Generic;
+    using System.Linq;
     using ACESimBase.Util.ArrayProcessing;
     using ACESimBase.Util.ArrayProcessing.ChunkExecutors;
     using ACESimBase.Util.Debugging;
@@ -91,7 +92,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public ArrayCommandListRunner(IEnumerable<ArrayCommandChunk> commandChunks, IChunkExecutor compiledExecutor = null)
         {
             _compiled = compiledExecutor ?? throw new ArgumentNullException(nameof(compiledExecutor));
-            foreach (var c in commandChunks)
+            foreach (var c in commandChunks.Where(x => x.EndCommandRangeExclusive > x.StartCommandRange))
                 _compiled.AddToGeneration(c);
             _compiled.PerformGeneration();
         }
