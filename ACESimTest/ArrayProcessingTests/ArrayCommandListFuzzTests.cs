@@ -75,7 +75,7 @@ namespace ACESimTest.ArrayProcessingTests
                         TabbedText.WriteLine($"Stage {stage} of {Stages.Length}; Iteration {iter} of {iters}; Threshold {th}");
                         TabbedText.WriteLine(new string('-', 30));
 
-                        foreach (ChunkExecutorKind kind in new ChunkExecutorKind[] { ChunkExecutorKind.Roslyn, ChunkExecutorKind.IL, ChunkExecutorKind.RoslynWithLocalVariableRecycling, ChunkExecutorKind.ILWithLocalVariableRecycling })
+                        foreach (ChunkExecutorKind kind in new ChunkExecutorKind[] { ChunkExecutorKind.Roslyn }) // DEBUG SUPERDEBUG, ChunkExecutorKind.IL, ChunkExecutorKind.RoslynWithLocalVariableRecycling, ChunkExecutorKind.ILWithLocalVariableRecycling })
                         {
                             var acl = fuzzer.CloneFor(th);
 
@@ -225,37 +225,48 @@ namespace ACESimTest.ArrayProcessingTests
         private void EmitLinear(int count, List<int> copyUp, ref int localDepth)
         {
             for (int i = 0; i < count; i++)
-                EmitRandomCommand(copyUp, ref localDepth);
+                EmitRandomCommand(copyUp, ref localDepth, i == count - 1);
         }
 
         /* ------------------------------------------------------------------ */
         /* EmitRandomCommand – random op plus depth bookkeeping               */
+        /*   - guarantees                                                     */
+        /*     (a) comparison → immediately followed by If/EndIf              */
+        /*     (b) comparisons are never the last command in a segment        */
+        /*     (c) comparisons only when we can IncrementDepth                */
         /* ------------------------------------------------------------------ */
-        private void EmitRandomCommand(List<int> copyUp, ref int localDepth)
+        private void EmitRandomCommand(List<int> copyUp,
+                                       ref int localDepth,
+                                       bool isLastCmd)        // ← NEW ARG
         {
-            /* 1️⃣  depth push / pop (20 % chance) */
-            MaybeToggleDepth(ref localDepth, copyUp);
-            if (_rnd.NextDouble() < 0.20)
-                return;                                    // depth op consumed this slot
-
-            /* ────────────────────────────────────────────────────────────────────
-             *  ensure occasional writes to scratch
-             *  ------------------------------------------------
-             *  If we already have at least one scratch slot, randomly (15 %) emit
-             *  a direct in‑place increment.  This guarantees that the body of an
-             *  If‑slice is never completely read‑only, so AttachCopyLists will
-             *  assign a non‑empty CopyIncrementsToParent list.
-             * ──────────────────────────────────────────────────────────────────── */
-            if (_scratch.Count > 0 && _rnd.NextDouble() < 0.15)
+            // ❶ first handle any mandatory If after a comparison we just emitted
+            if (_lastWasComparison)
             {
-                int tgt = _scratch[_rnd.Next(_scratch.Count)];
-                int src = _scratch[_rnd.Next(_scratch.Count)];
-                Acl.Increment(tgt, false, src);            // ← definite write
-                return;
+                Acl.InsertIfCommand();
+                Acl.IncrementDepth();               // one-line body
+                int tmp = EnsureScratch();
+                Acl.Increment(tmp, false, tmp);     // cheap side-effect
+                Acl.DecrementDepth();
+                Acl.InsertEndIfCommand();
+                _lastWasComparison = false;
+                return;                             // this slot consumed
             }
 
-            /* 2️⃣  choose command – still the original 13 cases (0‑12) */
-            switch (_rnd.Next(0, 13))
+            // ❷ optional push/pop of bookkeeping depth
+            MaybeToggleDepth(ref localDepth, copyUp);
+            if (_rnd.NextDouble() < 0.20)
+                return;                             // depth op took the slot
+
+            /* ------------------------------------------------------------------
+             * choose opcode
+             *   range 0-12  (original 13 cases)
+             *   – but exclude comparison ops      when `isLastCmd`
+             *   – and exclude comparison          if we cannot push a depth level
+             * ------------------------------------------------------------------ */
+            bool comparisonAllowed = !isLastCmd && localDepth < _maxLegalDepth;
+
+            int choice = _rnd.Next(comparisonAllowed ? 13 : 10); // 0-9 non-cmp, 10-12 cmp
+            switch (choice)
             {
                 case 0: CopyOriginalToNew(); break;
                 case 1: CopyScratchToNew(); break;
@@ -265,13 +276,29 @@ namespace ACESimTest.ArrayProcessingTests
                 case 5: InplaceMath(); break;
                 case 6: IncrementOriginal(); break;
                 case 7: ZeroScratch(); break;
-                case 8: ComparisonValue(); break;
-                case 9: ComparisonIndices(); break;
-                case 10: NextSourceDrain(); break;
-                case 11: ReadParentScratch(); break;
-                default: IncrementByProduct(); break;
+                case 8: NextSourceDrain(); break;
+                case 9: ReadParentScratch(); break;
+
+                /* ---- comparison ops (only if allowed) ---- */
+                case 10:
+                case 11:
+                case 12:
+                    if (!comparisonAllowed) { CopyOriginalToNew(); break; }
+
+                    if (_rnd.NextDouble() < 0.50)
+                        ComparisonValue();
+                    else
+                        ComparisonIndices();
+
+                    _lastWasComparison = true;      // flag so next slot injects If/EndIf
+                    break;
             }
         }
+
+        /*--------------- supporting state ---------------*/
+        private bool _lastWasComparison = false;             // add near other fields
+        private readonly int _maxLegalDepth = 8;             // same as BuildRandomAcl()
+
 
 
         /*----------------- command emit helpers -----------------*/

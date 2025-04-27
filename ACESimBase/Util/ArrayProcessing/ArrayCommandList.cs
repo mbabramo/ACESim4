@@ -202,8 +202,66 @@ namespace ACESimBase.Util.ArrayProcessing
         public void CompleteCommandList()
         {
             MaxCommandIndex = NextCommandIndex;
+            VerifyCorrectness();
             while (_currentPath.Count > 0) EndCommandChunk();
             CompleteCommandTree();
+        }
+
+
+
+        /// <summary>
+        /// Ensures structural soundness of the recorded command buffer.
+        /// Rules checked:
+        ///   ① the number of <c>If</c> commands equals the number of <c>EndIf</c> commands;
+        ///   ② the number of <c>IncrementDepth</c> equals <c>DecrementDepth</c>;
+        ///   ③ every comparison command is immediately followed by an <c>If</c>.
+        /// </summary>
+        public void VerifyCorrectness()
+        {
+            int ifs = 0, endIfs = 0;
+            int incDepths = 0, decDepths = 0;
+
+            bool IsComparison(ArrayCommandType t) => t switch
+            {
+                ArrayCommandType.EqualsOtherArrayIndex or
+                ArrayCommandType.NotEqualsOtherArrayIndex or
+                ArrayCommandType.GreaterThanOtherArrayIndex or
+                ArrayCommandType.LessThanOtherArrayIndex or
+                ArrayCommandType.EqualsValue or
+                ArrayCommandType.NotEqualsValue => true,
+                _ => false
+            };
+
+            for (int idx = 0; idx < NextCommandIndex; idx++)
+            {
+                var t = UnderlyingCommands[idx].CommandType;
+
+                switch (t)
+                {
+                    case ArrayCommandType.If: ifs++; break;
+                    case ArrayCommandType.EndIf: endIfs++; break;
+                    case ArrayCommandType.IncrementDepth: incDepths++; break;
+                    case ArrayCommandType.DecrementDepth: decDepths++; break;
+                }
+
+                if (IsComparison(t))
+                {
+                    bool followedByIf =
+                        idx + 1 < NextCommandIndex &&
+                        UnderlyingCommands[idx + 1].CommandType == ArrayCommandType.If;
+
+                    if (!followedByIf)
+                        throw new InvalidOperationException(
+                            $"Comparison at command {idx} is not immediately followed by an If.");
+                }
+            }
+
+            if (ifs != endIfs)
+                throw new InvalidOperationException($"Mismatch: If={ifs}  EndIf={endIfs}");
+
+            if (incDepths != decDepths)
+                throw new InvalidOperationException(
+                    $"Mismatch: IncrementDepth={incDepths}  DecrementDepth={decDepths}");
         }
 
         public void FinaliseCommandTree()
@@ -221,6 +279,21 @@ namespace ACESimBase.Util.ArrayProcessing
             CommandTree.WalkTree(null, n => SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandChunk>)n));
             CommandTree.WalkTree(n => SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandChunk>)n));
         }
+
+        public string CommandListString()
+        {
+            if (UnderlyingCommands == null || UnderlyingCommands.Length == 0)
+                return string.Empty;
+
+            var stringBuilder = new StringBuilder();
+            for (int i = 0; i < NextCommandIndex; i++)
+            {
+                stringBuilder.AppendLine($"{i}: {UnderlyingCommands[i]}");
+            }
+
+            return stringBuilder.ToString();
+        }
+
 
         // ──────────────────────────────────────────────────────────────────────
         //  Tree‑maintenance helpers (copied from original implementation)

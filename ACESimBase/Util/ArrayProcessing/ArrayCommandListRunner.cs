@@ -44,16 +44,45 @@ namespace ACESimBase.Util.ArrayProcessing
             ChunkExecutorKind? kind = null,
             int? fallbackThreshold = null)
         {
-            // ❶  Bake the tree (hoisting & stack metadata)
+            // Bake the tree (hoisting & stack metadata)
             if (acl.MaxCommandIndex == 0)
                 acl.CompleteCommandList();
+#if DEBUG
+            TabbedText.WriteLine("Commands:");
+            TabbedText.WriteLine(acl.CommandListString());
+            TabbedText.WriteLine("");
+            TabbedText.WriteLine("Tree:");
+            TabbedText.WriteLine(acl.CommandTreeString);
+#endif
 
-            // ❷  Collect all chunks
+
+            // Collect all chunks
             var chunks = new List<ArrayCommandChunk>();
+            var seen = new HashSet<(int start, int end)>();
             acl.CommandTree!.WalkTree(n =>
-                chunks.Add(((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue));
+            {
+                var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
+                var c = node.StoredValue;
 
-            // ❸  Create executor (interpreter is default)
+                // a slice executes only if it is a leaf *or* the Conditional gate itself
+                bool isLeaf = node.Branches is null || node.Branches.Length == 0;
+                bool isConditionalGate = c.Name == "Conditional";
+                if (!isLeaf && !isConditionalGate && !c.Skip)
+                    return;
+
+                // ignore gaps and placeholders
+                if (c.EndCommandRangeExclusive <= c.StartCommandRange)
+                    return;                 // completely empty
+
+                // keep exactly one representative of any [start,end) span
+                var key = (c.StartCommandRange, c.EndCommandRangeExclusive);
+                if (!seen.Add(key))
+                    return;                 // already scheduled elsewhere
+
+                chunks.Add(c);
+            });
+
+            // Create executor (interpreter is default)
             var exec = ChunkExecutorFactory.Create(
                 kind ?? ChunkExecutorKind.Interpreted,
                 acl.UnderlyingCommands,
@@ -62,7 +91,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 useCheckpoints: acl.UseCheckpoints,
                 fallbackThreshold: fallbackThreshold);        // optional
 
-            // ❹  Compile once and run
+            // Compile once and run
             var runner = new ArrayCommandListRunner(chunks, exec);
             runner.Run(acl, data, tracing);
         }
