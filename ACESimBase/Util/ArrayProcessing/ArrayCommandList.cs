@@ -109,12 +109,20 @@ namespace ACESimBase.Util.ArrayProcessing
             };
         }
 
-
+        bool MakeStartCommandChunkEquivalentToDepth = true; // This simplifies things, but makes it so that RepeatIdenticalRanges and parallelism won't work properly.
+        bool OuterChunkCreated = false;
         // ──────────────────────────────────────────────────────────────────────
         //  Chunk helpers
         // ──────────────────────────────────────────────────────────────────────
         public void StartCommandChunk(bool runChildrenInParallel, int? identicalStartCommandRange, string name = "", bool ignoreKeepTogether = false)
         {
+            if (MakeStartCommandChunkEquivalentToDepth && NextArrayIndex > 0 && OuterChunkCreated)
+            {
+                IncrementDepth();
+                return;
+            }
+            OuterChunkCreated = true;
+
             if (_currentPath.Count == 0
                 && !_rootChunkInitialised
                 && string.Equals(name, "root", StringComparison.OrdinalIgnoreCase))  // ← tighten guard
@@ -157,6 +165,12 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void EndCommandChunk(int[] copyIncrementsToParent = null, bool endingRepeatedChunk = false)
         {
+            if (MakeStartCommandChunkEquivalentToDepth && _depthStartSlots.Any())
+            {
+                DecrementDepth();
+                return;
+            }
+
             if (_currentPath.Count == 0)
             {
                 var root = CurrentChunk;
@@ -218,17 +232,9 @@ namespace ACESimBase.Util.ArrayProcessing
         /// </summary>
         public void VerifyCorrectness() => ArrayCommand.VerifyCorrectnessRange(UnderlyingCommands, 0, NextCommandIndex);
 
-        public void FinaliseCommandTree()
+        public void CompleteCommandTree()
         {
-            CommandTree.WalkTree(n => InsertMissingBranches((NWayTreeStorageInternal<ArrayCommandChunk>)n));
-            HoistAndSplitLargeIfBodies();
-            CommandTree.WalkTree(null, n => SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandChunk>)n));
-            CommandTree.WalkTree(n => SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandChunk>)n));
-        }
-
-        private void CompleteCommandTree()
-        {
-            CommandTree.WalkTree(n => InsertMissingBranches((NWayTreeStorageInternal<ArrayCommandChunk>)n));
+            // DEBUG CommandTree.WalkTree(n => InsertMissingBranches((NWayTreeStorageInternal<ArrayCommandChunk>)n));
             HoistAndSplitLargeIfBodies();
             CommandTree.WalkTree(null, n => SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandChunk>)n));
             CommandTree.WalkTree(n => SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandChunk>)n));

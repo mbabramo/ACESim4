@@ -72,96 +72,76 @@ namespace ACESimBase.Util.ArrayProcessing
 
         private IEnumerable<PlanEntry> BuildPlanForLeaf(ArrayCommandChunk leaf)
         {
-            int start = leaf.StartCommandRange;
-            int end = leaf.EndCommandRangeExclusive;
+            int from = leaf.StartCommandRange;
+            int to = leaf.EndCommandRangeExclusive;
 
-            var conditionals = FindOversizeConditionals(start, end).ToList();
-            if (conditionals.Count > 0)
-            {
-                foreach (var (s, e) in conditionals)
-                    yield return new PlanEntry(leaf.ID, SplitKind.Conditional, s, e);
-                yield break;
-            }
+            var stackIf = new Stack<int>();
+            var stackDepth = new Stack<int>();
+            var blocks = new List<(int start, int end, SplitKind kind)>();
 
-            var depthRegions = FindOversizeDepthRegions(start, end).ToList();
-            if (depthRegions.Count > 0)
-            {
-                foreach (var (s, e) in depthRegions)
-                    yield return new PlanEntry(leaf.ID, SplitKind.Depth, s, e);
-            }
-        }
-
-        private IEnumerable<(int start, int end)> FindOversizeConditionals(int from, int to)
-        {
-            var stack = new Stack<int>();
-            var pairs = new List<(int, int)>();
-
+            //----------------------------------------------------------------------
+            // ①  Single sweep — collect every balanced block whose body > _max
+            //----------------------------------------------------------------------
             for (int i = from; i < to; i++)
             {
                 var t = _cmds[i].CommandType;
-                if (t == ArrayCommandType.If)
-                    stack.Push(i);
-                else if (t == ArrayCommandType.EndIf && stack.Count > 0)
+                switch (t)
                 {
-                    int open = stack.Pop();
-                    int bodyLen = (i - open) - 1;
-                    if (bodyLen >= _max)
-                        pairs.Add((open, i));
+                    case ArrayCommandType.If:
+                        stackIf.Push(i);
+                        break;
+
+                    case ArrayCommandType.EndIf when stackIf.Count > 0:
+                        {
+                            int open = stackIf.Pop();
+                            int bodyLen = (i - open) - 1;              // exclude If/EndIf
+                            if (bodyLen >= _max)
+                                blocks.Add((open, i + 1, SplitKind.Conditional));
+                            break;
+                        }
+
+                    case ArrayCommandType.IncrementDepth:
+                        stackDepth.Push(i);
+                        break;
+
+                    case ArrayCommandType.DecrementDepth when stackDepth.Count > 0:
+                        {
+                            int open = stackDepth.Pop();
+                            int end = i + 1;                          // include DecDepth
+                            if (end - open >= _max)
+                                blocks.Add((open, end, SplitKind.Depth));
+                            break;
+                        }
                 }
             }
 
-            // Ignore the degenerate case: exactly one oversize pair that
-            // starts at 'from' and ends at 'to-1'  (i.e. the whole leaf)
-            if (pairs.Count == 0 ||
-                (pairs.Count == 1 &&
-                 pairs[0].Item1 == from &&
-                 pairs[0].Item2 == to - 1))
+            if (blocks.Count == 0)
                 yield break;
 
-            pairs.Sort((a, b) => a.Item1.CompareTo(b.Item1));
-            var filtered = new List<(int, int)>();
-            foreach (var p in pairs)
+            // Ignore degenerate “whole-leaf” block
+            if (blocks.Count == 1 && blocks[0].start == from && blocks[0].end == to)
+                yield break;
+
+            //----------------------------------------------------------------------
+            // ②  Keep the **innermost** oversized blocks (remove outer containers)
+            //----------------------------------------------------------------------
+            blocks.Sort((a, b) => a.start.CompareTo(b.start));
+            var filtered = new List<(int start, int end, SplitKind kind)>();
+            foreach (var b in blocks)
             {
                 while (filtered.Count > 0 &&
-                       filtered[^1].Item1 <= p.Item1 &&
-                       filtered[^1].Item2 >= p.Item2)
-                    filtered.RemoveAt(filtered.Count - 1);
-                filtered.Add(p);
+                       filtered[^1].start <= b.start &&
+                       filtered[^1].end >= b.end)
+                    filtered.RemoveAt(filtered.Count - 1);          // discard outer block
+                filtered.Add(b);
             }
 
-            foreach (var (s, e) in filtered)
-                yield return (s, e + 1);
+            //----------------------------------------------------------------------
+            // ③  Emit plan entries
+            //----------------------------------------------------------------------
+            foreach (var (s, e, k) in filtered)
+                yield return new PlanEntry(leaf.ID, k, s, e);
         }
 
-        private IEnumerable<(int start, int end)> FindOversizeDepthRegions(int from, int to)
-        {
-            var openings = new Stack<int>();
-            var regions = new List<(int, int)>();
-            int depth = 0;
-
-            for (int i = from; i < to; i++)
-            {
-                var t = _cmds[i].CommandType;
-                if (t == ArrayCommandType.IncrementDepth)
-                {
-                    if (depth == 0)
-                        openings.Push(i);
-                    depth++;
-                }
-                else if (t == ArrayCommandType.DecrementDepth)
-                {
-                    depth--;
-                    if (depth == 0 && openings.Count > 0)
-                    {
-                        int start = openings.Pop();
-                        int end = i + 1;
-                        if (end - start >= _max)
-                            regions.Add((start, end));
-                    }
-                }
-            }
-
-            return regions;
-        }
     }
 }

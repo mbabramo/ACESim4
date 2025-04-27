@@ -29,20 +29,25 @@ namespace ACESimBase.Util.ArrayProcessing
                 var plan = planner.BuildPlan(acl.CommandTree);
 
 #if DEBUG
-                TabbedText.WriteLine($"[MUTATE] round={round}  planCount={plan.Count}");
+                if (round == 1)
+                {
+                    TabbedText.WriteLine($"[MUTATE] max={acl.MaxCommandsPerSplittableChunk} round={round}  planCount={plan.Count}");
+                    TabbedText.WriteLine("Commands:");
+                    TabbedText.WriteLine(acl.CommandListString());
+                    TabbedText.WriteLine($"Before mutation");
+                    TabbedText.WriteLine(acl.CommandTree.ToTreeString(_ => "Leaf"));
+                }
+#endif
+
+                ApplyPlan(acl, plan);
+
+#if DEBUG
+                TabbedText.WriteLine($"After round {round}");
+                TabbedText.WriteLine(acl.CommandTree.ToTreeString(_ => "Leaf"));
 #endif
 
                 if (plan.Count == 0)
-                {
-#if DEBUG
-                    TabbedText.WriteLine("── final tree ──");
-                    TabbedText.WriteLine(acl.CommandTree.ToTreeString(_ => "Leaf"));
-                    TabbedText.WriteLine("───────────────");
-#endif
                     break;        // tree already balanced
-                }
-
-                ApplyPlan(acl, plan);
             }
         }
 
@@ -158,10 +163,11 @@ namespace ACESimBase.Util.ArrayProcessing
             // Conditional/Depth logic, preserving balanced If/EndIf pairs.
         }
 
-        private static void SplitAtDepthRegion(ArrayCommandList acl,
-                                       NWayTreeStorageInternal<ArrayCommandChunk> leaf,
-                                       int spanStart,
-                                       int spanEndEx)
+        private static void SplitAtDepthRegion(
+    ArrayCommandList acl,
+    NWayTreeStorageInternal<ArrayCommandChunk> leaf,
+    int spanStart,
+    int spanEndEx)
         {
             var info = leaf.StoredValue;
             int prefixEnd = spanStart;
@@ -173,7 +179,7 @@ namespace ACESimBase.Util.ArrayProcessing
             TabbedText.WriteLine($"[DEPTH-SPLIT] leaf ID{info.ID} body=[{bodyStart},{bodyEnd}) max={max}");
 #endif
 
-            info.EndCommandRangeExclusive = prefixEnd;
+            // Do NOT change parent's StartCommandRange or EndCommandRangeExclusive!
 
             var region = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf)
             {
@@ -198,7 +204,6 @@ namespace ACESimBase.Util.ArrayProcessing
             }
 
             region.StoredValue.LastChild = (byte)(branch - 1);
-            region.StoredValue.StartCommandRange = region.StoredValue.EndCommandRangeExclusive;
 
 #if DEBUG
             TabbedText.WriteLine($"[DEPTH-SPLIT-END] region ID{region.StoredValue.ID} children={branch - 1} branchesArray={(region.Branches?.Length ?? 0)}");
@@ -209,6 +214,7 @@ namespace ACESimBase.Util.ArrayProcessing
             TabbedText.WriteLine($"[DBG-DEPTH] container ID{leaf.StoredValue.ID} range=[{leaf.StoredValue.StartCommandRange},{leaf.StoredValue.EndCommandRangeExclusive})");
 #endif
         }
+
 
         private static ArrayCommandChunk CloneMeta(ArrayCommandChunk src, int start, int endEx)
         {

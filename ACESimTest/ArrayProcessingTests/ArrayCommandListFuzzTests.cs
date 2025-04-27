@@ -172,7 +172,7 @@ namespace ACESimTest.ArrayProcessingTests
                 StartDestinationIndices = 0
             };
 
-            clone.FinaliseCommandTree();
+            clone.CompleteCommandTree();
 
             return clone;
         }
@@ -188,13 +188,18 @@ namespace ACESimTest.ArrayProcessingTests
         /*----------------- emit program -----------------*/
         private void EmitChunk(int depth, int maxDepth, int maxBody)
         {
-            Acl.StartCommandChunk(false, null);
+            bool realChunk = depth == 0;            // only the first call opens a chunk
 
-            /* ── 30 % chance: child reads parent‑written scratch before any write ── */
+            if (realChunk)
+                Acl.StartCommandChunk(false, null);
+            else
+                Acl.IncrementDepth();               // synthetic child scope
+
+            /* ── 30 % chance: child reads parent-written scratch before any write ── */
             if (_scratch.Count > 0 && _rnd.NextDouble() < 0.30)
             {
                 int p = _scratch[_rnd.Next(_scratch.Count)];
-                Acl.CopyToNew(p, false);   // read‑only → primes IndicesReadFromStack
+                Acl.CopyToNew(p, false);            // primes IndicesReadFromStack
             }
 
             int localDepth = 0;
@@ -215,12 +220,20 @@ namespace ACESimTest.ArrayProcessingTests
             /* close any open depth */
             CloseDepth(ref localDepth);
 
-            /* 50 % chance to pass increment‑to‑parent list */
-            if (copyUp.Count == 0 || _rnd.NextDouble() < 0.50)
-                Acl.EndCommandChunk();
+            if (realChunk)
+            {
+                /* 50 % chance to pass increment-to-parent list */
+                if (copyUp.Count == 0 || _rnd.NextDouble() < 0.50)
+                    Acl.EndCommandChunk();
+                else
+                    Acl.EndCommandChunk(copyUp.ToArray(), false);
+            }
             else
-                Acl.EndCommandChunk(copyUp.ToArray(), false);
+            {
+                Acl.DecrementDepth();               // matches IncrementDepth above
+            }
         }
+
 
         private void EmitLinear(int count, List<int> copyUp, ref int localDepth)
         {
