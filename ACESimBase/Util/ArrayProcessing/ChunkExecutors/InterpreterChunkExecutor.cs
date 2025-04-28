@@ -13,8 +13,8 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
     public class InterpreterChunkExecutor : ChunkExecutorBase
     {
         public InterpreterChunkExecutor(ArrayCommand[] commands,
-                           int start, int end, bool useCheckpoints)
-            : base(commands, start, end, useCheckpoints)
+                           int start, int end, bool useCheckpoints, ArrayCommandList arrayCommandListForCheckpoints)
+            : base(commands, start, end, useCheckpoints, arrayCommandListForCheckpoints)
         {
         }
 
@@ -28,6 +28,11 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             // No-op
         }
 
+        private void RecordCheckpoint(double value)
+        {
+            ArrayCommandListForCheckpoints.Checkpoints.Add(value);
+        }
+
         public override void Execute(
             ArrayCommandChunk chunk,
             double[] virtualStack,
@@ -37,7 +42,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             ref int codi,
             ref bool condition)
         {
-            // condition carries the result of the last comparison
             for (int idx = chunk.StartCommandRange; idx < chunk.EndCommandRangeExclusive; idx++)
             {
                 var cmd = Commands[idx];
@@ -48,7 +52,14 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                         break;
 
                     case ArrayCommandType.CopyTo:
-                        virtualStack[cmd.Index] = virtualStack[cmd.SourceIndex];
+                        if (UseCheckpoints && cmd.Index == CheckpointTrigger)
+                        {
+                            RecordCheckpoint(virtualStack[cmd.SourceIndex]);
+                        }
+                        else
+                        {
+                            virtualStack[cmd.Index] = virtualStack[cmd.SourceIndex];
+                        }
                         break;
 
                     case ArrayCommandType.NextSource:
@@ -56,17 +67,11 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                         break;
 
                     case ArrayCommandType.NextDestination:
-                        {
-                            double value = virtualStack[cmd.SourceIndex];
-                            orderedDestinations[codi++] = value;
-                        }
+                        orderedDestinations[codi++] = virtualStack[cmd.SourceIndex];
                         break;
 
                     case ArrayCommandType.ReusedDestination:
-                        {
-                            double value = virtualStack[cmd.SourceIndex];
-                            orderedDestinations[cmd.Index] += value;
-                        }
+                        orderedDestinations[cmd.Index] += virtualStack[cmd.SourceIndex];
                         break;
 
                     case ArrayCommandType.MultiplyBy:
@@ -74,22 +79,13 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                         break;
 
                     case ArrayCommandType.IncrementBy:
-                        {
-                            double oldVal = virtualStack[cmd.Index];
-                            double delta = virtualStack[cmd.SourceIndex];
-                            virtualStack[cmd.Index] = oldVal + delta;
-                        }
+                        virtualStack[cmd.Index] += virtualStack[cmd.SourceIndex];
                         break;
 
                     case ArrayCommandType.DecrementBy:
-                        {
-                            double oldVal = virtualStack[cmd.Index];
-                            double delta = virtualStack[cmd.SourceIndex];
-                            virtualStack[cmd.Index] = oldVal - delta;
-                        }
+                        virtualStack[cmd.Index] -= virtualStack[cmd.SourceIndex];
                         break;
 
-                    // comparisons set the branch condition
                     case ArrayCommandType.EqualsOtherArrayIndex:
                         condition = virtualStack[cmd.Index] == virtualStack[cmd.SourceIndex];
                         break;
@@ -109,7 +105,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                         condition = virtualStack[cmd.Index] != cmd.SourceIndex;
                         break;
 
-                    // flow‑control: skip until matching EndIf if condition is false
                     case ArrayCommandType.If:
                         if (!condition)
                         {
@@ -117,11 +112,11 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                             while (depth > 0)
                             {
                                 idx++;
-                                var ct = Commands[idx].CommandType;
-                                if (ct == ArrayCommandType.If) depth++;
-                                else if (ct == ArrayCommandType.EndIf) depth--;
-                                else if (ct == ArrayCommandType.NextSource) cosi++;
-                                else if (ct == ArrayCommandType.NextDestination) codi++;
+                                var t = Commands[idx].CommandType;
+                                if (t == ArrayCommandType.If) depth++;
+                                else if (t == ArrayCommandType.EndIf) depth--;
+                                else if (t == ArrayCommandType.NextSource) cosi++;
+                                else if (t == ArrayCommandType.NextDestination) codi++;
                             }
                         }
                         break;
@@ -131,16 +126,16 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     case ArrayCommandType.Blank:
                     case ArrayCommandType.IncrementDepth:
                     case ArrayCommandType.DecrementDepth:
-                        // no action
                         break;
 
                     default:
-                        throw new NotImplementedException(
-                            $"Interpreter: unsupported command {cmd.CommandType}");
+                        throw new NotImplementedException($"Interpreter: unsupported command {cmd.CommandType}");
                 }
             }
+
             chunk.StartSourceIndices = cosi;
             chunk.StartDestinationIndices = codi;
         }
+
     }
 }

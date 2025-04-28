@@ -31,6 +31,8 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
         bool UseCheckpoints { get; }
 
+        ArrayCommandList ArrayCommandListForCheckpoints { get; }
+
         /// <summary>
         /// Queue <paramref name="chunk"/> for later batch code‑generation.  Executions
         /// should not occur until <see cref="PerformGeneration"/> has been called.

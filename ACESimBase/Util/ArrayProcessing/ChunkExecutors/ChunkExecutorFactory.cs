@@ -60,12 +60,13 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             int start,
             int end,
             bool useCheckpoints = false,
+            ArrayCommandList arrayCommandListForCheckpoints = null,
             int? fallbackThreshold = null)
         {
             // ────────────────────────── primary backend ──────────────────────────
             ChunkExecutorBase primary = kind switch
             {
-                ChunkExecutorKind.Interpreted => new InterpreterChunkExecutor(commands, start, end, useCheckpoints),
+                ChunkExecutorKind.Interpreted => new InterpreterChunkExecutor(commands, start, end, useCheckpoints, arrayCommandListForCheckpoints),
 
                 ChunkExecutorKind.Roslyn => new RoslynChunkExecutor(commands, start, end, useCheckpoints, localVariableReuse: false),
 
@@ -81,9 +82,11 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             // ────────────────────────── optional fallback ─────────────────────────
             if (fallbackThreshold.HasValue && kind != ChunkExecutorKind.Interpreted)
             {
+                if (useCheckpoints)
+                    throw new NotImplementedException();
                 // Small‑chunk interpreter (never code‑generates – avoids Roslyn/IL overhead).
-                var small = new InterpreterChunkExecutor(commands, start, end, useCheckpoints);
-                return new FallbackChunkExecutor(commands, start, end, useCheckpoints, fallbackThreshold.Value, small, primary);
+                var small = new InterpreterChunkExecutor(commands, start, end, useCheckpoints, arrayCommandListForCheckpoints);
+                return new FallbackChunkExecutor(commands, start, end, fallbackThreshold.Value, small, primary);
             }
 
             return primary;

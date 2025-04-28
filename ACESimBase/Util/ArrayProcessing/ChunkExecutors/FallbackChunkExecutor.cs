@@ -43,11 +43,10 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             ArrayCommand[] commands,
             int start,
             int end,
-            bool useCheckpoints,
             int chunkSizeThreshold,
             ChunkExecutorBase smallExecutor,
             ChunkExecutorBase largeExecutor)
-            : base(commands, start, end, useCheckpoints)
+            : base(commands, start, end, useCheckpoints: false, arrayCommandListForCheckpoints: null)
         {
             _threshold = chunkSizeThreshold > 0
                 ? chunkSizeThreshold

@@ -23,8 +23,9 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
         public bool ReuseLocals { get; init; }
 
-        public ILChunkExecutor(ArrayCommand[] cmds, int start, int end, bool localVariableReuse = false)
-            : base(cmds, start, end, useCheckpoints: false)
+        public ILChunkExecutor(ArrayCommand[] cmds,
+            int start, int end, bool localVariableReuse = false)
+            : base(cmds, start, end, useCheckpoints: false, arrayCommandListForCheckpoints: null)
         {
             ReuseLocals = localVariableReuse;
             _plan = ReuseLocals

@@ -52,7 +52,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                            int start, int end,
                            bool useCheckpoints,
                            bool localVariableReuse = true)
-    : base(commands, start, end, useCheckpoints)
+    : base(commands, start, end, useCheckpoints, arrayCommandListForCheckpoints: null)
         {
             ReuseLocals = localVariableReuse;
 

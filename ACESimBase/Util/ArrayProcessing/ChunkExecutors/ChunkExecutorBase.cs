@@ -12,6 +12,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         public virtual bool PreserveGeneratedCode { get; set; } = true;
         public string GeneratedCode { get; protected set; } = string.Empty;
         public bool UseCheckpoints { get; protected set; } = false;
+        public ArrayCommandList ArrayCommandListForCheckpoints { get; protected set; } = null;
 
         private ArrayCommand[] UnderlyingCommands;
         private int StartIndex;
@@ -19,14 +20,16 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
         public Span<ArrayCommand> Commands => UnderlyingCommands.AsSpan(StartIndex, EndIndexExclusive - StartIndex);
 
-        public ChunkExecutorBase(ArrayCommand[] underlyingCommands, int startIndex, int endIndexExclusive, bool useCheckpoints)
+        public ChunkExecutorBase(ArrayCommand[] underlyingCommands, int startIndex, int endIndexExclusive, bool useCheckpoints, ArrayCommandList arrayCommandListForCheckpoints)
         {
             UnderlyingCommands = underlyingCommands;
             StartIndex = startIndex;
             EndIndexExclusive = endIndexExclusive;
             UseCheckpoints = useCheckpoints;
             if (UseCheckpoints)
-                throw new NotImplementedException();
+            {
+                ArrayCommandListForCheckpoints = arrayCommandListForCheckpoints;
+            }
         }
 
         public abstract void AddToGeneration(ArrayCommandChunk chunk);
