@@ -192,7 +192,7 @@ namespace ACESim
                 StrategiesDeveloperStopwatch.Stop();
                 if (Unroll_Commands.UseCheckpoints)
                 {
-                    Unroll_Commands.LoadCheckpoints();
+                    Unroll_Commands.LoadCheckpoints(array);
                     var checkpoints = String.Join("\r\n", Enumerable.Range(0, Unroll_Commands.Checkpoints.Count).Select(x => $"{x}: {Unroll_Commands.Checkpoints[x]}"));
                 }
                 UpdateInformationSets(iteration);
