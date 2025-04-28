@@ -40,7 +40,7 @@ namespace ACESimBase.Util.ArrayProcessing
         // ──────────────────────────────────────────────────────────────────────
         //  Settings and feature flags
         // ──────────────────────────────────────────────────────────────────────
-        public bool DisableAdvancedFeatures = false;
+        public bool DisableAdvancedFeatures = true; // DEBUG
         public bool Parallelize = false;
         public int MaxCommandsPerSplittableChunk = 1_000_000; // DEBUG: Until we fix the behavior of hoisting, we need to just use the flat option.
         public bool UseOrderedSources => !DisableAdvancedFeatures;

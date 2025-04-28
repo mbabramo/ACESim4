@@ -804,11 +804,11 @@ namespace ACESim
                         }
                         if (Unroll_Commands.UseCheckpoints)
                         {
-                            //Unroll_Commands.CreateCheckpoint(actionProbabilities[action - 1]);
-                            //Unroll_Commands.CreateCheckpoint(regretCopy);
-                            //Unroll_Commands.CreateCheckpoint(inversePiCopy);
-                            //Unroll_Commands.CreateCheckpoint(pi); 
-                           // Unroll_Commands.CreateCheckpoint(cumulativeStrategyCopy); // IMPORTANT NOTE: must exclude this one, because it's a copy of something targeting original, so the value will not be available.
+                            Unroll_Commands.CreateCheckpoint(actionProbabilities[action - 1]);
+                            Unroll_Commands.CreateCheckpoint(regretCopy);
+                            Unroll_Commands.CreateCheckpoint(inversePiCopy);
+                            Unroll_Commands.CreateCheckpoint(pi); 
+                            Unroll_Commands.CreateCheckpoint(cumulativeStrategyCopy); // IMPORTANT NOTE: must exclude this one, because it's a copy of something targeting original, so the value will not be available.
                         }
                     }
                 }
