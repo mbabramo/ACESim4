@@ -28,9 +28,9 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             // No-op
         }
 
-        private void RecordCheckpoint(double value)
+        private void RecordCheckpoint(int sourceIndex, double value)
         {
-            ArrayCommandListForCheckpoints.Checkpoints.Add(value);
+            ArrayCommandListForCheckpoints.Checkpoints.Add((sourceIndex, value));
         }
 
         public override void Execute(
@@ -54,7 +54,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     case ArrayCommandType.CopyTo:
                         if (UseCheckpoints && cmd.Index == CheckpointTrigger)
                         {
-                            RecordCheckpoint(virtualStack[cmd.SourceIndex]);
+                            RecordCheckpoint(cmd.SourceIndex, virtualStack[cmd.SourceIndex]);
                         }
                         else
                         {

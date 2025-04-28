@@ -69,9 +69,9 @@ namespace ACESimBase.Util.ArrayProcessing
         // to the checkpoints list. We can then, for example, compare the checkpoints with checkpoints from noncompiled
         // code or from code not using the ArrayCommandList to see where the values differ.
         // ──────────────────────────────────────────────────────────────────────
-        public bool UseCheckpoints = false;
+        public bool UseCheckpoints = true; // DEBUG
         public static int CheckpointTrigger = -2; // -1 is used for other purposes, and must be negative
-        public List<double> Checkpoints;
+        public List<(int Index, double Value)> Checkpoints = new();
         private int _nextExecId = 0;
         internal int NextExecId() => _nextExecId++;
 
@@ -625,21 +625,19 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             if (!UseCheckpoints)
                 return;
-            Checkpoints = new List<double>();
+            Checkpoints = new();
         }
 
-        public void LoadCheckpoints(double[] stack, int firstSlot = 0)
+        public void LoadCheckpoints(double[] workingArray)
         {
-            if (!UseCheckpoints || Checkpoints == null || Checkpoints.Count == 0)
-                return;
+            if (!UseCheckpoints || Checkpoints == null) return;
 
-            // Enlarge the working array if we ran out of space at the tail.
-            if (stack.Length < firstSlot + Checkpoints.Count)
-                Array.Resize(ref stack, firstSlot + Checkpoints.Count);
-
-            // Copy the captured values.
-            for (int i = 0; i < Checkpoints.Count; i++)
-                stack[firstSlot + i] = Checkpoints[i];
+            foreach (var (idx, val) in Checkpoints)
+            {
+                if (idx >= workingArray.Length)
+                    Array.Resize(ref workingArray, idx + 1);
+                workingArray[idx] = val;
+            }
         }
 
         #endregion
