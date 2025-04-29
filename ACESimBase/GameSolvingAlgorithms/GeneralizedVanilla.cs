@@ -800,15 +800,15 @@ namespace ACESim
                         {
                             TabbedText.WriteLine($"PiValues ARRAY{piValuesZeroCopy} ARRAY{piValuesOneCopy} pi for optimized ARRAY{piCopy}");
                             TabbedText.WriteLine(
-                                $"Regrets ({informationSet.Decision.Name} {informationSet.InformationSetNodeNumber}): Action {action} probability ARRAY{actionProbabilities[action - 1]} regret ARRAY{regretCopy} inversePi ARRAY{inversePiCopy} avg_strat_incrememnt ARRAY{contributionToAverageStrategyCopy} cum_strategy ARRAY{cumulativeStrategyCopy}");
+                                $"Regrets ({informationSet.Decision.Name} {informationSet.InformationSetNodeNumber}): Action {action} probability ARRAY{actionProbabilities[action - 1]} regret ARRAY{regretCopy} inversePi ARRAY{inversePiCopy} avg_strat_increment ARRAY{contributionToAverageStrategyCopy} cum_strategy ARRAY{cumulativeStrategyCopy}");
                         }
                         if (Unroll_Commands.UseCheckpoints)
                         {
                             Unroll_Commands.CreateCheckpoint(actionProbabilities[action - 1]);
                             Unroll_Commands.CreateCheckpoint(regretCopy);
                             Unroll_Commands.CreateCheckpoint(inversePiCopy);
-                            Unroll_Commands.CreateCheckpoint(pi); 
-                            Unroll_Commands.CreateCheckpoint(cumulativeStrategyCopy); // IMPORTANT NOTE: must exclude this one, because it's a copy of something targeting original, so the value will not be available.
+                            Unroll_Commands.CreateCheckpoint(piCopy); 
+                            // IMPORTANT NOTE: must exclude cumulativeStrategyCopy, because it's a copy of something targeting original, so the value will not be available.
                         }
                     }
                 }
@@ -1267,7 +1267,7 @@ namespace ACESim
                         TabbedText.WriteLine($"PiValues {piValues[0]} {piValues[1]} pi for optimized {pi}");
                         //TabbedText.WriteLine($"Regrets: Action {action} regret {regret} prob-adjust {inversePi * regret} new regret {informationSet.GetCumulativeRegret(action)} strategy inc {pi * actionProbabilities[action - 1]} new cum strategy {informationSet.GetCumulativeStrategy(action)}");
                         TabbedText.WriteLine(
-                            $"Regrets ({informationSet.Decision.Name} {informationSet.InformationSetNodeNumber}): Action {action} probability {actionProbabilities[action - 1]} regret {regret} inversePi {inversePi} avg_strat_incrememnt {contributionToAverageStrategy} cum_strategy {informationSet.GetLastCumulativeStrategyIncrement(action)}");
+                            $"Regrets ({informationSet.Decision.Name} {informationSet.InformationSetNodeNumber}): Action {action} probability {actionProbabilities[action - 1]} regret {regret} inversePi {inversePi} avg_strat_increment {contributionToAverageStrategy} cum_strategy {informationSet.GetLastCumulativeStrategyIncrement(action)}");
                     }
                 }
             }
