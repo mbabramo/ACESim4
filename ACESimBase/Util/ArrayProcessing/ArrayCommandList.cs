@@ -18,6 +18,39 @@ namespace ACESimBase.Util.ArrayProcessing
     [Serializable]
     public partial class ArrayCommandList
     {
+        // -----------------------------------------------------------------------------
+        //  Debug helpers – add these inside the ArrayCommandList partial class
+        // -----------------------------------------------------------------------------
+        public void Debug_LogSourceStats()
+        {
+            int nextSource = UnderlyingCommands
+                                .Take(MaxCommandIndex)
+                                .Count(c => c.CommandType == ArrayCommandType.NextSource);
+
+            int copyTo = UnderlyingCommands
+                                .Take(MaxCommandIndex)
+                                .Count(c => c.CommandType == ArrayCommandType.CopyTo);
+
+            TabbedText.WriteLine($"[ACL-DBG] NextSource commands : {nextSource}");
+            TabbedText.WriteLine($"[ACL-DBG] CopyTo commands     : {copyTo}");
+            TabbedText.WriteLine($"[ACL-DBG] OrderedSourceIndices: {OrderedSourceIndices.Count}");
+        }
+
+        public void Debug_DumpCheckpoints(int max = 10)
+        {
+            if (!UseCheckpoints || Checkpoints is null || Checkpoints.Count == 0)
+            {
+                TabbedText.WriteLine("[ACL-DBG] No checkpoints recorded.");
+                return;
+            }
+
+            TabbedText.WriteLine($"[ACL-DBG] First {Math.Min(max, Checkpoints.Count)} checkpoints:");
+            foreach (var (idx, val) in Checkpoints.Take(max))
+                TabbedText.WriteLine($"    idx {idx} → {val}");
+        }
+
+
+
         // ──────────────────────────────────────────────────────────────────────
         //  Command buffer and scratch‑slot counters
         // ──────────────────────────────────────────────────────────────────────
@@ -470,20 +503,20 @@ namespace ACESimBase.Util.ArrayProcessing
         }
 
         private (int[] indicesReadFromStack, int[] indicesSetInStack) DetermineWhenIndicesFirstLastUsed(
-            int startRange,
-            int endRangeExclusive,
-            int?[] firstRead,
-            int?[] firstSet,
-            int?[] lastSet,
-            int?[] lastUsed,
-            int?[] transToLocal)
+    int startRange,
+    int endRangeExclusive,
+    int?[] firstRead,
+    int?[] firstSet,
+    int?[] lastSet,
+    int?[] lastUsed,
+    int?[] transToLocal)
         {
             var used = new HashSet<int>();
 
             for (int cmdIdx = startRange; cmdIdx < endRangeExclusive; cmdIdx++)
             {
                 int src = UnderlyingCommands[cmdIdx].GetSourceIndexIfUsed();
-                if (src != -1)
+                if (src >= 0)                                // skip checkpoint / sentinel indices (<0)
                 {
                     if (firstRead[src] == null && firstSet[src] == null)
                         firstRead[src] = cmdIdx;
@@ -492,7 +525,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 }
 
                 int tgt = UnderlyingCommands[cmdIdx].GetTargetIndexIfUsed();
-                if (tgt != -1)
+                if (tgt >= 0)                                // skip checkpoint / sentinel indices (<0)
                 {
                     if (firstRead[tgt] == null && firstSet[tgt] == null)
                         firstSet[tgt] = cmdIdx;
@@ -502,7 +535,10 @@ namespace ACESimBase.Util.ArrayProcessing
                 }
             }
 
-            var firstLast = used.Select(i => (idx: i, first: (firstRead[i] ?? firstSet[i]).Value, last: lastUsed[i].Value)).ToList();
+            var firstLast = used.Select(i => (idx: i,
+                                              first: (firstRead[i] ?? firstSet[i]).Value,
+                                              last: lastUsed[i].Value))
+                                .ToList();
 
             var cmdToUses = new Dictionary<int, (HashSet<int> first, HashSet<int> last)>();
             foreach (var (idx, first, last) in firstLast)
@@ -517,23 +553,22 @@ namespace ACESimBase.Util.ArrayProcessing
             var avail = new Stack<int>();
             for (int cmd = startRange; cmd < endRangeExclusive; cmd++)
             {
-                if (!cmdToUses.ContainsKey(cmd)) continue;
-                var (firstUses, lastUses) = cmdToUses[cmd];
-                foreach (int vIdx in firstUses)
-                {
-                    if (avail.Any())
-                        transToLocal[vIdx] = avail.Pop();
-                    else
-                        transToLocal[vIdx] = ++lastLocal;
-                }
-                foreach (int vIdx in lastUses)
-                    avail.Push(transToLocal[vIdx].Value);
+                if (!cmdToUses.TryGetValue(cmd, out var uses)) continue;
+                foreach (int vIdx in uses.first)
+                    transToLocal[vIdx] = avail.Any() ? avail.Pop() : ++lastLocal;
+                foreach (int vIdx in uses.last)
+                    avail.Push(transToLocal[vIdx]!.Value);
             }
 
-            int[] read = Enumerable.Range(0, firstRead.Length).Where(i => firstRead[i] != null).ToArray();
-            int[] set = Enumerable.Range(0, firstSet.Length).Where(i => firstSet[i] != null).ToArray();
+            int[] read = Enumerable.Range(0, firstRead.Length)
+                                   .Where(i => firstRead[i] != null)
+                                   .ToArray();
+            int[] set = Enumerable.Range(0, firstSet.Length)
+                                   .Where(i => firstSet[i] != null)
+                                   .ToArray();
             return (read, set);
         }
+
 
         #region Command recorder
 

@@ -53,6 +53,12 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             if (acl.MaxCommandIndex == 0)
                 acl.CompleteCommandList();
+            
+            acl.Debug_LogSourceStats();             //  DEBUG
+            int originals = acl.OrderedSourceIndices.Count(i => i < acl.FirstScratchIndex); // DEBUG
+            int scratch = acl.OrderedSourceIndices.Count - originals; // DEBUG
+            TabbedText.WriteLine($"[ACL-DBG] OrderedSourceIndices originals={originals}  scratch={scratch}"); // DEBUG
+
 #if OUTPUT_HOISTING_INFO
             TabbedText.WriteLine("Commands:");
             TabbedText.WriteLine(acl.CommandListString());
@@ -95,6 +101,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 start: 0,
                 end: acl.MaxCommandIndex,
                 useCheckpoints: acl.UseCheckpoints,
+                arrayCommandListForCheckpoints: acl,
                 fallbackThreshold: fallbackThreshold);        // optional
 
             // Compile once and run

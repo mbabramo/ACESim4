@@ -92,7 +92,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public int CopyToNew(int sourceIdx, bool fromOriginalSources)
         {
             int target = _nextArrayIndex++;
-            if (fromOriginalSources && _acl.UseOrderedSources)
+            if (fromOriginalSources)
             {
                 _acl.OrderedSourceIndices.Add(sourceIdx);
                 AddCommand(new ArrayCommand(ArrayCommandType.NextSource, target, -1));
