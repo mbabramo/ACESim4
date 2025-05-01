@@ -210,7 +210,6 @@ namespace ACESimBase.Util.ArrayProcessing
             finished.EndCommandRangeExclusive = NextCommandIndex;
             finished.EndSourceIndicesExclusive = OrderedSourceIndices.Count;
             finished.EndDestinationIndicesExclusive = OrderedDestinationIndices.Count;
-            finished.CopyIncrementsToParent = copyIncrementsToParent;
 
             _currentPath.RemoveAt(_currentPath.Count - 1);
             var parent = CurrentChunk;
@@ -470,9 +469,7 @@ namespace ACESimBase.Util.ArrayProcessing
             var parent = parentNode.StoredValue;
 
             // share only when *both* slices are single-threaded
-            bool share = !parent.ChildrenParallelizable
-                         && !child.ChildrenParallelizable
-                         && !child.RequiresPrivateStack;
+            bool share = true;
 
             if (share)
             {

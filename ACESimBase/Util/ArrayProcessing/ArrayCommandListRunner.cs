@@ -229,8 +229,7 @@ namespace ACESimBase.Util.ArrayProcessing
             if (isLeaf && c.Name != "Conditional")
                 ExecuteChunk(c, acl);
 
-            c.CopyIncrementsToParentIfNecessary();
-            c.ResetIncrementsForParent();
+            c.CopyVirtualStackToParent();
         }
 
         // Decide whether children of <node> may run concurrently
