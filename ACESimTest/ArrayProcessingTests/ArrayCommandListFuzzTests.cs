@@ -197,11 +197,7 @@ namespace ACESimTest.ArrayProcessingTests
             /* close any open depth */
             CloseDepth(ref localDepth);
 
-            /* 50 % chance to pass increment‑to‑parent list */
-            if (copyUp.Count == 0 || _rnd.NextDouble() < 0.50)
-                Acl.EndCommandChunk();
-            else
-                Acl.EndCommandChunk(copyUp.ToArray(), false);
+            Acl.EndCommandChunk(false);
         }
 
         private void EmitLinear(int count, List<int> copyUp, ref int localDepth)

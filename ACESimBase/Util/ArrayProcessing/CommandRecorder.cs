@@ -286,9 +286,9 @@ namespace ACESimBase.Util.ArrayProcessing
                                    name,
                                    ignoreKeepTogether);
 
-        internal void EndCommandChunk(int[] copyToParent = null,
+        internal void EndCommandChunk(
                                       bool endingRepeatedChunk = false) =>
-            _acl.EndCommandChunk(copyToParent, endingRepeatedChunk);
+            _acl.EndCommandChunk(endingRepeatedChunk);
 
         #endregion  // DepthAndChunkFacade
 

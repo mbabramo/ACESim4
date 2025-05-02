@@ -861,7 +861,7 @@ namespace ACESim
                 Unroll_Commands.IncrementArrayBy(resultArray, algorithmIsLowestDepth, probabilityAdjustedInnerResult);
 
                 if (chanceNode.Decision.Unroll_Parallelize && EvolutionSettings.UnrollAllowParallelize)
-                    Unroll_Commands.EndCommandChunk(algorithmIsLowestDepth ? null : resultArray, action != 1);
+                    Unroll_Commands.EndCommandChunk(action != 1);
             }
             if (chanceNode.Decision.Unroll_Parallelize && EvolutionSettings.UnrollAllowParallelize)
                 Unroll_Commands.EndCommandChunk();

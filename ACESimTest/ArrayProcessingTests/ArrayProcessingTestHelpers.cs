@@ -36,7 +36,8 @@ namespace ACESimTest.ArrayProcessingTests
             int maxNumCommands = 512,
             int initialArrayIndex = 0,
             int maxArrayIndex = 10,
-            int maxCommandsPerChunk = int.MaxValue)
+            int maxCommandsPerChunk = int.MaxValue,
+            bool hoistLargeIfBodies = true)
         {
             var acl = new ArrayCommandList(maxNumCommands, initialArrayIndex)
             {
@@ -45,7 +46,7 @@ namespace ACESimTest.ArrayProcessingTests
 
             var rec = acl.Recorder;
             script(rec);
-            acl.CompleteCommandList();
+            acl.CompleteCommandList(hoistLargeIfBodies);
 
             return acl;
         }
@@ -61,15 +62,22 @@ namespace ACESimTest.ArrayProcessingTests
             return acl;
         }
 
-        public static (ArrayCommandList acl, int bodyLen) MakeOversizeIfBody(int bodyLen, int threshold)
+        public static (ArrayCommandList acl, int bodyLen) MakeOversizeIfBody(int bodyLen, int threshold, bool addDepthChanges = false)
         {
             var acl = BuildAclWithSingleLeaf(rec =>
             {
                 int idx0 = rec.NewZero();
                 rec.InsertEqualsValueCommand(idx0, 0);
                 rec.InsertIf();
+                if (addDepthChanges)
+                    for (int i = 0; i < bodyLen; i++)
+                        rec.IncrementDepth(); // providing places for splitting
                 for (int i = 0; i < bodyLen; i++)
                     rec.Increment(idx0, false, idx0);
+
+                if (addDepthChanges)
+                    for (int i = 0; i < bodyLen; i++)
+                        rec.DecrementDepth();
                 rec.InsertEndIf();
             },
             maxNumCommands: bodyLen + 5,

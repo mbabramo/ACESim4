@@ -104,11 +104,7 @@ namespace ACESimTest.ArrayProcessingTests
             while (localDepth-- > 0)
                 _acl.DecrementDepth();
 
-            // end this chunk, maybe bubbling up scratch slots
-            if (copyUp.Count == 0 || _rnd.NextDouble() < 0.50)
-                _acl.EndCommandChunk();
-            else
-                _acl.EndCommandChunk(copyUp.ToArray(), endingRepeatedChunk: false);
+            _acl.EndCommandChunk(endingRepeatedChunk: false);
         }
 
         private void EmitLinear(int count, List<int> copyUp, ref int localDepth)

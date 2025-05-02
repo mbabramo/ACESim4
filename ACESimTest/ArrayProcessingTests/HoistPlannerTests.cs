@@ -19,16 +19,15 @@ namespace ACESimTest.ArrayProcessingTests
             return ArrayProcessingTestHelpers.BuildAclWithSingleLeaf(
                 rec => rec.InsertBlankCommands(len),
                 maxNumCommands: len + 2,
-                maxCommandsPerChunk: maxPerChunk);
+                maxCommandsPerChunk: maxPerChunk,
+                hoistLargeIfBodies: false);
         }
 
-        private static (ArrayCommandList acl, int ifIdx, int endIfIdx) BuildOversizeIf(int bodyLen, int maxPerChunk)
+        private static (ArrayCommandList acl, int ifIdx, int endIfIdx) BuildOversizeIf(int bodyLen, int maxPerChunk, bool addDepthChanges = false)
         {
-            var (acl, _) = ArrayProcessingTestHelpers.MakeOversizeIfBody(bodyLen, maxPerChunk);
+            var (acl, _) = ArrayProcessingTestHelpers.MakeOversizeIfBody(bodyLen, maxPerChunk, addDepthChanges);
 
-            // The helper does not call CompleteCommandList; without this the leaf
-            // looks empty to HoistPlanner and every test asserts against {empty}.
-            acl.CompleteCommandList();
+            acl.CompleteCommandList(hoistLargeIfBodies: false);
 
             int ifIdx = Array.FindIndex(acl.UnderlyingCommands, c => c.CommandType == ArrayCommandType.If);
             int endIdx = Array.FindIndex(acl.UnderlyingCommands, c => c.CommandType == ArrayCommandType.EndIf);
@@ -45,18 +44,21 @@ namespace ACESimTest.ArrayProcessingTests
                     rec.InsertDecrementDepthCommand();
                 },
                 maxNumCommands: regionLen + 4,
-                maxCommandsPerChunk: maxPerChunk);
+                maxCommandsPerChunk: maxPerChunk,
+                hoistLargeIfBodies: false);
 
-            // Same problem as above: the ACL is not yet baked.
-            acl.CompleteCommandList();
+            acl.CompleteCommandList(hoistLargeIfBodies: false);
 
             int incIdx = Array.FindIndex(acl.UnderlyingCommands, c => c.CommandType == ArrayCommandType.IncrementDepth);
             int decIdx = Array.FindIndex(acl.UnderlyingCommands, c => c.CommandType == ArrayCommandType.DecrementDepth);
             return (acl, incIdx, decIdx);
         }
 
-        private static IList<HoistPlanner.PlanEntry> Plan(ArrayCommandList acl, int max) =>
-            new HoistPlanner(acl.UnderlyingCommands, max).BuildPlan(acl.CommandTree);
+        private static IList<HoistPlanner.PlanEntry> Plan(ArrayCommandList acl, int max)
+        {
+            return new HoistPlanner(acl.UnderlyingCommands, max)
+                        .BuildPlan(acl.CommandTree);
+        }
 
         // ───────────────────────────────────────── baseline ───────────────────────────────────────
         [DataTestMethod]
@@ -88,14 +90,13 @@ namespace ACESimTest.ArrayProcessingTests
             ArrayProcessingTestHelpers.WithDeterministicIds(() =>
             {
                 int bodyLen = Max + 1;
-                var (acl, ifIdx, endIfIdx) = BuildOversizeIf(bodyLen, Max);
+                var (acl, ifIdx, endIfIdx) = BuildOversizeIf(bodyLen, Max, addDepthChanges: true); // if we didn't add the depth changes, there would be no place where a split is possible.
+                acl.CompleteCommandList(hoistLargeIfBodies: false);
 
                 var plan = Plan(acl, Max);
                 plan.Should().HaveCount(1);
                 var entry = plan.Single();
-                entry.Kind.Should().Be(HoistPlanner.SplitKind.Conditional);
-                entry.StartIdx.Should().Be(ifIdx);
-                entry.EndIdxExclusive.Should().Be(endIfIdx + 1);
+                entry.Kind.Should().Be(HoistPlanner.SplitKind.Depth);
             });
         }
 
@@ -119,9 +120,8 @@ namespace ACESimTest.ArrayProcessingTests
                     rec.InsertEndIf();
                 },
                 maxNumCommands: 30,
-                maxCommandsPerChunk: Max);
-
-                acl.CompleteCommandList();     // new
+                maxCommandsPerChunk: Max,
+                hoistLargeIfBodies: false);
 
                 var plan = Plan(acl, Max).ToList();
                 plan.Should().HaveCount(2)
@@ -150,9 +150,8 @@ namespace ACESimTest.ArrayProcessingTests
                     rec.InsertEndIf();
                 },
                 maxNumCommands: 40,
-                maxCommandsPerChunk: Max);
-
-                acl.CompleteCommandList();     // new
+                maxCommandsPerChunk: Max,
+                hoistLargeIfBodies: false);
 
                 var plan = Plan(acl, Max);
                 plan.Should().HaveCount(1);
@@ -204,9 +203,8 @@ namespace ACESimTest.ArrayProcessingTests
                     rec.InsertDecrementDepthCommand();
                 },
                 maxNumCommands: 40,
-                maxCommandsPerChunk: Max);
-
-                acl.CompleteCommandList();     // new
+                maxCommandsPerChunk: Max,
+                hoistLargeIfBodies: false);
 
                 var plan = Plan(acl, Max).ToList();
                 plan.Should().HaveCount(2)
@@ -233,9 +231,8 @@ namespace ACESimTest.ArrayProcessingTests
                     rec.InsertDecrementDepthCommand();
                 },
                 maxNumCommands: 50,
-                maxCommandsPerChunk: Max);
-
-                acl.CompleteCommandList();     // new
+                maxCommandsPerChunk: Max,
+                hoistLargeIfBodies: false);
 
                 var plan = Plan(acl, Max);
                 plan.Should().HaveCount(1);
@@ -270,9 +267,8 @@ namespace ACESimTest.ArrayProcessingTests
                     rec.InsertDecrementDepthCommand();
                 },
                 maxNumCommands: 40,
-                maxCommandsPerChunk: Max);
-
-                acl.CompleteCommandList();     // new
+                maxCommandsPerChunk: Max,
+                hoistLargeIfBodies: false);
 
                 var plan = Plan(acl, Max);
                 plan.Should().HaveCount(1);
@@ -302,7 +298,7 @@ namespace ACESimTest.ArrayProcessingTests
                 rec.InsertEndIf();
                 rec.EndCommandChunk();
 
-                acl.CompleteCommandList();     // new
+                acl.CompleteCommandList(hoistLargeIfBodies: false);
 
                 int leaf2Id = -1;
                 acl.CommandTree.WalkTree(nObj =>

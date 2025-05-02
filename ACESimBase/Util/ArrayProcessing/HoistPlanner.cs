@@ -90,9 +90,12 @@ namespace ACESimBase.Util.ArrayProcessing
                     yield return new PlanEntry(leaf.ID, SplitKind.Depth, s, e);
             }
         }
-
         private IEnumerable<(int start, int end)> FindOversizeConditionals(int from, int to)
         {
+#if OUTPUT_HOISTING_INFO
+            TabbedText.WriteLine($"FindOversizeConditionals  span=[{from},{to})  _max={_max}");
+            TabbedText.TabIndent();
+#endif
             var stack = new Stack<int>();
             var pairs = new List<(int, int)>();
 
@@ -100,23 +103,41 @@ namespace ACESimBase.Util.ArrayProcessing
             {
                 var t = _cmds[i].CommandType;
                 if (t == ArrayCommandType.If)
+                {
                     stack.Push(i);
+#if OUTPUT_HOISTING_INFO
+                    TabbedText.WriteLine($"IF   @ {i}");
+#endif
+                }
                 else if (t == ArrayCommandType.EndIf && stack.Count > 0)
                 {
                     int open = stack.Pop();
                     int bodyLen = (i - open) - 1;
+#if OUTPUT_HOISTING_INFO
+                    TabbedText.WriteLine($"ENDIF@ {i}   bodyLen={bodyLen}");
+#endif
                     if (bodyLen >= _max)
+                    {
+#if OUTPUT_HOISTING_INFO
+                        TabbedText.WriteLine($"  ➜ oversize IF pair [{open},{i}]");
+#endif
                         pairs.Add((open, i));
+                    }
                 }
             }
 
-            // Ignore the degenerate case: exactly one oversize pair that
-            // starts at 'from' and ends at 'to-1'  (i.e. the whole leaf)
+            // Ignore degenerate whole-leaf pair
             if (pairs.Count == 0 ||
                 (pairs.Count == 1 &&
                  pairs[0].Item1 == from &&
                  pairs[0].Item2 == to - 1))
+            {
+#if OUTPUT_HOISTING_INFO
+                TabbedText.WriteLine("no non-degenerate oversize IF bodies");
+                TabbedText.TabUnindent();
+#endif
                 yield break;
+            }
 
             pairs.Sort((a, b) => a.Item1.CompareTo(b.Item1));
             var filtered = new List<(int, int)>();
@@ -126,15 +147,28 @@ namespace ACESimBase.Util.ArrayProcessing
                        filtered[^1].Item1 <= p.Item1 &&
                        filtered[^1].Item2 >= p.Item2)
                     filtered.RemoveAt(filtered.Count - 1);
+
                 filtered.Add(p);
             }
 
             foreach (var (s, e) in filtered)
-                yield return (s, e + 1);
+            {
+#if OUTPUT_HOISTING_INFO
+                TabbedText.WriteLine($"emit   IF slice [{s},{e + 1})");
+#endif
+                yield return (s, e + 1);   // end is exclusive
+            }
+#if OUTPUT_HOISTING_INFO
+            TabbedText.TabUnindent();
+#endif
         }
 
         private IEnumerable<(int start, int end)> FindOversizeDepthRegions(int from, int to)
         {
+#if OUTPUT_HOISTING_INFO
+            TabbedText.WriteLine($"FindOversizeDepthRegions span=[{from},{to})  _max={_max}");
+            TabbedText.TabIndent();
+#endif
             var openings = new Stack<int>();
             var regions = new List<(int, int)>();
             int depth = 0;
@@ -147,21 +181,38 @@ namespace ACESimBase.Util.ArrayProcessing
                     if (depth == 0)
                         openings.Push(i);
                     depth++;
+#if OUTPUT_HOISTING_INFO
+                    TabbedText.WriteLine($"INC  @ {i}   depth→{depth}");
+#endif
                 }
                 else if (t == ArrayCommandType.DecrementDepth)
                 {
                     depth--;
+#if OUTPUT_HOISTING_INFO
+                    TabbedText.WriteLine($"DEC  @ {i}   depth→{depth}");
+#endif
                     if (depth == 0 && openings.Count > 0)
                     {
                         int start = openings.Pop();
-                        int end = i + 1;
+                        int end = i + 1;                // exclusive
                         if (end - start >= _max)
+                        {
+#if OUTPUT_HOISTING_INFO
+                            TabbedText.WriteLine($"  ➜ oversize depth region [{start},{end})");
+#endif
                             regions.Add((start, end));
+                        }
                     }
                 }
             }
 
+#if OUTPUT_HOISTING_INFO
+            foreach (var (s, e) in regions)
+                TabbedText.WriteLine($"emit depth slice [{s},{e})");
+            TabbedText.TabUnindent();
+#endif
             return regions;
         }
+
     }
 }

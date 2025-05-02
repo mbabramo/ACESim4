@@ -51,7 +51,7 @@ namespace ACESimBase.Util.ArrayProcessing
         // ──────────────────────────────────────────────────────────────────────
         public NWayTreeStorageInternal<ArrayCommandChunk> CommandTree;
         internal bool RecordCommandTreeString = false;
-        internal string CommandTreeString;
+        internal string CommandTreeString => CommandTree.ToTreeString(chunk => "Node ");
         private List<byte> _currentPath = new();
 
         private NWayTreeStorageInternal<ArrayCommandChunk> CurrentNode =>
@@ -128,7 +128,6 @@ namespace ACESimBase.Util.ArrayProcessing
                 MaxCommandsPerSplittableChunk = MaxCommandsPerSplittableChunk,
                 CommandTree = CommandTree,
                 RecordCommandTreeString = RecordCommandTreeString,
-                CommandTreeString = CommandTreeString,
                 _currentPath = new List<byte>(_currentPath),
                 ReuseDestinations = ReuseDestinations,
                 UseCheckpoints = UseCheckpoints,
@@ -187,12 +186,14 @@ namespace ACESimBase.Util.ArrayProcessing
             _currentPath.Add(branch);
         }
 
-        public void EndCommandChunk(int[] copyIncrementsToParent = null, bool endingRepeatedChunk = false)
+        public void EndCommandChunk(bool endingRepeatedChunk = false)
         {
             if (_currentPath.Count == 0)
             {
                 var root = CurrentChunk;
+                root.StartCommandRange = 0;
                 root.EndCommandRangeExclusive = NextCommandIndex;
+                root.StartSourceIndices = 0;
                 root.EndSourceIndicesExclusive = OrderedSourceIndices.Count;
                 return;            // nothing else to pop
             }
@@ -227,12 +228,13 @@ namespace ACESimBase.Util.ArrayProcessing
         // ──────────────────────────────────────────────────────────────────────
         //  Finalisation passes
         // ──────────────────────────────────────────────────────────────────────
-        public void CompleteCommandList()
+        public void CompleteCommandList(bool hoistLargeIfBodies = true)
         {
             MaxCommandIndex = NextCommandIndex;
             VerifyCorrectness();
             while (_currentPath.Count > 0) EndCommandChunk();
-            CompleteCommandTree();
+            EndCommandChunk(); // root
+            CompleteCommandTree(hoistLargeIfBodies);
             VirtualStack = new double[MaxArrayIndex + 1];
 
         }
@@ -292,7 +294,7 @@ namespace ACESimBase.Util.ArrayProcessing
                     $"Mismatch: IncrementDepth={incDepths}  DecrementDepth={decDepths}");
         }
 
-        public void CompleteCommandTree()
+        public void CompleteCommandTree(bool hoistLargeIfBodies = true)
         {
             CommandTree.WalkTree(n =>
                 {
@@ -300,7 +302,8 @@ namespace ACESimBase.Util.ArrayProcessing
                     InsertMissingBranches(node);
                     node.StoredValue.VirtualStack = VirtualStack; // for now, we're just sharing all virtual stacks
                 });
-            HoistAndSplitLargeIfBodies();
+            if (hoistLargeIfBodies)
+                HoistAndSplitLargeIfBodies();
         }
 
         public string CommandListString()
