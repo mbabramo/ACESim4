@@ -77,7 +77,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public bool Parallelize = false;
         public int MaxCommandsPerSplittableChunk = 1_000_000; // DEBUG: Until we fix the behavior of hoisting, we need to just use the flat option.
         public bool UseOrderedSources => !DisableAdvancedFeatures;
-        public bool UseOrderedDestinations => !DisableAdvancedFeatures;
+        public bool UseOrderedDestinations => false; // DEBUG !DisableAdvancedFeatures;
         public bool DoParallel => !DisableAdvancedFeatures && Parallelize;
         public bool ReuseScratchSlots => false; // DEBUG MaxCommandsPerSplittableChunk == int.MaxValue;
         public bool ReuseDestinations = false;

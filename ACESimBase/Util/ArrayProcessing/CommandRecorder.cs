@@ -309,18 +309,6 @@ namespace ACESimBase.Util.ArrayProcessing
 
         #endregion  // DepthAndChunkFacade
 
-
-        #region OrderedBufferHooks   // rarely used directly
-
-        internal void RegisterSourceIndex(int idx) =>
-            _acl.OrderedSourceIndices.Add(idx);
-
-        internal void RegisterDestinationIndex(int idx) =>
-            _acl.OrderedDestinationIndices.Add(idx);
-
-        #endregion
-
-
         #region Comments and blank commands
 
         public List<string> CommentTable = new List<string>();

@@ -150,7 +150,7 @@ namespace ACESimTest.ArrayProcessingTests
                 MaxCommandsPerSplittableChunk = threshold
             };
 
-            /* 1️⃣  copy raw commands */
+            /* 1️  copy raw commands */
             Array.Copy(Acl.UnderlyingCommands,
                        clone.UnderlyingCommands,
                        Acl.NextCommandIndex);
@@ -158,13 +158,13 @@ namespace ACESimTest.ArrayProcessingTests
             clone.NextArrayIndex = Acl.NextArrayIndex;
             clone.MaxArrayIndex = Acl.MaxArrayIndex;
 
-            /* 2️⃣  copy ordered‑index metadata */
+            /* 2️  copy ordered‑index metadata */
             clone.OrderedSourceIndices = new List<int>(Acl.OrderedSourceIndices);
             clone.OrderedDestinationIndices = new List<int>(Acl.OrderedDestinationIndices);
             clone.ReusableOrderedDestinationIndices =
                 new Dictionary<int, int>(Acl.ReusableOrderedDestinationIndices);
 
-            /* 3️⃣  rebuild the tree for THIS chunk limit */
+            /* 3️  rebuild the tree for THIS chunk limit */
             clone.CommandTree = new NWayTreeStorageInternal<ArrayCommandChunk>(null);
             clone.CommandTree.StoredValue = new ArrayCommandChunk
             {

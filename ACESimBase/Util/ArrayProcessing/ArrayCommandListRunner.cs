@@ -176,7 +176,7 @@ namespace ACESimBase.Util.ArrayProcessing
             if (data is null) throw new ArgumentNullException(nameof(data));
 
             //------------------------------------------------------------------
-            // 1️⃣  Stage ordered buffers
+            // 1️  Stage ordered buffers
             //------------------------------------------------------------------
             _buffers = new OrderedBufferManager();
             _buffers.SourceIndices.AddRange(acl.OrderedSourceIndices);
@@ -184,7 +184,7 @@ namespace ACESimBase.Util.ArrayProcessing
             _buffers.PrepareBuffers(data, acl.DoParallel);
 
             //------------------------------------------------------------------
-            // 2️⃣  Depth-first traversal with pre/post hooks
+            // 2️  Depth-first traversal with pre/post hooks
             //------------------------------------------------------------------
             acl.CommandTree!.WalkTree(
                 beforeDescending: n => Pre((NWayTreeStorageInternal<ArrayCommandChunk>)n, acl),
@@ -192,7 +192,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 parallel: n => ParallelPredicate((NWayTreeStorageInternal<ArrayCommandChunk>)n, acl));
 
             //------------------------------------------------------------------
-            // 3️⃣  Merge ordered destinations back into caller array
+            // 3️  Merge ordered destinations back into caller array
             //------------------------------------------------------------------
             _buffers.FlushDestinations(data, acl.DoParallel);
         }
