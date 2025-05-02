@@ -84,7 +84,7 @@ namespace ACESimTest.ArrayProcessingTests
 
             // Interpreter baseline
             var vsInterp = new double[chunk.VirtualStack.Length];
-            int cosi0 = 0, codi0 = 0; bool cond0 = true;
+            int cosi0 = 0; bool cond0 = true;
             var interp = new InterpreterChunkExecutor(cmds, 0, cmds.Length, false, null);
             interp.Execute(chunk, vsInterp, os0, ref cosi0, ref cond0);
 
@@ -108,7 +108,8 @@ namespace ACESimTest.ArrayProcessingTests
             // Roslyn with local variable reuse
             var vsLoc = new double[chunk.VirtualStack.Length];
             var odLoc = new double[MaxDests];
-            int cosi2 = 0, codi2 = 0; bool cond2 = true;
+            int cosi2 = 0; 
+            bool cond2 = true;
             var rosLoc = new RoslynChunkExecutor(
                 cmds, 0, cmds.Length, useCheckpoints: false, localVariableReuse: true);
             rosLoc.AddToGeneration(chunk);

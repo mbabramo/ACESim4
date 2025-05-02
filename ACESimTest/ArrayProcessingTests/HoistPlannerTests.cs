@@ -25,9 +25,14 @@ namespace ACESimTest.ArrayProcessingTests
         private static (ArrayCommandList acl, int ifIdx, int endIfIdx) BuildOversizeIf(int bodyLen, int maxPerChunk)
         {
             var (acl, _) = ArrayProcessingTestHelpers.MakeOversizeIfBody(bodyLen, maxPerChunk);
+
+            // The helper does not call CompleteCommandList; without this the leaf
+            // looks empty to HoistPlanner and every test asserts against {empty}.
+            acl.CompleteCommandList();
+
             int ifIdx = Array.FindIndex(acl.UnderlyingCommands, c => c.CommandType == ArrayCommandType.If);
-            int endIfIdx = Array.FindIndex(acl.UnderlyingCommands, c => c.CommandType == ArrayCommandType.EndIf);
-            return (acl, ifIdx, endIfIdx);
+            int endIdx = Array.FindIndex(acl.UnderlyingCommands, c => c.CommandType == ArrayCommandType.EndIf);
+            return (acl, ifIdx, endIdx);
         }
 
         private static (ArrayCommandList acl, int incIdx, int decIdx) BuildOversizeDepthRegion(int regionLen, int maxPerChunk)
@@ -42,13 +47,16 @@ namespace ACESimTest.ArrayProcessingTests
                 maxNumCommands: regionLen + 4,
                 maxCommandsPerChunk: maxPerChunk);
 
+            // Same problem as above: the ACL is not yet baked.
+            acl.CompleteCommandList();
+
             int incIdx = Array.FindIndex(acl.UnderlyingCommands, c => c.CommandType == ArrayCommandType.IncrementDepth);
             int decIdx = Array.FindIndex(acl.UnderlyingCommands, c => c.CommandType == ArrayCommandType.DecrementDepth);
             return (acl, incIdx, decIdx);
         }
 
-        private static IList<HoistPlanner.PlanEntry> Plan(ArrayCommandList acl, int max)
-            => new HoistPlanner(acl.UnderlyingCommands, max).BuildPlan(acl.CommandTree);
+        private static IList<HoistPlanner.PlanEntry> Plan(ArrayCommandList acl, int max) =>
+            new HoistPlanner(acl.UnderlyingCommands, max).BuildPlan(acl.CommandTree);
 
         // ───────────────────────────────────────── baseline ───────────────────────────────────────
         [DataTestMethod]
@@ -81,6 +89,7 @@ namespace ACESimTest.ArrayProcessingTests
             {
                 int bodyLen = Max + 1;
                 var (acl, ifIdx, endIfIdx) = BuildOversizeIf(bodyLen, Max);
+
                 var plan = Plan(acl, Max);
                 plan.Should().HaveCount(1);
                 var entry = plan.Single();
@@ -112,6 +121,8 @@ namespace ACESimTest.ArrayProcessingTests
                 maxNumCommands: 30,
                 maxCommandsPerChunk: Max);
 
+                acl.CompleteCommandList();     // new
+
                 var plan = Plan(acl, Max).ToList();
                 plan.Should().HaveCount(2)
                      .And.BeInAscendingOrder(p => p.StartIdx)
@@ -141,6 +152,8 @@ namespace ACESimTest.ArrayProcessingTests
                 maxNumCommands: 40,
                 maxCommandsPerChunk: Max);
 
+                acl.CompleteCommandList();     // new
+
                 var plan = Plan(acl, Max);
                 plan.Should().HaveCount(1);
                 plan.Single().Kind.Should().Be(HoistPlanner.SplitKind.Conditional);
@@ -165,6 +178,7 @@ namespace ACESimTest.ArrayProcessingTests
             {
                 int regionLen = Max + 2;
                 var (acl, incIdx, decIdx) = BuildOversizeDepthRegion(regionLen, Max);
+
                 var plan = Plan(acl, Max);
                 plan.Should().HaveCount(1);
                 var entry = plan.Single();
@@ -191,6 +205,8 @@ namespace ACESimTest.ArrayProcessingTests
                 },
                 maxNumCommands: 40,
                 maxCommandsPerChunk: Max);
+
+                acl.CompleteCommandList();     // new
 
                 var plan = Plan(acl, Max).ToList();
                 plan.Should().HaveCount(2)
@@ -219,6 +235,8 @@ namespace ACESimTest.ArrayProcessingTests
                 maxNumCommands: 50,
                 maxCommandsPerChunk: Max);
 
+                acl.CompleteCommandList();     // new
+
                 var plan = Plan(acl, Max);
                 plan.Should().HaveCount(1);
                 plan.Single().Kind.Should().Be(HoistPlanner.SplitKind.Depth);
@@ -230,16 +248,12 @@ namespace ACESimTest.ArrayProcessingTests
         {
             ArrayProcessingTestHelpers.WithDeterministicIds(() =>
             {
-                /*  A depth region is considered for splitting inclusive of its
-                    IncrementDepth and DecrementDepth tokens.  Therefore the
-                    *body* length must be at least (Max – 2) smaller than the
-                    threshold to stay safely below it. */
                 var (acl, _, _) = BuildOversizeDepthRegion(Max - 3 /* body */, Max);
                 Plan(acl, Max).Should().BeEmpty();
             });
         }
 
-        // ───────────────────────────────────────── precedence rule ──        // ───────────────────────────────────── precedence rule ─────────────────────────────────────
+        // ───────────────────────────────────────── precedence rule ───────────────────────────────
         [TestMethod]
         public void Precedence_ConditionalInsideDepthRegion_WinsOverDepth()
         {
@@ -258,6 +272,8 @@ namespace ACESimTest.ArrayProcessingTests
                 maxNumCommands: 40,
                 maxCommandsPerChunk: Max);
 
+                acl.CompleteCommandList();     // new
+
                 var plan = Plan(acl, Max);
                 plan.Should().HaveCount(1);
                 plan.Single().Kind.Should().Be(HoistPlanner.SplitKind.Conditional);
@@ -270,7 +286,8 @@ namespace ACESimTest.ArrayProcessingTests
         {
             ArrayProcessingTestHelpers.WithDeterministicIds(() =>
             {
-                var acl = new ArrayCommandList(256, 0) { MaxCommandsPerSplittableChunk = Max };
+                var acl = new ArrayCommandList(256, 0)
+                { MaxCommandsPerSplittableChunk = Max };
                 var rec = acl.Recorder;
 
                 rec.StartCommandChunk(false, null, name: "L1");
@@ -285,8 +302,7 @@ namespace ACESimTest.ArrayProcessingTests
                 rec.InsertEndIf();
                 rec.EndCommandChunk();
 
-                acl.MaxCommandIndex = acl.NextCommandIndex;
-                acl.CommandTree.StoredValue.EndCommandRangeExclusive = acl.NextCommandIndex;
+                acl.CompleteCommandList();     // new
 
                 int leaf2Id = -1;
                 acl.CommandTree.WalkTree(nObj =>

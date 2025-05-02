@@ -227,7 +227,7 @@ namespace ACESimBase.Util.ArrayProcessing
         private void ExecuteChunk(ArrayCommandChunk c, ArrayCommandList acl)
         {
 #if OUTPUT_HOISTING_INFO
-            TabbedText.WriteLine($"[Runner] ExecuteChunk {c.ID} StartSourceIndices: {c.StartSourceIndices} StartDestinationIndices {c.StartDestinationIndices} ");
+            TabbedText.WriteLine($"[Runner] ExecuteChunk {c.ID} StartSourceIndices: {c.StartSourceIndices} ");
 #endif
             // Skip entire chunk when inside a false branch
             if (_globalSkipDepth > 0) { ScanForNestedIfs(c, acl); return; }
