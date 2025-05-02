@@ -78,10 +78,6 @@ namespace ACESimBase.Util.ArrayProcessing
                 }
             }
 
-            acl.CommandTree.WalkTree(
-                n => acl.SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandChunk>)n),
-                n => acl.SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandChunk>)n));
-
 #if OUTPUT_HOISTING_INFO
             TabbedText.WriteLine("── tree after ApplyPlan ──");
             TabbedText.WriteLine(acl.CommandTree.ToTreeString(_ => "Leaf"));
@@ -220,7 +216,6 @@ namespace ACESimBase.Util.ArrayProcessing
                 EndSourceIndicesExclusive = src.EndSourceIndicesExclusive,
                 StartDestinationIndices = src.StartDestinationIndices,
                 EndDestinationIndicesExclusive = src.EndDestinationIndicesExclusive,
-                ChildrenParallelizable = false
             };
         }
 

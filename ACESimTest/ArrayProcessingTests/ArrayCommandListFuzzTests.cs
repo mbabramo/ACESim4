@@ -130,7 +130,7 @@ namespace ACESimTest.ArrayProcessingTests
             int maxAlloc = 60_000;
             int minCompile = _rnd.Next(0, 3);
 
-            Acl = new ArrayCommandList(maxAlloc, DstStart + OrigCt, parallelize: false)
+            Acl = new ArrayCommandList(maxAlloc, DstStart + OrigCt)
             {
                 DisableAdvancedFeatures = false,
                 MaxCommandsPerSplittableChunk = 1_000_000 // keeps ReuseScratchSlots = false
@@ -142,29 +142,10 @@ namespace ACESimTest.ArrayProcessingTests
 
         public ArrayCommandList CloneFor(int threshold)
         {
-            var clone = new ArrayCommandList(Acl.UnderlyingCommands.Length,
-                                             DstStart + OrigCt,
-                                             parallelize: false)
-            {
-                DisableAdvancedFeatures = false,
-                MaxCommandsPerSplittableChunk = threshold
-            };
 
-            /* 1️  copy raw commands */
-            Array.Copy(Acl.UnderlyingCommands,
-                       clone.UnderlyingCommands,
-                       Acl.NextCommandIndex);
-            clone.NextCommandIndex = Acl.NextCommandIndex;
-            clone.NextArrayIndex = Acl.NextArrayIndex;
-            clone.MaxArrayIndex = Acl.MaxArrayIndex;
+            var clone = Acl.Clone();
+            clone.MaxCommandsPerSplittableChunk = threshold;
 
-            /* 2️  copy ordered‑index metadata */
-            clone.OrderedSourceIndices = new List<int>(Acl.OrderedSourceIndices);
-            clone.OrderedDestinationIndices = new List<int>(Acl.OrderedDestinationIndices);
-            clone.ReusableOrderedDestinationIndices =
-                new Dictionary<int, int>(Acl.ReusableOrderedDestinationIndices);
-
-            /* 3️  rebuild the tree for THIS chunk limit */
             clone.CommandTree = new NWayTreeStorageInternal<ArrayCommandChunk>(null);
             clone.CommandTree.StoredValue = new ArrayCommandChunk
             {
@@ -174,7 +155,7 @@ namespace ACESimTest.ArrayProcessingTests
                 StartDestinationIndices = 0
             };
 
-            clone.FinaliseCommandTree();
+            clone.CompleteCommandTree();
 
             return clone;
         }

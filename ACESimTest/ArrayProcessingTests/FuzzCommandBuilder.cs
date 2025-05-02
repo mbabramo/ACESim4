@@ -22,7 +22,7 @@ namespace ACESimTest.ArrayProcessingTests
         {
             _rnd = new Random(seed);
             _origCount = origCount;
-            _acl = new ArrayCommandList(maxNumCommands: 1000, initialArrayIndex: origCount, parallelize: false);
+            _acl = new ArrayCommandList(maxNumCommands: 1000, initialArrayIndex: origCount);
         }
 
         /// <summary>

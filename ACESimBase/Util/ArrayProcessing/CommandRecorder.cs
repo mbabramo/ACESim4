@@ -17,54 +17,55 @@ namespace ACESimBase.Util.ArrayProcessing
         private readonly ArrayCommandList _acl;
 
         // Counters mirrored into the ACL for introspection / later execution
-        private int _nextArrayIndex;
-        private int _maxArrayIndex;
-        private int _nextCommandIndex;
+        public int NextArrayIndex;
+        public int MaxArrayIndex;
+        public int NextCommandIndex;
 
         // Depth-based scratch rewind
-        private readonly Stack<int> _depthStartSlots = new();
+        private Stack<int> _depthStartSlots = new();
 
         public CommandRecorder(ArrayCommandList owner)
         {
             _acl = owner ?? throw new ArgumentNullException(nameof(owner));
-            _nextArrayIndex = owner.NextArrayIndex;
-            _maxArrayIndex = owner.MaxArrayIndex;
-            _nextCommandIndex = owner.NextCommandIndex;
+            NextArrayIndex = owner.NextArrayIndex;
+            MaxArrayIndex = owner.MaxArrayIndex;
+            NextCommandIndex = owner.NextCommandIndex;
         }
 
+        public CommandRecorder Clone(ArrayCommandList acl2) =>
+            new CommandRecorder(acl2)
+            {
+                NextArrayIndex = NextArrayIndex,
+                MaxArrayIndex = MaxArrayIndex,
+                NextCommandIndex = NextCommandIndex,
+                _depthStartSlots = new Stack<int>(_depthStartSlots.Reverse())
+            };
+
         #region InternalHelpers
-        private void SyncCounters()
-        {
-            _acl.NextArrayIndex = _nextArrayIndex;
-            _acl.MaxArrayIndex = _maxArrayIndex;
-            _acl.NextCommandIndex = _nextCommandIndex;
-        }
 
         private void AddCommand(ArrayCommand cmd)
         {
             // Repeat-identical-range optimisation → verify identity
             if (_acl.RepeatingExistingCommandRange)
             {
-                var existing = _acl.UnderlyingCommands[_nextCommandIndex];
+                var existing = _acl.UnderlyingCommands[NextCommandIndex];
                 if (!cmd.Equals(existing))
                     throw new InvalidOperationException("Command mismatch in RepeatIdenticalRanges block.");
-                _nextCommandIndex++;
-                SyncCounters();
+                NextCommandIndex++;
                 return;
             }
 
             // Ensure capacity (hard ceiling = 1 billion commands to prevent OOM)
             const int HARD_LIMIT = 1_000_000_000;
-            if (_nextCommandIndex >= _acl.UnderlyingCommands.Length)
+            if (NextCommandIndex >= _acl.UnderlyingCommands.Length)
             {
                 if (_acl.UnderlyingCommands.Length >= HARD_LIMIT)
                     throw new InvalidOperationException("Command buffer exceeded hard limit.");
                 Array.Resize(ref _acl.UnderlyingCommands, _acl.UnderlyingCommands.Length * 2);
             }
 
-            _acl.UnderlyingCommands[_nextCommandIndex++] = cmd;
-            if (_nextArrayIndex > _maxArrayIndex) _maxArrayIndex = _nextArrayIndex;
-            SyncCounters();
+            _acl.UnderlyingCommands[NextCommandIndex++] = cmd;
+            if (NextArrayIndex > MaxArrayIndex) MaxArrayIndex = NextArrayIndex;
         }
         #endregion
 
@@ -72,7 +73,7 @@ namespace ACESimBase.Util.ArrayProcessing
         /// <summary>Create one scratch slot initialised to 0.</summary>
         public int NewZero()
         {
-            int slot = _nextArrayIndex++;
+            int slot = NextArrayIndex++;
             AddCommand(new ArrayCommand(ArrayCommandType.Zero, slot, -1));
             return slot;
         }
@@ -81,7 +82,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public int[] NewZeroArray(int size) => Enumerable.Range(0, size).Select(_ => NewZero()).ToArray();
 
         /// <summary>Reserve a scratch slot without initialising its value.</summary>
-        public int NewUninitialized() => _nextArrayIndex++;
+        public int NewUninitialized() => NextArrayIndex++;
 
         public int[] NewUninitializedArray(int size) =>
             Enumerable.Range(0, size).Select(_ => NewUninitialized()).ToArray();
@@ -91,7 +92,7 @@ namespace ACESimBase.Util.ArrayProcessing
         /// <summary>Copy value from <paramref name="sourceIdx"/> into a <em>new</em> scratch slot.</summary>
         public int CopyToNew(int sourceIdx, bool fromOriginalSources)
         {
-            int target = _nextArrayIndex++;
+            int target = NextArrayIndex++;
             if (fromOriginalSources)
             {
                 _acl.OrderedSourceIndices.Add(sourceIdx);
@@ -221,7 +222,7 @@ namespace ACESimBase.Util.ArrayProcessing
             int tmp = CopyToNew(factor1Idx, false);
             MultiplyBy(tmp, factor2Idx);
             Increment(targetIdx, targetOriginal, tmp);
-            if (reuseTmp && _acl.ReuseScratchSlots) _nextArrayIndex--; // reclaim
+            if (reuseTmp && _acl.ReuseScratchSlots) NextArrayIndex--; // reclaim
         }
 
         public void DecrementArrayBy(int[] targets, int decIdx)
@@ -243,7 +244,7 @@ namespace ACESimBase.Util.ArrayProcessing
             int tmp = CopyToNew(factor1Idx, false);
             MultiplyBy(tmp, factor2Idx);
             Decrement(targetIdx, tmp);
-            if (reuseTmp && _acl.ReuseScratchSlots) _nextArrayIndex--; // reclaim
+            if (reuseTmp && _acl.ReuseScratchSlots) NextArrayIndex--; // reclaim
         }
         #endregion
 
@@ -278,7 +279,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         internal void IncrementDepth()
         {
-            _depthStartSlots.Push(_nextArrayIndex);
+            _depthStartSlots.Push(NextArrayIndex);
             InsertIncrementDepthCommand();
         }
 
@@ -287,9 +288,8 @@ namespace ACESimBase.Util.ArrayProcessing
             InsertDecrementDepthCommand();
             int rewind = _depthStartSlots.Pop();
             if (_acl.RepeatIdenticalRanges && _acl.ReuseScratchSlots)
-                _nextArrayIndex = rewind;
+                NextArrayIndex = rewind;
 
-            SyncCounters();
             if (_depthStartSlots.Count == 0 && completeCommandList)
                 _acl.CompleteCommandList();
         }
@@ -326,7 +326,7 @@ namespace ACESimBase.Util.ArrayProcessing
         /// </summary>
         public int InsertBlankCommand()
         {
-            int cmdIndex = _nextCommandIndex;                 // position before adding the blank
+            int cmdIndex = NextCommandIndex;                 // position before adding the blank
             AddCommand(new ArrayCommand(ArrayCommandType.Blank, -1, -1));
             return cmdIndex;
         }
@@ -334,7 +334,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public int InsertIncrementDepthCommand()
         {
-            int cmdIndex = _nextCommandIndex;                 // position before adding the blank
+            int cmdIndex = NextCommandIndex;                 // position before adding the blank
             AddCommand(new ArrayCommand(ArrayCommandType.IncrementDepth, -1, -1));
             return cmdIndex;
         }
@@ -342,7 +342,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public int InsertDecrementDepthCommand()
         {
-            int cmdIndex = _nextCommandIndex;                 // position before adding the blank
+            int cmdIndex = NextCommandIndex;                 // position before adding the blank
             AddCommand(new ArrayCommand(ArrayCommandType.DecrementDepth, -1, -1));
             return cmdIndex;
         }

@@ -367,7 +367,7 @@ namespace ACESimTest.ArrayProcessingTests
         {
             ArrayProcessingTestHelpers.WithDeterministicIds(() =>
             {
-                var acl = new ArrayCommandList(256, 0, parallelize: false)
+                var acl = new ArrayCommandList(256, 0)
                 {
                     MaxCommandsPerSplittableChunk = Max
                 };

@@ -204,7 +204,6 @@ namespace ACESimBase.Util.ArrayProcessing
         private void Pre(NWayTreeStorageInternal<ArrayCommandChunk> node, ArrayCommandList acl)
         {
             var c = node.StoredValue;
-            c.CopyParentVirtualStack();
 
             if (c.Skip) return;
 
@@ -228,14 +227,12 @@ namespace ACESimBase.Util.ArrayProcessing
             bool isLeaf = node.Branches is null || node.Branches.Length == 0;
             if (isLeaf && c.Name != "Conditional")
                 ExecuteChunk(c, acl);
-
-            c.CopyVirtualStackToParent();
         }
 
         // Decide whether children of <node> may run concurrently
         private static bool ParallelPredicate(NWayTreeStorageInternal<ArrayCommandChunk> node,
                                               ArrayCommandList acl)
-            => acl.DoParallel && node.StoredValue.ChildrenParallelizable;
+            => acl.DoParallel;
 
         // ──────────────────────────────────────────────────────────────────────
         //  Execute a single chunk using compiled or fallback executor
@@ -261,7 +258,7 @@ namespace ACESimBase.Util.ArrayProcessing
             int codi = c.StartDestinationIndices; // current ordered‑dest   ptr (by ref)
 
             _compiled.Execute(c,
-                              c.VirtualStack,
+                              acl.VirtualStack,
                               _buffers.Sources,
                               _buffers.Destinations,
                               ref cosi,

@@ -38,19 +38,15 @@ namespace ACESimTest.ArrayProcessingTests
             int maxArrayIndex = 10,
             int maxCommandsPerChunk = int.MaxValue)
         {
-            var acl = new ArrayCommandList(maxNumCommands, initialArrayIndex, parallelize: false)
+            var acl = new ArrayCommandList(maxNumCommands, initialArrayIndex)
             {
                 MaxCommandsPerSplittableChunk = maxCommandsPerChunk
             };
 
             var rec = acl.Recorder;
             script(rec);
+            acl.CompleteCommandList();
 
-            acl.MaxCommandIndex = acl.NextCommandIndex;
-            acl.CommandTree.StoredValue.EndCommandRangeExclusive = acl.NextCommandIndex;
-            acl.CommandTree.StoredValue.EndSourceIndicesExclusive = acl.OrderedSourceIndices.Count;
-            acl.CommandTree.StoredValue.EndDestinationIndicesExclusive = acl.OrderedDestinationIndices.Count;
-            acl.MaxArrayIndex = Math.Max(acl.MaxArrayIndex, maxArrayIndex);
             return acl;
         }
 
@@ -60,28 +56,8 @@ namespace ACESimTest.ArrayProcessingTests
         {
             if (cmds is null) throw new ArgumentNullException(nameof(cmds));
 
-            var acl = new ArrayCommandList(cmds.Count + 10, 0, parallelize: false)
-            {
-                MaxCommandsPerSplittableChunk = maxCommandsPerChunk
-            };
+            var acl = new ArrayCommandList(cmds.ToArray(), 0, maxCommandsPerChunk);
 
-            acl.UnderlyingCommands = cmds.ToArray();
-            acl.NextCommandIndex = cmds.Count;
-            acl.MaxCommandIndex = cmds.Count;
-
-            acl.MaxArrayIndex = cmds.Count > 0
-                ? cmds.Max(c => Math.Max(c.GetSourceIndexIfUsed(), c.GetTargetIndexIfUsed()))
-                : -1;
-
-            acl.CommandTree = new NWayTreeStorageInternal<ArrayCommandChunk>(null)
-            {
-                StoredValue = new ArrayCommandChunk
-                {
-                    ID = 0,
-                    StartCommandRange = 0,
-                    EndCommandRangeExclusive = cmds.Count
-                }
-            };
             return acl;
         }
 
@@ -129,7 +105,7 @@ namespace ACESimTest.ArrayProcessingTests
             if (first is null) throw new ArgumentNullException(nameof(first));
             if (second is null) throw new ArgumentNullException(nameof(second));
 
-            var acl = new ArrayCommandList(1024, 0, parallelize: false)
+            var acl = new ArrayCommandList(1024, 0)
             {
                 MaxCommandsPerSplittableChunk = maxCommandsPerChunk
             };
@@ -163,7 +139,7 @@ namespace ACESimTest.ArrayProcessingTests
                                               int initialIdx = 0,
                                               bool parallel = false,
                                               int maxPerChunk = 50)
-            => new(maxCmds, initialIdx, parallel) { MaxCommandsPerSplittableChunk = maxPerChunk };
+            => new(maxCmds, initialIdx) { MaxCommandsPerSplittableChunk = maxPerChunk };
 
         /* --------------------------------------------------------------------
            SECTION 2  Assertion helpers
@@ -352,7 +328,6 @@ namespace ACESimTest.ArrayProcessingTests
 
             a.StartCommandRange.Should().Be(e.StartCommandRange, because);
             a.EndCommandRangeExclusive.Should().Be(e.EndCommandRangeExclusive, because);
-            a.ChildrenParallelizable.Should().Be(e.ChildrenParallelizable, because);
             a.Name.Should().Be(e.Name, because);
 
             var expChildren = ChildList(expected);

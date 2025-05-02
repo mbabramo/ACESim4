@@ -18,49 +18,16 @@ namespace ACESimBase.Util.ArrayProcessing
     [Serializable]
     public partial class ArrayCommandList
     {
-        // -----------------------------------------------------------------------------
-        //  Debug helpers – add these inside the ArrayCommandList partial class
-        // -----------------------------------------------------------------------------
-        public void Debug_LogSourceStats()
-        {
-            int nextSource = UnderlyingCommands
-                                .Take(MaxCommandIndex)
-                                .Count(c => c.CommandType == ArrayCommandType.NextSource);
-
-            int copyTo = UnderlyingCommands
-                                .Take(MaxCommandIndex)
-                                .Count(c => c.CommandType == ArrayCommandType.CopyTo);
-
-            TabbedText.WriteLine($"[ACL-DBG] NextSource commands : {nextSource}");
-            TabbedText.WriteLine($"[ACL-DBG] CopyTo commands     : {copyTo}");
-            TabbedText.WriteLine($"[ACL-DBG] OrderedSourceIndices: {OrderedSourceIndices.Count}");
-        }
-
-        public void Debug_DumpCheckpoints(int max = 10)
-        {
-            if (!UseCheckpoints || Checkpoints is null || Checkpoints.Count == 0)
-            {
-                TabbedText.WriteLine("[ACL-DBG] No checkpoints recorded.");
-                return;
-            }
-
-            TabbedText.WriteLine($"[ACL-DBG] First {Math.Min(max, Checkpoints.Count)} checkpoints:");
-            foreach (var (idx, val) in Checkpoints.Take(max))
-                TabbedText.WriteLine($"    idx {idx} → {val}");
-        }
-
-
-
         // ──────────────────────────────────────────────────────────────────────
         //  Command buffer and scratch‑slot counters
         // ──────────────────────────────────────────────────────────────────────
         public ArrayCommand[] UnderlyingCommands;
-        public int NextCommandIndex;
+        public double[] VirtualStack;
+        public int NextCommandIndex => Recorder.NextCommandIndex;
         public int MaxCommandIndex;
-
         public int FirstScratchIndex;
-        public int NextArrayIndex;
-        public int MaxArrayIndex;
+        public int NextArrayIndex => Recorder.NextArrayIndex;
+        public int MaxArrayIndex => Recorder.MaxArrayIndex;
         public int FullArraySize => FirstScratchIndex + (DoParallel ? 0 : MaxArrayIndex);
 
         // ──────────────────────────────────────────────────────────────────────
@@ -78,7 +45,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public int MaxCommandsPerSplittableChunk = 1_000_000; // DEBUG: Until we fix the behavior of hoisting, we need to just use the flat option.
         public bool UseOrderedSources => !DisableAdvancedFeatures;
         public bool UseOrderedDestinations => false; // DEBUG !DisableAdvancedFeatures;
-        public bool DoParallel => !DisableAdvancedFeatures && Parallelize;
+        public bool DoParallel => false; // not currently enabled (each command chunk is sharing a stack -- could at some point consider going back to previous functionality, but it added a lot of complexity)
         public bool ReuseScratchSlots => false; // DEBUG MaxCommandsPerSplittableChunk == int.MaxValue;
         public bool ReuseDestinations = false;
         public bool RepeatIdenticalRanges => /* ReuseScratchSlots DEBUG && */ !DisableAdvancedFeatures;
@@ -89,8 +56,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public NWayTreeStorageInternal<ArrayCommandChunk> CommandTree;
         internal bool RecordCommandTreeString = false;
         internal string CommandTreeString;
-        private readonly List<byte> _currentPath = new();
-        private int _nextVirtualStackID = 0;
+        private List<byte> _currentPath = new();
 
         private NWayTreeStorageInternal<ArrayCommandChunk> CurrentNode =>
             (NWayTreeStorageInternal<ArrayCommandChunk>)CommandTree.GetNode(_currentPath);
@@ -111,8 +77,8 @@ namespace ACESimBase.Util.ArrayProcessing
         // ──────────────────────────────────────────────────────────────────────
         //  Author‑time helpers
         // ──────────────────────────────────────────────────────────────────────
-        private readonly Stack<int> _depthStartSlots = new();
-        private readonly Stack<int?> _repeatRangeStack = new();
+        private Stack<int> _depthStartSlots = new();
+        private Stack<int?> _repeatRangeStack = new();
         public bool RepeatingExistingCommandRange = false;
         private int _keepTogetherLevel = 0;
         private bool _rootChunkInitialised = false;
@@ -121,24 +87,69 @@ namespace ACESimBase.Util.ArrayProcessing
         // ──────────────────────────────────────────────────────────────────────
         //  Construction
         // ──────────────────────────────────────────────────────────────────────
-        public ArrayCommandList(int maxNumCommands, int initialArrayIndex, bool parallelize)
+        public ArrayCommandList(int maxNumCommands, int initialArrayIndex)
         {
             UnderlyingCommands = new ArrayCommand[maxNumCommands];
 
             FirstScratchIndex = initialArrayIndex;
-            NextArrayIndex = initialArrayIndex;
-            MaxArrayIndex = initialArrayIndex - 1;
-
-            Parallelize = parallelize;
+            Recorder.NextArrayIndex = initialArrayIndex;
+            Recorder.MaxArrayIndex = initialArrayIndex - 1;
 
             CommandTree = new NWayTreeStorageInternal<ArrayCommandChunk>(null);
             CommandTree.StoredValue = new ArrayCommandChunk
             {
-                ChildrenParallelizable = false,
                 StartCommandRange = 0,
                 StartSourceIndices = 0,
                 StartDestinationIndices = 0
             };
+        }
+
+        public ArrayCommandList(ArrayCommand[] commands, int initialArrayIndex, int? maxCommandsPerSplittableChunk)
+        {
+            UnderlyingCommands = commands;
+            FirstScratchIndex = initialArrayIndex;
+            Recorder.NextArrayIndex = initialArrayIndex + commands.Length;
+            MaxCommandsPerSplittableChunk = maxCommandsPerSplittableChunk ?? MaxCommandsPerSplittableChunk;
+            CommandTree = new NWayTreeStorageInternal<ArrayCommandChunk>(null);
+            CommandTree.StoredValue = new ArrayCommandChunk
+            {
+                StartCommandRange = 0,
+                StartSourceIndices = 0,
+                StartDestinationIndices = 0
+            };
+            CompleteCommandList();
+        }
+
+        public ArrayCommandList Clone()
+        {
+            var clone = new ArrayCommandList(UnderlyingCommands.Length, FirstScratchIndex)
+            {
+                UnderlyingCommands = (ArrayCommand[])UnderlyingCommands.Clone(),
+                VirtualStack = (double[])VirtualStack.Clone(),
+                MaxCommandIndex = MaxCommandIndex,
+                FirstScratchIndex = FirstScratchIndex,
+                OrderedSourceIndices = new List<int>(OrderedSourceIndices),
+                OrderedDestinationIndices = new List<int>(OrderedDestinationIndices),
+                ReusableOrderedDestinationIndices = new Dictionary<int, int>(ReusableOrderedDestinationIndices),
+                DisableAdvancedFeatures = DisableAdvancedFeatures,
+                Parallelize = Parallelize,
+                MaxCommandsPerSplittableChunk = MaxCommandsPerSplittableChunk,
+                CommandTree = CommandTree,
+                RecordCommandTreeString = RecordCommandTreeString,
+                CommandTreeString = CommandTreeString,
+                _currentPath = new List<byte>(_currentPath),
+                ReuseDestinations = ReuseDestinations,
+                UseCheckpoints = UseCheckpoints,
+                Checkpoints = new List<(int, double)>(Checkpoints),
+                _nextExecId = _nextExecId,
+                _depthStartSlots = new Stack<int>(_depthStartSlots.Reverse()),
+                _repeatRangeStack = new Stack<int?>(_repeatRangeStack.Reverse()),
+                RepeatingExistingCommandRange = RepeatingExistingCommandRange,
+                _keepTogetherLevel = _keepTogetherLevel,
+                _rootChunkInitialised = _rootChunkInitialised,
+            };
+            clone.Recorder = Recorder.Clone(clone);
+            return clone;
         }
 
 
@@ -154,7 +165,6 @@ namespace ACESimBase.Util.ArrayProcessing
                 var root = CurrentChunk;
                 if (!string.IsNullOrEmpty(name))
                     root.Name = name;
-                root.ChildrenParallelizable = runChildrenInParallel;
                 _rootChunkInitialised = true;
                 return;
             }
@@ -165,7 +175,7 @@ namespace ACESimBase.Util.ArrayProcessing
             if (RepeatIdenticalRanges && identicalStartCommandRange is int identical)
             {
                 _repeatRangeStack.Push(identical);
-                NextCommandIndex = identical;
+                Recorder.NextCommandIndex = identical;
                 RepeatingExistingCommandRange = true;
             }
 
@@ -176,7 +186,6 @@ namespace ACESimBase.Util.ArrayProcessing
             child.StoredValue = new ArrayCommandChunk
             {
                 Name = name,
-                ChildrenParallelizable = runChildrenInParallel,
                 StartCommandRange = NextCommandIndex,
                 StartSourceIndices = OrderedSourceIndices.Count,
                 StartDestinationIndices = OrderedDestinationIndices.Count
@@ -236,9 +245,9 @@ namespace ACESimBase.Util.ArrayProcessing
             VerifyCorrectness();
             while (_currentPath.Count > 0) EndCommandChunk();
             CompleteCommandTree();
+            VirtualStack = new double[MaxArrayIndex + 1];
+
         }
-
-
 
         /// <summary>
         /// Ensures structural soundness of the recorded command buffer.
@@ -295,20 +304,15 @@ namespace ACESimBase.Util.ArrayProcessing
                     $"Mismatch: IncrementDepth={incDepths}  DecrementDepth={decDepths}");
         }
 
-        public void FinaliseCommandTree()
+        public void CompleteCommandTree()
         {
-            CommandTree.WalkTree(n => InsertMissingBranches((NWayTreeStorageInternal<ArrayCommandChunk>)n));
+            CommandTree.WalkTree(n =>
+                {
+                    var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
+                    InsertMissingBranches(node);
+                    node.StoredValue.VirtualStack = VirtualStack; // for now, we're just sharing all virtual stacks
+                });
             HoistAndSplitLargeIfBodies();
-            CommandTree.WalkTree(null, n => SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandChunk>)n));
-            CommandTree.WalkTree(n => SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandChunk>)n));
-        }
-
-        private void CompleteCommandTree()
-        {
-            CommandTree.WalkTree(n => InsertMissingBranches((NWayTreeStorageInternal<ArrayCommandChunk>)n));
-            HoistAndSplitLargeIfBodies();
-            CommandTree.WalkTree(null, n => SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandChunk>)n));
-            CommandTree.WalkTree(n => SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandChunk>)n));
         }
 
         public string CommandListString()
@@ -355,7 +359,6 @@ namespace ACESimBase.Util.ArrayProcessing
                     var gap = new NWayTreeStorageInternal<ArrayCommandChunk>(node);
                     gap.StoredValue = new ArrayCommandChunk
                     {
-                        ChildrenParallelizable = false,
                         StartCommandRange = curCmd,
                         EndCommandRangeExclusive = bVal.StartCommandRange,
                         StartSourceIndices = curSrc,
@@ -384,7 +387,6 @@ namespace ACESimBase.Util.ArrayProcessing
                     var tail = new NWayTreeStorageInternal<ArrayCommandChunk>(node);
                     tail.StoredValue = new ArrayCommandChunk
                     {
-                        ChildrenParallelizable = false,
                         StartCommandRange = curCmd,
                         EndCommandRangeExclusive = node.StoredValue.EndCommandRangeExclusive,
                         StartSourceIndices = curSrc,
@@ -425,154 +427,24 @@ namespace ACESimBase.Util.ArrayProcessing
         }
 
 
-
-        // ──────────────────────────────────────────────────────────────────────
-        //  Virtual‑stack allocation and relationships
-        // ──────────────────────────────────────────────────────────────────────
-        public void SetupVirtualStack(NWayTreeStorageInternal<ArrayCommandChunk> node)
-        {
-            var c = node.StoredValue;
-
-            c.VirtualStack = new double[MaxArrayIndex + 1];
-            c.VirtualStackID = _nextVirtualStackID++;
-
-            if (node.Branches == null || node.Branches.Length == 0)
-            {
-                c.FirstReadFromStack = new int?[MaxArrayIndex + 1];
-                c.FirstSetInStack = new int?[MaxArrayIndex + 1];
-                c.LastSetInStack = new int?[MaxArrayIndex + 1];
-                c.LastUsed = new int?[MaxArrayIndex + 1];
-                c.TranslationToLocalIndex = new int?[MaxArrayIndex + 1];
-
-                (c.IndicesReadFromStack, c.IndicesInitiallySetInStack) =
-                    DetermineWhenIndicesFirstLastUsed(
-                        c.StartCommandRange,
-                        c.EndCommandRangeExclusive,
-                        c.FirstReadFromStack,
-                        c.FirstSetInStack,
-                        c.LastSetInStack,
-                        c.LastUsed,
-                        c.TranslationToLocalIndex);
-            }
-            else
-            {
-                DetermineSourcesUsedFromChildren(node);
-            }
-        }
-
-        public void SetupVirtualStackRelationships(NWayTreeStorageInternal<ArrayCommandChunk> node)
-        {
-            var parentNode = (NWayTreeStorageInternal<ArrayCommandChunk>)node.Parent;
-            if (parentNode == null) return;
-
-            var child = node.StoredValue;
-            var parent = parentNode.StoredValue;
-
-            // share only when *both* slices are single-threaded
-            bool share = true;
-
-            if (share)
-            {
-                child.VirtualStack = parent.VirtualStack;
-                child.VirtualStackID = parent.VirtualStackID;
-            }
-
-            child.ParentVirtualStack = parent.VirtualStack;
-            child.ParentVirtualStackID = parent.VirtualStackID;
-        }
-
-        private void DetermineSourcesUsedFromChildren(NWayTreeStorageInternal<ArrayCommandChunk> node)
-        {
-            var c = node.StoredValue;
-            var used = new HashSet<int>();
-
-            if (node.Branches == null) return;
-
-            foreach (var br in node.Branches)
-            {
-                if (br?.StoredValue?.IndicesReadFromStack == null) continue;
-                foreach (int idx in br.StoredValue.IndicesReadFromStack)
-                    used.Add(idx);
-            }
-
-            c.IndicesReadFromStack = used.OrderBy(x => x).ToArray();
-            c.IndicesInitiallySetInStack = null;
-        }
-
-        private (int[] indicesReadFromStack, int[] indicesSetInStack) DetermineWhenIndicesFirstLastUsed(
-    int startRange,
-    int endRangeExclusive,
-    int?[] firstRead,
-    int?[] firstSet,
-    int?[] lastSet,
-    int?[] lastUsed,
-    int?[] transToLocal)
-        {
-            var used = new HashSet<int>();
-
-            for (int cmdIdx = startRange; cmdIdx < endRangeExclusive; cmdIdx++)
-            {
-                int src = UnderlyingCommands[cmdIdx].GetSourceIndexIfUsed();
-                if (src >= 0)                                // skip checkpoint / sentinel indices (<0)
-                {
-                    if (firstRead[src] == null && firstSet[src] == null)
-                        firstRead[src] = cmdIdx;
-                    lastUsed[src] = cmdIdx;
-                    used.Add(src);
-                }
-
-                int tgt = UnderlyingCommands[cmdIdx].GetTargetIndexIfUsed();
-                if (tgt >= 0)                                // skip checkpoint / sentinel indices (<0)
-                {
-                    if (firstRead[tgt] == null && firstSet[tgt] == null)
-                        firstSet[tgt] = cmdIdx;
-                    lastSet[tgt] = cmdIdx;
-                    lastUsed[tgt] = cmdIdx;
-                    used.Add(tgt);
-                }
-            }
-
-            var firstLast = used.Select(i => (idx: i,
-                                              first: (firstRead[i] ?? firstSet[i]).Value,
-                                              last: lastUsed[i].Value))
-                                .ToList();
-
-            var cmdToUses = new Dictionary<int, (HashSet<int> first, HashSet<int> last)>();
-            foreach (var (idx, first, last) in firstLast)
-            {
-                if (!cmdToUses.ContainsKey(first)) cmdToUses[first] = (new(), new());
-                if (!cmdToUses.ContainsKey(last)) cmdToUses[last] = (new(), new());
-                cmdToUses[first].first.Add(idx);
-                cmdToUses[last].last.Add(idx);
-            }
-
-            int lastLocal = -1;
-            var avail = new Stack<int>();
-            for (int cmd = startRange; cmd < endRangeExclusive; cmd++)
-            {
-                if (!cmdToUses.TryGetValue(cmd, out var uses)) continue;
-                foreach (int vIdx in uses.first)
-                    transToLocal[vIdx] = avail.Any() ? avail.Pop() : ++lastLocal;
-                foreach (int vIdx in uses.last)
-                    avail.Push(transToLocal[vIdx]!.Value);
-            }
-
-            int[] read = Enumerable.Range(0, firstRead.Length)
-                                   .Where(i => firstRead[i] != null)
-                                   .ToArray();
-            int[] set = Enumerable.Range(0, firstSet.Length)
-                                   .Where(i => firstSet[i] != null)
-                                   .ToArray();
-            return (read, set);
-        }
-
-
         #region Command recorder
 
         // TODO: Eliminate the methods here, and then have the callers call the methods through the recorder.
 
         private CommandRecorder _recorder;
-        public CommandRecorder Recorder => _recorder ??= new CommandRecorder(this);
+        public CommandRecorder Recorder
+        {
+            get
+            {
+                if (_recorder == null)
+                    _recorder = new CommandRecorder(this);
+                return _recorder;
+            }
+            set
+            {
+                _recorder = value;
+            }
+        }
 
         public int NewZero() => Recorder.NewZero();
         public int[] NewZeroArray(int size) => Recorder.NewZeroArray(size);
@@ -670,6 +542,37 @@ namespace ACESimBase.Util.ArrayProcessing
                     Array.Resize(ref workingArray, idx + 1);
                 workingArray[idx] = val;
             }
+        }
+
+        #endregion
+
+        #region Logging
+        public void Debug_LogSourceStats()
+        {
+            int nextSource = UnderlyingCommands
+                                .Take(MaxCommandIndex)
+                                .Count(c => c.CommandType == ArrayCommandType.NextSource);
+
+            int copyTo = UnderlyingCommands
+                                .Take(MaxCommandIndex)
+                                .Count(c => c.CommandType == ArrayCommandType.CopyTo);
+
+            TabbedText.WriteLine($"[ACL-DBG] NextSource commands : {nextSource}");
+            TabbedText.WriteLine($"[ACL-DBG] CopyTo commands     : {copyTo}");
+            TabbedText.WriteLine($"[ACL-DBG] OrderedSourceIndices: {OrderedSourceIndices.Count}");
+        }
+
+        public void Debug_DumpCheckpoints(int max = 10)
+        {
+            if (!UseCheckpoints || Checkpoints is null || Checkpoints.Count == 0)
+            {
+                TabbedText.WriteLine("[ACL-DBG] No checkpoints recorded.");
+                return;
+            }
+
+            TabbedText.WriteLine($"[ACL-DBG] First {Math.Min(max, Checkpoints.Count)} checkpoints:");
+            foreach (var (idx, val) in Checkpoints.Take(max))
+                TabbedText.WriteLine($"    idx {idx} → {val}");
         }
 
         #endregion

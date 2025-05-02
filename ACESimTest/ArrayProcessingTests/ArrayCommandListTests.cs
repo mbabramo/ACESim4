@@ -100,35 +100,6 @@ namespace ACESimTest.ArrayProcessingTests
         }
 
         /* -------------------------------------------------------------
-         * Virtual‑stack sharing vs private allocation
-         * -----------------------------------------------------------*/
-        [TestMethod]
-        public void VirtualStackSharingRules()
-        {
-            var acl = NewAcl();
-            acl.StartCommandChunk(false, null, "root");
-
-            acl.StartCommandChunk(false, null, "shared");
-            acl.EndCommandChunk();
-
-            acl.StartCommandChunk(true, null, "privatePar");
-            acl.EndCommandChunk();
-
-            acl.EndCommandChunk();
-            acl.CompleteCommandList();
-
-            var chunks = new List<ArrayCommandChunk>();
-            acl.CommandTree.WalkTree(n => chunks.Add(((NWayTreeStorageInternal<ArrayCommandChunk>)n).StoredValue));
-
-            var rootVs = chunks.First().VirtualStack;
-            var sharedVs = chunks.Single(c => c.Name == "shared").VirtualStack;
-            var privateVs = chunks.Single(c => c.Name == "privatePar").VirtualStack;
-
-            ReferenceEquals(rootVs, sharedVs).Should().BeTrue();
-            ReferenceEquals(rootVs, privateVs).Should().BeFalse();
-        }
-
-        /* -------------------------------------------------------------
          * Repeat‑identical‑range optimisation
          * -----------------------------------------------------------*/
         [DataTestMethod]
@@ -242,49 +213,6 @@ namespace ACESimTest.ArrayProcessingTests
             acl.CompleteCommandList();
 
             acl.CommandTree.Branches.Should().BeNull();
-        }
-
-        [TestMethod]
-        public void TranslationToLocalIndexPacked()
-        {
-            var acl = NewAcl();
-            acl.StartCommandChunk(false, null, "root");
-            int src = acl.CopyToNew(0, true);
-            int dst = acl.NewZero();
-            acl.Increment(dst, false, src);
-            acl.EndCommandChunk();
-            acl.CompleteCommandList();
-
-            var leaf = acl.PureSlices().Single();
-            var trans = leaf.StoredValue.TranslationToLocalIndex;
-            var used = trans.Where(t => t != null).Select(t => t.Value).OrderBy(v => v).ToArray();
-            used.Should().Equal(Enumerable.Range(0, used.Length));
-        }
-
-        [TestMethod]
-        public void DeepCopyIncrementsPropagate()
-        {
-            var acl = NewAcl();
-            acl.StartCommandChunk(false, null, "root");
-            int idx = acl.NewZero();
-            int one = acl.CopyToNew(1, true);                 // constant 1
-
-            acl.StartCommandChunk(false, null, "childA");
-            acl.Increment(idx, false, one);
-            acl.EndCommandChunk(new[] { idx });
-
-            acl.StartCommandChunk(false, null, "childB");
-            acl.Increment(idx, false, one);
-            acl.EndCommandChunk(new[] { idx });
-
-            acl.EndCommandChunk();
-            acl.CompleteCommandList();
-
-            var data = Seed(30, i => (double)i);
-            acl.ExecuteAll(data, false);
-
-            var rootChunk = acl.CommandTree.StoredValue;
-            rootChunk.VirtualStack[idx].Should().Be(2);       // two increments of +1
         }
     }
 }
