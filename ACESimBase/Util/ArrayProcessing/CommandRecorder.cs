@@ -27,9 +27,9 @@ namespace ACESimBase.Util.ArrayProcessing
         public CommandRecorder(ArrayCommandList owner)
         {
             _acl = owner ?? throw new ArgumentNullException(nameof(owner));
-            NextArrayIndex = owner.NextArrayIndex;
-            MaxArrayIndex = owner.MaxArrayIndex;
-            NextCommandIndex = owner.NextCommandIndex;
+            NextArrayIndex = 0;
+            MaxArrayIndex = -1;
+            NextCommandIndex = 0;
         }
 
         public CommandRecorder Clone(ArrayCommandList acl2) =>
@@ -126,29 +126,12 @@ namespace ACESimBase.Util.ArrayProcessing
             AddCommand(new ArrayCommand(ArrayCommandType.MultiplyBy, idx, multIdx));
 
         /// <summary>Increment or stage-increment slot <paramref name="idx"/> by value from <paramref name="incIdx"/>.</summary>
-        public void Increment(int idx, bool targetOriginal, int incIdx)
+        public void Increment(int idx, bool /*targetOriginal*/ _, int incIdx)
         {
-            if (targetOriginal && _acl.UseOrderedDestinations)
-            {
-                if (_acl.ReuseDestinations &&
-                    _acl.ReusableOrderedDestinationIndices.TryGetValue(idx, out int existing))
-                {
-                    AddCommand(new ArrayCommand(ArrayCommandType.ReusedDestination, existing, incIdx));
-                }
-                else
-                {
-                    _acl.OrderedDestinationIndices.Add(idx);
-                    if (_acl.ReuseDestinations)
-                        _acl.ReusableOrderedDestinationIndices[idx] =
-                            _acl.OrderedDestinationIndices.Count - 1;
-                    AddCommand(new ArrayCommand(ArrayCommandType.NextDestination, -1, incIdx));
-                }
-            }
-            else
-            {
-                AddCommand(new ArrayCommand(ArrayCommandType.IncrementBy, idx, incIdx));
-            }
+            // Simply emit “add r[idx], r[incIdx]” – no ordered-destination bookkeeping.
+            AddCommand(new ArrayCommand(ArrayCommandType.IncrementBy, idx, incIdx));
         }
+
 
         public void Decrement(int idx, int decIdx) =>
             AddCommand(new ArrayCommand(ArrayCommandType.DecrementBy, idx, decIdx));

@@ -122,7 +122,6 @@ namespace ACESimTest.ArrayProcessingTests
             acl.MaxCommandIndex = acl.NextCommandIndex;
             acl.CommandTree.StoredValue.EndCommandRangeExclusive = acl.NextCommandIndex;
             acl.CommandTree.StoredValue.EndSourceIndicesExclusive = acl.OrderedSourceIndices.Count;
-            acl.CommandTree.StoredValue.EndDestinationIndicesExclusive = acl.OrderedDestinationIndices.Count;
             return acl;
         }
 
@@ -137,7 +136,6 @@ namespace ACESimTest.ArrayProcessingTests
         /// <summary>Quick one-liner to create a new ACL with common defaults.</summary>
         public static ArrayCommandList NewAcl(int maxCmds = 1_000,
                                               int initialIdx = 0,
-                                              bool parallel = false,
                                               int maxPerChunk = 50)
             => new(maxCmds, initialIdx) { MaxCommandsPerSplittableChunk = maxPerChunk };
 
@@ -270,7 +268,6 @@ namespace ACESimTest.ArrayProcessingTests
                 ["IncrementDepth"] = ArrayCommandType.IncrementDepth,
                 ["DecrementDepth"] = ArrayCommandType.DecrementDepth,
                 ["NextSource"] = ArrayCommandType.NextSource,
-                ["NextDestination"] = ArrayCommandType.NextDestination
             };
 
             static ArrayCommand Cmd(ArrayCommandType t) => t switch
@@ -284,7 +281,6 @@ namespace ACESimTest.ArrayProcessingTests
                 ArrayCommandType.IncrementDepth => new(t, -1, -1),
                 ArrayCommandType.DecrementDepth => new(t, -1, -1),
                 ArrayCommandType.NextSource => new(t, 0, -1),
-                ArrayCommandType.NextDestination => new(t, -1, 0),
                 _ => throw new NotSupportedException($"Unhandled token {t}")
             };
 

@@ -37,9 +37,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             ArrayCommandChunk chunk,
             double[] virtualStack,
             double[] orderedSources,
-            double[] orderedDestinations,
             ref int cosi,
-            ref int codi,
             ref bool condition)
         {
             for (int idx = chunk.StartCommandRange; idx < chunk.EndCommandRangeExclusive; idx++)
@@ -64,14 +62,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
                     case ArrayCommandType.NextSource:
                         virtualStack[cmd.Index] = orderedSources[cosi++];
-                        break;
-
-                    case ArrayCommandType.NextDestination:
-                        orderedDestinations[codi++] = virtualStack[cmd.SourceIndex];
-                        break;
-
-                    case ArrayCommandType.ReusedDestination:
-                        orderedDestinations[cmd.Index] += virtualStack[cmd.SourceIndex];
                         break;
 
                     case ArrayCommandType.MultiplyBy:
@@ -116,7 +106,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                                 if (t == ArrayCommandType.If) depth++;
                                 else if (t == ArrayCommandType.EndIf) depth--;
                                 else if (t == ArrayCommandType.NextSource) cosi++;
-                                else if (t == ArrayCommandType.NextDestination) codi++;
                             }
                         }
                         break;
@@ -134,7 +123,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             }
 
             chunk.StartSourceIndices = cosi;
-            chunk.StartDestinationIndices = codi;
         }
 
     }

@@ -100,8 +100,6 @@ public static class LocalVariablePlanner
             switch (c.CommandType)
             {
                 case ArrayCommandType.CopyTo:
-                case ArrayCommandType.NextDestination:
-                case ArrayCommandType.ReusedDestination:
                 case ArrayCommandType.MultiplyBy:
                 case ArrayCommandType.IncrementBy:
                 case ArrayCommandType.DecrementBy:
@@ -235,8 +233,6 @@ public static class LocalVariablePlanner
     private static IEnumerable<int> GetReadSlots(ArrayCommand cmd) => cmd.CommandType switch
     {
         ArrayCommandType.CopyTo => new[] { cmd.SourceIndex },
-        ArrayCommandType.NextDestination => new[] { cmd.SourceIndex },
-        ArrayCommandType.ReusedDestination => new[] { cmd.SourceIndex },
         ArrayCommandType.MultiplyBy or
         ArrayCommandType.IncrementBy or
         ArrayCommandType.DecrementBy => new[] { cmd.Index, cmd.SourceIndex },

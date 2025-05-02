@@ -19,12 +19,10 @@ namespace ACESimTest.ArrayProcessingTests
         /* -------------------------------------------------------------
          * Smoke test – copy from source, add to destination
          * -----------------------------------------------------------*/
-        [DataTestMethod]
-        [DataRow(false)]
-        [DataRow(true)]
-        public void SimpleCopyAdd(bool parallel)
+        [TestMethod]
+        public void SimpleCopyAdd()
         {
-            var acl = NewAcl(parallel: parallel);
+            var acl = NewAcl(initialIdx: 20);
             const int SRC0 = 0, DST0 = 10;
 
             acl.StartCommandChunk(false, null, "root");
@@ -39,67 +37,6 @@ namespace ACESimTest.ArrayProcessingTests
         }
 
         /* -------------------------------------------------------------
-         * Ordered buffer round‑trip: serial vs parallel
-         * -----------------------------------------------------------*/
-        [TestMethod]
-        public void OrderedBuffersSerialVsParallelMatch()
-        {
-            const int SRC_BASE = 0;
-            const int DST_BASE = 20;
-
-            ArrayCommandList Build(bool par)
-            {
-                var a = NewAcl(parallel: par);
-                a.StartCommandChunk(false, null, "root");
-                var tmp = new List<int>();
-                for (int i = 0; i < 5; i++)
-                    tmp.Add(a.CopyToNew(SRC_BASE + i, true));
-                foreach (var t in tmp)
-                    a.Increment(DST_BASE + (t - tmp[0]), true, t);
-                a.EndCommandChunk();
-                a.CompleteCommandList();
-                return a;
-            }
-
-            double[] serial = Seed(40, i => i);
-            double[] parallel = serial.ToArray();
-
-            Build(false).ExecuteAll(serial, false);
-            Build(true).ExecuteAll(parallel, false);
-
-            parallel.Should().Equal(serial);
-        }
-
-        /* -------------------------------------------------------------
-         * CopyIncrementsToParent assignment semantics
-         * -----------------------------------------------------------*/
-        [DataTestMethod]
-        [DataRow(false)]
-        [DataRow(true)]
-        public void ChildAssignmentsPropagate(bool parallelChildren)
-        {
-            var acl = NewAcl();
-
-            acl.StartCommandChunk(parallelChildren, null, "parent");
-            int tmpParent = acl.NewZero();
-
-            acl.StartCommandChunk(false, null, "childA");
-            acl.Increment(tmpParent, false, tmpParent);
-            acl.EndCommandChunk(new[] { tmpParent });
-
-            acl.StartCommandChunk(false, null, "childB");
-            acl.Increment(tmpParent, false, tmpParent);
-            acl.EndCommandChunk(new[] { tmpParent });
-
-            acl.EndCommandChunk();
-            acl.CompleteCommandList();
-
-            var data = new double[5];
-            acl.ExecuteAll(data, false);
-            data[tmpParent].Should().Be(0);
-        }
-
-        /* -------------------------------------------------------------
          * Repeat‑identical‑range optimisation
          * -----------------------------------------------------------*/
         [DataTestMethod]
@@ -107,7 +44,7 @@ namespace ACESimTest.ArrayProcessingTests
         [DataRow(true)]
         public void RepeatIdenticalRange(bool parallel)
         {
-            var acl = NewAcl(parallel: parallel);
+            var acl = NewAcl();
             acl.MaxCommandsPerSplittableChunk = int.MaxValue; // enables RepeatIdenticalRanges
 
             acl.StartCommandChunk(false, null, "root");
@@ -155,7 +92,6 @@ namespace ACESimTest.ArrayProcessingTests
             acl.CompleteCommandList();
 
             var data = new double[10];
-            acl.OrderedDestinationIndices.Clear();
             acl.ExecuteAll(data, false);
         }
 

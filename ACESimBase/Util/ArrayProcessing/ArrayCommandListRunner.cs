@@ -126,13 +126,10 @@ namespace ACESimBase.Util.ArrayProcessing
         // Runtime helpers (one instance per Run)
         private OrderedBufferManager _buffers = null!;  // created in Run()
 
-        private bool _condition = true;   // current If/EndIf condition flag
         private int _globalSkipDepth = 0; // nested‑If skip counter
         private int _pendingSrcAdvance = 0;
-        private int _pendingDstAdvance = 0; 
         private readonly List<ArrayCommandChunk> _chunks;
         private readonly int[] _srcStartBaselines;
-        private readonly int[] _dstStartBaselines;
 
         public ArrayCommandListRunner(IEnumerable<ArrayCommandChunk> commandChunks,
                                   IChunkExecutor compiledExecutor = null)
@@ -145,7 +142,6 @@ namespace ACESimBase.Util.ArrayProcessing
                         .ToList();
 
             _srcStartBaselines = _chunks.Select(c => c.StartSourceIndices).ToArray();
-            _dstStartBaselines = _chunks.Select(c => c.StartDestinationIndices).ToArray();
 
             // register all slices with the executor and compile once
             foreach (var c in _chunks)
@@ -163,14 +159,11 @@ namespace ACESimBase.Util.ArrayProcessing
             for (int i = 0; i < _chunks.Count; i++)
             {
                 _chunks[i].StartSourceIndices = _srcStartBaselines[i];
-                _chunks[i].StartDestinationIndices = _dstStartBaselines[i];
             }
 
             // ── reset per-run state ──
-            _condition = true;
             _globalSkipDepth = 0;
             _pendingSrcAdvance = 0;
-            _pendingDstAdvance = 0;
 
             if (acl is null) throw new ArgumentNullException(nameof(acl));
             if (data is null) throw new ArgumentNullException(nameof(data));
@@ -180,8 +173,7 @@ namespace ACESimBase.Util.ArrayProcessing
             //------------------------------------------------------------------
             _buffers = new OrderedBufferManager();
             _buffers.SourceIndices.AddRange(acl.OrderedSourceIndices);
-            _buffers.DestinationIndices.AddRange(acl.OrderedDestinationIndices);
-            _buffers.PrepareBuffers(data, acl.DoParallel);
+            _buffers.PrepareBuffers(data, false);
 
             //------------------------------------------------------------------
             // 2️  Depth-first traversal with pre/post hooks
@@ -190,11 +182,6 @@ namespace ACESimBase.Util.ArrayProcessing
                 beforeDescending: n => Pre((NWayTreeStorageInternal<ArrayCommandChunk>)n, acl),
                 afterAscending: n => Post((NWayTreeStorageInternal<ArrayCommandChunk>)n, acl),
                 parallel: n => ParallelPredicate((NWayTreeStorageInternal<ArrayCommandChunk>)n, acl));
-
-            //------------------------------------------------------------------
-            // 3️  Merge ordered destinations back into caller array
-            //------------------------------------------------------------------
-            _buffers.FlushDestinations(data, acl.DoParallel);
         }
 
 
@@ -232,7 +219,7 @@ namespace ACESimBase.Util.ArrayProcessing
         // Decide whether children of <node> may run concurrently
         private static bool ParallelPredicate(NWayTreeStorageInternal<ArrayCommandChunk> node,
                                               ArrayCommandList acl)
-            => acl.DoParallel;
+            => false;
 
         // ──────────────────────────────────────────────────────────────────────
         //  Execute a single chunk using compiled or fallback executor
@@ -245,29 +232,25 @@ namespace ACESimBase.Util.ArrayProcessing
             // Skip entire chunk when inside a false branch
             if (_globalSkipDepth > 0) { ScanForNestedIfs(c, acl); return; }
             // Apply any carry-over from previously skipped chunks
-            if (_pendingSrcAdvance != 0 || _pendingDstAdvance != 0)
+            if (_pendingSrcAdvance != 0)
             {
                 c.StartSourceIndices += _pendingSrcAdvance;
-                c.StartDestinationIndices += _pendingDstAdvance;
-                _pendingSrcAdvance = _pendingDstAdvance = 0;
+                _pendingSrcAdvance = 0;
             }
 
             int len = c.EndCommandRangeExclusive - c.StartCommandRange;
 
             int cosi = c.StartSourceIndices;      // current ordered‑source ptr (by ref)
-            int codi = c.StartDestinationIndices; // current ordered‑dest   ptr (by ref)
+            bool condition = true;
 
             _compiled.Execute(c,
                               acl.VirtualStack,
                               _buffers.Sources,
-                              _buffers.Destinations,
                               ref cosi,
-                              ref codi,
-                              ref _condition);
+                              ref condition);
 
             // Propagate pointer updates back to chunk for its siblings
             c.StartSourceIndices = cosi;
-            c.StartDestinationIndices = codi;
         }
 
         /// <summary>
@@ -275,14 +258,13 @@ namespace ACESimBase.Util.ArrayProcessing
         /// to a branch whose outer <c>If</c> evaluated <c>false</c>.  We must
         /// <b>count</b> nested If/EndIf pairs so that depth returns to 0 at the
         /// correct moment <i>and</i> we must <b>pretend</b> that every
-        /// NextSource / NextDestination inside the skipped span executed, so that
+        /// NextSource inside the skipped span executed, so that
         /// the first live chunk afterwards sees the right <paramref name="cosi"/>
-        /// / <paramref name="codi"/> positions.
+        /// positions.
         /// </summary>
         private void ScanForNestedIfs(ArrayCommandChunk chunk, ArrayCommandList acl)
         {
             int srcAdv = 0;           // how many NextSource we skipped
-            int dstAdv = 0;           // how many NextDestination we skipped
 
             var cmds = acl.UnderlyingCommands;
 
@@ -301,10 +283,6 @@ namespace ACESimBase.Util.ArrayProcessing
                     case ArrayCommandType.NextSource:
                         srcAdv++;                     // simulate os[cosi++] read
                         break;
-
-                    case ArrayCommandType.NextDestination:
-                        dstAdv++;                     // simulate od[codi++] write
-                        break;
                 }
             }
 
@@ -314,7 +292,6 @@ namespace ACESimBase.Util.ArrayProcessing
             // fields on the runner because there is no parent pointer on the chunk.
             //--------------------------------------------------------------------
             _pendingSrcAdvance += srcAdv;
-            _pendingDstAdvance += dstAdv;
         }
 
 

@@ -97,10 +97,8 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             ArrayCommandChunk chunk,
             double[] virtualStack,
             double[] orderedSources,
-            double[] orderedDestinations,
             ref int cosi,
-            ref int codi,
             ref bool condition)
-            => SelectBackend(chunk).Execute(chunk, virtualStack, orderedSources, orderedDestinations, ref cosi, ref codi, ref condition);
+            => SelectBackend(chunk).Execute(chunk, virtualStack, orderedSources, ref cosi, ref condition);
     }
 }

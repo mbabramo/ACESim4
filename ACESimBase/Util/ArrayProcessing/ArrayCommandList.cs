@@ -28,14 +28,12 @@ namespace ACESimBase.Util.ArrayProcessing
         public int FirstScratchIndex;
         public int NextArrayIndex => Recorder.NextArrayIndex;
         public int MaxArrayIndex => Recorder.MaxArrayIndex;
-        public int FullArraySize => FirstScratchIndex + (DoParallel ? 0 : MaxArrayIndex);
+        public int FullArraySize => FirstScratchIndex + MaxArrayIndex;
 
         // ──────────────────────────────────────────────────────────────────────
         //  Ordered‑buffer index lists (filled at author‑time only)
         // ──────────────────────────────────────────────────────────────────────
         public List<int> OrderedSourceIndices = new();
-        public List<int> OrderedDestinationIndices = new();
-        public Dictionary<int, int> ReusableOrderedDestinationIndices = new();
 
         // ──────────────────────────────────────────────────────────────────────
         //  Settings and feature flags
@@ -44,8 +42,6 @@ namespace ACESimBase.Util.ArrayProcessing
         public bool Parallelize = false;
         public int MaxCommandsPerSplittableChunk = 1_000_000; // DEBUG: Until we fix the behavior of hoisting, we need to just use the flat option.
         public bool UseOrderedSources => !DisableAdvancedFeatures;
-        public bool UseOrderedDestinations => false; // DEBUG !DisableAdvancedFeatures;
-        public bool DoParallel => false; // not currently enabled (each command chunk is sharing a stack -- could at some point consider going back to previous functionality, but it added a lot of complexity)
         public bool ReuseScratchSlots => false; // DEBUG MaxCommandsPerSplittableChunk == int.MaxValue;
         public bool ReuseDestinations = false;
         public bool RepeatIdenticalRanges => /* ReuseScratchSlots DEBUG && */ !DisableAdvancedFeatures;
@@ -100,7 +96,6 @@ namespace ACESimBase.Util.ArrayProcessing
             {
                 StartCommandRange = 0,
                 StartSourceIndices = 0,
-                StartDestinationIndices = 0
             };
         }
 
@@ -115,7 +110,6 @@ namespace ACESimBase.Util.ArrayProcessing
             {
                 StartCommandRange = 0,
                 StartSourceIndices = 0,
-                StartDestinationIndices = 0
             };
             CompleteCommandList();
         }
@@ -129,8 +123,6 @@ namespace ACESimBase.Util.ArrayProcessing
                 MaxCommandIndex = MaxCommandIndex,
                 FirstScratchIndex = FirstScratchIndex,
                 OrderedSourceIndices = new List<int>(OrderedSourceIndices),
-                OrderedDestinationIndices = new List<int>(OrderedDestinationIndices),
-                ReusableOrderedDestinationIndices = new Dictionary<int, int>(ReusableOrderedDestinationIndices),
                 DisableAdvancedFeatures = DisableAdvancedFeatures,
                 Parallelize = Parallelize,
                 MaxCommandsPerSplittableChunk = MaxCommandsPerSplittableChunk,
@@ -188,7 +180,6 @@ namespace ACESimBase.Util.ArrayProcessing
                 Name = name,
                 StartCommandRange = NextCommandIndex,
                 StartSourceIndices = OrderedSourceIndices.Count,
-                StartDestinationIndices = OrderedDestinationIndices.Count
             };
 
             parent.SetBranch(branch, child);
@@ -203,7 +194,6 @@ namespace ACESimBase.Util.ArrayProcessing
                 var root = CurrentChunk;
                 root.EndCommandRangeExclusive = NextCommandIndex;
                 root.EndSourceIndicesExclusive = OrderedSourceIndices.Count;
-                root.EndDestinationIndicesExclusive = OrderedDestinationIndices.Count;
                 return;            // nothing else to pop
             }
             if (_keepTogetherLevel > 0)
@@ -218,13 +208,11 @@ namespace ACESimBase.Util.ArrayProcessing
             var finished = CurrentChunk;
             finished.EndCommandRangeExclusive = NextCommandIndex;
             finished.EndSourceIndicesExclusive = OrderedSourceIndices.Count;
-            finished.EndDestinationIndicesExclusive = OrderedDestinationIndices.Count;
 
             _currentPath.RemoveAt(_currentPath.Count - 1);
             var parent = CurrentChunk;
             parent.EndCommandRangeExclusive = NextCommandIndex;
             parent.EndSourceIndicesExclusive = OrderedSourceIndices.Count;
-            parent.EndDestinationIndicesExclusive = OrderedDestinationIndices.Count;
 
             if (endingRepeatedChunk && RepeatIdenticalRanges && _repeatRangeStack.Any())
             {
@@ -347,7 +335,6 @@ namespace ACESimBase.Util.ArrayProcessing
             var children = new List<NWayTreeStorageInternal<ArrayCommandChunk>>();
             int curCmd = node.StoredValue.StartCommandRange;
             int curSrc = node.StoredValue.StartSourceIndices;
-            int curDst = node.StoredValue.StartDestinationIndices;
 
             for (byte c = 1; c <= lastChild; c++)
             {
@@ -363,8 +350,6 @@ namespace ACESimBase.Util.ArrayProcessing
                         EndCommandRangeExclusive = bVal.StartCommandRange,
                         StartSourceIndices = curSrc,
                         EndSourceIndicesExclusive = bVal.StartSourceIndices,
-                        StartDestinationIndices = curDst,
-                        EndDestinationIndicesExclusive = bVal.StartDestinationIndices
                     };
                     children.Add(gap);
 
@@ -377,12 +362,10 @@ namespace ACESimBase.Util.ArrayProcessing
                 children.Add(branch);
                 curCmd = bVal.EndCommandRangeExclusive;
                 curSrc = bVal.EndSourceIndicesExclusive;
-                curDst = bVal.EndDestinationIndicesExclusive;
 
                 if (c == lastChild &&
                     (curCmd < node.StoredValue.EndCommandRangeExclusive ||
-                     curSrc < node.StoredValue.EndSourceIndicesExclusive ||
-                     curDst < node.StoredValue.EndDestinationIndicesExclusive))
+                     curSrc < node.StoredValue.EndSourceIndicesExclusive))
                 {
                     var tail = new NWayTreeStorageInternal<ArrayCommandChunk>(node);
                     tail.StoredValue = new ArrayCommandChunk
@@ -391,8 +374,6 @@ namespace ACESimBase.Util.ArrayProcessing
                         EndCommandRangeExclusive = node.StoredValue.EndCommandRangeExclusive,
                         StartSourceIndices = curSrc,
                         EndSourceIndicesExclusive = node.StoredValue.EndSourceIndicesExclusive,
-                        StartDestinationIndices = curDst,
-                        EndDestinationIndicesExclusive = node.StoredValue.EndDestinationIndicesExclusive
                     };
                     children.Add(tail);
 

@@ -36,7 +36,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public int GetTargetIndexIfUsed()
         {
-            if (CommandType == ArrayCommandType.If || CommandType == ArrayCommandType.EndIf || CommandType == ArrayCommandType.ReusedDestination)
+            if (CommandType == ArrayCommandType.If || CommandType == ArrayCommandType.EndIf)
                 return -1;
             return Index;
         }

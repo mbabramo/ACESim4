@@ -10,9 +10,7 @@ namespace ACESimBase.Util.ArrayProcessing
     public delegate void ArrayCommandChunkDelegate(
         double[] vs,
         double[] os,
-        double[] od,
         ref int cosi,
-        ref int codi,
         ref bool condition
     );
 

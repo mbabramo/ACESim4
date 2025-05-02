@@ -26,7 +26,6 @@ public class ArrayCommandChunk
     public byte LastChild;
     public int StartCommandRange, EndCommandRangeExclusive;
     public int StartSourceIndices, EndSourceIndicesExclusive;
-    public int StartDestinationIndices, EndDestinationIndicesExclusive;
     public string CompiledCode;
     public string Name;
     public bool Skip; 

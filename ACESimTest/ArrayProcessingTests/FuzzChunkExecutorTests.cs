@@ -86,21 +86,21 @@ namespace ACESimTest.ArrayProcessingTests
             var vsInterp = new double[chunk.VirtualStack.Length];
             int cosi0 = 0, codi0 = 0; bool cond0 = true;
             var interp = new InterpreterChunkExecutor(cmds, 0, cmds.Length, false, null);
-            interp.Execute(chunk, vsInterp, os0, od0, ref cosi0, ref codi0, ref cond0);
+            interp.Execute(chunk, vsInterp, os0, ref cosi0, ref cond0);
 
             // Roslyn without local variable reuse
             var vsNoLoc = new double[chunk.VirtualStack.Length];
             var odNoLoc = new double[MaxDests];
-            int cosi1 = 0, codi1 = 0; bool cond1 = true;
+            int cosi1 = 0;
+            bool cond1 = true;
             var rosNoLoc = new RoslynChunkExecutor(cmds, 0, cmds.Length, useCheckpoints: false, localVariableReuse: false);
             rosNoLoc.AddToGeneration(chunk);
             rosNoLoc.PreserveGeneratedCode = true;
             rosNoLoc.PerformGeneration();
             string generatedCode = "\r\n // Generated code (no local variable reuse) \r\n" + rosNoLoc.GeneratedCode;
-            rosNoLoc.Execute(chunk, vsNoLoc, os0, odNoLoc, ref cosi1, ref codi1, ref cond1);
+            rosNoLoc.Execute(chunk, vsNoLoc, os0, ref cosi1, ref cond1);
 
             Assert.AreEqual(cosi0, cosi1, $"Seed {seed} {iterationInfo}: cosi mismatch {generatedCode}");
-            Assert.AreEqual(codi0, codi1, $"Seed {seed} {iterationInfo}: codi mismatch {generatedCode} ");
             Assert.AreEqual(cond0, cond1, $"Seed {seed} {iterationInfo}: condition mismatch{generatedCode}");
             CollectionAssert.AreEqual(vsInterp, vsNoLoc, $"Seed {seed} {iterationInfo}: vs mismatch {generatedCode}");
             CollectionAssert.AreEqual(od0, odNoLoc, $"Seed {seed} {iterationInfo}: od mismatch {generatedCode}");
@@ -115,10 +115,9 @@ namespace ACESimTest.ArrayProcessingTests
             rosLoc.PreserveGeneratedCode = true;
             rosLoc.PerformGeneration(); 
             generatedCode = "\r\n // Generated code \r\n" + rosLoc.GeneratedCode;
-            rosLoc.Execute(chunk, vsLoc, os0, odLoc, ref cosi2, ref codi2, ref cond2);
+            rosLoc.Execute(chunk, vsLoc, os0, ref cosi2, ref cond2);
 
             Assert.AreEqual(cosi0, cosi2, $"Seed {seed} {iterationInfo}: cosi mismatch with locals {generatedCode}");
-            Assert.AreEqual(codi0, codi2, $"Seed {seed} {iterationInfo}: codi mismatch with locals {generatedCode}");
             Assert.AreEqual(cond0, cond2, $"Seed {seed} {iterationInfo}: condition mismatch with locals {generatedCode}");
             CollectionAssert.AreEqual(vsInterp, vsLoc, $"Seed {seed} {iterationInfo}: vs mismatch with locals {generatedCode}");
             CollectionAssert.AreEqual(od0, odLoc, $"Seed {seed} {iterationInfo}: od mismatch with locals {generatedCode}");

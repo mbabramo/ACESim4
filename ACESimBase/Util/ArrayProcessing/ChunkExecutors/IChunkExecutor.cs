@@ -62,9 +62,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             ArrayCommandChunk chunk,
             double[] virtualStack,
             double[] orderedSources,
-            double[] orderedDestinations,
             ref int cosi,
-            ref int codi,
             ref bool condition);
     }
 }

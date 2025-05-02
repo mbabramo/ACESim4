@@ -152,7 +152,6 @@ namespace ACESimTest.ArrayProcessingTests
                 StartCommandRange = 0,
                 EndCommandRangeExclusive = Acl.NextCommandIndex,
                 StartSourceIndices = 0,
-                StartDestinationIndices = 0
             };
 
             clone.CompleteCommandTree();

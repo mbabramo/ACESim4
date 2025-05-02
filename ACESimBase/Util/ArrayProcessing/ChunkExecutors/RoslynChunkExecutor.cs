@@ -93,12 +93,11 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             _scheduled.Clear();
         }
 
-        public override void Execute(ArrayCommandChunk chunk, double[] vs, double[] os, double[] od,
-                                      ref int cosi, ref int codi, ref bool cond)
+        public override void Execute(ArrayCommandChunk chunk, double[] vs, double[] os, ref int cosi,
+                                      ref bool cond)
         {
-            _compiled[chunk](vs, os, od, ref cosi, ref codi, ref cond);
+            _compiled[chunk](vs, os, ref cosi, ref cond);
             chunk.StartSourceIndices = cosi;
-            chunk.StartDestinationIndices = codi;
         }
 
         private static string FnName(ArrayCommandChunk c)
@@ -132,7 +131,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
             string fn = FnName(c);
             _src.AppendLine(
-                $"public static void {fn}(double[]vs,double[]os,double[]od,ref int i,ref int o,ref bool cond){{");
+                $"public static void {fn}(double[]vs,double[]os,ref int i,ref bool cond){{");
             cb.Indent();
 
             for (int l = 0; l < _plan.LocalCount; l++)
@@ -174,9 +173,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 if (usedSlots.Contains(kv.Key))
                     cb.AppendLine($"vs[{kv.Key}] = l{kv.Value};");
         }
-
-
-
 
         /// <summary>
         /// Generate source for a chunk in local‑reuse mode, now flushing *all* slots
@@ -334,15 +330,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                         break;
                     }
 
-                // ────────── pure reads / destination writes ──────────
-                case ArrayCommandType.NextDestination:
-                    cb.AppendLine($"od[o++] = {R(cmd.SourceIndex)};");
-                    break;
-
-                case ArrayCommandType.ReusedDestination:
-                    cb.AppendLine($"od[{cmd.Index}] += {R(cmd.SourceIndex)};");
-                    break;
-
                 // ────────── comparisons ──────────
                 case ArrayCommandType.EqualsOtherArrayIndex:
                     cb.AppendLine($"cond = {R(cmd.Index)} == {R(cmd.SourceIndex)};");
@@ -399,7 +386,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                             cb.AppendLine($"vs[{slot}] = l{local};");
 
                         // ⑤ advance ordered‑source/destination pointers
-                        cb.AppendLine($"i+={ctx.SrcSkip}; o+={ctx.DstSkip}; }}");
+                        cb.AppendLine($"i+={ctx.SrcSkip}; }}");
                         break;
                     }
 

@@ -52,22 +52,19 @@ namespace ACESimTest.ArrayProcessingTests
         /// </summary>
         protected double[] ActExecute(
             ArrayCommandChunk chunk,
-            double[] orderedSources,
-            double[] orderedDestinations)
+            double[] orderedSources)
         {
             var executor = CreateExecutor();
             executor.AddToGeneration(chunk);
             executor.PerformGeneration();
 
-            int cosi = 0, codi = 0;
+            int cosi = 0;
             bool condition = true;
             executor.Execute(
                 chunk,
                 chunk.VirtualStack,
                 orderedSources,
-                orderedDestinations,
                 ref cosi,
-                ref codi,
                 ref condition);
 
             return chunk.VirtualStack;
@@ -79,7 +76,7 @@ namespace ACESimTest.ArrayProcessingTests
             var cmd = new ArrayCommand(ArrayCommandType.Zero, 2, -1);
             var chunk = ArrangeChunk(cmd);
             chunk.VirtualStack[2] = 123.4; // set non-default
-            var vs = ActExecute(chunk, Array.Empty<double>(), Array.Empty<double>());
+            var vs = ActExecute(chunk, Array.Empty<double>());
             Assert.AreEqual(0.0, vs[2], 1e-9);
         }
 
@@ -89,7 +86,7 @@ namespace ACESimTest.ArrayProcessingTests
             var cmd = new ArrayCommand(ArrayCommandType.CopyTo, 1, 0);
             var chunk = ArrangeChunk(cmd);
             chunk.VirtualStack[0] = 5.5;
-            var vs = ActExecute(chunk, Array.Empty<double>(), Array.Empty<double>());
+            var vs = ActExecute(chunk, Array.Empty<double>());
             Assert.AreEqual(5.5, vs[1], 1e-9);
         }
 
@@ -99,31 +96,8 @@ namespace ACESimTest.ArrayProcessingTests
             var cmd = new ArrayCommand(ArrayCommandType.NextSource, 0, -1);
             var chunk = ArrangeChunk(cmd);
             double[] os = { 9.9 };
-            var vs = ActExecute(chunk, os, Array.Empty<double>());
+            var vs = ActExecute(chunk, os);
             Assert.AreEqual(9.9, vs[0], 1e-9);
-        }
-
-        [TestMethod]
-        public void TestNextDestinationCommand()
-        {
-            var cmd = new ArrayCommand(ArrayCommandType.NextDestination, -1, 1);
-            var chunk = ArrangeChunk(cmd);
-            chunk.VirtualStack[1] = 7.7;
-            double[] od = new double[1];
-            // execute: writes vs[1] into od[0]
-            var vs = ActExecute(chunk, Array.Empty<double>(), od);
-            Assert.AreEqual(7.7, od[0], 1e-9);
-        }
-
-        [TestMethod]
-        public void TestReusedDestinationCommand()
-        {
-            var cmd = new ArrayCommand(ArrayCommandType.ReusedDestination, 1, 0);
-            var chunk = ArrangeChunk(cmd);
-            chunk.VirtualStack[0] = 4.2;
-            double[] od = { 0.0, 10.0 };
-            var vs = ActExecute(chunk, Array.Empty<double>(), od);
-            Assert.AreEqual(14.2, od[1], 1e-9);
         }
 
         [TestMethod]
@@ -133,7 +107,7 @@ namespace ACESimTest.ArrayProcessingTests
             var chunk = ArrangeChunk(cmd);
             chunk.VirtualStack[0] = 2.0;
             chunk.VirtualStack[1] = 3.5;
-            var vs = ActExecute(chunk, Array.Empty<double>(), Array.Empty<double>());
+            var vs = ActExecute(chunk, Array.Empty<double>());
             Assert.AreEqual(7.0, vs[0], 1e-9);
         }
 
@@ -144,7 +118,7 @@ namespace ACESimTest.ArrayProcessingTests
             var chunk = ArrangeChunk(cmd);
             chunk.VirtualStack[0] = 5.0;
             chunk.VirtualStack[1] = 2.5;
-            var vs = ActExecute(chunk, Array.Empty<double>(), Array.Empty<double>());
+            var vs = ActExecute(chunk, Array.Empty<double>());
             Assert.AreEqual(7.5, vs[0], 1e-9);
         }
 
@@ -155,7 +129,7 @@ namespace ACESimTest.ArrayProcessingTests
             var chunk = ArrangeChunk(cmd);
             chunk.VirtualStack[0] = 5.0;
             chunk.VirtualStack[1] = 1.5;
-            var vs = ActExecute(chunk, Array.Empty<double>(), Array.Empty<double>());
+            var vs = ActExecute(chunk, Array.Empty<double>());
             Assert.AreEqual(3.5, vs[0], 1e-9);
         }
 
@@ -171,7 +145,7 @@ namespace ACESimTest.ArrayProcessingTests
             };
             var chunk = ArrangeChunk(cmds);
             chunk.VirtualStack[1] = 1.0;
-            var vs = ActExecute(chunk, Array.Empty<double>(), Array.Empty<double>());
+            var vs = ActExecute(chunk, Array.Empty<double>());
             Assert.AreEqual(0.0, vs[1], 1e-9);
         }
 
@@ -187,7 +161,7 @@ namespace ACESimTest.ArrayProcessingTests
             };
             var chunk = ArrangeChunk(cmds);
             chunk.VirtualStack[1] = 7.7;
-            var vs = ActExecute(chunk, Array.Empty<double>(), Array.Empty<double>());
+            var vs = ActExecute(chunk, Array.Empty<double>());
             Assert.AreEqual(7.7, vs[1], 1e-9);
         }
 
@@ -317,7 +291,7 @@ namespace ACESimTest.ArrayProcessingTests
                     chunk.VirtualStack[i] = tc.InitialStack[i];
 
                 // Act
-                var vs = ActExecute(chunk, Array.Empty<double>(), Array.Empty<double>());
+                var vs = ActExecute(chunk, Array.Empty<double>());
 
                 // Assert
                 Assert.AreEqual(
@@ -332,56 +306,24 @@ namespace ACESimTest.ArrayProcessingTests
 
 
         [TestMethod]
-        public void TestOrderedSrcsAndDests()
+        public void TestOrderedSrcs()
         {
             var cmds = new[]
             {
-        new ArrayCommand(ArrayCommandType.NextSource,      0, -1), // vs[0] := os[0]
-        new ArrayCommand(ArrayCommandType.NextSource,      1, -1), // vs[1] := os[1]
-        new ArrayCommand(ArrayCommandType.IncrementBy,     0, 1),  // vs[0] += vs[1]
-        new ArrayCommand(ArrayCommandType.NextDestination, -1, 0), // od[0] := vs[0]
-        new ArrayCommand(ArrayCommandType.NextDestination, -1, 1)  // od[1] := vs[1]
-    };
+                new ArrayCommand(ArrayCommandType.NextSource,      0, -1), // vs[0] := os[0]
+                new ArrayCommand(ArrayCommandType.NextSource,      1, -1), // vs[1] := os[1]
+                new ArrayCommand(ArrayCommandType.IncrementBy,     0, 1),  // vs[0] += vs[1]
+            };
             var chunk = ArrangeChunk(cmds);
             double[] os = { 2.0, 3.0 };
-            double[] od = new double[2];
-            var vs = ActExecute(chunk, os, od);
+            var vs = ActExecute(chunk, os);
 
             // vs[0] = 2+3 = 5
             Assert.AreEqual(5.0, vs[0], 1e-9);
             Assert.AreEqual(3.0, vs[1], 1e-9);
 
-            // od[0] = vs[0], od[1] = vs[1]
-            Assert.AreEqual(5.0, od[0], 1e-9);
-            Assert.AreEqual(3.0, od[1], 1e-9);
-
             // And confirm pointers on chunk
             Assert.AreEqual(2, chunk.StartSourceIndices);
-            Assert.AreEqual(2, chunk.StartDestinationIndices);
-        }
-
-        [TestMethod]
-        public void TestReusedDestinationsDoNotAdvancePointer()
-        {
-            var cmds = new[]
-            {
-        new ArrayCommand(ArrayCommandType.CopyTo,        0, 0),   // vs[0] := vs[0]
-        new ArrayCommand(ArrayCommandType.NextDestination,-1, 0), // od[0] = vs[0]
-        new ArrayCommand(ArrayCommandType.ReusedDestination, 0, 0),// od[0] += vs[0]
-        new ArrayCommand(ArrayCommandType.NextDestination,-1, 0)  // od[1] = vs[0]
-    };
-            var chunk = ArrangeChunk(cmds);
-            chunk.VirtualStack[0] = 7.0;
-            double[] od = new double[2];
-            ActExecute(chunk, Array.Empty<double>(), od);
-
-            // od[0] = 7 + 7 = 14, od[1] = 7
-            Assert.AreEqual(14.0, od[0], 1e-9);
-            Assert.AreEqual(7.0, od[1], 1e-9);
-
-            // pointers
-            Assert.AreEqual(0, chunk.StartSourceIndices);      // no NextSource used
-            Assert.AreEqual(2, chunk.StartDestinationIndices); // two NextDestination calls
         }
 
         [TestMethod]
@@ -440,15 +382,13 @@ namespace ACESimTest.ArrayProcessingTests
                 executor.AddToGeneration(chunk);
                 executor.PerformGeneration();
 
-                int cosi = 0, codi = 0;
+                int cosi = 0;
                 bool condition = true;
                 executor.Execute(
                     chunk,
                     chunk.VirtualStack,
                     Array.Empty<double>(),
-                    Array.Empty<double>(),
                     ref cosi,
-                    ref codi,
                     ref condition);
 
                 // Assert
@@ -472,7 +412,6 @@ namespace ACESimTest.ArrayProcessingTests
         new ArrayCommand(ArrayCommandType.If,               -1, -1),
             // skipped:
             new ArrayCommand(ArrayCommandType.NextSource,   0, -1),
-            new ArrayCommand(ArrayCommandType.NextDestination, -1, 0),
         new ArrayCommand(ArrayCommandType.EndIf,            -1, -1),
         // real NextSource:
         new ArrayCommand(ArrayCommandType.NextSource,       1, -1)
@@ -480,11 +419,10 @@ namespace ACESimTest.ArrayProcessingTests
             var chunk = ArrangeChunk(cmds);
             double[] os = { 11, 22 };
             double[] od = new double[1];
-            var vs = ActExecute(chunk, os, od);
+            var vs = ActExecute(chunk, os);
 
             // The skipped NextSource / NextDestination still consumed os[0] and reserved od[0]
             Assert.AreEqual(2, chunk.StartSourceIndices, "cosi should be 2");
-            Assert.AreEqual(1, chunk.StartDestinationIndices, "codi should be 1");
             // And vs[1] gets the second source:
             Assert.AreEqual(22, vs[1], 1e-9);
         }
@@ -502,7 +440,7 @@ namespace ACESimTest.ArrayProcessingTests
             };
             var chunk = ArrangeChunk(cmds);
             chunk.VirtualStack[2] = 5.0;
-            var vs = ActExecute(chunk, Array.Empty<double>(), Array.Empty<double>());
+            var vs = ActExecute(chunk, Array.Empty<double>());
             Assert.AreEqual(0.0, vs[2], 1e-9);
         }
 
@@ -515,17 +453,15 @@ namespace ACESimTest.ArrayProcessingTests
         new ArrayCommand(ArrayCommandType.If, -1, -1),
             new ArrayCommand(ArrayCommandType.NextSource,      0, -1),
             new ArrayCommand(ArrayCommandType.NextSource,      1, -1),
-            new ArrayCommand(ArrayCommandType.NextDestination, -1, 0),
         new ArrayCommand(ArrayCommandType.EndIf, -1, -1),
         new ArrayCommand(ArrayCommandType.NextSource,          2, -1)
     };
             var chunk = ArrangeChunk(cmds);
             double[] os = { 10, 20, 30 };
             double[] od = new double[1];
-            ActExecute(chunk, os, od);
+            ActExecute(chunk, os);
 
             Assert.AreEqual(3, chunk.StartSourceIndices);
-            Assert.AreEqual(1, chunk.StartDestinationIndices);
             Assert.AreEqual(30, chunk.VirtualStack[2], 1e-9);
         }
 
@@ -543,40 +479,17 @@ namespace ACESimTest.ArrayProcessingTests
             new ArrayCommand(ArrayCommandType.NextSource,  2, -1),
             new ArrayCommand(ArrayCommandType.EqualsValue, 1, 1), // B
             new ArrayCommand(ArrayCommandType.If, -1, -1),
-                new ArrayCommand(ArrayCommandType.NextDestination, -1, 2),
             new ArrayCommand(ArrayCommandType.EndIf, -1, -1),
         new ArrayCommand(ArrayCommandType.EndIf, -1, -1),
-        new ArrayCommand(ArrayCommandType.NextDestination, -1, 0)
     };
             var chunk = ArrangeChunk(cmds);
             chunk.VirtualStack[0] = a ? 1 : 0;
             chunk.VirtualStack[1] = b ? 1 : 0;
             double[] os = { 99 };
             double[] od = new double[2];
-            ActExecute(chunk, os, od);
+            ActExecute(chunk, os);
 
             Assert.AreEqual(1, chunk.StartSourceIndices);   // one NextSource accounted
-            Assert.AreEqual(2, chunk.StartDestinationIndices); // inner ND skipped/executed + outer ND
-        }
-
-        [TestMethod]
-        public void TestReusedDestination_InSkippedIf()
-        {
-            var cmds = new[]
-            {
-        new ArrayCommand(ArrayCommandType.EqualsValue, 0, 999),   // cond=false
-        new ArrayCommand(ArrayCommandType.If, -1, -1),
-            new ArrayCommand(ArrayCommandType.NextDestination,  -1, 1),
-            new ArrayCommand(ArrayCommandType.ReusedDestination, 0, 1),
-        new ArrayCommand(ArrayCommandType.EndIf, -1, -1)
-    };
-            var chunk = ArrangeChunk(cmds);
-            chunk.VirtualStack[1] = 5.0;
-            double[] od = new double[1];
-            ActExecute(chunk, Array.Empty<double>(), od);
-
-            Assert.AreEqual(1, chunk.StartDestinationIndices); // one ND skipped
-            Assert.AreEqual(0.0, od[0], 1e-9);                 // nothing written
         }
 
         [TestMethod]
@@ -593,7 +506,7 @@ namespace ACESimTest.ArrayProcessingTests
     };
             var chunk = ArrangeChunk(cmds);
             chunk.VirtualStack[2] = 5.0;
-            var vs = ActExecute(chunk, Array.Empty<double>(), Array.Empty<double>());
+            var vs = ActExecute(chunk, Array.Empty<double>());
             Assert.AreEqual(5.0, vs[1], 1e-9);
         }
 
@@ -610,7 +523,7 @@ namespace ACESimTest.ArrayProcessingTests
     };
             var chunk = ArrangeChunk(cmds);
             chunk.VirtualStack[0] = 7.0;
-            var vs = ActExecute(chunk, Array.Empty<double>(), Array.Empty<double>());
+            var vs = ActExecute(chunk, Array.Empty<double>());
             Assert.AreEqual(7.0, vs[1], 1e-9);
         }
 
@@ -622,7 +535,7 @@ namespace ACESimTest.ArrayProcessingTests
             for (int i = 0; i < N; i++)
                 list.Add(new ArrayCommand(ArrayCommandType.Zero, i, -1));
             var chunk = ArrangeChunk(list.ToArray());
-            ActExecute(chunk, Array.Empty<double>(), Array.Empty<double>());
+            ActExecute(chunk, Array.Empty<double>());
             for (int i = 0; i < N; i++)
                 Assert.AreEqual(0.0, chunk.VirtualStack[i], 1e-9);
         }
@@ -650,10 +563,10 @@ namespace ACESimTest.ArrayProcessingTests
                     bool cond = true;
                     var exec = CreateExecutor();
                     exec.AddToGeneration(chunk); exec.PerformGeneration();
-                    int cosi = 0, codi = 0;
+                    int cosi = 0;
                     exec.Execute(chunk, chunk.VirtualStack,
-                                 Array.Empty<double>(), Array.Empty<double>(),
-                                 ref cosi, ref codi, ref cond);
+                                 Array.Empty<double>(), ref cosi,
+                                 ref cond);
                     Assert.AreEqual(expect[k], cond, $"{ops[k]} ({left},{right})");
                 }
             }
@@ -671,7 +584,7 @@ namespace ACESimTest.ArrayProcessingTests
     };
             var chunk = ArrangeChunk(cmds);
             chunk.VirtualStack[0] = 7.7;              // Set vs[0] non-zero so cond will be false
-            var vs = ActExecute(chunk, Array.Empty<double>(), Array.Empty<double>());
+            var vs = ActExecute(chunk, Array.Empty<double>());
             Assert.AreEqual(7.7, vs[1], 1e-9, "vs[1] should remain 7.7 if branch is correctly skipped");
         }
         [TestMethod]
@@ -710,7 +623,7 @@ namespace ACESimTest.ArrayProcessingTests
             double[] os = { 0.0, 1.0 };                   // deliberately 0 then 1
 
             // Act
-            var vs = ActExecute(chunk, os, Array.Empty<double>());
+            var vs = ActExecute(chunk, os);
 
             // Assert – should be 1.0 even though branch was skipped
             Assert.AreEqual(1.0, vs[1], 1e-9,
