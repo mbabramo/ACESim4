@@ -40,8 +40,8 @@ namespace ACESimTest.ArrayProcessingTests
                     Root  ID0   – single leaf that already contains exactly Max commands.
                                  (HoistMutator should leave it alone.)                               */
                 const string expectedTree =
-                    "Root: ID0: 5 Commands:[0,5) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 0 Contents: Stackinfo:";
+                    "Root: ID0: 5 Commands:[0,5) " +
+                    "";
 
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedTree), "initial structure");
@@ -66,8 +66,8 @@ namespace ACESimTest.ArrayProcessingTests
                     ───────────────────
                     Root  ID0 – one oversize If/EndIf block (body length 8 > Max).                  */
                 const string expectedInitialTree =
-                    "Root: ID0: 12 Commands:[0,12) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 0 Contents: Stackinfo:";
+                    "Root: ID0: 12 Commands:[0,12) " +
+                    "";
 
                 /*  expectedFinalTree
                     ─────────────────
@@ -77,19 +77,11 @@ namespace ACESimTest.ArrayProcessingTests
                         Leaf ID3 – first slice of body (5 cmds, stack context ID2).
                         Leaf ID4 – second slice of body (3 cmds).                                    */
                 const string expectedFinalTree =
-    "Root: ID0: 0 Commands:[2,2) Sources:[0,0) Destinations:[0,0) " +
-    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
-    "Leaf 1: ID2: 2 Commands:[0,2) Sources:[0,0) Destinations:[0,0) " +
-    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
-    "0S-1U1S,-,-,-,-,-,-,-,-,-,-, " +
-    "Leaf 2: ID1: 10 Commands:[2,12) Sources:[0,0) Destinations:[0,0) " +
-    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
-    "Leaf 1: ID3: 5 Commands:[3,8) Sources:[0,0) Destinations:[0,0) " +
-    "CopyIncrements: VirtualStack ID: 2 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
-    "3R-7U7S,-,-,-,-,-,-,-,-,-,-, " +
-    "Leaf 2: ID4: 3 Commands:[8,11) Sources:[0,0) Destinations:[0,0) " +
-    "CopyIncrements: VirtualStack ID: 2 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
-    "8R-10U10S,-,-,-,-,-,-,-,-,-,-,";
+    "Root: ID0: 0 Commands:[2,2) " +
+    "Leaf 1: ID2: 2 Commands:[0,2) " +
+    "Leaf 2: ID1: 10 Commands:[2,12) " +
+    "Leaf 1: ID3: 5 Commands:[3,8) " +
+    "Leaf 2: ID4: 3 Commands:[8,11) ";
 
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedInitialTree), "initial structure");
@@ -112,8 +104,8 @@ namespace ACESimTest.ArrayProcessingTests
 
                 /*  expectedInitialTree – identical shape to previous test but body = 15 cmds.       */
                 const string expectedInitialTree =
-                    "Root: ID0: 19 Commands:[0,19) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 0 Contents: Stackinfo:";
+                    "Root: ID0: 19 Commands:[0,19) " +
+                    "";
 
                 /*  expectedFinalTree
                     ─────────────────
@@ -124,12 +116,12 @@ namespace ACESimTest.ArrayProcessingTests
                         Slice ID4 – body part 2 (5 cmds).
                         Slice ID5 – body part 3 (5 cmds).                                            */
                 const string expectedFinalTree =
-    "Root: ID0: 0 Commands:[2,2) Sources:[0,0) Destinations:[0,0) CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
-    "Leaf 1: ID2: 2 Commands:[0,2) Sources:[0,0) Destinations:[0,0) CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: 0S-1U1S,-,-,-,-,-,-,-,-,-,-, " +
-    "Leaf 2: ID1: 17 Commands:[2,19) Sources:[0,0) Destinations:[0,0) CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
-    "Leaf 1: ID3: 5 Commands:[3,8) Sources:[0,0) Destinations:[0,0) CopyIncrements: VirtualStack ID: 2 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: 3R-7U7S,-,-,-,-,-,-,-,-,-,-, " +
-    "Leaf 2: ID4: 5 Commands:[8,13) Sources:[0,0) Destinations:[0,0) CopyIncrements: VirtualStack ID: 2 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: 8R-12U12S,-,-,-,-,-,-,-,-,-,-, " +
-    "Leaf 3: ID5: 5 Commands:[13,18) Sources:[0,0) Destinations:[0,0) CopyIncrements: VirtualStack ID: 2 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: 13R-17U17S,-,-,-,-,-,-,-,-,-,-,";
+    "Root: ID0: 0 Commands:[2,2) " +
+    "Leaf 1: ID2: 2 Commands:[0,2) " +
+    "Leaf 2: ID1: 17 Commands:[2,19) " +
+    "Leaf 1: ID3: 5 Commands:[3,8) " +
+    "Leaf 2: ID4: 5 Commands:[8,13) " +
+    "Leaf 3: ID5: 5 Commands:[13,18) ";
 
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedInitialTree), "initial structure");
@@ -160,8 +152,8 @@ namespace ACESimTest.ArrayProcessingTests
 
                 /*  expectedInitialTree – one oversized IncrementDepth…DecrementDepth sequence.       */
                 const string expectedInitialTree =
-                    "Root: ID0: 11 Commands:[0,11) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 0 Contents: Stackinfo:";
+                    "Root: ID0: 11 Commands:[0,11) " +
+                    "";
 
                 /*  expectedFinalTree
                     ─────────────────
@@ -170,16 +162,10 @@ namespace ACESimTest.ArrayProcessingTests
                         Slice ID2 – first five-cmd chunk of the body (stack ID1).
                         Slice ID3 – second four-cmd chunk of the body (stack ID1).                   */
                 const string expectedFinalTree =
-                    "Root: ID0: 0 Commands:[0,0) Sources:[0,0) Destinations:[0,0) "
-                    + "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: "
-                    + "Leaf 1: ID1: 0 Commands:[11,11) Sources:[0,0) Destinations:[0,0) "
-                    + "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: "
-                    + "Leaf 1: ID2: 5 Commands:[1,6) Sources:[0,0) Destinations:[0,0) "
-                    + "CopyIncrements: VirtualStack ID: 1 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: "
-                    + "-,-,-,-,-,-,-,-,-,-,-, "
-                    + "Leaf 2: ID3: 4 Commands:[6,10) Sources:[0,0) Destinations:[0,0) "
-                    + "CopyIncrements: VirtualStack ID: 1 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: "
-                    + "-,-,-,-,-,-,-,-,-,-,-,";
+                    "Root: ID0: 0 Commands:[0,0) "
+                    + "Leaf 1: ID1: 0 Commands:[11,11) "
+                    + "Leaf 1: ID2: 5 Commands:[1,6) "
+                    + "Leaf 2: ID3: 4 Commands:[6,10) ";
 
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedInitialTree), "initial structure");
@@ -212,25 +198,19 @@ namespace ACESimTest.ArrayProcessingTests
 
                 /*  expectedInitialTree – depth region plus an oversize If-body inside it.            */
                 const string expectedInitialTree =
-                    "Root: ID0: 13 Commands:[0,13) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 0 Contents: Stackinfo:";
+                    "Root: ID0: 13 Commands:[0,13) " +
+                    "";
 
                 /*  expectedFinalTree
                     ─────────────────
                     Depth region is *not* split; only the internal If-body is sliced.                 */
                 const string expectedFinalTree =
-                    "Root: ID0: 0 Commands:[3,3) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
-                    "Leaf 1: ID3: 3 Commands:[0,3) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: 1S-2U2S,-,-,-,-,-,-,-,-,-,-, " +
-                    "Leaf 2: ID1: 9 Commands:[3,12) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
-                    "Leaf 1: ID4: 5 Commands:[4,9) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 2 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: -,-,-,-,-,-,-,-,-,-,-, " +
-                    "Leaf 2: ID5: 2 Commands:[9,11) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 2 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: -,-,-,-,-,-,-,-,-,-,-, " +
-                    "Leaf 3: ID2: 1 Commands:[12,13) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: -,-,-,-,-,-,-,-,-,-,-,";
+                    "Root: ID0: 0 Commands:[3,3) " +
+                    "Leaf 1: ID3: 3 Commands:[0,3) " +
+                    "Leaf 2: ID1: 9 Commands:[3,12) " +
+                    "Leaf 1: ID4: 5 Commands:[4,9) " +
+                    "Leaf 2: ID5: 2 Commands:[9,11) " +
+                    "Leaf 3: ID2: 1 Commands:[12,13) " ;
 
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedInitialTree), "initial structure");
@@ -267,8 +247,8 @@ namespace ACESimTest.ArrayProcessingTests
 
                 /*  expectedInitialTree – single leaf, two separate If-blocks.                       */
                 const string expectedInitialTree =
-                    "Root: ID0: 20 Commands:[0,20) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 0 Contents: Stackinfo:";
+                    "Root: ID0: 20 Commands:[0,20) " +
+                    "";
 
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedInitialTree), "initial structure");
@@ -280,26 +260,16 @@ namespace ACESimTest.ArrayProcessingTests
                     Both If-blocks were hoisted and sliced, producing two gate containers
                     each with its own slices; IDs reflect deterministic assignment.                 */
                 const string expectedFinalTree =
-                    "Root: ID0: 0 Commands:[2,2) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 6 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
-                    "Leaf 1: ID3: 2 Commands:[0,2) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 6 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: 0S-1U1S,-,-,-,-,-,-,-,-,-,-, " +
-                    "Leaf 2: ID1: 8 Commands:[2,10) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 6 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
-                    "Leaf 1: ID4: 5 Commands:[3,8) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 8 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: -,-,-,-,-,-,-,-,-,-,-, " +
-                    "Leaf 2: ID5: 1 Commands:[8,9) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 8 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: -,-,-,-,-,-,-,-,-,-,-, " +
-                    "Leaf 3: ID2: 0 Commands:[11,11) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 6 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: 10S-10U10S,-,-,-,-,-,-,-,-,-,-, " +
-                    "Leaf 1: ID7: 1 Commands:[10,11) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 11 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: 10S-10U10S,-,-,-,-,-,-,-,-,-,-, " +
-                    "Leaf 2: ID6: 9 Commands:[11,20) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 11 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
-                    "Leaf 1: ID8: 5 Commands:[12,17) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 13 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: -,-,-,-,-,-,-,-,-,-,-, " +
-                    "Leaf 2: ID9: 2 Commands:[17,19) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 13 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: -,-,-,-,-,-,-,-,-,-,-,";
+                    "Root: ID0: 0 Commands:[2,2) " +
+                    "Leaf 1: ID3: 2 Commands:[0,2) " +
+                    "Leaf 2: ID1: 8 Commands:[2,10) " +
+                    "Leaf 1: ID4: 5 Commands:[3,8) " +
+                    "Leaf 2: ID5: 1 Commands:[8,9) " +
+                    "Leaf 3: ID2: 0 Commands:[11,11) " +
+                    "Leaf 1: ID7: 1 Commands:[10,11) " +
+                    "Leaf 2: ID6: 9 Commands:[11,20) " +
+                    "Leaf 1: ID8: 5 Commands:[12,17) " +
+                    "Leaf 2: ID9: 2 Commands:[17,19) ";
 
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedFinalTree), "final structure");
@@ -331,25 +301,19 @@ namespace ACESimTest.ArrayProcessingTests
 
                 /*  expectedInitialTree – outer If, inner If, both oversize.                         */
                 const string expectedInitialTree =
-                    "Root: ID0: 19 Commands:[0,19) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 0 Contents: Stackinfo:";
+                    "Root: ID0: 19 Commands:[0,19) " +
+                    "";
 
                 /*  expectedFinalTree
                     ─────────────────
                     Only the inner If-body was sliced; the outer remains a single chunk.             */
                 const string expectedFinalTree =
-                    "Root: ID0: 0 Commands:[4,4) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
-                    "Leaf 1: ID3: 4 Commands:[0,4) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: 0S-3U3S,-,-,-,-,-,-,-,-,-,-, " +
-                    "Leaf 2: ID1: 8 Commands:[4,12) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: " +
-                    "Leaf 1: ID4: 5 Commands:[5,10) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 2 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: -,-,-,-,-,-,-,-,-,-,-, " +
-                    "Leaf 2: ID5: 1 Commands:[10,11) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 2 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: -,-,-,-,-,-,-,-,-,-,-, " +
-                    "Leaf 3: ID2: 7 Commands:[12,19) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0,0,0,0,0,0,0,0,0,0 Stackinfo: -,-,-,-,-,-,-,-,-,-,-,";
+                    "Root: ID0: 0 Commands:[4,4) " +
+                    "Leaf 1: ID3: 4 Commands:[0,4) " +
+                    "Leaf 2: ID1: 8 Commands:[4,12) " +
+                    "Leaf 1: ID4: 5 Commands:[5,10) " +
+                    "Leaf 2: ID5: 1 Commands:[10,11) " +
+                    "Leaf 3: ID2: 7 Commands:[12,19) " ;
 
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedInitialTree), "initial structure");
@@ -392,32 +356,22 @@ namespace ACESimTest.ArrayProcessingTests
 
                 /*  expectedInitialTree – two leaves, L1 (small) and L2 (oversize).                   */
                 const string expectedInitialTree =
-                    "Root: ID0: 14 Commands:[0,14) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 0 Contents: Stackinfo: " +
-                    "Leaf 1: ID1: L1 3 Commands:[0,3) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 0 Contents: Stackinfo: " +
-                    "Leaf 2: ID2: L2 11 Commands:[3,14) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 0 Contents: Stackinfo:";
+                    "Root: ID0: 14 Commands:[0,14) " +
+                    "Leaf 1: ID1: L1 3 Commands:[0,3) " +
+                    "Leaf 2: ID2: L2 11 Commands:[3,14) ";
 
                 /*  expectedFinalTree
                     ─────────────────
                     L1 unchanged.  
                     L2 becomes a small prefix leaf + gate + slices.                                   */
                 const string expectedFinalTree =
-                    "Root: ID0: 14 Commands:[0,14) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0 Stackinfo: " +
-                    "Leaf 1: ID1: L1 3 Commands:[0,3) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0 Stackinfo: -,-, " +
-                    "Leaf 2: ID2: L2 0 Commands:[5,5) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 0 Contents: 0,0 Stackinfo: " +
-                    "Leaf 1: ID4: 2 Commands:[3,5) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 2 Contents: 0,0 Stackinfo: 3S-4U4S,-, " +
-                    "Leaf 2: ID3: 9 Commands:[5,14) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 2 Contents: 0,0 Stackinfo: " +
-                    "Leaf 1: ID5: 5 Commands:[6,11) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 4 Contents: 0,0 Stackinfo: -,-, " +
-                    "Leaf 2: ID6: 2 Commands:[11,13) Sources:[0,0) Destinations:[0,0) " +
-                    "CopyIncrements: VirtualStack ID: 4 Contents: 0,0 Stackinfo: -,-,";
+                    "Root: ID0: 14 Commands:[0,14) " +
+                    "Leaf 1: ID1: L1 3 Commands:[0,3) " +
+                    "Leaf 2: ID2: L2 0 Commands:[5,5) " +
+                    "Leaf 1: ID4: 2 Commands:[3,5) " +
+                    "Leaf 2: ID3: 9 Commands:[5,14) " +
+                    "Leaf 1: ID5: 5 Commands:[6,11) " +
+                    "Leaf 2: ID6: 2 Commands:[11,13) ";
 
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedInitialTree), "initial structure");
