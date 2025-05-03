@@ -1,300 +1,393 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Text;
 using ACESimBase.Util.ArrayProcessing;
 
 namespace ACESimTest.ArrayProcessingTests
 {
     /// <summary>
-    /// Builds a random ArrayCommand[] using your EmitChunk/EmitRandomCommand logic.
-    /// Adds a tiny post‑pass that removes immediately‑repeated Zero‑to‑same‑slot
-    /// commands so the generated code no longer ends with hundreds of
-    /// `l0 = 0;` lines.
+    /// Builds exact-length, well-nested command buffers for fuzz tests and can
+    /// pretty-print them with tab indentation that reflects chunk, If/EndIf and
+    /// IncrementDepth/DecrementDepth structure.
     /// </summary>
     public class FuzzCommandBuilder
     {
         private readonly Random _rnd;
-        private readonly List<int> _scratch = new();
-        private readonly ArrayCommandList _acl;
         private readonly int _origCount;
+
+        private readonly List<int> _scratch = new(); 
+        private readonly Stack<int> _scratchCheckpoint = new(); // keeps track of the # of scratch items that existed at each successive if/increment depth, so that when we exit these loops, we can remove extra scratch items, thus preventing us from using a variable out of scope.
+
+        /* ── state captured at the last Build() so ToFormattedString() can work ── */
+        private ArrayCommand[] _lastResult = Array.Empty<ArrayCommand>();
+        private int[] _lastChunkSizes = Array.Empty<int>();
 
         public FuzzCommandBuilder(int seed, int origCount)
         {
             _rnd = new Random(seed);
             _origCount = origCount;
-            _acl = new ArrayCommandList(maxNumCommands: 1000, initialArrayIndex: origCount);
         }
 
-        /// <summary>
-        /// Build a single chunk, then (if maxCommands!=null) truncate to at most that
-        /// many commands, rebalance any unmatched If/EndIf, collapse redundant
-        /// Zero‑Existing streaks, and return the resulting ArrayCommand[].
-        /// </summary>
-        public ArrayCommand[] Build(int maxDepth = 2, int maxBody = 8, int? maxCommands = null)
+        /*────────────────────────────────────────────────────────────────────────*/
+        public ArrayCommand[] Build(int targetSize = 40,
+                                    int maxDepth = 2,
+                                    double pSingleChunk = .75)
         {
-            // 1) generate the full chunk
+            var acl = new ArrayCommandList(targetSize, _origCount);
             _scratch.Clear();
-            _acl.StartCommandChunk(runChildrenInParallel: false, identicalStartCommandRange: null);
-            int localDepth = 0;
-            EmitChunk(0, maxDepth, maxBody, ref localDepth);
-            while (localDepth-- > 0) _acl.DecrementDepth();
-            _acl.EndCommandChunk();
 
-            var full = _acl.UnderlyingCommands;
+            int chunkCount = targetSize < 10 || _rnd.NextDouble() < pSingleChunk ? 1 : 2;
+            _lastChunkSizes = Split(targetSize, chunkCount);
 
-            // 2) optionally truncate
-            if (maxCommands.HasValue && full.Length > maxCommands.Value)
+            foreach (int sz in _lastChunkSizes)
             {
-                full = full.Take(maxCommands.Value).ToArray();
+                acl.StartCommandChunk(false, null);
 
-                // rebalance If/EndIf so the chunk remains well‑formed
-                int opens = full.Count(c => c.CommandType == ArrayCommandType.If) -
-                            full.Count(c => c.CommandType == ArrayCommandType.EndIf);
-                if (opens > 0)
+                CopyOriginalToNew(acl);                // seed scratch
+                EmitChunkBody(acl, sz - 1, maxDepth);  // remaining slots
+
+                acl.EndCommandChunk();
+            }
+
+            _lastResult = acl.UnderlyingCommands;      // remember for ToString()
+            return _lastResult;
+        }
+
+        /*──────────────────────────── PRETTY-PRINTER ───────────────────────────*/
+        public string ToFormattedString()
+        {
+            if (_lastResult.Length == 0)
+                return "(no Build() has been run yet)";
+
+            // ── pre-compute chunk boundaries ─────────────────────────────
+            var starts = new HashSet<int>();
+            var ends = new HashSet<int>();
+            int cum = 0;
+            for (int c = 0; c < _lastChunkSizes.Length; c++)
+            {
+                starts.Add(cum);                       // first cmd of chunk
+                ends.Add(cum + _lastChunkSizes[c] - 1); // last cmd of chunk
+                cum += _lastChunkSizes[c];
+            }
+
+            var sb = new StringBuilder();
+            int indent = 0;
+            int chunkNo = 0;
+
+            void WriteLine(string txt) => sb.Append('\t', indent).AppendLine(txt);
+
+            for (int i = 0; i < _lastResult.Length; i++)
+            {
+                // ---- banner BEFORE command ----
+                if (starts.Contains(i))
                 {
-                    Array.Resize(ref full, full.Length + opens);
-                    for (int i = full.Length - opens; i < full.Length; i++)
-                        full[i] = new ArrayCommand(ArrayCommandType.EndIf, -1, -1);
+                    WriteLine($"--- Start Chunk {chunkNo} ---");
+                    indent++;                  // inner level for commands
+                }
+
+                // ---- pre-indent for closing tokens (EndIf / DecDepth) ----
+                if (_lastResult[i].CommandType == ArrayCommandType.EndIf ||
+                    _lastResult[i].CommandType == ArrayCommandType.DecrementDepth)
+                    indent = Math.Max(0, indent - 1);
+
+                // ---- emit the command ----
+                WriteLine($"{i}: {_lastResult[i]}");
+
+                // ---- post-indent for opening tokens (If / IncDepth) ----
+                if (_lastResult[i].CommandType == ArrayCommandType.If ||
+                    _lastResult[i].CommandType == ArrayCommandType.IncrementDepth)
+                    indent++;
+
+                // ---- banner AFTER command ----
+                if (ends.Contains(i))
+                {
+                    indent--;                  // close chunk indentation
+                    WriteLine($"--- End Chunk {chunkNo} ---");
+                    chunkNo++;
+                }
+            }
+            return sb.ToString();
+        }
+
+
+
+
+        /*──────────────────── internal: emitters & plan helpers ─────────────────*/
+
+        private enum D { IfCond, If, EndIf, Inc, Dec }
+
+        private void EmitChunkBody(ArrayCommandList acl, int len, int maxDepth)
+        {
+            if (len <= 0) return;
+
+            var plan = new D?[len];
+            BuildPlan(plan, 0, len, 0, maxDepth);
+
+            var stack = new Stack<D>();
+
+            for (int i = 0; i < len; i++)
+            {
+                switch (plan[i])
+                {
+                    case D.IfCond:
+                        EmitComparison(acl);
+                        break;
+
+                    case D.If:
+                        acl.InsertIfCommand();
+                        _scratchCheckpoint.Push(_scratch.Count);
+                        stack.Push(D.If);
+                        break;
+
+                    case D.EndIf:
+                        if (stack.Count == 0 || stack.Pop() != D.If)
+                            throw new InvalidOperationException($"Mismatched EndIf at plan index {i}.");
+                        acl.InsertEndIfCommand();
+                        TruncateScratch();
+                        break;
+
+                    case D.Inc:
+                        acl.IncrementDepth();
+                        _scratchCheckpoint.Push(_scratch.Count);
+                        stack.Push(D.Inc);
+                        break;
+
+                    case D.Dec:
+                        if (stack.Count == 0 || stack.Pop() != D.Inc)
+                            throw new InvalidOperationException($"Mismatched DecrementDepth at plan index {i}.");
+                        acl.DecrementDepth();
+                        TruncateScratch();
+                        break;
+
+                    default:
+                        // how many consecutive empty slots remain (including i)
+                        int avail = 1;
+                        while (avail < 4 && i + avail < len && plan[i + avail] is null) avail++;
+
+                        int used = EmitPrimitive(acl, avail);   // may be 1-3
+                        i += used - 1;                          // account for extra slots
+                        break;
                 }
             }
 
-            // 3) remove redundant consecutive Zero‑Existing commands
-            var cleaned = new List<ArrayCommand>(full.Length);
-            foreach (var cmd in full)
-            {
-                if (cmd.CommandType == ArrayCommandType.Zero &&
-                    cleaned.Count > 0 &&
-                    cleaned[^1].CommandType == ArrayCommandType.Zero &&
-                    cleaned[^1].Index == cmd.Index)
-                {
-                    // drop duplicate
-                    continue;
-                }
-                cleaned.Add(cmd);
-            }
-
-            return cleaned.ToArray();
+            if (stack.Count != 0)
+                throw new InvalidOperationException($"Planner produced unbalanced delimiters; {stack.Count} still open.");
         }
 
-        // ---------------- existing generation helpers below ----------------
 
-        private void EmitChunk(int depth, int maxDepth, int maxBody, ref int localDepth)
+
+        private void BuildPlan(D?[] buf, int s, int len, int depth, int maxDepth)
         {
-            // 30% chance: read from a scratch slot before any write
-            if (_scratch.Count > 0 && _rnd.NextDouble() < 0.30)
+            if (len < 2 || depth >= maxDepth) return;
+
+            // ----- try to place an If-block(needs ≥ 4 total slots)---- -
+            bool placeIf = len >= 4 && _rnd.NextDouble() < .33;
+            if (placeIf)
             {
-                int p = _scratch[_rnd.Next(_scratch.Count)];
-                _acl.CopyToNew(p, fromOriginalSources: false);
-            }
+                // choose any pre-span so at least 1 slot remains for body
+                int preMax = len - 4;               // Guard,If,EndIf,body(1)
+                int pre = _rnd.Next(0, preMax + 1);
 
-            var copyUp = new List<int>();
-            EmitLinear(_rnd.Next(4, maxBody + 1), copyUp, ref localDepth);
+                int remAfterPre = len - pre - 3;      // remaining for body+post
+                int body = _rnd.Next(1, remAfterPre + 1);
+                int post = remAfterPre - body;
 
-            // optional nested child
-            if (depth < maxDepth)
-            {
-                int guard = EnsureScratch();
-                _acl.InsertNotEqualsValueCommand(guard, 0);
-                _acl.InsertIfCommand();
-                EmitChunk(depth + 1, maxDepth, maxBody, ref localDepth);
-                _acl.InsertEndIfCommand();
-            }
+                int cond = s + pre;
+                int ifPos = cond + 1;
+                int end = ifPos + body + 1;
 
-            // close depths introduced inside this chunk
-            while (localDepth-- > 0)
-                _acl.DecrementDepth();
+                buf[cond] = D.IfCond;
+                buf[ifPos] = D.If;
+                buf[end] = D.EndIf;
 
-            _acl.EndCommandChunk(endingRepeatedChunk: false);
-        }
-
-        private void EmitLinear(int count, List<int> copyUp, ref int localDepth)
-        {
-            for (int i = 0; i < count; i++)
-                EmitRandomCommand(copyUp, ref localDepth);
-        }
-
-        private void EmitRandomCommand(List<int> copyUp, ref int localDepth)
-        {
-            MaybeToggleDepth(ref localDepth, copyUp);
-            if (_rnd.NextDouble() < 0.20) return;
-
-            if (_scratch.Count > 0 && _rnd.NextDouble() < 0.15)
-            {
-                int tgt = _scratch[_rnd.Next(_scratch.Count)];
-                int src = _scratch[_rnd.Next(_scratch.Count)];
-                _acl.Increment(tgt, targetOriginal: false, indexOfIncrement: src);
+                BuildPlan(buf, s, pre, depth, maxDepth);
+                BuildPlan(buf, ifPos + 1, body, depth + 1, maxDepth);
+                BuildPlan(buf, end + 1, post, depth, maxDepth);
                 return;
             }
 
-            switch (_rnd.Next(0, 13))
+            // ----- try to place an IncrementDepth-block (needs ≥ 2 slots) -----
+            bool placeDepth = len >= 2 && _rnd.NextDouble() < .5;
+            if (placeDepth)
             {
-                case 0: CopyOriginalToNew(); break;
-                case 1: CopyScratchToNew(); break;
-                case 2: MultiplyToNew(); break;
-                case 3: IncrementScratch(); break;
-                case 4: DecrementScratch(); break;
-                case 5: InplaceMath(); break;
-                case 6: IncrementOriginal(); break;
-                case 7: ZeroScratch(); break;
-                case 8: ComparisonValue(); break;
-                case 9: ComparisonIndices(); break;
-                case 10: NextSourceDrain(); break;
-                case 11: ReadParentScratch(); break;
-                default: IncrementByProduct(); break;
+                int preMax = len - 2;           // Inc,Dec
+                int pre = _rnd.Next(0, preMax + 1);
+
+                int remAfterPre = len - pre - 2;     // body+post
+                int body = _rnd.Next(0, remAfterPre + 1); // body may be 0
+                int post = remAfterPre - body;
+
+                int inc = s + pre;
+                int dec = inc + body + 1;
+
+                buf[inc] = D.Inc;
+                buf[dec] = D.Dec;
+
+                BuildPlan(buf, s, pre, depth, maxDepth);
+                BuildPlan(buf, inc + 1, body, depth + 1, maxDepth);
+                BuildPlan(buf, dec + 1, post, depth, maxDepth);
             }
+
         }
 
-        private void MaybeToggleDepth(ref int localDepth, List<int> copyUp)
+        private static int[] Split(int total, int parts)
         {
-            if (_rnd.NextDouble() >= 0.20) return;
-            if (localDepth == 0 || _rnd.NextDouble() < 0.50)
-            {
-                _acl.IncrementDepth();
-                localDepth++;
-                int s = EnsureScratch();
-                copyUp.Add(s);
-            }
-            else
-            {
-                _acl.DecrementDepth();
-                localDepth--;
-            }
+            if (parts == 1) return new[] { total };
+            int first = new Random().Next(1, total);
+            return new[] { first, total - first };
+        }
+        void TruncateScratch()
+        {
+            int keep = _scratchCheckpoint.Pop();
+            if (_scratch.Count > keep)
+                _scratch.RemoveRange(keep, _scratch.Count - keep);
         }
 
-        private int EnsureScratch()
-        {
-            if (_scratch.Count == 0)
-                CopyOriginalToNew();
-            return _scratch[_rnd.Next(_scratch.Count)];
-        }
+        // ───────────────── emitters ─────────────────
 
-        private void CopyOriginalToNew()
+        private void EmitComparison(ArrayCommandList acl)
         {
-            int src = _rnd.Next(_origCount);
-            int idx = _acl.CopyToNew(src, fromOriginalSources: true);
-            _scratch.Add(idx);
-        }
-
-        private void CopyScratchToNew()
-        {
-            if (_scratch.Count == 0) { CopyOriginalToNew(); return; }
-            int s = _scratch[_rnd.Next(_scratch.Count)];
-            int idx = _acl.CopyToNew(s, fromOriginalSources: false);
-            _scratch.Add(idx);
-        }
-
-        private void MultiplyToNew()
-        {
-            int s = EnsureScratch();
-            int idx = _acl.MultiplyToNew(s, fromOriginalSources: false, idx2: s);
-            _scratch.Add(idx);
-        }
-
-        private void IncrementScratch()
-        {
-            if (_scratch.Count < 1) { CopyOriginalToNew(); return; }
-            int tgt = _scratch[_rnd.Next(_scratch.Count)];
-            int inc = _scratch[_rnd.Next(_scratch.Count)];
-            _acl.Increment(tgt, false, inc);
-        }
-
-        private void DecrementScratch()
-        {
-            if (_scratch.Count < 1) { CopyOriginalToNew(); return; }
-            int tgt = _scratch[_rnd.Next(_scratch.Count)];
-            int dec = _scratch[_rnd.Next(_scratch.Count)];
-            _acl.Decrement(tgt, dec);
-        }
-
-        private void InplaceMath()
-        {
-            if (_scratch.Count == 0) { CopyOriginalToNew(); return; }
             int idx = _scratch[_rnd.Next(_scratch.Count)];
-            switch (_rnd.Next(3))
+
+            if (_rnd.NextDouble() < .5)
             {
-                case 0: _acl.Increment(idx, false, idx); break;
-                case 1: _acl.Decrement(idx, idx); break;
-                default: _acl.MultiplyBy(idx, idx); break;
+                int v = _rnd.Next(0, 5);
+                if (_rnd.NextDouble() < .5)
+                    acl.InsertEqualsValueCommand(idx, v);
+                else
+                    acl.InsertNotEqualsValueCommand(idx, v);
             }
-        }
-
-        private void IncrementOriginal()
-        {
-            int inc = EnsureScratch();
-            int dest = _rnd.Next(_origCount);
-            _acl.Increment(dest, targetOriginal: true, indexOfIncrement: inc);
-        }
-
-        private void ZeroScratch()
-        {
-            int idx = EnsureScratch();
-
-            // guard: if the previous *emitted* command already zeroed this same
-            // slot, skip emitting another redundant zero
-            var cmds = _acl.UnderlyingCommands;
-            if (cmds.Length > 0)
-            {
-                var prev = cmds[^1];
-                if (prev.CommandType == ArrayCommandType.Zero && prev.Index == idx)
-                    return; // redundant
-            }
-
-            _acl.ZeroExisting(idx);
-        }
-
-        private void ComparisonValue()
-        {
-            int idx = EnsureScratch();
-            int val = _rnd.Next(0, 5);
-            if (_rnd.NextDouble() < 0.5)
-                _acl.InsertEqualsValueCommand(idx, val);
-            else
-                _acl.InsertNotEqualsValueCommand(idx, val);
-        }
-
-        private void ComparisonIndices()
-        {
-            if (_scratch.Count < 1) { CopyScratchToNew(); return; }
-            if (_rnd.NextDouble() < 0.5)
+            else if (_scratch.Count >= 2)
             {
                 int a = _scratch[_rnd.Next(_scratch.Count)];
-                _acl.InsertEqualsOtherArrayIndexCommand(a, a);
+                int b = _scratch[_rnd.Next(_scratch.Count)];
+                switch (_rnd.Next(4))
+                {
+                    case 0: acl.InsertEqualsOtherArrayIndexCommand(a, b); break;
+                    case 1: acl.InsertNotEqualsOtherArrayIndexCommand(a, b); break;
+                    case 2: acl.InsertGreaterThanOtherArrayIndexCommand(a, b); break;
+                    default: acl.InsertLessThanOtherArrayIndexCommand(a, b); break;
+                }
             }
             else
             {
-                if (_scratch.Count < 2) { CopyScratchToNew(); return; }
-                int i1 = _scratch[_rnd.Next(_scratch.Count)];
-                int i2 = _scratch[_rnd.Next(_scratch.Count)];
-                switch (_rnd.Next(4))
-                {
-                    case 0: _acl.InsertEqualsOtherArrayIndexCommand(i1, i2); break;
-                    case 1: _acl.InsertNotEqualsOtherArrayIndexCommand(i1, i2); break;
-                    case 2: _acl.InsertGreaterThanOtherArrayIndexCommand(i1, i2); break;
-                    default: _acl.InsertLessThanOtherArrayIndexCommand(i1, i2); break;
-                }
+                acl.InsertEqualsValueCommand(idx, 0);
             }
         }
 
-        private void NextSourceDrain()
+        private int EmitPrimitive(ArrayCommandList acl, int slotsRemaining)
+        {
+            while (true)
+            {
+                int pick = _rnd.Next(10);
+                int cost = pick switch
+                {
+                    1 => 2,           // MultiplyToNew ⇒ CopyToNew + MultiplyBy 
+                    9 => 3,           // IncrementByProduct ⇒ CopyToNew + MultiplyBy + Increment 
+                    _ => 1            // all others emit a single command
+                };
+
+                if (cost > slotsRemaining) continue;   // pick again until it fits
+
+                switch (pick)
+                {
+                    case 0: CopyScratchToNew(acl); break;
+                    case 1: MultiplyToNew(acl); break;
+                    case 2: IncrementScratch(acl); break;
+                    case 3: DecrementScratch(acl); break;
+                    case 4: InplaceMath(acl); break;
+                    case 5: IncrementOriginal(acl); break;
+                    case 6: ZeroScratch(acl); break;
+                    case 7: NextSourceDrain(acl); break;
+                    case 8: ReadParentScratch(acl); break;
+                    default: IncrementByProduct(acl); break;
+                }
+                return cost;
+            }
+        }
+
+        // ───────────────── scratch helpers ─────────────────
+
+        private void CopyOriginalToNew(ArrayCommandList acl)
         {
             int src = _rnd.Next(_origCount);
-            _acl.CopyToNew(src, fromOriginalSources: true);
+            _scratch.Add(acl.CopyToNew(src, true));
         }
 
-        private void ReadParentScratch()
+        private void CopyScratchToNew(ArrayCommandList acl)
         {
-            if (_scratch.Count == 0) { CopyOriginalToNew(); return; }
             int s = _scratch[_rnd.Next(_scratch.Count)];
-            _acl.CopyToNew(s, fromOriginalSources: false);
+            _scratch.Add(acl.CopyToNew(s, false));
         }
 
-        private void IncrementByProduct()
+        private void MultiplyToNew(ArrayCommandList acl)
         {
-            if (_scratch.Count < 2) { CopyScratchToNew(); return; }
+            int s = _scratch[_rnd.Next(_scratch.Count)];
+            _scratch.Add(acl.MultiplyToNew(s, false, s));
+        }
+
+        private void IncrementScratch(ArrayCommandList acl)
+        {
+            int t = _scratch[_rnd.Next(_scratch.Count)];
+            int v = _scratch[_rnd.Next(_scratch.Count)];
+            acl.Increment(t, false, v);
+        }
+
+        private void DecrementScratch(ArrayCommandList acl)
+        {
+            int t = _scratch[_rnd.Next(_scratch.Count)];
+            int v = _scratch[_rnd.Next(_scratch.Count)];
+            acl.Decrement(t, v);
+        }
+
+        private void InplaceMath(ArrayCommandList acl)
+        {
+            int x = _scratch[_rnd.Next(_scratch.Count)];
+            switch (_rnd.Next(3))
+            {
+                case 0: acl.Increment(x, false, x); break;
+                case 1: acl.Decrement(x, x); break;
+                default: acl.MultiplyBy(x, x); break;
+            }
+        }
+
+        private void IncrementOriginal(ArrayCommandList acl)
+        {
+            int val = _scratch[_rnd.Next(_scratch.Count)];
+            int dst = _rnd.Next(_origCount);
+            acl.Increment(dst, true, val);
+        }
+
+        private void ZeroScratch(ArrayCommandList acl)
+        {
+            int idx = _scratch[_rnd.Next(_scratch.Count)];
+            var c = acl.UnderlyingCommands;
+            if (c.Length > 0 &&
+                c[^1].CommandType == ArrayCommandType.Zero &&
+                c[^1].Index == idx) return;
+            acl.ZeroExisting(idx);
+        }
+
+        private void NextSourceDrain(ArrayCommandList acl)
+        {
+            int src = _rnd.Next(_origCount);
+            _ = acl.CopyToNew(src, true);  // not added to scratch
+        }
+
+        private void ReadParentScratch(ArrayCommandList acl)
+        {
+            if (_scratch.Count == 0) return;
+            int s = _scratch[_rnd.Next(_scratch.Count)];
+            _ = acl.CopyToNew(s, false);   // not added to scratch
+        }
+
+        private void IncrementByProduct(ArrayCommandList acl)
+        {
+            if (_scratch.Count < 2) return;
             int tgt = _scratch[_rnd.Next(_scratch.Count)];
             int a = _scratch[_rnd.Next(_scratch.Count)];
             int b = _scratch[_rnd.Next(_scratch.Count)];
-            _acl.IncrementByProduct(tgt, false, a, b);
+            acl.IncrementByProduct(tgt, false, a, b);
         }
     }
 }

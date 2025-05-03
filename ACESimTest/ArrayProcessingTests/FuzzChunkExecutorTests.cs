@@ -42,9 +42,9 @@ namespace ACESimTest.ArrayProcessingTests
                         // build with a very small maxBody (we only care about total truncation here)
                         var builder = new FuzzCommandBuilder(seed, OrigSlotCount);
                         var cmds = builder.Build(
-                            maxDepth: maxDepth,
-                            maxBody: maxCommand ?? 50,
-                            maxCommands: maxCommand);
+                            targetSize: maxCommand ?? 50,
+                            maxDepth: maxDepth);
+                        var formatted = builder.ToFormattedString();
 
                         var iterationInfo = $"Depth index {depthIndex}, Max command index {maxCommandIndex}, Seed {seed}";
                         try
@@ -122,14 +122,6 @@ namespace ACESimTest.ArrayProcessingTests
             Assert.AreEqual(cond0, cond2, $"Seed {seed} {iterationInfo}: condition mismatch with locals {generatedCode}");
             CollectionAssert.AreEqual(vsInterp, vsLoc, $"Seed {seed} {iterationInfo}: vs mismatch with locals {generatedCode}");
             CollectionAssert.AreEqual(od0, odLoc, $"Seed {seed} {iterationInfo}: od mismatch with locals {generatedCode}");
-        }
-
-        private string Describe(ArrayCommand[] cmds)
-        {
-            return string.Join(
-                Environment.NewLine,
-                cmds.Select((c, i) => $"{i:000}: {c.CommandType,-25} idx={c.Index,3} src={c.SourceIndex,3}")
-            );
         }
     }
 }
