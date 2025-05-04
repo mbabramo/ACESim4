@@ -55,7 +55,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 acl.CompleteCommandList();
             
             acl.Debug_LogSourceStats();             //  DEBUG
-            int originals = acl.OrderedSourceIndices.Count(i => i < acl.FirstScratchIndex); // DEBUG
+            int originals = acl.OrderedSourceIndices.Count(i => i < acl.SizeOfMainData); // DEBUG
             int scratch = acl.OrderedSourceIndices.Count - originals; // DEBUG
             TabbedText.WriteLine($"[ACL-DBG] OrderedSourceIndices originals={originals}  scratch={scratch}"); // DEBUG
 

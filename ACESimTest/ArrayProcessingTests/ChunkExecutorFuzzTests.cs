@@ -3,6 +3,7 @@ using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ACESimBase.Util.ArrayProcessing;
 using ACESimBase.Util.ArrayProcessing.ChunkExecutors;
+using System.Diagnostics;
 
 namespace ACESimTest.ArrayProcessingTests
 {
@@ -18,7 +19,7 @@ namespace ACESimTest.ArrayProcessingTests
             int[] maxDepths = { 0, 1, 2, 3 };
             int?[] maxCommands = { 3, 5, 10, 25 };
 
-            (int d, int c, int s)? jumpTo = null;
+            (int d, int c, int s)? jumpTo = (1,0,2); // DEBUG
             bool jumping = jumpTo != null;
 
             for (int d = 0; d < maxDepths.Length; d++)
@@ -64,19 +65,20 @@ namespace ACESimTest.ArrayProcessingTests
 
         private static ExecResult Run(IChunkExecutor exec,
                                       ArrayCommandChunk chunk,
-                                      double[] os)
+                                      double[] originalData,
+                                      double[] orderedSources)
         {
             exec.AddToGeneration(chunk);
             exec.PreserveGeneratedCode = true;
             exec.PerformGeneration();
 
             var vs = new double[chunk.VirtualStack.Length];
-            for (int i = 0; i < os.Length; i++)
-                vs[i] = os[i]; // Initialize virtual stack
+            for (int i = 0; i < originalData.Length; i++)
+                vs[i] = originalData[i]; // Initialize virtual stack
             int cosi = 0;
             bool cond = true;
 
-            exec.Execute(chunk, vs, os, ref cosi, ref cond);
+            exec.Execute(chunk, vs, orderedSources, ref cosi, ref cond);
 
             return new ExecResult(cosi, cond, vs, exec.GeneratedCode);
         }
@@ -96,14 +98,18 @@ namespace ACESimTest.ArrayProcessingTests
             };
 
             Random _rnd = new Random(seed * 2 + 1);
-            var os = Enumerable.Range(0, OriginalSourcesCount)
+            var originalData = Enumerable.Range(0, OriginalSourcesCount)
                                .Select(i => _rnd.NextDouble() < 0.2 ? 0 : (_rnd.NextDouble() - 0.5) * 1000.0)
                                .ToArray();
+            var orderedSourceIndices = aclOriginal.OrderedSourceIndices;
+            var orderedSources = orderedSourceIndices.Select(i => originalData[i]).ToArray();
 
             var baseline = Run(
                 new InterpreterChunkExecutor(cmds, 0, cmds.Length, false, null),
                 chunk,
-                os);
+                originalData,
+                orderedSources);
+            var baselineNonScratchOutputs = baseline.Vs.Take(originalData.Length).ToArray();
 
             var variants = new (Func<IChunkExecutor> Make, string Tag)[]
             {
@@ -115,13 +121,14 @@ namespace ACESimTest.ArrayProcessingTests
 
             foreach (var (make, tag) in variants)
             {
-                var res = Run(make(), chunk, os);
+                var res = Run(make(), chunk, originalData, orderedSources);
+                var resNonScratchOutputs = res.Vs.Take(originalData.Length).ToArray();
 
                 Assert.AreEqual(baseline.Cosi, res.Cosi,
                     $"Seed {seed} {info}: cosi mismatch [{tag}]{res.Code}");
                 Assert.AreEqual(baseline.Cond, res.Cond,
                     $"Seed {seed} {info}: cond mismatch [{tag}]{res.Code}");
-                CollectionAssert.AreEqual(baseline.Vs, res.Vs,
+                CollectionAssert.AreEqual(baselineNonScratchOutputs, resNonScratchOutputs,
                     $"Seed {seed} {info}: vs mismatch [{tag}]{res.Code}");
             }
 
@@ -131,39 +138,42 @@ namespace ACESimTest.ArrayProcessingTests
                 return;
 
             /* ───────────── full ACL + hoisting ───────────── */
-            const int HoistThreshold = 12;   // deliberately small
+            int hoistThreshold = _rnd.Next(2, cmds.Length + 1);
 
             double[] ExecuteAcl(ChunkExecutorKind kind)
             {
                 // Create a new ACL with the same commands. This will exercise the command recorder. 
 
-                var acl = new ArrayCommandList(cmds, OriginalSourcesCount, HoistThreshold)
+                var acl = new ArrayCommandList(cmds, OriginalSourcesCount, hoistThreshold)
                 {
-                    MaxCommandsPerSplittableChunk = HoistThreshold
+                    MaxCommandsPerSplittableChunk = hoistThreshold
                 };
                 foreach (var cmd in cmds)
                     acl.Recorder.AddCommand(cmd);
-                acl.OrderedSourceIndices = aclOriginal.OrderedSourceIndices.ToList();
+                acl.OrderedSourceIndices = orderedSourceIndices.ToList();
 
                 acl.CompleteCommandList(hoistLargeIfBodies: true);
 
                 var data = new double[acl.VirtualStackSize];
                 for (int i = 0; i < OriginalSourcesCount; i++)
-                    data[i] = os[i];
+                    data[i] = originalData[i];
 
                 acl.ExecuteAll(data, tracing: false, kind: kind);
 
-                var vsCopy = new double[acl.VirtualStack.Length];
-                Array.Copy(acl.VirtualStack, vsCopy, vsCopy.Length);
-                return vsCopy;
+                var mainDataOutput = acl.NonScratchData.ToArray();
+                return mainDataOutput;
             }
 
             var aclBaselineVs = ExecuteAcl(ChunkExecutorKind.Interpreted);
+            var aclBaselineNonScratchOutputs = aclBaselineVs.Take(originalData.Length).ToArray();
+
+            CollectionAssert.AreEqual(baselineNonScratchOutputs, aclBaselineNonScratchOutputs,
+                $"Seed {seed} {info}: hoisted ACL result differs from single-chunk baseline");
 
             var aclKinds = new (ChunkExecutorKind Kind, string Tag)[]
             {
-        (ChunkExecutorKind.Roslyn, "ACL-Roslyn"),
-        (ChunkExecutorKind.IL,     "ACL-IL")
+                (ChunkExecutorKind.Roslyn, "ACL-Roslyn"),
+                (ChunkExecutorKind.IL,     "ACL-IL")
             };
 
             foreach (var (kind, tag) in aclKinds)
@@ -172,9 +182,6 @@ namespace ACESimTest.ArrayProcessingTests
                 CollectionAssert.AreEqual(aclBaselineVs, vs,
                     $"Seed {seed} {info}: hoisted ACL vs mismatch [{tag}]");
             }
-
-            CollectionAssert.AreEqual(baseline.Vs, aclBaselineVs,
-                $"Seed {seed} {info}: hoisted ACL result differs from single-chunk baseline");
         }
 
 

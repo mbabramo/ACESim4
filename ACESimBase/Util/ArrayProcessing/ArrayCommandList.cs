@@ -22,10 +22,15 @@ namespace ACESimBase.Util.ArrayProcessing
         //  Command buffer and scratch‑slot counters
         // ──────────────────────────────────────────────────────────────────────
         public ArrayCommand[] UnderlyingCommands;
-        public double[] VirtualStack;
         public int NextCommandIndex => Recorder.NextCommandIndex;
         public int MaxCommandIndex;
-        public int FirstScratchIndex;
+
+        public double[] VirtualStack;
+        // The virtual stack consists of original data (which may be mutated),
+        // as well as scratch data for local variables. Thus, this is equal to the
+        // size of the non-scratch data.
+        public int SizeOfMainData;
+        public Span<double> NonScratchData => VirtualStack.AsSpan(0, SizeOfMainData);
         public int NextArrayIndex => Recorder.NextArrayIndex;
         public int MaxArrayIndex => Recorder.MaxArrayIndex;
         public int VirtualStackSize => MaxArrayIndex + 1;
@@ -84,7 +89,7 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             UnderlyingCommands = new ArrayCommand[maxNumCommands];
 
-            FirstScratchIndex = initialArrayIndex;
+            SizeOfMainData = initialArrayIndex;
             Recorder.NextArrayIndex = initialArrayIndex;
             Recorder.MaxArrayIndex = initialArrayIndex - 1;
 
@@ -99,7 +104,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public ArrayCommandList(ArrayCommand[] commands, int initialArrayIndex, int? maxCommandsPerSplittableChunk)
         {
             UnderlyingCommands = commands;
-            FirstScratchIndex = initialArrayIndex;
+            SizeOfMainData = initialArrayIndex;
             Recorder.NextArrayIndex = initialArrayIndex + commands.Length;
             MaxCommandsPerSplittableChunk = maxCommandsPerSplittableChunk ?? MaxCommandsPerSplittableChunk;
             CommandTree = new NWayTreeStorageInternal<ArrayCommandChunk>(null);
@@ -113,12 +118,12 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public ArrayCommandList Clone()
         {
-            var clone = new ArrayCommandList(UnderlyingCommands.Length, FirstScratchIndex)
+            var clone = new ArrayCommandList(UnderlyingCommands.Length, SizeOfMainData)
             {
                 UnderlyingCommands = (ArrayCommand[])UnderlyingCommands.Clone(),
                 VirtualStack = (double[])VirtualStack.Clone(),
                 MaxCommandIndex = MaxCommandIndex,
-                FirstScratchIndex = FirstScratchIndex,
+                SizeOfMainData = SizeOfMainData,
                 OrderedSourceIndices = new List<int>(OrderedSourceIndices),
                 Parallelize = Parallelize,
                 MaxCommandsPerSplittableChunk = MaxCommandsPerSplittableChunk,
