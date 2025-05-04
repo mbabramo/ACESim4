@@ -31,13 +31,14 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             public readonly int SrcSkip;
             public readonly int DstSkip;
 
-            /// <summary>dirtyBefore[l] == true  ⇒ local <l> was both “bound” and “dirty”
-            /// at the *moment we entered* the ‘if’.</summary>
             public readonly bool[] DirtyBefore;
 
-            /// <summary>(slot,local) pairs whose *last* flush happens inside the branch
-            /// *and* whose local was already dirty on entry (→ needs mirroring in ELSE).</summary>
+            // (slot,local) pairs whose *last* flush happens inside the branch
             public readonly List<(int slot, int local)> Flushes = new();
+
+            // (slot,local) pairs bound for the first time inside the branch
+            // → must be replayed in the ELSE leg to guarantee initialisation.
+            public readonly List<(int slot, int local)> Initialises = new();
 
             public IfContext(int srcSkip, int dstSkip, bool[] dirtyBefore)
             {
@@ -46,6 +47,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 DirtyBefore = dirtyBefore;
             }
         }
+
 
 
         public RoslynChunkExecutor(ArrayCommand[] commands,
@@ -179,14 +181,14 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         /// whose intervals end on a given instruction.
         /// </summary>
         private void EmitReusingBody(
-            ArrayCommandChunk c,
-            CodeBuilder cb,
-            DepthMap depth,
-            IntervalIndex intervalIx,
-            LocalBindingState bind,
-            Dictionary<int, (int src, int dst)> skipMap,
-            Stack<IfContext> ifStack,
-            HashSet<int> usedSlots)
+    ArrayCommandChunk c,
+    CodeBuilder cb,
+    DepthMap depth,
+    IntervalIndex intervalIx,
+    LocalBindingState bind,
+    Dictionary<int, (int src, int dst)> skipMap,
+    Stack<IfContext> ifStack,
+    HashSet<int> usedSlots)
         {
             Span<ArrayCommand> cmds = Commands;
 
@@ -205,6 +207,11 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                             cb.AppendLine($"vs[{flushSlot}] = l{local};");
 
                         cb.AppendLine($"l{local} = vs[{slot}];");
+
+                        // remember first-time bindings that occur inside an IF
+                        if (ifStack.Count > 0 && !ifStack.Peek().DirtyBefore[local])
+                            ifStack.Peek().Initialises.Add((slot, local));
+
                         bind.StartInterval(slot, local, d);
                     }
                 }
@@ -220,20 +227,20 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     if (bind.NeedsFlushBeforeReuse(local, out int boundSlot) && boundSlot == endSlot)
                     {
                         cb.AppendLine($"vs[{endSlot}] = l{local};");
-                        if (bind != null && ifStack.Count > 0)
-                        {
-                            // propagate to *all* enclosing IFs that saw this local dirty on entry
+
+                        if (ifStack.Count > 0)
                             foreach (var ctx in ifStack)
                                 if (ctx.DirtyBefore[local])
-                                ctx.Flushes.Add((endSlot, local));
-                        }
+                                    ctx.Flushes.Add((endSlot, local));
+
                         bind.FlushLocal(local);
                     }
+
                     bind.Release(local);
                 }
             }
-            // ⟹ no blanket tail‑flush – every dirty local handled above.
         }
+
 
 
         /// <summary>
@@ -250,7 +257,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             Stack<IfContext> ifStack,
             LocalBindingState bind)
         {
-            // Helper – mark the local dirty if we know which local owns <slot>
             void MarkWritten(int slot)
             {
                 if (bind != null && _plan.SlotToLocal.TryGetValue(slot, out int localId))
@@ -262,7 +268,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
             switch (cmd.CommandType)
             {
-                // ────────── write‑only / read‑modify‑write commands ──────────
+                // ────────── write-only / read-modify-write commands ──────────
                 case ArrayCommandType.Zero:
                     cb.AppendLine($"{W(cmd.Index)} = 0;");
                     MarkWritten(cmd.Index);
@@ -350,25 +356,18 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     cb.AppendLine($"cond = {R(cmd.Index)} != (double){cmd.SourceIndex};");
                     break;
 
+
                 // ────────── control flow ──────────
                 case ArrayCommandType.If:
                     {
                         var sk = skipMap.TryGetValue(cmdIndex, out var c)
-                                ? c
-                                : (src: 0, dst: 0);
+                                    ? c
+                                    : (src: 0, dst: 0);
 
-                        // ── snapshot “dirty” status for every local at entry ──
                         var dirty = new bool[_plan.LocalCount];
-
-                        if (bind != null)               // reuse‑mode only
-                        {
+                        if (bind != null)
                             for (int l = 0; l < _plan.LocalCount; l++)
-                            {
-                                int tmp;
-                                dirty[l] = bind.NeedsFlushBeforeReuse(l, out tmp);
-                            }
-                        }
-                        // else: all false ⇒ no locals need mirroring in ELSE
+                                dirty[l] = bind.NeedsFlushBeforeReuse(l, out _);
 
                         ifStack.Push(new IfContext(sk.src, sk.dst, dirty));
                         cb.AppendLine("if(cond){"); cb.Indent();
@@ -377,15 +376,16 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
                 case ArrayCommandType.EndIf:
                     {
-                        var ctx = ifStack.Pop();                     // ② pop context
+                        var ctx = ifStack.Pop();
                         cb.Unindent();
-                        cb.AppendLine("} else {");                   // ③ begin `else`
+                        cb.AppendLine("} else {");
 
-                        // ④ flush any locals whose final write occurred inside the skipped branch
                         foreach (var (slot, local) in ctx.Flushes)
                             cb.AppendLine($"vs[{slot}] = l{local};");
 
-                        // ⑤ advance ordered‑source/destination pointers
+                        foreach (var (slot, local) in ctx.Initialises)
+                            cb.AppendLine($"l{local} = vs[{slot}];");
+
                         cb.AppendLine($"i+={ctx.SrcSkip}; }}");
                         break;
                     }
@@ -401,7 +401,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     throw new NotImplementedException($"Unhandled command {cmd.CommandType}");
             }
         }
-
 
     }
 }
