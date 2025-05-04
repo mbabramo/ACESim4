@@ -17,6 +17,7 @@ namespace ACESimTest.ArrayProcessingTests
 
         private readonly List<int> _scratch = new(); // the scratch area, corresponding to local variables. Initially, the original sources are copied into the scratch area. Later, new scratch variables can be added, either from original sources or in other ways. The chunk executor will use the concept of the "virtual stack" to hold every scratch variable. But it may use local variables to hold the values of the virtual stack, either one per virtual stack slot that is used in the chunk (the basic Roslyn executor, for example) or in a more complex way (same with local variable reuse). 
         private readonly Stack<int> _scratchCheckpoint = new(); // keeps track of the # of scratch items that existed at each successive if/increment depth, so that when we exit these loops, we can remove extra scratch items, thus preventing us from using a variable out of scope.
+        private int _maxScratchSize;
 
         /* ── state captured at the last Build() so ToFormattedString() can work ── */
         private ArrayCommand[] _lastResult = Array.Empty<ArrayCommand>();
@@ -136,6 +137,8 @@ namespace ACESimTest.ArrayProcessingTests
                     case D.If:
                         acl.InsertIfCommand();
                         _scratchCheckpoint.Push(_scratch.Count);
+                        if (_scratch.Count > _maxScratchSize)
+                            _maxScratchSize = _scratch.Count;
                         stack.Push(D.If);
                         break;
 
@@ -149,6 +152,8 @@ namespace ACESimTest.ArrayProcessingTests
                     case D.Inc:
                         acl.IncrementDepth();
                         _scratchCheckpoint.Push(_scratch.Count);
+                        if (_scratch.Count > _maxScratchSize)
+                            _maxScratchSize = _scratch.Count;
                         stack.Push(D.Inc);
                         break;
 

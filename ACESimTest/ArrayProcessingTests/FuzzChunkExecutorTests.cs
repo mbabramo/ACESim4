@@ -12,17 +12,15 @@ namespace ACESimTest.ArrayProcessingTests
     [TestClass]
     public class FuzzChunkExecutorTests
     {
-        private const int Runs = 25; // DEBUG
+        private const int Runs = 100;
         private const int OrigSlotCount = 8;
-        private const int MaxSources = 20;
-        private const int MaxDests = 20;
 
         [TestMethod]
         public void Fuzz_CompareExecutors_ByDepthThenSize()
         {
             int[] maxDepths = { 0, 1, 2, 3 };
             int?[] maxCommands = { 3, 5, 10, 18 };
-            (int dIndex, int cIndex, int s)? jumpToIteration = (2, 3, 21); // DEBUG SUPERDEBUG
+            (int dIndex, int cIndex, int s)? jumpToIteration = null;
             bool jump = jumpToIteration != null;
             for (int depthIndex = 0; depthIndex < maxDepths.Length; depthIndex++)
             {
@@ -80,7 +78,7 @@ namespace ACESimTest.ArrayProcessingTests
             };
 
             // inputs
-            var os0 = Enumerable.Range(0, MaxSources).Select(i => (double)i).ToArray();
+            var os0 = Enumerable.Range(0, OrigSlotCount).Select(i => (double)i).ToArray();
 
             // Interpreter baseline
             var vsInterp = new double[chunk.VirtualStack.Length];
@@ -105,7 +103,6 @@ namespace ACESimTest.ArrayProcessingTests
 
             // Roslyn with local variable reuse
             var vsLoc = new double[chunk.VirtualStack.Length];
-            var odLoc = new double[MaxDests];
             int cosi2 = 0; 
             bool cond2 = true;
             var rosLoc = new RoslynChunkExecutor(
