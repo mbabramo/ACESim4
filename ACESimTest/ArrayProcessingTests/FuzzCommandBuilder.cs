@@ -15,9 +15,9 @@ namespace ACESimTest.ArrayProcessingTests
         private readonly Random _rnd;
         private readonly int _originalSourcesCount;
 
-        private readonly List<int> _scratch = new(); // the scratch area, corresponding to local variables. Initially, the original sources are copied into the scratch area. Later, new scratch variables can be added, either from original sources or in other ways. The chunk executor will use the concept of the "virtual stack" to hold every scratch variable. But it may use local variables to hold the values of the virtual stack, either one per virtual stack slot that is used in the chunk (the basic Roslyn executor, for example) or in a more complex way (same with local variable reuse). 
-        private readonly Stack<int> _scratchCheckpoint = new(); // keeps track of the # of scratch items that existed at each successive if/increment depth, so that when we exit these loops, we can remove extra scratch items, thus preventing us from using a variable out of scope.
-        private int _maxScratchSize;
+        private readonly List<int> _virtualStack = new(); // the virtualStack area, corresponding to local variables. Initially, the original sources are copied into the virtualStack area. Later, new virtualStack variables can be added, either from original sources or in other ways. The chunk executor will use the concept of the "virtual stack" to hold every virtualStack variable. But it may use local variables to hold the values of the virtual stack, either one per virtual stack slot that is used in the chunk (the basic Roslyn executor, for example) or in a more complex way (same with local variable reuse). 
+        private readonly Stack<int> _virtualStackCheckpoint = new(); // keeps track of the # of virtualStack items that existed at each successive if/increment depth, so that when we exit these loops, we can remove extra virtualStack items, thus preventing us from using a variable out of scope.
+        private int _maxVirtualStackSize;
 
         /* ── state captured at the last Build() so ToFormattedString() can work ── */
         private ArrayCommand[] _lastResult = Array.Empty<ArrayCommand>();
@@ -35,7 +35,7 @@ namespace ACESimTest.ArrayProcessingTests
                                     double pSingleChunk = .75)
         {
             var acl = new ArrayCommandList(targetSize, _originalSourcesCount);
-            _scratch.Clear();
+            _virtualStack.Clear();
 
             int chunkCount = targetSize < 10 || _rnd.NextDouble() < pSingleChunk ? 1 : 2;
             _lastChunkSizes = Split(targetSize, chunkCount);
@@ -44,7 +44,7 @@ namespace ACESimTest.ArrayProcessingTests
             {
                 acl.StartCommandChunk(false, null);
 
-                CopyOriginalToNew(acl);                // seed scratch
+                CopyOriginalToNew(acl);                // seed virtualStack
                 EmitChunkBody(acl, sz - 1, maxDepth);  // remaining slots
 
                 acl.EndCommandChunk();
@@ -136,9 +136,9 @@ namespace ACESimTest.ArrayProcessingTests
 
                     case D.If:
                         acl.InsertIfCommand();
-                        _scratchCheckpoint.Push(_scratch.Count);
-                        if (_scratch.Count > _maxScratchSize)
-                            _maxScratchSize = _scratch.Count;
+                        _virtualStackCheckpoint.Push(_virtualStack.Count);
+                        if (_virtualStack.Count > _maxVirtualStackSize)
+                            _maxVirtualStackSize = _virtualStack.Count;
                         stack.Push(D.If);
                         break;
 
@@ -146,14 +146,14 @@ namespace ACESimTest.ArrayProcessingTests
                         if (stack.Count == 0 || stack.Pop() != D.If)
                             throw new InvalidOperationException($"Mismatched EndIf at plan index {i}.");
                         acl.InsertEndIfCommand();
-                        TruncateScratch();
+                        TruncateVirtualStack();
                         break;
 
                     case D.Inc:
                         acl.IncrementDepth();
-                        _scratchCheckpoint.Push(_scratch.Count);
-                        if (_scratch.Count > _maxScratchSize)
-                            _maxScratchSize = _scratch.Count;
+                        _virtualStackCheckpoint.Push(_virtualStack.Count);
+                        if (_virtualStack.Count > _maxVirtualStackSize)
+                            _maxVirtualStackSize = _virtualStack.Count;
                         stack.Push(D.Inc);
                         break;
 
@@ -161,7 +161,7 @@ namespace ACESimTest.ArrayProcessingTests
                         if (stack.Count == 0 || stack.Pop() != D.Inc)
                             throw new InvalidOperationException($"Mismatched DecrementDepth at plan index {i}.");
                         acl.DecrementDepth();
-                        TruncateScratch();
+                        TruncateVirtualStack();
                         break;
 
                     default:
@@ -241,18 +241,18 @@ namespace ACESimTest.ArrayProcessingTests
             int first = new Random().Next(1, total);
             return new[] { first, total - first };
         }
-        void TruncateScratch()
+        void TruncateVirtualStack()
         {
-            int keep = _scratchCheckpoint.Pop();
-            if (_scratch.Count > keep)
-                _scratch.RemoveRange(keep, _scratch.Count - keep);
+            int keep = _virtualStackCheckpoint.Pop();
+            if (_virtualStack.Count > keep)
+                _virtualStack.RemoveRange(keep, _virtualStack.Count - keep);
         }
 
         // ───────────────── emitters ─────────────────
 
         private void EmitComparison(ArrayCommandList acl)
         {
-            int idx = _scratch[_rnd.Next(_scratch.Count)];
+            int idx = _virtualStack[_rnd.Next(_virtualStack.Count)];
 
             if (_rnd.NextDouble() < .5)
             {
@@ -262,10 +262,10 @@ namespace ACESimTest.ArrayProcessingTests
                 else
                     acl.InsertNotEqualsValueCommand(idx, v);
             }
-            else if (_scratch.Count >= 2)
+            else if (_virtualStack.Count >= 2)
             {
-                int a = _scratch[_rnd.Next(_scratch.Count)];
-                int b = _scratch[_rnd.Next(_scratch.Count)];
+                int a = _virtualStack[_rnd.Next(_virtualStack.Count)];
+                int b = _virtualStack[_rnd.Next(_virtualStack.Count)];
                 switch (_rnd.Next(4))
                 {
                     case 0: acl.InsertEqualsOtherArrayIndexCommand(a, b); break;
@@ -296,56 +296,56 @@ namespace ACESimTest.ArrayProcessingTests
 
                 switch (pick)
                 {
-                    case 0: CopyScratchToNew(acl); break;
+                    case 0: CopyVirtualStackToNew(acl); break;
                     case 1: MultiplyToNew(acl); break;
-                    case 2: IncrementScratch(acl); break;
-                    case 3: DecrementScratch(acl); break;
+                    case 2: IncrementVirtualStack(acl); break;
+                    case 3: DecrementVirtualStack(acl); break;
                     case 4: InplaceMath(acl); break;
                     case 5: IncrementOriginal(acl); break;
-                    case 6: ZeroScratch(acl); break;
+                    case 6: ZeroVirtualStack(acl); break;
                     default: IncrementByProduct(acl); break;
                 }
                 return cost;
             }
         }
 
-        // ───────────────── scratch helpers ─────────────────
+        // ───────────────── virtualStack helpers ─────────────────
 
         private void CopyOriginalToNew(ArrayCommandList acl)
         {
             int src = _rnd.Next(_originalSourcesCount);
-            _scratch.Add(acl.CopyToNew(src, true));
+            _virtualStack.Add(acl.CopyToNew(src, true));
         }
 
-        private void CopyScratchToNew(ArrayCommandList acl)
+        private void CopyVirtualStackToNew(ArrayCommandList acl)
         {
-            int s = _scratch[_rnd.Next(_scratch.Count)];
-            _scratch.Add(acl.CopyToNew(s, false));
+            int s = _virtualStack[_rnd.Next(_virtualStack.Count)];
+            _virtualStack.Add(acl.CopyToNew(s, false));
         }
 
         private void MultiplyToNew(ArrayCommandList acl)
         {
-            int s = _scratch[_rnd.Next(_scratch.Count)];
-            _scratch.Add(acl.MultiplyToNew(s, false, s));
+            int s = _virtualStack[_rnd.Next(_virtualStack.Count)];
+            _virtualStack.Add(acl.MultiplyToNew(s, false, s));
         }
 
-        private void IncrementScratch(ArrayCommandList acl)
+        private void IncrementVirtualStack(ArrayCommandList acl)
         {
-            int t = _scratch[_rnd.Next(_scratch.Count)];
-            int v = _scratch[_rnd.Next(_scratch.Count)];
+            int t = _virtualStack[_rnd.Next(_virtualStack.Count)];
+            int v = _virtualStack[_rnd.Next(_virtualStack.Count)];
             acl.Increment(t, false, v);
         }
 
-        private void DecrementScratch(ArrayCommandList acl)
+        private void DecrementVirtualStack(ArrayCommandList acl)
         {
-            int t = _scratch[_rnd.Next(_scratch.Count)];
-            int v = _scratch[_rnd.Next(_scratch.Count)];
+            int t = _virtualStack[_rnd.Next(_virtualStack.Count)];
+            int v = _virtualStack[_rnd.Next(_virtualStack.Count)];
             acl.Decrement(t, v);
         }
 
         private void InplaceMath(ArrayCommandList acl)
         {
-            int x = _scratch[_rnd.Next(_scratch.Count)];
+            int x = _virtualStack[_rnd.Next(_virtualStack.Count)];
             switch (_rnd.Next(3))
             {
                 case 0: acl.Increment(x, false, x); break;
@@ -356,23 +356,23 @@ namespace ACESimTest.ArrayProcessingTests
 
         private void IncrementOriginal(ArrayCommandList acl)
         {
-            int val = _scratch[_rnd.Next(_scratch.Count)];
+            int val = _virtualStack[_rnd.Next(_virtualStack.Count)];
             int dst = _rnd.Next(_originalSourcesCount);
             acl.Increment(dst, true, val);
         }
 
-        private void ZeroScratch(ArrayCommandList acl)
+        private void ZeroVirtualStack(ArrayCommandList acl)
         {
-            int idx = _scratch[_rnd.Next(_scratch.Count)];
+            int idx = _virtualStack[_rnd.Next(_virtualStack.Count)];
             acl.ZeroExisting(idx);
         }
 
         private void IncrementByProduct(ArrayCommandList acl)
         {
-            if (_scratch.Count < 2) return;
-            int tgt = _scratch[_rnd.Next(_scratch.Count)];
-            int a = _scratch[_rnd.Next(_scratch.Count)];
-            int b = _scratch[_rnd.Next(_scratch.Count)];
+            if (_virtualStack.Count < 2) return;
+            int tgt = _virtualStack[_rnd.Next(_virtualStack.Count)];
+            int a = _virtualStack[_rnd.Next(_virtualStack.Count)];
+            int b = _virtualStack[_rnd.Next(_virtualStack.Count)];
             acl.IncrementByProduct(tgt, false, a, b);
         }
     }
