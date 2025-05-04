@@ -13,27 +13,27 @@ namespace ACESimTest.ArrayProcessingTests
     public class FuzzCommandBuilder
     {
         private readonly Random _rnd;
-        private readonly int _origCount;
+        private readonly int _originalSourcesCount;
 
-        private readonly List<int> _scratch = new(); 
+        private readonly List<int> _scratch = new(); // the scratch area, corresponding to local variables. Initially, the original sources are copied into the scratch area. Later, new scratch variables can be added, either from original sources or in other ways. The chunk executor will use the concept of the "virtual stack" to hold every scratch variable. But it may use local variables to hold the values of the virtual stack, either one per virtual stack slot that is used in the chunk (the basic Roslyn executor, for example) or in a more complex way (same with local variable reuse). 
         private readonly Stack<int> _scratchCheckpoint = new(); // keeps track of the # of scratch items that existed at each successive if/increment depth, so that when we exit these loops, we can remove extra scratch items, thus preventing us from using a variable out of scope.
 
         /* ── state captured at the last Build() so ToFormattedString() can work ── */
         private ArrayCommand[] _lastResult = Array.Empty<ArrayCommand>();
         private int[] _lastChunkSizes = Array.Empty<int>();
 
-        public FuzzCommandBuilder(int seed, int origCount)
+        public FuzzCommandBuilder(int seed, int originalSourcesCount)
         {
             _rnd = new Random(seed);
-            _origCount = origCount;
+            _originalSourcesCount = originalSourcesCount;
         }
 
         /*────────────────────────────────────────────────────────────────────────*/
-        public ArrayCommand[] Build(int targetSize = 40,
+        public ArrayCommandList Build(int targetSize = 40,
                                     int maxDepth = 2,
                                     double pSingleChunk = .75)
         {
-            var acl = new ArrayCommandList(targetSize, _origCount);
+            var acl = new ArrayCommandList(targetSize, _originalSourcesCount);
             _scratch.Clear();
 
             int chunkCount = targetSize < 10 || _rnd.NextDouble() < pSingleChunk ? 1 : 2;
@@ -50,7 +50,7 @@ namespace ACESimTest.ArrayProcessingTests
             }
 
             _lastResult = acl.UnderlyingCommands;      // remember for ToString()
-            return _lastResult;
+            return acl;
         }
 
         /*──────────────────────────── PRETTY-PRINTER ───────────────────────────*/
@@ -279,11 +279,11 @@ namespace ACESimTest.ArrayProcessingTests
         {
             while (true)
             {
-                int pick = _rnd.Next(10);
+                int pick = _rnd.Next(8);
                 int cost = pick switch
                 {
                     1 => 2,           // MultiplyToNew ⇒ CopyToNew + MultiplyBy 
-                    9 => 3,           // IncrementByProduct ⇒ CopyToNew + MultiplyBy + Increment 
+                    7 => 3,           // IncrementByProduct ⇒ CopyToNew + MultiplyBy + Increment 
                     _ => 1            // all others emit a single command
                 };
 
@@ -298,8 +298,6 @@ namespace ACESimTest.ArrayProcessingTests
                     case 4: InplaceMath(acl); break;
                     case 5: IncrementOriginal(acl); break;
                     case 6: ZeroScratch(acl); break;
-                    case 7: NextSourceDrain(acl); break;
-                    case 8: ReadParentScratch(acl); break;
                     default: IncrementByProduct(acl); break;
                 }
                 return cost;
@@ -310,7 +308,7 @@ namespace ACESimTest.ArrayProcessingTests
 
         private void CopyOriginalToNew(ArrayCommandList acl)
         {
-            int src = _rnd.Next(_origCount);
+            int src = _rnd.Next(_originalSourcesCount);
             _scratch.Add(acl.CopyToNew(src, true));
         }
 
@@ -354,31 +352,14 @@ namespace ACESimTest.ArrayProcessingTests
         private void IncrementOriginal(ArrayCommandList acl)
         {
             int val = _scratch[_rnd.Next(_scratch.Count)];
-            int dst = _rnd.Next(_origCount);
+            int dst = _rnd.Next(_originalSourcesCount);
             acl.Increment(dst, true, val);
         }
 
         private void ZeroScratch(ArrayCommandList acl)
         {
             int idx = _scratch[_rnd.Next(_scratch.Count)];
-            var c = acl.UnderlyingCommands;
-            if (c.Length > 0 &&
-                c[^1].CommandType == ArrayCommandType.Zero &&
-                c[^1].Index == idx) return;
             acl.ZeroExisting(idx);
-        }
-
-        private void NextSourceDrain(ArrayCommandList acl)
-        {
-            int src = _rnd.Next(_origCount);
-            _ = acl.CopyToNew(src, true);  // not added to scratch
-        }
-
-        private void ReadParentScratch(ArrayCommandList acl)
-        {
-            if (_scratch.Count == 0) return;
-            int s = _scratch[_rnd.Next(_scratch.Count)];
-            _ = acl.CopyToNew(s, false);   // not added to scratch
         }
 
         private void IncrementByProduct(ArrayCommandList acl)

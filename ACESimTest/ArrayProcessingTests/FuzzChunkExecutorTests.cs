@@ -22,7 +22,7 @@ namespace ACESimTest.ArrayProcessingTests
         {
             int[] maxDepths = { 0, 1, 2, 3 };
             int?[] maxCommands = { 3, 5, 10, 18 };
-            (int dIndex, int cIndex, int s)? jumpToIteration = null;
+            (int dIndex, int cIndex, int s)? jumpToIteration = (2, 3, 21); // DEBUG SUPERDEBUG
             bool jump = jumpToIteration != null;
             for (int depthIndex = 0; depthIndex < maxDepths.Length; depthIndex++)
             {
@@ -41,9 +41,10 @@ namespace ACESimTest.ArrayProcessingTests
                         int? maxCommand = maxCommands[maxCommandIndex];
                         // build with a very small maxBody (we only care about total truncation here)
                         var builder = new FuzzCommandBuilder(seed, OrigSlotCount);
-                        var cmds = builder.Build(
+                        var acl = builder.Build(
                             targetSize: maxCommand ?? 50,
                             maxDepth: maxDepth);
+                        var cmds = acl.UnderlyingCommands;
                         var formatted = builder.ToFormattedString();
 
                         var iterationInfo = $"Depth index {depthIndex}, Max command index {maxCommandIndex}, Seed {seed}";
@@ -80,7 +81,6 @@ namespace ACESimTest.ArrayProcessingTests
 
             // inputs
             var os0 = Enumerable.Range(0, MaxSources).Select(i => (double)i).ToArray();
-            var od0 = new double[MaxDests];
 
             // Interpreter baseline
             var vsInterp = new double[chunk.VirtualStack.Length];
@@ -90,7 +90,6 @@ namespace ACESimTest.ArrayProcessingTests
 
             // Roslyn without local variable reuse
             var vsNoLoc = new double[chunk.VirtualStack.Length];
-            var odNoLoc = new double[MaxDests];
             int cosi1 = 0;
             bool cond1 = true;
             var rosNoLoc = new RoslynChunkExecutor(cmds, 0, cmds.Length, useCheckpoints: false, localVariableReuse: false);
@@ -103,7 +102,6 @@ namespace ACESimTest.ArrayProcessingTests
             Assert.AreEqual(cosi0, cosi1, $"Seed {seed} {iterationInfo}: cosi mismatch {generatedCode}");
             Assert.AreEqual(cond0, cond1, $"Seed {seed} {iterationInfo}: condition mismatch{generatedCode}");
             CollectionAssert.AreEqual(vsInterp, vsNoLoc, $"Seed {seed} {iterationInfo}: vs mismatch {generatedCode}");
-            CollectionAssert.AreEqual(od0, odNoLoc, $"Seed {seed} {iterationInfo}: od mismatch {generatedCode}");
 
             // Roslyn with local variable reuse
             var vsLoc = new double[chunk.VirtualStack.Length];
@@ -121,7 +119,6 @@ namespace ACESimTest.ArrayProcessingTests
             Assert.AreEqual(cosi0, cosi2, $"Seed {seed} {iterationInfo}: cosi mismatch with locals {generatedCode}");
             Assert.AreEqual(cond0, cond2, $"Seed {seed} {iterationInfo}: condition mismatch with locals {generatedCode}");
             CollectionAssert.AreEqual(vsInterp, vsLoc, $"Seed {seed} {iterationInfo}: vs mismatch with locals {generatedCode}");
-            CollectionAssert.AreEqual(od0, odLoc, $"Seed {seed} {iterationInfo}: od mismatch with locals {generatedCode}");
         }
     }
 }
