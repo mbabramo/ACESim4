@@ -10,7 +10,7 @@ using System.Reflection;
 namespace ACESimTest.ArrayProcessingTests
 {
     [TestClass]
-    public class FuzzChunkExecutorTests
+    public class ChunkExecutorFuzzTests
     {
         private const int Runs = 100;
         private const int OrigSlotCount = 8;
@@ -48,7 +48,7 @@ namespace ACESimTest.ArrayProcessingTests
                         var iterationInfo = $"Depth index {depthIndex}, Max command index {maxCommandIndex}, Seed {seed}";
                         try
                         {
-                            CompareExecutors(cmds, seed, iterationInfo);
+                            CompareExecutors(cmds, seed, builder.MaxVirtualStackSize, iterationInfo);
                         }
                         catch (AssertFailedException ex)
                         {
@@ -67,14 +67,14 @@ namespace ACESimTest.ArrayProcessingTests
             }
         }
 
-        private void CompareExecutors(ArrayCommand[] cmds, int seed, string iterationInfo)
+        private void CompareExecutors(ArrayCommand[] cmds, int seed, int maxVirtualStackSize, string iterationInfo)
         {
             // prepare chunk bounds
             var chunk = new ArrayCommandChunk
             {
                 StartCommandRange = 0,
                 EndCommandRangeExclusive = cmds.Length,
-                VirtualStack = new double[OrigSlotCount + cmds.Length + 1]
+                VirtualStack = new double[maxVirtualStackSize + 1]
             };
 
             // inputs

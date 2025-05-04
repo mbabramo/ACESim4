@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using ACESimBase.Util.ArrayProcessing;
 
@@ -17,7 +18,7 @@ namespace ACESimTest.ArrayProcessingTests
 
         private readonly List<int> _virtualStack = new(); // the virtualStack area, corresponding to local variables. Initially, the original sources are copied into the virtualStack area. Later, new virtualStack variables can be added, either from original sources or in other ways. The chunk executor will use the concept of the "virtual stack" to hold every virtualStack variable. But it may use local variables to hold the values of the virtual stack, either one per virtual stack slot that is used in the chunk (the basic Roslyn executor, for example) or in a more complex way (same with local variable reuse). 
         private readonly Stack<int> _virtualStackCheckpoint = new(); // keeps track of the # of virtualStack items that existed at each successive if/increment depth, so that when we exit these loops, we can remove extra virtualStack items, thus preventing us from using a variable out of scope.
-        private int _maxVirtualStackSize;
+        public int MaxVirtualStackSize { get; private set; }
 
         /* ── state captured at the last Build() so ToFormattedString() can work ── */
         private ArrayCommand[] _lastResult = Array.Empty<ArrayCommand>();
@@ -36,6 +37,7 @@ namespace ACESimTest.ArrayProcessingTests
         {
             var acl = new ArrayCommandList(targetSize, _originalSourcesCount);
             _virtualStack.Clear();
+            MaxVirtualStackSize = 0;
 
             int chunkCount = targetSize < 10 || _rnd.NextDouble() < pSingleChunk ? 1 : 2;
             _lastChunkSizes = Split(targetSize, chunkCount);
@@ -137,8 +139,6 @@ namespace ACESimTest.ArrayProcessingTests
                     case D.If:
                         acl.InsertIfCommand();
                         _virtualStackCheckpoint.Push(_virtualStack.Count);
-                        if (_virtualStack.Count > _maxVirtualStackSize)
-                            _maxVirtualStackSize = _virtualStack.Count;
                         stack.Push(D.If);
                         break;
 
@@ -152,8 +152,6 @@ namespace ACESimTest.ArrayProcessingTests
                     case D.Inc:
                         acl.IncrementDepth();
                         _virtualStackCheckpoint.Push(_virtualStack.Count);
-                        if (_virtualStack.Count > _maxVirtualStackSize)
-                            _maxVirtualStackSize = _virtualStack.Count;
                         stack.Push(D.Inc);
                         break;
 
@@ -174,6 +172,9 @@ namespace ACESimTest.ArrayProcessingTests
                         break;
                 }
             }
+
+            if (acl.UnderlyingCommands.Any(x => x.CommandType == ArrayCommandType.CopyTo && x.Index >= MaxVirtualStackSize))
+                throw new Exception("DEBUG");
 
             if (stack.Count != 0)
                 throw new InvalidOperationException($"Planner produced unbalanced delimiters; {stack.Count} still open.");
@@ -241,18 +242,12 @@ namespace ACESimTest.ArrayProcessingTests
             int first = new Random().Next(1, total);
             return new[] { first, total - first };
         }
-        void TruncateVirtualStack()
-        {
-            int keep = _virtualStackCheckpoint.Pop();
-            if (_virtualStack.Count > keep)
-                _virtualStack.RemoveRange(keep, _virtualStack.Count - keep);
-        }
 
         // ───────────────── emitters ─────────────────
 
         private void EmitComparison(ArrayCommandList acl)
         {
-            int idx = _virtualStack[_rnd.Next(_virtualStack.Count)];
+            int idx = RandomVirtualStackSlot();
 
             if (_rnd.NextDouble() < .5)
             {
@@ -264,8 +259,8 @@ namespace ACESimTest.ArrayProcessingTests
             }
             else if (_virtualStack.Count >= 2)
             {
-                int a = _virtualStack[_rnd.Next(_virtualStack.Count)];
-                int b = _virtualStack[_rnd.Next(_virtualStack.Count)];
+                int a = RandomVirtualStackSlot();
+                int b = RandomVirtualStackSlot();
                 switch (_rnd.Next(4))
                 {
                     case 0: acl.InsertEqualsOtherArrayIndexCommand(a, b); break;
@@ -311,41 +306,57 @@ namespace ACESimTest.ArrayProcessingTests
 
         // ───────────────── virtualStack helpers ─────────────────
 
+        void TruncateVirtualStack()
+        {
+            int keep = _virtualStackCheckpoint.Pop();
+            if (_virtualStack.Count > keep)
+                _virtualStack.RemoveRange(keep, _virtualStack.Count - keep);
+        }
+
+        private void VirtualStackAdd(int i)
+        {
+            _virtualStack.Add(i);
+            if (i + 1 > MaxVirtualStackSize)
+                MaxVirtualStackSize = i + 1;
+        }
+
+        private int RandomVirtualStackSlot() => _virtualStack[_rnd.Next(_virtualStack.Count)];
+
         private void CopyOriginalToNew(ArrayCommandList acl)
         {
             int src = _rnd.Next(_originalSourcesCount);
-            _virtualStack.Add(acl.CopyToNew(src, true));
+            VirtualStackAdd(acl.CopyToNew(src, true));
         }
 
         private void CopyVirtualStackToNew(ArrayCommandList acl)
         {
-            int s = _virtualStack[_rnd.Next(_virtualStack.Count)];
-            _virtualStack.Add(acl.CopyToNew(s, false));
+            int s = RandomVirtualStackSlot();
+            VirtualStackAdd(acl.CopyToNew(s, false));
         }
 
         private void MultiplyToNew(ArrayCommandList acl)
         {
-            int s = _virtualStack[_rnd.Next(_virtualStack.Count)];
-            _virtualStack.Add(acl.MultiplyToNew(s, false, s));
+            int s = RandomVirtualStackSlot();
+            VirtualStackAdd(acl.MultiplyToNew(s, false, s));
         }
 
         private void IncrementVirtualStack(ArrayCommandList acl)
         {
-            int t = _virtualStack[_rnd.Next(_virtualStack.Count)];
-            int v = _virtualStack[_rnd.Next(_virtualStack.Count)];
+            int t = RandomVirtualStackSlot();
+            int v = RandomVirtualStackSlot();
             acl.Increment(t, false, v);
         }
 
         private void DecrementVirtualStack(ArrayCommandList acl)
         {
-            int t = _virtualStack[_rnd.Next(_virtualStack.Count)];
-            int v = _virtualStack[_rnd.Next(_virtualStack.Count)];
+            int t = RandomVirtualStackSlot();
+            int v = RandomVirtualStackSlot();
             acl.Decrement(t, v);
         }
 
         private void InplaceMath(ArrayCommandList acl)
         {
-            int x = _virtualStack[_rnd.Next(_virtualStack.Count)];
+            int x = RandomVirtualStackSlot();
             switch (_rnd.Next(3))
             {
                 case 0: acl.Increment(x, false, x); break;
@@ -356,24 +367,26 @@ namespace ACESimTest.ArrayProcessingTests
 
         private void IncrementOriginal(ArrayCommandList acl)
         {
-            int val = _virtualStack[_rnd.Next(_virtualStack.Count)];
+            int val = RandomVirtualStackSlot();
             int dst = _rnd.Next(_originalSourcesCount);
             acl.Increment(dst, true, val);
         }
 
         private void ZeroVirtualStack(ArrayCommandList acl)
         {
-            int idx = _virtualStack[_rnd.Next(_virtualStack.Count)];
+            int idx = RandomVirtualStackSlot();
             acl.ZeroExisting(idx);
         }
 
         private void IncrementByProduct(ArrayCommandList acl)
         {
             if (_virtualStack.Count < 2) return;
-            int tgt = _virtualStack[_rnd.Next(_virtualStack.Count)];
-            int a = _virtualStack[_rnd.Next(_virtualStack.Count)];
-            int b = _virtualStack[_rnd.Next(_virtualStack.Count)];
-            acl.IncrementByProduct(tgt, false, a, b);
+            int tgt = RandomVirtualStackSlot();
+            int a = RandomVirtualStackSlot();
+            int b = RandomVirtualStackSlot();
+            int stackSlotForTemporaryVariable = acl.IncrementByProduct(tgt, false, a, b);
+            if (stackSlotForTemporaryVariable + 1 > MaxVirtualStackSize)
+                MaxVirtualStackSize = stackSlotForTemporaryVariable + 1;
         }
     }
 }

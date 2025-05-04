@@ -198,7 +198,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 Increment(targets[i], targetOriginals, incIdxs[i]);
         }
 
-        public void IncrementByProduct(int targetIdx, bool targetOriginal,
+        public int IncrementByProduct(int targetIdx, bool targetOriginal,
                                        int factor1Idx, int factor2Idx,
                                        bool reuseTmp = true)
         {
@@ -206,6 +206,7 @@ namespace ACESimBase.Util.ArrayProcessing
             MultiplyBy(tmp, factor2Idx);
             Increment(targetIdx, targetOriginal, tmp);
             if (reuseTmp && _acl.ReuseScratchSlots) NextArrayIndex--; // reclaim
+            return tmp; // solely for the purpose of determining how many virtual stack slots are needed
         }
 
         public void DecrementArrayBy(int[] targets, int decIdx)

@@ -463,7 +463,7 @@ namespace ACESimBase.Util.ArrayProcessing
             Recorder.IncrementArrayBy(targets, targetOriginals, indexOfIncrement);
         public void IncrementArrayBy(int[] targets, bool targetOriginals, int[] indicesOfIncrements) =>
             Recorder.IncrementArrayBy(targets, targetOriginals, indicesOfIncrements);
-        public void IncrementByProduct(int targetIdx, bool targetOriginal,
+        public int IncrementByProduct(int targetIdx, bool targetOriginal,
                                        int factor1Idx, int factor2Idx, bool reuseTmp = true) =>
             Recorder.IncrementByProduct(targetIdx, targetOriginal, factor1Idx, factor2Idx, reuseTmp);
 
