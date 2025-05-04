@@ -13,13 +13,13 @@ namespace ACESimTest.ArrayProcessingTests
     public class ChunkExecutorFuzzTests
     {
         private const int Runs = 100;
-        private const int OrigSlotCount = 8;
+        private const int OriginalSourcesCount = 8;
 
         [TestMethod]
         public void Fuzz_CompareExecutors_ByDepthThenSize()
         {
             int[] maxDepths = { 0, 1, 2, 3 };
-            int?[] maxCommands = { 3, 5, 10, 18 };
+            int?[] maxCommands = { 3, 5, 10, 25 };
             (int dIndex, int cIndex, int s)? jumpToIteration = null;
             bool jump = jumpToIteration != null;
             for (int depthIndex = 0; depthIndex < maxDepths.Length; depthIndex++)
@@ -38,7 +38,7 @@ namespace ACESimTest.ArrayProcessingTests
                         int maxDepth = maxDepths[depthIndex];
                         int? maxCommand = maxCommands[maxCommandIndex];
                         // build with a very small maxBody (we only care about total truncation here)
-                        var builder = new FuzzCommandBuilder(seed, OrigSlotCount);
+                        var builder = new FuzzCommandBuilder(seed, OriginalSourcesCount);
                         var acl = builder.Build(
                             targetSize: maxCommand ?? 50,
                             maxDepth: maxDepth);
@@ -50,14 +50,14 @@ namespace ACESimTest.ArrayProcessingTests
                         {
                             CompareExecutors(cmds, seed, builder.MaxVirtualStackSize, iterationInfo);
                         }
-                        catch (AssertFailedException ex)
+                        catch (Exception ex)
                         {
                             var dump = string.Join(
                                 Environment.NewLine,
                                 cmds.Select((c, i) => $"{i:000}: {c.CommandType,-25} idx={c.Index,3} src={c.SourceIndex,3}")
                             );
                             Assert.Fail(
-                                $"{iterationInfo} failed:{Environment.NewLine}" +
+                                $"{iterationInfo} failed for case:{depthIndex}, {maxCommandIndex}, {seed} {Environment.NewLine}" +
                                 $"{ex.Message}{Environment.NewLine}{Environment.NewLine}" +
                                 $"Commands:{Environment.NewLine}{dump}"
                             );
@@ -78,7 +78,7 @@ namespace ACESimTest.ArrayProcessingTests
             };
 
             // inputs
-            var os0 = Enumerable.Range(0, OrigSlotCount).Select(i => (double)i).ToArray();
+            var os0 = Enumerable.Range(0, OriginalSourcesCount).Select(i => (double)i).ToArray();
 
             // Interpreter baseline
             var vsInterp = new double[chunk.VirtualStack.Length];

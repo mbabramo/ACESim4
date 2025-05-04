@@ -137,7 +137,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             cb.Indent();
 
             for (int l = 0; l < _plan.LocalCount; l++)
-                cb.AppendLine($"double l{l};");
+                cb.AppendLine($"double l{l} = 0;");
             cb.AppendLine();
 
             if (ReuseLocals)
