@@ -3,9 +3,6 @@ using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ACESimBase.Util.ArrayProcessing;
 using ACESimBase.Util.ArrayProcessing.ChunkExecutors;
-using Microsoft.CodeAnalysis.Operations;
-using System.Configuration;
-using System.Reflection;
 
 namespace ACESimTest.ArrayProcessingTests
 {
@@ -20,102 +17,167 @@ namespace ACESimTest.ArrayProcessingTests
         {
             int[] maxDepths = { 0, 1, 2, 3 };
             int?[] maxCommands = { 3, 5, 10, 25 };
-            (int dIndex, int cIndex, int s)? jumpToIteration = null;
-            bool jump = jumpToIteration != null;
-            for (int depthIndex = 0; depthIndex < maxDepths.Length; depthIndex++)
-            {
-                for (int maxCommandIndex = 0; maxCommandIndex < maxCommands.Length; maxCommandIndex++)
-                {
-                    for (int seed = 0; seed < Runs; seed++)
-                    {
-                        if (jump)
-                        {
-                            depthIndex = jumpToIteration.Value.dIndex;
-                            maxCommandIndex = jumpToIteration.Value.cIndex;
-                            seed = jumpToIteration.Value.s;
-                            jump = false;
-                        }
-                        int maxDepth = maxDepths[depthIndex];
-                        int? maxCommand = maxCommands[maxCommandIndex];
-                        // build with a very small maxBody (we only care about total truncation here)
-                        var builder = new FuzzCommandBuilder(seed, OriginalSourcesCount);
-                        var acl = builder.Build(
-                            targetSize: maxCommand ?? 50,
-                            maxDepth: maxDepth);
-                        var cmds = acl.UnderlyingCommands;
-                        var formatted = builder.ToFormattedString();
 
-                        var iterationInfo = $"Depth index {depthIndex}, Max command index {maxCommandIndex}, Seed {seed}";
+            (int d, int c, int s)? jumpTo = null;
+            bool jumping = jumpTo != null;
+
+            for (int d = 0; d < maxDepths.Length; d++)
+            {
+                for (int c = 0; c < maxCommands.Length; c++)
+                {
+                    for (int s = 0; s < Runs; s++)
+                    {
+                        if (jumping)
+                        {
+                            d = jumpTo!.Value.d;
+                            c = jumpTo!.Value.c;
+                            s = jumpTo!.Value.s;
+                            jumping = false;
+                        }
+
+                        int maxDepth = maxDepths[d];
+                        int? maxCmd = maxCommands[c];
+
+                        var builder = new FuzzCommandBuilder(s, OriginalSourcesCount);
+                        var acl = builder.Build(targetSize: maxCmd ?? 50, maxDepth: maxDepth);
+                        var cmds = acl.UnderlyingCommands;
+
+                        string info = $"Depth {d}, CmdIdx {c}, Seed {s}";
+
                         try
                         {
-                            CompareExecutors(cmds, seed, builder.MaxVirtualStackSize, iterationInfo);
+                            CompareExecutors(cmds, s, builder.MaxVirtualStackSize, info);
                         }
                         catch (Exception ex)
                         {
-                            var dump = string.Join(
-                                Environment.NewLine,
-                                cmds.Select((c, i) => $"{i:000}: {c.CommandType,-25} idx={c.Index,3} src={c.SourceIndex,3}")
-                            );
-                            Assert.Fail(
-                                $"{iterationInfo} failed for case:{depthIndex}, {maxCommandIndex}, {seed} {Environment.NewLine}" +
-                                $"{ex.Message}{Environment.NewLine}{Environment.NewLine}" +
-                                $"Commands:{Environment.NewLine}{dump}"
-                            );
+                            var dump = string.Join(Environment.NewLine,
+                                cmds.Select((cmd, i) =>
+                                    $"{i:000}: {cmd.CommandType,-25} idx={cmd.Index,3} src={cmd.SourceIndex,3}"));
+                            Assert.Fail($"{info} failed{Environment.NewLine}{ex.Message}{Environment.NewLine}{dump}");
                         }
                     }
                 }
             }
         }
 
-        private void CompareExecutors(ArrayCommand[] cmds, int seed, int maxVirtualStackSize, string iterationInfo)
+        private sealed record ExecResult(int Cosi, bool Cond, double[] Vs, string Code);
+
+        private static ExecResult Run(IChunkExecutor exec,
+                                      ArrayCommandChunk chunk,
+                                      double[] os)
         {
-            // prepare chunk bounds
+            exec.AddToGeneration(chunk);
+            exec.PreserveGeneratedCode = true;
+            exec.PerformGeneration();
+
+            var vs = new double[chunk.VirtualStack.Length];
+            for (int i = 0; i < os.Length; i++)
+                vs[i] = os[i]; // Initialize virtual stack
+            int cosi = 0;
+            bool cond = true;
+
+            exec.Execute(chunk, vs, os, ref cosi, ref cond);
+
+            return new ExecResult(cosi, cond, vs, exec.GeneratedCode);
+        }
+
+        private void CompareExecutors(ArrayCommand[] cmds,
+                              int seed,
+                              int maxVs,
+                              string info)
+        {
+            /* ───────────── single-chunk baseline ───────────── */
             var chunk = new ArrayCommandChunk
             {
                 StartCommandRange = 0,
                 EndCommandRangeExclusive = cmds.Length,
-                VirtualStack = new double[maxVirtualStackSize + 1]
+                VirtualStack = new double[maxVs + 1]
             };
 
-            // inputs
-            var os0 = Enumerable.Range(0, OriginalSourcesCount).Select(i => (double)i).ToArray();
+            Random _rnd = new Random(seed * 2 + 1);
+            var os = Enumerable.Range(0, OriginalSourcesCount)
+                               .Select(i => _rnd.NextDouble() < 0.2 ? 0 : (_rnd.NextDouble() - 0.5) * 1000.0)
+                               .ToArray();
 
-            // Interpreter baseline
-            var vsInterp = new double[chunk.VirtualStack.Length];
-            int cosi0 = 0; bool cond0 = true;
-            var interp = new InterpreterChunkExecutor(cmds, 0, cmds.Length, false, null);
-            interp.Execute(chunk, vsInterp, os0, ref cosi0, ref cond0);
+            var baseline = Run(
+                new InterpreterChunkExecutor(cmds, 0, cmds.Length, false, null),
+                chunk,
+                os);
 
-            // Roslyn without local variable reuse
-            var vsNoLoc = new double[chunk.VirtualStack.Length];
-            int cosi1 = 0;
-            bool cond1 = true;
-            var rosNoLoc = new RoslynChunkExecutor(cmds, 0, cmds.Length, useCheckpoints: false, localVariableReuse: false);
-            rosNoLoc.AddToGeneration(chunk);
-            rosNoLoc.PreserveGeneratedCode = true;
-            rosNoLoc.PerformGeneration();
-            string generatedCode = "\r\n // Generated code (no local variable reuse) \r\n" + rosNoLoc.GeneratedCode;
-            rosNoLoc.Execute(chunk, vsNoLoc, os0, ref cosi1, ref cond1);
+            var variants = new (Func<IChunkExecutor> Make, string Tag)[]
+            {
+                (() => new RoslynChunkExecutor(cmds, 0, cmds.Length, false, false), "Roslyn-NoReuse"),
+                (() => new RoslynChunkExecutor(cmds, 0, cmds.Length, false,  true), "Roslyn-Reuse"),
+                (() =>  new ILChunkExecutor(cmds, 0, cmds.Length, false),          "IL-NoReuse"),
+                (() =>  new ILChunkExecutor(cmds, 0, cmds.Length,  true),          "IL-Reuse")
+            };
 
-            Assert.AreEqual(cosi0, cosi1, $"Seed {seed} {iterationInfo}: cosi mismatch {generatedCode}");
-            Assert.AreEqual(cond0, cond1, $"Seed {seed} {iterationInfo}: condition mismatch{generatedCode}");
-            CollectionAssert.AreEqual(vsInterp, vsNoLoc, $"Seed {seed} {iterationInfo}: vs mismatch {generatedCode}");
+            foreach (var (make, tag) in variants)
+            {
+                var res = Run(make(), chunk, os);
 
-            // Roslyn with local variable reuse
-            var vsLoc = new double[chunk.VirtualStack.Length];
-            int cosi2 = 0; 
-            bool cond2 = true;
-            var rosLoc = new RoslynChunkExecutor(
-                cmds, 0, cmds.Length, useCheckpoints: false, localVariableReuse: true);
-            rosLoc.AddToGeneration(chunk);
-            rosLoc.PreserveGeneratedCode = true;
-            rosLoc.PerformGeneration(); 
-            generatedCode = "\r\n // Generated code \r\n" + rosLoc.GeneratedCode;
-            rosLoc.Execute(chunk, vsLoc, os0, ref cosi2, ref cond2);
+                Assert.AreEqual(baseline.Cosi, res.Cosi,
+                    $"Seed {seed} {info}: cosi mismatch [{tag}]{res.Code}");
+                Assert.AreEqual(baseline.Cond, res.Cond,
+                    $"Seed {seed} {info}: cond mismatch [{tag}]{res.Code}");
+                CollectionAssert.AreEqual(baseline.Vs, res.Vs,
+                    $"Seed {seed} {info}: vs mismatch [{tag}]{res.Code}");
+            }
 
-            Assert.AreEqual(cosi0, cosi2, $"Seed {seed} {iterationInfo}: cosi mismatch with locals {generatedCode}");
-            Assert.AreEqual(cond0, cond2, $"Seed {seed} {iterationInfo}: condition mismatch with locals {generatedCode}");
-            CollectionAssert.AreEqual(vsInterp, vsLoc, $"Seed {seed} {iterationInfo}: vs mismatch with locals {generatedCode}");
+            bool alsoTestArrayCommandList = true;
+
+            if (!alsoTestArrayCommandList)
+                return;
+
+            /* ───────────── full ACL + hoisting ───────────── */
+            const int HoistThreshold = 12;   // deliberately small
+
+            double[] ExecuteAcl(ChunkExecutorKind kind)
+            {
+                var acl = new ArrayCommandList(cmds, OriginalSourcesCount, HoistThreshold)
+                {
+                    MaxCommandsPerSplittableChunk = HoistThreshold
+                };
+
+                /* ensure recorder metadata is populated */
+                int maxIdx = cmds.SelectMany(c => new[] { c.Index, c.SourceIndex })
+                                 .Where(i => i >= 0)
+                                 .Max();
+                acl.Recorder.MaxArrayIndex = maxIdx;
+                acl.Recorder.NextArrayIndex = maxIdx + 1;
+
+                acl.CompleteCommandList(hoistLargeIfBodies: true);
+
+                var data = new double[acl.FullArraySize];
+                for (int i = 0; i < OriginalSourcesCount; i++)
+                    data[i] = i;
+
+                acl.ExecuteAll(data, tracing: false, kind: kind);
+
+                var vsCopy = new double[acl.VirtualStack.Length];
+                Array.Copy(acl.VirtualStack, vsCopy, vsCopy.Length);
+                return vsCopy;
+            }
+
+            var aclBaselineVs = ExecuteAcl(ChunkExecutorKind.Interpreted);
+
+            var aclKinds = new (ChunkExecutorKind Kind, string Tag)[]
+            {
+        (ChunkExecutorKind.Roslyn, "ACL-Roslyn"),
+        (ChunkExecutorKind.IL,     "ACL-IL")
+            };
+
+            foreach (var (kind, tag) in aclKinds)
+            {
+                var vs = ExecuteAcl(kind);
+                CollectionAssert.AreEqual(aclBaselineVs, vs,
+                    $"Seed {seed} {info}: hoisted ACL vs mismatch [{tag}]");
+            }
+
+            CollectionAssert.AreEqual(baseline.Vs, aclBaselineVs,
+                $"Seed {seed} {info}: hoisted ACL result differs from single-chunk baseline");
         }
+
+
     }
 }
