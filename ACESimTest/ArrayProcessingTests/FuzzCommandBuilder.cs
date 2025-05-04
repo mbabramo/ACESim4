@@ -18,6 +18,7 @@ namespace ACESimTest.ArrayProcessingTests
 
         private readonly List<int> _virtualStack = new(); // the virtualStack area, corresponding to local variables. Initially, the original sources are copied into the virtualStack area. Later, new virtualStack variables can be added, either from original sources or in other ways. The chunk executor will use the concept of the "virtual stack" to hold every virtualStack variable. But it may use local variables to hold the values of the virtual stack, either one per virtual stack slot that is used in the chunk (the basic Roslyn executor, for example) or in a more complex way (same with local variable reuse). 
         private readonly Stack<int> _virtualStackCheckpoint = new(); // keeps track of the # of virtualStack items that existed at each successive if/increment depth, so that when we exit these loops, we can remove extra virtualStack items, thus preventing us from using a variable out of scope.
+        public List<int> OrderedSourceIndices = new(); // whenever an original source is copied to the virtualStack, we record its original index here. This is not necessary when just executing within a single command chunk, but is needed when setting up an ArrayCommandList.
         public int MaxVirtualStackSize { get; private set; }
 
         /* ── state captured at the last Build() so ToFormattedString() can work ── */
@@ -51,6 +52,7 @@ namespace ACESimTest.ArrayProcessingTests
 
                 acl.EndCommandChunk();
             }
+            acl.OrderedSourceIndices = OrderedSourceIndices.ToList();
 
             _lastResult = acl.UnderlyingCommands;      // remember for ToString()
             return acl;
@@ -326,6 +328,7 @@ namespace ACESimTest.ArrayProcessingTests
         {
             int src = _rnd.Next(_originalSourcesCount);
             VirtualStackAdd(acl.CopyToNew(src, true));
+            OrderedSourceIndices.Add(src);
         }
 
         private void CopyVirtualStackToNew(ArrayCommandList acl)

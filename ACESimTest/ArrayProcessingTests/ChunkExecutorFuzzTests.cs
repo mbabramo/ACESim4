@@ -46,7 +46,7 @@ namespace ACESimTest.ArrayProcessingTests
 
                         try
                         {
-                            CompareExecutors(cmds, s, builder.MaxVirtualStackSize, info);
+                            CompareExecutors(acl, s, builder.MaxVirtualStackSize, info);
                         }
                         catch (Exception ex)
                         {
@@ -81,11 +81,12 @@ namespace ACESimTest.ArrayProcessingTests
             return new ExecResult(cosi, cond, vs, exec.GeneratedCode);
         }
 
-        private void CompareExecutors(ArrayCommand[] cmds,
+        private void CompareExecutors(ArrayCommandList aclOriginal,
                               int seed,
                               int maxVs,
                               string info)
         {
+            var cmds = aclOriginal.UnderlyingCommands;
             /* ───────────── single-chunk baseline ───────────── */
             var chunk = new ArrayCommandChunk
             {
@@ -134,23 +135,21 @@ namespace ACESimTest.ArrayProcessingTests
 
             double[] ExecuteAcl(ChunkExecutorKind kind)
             {
+                // Create a new ACL with the same commands. This will exercise the command recorder. 
+
                 var acl = new ArrayCommandList(cmds, OriginalSourcesCount, HoistThreshold)
                 {
                     MaxCommandsPerSplittableChunk = HoistThreshold
                 };
-
-                /* ensure recorder metadata is populated */
-                int maxIdx = cmds.SelectMany(c => new[] { c.Index, c.SourceIndex })
-                                 .Where(i => i >= 0)
-                                 .Max();
-                acl.Recorder.MaxArrayIndex = maxIdx;
-                acl.Recorder.NextArrayIndex = maxIdx + 1;
+                foreach (var cmd in cmds)
+                    acl.Recorder.AddCommand(cmd);
+                acl.OrderedSourceIndices = aclOriginal.OrderedSourceIndices.ToList();
 
                 acl.CompleteCommandList(hoistLargeIfBodies: true);
 
-                var data = new double[acl.FullArraySize];
+                var data = new double[acl.VirtualStackSize];
                 for (int i = 0; i < OriginalSourcesCount; i++)
-                    data[i] = i;
+                    data[i] = os[i];
 
                 acl.ExecuteAll(data, tracing: false, kind: kind);
 

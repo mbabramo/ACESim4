@@ -305,7 +305,7 @@ namespace ACESim
                     Unroll_Commands.EndCommandChunk();
                 }
                 Unroll_Commands.EndCommandChunk();
-                Unroll_SizeOfArray = Unroll_Commands.FullArraySize;
+                Unroll_SizeOfArray = Unroll_Commands.VirtualStackSize;
                 if (EvolutionSettings.ReuseUnrolledAlgorithm)
                 {
                     Unroll_Commands_Cached = Unroll_Commands;
@@ -325,7 +325,7 @@ namespace ACESim
                     goto retry;
                 }
             }
-            TabbedText.WriteLine($"... {s.ElapsedMilliseconds} milliseconds (using {Unroll_Commands.FullArraySize} array size and {Unroll_Commands.MaxCommandIndex} commands)");
+            TabbedText.WriteLine($"... {s.ElapsedMilliseconds} milliseconds (using {Unroll_Commands.VirtualStackSize} array size and {Unroll_Commands.MaxCommandIndex} commands)");
         }
 
         private void Unroll_ExecuteUnrolledCommands(double[] array, bool copyChanceAndFinalUtilities)

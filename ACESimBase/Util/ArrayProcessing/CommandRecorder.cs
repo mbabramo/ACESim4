@@ -43,7 +43,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         #region InternalHelpers
 
-        private void AddCommand(ArrayCommand cmd)
+        public void AddCommand(ArrayCommand cmd)
         {
             // Repeat-identical-range optimisation → verify identity
             if (_acl.RepeatingExistingCommandRange)

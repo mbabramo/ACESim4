@@ -169,14 +169,22 @@ namespace ACESimBase.Util.ArrayProcessing
             if (data is null) throw new ArgumentNullException(nameof(data));
 
             //------------------------------------------------------------------
-            // 1️  Stage ordered buffers
+            // Virtual stack initialization
+            //------------------------------------------------------------------
+            for (int d = 0; d < data.Length; d++)
+                acl.VirtualStack[d] = data[d];
+            for (int i = data.Length; i < acl.VirtualStack.Length; i++)
+                acl.VirtualStack[i] = 0;
+
+            //------------------------------------------------------------------
+            // Stage ordered buffers
             //------------------------------------------------------------------
             _buffers = new OrderedBufferManager();
             _buffers.SourceIndices.AddRange(acl.OrderedSourceIndices);
             _buffers.PrepareBuffers(data, false);
 
             //------------------------------------------------------------------
-            // 2️  Depth-first traversal with pre/post hooks
+            // Depth-first traversal with pre/post hooks
             //------------------------------------------------------------------
             acl.CommandTree!.WalkTree(
                 beforeDescending: n => Pre((NWayTreeStorageInternal<ArrayCommandChunk>)n, acl),

@@ -28,7 +28,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public int FirstScratchIndex;
         public int NextArrayIndex => Recorder.NextArrayIndex;
         public int MaxArrayIndex => Recorder.MaxArrayIndex;
-        public int FullArraySize => FirstScratchIndex + MaxArrayIndex;
+        public int VirtualStackSize => MaxArrayIndex + 1;
 
         // ──────────────────────────────────────────────────────────────────────
         //  Ordered‑buffer index lists (filled at author‑time only)
@@ -38,13 +38,10 @@ namespace ACESimBase.Util.ArrayProcessing
         // ──────────────────────────────────────────────────────────────────────
         //  Settings and feature flags
         // ──────────────────────────────────────────────────────────────────────
-        public bool DisableAdvancedFeatures = true; // DEBUG
         public bool Parallelize = false;
         public int MaxCommandsPerSplittableChunk = 1_000_000; // DEBUG: Until we fix the behavior of hoisting, we need to just use the flat option.
-        public bool UseOrderedSources => !DisableAdvancedFeatures;
-        public bool ReuseScratchSlots => false; // DEBUG MaxCommandsPerSplittableChunk == int.MaxValue;
-        public bool ReuseDestinations = false;
-        public bool RepeatIdenticalRanges => /* ReuseScratchSlots DEBUG && */ !DisableAdvancedFeatures;
+        public bool ReuseScratchSlots => false; // DEBUG;
+        public bool RepeatIdenticalRanges => ReuseScratchSlots;
 
         // ──────────────────────────────────────────────────────────────────────
         //  Chunk tree
@@ -123,13 +120,11 @@ namespace ACESimBase.Util.ArrayProcessing
                 MaxCommandIndex = MaxCommandIndex,
                 FirstScratchIndex = FirstScratchIndex,
                 OrderedSourceIndices = new List<int>(OrderedSourceIndices),
-                DisableAdvancedFeatures = DisableAdvancedFeatures,
                 Parallelize = Parallelize,
                 MaxCommandsPerSplittableChunk = MaxCommandsPerSplittableChunk,
                 CommandTree = CommandTree,
                 RecordCommandTreeString = RecordCommandTreeString,
                 _currentPath = new List<byte>(_currentPath),
-                ReuseDestinations = ReuseDestinations,
                 UseCheckpoints = UseCheckpoints,
                 Checkpoints = new List<(int, double)>(Checkpoints),
                 _nextExecId = _nextExecId,
@@ -235,7 +230,7 @@ namespace ACESimBase.Util.ArrayProcessing
             while (_currentPath.Count > 0) EndCommandChunk();
             EndCommandChunk(); // root
             CompleteCommandTree(hoistLargeIfBodies);
-            VirtualStack = new double[MaxArrayIndex + 1];
+            VirtualStack = new double[VirtualStackSize];
 
         }
 
