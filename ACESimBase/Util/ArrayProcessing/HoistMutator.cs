@@ -2,6 +2,8 @@
 using ACESimBase.Util.NWayTreeStorage;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Tensorflow;
 
 namespace ACESimBase.Util.ArrayProcessing
 {
@@ -21,6 +23,13 @@ namespace ACESimBase.Util.ArrayProcessing
             if (acl.MaxCommandsPerSplittableChunk == int.MaxValue)
                 return;           // hoisting disabled
 
+
+#if OUTPUT_HOISTING_INFO
+            TabbedText.WriteLine($"── before mutation ──");
+            TabbedText.WriteLine(acl.CommandTree.ToTreeString(_ => "Leaf"));
+            TabbedText.WriteLine("───────────────");
+#endif
+
             int round = 0;
             while (true)
             {
@@ -29,16 +38,13 @@ namespace ACESimBase.Util.ArrayProcessing
                 var plan = planner.BuildPlan(acl.CommandTree);
 
 #if OUTPUT_HOISTING_INFO
-                TabbedText.WriteLine($"[MUTATE] round={round}  planCount={plan.Count}");
+                    TabbedText.WriteLine($"── after round {round} ──");
+                    TabbedText.WriteLine(acl.CommandTree.ToTreeString(_ => "Leaf"));
+                    TabbedText.WriteLine("───────────────");
 #endif
 
                 if (plan.Count == 0)
                 {
-#if OUTPUT_HOISTING_INFO
-                    TabbedText.WriteLine("── final tree ──");
-                    TabbedText.WriteLine(acl.CommandTree.ToTreeString(_ => "Leaf"));
-                    TabbedText.WriteLine("───────────────");
-#endif
                     break;        // tree already balanced
                 }
 
@@ -71,7 +77,7 @@ namespace ACESimBase.Util.ArrayProcessing
                         SplitAtConditional(acl, leaf, entry.StartIdx, entry.EndIdxExclusive);
                         break;
                     case HoistPlanner.SplitKind.Depth:
-                        SplitAtDepthRegion(acl, leaf, entry.StartIdx, entry.EndIdxExclusive);
+                        SplitAtIncrementDepth(acl, leaf, entry.StartIdx, entry.EndIdxExclusive);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
@@ -85,29 +91,11 @@ namespace ACESimBase.Util.ArrayProcessing
 #endif
         }
 
-
-        // ───────────────────────────────────────────── helpers ──
-        private static NWayTreeStorageInternal<ArrayCommandChunk> FindLeaf(
-            NWayTreeStorageInternal<ArrayCommandChunk> root, int id)
-        {
-            NWayTreeStorageInternal<ArrayCommandChunk> target = null;
-            root.WalkTree(nObj =>
-            {
-                var n = (NWayTreeStorageInternal<ArrayCommandChunk>)nObj;
-#if OUTPUT_HOISTING_INFO
-                TabbedText.WriteLine($"[FIND] visit ID{n.StoredValue.ID} children={(n.Branches?.Length ?? 0)}");
-#endif
-                if (n.Branches is { Length: > 0 }) return;
-                if (n.StoredValue.ID == id) target = n;
-            });
-            return target;
-        }
-
         private static void SplitAtConditional(
-    ArrayCommandList acl,
-    NWayTreeStorageInternal<ArrayCommandChunk> leaf,
-    int spanStart,
-    int spanEndEx)
+            ArrayCommandList acl,
+            NWayTreeStorageInternal<ArrayCommandChunk> leaf,
+            int spanStart,
+            int spanEndEx)
         {
             var info = leaf.StoredValue;
 
@@ -154,56 +142,60 @@ namespace ACESimBase.Util.ArrayProcessing
             // Conditional/Depth logic, preserving balanced If/EndIf pairs.
         }
 
-        private static void SplitAtDepthRegion(ArrayCommandList acl,
+        private static void SplitAtIncrementDepth(ArrayCommandList acl,
                                        NWayTreeStorageInternal<ArrayCommandChunk> leaf,
                                        int spanStart,
                                        int spanEndEx)
         {
             var info = leaf.StoredValue;
+            int originalStart = info.StartCommandRange;
+            int originalEnd = info.EndCommandRangeExclusive;
             int prefixEnd = spanStart;
             int bodyStart = spanStart + 1;
             int bodyEnd = spanEndEx - 1;
-            int max = acl.MaxCommandsPerSplittableChunk;
+            int suffixStart = spanEndEx;
 
 #if OUTPUT_HOISTING_INFO
-            TabbedText.WriteLine($"[DEPTH-SPLIT] leaf ID{info.ID} body=[{bodyStart},{bodyEnd}) max={max}");
+            TabbedText.WriteLine($"[DEPTH-SPLIT] leaf ID{info.ID} body=[{bodyStart},{bodyEnd})");
 #endif
-
-            info.EndCommandRangeExclusive = prefixEnd;
-
-            var region = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf)
+            List<(int start, int endEx)> branches = new();
+            if (originalStart <= prefixEnd)
+                branches.Add((originalStart, prefixEnd));
+            branches.Add((bodyStart, bodyEnd));
+            if (suffixStart <= originalEnd)
+                branches.Add((suffixStart, originalEnd));
+            var branchesNodes = branches.Select(x => new NWayTreeStorageInternal<ArrayCommandChunk>(leaf)
             {
-                StoredValue = CloneMeta(info, spanStart, spanEndEx)
-            };
-            leaf.SetBranch(1, region);
-            leaf.StoredValue.LastChild = 1;
-
-            byte branch = 1;
-            for (int pos = bodyStart; pos < bodyEnd;)
+                StoredValue = CloneMeta(info, x.start, x.endEx)
+            }).ToArray();
+            for (byte b = 1; b <= branches.Count; b++)
             {
-                int sliceEnd = Math.Min(pos + max, bodyEnd);
-                var slice = new NWayTreeStorageInternal<ArrayCommandChunk>(region)
-                {
-                    StoredValue = CloneMeta(info, pos, sliceEnd)
-                };
-                region.SetBranch(branch++, slice);
+                leaf.SetBranch(b, branchesNodes[b]);
 #if OUTPUT_HOISTING_INFO
-                TabbedText.WriteLine($"       ↳ [SLICE] ID{slice.StoredValue.ID} cmds=[{pos},{sliceEnd})");
+                TabbedText.WriteLine($"       ↳ [SLICE] ID{branchesNodes[b].StoredValue.ID} cmds=[{branches[b].start},{branches[b].endEx})");
 #endif
-                pos = sliceEnd;
             }
 
-            region.StoredValue.LastChild = (byte)(branch - 1);
-            region.StoredValue.StartCommandRange = region.StoredValue.EndCommandRangeExclusive;
+            info.StartCommandRange = info.EndCommandRangeExclusive = originalEnd;
+            info.LastChild = (byte) branches.Count;
+        }
 
-#if OUTPUT_HOISTING_INFO
-            TabbedText.WriteLine($"[DEPTH-SPLIT-END] region ID{region.StoredValue.ID} children={branch - 1} branchesArray={(region.Branches?.Length ?? 0)}");
-#endif
+        /* Helpers */
 
-            WrapCommandsIntoLeaf(acl, leaf);
+        private static NWayTreeStorageInternal<ArrayCommandChunk> FindLeaf(
+            NWayTreeStorageInternal<ArrayCommandChunk> root, int id)
+        {
+            NWayTreeStorageInternal<ArrayCommandChunk> target = null;
+            root.WalkTree(nObj =>
+            {
+                var n = (NWayTreeStorageInternal<ArrayCommandChunk>)nObj;
 #if OUTPUT_HOISTING_INFO
-            TabbedText.WriteLine($"[DBG-DEPTH] container ID{leaf.StoredValue.ID} range=[{leaf.StoredValue.StartCommandRange},{leaf.StoredValue.EndCommandRangeExclusive})");
+                TabbedText.WriteLine($"[FIND] visit ID{n.StoredValue.ID} children={(n.Branches?.Length ?? 0)}");
 #endif
+                if (n.Branches is { Length: > 0 }) return;
+                if (n.StoredValue.ID == id) target = n;
+            });
+            return target;
         }
 
         private static ArrayCommandChunk CloneMeta(ArrayCommandChunk src, int start, int endEx)
@@ -217,6 +209,13 @@ namespace ACESimBase.Util.ArrayProcessing
             };
         }
 
+        /// <summary>
+        /// Creates a leaf that becomes the first branch of the container and contains the container's commands.
+        /// Other children are moved to later branches.
+        /// The container's commands then change to be an empty set.
+        /// </summary>
+        /// <param name="acl"></param>
+        /// <param name="container"></param>
         private static void WrapCommandsIntoLeaf(ArrayCommandList acl,
                                              NWayTreeStorageInternal<ArrayCommandChunk> container)
         {
@@ -244,59 +243,5 @@ namespace ACESimBase.Util.ArrayProcessing
 #endif
         }
 
-        // DEBUG -- not used now
-        private static void SliceConditionalBody(ArrayCommandList acl,
-                                                 NWayTreeStorageInternal<ArrayCommandChunk> gate)
-        {
-            var gInfo = gate.StoredValue;
-            int depth = 0;
-            int ifIdx = -1;
-            for (int i = gInfo.StartCommandRange; i < gInfo.EndCommandRangeExclusive; i++)
-            {
-                var ct = acl.UnderlyingCommands[i].CommandType;
-                if (ct == ArrayCommandType.If)
-                {
-                    if (depth == 0) ifIdx = i;
-                    depth++;
-                }
-                else if (ct == ArrayCommandType.EndIf)
-                {
-                    depth--;
-                    if (depth == 0)
-                    {
-#if OUTPUT_HOISTING_INFO
-                        TabbedText.WriteLine($"[CONDBODY] gate ID{gInfo.ID} body=[{ifIdx + 1},{i})");
-#endif
-                        CreateSlices(acl, gate, ifIdx + 1, i);
-                        break;
-                    }
-                }
-            }
-        }
-
-        private static void CreateSlices(ArrayCommandList acl,
-                                         NWayTreeStorageInternal<ArrayCommandChunk> gate,
-                                         int bodyStart,
-                                         int bodyEnd)
-        {
-            var gInfo = gate.StoredValue;
-            int max = acl.MaxCommandsPerSplittableChunk;
-            int sliceStart = bodyStart;
-            byte branch = 1;
-            while (sliceStart < bodyEnd)
-            {
-                int sliceEnd = Math.Min(sliceStart + max, bodyEnd);
-                var slice = new NWayTreeStorageInternal<ArrayCommandChunk>(gate)
-                {
-                    StoredValue = CloneMeta(gInfo, sliceStart, sliceEnd)
-                };
-                gate.SetBranch(branch++, slice);
-#if OUTPUT_HOISTING_INFO
-                TabbedText.WriteLine($"       ↳ [GATE-SLICE] ID{slice.StoredValue.ID} cmds=[{sliceStart},{sliceEnd})");
-#endif
-                sliceStart = sliceEnd;
-            }
-            gInfo.LastChild = (byte)(branch - 1);
-        }
     }
 }

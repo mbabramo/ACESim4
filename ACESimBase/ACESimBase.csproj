@@ -5,7 +5,7 @@
 	  <EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization> <!-- must change to use package with .Net 9 -->
 	  <NoWarn>SYSLIB0011</NoWarn>
     <Platforms>AnyCPU;x64</Platforms>
-	  <DefineConstants>OUTPUT_HOISTING_INFO_OFF</DefineConstants>
+	  <DefineConstants>OUTPUT_HOISTING_INFO</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net5.0|AnyCPU'">
