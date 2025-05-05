@@ -19,7 +19,7 @@ namespace ACESimTest.ArrayProcessingTests
             int[] maxDepths = { 0, 1, 2, 3 };
             int?[] maxCommands = { 3, 5, 10, 25 };
 
-            (int d, int c, int s)? jumpTo = (1,2,6); // DEBUG
+            (int d, int c, int s)? jumpTo = (1,3,83); // DEBUG
             bool jumping = jumpTo != null;
 
             for (int d = 0; d < maxDepths.Length; d++)
@@ -159,6 +159,10 @@ namespace ACESimTest.ArrayProcessingTests
                     data[i] = originalData[i];
 
                 acl.ExecuteAll(data, tracing: false, kind: kind);
+
+                // DEBUG
+                Debug.WriteLine(acl.CommandListString());
+                Debug.WriteLine(acl.CommandTreeString);
 
                 var mainDataOutput = acl.NonScratchData.ToArray();
                 return mainDataOutput;

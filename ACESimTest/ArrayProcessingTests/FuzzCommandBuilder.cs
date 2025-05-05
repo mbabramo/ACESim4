@@ -289,7 +289,7 @@ namespace ACESimTest.ArrayProcessingTests
                     _ => 1            // all others emit a single command
                 };
 
-                if (cost > slotsRemaining) continue;   // pick again until it fits
+                if (cost > slotsRemaining || (pick == 7 && _virtualStack.Count < 2)) continue;   // pick again until it fits
 
                 switch (pick)
                 {
@@ -383,7 +383,6 @@ namespace ACESimTest.ArrayProcessingTests
 
         private void IncrementByProduct(ArrayCommandList acl)
         {
-            if (_virtualStack.Count < 2) return;
             int tgt = RandomVirtualStackSlot();
             int a = RandomVirtualStackSlot();
             int b = RandomVirtualStackSlot();
