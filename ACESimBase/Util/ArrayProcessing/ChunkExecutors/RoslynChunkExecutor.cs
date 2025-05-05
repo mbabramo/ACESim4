@@ -98,6 +98,8 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         public override void Execute(ArrayCommandChunk chunk, double[] vs, double[] os, ref int cosi,
                                       ref bool cond)
         {
+            if (chunk.EndCommandRangeExclusive <= chunk.StartCommandRange)
+                return;
             _compiled[chunk](vs, os, ref cosi, ref cond);
             chunk.StartSourceIndices = cosi;
         }

@@ -85,6 +85,8 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         {
             try
             {
+                if (chunk.EndCommandRangeExclusive <= chunk.StartCommandRange)
+                    return;
                 _compiled[chunk](vs, os, ref cosi, ref cond);
                 chunk.StartSourceIndices = cosi;
             }
