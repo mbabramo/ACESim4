@@ -143,26 +143,25 @@ namespace ACESimTest.ArrayProcessingTests
             double[] ExecuteAcl(ChunkExecutorKind kind)
             {
                 // Create a new ACL with the same commands. This will exercise the command recorder. 
-
-                var acl = new ArrayCommandList(cmds, OriginalSourcesCount, hoistThreshold)
-                {
-                    MaxCommandsPerSplittableChunk = hoistThreshold
-                };
+                var acl = new ArrayCommandList(cmds.Length, OriginalSourcesCount, hoistThreshold);
+                int nextOrderedSource = 0;
                 foreach (var cmd in cmds)
+                {
                     acl.Recorder.AddCommand(cmd);
-                acl.OrderedSourceIndices = orderedSourceIndices.ToList();
-
+                    if (cmd.CommandType == ArrayCommandType.NextSource)
+                        acl.OrderedSourceIndices.Add(orderedSourceIndices[nextOrderedSource++]);
+                }
                 acl.CompleteCommandList(hoistLargeIfBodies: true);
+
+                // DEBUG
+                Debug.WriteLine(acl.CommandListString());
+                Debug.WriteLine(acl.CommandTreeString);
 
                 var data = new double[acl.VirtualStackSize];
                 for (int i = 0; i < OriginalSourcesCount; i++)
                     data[i] = originalData[i];
 
                 acl.ExecuteAll(data, tracing: false, kind: kind);
-
-                // DEBUG
-                Debug.WriteLine(acl.CommandListString());
-                Debug.WriteLine(acl.CommandTreeString);
 
                 var mainDataOutput = acl.NonScratchData.ToArray();
                 return mainDataOutput;

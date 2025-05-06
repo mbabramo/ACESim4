@@ -170,9 +170,10 @@ namespace ACESimBase.Util.ArrayProcessing
             }).ToArray();
             for (byte b = 1; b <= branches.Count; b++)
             {
-                leaf.SetBranch(b, branchesNodes[b]);
+                NWayTreeStorageInternal<ArrayCommandChunk> branchNode = branchesNodes[b - 1];
+                leaf.SetBranch(b, branchNode);
 #if OUTPUT_HOISTING_INFO
-                TabbedText.WriteLine($"       ↳ [SLICE] ID{branchesNodes[b].StoredValue.ID} cmds=[{branches[b].start},{branches[b].endEx})");
+                TabbedText.WriteLine($"       ↳ [SLICE] ID{branchNode.StoredValue.ID} cmds=[{branches[b - 1].start},{branches[b - 1].endEx})");
 #endif
             }
 

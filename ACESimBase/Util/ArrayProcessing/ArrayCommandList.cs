@@ -69,8 +69,6 @@ namespace ACESimBase.Util.ArrayProcessing
         public bool UseCheckpoints = true; // DEBUG
         public static int CheckpointTrigger = -2; // -1 is used for other purposes, and must be negative
         public List<(int Index, double Value)> Checkpoints = new();
-        private int _nextExecId = 0;
-        internal int NextExecId() => _nextExecId++;
 
         // ──────────────────────────────────────────────────────────────────────
         //  Author‑time helpers
@@ -85,7 +83,7 @@ namespace ACESimBase.Util.ArrayProcessing
         // ──────────────────────────────────────────────────────────────────────
         //  Construction
         // ──────────────────────────────────────────────────────────────────────
-        public ArrayCommandList(int maxNumCommands, int initialArrayIndex)
+        public ArrayCommandList(int maxNumCommands, int initialArrayIndex, int maxCommandsPerSplittableChunk = int.MaxValue)
         {
             UnderlyingCommands = new ArrayCommand[maxNumCommands];
 
@@ -99,21 +97,6 @@ namespace ACESimBase.Util.ArrayProcessing
                 StartCommandRange = 0,
                 StartSourceIndices = 0,
             };
-        }
-
-        public ArrayCommandList(ArrayCommand[] commands, int initialArrayIndex, int? maxCommandsPerSplittableChunk)
-        {
-            UnderlyingCommands = commands;
-            SizeOfMainData = initialArrayIndex;
-            Recorder.NextArrayIndex = initialArrayIndex + commands.Length;
-            MaxCommandsPerSplittableChunk = maxCommandsPerSplittableChunk ?? MaxCommandsPerSplittableChunk;
-            CommandTree = new NWayTreeStorageInternal<ArrayCommandChunk>(null);
-            CommandTree.StoredValue = new ArrayCommandChunk
-            {
-                StartCommandRange = 0,
-                StartSourceIndices = 0,
-            };
-            CompleteCommandList();
         }
 
         public ArrayCommandList Clone()
@@ -132,7 +115,6 @@ namespace ACESimBase.Util.ArrayProcessing
                 _currentPath = new List<byte>(_currentPath),
                 UseCheckpoints = UseCheckpoints,
                 Checkpoints = new List<(int, double)>(Checkpoints),
-                _nextExecId = _nextExecId,
                 _depthStartSlots = new Stack<int>(_depthStartSlots.Reverse()),
                 _repeatRangeStack = new Stack<int?>(_repeatRangeStack.Reverse()),
                 RepeatingExistingCommandRange = RepeatingExistingCommandRange,
@@ -178,7 +160,7 @@ namespace ACESimBase.Util.ArrayProcessing
             {
                 Name = name,
                 StartCommandRange = NextCommandIndex,
-                StartSourceIndices = OrderedSourceIndices.Count,
+                StartSourceIndices = OrderedSourceIndices.Count(),
             };
 
             parent.SetBranch(branch, child);
@@ -194,7 +176,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 root.StartCommandRange = 0;
                 root.EndCommandRangeExclusive = NextCommandIndex;
                 root.StartSourceIndices = 0;
-                root.EndSourceIndicesExclusive = OrderedSourceIndices.Count;
+                root.EndSourceIndicesExclusive = OrderedSourceIndices.Count();
                 return;            // nothing else to pop
             }
             if (_keepTogetherLevel > 0)

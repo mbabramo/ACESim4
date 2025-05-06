@@ -51,17 +51,6 @@ namespace ACESimTest.ArrayProcessingTests
             return acl;
         }
 
-        public static ArrayCommandList CreateStubAcl(
-            IList<ArrayCommand> cmds,
-            int maxCommandsPerChunk)
-        {
-            if (cmds is null) throw new ArgumentNullException(nameof(cmds));
-
-            var acl = new ArrayCommandList(cmds.ToArray(), 0, maxCommandsPerChunk);
-
-            return acl;
-        }
-
         public static (ArrayCommandList acl, int bodyLen) MakeOversizeIfBody(int bodyLen, int threshold, bool addDepthChanges = false)
         {
             var acl = BuildAclWithSingleLeaf(rec =>
@@ -257,62 +246,6 @@ namespace ACESimTest.ArrayProcessingTests
                 if (info.StartCommandRange >= info.EndCommandRangeExclusive) return false;
                 return acl.UnderlyingCommands[info.StartCommandRange].CommandType == ArrayCommandType.If;
             });
-
-        /* --------------------------------------------------------------------
-           SECTION 6  DSL helpers – build ACLs from compact token scripts
-           ------------------------------------------------------------------*/
-        public static ArrayCommandList BuildAclFromScript(string script, int maxCommandsPerChunk)
-        {
-            if (script is null) throw new ArgumentNullException(nameof(script));
-
-            var map = new Dictionary<string, ArrayCommandType>(StringComparer.OrdinalIgnoreCase)
-            {
-                ["Zero"] = ArrayCommandType.Zero,
-                ["EqualsValue"] = ArrayCommandType.EqualsValue,
-                ["IncrementBy"] = ArrayCommandType.IncrementBy,
-                ["DecrementBy"] = ArrayCommandType.DecrementBy,
-                ["If"] = ArrayCommandType.If,
-                ["EndIf"] = ArrayCommandType.EndIf,
-                ["IncrementDepth"] = ArrayCommandType.IncrementDepth,
-                ["DecrementDepth"] = ArrayCommandType.DecrementDepth,
-                ["NextSource"] = ArrayCommandType.NextSource,
-            };
-
-            static ArrayCommand Cmd(ArrayCommandType t) => t switch
-            {
-                ArrayCommandType.Zero => new(t, 0, -1),
-                ArrayCommandType.EqualsValue => new(t, 0, 0),
-                ArrayCommandType.IncrementBy => new(t, 0, 0),
-                ArrayCommandType.DecrementBy => new(t, 0, 0),
-                ArrayCommandType.If => new(t, -1, -1),
-                ArrayCommandType.EndIf => new(t, -1, -1),
-                ArrayCommandType.IncrementDepth => new(t, -1, -1),
-                ArrayCommandType.DecrementDepth => new(t, -1, -1),
-                ArrayCommandType.NextSource => new(t, 0, -1),
-                _ => throw new NotSupportedException($"Unhandled token {t}")
-            };
-
-            var cmds = new List<ArrayCommand>();
-            var separators = new[] { '×', 'x' };
-
-            foreach (var raw in script.Split((char[])null, StringSplitOptions.RemoveEmptyEntries))
-            {
-                var parts = raw.Split(separators, StringSplitOptions.RemoveEmptyEntries);
-                string key = parts[0];
-                int repeat = parts.Length == 2 && int.TryParse(parts[1], out int n) ? n : 1;
-
-                if (!map.TryGetValue(key, out var type))
-                    throw new ArgumentException($"Unknown token '{key}'.", nameof(script));
-
-                for (int i = 0; i < repeat; i++)
-                    cmds.Add(Cmd(type));
-            }
-
-            return CreateStubAcl(cmds, maxCommandsPerChunk);
-        }
-
-        public static ArrayCommandList Acl(string tokens, int threshold) =>
-            BuildAclFromScript(tokens, threshold);
     }
 
     /* ------------------------------------------------------------------------
