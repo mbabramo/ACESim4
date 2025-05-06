@@ -28,10 +28,10 @@ public class ArrayCommandChunk
     public int StartSourceIndices, EndSourceIndicesExclusive;
     public string CompiledCode;
     public string Name;
-    public bool Skip; 
-    public int SourcesInBody;
+    public int SourcesInBody => EndSourceIndicesExclusive - StartSourceIndices;
     public int DestinationsInBody;
     public int ExecId = int.MinValue;   // unassigned == int.MinValue 
+    public bool IsConditional;
     public double[] VirtualStack;
 
     public ArrayCommandChunk()

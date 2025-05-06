@@ -32,7 +32,7 @@ namespace ACESimTest.ArrayProcessingTests
             acl.CompleteCommandList();
 
             var data = Seed(20, i => i);
-            acl.ExecuteAll(data, tracing: false);
+            acl.CompileAndRunOnce(data, tracing: false);
             data[DST0].Should().Be(0);
         }
 
@@ -62,7 +62,7 @@ namespace ACESimTest.ArrayProcessingTests
             acl.CompleteCommandList();
 
             var d = new double[3];
-            acl.ExecuteAll(d, false);
+            acl.CompileAndRunOnce(d, false);
             d[idx].Should().Be(0);
         }
 
@@ -92,7 +92,7 @@ namespace ACESimTest.ArrayProcessingTests
             acl.CompleteCommandList();
 
             var data = new double[10];
-            acl.ExecuteAll(data, false);
+            acl.CompileAndRunOnce(data, false);
         }
 
         [TestMethod]

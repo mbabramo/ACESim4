@@ -161,7 +161,7 @@ namespace ACESimTest.ArrayProcessingTests
                 for (int i = 0; i < OriginalSourcesCount; i++)
                     data[i] = originalData[i];
 
-                acl.ExecuteAll(data, tracing: false, kind: kind);
+                acl.CompileAndRunOnce(data, tracing: false, kind: kind);
 
                 var mainDataOutput = acl.NonScratchData.ToArray();
                 return mainDataOutput;

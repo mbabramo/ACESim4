@@ -417,5 +417,20 @@ namespace ACESimBase.Util.NWayTreeStorage
                         Branches[branch2 - 1].ToTreeString(s, branch2, level + 1, branchWordFunc);
                 }
         }
+
+        public override void WalkTreeWithPredicate(Func<NWayTreeStorage<T>, bool> shouldRecurse, Action<NWayTreeStorage<T>> processNode)
+        {
+            processNode(this);
+            if (shouldRecurse(this) && Branches != null)
+            {
+                foreach (var branch in Branches)
+                {
+                    if (branch != null)
+                        branch.WalkTreeWithPredicate(shouldRecurse, processNode);
+                }
+            }
+        }
+
+
     }
 }

@@ -71,17 +71,8 @@ namespace ACESimBase.Util.ArrayProcessing
                 if (leaf == null || (leaf.Branches?.Length ?? 0) > 0)
                     continue;                           // node is no longer a leaf
 
-                switch (entry.Kind)
-                {
-                    case HoistPlanner.SplitKind.Conditional:
-                        SplitAtConditional(acl, leaf, entry.StartIdx, entry.EndIdxExclusive);
-                        break;
-                    case HoistPlanner.SplitKind.Depth:
-                        SplitAtIncrementDepth(acl, leaf, entry.StartIdx, entry.EndIdxExclusive);
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
-                }
+
+                Split(acl, leaf, entry.StartIdx, entry.EndIdxExclusive, entry.Kind == HoistPlanner.SplitKind.Conditional);
             }
 
 #if OUTPUT_HOISTING_INFO
@@ -91,61 +82,11 @@ namespace ACESimBase.Util.ArrayProcessing
 #endif
         }
 
-        private static void SplitAtConditional(
-            ArrayCommandList acl,
-            NWayTreeStorageInternal<ArrayCommandChunk> leaf,
-            int spanStart,
-            int spanEndEx)
-        {
-            var info = leaf.StoredValue;
-
-#if OUTPUT_HOISTING_INFO
-            TabbedText.WriteLine($"[COND-SPLIT] leaf ID{info.ID} span=[{spanStart},{spanEndEx})");
-#endif
-
-            int prefixEnd = spanStart;
-            int postfixStart = spanEndEx;
-            int postfixEnd = info.EndCommandRangeExclusive;
-
-            // Prefix becomes the truncated range of the original leaf.
-            info.EndCommandRangeExclusive = prefixEnd;
-
-            // Gate node holds the entire [If … EndIf] pair.
-            var gateNode = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf)
-            {
-                StoredValue = CloneMeta(info, spanStart, spanEndEx)
-            };
-
-            // Optional suffix node for commands after the EndIf.
-            NWayTreeStorageInternal<ArrayCommandChunk> postNode = null;
-            if (postfixStart < postfixEnd)
-            {
-                postNode = new NWayTreeStorageInternal<ArrayCommandChunk>(leaf)
-                {
-                    StoredValue = CloneMeta(info, postfixStart, postfixEnd)
-                };
-            }
-
-            // Attach children: branch-0 is the (wrapped) prefix leaf that will be added
-            // later by WrapCommandsIntoLeaf; branch-1 is the gate; branch-2 is the suffix.
-            leaf.SetBranch(1, gateNode);
-            if (postNode != null)
-                leaf.SetBranch(2, postNode);
-
-            leaf.StoredValue.LastChild = (byte)(postNode == null ? 1 : 2);
-
-            // Ensure any remaining prefix commands are wrapped into a dedicated leaf.
-            WrapCommandsIntoLeaf(acl, leaf);
-
-            // Deliberately DO NOT slice the gate body here. The gate remains a leaf,
-            // so the planner will revisit it on the next pass and apply the usual
-            // Conditional/Depth logic, preserving balanced If/EndIf pairs.
-        }
-
-        private static void SplitAtIncrementDepth(ArrayCommandList acl,
+        private static void Split(ArrayCommandList acl,
                                        NWayTreeStorageInternal<ArrayCommandChunk> leaf,
                                        int spanStart,
-                                       int spanEndEx)
+                                       int spanEndEx,
+                                       bool isConditionalSplit)
         {
             var info = leaf.StoredValue;
             int originalStart = info.StartCommandRange;
@@ -156,17 +97,17 @@ namespace ACESimBase.Util.ArrayProcessing
             int suffixStart = spanEndEx;
 
 #if OUTPUT_HOISTING_INFO
-            TabbedText.WriteLine($"[DEPTH-SPLIT] leaf ID{info.ID} body=[{bodyStart},{bodyEnd})");
+            TabbedText.WriteLine($"[SPLIT] leaf ID{info.ID} body=[{bodyStart},{bodyEnd})");
 #endif
-            List<(int start, int endEx)> branches = new();
+            List<(int start, int endEx, bool isConditional)> branches = new();
             if (originalStart <= prefixEnd)
-                branches.Add((originalStart, prefixEnd));
-            branches.Add((bodyStart, bodyEnd));
+                branches.Add((originalStart, prefixEnd, false));
+            branches.Add((bodyStart, bodyEnd, isConditionalSplit)); // the body is the only part that runs conditionally (along with its children)
             if (suffixStart <= originalEnd)
-                branches.Add((suffixStart, originalEnd));
+                branches.Add((suffixStart, originalEnd, false));
             var branchesNodes = branches.Select(x => new NWayTreeStorageInternal<ArrayCommandChunk>(leaf)
             {
-                StoredValue = CloneMeta(info, x.start, x.endEx)
+                StoredValue = CloneMeta(info, x.start, x.endEx, x.isConditional)
             }).ToArray();
             for (byte b = 1; b <= branches.Count; b++)
             {
@@ -177,7 +118,6 @@ namespace ACESimBase.Util.ArrayProcessing
 #endif
             }
 
-            info.StartCommandRange = info.EndCommandRangeExclusive = originalEnd;
             info.LastChild = (byte) branches.Count;
         }
 
@@ -199,7 +139,7 @@ namespace ACESimBase.Util.ArrayProcessing
             return target;
         }
 
-        private static ArrayCommandChunk CloneMeta(ArrayCommandChunk src, int start, int endEx)
+        private static ArrayCommandChunk CloneMeta(ArrayCommandChunk src, int start, int endEx, bool isConditional)
         {
             return new ArrayCommandChunk
             {
@@ -207,41 +147,8 @@ namespace ACESimBase.Util.ArrayProcessing
                 EndCommandRangeExclusive = endEx,
                 StartSourceIndices = src.StartSourceIndices,
                 EndSourceIndicesExclusive = src.EndSourceIndicesExclusive,
+                IsConditional = isConditional,
             };
-        }
-
-        /// <summary>
-        /// Creates a leaf that becomes the first branch of the container and contains the container's commands.
-        /// Other children are moved to later branches.
-        /// The container's commands then change to be an empty set.
-        /// </summary>
-        /// <param name="acl"></param>
-        /// <param name="container"></param>
-        private static void WrapCommandsIntoLeaf(ArrayCommandList acl,
-                                             NWayTreeStorageInternal<ArrayCommandChunk> container)
-        {
-            var meta = container.StoredValue;
-#if OUTPUT_HOISTING_INFO
-            TabbedText.WriteLine($"[WRAP-CHECK] ID{meta.ID} start={meta.StartCommandRange} end={meta.EndCommandRangeExclusive}");
-#endif
-            if (meta.StartCommandRange >= meta.EndCommandRangeExclusive)
-                return;
-
-            var leaf = new NWayTreeStorageInternal<ArrayCommandChunk>(container)
-            {
-                StoredValue = CloneMeta(meta, meta.StartCommandRange, meta.EndCommandRangeExclusive)
-            };
-
-            for (int b = meta.LastChild; b >= 1; b--)
-                container.SetBranch((byte)(b + 1), container.GetBranch((byte)b));
-
-            container.SetBranch(1, leaf);
-            meta.LastChild += 1;
-            meta.StartCommandRange = meta.EndCommandRangeExclusive;
-
-#if OUTPUT_HOISTING_INFO
-            TabbedText.WriteLine($"[WRAP] container ID{meta.ID} → leaf ID{leaf.StoredValue.ID}");
-#endif
         }
 
     }

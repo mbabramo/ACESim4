@@ -173,7 +173,7 @@ namespace ACESimTest.ArrayProcessingTests
             for (int i = 0; i < arraySize; i++)
                 interp[i] = compiled[i] = i % 7;
 
-            acl.ExecuteAll(interp, false, ChunkExecutorKind.Interpreted);
+            acl.CompileAndRunOnce(interp, false, ChunkExecutorKind.Interpreted);
             foreach (var kind in new[]
             {
                 ChunkExecutorKind.Roslyn,
@@ -182,7 +182,7 @@ namespace ACESimTest.ArrayProcessingTests
                 ChunkExecutorKind.ILWithLocalVariableRecycling
             })
             {
-                acl.ExecuteAll(compiled, false, kind, null);
+                acl.CompileAndRunOnce(compiled, false, kind, null);
                 compiled.Should().Equal(interp);
             }
         }

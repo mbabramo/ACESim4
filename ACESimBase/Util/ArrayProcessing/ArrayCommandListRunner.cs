@@ -37,7 +37,7 @@ namespace ACESimBase.Util.ArrayProcessing
         ///     Optional “small-chunk” threshold (routes short slices to an interpreter
         ///     when a code-gen backend is chosen).
         /// </param>
-        public static void ExecuteAll(
+        public static void CompileAndRunOnce(
             this ArrayCommandList acl,
             double[] data,
             bool tracing = false,
@@ -45,11 +45,11 @@ namespace ACESimBase.Util.ArrayProcessing
             int? fallbackThreshold = null)
         {
             // Bake the tree (hoisting & stack metadata)
-            ArrayCommandListRunner runner = GetRunner(acl, kind, fallbackThreshold);
-            runner.Run(acl, data, tracing);
+            ArrayCommandListRunner runner = GetCompiledRunner(acl, kind, fallbackThreshold);
+            runner.Run(acl, data);
         }
 
-        public static ArrayCommandListRunner GetRunner(this ArrayCommandList acl, ChunkExecutorKind? kind, int? fallbackThreshold)
+        public static ArrayCommandListRunner GetCompiledRunner(this ArrayCommandList acl, ChunkExecutorKind? kind, int? fallbackThreshold)
         {
             if (acl.MaxCommandIndex == 0)
                 acl.CompleteCommandList();
@@ -67,10 +67,8 @@ namespace ACESimBase.Util.ArrayProcessing
             TabbedText.WriteLine(acl.CommandTreeString);
 #endif
 
-
-            // Collect all chunks
-            var chunks = new List<ArrayCommandChunk>();
-            var seen = new HashSet<(int start, int end)>();
+            // Collect leaf chunks requiring compilation
+            var leafChunks = new List<ArrayCommandChunk>();
             acl.CommandTree!.WalkTree(n =>
             {
                 var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
@@ -78,20 +76,14 @@ namespace ACESimBase.Util.ArrayProcessing
 
                 // a slice executes only if it is a leaf *or* the Conditional gate itself
                 bool isLeaf = node.Branches is null || node.Branches.Length == 0;
-                bool isConditionalGate = c.Name == "Conditional";
-                if (!isLeaf && !isConditionalGate && !c.Skip)
+                if (!isLeaf)
                     return;
 
                 // ignore gaps and placeholders
                 if (c.EndCommandRangeExclusive <= c.StartCommandRange)
-                    return;                 // completely empty
+                    return; 
 
-                // keep exactly one representative of any [start,end) span
-                var key = (c.StartCommandRange, c.EndCommandRangeExclusive);
-                if (!seen.Add(key))
-                    return;                 // already scheduled elsewhere
-
-                chunks.Add(c);
+                leafChunks.Add(c);
             });
 
             // Create executor (interpreter is default)
@@ -102,10 +94,10 @@ namespace ACESimBase.Util.ArrayProcessing
                 end: acl.MaxCommandIndex,
                 useCheckpoints: acl.UseCheckpoints,
                 arrayCommandListForCheckpoints: acl,
-                fallbackThreshold: fallbackThreshold);        // optional
+                fallbackThreshold: fallbackThreshold);
 
             // Compile once and run
-            var runner = new ArrayCommandListRunner(chunks, exec);
+            var runner = new ArrayCommandListRunner(leafChunks, exec);
             return runner;
         }
     }
@@ -125,26 +117,18 @@ namespace ACESimBase.Util.ArrayProcessing
 
         // Runtime helpers (one instance per Run)
         private OrderedBufferManager _buffers = null!;  // created in Run()
+        private ArrayCommandList _acl;
+        private double[] _data;
+        private int _cosi = 0;
+        private bool _condition = true;
 
-        private int _globalSkipDepth = 0; // nested‑If skip counter
-        private int _pendingSrcAdvance = 0;
-        private readonly List<ArrayCommandChunk> _chunks;
-        private readonly int[] _srcStartBaselines;
-
-        public ArrayCommandListRunner(IEnumerable<ArrayCommandChunk> commandChunks,
+        public ArrayCommandListRunner(IEnumerable<ArrayCommandChunk> leafChunks,
                                   IChunkExecutor compiledExecutor = null)
         {
             _compiled  = compiledExecutor ?? throw new ArgumentNullException(nameof(compiledExecutor));
 
-            // materialise the slice list once so we can iterate repeatedly
-            _chunks = commandChunks
-                        .Where(c => c.EndCommandRangeExclusive > c.StartCommandRange)
-                        .ToList();
-
-            _srcStartBaselines = _chunks.Select(c => c.StartSourceIndices).ToArray();
-
             // register all slices with the executor and compile once
-            foreach (var c in _chunks)
+            foreach (var c in leafChunks)
                 _compiled.AddToGeneration(c);
             _compiled.PerformGeneration();
         }
@@ -153,20 +137,13 @@ namespace ACESimBase.Util.ArrayProcessing
         /// <summary>
         /// Executes <paramref name="acl"/> once against <paramref name="data"/>.
         /// </summary>
-        public void Run(ArrayCommandList acl, double[] data, bool tracing = false)
+        public void Run(ArrayCommandList acl, double[] data, bool trace = false)
         {
-            // ── restore each slice’s cursors to their original positions ──
-            for (int i = 0; i < _chunks.Count; i++)
-            {
-                _chunks[i].StartSourceIndices = _srcStartBaselines[i];
-            }
-
-            // ── reset per-run state ──
-            _globalSkipDepth = 0;
-            _pendingSrcAdvance = 0;
-
             if (acl is null) throw new ArgumentNullException(nameof(acl));
             if (data is null) throw new ArgumentNullException(nameof(data));
+
+            _acl = acl;
+            _data = data;
 
             //------------------------------------------------------------------
             // Virtual stack initialization
@@ -182,126 +159,35 @@ namespace ACESimBase.Util.ArrayProcessing
             _buffers = new OrderedBufferManager();
             _buffers.SourceIndices.AddRange(acl.OrderedSourceIndices);
             _buffers.PrepareBuffers(data, false);
+            _cosi = 0;
+            _condition = true;
 
             //------------------------------------------------------------------
             // Depth-first traversal with pre/post hooks
             //------------------------------------------------------------------
-            acl.CommandTree!.WalkTree(
-                beforeDescending: n => Pre((NWayTreeStorageInternal<ArrayCommandChunk>)n, acl),
-                afterAscending: n => Post((NWayTreeStorageInternal<ArrayCommandChunk>)n, acl),
-                parallel: n => ParallelPredicate((NWayTreeStorageInternal<ArrayCommandChunk>)n, acl));
+            acl.CommandTree!.WalkTreeWithPredicate(ShouldVisitNodesChildren, ExecuteOrSkipNode);
         }
 
-
-        // ──────────────────────────────────────────────────────────────────────
-        //  Pre‑order action  – stack sync + evaluate Conditional gate
-        // ──────────────────────────────────────────────────────────────────────
-        private void Pre(NWayTreeStorageInternal<ArrayCommandChunk> node, ArrayCommandList acl)
+        private bool ShouldVisitNodesChildren(NWayTreeStorage<ArrayCommandChunk> node)
         {
-            var c = node.StoredValue;
-
-            if (c.Skip) return;
-
-            if (c.Name == "Conditional")
-                ExecuteChunk(c, acl);
+            if (!node.StoredValue.IsConditional)
+                return true;
+            return _condition;
         }
 
-        // ──────────────────────────────────────────────────────────────────────
-        //  Post‑order action – run leaf, merge increments
-        // ──────────────────────────────────────────────────────────────────────
-        private void Post(NWayTreeStorageInternal<ArrayCommandChunk> node, ArrayCommandList acl)
+        private void ExecuteOrSkipNode(NWayTreeStorage<ArrayCommandChunk> node)
         {
-            var c = node.StoredValue;
-            if (c.Skip) return;
-
-            // Body slices of a Conditional gate were executed by the gate itself
-            if (node.Parent is NWayTreeStorageInternal<ArrayCommandChunk> p &&
-                p.StoredValue?.Name == "Conditional")
-                return;
-
-            bool isLeaf = node.Branches is null || node.Branches.Length == 0;
-            if (isLeaf && c.Name != "Conditional")
-                ExecuteChunk(c, acl);
-        }
-
-        // Decide whether children of <node> may run concurrently
-        private static bool ParallelPredicate(NWayTreeStorageInternal<ArrayCommandChunk> node,
-                                              ArrayCommandList acl)
-            => false;
-
-        // ──────────────────────────────────────────────────────────────────────
-        //  Execute a single chunk using compiled or fallback executor
-        // ──────────────────────────────────────────────────────────────────────
-        private void ExecuteChunk(ArrayCommandChunk c, ArrayCommandList acl)
-        {
-#if OUTPUT_HOISTING_INFO
-            TabbedText.WriteLine($"[Runner] ExecuteChunk {c.ID} StartSourceIndices: {c.StartSourceIndices} ");
-#endif
-            // Skip entire chunk when inside a false branch
-            if (_globalSkipDepth > 0) { ScanForNestedIfs(c, acl); return; }
-            // Apply any carry-over from previously skipped chunks
-            if (_pendingSrcAdvance != 0)
+            bool skip = !ShouldVisitNodesChildren(node);
+            if (skip) // this is a conditional node, and the condition for visiting is not met
+                _cosi += node.StoredValue.SourcesInBody;
+            else
             {
-                c.StartSourceIndices += _pendingSrcAdvance;
-                _pendingSrcAdvance = 0;
+                _compiled.Execute(node.StoredValue,
+                                  _acl.VirtualStack,
+                                  _buffers.Sources,
+                                  ref _cosi,
+                                  ref _condition);
             }
-
-            int len = c.EndCommandRangeExclusive - c.StartCommandRange;
-
-            int cosi = c.StartSourceIndices;      // current ordered‑source ptr (by ref)
-            bool condition = true;
-
-            _compiled.Execute(c,
-                              acl.VirtualStack,
-                              _buffers.Sources,
-                              ref cosi,
-                              ref condition);
-
-            // Propagate pointer updates back to chunk for its siblings
-            c.StartSourceIndices = cosi;
         }
-
-        /// <summary>
-        /// While <c>_globalSkipDepth &gt; 0</c> we are walking chunks that belong
-        /// to a branch whose outer <c>If</c> evaluated <c>false</c>.  We must
-        /// <b>count</b> nested If/EndIf pairs so that depth returns to 0 at the
-        /// correct moment <i>and</i> we must <b>pretend</b> that every
-        /// NextSource inside the skipped span executed, so that
-        /// the first live chunk afterwards sees the right <paramref name="cosi"/>
-        /// positions.
-        /// </summary>
-        private void ScanForNestedIfs(ArrayCommandChunk chunk, ArrayCommandList acl)
-        {
-            int srcAdv = 0;           // how many NextSource we skipped
-
-            var cmds = acl.UnderlyingCommands;
-
-            for (int i = chunk.StartCommandRange; i < chunk.EndCommandRangeExclusive; i++)
-            {
-                switch (cmds[i].CommandType)
-                {
-                    case ArrayCommandType.If:
-                        _globalSkipDepth++;
-                        break;
-
-                    case ArrayCommandType.EndIf:
-                        if (_globalSkipDepth > 0) _globalSkipDepth--;
-                        break;
-
-                    case ArrayCommandType.NextSource:
-                        srcAdv++;                     // simulate os[cosi++] read
-                        break;
-                }
-            }
-
-            //--------------------------------------------------------------------
-            // Fast-forward the runner-level cursors so that the *next* real chunk
-            // starts with correct positions.  We keep the cursors as private
-            // fields on the runner because there is no parent pointer on the chunk.
-            //--------------------------------------------------------------------
-            _pendingSrcAdvance += srcAdv;
-        }
-
-
     }
 }

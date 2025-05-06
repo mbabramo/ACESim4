@@ -238,5 +238,10 @@ namespace ACESimBase.Util.NWayTreeStorage
             }
             while (node != null);
         }
+        public virtual void WalkTreeWithPredicate(Func<NWayTreeStorage<T>, bool> shouldRecurse, Action<NWayTreeStorage<T>> processNode)
+        {
+            processNode(this);
+        }
+
     }
 }

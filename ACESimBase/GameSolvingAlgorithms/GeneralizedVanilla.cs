@@ -312,7 +312,7 @@ namespace ACESim
                     Unroll_SizeOfArray_Cached = Unroll_SizeOfArray;
                     GameTreeNodeCount_Cached = CountGameTreeNodes();
                 }
-                Unroll_CommandListRunner = Unroll_Commands.GetRunner(kind: EvolutionSettings.Unroll_ChunkExecutorKind, null);
+                Unroll_CommandListRunner = Unroll_Commands.GetCompiledRunner(kind: EvolutionSettings.Unroll_ChunkExecutorKind, null);
             }
             catch (OutOfMemoryException)
             {
