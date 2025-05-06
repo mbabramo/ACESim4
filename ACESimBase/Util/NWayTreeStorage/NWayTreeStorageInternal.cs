@@ -141,7 +141,7 @@ namespace ACESimBase.Util.NWayTreeStorage
 
         public override bool IsLeaf()
         {
-            return Branches == null;
+            return Branches == null || Branches.Count() == 0;
         }
 
         private int AdjustedIndex(byte index) => index - (ZeroBased ? 0 : 1);

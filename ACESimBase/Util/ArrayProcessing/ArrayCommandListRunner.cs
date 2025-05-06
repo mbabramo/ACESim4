@@ -170,18 +170,28 @@ namespace ACESimBase.Util.ArrayProcessing
 
         private bool ShouldVisitNodesChildren(NWayTreeStorage<ArrayCommandChunk> node)
         {
+            return !IsConditionalNodeThatShouldBeSkipped(node);
+        }
+
+        private bool IsConditionalNodeThatShouldBeSkipped(NWayTreeStorage<ArrayCommandChunk> node)
+        {
             if (!node.StoredValue.IsConditional)
-                return true;
-            return _condition;
+            {
+                return false;
+            }
+            return !_condition;
         }
 
         private void ExecuteOrSkipNode(NWayTreeStorage<ArrayCommandChunk> node)
         {
-            bool skip = !ShouldVisitNodesChildren(node);
-            if (skip) // this is a conditional node, and the condition for visiting is not met
+            bool skipBecauseConditionFails = IsConditionalNodeThatShouldBeSkipped(node);
+            if (skipBecauseConditionFails) 
                 _cosi += node.StoredValue.SourcesInBody;
             else
             {
+                bool isLeaf = node.IsLeaf();
+                if (!isLeaf)
+                    return; // this node has been split into other nodes, so we'll execute then
                 _compiled.Execute(node.StoredValue,
                                   _acl.VirtualStack,
                                   _buffers.Sources,
