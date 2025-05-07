@@ -197,7 +197,10 @@ namespace ACESimTest.ArrayProcessingTests
                 int pre = _rnd.Next(0, preMax + 1);
 
                 int remAfterPre = len - pre - 3;      // remaining for body+post
-                int body = _rnd.Next(1, remAfterPre + 1);
+                                                      // ensure the body never swallows the whole remainder
+                int body = remAfterPre > 1
+                         ? _rnd.Next(1, remAfterPre)   // upper bound *exclusive*
+                         : remAfterPre;                // only one slot left → body gets it
                 int post = remAfterPre - body;
 
                 int cond = s + pre;
@@ -281,11 +284,11 @@ namespace ACESimTest.ArrayProcessingTests
         {
             while (true)
             {
-                int pick = _rnd.Next(8);
+                int pick = _rnd.Next(9);
                 int cost = pick switch
                 {
                     1 => 2,           // MultiplyToNew ⇒ CopyToNew + MultiplyBy 
-                    7 => 3,           // IncrementByProduct ⇒ CopyToNew + MultiplyBy + Increment 
+                    5 => 3,           // IncrementByProduct ⇒ CopyToNew + MultiplyBy + Increment 
                     _ => 1            // all others emit a single command
                 };
 
@@ -298,9 +301,9 @@ namespace ACESimTest.ArrayProcessingTests
                     case 2: IncrementVirtualStack(acl); break;
                     case 3: DecrementVirtualStack(acl); break;
                     case 4: InplaceMath(acl); break;
-                    case 5: IncrementOriginal(acl); break;
+                    case 5: IncrementByProduct(acl); break;
                     case 6: ZeroVirtualStack(acl); break;
-                    default: IncrementByProduct(acl); break;
+                    default: IncrementOriginal(acl); break; // we make this more likely because we only find an error if there is a change to the originalsa
                 }
                 return cost;
             }

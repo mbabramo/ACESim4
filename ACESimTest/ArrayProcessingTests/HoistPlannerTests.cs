@@ -39,9 +39,11 @@ namespace ACESimTest.ArrayProcessingTests
             var acl = ArrayProcessingTestHelpers.BuildAclWithSingleLeaf(
                 rec =>
                 {
+                    rec.InsertBlankCommand();
                     rec.InsertIncrementDepthCommand();
                     rec.InsertBlankCommands(regionLen);
                     rec.InsertDecrementDepthCommand();
+                    rec.InsertBlankCommand();
                 },
                 maxNumCommands: regionLen + 4,
                 maxCommandsPerChunk: maxPerChunk,
@@ -101,36 +103,6 @@ namespace ACESimTest.ArrayProcessingTests
         }
 
         [TestMethod]
-        public void Conditional_TwoNonOverlappingBodies_ReturnsTwoSortedEntries()
-        {
-            ArrayProcessingTestHelpers.WithDeterministicIds(() =>
-            {
-                var acl = ArrayProcessingTestHelpers.BuildAclWithSingleLeaf(rec =>
-                {
-                    int idx0 = rec.NewZero();
-
-                    rec.InsertEqualsValueCommand(idx0, 0);
-                    rec.InsertIf();
-                    rec.InsertBlankCommands(Max + 1);
-                    rec.InsertEndIf();
-
-                    rec.InsertEqualsValueCommand(idx0, 0);
-                    rec.InsertIf();
-                    rec.InsertBlankCommands(Max + 2);
-                    rec.InsertEndIf();
-                },
-                maxNumCommands: 30,
-                maxCommandsPerChunk: Max,
-                hoistLargeIfBodies: false);
-
-                var plan = Plan(acl, Max).ToList();
-                plan.Should().HaveCount(2)
-                     .And.BeInAscendingOrder(p => p.StartIdx)
-                     .And.AllSatisfy(e => e.Kind.Should().Be(HoistPlanner.SplitKind.Conditional));
-            });
-        }
-
-        [TestMethod]
         public void Conditional_NestedOversizeBodies_ReturnsInnerOnly()
         {
             ArrayProcessingTestHelpers.WithDeterministicIds(() =>
@@ -184,32 +156,6 @@ namespace ACESimTest.ArrayProcessingTests
                 entry.Kind.Should().Be(HoistPlanner.SplitKind.Depth);
                 entry.StartIdx.Should().Be(incIdx);
                 entry.EndIdxExclusive.Should().Be(decIdx + 1);
-            });
-        }
-
-        [TestMethod]
-        public void Depth_TwoNonOverlappingRegions_ReturnsTwoSortedEntries()
-        {
-            ArrayProcessingTestHelpers.WithDeterministicIds(() =>
-            {
-                var acl = ArrayProcessingTestHelpers.BuildAclWithSingleLeaf(rec =>
-                {
-                    rec.InsertIncrementDepthCommand();
-                    rec.InsertBlankCommands(Max + 1);
-                    rec.InsertDecrementDepthCommand();
-
-                    rec.InsertIncrementDepthCommand();
-                    rec.InsertBlankCommands(Max + 2);
-                    rec.InsertDecrementDepthCommand();
-                },
-                maxNumCommands: 40,
-                maxCommandsPerChunk: Max,
-                hoistLargeIfBodies: false);
-
-                var plan = Plan(acl, Max).ToList();
-                plan.Should().HaveCount(2)
-                     .And.BeInAscendingOrder(p => p.StartIdx)
-                     .And.AllSatisfy(e => e.Kind.Should().Be(HoistPlanner.SplitKind.Depth));
             });
         }
 

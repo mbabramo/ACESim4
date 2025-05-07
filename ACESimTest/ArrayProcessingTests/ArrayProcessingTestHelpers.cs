@@ -55,6 +55,7 @@ namespace ACESimTest.ArrayProcessingTests
         {
             var acl = BuildAclWithSingleLeaf(rec =>
             {
+                rec.InsertBlankCommand();
                 int idx0 = rec.NewZero();
                 rec.InsertEqualsValueCommand(idx0, 0);
                 rec.InsertIf();
@@ -68,6 +69,7 @@ namespace ACESimTest.ArrayProcessingTests
                     for (int i = 0; i < bodyLen; i++)
                         rec.DecrementDepth();
                 rec.InsertEndIf();
+                rec.InsertBlankCommand();
             },
             maxNumCommands: bodyLen + 5,
             maxCommandsPerChunk: threshold);

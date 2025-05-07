@@ -37,18 +37,18 @@ namespace ACESimBase.Util.ArrayProcessing
                 var planner = new HoistPlanner(acl.UnderlyingCommands, acl.MaxCommandsPerSplittableChunk);
                 var plan = planner.BuildPlan(acl.CommandTree);
 
-#if OUTPUT_HOISTING_INFO
-                    TabbedText.WriteLine($"── after round {round} ──");
-                    TabbedText.WriteLine(acl.CommandTree.ToTreeString(_ => "Leaf"));
-                    TabbedText.WriteLine("───────────────");
-#endif
-
                 if (plan.Count == 0)
                 {
                     break;        // tree already balanced
                 }
 
                 ApplyPlan(acl, plan);
+
+#if OUTPUT_HOISTING_INFO
+                TabbedText.WriteLine($"── after round {round} ──");
+                TabbedText.WriteLine(acl.CommandTree.ToTreeString(_ => "Leaf"));
+                TabbedText.WriteLine("───────────────");
+#endif
             }
         }
 

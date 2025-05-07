@@ -206,13 +206,21 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     if (bind.TryReuse(local, slot, d, out int flushSlot))
                     {
                         if (flushSlot != -1)
+                        {
                             cb.AppendLine($"vs[{flushSlot}] = l{local};");
+
+                            if (ifStack.Count > 0)
+                                foreach (var ctx in ifStack)
+                                    if (ctx.DirtyBefore[local])
+                                        ctx.Flushes.Add((flushSlot, local));
+                        }
 
                         cb.AppendLine($"l{local} = vs[{slot}];");
 
-                        // remember first-time bindings that occur inside an IF
-                        if (ifStack.Count > 0 && !ifStack.Peek().DirtyBefore[local])
-                            ifStack.Peek().Initialises.Add((slot, local));
+                        if (ifStack.Count > 0)
+                            foreach (var ctx in ifStack)
+                                if (!ctx.DirtyBefore[local])
+                                    ctx.Initialises.Add((slot, local));
 
                         bind.StartInterval(slot, local, d);
                     }
@@ -242,6 +250,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 }
             }
         }
+
 
 
 
@@ -382,11 +391,12 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                         cb.Unindent();
                         cb.AppendLine("} else {");
 
-                        foreach (var (slot, local) in ctx.Flushes)
-                            cb.AppendLine($"vs[{slot}] = l{local};");
 
                         foreach (var (slot, local) in ctx.Initialises)
                             cb.AppendLine($"l{local} = vs[{slot}];");
+
+                        foreach (var (slot, local) in ctx.Flushes)
+                            cb.AppendLine($"vs[{slot}] = l{local};");
 
                         cb.AppendLine($"i+={ctx.SrcSkip}; }}");
                         break;

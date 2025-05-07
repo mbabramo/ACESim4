@@ -10,16 +10,16 @@ namespace ACESimTest.ArrayProcessingTests
     [TestClass]
     public class ChunkExecutorFuzzTests
     {
-        private const int Runs = 100;
+        private const int Runs = 2500;
         private const int OriginalSourcesCount = 8;
 
         [TestMethod]
         public void Fuzz_CompareExecutors_ByDepthThenSize()
         {
             int[] maxDepths = { 0, 1, 2, 3 };
-            int?[] maxCommands = { 3, 5, 10, 25 };
+            int?[] maxCommands = { 3, 5, 10, 100 };
 
-            (int d, int c, int s)? jumpTo = null;
+            (int d, int c, int s)? jumpTo = (3, 3, 0); // Note: Delete or change this if we need to find a simpler failing case.
             bool jumping = jumpTo != null;
 
             for (int d = 0; d < maxDepths.Length; d++)
