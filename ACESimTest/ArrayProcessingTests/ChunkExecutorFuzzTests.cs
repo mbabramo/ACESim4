@@ -19,7 +19,7 @@ namespace ACESimTest.ArrayProcessingTests
             int[] maxDepths = { 0, 1, 2, 3 };
             int?[] maxCommands = { 3, 5, 10, 25 };
 
-            (int d, int c, int s)? jumpTo = null; // DEBUG
+            (int d, int c, int s)? jumpTo = null;
             bool jumping = jumpTo != null;
 
             for (int d = 0; d < maxDepths.Length; d++)
@@ -147,15 +147,20 @@ namespace ACESimTest.ArrayProcessingTests
                 int nextOrderedSource = 0;
                 foreach (var cmd in cmds)
                 {
+                    if (cmd.CommandType is ArrayCommandType.Zero or ArrayCommandType.NextSource or ArrayCommandType.CopyTo)
+                    { 
+                        // Simulate the increase in NextArrayIndex that we would get by using the Recorder's commands
+                        if (cmd.Index > acl.Recorder.NextArrayIndex)
+                            acl.Recorder.NextArrayIndex++;
+                    }
                     acl.Recorder.AddCommand(cmd);
                     if (cmd.CommandType == ArrayCommandType.NextSource)
                         acl.OrderedSourceIndices.Add(orderedSourceIndices[nextOrderedSource++]);
                 }
                 acl.CompleteCommandList(hoistLargeIfBodies: true);
 
-                // DEBUG
-                Debug.WriteLine(acl.CommandListString());
-                Debug.WriteLine(acl.CommandTreeString);
+                //TabbedText.WriteLine(acl.CommandListString());
+                //TabbedText.WriteLine(acl.CommandTreeString);
 
                 var data = new double[acl.VirtualStackSize];
                 for (int i = 0; i < OriginalSourcesCount; i++)
