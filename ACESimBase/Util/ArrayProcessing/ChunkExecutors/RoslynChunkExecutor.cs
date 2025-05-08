@@ -239,33 +239,27 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 {
                     int local = _plan.SlotToLocal[slot];
 
-                    // (re)bind the planner-assigned local, flushing the old slot if needed
                     if (bind.TryReuse(local, slot, d, out int flushSlot))
                     {
-                        // flush previous slot value, record for ELSE replay
                         if (flushSlot != -1)
                         {
                             cb.AppendLine($"vs[{flushSlot}] = l{local};");
 
                             if (ifStack.Count > 0)
                                 foreach (var ctx in ifStack)
-                                    if (ctx.DirtyBefore[local])
-                                        ctx.Flushes.Add((flushSlot, local));
+                                    ctx.Flushes.Add((flushSlot, local));
                         }
 
-                        // load the new slot’s value into the local
                         cb.AppendLine($"l{local} = vs[{slot}];");
 
-                        // IMPORTANT: always replay this load in every ELSE path
-                        //            (even when the local was already dirty on entry)
                         if (ifStack.Count > 0)
                             foreach (var ctx in ifStack)
                                 ctx.Initialises.Add((slot, local));
 
-                        // mark the interval as active
                         bind.StartInterval(slot, local, d);
                     }
                 }
+
 
 
                 // ───── emit the command ─────
