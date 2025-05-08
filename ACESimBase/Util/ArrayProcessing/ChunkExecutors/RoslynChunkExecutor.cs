@@ -388,19 +388,41 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 case ArrayCommandType.EndIf:
                     {
                         var ctx = ifStack.Pop();
+
+                        // close the THEN block and open the ELSE block
                         cb.Unindent();
                         cb.AppendLine("} else {");
 
-
+                        // ── initialise locals that were first-bound in the skipped THEN branch
                         foreach (var (slot, local) in ctx.Initialises)
                             cb.AppendLine($"l{local} = vs[{slot}];");
 
+                        // ── replay flushes that executed in the skipped THEN branch
                         foreach (var (slot, local) in ctx.Flushes)
                             cb.AppendLine($"vs[{slot}] = l{local};");
 
-                        cb.AppendLine($"i+={ctx.SrcSkip}; }}");
+                        // advance source pointer past THEN-branch commands
+                        cb.AppendLine($"i+={ctx.SrcSkip}; }}");   // close ELSE block
+
+                        // ─────────────────────────────────────────────────────────────────────
+                        //  Guarantee that every local first initialised inside the
+                        //  THEN branch is flushed to memory if it became dirty.  This prevents
+                        //  a dirty value from escaping when a later nested branch is skipped.
+                        // ─────────────────────────────────────────────────────────────────────
+                        foreach (var (slot, local) in ctx.Initialises)
+                        {
+                            if (bind != null &&
+                                bind.NeedsFlushBeforeReuse(local, out int boundSlot) &&
+                                boundSlot == slot)
+                            {
+                                cb.AppendLine($"vs[{slot}] = l{local};");
+                                bind.FlushLocal(local);   // mark clean
+                            }
+                        }
+
                         break;
                     }
+
 
                 // comments / blanks – ignore
                 case ArrayCommandType.Comment:

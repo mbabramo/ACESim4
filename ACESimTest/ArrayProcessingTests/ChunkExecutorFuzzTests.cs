@@ -12,6 +12,79 @@ namespace ACESimTest.ArrayProcessingTests
     {
         private const int Runs = 2500;
         private const int OriginalSourcesCount = 8;
+        private static ArrayCommand[] BuildFailingCommandSequence()
+        {
+            return new[]
+            {
+                new ArrayCommand(ArrayCommandType.If                       , -1, -1 ), // 017
+                new ArrayCommand(ArrayCommandType.IncrementBy              ,  7, 10 ), // 018
+                new ArrayCommand(ArrayCommandType.EndIf                    , -1, -1 ), // 033
+                new ArrayCommand(ArrayCommandType.IncrementBy              ,  7, 10 ), // 050
+                new ArrayCommand(ArrayCommandType.NotEqualsOtherArrayIndex ,  8,  9 ), // 055
+                new ArrayCommand(ArrayCommandType.If                       , -1, -1 ), // 056
+                new ArrayCommand(ArrayCommandType.IncrementBy              ,  7,  9 ), // 058
+                new ArrayCommand(ArrayCommandType.IncrementBy              ,  5, 24 ), // 081
+                new ArrayCommand(ArrayCommandType.EndIf                    , -1, -1 ), // 082
+                new ArrayCommand(ArrayCommandType.IncrementBy              ,  5,  9 ), // 089
+            };
+        }
+
+
+        [TestMethod]
+        public void RoslynReuse_Should_Match_Interpreter()
+        {
+            var cmds = BuildFailingCommandSequence();
+
+            // virtual-stack large enough for every slot we touch (max index = 28)
+            const int VS_SIZE = 32;
+            var chunk = new ArrayCommandChunk
+            {
+                StartCommandRange = 0,
+                EndCommandRangeExclusive = cmds.Length,
+                VirtualStack = new double[VS_SIZE]
+            };
+
+            // create deterministic original sources – matches fuzz logic (seed = 37)
+            var rnd = new Random(37 * 2 + 1);
+            const int ORIGINAL_SOURCES = 8;
+            var originalData =
+                Enumerable.Range(0, ORIGINAL_SOURCES)
+                          .Select(_ => rnd.NextDouble() < 0.2
+                                       ? 0
+                                       : (rnd.NextDouble() - 0.5) * 1000.0)
+                          .ToArray();
+
+            var orderedSources = originalData;          // single NextSource - ok
+            var vs = new double[VS_SIZE];
+            Array.Copy(originalData, vs, originalData.Length); // seed VS with originals
+
+            // baseline interpreter
+            var interp = new InterpreterChunkExecutor(cmds, 0, cmds.Length, false, null);
+            interp.AddToGeneration(chunk);
+            interp.PerformGeneration();
+            int cosi = 0; bool cond = true;
+            interp.Execute(chunk, vs, orderedSources, ref cosi, ref cond);
+            var expected = vs.Take(ORIGINAL_SOURCES).ToArray();     // snapshot outputs
+
+            // reset VS and run Roslyn-Reuse executor
+            vs = new double[VS_SIZE];
+            Array.Copy(originalData, vs, originalData.Length);
+            cosi = 0; cond = true;
+            var roslyn = new RoslynChunkExecutor(cmds, 0, cmds.Length,
+                                                 useCheckpoints: false,
+                                                 localVariableReuse: true);
+            roslyn.AddToGeneration(chunk);
+            roslyn.PerformGeneration();
+            roslyn.Execute(chunk, vs, orderedSources, ref cosi, ref cond);
+            var actual = vs.Take(ORIGINAL_SOURCES).ToArray();
+
+            // **FAILS** today – proves the bug
+            CollectionAssert.AreEqual(expected, actual,
+                "Roslyn executor with local-reuse diverged from interpreter.");
+        }
+
+
+
 
         [TestMethod]
         public void Fuzz_CompareExecutors_ByDepthThenSize()
