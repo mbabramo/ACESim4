@@ -425,26 +425,19 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     {
                         var ctx = ifStack.Pop();
 
-                        // close the THEN block and open the ELSE block
+                        // Close the THEN block and open the ELSE block
                         cb.Unindent();
                         cb.AppendLine("} else {");
 
-                        // ── initialise locals that were first-bound in the skipped THEN branch
-                        foreach (var (slot, local) in ctx.Initialises)
-                            cb.AppendLine($"l{local} = vs[{slot}];");
+                        // Use ElseBlockBuilder to handle all flushes/reloads in the ELSE leg with correct ordering.
+                        var elseBuilder = new ElseBlockBuilder(ctx.Flushes, ctx.Initialises);
+                        elseBuilder.EmitElseBlock(cb);
 
-                        // ── replay flushes that executed in the skipped THEN branch
-                        foreach (var (slot, local) in ctx.Flushes)
-                            cb.AppendLine($"vs[{slot}] = l{local};");
+                        // Advance source pointer past the THEN-branch commands, then close the ELSE block
+                        cb.AppendLine($"i += {ctx.SrcSkip}; }}");
 
-                        // advance source pointer past THEN-branch commands
-                        cb.AppendLine($"i+={ctx.SrcSkip}; }}");   // close ELSE block
-
-                        // ─────────────────────────────────────────────────────────────────────
-                        //  Guarantee that every local first initialised inside the
-                        //  THEN branch is flushed to memory if it became dirty.  This prevents
-                        //  a dirty value from escaping when a later nested branch is skipped.
-                        // ─────────────────────────────────────────────────────────────────────
+                        // (Post-branch cleanup) Ensure any local first initialized in THEN is flushed if it became dirty.
+                        // This prevents a dirty value from escaping when a nested branch is skipped.
                         foreach (var (slot, local) in ctx.Initialises)
                         {
                             if (bind != null &&
@@ -452,7 +445,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                                 boundSlot == slot)
                             {
                                 cb.AppendLine($"vs[{slot}] = l{local};");
-                                bind.FlushLocal(local);   // mark clean
+                                bind.FlushLocal(local);   // mark the local as clean in the binding state
                             }
                         }
 
@@ -472,5 +465,107 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             }
         }
 
+        /// <summary>
+        /// Utility to build the else-block code that handles flushing and reinitializing locals.
+        /// Ensures correct ordering of flushes (writing back to vs array) and reloads (reading from vs) 
+        /// for each local variable when the THEN branch is skipped.
+        /// </summary>
+        private class ElseBlockBuilder
+        {
+            // Collections of flush and init actions recorded from the IF branch
+            private readonly List<(int slot, int local)> _flushes;
+            private readonly List<(int slot, int local)> _initializes;
+
+            public ElseBlockBuilder(IEnumerable<(int slot, int local)> flushes,
+                                     IEnumerable<(int slot, int local)> initializes)
+            {
+                // Copy lists to avoid modifying the original IfContext data
+                _flushes = flushes.ToList();
+                _initializes = initializes.ToList();
+            }
+
+            /// <summary>
+            /// Emit the proper sequence of vs/local assignments for the ELSE block.
+            /// For each local that had actions in the IF branch:
+            /// - If the local was reused (appears in both flushes and initializes lists with different slots), 
+            ///   flush its old slot value first, then reload the new slot’s value.
+            /// - If a flush and initialize refer to the *same* slot (local’s entire life was inside the IF), 
+            ///   perform a reload before flush (this ends up writing the original value back, preserving state).
+            /// - Otherwise, perform any standalone flushes or initializes as needed.
+            /// </summary>
+            public void EmitElseBlock(CodeBuilder cb)
+            {
+                // Group flush and init actions by local variable for ordered emission
+                var actionsByLocal = new Dictionary<int, (int? initSlot, List<int> flushSlots)>();
+                foreach (var (slot, local) in _initializes)
+                {
+                    if (!actionsByLocal.ContainsKey(local))
+                        actionsByLocal[local] = (initSlot: slot, flushSlots: new List<int>());
+                    else
+                        actionsByLocal[local] = (initSlot: slot, flushSlots: actionsByLocal[local].flushSlots);
+                }
+                foreach (var (slot, local) in _flushes)
+                {
+                    if (!actionsByLocal.ContainsKey(local))
+                        actionsByLocal[local] = (initSlot: (int?)null, flushSlots: new List<int>());
+                    actionsByLocal[local].flushSlots.Add(slot);
+                }
+
+                // Emit actions for each local in a stable order (e.g., increasing local id)
+                foreach (int local in actionsByLocal.Keys.OrderBy(l => l))
+                {
+                    int? initSlot = actionsByLocal[local].initSlot;
+                    var flushSlots = actionsByLocal[local].flushSlots;
+
+                    bool hasInit = initSlot.HasValue;
+                    bool hasFlush = flushSlots.Count > 0;
+
+                    if (hasInit && hasFlush)
+                    {
+                        // This local had a value flushed in the IF and was also initialized to a new slot in the IF.
+                        // Determine if the flush and init target the same slot or different slots.
+                        int initTarget = initSlot.Value;
+                        // Separate flush slots into "same as init" vs "others"
+                        int? sameSlotFlush = flushSlots.Contains(initTarget) ? initTarget : (int?)null;
+                        var otherFlushes = flushSlots.Where(s => s != initTarget);
+
+                        // Flush any "other" slot first (preserve the old value before we reuse the local).
+                        foreach (int slot in otherFlushes)
+                        {
+                            cb.AppendLine($"vs[{slot}] = l{local};");  // flush old value to its slot
+                        }
+
+                        if (sameSlotFlush.HasValue)
+                        {
+                            // If the local’s flush and init involve the same slot, reload before flushing.
+                            // (This scenario typically means the slot’s entire lifetime was within the IF.)
+                            cb.AppendLine($"l{local} = vs[{initTarget}];");   // reload the value from vs (ensure local is up to date)
+                            cb.AppendLine($"vs[{initTarget}] = l{local};");  // flush it back (preserving the value in memory)
+                        }
+                        else
+                        {
+                            // Flush and init are for different slots (true reuse scenario).
+                            cb.AppendLine($"l{local} = vs[{initTarget}];");  // now load the new slot’s value into the local
+                        }
+                    }
+                    else if (hasFlush && !hasInit)
+                    {
+                        // Local wasn’t first bound in this IF (no new init), but had flushes inside the IF.
+                        // Flush all such slots to memory, as those writes didn’t occur when the branch was skipped.
+                        foreach (int slot in flushSlots)
+                        {
+                            cb.AppendLine($"vs[{slot}] = l{local};");
+                        }
+                    }
+                    else if (hasInit && !hasFlush)
+                    {
+                        // Local was first initialized in the IF (and not flushed there), meaning its value is needed after the IF.
+                        // Ensure it’s initialized in the else path as well.
+                        cb.AppendLine($"l{local} = vs[{initSlot.Value}];");
+                    }
+                    // If neither flush nor init, nothing to do for this local in else (should not happen for locals in context).
+                }
+            }
+        }
     }
 }
