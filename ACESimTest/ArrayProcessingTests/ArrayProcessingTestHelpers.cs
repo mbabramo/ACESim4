@@ -51,7 +51,7 @@ namespace ACESimTest.ArrayProcessingTests
             return acl;
         }
 
-        public static (ArrayCommandList acl, int bodyLen) MakeOversizeIfBody(int bodyLen, int threshold, bool addDepthChanges = false)
+        public static (ArrayCommandList acl, int bodyLen) MakeOversizeIfBody(int bodyLen, int threshold, bool addDepthChanges = false, bool hoistLargeIfBodies = true)
         {
             var acl = BuildAclWithSingleLeaf(rec =>
             {
@@ -72,7 +72,8 @@ namespace ACESimTest.ArrayProcessingTests
                 rec.InsertBlankCommand();
             },
             maxNumCommands: bodyLen + 5,
-            maxCommandsPerChunk: threshold);
+            maxCommandsPerChunk: threshold,
+            hoistLargeIfBodies: hoistLargeIfBodies);
 
             acl.MaxCommandsPerSplittableChunk = threshold;
             return (acl, bodyLen);

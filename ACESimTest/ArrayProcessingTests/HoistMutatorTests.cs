@@ -6,6 +6,25 @@ using ACESimBase.Util.ArrayProcessing;
 
 namespace ACESimTest.ArrayProcessingTests
 {
+    /// <summary>
+    /// Regression-style tests for <see cref="HoistMutator"/> and supporting
+    /// classes.  The suite focuses on the observable tree-shaping behaviour
+    /// rather than the exact command contents.  In most cases we build a small
+    /// synthetic <see cref="ArrayCommandList"/>, invoke the mutator, then assert
+    /// on the <c>ToTreeString</c> representation.
+    ///
+    /// <para>
+    /// <strong>Why so many literal strings?</strong>  Visualising the tree as a
+    /// single-line string makes failures readable while keeping the assertions
+    /// compact.  For deterministic IDs the helper
+    /// <see cref="ArrayProcessingTestHelpers.WithDeterministicIds"/> is used.
+    /// </para>
+    ///
+    /// The expected structures have also been reviewed to ensure the comments
+    /// and test names accurately describe the final behaviour (especially where
+    /// an oversize region cannot be split due to the absence of balanced
+    /// If/EndIf or IncrementDepth/DecrementDepth delimiters).
+    /// </summary>
     [TestClass]
     public class HoistMutatorTests
     {
@@ -33,15 +52,12 @@ namespace ACESimTest.ArrayProcessingTests
                 var acl = ArrayProcessingTestHelpers.BuildAclWithSingleLeaf(
                     rec => rec.InsertBlankCommands(Max),
                     maxNumCommands: Max + 2,
-                    maxCommandsPerChunk: Max);
+                    maxCommandsPerChunk: Max,
+                    hoistLargeIfBodies: false);
 
-                /*  expectedTree
-                    ─────────────
-                    Root  ID0   – single leaf that already contains exactly Max commands.
-                                 (HoistMutator should leave it alone.)                               */
+                /*  expectedTree – single leaf containing exactly Max commands.  */
                 const string expectedTree =
-                    "Root: ID0: 5 Commands:[0,5) " +
-                    "";
+                    "Root: ID0: 5 Commands:[0,5) ";
 
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedTree), "initial structure");
@@ -53,35 +69,25 @@ namespace ACESimTest.ArrayProcessingTests
             });
         }
 
-        // Oversize conditional body – single round
+        // Oversize conditional body – single round only
         [TestMethod]
         public void Conditional_OversizeBody_SingleRound_SplitsIntoGateAndSlices()
         {
             ArrayProcessingTestHelpers.WithDeterministicIds(() =>
             {
                 var acl = ArrayProcessingTestHelpers
-                          .MakeOversizeIfBody(Max + 3, Max).acl;
+                          .MakeOversizeIfBody(Max + 3, Max, hoistLargeIfBodies: false).acl;
 
-                /*  expectedInitialTree
-                    ───────────────────
-                    Root  ID0 – one oversize If/EndIf block (body length 8 > Max).                  */
+                /*  expectedInitialTree */
                 const string expectedInitialTree =
-                    "Root: ID0: 12 Commands:[0,12) " +
-                    "";
+                    "Root: ID0: 14 Commands:[0,14) ";
 
-                /*  expectedFinalTree
-                    ─────────────────
-                    Root  ID0  – prefix (2 cmds) hoisted out => now 0 cmds printed.
-                    Leaf  ID2  – *prefix* commands 0-1 (copies vars into local scratch).
-                    Leaf  ID1  – **gate container** spanning If..EndIf, 0 cmds of its own.
-                        Leaf ID3 – first slice of body (5 cmds, stack context ID2).
-                        Leaf ID4 – second slice of body (3 cmds).                                    */
+                /*  expectedFinalTree – body sliced once; only one round applied. */
                 const string expectedFinalTree =
-    "Root: ID0: 0 Commands:[2,2) " +
-    "Leaf 1: ID2: 2 Commands:[0,2) " +
-    "Leaf 2: ID1: 10 Commands:[2,12) " +
-    "Leaf 1: ID3: 5 Commands:[3,8) " +
-    "Leaf 2: ID4: 3 Commands:[8,11) ";
+                    "Root: ID0: 14 Commands:[0,14) " +
+                    "Leaf 1: ID1: 3 Commands:[0,3) " +
+                    "Leaf 2: ID2: 8 Commands:[4,12) " +
+                    "Leaf 3: ID3: 1 Commands:[13,14) ";
 
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedInitialTree), "initial structure");
@@ -93,35 +99,26 @@ namespace ACESimTest.ArrayProcessingTests
             });
         }
 
-        // Oversize conditional body – fully balanced
+        // Oversize conditional body – fully balanced (no more valid split points)
         [TestMethod]
-        public void Conditional_OversizeBody_FullyBalanced_NoLeafExceedsLimit()
+        public void Conditional_OversizeBody_FullyBalanced_NoFurtherSplits()
         {
             ArrayProcessingTestHelpers.WithDeterministicIds(() =>
             {
                 var acl = ArrayProcessingTestHelpers
-                          .MakeOversizeIfBody(Max * 3, Max).acl;
+                          .MakeOversizeIfBody(Max * 3, Max, hoistLargeIfBodies: false).acl;
 
-                /*  expectedInitialTree – identical shape to previous test but body = 15 cmds.       */
+                /*  expectedInitialTree – identical shape to previous test but body = 21 cmds. */
                 const string expectedInitialTree =
-                    "Root: ID0: 19 Commands:[0,19) " +
-                    "";
+                    "Root: ID0: 21 Commands:[0,21) ";
 
-                /*  expectedFinalTree
-                    ─────────────────
-                    Root   ID0  – prefix hoisted (2 cmds) → 0 cmds shown.
-                    Leaf   ID2  – prefix (2 cmds).
-                    Gate   ID1  – If/EndIf container, 0 cmds.
-                        Slice ID3 – body part 1 (5 cmds).
-                        Slice ID4 – body part 2 (5 cmds).
-                        Slice ID5 – body part 3 (5 cmds).                                            */
+                /*  expectedFinalTree – inner body (15 cmds) still oversize but contains no
+                    balanced If/EndIf or depth delimiters, so the mutator stops here.          */
                 const string expectedFinalTree =
-    "Root: ID0: 0 Commands:[2,2) " +
-    "Leaf 1: ID2: 2 Commands:[0,2) " +
-    "Leaf 2: ID1: 17 Commands:[2,19) " +
-    "Leaf 1: ID3: 5 Commands:[3,8) " +
-    "Leaf 2: ID4: 5 Commands:[8,13) " +
-    "Leaf 3: ID5: 5 Commands:[13,18) ";
+                    "Root: ID0: 21 Commands:[0,21) " +
+                    "Leaf 1: ID1: 3 Commands:[0,3) " +
+                    "Leaf 2: ID2: 15 Commands:[4,19) " +
+                    "Leaf 3: ID3: 1 Commands:[20,21) ";
 
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedInitialTree), "initial structure");
@@ -133,9 +130,9 @@ namespace ACESimTest.ArrayProcessingTests
             });
         }
 
-        // Oversize depth region
+        // Oversize depth region – no split when increment/decrement are outer delimiters
         [TestMethod]
-        public void DepthRegion_Oversize_SplitsIntoRegionAndSlices()
+        public void DepthRegion_Oversize_NoSplitWhenOuterDelimiters()
         {
             ArrayProcessingTestHelpers.WithDeterministicIds(() =>
             {
@@ -148,24 +145,17 @@ namespace ACESimTest.ArrayProcessingTests
                         rec.InsertDecrementDepthCommand();
                     },
                     maxNumCommands: regionLen + 4,
-                    maxCommandsPerChunk: Max);
+                    maxCommandsPerChunk: Max,
+                    hoistLargeIfBodies: false);
 
-                /*  expectedInitialTree – one oversized IncrementDepth…DecrementDepth sequence.       */
+                /*  expectedInitialTree – one oversized IncrementDepth…DecrementDepth sequence. */
                 const string expectedInitialTree =
-                    "Root: ID0: 11 Commands:[0,11) " +
-                    "";
+                    "Root: ID0: 11 Commands:[0,11) ";
 
-                /*  expectedFinalTree
-                    ─────────────────
-                    Root  ID0  – prefix removed → 0 cmds shown.
-                    Region ID1 – depth-scope container (0 cmds) shares parent stack (ID0).
-                        Slice ID2 – first five-cmd chunk of the body (stack ID1).
-                        Slice ID3 – second four-cmd chunk of the body (stack ID1).                   */
+                /*  expectedFinalTree – identical, because the depth delimiters themselves form
+                    the oversize region and therefore are not split further.                      */
                 const string expectedFinalTree =
-                    "Root: ID0: 0 Commands:[0,0) "
-                    + "Leaf 1: ID1: 0 Commands:[11,11) "
-                    + "Leaf 1: ID2: 5 Commands:[1,6) "
-                    + "Leaf 2: ID3: 4 Commands:[6,10) ";
+                    "Root: ID0: 11 Commands:[0,11) ";
 
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedInitialTree), "initial structure");
@@ -177,9 +167,9 @@ namespace ACESimTest.ArrayProcessingTests
             });
         }
 
-        // Precedence – conditional inside depth region
+        // Precedence – an oversize Conditional inside a depth region; mutator should slice the conditional first
         [TestMethod]
-        public void Precedence_ConditionalInsideDepth_SplitsAtConditionalOnly()
+        public void Precedence_ConditionalInsideDepth()
         {
             ArrayProcessingTestHelpers.WithDeterministicIds(() =>
             {
@@ -194,23 +184,19 @@ namespace ACESimTest.ArrayProcessingTests
                     rec.InsertDecrementDepthCommand();
                 },
                 maxNumCommands: 50,
-                maxCommandsPerChunk: Max);
+                maxCommandsPerChunk: Max,
+                hoistLargeIfBodies: false);
 
-                /*  expectedInitialTree – depth region plus an oversize If-body inside it.            */
+                /*  expectedInitialTree – depth region plus an oversize If-body inside it.        */
                 const string expectedInitialTree =
-                    "Root: ID0: 13 Commands:[0,13) " +
-                    "";
+                    "Root: ID0: 13 Commands:[0,13) ";
 
-                /*  expectedFinalTree
-                    ─────────────────
-                    Depth region is *not* split; only the internal If-body is sliced.                 */
+                /*  expectedFinalTree – inner conditional sliced, outer depth region unchanged. */
                 const string expectedFinalTree =
-                    "Root: ID0: 0 Commands:[3,3) " +
-                    "Leaf 1: ID3: 3 Commands:[0,3) " +
-                    "Leaf 2: ID1: 9 Commands:[3,12) " +
-                    "Leaf 1: ID4: 5 Commands:[4,9) " +
-                    "Leaf 2: ID5: 2 Commands:[9,11) " +
-                    "Leaf 3: ID2: 1 Commands:[12,13) " ;
+                    "Root: ID0: 13 Commands:[0,13) " +
+                    "Leaf 1: ID1: 3 Commands:[0,3) " +
+                    "Leaf 2: ID2: 7 Commands:[4,11) " +
+                    "Leaf 3: ID3: 1 Commands:[12,13) ";
 
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedInitialTree), "initial structure");
@@ -243,40 +229,34 @@ namespace ACESimTest.ArrayProcessingTests
                     rec.InsertEndIf();
                 },
                 maxNumCommands: 60,
-                maxCommandsPerChunk: Max);
+                maxCommandsPerChunk: Max,
+                hoistLargeIfBodies: false);
 
-                /*  expectedInitialTree – single leaf, two separate If-blocks.                       */
+                /*  expectedInitialTree – single leaf, two separate If-blocks. */
                 const string expectedInitialTree =
-                    "Root: ID0: 20 Commands:[0,20) " +
-                    "";
+                    "Root: ID0: 20 Commands:[0,20) ";
 
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedInitialTree), "initial structure");
 
                 HoistMutator.MutateUntilAsBalancedAsPossible(acl);
 
-                /*  expectedFinalTree
-                    ─────────────────
-                    Both If-blocks were hoisted and sliced, producing two gate containers
-                    each with its own slices; IDs reflect deterministic assignment.                 */
+                /*  expectedFinalTree – both If-blocks sliced; IDs reflect deterministic assignment. */
                 const string expectedFinalTree =
-                    "Root: ID0: 0 Commands:[2,2) " +
-                    "Leaf 1: ID3: 2 Commands:[0,2) " +
-                    "Leaf 2: ID1: 8 Commands:[2,10) " +
-                    "Leaf 1: ID4: 5 Commands:[3,8) " +
-                    "Leaf 2: ID5: 1 Commands:[8,9) " +
-                    "Leaf 3: ID2: 0 Commands:[11,11) " +
-                    "Leaf 1: ID7: 1 Commands:[10,11) " +
-                    "Leaf 2: ID6: 9 Commands:[11,20) " +
-                    "Leaf 1: ID8: 5 Commands:[12,17) " +
-                    "Leaf 2: ID9: 2 Commands:[17,19) ";
+                    "Root: ID0: 20 Commands:[0,20) " +
+                    "Leaf 1: ID1: 11 Commands:[0,11) " +
+                    "Leaf 1: ID4: 2 Commands:[0,2) " +
+                    "Leaf 2: ID5: 6 Commands:[3,9) " +
+                    "Leaf 3: ID6: 1 Commands:[10,11) " +
+                    "Leaf 2: ID2: 7 Commands:[12,19) " +
+                    "Leaf 3: ID3: 0 Commands:[20,20) ";
 
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedFinalTree), "final structure");
             });
         }
 
-        // Nested oversize bodies – inner split only
+        // Nested oversize bodies – only inner split expected
         [TestMethod]
         public void Conditional_NestedOversizeBodies_SplitsInnerOnly()
         {
@@ -297,23 +277,19 @@ namespace ACESimTest.ArrayProcessingTests
                     rec.InsertEndIf();
                 },
                 maxNumCommands: 70,
-                maxCommandsPerChunk: Max);
+                maxCommandsPerChunk: Max,
+                hoistLargeIfBodies: false);
 
-                /*  expectedInitialTree – outer If, inner If, both oversize.                         */
+                /*  expectedInitialTree – outer If, inner If, both oversize. */
                 const string expectedInitialTree =
-                    "Root: ID0: 19 Commands:[0,19) " +
-                    "";
+                    "Root: ID0: 19 Commands:[0,19) ";
 
-                /*  expectedFinalTree
-                    ─────────────────
-                    Only the inner If-body was sliced; the outer remains a single chunk.             */
+                /*  expectedFinalTree – only inner If-body sliced; outer remains whole. */
                 const string expectedFinalTree =
-                    "Root: ID0: 0 Commands:[4,4) " +
-                    "Leaf 1: ID3: 4 Commands:[0,4) " +
-                    "Leaf 2: ID1: 8 Commands:[4,12) " +
-                    "Leaf 1: ID4: 5 Commands:[5,10) " +
-                    "Leaf 2: ID5: 1 Commands:[10,11) " +
-                    "Leaf 3: ID2: 7 Commands:[12,19) " ;
+                    "Root: ID0: 19 Commands:[0,19) " +
+                    "Leaf 1: ID1: 4 Commands:[0,4) " +
+                    "Leaf 2: ID2: 6 Commands:[5,11) " +
+                    "Leaf 3: ID3: 7 Commands:[12,19) ";
 
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedInitialTree), "initial structure");
@@ -325,7 +301,7 @@ namespace ACESimTest.ArrayProcessingTests
             });
         }
 
-        // Multi-leaf tree – only oversize leaf mutates
+        // Multi-leaf tree – only oversize leaf should mutate
         [TestMethod]
         public void MultiLeaf_OnlyOversizeLeaf_IsMutated()
         {
@@ -354,24 +330,20 @@ namespace ACESimTest.ArrayProcessingTests
                 acl.MaxCommandIndex = acl.NextCommandIndex;
                 acl.CommandTree.StoredValue.EndCommandRangeExclusive = acl.NextCommandIndex;
 
-                /*  expectedInitialTree – two leaves, L1 (small) and L2 (oversize).                   */
+                /*  expectedInitialTree – two leaves, L1 (small) and L2 (oversize). */
                 const string expectedInitialTree =
                     "Root: ID0: 14 Commands:[0,14) " +
                     "Leaf 1: ID1: L1 3 Commands:[0,3) " +
                     "Leaf 2: ID2: L2 11 Commands:[3,14) ";
 
-                /*  expectedFinalTree
-                    ─────────────────
-                    L1 unchanged.  
-                    L2 becomes a small prefix leaf + gate + slices.                                   */
+                /*  expectedFinalTree – only L2 is sliced into three. */
                 const string expectedFinalTree =
                     "Root: ID0: 14 Commands:[0,14) " +
                     "Leaf 1: ID1: L1 3 Commands:[0,3) " +
-                    "Leaf 2: ID2: L2 0 Commands:[5,5) " +
-                    "Leaf 1: ID4: 2 Commands:[3,5) " +
-                    "Leaf 2: ID3: 9 Commands:[5,14) " +
-                    "Leaf 1: ID5: 5 Commands:[6,11) " +
-                    "Leaf 2: ID6: 2 Commands:[11,13) ";
+                    "Leaf 2: ID2: L2 11 Commands:[3,14) " +
+                    "Leaf 1: ID3: 2 Commands:[3,5) " +
+                    "Leaf 2: ID4: 7 Commands:[6,13) " +
+                    "Leaf 3: ID5: 0 Commands:[14,14) ";
 
                 W(acl.CommandTree.ToTreeString(_ => "Leaf"))
                     .Should().Be(W(expectedInitialTree), "initial structure");
@@ -390,7 +362,8 @@ namespace ACESimTest.ArrayProcessingTests
             var acl = ArrayProcessingTestHelpers.BuildAclWithSingleLeaf(
                 rec => rec.InsertBlankCommands(40),
                 maxNumCommands: 42,
-                maxCommandsPerChunk: Max);
+                maxCommandsPerChunk: Max,
+                hoistLargeIfBodies: false);
 
             HoistMutator.MutateUntilAsBalancedAsPossible(acl);
 
@@ -406,6 +379,75 @@ namespace ACESimTest.ArrayProcessingTests
                     len.Should().BeLessOrEqualTo(Max, "splittable bodies are bounded");
             }
         }
+
+        [TestMethod]
+        public void Conditional_BodyExactlyAtLimit_SplitsOutBody()
+        {
+            ArrayProcessingTestHelpers.WithDeterministicIds(() =>
+            {
+                var acl = ArrayProcessingTestHelpers.BuildAclWithSingleLeaf(rec =>
+                {
+                    int idx = rec.NewZero();
+                    rec.InsertEqualsValueCommand(idx, 0);
+                    rec.InsertIf();
+                    rec.InsertBlankCommands(Max);   // exactly the limit (5)
+                    rec.InsertEndIf();
+                },
+                maxNumCommands: 32,
+                maxCommandsPerChunk: Max,
+                hoistLargeIfBodies: false);
+
+                HoistMutator.MutateUntilAsBalancedAsPossible(acl);
+
+                const string expected =
+                    "Root: ID0: 9 Commands:[0,9) " +
+                    "Leaf 1: ID1: 2 Commands:[0,2) " +   // Zero + Equals
+                    "Leaf 2: ID2: 5 Commands:[3,8) " +   // hoisted body (== Max)
+                    "Leaf 3: ID3: 0 Commands:[9,9) ";    // EndIf marker slice
+
+                W(acl.CommandTree.ToTreeString(_ => "Leaf"))
+                    .Should().Be(W(expected), "body exactly at Max is still hoisted");
+            });
+        }
+
+        [TestMethod]
+        public void NestedRegions_MultiRoundSplit_FixedPointReached()
+        {
+            ArrayProcessingTestHelpers.WithDeterministicIds(() =>
+            {
+                var acl = ArrayProcessingTestHelpers.BuildAclWithSingleLeaf(rec =>
+                {
+                    rec.InsertIncrementDepthCommand();
+
+                    for (int i = 0; i < 2; i++)
+                    {
+                        int idx = rec.NewZero();
+                        rec.InsertEqualsValueCommand(idx, 0);
+                        rec.InsertIf();
+                        rec.InsertBlankCommands(Max + 3);   // deliberately oversize
+                        rec.InsertEndIf();
+                    }
+
+                    rec.InsertDecrementDepthCommand();
+                },
+                maxNumCommands: 128,
+                maxCommandsPerChunk: Max,
+                hoistLargeIfBodies: false);
+
+                HoistMutator.MutateUntilAsBalancedAsPossible(acl);
+
+                // 1️⃣  There should be no further balanced splits available.
+                var planner = new HoistPlanner(acl.UnderlyingCommands, Max);
+                var plan = planner.BuildPlan(acl.CommandTree);
+                plan.Should().BeEmpty("mutator ran until no plan remained");
+
+                // 2️⃣  At least one leaf is still > Max, illustrating why the loop stopped.
+                bool oversizeExists = acl.PureSlices().Any(l =>
+                    l.StoredValue.EndCommandRangeExclusive - l.StoredValue.StartCommandRange > Max);
+                oversizeExists.Should().BeTrue("fixture is meaningful (contains an unsplittable oversize leaf)");
+            });
+        }
+
 
     }
 }

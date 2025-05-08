@@ -23,11 +23,9 @@ namespace ACESimTest.ArrayProcessingTests
                 hoistLargeIfBodies: false);
         }
 
-        private static (ArrayCommandList acl, int ifIdx, int endIfIdx) BuildOversizeIf(int bodyLen, int maxPerChunk, bool addDepthChanges = false)
+        private static (ArrayCommandList acl, int ifIdx, int endIfIdx) BuildOversizeIf(int bodyLen, int maxPerChunk, bool addDepthChanges = false, bool hoistLargeIfBodies = true)
         {
-            var (acl, _) = ArrayProcessingTestHelpers.MakeOversizeIfBody(bodyLen, maxPerChunk, addDepthChanges);
-
-            acl.CompleteCommandList(hoistLargeIfBodies: false);
+            var (acl, _) = ArrayProcessingTestHelpers.MakeOversizeIfBody(bodyLen, maxPerChunk, addDepthChanges, hoistLargeIfBodies: hoistLargeIfBodies);
 
             int ifIdx = Array.FindIndex(acl.UnderlyingCommands, c => c.CommandType == ArrayCommandType.If);
             int endIdx = Array.FindIndex(acl.UnderlyingCommands, c => c.CommandType == ArrayCommandType.EndIf);
@@ -92,8 +90,7 @@ namespace ACESimTest.ArrayProcessingTests
             ArrayProcessingTestHelpers.WithDeterministicIds(() =>
             {
                 int bodyLen = Max + 1;
-                var (acl, ifIdx, endIfIdx) = BuildOversizeIf(bodyLen, Max, addDepthChanges: true); // if we didn't add the depth changes, there would be no place where a split is possible.
-                acl.CompleteCommandList(hoistLargeIfBodies: false);
+                var (acl, ifIdx, endIfIdx) = BuildOversizeIf(bodyLen, Max, addDepthChanges: true, hoistLargeIfBodies: false); // if we didn't add the depth changes, there would be no place where a split is possible.
 
                 var plan = Plan(acl, Max);
                 plan.Should().HaveCount(1);

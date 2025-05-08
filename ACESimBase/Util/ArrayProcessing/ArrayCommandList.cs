@@ -210,15 +210,18 @@ namespace ACESimBase.Util.ArrayProcessing
         // ──────────────────────────────────────────────────────────────────────
         //  Finalisation passes
         // ──────────────────────────────────────────────────────────────────────
+        bool commandListCompleted = false;
         public void CompleteCommandList(bool hoistLargeIfBodies = true)
         {
+            if (commandListCompleted)
+                throw new InvalidOperationException("Command list already completed.");
             MaxCommandIndex = NextCommandIndex;
             VerifyCorrectness();
             while (_currentPath.Count > 0) EndCommandChunk();
             EndCommandChunk(); // root
             CompleteCommandTree(hoistLargeIfBodies);
             VirtualStack = new double[VirtualStackSize];
-
+            commandListCompleted = true;
         }
 
         /// <summary>

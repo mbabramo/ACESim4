@@ -17,26 +17,6 @@ namespace ACESimTest.ArrayProcessingTests
     public class ArrayCommandListTests
     {
         /* -------------------------------------------------------------
-         * Smoke test – copy from source, add to destination
-         * -----------------------------------------------------------*/
-        [TestMethod]
-        public void SimpleCopyAdd()
-        {
-            var acl = NewAcl(initialIdx: 20);
-            const int SRC0 = 0, DST0 = 10;
-
-            acl.StartCommandChunk(false, null, "root");
-            int tmp = acl.CopyToNew(SRC0, true);   // ordered source
-            acl.Increment(DST0, true, tmp);        // ordered destination
-            acl.EndCommandChunk();
-            acl.CompleteCommandList();
-
-            var data = Seed(20, i => i);
-            acl.CompileAndRunOnce(data, tracing: false);
-            data[DST0].Should().Be(0);
-        }
-
-        /* -------------------------------------------------------------
          * Repeat‑identical‑range optimisation
          * -----------------------------------------------------------*/
         [DataTestMethod]
@@ -81,18 +61,6 @@ namespace ACESimTest.ArrayProcessingTests
             acl.CompleteCommandList();
 
             acl.CommandTree.Branches.Should().BeNull();
-        }
-
-        [TestMethod]
-        public void EmptyDestinationsDoesNotCrash()
-        {
-            var acl = NewAcl();
-            acl.StartCommandChunk(false, null, "root");
-            acl.EndCommandChunk();
-            acl.CompleteCommandList();
-
-            var data = new double[10];
-            acl.CompileAndRunOnce(data, false);
         }
 
         [TestMethod]

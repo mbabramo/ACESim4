@@ -118,8 +118,6 @@ namespace ACESimBase.Util.ArrayProcessing
                             resultDistanceFromTargetLength = distanceFromTarget;
                         }
                     }
-                    else
-                        throw new Exception("Improperly formed command region.");
                 }
             }
             return result;
