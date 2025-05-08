@@ -32,7 +32,7 @@ namespace ACESimTest.ArrayProcessingTests
             return (acl, ifIdx, endIdx);
         }
 
-        private static (ArrayCommandList acl, int incIdx, int decIdx) BuildOversizeDepthRegion(int regionLen, int maxPerChunk)
+        private static (ArrayCommandList acl, int incIdx, int decIdx) BuildOversizeDepthRegion(int regionLen, int maxPerChunk, bool hoistLargeIfBodies = true)
         {
             var acl = ArrayProcessingTestHelpers.BuildAclWithSingleLeaf(
                 rec =>
@@ -46,8 +46,6 @@ namespace ACESimTest.ArrayProcessingTests
                 maxNumCommands: regionLen + 4,
                 maxCommandsPerChunk: maxPerChunk,
                 hoistLargeIfBodies: false);
-
-            acl.CompleteCommandList(hoistLargeIfBodies: false);
 
             int incIdx = Array.FindIndex(acl.UnderlyingCommands, c => c.CommandType == ArrayCommandType.IncrementDepth);
             int decIdx = Array.FindIndex(acl.UnderlyingCommands, c => c.CommandType == ArrayCommandType.DecrementDepth);
@@ -145,7 +143,7 @@ namespace ACESimTest.ArrayProcessingTests
             ArrayProcessingTestHelpers.WithDeterministicIds(() =>
             {
                 int regionLen = Max + 2;
-                var (acl, incIdx, decIdx) = BuildOversizeDepthRegion(regionLen, Max);
+                var (acl, incIdx, decIdx) = BuildOversizeDepthRegion(regionLen, Max, hoistLargeIfBodies: false);
 
                 var plan = Plan(acl, Max);
                 plan.Should().HaveCount(1);
@@ -188,7 +186,7 @@ namespace ACESimTest.ArrayProcessingTests
         {
             ArrayProcessingTestHelpers.WithDeterministicIds(() =>
             {
-                var (acl, _, _) = BuildOversizeDepthRegion(Max - 3 /* body */, Max);
+                var (acl, _, _) = BuildOversizeDepthRegion(Max - 3 /* body */, Max, hoistLargeIfBodies: false);
                 Plan(acl, Max).Should().BeEmpty();
             });
         }
