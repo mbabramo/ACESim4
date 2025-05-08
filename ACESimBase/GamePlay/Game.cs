@@ -209,7 +209,7 @@ namespace ACESim
         {
             //if (Br.Eak.Contains("Case") && decision.PlayersToInform != null && decision.PlayersToInform.Any(x => x == 2))
             //{
-            //    Debug.WriteLine($"RESOLUTION: {decision} {action}");
+            //    TabbedText.WriteLine($"RESOLUTION: {decision} {action}");
             //} 
             gameHistory.AddToHistory(decision.DecisionByteCode, decisionIndex, decision.PlayerIndex, action, decision.NumPossibleActions, decision.PlayersToInform, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, gameProgress, decision.DeferNotificationOfPlayers, false);
             if (decision.RequiresCustomInformationSetManipulation)

@@ -53,13 +53,12 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             if (acl.MaxCommandIndex == 0)
                 acl.CompleteCommandList();
-            
-            acl.Debug_LogSourceStats();             //  DEBUG
-            int originals = acl.OrderedSourceIndices.Count(i => i < acl.SizeOfMainData); // DEBUG
-            int scratch = acl.OrderedSourceIndices.Count - originals; // DEBUG
-            TabbedText.WriteLine($"[ACL-DBG] OrderedSourceIndices originals={originals}  scratch={scratch}"); // DEBUG
+
 
 #if OUTPUT_HOISTING_INFO
+            int originals = acl.OrderedSourceIndices.Count(i => i < acl.SizeOfMainData); 
+            int scratch = acl.OrderedSourceIndices.Count - originals; 
+            TabbedText.WriteLine($"[ACL-DBG] OrderedSourceIndices originals={originals}  scratch={scratch}");
             TabbedText.WriteLine("Commands:");
             TabbedText.WriteLine(acl.CommandListString());
             TabbedText.WriteLine("");

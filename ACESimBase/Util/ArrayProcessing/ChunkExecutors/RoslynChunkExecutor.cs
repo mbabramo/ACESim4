@@ -83,42 +83,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             _src.AppendLine("}} // CG.G");
 
             string code = _src.ToString();
-//            code = @"using System; namespace CG { static class G {
-//public static void S0_9(double[]vs,double[]os,ref int i,ref bool cond){
-//    double l0 = 0;
-//    double l1 = 0;
-
-//    /* ───── first IF (lines 0-2) ───── */
-//    if (cond) {
-//        l0 = vs[7];            // load slot 7
-//        l0 += vs[10];          // 7 += 10         (cmd 018)
-//    } else {
-//        l0 = vs[7];
-//        i += 0;
-//    }
-//    vs[7] = l0;                // commit slot 7
-//    l0 += vs[10];              // 7 += 10 again   (cmd 050)
-
-//    /* ───── second IF (lines 5-9) ───── */
-//    l1 = vs[9];
-//    cond = vs[8] != l1;        // comparison      (cmd 055)
-//    if (cond) {                // branch TAKEN ?
-//        l0 += l1;              // 7 += 9          (cmd 058)
-//        vs[7] = l0;            // flush slot 7
-//        l0 = vs[5];            // re-bind to slot 5
-//        l0 += vs[24];          // 5 += 24         (cmd 081)
-//    } else {
-//        /*  ↓↓↓  **correct order when branch is skipped** ↓↓↓  */
-//        vs[7] = l0;            // flush DIRTY value for slot 7
-//        l0 = vs[5];            // re-bind local to slot 5
-//        i += 0;
-//    }
-
-//    /* ───── tail (cmd 089) ───── */
-//    l0 += l1;                  // 5 += 9
-//    vs[5] = l0;                // commit slot 5
-//}
-//}} // CG.G"; // DEBUG SUPERDEBUG
             if (PreserveGeneratedCode)
                 GeneratedCode = code;
 

@@ -273,7 +273,7 @@ namespace ACESim
 
         public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, byte[] playersToInform, byte[] cacheIndicesToIncrement, byte? storeActionInCacheIndex, GameProgress gameProgress, bool deferNotification, bool delayPreviousDeferredNotification)
         {
-            // Debug.WriteLine($"Add to history {decisionByteCode} for player {playerIndex} action {action} of {numPossibleActions}");
+            // TabbedText.WriteLine($"Add to history {decisionByteCode} for player {playerIndex} action {action} of {numPossibleActions}");
             RecordAction(action, decisionIndex, deferNotification, playersToInform);
             if (gameProgress != null && gameProgress.FullHistoryRequired)
                 gameProgress.GameFullHistory = gameProgress.GameFullHistory.AddToHistory(decisionByteCode, decisionIndex, playerIndex, action, numPossibleActions);

@@ -44,8 +44,8 @@ namespace ACESimBase.Util.ArrayProcessing
         //  Settings and feature flags
         // ──────────────────────────────────────────────────────────────────────
         public bool Parallelize = false;
-        public int MaxCommandsPerSplittableChunk = 1_000_000; // DEBUG: Until we fix the behavior of hoisting, we need to just use the flat option.
-        public bool ReuseScratchSlots => false; // DEBUG;
+        public int MaxCommandsPerSplittableChunk = 10_000;
+        public bool ReuseScratchSlots => true;
         public bool RepeatIdenticalRanges => ReuseScratchSlots;
 
         // ──────────────────────────────────────────────────────────────────────
