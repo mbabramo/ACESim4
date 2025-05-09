@@ -46,7 +46,7 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             // Bake the tree (hoisting & stack metadata)
             ArrayCommandListRunner runner = GetCompiledRunner(acl, kind, fallbackThreshold);
-            runner.Run(acl, data);
+            runner.Run(acl, data, copyBackToOriginalData: false);
         }
 
         public static ArrayCommandListRunner GetCompiledRunner(this ArrayCommandList acl, ChunkExecutorKind? kind, int? fallbackThreshold)
@@ -136,7 +136,7 @@ namespace ACESimBase.Util.ArrayProcessing
         /// <summary>
         /// Executes <paramref name="acl"/> once against <paramref name="data"/>.
         /// </summary>
-        public void Run(ArrayCommandList acl, double[] data, bool trace = false)
+        public void Run(ArrayCommandList acl, double[] data, bool copyBackToOriginalData = true, bool trace = false)
         {
             if (acl is null) throw new ArgumentNullException(nameof(acl));
             if (data is null) throw new ArgumentNullException(nameof(data));
@@ -165,6 +165,15 @@ namespace ACESimBase.Util.ArrayProcessing
             // Depth-first traversal with pre/post hooks
             //------------------------------------------------------------------
             acl.CommandTree!.WalkTreeWithPredicate(ShouldVisitNodesChildren, ExecuteOrSkipNode);
+
+            //------------------------------------------------------------------
+            // Copy back to original data
+            //------------------------------------------------------------------
+            if (copyBackToOriginalData)
+            {
+                for (int i = 0; i < _data.Length; i++)
+                    _data[i] = acl.VirtualStack[i];
+            }
         }
 
         private bool ShouldVisitNodesChildren(NWayTreeStorage<ArrayCommandChunk> node)

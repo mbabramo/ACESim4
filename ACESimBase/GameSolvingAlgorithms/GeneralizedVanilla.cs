@@ -223,6 +223,7 @@ namespace ACESim
                 { // only trace through iteration
                     // There are a number of advanced settings in ArrayCommandList that must be disabled for this feature to work properly. Parallelize || RepeatIdenticalRanges || UseOrderedDestinations || UseOrderedSources must be false.
                     string resultWithReplacementOfArray = TraceCommandList(array);
+                    TabbedText.WriteLine(resultWithReplacementOfArray);
                 }
                 if (EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions)
                     CalculateReachProbabilitiesAndPrunability(EvolutionSettings.ParallelOptimization);

@@ -16,7 +16,10 @@ namespace ACESimBase.Games.EFGFileGame
 
         public override GameOptions GetDefaultSingleGameOptions()
         {
+            //return new EFGFileGameOptions() { EFGFileName = "C:\\Users\\Admin\\Documents\\GitHub\\ACESim4\\ACESimBase\\Games\\EFGFileGame\\chicken.efg" };
             return new EFGFileGameOptions() { EFGFileName = "C:\\Users\\Admin\\Documents\\GitHub\\ACESim4\\ACESimBase\\Games\\EFGFileGame\\pennies.efg" };
+
+            //return new EFGFileGameOptions() { EFGFileName = "C:\\Users\\Admin\\Documents\\GitHub\\ACESim4\\ACESimBase\\Games\\EFGFileGame\\pennies_chance.efg" };
 
             //return new EFGFileGameOptions() { EFGFileName = "C:\\Users\\Admin\\Documents\\GitHub\\ACESim4\\ACESimBase\\Games\\EFGFileGame\\el_farol_bar.efg"  };
         }
