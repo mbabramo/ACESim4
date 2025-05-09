@@ -110,7 +110,10 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void CopyToExisting(int index, int sourceIndex)
         {
-            AddCommand(new ArrayCommand(ArrayCommandType.CopyTo, index, sourceIndex));
+            if (index == ArrayCommandList.CheckpointTrigger)
+                AddCommand(new ArrayCommand(ArrayCommandType.Checkpoint, ArrayCommandList.CheckpointTrigger,  sourceIndex));
+            else
+                AddCommand(new ArrayCommand(ArrayCommandType.CopyTo, index, sourceIndex));
         }
 
         public void CopyToExisting(int[] indices, int[] sourceIndices)

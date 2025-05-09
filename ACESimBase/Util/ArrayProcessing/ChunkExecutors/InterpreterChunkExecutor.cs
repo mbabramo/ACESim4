@@ -110,6 +110,13 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                         }
                         break;
 
+                    case ArrayCommandType.Checkpoint:
+                        if (UseCheckpoints)
+                        {
+                            RecordCheckpoint(cmd.SourceIndex, virtualStack[cmd.SourceIndex]);
+                        }
+                        break;
+
                     case ArrayCommandType.EndIf:
                     case ArrayCommandType.Comment:
                     case ArrayCommandType.Blank:

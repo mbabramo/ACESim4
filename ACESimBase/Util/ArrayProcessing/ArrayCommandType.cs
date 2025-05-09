@@ -25,5 +25,6 @@ namespace ACESimBase.Util.ArrayProcessing
         DecrementDepth,
         Comment,
         Blank,
+        Checkpoint,
     }
 }

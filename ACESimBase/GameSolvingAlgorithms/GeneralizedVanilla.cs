@@ -194,6 +194,7 @@ namespace ACESim
                 {
                     Unroll_Commands.LoadCheckpoints(array);
                     var checkpoints = String.Join("\r\n", Enumerable.Range(0, Unroll_Commands.Checkpoints.Count).Select(x => $"{x}: {Unroll_Commands.Checkpoints[x]}"));
+                    var checkpointsValuesOnly = String.Join("\r\n", Enumerable.Range(0, Unroll_Commands.Checkpoints.Count).Select(x => $"{x}: {Unroll_Commands.Checkpoints[x].Value}"));
                 }
                 UpdateInformationSets(iteration);
                 await PostIterationWorkForPrincipalComponentsAnalysis(iteration, reportCollection);
@@ -248,6 +249,17 @@ namespace ACESim
                 ReinitializeForScenario(GameDefinition.CurrentOverallScenarioIndex, false);
                 ResetBestExploitability();
             }
+        }
+
+        List<(string name, double value)> CurrentCheckpoints = new List<(string name, double value)>();
+        public void RecordCheckpoint(string name, double value)
+        {
+            CurrentCheckpoints.Add((name, value));
+        }
+
+        public string GetCheckpointValuesOnly()
+        {
+            return String.Join("\r\n", Enumerable.Range(0, CurrentCheckpoints.Count).Select(x => $"x: {CurrentCheckpoints[x].value}"));
         }
 
         public string TraceCommandList(double[] array)
