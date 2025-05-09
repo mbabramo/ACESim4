@@ -44,7 +44,7 @@ namespace ACESimBase.Util.ArrayProcessing
         //  Settings and feature flags
         // ──────────────────────────────────────────────────────────────────────
         public bool Parallelize = false;
-        public int MaxCommandsPerSplittableChunk = 10_000;
+        public int MaxCommandsPerSplittableChunk = 1_000_000; // DEBUG
         public bool ReuseScratchSlots => true;
         public bool RepeatIdenticalRanges => ReuseScratchSlots;
 
@@ -66,7 +66,7 @@ namespace ACESimBase.Util.ArrayProcessing
         // to the checkpoints list. We can then, for example, compare the checkpoints with checkpoints from noncompiled
         // code or from code not using the ArrayCommandList to see where the values differ.
         // ──────────────────────────────────────────────────────────────────────
-        public bool UseCheckpoints = true; // DEBUG
+        public bool UseCheckpoints = false;
         public static int CheckpointTrigger = -2; // -1 is used for other purposes, and must be negative
         public List<(int Index, double Value)> Checkpoints = new();
 
