@@ -183,14 +183,14 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         /// whose intervals end on a given instruction.
         /// </summary>
         private void EmitReusingBody(
-    ArrayCommandChunk c,
-    CodeBuilder cb,
-    DepthMap depth,
-    IntervalIndex intervalIx,
-    LocalBindingState bind,
-    Dictionary<int, (int src, int dst)> skipMap,
-    Stack<IfContext> ifStack,
-    HashSet<int> usedSlots)
+            ArrayCommandChunk c,
+            CodeBuilder cb,
+            DepthMap depth,
+            IntervalIndex intervalIx,
+            LocalBindingState bind,
+            Dictionary<int, (int src, int dst)> skipMap,
+            Stack<IfContext> ifStack,
+            HashSet<int> usedSlots)
         {
             Span<ArrayCommand> cmds = Commands;
 
@@ -208,14 +208,12 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                         if (flushSlot != -1)
                         {
                             cb.AppendLine($"vs[{flushSlot}] = l{local};");
-
                             if (ifStack.Count > 0)
                                 foreach (var ctx in ifStack)
                                     ctx.Flushes.Add((flushSlot, local));
                         }
 
                         cb.AppendLine($"l{local} = vs[{slot}];");
-
                         if (ifStack.Count > 0)
                             foreach (var ctx in ifStack)
                                 ctx.Initialises.Add((slot, local));
@@ -223,8 +221,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                         bind.StartInterval(slot, local, d);
                     }
                 }
-
-
 
                 // ───── emit the command ─────
                 EmitCmdBasic(ci, cmds[ci], cb, skipMap, ifStack, bind);
@@ -237,7 +233,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     if (bind.NeedsFlushBeforeReuse(local, out int boundSlot) && boundSlot == endSlot)
                     {
                         cb.AppendLine($"vs[{endSlot}] = l{local};");
-
                         if (ifStack.Count > 0)
                             foreach (var ctx in ifStack)
                                 if (ctx.DirtyBefore[local])
@@ -249,7 +244,18 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     bind.Release(local);
                 }
             }
+
+            // ───── final flush for locals that stayed live to the end of the chunk ─────
+            for (int local = 0; local < _plan.LocalCount; local++)
+            {
+                if (bind.NeedsFlushBeforeReuse(local, out int slot) && slot != -1)
+                {
+                    cb.AppendLine($"vs[{slot}] = l{local};");
+                    bind.FlushLocal(local);
+                }
+            }
         }
+
 
 
 
