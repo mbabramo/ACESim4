@@ -259,7 +259,7 @@ namespace ACESim
 
         public string GetCheckpointValuesOnly()
         {
-            return String.Join("\r\n", Enumerable.Range(0, CurrentCheckpoints.Count).Select(x => $"x: {CurrentCheckpoints[x].value}"));
+            return String.Join("\r\n", Enumerable.Range(0, CurrentCheckpoints.Count).Select(x => $"{x}: {CurrentCheckpoints[x].value}"));
         }
 
         public string TraceCommandList(double[] array)
@@ -346,7 +346,7 @@ namespace ACESim
             try
             {
                 Unroll_CopyInformationSetsToArray(array, copyChanceAndFinalUtilities);
-                Unroll_CommandListRunner.Run(Unroll_Commands, array, TraceCFR);
+                Unroll_CommandListRunner.Run(Unroll_Commands, array, copyBackToOriginalData: true, trace: TraceCFR);
                 Unroll_CopyArrayToInformationSets(array);
                 Unroll_DetermineIterationResultForEachPlayer(array);
             }

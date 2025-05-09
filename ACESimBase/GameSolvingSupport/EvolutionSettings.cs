@@ -16,7 +16,7 @@ namespace ACESim
     public class EvolutionSettings
     {
         public bool DistributeChanceDecisions = false; // NOTE: Use CollapseChanceDecisions instead; it's much simpler and seems to produce slightly better performance.
-        public bool UnrollAlgorithm = false; // DEBUG
+        public bool UnrollAlgorithm = true; // DEBUG
         public bool IncludeCommentsWhenUnrolling = false;
         public bool UseCheckpointsWhenNotUnrolling = true; // for when unrolling, look at ArrayCommandList.UseCheckpoints
         public bool UnrollAllowParallelize = false; // DEBUG
@@ -116,8 +116,8 @@ namespace ACESim
 
         public bool GenerateReportsByPlaying = true;
         public int NumRandomIterationsForSummaryTable = 1_000;
-        public bool PrintGameTree = true; // DEBUG
-        public bool KeepPrintingGameTree = true; // DEBUG // after printing once, keep printing again
+        public bool PrintGameTree = false; // DEBUG
+        public bool KeepPrintingGameTree = false; // DEBUG // after printing once, keep printing again
         public bool PrintedGameTreeIncludesInformationSetData = false;
         public bool PrintInformationSets = false;
         public bool AnalyzeInformationSets = false; 
