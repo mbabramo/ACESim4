@@ -1163,8 +1163,12 @@ namespace ACESim
 
         bool IncludeAsteriskForBestResponseInTrace = false;
 
-        private GeneralizedVanillaUtilities GeneralizedVanillaCFR_DecisionNode(in HistoryPoint historyPoint, byte playerBeingOptimized,
-            Span<double> piValues, Span<double> avgStratPiValues, int distributorChanceInputs)
+        private GeneralizedVanillaUtilities GeneralizedVanillaCFR_DecisionNode(
+            in HistoryPoint historyPoint,
+            byte playerBeingOptimized,
+            Span<double> piValues,
+            Span<double> avgStratPiValues,
+            int distributorChanceInputs)
         {
             double inversePi = GetInversePiValue(piValues, playerBeingOptimized);
             double inversePiAvgStrat = GetInversePiValue(avgStratPiValues, playerBeingOptimized);
@@ -1204,13 +1208,12 @@ namespace ACESim
                 if (!prune)
                 {
                     double probabilityOfActionAvgStrat = informationSet.GetAverageStrategy(action);
-                    GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false,
-                        nextPiValues); // reduce probability associated with player being optimized, without changing probabilities for other players
+                    GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false, nextPiValues); // reduce probability associated with player being optimized, without changing probabilities for other players
                     GetNextPiValues(avgStratPiValues, playerMakingDecision, probabilityOfActionAvgStrat, false, nextAvgStratPiValues);
                     if (TraceCFR)
                     {
                         TabbedText.WriteLine(
-                            $"({informationSet.Decision.Name}) code {informationSet.DecisionByteCode} optimizing player {playerBeingOptimized}  {(playerMakingDecision == playerBeingOptimized ? "own decision" : "opp decision")} action {action} probability {probabilityOfAction} ...");
+                            $"({informationSet.Decision.Name}) code {informationSet.DecisionByteCode} optimizing player {playerBeingOptimized}  {(playerMakingDecision == playerBeingOptimized ? "own decision" : "opp decision")} action {action} probability {probabilityOfAction} .");
                         TabbedText.TabIndent();
                     }
                     HistoryPoint nextHistoryPoint;
@@ -1224,13 +1227,11 @@ namespace ACESim
                     if (playerMakingDecision == playerBeingOptimized)
                     {
                         if (informationSet.BestResponseAction == action)
-                        {
-                            // Because this is the best response action, the best response utility that we get should be propagated back directly.
                             result.BestResponseToAverageStrategy = innerResult.BestResponseToAverageStrategy;
-                        }
                         // Meanwhile, we need to determine the best response action in the next iteration. To do this, we need to figure out which action, when weighted by the probability we play to this information set, produces the highest best response on average. Note that we may get different inner results for the same action, because the next information set will differ depending on the other player's information set.
                         informationSet.IncrementBestResponse(action, inversePiAvgStrat, innerResult.BestResponseToAverageStrategy);
                         // The other result utilities are just the probability adjusted utilities. 
+
                         result.CurrentVsCurrent += probabilityOfAction * innerResult.CurrentVsCurrent;
                         result.AverageStrategyVsAverageStrategy += probabilityOfActionAvgStrat * innerResult.AverageStrategyVsAverageStrategy;
                     }
@@ -1245,15 +1246,15 @@ namespace ACESim
                     {
                         TabbedText.TabUnindent();
                         TabbedText.WriteLine(
-                            $"... action {action}{(informationSet.BestResponseAction == action && IncludeAsteriskForBestResponseInTrace ? "*" : "")} expected value {expectedValueOfAction[action - 1]} best response expected value {result.BestResponseToAverageStrategy} cum expected value {expectedValue}{(action == numPossibleActions && IncludeAsteriskForBestResponseInTrace ? "*" : "")}");
-
+                            $"... action {action}{(informationSet.BestResponseAction == action && IncludeAsteriskForBestResponseInTrace ? "*" : string.Empty)} expected value {expectedValueOfAction[action - 1]} best response expected value {result.BestResponseToAverageStrategy} cum expected value {expectedValue}{(action == numPossibleActions && IncludeAsteriskForBestResponseInTrace ? "*" : string.Empty)}");
                     }
+
                     if (Navigation.LookupApproach != InformationSetLookupApproach.PlayGameDirectly && informationSet.Decision.IsReversible)
                     {
                         GameDefinition.ReverseSwitchToBranchEffects(informationSet.Decision, in nextHistoryPoint);
                     }
-                } // not pruning
-            } // for each action
+                }
+            }
             if (playerMakingDecision == playerBeingOptimized)
             {
                 for (byte action = 1; action <= numPossibleActions; action++)
@@ -1282,6 +1283,16 @@ namespace ACESim
                         TabbedText.WriteLine(
                             $"Regrets ({informationSet.Decision.Name} {informationSet.InformationSetNodeNumber}): Action {action} probability {actionProbabilities[action - 1]} regret {regret} inversePi {inversePi} avg_strat_increment {contributionToAverageStrategy} cum_strategy {informationSet.GetLastCumulativeStrategyIncrement(action)}");
                     }
+
+                    //  Checkpoints
+                    if (EvolutionSettings.UseCheckpointsWhenNotUnrolling)
+                    {
+                        RecordCheckpoint($"prob_action_{decisionNum}_{action}", actionProbabilities[action - 1]);
+                        RecordCheckpoint($"regret_{decisionNum}_{action}", regret);
+                        RecordCheckpoint($"inversePi_{decisionNum}", inversePi);
+                        RecordCheckpoint($"pi_{decisionNum}", pi);
+                    }
+                    // ──────────────────────────────────────────────────────────
                 }
             }
             return result;
