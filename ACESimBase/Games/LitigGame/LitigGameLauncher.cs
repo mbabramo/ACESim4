@@ -80,7 +80,7 @@ namespace ACESim
             switch (OptionSetChosen)
             {
                 case OptionSetChoice.JustOneOption:
-                    AddToOptionsListWithName(optionSets, "singleoptionset", LitigGameOptionsGenerator.EndogenousArticleBase());
+                    AddToOptionsListWithName(optionSets, "singleoptionset", LitigGameOptionsGenerator.BaseBeforeApplyingEndogenousGenerator());
                     break;
                 case OptionSetChoice.EndogenousDisputesArticle:
                     AddEndogenousDisputesArticleGames(optionSets);

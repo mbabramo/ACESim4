@@ -19,18 +19,18 @@ namespace ACESim
             SmallGame,
         }
 
-        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.SmallGame; // DEBUG
+        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.EndogenousArticleBase; // DEBUG
 
         public static LitigGameOptions GetLitigGameOptions() => LitigGameChoice switch
         {
-            LitigGameOptionSetChoices.EndogenousArticleBase => EndogenousArticleBase(),
+            LitigGameOptionSetChoices.EndogenousArticleBase => BaseBeforeApplyingEndogenousGenerator(),
             LitigGameOptionSetChoices.AppropriationGame => AppropriationGame(),
             LitigGameOptionSetChoices.FeeShiftingBase => FeeShiftingBase(),
             LitigGameOptionSetChoices.SmallGame => SmallGame(),
             _ => throw new Exception()
         };
 
-        public static LitigGameOptions EndogenousArticleBase()
+        public static LitigGameOptions BaseBeforeApplyingEndogenousGenerator()
         {
             var options = new LitigGameOptions();
 
@@ -112,7 +112,7 @@ namespace ACESim
 
         public static LitigGameOptions FeeShiftingBase()
         {
-            var options = EndogenousArticleBase();
+            var options = BaseBeforeApplyingEndogenousGenerator();
             options.CollapseAlternativeEndings = true; // can't do this where we're really using endogenous disputes
             options.CollapseChanceDecisions = true;
             options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 5; // DEBUG
@@ -121,7 +121,7 @@ namespace ACESim
 
         public static LitigGameOptions SmallGame()
         {
-            var options = EndogenousArticleBase();
+            var options = BaseBeforeApplyingEndogenousGenerator();
             options.CollapseAlternativeEndings = true; 
             options.CollapseChanceDecisions = true;
             options.AllowAbandonAndDefaults = false;
@@ -131,7 +131,7 @@ namespace ACESim
 
         public static LitigGameOptions AppropriationGame()
         {
-            var options = EndogenousArticleBase();
+            var options = BaseBeforeApplyingEndogenousGenerator();
 
             options.AllowAbandonAndDefaults = false; // DEBUG
             options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 5; // DEBUG
