@@ -78,7 +78,14 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             _src.Clear();
             _src.AppendLine("using System; namespace CG { static class G {");
 
-            GenerateSourceForChunks(_scheduled);
+            try
+            {
+                GenerateSourceForChunks(_scheduled);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Roslyn generate source failed", ex);
+            }
 
             _src.AppendLine("}} // CG.G");
 

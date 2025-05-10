@@ -111,11 +111,21 @@ namespace ACESimBase.Util.ArrayProcessing
                         }
                         int endExc = i + 1; // exclusive -- we want to include the closing delimeter in the region.
                         int len = endExc - start;
-                        int distanceFromTarget = Math.Abs(len - targetLength);
-                        if (len >= _max && len < lengthWholeRegion && (result == null || distanceFromTarget < resultDistanceFromTargetLength))
+                        if (len >= _max)
                         {
-                            result = new PlanEntry(leaf.ID, isIfRegion ? SplitKind.Conditional : SplitKind.Depth, start, endExc);
-                            resultDistanceFromTargetLength = distanceFromTarget;
+                            bool alwaysTakeOutermostLargeIf = true; // DEBUG
+                            if (!alwaysTakeOutermostLargeIf || !openings.Any(x => x.isIfRegion)) // if there is an open if region, make sure to use that so that we always cut at the outermost large if region.
+                            {
+                                int distanceFromTarget = Math.Abs(len - targetLength);
+                                if (len >= _max
+                                    && len < lengthWholeRegion
+                                    && (result == null || distanceFromTarget < resultDistanceFromTargetLength)
+                                    )
+                                {
+                                    result = new PlanEntry(leaf.ID, isIfRegion ? SplitKind.Conditional : SplitKind.Depth, start, endExc);
+                                    resultDistanceFromTargetLength = distanceFromTarget;
+                                }
+                            }
                         }
                     }
                 }

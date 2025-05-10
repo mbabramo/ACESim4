@@ -189,7 +189,7 @@ namespace ACESimTest.ArrayProcessingTests
             if (len < 2 || depth >= maxDepth) return;
 
             // ----- try to place an If-block(needs ≥ 4 total slots)---- -
-            bool placeIf = len >= 4 && _rnd.NextDouble() < .33;
+            bool placeIf = len >= 4 && _rnd.NextDouble() < 0.6;
             if (placeIf)
             {
                 // choose any pre-span so at least 1 slot remains for body
@@ -218,7 +218,7 @@ namespace ACESimTest.ArrayProcessingTests
             }
 
             // ----- try to place an IncrementDepth-block (needs ≥ 2 slots) -----
-            bool placeDepth = len >= 2 && _rnd.NextDouble() < .5;
+            bool placeDepth = len >= 2 && _rnd.NextDouble() < 0; // DEBUG .5;
             if (placeDepth)
             {
                 int preMax = len - 2;           // Inc,Dec
