@@ -155,19 +155,35 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             else
                 EmitZeroReuseBody(c, cb, skipMap, ifStack, usedSlots);
 
-            // Close any unterminated if-blocks
             while (ifStack.Count > 0)
             {
                 var ctx = ifStack.Pop();
                 cb.Unindent();
                 cb.AppendLine("} else {");
-                cb.AppendLine($"    i += {ctx.SrcSkip};");  // skip inputs of branch
+
+                foreach (var (slot, local) in ctx.Flushes)
+                    cb.AppendLine($"vs[{slot}] = l{local};");
+
+                foreach (var (slot, local) in ctx.Initialises)
+                    cb.AppendLine($"l{local} = vs[{slot}];");
+
+                cb.AppendLine($"i += {ctx.SrcSkip};");
                 cb.AppendLine("}");
+
+                foreach (var (slot, local) in ctx.Initialises)
+                    if (bind != null &&
+                        bind.NeedsFlushBeforeReuse(local, out int boundSlot) &&
+                        boundSlot == slot)
+                    {
+                        cb.AppendLine($"vs[{slot}] = l{local};");
+                        bind.FlushLocal(local);
+                    }
             }
 
             cb.Unindent();
             _src.AppendLine(cb.ToString());
             _src.AppendLine("}");
+
         }
 
 
