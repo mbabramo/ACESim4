@@ -327,16 +327,17 @@ namespace ACESim
                 }
                 Unroll_CommandListRunner = Unroll_Commands.GetCompiledRunner(kind: EvolutionSettings.Unroll_ChunkExecutorKind, null);
             }
-            catch (OutOfMemoryException)
+            catch (OutOfMemoryException ex)
             {
                 numRetries++;
                 if (numRetries <= 10)
                 {
-                    int delayPeriod = 60_000 + (int)(60000.0 * new Random((int)DateTime.Now.Ticks).Next());
-                    TabbedText.WriteLine($"Delaying {delayPeriod} milliseconds");
+                    int delayPeriod = 60_000 + (int)(60000.0 * new Random((int)DateTime.Now.Ticks).NextDouble());
+                    TabbedText.WriteLine($"Delaying {delayPeriod} milliseconds following out-of-memory exception");
                     Task.Delay(delayPeriod).Wait(); // wait a minute or so before retrying
                     goto retry;
                 }
+                else throw new Exception("Out of memory, retries failed", ex);
             }
             TabbedText.WriteLine($"... {s.ElapsedMilliseconds} milliseconds (using {Unroll_Commands.VirtualStackSize} array size and {Unroll_Commands.MaxCommandIndex} commands)");
         }
