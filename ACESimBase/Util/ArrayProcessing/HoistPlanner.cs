@@ -113,7 +113,7 @@ namespace ACESimBase.Util.ArrayProcessing
                         int len = endExc - start;
                         if (len >= _max)
                         {
-                            bool alwaysTakeOutermostLargeIf = true; // DEBUG
+                            bool alwaysTakeOutermostLargeIf = false; // DEBUG
                             if (!alwaysTakeOutermostLargeIf || !openings.Any(x => x.isIfRegion)) // if there is an open if region, make sure to use that so that we always cut at the outermost large if region.
                             {
                                 int distanceFromTarget = Math.Abs(len - targetLength);

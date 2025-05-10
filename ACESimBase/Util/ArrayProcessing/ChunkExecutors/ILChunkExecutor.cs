@@ -399,6 +399,8 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
                     case ArrayCommandType.EndIf:
                         {
+                            if (ifStack.Count == 0)
+                                break;                     // unmatched ⇒ ignore
                             var ctx = ifStack.Pop();
                             EL(OpCodes.Br, ctx.EndLabel);
 
@@ -443,6 +445,22 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     ELb(OpCodes.Ldloc, locals[kv.Value]);
                     E0(OpCodes.Stelem_R8);
                 }
+            }
+
+            while (ifStack.Count > 0)
+            {
+                var ctx = ifStack.Pop();
+
+                // jump from THEN to END
+                EL(OpCodes.Br, ctx.EndLabel);
+
+                // ELSE label – reached when cond == false
+                il.MarkLabel(ctx.ElseLabel);
+                if (ctx.SrcSkip > 0)
+                    AdvanceRefInt(2, ctx.SrcSkip);
+
+                // END label – common join point
+                il.MarkLabel(ctx.EndLabel);
             }
 
             E0(OpCodes.Ret);

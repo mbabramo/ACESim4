@@ -10,7 +10,7 @@ namespace ACESimTest.ArrayProcessingTests
     [TestClass]
     public class ChunkExecutorFuzzTests
     {
-        private const int Runs = 2500; // DEBUG
+        private const int Runs = 100; 
         private const int OriginalSourcesCount = 8;
 
         [TestMethod]

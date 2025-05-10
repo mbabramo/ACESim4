@@ -155,6 +155,16 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             else
                 EmitZeroReuseBody(c, cb, skipMap, ifStack, usedSlots);
 
+            // Close any unterminated if-blocks
+            while (ifStack.Count > 0)
+            {
+                var ctx = ifStack.Pop();
+                cb.Unindent();
+                cb.AppendLine("} else {");
+                cb.AppendLine($"    i += {ctx.SrcSkip};");  // skip inputs of branch
+                cb.AppendLine("}");
+            }
+
             cb.Unindent();
             _src.AppendLine(cb.ToString());
             _src.AppendLine("}");
@@ -400,6 +410,11 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
 
                 case ArrayCommandType.EndIf:
                     {
+                        if (ifStack.Count == 0)
+                        {
+                            // Unmatched EndIf – skip
+                            break;
+                        }
                         var ctx = ifStack.Pop();
 
                         // Close the THEN block and open the ELSE block
