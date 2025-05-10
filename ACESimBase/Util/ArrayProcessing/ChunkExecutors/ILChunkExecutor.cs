@@ -55,9 +55,9 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             if (PreserveGeneratedCode)
                 _trace = new StringBuilder();
 
-            try
+            foreach (var chunk in _pending)
             {
-                foreach (var chunk in _pending)
+                try
                 {
                     var dm = BuildDynamicMethod(chunk, out var src);
                     _compiled[chunk] =
@@ -66,16 +66,15 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                     if (PreserveGeneratedCode && _trace != null)
                         _trace.Append(src);
                 }
-
-                _pending.Clear();
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException(
+                        $"Error generating IL\n{_trace} in chunk [{chunk.StartCommandRange},{chunk.EndCommandRangeExclusive})", ex);
+                }
+            }
+            _pending.Clear();
                 if (PreserveGeneratedCode && _trace != null)
                     GeneratedCode = _trace.ToString();
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException(
-                    $"Error generating IL\n{_trace}", ex);
-            }
         }
 
         public override void Execute(ArrayCommandChunk chunk,

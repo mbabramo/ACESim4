@@ -44,7 +44,7 @@ namespace ACESimBase.Util.ArrayProcessing
         //  Settings and feature flags
         // ──────────────────────────────────────────────────────────────────────
         public bool Parallelize = false;
-        public int MaxCommandsPerSplittableChunk = 1_000_000_000; // DEBUG
+        public int MaxCommandsPerSplittableChunk = 1_000; // DEBUG
         public bool ReuseScratchSlots => true;
         public bool RepeatIdenticalRanges => ReuseScratchSlots;
 
@@ -298,6 +298,20 @@ namespace ACESimBase.Util.ArrayProcessing
 
             var stringBuilder = new StringBuilder();
             for (int i = 0; i < NextCommandIndex; i++)
+            {
+                stringBuilder.AppendLine($"{i}: {UnderlyingCommands[i]}");
+            }
+
+            return stringBuilder.ToString();
+        }
+
+        public string CommandListString(int startCommandRange, int endCommandRangeExclusive)
+        {
+            if (UnderlyingCommands == null || UnderlyingCommands.Length == 0)
+                return string.Empty;
+
+            var stringBuilder = new StringBuilder();
+            for (int i = startCommandRange; i < endCommandRangeExclusive; i++)
             {
                 stringBuilder.AppendLine($"{i}: {UnderlyingCommands[i]}");
             }

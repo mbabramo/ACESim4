@@ -36,7 +36,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         public abstract void Execute(ArrayCommandChunk chunk, double[] virtualStack, double[] orderedSources, ref int cosi, ref bool condition);
         public abstract void PerformGeneration();
 
-        protected  Dictionary<int, (int src, int dst)> PrecomputePointerSkips(ArrayCommandChunk chunk)
+        protected Dictionary<int, (int src, int dst)> PrecomputePointerSkips(ArrayCommandChunk chunk)
         {
             var map = new Dictionary<int, (int srcSkip, int dstSkip)>();
             var stack = new Stack<int>();          // holds command indices of open Ifs
@@ -71,6 +71,20 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
             }
 
             return map;
+        }
+
+        public string CommandListString(ArrayCommandChunk chunk)
+        {
+            if (UnderlyingCommands == null || UnderlyingCommands.Length == 0)
+                return string.Empty;
+
+            var stringBuilder = new StringBuilder();
+            for (int i = chunk.StartCommandRange; i < chunk.EndCommandRangeExclusive; i++)
+            {
+                stringBuilder.AppendLine($"{i}: {UnderlyingCommands[i]}");
+            }
+
+            return stringBuilder.ToString();
         }
     }
 }

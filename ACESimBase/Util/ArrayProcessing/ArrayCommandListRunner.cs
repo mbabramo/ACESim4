@@ -112,7 +112,7 @@ namespace ACESimBase.Util.ArrayProcessing
     /// </summary>
     public sealed class ArrayCommandListRunner
     {
-        private readonly IChunkExecutor _compiled;
+        private readonly IChunkExecutor _executor;
 
         // Runtime helpers (one instance per Run)
         private OrderedBufferManager _buffers = null!;  // created in Run()
@@ -124,12 +124,12 @@ namespace ACESimBase.Util.ArrayProcessing
         public ArrayCommandListRunner(IEnumerable<ArrayCommandChunk> leafChunks,
                                   IChunkExecutor compiledExecutor = null)
         {
-            _compiled  = compiledExecutor ?? throw new ArgumentNullException(nameof(compiledExecutor));
+            _executor  = compiledExecutor ?? throw new ArgumentNullException(nameof(compiledExecutor));
 
             // register all slices with the executor and compile once
             foreach (var c in leafChunks)
-                _compiled.AddToGeneration(c);
-            _compiled.PerformGeneration();
+                _executor.AddToGeneration(c);
+            _executor.PerformGeneration();
         }
 
 
@@ -200,7 +200,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 bool isLeaf = node.IsLeaf();
                 if (!isLeaf)
                     return; // this node has been split into other nodes, so we'll execute then
-                _compiled.Execute(node.StoredValue,
+                _executor.Execute(node.StoredValue,
                                   _acl.VirtualStack,
                                   _buffers.Sources,
                                   ref _cosi,
