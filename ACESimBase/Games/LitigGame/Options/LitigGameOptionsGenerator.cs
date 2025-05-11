@@ -133,7 +133,7 @@ namespace ACESim
         {
             var options = BaseBeforeApplyingEndogenousGenerator();
 
-            options.AllowAbandonAndDefaults = false; // DEBUG
+            options.AllowAbandonAndDefaults = true; // DEBUG
             options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 5; // DEBUG
 
             var disputeGenerator = new LitigGameAppropriationDisputeGenerator();
