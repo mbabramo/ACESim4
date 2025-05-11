@@ -261,13 +261,9 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 }
             }
 
-            DepthMap depthMap = null;
             IntervalIndex intervalIx = null;
             if (ReuseLocals)
             {
-                depthMap = new DepthMap(Commands.ToArray(),
-                                          chunk.StartCommandRange,
-                                          chunk.EndCommandRangeExclusive);
                 intervalIx = new IntervalIndex(_plan);
             }
 
@@ -511,26 +507,6 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
         /* ──────────────────────────────────────────────────────────────
            Minimal DepthMap & IntervalIndex
            ─────────────────────────────────────────────────────────── */
-        private sealed class DepthMap
-        {
-            private readonly int[] _depth;
-
-            public DepthMap(ArrayCommand[] cmds, int start, int end)
-            {
-                _depth = new int[cmds.Length];
-                int d = 0;
-
-                for (int i = start; i < end; i++)
-                {
-                    if (cmds[i].CommandType == ArrayCommandType.EndIf) d--;
-                    _depth[i] = d;
-                    if (cmds[i].CommandType == ArrayCommandType.If) d++;
-                }
-            }
-
-            public int GetDepth(int i) => _depth[i];
-        }
-
         private sealed class IntervalIndex
         {
             private readonly Dictionary<int, List<int>> _starts = new();
