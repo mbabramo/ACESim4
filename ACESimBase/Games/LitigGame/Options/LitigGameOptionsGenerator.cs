@@ -115,7 +115,7 @@ namespace ACESim
             var options = BaseBeforeApplyingEndogenousGenerator();
             options.CollapseAlternativeEndings = true; // can't do this where we're really using endogenous disputes
             options.CollapseChanceDecisions = true;
-            options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 5; // DEBUG
+            options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 5;
             return options;
         }
 
@@ -133,11 +133,11 @@ namespace ACESim
         {
             var options = BaseBeforeApplyingEndogenousGenerator();
 
-            options.AllowAbandonAndDefaults = true; // DEBUG
-            options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 5; // DEBUG
+            options.AllowAbandonAndDefaults = true; 
+            options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 5;
 
             var disputeGenerator = new LitigGameAppropriationDisputeGenerator();
-            disputeGenerator.NumSystemicRandomnessLevels = 5; // DEBUG
+            disputeGenerator.NumSystemicRandomnessLevels = 5;
 
             options.LitigGameDisputeGenerator = disputeGenerator;
             return options;

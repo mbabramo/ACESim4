@@ -218,7 +218,7 @@ namespace ACESimTest.ArrayProcessingTests
             }
 
             // ----- try to place an IncrementDepth-block (needs ≥ 2 slots) -----
-            bool placeDepth = len >= 2 && _rnd.NextDouble() < 0; // DEBUG .5;
+            bool placeDepth = len >= 2 && _rnd.NextDouble() < 0;
             if (placeDepth)
             {
                 int preMax = len - 2;           // Inc,Dec

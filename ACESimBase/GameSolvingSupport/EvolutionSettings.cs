@@ -16,11 +16,11 @@ namespace ACESim
     public class EvolutionSettings
     {
         public bool DistributeChanceDecisions = false; // NOTE: Use CollapseChanceDecisions instead; it's much simpler and seems to produce slightly better performance.
-        public bool UnrollAlgorithm = true; // DEBUG
+        public bool UnrollAlgorithm = true;
         public bool IncludeCommentsWhenUnrolling = false;
         public bool UseCheckpointsWhenNotUnrolling = false; // for when unrolling, look at ArrayCommandList.UseCheckpoints
-        public bool UnrollAllowParallelize = false; // DEBUG
-        public ChunkExecutorKind Unroll_ChunkExecutorKind = ChunkExecutorKind.ILWithLocalVariableRecycling; // DEBUG
+        public bool UnrollAllowParallelize = false; 
+        public ChunkExecutorKind Unroll_ChunkExecutorKind = ChunkExecutorKind.ILWithLocalVariableRecycling; // Note: RoslynWithLocalVariableRecycling seems to be repeating the same iteration over and over again. 
         public bool ReuseUnrolledAlgorithm = true; // if the tree structure is the same, then it will be reused (but final utilities etc. will be updated)
         public bool SaveToAzureBlob = false;
         // Note: Many of the below are overridden by launcher.
@@ -116,8 +116,8 @@ namespace ACESim
 
         public bool GenerateReportsByPlaying = true;
         public int NumRandomIterationsForSummaryTable = 1_000;
-        public bool PrintGameTree = false; // DEBUG
-        public bool KeepPrintingGameTree = false; // DEBUG // after printing once, keep printing again
+        public bool PrintGameTree = false; 
+        public bool KeepPrintingGameTree = false; // after printing once, keep printing again
         public bool PrintedGameTreeIncludesInformationSetData = false;
         public bool PrintInformationSets = false;
         public bool AnalyzeInformationSets = false; 
