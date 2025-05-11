@@ -272,7 +272,7 @@ namespace ACESim
         private void Unroll_CreateUnrolledCommandList()
         {
             int numRetries = 0;
-            Stopwatch s = new Stopwatch();
+            PerformanceTimer s = new();
             s.Start();
         retry:
             try
@@ -339,7 +339,8 @@ namespace ACESim
                 }
                 else throw new Exception("Out of memory, retries failed", ex);
             }
-            TabbedText.WriteLine($"... {s.ElapsedMilliseconds} milliseconds (using {Unroll_Commands.VirtualStackSize} array size and {Unroll_Commands.MaxCommandIndex} commands)");
+            string performanceString = s.End();
+            TabbedText.WriteLine($"... {performanceString} (using {Unroll_Commands.VirtualStackSize} array size and {Unroll_Commands.MaxCommandIndex} commands)");
         }
 
         private void Unroll_ExecuteUnrolledCommands(double[] array, bool copyChanceAndFinalUtilities)

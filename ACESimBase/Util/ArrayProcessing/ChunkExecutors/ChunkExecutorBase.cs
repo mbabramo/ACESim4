@@ -9,7 +9,7 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
     public abstract class ChunkExecutorBase : IChunkExecutor
     {
 
-        public virtual bool PreserveGeneratedCode { get; set; } = true;
+        public virtual bool PreserveGeneratedCode { get; set; } = false;
         public string GeneratedCode { get; protected set; } = string.Empty;
         public bool UseCheckpoints { get; protected set; } = false;
         public ArrayCommandList ArrayCommandListForCheckpoints { get; protected set; } = null;

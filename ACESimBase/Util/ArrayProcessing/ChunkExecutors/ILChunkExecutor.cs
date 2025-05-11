@@ -73,8 +73,15 @@ namespace ACESimBase.Util.ArrayProcessing.ChunkExecutors
                 }
             }
             _pending.Clear();
+            try
+            {
                 if (PreserveGeneratedCode && _trace != null)
                     GeneratedCode = _trace.ToString();
+            }
+            catch (OutOfMemoryException)
+            {
+                GeneratedCode = "Insufficient memory to keep generated code.";
+            }
         }
 
         public override void Execute(ArrayCommandChunk chunk,
