@@ -71,7 +71,7 @@ namespace ACESim
         public bool TryInexactArithmeticForAdditionalEquilibria = false; 
         public bool CreateEFGFileForSequenceForm = true;
         public bool CreateEquilibriaFile = true;
-        public bool UsePreloadedEquilibriaIfAvailable = false;
+        public bool UsePreloadedEquilibriaIfAvailable = true;
         public bool CustomSequenceFormInitialization = true;
         public bool UseCustomSequenceFormInitializationAsFinalEquilibria = false; 
         public bool SequenceFormUseRandomSeed = false; // random seed always used for additional priors, but this can be used for just a single prior

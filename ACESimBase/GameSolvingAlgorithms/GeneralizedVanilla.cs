@@ -145,12 +145,41 @@ namespace ACESim
                 throw new Exception("Using current weight on opponent for warmup has been shown to work only with continuous regrets discounting.");
         }
 
+
+        public double[] GetInformationSetValues()
+        {
+            List<double> result = new List<double>();
+            for (int x = 0; x < InformationSets.Count; x++)
+            {
+                var infoSet = InformationSets[x];
+                for (byte action = 1; action <= infoSet.NumPossibleActions; action++)
+                {
+                    result.Add(infoSet.GetCurrentProbability(action, false));
+                }
+            };
+            return result.ToArray();
+        }
+
+        public void SetInformationSetValues(double[] array)
+        {
+            int i = 0;
+            for (int x = 0; x < InformationSets.Count; x++)
+            {
+                var infoSet = InformationSets[x];
+                for (byte action = 1; action <= infoSet.NumPossibleActions; action++)
+                {
+                    double value = array[i++];
+                    infoSet.SetCurrentAndAverageStrategyValues(action, value, value);
+                }
+            }
+        }
+
         #endregion
 
 
-        #region Unrolled preparation
+            #region Unrolled preparation
 
-        // We can achieve considerable improvements in performance by unrolling the algorithm. Instead of traversing the tree, we simply have a series of simple commands that can be processed on an array. The challenge is that we need to create this series of commands. This section prepares for the copying of data between information sets and the array. We can compare the outcomes of the regular algorithm and the unrolled version (which should always be equal) by using TraceCFR = true.
+            // We can achieve considerable improvements in performance by unrolling the algorithm. Instead of traversing the tree, we simply have a series of simple commands that can be processed on an array. The challenge is that we need to create this series of commands. This section prepares for the copying of data between information sets and the array. We can compare the outcomes of the regular algorithm and the unrolled version (which should always be equal) by using TraceCFR = true.
 
         private ArrayCommandList Unroll_Commands;
         private ArrayCommandListRunner Unroll_CommandListRunner;
@@ -529,6 +558,8 @@ namespace ACESim
             Unroll_AverageStrategyAdjustmentIndex = index++;
             Unroll_InitialArrayIndex = index;
         }
+
+        // DEBUG // use these to save / load equ files (copyChanceAndFinalUtilitiesNodes is false)
 
         private void Unroll_CopyInformationSetsToArray(double[] array, bool copyChanceAndFinalUtilitiesNodes)
         {
@@ -1003,14 +1034,24 @@ namespace ACESim
 
         public override async Task<ReportCollection> RunAlgorithm(string optionSetName)
         {
-            ReportCollection reportCollection;
-            if (EvolutionSettings.UnrollAlgorithm)
-                reportCollection = await Unroll_SolveGeneralizedVanillaCFR();
+            ReportCollection reportCollection = new ReportCollection();
+            if (EvolutionSettings.UsePreloadedEquilibriaIfAvailable && EquilibriaFileAlreadyExists())
+            {
+                TabbedText.WriteLine($"Using preloaded equilibria file {optionSetName}");
+                double[] equilibrium = LoadEquilibriaFile().First();
+                await ProcessEquilibrium(reportCollection, false, false, true, false, 1, InformationSets, 0, true, true, equilibrium);
+                // NOTE: If we switch to recording multiple equilibria, we'll change the above.
+            }
             else
-                reportCollection = await SolveGeneralizedVanillaCFR();
+            {
+                if (EvolutionSettings.UnrollAlgorithm)
+                    reportCollection = await Unroll_SolveGeneralizedVanillaCFR();
+                else
+                    reportCollection = await SolveGeneralizedVanillaCFR();
 
-            double[] equilibrium = null;
-            string equFile = CreateEquilibriaFile(new List<double[]> { equilibrium });
+                double[] equilibrium = GetInformationSetValues();
+                string equFile = CreateEquilibriaFile(new List<double[]> { equilibrium });
+            }
 
             return reportCollection;
         }
