@@ -28,6 +28,7 @@ using ACESimBase.Util.Collections;
 using ACESimBase.Util.Reporting;
 using ACESimBase.Util.Parallelization;
 using ACESimBase.Util.CodeGen;
+using static alglib;
 
 namespace ACESim
 {
@@ -290,11 +291,11 @@ namespace ACESim
             Stopwatch s = new Stopwatch();
             s.Start();
             EvolutionSettings.ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.CurrentProbability }; // will use latest equilibrium 
-            var reportResult = await GenerateReports(EvolutionSettings.ReportEveryNIterations ?? 0,
+            var reportResult = await ConsiderGeneratingReports(EvolutionSettings.ReportEveryNIterations ?? 0,
                 () =>
-                    $"{GameDefinition.OptionSetName}{(EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria > 1 ? $"-Eq{eqNum + 1}" : "")}");
+                    $"{GameDefinition.OptionSetName}{(EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria > 1 ? $"-Eq{eqNum + 1}" : "")}",
+                manualReportsSupplementalString: $"-eq{eqNum + 1}");
             reportCollection.Add(reportResult, false, true);
-            GenerateManualReports($"-eq{eqNum + 1}");
             TabbedText.WriteLine($"Elapsed milliseconds report for eq {eqNum + 1} of {numEquilibria}: {s.ElapsedMilliseconds}");
         }
 
@@ -317,10 +318,9 @@ namespace ACESim
             Stopwatch s = new Stopwatch();
             s.Start();
             EvolutionSettings.ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.AverageStrategy };
-            var reportResult = await GenerateReports(EvolutionSettings.ReportEveryNIterations ?? 0,
-                () => $"{GameDefinition.OptionSetName}-Avg", suppressPrintTree: true);
+            var reportResult = await ConsiderGeneratingReports(EvolutionSettings.ReportEveryNIterations ?? 0,
+                () => $"{GameDefinition.OptionSetName}-Avg", suppressPrintTree: true, manualReportsSupplementalString: "-Avg");
             reportCollection.Add(reportResult, false, true);
-            GenerateManualReports($"-Avg");
             TabbedText.WriteLine($"Elapsed milliseconds generating average equilibrium report: {s.ElapsedMilliseconds}");
         }
 
@@ -505,7 +505,7 @@ namespace ACESim
             else
                 ReduceToCorrelatedEquilibrium_DeterminingIncompatibilitiesNow();
             ReportCollection reportCollection = new ReportCollection();
-            await CompleteMainReports(() => "correq", reportCollection, new List<ActionStrategies>() { ActionStrategies.CorrelatedEquilibrium });
+            await GenerateMainReports(() => "correq", reportCollection, new List<ActionStrategies>() { ActionStrategies.CorrelatedEquilibrium });
             return reportCollection;
         }
 
@@ -1341,7 +1341,7 @@ namespace ACESim
         {
             GameDefinition.ScenarioEquilibriumName = scenarioEquilibriumName;
             Func<string> prefaceFn = () => (scenarioEquilibriumName == null) ? $"{masterReportName}-{scenarioName}" : $"{masterReportName}-{scenarioName}-{scenarioEquilibriumName}";
-            await GenerateReports(prefaceFn, reportCollection, EvolutionSettings.PCA_BestResponseAfterPCA, EvolutionSettings.PCA_ReportsAfterPCA);
+            await GenerateBestResponseAndMainReports(prefaceFn, reportCollection, EvolutionSettings.PCA_BestResponseAfterPCA, EvolutionSettings.PCA_ReportsAfterPCA);
             AzureBlob.WriteTextToFileOrAzure("results", Launcher.ReportFolder(), prefaceFn() + ".csv", true, reportCollection.csvReports.First(), EvolutionSettings.SaveToAzureBlob);
             GameDefinition.ScenarioEquilibriumName = null;
             TabbedText.WriteLine($"Results from model used to generate report:"); // can be useful as a check to make sure report corresponds approximately to model
@@ -2378,84 +2378,101 @@ namespace ACESim
 
         #region Game play and reporting
 
-        [SupportedOSPlatform("windows")]
-        public virtual async Task<ReportCollection> GenerateReports(int iteration, Func<string> prefaceFn, bool suppressPrintTree = false)
+        public virtual async Task<ReportCollection> ConsiderGeneratingReports(int iteration, Func<string> prefaceFn, bool suppressPrintTree = false, string manualReportsSupplementalString = "")
         {
             ReportCollection reportCollection = new ReportCollection();
-            bool doBestResponse = (EvolutionSettings.BestResponseEveryMIterations != null && (EvolutionSettings.SuppressBestResponseBeforeIteration == null || iteration >= EvolutionSettings.SuppressBestResponseBeforeIteration) && iteration % EvolutionSettings.BestResponseEveryMIterations == 0 && EvolutionSettings.BestResponseEveryMIterations != EvolutionSettings.EffectivelyNever && iteration != 0);
-            bool doReports = EvolutionSettings.ReportEveryNIterations != null && (EvolutionSettings.SuppressReportBeforeIteration == null || iteration >= EvolutionSettings.SuppressReportBeforeIteration) && (iteration % EvolutionSettings.ReportEveryNIterations == 0 || Status.BestResponseTargetMet(EvolutionSettings.BestResponseTarget));
+            bool doBestResponse = 
+                EvolutionSettings.BestResponseEveryMIterations != null 
+                && 
+                (EvolutionSettings.SuppressBestResponseBeforeIteration == null || iteration >= EvolutionSettings.SuppressBestResponseBeforeIteration) 
+                && 
+                iteration % EvolutionSettings.BestResponseEveryMIterations == 0 
+                && 
+                EvolutionSettings.BestResponseEveryMIterations != EvolutionSettings.EffectivelyNever && iteration != 0;
+            bool doReports = EvolutionSettings.ReportEveryNIterations != null 
+                && 
+                (EvolutionSettings.SuppressReportBeforeIteration == null || iteration >= EvolutionSettings.SuppressReportBeforeIteration) 
+                && 
+                (iteration % EvolutionSettings.ReportEveryNIterations == 0 || Status.BestResponseTargetMet(EvolutionSettings.BestResponseTarget));
             if (doReports || doBestResponse)
             {
-                if (EvolutionSettings.CreateInformationSetCharts)
-                    InformationSetCharts.CreateInformationSetChart(InformationSets, @"H:\My Drive\Articles, books in progress\Machine learning model of litigation\bluffing results\images\image" + iteration.ToString("D8") + ".png");
-            }
-            if (doReports || doBestResponse)
-            {
-                TabbedText.HideConsoleProgressString();
-                if (EvolutionSettings.CreateInformationSetCharts)
-                    InformationSetCharts.CreateInformationSetChart(InformationSets, @"H:\My Drive\Articles, books in progress\Machine learning model of litigation\bluffing results\images\image" + iteration.ToString("D8") + ".png");
-                await GenerateReports(prefaceFn, reportCollection, doBestResponse, doReports);
-                if (doBestResponse)
-                {
-                    RememberBestResponseExploitabilityValues(iteration);
-                    BestResponseComparison();
-                }
-                if (iteration % EvolutionSettings.CorrelatedEquilibriumCalculationsEveryNIterations == 0 && EvolutionSettings.CorrelatedEquilibriumCalculationsEveryNIterations != EvolutionSettings.EffectivelyNever)
-                    DoCorrelatedEquilibriumCalculations(iteration);
-                if (EvolutionSettings.PrintGameTree && !suppressPrintTree)
-                {
-                    PrintGameTree();
-                    if (EvolutionSettings.KeepPrintingGameTree)
-                        EvolutionSettings.PrintGameTree = false;
-                }
-                if (EvolutionSettings.PrintInformationSets)
-                    PrintInformationSets();
-                if (EvolutionSettings.AnalyzeInformationSets)
-                    AnalyzeInformationSetsPastValues();
-                TabbedText.ShowConsoleProgressString();
+                await GenerateApplicableReports(iteration, prefaceFn, suppressPrintTree, reportCollection, doBestResponse, doReports, manualReportsSupplementalString);
             }
 
             return reportCollection;
         }
 
-        private async Task GenerateReports(Func<string> prefaceFn, ReportCollection reportCollection, bool doBestResponse, bool doReports)
+        private async Task GenerateApplicableReports(int iteration, Func<string> prefaceFn, bool suppressPrintTree, ReportCollection reportCollection, bool doBestResponse, bool doReports, string manualReportsSupplementalString)
+        {
+            TabbedText.HideConsoleProgressString();
+            if (EvolutionSettings.CreateInformationSetCharts && OperatingSystem.IsWindows())
+                InformationSetCharts.CreateInformationSetChart(InformationSets, @"H:\My Drive\Articles, books in progress\Machine learning model of litigation\bluffing results\images\image" + iteration.ToString("D8") + ".png");
+            await GenerateBestResponseAndMainReports(prefaceFn, reportCollection, doBestResponse, doReports);
+            if (doBestResponse)
+            {
+                RememberBestResponseExploitabilityValues(iteration);
+                BestResponseComparison();
+            }
+            if (doReports)
+                GenerateManualReports(manualReportsSupplementalString);
+            if (iteration % EvolutionSettings.CorrelatedEquilibriumCalculationsEveryNIterations == 0 && EvolutionSettings.CorrelatedEquilibriumCalculationsEveryNIterations != EvolutionSettings.EffectivelyNever)
+                DoCorrelatedEquilibriumCalculations(iteration);
+            if (EvolutionSettings.PrintGameTree && !suppressPrintTree)
+            {
+                PrintGameTree();
+                if (EvolutionSettings.KeepPrintingGameTree)
+                    EvolutionSettings.PrintGameTree = false;
+            }
+            if (EvolutionSettings.PrintInformationSets)
+                PrintInformationSets();
+            if (EvolutionSettings.AnalyzeInformationSets)
+                AnalyzeInformationSetsPastValues();
+
+            TabbedText.ShowConsoleProgressString();
+        }
+
+        private async Task GenerateBestResponseAndMainReports(Func<string> prefaceFn, ReportCollection reportCollection, bool doBestResponse, bool doReports)
         {
             TabbedText.WriteLine("");
             TabbedText.WriteLine(prefaceFn());
             if (doBestResponse)
             {
-                CalculateBestResponse(false);
-                if (EvolutionSettings.CalculatePerturbedBestResponseRefinement)
-                {
-                    var utilities = Status.BestResponseUtilities.ToArray();
-                    var improvement = Status.BestResponseImprovement.ToArray();
-                    var br = Status.BestResponseImprovementAdjAvg;
-                    InformationSets.ForEach(x =>
-                    {
-                        x.CreateBackup();
-                        x.PerturbAverageStrategy(EvolutionSettings.PerturbationForBestResponseCalculation, false);
-                    });
-                    CalculateBestResponse(false);
-                    InformationSets.ForEach(x => x.RestoreBackup());
-                    double refinement = br / Status.BestResponseImprovementAdjAvg; // i.e., the exploitability without a perturbation divided by the exploitability with a perturbation. if very refined, this should be close to 1. If the perturbation greatly increases exploitability, this will be closer to 0.
-                                                                                   // restore previous values
-                    Status.BestResponseUtilities = utilities;
-                    Status.BestResponseImprovement = improvement;
-                    Status.Refinement = refinement;
-                }
+                GenerateBestResponseReports();
             }
             if (doReports)
             {
                 Eak.Add("Report");
                 var actionStrategiesToUse = EvolutionSettings.ActionStrategiesToUseInReporting;
-                await CompleteMainReports(prefaceFn, reportCollection, actionStrategiesToUse);
+                await GenerateMainReports(prefaceFn, reportCollection, actionStrategiesToUse);
                 RecallBestOverTime();
                 Eak.Remove("Report");
             }
         }
 
+        private void GenerateBestResponseReports()
+        {
+            CalculateBestResponse(false);
+            if (EvolutionSettings.CalculatePerturbedBestResponseRefinement)
+            {
+                var utilities = Status.BestResponseUtilities.ToArray();
+                var improvement = Status.BestResponseImprovement.ToArray();
+                var br = Status.BestResponseImprovementAdjAvg;
+                InformationSets.ForEach(x =>
+                {
+                    x.CreateBackup();
+                    x.PerturbAverageStrategy(EvolutionSettings.PerturbationForBestResponseCalculation, false);
+                });
+                CalculateBestResponse(false);
+                InformationSets.ForEach(x => x.RestoreBackup());
+                double refinement = br / Status.BestResponseImprovementAdjAvg; // i.e., the exploitability without a perturbation divided by the exploitability with a perturbation. if very refined, this should be close to 1. If the perturbation greatly increases exploitability, this will be closer to 0.
+                                                                               // restore previous values
+                Status.BestResponseUtilities = utilities;
+                Status.BestResponseImprovement = improvement;
+                Status.Refinement = refinement;
+            }
+        }
 
-        private async Task CompleteMainReports(Func<string> prefaceFn, ReportCollection reportCollection, List<ActionStrategies> actionStrategiesToUse)
+        private async Task GenerateMainReports(Func<string> prefaceFn, ReportCollection reportCollection, List<ActionStrategies> actionStrategiesToUse)
         {
             ActionStrategies previous = ActionStrategy;
             if (EvolutionSettings.RoundOffLowProbabilitiesBeforeReporting)

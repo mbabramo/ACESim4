@@ -213,7 +213,7 @@ namespace ACESim
                 iterationGrouper += reportingGroupSize)
             {
                 if (iterationGrouper == 0)
-                    await GenerateReports(0, () => $"Iteration 0");
+                    await ConsiderGeneratingReports(0, () => $"Iteration 0");
                 s.Reset();
                 s.Start();
                 Parallelizer.Go(EvolutionSettings.ParallelOptimization, iterationGrouper,
@@ -223,7 +223,7 @@ namespace ACESim
                         AvgStrategySamplingCFRIteration(Status.IterationNum);
                     });
                 s.Stop();
-                var result = await GenerateReports(iterationGrouper + reportingGroupSize,
+                var result = await ConsiderGeneratingReports(iterationGrouper + reportingGroupSize,
                     () =>
                         $"{GameDefinition.OptionSetName} Iteration {iterationGrouper + reportingGroupSize} Milliseconds per iteration {((s.ElapsedMilliseconds / ((double) reportingGroupSize)))}");
                 reportCollection.Add(result);

@@ -259,7 +259,7 @@ namespace ACESim
                 GibsonProbingCFRIteration(ProbingCFRIterationNum);
                 s.Stop();
 #pragma warning disable CA1416
-                var result = await GenerateReports(ProbingCFRIterationNum + 1,
+                var result = await ConsiderGeneratingReports(ProbingCFRIterationNum + 1,
                     () =>
                         $"{GameDefinition.OptionSetName} Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(ProbingCFRIterationNum + 1))))}");
                 reportCollection.Add(result);

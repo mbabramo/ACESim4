@@ -146,7 +146,7 @@ namespace ACESim
 
             if (!isBestResponseIteration)
             {
-                var result = await GenerateReports(iteration,
+                var result = await ConsiderGeneratingReports(iteration,
                     () =>
                         $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {StrategiesDeveloperStopwatch.ElapsedMilliseconds / (double)iteration}");
                 reportCollection.Add(result);
@@ -779,7 +779,7 @@ namespace ACESim
 
         #region Reporting
 
-        public override async Task<ReportCollection> GenerateReports(int iteration, Func<string> prefaceFn, bool suppressPrintTree = false)
+        public override async Task<ReportCollection> ConsiderGeneratingReports(int iteration, Func<string> prefaceFn, bool suppressPrintTree = false, string manualReportsSupplementalString = "")
         {
             ReportCollection reportCollection = null;
             bool doReports = EvolutionSettings.ReportEveryNIterations != null && (iteration % EvolutionSettings.ReportEveryNIterations == 0 || Status.BestResponseTargetMet(EvolutionSettings.BestResponseTarget));

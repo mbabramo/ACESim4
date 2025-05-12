@@ -59,7 +59,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             TabbedText.WriteLine(reportString);
 
 #pragma warning disable CA1416
-            ReportCollection reportCollection = await GenerateReports(iteration,
+            ReportCollection reportCollection = await ConsiderGeneratingReports(iteration,
                 () =>
                     $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
 

@@ -154,6 +154,7 @@ namespace ACESim
         private ArrayCommandList Unroll_Commands;
         private ArrayCommandListRunner Unroll_CommandListRunner;
         private static ArrayCommandList Unroll_Commands_Cached = null;
+        private static ArrayCommandListRunner Unroll_CommandListRunner_Cached = null;
         private static (int Chance, int Decision, int Final) GameTreeNodeCount_Cached = default;
         private int Unroll_SizeOfArray;
         private static int Unroll_SizeOfArray_Cached = -1;
@@ -214,7 +215,7 @@ namespace ACESim
                 }
                 else
                     SaveWeightedGameProgressesAfterEachReport = false;
-                var result = await GenerateReports(iteration,
+                var result = await ConsiderGeneratingReports(iteration,
                     () =>
                         $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
                 ConsiderModelSuccessTrackingForIteration(iteration);
@@ -231,8 +232,6 @@ namespace ACESim
                 ReinitializeInformationSetsIfNecessary(iteration);
             }
             TabbedText.SetConsoleProgressString(null);
-            if (EvolutionSettings.GenerateManualReports)
-                GenerateManualReports("");
             return reportCollection;
         }
 
@@ -279,18 +278,19 @@ namespace ACESim
             {
                 const int max_num_commands = 150_000_000;
                 Unroll_InitializeInitialArrayIndices();
-                if (EvolutionSettings.ReuseUnrolledAlgorithm && Unroll_Commands_Cached != null)
+                if (EvolutionSettings.ReuseUnrolledAlgorithm && Unroll_CommandListRunner_Cached != null)
                 {
                     (int Chance, int Decision, int Final) gameTreeNodeCount = CountGameTreeNodes();
                     if (gameTreeNodeCount == GameTreeNodeCount_Cached)
                     {
                         Unroll_Commands = Unroll_Commands_Cached;
+                        Unroll_CommandListRunner = Unroll_CommandListRunner_Cached;
                         Unroll_SizeOfArray = Unroll_SizeOfArray_Cached;
                         TabbedText.WriteLine($"Using cached unrolled commands.");
                         return;
                     }
                 }
-                Unroll_Commands_Cached = null; // free memory
+                Unroll_CommandListRunner_Cached = null; // free memory
                 TabbedText.WriteLine($"Unrolling commands...");
                 Unroll_Commands = new ArrayCommandList(max_num_commands, Unroll_InitialArrayIndex);
                 ActionStrategy = ActionStrategies.CurrentProbability;
@@ -319,13 +319,14 @@ namespace ACESim
                 }
                 Unroll_Commands.EndCommandChunk();
                 Unroll_SizeOfArray = Unroll_Commands.VirtualStackSize;
+                Unroll_CommandListRunner = Unroll_Commands.GetCompiledRunner(kind: EvolutionSettings.Unroll_ChunkExecutorKind, null);
                 if (EvolutionSettings.ReuseUnrolledAlgorithm)
                 {
                     Unroll_Commands_Cached = Unroll_Commands;
+                    Unroll_CommandListRunner_Cached = Unroll_CommandListRunner;
                     Unroll_SizeOfArray_Cached = Unroll_SizeOfArray;
                     GameTreeNodeCount_Cached = CountGameTreeNodes();
                 }
-                Unroll_CommandListRunner = Unroll_Commands.GetCompiledRunner(kind: EvolutionSettings.Unroll_ChunkExecutorKind, null);
             }
             catch (OutOfMemoryException ex)
             {
@@ -1001,9 +1002,13 @@ namespace ACESim
 
         public override async Task<ReportCollection> RunAlgorithm(string optionSetName)
         {
+            ReportCollection reportCollection;
             if (EvolutionSettings.UnrollAlgorithm)
-                return await Unroll_SolveGeneralizedVanillaCFR();
-            return await SolveGeneralizedVanillaCFR();
+                reportCollection = await Unroll_SolveGeneralizedVanillaCFR();
+            else
+                reportCollection = await SolveGeneralizedVanillaCFR();
+
+            return reportCollection;
         }
 
         private async Task<ReportCollection> SolveGeneralizedVanillaCFR()
@@ -1059,7 +1064,7 @@ namespace ACESim
             SimulatedAnnealing(iteration);
             MiniReport(iteration, results);
 
-            var result = await GenerateReports(iteration,
+            var result = await ConsiderGeneratingReports(iteration,
                 () =>
                     $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
             reportCollection.Add(result);

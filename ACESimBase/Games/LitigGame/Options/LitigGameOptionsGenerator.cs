@@ -19,7 +19,7 @@ namespace ACESim
             SmallGame,
         }
 
-        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.AppropriationGame; // DEBUG
+        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.SmallGame; // DEBUG
 
         public static LitigGameOptions GetLitigGameOptions() => LitigGameChoice switch
         {

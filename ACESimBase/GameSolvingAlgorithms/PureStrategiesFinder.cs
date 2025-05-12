@@ -100,7 +100,7 @@ namespace ACESim
                         TabbedText.WriteLine(
                             $"Player0StrategyIndex {player0StrategyIndex} Player1StrategyIndex {player1StrategyIndex}");
 #pragma warning disable CA1416
-                        await GenerateReports(0, () => "");
+                        await ConsiderGeneratingReports(0, () => "");
                         PrintGameTree();
                         TabbedText.WriteLine("");
                         numPrinted++;
