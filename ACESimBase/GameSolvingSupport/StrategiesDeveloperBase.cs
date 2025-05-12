@@ -120,7 +120,7 @@ namespace ACESim
             return File.Exists(GetEquilibriaFileName());
         }
 
-        private string CreateEquilibriaFile(List<double[]> equilibria)
+        public string CreateEquilibriaFile(List<double[]> equilibria)
         {
             StringBuilder s = new StringBuilder();
             foreach (var equilibrium in equilibria)
@@ -3229,7 +3229,7 @@ namespace ACESim
 
         public void GenerateManualReports(string supplementalString)
         {
-            if (!EvolutionSettings.GenerateManualReports)
+            if (!EvolutionSettings.GenerateManualReports || SavedWeightedGameProgresses == null || !SavedWeightedGameProgresses.Any())
                 return;
             var results = GameDefinition.ProduceManualReports(SavedWeightedGameProgresses, supplementalString);
             foreach (var result in results)

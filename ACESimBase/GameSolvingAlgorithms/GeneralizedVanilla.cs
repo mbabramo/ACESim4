@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -1007,6 +1008,9 @@ namespace ACESim
                 reportCollection = await Unroll_SolveGeneralizedVanillaCFR();
             else
                 reportCollection = await SolveGeneralizedVanillaCFR();
+
+            double[] equilibrium = null;
+            string equFile = CreateEquilibriaFile(new List<double[]> { equilibrium });
 
             return reportCollection;
         }

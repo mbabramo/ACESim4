@@ -443,25 +443,29 @@ namespace LitigCharts
 
             // Define placement rules for moving files into subfolders
             string[] getExtensions(string eqType) => new string[] {
-        firstEqOnly ? ".csv" : $"-{eqType}.csv",
-        $"-heatmap-{eqType}.pdf", $"-heatmap-{eqType}.tex",
-        $"-fileans-{eqType}.pdf", $"-fileans-{eqType}.tex",
-        $"-scr-{eqType}.pdf", $"-scr-{eqType}.tex", $"-scr-{eqType}.csv"
-    };
+                firstEqOnly ? ".csv" : $"-{eqType}.csv",
+                $"-heatmap-{eqType}.pdf", $"-heatmap-{eqType}.tex",
+                $"-fileans-{eqType}.pdf", $"-fileans-{eqType}.tex",
+                $"-scr-{eqType}.pdf", $"-scr-{eqType}.tex", $"-scr-{eqType}.csv"
+            };
             var placementRules = new List<(string folderName, string[] extensions)>()
-    {
-        ("First Equilibrium", getExtensions("Eq1")),
-        ("EFG Files", new string[] { ".efg" }),
-        ("Equilibria Files", new string[] { "-equ.csv" }),
-        ("Logs", new string[] { "-log.txt" }),
-    };
+            {
+                ("First Equilibrium", getExtensions("Eq1")),
+                ("EFG Files", new string[] { ".efg" }),
+                ("Equilibria Files", new string[] { "-equ.csv" }),
+                ("Logs", new string[] { "-log.txt" }),
+                ("Latex files", new string[] { ".tex" }),
+                ("File-Answer Diagrams", new string[] { "-fileans.pdf" }),
+                ("Offer Heatmaps", new string[] { "-heatmap.pdf" }),
+                ("Costs Diagrams", new string[] { "-scr.pdf" }),
+            };
             if (!firstEqOnly)
             {
                 placementRules.InsertRange(0, new List<(string, string[])>()
-        {
-            ("Correlated Equilibrium", getExtensions("Corr")),
-            ("Average Equilibrium", getExtensions("Avg")),
-        });
+                {
+                    ("Correlated Equilibrium", getExtensions("Corr")),
+                    ("Average Equilibrium", getExtensions("Avg")),
+                });
                 for (int i = 2; i <= 100; i++)
                 {
                     placementRules.Add(("Additional Equilibria", getExtensions($"Eq{i}")));

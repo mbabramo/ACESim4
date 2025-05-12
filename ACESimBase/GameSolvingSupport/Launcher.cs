@@ -32,9 +32,9 @@ namespace ACESim
         public int[] LimitToTaskIDs = null; // new int[] { 12625, 12635, }; // set this to non-null to repeat specific IDs (e.g., from failures) from a distributed action set.
 
         public const int VanillaIterations = 1000; // Note: Also used for GeneralizedVanilla, DeepCFR
-        public const int VanillaReportEveryNIterations = 100; // DEBUG VanillaIterations;  // EffectivelyNever
+        public const int VanillaReportEveryNIterations = VanillaIterations;  // EffectivelyNever
         public int? SuppressReportBeforeIteration = null;
-        public int VanillaBestResponseEveryMIterations => Math.Min(100, VanillaReportEveryNIterations); 
+        public int VanillaBestResponseEveryMIterations => Math.Min(100, VanillaIterations); 
         public int? SuppressBestResponseBeforeIteration = null; 
         public const bool CalculatePerturbedBestResponseRefinement = true;
         public const int MiniReportEveryPIterations = EffectivelyNever;
