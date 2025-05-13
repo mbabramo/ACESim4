@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using ACESim;
 using ACESim.Util;
+using ACESimBase.Util.Serialization;
 using Microsoft.ServiceFabric.Services.Communication.Runtime;
 using Microsoft.ServiceFabric.Services.Runtime;
 
