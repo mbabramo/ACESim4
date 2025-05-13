@@ -2251,6 +2251,18 @@ namespace ACESim
 
         #region Utility methods
 
+        public string CreateGambitEFGFile()
+        {
+            EFGFileWriter efgCreator = new EFGFileWriter(GameDefinition.OptionSetName, GameDefinition.NonChancePlayerNames, EvolutionSettings.DistributeChanceDecisions);
+            TreeWalk_Tree(efgCreator);
+            string efgResult = efgCreator.FileText.ToString();
+            DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
+            var folderFullName = folder.FullName;
+            string filename = Path.Combine(folderFullName, MasterReportName + "-" + GameDefinition.OptionSetName + ".efg");
+            TextFileManage.CreateTextFile(filename, efgResult);
+            return filename;
+        }
+
         internal void RememberBestResponseExploitabilityValues(int iteration)
         {
             if (iteration <= 1)

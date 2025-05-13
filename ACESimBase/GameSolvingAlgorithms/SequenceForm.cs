@@ -73,7 +73,7 @@ namespace ACESimBase.GameSolvingAlgorithms
 
             string filename = null;
             if (EvolutionSettings.CreateEFGFileForSequenceForm)
-                filename = CreateGambitFile();
+                filename = CreateGambitEFGFile();
 
             if (Approach == SequenceFormApproach.ECTA)
             {
@@ -970,18 +970,6 @@ namespace ACESimBase.GameSolvingAlgorithms
             string output = await CreateGambitProcess(filename);
             TabbedText.WriteLine($"Gambit output for {filename} ({s.ElapsedMilliseconds} ms): {output}");
             return output;
-        }
-
-        private string CreateGambitFile()
-        {
-            EFGFileWriter efgCreator = new EFGFileWriter(GameDefinition.OptionSetName, GameDefinition.NonChancePlayerNames, EvolutionSettings.DistributeChanceDecisions);
-            TreeWalk_Tree(efgCreator);
-            string efgResult = efgCreator.FileText.ToString();
-            DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
-            var folderFullName = folder.FullName;
-            string filename = Path.Combine(folderFullName, MasterReportName + "-" + GameDefinition.OptionSetName + ".efg");
-            TextFileManage.CreateTextFile(filename, efgResult);
-            return filename;
         }
 
         private async Task<string> CreateGambitProcess(string filename)

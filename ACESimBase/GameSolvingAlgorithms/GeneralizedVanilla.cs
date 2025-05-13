@@ -1045,6 +1045,9 @@ namespace ACESim
             }
             else
             {
+                if (EvolutionSettings.CreateEFGFileForSequenceForm)
+                    CreateGambitEFGFile();
+
                 if (EvolutionSettings.UnrollAlgorithm)
                     reportCollection = await Unroll_SolveGeneralizedVanillaCFR();
                 else
