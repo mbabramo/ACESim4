@@ -1026,7 +1026,7 @@ namespace ACESim
             }
             await base.Initialize();
             InitializeInformationSets();
-            if (EvolutionSettings.UnrollAlgorithm)
+            if (EvolutionSettings.UnrollAlgorithm && (!EvolutionSettings.UsePreloadedEquilibriaIfAvailable || !EquilibriaFileAlreadyExists()))
             {
                 Unroll_CreateUnrolledCommandList();
             }
@@ -1038,6 +1038,7 @@ namespace ACESim
             if (EvolutionSettings.UsePreloadedEquilibriaIfAvailable && EquilibriaFileAlreadyExists())
             {
                 TabbedText.WriteLine($"Using preloaded equilibria file {optionSetName}");
+                SaveWeightedGameProgressesAfterEachReport = true;
                 double[] equilibrium = LoadEquilibriaFile().First();
                 await ProcessEquilibrium(reportCollection, false, false, true, false, 1, InformationSets, 0, true, true, equilibrium);
                 // NOTE: If we switch to recording multiple equilibria, we'll change the above.

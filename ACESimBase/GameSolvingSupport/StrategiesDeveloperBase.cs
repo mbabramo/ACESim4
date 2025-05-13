@@ -275,13 +275,16 @@ namespace ACESim
             {
                 await AddReportForEquilibrium(reportCollection, numEquilibria, eqNum);
             }
-            if (includeCorrelatedEquilibriumReport && isLast)
+            if (isLast)
             {
-                AddCorrelatedEquilibriumReport(reportCollection);
-            }
-            if (includeAverageEquilibriumReport && isLast)
-            {
-                await AddAverageEquilibriumReport(reportCollection);
+                if (includeCorrelatedEquilibriumReport)
+                {
+                    AddCorrelatedEquilibriumReport(reportCollection);
+                }
+                if (includeAverageEquilibriumReport)
+                {
+                    await AddAverageEquilibriumReport(reportCollection);
+                }
             }
         }
 
@@ -294,7 +297,7 @@ namespace ACESim
             var reportResult = await ConsiderGeneratingReports(EvolutionSettings.ReportEveryNIterations ?? 0,
                 () =>
                     $"{GameDefinition.OptionSetName}{(EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria > 1 ? $"-Eq{eqNum + 1}" : "")}",
-                manualReportsSupplementalString: $"-eq{eqNum + 1}");
+                manualReportsSupplementalString: numEquilibria > 1 ? $"-eq{eqNum + 1}" : "-equ");
             reportCollection.Add(reportResult, false, true);
             TabbedText.WriteLine($"Elapsed milliseconds report for eq {eqNum + 1} of {numEquilibria}: {s.ElapsedMilliseconds}");
         }
@@ -339,46 +342,48 @@ namespace ACESim
         {
             Started = DateTime.Now;
             MasterReportName = masterReportName;
-            if (EvolutionSettings.SkipAltogetherIfEquilibriumFileAlreadyExists && EquilibriaFileAlreadyExists())
+            if (EvolutionSettings.SkipAltogetherIfEquilibriaFileAlreadyExists && EquilibriaFileAlreadyExists())
             {
                 TabbedText.WriteLine($"{optionSetName}: Equilibria file already exists. Skipping equilibria generation.");
                 return null;
             }
-            await Initialize();
             ReportCollection reportCollection = new ReportCollection();
-            bool constructCorrelatedEquilibrium = GameDefinition.NumScenarioPermutations > 1 && EvolutionSettings.ConstructCorrelatedEquilibrium;
-            bool anyScenarioOK = false;
-            if (restrictToScenarioIndex == -1)
             {
-                anyScenarioOK = true; // it doesn't matter what the scenario is, because we're just doing a single iteration to get initialization complete
-                restrictToScenarioIndex = 0;
-            }
-            int startingScenarioIndex = 0;
-            int numScenarios = GameDefinition.NumScenarioPermutations;
-            if (restrictToScenarioIndex is int restriction)
-            {
-                // We will be restricting to a particular scenario when using scenarios and developing individual scenarios each in their own distributed process. This can permit us to generate PCA data for particular scenarios.
-                // If restrictToScenarioIndex is null, then we will run through all of the scenarios. Of course, if there is only 1 scenario, then this won't make a difference.
-                startingScenarioIndex = restriction;
-                numScenarios = 1;
-            }
-            for (OverallScenarioIndex = startingScenarioIndex; OverallScenarioIndex < startingScenarioIndex + numScenarios; OverallScenarioIndex++)
-            {
-                string optionSetInfo = $@"Option set {optionSetName}";
-                string scenarioFullName = optionSetInfo;
-                if (GameDefinition.NumScenarioPermutations > 1)
+                await Initialize();
+                bool constructCorrelatedEquilibrium = GameDefinition.NumScenarioPermutations > 1 && EvolutionSettings.ConstructCorrelatedEquilibrium;
+                bool anyScenarioOK = false;
+                if (restrictToScenarioIndex == -1)
                 {
-                    ReinitializeForScenario(OverallScenarioIndex, GameDefinition.UseDifferentWarmup);
-                    scenarioFullName = GameDefinition.GetNameForScenario_WithOpponentWeight();
-                    if (anyScenarioOK)
-                        optionSetInfo += $" (scenario irrelevant -- loading only)";
-                    else
-                        optionSetInfo += $" (scenario index {OverallScenarioIndex} (total scenarios: {GameDefinition.NumScenarioPermutations}) = {scenarioFullName})";
+                    anyScenarioOK = true; // it doesn't matter what the scenario is, because we're just doing a single iteration to get initialization complete
+                    restrictToScenarioIndex = 0;
                 }
-                Status.ScenarioIndex = OverallScenarioIndex;
-                Status.ScenarioName = scenarioFullName;
+                int startingScenarioIndex = 0;
+                int numScenarios = GameDefinition.NumScenarioPermutations;
+                if (restrictToScenarioIndex is int restriction)
+                {
+                    // We will be restricting to a particular scenario when using scenarios and developing individual scenarios each in their own distributed process. This can permit us to generate PCA data for particular scenarios.
+                    // If restrictToScenarioIndex is null, then we will run through all of the scenarios. Of course, if there is only 1 scenario, then this won't make a difference.
+                    startingScenarioIndex = restriction;
+                    numScenarios = 1;
+                }
+                for (OverallScenarioIndex = startingScenarioIndex; OverallScenarioIndex < startingScenarioIndex + numScenarios; OverallScenarioIndex++)
+                {
+                    string optionSetInfo = $@"Option set {optionSetName}";
+                    string scenarioFullName = optionSetInfo;
+                    if (GameDefinition.NumScenarioPermutations > 1)
+                    {
+                        ReinitializeForScenario(OverallScenarioIndex, GameDefinition.UseDifferentWarmup);
+                        scenarioFullName = GameDefinition.GetNameForScenario_WithOpponentWeight();
+                        if (anyScenarioOK)
+                            optionSetInfo += $" (scenario irrelevant -- loading only)";
+                        else
+                            optionSetInfo += $" (scenario index {OverallScenarioIndex} (total scenarios: {GameDefinition.NumScenarioPermutations}) = {scenarioFullName})";
+                    }
+                    Status.ScenarioIndex = OverallScenarioIndex;
+                    Status.ScenarioName = scenarioFullName;
 
-                TabbedText.WriteLineEvenIfDisabled(optionSetInfo);
+                    TabbedText.WriteLineEvenIfDisabled(optionSetInfo);
+                }
 
                 ReportCollection reportToAddToCollection = await RunAlgorithm(optionSetName);
 
@@ -397,11 +402,11 @@ namespace ACESim
                 {
                     reportCollection.Add(reportToAddToCollection, false, true); // if constructing correlated equilibrium, we ignore the interim reports
                 }
+                if (restrictToScenarioIndex == null)
+                    await RecoverSavedPCAModelDataAndPerformAnalysis(reportCollection, masterReportName); // i.e., we've gone through all scenarios all at once (if there are more than one) and so now we should perform PCA. If we are distributing the scenarios across processes, then we will execute this through a later task instead.
+                if (constructCorrelatedEquilibrium)
+                    reportCollection = await FinalizeCorrelatedEquilibrium();
             }
-            if (restrictToScenarioIndex == null)
-                await RecoverSavedPCAModelDataAndPerformAnalysis(reportCollection, masterReportName); // i.e., we've gone through all scenarios all at once (if there are more than one) and so now we should perform PCA. If we are distributing the scenarios across processes, then we will execute this through a later task instead.
-            if (constructCorrelatedEquilibrium)
-                reportCollection = await FinalizeCorrelatedEquilibrium();
             DateTime finished = DateTime.Now;
             TimeSpan timeSpan = finished - Started;
             Status.OverallCalculationTime = (int)timeSpan.TotalSeconds;

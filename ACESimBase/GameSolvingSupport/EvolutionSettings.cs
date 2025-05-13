@@ -40,7 +40,7 @@ namespace ACESim
 
         public bool CreateEquilibriaFile = true;
         public bool UsePreloadedEquilibriaIfAvailable = true;
-        public bool SkipAltogetherIfEquilibriumFileAlreadyExists = true; // If true, and an equilibrium file exists, then we will skip processing AND reporting. If you want to do reporting, then use PreloadedEquilibriaForSequenceForm
+        public bool SkipAltogetherIfEquilibriaFileAlreadyExists = false; // If true, and an equilibrium file exists, then we will skip processing AND reporting. If you want to do reporting, then use PreloadedEquilibriaForSequenceForm
 
         public bool UseAcceleratedBestResponse = true; 
         public const int EffectivelyNever = 999999999;
