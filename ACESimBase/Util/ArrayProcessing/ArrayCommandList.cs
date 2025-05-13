@@ -28,7 +28,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public double[] VirtualStack;
         // The virtual stack consists of original data (which may be mutated),
         // as well as scratch data for local variables. Thus, this is equal to the
-        // size of the non-scratch data.
+        // size of the non-stagecostatch data.
         public int SizeOfMainData;
         public Span<double> NonScratchData => VirtualStack.AsSpan(0, SizeOfMainData);
         public int NextArrayIndex => Recorder.NextArrayIndex;

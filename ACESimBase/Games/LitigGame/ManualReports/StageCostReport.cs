@@ -16,16 +16,23 @@ namespace ACESimBase.Games.LitigGame.ManualReports
 {
     public class StageCostReport
     {
-        static bool TargetPowerPoint = false; 
         static bool UseFixedAssessmentMaxMagnitudes = true; 
         static double[] FixedAsseessmentMaxMagnitudes = new double[] { 2.5, 2.5, 2.0 }; // 1.5, 1.5, 0.6 };  -- may need to depend on series we are running
 
         public static List<string> GenerateReport(List<(GameProgress theProgress, double weight)> gameProgresses)
         {
+            GenerateFilenameAndContents(gameProgresses, false, out string csvFile, out string tikzCode);
+            GenerateFilenameAndContents(gameProgresses, true, out string csvFilePresentation, out string tikzCodePresentation); // color (no shading) on black background, for presentation rather than publication
+            return new List<string>() { csvFile, tikzCode, csvFilePresentation, tikzCodePresentation };
+        }
+
+        private static void GenerateFilenameAndContents(List<(GameProgress theProgress, double weight)> gameProgresses, bool presentationMode, out string csvFile, out string tikzCode)
+        {
             double initialWeightSum = gameProgresses.Sum(x => x.weight);
             List<(LitigGameProgress theProgress, double weight)> litigProgresses = gameProgresses.Select(x => ((LitigGameProgress)x.theProgress, x.weight / initialWeightSum)).ToList();
             List<(Func<LitigGameProgress, bool> filter, string stageName, string shortStageName)> namedStages = new List<(Func<LitigGameProgress, bool> filter, string stageName, string shortStageName)>()
             {
+                (prog => prog.DisputeArises == false, "No Dispute Arises", "No Dispute"),
                 (prog => prog.PFiles == false, "P Doesn't File", "No Suit"),
                 (prog => prog.PFiles && !prog.DAnswers, "D Doesn't Answer", "No Answer"),
                 (prog => prog.CaseSettles, "Settles", "Settles"),
@@ -80,16 +87,16 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             }
             // We can change the following to tweak individual charts, for example to make them comparable to each other or to squeeze some more words in
             double? heightOverride = null;
-            double? maxMagnitudeForAccuracy = null; 
+            double? maxMagnitudeForAccuracy = null;
             if (maxMagnitudeForAccuracy is double nonNullMaxMagnitude)
             {
                 maxMagnitudes[0] = (maxMagnitudes[0].assessmentName, Math.Max(maxMagnitudes[0].maxMagnitude, nonNullMaxMagnitude));
                 maxMagnitudes[1] = (maxMagnitudes[1].assessmentName, Math.Max(maxMagnitudes[1].maxMagnitude, nonNullMaxMagnitude));
             }
             const double PowerPointOverallSpaceMultiplier = 2.0;
-            var overallSpace = TargetPowerPoint ? new TikzRectangle(0, 0, 13.3333 * PowerPointOverallSpaceMultiplier, (heightOverride ?? 7.5) * PowerPointOverallSpaceMultiplier) : new TikzRectangle(0, 0, 20, heightOverride ?? 16);
-            double proportionForText = TargetPowerPoint ? 0.03 : 0.30;
-            var options = (LitigGameOptions) gameProgresses.First().theProgress.GameDefinition.GameOptions;
+            var overallSpace = presentationMode ? new TikzRectangle(0, 0, 13.3333 * PowerPointOverallSpaceMultiplier, (heightOverride ?? 7.5) * PowerPointOverallSpaceMultiplier) : new TikzRectangle(0, 0, 20, heightOverride ?? 16);
+            double proportionForText = presentationMode ? 0.03 : 0.30;
+            var options = (LitigGameOptions)gameProgresses.First().theProgress.GameDefinition.GameOptions;
             string title = $"Costs: {options.CostsMultiplier}x; Fee Shift: {options.LoserPaysMultiple}x";
             bool pRiskNeutral = options.PUtilityCalculator is RiskNeutralUtilityCalculator;
             bool dRiskNeutral = options.DUtilityCalculator is RiskNeutralUtilityCalculator;
@@ -101,20 +108,18 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 (false, false) => "; Both Risk Averse"
             };
             title += supplementalTitle;
-            StageCostDiagram diagram = new StageCostDiagram(overallSpace, 1.5, 0.25, 0.25, proportionForText, stagesForEachPanel, maxMagnitudes, stageNames, shortStageNames, title);
+            StageCostDiagram diagram = new StageCostDiagram(overallSpace, 1.5, 0.25, 0.25, proportionForText, stagesForEachPanel, maxMagnitudes, stageNames, shortStageNames, title, presentationMode);
 
-            string csvFile = csvStringBuilder.ToString();
-            string tikzCode = diagram.GetTikzDocument();
-
-            return new List<string>() { csvFile, tikzCode };
+            csvFile = csvStringBuilder.ToString();
+            tikzCode = diagram.GetTikzDocument();
         }
 
-        public record StageCostDiagram(TikzRectangle overallSpace, double imagePadding, double padBelowPanel, double padBetweenPanels, double proportionDedicatedToText, List<List<StageInStageCostDiagram>> panelData, List<(string assessmentName, double maxMagnitude)> assessmentInfo, List<string> stageNames, List<string> shortStageNames, string title)
+        public record StageCostDiagram(TikzRectangle overallSpace, double imagePadding, double padBelowPanel, double padBetweenPanels, double proportionDedicatedToText, List<List<StageInStageCostDiagram>> panelData, List<(string assessmentName, double maxMagnitude)> assessmentInfo, List<string> stageNames, List<string> shortStageNames, string title, bool presentationMode)
         {
-            string TrulyLiablePattern => TargetPowerPoint ? "fill=blue" : "pattern color=blue, pattern=north east lines";
-            string TrulyNotLiablePattern => TargetPowerPoint ? "fill=red" : "pattern color=orange, pattern=north west lines";
-            string PenColor => TargetPowerPoint ? "white" : "black"; 
-            string PenColorForStageName => TargetPowerPoint ? "yellow" : "black";
+            string TrulyLiablePattern => presentationMode ? "fill=blue" : "pattern color=blue, pattern=north east lines";
+            string TrulyNotLiablePattern => presentationMode ? "fill=red" : "pattern color=orange, pattern=north west lines";
+            string PenColor => presentationMode ? "white" : "black"; 
+            string PenColorForStageName => presentationMode ? "yellow" : "black";
 
             public TikzRectangle SpaceAfterPadding => overallSpace.ReducedByPadding(imagePadding, imagePadding);
             public double imagePaddingVerticalProportion => imagePadding / overallSpace.height;
@@ -177,7 +182,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 StringBuilder tikzBuilder = new StringBuilder();
                 string attributes = $"{PenColor}, very thin";
 
-                if (TargetPowerPoint)
+                if (presentationMode)
                 {
                     tikzBuilder.AppendLine(overallSpace.DrawCommand("fill=black"));
                     tikzBuilder.AppendLine(SpaceAtTop.DrawCommand("text=white", $"\\huge {title}"));
@@ -205,7 +210,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 tikzBuilder.AppendLine(GetLegend());
 
 
-                string tikzDocument = TikzHelper.GetStandaloneDocument(tikzBuilder.ToString(), null, TargetPowerPoint ? @"\usepackage[sfdefault]{ClearSans} %% option 'sfdefault' activates Clear Sans as the default text font
+                string tikzDocument = TikzHelper.GetStandaloneDocument(tikzBuilder.ToString(), null, presentationMode ? @"\usepackage[sfdefault]{ClearSans} %% option 'sfdefault' activates Clear Sans as the default text font
 \usepackage[T1]{fontenc}" : null);
                 return tikzDocument;
             }

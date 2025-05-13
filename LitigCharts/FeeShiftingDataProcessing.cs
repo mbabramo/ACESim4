@@ -277,7 +277,6 @@ namespace LitigCharts
             var launcher = new LitigGameLauncher();
             var gameOptionsSets = GetEndogenousDisputesOptionsSets();
             var map = launcher.GetEndogenousDisputesArticleNameMap(); // name to find (avoids redundancies in naming)
-            List<(string, object)> settingsToFind = GetEndogenousDisputesSettingsToFind();
             string path = Launcher.ReportFolder();
             string outputFileFullPath = Path.Combine(path, filePrefix + $"-{endOfFileName}.csv");
             string cumResults = "";
@@ -285,7 +284,9 @@ namespace LitigCharts
             var distinctOptionSets = gameOptionsSets.DistinctBy(x => map[x.Name]).ToList();
 
             // look up particular settings here if desired (not usually needed)
-            var matches = distinctOptionSets.Where(x => settingsToFind.All(y => x.VariableSettings[y.Item1].ToString() == y.Item2.ToString())).ToList();
+            bool findSpecificSettings = false;
+            List<(string, object)> settingsToFind = GetEndogenousDisputesSettingsToFind();
+            var matches = distinctOptionSets.Where(x => !findSpecificSettings || settingsToFind.All(y => x.VariableSettings[y.Item1].ToString() == y.Item2.ToString())).ToList();
             var namesOfMatches = matches.Select(x => x.Name).ToList();
             var mappedNamesOfMatches = namesOfMatches.Select(x => map[x]).ToList();
 
@@ -421,7 +422,7 @@ namespace LitigCharts
                 workExists = processesToLaunch.Any() || !avoidProcessingIfPDFExists; // if we're avoiding processing if the PDF exists, then we'll indicate that there's no more work, because that's our only way of telling
                 foreach (string fileSuffix in equilibriumTypeSuffixes)
                 {
-                    List<(string path, string combinedPath, string optionSetName, string fileSuffix)> someToDo = FeeShiftingDataProcessing.GetLatexProcessPlans(new string[] { "-scr" + fileSuffix, "-heatmap" + fileSuffix, "-fileans" + fileSuffix });
+                    List<(string path, string combinedPath, string optionSetName, string fileSuffix)> someToDo = FeeShiftingDataProcessing.GetLatexProcessPlans(new string[] { "-stagecostlight" + fileSuffix, "-stagecostdark" + fileSuffix, "-heatmap" + fileSuffix, "-fileans" + fileSuffix });
                     processesToLaunch.AddRange(someToDo);
                 }
                 ProduceLatexDiagrams(processesToLaunch);
@@ -446,7 +447,8 @@ namespace LitigCharts
                 firstEqOnly ? ".csv" : $"-{eqType}.csv",
                 $"-heatmap-{eqType}.pdf", $"-heatmap-{eqType}.tex",
                 $"-fileans-{eqType}.pdf", $"-fileans-{eqType}.tex",
-                $"-scr-{eqType}.pdf", $"-scr-{eqType}.tex", $"-scr-{eqType}.csv"
+                $"-stagecostlight-{eqType}.pdf", $"-stagecostlight-{eqType}.tex", $"-stagecostlight-{eqType}.csv",
+                $"-stagecostdark-{eqType}.pdf", $"-stagecostdark-{eqType}.tex", $"-stagecostdark-{eqType}.csv",
             };
             var placementRules = new List<(string folderName, string[] extensions)>()
             {
@@ -457,7 +459,8 @@ namespace LitigCharts
                 ("Latex files", new string[] { ".tex" }),
                 ("File-Answer Diagrams", new string[] { "-fileans.pdf" }),
                 ("Offer Heatmaps", new string[] { "-heatmap.pdf" }),
-                ("Costs Diagrams", new string[] { "-scr.pdf" }),
+                ("Stage Costs Diagrams (Normal)", new string[] { "-stagecostlight.pdf" }),
+                ("Stage Costs Diagrams (Dark Mode)", new string[] { "-stagecostdark.pdf" }),
             };
             if (!firstEqOnly)
             {

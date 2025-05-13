@@ -298,8 +298,8 @@ namespace ACESim
             "Risk Aversion",
             "Noise Multipliers", // includes P & D
             "Relative Costs",
-            "Fee Shifting Mode",
             "Damages Multiplier",
+            "Fee Shifting Mode",
             // DISABLED "Allowing Abandon and Defaults",
             // DISABLED "Probability Truly Liable",
             // DISABLED "Noise to Produce Case Strength",
