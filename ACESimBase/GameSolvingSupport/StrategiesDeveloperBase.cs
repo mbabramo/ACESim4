@@ -339,6 +339,11 @@ namespace ACESim
         {
             Started = DateTime.Now;
             MasterReportName = masterReportName;
+            if (EvolutionSettings.SkipAltogetherIfEquilibriumFileAlreadyExists && EquilibriaFileAlreadyExists())
+            {
+                TabbedText.WriteLine($"{optionSetName}: Equilibria file already exists. Skipping equilibria generation.");
+                return null;
+            }
             await Initialize();
             ReportCollection reportCollection = new ReportCollection();
             bool constructCorrelatedEquilibrium = GameDefinition.NumScenarioPermutations > 1 && EvolutionSettings.ConstructCorrelatedEquilibrium;

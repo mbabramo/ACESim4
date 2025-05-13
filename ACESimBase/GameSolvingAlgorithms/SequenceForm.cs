@@ -49,8 +49,6 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         public override async Task Initialize()
         {
-            if (EvolutionSettings.SkipAltogetherIfEquilibriumFileAlreadyExists && EquilibriaFileAlreadyExists())
-                return;
             GameDefinition.MakeAllChanceDecisionsKnowAllChanceActions(); // since there is just one chance player, each chance (and resolution) player must know all other chance decisions for ECTA algorithm to work properly
             AllowSkipEveryPermutationInitialization = false;
             StoreGameStateNodesInLists = true;
@@ -72,9 +70,6 @@ namespace ACESimBase.GameSolvingAlgorithms
         {
 
             ReportCollection reportCollection = new ReportCollection();
-            
-            if (EvolutionSettings.SkipAltogetherIfEquilibriumFileAlreadyExists && EquilibriaFileAlreadyExists())
-                return reportCollection; 
 
             string filename = null;
             if (EvolutionSettings.CreateEFGFileForSequenceForm)

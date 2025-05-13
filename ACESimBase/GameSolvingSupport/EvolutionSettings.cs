@@ -38,6 +38,10 @@ namespace ACESim
         public int? ReportEveryNIterations = 1000;
         public int? SuppressReportBeforeIteration = null;
 
+        public bool CreateEquilibriaFile = true;
+        public bool UsePreloadedEquilibriaIfAvailable = true;
+        public bool SkipAltogetherIfEquilibriumFileAlreadyExists = true; // If true, and an equilibrium file exists, then we will skip processing AND reporting. If you want to do reporting, then use PreloadedEquilibriaForSequenceForm
+
         public bool UseAcceleratedBestResponse = true; 
         public const int EffectivelyNever = 999999999;
         public int? BestResponseEveryMIterations = 100; // For partial recall games, this is very costly, so consider using EffectivelyNever. // overridden in Launcher
@@ -69,15 +73,12 @@ namespace ACESim
         public bool ConfirmPerfectEquilibria = true; // for sequence form only
         public bool ThrowIfNotPerfectEquilibrium = true;  
         public bool TryInexactArithmeticForAdditionalEquilibria = false; 
-        public bool CreateEFGFileForSequenceForm = true;
-        public bool CreateEquilibriaFile = true;
-        public bool UsePreloadedEquilibriaIfAvailable = true;
+        public bool CreateEFGFileForSequenceForm = true; // DEBUG -- extend this to GeneralVanilla
         public bool CustomSequenceFormInitialization = true;
         public bool UseCustomSequenceFormInitializationAsFinalEquilibria = false; 
         public bool SequenceFormUseRandomSeed = false; // random seed always used for additional priors, but this can be used for just a single prior
         public bool ConsiderInitializingToMostRecentEquilibrium = false;
         public bool SequenceFormBlockDistantActionsWhenTracingEquilibrium = false;
-        public bool SkipAltogetherIfEquilibriumFileAlreadyExists = false; // If true, and an equilibrium file exists, then we will skip processing AND reporting. If you want to do reporting, then use PreloadedEquilibriaForSequenceForm
         public bool SequenceFormCutOffProbabilityZeroNodes = true; // If true, then instead of setting chance nodes to no less than the lowest permissible rational value, probability is set to zero, and that part of the tree will be excised. (The algorithm will not work if probabilities are left at zero.)
 
         // SCENARIOS -- see GameDefinition, since this is game specific.

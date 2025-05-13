@@ -520,6 +520,8 @@ namespace ACESim
                 var optionSet = optionSets[(int)index];
                 TabbedText.WriteLine($"Option set {index} of {optionSets.Count()}: {optionSet.Name}");
                 var optionSetResults = await ProcessSingleOptionSet(masterReportName, (int)index, true);
+                if (optionSetResults == null)
+                    return;
                 lock (LocalOptionSetsLock)
                     results.Add(optionSetResults);
             }
@@ -549,7 +551,8 @@ namespace ACESim
             for (int i = 0; i < NumRepetitions; i++)
             {
                 var repetitionReport = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSetName, i, addOptionSetColumns, developer, null);
-                result.Add(repetitionReport);
+                if (repetitionReport != null)
+                    result.Add(repetitionReport);
             }
             return result;
         }
@@ -574,6 +577,8 @@ namespace ACESim
             try
             {
                 var result = await GetSingleRepetitionReport(optionSetName, repetition, addOptionSetColumns, developer, restrictToScenarioIndex, logAction);
+                if (result == null)
+                    return null;
                 logAction("Writing report to blob");
                 if (result.csvReports.Any())
                 {
@@ -613,6 +618,8 @@ namespace ACESim
             try
             {
                 reportCollection = await developer.DevelopStrategies(optionSetName, restrictToScenarioIndex, MasterReportNameForDistributedProcessing);
+                if (reportCollection == null)
+                    return reportCollection;
             }
             catch (UnrollingException)
             {
