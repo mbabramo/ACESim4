@@ -793,25 +793,24 @@ namespace LitigCharts
                                 lineGraphData.Add(lineGraphDataForRow);
                         }
 
-                        if (maxY > 1)
+                        // round maxY up to the nearest 0.1 (e.g., 1.43 -> 1.5). This will then be set as the top of the y-axis for every mini-graph for this variation. Note that different variations will not all have the same value, but that's OK, because people will generally look at one set of minigraphs at a time (if that). 
+                        maxY = Math.Ceiling(maxY * 10) / 10;
+                        if (maxY >= 0.6 && maxY <= 0.9)
+                            maxY = 1.0; // use round number
+                        // change aggregatedGraphInfo so that the microY axis value is multiplied by the new value.
+                        aggregatedGraphInfo = aggregatedGraphInfo with { maximumValueMicroY = (aggregatedGraphInfo.maximumValueMicroY ?? 1) * maxY };
+                        // now, change each individual mini graph so that the y value is divided by maxY (since we've increased the scale on the graph).
+                        foreach (var macroRow in lineGraphData)
                         {
-                            // round maxY up to the nearest 0.1 (e.g., 1.43 -> 1.5)
-                            maxY = Math.Ceiling(maxY * 10) / 10;
-                            // change aggregatedGraphInfo so that the microY axis value is multiplied by the new value.
-                            aggregatedGraphInfo = aggregatedGraphInfo with { maximumValueMicroY = (aggregatedGraphInfo.maximumValueMicroY ?? 1) * maxY };
-                            // now, change each individual mini graph so that the y value is divided by maxY (since we've increased the scale on the graph).
-                            foreach (var macroRow in lineGraphData)
+                            for (int macroColumnIndex = 0; macroColumnIndex < macroRow.Count; macroColumnIndex++)
                             {
-                                for (int macroColumnIndex = 0; macroColumnIndex < macroRow.Count; macroColumnIndex++)
+                                TikzLineGraphData macroCell = macroRow[macroColumnIndex];
+                                for (int i = 0; i < macroCell.proportionalHeights.Count(); i++)
                                 {
-                                    TikzLineGraphData macroCell = macroRow[macroColumnIndex];
-                                    for (int i = 0; i < macroCell.proportionalHeights.Count(); i++)
+                                    for (int j = 0; j < macroCell.proportionalHeights[i].Count(); j++)
                                     {
-                                        for (int j = 0; j < macroCell.proportionalHeights[i].Count(); j++)
-                                        {
-                                            if (macroCell.proportionalHeights[i][j] != null)
-                                                macroCell.proportionalHeights[i][j] /= maxY;
-                                        }
+                                        if (macroCell.proportionalHeights[i][j] != null)
+                                            macroCell.proportionalHeights[i][j] /= maxY;
                                     }
                                 }
                             }
@@ -844,8 +843,9 @@ namespace LitigCharts
             double maximumValueMicroY;
             if (aggregatedGraphInfo.maximumValueMicroY is not double presetMax)
             {
-                var values = lineGraphData.SelectMany(macroRow => macroRow.SelectMany(macroColumn => macroColumn.proportionalHeights.SelectMany(microRow => microRow))).Where(x => x != null);
-                maximumValueMicroY = values.Any() ? values.Select(x => (double)x).Max() : 1.0;
+                throw new Exception("MaximumValueMicroY must be set");
+                //var values = lineGraphData.SelectMany(macroRow => macroRow.SelectMany(macroColumn => macroColumn.proportionalHeights.SelectMany(microRow => microRow))).Where(x => x != null);
+                //maximumValueMicroY = values.Any() ? values.Select(x => (double)x).Max() : 1.0;
             }
             else
                 maximumValueMicroY = presetMax;
