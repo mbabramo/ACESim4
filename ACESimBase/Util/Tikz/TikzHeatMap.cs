@@ -10,21 +10,10 @@ namespace ACESimBase.Util.Tikz
     {
         int NumRows => contents.Count();
         int NumColumns => contents.First().Count();
-        double axisSpace
-        {
-            get
-            {
-                // true when SignalOfferReport passed "font=\\tiny"
-                bool tiny = contentAttributes?.Contains("font=\\tiny") ?? false;
-
-                /*  tiny font  → keep the normal values (0.25 / 0.40)
-                    normal font → give ~60 % more vertical room              */
-                return columnAxisIsOnTop
-                    ? (tiny ? 0.25 : 0.40)          // top-axis variant
-                    : (tiny ? 0.40 : 0.55);         // bottom-axis variant
-            }
-        }
+        double axisSpace = columnAxisIsOnTop ? 0.25 : 0.40;
         TikzRectangle LeftAxisRectangle => sourceRectangle.LeftPortion(axisSpace).DivideBottomToTop(new double[] { (columnAxisIsOnTop ? NumRows - 1.0 : 1.0) / (double)NumRows, (columnAxisIsOnTop ? 1.0 : NumRows - 1.0) / (double)NumRows }).Skip(columnAxisIsOnTop ? 0 : 1).First();
+
+
         TikzRectangle HorizontalAxisRectangle => sourceRectangle.TopOrBottomPortion(axisSpace, columnAxisIsOnTop).DivideLeftToRight(new double[] { 1.0 / (double) NumColumns,  (NumColumns - 1.0) / (double)NumColumns }).Skip(1).First();
         public TikzRectangle MainRectangle => sourceRectangle.RightPortion(sourceRectangle.width - axisSpace).TopOrBottomPortion(sourceRectangle.height - axisSpace, !columnAxisIsOnTop);
 

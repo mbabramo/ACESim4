@@ -174,12 +174,15 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             }
 
             int numXAxisItems = transpose ? numSignals : numOffers;
-            List<double> relativeWidths = Enumerable.Range(0, numXAxisItems + 1).Select(x => 1.0 / (double)(numXAxisItems + 1)).ToList();
+            double extraWidthForTextColumn = reportType == TypeOfReport.FileAndAnswer ? 0.7 : 0; // allow a little extra space for words like "Answer", which are contained in the first column
+            List<double> relativeWidths = Enumerable.Range(0, numXAxisItems + 1).Select(x => x == 0 ? (1.0 + extraWidthForTextColumn) / (double)(numXAxisItems + 1 + extraWidthForTextColumn) : 1.0 / (double)(numXAxisItems + 1 + extraWidthForTextColumn)).ToList();
             bool dRectUnderPRect = numXAxisItems > 13;
-            double right = numXAxisItems <= 5 ? 12 : 12 * ((double)numXAxisItems / 5.0);
+            double right = extraWidthForTextColumn + (numXAxisItems <= 5 ? 12 : 12 * ((double)numXAxisItems / 5.0));
             if (dRectUnderPRect)
                 right /= 2.0;
             double top = dRectUnderPRect ? 10 : 5;
+            if (reportType == TypeOfReport.FileAndAnswer)
+                top *= 0.75; // there's only two possible answers, so we don't need that much space vertically.
             TikzRectangle overallRectangle = new TikzRectangle(0, 0, right, top);
             List<TikzRectangle> separateRectangles = dRectUnderPRect ? overallRectangle.DivideTopToBottom(new double[] { 0.49, 0.02, 0.49 }) : overallRectangle.DivideLeftToRight(new double[] { 0.49, 0.02, 0.49 });
             TikzRectangle pRect = separateRectangles[0];

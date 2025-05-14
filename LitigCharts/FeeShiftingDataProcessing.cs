@@ -798,7 +798,7 @@ namespace LitigCharts
                         if (maxY >= 0.6 && maxY <= 0.9)
                             maxY = 1.0; // use round number
                         // change aggregatedGraphInfo so that the microY axis value is multiplied by the new value.
-                        aggregatedGraphInfo = aggregatedGraphInfo with { maximumValueMicroY = (aggregatedGraphInfo.maximumValueMicroY ?? 1) * maxY };
+                        aggregatedGraphInfo = aggregatedGraphInfo with { maximumValueMicroY = Math.Max(aggregatedGraphInfo.maximumValueMicroY ?? 1, 1.0) * maxY };
                         // now, change each individual mini graph so that the y value is divided by maxY (since we've increased the scale on the graph).
                         foreach (var macroRow in lineGraphData)
                         {
