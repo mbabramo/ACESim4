@@ -462,7 +462,7 @@ namespace LitigCharts
                 string lastComponent = locationComponentsList[numItems - 1];
                 if (lastComponent.StartsWith("t0") || lastComponent.StartsWith("t1"))
                 {
-                    (string original, string replacement)?[] suffixesUsed = new (string original, string replacement)?[] { ("-equ", "Equilibria"), ("-log", "Logs"), ("-heatmap-eq1", "Heatmaps") };
+                    (string original, string replacement)?[] suffixesUsed = new (string original, string replacement)?[] { ("-equ", "Equilibria"), ("-log", "Logs"), ("-offers-eq1", "Offer Heatmaps") };
                     var suffix = suffixesUsed.FirstOrDefault(x => lastComponent.EndsWith(x.Value.original));
                     if (suffix == null)
                     {

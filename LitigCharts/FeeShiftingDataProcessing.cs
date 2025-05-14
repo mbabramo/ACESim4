@@ -422,7 +422,7 @@ namespace LitigCharts
                 workExists = processesToLaunch.Any() || !avoidProcessingIfPDFExists; // if we're avoiding processing if the PDF exists, then we'll indicate that there's no more work, because that's our only way of telling
                 foreach (string fileSuffix in equilibriumTypeSuffixes)
                 {
-                    List<(string path, string combinedPath, string optionSetName, string fileSuffix)> someToDo = FeeShiftingDataProcessing.GetLatexProcessPlans(new string[] { "-stagecostlight" + fileSuffix, "-stagecostdark" + fileSuffix, "-heatmap" + fileSuffix, "-fileans" + fileSuffix });
+                    List<(string path, string combinedPath, string optionSetName, string fileSuffix)> someToDo = FeeShiftingDataProcessing.GetLatexProcessPlans(new string[] { "-stagecostlight" + fileSuffix, "-stagecostdark" + fileSuffix, "-offers" + fileSuffix, "-fileans" + fileSuffix });
                     processesToLaunch.AddRange(someToDo);
                 }
                 ProduceLatexDiagrams(processesToLaunch);
@@ -445,7 +445,7 @@ namespace LitigCharts
             // Define placement rules for moving files into subfolders
             string[] getExtensions(string eqType) => new string[] {
                 firstEqOnly ? ".csv" : $"-{eqType}.csv",
-                $"-heatmap-{eqType}.pdf", $"-heatmap-{eqType}.tex",
+                $"-offers-{eqType}.pdf", $"-offers-{eqType}.tex",
                 $"-fileans-{eqType}.pdf", $"-fileans-{eqType}.tex",
                 $"-stagecostlight-{eqType}.pdf", $"-stagecostlight-{eqType}.tex", $"-stagecostlight-{eqType}.csv",
                 $"-stagecostdark-{eqType}.pdf", $"-stagecostdark-{eqType}.tex", $"-stagecostdark-{eqType}.csv",
@@ -458,7 +458,7 @@ namespace LitigCharts
                 ("Logs", new string[] { "-log.txt" }),
                 ("Latex files", new string[] { ".tex" }),
                 ("File-Answer Diagrams", new string[] { "-fileans.pdf" }),
-                ("Offer Heatmaps", new string[] { "-heatmap.pdf" }),
+                ("Offer Heatmaps", new string[] { "-offers.pdf" }),
                 ("Stage Costs Diagrams (Normal)", new string[] { "-stagecostlight.pdf" }),
                 ("Stage Costs Diagrams (Dark Mode)", new string[] { "-stagecostdark.pdf" }),
             };

@@ -354,7 +354,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             Stopwatch w = new Stopwatch();
             w.Start();
             var contents = SignalOfferReport.GenerateReport(this, gameProgresses, SignalOfferReport.TypeOfReport.Offers);
-            yield return (OptionSetName + $"-heatmap{supplementalString}.tex", contents[0]);
+            yield return (OptionSetName + $"-offers{supplementalString}.tex", contents[0]);
             w.Stop();
             TabbedText.WriteLine($"Produced manual reports; time {w.ElapsedMilliseconds} ms");
         }

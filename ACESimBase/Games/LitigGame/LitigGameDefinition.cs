@@ -1181,7 +1181,7 @@ namespace ACESim
             yield return (OptionSetName + $"-stagecostdark{supplementalString}.csv", contents[2]);
             yield return (OptionSetName + $"-stagecostdark{supplementalString}.tex", contents[3]);
             contents = SignalOfferReport.GenerateReport(this, gameProgresses, SignalOfferReport.TypeOfReport.Offers);
-            yield return (OptionSetName + $"-heatmap{supplementalString}.tex", contents[0]);
+            yield return (OptionSetName + $"-offers{supplementalString}.tex", contents[0]);
             contents = SignalOfferReport.GenerateReport(this, gameProgresses, SignalOfferReport.TypeOfReport.FileAndAnswer);
             yield return (OptionSetName + $"-fileans{supplementalString}.tex", contents[0]);
         }
