@@ -25,7 +25,7 @@ namespace ACESim
             return action.ToString();
         }
 
-        // Explanation: Potential defendant has a binary choice to take a certain action that will produce some benefit for itself and a standard cost for its opponent. The postulated contractual rule is that the defendant may take the action, without paying compensation, if the benefit is at least as great as the cost; that is, the contract is written to allow actions that increase joint welfare. The litigation quality should on average be in the middle of the range when benefit is equal to cost and more favorable to the plaintiff when there is a lower benefit. However, the actual litigation quality may vary somewhat from this level, as a noise term will be added. We assume for simplicity that at the time it makes its decision, the defendant has no separate estimate of litigation quality other than the benefit that it knows that it will receive.
+        // Explanation: Potential defendant has a binary choice to take a certain action that will produce some benefit for itself and a standard cost for its opponent. The postulated contractual rule is that the defendant may take the action, without paying compensation, if the benefit is at least as great as the cost; that is, the contract is written to allow actions that increase joint welfare. The litigation quality should on average be in the middle of the range when benefit is equal to cost and more favorable to the plaintiff when there is a lower benefit. However, the actual litigation quality may vary somewhat from this level, as a noise term will be added. We assume for simplicity that at the time it makes its decision on an offer, the defendant has no separate estimate of litigation quality other than the benefit that it knows that it will receive.
         // Pre-primary decision: Benefit to defendant.
         // Primary decision: Take the benefit? (1 = yes, 2 = no)
         // Post-primary decision: None.
@@ -35,8 +35,8 @@ namespace ACESim
 
         public byte NumBenefitLevels = 5; // since we are using endpoints, an even number means we won't have a benefit level at the exact midpoint
         public double MinBenefitOfActionToDefendant = 0;
-        public double MaxBenefitOfActionToDefendant = 200000;
-        public double CostOfActionOnPlaintiff = 100_000;
+        public double MaxBenefitOfActionToDefendant = 1.0;
+        public double CostOfActionOnPlaintiff = 0.5;
         public double StdevNoiseToProduceLiabilityStrength = 0.2; 
 
         private double[][] ProbabilityLiabilityStrength;

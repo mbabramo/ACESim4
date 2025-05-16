@@ -27,18 +27,19 @@ namespace ACESim
         // Primary action: Fire (yes = 1, no = 2).
         // Post primary action: None.
 
-        public double ProbabilityBadEmployee = 0.5;
+        public double ProbabilityBadEmployee = 0.25;
         public double ProbabilityGoodEmployee => 1.0 - ProbabilityBadEmployee;
-        public double ProbabilityGoodEmployer = 0.25;
-        public double ProbabilityLowTasteDiscrimination = 0.25;
-        public double ProbabilityMediumTasteDiscrimination = 0.25;
-        public double ProbabilityHighTasteDiscrimination = 0.25;
+        public double ProbabilityGoodEmployer = 0.75;
+        public double ProbabilityBadEmployer => 1.0 - ProbabilityGoodEmployer;
+        public double ProbabilityLowTasteDiscrimination => ProbabilityBadEmployer / 3.0;
+        public double ProbabilityMediumTasteDiscrimination => ProbabilityBadEmployer / 3.0;
+        public double ProbabilityHighTasteDiscrimination => ProbabilityBadEmployer / 3.0;
         public double CostToEmployeeOfBeingFired = 1.0;
-        public double SocialCostOfFiringGoodEmployee = 1.0; // social harms extend beyond harmed employee
+        public double SocialCostOfFiringGoodEmployee = 1.0; // if > CostToEmployeeOfBeingFired, social harms extend beyond harmed employee
         public double CostOfLeavingBadEmployee = 1.0;
-        public double PrivateBenefitToBadEmployerFromFiring_LowTaste = 0.75;
-        public double PrivateBenefitToBadEmployerFromFiring_MediumTaste = 0.875;
-        public double PrivateBenefitToBadEmployerFromFiring_HighTaste = 1.0;
+        public double PrivateBenefitToBadEmployerFromFiring_LowTaste = 0.25;
+        public double PrivateBenefitToBadEmployerFromFiring_MediumTaste = 0.5;
+        public double PrivateBenefitToBadEmployerFromFiring_HighTaste = 0.75;
 
         private double[] ProbabilityLiabilityStrength_StrongPlaintiffCase, ProbabilityLiabilityStrength_MediumPlaintiffCase, ProbabilityLiabilityStrength_PoorPlaintiffCase;
 

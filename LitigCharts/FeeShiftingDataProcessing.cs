@@ -97,9 +97,9 @@ namespace LitigCharts
             foreach (var result in results)
             {
                 bool includeHeatmaps = false;
-                if (result.EndsWith(".tex") && (includeHeatmaps || !result.Contains("heatmap")))
+                if (result.EndsWith(".tex") && (includeHeatmaps || (!result.Contains("offers") && !result.Contains("fileans"))))
                 {
-                    TabbedText.WriteLine($"Launcing {result}");
+                    TabbedText.WriteLine($"Launching {result}");
                     ExecuteLatexProcess(path, result);
                 }
             }

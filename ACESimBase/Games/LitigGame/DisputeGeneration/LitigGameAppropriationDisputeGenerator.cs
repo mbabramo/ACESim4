@@ -14,7 +14,11 @@ namespace ACESim
     {
         public string GetGeneratorName() => "Appropriation";
 
-        // Defendant receives information on the extent to which actions will be reflected in litigation quality (call this systemic randomness). Defendant must determine whether to appropriate value. With the lowest systemic randomness, appropriation is highly likely to make the litigation quality the strongest possible value for the plaintiff and nonappropriation is highly likely to make the litigation quality the weakest possible value for the plaintiff. With the highest systemic randomness, each litigation quality is equally likely, regardless of whether the defendant appropriates. Regardless of the level of systemic randomness, the probability of various litigation qualities is a geometric sequence, with the "correct" value being most likely.
+        // Defendant receives information on the extent to which actions will be reflected in litigation quality (call this systemic randomness). Defendant must determine whether to appropriate value. With the lowest systemic randomness, appropriation is highly likely to make the litigation quality the strongest possible value for the plaintiff and nonappropriation is highly likely to make the litigation quality the weakest possible value for the plaintiff. With the highest systemic randomness, each litigation quality is equally likely, regardless of whether the defendant appropriates. Regardless of the level of systemic randomness, the probability of various litigation qualities is a geometric sequence, with the "correct" value being most likely. So, systemic randomness indicates something about the ability of the legal system to determine whether the defendant is appropriating. 
+
+        // Question: Should the plaintiff also know the systemic randomness?
+
+        // Alternative possibility: Get rid of the systemic randomness difference, and substitute BenefitToDefendantOfAppropriation. That variable is nice because it tells the defendant something about the defendant that the plaintiff then doesn't know (and never finds out). With systemic randomness, it's hard to see why the defendant would have this information and not the plaintiff (as seen below where prePrimaryPlayersToInform is set).
 
         // Pre primary action chance: Determines the level of systemic randomness
         // Primary action: Appropriate (yes = 1, no = 2). 

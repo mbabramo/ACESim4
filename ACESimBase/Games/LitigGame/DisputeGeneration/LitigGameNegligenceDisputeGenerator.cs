@@ -1,183 +1,327 @@
-using ACESimBase.Util.ArrayManipulation;
+﻿using ACESimBase.GameSolvingSupport;
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ACESim
 {
     [Serializable]
     public class LitigGameNegligenceDisputeGenerator : ILitigGameDisputeGenerator
     {
+        // ── Public configurable parameters ────────────────────────────────────────
+        public bool CostVariesMode = true;            // false → risk-varies mode
+        public byte NumCostLevels = 5;
+        public double MinCost = 0.10;
+        public double MaxCost = 0.50;
+
+        public byte NumRiskLevels = 5;
+        public double MinRisk = 0.10;
+        public double MaxRisk = 0.50;
+
+        public double FixedRiskNoPrecaution = 0.30; // used in cost-varies mode
+        public double FixedPrecautionCost = 0.30; // used in risk-varies mode
+
+        public double LiabilityStrengthDecay = 0.5; // 0 < value ≤ 1. 
+
+        public double AlternativeCauseProb = 0.05; // background risk
+        public double CostOfInjury = 1.00; // damages value
+
+        // ── Backing arrays set in Setup() ─────────────────────────────────────────
+        private byte _prePrimaryCount;
+        private double[] _costLevels;                 // length = _prePrimaryCount when CostVariesMode
+        private double[] _riskLevels;                 // length = _prePrimaryCount when RiskVariesMode
+
+        // LiabilityStrength[p][a][q]  (p = pre-primary index, a = 0/1 for no-prec / prec,
+        //                              q = liability-strength level-1)
+        private double[][][] _liabilityStrengthProbabilities;
+
+        private bool[][] _shouldBeLiable;             // [p][a] for convenience (a = 0 only)
+
+        // ── ILitigGameDisputeGenerator implementation ────────────────────────────
         public string GetGeneratorName() => "Negligence";
-        public string OptionsString => $"NumMarginalBenefitSchedules {NumMarginalBenefitSchedules} NumPrecautionLevels {NumPrecautionLevels} CostOfInjury {CostOfInjury} ProbabilityOfInjuryNoPrecaution {ProbabilityOfInjuryNoPrecaution} IncrementalPrecautionCost {IncrementalPrecautionCost} RiskReductionFromFirstPrecautionTaken {RiskReductionFromFirstPrecautionTaken}";
-        public (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("Precaution Benefit Curve", "PrecautionBenefit");
-        public (string name, string abbreviation) PrimaryNameAndAbbreviation => ("Precaution Level", "Precaution");
-        public (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("Injury", "Injury");
-        public string GetActionString(byte action, byte decisionByteCode)
-        {
-            return action.ToString();
-        }
 
-        // Defendant receives information that signals how quickly the marginal benefit of a precaution decreases with increased precaution level. 
+        public string OptionsString =>
+            $"Mode={(CostVariesMode ? "CostVaries" : "RiskVaries")} " +
+            $"AltCause={AlternativeCauseProb} " +
+            (CostVariesMode
+                ? $"Levels={NumCostLevels} MinCost={MinCost} MaxCost={MaxCost} FixedRisk={FixedRiskNoPrecaution}"
+                : $"Levels={NumRiskLevels} MinRisk={MinRisk} MaxRisk={MaxRisk} FixedCost={FixedPrecautionCost}");
 
-        // Pre primary action chance: This determines how quickly the marginal benefit of precaution decreases. Let m = 1 - ppc / 20.0.
-        // Primary action: The defendant must choose a precaution level p. Let r(p) represent the reduction in the probability of risk at that precaution level, over and above the risk reduction from lower levels of precaution. We define r(1) = 0, r(2) = 0.05, and for p > 2, r(p) = r(p-1) * m. 
-        // Post primary action chance: Does an injury occur? yes = 1, no = 2
+        public (string name, string abbreviation) PrePrimaryNameAndAbbreviation =>
+            (CostVariesMode ? "Precaution Cost Level" : "Base Risk Level",
+             CostVariesMode ? "CostLvl" : "RiskLvl");
 
-        // Cost-benefit. We calculate the cost-benefit ratio of the first precaution level NOT taken. CostBenefitRatio = IncrementalPrecautionCost / (r(p+1) * CostOfInjury). We then truncate this ratio so that it represents a number from 0.25 to 4.0, and we invert to take the benefit-cost ratio.
-        // Litigation quality calculation. Litigation quality increases proportionately from the lowest benefit-cost to the highest. A low benefit-cost ratio means that the defendant declined a precaution that would have produced little benefit, so that is low litigation quality. 
+        public (string name, string abbreviation) PrimaryNameAndAbbreviation =>
+            ("Precaution Decision", "Prec");
 
-        public byte NumMarginalBenefitSchedules = 10;
-        public byte NumPrecautionLevels = 11;
-        // DEBUG -- set CostOfInjury to DamagesMax
-        public double CostOfInjury = 100_000.00, ProbabilityOfInjuryNoPrecaution = 0.5, IncrementalPrecautionCost = 2_000, RiskReductionFromFirstPrecautionTaken = 0.05;
+        public (string name, string abbreviation) PostPrimaryNameAndAbbreviation =>
+            ("Injury Outcome", "Injury");
 
-        private bool[][] ShouldBeLiable;
-        private double[][] CumulativeRiskReduction;
-        public double GetRiskOfInjury(byte marginalBenefitSchedule, byte precautionLevelChosen) => ProbabilityOfInjuryNoPrecaution - CumulativeRiskReduction[marginalBenefitSchedule - 1][precautionLevelChosen - 1];
-        private double[][][] LiabilityStrength;
+        public string GetActionString(byte action, byte decisionByteCode) =>
+            decisionByteCode switch
+            {
+                (byte)LitigGameDecisions.PrePrimaryActionChance => CostVariesMode
+                    ? $"CostLvl{action}"
+                    : $"RiskLvl{action}",
+                (byte)LitigGameDecisions.PrimaryAction => action == 1
+                    ? "NoPrecaution"
+                    : "PrecautionTaken",
+                (byte)LitigGameDecisions.PostPrimaryActionChance => action == 1
+                    ? "Injury"
+                    : "NoInjury",
+                _ => action.ToString()
+            };
 
         public LitigGameDefinition LitigGameDefinition { get; set; }
-        public void Setup(LitigGameDefinition myGameDefinition)
+
+        public void Setup(LitigGameDefinition gameDef)
         {
-            LitigGameDefinition = myGameDefinition;
-            myGameDefinition.Options.DamagesMax = myGameDefinition.Options.DamagesMin = CostOfInjury;
-            myGameDefinition.Options.NumDamagesStrengthPoints = 1;
-            ShouldBeLiable = ArrayFormConversionExtension.CreateJaggedArray<bool[][]>(new int[] { NumMarginalBenefitSchedules, NumPrecautionLevels });
-            CumulativeRiskReduction = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { NumMarginalBenefitSchedules, NumPrecautionLevels });
-            LiabilityStrength = ArrayFormConversionExtension.CreateJaggedArray<double[][][]>(new int[] {NumMarginalBenefitSchedules, NumPrecautionLevels, myGameDefinition.Options.NumLiabilityStrengthPoints});
-            for (int marginalBenefitSchedule = 1; marginalBenefitSchedule <= NumMarginalBenefitSchedules; marginalBenefitSchedule++)
+            LitigGameDefinition = gameDef;
+            gameDef.Options.DamagesMin = gameDef.Options.DamagesMax = CostOfInjury;
+            gameDef.Options.NumDamagesStrengthPoints = 1;
+
+            _prePrimaryCount = CostVariesMode ? NumCostLevels : NumRiskLevels;
+            int numQuality = gameDef.Options.NumLiabilityStrengthPoints;
+
+            // initialise arrays
+            _liabilityStrengthProbabilities = new double[_prePrimaryCount][][];
+            _shouldBeLiable = new bool[_prePrimaryCount][];
+            for (int p = 0; p < _prePrimaryCount; p++)
             {
-                for (int precautionLevelChosen = 1; precautionLevelChosen <= NumPrecautionLevels; precautionLevelChosen++)
+                _liabilityStrengthProbabilities[p] = new double[2][]; // actions: 0=noPrec,1=prec
+                _liabilityStrengthProbabilities[p][0] = new double[numQuality];
+                _liabilityStrengthProbabilities[p][1] = new double[numQuality];
+                _shouldBeLiable[p] = new bool[2];
+            }
+
+            // prepare cost / risk arrays
+            if (CostVariesMode)
+            {
+                _costLevels = Enumerable.Range(0, NumCostLevels)
+                                        .Select(i => MinCost + (MaxCost - MinCost) * i / (NumCostLevels - 1))
+                                        .ToArray();
+            }
+            else
+            {
+                _riskLevels = Enumerable.Range(0, NumRiskLevels)
+                                        .Select(i => MinRisk + (MaxRisk - MinRisk) * i / (NumRiskLevels - 1))
+                                        .ToArray();
+            }
+
+            // populate liability strength & negligence matrices
+            for (int p = 0; p < _prePrimaryCount; p++)
+            {
+                double cost = CostVariesMode ? _costLevels[p] : FixedPrecautionCost;
+                double baseRisk = CostVariesMode ? FixedRiskNoPrecaution : _riskLevels[p];
+
+                // mapping for quality index when counts match
+                byte directQuality =
+                    CostVariesMode
+                        ? (byte)(_prePrimaryCount - p)      // cheapest cost → highest quality
+                        : (byte)(p + 1);                    // higher risk → higher quality
+
+                for (int a = 0; a < 2; a++) // 0 = no-prec, 1 = prec
                 {
-                    double m = 1.0 - marginalBenefitSchedule / 20.0;
-                    double cumulativeRiskReduction = 0;
-                    double riskRemovalAtLevel = 0;
-                    for (int precautionsTakenByDefendant = 2; precautionsTakenByDefendant <= precautionLevelChosen; precautionsTakenByDefendant++)
+                    bool tookPrecaution = (a == 1);
+
+                    // ---------------------- Risk of injury ----------------------
+                    double pHarm = tookPrecaution
+                        ? AlternativeCauseProb
+                        : baseRisk + AlternativeCauseProb - baseRisk * AlternativeCauseProb;
+
+                    // ---------------------- Negligence & causation --------------
+                    bool negligentInDuty = !tookPrecaution &&
+                                           cost < baseRisk * CostOfInjury;
+
+                    bool causationSatisfied = !tookPrecaution &&
+                                              AlternativeCauseProb < baseRisk;
+
+                    bool trulyLiable = negligentInDuty && causationSatisfied;
+
+                    _shouldBeLiable[p][a] = trulyLiable;
+
+                    // ---------------------- Litigation quality ------------------
+                    byte qIndex;
+                    if (LitigGameDefinition.Options.NumLiabilityStrengthPoints == _prePrimaryCount)
                     {
-                        if (precautionsTakenByDefendant == 2)
-                            riskRemovalAtLevel = RiskReductionFromFirstPrecautionTaken;
-                        else
-                            riskRemovalAtLevel *= m;
-                        cumulativeRiskReduction += riskRemovalAtLevel;
+                        qIndex = tookPrecaution
+                            ? (byte)1
+                            : directQuality;
                     }
-                    CumulativeRiskReduction[marginalBenefitSchedule - 1][precautionLevelChosen - 1] = cumulativeRiskReduction;
-                    double riskRemovalForegone = cumulativeRiskReduction == 0 ? RiskReductionFromFirstPrecautionTaken : riskRemovalAtLevel * m;
-                    double riskRemovalForegoneDollars = riskRemovalForegone * CostOfInjury;
-                    //double costBenefitRatio = IncrementalPrecautionCost / riskRemovalForegoneDollars;
-                    double benefitCostRatio = riskRemovalForegoneDollars / IncrementalPrecautionCost;
-                    if (benefitCostRatio < 0.25)
-                        benefitCostRatio = 0.25;
-                    else if (benefitCostRatio > 4.0)
-                        benefitCostRatio = 4.0;
-                    ShouldBeLiable[marginalBenefitSchedule - 1][precautionLevelChosen - 1] = benefitCostRatio > 1.0;
-                    // (LiabilityStrength - 1) / (NumLiabilityStrengthLevels - 1) = (benefitCostRatio - 0.25) / (4 - 0.25)
-                    double litigationQuality = (benefitCostRatio - 0.25) * (myGameDefinition.Options.NumLiabilityStrengthPoints - 1.0) / (4 - 0.25) + 1.0;
-                    byte litigationQualityDiscrete = (byte) Math.Round(litigationQuality);
-                    for (int litigationQualityLevel = 1; litigationQualityLevel <= myGameDefinition.Options.NumLiabilityStrengthPoints; litigationQualityLevel++)
+                    else
                     {
-                        double probabilityOfLiabilityStrength;
-                        if (litigationQualityDiscrete == litigationQualityLevel)
-                            probabilityOfLiabilityStrength = 1.0;
-                        else
-                            probabilityOfLiabilityStrength = 0.0;
-                        LiabilityStrength[marginalBenefitSchedule - 1][precautionLevelChosen - 1][litigationQualityLevel - 1] = probabilityOfLiabilityStrength;
+                        const double minBCR = 0.25, maxBCR = 4.0;
+                        double benefitCostRatio = baseRisk * CostOfInjury / cost;
+                        if (benefitCostRatio < minBCR) benefitCostRatio = minBCR;
+                        if (benefitCostRatio > maxBCR) benefitCostRatio = maxBCR;
+                        double scaled = (benefitCostRatio - minBCR)
+                                        * (numQuality - 1.0) / (maxBCR - minBCR) + 1.0;
+                        qIndex = (byte)Math.Round(scaled);
+                        if (tookPrecaution) qIndex = 1;
                     }
+
+                    for (int q = 0; q < numQuality; q++)
+                        _liabilityStrengthProbabilities[p][a] = BuildGeometricDistribution(numQuality, qIndex - 1);
                 }
             }
         }
 
-        public void GetActionsSetup(LitigGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate)
+        private double[] BuildGeometricDistribution(int levels, int centerIndex)
         {
-            prePrimaryChanceActions = NumMarginalBenefitSchedules;
-            primaryActions = NumPrecautionLevels;
-            postPrimaryChanceActions = 2; // 1 = injury occurs; 2 = no injury
-            prePrimaryPlayersToInform = new byte[] { (byte)LitigGamePlayers.Resolution, (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.PostPrimaryChance, (byte)LitigGamePlayers.LiabilityStrengthChance };
-            primaryPlayersToInform = new byte[] { (byte)LitigGamePlayers.Resolution, (byte)LitigGamePlayers.PostPrimaryChance, (byte)LitigGamePlayers.LiabilityStrengthChance };
-            postPrimaryPlayersToInform = new byte[] { (byte)LitigGamePlayers.Resolution };
-            prePrimaryUnevenChance = false;
-            postPrimaryUnevenChance = true; // i.e., chance of injury
-            litigationQualityUnevenChance = true;
-            primaryActionCanTerminate = false;
-            postPrimaryChanceCanTerminate = true;
-        }
-        
-        public double[] GetLitigationIndependentWealthEffects(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
-        {
-            double precautionSpent = (disputeGeneratorActions.PrimaryAction - 1) * IncrementalPrecautionCost;
-            bool injuryOccurs = disputeGeneratorActions.PostPrimaryChanceAction == 1;
-            if (injuryOccurs)
-                return new double[] { 0 - CostOfInjury, 0 - precautionSpent };
-            else
-                return new double[] { 0, 0 - precautionSpent };
-        }
-
-        public double GetLitigationIndependentSocialWelfare(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
-        {
-            double precautionSpent = (disputeGeneratorActions.PrimaryAction - 1) * IncrementalPrecautionCost;
-            bool injuryOccurs = disputeGeneratorActions.PostPrimaryChanceAction == 1;
-            double socialWelfare = 0;
-            if (injuryOccurs)
-                socialWelfare = 0 - CostOfInjury - precautionSpent;
-            else
-                socialWelfare = 0 - precautionSpent;
-            return socialWelfare;
-        }
-
-        public bool PotentialDisputeArises(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
-        {
-            return disputeGeneratorActions.PostPrimaryChanceAction == 1; // only a dispute if an injury occurs
-        }
-
-        public double[] GetLiabilityStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
-        {
-            byte marginalBenefitSchedule = disputeGeneratorActions.PrePrimaryChanceAction;
-            byte precautionLevelChosen = disputeGeneratorActions.PrimaryAction;
-            return LiabilityStrength[marginalBenefitSchedule - 1][precautionLevelChosen - 1];
-        }
-
-        public double[] GetDamagesStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions) => new double[] { 1.0 };
-
-        public bool IsTrulyLiable(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
-        {
-            byte marginalBenefitSchedule = disputeGeneratorActions.PrePrimaryChanceAction;
-            byte precautionLevelChosen = disputeGeneratorActions.PrimaryAction;
-            if (precautionLevelChosen == NumPrecautionLevels)
-                return false; // we assume that no higher precaution level is possible, so no liability should attach
-            bool returnVal = ShouldBeLiable[marginalBenefitSchedule - 1][precautionLevelChosen - 1];
-            return returnVal;
-        }
-
-        public bool MarkComplete(LitigGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool MarkComplete(LitigGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction, byte postPrimaryAction)
-        {
-            return postPrimaryAction == 2; // no injury occurs
-        }
-
-        public double[] GetPrePrimaryChanceProbabilities(LitigGameDefinition myGameDefinition)
-        {
-            throw new NotImplementedException(); // no pre primary chance function
-        }
-
-        public double[] GetPostPrimaryChanceProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
-        {
-            byte marginalBenefitSchedule = disputeGeneratorActions.PrePrimaryChanceAction;
-            byte precautionLevelChosen = disputeGeneratorActions.PrimaryAction;
-            double riskOfInjury = GetRiskOfInjury(marginalBenefitSchedule, precautionLevelChosen);
-            if (marginalBenefitSchedule == 1)
+            var probs = new double[levels];
+            double sum = 0.0;
+            for (int i = 0; i < levels; i++)
             {
-                Debug.WriteLine($"Precaution level {precautionLevelChosen} Risk of injury {riskOfInjury}");
+                int dist = Math.Abs(i - centerIndex);
+                probs[i] = Math.Pow(LiabilityStrengthDecay, dist);
+                sum += probs[i];
             }
-            return new double[] {riskOfInjury, 1.0 - riskOfInjury};
+            // normalise
+            for (int i = 0; i < levels; i++)
+                probs[i] /= sum;
+            return probs;
+        }
+
+        public void GetActionsSetup(
+            LitigGameDefinition gameDef,
+            out byte prePrimaryChanceActions,
+            out byte primaryActions,
+            out byte postPrimaryChanceActions,
+            out byte[] prePrimaryPlayersToInform,
+            out byte[] primaryPlayersToInform,
+            out byte[] postPrimaryPlayersToInform,
+            out bool prePrimaryUnevenChance,
+            out bool postPrimaryUnevenChance,
+            out bool litigationQualityUnevenChance,
+            out bool primaryActionCanTerminate,
+            out bool postPrimaryChanceCanTerminate)
+        {
+            prePrimaryChanceActions = _prePrimaryCount;
+            primaryActions = 2; // 1 = no precaution, 2 = precaution
+            postPrimaryChanceActions = 2; // 1 = injury, 2 = no injury
+
+            prePrimaryPlayersToInform = new byte[] {
+                (byte)LitigGamePlayers.Resolution,
+                (byte)LitigGamePlayers.Defendant,
+                (byte)LitigGamePlayers.PostPrimaryChance,
+                (byte)LitigGamePlayers.LiabilityStrengthChance };
+
+            primaryPlayersToInform = new byte[] {
+                (byte)LitigGamePlayers.Resolution,
+                (byte)LitigGamePlayers.PostPrimaryChance,
+                (byte)LitigGamePlayers.LiabilityStrengthChance };
+
+            postPrimaryPlayersToInform = new byte[] { (byte)LitigGamePlayers.Resolution };
+
+            prePrimaryUnevenChance = false; // uniform
+            postPrimaryUnevenChance = true;  // p(injury) varies
+            litigationQualityUnevenChance = true;  // mass on one level
+            primaryActionCanTerminate = false;
+            postPrimaryChanceCanTerminate = true;  // no injury ends dispute
+        }
+
+        public bool PotentialDisputeArises(
+            LitigGameDefinition gameDef,
+            LitigGameDisputeGeneratorActions acts) =>
+            acts.PostPrimaryChanceAction == 1; // injury occurred
+
+        public bool MarkComplete(
+            LitigGameDefinition gameDef,
+            byte prePrimaryAction,
+            byte primaryAction,
+            byte postPrimaryAction) =>
+            postPrimaryAction == 2; // no injury
+
+        public bool MarkComplete(
+            LitigGameDefinition gameDef,
+            byte prePrimaryAction,
+            byte primaryAction) =>
+            throw new NotSupportedException();
+
+        public bool IsTrulyLiable(
+            LitigGameDefinition gameDef,
+            LitigGameDisputeGeneratorActions acts,
+            GameProgress progress)
+        {
+            int pIdx = acts.PrePrimaryChanceAction - 1;
+            int aIdx = acts.PrimaryAction - 1;
+            bool harmOccurred = acts.PostPrimaryChanceAction == 1;
+            return harmOccurred && _shouldBeLiable[pIdx][aIdx];
+        }
+
+        public double[] GetPrePrimaryChanceProbabilities(
+            LitigGameDefinition gameDef) =>
+            Enumerable.Repeat(1.0 / _prePrimaryCount, _prePrimaryCount).ToArray();
+
+        public double[] GetPostPrimaryChanceProbabilities(
+            LitigGameDefinition gameDef,
+            LitigGameDisputeGeneratorActions acts)
+        {
+            int pIdx = acts.PrePrimaryChanceAction - 1;
+            bool tookPrecaution = acts.PrimaryAction == 2;
+
+            double cost = CostVariesMode ? _costLevels?[pIdx] ?? FixedPrecautionCost : FixedPrecautionCost;
+            double baseRisk = CostVariesMode ? FixedRiskNoPrecaution : _riskLevels[pIdx];
+
+            double pHarm = tookPrecaution
+                ? AlternativeCauseProb
+                : baseRisk + AlternativeCauseProb - baseRisk * AlternativeCauseProb;
+
+            return new[] { pHarm, 1.0 - pHarm };
+        }
+
+        public double[] GetLiabilityStrengthProbabilities(
+            LitigGameDefinition gameDef,
+            LitigGameDisputeGeneratorActions acts)
+        {
+            int pIdx = acts.PrePrimaryChanceAction - 1;
+            int aIdx = acts.PrimaryAction - 1;
+            return _liabilityStrengthProbabilities[pIdx][aIdx];
+        }
+
+        public double[] GetDamagesStrengthProbabilities(
+            LitigGameDefinition gameDef,
+            LitigGameDisputeGeneratorActions acts) =>
+            new[] { 1.0 };
+
+        public double[] GetLitigationIndependentWealthEffects(
+            LitigGameDefinition gameDef,
+            LitigGameDisputeGeneratorActions acts)
+        {
+            bool tookPrecaution = acts.PrimaryAction == 2;
+            bool injury = acts.PostPrimaryChanceAction == 1;
+
+            double costSpent = tookPrecaution
+                ? (CostVariesMode
+                    ? _costLevels?[acts.PrePrimaryChanceAction - 1] ?? FixedPrecautionCost
+                    : FixedPrecautionCost)
+                : 0.0;
+
+            double plaintiffLoss = injury ? -CostOfInjury : 0.0;
+            double defendantLoss = -costSpent;
+
+            return new[] { plaintiffLoss, defendantLoss };
+        }
+
+        public double GetLitigationIndependentSocialWelfare(
+            LitigGameDefinition gameDef,
+            LitigGameDisputeGeneratorActions acts)
+        {
+            double[] w = GetLitigationIndependentWealthEffects(gameDef, acts);
+            return w.Sum();
         }
 
         public bool PostPrimaryDoesNotAffectStrategy() => false;
+
+        // ── defaults / unused inversion interface parts ───────────────────────────
+        public double[] InvertedCalculations_GetPLiabilitySignalProbabilities() => throw new NotImplementedException();
+        public double[] InvertedCalculations_GetDLiabilitySignalProbabilities(byte pLiabilitySignal) => throw new NotImplementedException();
+        public double[] InvertedCalculations_GetCLiabilitySignalProbabilities(byte pLiabilitySignal, byte dLiabilitySignal) => throw new NotImplementedException();
+        public double[] InvertedCalculations_GetPDamagesSignalProbabilities() => throw new NotImplementedException();
+        public double[] InvertedCalculations_GetDDamagesSignalProbabilities(byte pDamagesSignal) => throw new NotImplementedException();
+        public double[] InvertedCalculations_GetCDamagesSignalProbabilities(byte pDamagesSignal, byte dDamagesSignal) => throw new NotImplementedException();
+        public double[] InvertedCalculations_GetLiabilityStrengthProbabilities(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal) => throw new NotImplementedException();
+        public double[] InvertedCalculations_GetDamagesStrengthProbabilities(byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal) => throw new NotImplementedException();
+        public (bool trulyLiable, byte liabilityStrength, byte damagesStrength) InvertedCalculations_WorkBackwardsFromSignals(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, int randomSeed) => throw new NotImplementedException();
+        public System.Collections.Generic.List<(GameProgress progress, double weight)> InvertedCalculations_GenerateAllConsistentGameProgresses(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, LitigGameProgress gameProgress) => throw new NotImplementedException();
     }
 }
