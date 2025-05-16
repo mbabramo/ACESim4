@@ -12,11 +12,11 @@ using System.Threading.Tasks;
 namespace ACESim
 {
     [Serializable]
-    public class LitigGameContractDisputeGenerator : ILitigGameDisputeGenerator
+    public class LitigGameNuisanceDisputeGenerator : ILitigGameDisputeGenerator
     {
-        public string GetGeneratorName() => "Contract";
+        public string GetGeneratorName() => "Nuisance";
 
-        public string OptionsString => $"NumBenefitLevels {NumBenefitLevels} MinBenefitOfActionToDefendant {MinBenefitOfActionToDefendant} MaxBenefitOfActionToDefendant {MaxBenefitOfActionToDefendant} CostOfActionOnPlaintiff {CostOfActionOnPlaintiff} StdevNoiseToProduceLiabilityStrength {StdevNoiseToProduceLiabilityStrength}";
+        public string OptionsString => $"NumBenefitLevels {NumUtilityLevels} MinBenefitOfActionToDefendant {MinBenefitOfActionToDefendant} MaxBenefitOfActionToDefendant {MaxBenefitOfActionToDefendant} CostOfActionOnPlaintiff {CostOfActionOnPlaintiff} StdevNoiseToProduceLiabilityStrength {StdevNoiseToProduceLiabilityStrength}";
         public (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("Benefit to D", "BenefitD");
         public (string name, string abbreviation) PrimaryNameAndAbbreviation => ("Take Benefit", "TakeBenefit");
         public (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("PostPrimaryChanceActions", "Post Primary");
@@ -25,15 +25,14 @@ namespace ACESim
             return action.ToString();
         }
 
-        // Explanation: Potential defendant has a binary choice to take a certain action that will produce some benefit for itself and a standard cost for its opponent. The postulated contractual rule is that the defendant may take the action, without paying compensation, if the benefit is at least as great as the cost; that is, the contract is written to allow actions that increase joint welfare. The litigation quality should on average be in the middle of the range when benefit is equal to cost and more favorable to the plaintiff when there is a lower benefit. However, the actual litigation quality may vary somewhat from this level, as a noise term will be added. We assume for simplicity that at the time it makes its decision on an offer, the defendant has no separate estimate of litigation quality other than the benefit that it knows that it will receive.
+        // Explanation: Potential defendant has a binary choice to take a certain action that will produce some benefit for itself and a standard cost for the potential plaintiff. The postulated rule, modeled on Restatement (Second) § 826 is that the defendant may take the action, without paying compensation, if the benefit is at least as great as the cost. In this case, the court is applying Rule 3 in the Calabresi-Melamed framework; if the defendant loses, the court is applying Rule 2, where the defendant must pay damages. Of course, this abstracts away from the continuing nature of some nuisances.
+        // The litigation quality should on average be in the middle of the range when benefit is equal to cost and more favorable to the plaintiff when there is a lower benefit. However, the actual litigation quality may vary somewhat from this level, as a noise term will be added. We assume for simplicity that at the time it makes its decision on an offer, the defendant has no separate estimate of litigation quality other than the benefit that it knows that it will receive.
         // Pre-primary decision: Benefit to defendant.
         // Primary decision: Take the benefit? (1 = yes, 2 = no)
         // Post-primary decision: None.
-        // Litigation quality decision: A noise drawn from a distribution is added to the litigation quality to produce a litigation quality signal. Thus, there is a distribution of litigation quality signals based on all possible combinations of potential benefit (whether or not defendant actually takes it) and the noise. Thus, given the expected litigation quality, we must determine the probability of each litigation quality level. 
+        // Litigation quality decision: A noise drawn from a distribution is added to the litigation quality to produce a litigation quality signal. Thus, there is a distribution of litigation quality signals based on all possible combinations of potential benefit (whether or not defendant actually takes it) and the noise. Thus, given the expected litigation quality, we must determine the probability of each litigation quality level.
 
-        // Another possibility: We could implement strict liability. E.g., the cost to the plaintiff could vary. Then, there may be disagreement about damages. But we can't do that until we implement varying damages. 
-
-        public byte NumBenefitLevels = 5; // since we are using endpoints, an even number means we won't have a benefit level at the exact midpoint
+        public byte NumUtilityLevels = 5; // since we are using endpoints, an even number means we won't have a benefit level at the exact midpoint
         public double MinBenefitOfActionToDefendant = 0;
         public double MaxBenefitOfActionToDefendant = 1.0;
         public double CostOfActionOnPlaintiff = 0.5;
@@ -43,7 +42,7 @@ namespace ACESim
 
         private double BenefitOfActionToDefendant_Proportion(byte benefitLevel)
         {
-            return EquallySpaced.GetLocationOfEquallySpacedPoint(benefitLevel - 1, NumBenefitLevels, true);
+            return EquallySpaced.GetLocationOfEquallySpacedPoint(benefitLevel - 1, NumUtilityLevels, true);
         }
 
         private double BenefitOfActionToDefendant_Level(byte benefitLevel)
@@ -56,20 +55,20 @@ namespace ACESim
         {
             LitigGameDefinition = myGameDefinition;
             // We need to determine the probability of different liability strengths 
-            ProbabilityLiabilityStrength = new double[NumBenefitLevels][];
-            DiscreteValueSignalParameters dsParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = NumBenefitLevels, NumSignals = myGameDefinition.Options.NumLiabilityStrengthPoints, StdevOfNormalDistribution = StdevNoiseToProduceLiabilityStrength, SourcePointsIncludeExtremes = true };
-            for (byte a = 1; a <= NumBenefitLevels; a++)
+            ProbabilityLiabilityStrength = new double[NumUtilityLevels][];
+            DiscreteValueSignalParameters dsParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = NumUtilityLevels, NumSignals = myGameDefinition.Options.NumLiabilityStrengthPoints, StdevOfNormalDistribution = StdevNoiseToProduceLiabilityStrength, SourcePointsIncludeExtremes = true };
+            for (byte a = 1; a <= NumUtilityLevels; a++)
             {
                 // When the benefit to the defendant is low, then the plaintiff has a good claim -- defendant is only allowed to take the benefit when it is high.
                 // When the benefit to the defendant is high, then the plaintiff has a bad claim.
-                byte strengthOfClaimIfNoRandomness = (byte) (NumBenefitLevels - a + 1);
+                byte strengthOfClaimIfNoRandomness = (byte) (NumUtilityLevels - a + 1);
                 ProbabilityLiabilityStrength[a - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(strengthOfClaimIfNoRandomness, dsParams);
             }
         }
 
         public void GetActionsSetup(LitigGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate)
         {
-            prePrimaryChanceActions = NumBenefitLevels;
+            prePrimaryChanceActions = NumUtilityLevels;
             primaryActions = 2;
             postPrimaryChanceActions = 0; 
             prePrimaryPlayersToInform = new byte[] {(byte) LitigGamePlayers.Defendant, (byte)LitigGamePlayers.LiabilityStrengthChance }; 

@@ -8,7 +8,8 @@ namespace ACESim
     public class LitigGameNegligenceDisputeGenerator : ILitigGameDisputeGenerator
     {
         // ── Public configurable parameters ────────────────────────────────────────
-        public bool CostVariesMode = true;            // false → risk-varies mode
+        public bool CostVariesMode = true;
+        public bool RiskVariesMode => !CostVariesMode;
         public byte NumCostLevels = 5;
         public double MinCost = 0.10;
         public double MaxCost = 0.50;
