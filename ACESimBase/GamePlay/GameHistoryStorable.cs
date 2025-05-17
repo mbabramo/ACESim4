@@ -69,7 +69,7 @@ namespace ACESim
         {
             GameHistory result = ShallowCopyToRefStruct();
             result.CreatingThreadID = System.Threading.Thread.CurrentThread.ManagedThreadId; // we can specify a new thread, since we're copying all of the information.
-            if (ActionsHistory != null)
+            if (!ActionsHistory.IsEmpty)
             {
                 result.CreateArrayForSpans(false);
 

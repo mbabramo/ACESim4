@@ -139,7 +139,7 @@ namespace ACESim
             options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 5;
 
             var disputeGenerator = new LitigGameAppropriationDisputeGenerator();
-            disputeGenerator.NumSystemicRandomnessLevels = 5;
+            disputeGenerator.NumDetectabilityLevels = 5;
 
             options.LitigGameDisputeGenerator = disputeGenerator;
             return options;

@@ -356,7 +356,7 @@ namespace ACESim
             Progress.SetActionsToPlay(actionsToPlay);
             Progress.IsFinalGamePath = true;
             PlayUntilComplete();
-            if (nextPath == null || Progress.IsFinalGamePath)
+            if (nextPath.IsEmpty || Progress.IsFinalGamePath)
             {
                 nextPath = null;
                 return;

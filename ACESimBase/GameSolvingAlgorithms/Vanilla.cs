@@ -197,7 +197,7 @@ namespace ACESim
             double expectedValue, byte action, bool usePruning)
         {
             Span<double> nextPiValues = stackalloc double[MaxNumMainPlayers];
-            if (equalProbabilityNextPiValues != null)
+            if (!equalProbabilityNextPiValues.IsEmpty)
             {
                 for (int i = 0; i < NumNonChancePlayers; i++)
                 {

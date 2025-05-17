@@ -78,7 +78,7 @@ namespace ACESim
             if (!getNextPath)
                 nextActionsToPlay = null;
             GameProgress progress = PlayPathAndKeepGoing(actionsToPlay_AsPointer, ref nextActionsToPlay);
-            if (nextActionsToPlay == null)
+            if (nextActionsToPlay.IsEmpty)
                 return (progress, null);
             List<byte> nextActionsToPlayList = ListExtensions.GetSpan255TerminatedAsList(nextActionsToPlay);
             return (progress, nextActionsToPlayList.AsEnumerable());

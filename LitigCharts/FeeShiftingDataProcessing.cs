@@ -1,9 +1,11 @@
 ﻿using ACESim;
+using ACESimBase;
 using ACESimBase.Util.Collections;
 using ACESimBase.Util.Debugging;
 using ACESimBase.Util.Serialization;
 using ACESimBase.Util.Tikz;
 using JetBrains.Annotations;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -81,13 +83,13 @@ namespace LitigCharts
         }
 
 
-        public static void BuildMainFeeShiftingReport()
-        {
+        public static void BuildMainFeeShiftingReport(IFeeShiftingLauncher launcher)
+        { 
             List<string> rowsToGet = new List<string> { "All", "Not Litigated", "Litigated", "Settles", "Tried", "P Loses", "P Wins", "Truly Liable", "Truly Not Liable" };
             List<string> replacementRowNames = new List<string> { "All", "Not Litigated", "Litigated", "Settles", "Tried", "P Loses", "P Wins", "Truly Liable", "Truly Not Liable" };
             List<string> columnsToGet = new List<string> { "Exploit", "Seconds", "PFiles", "DAnswers", "POffer1", "DOffer1", "Trial", "PWinPct", "PWealth", "DWealth", "TotWealth", "WealthLoss", "PWelfare", "DWelfare", "PDSWelfareLoss", "SWelfareLoss", "TotExpense", "False+", "False-", "ValIfSettled", "PDoesntFile", "DDoesntAnswer", "SettlesBR1", "PAbandonsBR1", "DDefaultsBR1", "P Loses", "P Wins", "PrimaryAction" };
             List<string> replacementColumnNames = new List<string> { "Exploitability", "Calculation Time", "P Files", "D Answers", "P Offer", "D Offer", "Trial", "P Win Probability", "P Wealth", "D Wealth", "Total Wealth", "Wealth Loss", "P Welfare", "D Welfare", "Pre-Dispute Social Welfare Loss", "Social Welfare Loss", "Expenditures", "False Positive Inaccuracy", "False Negative Inaccuracy", "Value If Settled", "No Suit", "No Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins", "Appropriation" };
-            BuildReport(rowsToGet, replacementRowNames, columnsToGet, replacementColumnNames, "output");
+            BuildReport(launcher, rowsToGet, replacementRowNames, columnsToGet, replacementColumnNames, "output");
         }
 
         internal static void ExecuteLatexProcessesForExisting()
@@ -115,13 +117,13 @@ namespace LitigCharts
             }
         }
 
-        internal static List<(string path, string combinedPath, string optionSetName, string fileSuffix)> GetLatexProcessPlans(IEnumerable<string> fileSuffixes)
+        internal static List<(string path, string combinedPath, string optionSetName, string fileSuffix)> GetLatexProcessPlans(IFeeShiftingLauncher launcher, IEnumerable<string> fileSuffixes)
         {
             // combine lists from GetLatexProcessPaths for each fileSuffix
             List<(string path, string combinedPath, string optionSetName, string fileSuffix)> result = new();
             foreach (var fileSuffix in fileSuffixes)
             {
-                var processPlans = GetLatexProcessPlans(fileSuffix);
+                var processPlans = GetLatexProcessPlans(launcher, fileSuffix);
                 foreach (var processPlan in processPlans)
                 {
                     result.Add(processPlan);
@@ -130,7 +132,7 @@ namespace LitigCharts
             return result;
         }
 
-        internal static List<(string path, string combinedPath, string optionSetName, string fileSuffix)> GetLatexProcessPlans(string fileSuffix)
+        internal static List<(string path, string combinedPath, string optionSetName, string fileSuffix)> GetLatexProcessPlans(IFeeShiftingLauncher launcher, string fileSuffix)
         {
             List<(string path, string combinedPath, string optionSetName, string fileSuffix)> result = new();
 
@@ -138,8 +140,7 @@ namespace LitigCharts
             List<LitigGameOptions> litigGameOptionsSets = GetEndogenousDisputesOptionsSets();
             string path = Launcher.ReportFolder();
 
-            var launcher = new LitigGameLauncher();
-            var map = launcher.GetGameOptionsNameMap(); // name to find (avoids redundancies)
+            var map = launcher.NameMap; // name to find (avoids redundancies)
 
             foreach (var gameOptionsSet in litigGameOptionsSets)
             {
@@ -265,7 +266,7 @@ namespace LitigCharts
             ProcessesList.Add(theProcess);
         }
 
-        private static void BuildReport(List<string> rowsToGet, List<string> replacementRowNames, List<string> columnsToGet, List<string> replacementColumnNames, string endOfFileName)
+        private static void BuildReport(IFeeShiftingLauncher launcher, List<string> rowsToGet, List<string> replacementRowNames, List<string> columnsToGet, List<string> replacementColumnNames, string endOfFileName)
         {
             bool onlyAllFilter = false;
             if (onlyAllFilter)
@@ -274,9 +275,8 @@ namespace LitigCharts
                 replacementRowNames = replacementRowNames.Take(1).ToList();
             }
 
-            var launcher = new LitigGameLauncher();
             var gameOptionsSets = GetEndogenousDisputesOptionsSets();
-            var map = launcher.GetGameOptionsNameMap(); // name to find (avoids redundancies in naming)
+            var map = launcher.NameMap; // name to find (avoids redundancies in naming)
             string path = Launcher.ReportFolder();
             string outputFileFullPath = Path.Combine(path, filePrefix + $"-{endOfFileName}.csv");
             string cumResults = "";
@@ -332,7 +332,7 @@ namespace LitigCharts
             return launcher.GetEndogenousDisputesSettingsToFind();
         }
 
-        public static void BuildOffersReport()
+        public static void BuildOffersReport(IFeeShiftingLauncher launcher)
         {
             var gameDefinition = new LitigGameDefinition();
             gameDefinition.Setup(GetEndogenousDisputesOptionsSets().First());
@@ -370,7 +370,7 @@ namespace LitigCharts
             replacementColumnNames.AddRange(pOfferColumnsReplacement);
             replacementColumnNames.AddRange(dOfferColumnsReplacement);
 
-            BuildReport(filtersOfRowsToGet, replacementRowNames, columnsToGet, replacementColumnNames, "offers");
+            BuildReport(launcher, filtersOfRowsToGet, replacementRowNames, columnsToGet, replacementColumnNames, "offers");
         }
 
         private static List<LitigGameOptions> GetEndogenousDisputesOptionsSets()
@@ -412,7 +412,7 @@ namespace LitigCharts
             }
         }
 
-        internal static void ProduceLatexDiagramsFromTexFiles()
+        internal static void ProduceLatexDiagramsFromTexFiles(IFeeShiftingLauncher launcher)
         {
             bool workExists = true;
             int numAttempts = 0; // sometimes the Latex processes fail, so we try again if any of our files to create are missing
@@ -422,13 +422,13 @@ namespace LitigCharts
                 workExists = processesToLaunch.Any() || !avoidProcessingIfPDFExists; // if we're avoiding processing if the PDF exists, then we'll indicate that there's no more work, because that's our only way of telling
                 foreach (string fileSuffix in equilibriumTypeSuffixes)
                 {
-                    List<(string path, string combinedPath, string optionSetName, string fileSuffix)> someToDo = FeeShiftingDataProcessing.GetLatexProcessPlans(new string[] { "-stagecostlight" + fileSuffix, "-stagecostdark" + fileSuffix, "-offers" + fileSuffix, "-fileans" + fileSuffix });
+                    List<(string path, string combinedPath, string optionSetName, string fileSuffix)> someToDo = FeeShiftingDataProcessing.GetLatexProcessPlans(launcher, new string[] { "-stagecostlight" + fileSuffix, "-stagecostdark" + fileSuffix, "-offers" + fileSuffix, "-fileans" + fileSuffix });
                     processesToLaunch.AddRange(someToDo);
                 }
                 ProduceLatexDiagrams(processesToLaunch);
             }
         }
-        public static void OrganizeIntoFolders(bool doDeletion)
+        public static void OrganizeIntoFolders(IFeeShiftingLauncher launcher, bool doDeletion)
         {
             string reportFolder = Launcher.ReportFolder();
 
@@ -475,15 +475,16 @@ namespace LitigCharts
                 }
             }
 
-            var launcher = new LitigGameLauncher();
-            var sets = launcher.GetSetsOfGameOptions(false, false);
-            var map = launcher.GetGameOptionsNameMap();
-            var setNames = launcher.NamesOfEndogenousArticleSets;
-            string masterReportName = launcher.MasterReportNameForDistributedProcessing;
-            var setsWithNames = sets.Zip(setNames, (s, sn) => (theSet: s, setName: sn));
+            var allGameOptions = launcher.AllGameOptions;
+            var map = launcher.NameMap;
+            var variationSets = launcher.VariationInfoSets;
+            string masterReportName = launcher.ReportPrefix;
 
-            foreach (var (theSet, setName) in setsWithNames)
+            foreach (var variation in variationSets)
             {
+                var setName = variation.nameOfSet;
+                var setFilterNames = variation.requirementsForEachVariation.Select(v => v.nameOfVariation).ToList();
+
                 // Create a folder for this simulation under the individual results root
                 string simulationFolder = Path.Combine(individualResultsRoot, setName);
                 if (!Directory.Exists(simulationFolder))
@@ -496,6 +497,14 @@ namespace LitigCharts
                     if (!Directory.Exists(subFolder))
                         Directory.CreateDirectory(subFolder);
                 }
+
+                // Identify matching options for this variation set
+                var theSet = launcher.AllGameOptions
+                    .Where(o => variation.requirementsForEachVariation.Any(req =>
+                        req.columnMatches.All(cm =>
+                            o.VariableSettings.TryGetValue(cm.columnName, out var val) &&
+                            val?.ToString() == cm.expectedValue.ToString())))
+                    .ToList();
 
                 var deletedSources = new HashSet<string>();
                 // Move/copy files according to the rules

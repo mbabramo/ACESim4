@@ -13,8 +13,14 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
-    public class LitigGameLauncher : Launcher
+    public class LitigGameLauncher : Launcher, IFeeShiftingLauncher
     {
+        public List<GameOptions> AllGameOptions => GetOptionsSets();
+        public Dictionary<string, string> NameMap => GetGameOptionsNameMap();
+        public List<ArticleVariationInfoSets> VariationInfoSets
+            => GetEndogenousDisputesArticleVariationInfoList(false);
+        public string ReportPrefix => MasterReportNameForDistributedProcessing;
+
         public enum UnderlyingGame
         {
             AppropriationGame,
@@ -324,10 +330,6 @@ namespace ACESim
                 ("Proportion of Costs at Beginning", "0.5"),
             };
         }
-
-        public record ArticleVariationInfo(string nameOfVariation, List<(string columnName, object expectedValue)> columnMatches);
-
-        public record ArticleVariationInfoSets(string nameOfSet, List<ArticleVariationInfo> requirementsForEachVariation);
 
         public List<ArticleVariationInfoSets> GetEndogenousDisputesArticleVariationInfoList(bool useRiskAversionForNonRiskReports)
         {
