@@ -34,7 +34,6 @@ namespace ACESim
 
         // NOTE: Options that corresponded to the previous article on fee-shifting that are no longer being generated here are commented out with word DISABLED
 
-        // Endogenous disputes article
         public bool IncludeNonCriticalTransformations = true; 
         public FeeShiftingRule[] FeeShiftingModes = new[] { FeeShiftingRule.English_LiabilityIssue, FeeShiftingRule.MarginOfVictory_LiabilityIssue, 
             // DISABLED FeeShiftingRule.Rule68_DamagesIssue, FeeShiftingRule.Rule68English_DamagesIssue 
@@ -83,7 +82,7 @@ namespace ACESim
                     AddToOptionsListWithName(optionSets, "singleoptionset", LitigGameOptionsGenerator.BaseBeforeApplyingEndogenousGenerator());
                     break;
                 case OptionSetChoice.EndogenousDisputesArticle:
-                    AddEndogenousDisputesArticleGames(optionSets);
+                    GetGameOptions(optionSets);
                     break;
 
             }
@@ -143,24 +142,24 @@ namespace ACESim
         }
 
 
-        #region Endogenous disputes article
+        #region Game sets generation
 
-        public void AddEndogenousDisputesArticleGames(List<GameOptions> options)
+        public void GetGameOptions(List<GameOptions> options)
         {
             bool includeBaselineValueForNoncritical = false; // By setting this to false, we avoid repeating the baseline value for noncritical transformations, which would produce redundant options sets.
-            GetEndogenousDisputesArticleGames(options, includeBaselineValueForNoncritical);
+            GetGameOptions(options, includeBaselineValueForNoncritical);
         }
 
         /// <summary>
         /// Return the name that a set of fee-shifting article options was run under -- taking into account that we avoid repeating redundant options sets.
         /// </summary>
         /// <returns></returns>
-        public Dictionary<string, string> GetEndogenousDisputesArticleNameMap()
+        public Dictionary<string, string> GetGameOptionsNameMap()
         {
             List<GameOptions> withRedundancies = new List<GameOptions>();
-            GetEndogenousDisputesArticleGames(withRedundancies, true);
+            GetGameOptions(withRedundancies, true);
             List<GameOptions> withoutRedundancies = new List<GameOptions>();
-            GetEndogenousDisputesArticleGames(withoutRedundancies, false);
+            GetGameOptions(withoutRedundancies, false);
             Dictionary<string, string> result = new Dictionary<string, string>();
             foreach (var gameOptions in withRedundancies)
             {
@@ -175,9 +174,9 @@ namespace ACESim
             return result;
         }
 
-        public void GetEndogenousDisputesArticleGames(List<GameOptions> options, bool allowRedundancies)
+        public void GetGameOptions(List<GameOptions> options, bool allowRedundancies)
         {
-            var gamesSets = GetEndogenousDisputesArticleGamesSets(false, allowRedundancies); // each is a set with noncritical
+            var gamesSets = GetSetsOfGameOptions(false, allowRedundancies); // each is a set with noncritical
             var eachGameIndependently = gamesSets.SelectMany(x => x)
                 .OrderBy(x => x.LoserPaysOnlyLargeMarginOfVictory) // place here anything that will change the game tree size
                 .ToList();
@@ -196,7 +195,7 @@ namespace ACESim
             options.AddRange(eachGameIndependently);
         }
 
-        public List<List<LitigGameOptions>> GetEndogenousDisputesArticleGamesSets(bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical)
+        public List<List<LitigGameOptions>> GetSetsOfGameOptions(bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical)
         {
             List<List<LitigGameOptions>> result = new List<List<LitigGameOptions>>();
             const int numCritical = 3; // critical transformations are all interacted with one another and then with each of the other transformations
@@ -326,22 +325,22 @@ namespace ACESim
             };
         }
 
-        public record EndogenousDisputesArticleVariationInfo(string nameOfVariation, List<(string columnName, object expectedValue)> columnMatches);
+        public record ArticleVariationInfo(string nameOfVariation, List<(string columnName, object expectedValue)> columnMatches);
 
-        public record EndogenousDisputesArticleVariationSetInfo(string nameOfSet, List<EndogenousDisputesArticleVariationInfo> requirementsForEachVariation);
+        public record ArticleVariationInfoSets(string nameOfSet, List<ArticleVariationInfo> requirementsForEachVariation);
 
-        public List<EndogenousDisputesArticleVariationSetInfo> GetEndogenousDisputesArticleVariationInfoList(bool useRiskAversionForNonRiskReports)
+        public List<ArticleVariationInfoSets> GetEndogenousDisputesArticleVariationInfoList(bool useRiskAversionForNonRiskReports)
         {
-            var varyingNothing = new List<EndogenousDisputesArticleVariationInfo>()
+            var varyingNothing = new List<ArticleVariationInfo>()
             {
-                new EndogenousDisputesArticleVariationInfo("Baseline", DefaultNonCriticalValues()),
+                new ArticleVariationInfo("Baseline", DefaultNonCriticalValues()),
             };
 
-            var varyingFeeShiftingRule_LiabilityUncertain = new List<EndogenousDisputesArticleVariationInfo>()
+            var varyingFeeShiftingRule_LiabilityUncertain = new List<ArticleVariationInfo>()
             {
                 // where liability is uncertain:
-                new EndogenousDisputesArticleVariationInfo("English", DefaultNonCriticalValues()),
-                new EndogenousDisputesArticleVariationInfo("Margin of Victory", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "Margin of Victory")),
+                new ArticleVariationInfo("English", DefaultNonCriticalValues()),
+                new ArticleVariationInfo("Margin of Victory", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "Margin of Victory")),
             };
 
             // DISABLED
@@ -353,51 +352,51 @@ namespace ACESim
             //    new EndogenousDisputesArticleVariationInfo("Reverse 68", DefaultNonCriticalValues().WithReplacement("Fee Shifting Rule", "Reverse 68").WithReplacement("Issue", "Damages")),
             //};
 
-            var varyingNoiseMultipliersBoth = new List<EndogenousDisputesArticleVariationInfo>()
+            var varyingNoiseMultipliersBoth = new List<ArticleVariationInfo>()
             {
-                new EndogenousDisputesArticleVariationInfo(".25", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "0.25").WithReplacement("Noise Multiplier D", "0.25")),
-                new EndogenousDisputesArticleVariationInfo(".5", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "0.5").WithReplacement("Noise Multiplier D", "0.5")),
-                new EndogenousDisputesArticleVariationInfo("1", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "1").WithReplacement("Noise Multiplier D", "1")),
-                new EndogenousDisputesArticleVariationInfo("2", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "2").WithReplacement("Noise Multiplier D", "2")),
-                new EndogenousDisputesArticleVariationInfo("4", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "4").WithReplacement("Noise Multiplier D", "4")),
+                new ArticleVariationInfo(".25", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "0.25").WithReplacement("Noise Multiplier D", "0.25")),
+                new ArticleVariationInfo(".5", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "0.5").WithReplacement("Noise Multiplier D", "0.5")),
+                new ArticleVariationInfo("1", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "1").WithReplacement("Noise Multiplier D", "1")),
+                new ArticleVariationInfo("2", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "2").WithReplacement("Noise Multiplier D", "2")),
+                new ArticleVariationInfo("4", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "4").WithReplacement("Noise Multiplier D", "4")),
             };
 
-            var varyingNoiseMultipliersAsymmetric = new List<EndogenousDisputesArticleVariationInfo>()
+            var varyingNoiseMultipliersAsymmetric = new List<ArticleVariationInfo>()
             {
-                new EndogenousDisputesArticleVariationInfo("Equal Information", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "1").WithReplacement("Noise Multiplier D", "1")),
-                new EndogenousDisputesArticleVariationInfo("P Better", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "0.5").WithReplacement("Noise Multiplier D", "2")),
-                new EndogenousDisputesArticleVariationInfo("D Better", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "2").WithReplacement("Noise Multiplier D", "0.5")),
+                new ArticleVariationInfo("Equal Information", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "1").WithReplacement("Noise Multiplier D", "1")),
+                new ArticleVariationInfo("P Better", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "0.5").WithReplacement("Noise Multiplier D", "2")),
+                new ArticleVariationInfo("D Better", DefaultNonCriticalValues().WithReplacement("Noise Multiplier P", "2").WithReplacement("Noise Multiplier D", "0.5")),
             };
 
-            var varyingRelativeCosts = new List<EndogenousDisputesArticleVariationInfo>()
+            var varyingRelativeCosts = new List<ArticleVariationInfo>()
             {
-                new EndogenousDisputesArticleVariationInfo("P Lower Costs", DefaultNonCriticalValues().WithReplacement("Relative Costs", "0.5")),
-                new EndogenousDisputesArticleVariationInfo("Equal", DefaultNonCriticalValues().WithReplacement("Relative Costs", "1")),
-                new EndogenousDisputesArticleVariationInfo("P Higher Costs", DefaultNonCriticalValues().WithReplacement("Relative Costs", "2")),
+                new ArticleVariationInfo("P Lower Costs", DefaultNonCriticalValues().WithReplacement("Relative Costs", "0.5")),
+                new ArticleVariationInfo("Equal", DefaultNonCriticalValues().WithReplacement("Relative Costs", "1")),
+                new ArticleVariationInfo("P Higher Costs", DefaultNonCriticalValues().WithReplacement("Relative Costs", "2")),
             };
 
-            var varyingRiskAversion = new List<EndogenousDisputesArticleVariationInfo>()
+            var varyingRiskAversion = new List<ArticleVariationInfo>()
             {
-                new EndogenousDisputesArticleVariationInfo("Risk Neutral", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Risk Neutral")),
-                new EndogenousDisputesArticleVariationInfo("Mildly Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Mildly Risk Averse")),
-                new EndogenousDisputesArticleVariationInfo("Moderately Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Moderately Risk Averse")),
-                new EndogenousDisputesArticleVariationInfo("Highly Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Highly Risk Averse")),
+                new ArticleVariationInfo("Risk Neutral", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Risk Neutral")),
+                new ArticleVariationInfo("Mildly Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Mildly Risk Averse")),
+                new ArticleVariationInfo("Moderately Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Moderately Risk Averse")),
+                new ArticleVariationInfo("Highly Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "Highly Risk Averse")),
             };
 
-            var varyingRiskAversionAsymmetry = new List<EndogenousDisputesArticleVariationInfo>()
+            var varyingRiskAversionAsymmetry = new List<ArticleVariationInfo>()
             {
-                new EndogenousDisputesArticleVariationInfo("P Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "P Risk Averse")),
-                new EndogenousDisputesArticleVariationInfo("D Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "D Risk Averse")),
-                new EndogenousDisputesArticleVariationInfo("P More Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "P More Risk Averse")),
-                new EndogenousDisputesArticleVariationInfo("D More Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "D More Risk Averse")),
+                new ArticleVariationInfo("P Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "P Risk Averse")),
+                new ArticleVariationInfo("D Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "D Risk Averse")),
+                new ArticleVariationInfo("P More Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "P More Risk Averse")),
+                new ArticleVariationInfo("D More Risk Averse", DefaultNonCriticalValues().WithReplacement("Risk Aversion", "D More Risk Averse")),
             };
 
-            var varyingDamagesMultiplier = new List<EndogenousDisputesArticleVariationInfo>()
+            var varyingDamagesMultiplier = new List<ArticleVariationInfo>()
             {
-                new EndogenousDisputesArticleVariationInfo("0.5", DefaultNonCriticalValues().WithReplacement("Damages Multiplier", "0.5")),
-                new EndogenousDisputesArticleVariationInfo("1", DefaultNonCriticalValues().WithReplacement("Damages Multiplier", "1")),
-                new EndogenousDisputesArticleVariationInfo("2", DefaultNonCriticalValues().WithReplacement("Damages Multiplier", "2")),
-                new EndogenousDisputesArticleVariationInfo("4", DefaultNonCriticalValues().WithReplacement("Damages Multiplier", "4")),
+                new ArticleVariationInfo("0.5", DefaultNonCriticalValues().WithReplacement("Damages Multiplier", "0.5")),
+                new ArticleVariationInfo("1", DefaultNonCriticalValues().WithReplacement("Damages Multiplier", "1")),
+                new ArticleVariationInfo("2", DefaultNonCriticalValues().WithReplacement("Damages Multiplier", "2")),
+                new ArticleVariationInfo("4", DefaultNonCriticalValues().WithReplacement("Damages Multiplier", "4")),
             };
 
             // DISABLED
@@ -430,31 +429,31 @@ namespace ACESim
             //    new EndogenousDisputesArticleVariationInfo("Damages", DefaultNonCriticalValues().WithReplacement("Issue", "Damages")),
             //};
 
-            var varyingTimingOfCosts = new List<EndogenousDisputesArticleVariationInfo>()
+            var varyingTimingOfCosts = new List<ArticleVariationInfo>()
             {
-                new EndogenousDisputesArticleVariationInfo("0", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "0")),
-                new EndogenousDisputesArticleVariationInfo("0.25", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "0.25")),
-                new EndogenousDisputesArticleVariationInfo("0.5", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "0.5")),
-                new EndogenousDisputesArticleVariationInfo("0.75", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "0.75")),
-                new EndogenousDisputesArticleVariationInfo("1", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "1")),
+                new ArticleVariationInfo("0", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "0")),
+                new ArticleVariationInfo("0.25", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "0.25")),
+                new ArticleVariationInfo("0.5", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "0.5")),
+                new ArticleVariationInfo("0.75", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "0.75")),
+                new ArticleVariationInfo("1", DefaultNonCriticalValues().WithReplacement("Proportion of Costs at Beginning", "1")),
             };
 
-            var tentativeResults = new List<EndogenousDisputesArticleVariationSetInfo>()
+            var tentativeResults = new List<ArticleVariationInfoSets>()
             {
-                new EndogenousDisputesArticleVariationSetInfo("Baseline", varyingNothing),
-                new EndogenousDisputesArticleVariationSetInfo("Fee Shifting Rule (Liability Issue)", varyingFeeShiftingRule_LiabilityUncertain),
+                new ArticleVariationInfoSets("Baseline", varyingNothing),
+                new ArticleVariationInfoSets("Fee Shifting Rule (Liability Issue)", varyingFeeShiftingRule_LiabilityUncertain),
                 // DISABLED new EndogenousDisputesArticleVariationSetInfo("Fee Shifting Rule (Damages Issue)", varyingFeeShiftingRule_DamagesUncertain),
-                new EndogenousDisputesArticleVariationSetInfo("Noise Multiplier", varyingNoiseMultipliersBoth),
-                new EndogenousDisputesArticleVariationSetInfo("Information Asymmetry", varyingNoiseMultipliersAsymmetric),
-                new EndogenousDisputesArticleVariationSetInfo("Relative Costs", varyingRelativeCosts),
-                new EndogenousDisputesArticleVariationSetInfo("Risk Aversion", varyingRiskAversion),
-                new EndogenousDisputesArticleVariationSetInfo("Risk Aversion Asymmetry", varyingRiskAversionAsymmetry),
-                new EndogenousDisputesArticleVariationSetInfo("Damages Multiplier", varyingDamagesMultiplier),
+                new ArticleVariationInfoSets("Noise Multiplier", varyingNoiseMultipliersBoth),
+                new ArticleVariationInfoSets("Information Asymmetry", varyingNoiseMultipliersAsymmetric),
+                new ArticleVariationInfoSets("Relative Costs", varyingRelativeCosts),
+                new ArticleVariationInfoSets("Risk Aversion", varyingRiskAversion),
+                new ArticleVariationInfoSets("Risk Aversion Asymmetry", varyingRiskAversionAsymmetry),
+                new ArticleVariationInfoSets("Damages Multiplier", varyingDamagesMultiplier),
                 //DISABLED new EndogenousDisputesArticleVariationSetInfo("Quitting Rules", varyingQuitRules),
                 // DISABLED new EndogenousDisputesArticleVariationSetInfo("Proportion of Cases Where D Is Truly Liable", varyingProbabilityTrulyLiable),
                 // DISABLED new EndogenousDisputesArticleVariationSetInfo("Case Strength Noise", varyingNoiseToProduceCaseStrength),
                 // DISABLED new EndogenousDisputesArticleVariationSetInfo("Issue", varyingIssue),
-                new EndogenousDisputesArticleVariationSetInfo("Proportion of Costs at Beginning", varyingTimingOfCosts)
+                new ArticleVariationInfoSets("Proportion of Costs at Beginning", varyingTimingOfCosts)
             };
 
             if (useRiskAversionForNonRiskReports)
@@ -463,7 +462,7 @@ namespace ACESim
                 tentativeResults = tentativeResults.Where(x => !x.nameOfSet.StartsWith("Risk")).ToList();
                 for (int i = 0; i < tentativeResults.Count; i++)
                 {
-                    EndogenousDisputesArticleVariationSetInfo variationSetInfo = tentativeResults[i];
+                    ArticleVariationInfoSets variationSetInfo = tentativeResults[i];
                     tentativeResults[i] = variationSetInfo with
                     {
                         requirementsForEachVariation = variationSetInfo.requirementsForEachVariation.Select(x => x with

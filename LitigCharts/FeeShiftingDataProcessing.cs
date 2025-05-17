@@ -139,7 +139,7 @@ namespace LitigCharts
             string path = Launcher.ReportFolder();
 
             var launcher = new LitigGameLauncher();
-            var map = launcher.GetEndogenousDisputesArticleNameMap(); // name to find (avoids redundancies)
+            var map = launcher.GetGameOptionsNameMap(); // name to find (avoids redundancies)
 
             foreach (var gameOptionsSet in litigGameOptionsSets)
             {
@@ -276,7 +276,7 @@ namespace LitigCharts
 
             var launcher = new LitigGameLauncher();
             var gameOptionsSets = GetEndogenousDisputesOptionsSets();
-            var map = launcher.GetEndogenousDisputesArticleNameMap(); // name to find (avoids redundancies in naming)
+            var map = launcher.GetGameOptionsNameMap(); // name to find (avoids redundancies in naming)
             string path = Launcher.ReportFolder();
             string outputFileFullPath = Path.Combine(path, filePrefix + $"-{endOfFileName}.csv");
             string cumResults = "";
@@ -376,7 +376,7 @@ namespace LitigCharts
         private static List<LitigGameOptions> GetEndogenousDisputesOptionsSets()
         {
             var launcher = new LitigGameLauncher();
-            return launcher.GetEndogenousDisputesArticleGamesSets(false, false).SelectMany(x => x).ToList();
+            return launcher.GetSetsOfGameOptions(false, false).SelectMany(x => x).ToList();
         }
 
 
@@ -476,8 +476,8 @@ namespace LitigCharts
             }
 
             var launcher = new LitigGameLauncher();
-            var sets = launcher.GetEndogenousDisputesArticleGamesSets(false, false);
-            var map = launcher.GetEndogenousDisputesArticleNameMap();
+            var sets = launcher.GetSetsOfGameOptions(false, false);
+            var map = launcher.GetGameOptionsNameMap();
             var setNames = launcher.NamesOfEndogenousArticleSets;
             string masterReportName = launcher.MasterReportNameForDistributedProcessing;
             var setsWithNames = sets.Zip(setNames, (s, sn) => (theSet: s, setName: sn));
@@ -654,8 +654,8 @@ namespace LitigCharts
             if (!Directory.GetDirectories(reportFolder).Any(x => x == outputFolderName))
                 Directory.CreateDirectory(outputFolderPath);
 
-            var sets = launcher.GetEndogenousDisputesArticleGamesSets(false, false);
-            var map = launcher.GetEndogenousDisputesArticleNameMap(); // name to find (avoids redundancies)
+            var sets = launcher.GetSetsOfGameOptions(false, false);
+            var map = launcher.GetGameOptionsNameMap(); // name to find (avoids redundancies)
             var setNames = launcher.NamesOfEndogenousArticleSets;
             string masterReportName = launcher.MasterReportNameForDistributedProcessing;
             List<(List<LitigGameOptions> theSet, string setName)> setsWithNames = sets.Zip(setNames, (s, sn) => (s, sn)).ToList();
@@ -663,7 +663,7 @@ namespace LitigCharts
             foreach (bool useRiskAversionForNonRiskReports in new bool[] { false, true })
             {
 
-                List<LitigGameLauncher.EndogenousDisputesArticleVariationSetInfo> variations = launcher.GetEndogenousDisputesArticleVariationInfoList(useRiskAversionForNonRiskReports);
+                List<LitigGameLauncher.ArticleVariationInfoSets> variations = launcher.GetEndogenousDisputesArticleVariationInfoList(useRiskAversionForNonRiskReports);
 
                 var plaintiffDefendantAndOthersLineScheme = new List<string>()
                 {
@@ -723,7 +723,7 @@ namespace LitigCharts
 
 
 
-        private static void ProcessForWelfareMeasure(LitigGameLauncher launcher, string pathAndFilename, string outputFolderPath, List<LitigGameLauncher.EndogenousDisputesArticleVariationSetInfo> variations, AggregatedGraphInfo aggregatedGraphInfo, double? limitToCostsMultiplier)
+        private static void ProcessForWelfareMeasure(LitigGameLauncher launcher, string pathAndFilename, string outputFolderPath, List<LitigGameLauncher.ArticleVariationInfoSets> variations, AggregatedGraphInfo aggregatedGraphInfo, double? limitToCostsMultiplier)
         {
             Func<double?, double?> scaleMiniGraphValues = aggregatedGraphInfo.scaleMiniGraphValues ?? (x => x);
             List<(string columnName, string expectedText)[]> collectedRowsToFind = new List<(string columnName, string expectedText)[]>();
@@ -828,7 +828,7 @@ namespace LitigCharts
             }
         }
 
-        private static void CreateAggregatedLineGraphFromData(LitigGameLauncher launcher, string outputFolderPath, AggregatedGraphInfo aggregatedGraphInfo, string equilibriumType, LitigGameLauncher.EndogenousDisputesArticleVariationSetInfo variation, List<LitigGameLauncher.EndogenousDisputesArticleVariationInfo> requirementsForEachVariation, List<List<TikzLineGraphData>> lineGraphData, double? limitToCostsMultiplier)
+        private static void CreateAggregatedLineGraphFromData(LitigGameLauncher launcher, string outputFolderPath, AggregatedGraphInfo aggregatedGraphInfo, string equilibriumType, LitigGameLauncher.ArticleVariationInfoSets variation, List<LitigGameLauncher.ArticleVariationInfo> requirementsForEachVariation, List<List<TikzLineGraphData>> lineGraphData, double? limitToCostsMultiplier)
         {
             string subfolderName = Path.Combine(outputFolderPath, variation.nameOfSet);
             if (!Directory.GetDirectories(outputFolderPath).Any(x => x == subfolderName))
