@@ -14,18 +14,20 @@ namespace ACESim
         public enum LitigGameOptionSetChoices
         {
             EndogenousArticleBase,
-            FeeShiftingBase,
+            FeeShiftingBaseSmallTree,
+            FeeShiftingBaseLargeTree,
             AppropriationGame,
             SmallGame,
         }
 
-        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.SmallGame; // DEBUG
+        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.FeeShiftingBaseSmallTree; // DEBUG
 
         public static LitigGameOptions GetLitigGameOptions() => LitigGameChoice switch
         {
             LitigGameOptionSetChoices.EndogenousArticleBase => BaseBeforeApplyingEndogenousGenerator(),
             LitigGameOptionSetChoices.AppropriationGame => AppropriationGame(),
-            LitigGameOptionSetChoices.FeeShiftingBase => FeeShiftingBase(),
+            LitigGameOptionSetChoices.FeeShiftingBaseSmallTree => FeeShiftingBase(true),
+            LitigGameOptionSetChoices.FeeShiftingBaseLargeTree => FeeShiftingBase(false),
             LitigGameOptionSetChoices.SmallGame => SmallGame(),
             _ => throw new Exception()
         };
@@ -110,12 +112,12 @@ namespace ACESim
             return options;
         }
 
-        public static LitigGameOptions FeeShiftingBase()
+        public static LitigGameOptions FeeShiftingBase(bool smallerTree)
         {
             var options = BaseBeforeApplyingEndogenousGenerator();
             options.CollapseAlternativeEndings = true; // can't do this where we're really using endogenous disputes
             options.CollapseChanceDecisions = true;
-            options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = 5;
+            options.NumLiabilitySignals = options.NumLiabilityStrengthPoints = options.NumOffers = smallerTree ? (byte) 5 : (byte) 10;
             return options;
         }
 
