@@ -72,7 +72,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             ReportCollection reportCollection = new ReportCollection();
 
             string filename = null;
-            if (EvolutionSettings.CreateEFGFileForSequenceForm)
+            if (EvolutionSettings.CreateEFGFile)
                 filename = CreateGambitEFGFile();
 
             if (Approach == SequenceFormApproach.ECTA)

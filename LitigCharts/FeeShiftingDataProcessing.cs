@@ -137,7 +137,7 @@ namespace LitigCharts
             List<(string path, string combinedPath, string optionSetName, string fileSuffix)> result = new();
 
             var gameDefinition = new LitigGameDefinition();
-            List<LitigGameOptions> litigGameOptionsSets = GetEndogenousDisputesOptionsSets();
+            List<GameOptions> litigGameOptionsSets = launcher.AllGameOptions;
             string path = Launcher.ReportFolder();
 
             var map = launcher.NameMap; // name to find (avoids redundancies)
@@ -275,7 +275,7 @@ namespace LitigCharts
                 replacementRowNames = replacementRowNames.Take(1).ToList();
             }
 
-            var gameOptionsSets = GetEndogenousDisputesOptionsSets();
+            var gameOptionsSets = launcher.AllGameOptions;
             var map = launcher.NameMap; // name to find (avoids redundancies in naming)
             string path = Launcher.ReportFolder();
             string outputFileFullPath = Path.Combine(path, filePrefix + $"-{endOfFileName}.csv");
@@ -335,7 +335,7 @@ namespace LitigCharts
         public static void BuildOffersReport(IFeeShiftingLauncher launcher)
         {
             var gameDefinition = new LitigGameDefinition();
-            gameDefinition.Setup(GetEndogenousDisputesOptionsSets().First());
+            gameDefinition.Setup(launcher.AllGameOptions.First());
             var reportDefinitions = gameDefinition.GetSimpleReportDefinitions();
 
             var report = reportDefinitions.Skip(1).First();
@@ -372,13 +372,6 @@ namespace LitigCharts
 
             BuildReport(launcher, filtersOfRowsToGet, replacementRowNames, columnsToGet, replacementColumnNames, "offers");
         }
-
-        private static List<LitigGameOptions> GetEndogenousDisputesOptionsSets()
-        {
-            var launcher = new LitigGameLauncher();
-            return launcher.GetSetsOfGameOptions(false, false).SelectMany(x => x).ToList();
-        }
-
 
         private static void FileFixer()
         {

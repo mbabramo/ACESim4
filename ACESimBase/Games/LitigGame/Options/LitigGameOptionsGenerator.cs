@@ -20,6 +20,7 @@ namespace ACESim
             SmallGame,
         }
 
+        // This choice has an effect only when in ACESimConsole mode (playing a single game).
         static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.FeeShiftingBaseSmallTree; // DEBUG
 
         public static LitigGameOptions GetLitigGameOptions() => LitigGameChoice switch

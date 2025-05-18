@@ -41,6 +41,7 @@ namespace ACESim
         public bool CreateEquilibriaFile = true;
         public bool UsePreloadedEquilibriaIfAvailable = true;
         public bool SkipAltogetherIfEquilibriaFileAlreadyExists = false; // If true, and an equilibrium file exists, then we will skip processing AND reporting. This is useful as a way of just repeating failures.
+        public bool CreateEFGFile = true; 
 
         public bool UseAcceleratedBestResponse = true; 
         public const int EffectivelyNever = 999999999;
@@ -73,7 +74,6 @@ namespace ACESim
         public bool ConfirmPerfectEquilibria = true; // for sequence form only
         public bool ThrowIfNotPerfectEquilibrium = true;  
         public bool TryInexactArithmeticForAdditionalEquilibria = false; 
-        public bool CreateEFGFileForSequenceForm = true; // DEBUG -- extend this to GeneralVanilla
         public bool CustomSequenceFormInitialization = true;
         public bool UseCustomSequenceFormInitializationAsFinalEquilibria = false; 
         public bool SequenceFormUseRandomSeed = false; // random seed always used for additional priors, but this can be used for just a single prior

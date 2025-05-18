@@ -175,9 +175,6 @@ namespace ACESimTest.ArrayProcessingTests
                 }
             }
 
-            if (acl.UnderlyingCommands.Any(x => x.CommandType == ArrayCommandType.CopyTo && x.Index >= MaxVirtualStackSize))
-                throw new Exception("DEBUG");
-
             if (stack.Count != 0)
                 throw new InvalidOperationException($"Planner produced unbalanced delimiters; {stack.Count} still open.");
         }

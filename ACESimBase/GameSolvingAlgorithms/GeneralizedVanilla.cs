@@ -559,8 +559,6 @@ namespace ACESim
             Unroll_InitialArrayIndex = index;
         }
 
-        // DEBUG // use these to save / load equ files (copyChanceAndFinalUtilitiesNodes is false)
-
         private void Unroll_CopyInformationSetsToArray(double[] array, bool copyChanceAndFinalUtilitiesNodes)
         {
             if (copyChanceAndFinalUtilitiesNodes)
@@ -1045,7 +1043,7 @@ namespace ACESim
             }
             else
             {
-                if (EvolutionSettings.CreateEFGFileForSequenceForm)
+                if (EvolutionSettings.CreateEFGFile)
                     CreateGambitEFGFile();
 
                 if (EvolutionSettings.UnrollAlgorithm)

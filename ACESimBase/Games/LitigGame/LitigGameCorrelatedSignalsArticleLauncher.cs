@@ -31,7 +31,7 @@ namespace ACESim
         public bool TestDisputeGeneratorVariations = false;
         public bool IncludeRunningSideBetVariations = false;
         public bool LimitToAmerican = true;
-        public bool UseSmallerTree = false;
+        public bool UseSmallerTree = false; // DEBUG
 
         // Fee shifting article
         public bool IncludeNonCriticalTransformations = true;
