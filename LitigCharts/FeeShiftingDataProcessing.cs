@@ -485,12 +485,19 @@ namespace LitigCharts
                 }
 
                 // Identify matching options for this variation set
+                string Normalize(object o) =>
+    o is double d ? d.ToString("G", System.Globalization.CultureInfo.InvariantCulture)
+    : o?.ToString().Trim();
+
                 var theSet = launcher.AllGameOptions
-                    .Where(o => variation.requirementsForEachVariation.Any(req =>
-                        req.columnMatches.All(cm =>
-                            o.VariableSettings.TryGetValue(cm.columnName, out var val) &&
-                            val?.ToString() == cm.expectedValue.ToString())))
+                    .Where(option =>
+                        variation.requirementsForEachVariation.Any(requirement =>
+                            requirement.columnMatches.All(match =>
+                                option.VariableSettings.TryGetValue(match.columnName, out var val) &&
+                                Normalize(val) == Normalize(match.expectedValue))))
                     .ToList();
+
+
 
                 var deletedSources = new HashSet<string>();
                 // Move/copy files according to the rules
