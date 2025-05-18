@@ -51,6 +51,17 @@ namespace ACESimBase.Util.Collections
             }
             return copy;
         }
+        public static List<(string, string)> WithReplacement(this List<(string, string)> list, string s, string r)
+        {
+            var copy = list.ToList();
+            for (int i = 0; i < copy.Count; i++)
+            {
+                (string, object) c = copy[i];
+                if (c.Item1 == s)
+                    copy[i] = (s, r);
+            }
+            return copy;
+        }
 
         public static void Resize<T>(this List<T> list, int sz, Func<T> c)
         {

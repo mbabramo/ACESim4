@@ -757,7 +757,7 @@ namespace ACESim
 
         #region Build option sets
 
-        public record ArticleVariationInfo(string nameOfVariation, List<(string columnName, object expectedValue)> columnMatches);
+        public record ArticleVariationInfo(string nameOfVariation, List<(string columnName, string expectedValue)> columnMatches);
 
         public record ArticleVariationInfoSets(string nameOfSet, List<ArticleVariationInfo> requirementsForEachVariation);
 

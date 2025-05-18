@@ -27,7 +27,7 @@ namespace ACESimBase
         List<string> NamesOfVariationSets { get; }
 
         // For each named variation set, a string representation of the default value of the variation.
-        List<(string, object)> DefaultNonCriticalValues(); // DEBUG -- consider converting to property. Also, consider string -> string.
+        List<(string, string)> DefaultNonCriticalValues { get; }
 
         // Stable report prefix used for output files (e.g., "FS036" or "APP001").
         string ReportPrefix { get; }

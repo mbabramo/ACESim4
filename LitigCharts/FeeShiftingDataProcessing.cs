@@ -21,7 +21,7 @@ namespace LitigCharts
 {
     public class FeeShiftingDataProcessing
     {
-        static string filePrefix => new LitigGameLauncher().MasterReportNameForDistributedProcessing + "-";
+        static string filePrefix(IFeeShiftingLauncher launcher) => launcher.ReportPrefix + "-";
         const string correlatedEquilibriumFileSuffix = "-Corr";
         const string averageEquilibriumFileSuffix = "-Avg";
         const string firstEquilibriumFileSuffix = "-Eq1";
@@ -149,13 +149,13 @@ namespace LitigCharts
                 if (avoidProcessingIfPDFExists)
                 {
                     string fileSuffixCopy = fileSuffix;
-                    GetFileInfo(map, filePrefix, ".pdf", firstEquilibriumFileSuffix, ref fileSuffixCopy, path, gameOptionsSet, out filenameCore, out combinedPath, out bool exists);
+                    GetFileInfo(map, filePrefix(launcher), ".pdf", firstEquilibriumFileSuffix, ref fileSuffixCopy, path, gameOptionsSet, out filenameCore, out combinedPath, out bool exists);
                     if (File.Exists(combinedPath))
                         processingNeeded = false;
                 }
                 if (processingNeeded)
                 {
-                    GetFileInfo(map, filePrefix, ".tex", firstEquilibriumFileSuffix, ref fileSuffix, path, gameOptionsSet, out filenameCore, out combinedPath, out bool exists);
+                    GetFileInfo(map, filePrefix(launcher), ".tex", firstEquilibriumFileSuffix, ref fileSuffix, path, gameOptionsSet, out filenameCore, out combinedPath, out bool exists);
                     if (!File.Exists(combinedPath))
                         throw new Exception("File not found");
                     result.Add((path, combinedPath, gameOptionsSet.Name, fileSuffix));
@@ -278,14 +278,14 @@ namespace LitigCharts
             var gameOptionsSets = launcher.AllGameOptions;
             var map = launcher.NameMap; // name to find (avoids redundancies in naming)
             string path = Launcher.ReportFolder();
-            string outputFileFullPath = Path.Combine(path, filePrefix + $"-{endOfFileName}.csv");
+            string outputFileFullPath = Path.Combine(path, filePrefix(launcher) + $"-{endOfFileName}.csv");
             string cumResults = "";
 
             var distinctOptionSets = gameOptionsSets.DistinctBy(x => map[x.Name]).ToList();
 
             // look up particular settings here if desired (not usually needed)
             bool findSpecificSettings = false;
-            List<(string, object)> settingsToFind = launcher.DefaultNonCriticalValues();
+            List<(string, string)> settingsToFind = launcher.DefaultNonCriticalValues;
             var matches = distinctOptionSets.Where(x => !findSpecificSettings || settingsToFind.All(y => x.VariableSettings[y.Item1].ToString() == y.Item2.ToString())).ToList();
             var namesOfMatches = matches.Select(x => x.Name).ToList();
             var mappedNamesOfMatches = namesOfMatches.Select(x => map[x]).ToList();
@@ -306,7 +306,7 @@ namespace LitigCharts
                 string altFileSuffix = firstEquilibriumFileSuffix;
                 TabbedText.WriteLine($"Processing equilibrium type {fileSuffix}");
                 bool includeHeader = firstEqOnly || fileSuffix == correlatedEquilibriumFileSuffix;
-                List<List<string>> outputLines = GetCSVLines(distinctOptionSets.Select(x => (GameOptions)x).ToList(), map, rowsToGet, replacementRowNames, filePrefix, fileSuffix, altFileSuffix, path, includeHeader, columnsToGet, replacementColumnNames);
+                List<List<string>> outputLines = GetCSVLines(distinctOptionSets.Select(x => (GameOptions)x).ToList(), map, rowsToGet, replacementRowNames, filePrefix(launcher), fileSuffix, altFileSuffix, path, includeHeader, columnsToGet, replacementColumnNames);
                 if (includeHeader)
                     outputLines[0].Insert(0, "Equilibrium Type");
                 string equilibriumType = fileSuffix switch
@@ -754,7 +754,7 @@ namespace LitigCharts
                                 {
                                     if (stepDefiningRowsToFind)
                                     {
-                                        var modifiedRowsToFind = columnsToMatch.WithReplacement("Fee Shifting Multiplier", microXValue).WithReplacement("Costs Multiplier", macroYValue).Select(x => (x.Item1, x.Item2.ToString())).ToArray();
+                                        var modifiedRowsToFind = columnsToMatch.WithReplacement("Fee Shifting Multiplier", microXValue.ToString()).WithReplacement("Costs Multiplier", macroYValue.ToString()).Select(x => (x.Item1, x.Item2.ToString())).ToArray();
                                         collectedRowsToFind.Add(modifiedRowsToFind);
                                     }
                                     else
