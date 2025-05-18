@@ -285,7 +285,7 @@ namespace LitigCharts
 
             // look up particular settings here if desired (not usually needed)
             bool findSpecificSettings = false;
-            List<(string, object)> settingsToFind = GetEndogenousDisputesSettingsToFind();
+            List<(string, object)> settingsToFind = launcher.DefaultNonCriticalValues();
             var matches = distinctOptionSets.Where(x => !findSpecificSettings || settingsToFind.All(y => x.VariableSettings[y.Item1].ToString() == y.Item2.ToString())).ToList();
             var namesOfMatches = matches.Select(x => x.Name).ToList();
             var mappedNamesOfMatches = namesOfMatches.Select(x => map[x]).ToList();
@@ -323,13 +323,6 @@ namespace LitigCharts
                 cumResults += resultForEquilibrium;
             }
             TextFileManage.CreateTextFile(outputFileFullPath, cumResults);
-        }
-
-        private static List<(string, object)> GetEndogenousDisputesSettingsToFind()
-        {
-
-            var launcher = new LitigGameLauncher();
-            return launcher.GetEndogenousDisputesSettingsToFind();
         }
 
         public static void BuildOffersReport(IFeeShiftingLauncher launcher)
@@ -658,7 +651,7 @@ namespace LitigCharts
 
             var sets = launcher.GetSetsOfGameOptions(false, false);
             var map = launcher.GetGameOptionsNameMap(); // name to find (avoids redundancies)
-            var setNames = launcher.NamesOfEndogenousArticleSets;
+            var setNames = launcher.NamesOfVariationSets;
             string masterReportName = launcher.MasterReportNameForDistributedProcessing;
             List<(List<LitigGameOptions> theSet, string setName)> setsWithNames = sets.Zip(setNames, (s, sn) => (s, sn)).ToList();
 

@@ -276,7 +276,9 @@ namespace ACESim
             return result;
         }
 
-        private static List<(string, object)> DefaultNonCriticalValues()
+        // DEBUG -- remove DISABLED throughout this file? Or at least those that we should definitely eliminate.
+
+        public List<(string, object)> DefaultNonCriticalValues()
         {
             return new List<(string, object)>()
             {
@@ -296,7 +298,7 @@ namespace ACESim
             };
         }
 
-        public List<string> NamesOfEndogenousArticleSets => new List<string>()
+        public List<string> NamesOfVariationSets => new List<string>()
         {
             "Costs Multipliers",
             "Fee Shifting Multiples",
@@ -311,25 +313,6 @@ namespace ACESim
             // DISABLED "Liability vs Damages",
             "Proportion of Costs at Beginning",
         };
-        public List<(string, object)> GetEndogenousDisputesSettingsToFind()
-        {
-            return new List<(string, object)>()
-            {
-                ("Costs Multiplier", "1"),
-                ("Fee Shifting Multiplier", "0"),
-                ("Risk Aversion", "Risk Neutral"),
-                ("Fee Shifting Rule", "English"),
-                ("Relative Costs", "1"),
-                ("Noise Multiplier P", "1"),
-                ("Noise Multiplier D", "1"),
-                ("Damages Multiplier", "1"),
-                // DISABLED ("Allow Abandon and Defaults", "true"),
-                // DISABLED ("Probability Truly Liable", "0.5"),
-                // DISABLED ("Noise to Produce Case Strength", "0.35"),
-                // DISABLED ("Issue", "Liability"),
-                ("Proportion of Costs at Beginning", "0.5"),
-            };
-        }
 
         public List<ArticleVariationInfoSets> GetEndogenousDisputesArticleVariationInfoList(bool useRiskAversionForNonRiskReports)
         {

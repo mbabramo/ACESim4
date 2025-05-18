@@ -284,7 +284,7 @@ namespace ACESim
             return result;
         }
 
-        private static List<(string, object)> DefaultNonCriticalValues()
+        public List<(string, object)> DefaultNonCriticalValues()
         {
             return new List<(string, object)>()
             {
@@ -303,7 +303,7 @@ namespace ACESim
             };
         }
 
-        public List<string> NamesOfFeeShiftingArticleSets => new List<string>()
+        public List<string> NamesOfVariationSets => new List<string>()
         {
            // "Additional Costs Multipliers",
            // "Additional Fee Shifting Multipliers",
