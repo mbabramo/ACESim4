@@ -10,7 +10,7 @@ Then, rent virtual machines on Azure and run ACESimDistributed or ACESimDistribu
 
 When the code has completed executing, the results of the main simulations will be saved in the ReportResults folder. The results will be in the form of a number of .csv files and other files, such as .efg files (showing the structure of each extensive form game), .equ files (showing the equilibrium of each game), and .tex files (showing the LaTeX code for the diagrams that illustrate individual simulations). To generate diagrams that aggregate information across simulations, make sure that Latex and Texmaker are installed. Set the startup project to LitigCharts and run the code. It will then organize all of the report outputs and launch Texmaker to generate more Latex diagrams. 
 
-To rerun the simulations but for a smaller tree size but with more equilibria (as in the robustness checking), please make the following changes: (1) Remove all results from the ReportResults folder. (2) Change the UseSmallerTree variable in LitigGameLauncher to true. (3) Change the SequenceFormNumPriorsToUseToGenerateEquilibria variable in EvolutionSettings to 50. Note that this will result in many more files being produced, one for each equilibrium. You may not wish to create a pdf for each equilibrium, and thus you might change printIndividualLatexDiagrams in Runner.cs to false. 
+To rerun the simulations but for a smaller tree size but with more equilibria (as in the robustness checking), please make the following changes: (1) Remove all results from the ReportResults folder. (2) Change the UseSmallerTree variable in LitigGameLauncher to true. (3) Change the SequenceFormNumPriorsToUseToGenerateEquilibria variable in EvolutionSettings to 50. Note that this will result in many more files being produced, one for each equilibrium. (4) You may not wish to create a pdf for each equilibrium, and thus you might change printIndividualLatexDiagrams in Runner.cs to false. (5) Set DataProcessingBase.firstEqOnly to false if you want diagrams for average and correlated equilibrium.
 
 To run only the two baseline models (on the larger tree), change the OptionSetChosen variable in LitigGameLauncher to OptionSetChoice.FeeShiftingArticleBaselineOnly. If you wish to produce the coefficient-of-variation calculations in the article, set doCoefficientOfVariationCalculations in Runner.cs to true. 
 
@@ -35,5 +35,5 @@ The structure of the game tree, including the ordering of the decisions, is affe
 The game play itself is defined in LitigGame.cs, and the data structure
 used to keep track of progress in the game is in LitigGameProgress.cs. 
 The players, including chance players corresponding to different chance decisions, are listed in LitigGamePlayers.cs. 
-The LitigGameLauncher.cs file generates options for the many different permutations executed. 
+The LitigGameCorrelatedSignalsArticleLauncher.cs file generates options for the many different permutations executed for this article.
 

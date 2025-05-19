@@ -24,7 +24,7 @@ namespace ACESim
         public bool TestDisputeGeneratorVariations = false;
         public bool IncludeRunningSideBetVariations = false;
         public bool LimitToAmerican = true;
-        public bool UseSmallerTree = false; // DEBUG
+        public bool UseSmallerTree = false; 
 
 
         public override List<string> NamesOfVariationSets => new List<string>()
