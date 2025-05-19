@@ -52,7 +52,7 @@ namespace SFStateless
 
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    LitigGameLauncher launcher = new LitigGameLauncher();
+                    LitigGameEndogenousDisputesLauncher launcher = new LitigGameEndogenousDisputesLauncher();
 
                     await launcher.ParticipateInDistributedProcessing(
                         launcher.MasterReportNameForDistributedProcessing,

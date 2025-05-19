@@ -657,7 +657,7 @@ namespace ACESimTest
             bool dAnswers = pFiles && dReadyToDefaultRound != 0;
             Func<Decision, GameProgress, byte> actionsToPlay = GetPlayerActions(pFiles, dAnswers, liabilityStrength, PLiabilitySignal,
                 DLiabilitySignal, damagesStrength, PDamagesSignal,  DDamagesSignal, bargainingRoundMoves: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed: simultaneousOffersUltimatelyRevealed, pReadyToAbandonRound: pReadyToAbandonRound, dReadyToDefaultRound: dReadyToDefaultRound, mutualGiveUpResult: mutualGiveUpResult, simulatingBargainingFailure: simulatingBargainingFailure, sideBetChallenges: SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges: runningSideBetChallenges);
-            var myGameProgress = LitigGameLauncher.PlayLitigGameOnce(options, actionsToPlay);
+            var myGameProgress = LitigGameEndogenousDisputesLauncher.PlayLitigGameOnce(options, actionsToPlay);
             VerifyInformationSetUniqueness(myGameProgress, options);
 
             bool pWins = pReadyToAbandonRound == null && dReadyToDefaultRound != null ||
@@ -834,7 +834,7 @@ namespace ACESimTest
             var bestOffers = GetBestOffers(offers, options);
             var actionsToPlay = GetPlayerActions(true, true, LiabilityStrength, PLiabilitySignal,
                 DLiabilitySignal, DamagesStrength, PDamagesSignal, DDamagesSignal, simulatingBargainingFailure, bargainingRoundMoves: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed: simultaneousOffersUltimatelyRevealed, sideBetChallenges: SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges: runningSideBetChallenges);
-            var myGameProgress = LitigGameLauncher.PlayLitigGameOnce(options, actionsToPlay);
+            var myGameProgress = LitigGameEndogenousDisputesLauncher.PlayLitigGameOnce(options, actionsToPlay);
             VerifyInformationSetUniqueness(myGameProgress, options);
 
             double settlementProportion = EquallySpaced.GetLocationOfEquallySpacedPoint(ValueWhenCaseSettles - 1, NumOffers, true);
@@ -971,7 +971,7 @@ namespace ACESimTest
                 damagesIfAwarded = minDamages + damagesProportionWithVariation * (DamagesAlleged * DamagesMultiplier - minDamages);
             }
             var actions = GetPlayerActions(true, true, LiabilityStrength, PLiabilitySignal, DLiabilitySignal, DamagesStrength, PDamagesSignal, DDamagesSignal, simulatingBargainingFailure, sideBetChallenges, runningSideBetChallenges, bargainingMoves, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, null, null, 0, courtLiabilityResult, courtDamagesResultIfAllowVariation);
-            var myGameProgress = LitigGameLauncher.PlayLitigGameOnce(options, actions);
+            var myGameProgress = LitigGameEndogenousDisputesLauncher.PlayLitigGameOnce(options, actions);
             myGameProgress.GameComplete.Should().BeTrue();
             VerifyInformationSetUniqueness(myGameProgress, options);
 

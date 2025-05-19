@@ -92,7 +92,7 @@ namespace ACESim
                 case AvailableGames.SelectLitigGame:
                     baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\LitigGame";
                     strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
-                    launcher = new LitigGameLauncher();
+                    launcher = new LitigGameEndogenousDisputesLauncher();
                     break;
                 case AvailableGames.SelectAdditiveEvidenceGame:
                     baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\AdditiveEvidenceGame";
