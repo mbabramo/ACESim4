@@ -417,56 +417,17 @@ namespace LitigCharts
         }
         public static void OrganizeIntoFolders(PermutationalLauncher launcher, bool doDeletion)
         {
-            string reportFolder = Launcher.ReportFolder();
-            string individualResultsRoot = Path.Combine(reportFolder, "Individual Simulation Results");
-            Directory.CreateDirectory(individualResultsRoot);
+            string reportFolder, individualResultsRoot;
+            PrepareFolders(out reportFolder, out individualResultsRoot);
 
-            DeleteAuxiliaryFiles(reportFolder);
-
-            string[] getExtensions(string eqType) => new[]
-            {
-        firstEqOnly ? ".csv" : $"-{eqType}.csv",
-        $"-offers-{eqType}.pdf", $"-offers-{eqType}.tex",
-        $"-fileans-{eqType}.pdf", $"-fileans-{eqType}.tex",
-        $"-stagecostlight-{eqType}.pdf", $"-stagecostlight-{eqType}.tex", $"-stagecostlight-{eqType}.csv",
-        $"-stagecostdark-{eqType}.pdf", $"-stagecostdark-{eqType}.tex", $"-stagecostdark-{eqType}.csv",
-    };
-
-            var placementRules = new List<(string folderName, string[] extensions)>
-    {
-        ("First Equilibrium", getExtensions("Eq1")),
-        ("EFG Files", new[] { ".efg" }),
-        ("Equilibria Files", new[] { "-equ.csv" }),
-        ("Logs", new[] { "-log.txt" }),
-        ("Latex underlying data", new[] { "-offers.tex", "-fileans.tex", "-stagecostlight.tex", "-stagecostdark.tex" }),
-        ("Latex files", new[] { "-offers.tex", "-fileans.tex", "-stagecostlight.tex", "-stagecostdark.tex" }),
-        ("File-Answer Diagrams", new[] { "-fileans.pdf" }),
-        ("Offer Heatmaps", new[] { "-offers.pdf" }),
-        ("Stage Costs Diagrams (Normal)", new[] { "-stagecostlight.pdf" }),
-        ("Stage Costs Diagrams (Dark Mode)", new[] { "-stagecostdark.pdf" }),
-        ("Stage Costs Diagrams (Underlying Data)", new[] { "-stagecostlight.csv", "-stagecostdark.csv" }),
-        ("Cross Tabs", new[] { ".csv" }),
-    };
-
-            if (!firstEqOnly)
-            {
-                placementRules.InsertRange(0, new List<(string, string[])>
-        {
-            ("Correlated Equilibrium", getExtensions("Corr")),
-            ("Average Equilibrium", getExtensions("Avg")),
-        });
-
-                for (int i = 2; i <= 100; i++)
-                    placementRules.Add(("Additional Equilibria", getExtensions($"Eq{i}")));
-            }
+            List<(string folderName, string[] extensions)> placementRules = GetFilePlacementRules();
 
             var map = launcher.NameMap;
             string masterReportName = launcher.ReportPrefix;
-            var allOptions = launcher.GetOptionsSets();
+            var allOptionSets = launcher.GetOptionsSets();
 
             Dictionary<string, List<string>> grouped = launcher.GroupOptionSetsByClassification();
-
-            var optionNameToOption = allOptions.ToDictionary(opt => opt.Name);
+            var optionNameToOptionSet = allOptionSets.ToDictionary(opt => opt.Name);
 
             foreach (var (groupName, optionSetNames) in grouped)
             {
@@ -480,9 +441,8 @@ namespace LitigCharts
 
                 foreach (var optionSetName in optionSetNames)
                 {
-                    if (!optionNameToOption.TryGetValue(optionSetName, out var option))
+                    if (!optionNameToOptionSet.TryGetValue(optionSetName, out var optionSet))
                         continue;
-
                     string mappedName = map[optionSetName];
 
                     foreach (var (folderName, extensions) in placementRules)
@@ -508,6 +468,19 @@ namespace LitigCharts
                 }
             }
 
+            CleanupAfterFolderOrganization(reportFolder, allOptionSets, grouped);
+        }
+
+        private static void PrepareFolders(out string reportFolder, out string individualResultsRoot)
+        {
+            reportFolder = Launcher.ReportFolder();
+            individualResultsRoot = Path.Combine(reportFolder, "Individual Simulation Results");
+            Directory.CreateDirectory(individualResultsRoot);
+            DeleteAuxiliaryFiles(reportFolder);
+        }
+
+        private static void CleanupAfterFolderOrganization(string reportFolder, List<GameOptions> allOptionSets, Dictionary<string, List<string>> grouped)
+        {
             // Move process logs
             string processLogsFolder = Path.Combine(reportFolder, "Process Logs");
             Directory.CreateDirectory(processLogsFolder);
@@ -521,7 +494,7 @@ namespace LitigCharts
 
             // Report unassigned, if any
             var assignedNames = grouped.SelectMany(g => g.Value).ToHashSet();
-            var unassigned = allOptions.Where(o => !assignedNames.Contains(o.Name)).ToList();
+            var unassigned = allOptionSets.Where(o => !assignedNames.Contains(o.Name)).ToList();
             if (unassigned.Count > 0)
             {
                 TabbedText.WriteLine($"WARNING: {unassigned.Count} simulations were unassigned.");
@@ -533,8 +506,6 @@ namespace LitigCharts
                 }
             }
         }
-
-
 
         private static string[] DeleteAuxiliaryFiles(string reportFolder)
         {
@@ -558,6 +529,48 @@ namespace LitigCharts
 
             return filesInFolder;
         }
+
+        private static List<(string folderName, string[] extensions)> GetFilePlacementRules()
+        {
+            var placementRules = new List<(string folderName, string[] extensions)>
+            {
+                ("First Equilibrium", GetFileTypeExtensionsForEquilibriumType("Eq1")),
+                ("EFG Files", new[] { ".efg" }),
+                ("Equilibria Files", new[] { "-equ.csv" }),
+                ("Logs", new[] { "-log.txt" }),
+                ("Latex underlying data", new[] { "-offers.tex", "-fileans.tex", "-stagecostlight.tex", "-stagecostdark.tex" }),
+                ("Latex files", new[] { "-offers.tex", "-fileans.tex", "-stagecostlight.tex", "-stagecostdark.tex" }),
+                ("File-Answer Diagrams", new[] { "-fileans.pdf" }),
+                ("Offer Heatmaps", new[] { "-offers.pdf" }),
+                ("Stage Costs Diagrams (Normal)", new[] { "-stagecostlight.pdf" }),
+                ("Stage Costs Diagrams (Dark Mode)", new[] { "-stagecostdark.pdf" }),
+                ("Stage Costs Diagrams (Underlying Data)", new[] { "-stagecostlight.csv", "-stagecostdark.csv" }),
+                ("Cross Tabs", new[] { ".csv" }),
+            };
+
+            if (!firstEqOnly)
+            {
+                placementRules.InsertRange(0, new List<(string, string[])>
+                {
+                    ("Correlated Equilibrium", GetFileTypeExtensionsForEquilibriumType("Corr")),
+                    ("Average Equilibrium", GetFileTypeExtensionsForEquilibriumType("Avg")),
+                });
+
+                for (int i = 2; i <= 100; i++)
+                    placementRules.Add(("Additional Equilibria", GetFileTypeExtensionsForEquilibriumType($"Eq{i}")));
+            }
+
+            return placementRules;
+        }
+
+        private static string[] GetFileTypeExtensionsForEquilibriumType(string eqType) => new[]
+        {
+            firstEqOnly ? ".csv" : $"-{eqType}.csv",
+            $"-offers-{eqType}.pdf", $"-offers-{eqType}.tex",
+            $"-fileans-{eqType}.pdf", $"-fileans-{eqType}.tex",
+            $"-stagecostlight-{eqType}.pdf", $"-stagecostlight-{eqType}.tex", $"-stagecostlight-{eqType}.csv",
+            $"-stagecostdark-{eqType}.pdf", $"-stagecostdark-{eqType}.tex", $"-stagecostdark-{eqType}.csv",
+        };
 
         public static void ExampleLatexDiagramsAggregatingReports(TikzAxisSet.GraphType graphType = TikzAxisSet.GraphType.Line)
         {

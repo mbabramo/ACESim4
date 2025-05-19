@@ -195,40 +195,75 @@ namespace ACESimBase.GameSolvingSupport.Settings
                 return $"Additional {critDiffs[0].VariableName} = {critDiffs[0].Value}";
             return "Baseline";
         }
-
         public Dictionary<string, List<string>> GroupOptionSetsByClassification()
         {
+            // ---------- helpers ----------
+            static string Normalize(object o) =>
+                o is double d
+                    ? d.ToString("G", System.Globalization.CultureInfo.InvariantCulture)
+                    : o?.ToString().Trim();
 
-            List<(string OptionSetName, List<PermutationalLauncher.GroupingVariableInfo> Variables)> optionSets = VariableInfoPerOption;
+            // Defaults for every variable
+            var defaultDict = DefaultVariableValues
+                .ToDictionary(p => p.Item1, p => Normalize(p.Item2));
+
+            // Critical-value lookup:  varName → { criticalValue1, … }
+            var criticalValueDict = CriticalVariableValues
+                .ToDictionary(
+                    cv => cv.criticalValueName,
+                    cv => cv.criticalValueValues
+                             .Select(Normalize)
+                             .ToHashSet()
+                );
+
+            // ---------- main loop ----------
             var result = new Dictionary<string, List<string>>();
 
-            foreach (var (name, vars) in optionSets)
+            foreach (var (optionSetName, vars) in VariableInfoPerOption)
             {
-                var group = ClassifyOptionSet(vars);
-                if (group == null)
-                    continue;
+                bool qualifiesForBaseline = true;
+                var folderParts = new List<string>();
 
-                if (!result.TryGetValue(group, out var list))
-                    result[group] = list = new List<string>();
-
-                list.Add(name);
-            }
-
-            // Diagnostics (optional)
-            var unclassified = optionSets.Where(x => ClassifyOptionSet(x.Variables) == null).ToList();
-            if (unclassified.Any())
-            {
-                TabbedText.WriteLine($"WARNING: {unclassified.Count} option sets were not assigned to any group.");
-                foreach (var (name, vars) in unclassified.Take(10))
+                foreach (var v in vars)
                 {
-                    TabbedText.WriteLine($"Unassigned: {name}");
-                    foreach (var v in vars)
-                        TabbedText.WriteLine($"  {v.VariableName} = {v.Value} (default={v.IsDefault}, critical={v.IncludeInCritical})");
+                    // Skip variables that are identical to their default value
+                    if (v.IsDefault)
+                        continue;
+
+                    bool isCritVar = v.IncludeInCritical;
+                    bool isCritValue = isCritVar &&
+                                        criticalValueDict[v.VariableName].Contains(v.Value);
+
+                    if (isCritVar && isCritValue)
+                    {
+                        // Still baseline-eligible – critical variable at a critical value
+                        continue;
+                    }
+
+                    // Not baseline any more – create the appropriate folder part
+                    qualifiesForBaseline = false;
+
+                    string part = isCritVar
+                        ? $"Additional {v.VariableName} = {v.Value}"
+                        : $"{v.VariableName} = {v.Value}";
+
+                    folderParts.Add(part);
                 }
+
+                string groupName = qualifiesForBaseline
+                    ? "Baseline"
+                    : string.Join(" & ", folderParts.OrderBy(p => p));
+
+                if (!result.TryGetValue(groupName, out var list))
+                    result[groupName] = list = new List<string>();
+
+                list.Add(optionSetName);
             }
 
             return result;
         }
+
+
 
 
 
