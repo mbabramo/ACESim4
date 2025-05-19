@@ -1,5 +1,6 @@
 ﻿using ACESim;
 using ACESimBase;
+using ACESimBase.Games.LitigGame;
 using ACESimBase.GameSolvingSupport.Settings;
 using ACESimBase.Util.Collections;
 using ACESimBase.Util.Debugging;
@@ -24,7 +25,7 @@ namespace LitigCharts
     {
         #region CSV reports
 
-        public static void BuildMainFeeShiftingReport(PermutationalLauncher launcher)
+        public static void BuildMainFeeShiftingReport(LitigGameLauncherBase launcher)
         {
             List<string> rowsToGet = new List<string> { "All", "Not Litigated", "Litigated", "Settles", "Tried", "P Loses", "P Wins", "Truly Liable", "Truly Not Liable" };
             List<string> replacementRowNames = new List<string> { "All", "Not Litigated", "Litigated", "Settles", "Tried", "P Loses", "P Wins", "Truly Liable", "Truly Not Liable" };
@@ -33,7 +34,7 @@ namespace LitigCharts
             BuildReport(launcher, rowsToGet, replacementRowNames, columnsToGet, replacementColumnNames, "output");
         }
 
-        private static void BuildReport(PermutationalLauncher launcher, List<string> rowsToGet, List<string> replacementRowNames, List<string> columnsToGet, List<string> replacementColumnNames, string endOfFileName)
+        private static void BuildReport(LitigGameLauncherBase launcher, List<string> rowsToGet, List<string> replacementRowNames, List<string> columnsToGet, List<string> replacementColumnNames, string endOfFileName)
         {
             bool onlyAllFilter = false;
             if (onlyAllFilter)
@@ -92,7 +93,7 @@ namespace LitigCharts
             TextFileManage.CreateTextFile(outputFileFullPath, cumResults);
         }
 
-        public static void BuildOffersReport(PermutationalLauncher launcher)
+        public static void BuildOffersReport(LitigGameLauncherBase launcher)
         {
             var gameDefinition = new LitigGameDefinition();
             gameDefinition.Setup(launcher.GetOptionsSets().First());
@@ -140,7 +141,7 @@ namespace LitigCharts
         static bool includeHeatmaps = false;
         internal static void ExecuteLatexProcessesForExisting() => ExecuteLatexProcessesForExisting(result => includeHeatmaps || (!result.Contains("offers") && !result.Contains("fileans")));
 
-        internal static void ProduceLatexDiagramsFromTexFiles(PermutationalLauncher launcher)
+        internal static void ProduceLatexDiagramsFromTexFiles(LitigGameLauncherBase launcher)
         {
             bool workExists = true;
             int numAttempts = 0; // sometimes the Latex processes fail, so we try again if any of our files to create are missing
@@ -279,10 +280,9 @@ namespace LitigCharts
 
         public record AggregatedGraphInfo(string topicName, List<string> columnsToGet, List<string> lineScheme, string minorXAxisLabel = "Fee Shifting Multiplier", string minorXAxisLabelShort = "Fee Shift Mult.", string minorYAxisLabel = "\\$", string majorYAxisLabel = "Costs Multiplier", double? maximumValueMicroY = null, TikzAxisSet.GraphType graphType = TikzAxisSet.GraphType.Line, Func<double?, double?> scaleMiniGraphValues = null, string filter = "All");
 
-        public static void ProduceLatexDiagramsAggregatingReports()
+        public static void ProduceLatexDiagramsAggregatingReports(LitigGameLauncherBase launcher)
         {
             string reportFolder = Launcher.ReportFolder();
-            LitigGameEndogenousDisputesLauncher launcher = new LitigGameEndogenousDisputesLauncher();
             string filename = launcher.MasterReportNameForDistributedProcessing + "--output.csv";
             string pathAndFilename = Path.Combine(reportFolder, filename);
             string outputFolderName = "Aggregated Data";
@@ -298,8 +298,7 @@ namespace LitigCharts
 
             foreach (bool useRiskAversionForNonRiskReports in new bool[] { false, true })
             {
-
-                List<LitigGameEndogenousDisputesLauncher.ArticleVariationInfoSets> variations = launcher.GetEndogenousDisputesArticleVariationInfoList(useRiskAversionForNonRiskReports);
+                var variations = launcher.GetArticleVariationInfoList_PossiblyFixingRiskAversion(useRiskAversionForNonRiskReports);
 
                 var plaintiffDefendantAndOthersLineScheme = new List<string>()
                 {
@@ -337,7 +336,7 @@ namespace LitigCharts
                     new AggregatedGraphInfo($"Disposition (Truly Not Liable){riskAversionString}", new List<string>() {"No Suit", "No Answer", "Settles", "P Abandons", "D Defaults", "P Loses", "P Wins"}, dispositionLineScheme, minorYAxisLabel:"Proportion", maximumValueMicroY: 1.0, graphType:TikzAxisSet.GraphType.StackedBar, filter:"Truly Not Liable"),
                 };
 
-                if (launcher.GameToPlay == LitigGameEndogenousDisputesLauncher.UnderlyingGame.AppropriationGame)
+                if (launcher is LitigGameEndogenousDisputesLauncher endog && endog.GameToPlay == LitigGameEndogenousDisputesLauncher.UnderlyingGame.AppropriationGame)
                 {
                     // Appropriation is PrimaryAction (yes = 1, no = 2). So, 1.33 would indicate that 66% of the time, the plaintiff appropriates, and 33% of the time, they do not; 2 would indicate that appropriation never occurs. Thus, to translate the reported PrimaryAction average value to a proportion, we need 1 => 1, 2 => 0, so the formula is x => 2 - x
                     welfareMeasureColumns.Add(new AggregatedGraphInfo($"Appropriation{riskAversionString}", new List<string>() { "Appropriation" }, plaintiffDefendantAndOthersLineScheme.Take(1).ToList(), minorYAxisLabel: "Proportion", maximumValueMicroY: 1.0, scaleMiniGraphValues: x => 2 - x));
@@ -357,9 +356,7 @@ namespace LitigCharts
             DeleteAuxiliaryFiles(outputFolderPath);
         }
 
-
-
-        private static void ProcessForWelfareMeasure(LitigGameEndogenousDisputesLauncher launcher, string pathAndFilename, string outputFolderPath, List<LitigGameEndogenousDisputesLauncher.ArticleVariationInfoSets> variations, AggregatedGraphInfo aggregatedGraphInfo, double? limitToCostsMultiplier)
+        private static void ProcessForWelfareMeasure(LitigGameLauncherBase launcher, string pathAndFilename, string outputFolderPath, List<LitigGameEndogenousDisputesLauncher.ArticleVariationInfoSets> variations, AggregatedGraphInfo aggregatedGraphInfo, double? limitToCostsMultiplier)
         {
             Func<double?, double?> scaleMiniGraphValues = aggregatedGraphInfo.scaleMiniGraphValues ?? (x => x);
             List<(string columnName, string expectedText)[]> collectedRowsToFind = new List<(string columnName, string expectedText)[]>();
@@ -464,7 +461,7 @@ namespace LitigCharts
             }
         }
 
-        private static void CreateAggregatedLineGraphFromData(LitigGameEndogenousDisputesLauncher launcher, string outputFolderPath, AggregatedGraphInfo aggregatedGraphInfo, string equilibriumType, LitigGameEndogenousDisputesLauncher.ArticleVariationInfoSets variation, List<LitigGameEndogenousDisputesLauncher.ArticleVariationInfo> requirementsForEachVariation, List<List<TikzLineGraphData>> lineGraphData, double? limitToCostsMultiplier)
+        private static void CreateAggregatedLineGraphFromData(LitigGameLauncherBase launcher, string outputFolderPath, AggregatedGraphInfo aggregatedGraphInfo, string equilibriumType, LitigGameEndogenousDisputesLauncher.ArticleVariationInfoSets variation, List<LitigGameEndogenousDisputesLauncher.ArticleVariationInfo> requirementsForEachVariation, List<List<TikzLineGraphData>> lineGraphData, double? limitToCostsMultiplier)
         {
             string subfolderName = Path.Combine(outputFolderPath, variation.nameOfSet);
             if (!Directory.GetDirectories(outputFolderPath).Any(x => x == subfolderName))

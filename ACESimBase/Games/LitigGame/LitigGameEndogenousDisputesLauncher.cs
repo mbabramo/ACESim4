@@ -60,7 +60,8 @@ namespace ACESim
             }
         }
         public override List<ArticleVariationInfoSets> VariationInfoSets
-            => GetEndogenousDisputesArticleVariationInfoList(false);
+            => GetArticleVariationInfoList_PossiblyFixingRiskAversion(false);
+
         public override string ReportPrefix => MasterReportNameForDistributedProcessing;
         public override string MasterReportNameForDistributedProcessing => MasterReportNamePrefix + "001";
 
@@ -221,7 +222,7 @@ namespace ACESim
         }
 
 
-        public List<ArticleVariationInfoSets> GetEndogenousDisputesArticleVariationInfoList(bool useRiskAversionForNonRiskReports)
+        public override List<ArticleVariationInfoSets> GetArticleVariationInfoList_PossiblyFixingRiskAversion(bool useRiskAversionForNonRiskReports)
         {
             var varyingNothing = new List<ArticleVariationInfo>()
             {

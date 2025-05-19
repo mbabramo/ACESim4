@@ -45,6 +45,8 @@ namespace ACESimBase.GameSolvingSupport.Settings
             bool IncludeInCritical
         );
 
+        public abstract List<ArticleVariationInfoSets> GetArticleVariationInfoList_PossiblyFixingRiskAversion(bool useRiskAversionForNonRiskReports);
+
         public T GetAndTransform<T>(T options, string suffix, Action<T> transform) where T : GameOptions
         {
             T g = options;

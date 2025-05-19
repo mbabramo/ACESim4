@@ -1,5 +1,6 @@
 ﻿using ACESim;
 using ACESimBase;
+using ACESimBase.Games.LitigGame;
 using ACESimBase.GameSolvingSupport.Settings;
 
 namespace LitigCharts
@@ -23,7 +24,7 @@ namespace LitigCharts
             if (OneTimeDiagrams())
                 return; // if we did the one-time diagrams, we won't do any of the rest of the processing
 
-            PermutationalLauncher launcher = correlatedSignalsArticle ? new LitigGameCorrelatedSignalsArticleLauncher() : new LitigGameEndogenousDisputesLauncher();
+            LitigGameLauncherBase launcher = correlatedSignalsArticle ? new LitigGameCorrelatedSignalsArticleLauncher() : new LitigGameEndogenousDisputesLauncher();
 
             bool buildMainFeeShiftingReport = true; // this looks at all of the csv files containing the report outputs (e.g., Report Name.csv where there is only one equilibrium, or "-eq1", "-eq2", "-Avg", etc.), and then aggregates all of the information on the report outputs for each simulation into a CSV file, including both All cases and separate rows for various subsets of cases. Set this to false only if it has already been done. 
             bool printIndividualLatexDiagrams = false; // DEBUG ; // this is the time consuming one -- it applies to the heat map and offers diagrams for each individual equilibrium
@@ -38,7 +39,7 @@ namespace LitigCharts
             if (organizeIntoFolders)
                 FeeShiftingDataProcessing.OrganizeIntoFolders(launcher, doDeletion, FeeShiftingDataProcessing.GetFilePlacementRules()); // now we organize, including the diagrams just made
             if (printAggregatedDiagrams)
-                FeeShiftingDataProcessing.ProduceLatexDiagramsAggregatingReports(); // now we produce diagrams that aggregate info from multiple reports
+                FeeShiftingDataProcessing.ProduceLatexDiagramsAggregatingReports(launcher); // now we produce diagrams that aggregate info from multiple reports
 
             ////FeeShiftingDataProcessing.BuildOffersReport(); // we're no longer generating the offers data in csv, since we're directly generating a Latex file with the heatmap
 

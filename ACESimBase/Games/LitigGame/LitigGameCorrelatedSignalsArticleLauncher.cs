@@ -67,7 +67,7 @@ namespace ACESim
         }
 
         public override List<ArticleVariationInfoSets> VariationInfoSets
-            => GetArticleVariationInfoList(false);
+            => GetArticleVariationInfoList_PossiblyFixingRiskAversion(false);
         public override string ReportPrefix => MasterReportNameForDistributedProcessing;
 
         public override string MasterReportNameForDistributedProcessing => "FS036";
@@ -267,7 +267,7 @@ namespace ACESim
             return result.Select(innerList => innerList.Cast<GameOptions>().ToList()).ToList();
         }
 
-        public List<ArticleVariationInfoSets> GetArticleVariationInfoList(bool useRiskAversionForNonRiskReports)
+        public override List<ArticleVariationInfoSets> GetArticleVariationInfoList_PossiblyFixingRiskAversion(bool useRiskAversionForNonRiskReports)
         {
             var varyingNothing = new List<ArticleVariationInfo>()
             {
