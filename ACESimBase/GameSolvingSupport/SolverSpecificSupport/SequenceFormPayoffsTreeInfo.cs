@@ -1,4 +1,4 @@
-﻿namespace ACESim
+﻿namespace ACESimBase.GameSolvingSupport.SolverSpecificSupport
 {
     public class SequenceFormPayoffsTreeInfo
     {

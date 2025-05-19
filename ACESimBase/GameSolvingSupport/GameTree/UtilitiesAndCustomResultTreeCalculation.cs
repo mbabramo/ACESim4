@@ -1,12 +1,10 @@
-﻿using ACESim;
-using ACESimBase.GameSolvingSupport.GameTree;
-using ACESimBase.Util.Collections;
+﻿using ACESimBase.Util.Collections;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace ACESimBase.GameSolvingSupport
+namespace ACESimBase.GameSolvingSupport.GameTree
 {
     public class UtilitiesAndCustomResultTreeCalculation : ITreeNodeProcessor<bool, (double[] utilities, FloatSet customResult)>
     {

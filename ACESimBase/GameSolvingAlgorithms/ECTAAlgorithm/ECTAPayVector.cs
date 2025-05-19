@@ -1,4 +1,4 @@
-﻿using ACESimBase.GameSolvingSupport;
+﻿using ACESimBase.GameSolvingSupport.ExactValues;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {
-	public class ECTAPayVector<T> where T : IMaybeExact<T>, new()
+    public class ECTAPayVector<T> where T : IMaybeExact<T>, new()
 	{
 		public IMaybeExact<T>[] Values;
 

@@ -6,7 +6,6 @@ using System.Text;
 using System.Threading.Tasks;
 using NumSharp;
 using System.IO;
-using ACESimBase.GameSolvingSupport;
 using System.Diagnostics;
 using ACESim.Util;
 using ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm;
@@ -23,6 +22,7 @@ using ACESimBase.Util.Serialization;
 using ACESimBase.Util.Debugging;
 using ACESimBase.GameSolvingSupport.GameTree;
 using ACESimBase.GameSolvingSupport.Settings;
+using ACESimBase.GameSolvingSupport.ExactValues;
 
 namespace ACESimBase.GameSolvingAlgorithms
 {

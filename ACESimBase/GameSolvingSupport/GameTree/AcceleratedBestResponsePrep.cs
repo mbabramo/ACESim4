@@ -2,13 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using ACESim;
-using ACESimBase.GameSolvingSupport.GameTree;
 using ACESimBase.Util;
 using ACESimBase.Util.Collections;
 using ACESimBase.Util.Debugging;
 
-namespace ACESimBase.GameSolvingSupport
+namespace ACESimBase.GameSolvingSupport.GameTree
 {
     public class AcceleratedBestResponsePrep : ITreeNodeProcessor<NodeActionsHistory, List<NodeActionsMultipleHistories>>
     {
@@ -77,7 +75,7 @@ namespace ACESimBase.GameSolvingSupport
                 {
                     if (TraceAcceleratedBestResponsePrep)
                     {
-                        TabbedText.WriteLine($"Paths to successor(s): {String.Join(" | ", Enumerable.Range(1, successorsForPlayer.Count).Select(x => $"{x}: {successorsForPlayer[x - 1]}"))}");
+                        TabbedText.WriteLine($"Paths to successor(s): {string.Join(" | ", Enumerable.Range(1, successorsForPlayer.Count).Select(x => $"{x}: {successorsForPlayer[x - 1]}"))}");
                     }
                     // The PathsToSuccessors is a list of lists -- the outer list contains the relevant action, and the inner list contains the successors we may reach from this action, ordered in the order that this information set was visited in the tree walk. The successors must be weighed by the probability that opponents will play to the information set for each of these visits. 
                     if (informationSet.PathsToSuccessors == null)

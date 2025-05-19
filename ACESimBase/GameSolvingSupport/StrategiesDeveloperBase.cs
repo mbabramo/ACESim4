@@ -31,6 +31,8 @@ using ACESimBase.Util.CodeGen;
 using static alglib;
 using ACESimBase.GameSolvingSupport.GameTree;
 using ACESimBase.GameSolvingSupport.Settings;
+using ACESimBase.GameSolvingSupport.SolverSpecificSupport;
+using ACESimBase.GameSolvingSupport.Statistical;
 
 namespace ACESim
 {

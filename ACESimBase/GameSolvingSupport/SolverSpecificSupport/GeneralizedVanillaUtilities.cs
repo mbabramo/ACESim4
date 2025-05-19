@@ -1,7 +1,7 @@
 ﻿using ACESimBase.Util.TaskManagement;
 using System;
 
-namespace ACESim
+namespace ACESimBase.GameSolvingSupport.SolverSpecificSupport
 {
     [Serializable]
     public struct GeneralizedVanillaUtilities

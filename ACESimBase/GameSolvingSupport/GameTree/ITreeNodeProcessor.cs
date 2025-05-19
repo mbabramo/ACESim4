@@ -1,5 +1,4 @@
-﻿using ACESim;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace ACESimBase.GameSolvingSupport.GameTree
 {

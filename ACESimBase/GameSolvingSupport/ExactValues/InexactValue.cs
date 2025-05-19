@@ -6,7 +6,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ACESimBase.GameSolvingSupport
+namespace ACESimBase.GameSolvingSupport.ExactValues
 {
     public readonly struct InexactValue : IMaybeExact<InexactValue>
     {
@@ -16,12 +16,12 @@ namespace ACESimBase.GameSolvingSupport
 
         public InexactValue(int i)
         {
-            V = (double)i;
+            V = i;
         }
 
         public InexactValue(Rational r)
         {
-            V = (double) r;
+            V = (double)r;
         }
 
         public InexactValue(double d)
@@ -61,7 +61,7 @@ namespace ACESimBase.GameSolvingSupport
 
         public IMaybeExact<InexactValue> Numerator => new InexactValue(V);
         public IMaybeExact<InexactValue> Denominator => One();
-        public double AsDouble => IsZero() ? 0 : (IsOne() ? 1.0 : (double)V);
+        public double AsDouble => IsZero() ? 0 : IsOne() ? 1.0 : V;
         public Rational AsRational => throw new NotImplementedException();
         public bool IsExact => false;
 
@@ -132,7 +132,7 @@ namespace ACESimBase.GameSolvingSupport
         {
             return V.GetHashCode();
         }
-        
+
         public int CompareTo(InexactValue other)
         {
             return V.CompareTo(other.V);

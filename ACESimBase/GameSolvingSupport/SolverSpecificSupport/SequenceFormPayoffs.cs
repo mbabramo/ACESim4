@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
-namespace ACESim
+namespace ACESimBase.GameSolvingSupport.SolverSpecificSupport
 {
 
     public class SequenceFormPayoffs : ITreeNodeProcessor<SequenceFormPayoffsTreeInfo, bool /* ignored */>
@@ -52,7 +52,7 @@ namespace ACESim
             else if (predecessor is InformationSetNode informationSet)
             {
                 int cumulativeChoice = informationSet.CumulativeChoiceNumber + predecessorAction;
-                return (fromPredecessor ?? new SequenceFormPayoffsTreeInfo()).WithCumulativeChoice(informationSet.PlayerIndex == 0, cumulativeChoice); 
+                return (fromPredecessor ?? new SequenceFormPayoffsTreeInfo()).WithCumulativeChoice(informationSet.PlayerIndex == 0, cumulativeChoice);
             }
             return fromPredecessor;
         }

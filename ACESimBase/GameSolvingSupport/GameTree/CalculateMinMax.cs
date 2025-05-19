@@ -1,9 +1,8 @@
-﻿using ACESimBase.GameSolvingSupport.GameTree;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ACESim
+namespace ACESimBase.GameSolvingSupport.GameTree
 {
     public class CalculateMinMax : ITreeNodeProcessor<bool, double[]>
     {
@@ -39,7 +38,7 @@ namespace ACESim
         {
             foreach (var fromSuccessor in fromSuccessors)
                 foreach (int i in CalculatingForPlayers)
-                    if ((Max && fromSuccessor[i] > valuesToUpdate[i]) || (Min && fromSuccessor[i] < valuesToUpdate[i]))
+                    if (Max && fromSuccessor[i] > valuesToUpdate[i] || Min && fromSuccessor[i] < valuesToUpdate[i])
                         valuesToUpdate[i] = fromSuccessor[i];
         }
 

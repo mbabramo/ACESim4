@@ -4,13 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Diagnostics;
 using ACESimBase.Util;
-using ACESimBase.GameSolvingSupport;
 using ACESimBase.Util.Collections;
 using ACESimBase.Util.Reporting;
 using ACESimBase.Util.Randomization;
 using ACESimBase.Util.Debugging;
 using ACESimBase.GameSolvingSupport.GameTree;
 using ACESimBase.GameSolvingSupport.Settings;
+using ACESimBase.GameSolvingSupport.ExactValues;
 
 namespace ACESim
 {

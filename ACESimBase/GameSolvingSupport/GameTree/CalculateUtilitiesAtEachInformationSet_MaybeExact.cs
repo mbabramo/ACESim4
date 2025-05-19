@@ -1,5 +1,4 @@
-﻿using ACESim;
-using ACESimBase.GameSolvingSupport.GameTree;
+﻿using ACESimBase.GameSolvingSupport.ExactValues;
 using ACESimBase.Util.Debugging;
 using JetBrains.Annotations;
 using Microsoft.FSharp.Core;
@@ -9,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ACESimBase.GameSolvingSupport
+namespace ACESimBase.GameSolvingSupport.GameTree
 {
     public class CalculateUtilitiesAtEachInformationSet_MaybeExact<T> : ITreeNodeProcessor<IMaybeExact<T>, IMaybeExact<T>[]> where T : IMaybeExact<T>, new()
     {
@@ -54,7 +53,7 @@ namespace ACESimBase.GameSolvingSupport
                 { // this is an action played with positive probability
                     IMaybeExact<T> utility = utilities[i];
                     IMaybeExact<T> utilityAtSuccessor = utilitiesAtSuccessors[successorIndex][i];
-                    if (!(utility.IsCloseTo(utilityAtSuccessor, ErrorTolerance)))
+                    if (!utility.IsCloseTo(utilityAtSuccessor, ErrorTolerance))
                     {
                         string matchFailure = $"Verification of equal utilities failed. {utility.AsDouble} != {utilityAtSuccessor.AsDouble} (i.e., {utility} != {utilityAtSuccessor}) at {informationSetNode}";
                         TabbedText.WriteLine(matchFailure);
@@ -71,9 +70,9 @@ namespace ACESimBase.GameSolvingSupport
         {
             IMaybeExact<T> reachProbability = ProbabilityOfReachingInformationSet[informationSetNodeNumber];
             var weightedUtilities = WeightedUtilitiesAtInformationSet[informationSetNodeNumber];
-            var normalizedUtilities = weightedUtilities.Select(x => reachProbability.IsZero() ? x : (x.DividedBy(reachProbability))).ToArray();
+            var normalizedUtilities = weightedUtilities.Select(x => reachProbability.IsZero() ? x : x.DividedBy(reachProbability)).ToArray();
             var weightedUtilitiesAtSuccessors = WeightedUtilitiesAtInformationSetSuccessors[informationSetNodeNumber];
-            var normalizedUtilitiesAtSuccessors = weightedUtilitiesAtSuccessors.Select(x => x.Select(y => reachProbability.IsZero() ? y : (y.DividedBy(reachProbability))).ToArray()).ToList();
+            var normalizedUtilitiesAtSuccessors = weightedUtilitiesAtSuccessors.Select(x => x.Select(y => reachProbability.IsZero() ? y : y.DividedBy(reachProbability)).ToArray()).ToList();
             return (normalizedUtilities, normalizedUtilitiesAtSuccessors, reachProbability);
         }
 
@@ -115,11 +114,11 @@ namespace ACESimBase.GameSolvingSupport
             IMaybeExact<T>[] utilities = AggregateUtilitiesFromSuccessors(fromSuccessors, nextActionProbabilities);
             IMaybeExact<T>[] reachWeightedUtilities = utilities.Select(x => x.Times(reachProbability)).ToArray();
             WeightedUtilitiesAtInformationSet[informationSet.GetInformationSetNodeNumber()] =
-                WeightedUtilitiesAtInformationSet.GetValueOrDefault<int, IMaybeExact<T>[]>(
+                WeightedUtilitiesAtInformationSet.GetValueOrDefault(
                     informationSet.GetInformationSetNodeNumber(),
                     utilities.Select(x => IMaybeExact<T>.Zero()).ToArray())
                 .Zip(reachWeightedUtilities, (x, y) => x.Plus(y)).ToArray();
-            List<IMaybeExact<T>[]> prerecordedUtilitiesAtSuccessors = WeightedUtilitiesAtInformationSetSuccessors.GetValueOrDefault<int, List<IMaybeExact<T>[]>>(
+            List<IMaybeExact<T>[]> prerecordedUtilitiesAtSuccessors = WeightedUtilitiesAtInformationSetSuccessors.GetValueOrDefault(
                     informationSet.GetInformationSetNodeNumber(),
                     fromSuccessors.Select(x => utilities.Select(x => IMaybeExact<T>.Zero()).ToArray()).ToList());
             var fromSuccessorsList = fromSuccessors.ToList();

@@ -3,7 +3,7 @@ using ACESimBase.Util.Statistical;
 using System;
 using System.Linq;
 
-namespace ACESim
+namespace ACESimBase.GameSolvingSupport.Statistical
 {
     /// <summary>
     /// Performs principal components analysis. The constructor converts observations (one per row, typically containing many variables in columns)
@@ -27,7 +27,7 @@ namespace ACESim
             int dataPerObservation = sourceData.GetLength(1);
             double[,] meanCentered = null;
             (meanCentered, meanOfOriginalElements, stdevOfOriginalElements) = sourceData.ZScored();
-            alglib.pcatruncatedsubspace(meanCentered, numObservations, dataPerObservation, numPrincipalComponents, precision, 0, out sigma_squared, out  v_principalComponentLoadings);
+            alglib.pcatruncatedsubspace(meanCentered, numObservations, dataPerObservation, numPrincipalComponents, precision, 0, out sigma_squared, out v_principalComponentLoadings);
             proportionOfAccountedVariance = sigma_squared.Select(x => x / sigma_squared.Sum()).ToArray();
             double[,] u_principalComponentScores = meanCentered.Multiply(v_principalComponentLoadings);
             // Calculate stats on principal component scores. Mean will be zero. Standard deviations will

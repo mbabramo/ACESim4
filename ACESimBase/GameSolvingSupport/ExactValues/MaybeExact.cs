@@ -1,7 +1,7 @@
 ﻿using Rationals;
 using System;
 
-namespace ACESimBase.GameSolvingSupport
+namespace ACESimBase.GameSolvingSupport.ExactValues
 {
     public interface IMaybeExact<T> : IComparable<T>, IComparable where T : IMaybeExact<T>, new()
     {
@@ -16,7 +16,7 @@ namespace ACESimBase.GameSolvingSupport
         bool IsEqualTo(IMaybeExact<T> b);
         bool IsGreaterThan(IMaybeExact<T> b);
         bool IsLessThan(IMaybeExact<T> b);
-        bool IsCloseTo(IMaybeExact<T> b, IMaybeExact<T> absoluteDistance) => absoluteDistance.IsZero() ? IsEqualTo(b) : this.Minus(b).AbsoluteValue().IsLessThan(absoluteDistance);
+        bool IsCloseTo(IMaybeExact<T> b, IMaybeExact<T> absoluteDistance) => absoluteDistance.IsZero() ? IsEqualTo(b) : Minus(b).AbsoluteValue().IsLessThan(absoluteDistance);
         bool IsNegative();
         bool IsNotEqualTo(IMaybeExact<T> b);
         bool IsOne();
@@ -25,13 +25,13 @@ namespace ACESimBase.GameSolvingSupport
         IMaybeExact<T> LeastCommonMultiple(IMaybeExact<T> b);
         IMaybeExact<T> Minus(IMaybeExact<T> b);
         IMaybeExact<T> Negated();
-        IMaybeExact<T> AbsoluteValue() => IsNegative() ? this.Negated() : this;
+        IMaybeExact<T> AbsoluteValue() => IsNegative() ? Negated() : this;
         IMaybeExact<T> Plus(IMaybeExact<T> b);
         IMaybeExact<T> Times(IMaybeExact<T> b);
         IMaybeExact<T> NewValueFromInteger(int i);
         IMaybeExact<T> NewValueFromRational(Rational r);
-        public static IMaybeExact<T> Zero() => IMaybeExact<T>.FromInteger(0);
-        public static IMaybeExact<T> One() => IMaybeExact<T>.FromInteger(1);
+        public static IMaybeExact<T> Zero() => FromInteger(0);
+        public static IMaybeExact<T> One() => FromInteger(1);
         public static IMaybeExact<T> FromInteger(int i)
         {
             var x = new T();

@@ -8,10 +8,10 @@ using static ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm.ColumnPrinter;
 using static ACESimBase.Util.Reporting.CPrint;
 using JetBrains.Annotations;
 using System.Numerics;
-using ACESimBase.GameSolvingSupport;
 using System.Diagnostics;
 using ACESimBase.Util.Collections;
 using ACESimBase.Util.Debugging;
+using ACESimBase.GameSolvingSupport.ExactValues;
 
 namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {

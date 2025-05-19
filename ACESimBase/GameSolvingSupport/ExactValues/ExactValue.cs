@@ -6,7 +6,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ACESimBase.GameSolvingSupport
+namespace ACESimBase.GameSolvingSupport.ExactValues
 {
     public readonly struct ExactValue : IMaybeExact<ExactValue>
     {
@@ -55,8 +55,8 @@ namespace ACESimBase.GameSolvingSupport
 
         public IMaybeExact<ExactValue> CanonicalForm => FromRational(V.CanonicalForm);
 
-        public IMaybeExact<ExactValue> Numerator => ExactValue.FromRational(V.Numerator);
-        public IMaybeExact<ExactValue> Denominator => ExactValue.FromRational(V.Denominator);
+        public IMaybeExact<ExactValue> Numerator => FromRational(V.Numerator);
+        public IMaybeExact<ExactValue> Denominator => FromRational(V.Denominator);
         public double AsDouble => (double)V;
         public Rational AsRational => V;
         public bool IsExact => true;
@@ -145,7 +145,7 @@ namespace ACESimBase.GameSolvingSupport
         {
             if (obj.GetType() != GetType())
                 return -1;
-            return CompareTo((ExactValue) obj);
+            return CompareTo((ExactValue)obj);
         }
     }
 }

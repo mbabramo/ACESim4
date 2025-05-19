@@ -1,10 +1,8 @@
-﻿using ACESim;
-using ACESimBase.GameSolvingSupport.GameTree;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace ACESimBase.GameSolvingSupport
+namespace ACESimBase.GameSolvingSupport.GameTree
 {
     public class WalkOnly : ITreeNodeProcessor<bool, bool> // bools are ignored
     {

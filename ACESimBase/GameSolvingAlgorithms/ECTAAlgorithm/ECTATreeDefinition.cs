@@ -8,9 +8,9 @@ using static ACESimBase.Util.Reporting.CPrint;
 using static ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm.ColumnPrinter;
 using static ACESimBase.Util.ArrayManipulation.ArrayFormConversionExtension;
 using System.Numerics;
-using ACESimBase.GameSolvingSupport;
 using ACESimBase.Util.Randomization;
 using ACESimBase.Util.Debugging;
+using ACESimBase.GameSolvingSupport.ExactValues;
 
 namespace ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm
 {

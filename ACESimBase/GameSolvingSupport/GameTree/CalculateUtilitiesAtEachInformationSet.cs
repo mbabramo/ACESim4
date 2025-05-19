@@ -1,13 +1,11 @@
-﻿using ACESim;
-using ACESimBase.GameSolvingSupport.GameTree;
-using JetBrains.Annotations;
+﻿using JetBrains.Annotations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ACESimBase.GameSolvingSupport
+namespace ACESimBase.GameSolvingSupport.GameTree
 {
     public class CalculateUtilitiesAtEachInformationSet : ITreeNodeProcessor<double, double[]>
     {
@@ -84,11 +82,11 @@ namespace ACESimBase.GameSolvingSupport
             double[] utilities = AggregateUtilitiesFromSuccessors(fromSuccessors, nextActionProbabilities);
             double[] reachWeightedUtilities = utilities.Select(x => x * reachProbability).ToArray();
             WeightedUtilitiesAtInformationSet[informationSet.GetInformationSetNodeNumber()] =
-                WeightedUtilitiesAtInformationSet.GetValueOrDefault<int, double[]>(
+                WeightedUtilitiesAtInformationSet.GetValueOrDefault(
                     informationSet.GetInformationSetNodeNumber(),
                     utilities.Select(x => (double)0).ToArray())
                 .Zip(reachWeightedUtilities, (x, y) => x + y).ToArray();
-            List<double[]> prerecordedUtilitiesAtSuccessors = WeightedUtilitiesAtInformationSetSuccessors.GetValueOrDefault<int, List<double[]>>(
+            List<double[]> prerecordedUtilitiesAtSuccessors = WeightedUtilitiesAtInformationSetSuccessors.GetValueOrDefault(
                     informationSet.GetInformationSetNodeNumber(),
                     fromSuccessors.Select(x => utilities.Select(x => (double)0).ToArray()).ToList());
             var fromSuccessorsList = fromSuccessors.ToList();

@@ -1,4 +1,4 @@
-﻿using ACESimBase.GameSolvingSupport;
+﻿using ACESimBase.GameSolvingSupport.ExactValues;
 using System;
 using System.Collections.Generic;
 using System.Linq;
