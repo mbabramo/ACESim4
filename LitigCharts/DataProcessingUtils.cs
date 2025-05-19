@@ -1,4 +1,4 @@
-﻿using ACESim;
+﻿using ACESimBase.GameSolvingSupport.Settings;
 using ACESimBase.Util;
 using ACESimBase.Util.ArrayManipulation;
 using ACESimBase.Util.Serialization;

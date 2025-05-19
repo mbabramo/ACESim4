@@ -1,4 +1,4 @@
-﻿using ACESimBase.GameSolvingSupport.GameTree;
+﻿using ACESim;
 using ACESimBase.Util.Collections;
 using ACESimBase.Util.NWayTreeStorage;
 using JetBrains.Annotations;
@@ -9,7 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ACESim
+namespace ACESimBase.GameSolvingSupport.GameTree
 {
 
     public readonly ref struct HistoryPoint
@@ -92,7 +92,7 @@ namespace ACESim
 
         public string GetActionsToHereString(HistoryNavigationInfo navigation)
         {
-            return String.Join(",", GetActionsToHere(navigation));
+            return string.Join(",", GetActionsToHere(navigation));
         }
 
         public List<byte> GetActionsToHere(HistoryNavigationInfo navigation)
@@ -142,8 +142,8 @@ namespace ACESim
                 if (GameProgressLogger.LoggingOn)
                 {
                     var informationSetList = ListExtensions.GetSpan255TerminatedAsList(informationSetsSpan);
-                    var actionsToHere = String.Join(",", historyToPoint.GetActionsAsList());
-                    GameProgressLogger.Log($"Player {nextPlayer} decision: {nextDecision?.Name ?? "Resolution"} information set: {String.Join(",", informationSetList)} actions to here: {actionsToHere}");
+                    var actionsToHere = string.Join(",", historyToPoint.GetActionsAsList());
+                    GameProgressLogger.Log($"Player {nextPlayer} decision: {nextDecision?.Name ?? "Resolution"} information set: {string.Join(",", informationSetList)} actions to here: {actionsToHere}");
                 }
                 if (nextDecision != null)
                     gameStateFromGameHistory = navigation.Strategies[nextPlayer].GetInformationSetTreeValue(nextDecisionIndex, informationSetsSpan);
@@ -432,7 +432,7 @@ namespace ACESim
                                     {
                                         Decision = decision,
                                         DecisionIndex = decisionIndex,
-                                        EachProbability = 1.0 / (double)decision.NumPossibleActions,
+                                        EachProbability = 1.0 / decision.NumPossibleActions,
                                     };
                                 navigation.ChanceNodes.Add(chanceNode);
                                 return chanceNode;

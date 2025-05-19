@@ -1,5 +1,6 @@
-﻿using ACESimBase.GameSolvingSupport;
-using ACESimBase.GameSolvingSupport.GameTree;
+﻿using ACESim;
+using ACESimBase.GameSolvingSupport;
+using ACESimBase.GameSolvingSupport.Settings;
 using ACESimBase.Util.Collections;
 using ACESimBase.Util.Debugging;
 using ACESimBase.Util.Mathematics;
@@ -15,7 +16,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ACESim
+namespace ACESimBase.GameSolvingSupport.GameTree
 {
 
     [Serializable]
@@ -29,7 +30,7 @@ namespace ACESim
 
         public int InformationSetNodeNumber;
         public int OverallIndexAmongActions;
-        public bool IsChanceNode => false; 
+        public bool IsChanceNode => false;
         public bool IsUtilitiesNode => false;
 
         public int GetInformationSetNodeNumber() => InformationSetNodeNumber;
@@ -40,11 +41,11 @@ namespace ACESim
         public int GetNumPossibleActions() => Decision.NumPossibleActions;
         public EvolutionSettings EvolutionSettings;
         public byte[] InformationSetContents;
-        public string InformationSetContentsString => String.Join(",", InformationSetContents.Select(x => $"{x}").ToArray());
+        public string InformationSetContentsString => string.Join(",", InformationSetContents.Select(x => $"{x}").ToArray());
         public List<(byte decisionIndex, byte information)> LabeledInformationSet;
-        public string InformationSetWithLabels(GameDefinition gd) => String.Join(";", LabeledInformationSet.Select(x => $"{gd.DecisionsExecutionOrder[x.decisionIndex].Name}: {x.information}"));
+        public string InformationSetWithLabels(GameDefinition gd) => string.Join(";", LabeledInformationSet.Select(x => $"{gd.DecisionsExecutionOrder[x.decisionIndex].Name}: {x.information}"));
         public byte[] InformationSetContentsSinceParent => ParentInformationSet == null ? InformationSetContents : InformationSetContents.Skip(ParentInformationSet.InformationSetContents.Length).ToArray();
-        public string InformationSetContentsSinceParentString => String.Join(",", InformationSetContentsSinceParent);
+        public string InformationSetContentsSinceParentString => string.Join(",", InformationSetContentsSinceParent);
         public byte DecisionByteCode => Decision.DecisionByteCode;
         public byte DecisionIndex;
 
@@ -65,7 +66,7 @@ namespace ACESim
 
         public double[] MaxPossible, MinPossible;
         public double MaxPossibleThisPlayer, MinPossibleThisPlayer;
-        
+
         public int LastPastValueIndexRecorded = -1;
         public List<double[]> PastValues;
         public List<double> PastValuesCumulativeStrategyDiscounts;
@@ -174,7 +175,7 @@ namespace ACESim
             foreach (InformationSetNode x in all)
                 x.ChildInformationSets = x.ChildInformationSets.OrderBy(x => x.InformationSetContentsSinceParentString).ToList();
 
-                bool changeMade = true;
+            bool changeMade = true;
             while (changeMade)
             {
                 changeMade = false;
@@ -216,7 +217,7 @@ namespace ACESim
 
         public override string ToString()
         {
-            return $"Information set {(GetInformationSetNodeNumber())}{(AltNodeNumber == null ? "" : $" (alt {AltNodeNumber})")} {Decision.Name} ({Decision.Abbreviation}): DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetCurrentProbabilitiesAsString()} {GetBestResponseStringIfAvailable()}Average {GetAverageStrategiesAsString()} Regrets {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()} InformationSetContents {String.Join(";", LabeledInformationSet.Select(x => $"(index {x.decisionIndex}, info {x.information})"))}";
+            return $"Information set {GetInformationSetNodeNumber()}{(AltNodeNumber == null ? "" : $" (alt {AltNodeNumber})")} {Decision.Name} ({Decision.Abbreviation}): DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetCurrentProbabilitiesAsString()} {GetBestResponseStringIfAvailable()}Average {GetAverageStrategiesAsString()} Regrets {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()} InformationSetContents {string.Join(";", LabeledInformationSet.Select(x => $"(index {x.decisionIndex}, info {x.information})"))}";
         }
 
         public string GetBestResponseStringIfAvailable()
@@ -231,7 +232,7 @@ namespace ACESim
         {
             ResetNodeInformation(totalDimensions, NumPossibleActions);
             BackupNodeInformation = null;
-            double probability = 1.0 / (double)NumPossibleActions;
+            double probability = 1.0 / NumPossibleActions;
             if (double.IsNaN(probability) || NumPossibleActions == 0)
                 throw new Exception();
             BestResponseAction = 1;
@@ -250,7 +251,7 @@ namespace ACESim
                 NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1] = 0;
                 NodeInformation[scratchDimension, a - 1] = 0;
             }
-            if (EvolutionSettings.RecordPastValues && clearPastValues) 
+            if (EvolutionSettings.RecordPastValues && clearPastValues)
             {
                 PastValues = new List<double[]>();
                 PastValuesCumulativeStrategyDiscounts = new List<double>();
@@ -352,7 +353,7 @@ namespace ACESim
         {
             int bestResponse = BestResponseAction;
             for (int a = 1; a <= NumPossibleActions; a++)
-                probabilities[a - 1] = (a == bestResponse ? 1.0 : 0);
+                probabilities[a - 1] = a == bestResponse ? 1.0 : 0;
         }
 
         public double[] GetBestResponseProbabilities()
@@ -360,7 +361,7 @@ namespace ACESim
             double[] probabilities = new double[NumPossibleActions];
             int bestResponse = BestResponseAction;
             for (int a = 1; a <= NumPossibleActions; a++)
-                probabilities[a - 1] = (a == bestResponse ? 1.0 : 0);
+                probabilities[a - 1] = a == bestResponse ? 1.0 : 0;
             return probabilities;
         }
 
@@ -376,7 +377,7 @@ namespace ACESim
             double newDenom = NodeInformation[bestResponseDenominatorDimension, action - 1];
             if (LogBestResponseCalculation)
             {
-                double? newQuotient = newDenom == 0 ? (double?)null : newNumerator / newDenom;
+                double? newQuotient = newDenom == 0 ? null : newNumerator / newDenom;
                 TabbedText.WriteLine($"InformationSet {InformationSetNodeNumber}, Decision {Decision.Name} | Action {action}: Numerator: {oldNumerator:F3} -> {newNumerator:F3}, Denom: {oldDenom:F3} -> {newDenom:F3} ==> {newQuotient:F3}");
             }
             BestResponseDeterminedFromIncrements = false;
@@ -498,7 +499,7 @@ namespace ACESim
                     double oppReachProb = PathsFromPredecessor[i].Probability;
                     double weighted = unweightedValue * oppReachProb;
                     if (LogBestResponseCalculation)
-                        TabbedText.WriteLine($"InformationSet {InformationSetNodeNumber}, Decision {Decision.Name} | Action {action}, average strategy {averageStrategyProbability}, Path {i} [{PathsFromPredecessor[i].ToString().Replace("\n", ";").Replace("\r","")}]: Adding oppReachProb {oppReachProb:F10}, unweightedValue {unweightedValue:F10} (weighted = {weighted:F10})");
+                        TabbedText.WriteLine($"InformationSet {InformationSetNodeNumber}, Decision {Decision.Name} | Action {action}, average strategy {averageStrategyProbability}, Path {i} [{PathsFromPredecessor[i].ToString().Replace("\n", ";").Replace("\r", "")}]: Adding oppReachProb {oppReachProb:F10}, unweightedValue {unweightedValue:F10} (weighted = {weighted:F10})");
                     accumulatedBestResponseNumerator += weighted;
                     accumulatedBestResponseDenom += oppReachProb;
                     AverageStrategyResultsForPathFromPredecessor[i] += avgStratValue * averageStrategyProbability;
@@ -533,7 +534,7 @@ namespace ACESim
             }
             const double InitialWeightMultiplier = 1.0;
             const double Curvature = 10.0;
-            double weightMultiplier = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(InitialWeightMultiplier, 1.0, Curvature, (double)iteration / (double)maxIterations);
+            double weightMultiplier = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(InitialWeightMultiplier, 1.0, Curvature, iteration / (double)maxIterations);
             double weightOnBestResponse = weightMultiplier / iteration;
             const double maxWeightOnBestResponse = 0.5;
             if (weightOnBestResponse > maxWeightOnBestResponse || !LastBestResponseMayReachHere)
@@ -548,7 +549,7 @@ namespace ACESim
             for (byte action = 1; action <= NumPossibleActions; action++)
             {
                 double currentAverageStrategyProbability = GetAverageStrategy(action);
-                double bestResponseProbability = (BestResponseAction == action) ? 1.0 : 0.0;
+                double bestResponseProbability = BestResponseAction == action ? 1.0 : 0.0;
                 double successorValue = (1.0 - weightOnBestResponse) * currentAverageStrategyProbability + weightOnBestResponse * bestResponseProbability;
                 if (double.IsNaN(successorValue))
                     throw new Exception();
@@ -567,7 +568,7 @@ namespace ACESim
             for (byte action = 1; action <= NumPossibleActions; action++)
             {
                 double currentAverageStrategyProbability = GetAverageStrategy(action);
-                double bestResponseProbability = (BestResponseAction == action) ? 1.0 : 0.0;
+                double bestResponseProbability = BestResponseAction == action ? 1.0 : 0.0;
                 NodeInformation[cumulativeStrategyDimension, action - 1] = NodeInformation[averageStrategyProbabilityDimension, action - 1] = bestResponseProbability;
                 if (double.IsNaN(bestResponseProbability))
                     throw new Exception();
@@ -637,7 +638,7 @@ namespace ACESim
             List<double> probs = new List<double>();
             for (byte a = 1; a <= NumPossibleActions; a++)
                 probs.Add(GetCumulativeRegret(a));
-            return String.Join(", ", probs.Select(x => $"{x:N2}"));
+            return string.Join(", ", probs.Select(x => $"{x:N2}"));
         }
 
         public double GetCumulativeRegret(int action)
@@ -802,7 +803,7 @@ namespace ACESim
             List<double> probs = new List<double>();
             for (byte a = 1; a <= NumPossibleActions; a++)
                 probs.Add(NodeInformation[cumulativeStrategyDimension, a - 1]);
-            return String.Join(", ", probs.Select(x => $"{x:N2}"));
+            return string.Join(", ", probs.Select(x => $"{x:N2}"));
         }
 
         public double GetCumulativeStrategy(int action)
@@ -867,7 +868,7 @@ namespace ACESim
         {
             double[] array = new double[NumPossibleActions];
             for (int a = 1; a <= NumPossibleActions; a++)
-                array[a - 1] = GetLastCumulativeStrategyIncrement((byte) a);
+                array[a - 1] = GetLastCumulativeStrategyIncrement((byte)a);
             return array;
         }
 
@@ -884,7 +885,7 @@ namespace ACESim
 
         public string GetAverageStrategiesAsString()
         {
-            return String.Join(", ", GetAverageStrategiesAsArray().Select(x => x.ToSignificantFigures(3)));
+            return string.Join(", ", GetAverageStrategiesAsArray().Select(x => x.ToSignificantFigures(3)));
         }
 
         public void SetActionToCertainty(byte action, byte numPossibleActions)
@@ -893,7 +894,7 @@ namespace ACESim
             {
                 NodeInformation[cumulativeStrategyDimension, a - 1] =
                 NodeInformation[cumulativeRegretDimension, a - 1] =
-                    (a == action) ? 1.0 : 0;
+                    a == action ? 1.0 : 0;
             }
         }
 
@@ -937,7 +938,7 @@ namespace ACESim
                 }
                 if (sumPositiveCumulativeRegrets == 0)
                 {
-                    double equalProbability = 1.0 / (double)NumPossibleActions;
+                    double equalProbability = 1.0 / NumPossibleActions;
                     for (byte a = 1; a <= NumPossibleActions; a++)
                         probabilitiesToSet[a - 1] = equalProbability;
                     done = true;
@@ -947,7 +948,7 @@ namespace ACESim
                     double total = 0;
                     for (byte a = 1; a <= NumPossibleActions; a++)
                     {
-                        probabilitiesToSet[a - 1] = (GetPositiveCumulativeRegret(a)) / sumPositiveCumulativeRegrets;
+                        probabilitiesToSet[a - 1] = GetPositiveCumulativeRegret(a) / sumPositiveCumulativeRegrets;
                         total += probabilitiesToSet[a - 1];
                     }
                     done = Math.Abs(1.0 - total) < 1E-7;
@@ -981,7 +982,7 @@ namespace ACESim
             double sumPositiveCumulativeRegrets = GetSumPositiveCumulativeRegrets();
             if (sumPositiveCumulativeRegrets == 0)
             {
-                double equalProbability = 1.0 / (double)NumPossibleActions;
+                double equalProbability = 1.0 / NumPossibleActions;
                 for (byte a = 1; a <= NumPossibleActions; a++)
                     probabilitiesToSet[a - 1] = equalProbability;
             }
@@ -1031,12 +1032,12 @@ namespace ACESim
             {
                 for (int a = 1; a <= NumPossibleActions; a++)
                 {
-                    NodeInformation[currentProbabilityForOpponentDimension, a - 1] = (a == Decision.WarmStartValue) ? 1.0 : 0;
+                    NodeInformation[currentProbabilityForOpponentDimension, a - 1] = a == Decision.WarmStartValue ? 1.0 : 0;
                 }
                 return;
             }
             // The opponent's probability is the probability to use when traversing an opponent information set during optimization. 
-            bool pruning = pruneOpponentStrategyIfDesignatedPrunable || (pruneOpponentStrategyBelow != null && pruneOpponentStrategyBelow != 0);
+            bool pruning = pruneOpponentStrategyIfDesignatedPrunable || pruneOpponentStrategyBelow != null && pruneOpponentStrategyBelow != 0;
             double probabilityThreshold = pruning && !pruneOpponentStrategyIfDesignatedPrunable ? (double)pruneOpponentStrategyBelow : SmallestProbabilityRepresented;
             Func<byte, double> currentProbabilityFunc;
             if (EvolutionSettings.CFR_OpponentPlaysAverageStrategy)
@@ -1050,7 +1051,7 @@ namespace ACESim
 
             if (randomNumberToSelectSingleOpponentAction != null)
             {
-                double p = (double) randomNumberToSelectSingleOpponentAction;
+                double p = (double)randomNumberToSelectSingleOpponentAction;
                 // find corresponding action based on cumulative probabilities
                 double total = 0;
                 byte a;
@@ -1063,7 +1064,7 @@ namespace ACESim
                 // set probabilities to 1 or 0
                 for (byte a2 = 1; a2 <= NumPossibleActions; a2++)
                 {
-                    NodeInformation[currentProbabilityForOpponentDimension, a2 - 1] = (a == a2) ? 1.0 : 0;
+                    NodeInformation[currentProbabilityForOpponentDimension, a2 - 1] = a == a2 ? 1.0 : 0;
                 }
             }
         }
@@ -1098,7 +1099,7 @@ namespace ACESim
                 double p = initialProbabilityFunc(a);
                 if (double.IsNaN(p) || double.IsNaN(setBelowThresholdTo))
                     throw new Exception();
-                if ((!usePrunabilityInsteadOfThreshold && p <= probabilityThreshold) || (usePrunabilityInsteadOfThreshold && PrunableActions != null && PrunableActions[a - 1].consideredForPruning && PrunableActions[a - 1].prunable))
+                if (!usePrunabilityInsteadOfThreshold && p <= probabilityThreshold || usePrunabilityInsteadOfThreshold && PrunableActions != null && PrunableActions[a - 1].consideredForPruning && PrunableActions[a - 1].prunable)
                     p = setBelowThresholdTo;
                 NodeInformation[probabilityDimension, a - 1] = p;
                 if (a == 1 || p > largestValue)
@@ -1194,7 +1195,7 @@ namespace ACESim
         double MaxAbsRegretDiff = 0;
         double E = 1;
         double Nu;
-        static double C = Math.Sqrt((2 * (Math.Sqrt(2) - 1.0)) / (Math.Exp(1.0) - 2));
+        static double C = Math.Sqrt(2 * (Math.Sqrt(2) - 1.0) / (Math.Exp(1.0) - 2));
 
         private void UpdateHedgeInfoAfterIteration()
         {
@@ -1316,7 +1317,7 @@ namespace ACESim
 
         public string GetCurrentProbabilitiesAsString()
         {
-            return String.Join(", ", GetCurrentProbabilitiesAsArray().Select(x => x.ToSignificantFigures(3)));
+            return string.Join(", ", GetCurrentProbabilitiesAsArray().Select(x => x.ToSignificantFigures(3)));
         }
 
         public void GetCurrentProbabilities(Span<double> probabilitiesToSet)
@@ -1376,7 +1377,7 @@ namespace ACESim
                 byte playerIndex = decision.PlayerIndex;
                 if (playerIndex == 0)
                 {
-                    byte? nextDecisionIndex = labeledInformationSet.Count() > i + 1 ? (byte?)labeledInformationSet[i + 1].decisionIndex : null;
+                    byte? nextDecisionIndex = labeledInformationSet.Count() > i + 1 ? labeledInformationSet[i + 1].decisionIndex : null;
                     Decision nextDecision = nextDecisionIndex == null ? null : gameDefinition.DecisionPointsExecutionOrder[(byte)nextDecisionIndex].Decision;
                     bool nextDecisionIsOpponent = nextDecision != null && nextDecision.PlayerIndex == 1; // this will usually be true -- that is, both players make the same offer at the same time; but it will not be true if a player puts information into its own information set only (e.g., as a way of distinguishing one information set from the next)
                     if (nextDecisionIsOpponent && nextDecision.SymmetryMap != decision.SymmetryMap)
@@ -1405,7 +1406,7 @@ namespace ACESim
 
 
         public static List<(byte decisionIndex, byte information)> GetSymmetricLabeledInformationSet_FromLaterDecisionToEarlier(GameDefinition gameDefinition, List<(byte decisionIndex, byte information)> labeledInformationSet)
-        
+
         {
             // This is exactly the same as the above, but it produces a labeled informatoin set.
             List<(byte decisionIndex, byte information)> symmetric = labeledInformationSet.ToList();
@@ -1421,7 +1422,7 @@ namespace ACESim
                 byte playerIndex = decision.PlayerIndex;
                 if (playerIndex == 1)
                 {
-                    byte? previousDecisionIndex =  labeledInformationSet.Count() > i - 1 ? (byte?)labeledInformationSet[i - 1].decisionIndex : null;
+                    byte? previousDecisionIndex = labeledInformationSet.Count() > i - 1 ? labeledInformationSet[i - 1].decisionIndex : null;
                     Decision previousDecision = previousDecisionIndex == null ? null : gameDefinition.DecisionPointsExecutionOrder[(byte)previousDecisionIndex].Decision;
                     bool previousDecisionInInformationSetIsOpponents = previousDecision != null && previousDecision.PlayerIndex == 0 && previousDecision.DecisionByteCode == decision.DecisionByteCode - 1; // this will usually be true -- that is, both players make the same offer at the same time; but it will not be true if a player puts information into its own information set only (e.g., as a way of distinguishing one information set from the next)
                     if (previousDecisionInInformationSetIsOpponents && previousDecision.SymmetryMap != decision.SymmetryMap)
@@ -1434,7 +1435,7 @@ namespace ACESim
                     }
                     else
                     {
-                        symmetric[i] = ((byte) (symmetric[i].decisionIndex - 1), symmetric[i].information);
+                        symmetric[i] = ((byte)(symmetric[i].decisionIndex - 1), symmetric[i].information);
                     }
                     if (symmetryMap.information == SymmetryMapInput.ReverseInfo)
                     {
@@ -1447,7 +1448,7 @@ namespace ACESim
                 {
                     bool isOnlyForPlayer1 = decision.PlayersToInform.Contains((byte)1) && !decision.PlayersToInform.Contains((byte)0);
                     if (isOnlyForPlayer1)
-                        symmetric[i] = ((byte) (symmetric[i].decisionIndex - 1), symmetric[i].information);
+                        symmetric[i] = ((byte)(symmetric[i].decisionIndex - 1), symmetric[i].information);
                     if (symmetryMap.information == SymmetryMapInput.ReverseInfo)
                         symmetric[i] = (symmetric[i].decisionIndex, (byte)(decision.NumPossibleActions - symmetric[i].information + 1));
                 }
@@ -1466,7 +1467,7 @@ namespace ACESim
                 if (node.PlayerIndex == 0)
                 {
                     byte[] reverse = node.GetSymmetricInformationSet(gameDefinition);
-                    reverseInformationSetToNodeMap[String.Join(",", reverse)] = node;
+                    reverseInformationSetToNodeMap[string.Join(",", reverse)] = node;
                     // Debug.WriteLine($"Player 0: {String.Join(";", node.InformationSetWithLabels(gameDefinition))} => {String.Join(",", reverse)}"); 
                 }
             }
@@ -1475,7 +1476,7 @@ namespace ACESim
                 if (node.PlayerIndex == 1)
                 {
                     //Debug.WriteLine($"{node.InformationSetWithLabels(gameDefinition)}");
-                    InformationSetNode symmetricNode = reverseInformationSetToNodeMap[String.Join(",", node.InformationSetContents)];
+                    InformationSetNode symmetricNode = reverseInformationSetToNodeMap[string.Join(",", node.InformationSetContents)];
                     result[node] = symmetricNode;
                     //Debug.WriteLine($"Information set {symmetricNode.InformationSetNodeNumber} => {node.InformationSetNodeNumber} ");
                 }
@@ -1489,12 +1490,12 @@ namespace ACESim
                 throw new Exception("Cannot copy to chance decision information set.");
             for (byte a = 1; a <= Decision.NumPossibleActions; a++)
             {
-                byte source = (byte) (a - 1);
+                byte source = (byte)(a - 1);
                 byte target;
                 if (symmetryMapOutput == SymmetryMapOutput.SameAction)
                     target = (byte)(a - 1);
                 else
-                    target = (byte) (Decision.NumPossibleActions - a + 1 - 1);
+                    target = (byte)(Decision.NumPossibleActions - a + 1 - 1);
                 if (verifySymmetry)
                 {
                     if (Math.Abs(NodeInformation[sumInversePiDimension, target] - sourceInformationSet.NodeInformation[sumInversePiDimension, source]) > 1E-6)
@@ -1559,7 +1560,7 @@ namespace ACESim
         {
             for (byte a = 1; a <= NumPossibleActions; a++)
             {
-                double v = (action == a) ? 1.0 : 0;
+                double v = action == a ? 1.0 : 0;
                 NodeInformation[currentProbabilityDimension, a - 1] = v;
                 NodeInformation[currentProbabilityForOpponentDimension, a - 1] = v;
                 if (setAverageAndCumulativeStrategy)
@@ -1684,7 +1685,7 @@ namespace ACESim
                         total += PastValues[p][a - 1];
                     }
 
-                    double v = (total / (double)(LastPastValueIndexRecorded + 1));
+                    double v = total / (LastPastValueIndexRecorded + 1);
                     NodeInformation[averageStrategyProbabilityDimension, a - 1] = v;
                     if (double.IsNaN(v))
                         throw new Exception();
@@ -1723,7 +1724,7 @@ namespace ACESim
                     double distance = Math.Sqrt(sumSqDiffs);
                     sumDistances += distance;
                 }
-                double avgDistance = sumDistances / (double)numToTest;
+                double avgDistance = sumDistances / numToTest;
                 avgDistanceString = avgDistance.ToSignificantFigures(3);
 
                 ranges = new List<(int startIteration, int endIteration, int significantActions)>();
@@ -1737,13 +1738,13 @@ namespace ACESim
                     {
                         if (PastValues[i][k] >= 0.01)
                         {
-                            significantActions |= (1 << k);
+                            significantActions |= 1 << k;
                         }
                     }
                     if (significantActions != significantActionsInRange || i == total - 1)
                     {
                         if (i > 0)
-                            ranges.Add(((int)activeRangeStart, i - 1, significantActionsInRange));
+                            ranges.Add((activeRangeStart, i - 1, significantActionsInRange));
                         activeRangeStart = i;
                         significantActionsInRange = significantActions;
                     }
@@ -1755,12 +1756,12 @@ namespace ACESim
                 {
                     List<int> sigActions = new List<int>();
                     for (int i = 0; i < 32; i++)
-                        if ((sigActionsBits & (1 << i)) != 0)
+                        if ((sigActionsBits & 1 << i) != 0)
                             sigActions.Add(i);
-                    return String.Join(",", sigActions);
+                    return string.Join(",", sigActions);
                 }
 
-                rangesString = String.Join("; ", ranges.Select(x => $"({x.startIteration}-{x.endIteration}): {GetActionsAsString(x.significantActions)}"));
+                rangesString = string.Join("; ", ranges.Select(x => $"({x.startIteration}-{x.endIteration}): {GetActionsAsString(x.significantActions)}"));
             }
             string hedgeString = GetCurrentProbabilitiesAsString();
             double[] averageStrategies = GetAverageStrategiesAsArray();

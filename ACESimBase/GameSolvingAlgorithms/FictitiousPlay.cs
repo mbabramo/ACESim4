@@ -1,4 +1,5 @@
-﻿using ACESimBase.Util;
+﻿using ACESimBase.GameSolvingSupport.Settings;
+using ACESimBase.Util;
 using ACESimBase.Util.ArrayProcessing;
 using System;
 using System.Collections.Generic;

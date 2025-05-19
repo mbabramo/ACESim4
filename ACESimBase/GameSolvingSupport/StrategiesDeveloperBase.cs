@@ -30,6 +30,7 @@ using ACESimBase.Util.Parallelization;
 using ACESimBase.Util.CodeGen;
 using static alglib;
 using ACESimBase.GameSolvingSupport.GameTree;
+using ACESimBase.GameSolvingSupport.Settings;
 
 namespace ACESim
 {

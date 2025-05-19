@@ -7,8 +7,8 @@ using CsvHelper;
 using System.Linq;
 using System.Collections.Generic;
 using System.Text;
-using ACESim;
 using System.Runtime.Versioning;
+using ACESimBase.GameSolvingSupport.GameTree;
 
 namespace ACESimBase.Util.Reporting
 {

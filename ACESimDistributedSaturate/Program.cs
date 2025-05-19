@@ -1,4 +1,4 @@
-﻿using ACESim;
+﻿using ACESimBase.GameSolvingSupport.Settings;
 using ACESimBase.Util.Serialization;
 using LitigCharts;
 using System;

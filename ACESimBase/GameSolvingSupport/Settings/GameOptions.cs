@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ACESim
+namespace ACESimBase.GameSolvingSupport.Settings
 {
     [Serializable]
     public class GameOptions

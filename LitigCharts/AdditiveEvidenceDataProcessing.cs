@@ -1,5 +1,5 @@
-﻿using ACESim;
-using ACESimBase.Games.AdditiveEvidenceGame;
+﻿using ACESimBase.Games.AdditiveEvidenceGame;
+using ACESimBase.GameSolvingSupport.Settings;
 using ACESimBase.Util;
 using ACESimBase.Util.Debugging;
 using ACESimBase.Util.Serialization;

@@ -1,5 +1,6 @@
 ﻿using ACESimBase.GameSolvingSupport;
 using ACESimBase.GameSolvingSupport.GameTree;
+using ACESimBase.GameSolvingSupport.Settings;
 using ACESimBase.Util.ArrayProcessing;
 using ACESimBase.Util.Debugging;
 using ACESimBase.Util.Parallelization;

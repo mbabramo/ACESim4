@@ -1,5 +1,6 @@
 ﻿using ACESim;
 using ACESimBase.GameSolvingSupport;
+using ACESimBase.GameSolvingSupport.GameTree;
 using ACESimBase.Util.Randomization;
 using System;
 using System.Collections.Generic;

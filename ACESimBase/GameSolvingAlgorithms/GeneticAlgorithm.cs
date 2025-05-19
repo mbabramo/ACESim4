@@ -1,4 +1,6 @@
 ﻿using ACESim;
+using ACESimBase.GameSolvingSupport.GameTree;
+using ACESimBase.GameSolvingSupport.Settings;
 using ACESimBase.Util.Debugging;
 using System;
 using System.Collections.Generic;

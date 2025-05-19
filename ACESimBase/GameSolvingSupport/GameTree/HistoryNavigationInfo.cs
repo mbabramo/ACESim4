@@ -1,11 +1,12 @@
-﻿using ACESimBase.GameSolvingSupport.GameTree;
+﻿using ACESim;
+using ACESimBase.GameSolvingSupport.Settings;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ACESim
+namespace ACESimBase.GameSolvingSupport.GameTree
 {
     [Serializable]
     public readonly struct HistoryNavigationInfo

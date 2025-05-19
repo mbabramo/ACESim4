@@ -1,6 +1,7 @@
-﻿using ACESimBase.Util.NWayTreeStorage;
+﻿using ACESim;
+using ACESimBase.Util.NWayTreeStorage;
 
-namespace ACESim
+namespace ACESimBase.GameSolvingSupport.GameTree
 {
     public struct HistoryPointStorable
     {

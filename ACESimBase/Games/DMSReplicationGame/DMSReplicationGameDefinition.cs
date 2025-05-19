@@ -1,4 +1,5 @@
 ﻿using ACESim;
+using ACESimBase.GameSolvingSupport.Settings;
 using ACESimBase.Util.Statistical;
 using ACESimBase.Util.Tikz;
 using System;

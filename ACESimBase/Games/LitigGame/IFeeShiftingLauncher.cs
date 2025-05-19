@@ -4,8 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static ACESim.Launcher;
+using static ACESimBase.GameSolvingSupport.Settings.Launcher;
 using static ACESim.LitigGameLauncher;
+using ACESimBase.GameSolvingSupport.Settings;
 
 namespace ACESimBase
 {

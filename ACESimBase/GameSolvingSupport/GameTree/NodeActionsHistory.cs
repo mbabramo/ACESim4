@@ -1,5 +1,4 @@
 ﻿using ACESim;
-using ACESimBase.GameSolvingSupport.GameTree;
 using ACESimBase.Util.Collections;
 using ACESimBase.Util.Reporting;
 using System;
@@ -7,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace ACESimBase.GameSolvingSupport
+namespace ACESimBase.GameSolvingSupport.GameTree
 {
     [Serializable]
     public class NodeActionsHistory
@@ -24,7 +23,7 @@ namespace ACESimBase.GameSolvingSupport
         public override string ToString()
         {
             string coefString = Coefficient == 1.0 ? "" : $"{Coefficient.ToSignificantFigures(3)} * ";
-            var s = coefString + String.Join(", ", NodeActions);
+            var s = coefString + string.Join(", ", NodeActions);
             if (Successor != null)
                 s += $"{(s.Length > 0 ? " " : "")}Successor: {Successor.GetGameStateType()} {Successor.GetInformationSetNodeNumber()}";
             return s;
@@ -66,7 +65,7 @@ namespace ACESimBase.GameSolvingSupport
         {
             if (node is ChanceNodeEqualProbabilities c)
             {
-                Coefficient *= 1.0 / (double)c.Decision.NumPossibleActions;
+                Coefficient *= 1.0 / c.Decision.NumPossibleActions;
                 return true;
             }
             return false;
@@ -165,7 +164,7 @@ namespace ACESimBase.GameSolvingSupport
             IEnumerable<byte> nodesToInclude = NodeActions
                 .Where(x => excludePlayerIndex == null || !(x.Node is InformationSetNode informationSet) || informationSet.PlayerIndex != excludePlayerIndex)
                 .Where(x => !(x.Node is ChanceNode chanceNode) ||
-                        (!(chanceNode.Decision.DistributedChanceDecision))
+                        !chanceNode.Decision.DistributedChanceDecision
                         || !distributingChanceDecisions)
                 .Select(x => x.ActionAtNode);
             return new ByteList(nodesToInclude);

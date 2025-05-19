@@ -1,4 +1,5 @@
-﻿using ACESimBase.Games.AdditiveEvidenceGame;
+﻿using ACESim;
+using ACESimBase.Games.AdditiveEvidenceGame;
 using ACESimBase.Games.DMSReplicationGame;
 using ACESimBase.GameSolvingAlgorithms;
 using ACESimBase.GameSolvingSupport;
@@ -18,7 +19,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ACESim
+namespace ACESimBase.GameSolvingSupport.Settings
 {
     public abstract class Launcher
     {
@@ -34,11 +35,11 @@ namespace ACESim
         public const int VanillaIterations = 1000; // Note: Also used for GeneralizedVanilla, DeepCFR
         public const int VanillaReportEveryNIterations = VanillaIterations;  // EffectivelyNever
         public int? SuppressReportBeforeIteration = null;
-        public int VanillaBestResponseEveryMIterations => Math.Min(100, VanillaIterations); 
-        public int? SuppressBestResponseBeforeIteration = null; 
+        public int VanillaBestResponseEveryMIterations => Math.Min(100, VanillaIterations);
+        public int? SuppressBestResponseBeforeIteration = null;
         public const bool CalculatePerturbedBestResponseRefinement = true;
         public const int MiniReportEveryPIterations = EffectivelyNever;
-        public const bool AlwaysSuppressDisplayReportOnScreen = true; 
+        public const bool AlwaysSuppressDisplayReportOnScreen = true;
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever;
         public const int ProbingIterations = 20_000_000;
         public const bool GenerateManualReports = true;
@@ -46,7 +47,7 @@ namespace ACESim
         public int MaxParallelDepth = 3;
         public bool ParallelizeOptionSets = false; // run multiple option sets at same time on computer (in which case each individually will be run not in parallel)
         public bool ParallelizeIndividualExecutions = false; // only if !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing)
-        public bool DynamicSetParallelIfPossible = false; 
+        public bool DynamicSetParallelIfPossible = false;
         public bool DynamicSetParallel => DistributedProcessing && DynamicSetParallelIfPossible;
         public bool ParallelizeIndividualExecutionsAlways = false; // Note -- maybe not really working // will always take precedence
 
@@ -56,7 +57,7 @@ namespace ACESim
         public bool SaveToAzureBlob = false;
         public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && UseDistributedProcessingForMultipleOptionsSets; // this should be true if running on the local service fabric or usign ACESimDistributed
         public virtual string MasterReportNameForDistributedProcessing => "R371"; // Note: Overridden in subclass.
-        public bool UseDistributedProcessingForMultipleOptionsSets = false; 
+        public bool UseDistributedProcessingForMultipleOptionsSets = false;
         public bool SeparateScenariosWhenUsingDistributedProcessing = true;
         public static bool MaxOneReportPerDistributedProcess = false;
         public bool CombineResultsOfAllOptionSetsAfterExecution = false;
@@ -92,7 +93,7 @@ namespace ACESim
         public abstract List<GameOptions> GetOptionsSets();
 
         public List<string> GetGroupNames() => GetOptionsSets().Select(x => x.GroupName).Distinct().OrderBy(x => x).ToList();
-        
+
         #endregion
 
         #region Launching
@@ -186,9 +187,9 @@ namespace ACESim
 
                 MaxParallelDepth = MaxParallelDepth,
                 ParallelOptimization = ParallelizeIndividualExecutionsAlways ||
-                            (ParallelizeIndividualExecutions && !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing)),
+                            ParallelizeIndividualExecutions && !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing),
                 DynamicSetParallel = DynamicSetParallel,
-                SuppressReportDisplayOnScreen = AlwaysSuppressDisplayReportOnScreen || (!LaunchSingleOptionsSetOnly && (ParallelizeOptionSets || DistributedProcessing)),
+                SuppressReportDisplayOnScreen = AlwaysSuppressDisplayReportOnScreen || !LaunchSingleOptionsSetOnly && (ParallelizeOptionSets || DistributedProcessing),
 
                 GameNumber = StartGameNumber,
 
@@ -220,7 +221,7 @@ namespace ACESim
         #region Distributed processing
 
         TaskCoordinator TaskList;
-        
+
         public async Task<ReportCollection> LaunchDistributedProcessingParticipation()
         {
             string masterReportName = MasterReportNameForDistributedProcessing;
@@ -495,7 +496,7 @@ namespace ACESim
                     combinedReports.Add(result);
                 }
             }
-            string combinedRepetitionsReport = String.Join("", combinedReports);
+            string combinedRepetitionsReport = string.Join("", combinedReports);
             string mergedReport = SimpleReportMerging.GetDistributionReports(combinedRepetitionsReport, optionSetName, includeFirstLine);
             AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), masterReportNamePlusOptionSet, true, mergedReport + ".csv", SaveToAzureBlob);
             TabbedText.ResetAccumulated();
@@ -588,7 +589,7 @@ namespace ACESim
                         if (c == 0 && result.ReportNames != null && result.ReportNames.Count() > c && result.ReportNames[c].Contains(optionSetName))
                             masterReportNamePlusOptionSet = masterReportName; // remove the redundancy
                         string reportName = masterReportNamePlusOptionSet ?? "results";
-                        if (result.ReportNames.Count() > c && result.ReportNames[c] is (not null) and string reportName2)
+                        if (result.ReportNames.Count() > c && result.ReportNames[c] is not null and string reportName2)
                             reportName += "-" + reportName2;
 
                         AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), reportName + ".csv", true, result.csvReports[c], SaveToAzureBlob); // we write to a blob in case this times out and also to allow individual report to be taken out
@@ -639,7 +640,7 @@ namespace ACESim
                     if (delay > 60000)
                         delay = 50_000;
                     if (failuresSoFar > 1 && delay < 100000)
-                        delay += (int) (10000.0 * new Random((int)DateTime.Now.Ticks).Next());
+                        delay += (int)(10000.0 * new Random((int)DateTime.Now.Ticks).Next());
                     if (delay > 100_000)
                         delay = 100_000;
                     logAction($"Delaying {delay} milliseconds");
@@ -649,7 +650,7 @@ namespace ACESim
                 }
                 throw new Exception("Repeated failures");
             }
-            string singleRepetitionReport = addOptionSetColumns ? SimpleReportMerging.AddCSVReportInformationColumns(reportCollection.csvReports.FirstOrDefault(), optionSetName, reportIteration, i == 0) : reportCollection.csvReports.FirstOrDefault(); 
+            string singleRepetitionReport = addOptionSetColumns ? SimpleReportMerging.AddCSVReportInformationColumns(reportCollection.csvReports.FirstOrDefault(), optionSetName, reportIteration, i == 0) : reportCollection.csvReports.FirstOrDefault();
             return reportCollection;
         }
 
@@ -684,7 +685,7 @@ namespace ACESim
             List<string> stringResults = new List<string>();
             foreach (var taskResult in taskResults)
                 stringResults.Add(taskResult);
-            string combinedResults = String.Join("", stringResults);
+            string combinedResults = string.Join("", stringResults);
             AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), azureBlobReportName + " allsets.csv", true, combinedResults, SaveToAzureBlob);
             return combinedResults;
         }
@@ -708,7 +709,7 @@ namespace ACESim
 
             for (int i = 0; i < NumRepetitions; i++)
                 combinedReports[i] = tasks[i].Result;
-            string combinedRepetitionsReport = String.Join("", combinedReports);
+            string combinedRepetitionsReport = string.Join("", combinedReports);
 
             string mergedReport = SimpleReportMerging.GetDistributionReports(combinedRepetitionsReport, optionSetName, includeFirstLine);
             return mergedReport;
@@ -725,7 +726,7 @@ namespace ACESim
                 try
                 {
                     string azureBlobInterimReportName = azureBlobReportName + $" I{optionSetIndex}:{repetition}";
-                    var task = RunAzureFunction.RunFunction(apiURL2, new { optionSet = $"{optionSetIndex}", repetition = $"{repetition}", azureBlobReportName = azureBlobReportName }, azureBlobInterimReportName);
+                    var task = RunAzureFunction.RunFunction(apiURL2, new { optionSet = $"{optionSetIndex}", repetition = $"{repetition}", azureBlobReportName }, azureBlobInterimReportName);
                     result = await task;
                     if (result.Success)
                     {
@@ -741,7 +742,7 @@ namespace ACESim
                 {
                 }
 
-                System.Threading.Thread.Sleep(retryInterval);
+                Thread.Sleep(retryInterval);
 
                 retryInterval *= 2;
             }

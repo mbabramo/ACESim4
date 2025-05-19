@@ -48,6 +48,7 @@
   </ItemGroup>
   
   <ItemGroup>
+    <Folder Include="GameSolvingSupport\Statistical\" />
     <Folder Include="Games\LeducGame\Reports\" />
   </ItemGroup>
 

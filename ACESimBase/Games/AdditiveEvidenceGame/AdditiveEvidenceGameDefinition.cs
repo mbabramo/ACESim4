@@ -2,6 +2,7 @@
 using ACESimBase.Games.LitigGame.ManualReports;
 using ACESimBase.GameSolvingSupport;
 using ACESimBase.GameSolvingSupport.GameTree;
+using ACESimBase.GameSolvingSupport.Settings;
 using ACESimBase.Util.Debugging;
 using ACESimBase.Util.Statistical;
 using System;

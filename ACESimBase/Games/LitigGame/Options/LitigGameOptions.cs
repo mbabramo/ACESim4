@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ACESim.Util.DiscreteProbabilities;
+using ACESimBase.GameSolvingSupport.Settings;
 using ACESimBase.Util.Mathematics;
 
 namespace ACESim

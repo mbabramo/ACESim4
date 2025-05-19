@@ -7,6 +7,7 @@ using System.IO;
 using System.Collections;
 using ACESimBase.Util.Serialization;
 using ACESimBase.Util.Debugging;
+using ACESimBase.GameSolvingSupport.GameTree;
 
 namespace ACESim
 {

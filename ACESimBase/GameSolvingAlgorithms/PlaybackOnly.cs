@@ -1,4 +1,5 @@
-﻿using ACESimBase.Util;
+﻿using ACESimBase.GameSolvingSupport.Settings;
+using ACESimBase.Util;
 using ACESimBase.Util.ArrayProcessing;
 using ACESimBase.Util.Serialization;
 using System;

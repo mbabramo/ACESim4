@@ -16,6 +16,7 @@ using ACESimBase.GameSolvingAlgorithms.ECTAAlgorithm;
 using ACESimBase.Games.EFGFileGame;
 using ACESimBase.Games.DMSReplicationGame;
 using ACESimBase.Util.Debugging;
+using ACESimBase.GameSolvingSupport.Settings;
 
 namespace ACESim
 {

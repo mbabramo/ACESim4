@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using ACESim.Util;
+using ACESimBase.GameSolvingSupport.Settings;
 
 namespace ACESim
 {

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ACESim
+namespace ACESimBase.GameSolvingSupport.GameTree
 {
     [Serializable]
     public class InformationSetNodeCoreData

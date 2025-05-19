@@ -1,4 +1,6 @@
-﻿using ACESimBase.GameSolvingSupport.DeepCFR;
+﻿using ACESim;
+using ACESimBase.GameSolvingSupport.DeepCFR;
+using ACESimBase.GameSolvingSupport.GameTree;
 using ACESimBase.Util.ArrayProcessing.ChunkExecutors;
 using ACESimBase.Util.Mathematics;
 using ACESimBase.Util.Randomization;
@@ -10,7 +12,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
-namespace ACESim
+namespace ACESimBase.GameSolvingSupport.Settings
 {
     [Serializable]
     public class EvolutionSettings
@@ -19,7 +21,7 @@ namespace ACESim
         public bool UnrollAlgorithm = true;
         public bool IncludeCommentsWhenUnrolling = false;
         public bool UseCheckpointsWhenNotUnrolling = false; // for when unrolling, look at ArrayCommandList.UseCheckpoints
-        public bool UnrollAllowParallelize = false; 
+        public bool UnrollAllowParallelize = false;
         public ChunkExecutorKind Unroll_ChunkExecutorKind = ChunkExecutorKind.ILWithLocalVariableRecycling; // Note: RoslynWithLocalVariableRecycling seems to be repeating the same iteration over and over again. 
         public bool ReuseUnrolledAlgorithm = true; // if the tree structure is the same, then it will be reused (but final utilities etc. will be updated)
         public bool SaveToAzureBlob = false;
@@ -34,16 +36,16 @@ namespace ACESim
             GameApproximationAlgorithm.BestResponseDynamics => -1, // 0.00001,
             _ => -1 // 0.005
         }; // will end early if this target is reached
-        public bool CreateInformationSetCharts = false; 
+        public bool CreateInformationSetCharts = false;
         public int? ReportEveryNIterations = 1000;
         public int? SuppressReportBeforeIteration = null;
 
         public bool CreateEquilibriaFile = true;
         public bool UsePreloadedEquilibriaIfAvailable = true;
         public bool SkipAltogetherIfEquilibriaFileAlreadyExists = false; // If true, and an equilibrium file exists, then we will skip processing AND reporting. This is useful as a way of just repeating failures.
-        public bool CreateEFGFile = true; 
+        public bool CreateEFGFile = true;
 
-        public bool UseAcceleratedBestResponse = true; 
+        public bool UseAcceleratedBestResponse = true;
         public const int EffectivelyNever = 999999999;
         public int? BestResponseEveryMIterations = 100; // For partial recall games, this is very costly, so consider using EffectivelyNever. // overridden in Launcher
         public int? SuppressBestResponseBeforeIteration = null;
@@ -72,10 +74,10 @@ namespace ACESim
         public static int RoundOffChanceDigits = 5; // Chance numbers will also be converted to rational numbers. The digits might be the same as above.
         public bool IdentifyPressureOnInformationSets = false; // currently called only for sequence form
         public bool ConfirmPerfectEquilibria = true; // for sequence form only
-        public bool ThrowIfNotPerfectEquilibrium = true;  
-        public bool TryInexactArithmeticForAdditionalEquilibria = false; 
+        public bool ThrowIfNotPerfectEquilibrium = true;
+        public bool TryInexactArithmeticForAdditionalEquilibria = false;
         public bool CustomSequenceFormInitialization = true;
-        public bool UseCustomSequenceFormInitializationAsFinalEquilibria = false; 
+        public bool UseCustomSequenceFormInitializationAsFinalEquilibria = false;
         public bool SequenceFormUseRandomSeed = false; // random seed always used for additional priors, but this can be used for just a single prior
         public bool ConsiderInitializingToMostRecentEquilibrium = false;
         public bool SequenceFormBlockDistantActionsWhenTracingEquilibrium = false;
@@ -117,11 +119,11 @@ namespace ACESim
 
         public bool GenerateReportsByPlaying = true;
         public int NumRandomIterationsForSummaryTable = 1_000;
-        public bool PrintGameTree = false; 
+        public bool PrintGameTree = false;
         public bool KeepPrintingGameTree = false; // after printing once, keep printing again
         public bool PrintedGameTreeIncludesInformationSetData = false;
         public bool PrintInformationSets = false;
-        public bool AnalyzeInformationSets = false; 
+        public bool AnalyzeInformationSets = false;
         public List<int> RestrictToTheseInformationSets = null;
         public bool PrintNonChanceInformationSetsOnly = true;
         public List<ActionStrategies> ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.CurrentProbability }; // CORRELATED EQ SETTING
@@ -152,7 +154,7 @@ namespace ACESim
 
         public bool PCA_PerformPrincipalComponentAnalysis = false;
         public double PCA_Precision = 1E-5;
-        public int PCA_FirstIterationToSaveAsPCAObservation = 11; 
+        public int PCA_FirstIterationToSaveAsPCAObservation = 11;
         public int PCA_SavePCAObservationEveryNIterationsAfterFirst = 1;
         public int[] PCA_NumVariationsPerPrincipalComponent_Obsolete = new int[] { 4, 3, 2 }; // NOTE: Not currently being used; this can be used to generate non-random permutations of principal components.
         public int PCA_NumPrincipalComponents = 3;
@@ -179,7 +181,7 @@ namespace ACESim
         public double DeepCFR_ApproximateBestResponse_BackwardInduction_CapacityMultiplier = 10; // if the reservoir capacity is higher for the best response, we can get a more precise measure of best response -- what matters to ensure a good result is the total number and also that there be something of a multiple
         public bool DeepCFR_ApproximateBestResponse_BackwardInduction_AlwaysPickHighestRegret = true;
         public int DeepCFR_ApproximateBestResponseIterations = 1;
-        public int DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation = 10_000; 
+        public int DeepCFR_ApproximateBestResponse_TraversalsForUtilityCalculation = 10_000;
         /// <summary>
         // With this option, we are not doing true regret matching. We are forecasting average utility for each action, 
         // rather than average regrets. The difference is that when averaging regrets, we look at relative utilities in 
@@ -197,7 +199,7 @@ namespace ACESim
         // For Vanilla algorithm:
         // From Solving Imperfect Information Games with Discounted Regret Minimization -- optimal values (for situations in which pruning may be used)
         public bool UseContinuousRegretsDiscounting = true; // an alternative to discounting regrets with standard discounting approach
-        public double ContinuousRegretsDiscountPerIteration => UseContinuousRegretsDiscounting ? 0.99 : 1.0; 
+        public double ContinuousRegretsDiscountPerIteration => UseContinuousRegretsDiscounting ? 0.99 : 1.0;
         public bool UseStandardDiscounting = false; // Note: This might be especially helpful sometimes for multiplicative weights
         public bool DiscountRegrets = false; // if true, Discounting_Alpha and Discounting_Beta are used -- note never currently used in MultiplicativeWeightsVanilla
         public const double Discounting_Alpha = 1.5; // multiply accumulated positive regrets by t^alpha / (t^alpha + 1)
@@ -213,7 +215,7 @@ namespace ACESim
             iteration = EffectiveIteration(iteration);
             if (iteration > StopDiscountingAtIteration)
                 iteration = StopDiscountingAtIteration;
-            return Math.Pow((double)iteration / (double)(iteration + 1), Discounting_Gamma);
+            return Math.Pow(iteration / (double)(iteration + 1), Discounting_Gamma);
         }
 
         public double Discounting_Gamma_AsPctOfMax(int iteration) => Discounting_Gamma_ForIteration(iteration) / Discounting_Gamma_ForIteration(StopDiscountingAtIteration);
@@ -246,7 +248,7 @@ namespace ACESim
                 throw new Exception();
             return result;
         }
-        public double MultiplicativeWeightsEpsilon_BasedOnCurve_Helper(int iteration, int maxIteration) => MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(MultiplicativeWeightsInitial, MultiplicativeWeightsFinal, MultiplicativeWeightsCurvature, ((double)(iteration - 1)) / (double)maxIteration);
+        public double MultiplicativeWeightsEpsilon_BasedOnCurve_Helper(int iteration, int maxIteration) => MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(MultiplicativeWeightsInitial, MultiplicativeWeightsFinal, MultiplicativeWeightsCurvature, (iteration - 1) / (double)maxIteration);
 
         public int SimulatedAnnealingEveryNIterations = EffectivelyNever;
         public double SimulatedAnnealingInitialAcceptance = 0.5;
@@ -259,7 +261,7 @@ namespace ACESim
         public int SimulatedAnnealingSet(int iteration) => (iteration - 1) / SimulatedAnnealingEveryNIterations;
         public bool AcceptSimulatedAnnealingIfWorse(int iteration, int maxIteration)
         {
-            double currentProbabilityOfAcceptance = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(SimulatedAnnealingInitialAcceptance, SimulatedAnnealingEventualAcceptance, SimulatedAnnealingCurvature, (double)iteration / (double)maxIteration);
+            double currentProbabilityOfAcceptance = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(SimulatedAnnealingInitialAcceptance, SimulatedAnnealingEventualAcceptance, SimulatedAnnealingCurvature, iteration / (double)maxIteration);
             double r = new ConsistentRandomSequenceProducer(97).GetDoubleAtIndex(SimulatedAnnealingSet(iteration));
             return r < currentProbabilityOfAcceptance;
         }
@@ -271,7 +273,7 @@ namespace ACESim
                 return 1.0;
             double r = new ConsistentRandomSequenceProducer(19).GetDoubleAtIndex(SimulatedAnnealingSet(iteration));
             double targetTotal = r * currentTotal;
-            double targetPerIteration = targetTotal / (double) SimulatedAnnealingEveryNIterations;
+            double targetPerIteration = targetTotal / SimulatedAnnealingEveryNIterations;
             return targetPerIteration;
         }
         public double MultiplicativeWeightsEpsilon_SimulatedAnnealing(int iteration, int maxIteration) => new ConsistentRandomSequenceProducer(0).GetDoubleAtIndex(SimulatedAnnealingSet(iteration)); // a random number based on the simulated annealing group
@@ -284,7 +286,7 @@ namespace ACESim
         }
 
         public double PerturbationInitial = 0.001; // should use with regret matching
-        public double PerturbationFinal = 0; 
+        public double PerturbationFinal = 0;
         public double PerturbationCurvature = 5.0;
         public double Perturbation_BasedOnCurve(int iteration, int maxIteration)
         {
@@ -294,18 +296,18 @@ namespace ACESim
                 throw new Exception();
             return result;
         }
-        private double Perturbation_BasedOnCurve_Helper(int iteration, int maxIteration) => MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(PerturbationInitial, PerturbationFinal, PerturbationCurvature, ((double)(iteration - 1)) / (double)maxIteration);
+        private double Perturbation_BasedOnCurve_Helper(int iteration, int maxIteration) => MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(PerturbationInitial, PerturbationFinal, PerturbationCurvature, (iteration - 1) / (double)maxIteration);
 
         public bool UseCFRPlusInRegretMatching = false; // if true, then cumulative regrets never fall below zero
 
         public bool RecordPastValues = true; // must specify true for constructing correlated equilibrium
         public bool RecordPastValues_AtEndOfScenarioOnly = true;
         public int RecordPastValues_TargetNumberToRecord = 100;
-        public int? RecordPastValues_AtIterationMultiples = 5_000; 
-        public bool RecordPastValues_ResetAtIterationMultiples = false; 
-        public int EffectiveIteration(int iteration) => (RecordPastValues && !RecordPastValues_AtEndOfScenarioOnly && RecordPastValues_AtIterationMultiples is int multiples && RecordPastValues_ResetAtIterationMultiples) ? iteration % multiples + 1 
+        public int? RecordPastValues_AtIterationMultiples = 5_000;
+        public bool RecordPastValues_ResetAtIterationMultiples = false;
+        public int EffectiveIteration(int iteration) => RecordPastValues && !RecordPastValues_AtEndOfScenarioOnly && RecordPastValues_AtIterationMultiples is int multiples && RecordPastValues_ResetAtIterationMultiples ? iteration % multiples + 1
                 : iteration;
-        public (int effectiveIteration, int effectiveMaxIteration) EffectiveIterationAndMaxIteration(int iteration, int maxIteration) => (RecordPastValues && !RecordPastValues_AtEndOfScenarioOnly && RecordPastValues_AtIterationMultiples is int multiples && RecordPastValues_ResetAtIterationMultiples) ? (iteration % multiples + 1, multiples) : (iteration, maxIteration);
+        public (int effectiveIteration, int effectiveMaxIteration) EffectiveIterationAndMaxIteration(int iteration, int maxIteration) => RecordPastValues && !RecordPastValues_AtEndOfScenarioOnly && RecordPastValues_AtIterationMultiples is int multiples && RecordPastValues_ResetAtIterationMultiples ? (iteration % multiples + 1, multiples) : (iteration, maxIteration);
 
         public bool IsIterationResetPoint(int iteration) => RecordPastValues && !RecordPastValues_AtEndOfScenarioOnly && RecordPastValues_AtIterationMultiples is int multiples && iteration % multiples == 0 && RecordPastValues_ResetAtIterationMultiples;
 

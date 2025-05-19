@@ -9,6 +9,7 @@ using System.Threading.Tasks.Dataflow;
 using System.Threading;
 using ACESimBase.Util;
 using ACESimBase.GameSolvingSupport;
+using ACESimBase.GameSolvingSupport.Settings;
 
 namespace ACESim
 {

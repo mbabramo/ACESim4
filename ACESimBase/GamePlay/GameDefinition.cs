@@ -10,6 +10,7 @@ using ACESimBase.Util.Reporting;
 using ACESimBase.Util.Randomization;
 using ACESimBase.Util.Debugging;
 using ACESimBase.GameSolvingSupport.GameTree;
+using ACESimBase.GameSolvingSupport.Settings;
 
 namespace ACESim
 {

@@ -22,6 +22,7 @@ using ACESimBase.Util.Parallelization;
 using ACESimBase.Util.Serialization;
 using ACESimBase.Util.Debugging;
 using ACESimBase.GameSolvingSupport.GameTree;
+using ACESimBase.GameSolvingSupport.Settings;
 
 namespace ACESimBase.GameSolvingAlgorithms
 {

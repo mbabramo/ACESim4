@@ -1,8 +1,7 @@
-﻿using ACESimBase.GameSolvingSupport;
-using ACESimBase.Util.Collections;
+﻿using ACESimBase.Util.Collections;
 using System;
 
-namespace ACESim
+namespace ACESimBase.GameSolvingSupport.GameTree
 {
     [Serializable]
     public class PathFromPredecessorInfo
@@ -17,7 +16,7 @@ namespace ACESim
 
         public override string ToString()
         {
-            return $"Path {IndexInPredecessorsPathsFromPredecessor} {Path} probability {Probability} actions excluding player {String.Join(",", ActionsListExcludingPlayerAndDistributedChance)} (most recent opponent info set {MostRecentOpponentInformationSet?.InformationSetNodeNumber} => action {ActionAtOpponentInformationSet} probability {ProbabilityFromMostRecentOpponent})";
+            return $"Path {IndexInPredecessorsPathsFromPredecessor} {Path} probability {Probability} actions excluding player {string.Join(",", ActionsListExcludingPlayerAndDistributedChance)} (most recent opponent info set {MostRecentOpponentInformationSet?.InformationSetNodeNumber} => action {ActionAtOpponentInformationSet} probability {ProbabilityFromMostRecentOpponent})";
         }
     }
 }

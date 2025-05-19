@@ -1,4 +1,5 @@
 ﻿using ACESim;
+using ACESimBase.GameSolvingSupport.Settings;
 using ACESimBase.Util.Debugging;
 using ACESimBase.Util.Parallelization;
 using ACESimBase.Util.Statistical;

@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace ACESimBase.GameSolvingSupport
+namespace ACESimBase.GameSolvingSupport.GameTree
 {
     [Serializable]
     public class NodeActionsMultipleHistories
@@ -22,7 +22,7 @@ namespace ACESimBase.GameSolvingSupport
 
         public override string ToString()
         {
-            return String.Join("; ", Histories);
+            return string.Join("; ", Histories);
         }
 
         public NodeActionsMultipleHistories(List<NodeActionsHistory> histories)

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ACESim.Util;
+using ACESimBase.GameSolvingSupport.Settings;
 
 namespace ACESim
 {

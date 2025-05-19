@@ -1,10 +1,9 @@
 ﻿using ACESim;
-using ACESimBase.GameSolvingSupport.GameTree;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace ACESimBase.GameSolvingSupport
+namespace ACESimBase.GameSolvingSupport.GameTree
 {
     [Serializable]
     public class NodeAction
@@ -36,8 +35,8 @@ namespace ACESimBase.GameSolvingSupport
 
         public override bool Equals(object obj)
         {
-            NodeAction other = (NodeAction) obj;
-            return (Node == other.Node) && (ActionAtNode == other.ActionAtNode) && (DistributorChanceInputs == other.DistributorChanceInputs);
+            NodeAction other = (NodeAction)obj;
+            return Node == other.Node && ActionAtNode == other.ActionAtNode && DistributorChanceInputs == other.DistributorChanceInputs;
         }
 
         public override int GetHashCode()
