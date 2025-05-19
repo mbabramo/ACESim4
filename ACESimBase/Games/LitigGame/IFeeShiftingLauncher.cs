@@ -17,6 +17,10 @@ namespace ACESimBase
         // All scenario GameOptions for this launcher (excluding duplicate baseline scenarios).
         List<GameOptions> AllGameOptions { get; }
 
+        // Categorizes each option set based on the grouping variables.
+        IEnumerable<(string OptionSetName, List<GroupingVariableInfo> Variables)> GetVariableInfoPerOption();
+
+
         // Mapping from each full scenario name to its baseline scenario name.
         Dictionary<string, string> NameMap { get; }
 
@@ -31,5 +35,6 @@ namespace ACESimBase
 
         // Stable report prefix used for output files (e.g., "FS036" or "APP001").
         string ReportPrefix { get; }
+
     }
 }

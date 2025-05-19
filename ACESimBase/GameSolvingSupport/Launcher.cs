@@ -761,6 +761,98 @@ namespace ACESim
 
         public record ArticleVariationInfoSets(string nameOfSet, List<ArticleVariationInfo> requirementsForEachVariation);
 
+        public record GroupingVariableInfo(
+            string VariableName,
+            string Value,
+            bool IsDefault,
+            bool IncludeInCritical
+        );
+
+        public static List<GroupingVariableInfo> BuildGroupingVariableInfo(
+            GameOptions option,
+            Dictionary<string, string> defaultValues,
+            HashSet<string> criticalVariables)
+        {
+            static string Normalize(object o) =>
+                o is double d ? d.ToString("G", System.Globalization.CultureInfo.InvariantCulture) : o?.ToString().Trim();
+
+            var result = new List<GroupingVariableInfo>();
+
+            foreach (var (key, val) in option.VariableSettings)
+            {
+                string normalizedVal = Normalize(val);
+                bool isCritical = criticalVariables.Contains(key);
+                bool isDefault = defaultValues.TryGetValue(key, out var defaultVal)
+                                 && normalizedVal == Normalize(defaultVal);
+
+                result.Add(new GroupingVariableInfo(
+                    key,
+                    normalizedVal,
+                    isDefault,
+                    isCritical));
+            }
+
+            return result;
+        }
+
+        public static string ClassifyOptionSet(List<GroupingVariableInfo> variables)
+        {
+            var criticals = variables.Where(x => x.IncludeInCritical).ToList();
+            var noncriticals = variables.Where(x => !x.IncludeInCritical).ToList();
+
+            var noncritDiffs = noncriticals.Where(x => !x.IsDefault).ToList();
+            var critDiffs = criticals.Where(x => !x.IsDefault).ToList();
+
+            // Handle multiple variations by combining keys
+            if (noncritDiffs.Count + critDiffs.Count > 1)
+            {
+                var parts = noncritDiffs
+                    .Select(v => $"{v.VariableName} = {v.Value}");
+                return string.Join(" & ", parts);
+            }
+
+            // Existing logic for single-difference cases
+            if (noncritDiffs.Count == 1)
+                return $"{noncritDiffs[0].VariableName} = {noncritDiffs[0].Value}";
+            if (critDiffs.Count == 1)
+                return $"Additional {critDiffs[0].VariableName} = {critDiffs[0].Value}";
+            return "Baseline";
+        }
+
+        public static Dictionary<string, List<string>> GroupOptionSetsByClassification(
+            IEnumerable<(string OptionSetName, List<GroupingVariableInfo> Variables)> optionSets)
+        {
+            var result = new Dictionary<string, List<string>>();
+
+            foreach (var (name, vars) in optionSets)
+            {
+                var group = ClassifyOptionSet(vars);
+                if (group == null)
+                    continue;
+
+                if (!result.TryGetValue(group, out var list))
+                    result[group] = list = new List<string>();
+
+                list.Add(name);
+            }
+
+            // Diagnostics (optional)
+            var unclassified = optionSets.Where(x => ClassifyOptionSet(x.Variables) == null).ToList();
+            if (unclassified.Any())
+            {
+                TabbedText.WriteLine($"WARNING: {unclassified.Count} option sets were not assigned to any group.");
+                foreach (var (name, vars) in unclassified.Take(10))
+                {
+                    TabbedText.WriteLine($"Unassigned: {name}");
+                    foreach (var v in vars)
+                        TabbedText.WriteLine($"  {v.VariableName} = {v.Value} (default={v.IsDefault}, critical={v.IncludeInCritical})");
+                }
+            }
+
+            return result;
+        }
+
+
         public T GetAndTransform<T>(T options, string suffix, Action<T> transform) where T : GameOptions
         {
             T g = options;

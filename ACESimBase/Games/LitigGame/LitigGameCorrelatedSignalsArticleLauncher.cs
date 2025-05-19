@@ -89,6 +89,16 @@ namespace ACESim
         }
         OptionSetChoice OptionSetChosen = OptionSetChoice.FeeShiftingArticle;  // <<-- Choose option set here
 
+
+        public IEnumerable<(string OptionSetName, List<GroupingVariableInfo> Variables)> GetVariableInfoPerOption()
+        {
+            var defaultValues = DefaultNonCriticalValues.ToDictionary(x => x.Item1, x => x.Item2.ToString());
+            var criticalVars = new HashSet<string> { "Costs Multiplier", "Fee Shifting Multiplier", "Risk Aversion" };
+
+            foreach (var opt in AllGameOptions)
+                yield return (opt.Name, Launcher.BuildGroupingVariableInfo(opt, defaultValues, criticalVars));
+        }
+
         public override GameOptions GetDefaultSingleGameOptions()
         {
             return LitigGameOptionsGenerator.GetLitigGameOptions();

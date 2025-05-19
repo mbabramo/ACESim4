@@ -4,14 +4,14 @@ using ACESimBase;
 namespace LitigCharts
 {
     public static class Runner
-    { 
+    {
 
         public static void AdditiveEvidenceArticle()
         {
             AdditiveEvidenceDataProcessing.GenerateCSV();
 
             AdditiveEvidenceDataProcessing.GenerateDiagramsFromCSV();
-            
+
             FeeShiftingDataProcessing.ExecuteLatexProcessesForExisting(); // executes for existing .tex files rather than generating the .tex files
 
             AdditiveEvidenceDataProcessing.OrganizeIntoFolders();

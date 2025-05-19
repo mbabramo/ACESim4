@@ -84,7 +84,7 @@ namespace LitigCharts
 
 
         public static void BuildMainFeeShiftingReport(IFeeShiftingLauncher launcher)
-        { 
+        {
             List<string> rowsToGet = new List<string> { "All", "Not Litigated", "Litigated", "Settles", "Tried", "P Loses", "P Wins", "Truly Liable", "Truly Not Liable" };
             List<string> replacementRowNames = new List<string> { "All", "Not Litigated", "Litigated", "Settles", "Tried", "P Loses", "P Wins", "Truly Liable", "Truly Not Liable" };
             List<string> columnsToGet = new List<string> { "Exploit", "Seconds", "PFiles", "DAnswers", "POffer1", "DOffer1", "Trial", "PWinPct", "PWealth", "DWealth", "TotWealth", "WealthLoss", "PWelfare", "DWelfare", "PDSWelfareLoss", "SWelfareLoss", "TotExpense", "False+", "False-", "ValIfSettled", "PDoesntFile", "DDoesntAnswer", "SettlesBR1", "PAbandonsBR1", "DDefaultsBR1", "P Loses", "P Wins", "PrimaryAction" };
@@ -222,7 +222,7 @@ namespace LitigCharts
             string pdflatexProgram = @$"{directory}\{programName}.exe"; // NOTE: pdflatex was original
             string arguments = @$"{texFileInQuotes} {extraHyphen}-output-directory={outputDirectoryInQuotes}";
 
-            
+
 
             ProcessStartInfo processStartInfo = new ProcessStartInfo(pdflatexProgram)
             {
@@ -259,7 +259,7 @@ namespace LitigCharts
             };
 
 
-            var handle = Process.GetCurrentProcess().MainWindowHandle; 
+            var handle = Process.GetCurrentProcess().MainWindowHandle;
             theProcess.Start();
             theProcess.BeginOutputReadLine();
             theProcess.BeginErrorReadLine(); // Ensure error output is also captured
@@ -417,110 +417,90 @@ namespace LitigCharts
         public static void OrganizeIntoFolders(IFeeShiftingLauncher launcher, bool doDeletion)
         {
             string reportFolder = Launcher.ReportFolder();
-
-            // Create a root folder for all individual simulation results
             string individualResultsRoot = Path.Combine(reportFolder, "Individual Simulation Results");
-            if (!Directory.Exists(individualResultsRoot))
-                Directory.CreateDirectory(individualResultsRoot);
+            Directory.CreateDirectory(individualResultsRoot);
 
-            // Clean up auxiliary files
             DeleteAuxiliaryFiles(reportFolder);
-            // Refresh file list
-            string[] filesInFolder = Directory.GetFiles(reportFolder);
 
-            // Define placement rules for moving files into subfolders
-            string[] getExtensions(string eqType) => new string[] {
-                firstEqOnly ? ".csv" : $"-{eqType}.csv",
-                $"-offers-{eqType}.pdf", $"-offers-{eqType}.tex",
-                $"-fileans-{eqType}.pdf", $"-fileans-{eqType}.tex",
-                $"-stagecostlight-{eqType}.pdf", $"-stagecostlight-{eqType}.tex", $"-stagecostlight-{eqType}.csv",
-                $"-stagecostdark-{eqType}.pdf", $"-stagecostdark-{eqType}.tex", $"-stagecostdark-{eqType}.csv",
-            };
-            var placementRules = new List<(string folderName, string[] extensions)>()
+            string[] getExtensions(string eqType) => new[]
             {
-                ("First Equilibrium", getExtensions("Eq1")),
-                ("EFG Files", new string[] { ".efg" }),
-                ("Equilibria Files", new string[] { "-equ.csv" }),
-                ("Logs", new string[] { "-log.txt" }),
-                ("Latex files", new string[] { ".tex" }),
-                ("File-Answer Diagrams", new string[] { "-fileans.pdf" }),
-                ("Offer Heatmaps", new string[] { "-offers.pdf" }),
-                ("Stage Costs Diagrams (Normal)", new string[] { "-stagecostlight.pdf" }),
-                ("Stage Costs Diagrams (Dark Mode)", new string[] { "-stagecostdark.pdf" }),
-            };
+        firstEqOnly ? ".csv" : $"-{eqType}.csv",
+        $"-offers-{eqType}.pdf", $"-offers-{eqType}.tex",
+        $"-fileans-{eqType}.pdf", $"-fileans-{eqType}.tex",
+        $"-stagecostlight-{eqType}.pdf", $"-stagecostlight-{eqType}.tex", $"-stagecostlight-{eqType}.csv",
+        $"-stagecostdark-{eqType}.pdf", $"-stagecostdark-{eqType}.tex", $"-stagecostdark-{eqType}.csv",
+    };
+
+            var placementRules = new List<(string folderName, string[] extensions)>
+    {
+        ("First Equilibrium", getExtensions("Eq1")),
+        ("EFG Files", new[] { ".efg" }),
+        ("Equilibria Files", new[] { "-equ.csv" }),
+        ("Logs", new[] { "-log.txt" }),
+        ("Latex underlying data", new[] { "-offers.tex", "-fileans.tex", "-stagecostlight.tex", "-stagecostdark.tex" }),
+        ("Latex files", new[] { "-offers.tex", "-fileans.tex", "-stagecostlight.tex", "-stagecostdark.tex" }),
+        ("File-Answer Diagrams", new[] { "-fileans.pdf" }),
+        ("Offer Heatmaps", new[] { "-offers.pdf" }),
+        ("Stage Costs Diagrams (Normal)", new[] { "-stagecostlight.pdf" }),
+        ("Stage Costs Diagrams (Dark Mode)", new[] { "-stagecostdark.pdf" }),
+        ("Stage Costs Diagrams (Underlying Data)", new[] { "-stagecostlight.csv", "-stagecostdark.csv" }),
+        ("Cross Tabs", new[] { ".csv" }),
+    };
+
             if (!firstEqOnly)
             {
-                placementRules.InsertRange(0, new List<(string, string[])>()
-                {
-                    ("Correlated Equilibrium", getExtensions("Corr")),
-                    ("Average Equilibrium", getExtensions("Avg")),
-                });
+                placementRules.InsertRange(0, new List<(string, string[])>
+        {
+            ("Correlated Equilibrium", getExtensions("Corr")),
+            ("Average Equilibrium", getExtensions("Avg")),
+        });
+
                 for (int i = 2; i <= 100; i++)
-                {
                     placementRules.Add(("Additional Equilibria", getExtensions($"Eq{i}")));
-                }
             }
 
-            var allGameOptions = launcher.AllGameOptions;
             var map = launcher.NameMap;
-            var variationSets = launcher.VariationInfoSets;
             string masterReportName = launcher.ReportPrefix;
+            var allOptions = launcher.AllGameOptions;
 
-            foreach (var variation in variationSets)
+            List<(string OptionSetName, List<Launcher.GroupingVariableInfo> Variables)> groupingData = launcher.GetVariableInfoPerOption().ToList();
+            Dictionary<string, List<string>> grouped = Launcher.GroupOptionSetsByClassification(groupingData);
+
+            var optionNameToOption = allOptions.ToDictionary(opt => opt.Name);
+
+            foreach (var (groupName, optionSetNames) in grouped)
             {
-                var setName = variation.nameOfSet;
-                var setFilterNames = variation.requirementsForEachVariation.Select(v => v.nameOfVariation).ToList();
+                string simulationFolder = Path.Combine(individualResultsRoot, groupName);
+                Directory.CreateDirectory(simulationFolder);
 
-                // Create a folder for this simulation under the individual results root
-                string simulationFolder = Path.Combine(individualResultsRoot, setName);
-                if (!Directory.Exists(simulationFolder))
-                    Directory.CreateDirectory(simulationFolder);
-
-                // Create subfolders for each placement rule
                 foreach (var (folderName, _) in placementRules)
-                {
-                    string subFolder = Path.Combine(simulationFolder, folderName);
-                    if (!Directory.Exists(subFolder))
-                        Directory.CreateDirectory(subFolder);
-                }
-
-                // Identify matching options for this variation set
-                string Normalize(object o) =>
-    o is double d ? d.ToString("G", System.Globalization.CultureInfo.InvariantCulture)
-    : o?.ToString().Trim();
-
-                var theSet = launcher.AllGameOptions
-                    .Where(option =>
-                        variation.requirementsForEachVariation.Any(requirement =>
-                            requirement.columnMatches.All(match =>
-                                option.VariableSettings.TryGetValue(match.columnName, out var val) &&
-                                Normalize(val) == Normalize(match.expectedValue))))
-                    .ToList();
-
-
+                    Directory.CreateDirectory(Path.Combine(simulationFolder, folderName));
 
                 var deletedSources = new HashSet<string>();
-                // Move/copy files according to the rules
-                foreach (var optionsSet in theSet)
+
+                foreach (var optionSetName in optionSetNames)
                 {
-                    string originalName = optionsSet.Name;
-                    string mappedName = map[originalName];
+                    if (!optionNameToOption.TryGetValue(optionSetName, out var option))
+                        continue;
+
+                    string mappedName = map[optionSetName];
+
                     foreach (var (folderName, extensions) in placementRules)
                     {
                         string targetDir = Path.Combine(simulationFolder, folderName);
+
                         foreach (var ext in extensions)
                         {
                             string sourcePath = Path.Combine(reportFolder, $"{masterReportName}-{mappedName}{ext}");
                             if (!File.Exists(sourcePath)) continue;
 
-                            string targetFileName = originalName.Replace("FSA ", "").Replace("-Eq1", "-eq1").Replace("  ", " ") + ext;
+                            string targetFileName = optionSetName.Replace("FSA ", "").Replace("-Eq1", "-eq1").Replace("  ", " ") + ext;
                             string destPath = Path.Combine(targetDir, targetFileName);
                             File.Copy(sourcePath, destPath, true);
 
-                            if (doDeletion && !deletedSources.Contains(sourcePath))
+                            if (doDeletion && deletedSources.Add(sourcePath))
                             {
                                 File.Delete(sourcePath);
-                                deletedSources.Add(sourcePath);
                                 TabbedText.WriteLine($"Deleting {sourcePath}");
                             }
                         }
@@ -528,10 +508,9 @@ namespace LitigCharts
                 }
             }
 
-            // Move process log files into "Process Logs" at top level
+            // Move process logs
             string processLogsFolder = Path.Combine(reportFolder, "Process Logs");
-            if (!Directory.Exists(processLogsFolder))
-                Directory.CreateDirectory(processLogsFolder);
+            Directory.CreateDirectory(processLogsFolder);
 
             foreach (var logFile in Directory.GetFiles(reportFolder).Where(f => Path.GetFileName(f).Contains("log-p")))
             {
@@ -539,8 +518,21 @@ namespace LitigCharts
                 if (File.Exists(dest)) File.Delete(logFile);
                 else File.Move(logFile, dest);
             }
-        }
 
+            // Report unassigned, if any
+            var assignedNames = grouped.SelectMany(g => g.Value).ToHashSet();
+            var unassigned = allOptions.Where(o => !assignedNames.Contains(o.Name)).ToList();
+            if (unassigned.Count > 0)
+            {
+                TabbedText.WriteLine($"WARNING: {unassigned.Count} simulations were unassigned.");
+                foreach (var opt in unassigned.Take(10))
+                {
+                    TabbedText.WriteLine($"Unassigned: {opt.Name}");
+                    foreach (var kvp in opt.VariableSettings)
+                        TabbedText.WriteLine($"  {kvp.Key} = {kvp.Value}");
+                }
+            }
+        }
 
 
 
@@ -569,7 +561,7 @@ namespace LitigCharts
 
         public static void ExampleLatexDiagramsAggregatingReports(TikzAxisSet.GraphType graphType = TikzAxisSet.GraphType.Line)
         {
-            
+
             var lineScheme = new List<string>()
                 {
                     "blue, opacity=0.70, line width=0.5mm, double",
@@ -644,7 +636,7 @@ namespace LitigCharts
         }
 
         public record AggregatedGraphInfo(string topicName, List<string> columnsToGet, List<string> lineScheme, string minorXAxisLabel = "Fee Shifting Multiplier", string minorXAxisLabelShort = "Fee Shift Mult.", string minorYAxisLabel = "\\$", string majorYAxisLabel = "Costs Multiplier", double? maximumValueMicroY = null, TikzAxisSet.GraphType graphType = TikzAxisSet.GraphType.Line, Func<double?, double?> scaleMiniGraphValues = null, string filter = "All");
-        
+
         public static void ProduceLatexDiagramsAggregatingReports()
         {
             string reportFolder = Launcher.ReportFolder();
@@ -893,7 +885,7 @@ namespace LitigCharts
                 majorYValueNames = limitToCostsMultiplier == null ? launcher.CriticalCostsMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList() : new List<string>() { limitToCostsMultiplier.ToString() },
                 majorYAxisLabel = aggregatedGraphInfo.majorYAxisLabel,
                 minorXValueNames = launcher.CriticalFeeShiftingMultipliers.OrderBy(x => x).Select(y => y.ToString()).ToList(),
-                minorXAxisLabel = requirementsForEachVariation.Count > 3 ? aggregatedGraphInfo.minorXAxisLabelShort :  aggregatedGraphInfo.minorXAxisLabel,
+                minorXAxisLabel = requirementsForEachVariation.Count > 3 ? aggregatedGraphInfo.minorXAxisLabelShort : aggregatedGraphInfo.minorXAxisLabel,
                 minorYValueNames = Enumerable.Range(0, 11).Select(y => y switch { 0 => "0", 10 => maximumValueMicroY.ToString(), _ => " " }).ToList(),
                 minorYAxisLabel = aggregatedGraphInfo.minorYAxisLabel,
                 yAxisSpaceMicro = 0.8,

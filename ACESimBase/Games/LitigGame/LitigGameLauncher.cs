@@ -77,6 +77,15 @@ namespace ACESim
             return LitigGameOptionsGenerator.GetLitigGameOptions();
         }
 
+        public IEnumerable<(string OptionSetName, List<GroupingVariableInfo> Variables)> GetVariableInfoPerOption()
+        {
+            var defaultValues = DefaultNonCriticalValues.ToDictionary(x => x.Item1, x => x.Item2.ToString());
+            var criticalVars = new HashSet<string> { "Costs Multiplier", "Fee Shifting Multiplier", "Risk Aversion" };
+
+            foreach (var opt in AllGameOptions)
+                yield return (opt.Name, Launcher.BuildGroupingVariableInfo(opt, defaultValues, criticalVars));
+        }
+
         public override List<GameOptions> GetOptionsSets()
         {
             List<GameOptions> optionSets = new List<GameOptions>();
