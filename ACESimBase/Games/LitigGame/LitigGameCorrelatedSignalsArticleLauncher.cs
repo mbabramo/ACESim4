@@ -25,6 +25,25 @@ namespace ACESim
         public bool IncludeRunningSideBetVariations = false;
         public bool LimitToAmerican = true;
         public bool UseSmallerTree = false; // DEBUG
+
+
+        public override List<string> NamesOfVariationSets => new List<string>()
+        {
+           // "Additional Costs Multipliers",
+           // "Additional Fee Shifting Multipliers",
+           // "Additional Risk Options",
+            "Costs Multipliers",
+            "Fee Shifting Multiples",
+            "Risk Aversion",
+            "Noise Multipliers", // includes P & D
+            "Relative Costs",
+            "Fee Shifting Mode",
+            "Allowing Abandon and Defaults",
+            "Probability Truly Liable",
+            "Noise to Produce Case Strength",
+            "Liability vs Damages",
+            "Proportion of Costs at Beginning",
+        };
         public override List<(string, string)> DefaultVariableValues
         {
             get
@@ -47,26 +66,8 @@ namespace ACESim
             }
         }
 
-        public override List<string> NamesOfVariationSets => new List<string>()
-        {
-           // "Additional Costs Multipliers",
-           // "Additional Fee Shifting Multipliers",
-           // "Additional Risk Options",
-            "Costs Multipliers",
-            "Fee Shifting Multiples",
-            "Risk Aversion",
-            "Noise Multipliers", // includes P & D
-            "Relative Costs",
-            "Fee Shifting Mode",
-            "Allowing Abandon and Defaults",
-            "Probability Truly Liable",
-            "Noise to Produce Case Strength",
-            "Liability vs Damages",
-            "Proportion of Costs at Beginning",
-        };
-
         public override List<ArticleVariationInfoSets> VariationInfoSets
-            => GetArticleVariationInfoList();
+            => GetArticleVariationInfoList(false);
         public override string ReportPrefix => MasterReportNameForDistributedProcessing;
 
         public override string MasterReportNameForDistributedProcessing => "FS036";
@@ -266,7 +267,7 @@ namespace ACESim
             return result.Select(innerList => innerList.Cast<GameOptions>().ToList()).ToList();
         }
 
-        public List<ArticleVariationInfoSets> GetArticleVariationInfoList()
+        public List<ArticleVariationInfoSets> GetArticleVariationInfoList(bool useRiskAversionForNonRiskReports)
         {
             var varyingNothing = new List<ArticleVariationInfo>()
             {
@@ -378,6 +379,24 @@ namespace ACESim
                 new ArticleVariationInfoSets("Issue", varyingIssue),
                 new ArticleVariationInfoSets("Proportion of Costs at Beginning", varyingTimingOfCosts)
             };
+
+
+            if (useRiskAversionForNonRiskReports)
+            {
+                // eliminate risk-related reports
+                tentativeResults = tentativeResults.Where(x => !x.nameOfSet.StartsWith("Risk")).ToList();
+                for (int i = 0; i < tentativeResults.Count; i++)
+                {
+                    ArticleVariationInfoSets variationSetInfo = tentativeResults[i];
+                    tentativeResults[i] = variationSetInfo with
+                    {
+                        requirementsForEachVariation = variationSetInfo.requirementsForEachVariation.Select(x => x with
+                        {
+                            columnMatches = x.columnMatches.WithReplacement("Risk Aversion", "Moderately Risk Averse")
+                        }).ToList()
+                    };
+                }
+            }
 
             return tentativeResults;
         }

@@ -221,7 +221,7 @@ namespace ACESim
         }
 
 
-        public List<ArticleVariationInfoSets> GetEndogenousDisputesArticleVariationInfoList()
+        public List<ArticleVariationInfoSets> GetEndogenousDisputesArticleVariationInfoList(bool useRiskAversionForNonRiskReports)
         {
             var varyingNothing = new List<ArticleVariationInfo>()
             {
@@ -303,6 +303,24 @@ namespace ACESim
                 new ArticleVariationInfoSets("Damages Multiplier", varyingDamagesMultiplier),
                 new ArticleVariationInfoSets("Proportion of Costs at Beginning", varyingTimingOfCosts)
             };
+
+
+            if (useRiskAversionForNonRiskReports)
+            {
+                // eliminate risk-related reports
+                tentativeResults = tentativeResults.Where(x => !x.nameOfSet.StartsWith("Risk")).ToList();
+                for (int i = 0; i < tentativeResults.Count; i++)
+                {
+                    ArticleVariationInfoSets variationSetInfo = tentativeResults[i];
+                    tentativeResults[i] = variationSetInfo with
+                    {
+                        requirementsForEachVariation = variationSetInfo.requirementsForEachVariation.Select(x => x with
+                        {
+                            columnMatches = x.columnMatches.WithReplacement("Risk Aversion", "Moderately Risk Averse")
+                        }).ToList()
+                    };
+                }
+            }
 
             return tentativeResults;
         }
