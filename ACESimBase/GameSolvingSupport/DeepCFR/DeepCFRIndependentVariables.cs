@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ACESimBase.GameSolvingSupport
+namespace ACESimBase.GameSolvingSupport.DeepCFR
 {
     public class DeepCFRIndependentVariables
     {
@@ -74,7 +74,7 @@ namespace ACESimBase.GameSolvingSupport
                 else
                     symmetricActionChosen = ActionChosen;
             }
-            var result = new DeepCFRIndependentVariables(0, (byte) (DecisionIndex - 1), symmetric, symmetricActionChosen, GameParameters?.ToList());
+            var result = new DeepCFRIndependentVariables(0, (byte)(DecisionIndex - 1), symmetric, symmetricActionChosen, GameParameters?.ToList());
             return result;
         }
 
@@ -115,9 +115,9 @@ namespace ACESimBase.GameSolvingSupport
             int informationSetPlusActionIndex = 0;
             foreach (byte decisionIndex in includedDecisionIndices)
             {
-                int? nextInformationSetDecisionIndex = informationSetPlusActionIndex >= informationSetPlusAction.Count() ? null : (int?)informationSetPlusAction[informationSetPlusActionIndex].decisionIndex;
+                int? nextInformationSetDecisionIndex = informationSetPlusActionIndex >= informationSetPlusAction.Count() ? null : informationSetPlusAction[informationSetPlusActionIndex].decisionIndex;
                 if (nextInformationSetDecisionIndex == null || nextInformationSetDecisionIndex > decisionIndex)
-                { 
+                {
                     // the decisionIndex is not included in the information set.
                     result[resultIndex++] = 0; // i.e., this information is unavailable
                     result[resultIndex++] = 0; // this is where information would have gone if available
@@ -135,7 +135,7 @@ namespace ACESimBase.GameSolvingSupport
 
         public string InformationSetString(GameDefinition gameDefinition)
         {
-            return String.Join(",", InformationSet.Select(x => $"{gameDefinition.DecisionsExecutionOrder[x.decisionIndex].Name}: {x.information}"));
+            return string.Join(",", InformationSet.Select(x => $"{gameDefinition.DecisionsExecutionOrder[x.decisionIndex].Name}: {x.information}"));
         }
     }
 }

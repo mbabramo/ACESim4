@@ -1,8 +1,8 @@
-﻿using ACESimBase.GameSolvingSupport;
+﻿using ACESim;
 using System;
 using System.Collections.Generic;
 
-namespace ACESim
+namespace ACESimBase.GameSolvingSupport.DeepCFR
 {
     public struct DeepCFRObservationOfDecision
     {

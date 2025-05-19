@@ -1,4 +1,4 @@
-﻿namespace ACESimBase.GameSolvingSupport
+﻿namespace ACESimBase.GameSolvingSupport.DeepCFR
 {
     public enum DeepCFRMultiModelMode
     {

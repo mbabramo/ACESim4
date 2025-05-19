@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace ACESimBase.GameSolvingSupport
+namespace ACESimBase.GameSolvingSupport.DeepCFR
 {
     public class DeepCFRDirectGamePlayer : DirectGamePlayer
     {

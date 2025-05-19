@@ -1,6 +1,6 @@
 ﻿using ACESimBase.Util.Randomization;
 
-namespace ACESim
+namespace ACESimBase.GameSolvingSupport.DeepCFR
 {
     public readonly struct DeepCFRObservationNum
     {

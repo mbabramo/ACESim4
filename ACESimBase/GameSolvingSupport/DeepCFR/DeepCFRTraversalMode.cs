@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ACESimBase
+namespace ACESimBase.GameSolvingSupport.DeepCFR
 {
     public enum DeepCFRTraversalMode
     {

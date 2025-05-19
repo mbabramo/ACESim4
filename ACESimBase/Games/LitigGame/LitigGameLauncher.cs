@@ -1,6 +1,6 @@
 using ACESim.Util;
 using ACESimBase;
-using ACESimBase.GameSolvingSupport;
+using ACESimBase.GameSolvingSupport.DeepCFR;
 using ACESimBase.Util.Collections;
 using ACESimBase.Util.Mathematics;
 using JetBrains.Annotations;

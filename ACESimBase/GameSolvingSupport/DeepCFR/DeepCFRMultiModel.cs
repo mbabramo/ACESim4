@@ -12,7 +12,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace ACESimBase.GameSolvingSupport
+namespace ACESimBase.GameSolvingSupport.DeepCFR
 {
     public class DeepCFRMultiModel
     {
@@ -84,9 +84,9 @@ namespace ACESimBase.GameSolvingSupport
 
         public DeepCFRModel GetModelForDecisionIndex(byte decisionIndex) => Models[decisionIndex];
 
-        public IEnumerable<DeepCFRModel> EnumerateModels(byte? playerIndex = null, byte? decisionIndex = null) => playerIndex == null ? Models : FilterModels((byte) playerIndex, decisionIndex);
+        public IEnumerable<DeepCFRModel> EnumerateModels(byte? playerIndex = null, byte? decisionIndex = null) => playerIndex == null ? Models : FilterModels((byte)playerIndex, decisionIndex);
 
-        public IEnumerable<DeepCFRModel> FilterModels(byte playerIndex, byte? decisionIndex) => Models.Where(x => x != null && x.PlayerIndices.Contains(playerIndex) && (decisionIndex == null || x.DecisionIndices.Contains((byte) decisionIndex)));
+        public IEnumerable<DeepCFRModel> FilterModels(byte playerIndex, byte? decisionIndex) => Models.Where(x => x != null && x.PlayerIndices.Contains(playerIndex) && (decisionIndex == null || x.DecisionIndices.Contains((byte)decisionIndex)));
 
         public IEnumerable<DeepCFRModel> FilterModelsExcept(byte playerIndex, byte? decisionIndex) => Models.Where(x => x != null && !(x.PlayerIndices.Contains(playerIndex) && (decisionIndex == null || x.DecisionIndices.Contains((byte)decisionIndex))));
 
@@ -121,7 +121,7 @@ namespace ACESimBase.GameSolvingSupport
             if (UsingShortcutForSymmetricGames && decision.PlayerIndex == 1)
             {
                 var symmetricIndependentVariables = independentVariables.DeepCopyWithSymmetricInformationSet(GameDefinition);
-                byte player0DecisionIndex = (byte) (decisionIndex - 1);
+                byte player0DecisionIndex = (byte)(decisionIndex - 1);
                 Decision player0Decision = GameDefinition.DecisionsExecutionOrder[player0DecisionIndex];
                 byte actionFromEarlierDecision = ChooseAction(player0Decision, player0DecisionIndex, regressionMachineForDecision /* NOTE: This is the regression machine for player 0 decision if this is symmetric */, randomValue, symmetricIndependentVariables, maxActionValue, numActionsToSample, probabilityUniformRandom, ref onPolicyProbabilities);
                 if (decision.SymmetryMap.decision == SymmetryMapOutput.CantBeSymmetric)
@@ -156,7 +156,7 @@ namespace ACESimBase.GameSolvingSupport
 
         public double[] GetRegretMatchingProbabilities(Decision decision, byte decisionIndex, DeepCFRIndependentVariables independentVariables, IRegressionMachine regressionMachineForDecision)
         {
-            double[] regrets = GetExpectedRegretsForAllActions(decision, decisionIndex, independentVariables,  regressionMachineForDecision);
+            double[] regrets = GetExpectedRegretsForAllActions(decision, decisionIndex, independentVariables, regressionMachineForDecision);
             double[] probabilities = new double[decision.NumPossibleActions];
             var model = GetModelForDecisionIndex(decisionIndex);
             if (regrets != null && (EvolutionSettings.DeepCFR_PredictUtilitiesNotRegrets || model.AlwaysChooseBestOption))
@@ -165,7 +165,7 @@ namespace ACESimBase.GameSolvingSupport
                 // Just choose the best action.
                 byte bestAction = 0;
                 double bestRegrets = regrets[0];
-                probabilities[0] = 1.0; 
+                probabilities[0] = 1.0;
                 for (byte r = 1; r < regrets.Length; r++)
                 {
                     if (regrets[r] > bestRegrets)
@@ -186,7 +186,7 @@ namespace ACESimBase.GameSolvingSupport
                     positiveRegretsSum += regrets[a - 1];
             if (positiveRegretsSum == 0)
             {
-                double constantProbability = 1.0 / (double)decision.NumPossibleActions;
+                double constantProbability = 1.0 / decision.NumPossibleActions;
                 for (byte a = 1; a <= decision.NumPossibleActions; a++)
                     probabilities[a - 1] = constantProbability;
             }
@@ -208,7 +208,7 @@ namespace ACESimBase.GameSolvingSupport
         {
             if (UsingShortcutForSymmetricGames && decision.PlayerIndex == 1)
             {
-                double[] previous = GetExpectedRegretsForAllActions(GameDefinition.DecisionsExecutionOrder[decisionIndex - 1], (byte) (decisionIndex - 1), independentVariables.DeepCopyWithSymmetricInformationSet(GameDefinition), regressionMachineForDecision /* will be for correct decision */);
+                double[] previous = GetExpectedRegretsForAllActions(GameDefinition.DecisionsExecutionOrder[decisionIndex - 1], (byte)(decisionIndex - 1), independentVariables.DeepCopyWithSymmetricInformationSet(GameDefinition), regressionMachineForDecision /* will be for correct decision */);
                 if (decision.SymmetryMap.decision == SymmetryMapOutput.ReverseAction)
                     previous = previous?.Reverse().ToArray();
                 return previous;
@@ -344,7 +344,7 @@ namespace ACESimBase.GameSolvingSupport
             var models = EnumerateModels().Where(x => x != null).Select((item, index) => (item, index)).ToArray();
             string[] text = new string[models.Length];
             if (parallel)
-                await Parallelizer.ForEachAsync(models, async m =>
+                await models.ForEachAsync(async m =>
                 {
                     text[m.Item2] = await m.Item1.ProcessObservations(addPendingObservations);
                 });
@@ -369,7 +369,7 @@ namespace ACESimBase.GameSolvingSupport
             var models = EnumerateModels().ToList();
             await Parallelizer.GoAsync(doParallel, 0, models.Count(), m =>
             {
-                var model = models[(int) m];
+                var model = models[(int)m];
                 return model.PrepareForBestResponseIterations(capacityMultiplier);
             });
         }

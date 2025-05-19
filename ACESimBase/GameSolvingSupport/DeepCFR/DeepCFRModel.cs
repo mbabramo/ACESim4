@@ -11,7 +11,7 @@ using System.Text;
 using System.Threading.Tasks;
 using static alglib;
 
-namespace ACESimBase.GameSolvingSupport
+namespace ACESimBase.GameSolvingSupport.DeepCFR
 {
     public class DeepCFRModel
     {
@@ -95,7 +95,7 @@ namespace ACESimBase.GameSolvingSupport
             List<string> modelNames = decisionsInModel.Select(x => x.item.Name).ToHashSet().OrderBy(x => x).ToList();
             List<byte> playerNumbers = decisionsInModel.Select(x => x.item.PlayerIndex).ToHashSet().OrderBy(x => x).ToList();
             List<byte> decisionByteCodes = decisionsInModel.Select(x => x.item.DecisionByteCode).ToHashSet().OrderBy(x => x).ToList();
-            List<byte> decisionIndices = decisionsInModel.Select(x => (byte)x.decisionIndex).ToHashSet().OrderBy(x => x).ToList();
+            List<byte> decisionIndices = decisionsInModel.Select(x => x.decisionIndex).ToHashSet().OrderBy(x => x).ToList();
             PlayerIndices = playerNumbers;
             ModelNames = modelNames;
             DecisionByteCodes = decisionByteCodes;
@@ -174,10 +174,10 @@ namespace ACESimBase.GameSolvingSupport
             {
                 return prefix + "*";
             }
-            return String.Join(",", ModelNames);
+            return string.Join(",", ModelNames);
         }
 
-        public byte? UniquePlayerIndex => PlayerIndices.Count() == 1 ? (byte?) PlayerIndices[0] : null;
+        public byte? UniquePlayerIndex => PlayerIndices.Count() == 1 ? PlayerIndices[0] : null;
 
         #region Model building and printing
 
@@ -206,7 +206,7 @@ namespace ACESimBase.GameSolvingSupport
             if (!Observations.Any())
                 throw new Exception("No observations available to build model.");
             IncludedDecisionIndices = DeepCFRIndependentVariables.GetIncludedDecisionIndices(Observations.Select(x => x.IndependentVariables));
-            (float[], float, float)[] data = Observations.Select(x => (x.IndependentVariables.AsArray(IncludedDecisionIndices), (float) x.SampledRegret, (float) x.Weight)).ToArray();
+            (float[], float, float)[] data = Observations.Select(x => (x.IndependentVariables.AsArray(IncludedDecisionIndices), (float)x.SampledRegret, (float)x.Weight)).ToArray();
             (float[], float, float)[] testData = null;
             if (TestDataProportion != 0)
             {
@@ -220,7 +220,7 @@ namespace ACESimBase.GameSolvingSupport
             bool printAverageRegrets = false;
             if (printAverageRegrets)
                 PrintAverageRegrets(s);
-            bool printAllData = false; 
+            bool printAllData = false;
             if (printAllData)
                 PrintData(data, s);
             if (TestDataProportion != 0)
@@ -234,7 +234,7 @@ namespace ACESimBase.GameSolvingSupport
             var positiveRegrets = regrets.Select(x => Math.Max(x, 0)).ToArray();
             var positiveRegretsSum = positiveRegrets.Sum();
             var relativePositiveRegrets = positiveRegrets.Select(x => x / positiveRegretsSum).ToArray();
-            s.Append($"AvgRegrets {String.Join(", ", regrets.Select(x => x.ToSignificantFigures(4)))} RegretMatch {String.Join(", ", relativePositiveRegrets.Select(x => x.ToSignificantFigures(4)))}");
+            s.Append($"AvgRegrets {string.Join(", ", regrets.Select(x => x.ToSignificantFigures(4)))} RegretMatch {string.Join(", ", relativePositiveRegrets.Select(x => x.ToSignificantFigures(4)))}");
         }
 
         private void SplitData((float[], float, float)[] data, int numToSplitAway, out (float[], float, float)[] keep, out (float[], float, float)[] split)
@@ -264,7 +264,7 @@ namespace ACESimBase.GameSolvingSupport
         private void PrintData((float[], float, float)[] data, StringBuilder s)
         {
             s.AppendLine("");
-            var grouped = data.Select(x => (x, String.Join(",", x.Item1)))
+            var grouped = data.Select(x => (x, string.Join(",", x.Item1)))
                         .GroupBy(x => x.Item2)
                         .OrderBy(x => x.Key)
                         .ToList();
@@ -277,7 +277,7 @@ namespace ACESimBase.GameSolvingSupport
             }
         }
 
-#endregion
+        #endregion
 
         #region Choosing actions
 
@@ -326,7 +326,7 @@ namespace ACESimBase.GameSolvingSupport
                 double sumPositiveRegrets = 0;
                 for (byte a = 1; a <= maxActionValue; a++)
                 {
-                    double predictedRegret = maxActionValue == numActionsToSample ? GetPredictedRegretForAction(independentVariables, a, regressionMachine) : spline1dcalc(spline_interpolant, (double)a);
+                    double predictedRegret = maxActionValue == numActionsToSample ? GetPredictedRegretForAction(independentVariables, a, regressionMachine) : spline1dcalc(spline_interpolant, a);
                     double positiveRegretForAction = Math.Max(0, predictedRegret);
                     positiveRegrets[a - 1] = positiveRegretForAction;
                     sumPositiveRegrets += positiveRegretForAction;
@@ -356,7 +356,7 @@ namespace ACESimBase.GameSolvingSupport
                 if (towardTarget > randomValue)
                     return a;
             }
-            return (byte)(probabilities.Length);
+            return (byte)probabilities.Length;
         }
 
         #endregion

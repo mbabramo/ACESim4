@@ -5,7 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ACESimBase.GameSolvingSupport
+namespace ACESimBase.GameSolvingSupport.DeepCFR
 {
     public class DeepCFRMultiModelContainer : IEnumerable<DeepCFRModel>
     {
@@ -33,7 +33,7 @@ namespace ACESimBase.GameSolvingSupport
             Models = new DeepCFRModel[groupedDecisions.Count];
             for (int groupedModelIndex = 0; groupedModelIndex < groupedDecisions.Count; groupedModelIndex++)
             {
-                IGrouping<byte, (Decision item, int decisionIndex)> group = (IGrouping<byte, (Decision item, int decisionIndex)>)groupedDecisions[groupedModelIndex];
+                IGrouping<byte, (Decision item, int decisionIndex)> group = groupedDecisions[groupedModelIndex];
                 int? reservoirCapacityForDecisionIndex = null;
                 foreach (var item in group)
                 {
@@ -43,8 +43,8 @@ namespace ACESimBase.GameSolvingSupport
                     else if (reservoirCapacityForDecisionIndex != reservoirCapacity[item.decisionIndex])
                         throw new Exception("If not grouping decisions by decision index, then each decision must have same reservoir capacity.");
                 }
-                var decisionsInGroup = group.Select(x => (x.item, (byte) x.decisionIndex)).ToList();
-                Models[groupedModelIndex] = new DeepCFRModel(decisionsInGroup, (int) reservoirCapacityForDecisionIndex, ReservoirSeed, DiscountRate, RegressionFactory);
+                var decisionsInGroup = group.Select(x => (x.item, (byte)x.decisionIndex)).ToList();
+                Models[groupedModelIndex] = new DeepCFRModel(decisionsInGroup, (int)reservoirCapacityForDecisionIndex, ReservoirSeed, DiscountRate, RegressionFactory);
             }
         }
 
@@ -63,7 +63,7 @@ namespace ACESimBase.GameSolvingSupport
         {
             var models = EnumerateModels().Select(x =>
             {
-                if (limitToPlayerIndex == null || x.PlayerIndices.Contains((byte) limitToPlayerIndex))
+                if (limitToPlayerIndex == null || x.PlayerIndices.Contains((byte)limitToPlayerIndex))
                     return x.DeepCopyObservationsOnly();
                 return null;
             }).ToArray();
@@ -82,7 +82,7 @@ namespace ACESimBase.GameSolvingSupport
         {
             return mode switch
             {
-                DeepCFRMultiModelMode.Unified => (byte)0,
+                DeepCFRMultiModelMode.Unified => 0,
                 DeepCFRMultiModelMode.PlayerSpecific => currentDecision.PlayerIndex,
                 DeepCFRMultiModelMode.DecisionTypeSpecific => currentDecision.DecisionByteCode,
                 DeepCFRMultiModelMode.DecisionSpecific => decisionIndex,

@@ -1,4 +1,4 @@
-﻿using ACESimBase.GameSolvingSupport;
+﻿using ACESimBase.GameSolvingSupport.DeepCFR;
 using ACESimBase.Util.ArrayProcessing.ChunkExecutors;
 using ACESimBase.Util.Mathematics;
 using ACESimBase.Util.Randomization;

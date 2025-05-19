@@ -6,7 +6,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
-namespace ACESimBase.GameSolvingSupport
+namespace ACESimBase.GameSolvingSupport.DeepCFR
 {
     /// <summary>
     /// Stores baseline and additive models, each of which specifies regressions for all decisions in the game. 
@@ -69,7 +69,7 @@ namespace ACESimBase.GameSolvingSupport
             for (int i = 0; i < entries.Count(); i++)
             {
                 byte decisionIndex = entries[i].Key;
-                CompoundRegressionMachine compoundRegressionMachine = (CompoundRegressionMachine) entries[i].Value;
+                CompoundRegressionMachine compoundRegressionMachine = (CompoundRegressionMachine)entries[i].Value;
                 for (int j = 0; j < BaselineAndAdditiveModels.Count(); j++)
                 {
                     IRegressionMachine regressionMachine;

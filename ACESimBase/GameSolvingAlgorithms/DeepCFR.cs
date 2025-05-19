@@ -1,5 +1,5 @@
-﻿using ACESimBase;
-using ACESimBase.GameSolvingSupport;
+﻿using ACESimBase.GameSolvingSupport;
+using ACESimBase.GameSolvingSupport.DeepCFR;
 using ACESimBase.Util.Collections;
 using ACESimBase.Util.Debugging;
 using ACESimBase.Util.Parallelization;
