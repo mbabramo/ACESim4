@@ -92,7 +92,7 @@ namespace ACESim
 
         public IEnumerable<(string OptionSetName, List<GroupingVariableInfo> Variables)> GetVariableInfoPerOption()
         {
-            var defaultValues = DefaultNonCriticalValues.ToDictionary(x => x.Item1, x => x.Item2.ToString());
+            var defaultValues = DefaultVariableValues.ToDictionary(x => x.Item1, x => x.Item2.ToString());
             var criticalVars = new HashSet<string> { "Costs Multiplier", "Fee Shifting Multiplier", "Risk Aversion" };
 
             foreach (var opt in AllGameOptions)
@@ -279,7 +279,7 @@ namespace ACESim
                     if (noncriticalTransformation != null && !replaced)
                         transformLists.Add(noncriticalTransformation);
                     List<LitigGameOptions> noncriticalOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.FeeShiftingBase(UseSmallerTree).WithName("FSA"), transformLists);
-                    List<(string, string)> defaultNonCriticalValues = DefaultNonCriticalValues;
+                    List<(string, string)> defaultNonCriticalValues = DefaultVariableValues;
                     foreach (var optionSet in noncriticalOptions)
                     {
                         foreach (var defaultPair in defaultNonCriticalValues)
@@ -294,7 +294,7 @@ namespace ACESim
             return result;
         }
 
-        public List<(string, string)> DefaultNonCriticalValues
+        public List<(string, string)> DefaultVariableValues
         {
             get
             {
@@ -338,96 +338,96 @@ namespace ACESim
         {
             var varyingNothing = new List<ArticleVariationInfo>()
             {
-                new ArticleVariationInfo("Baseline", DefaultNonCriticalValues),
+                new ArticleVariationInfo("Baseline", DefaultVariableValues),
             };
 
             var varyingFeeShiftingRule_LiabilityUncertain = new List<ArticleVariationInfo>()
             {
                 // where liability is uncertain:
-                new ArticleVariationInfo("English", DefaultNonCriticalValues),
-                new ArticleVariationInfo("Margin of Victory", DefaultNonCriticalValues.WithReplacement("Fee Shifting Rule", "Margin of Victory")),
+                new ArticleVariationInfo("English", DefaultVariableValues),
+                new ArticleVariationInfo("Margin of Victory", DefaultVariableValues.WithReplacement("Fee Shifting Rule", "Margin of Victory")),
             };
 
             var varyingFeeShiftingRule_DamagesUncertain = new List<ArticleVariationInfo>()
             {
                 // where liability is uncertain:
-                new ArticleVariationInfo("English", DefaultNonCriticalValues.WithReplacement("Issue", "Damages")),
-                new ArticleVariationInfo("Rule 68", DefaultNonCriticalValues.WithReplacement("Fee Shifting Rule", "Rule 68").WithReplacement("Issue", "Damages")),
-                new ArticleVariationInfo("Reverse 68", DefaultNonCriticalValues.WithReplacement("Fee Shifting Rule", "Reverse 68").WithReplacement("Issue", "Damages")),
+                new ArticleVariationInfo("English", DefaultVariableValues.WithReplacement("Issue", "Damages")),
+                new ArticleVariationInfo("Rule 68", DefaultVariableValues.WithReplacement("Fee Shifting Rule", "Rule 68").WithReplacement("Issue", "Damages")),
+                new ArticleVariationInfo("Reverse 68", DefaultVariableValues.WithReplacement("Fee Shifting Rule", "Reverse 68").WithReplacement("Issue", "Damages")),
             };
 
             var varyingNoiseMultipliersBoth = new List<ArticleVariationInfo>()
             {
-                new ArticleVariationInfo(".25", DefaultNonCriticalValues.WithReplacement("Noise Multiplier P", "0.25").WithReplacement("Noise Multiplier D", "0.25")),
-                new ArticleVariationInfo(".5", DefaultNonCriticalValues.WithReplacement("Noise Multiplier P", "0.5").WithReplacement("Noise Multiplier D", "0.5")),
-                new ArticleVariationInfo("1", DefaultNonCriticalValues.WithReplacement("Noise Multiplier P", "1").WithReplacement("Noise Multiplier D", "1")),
-                new ArticleVariationInfo("2", DefaultNonCriticalValues.WithReplacement("Noise Multiplier P", "2").WithReplacement("Noise Multiplier D", "2")),
-                new ArticleVariationInfo("4", DefaultNonCriticalValues.WithReplacement("Noise Multiplier P", "4").WithReplacement("Noise Multiplier D", "4")),
+                new ArticleVariationInfo(".25", DefaultVariableValues.WithReplacement("Noise Multiplier P", "0.25").WithReplacement("Noise Multiplier D", "0.25")),
+                new ArticleVariationInfo(".5", DefaultVariableValues.WithReplacement("Noise Multiplier P", "0.5").WithReplacement("Noise Multiplier D", "0.5")),
+                new ArticleVariationInfo("1", DefaultVariableValues.WithReplacement("Noise Multiplier P", "1").WithReplacement("Noise Multiplier D", "1")),
+                new ArticleVariationInfo("2", DefaultVariableValues.WithReplacement("Noise Multiplier P", "2").WithReplacement("Noise Multiplier D", "2")),
+                new ArticleVariationInfo("4", DefaultVariableValues.WithReplacement("Noise Multiplier P", "4").WithReplacement("Noise Multiplier D", "4")),
             };
 
             var varyingNoiseMultipliersAsymmetric = new List<ArticleVariationInfo>()
             {
-                new ArticleVariationInfo("Equal Information", DefaultNonCriticalValues.WithReplacement("Noise Multiplier P", "1").WithReplacement("Noise Multiplier D", "1")),
-                new ArticleVariationInfo("P Better", DefaultNonCriticalValues.WithReplacement("Noise Multiplier P", "0.5").WithReplacement("Noise Multiplier D", "2")),
-                new ArticleVariationInfo("D Better", DefaultNonCriticalValues.WithReplacement("Noise Multiplier P", "2").WithReplacement("Noise Multiplier D", "0.5")),
+                new ArticleVariationInfo("Equal Information", DefaultVariableValues.WithReplacement("Noise Multiplier P", "1").WithReplacement("Noise Multiplier D", "1")),
+                new ArticleVariationInfo("P Better", DefaultVariableValues.WithReplacement("Noise Multiplier P", "0.5").WithReplacement("Noise Multiplier D", "2")),
+                new ArticleVariationInfo("D Better", DefaultVariableValues.WithReplacement("Noise Multiplier P", "2").WithReplacement("Noise Multiplier D", "0.5")),
             };
 
             var varyingRelativeCosts = new List<ArticleVariationInfo>()
             {
-                new ArticleVariationInfo("P Lower Costs", DefaultNonCriticalValues.WithReplacement("Relative Costs", "0.5")),
-                new ArticleVariationInfo("Equal", DefaultNonCriticalValues.WithReplacement("Relative Costs", "1")),
-                new ArticleVariationInfo("P Higher Costs", DefaultNonCriticalValues.WithReplacement("Relative Costs", "2")),
+                new ArticleVariationInfo("P Lower Costs", DefaultVariableValues.WithReplacement("Relative Costs", "0.5")),
+                new ArticleVariationInfo("Equal", DefaultVariableValues.WithReplacement("Relative Costs", "1")),
+                new ArticleVariationInfo("P Higher Costs", DefaultVariableValues.WithReplacement("Relative Costs", "2")),
             };
 
             var varyingRiskAversion = new List<ArticleVariationInfo>()
             {
-                new ArticleVariationInfo("Risk Neutral", DefaultNonCriticalValues.WithReplacement("Risk Aversion", "Risk Neutral")),
-                new ArticleVariationInfo("Mildly Averse", DefaultNonCriticalValues.WithReplacement("Risk Aversion", "Mildly Risk Averse")),
-                new ArticleVariationInfo("Moderately Averse", DefaultNonCriticalValues.WithReplacement("Risk Aversion", "Moderately Risk Averse")),
-                new ArticleVariationInfo("Highly Averse", DefaultNonCriticalValues.WithReplacement("Risk Aversion", "Highly Risk Averse")),
+                new ArticleVariationInfo("Risk Neutral", DefaultVariableValues.WithReplacement("Risk Aversion", "Risk Neutral")),
+                new ArticleVariationInfo("Mildly Averse", DefaultVariableValues.WithReplacement("Risk Aversion", "Mildly Risk Averse")),
+                new ArticleVariationInfo("Moderately Averse", DefaultVariableValues.WithReplacement("Risk Aversion", "Moderately Risk Averse")),
+                new ArticleVariationInfo("Highly Averse", DefaultVariableValues.WithReplacement("Risk Aversion", "Highly Risk Averse")),
             };
 
             var varyingRiskAversionAsymmetry = new List<ArticleVariationInfo>()
             {
-                new ArticleVariationInfo("P Risk Averse", DefaultNonCriticalValues.WithReplacement("Risk Aversion", "P Risk Averse")),
-                new ArticleVariationInfo("D Risk Averse", DefaultNonCriticalValues.WithReplacement("Risk Aversion", "D Risk Averse")),
-                new ArticleVariationInfo("P More Risk Averse", DefaultNonCriticalValues.WithReplacement("Risk Aversion", "P More Risk Averse")),
-                new ArticleVariationInfo("D More Risk Averse", DefaultNonCriticalValues.WithReplacement("Risk Aversion", "D More Risk Averse")),
+                new ArticleVariationInfo("P Risk Averse", DefaultVariableValues.WithReplacement("Risk Aversion", "P Risk Averse")),
+                new ArticleVariationInfo("D Risk Averse", DefaultVariableValues.WithReplacement("Risk Aversion", "D Risk Averse")),
+                new ArticleVariationInfo("P More Risk Averse", DefaultVariableValues.WithReplacement("Risk Aversion", "P More Risk Averse")),
+                new ArticleVariationInfo("D More Risk Averse", DefaultVariableValues.WithReplacement("Risk Aversion", "D More Risk Averse")),
             };
 
             var varyingQuitRules = new List<ArticleVariationInfo>()
             {
-                new ArticleVariationInfo("Quitting Allowed", DefaultNonCriticalValues.WithReplacement("Allow Abandon and Defaults", "TRUE")),
-                new ArticleVariationInfo("Quitting Prohibited", DefaultNonCriticalValues.WithReplacement("Allow Abandon and Defaults", "FALSE")),
+                new ArticleVariationInfo("Quitting Allowed", DefaultVariableValues.WithReplacement("Allow Abandon and Defaults", "TRUE")),
+                new ArticleVariationInfo("Quitting Prohibited", DefaultVariableValues.WithReplacement("Allow Abandon and Defaults", "FALSE")),
             };
 
             var varyingProbabilityTrulyLiable = new List<ArticleVariationInfo>()
             {
-                new ArticleVariationInfo("0.1", DefaultNonCriticalValues.WithReplacement("Probability Truly Liable", "0.1")),
-                new ArticleVariationInfo("0.5", DefaultNonCriticalValues.WithReplacement("Probability Truly Liable", "0.5")),
-                new ArticleVariationInfo("0.9", DefaultNonCriticalValues.WithReplacement("Probability Truly Liable", "0.9")),
+                new ArticleVariationInfo("0.1", DefaultVariableValues.WithReplacement("Probability Truly Liable", "0.1")),
+                new ArticleVariationInfo("0.5", DefaultVariableValues.WithReplacement("Probability Truly Liable", "0.5")),
+                new ArticleVariationInfo("0.9", DefaultVariableValues.WithReplacement("Probability Truly Liable", "0.9")),
             };
 
             var varyingNoiseToProduceCaseStrength = new List<ArticleVariationInfo>()
             {
-                new ArticleVariationInfo("0.175", DefaultNonCriticalValues.WithReplacement("Noise to Produce Case Strength", "0.175")),
-                new ArticleVariationInfo("0.35", DefaultNonCriticalValues.WithReplacement("Noise to Produce Case Strength", "0.35")),
-                new ArticleVariationInfo("0.70", DefaultNonCriticalValues.WithReplacement("Noise to Produce Case Strength", "0.7")),
+                new ArticleVariationInfo("0.175", DefaultVariableValues.WithReplacement("Noise to Produce Case Strength", "0.175")),
+                new ArticleVariationInfo("0.35", DefaultVariableValues.WithReplacement("Noise to Produce Case Strength", "0.35")),
+                new ArticleVariationInfo("0.70", DefaultVariableValues.WithReplacement("Noise to Produce Case Strength", "0.7")),
             };
 
             var varyingIssue = new List<ArticleVariationInfo>()
             {
-                new ArticleVariationInfo("Liability", DefaultNonCriticalValues.WithReplacement("Issue", "Liability")),
-                new ArticleVariationInfo("Damages", DefaultNonCriticalValues.WithReplacement("Issue", "Damages")),
+                new ArticleVariationInfo("Liability", DefaultVariableValues.WithReplacement("Issue", "Liability")),
+                new ArticleVariationInfo("Damages", DefaultVariableValues.WithReplacement("Issue", "Damages")),
             };
 
             var varyingTimingOfCosts = new List<ArticleVariationInfo>()
             {
-                new ArticleVariationInfo("0", DefaultNonCriticalValues.WithReplacement("Proportion of Costs at Beginning", "0")),
-                new ArticleVariationInfo("0.25", DefaultNonCriticalValues.WithReplacement("Proportion of Costs at Beginning", "0.25")),
-                new ArticleVariationInfo("0.5", DefaultNonCriticalValues.WithReplacement("Proportion of Costs at Beginning", "0.5")),
-                new ArticleVariationInfo("0.75", DefaultNonCriticalValues.WithReplacement("Proportion of Costs at Beginning", "0.75")),
-                new ArticleVariationInfo("1", DefaultNonCriticalValues.WithReplacement("Proportion of Costs at Beginning", "1")),
+                new ArticleVariationInfo("0", DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "0")),
+                new ArticleVariationInfo("0.25", DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "0.25")),
+                new ArticleVariationInfo("0.5", DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "0.5")),
+                new ArticleVariationInfo("0.75", DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "0.75")),
+                new ArticleVariationInfo("1", DefaultVariableValues.WithReplacement("Proportion of Costs at Beginning", "1")),
             };
 
             var tentativeResults = new List<ArticleVariationInfoSets>()

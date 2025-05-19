@@ -285,7 +285,7 @@ namespace LitigCharts
 
             // look up particular settings here if desired (not usually needed)
             bool findSpecificSettings = false;
-            List<(string, string)> settingsToFind = launcher.DefaultNonCriticalValues;
+            List<(string, string)> settingsToFind = launcher.DefaultVariableValues;
             var matches = distinctOptionSets.Where(x => !findSpecificSettings || settingsToFind.All(y => x.VariableSettings[y.Item1].ToString() == y.Item2.ToString())).ToList();
             var namesOfMatches = matches.Select(x => x.Name).ToList();
             var mappedNamesOfMatches = namesOfMatches.Select(x => map[x]).ToList();
