@@ -1,4 +1,6 @@
-﻿namespace ACESim
+﻿using ACESim;
+
+namespace ACESimBase.GameSolvingSupport.GameTree
 {
     public interface IAnyNode
     {

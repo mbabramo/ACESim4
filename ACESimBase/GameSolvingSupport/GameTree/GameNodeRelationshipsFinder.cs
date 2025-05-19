@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ACESimBase.GameSolvingSupport
+namespace ACESimBase.GameSolvingSupport.GameTree
 {
 
     public class GameNodeRelationshipsFinder : ITreeNodeProcessor<GameNodeRelationshipsFinder.ForwardInfo, bool /* ignored */>
@@ -23,7 +23,7 @@ namespace ACESimBase.GameSolvingSupport
 
         public GameNodeRelationshipsFinder(IGameState root, bool sequenceFormCutOffProbabilityZeroNodes, int maxIntegralUtility, Dictionary<int, List<byte>> blockedPlayerActions)
         {
-            NodeRelationships =  new List<GameNodeRelationship>() { new GameNodeRelationship(0, root, null, null) };
+            NodeRelationships = new List<GameNodeRelationship>() { new GameNodeRelationship(0, root, null, null) };
             SequenceFormCutOffProbabilityZeroNodes = sequenceFormCutOffProbabilityZeroNodes;
             MaxIntegralUtility = maxIntegralUtility;
             BlockedPlayerActions = blockedPlayerActions;
@@ -65,14 +65,14 @@ namespace ACESimBase.GameSolvingSupport
 
             return true;
         }
-        
+
         private byte GetAdjustedPredecessorAction(IGameState predecessor, byte predecessorAction)
         {
             int predecessorNodeNumber = predecessor.GetInformationSetNodeNumber();
             int adjustedPredecessorAction = predecessorAction;
             if (BlockedPlayerActions != null && BlockedPlayerActions.ContainsKey(predecessorNodeNumber))
                 adjustedPredecessorAction -= BlockedPlayerActions[predecessorNodeNumber].Where(x => x < predecessorAction).Count();
-            return (byte) adjustedPredecessorAction;
+            return (byte)adjustedPredecessorAction;
         }
 
         public bool InformationSet_Backward(InformationSetNode informationSet, IEnumerable<bool> fromSuccessors)
@@ -99,7 +99,7 @@ namespace ACESimBase.GameSolvingSupport
                     NodeRelationships.Add(new GameNodeRelationship(id, informationSet, fromPredecessor.gameNodeRelationshipID, adjustedPredecessorAction));
                 }
             }
-            bool[] nextIsZero = Enumerable.Range(1, informationSet.GetNumPossibleActions()).Select(x => isZero || (BlockedPlayerActions != null && BlockedPlayerActions[informationSet.InformationSetNodeNumber].Contains((byte) x))).ToArray(); 
+            bool[] nextIsZero = Enumerable.Range(1, informationSet.GetNumPossibleActions()).Select(x => isZero || BlockedPlayerActions != null && BlockedPlayerActions[informationSet.InformationSetNodeNumber].Contains((byte)x)).ToArray();
             return new ForwardInfo(id, nextIsZero);
         }
     }

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ACESimBase.GameSolvingSupport
+namespace ACESimBase.GameSolvingSupport.GameTree
 {
     public record GameNodeRelationship(int NodeID, IGameState GameState, int? ParentNodeID, byte? ActionAtParent, int? OriginalNodeID = null)
     {

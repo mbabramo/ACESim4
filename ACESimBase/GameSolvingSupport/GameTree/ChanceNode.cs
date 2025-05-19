@@ -1,4 +1,5 @@
-﻿using ACESimBase.Util.Reporting;
+﻿using ACESim;
+using ACESimBase.Util.Reporting;
 using Rationals;
 using System;
 using System.Collections.Generic;
@@ -7,7 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ACESim
+namespace ACESimBase.GameSolvingSupport.GameTree
 {
     [Serializable]
     public abstract class ChanceNode : IGameState, IAnyNode
@@ -38,7 +39,7 @@ namespace ACESim
 
         public IEnumerable<double> GetActionProbabilities(int distributorChanceInputs = -1) => Enumerable.Range(1, Decision.NumPossibleActions).Select(action => GetActionProbability(action, distributorChanceInputs));
 
-        public IEnumerable<decimal> GetActionProbabilitiesDecimal(int distributorChanceInputs = -1) => Enumerable.Range(1, Decision.NumPossibleActions).Select(action => (decimal) GetActionProbability(action, distributorChanceInputs));
+        public IEnumerable<decimal> GetActionProbabilitiesDecimal(int distributorChanceInputs = -1) => Enumerable.Range(1, Decision.NumPossibleActions).Select(action => (decimal)GetActionProbability(action, distributorChanceInputs));
 
         public ChanceNode(int chanceNodeNumber)
         {

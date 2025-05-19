@@ -1,4 +1,5 @@
-﻿using ACESimBase.Util.Collections;
+﻿using ACESim;
+using ACESimBase.Util.Collections;
 using ACESimBase.Util.Reporting;
 using System;
 using System.Collections.Generic;
@@ -7,7 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ACESim
+namespace ACESimBase.GameSolvingSupport.GameTree
 {
     [Serializable]
     public class FinalUtilitiesNode : IGameState, IAnyNode
@@ -61,7 +62,7 @@ namespace ACESim
 
         public override string ToString()
         {
-            return $"Utilities {FinalUtilitiesNodeNumber}: {String.Join("; ", Utilities.Select(x => $"{x.ToSignificantFigures(6)}"))}";
+            return $"Utilities {FinalUtilitiesNodeNumber}: {string.Join("; ", Utilities.Select(x => $"{x.ToSignificantFigures(6)}"))}";
         }
 
         public GameStateTypeEnum GetGameStateType()

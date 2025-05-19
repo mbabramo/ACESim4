@@ -1,4 +1,5 @@
-﻿using Rationals;
+﻿using ACESim;
+using Rationals;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -6,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ACESim
+namespace ACESimBase.GameSolvingSupport.GameTree
 {
     [Serializable]
     public class ChanceNodeUnequalProbabilities : ChanceNode
@@ -97,7 +98,7 @@ namespace ACESim
         {
             Rational minProbability = (Rational)1 / (Rational)maxIntegralUtility; // TODO -- better approach would be to trim the game tree.
             var results = GetActionProbabilities().Select(x => (int)Math.Round(x * maxIntegralUtility)).Select(x => (Rational)x / (Rational)maxIntegralUtility).Select(x => x < minProbability && makeAllProbabilitiesPositive ? minProbability : x).ToArray(); // NOTE: We set a minimium probability level of 1 / MaxIntegralUtility.
-                                                                                                                                                                                                                                // make numbers add up to exactly 1
+                                                                                                                                                                                                                                                                // make numbers add up to exactly 1
             Rational total = 0;
             for (int i = 0; i < results.Length; i++)
             {
@@ -128,7 +129,7 @@ namespace ACESim
 
         public override string ToString()
         {
-            return $"{Decision.Abbreviation} (Info set {AltNodeNumber ?? ChanceNodeNumber}): Chance player {PlayerNum} for decision {DecisionByteCode} => probabilities {String.Join(",", Probabilities)}";
+            return $"{Decision.Abbreviation} (Info set {AltNodeNumber ?? ChanceNodeNumber}): Chance player {PlayerNum} for decision {DecisionByteCode} => probabilities {string.Join(",", Probabilities)}";
         }
 
     }

@@ -1,8 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using ACESim;
+using System.Collections.Generic;
 
-namespace ACESim
+namespace ACESimBase.GameSolvingSupport.GameTree
 {
-    public interface ITreeNodeProcessor<Forward,Back>
+    public interface ITreeNodeProcessor<Forward, Back>
     {
         Back FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, Forward fromPredecessor);
 

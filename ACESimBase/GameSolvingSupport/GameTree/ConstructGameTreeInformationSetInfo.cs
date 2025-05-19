@@ -13,7 +13,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Tensorflow.Framework;
 
-namespace ACESimBase.GameSolvingSupport
+namespace ACESimBase.GameSolvingSupport.GameTree
 {
     public class ConstructGameTreeInformationSetInfo : ITreeNodeProcessor<ConstructGameTreeInformationSetInfo.ForwardInfo, ConstructGameTreeInformationSetInfo.MoveProbabilityTracker<(byte decisionByteCode, byte move)>>
     {
@@ -68,7 +68,7 @@ namespace ACESimBase.GameSolvingSupport
             public string MainNodeText()
             {
                 if (anyNode.IsUtilitiesNode)
-                    return "(" + String.Join(", ", anyNode.GetNodeValues().Select(x => x.ToDecimalPlaces(2))) + ")";
+                    return "(" + string.Join(", ", anyNode.GetNodeValues().Select(x => x.ToDecimalPlaces(2))) + ")";
                 return anyNode.Decision.Name;
             }
         }
@@ -109,7 +109,7 @@ namespace ACESimBase.GameSolvingSupport
                 if (edgeFromParentStack.Any())
                 {
                     edgeFromParent = edgeFromParentStack.Pop();
-                    edgeFromParent = edgeFromParent with { action = (byte) ( edgeFromParent.action + 1 ) };
+                    edgeFromParent = edgeFromParent with { action = (byte)(edgeFromParent.action + 1) };
                     edgeFromParentStack.Push(edgeFromParent);
                 }
                 int nodeLevel = edgeFromParent == null ? 0 : edgeFromParent.parentLevel + 1;
@@ -151,7 +151,7 @@ namespace ACESimBase.GameSolvingSupport
                     }
                 }
             },
-            (Action<GamePointNode>)((gamePointNode) =>
+            (gamePointNode) =>
             {
                 IAnyNode gameNode = gamePointNode.anyNode;
                 EdgeInfo parentInfo = null;
@@ -159,7 +159,7 @@ namespace ACESimBase.GameSolvingSupport
                     parentInfo = edgeFromParentStack.Pop();
                 if (parentInfo?.parentIncludedInDiagram == true)
                     TabbedText.TabUnindent();
-            }));
+            });
         }
 
         public string GenerateTikzDiagram(Func<GamePointNode, bool> excludeBelowNode, Func<GamePointNode, bool> includeBelowNode)
@@ -251,7 +251,7 @@ namespace ACESimBase.GameSolvingSupport
             }
             while (!done);
 
-            var includedNodes = TreeRoot.EnumerateNodes().Select(x => x.StoredValue).Where(x => x.IncludeInDiagram && !x.ExcludedFromAbove && (!onlyIncludableRegionFound || (x.IncludeInRestrictedFromAbove))).ToList();
+            var includedNodes = TreeRoot.EnumerateNodes().Select(x => x.StoredValue).Where(x => x.IncludeInDiagram && !x.ExcludedFromAbove && (!onlyIncludableRegionFound || x.IncludeInRestrictedFromAbove)).ToList();
             foreach (var node in includedNodes)
             {
                 string arrow = null;
@@ -267,20 +267,20 @@ namespace ACESimBase.GameSolvingSupport
 
                 if (node.EdgeFromParent != null)
                 {
-                    arrow = $@"\draw ({node.EdgeFromParent.parentNode.XLocation + circleSize}, {node.EdgeFromParent.parentNode.YLocation}) -- ({node.EdgeFromParent.parentNode.XLocation + circleSize + straightAdjacentArrow}, {node.EdgeFromParent.parentNode.YLocation}) -- ({node.EdgeFromParent.parentNode.XLocation + circleSize + straightAdjacentArrow}, {node.YLocation}) -- ({node.XLocation - circleSize }, {node.YLocation}) node [midway, above, sloped] (E{tikzIndex++}) {{{node.EdgeFromParent.parentNameWithActionString(GameDefinition)}}} node [midway, below, sloped] (E{tikzIndex++}) {{{node.EdgeFromParent.probabilityString}}} ;
+                    arrow = $@"\draw ({node.EdgeFromParent.parentNode.XLocation + circleSize}, {node.EdgeFromParent.parentNode.YLocation}) -- ({node.EdgeFromParent.parentNode.XLocation + circleSize + straightAdjacentArrow}, {node.EdgeFromParent.parentNode.YLocation}) -- ({node.EdgeFromParent.parentNode.XLocation + circleSize + straightAdjacentArrow}, {node.YLocation}) -- ({node.XLocation - circleSize}, {node.YLocation}) node [midway, above, sloped] (E{tikzIndex++}) {{{node.EdgeFromParent.parentNameWithActionString(GameDefinition)}}} node [midway, below, sloped] (E{tikzIndex++}) {{{node.EdgeFromParent.probabilityString}}} ;
 ";
                     //                    arrow = $@"\draw ({node.EdgeFromParent.parentNode.XLocation + circleSize}, {node.EdgeFromParent.parentNode.YLocation}) -- ({node.EdgeFromParent.parentNode.XLocation + circleSize + straightAdjacentArrow}, {node.EdgeFromParent.parentNode.YLocation}) -- ({node.XLocation - circleSize - straightAdjacentArrow}, {node.YLocation}) node [midway, above, sloped] (E{tikzIndex++}) {{{node.EdgeFromParent.parentName}: {GameDefinition.GetActionString(node.EdgeFromParent.action, node.EdgeFromParent.parentDecisionByteCode)}}} -- ({node.XLocation - circleSize}, {node.YLocation});
                     //";
                     nodeStringBuilder.AppendLine(arrow);
                 }
                 b.Append(nodeStringBuilder.ToString());
-    // here is where we would put text under node if desired
-    //                b.AppendLine($@"\node[draw=none, below=0cm of N{tikzIndex}] {{
-    //\begin{{tabular}}{{c}}
-    //{node.MainNodeText()} \\
-    //\end{{tabular}}
-    //}};
-    //{arrow}");
+                // here is where we would put text under node if desired
+                //                b.AppendLine($@"\node[draw=none, below=0cm of N{tikzIndex}] {{
+                //\begin{{tabular}}{{c}}
+                //{node.MainNodeText()} \\
+                //\end{{tabular}}
+                //}};
+                //{arrow}");
             }
             string tikzDocument = TikzHelper.GetStandaloneDocument(b.ToString(), additionalTikzLibraries: new List<string>() { "shapes.geometric" });
             return tikzDocument;
@@ -295,7 +295,7 @@ namespace ACESimBase.GameSolvingSupport
                 if (probabilities != null)
                     d[decision.Name] = probabilities;
             }
-            d["Utilities"] = GetProbabilitiesOfUtilities(nonChancePlayer, atNodeNumber, NumNonChancePlayers); 
+            d["Utilities"] = GetProbabilitiesOfUtilities(nonChancePlayer, atNodeNumber, NumNonChancePlayers);
             return d;
         }
 
@@ -438,7 +438,7 @@ namespace ACESimBase.GameSolvingSupport
             double reachProbability = GetCumulativeReachProbability(fromPredecessor.reachProbability, predecessor, predecessorAction);
             AddNodeToTree(finalUtilities, predecessorAction, reachProbability);
             var toReturn = new MoveProbabilityTracker<(byte decisionByteCode, byte move)>();
-            NumNonChancePlayers = (byte) finalUtilities.Utilities.Count();
+            NumNonChancePlayers = (byte)finalUtilities.Utilities.Count();
             for (int i = 0; i < NumNonChancePlayers; i++)
                 toReturn.AddMove((255, (byte)(i + 1)), finalUtilities.Utilities[i]);
             return toReturn;

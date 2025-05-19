@@ -1,4 +1,5 @@
-﻿using ACESimBase.Util.Collections;
+﻿using ACESimBase.GameSolvingSupport.GameTree;
+using ACESimBase.Util.Collections;
 using ACESimBase.Util.NWayTreeStorage;
 using JetBrains.Annotations;
 using System;

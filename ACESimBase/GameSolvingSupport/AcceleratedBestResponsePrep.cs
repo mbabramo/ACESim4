@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using ACESim;
+using ACESimBase.GameSolvingSupport.GameTree;
 using ACESimBase.Util;
 using ACESimBase.Util.Collections;
 using ACESimBase.Util.Debugging;

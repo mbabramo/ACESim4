@@ -21,6 +21,7 @@ using ACESimBase.Util.ArrayManipulation;
 using ACESimBase.Util.Parallelization;
 using ACESimBase.Util.Serialization;
 using ACESimBase.Util.Debugging;
+using ACESimBase.GameSolvingSupport.GameTree;
 
 namespace ACESimBase.GameSolvingAlgorithms
 {

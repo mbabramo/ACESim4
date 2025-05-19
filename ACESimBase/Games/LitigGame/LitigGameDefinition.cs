@@ -8,6 +8,7 @@ using ACESim.Util.DiscreteProbabilities;
 using ACESimBase.Games.LitigGame;
 using ACESimBase.Games.LitigGame.ManualReports;
 using ACESimBase.GameSolvingSupport;
+using ACESimBase.GameSolvingSupport.GameTree;
 using ACESimBase.Util;
 using ACESimBase.Util.ArrayManipulation;
 using ACESimBase.Util.DiscreteProbabilities;
