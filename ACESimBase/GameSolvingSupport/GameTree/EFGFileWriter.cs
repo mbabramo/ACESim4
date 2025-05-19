@@ -1,11 +1,10 @@
-﻿using ACESimBase.GameSolvingSupport.GameTree;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
 
-namespace ACESimBase.GameSolvingSupport
+namespace ACESimBase.GameSolvingSupport.GameTree
 {
     public class EFGFileWriter : ITreeNodeProcessor<bool, bool> // bools are ignored
     {
@@ -16,14 +15,14 @@ namespace ACESimBase.GameSolvingSupport
 
         public EFGFileWriter(string gameName, IEnumerable<string> playerNames, bool distributeChanceDecisions)
         {
-            FileText.AppendLine($"EFG 2 R \"{gameName}\" {{ {String.Join(" ", playerNames.Select(x => $"\"{x}\""))} }} ");
+            FileText.AppendLine($"EFG 2 R \"{gameName}\" {{ {string.Join(" ", playerNames.Select(x => $"\"{x}\""))} }} ");
             DistributeChanceDecisions = distributeChanceDecisions;
         }
 
         int numDecimalPlaces = 4;
         string FormattedDecimal(decimal d)
         {
-            string formatString = String.Format("F{0:D}", numDecimalPlaces);
+            string formatString = string.Format("F{0:D}", numDecimalPlaces);
             return d.ToString(formatString);
         }
 
@@ -63,7 +62,7 @@ namespace ACESimBase.GameSolvingSupport
 
         private string GetChanceActionsList(IEnumerable<decimal> values)
         {
-            return $"{{ {String.Join(" ", values.Select((item, index) => $"{Quotes((index + 1).ToString())} {FormattedDecimal(item)}"))} }}";
+            return $"{{ {string.Join(" ", values.Select((item, index) => $"{Quotes((index + 1).ToString())} {FormattedDecimal(item)}"))} }}";
         }
 
         public bool FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, bool fromPredecessor)
@@ -77,7 +76,7 @@ namespace ACESimBase.GameSolvingSupport
 
         private string GetOutcomesList(IEnumerable<double> values)
         {
-            return "{ " + String.Join(" ", values.Select(x => FormattedDecimal((decimal) x))) + " }";
+            return "{ " + string.Join(" ", values.Select(x => FormattedDecimal((decimal)x))) + " }";
         }
 
         public bool InformationSet_Backward(InformationSetNode informationSet, IEnumerable<bool> fromSuccessors)
@@ -95,6 +94,6 @@ namespace ACESimBase.GameSolvingSupport
             return true;
         }
 
-        public string GetActionNames(int numActions) =>  "{ " + String.Join(" ", Enumerable.Range(1, numActions).Select(x => $"\"{x}\"")) + "} ";
+        public string GetActionNames(int numActions) => "{ " + string.Join(" ", Enumerable.Range(1, numActions).Select(x => $"\"{x}\"")) + "} ";
     }
 }

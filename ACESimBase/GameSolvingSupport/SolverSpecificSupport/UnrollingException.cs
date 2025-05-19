@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ACESimBase.GameSolvingSupport
+namespace ACESimBase.GameSolvingSupport.SolverSpecificSupport
 {
     public class UnrollingException : Exception
     {
