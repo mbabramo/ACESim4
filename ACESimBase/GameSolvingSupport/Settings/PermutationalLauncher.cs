@@ -1,4 +1,5 @@
-﻿using ACESimBase.Util.Collections;
+﻿using ACESim;
+using ACESimBase.Util.Collections;
 using ACESimBase.Util.Debugging;
 using System;
 using System.Collections.Generic;
@@ -10,11 +11,8 @@ namespace ACESimBase.GameSolvingSupport.Settings
 {
     public abstract class PermutationalLauncher : Launcher
     {
-        // Mapping from each full scenario name to its baseline scenario name.
-        public abstract Dictionary<string, string> NameMap { get; }
 
-        // Article variation metadata: list of variation info sets for grouping scenarios in reports.
-        public abstract List<ArticleVariationInfoSets> VariationInfoSets { get; }
+        #region Variation set definitions
 
         // Names of variation sets for grouping scenarios in reports (e.g., "Risk Aversion")
         public abstract List<string> NamesOfVariationSets { get; }
@@ -26,10 +24,15 @@ namespace ACESimBase.GameSolvingSupport.Settings
         // Noncritical variables should not be included.
         public abstract List<(string criticalValueName, string[] criticalValueValues)> CriticalVariableValues { get; }
 
+        // Article variation metadata: list of variation info sets for grouping scenarios in reports.
+        public abstract List<ArticleVariationInfoSets> VariationInfoSets { get; }
+
         // Stable report prefix used for output files (e.g., "FS036" or "APP001").
         public abstract string ReportPrefix { get; }
 
+        #endregion
 
+        #region Helper data structures and methods
 
         public record ArticleVariationInfo(string nameOfVariation, List<(string columnName, string expectedValue)> columnMatches);
 
@@ -42,25 +45,12 @@ namespace ACESimBase.GameSolvingSupport.Settings
             bool IncludeInCritical
         );
 
-
-
         public T GetAndTransform<T>(T options, string suffix, Action<T> transform) where T : GameOptions
         {
             T g = options;
             transform(g);
             g.Name = g.Name + suffix;
             return g;
-        }
-
-        public List<T> ApplyTransformations<T>(Func<T> optionsFn, List<Func<T, T>> transforms) where T : GameOptions
-        {
-            List<T> result = new List<T>();
-            foreach (var transform in transforms)
-            {
-                var transformed = transform(optionsFn());
-                result.Add(transformed);
-            }
-            return result;
         }
 
         public List<T> ApplyPermutationsOfTransformations<T>(Func<T> optionsFn, List<List<Func<T, T>>> transformLists) where T : GameOptions
@@ -77,6 +67,67 @@ namespace ACESimBase.GameSolvingSupport.Settings
                 result.Add(options);
             }
             return result;
+        }
+
+        #endregion
+
+        /// <summary>
+        /// Return the name that a set of options was run under -- taking into account that we avoid repeating redundant options sets.
+        /// </summary>
+        /// <returns></returns>
+        public Dictionary<string, string> NameMap
+        {
+            get
+            {
+                List<GameOptions> withRedundancies = new List<GameOptions>();
+                GetGameOptions(withRedundancies, true);
+                List<GameOptions> withoutRedundancies = new List<GameOptions>();
+                GetGameOptions(withoutRedundancies, false);
+                Dictionary<string, string> result = new Dictionary<string, string>();
+                foreach (var gameOptions in withRedundancies)
+                {
+                    string runAsName = gameOptions.Name;
+                    while (!withoutRedundancies.Any(x => x.Name == runAsName))
+                    {
+                        var lastIndex = runAsName.LastIndexOf(' ');
+                        runAsName = runAsName.Substring(0, lastIndex);
+                    }
+                    result[gameOptions.Name] = runAsName;
+                }
+                return result;
+            }
+        }
+
+        public virtual List<GameOptions> FlattenAndOrderGameSets(List<List<GameOptions>> gamesSets)
+        {
+            return gamesSets.SelectMany(x => x).ToList();
+        }
+
+        public abstract List<List<GameOptions>> GetSetsOfGameOptions(bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical);
+
+        public void GetGameOptions(List<GameOptions> options)
+        {
+            bool includeBaselineValueForNoncritical = false; // By setting this to false, we avoid repeating the baseline value for noncritical transformations, which would produce redundant options sets.
+            GetGameOptions(options, includeBaselineValueForNoncritical);
+        }
+
+        public void GetGameOptions(List<GameOptions> options, bool allowRedundancies)
+        {
+            var gamesSets = GetSetsOfGameOptions(false, allowRedundancies); // each is a set with noncritical
+            List<GameOptions> eachGameIndependently = FlattenAndOrderGameSets(gamesSets);
+
+            List<string> optionChoices = eachGameIndependently.Select(x => ToCompleteString(x.VariableSettings)).ToList();
+            static string ToCompleteString<TKey, TValue>(IDictionary<TKey, TValue> dictionary)
+            {
+                return "{" + string.Join(",", dictionary.Select(kv => kv.Key + "=" + kv.Value).ToArray()) + "}";
+            }
+            if (!allowRedundancies && optionChoices.Distinct().Count() != optionChoices.Count())
+            {
+                var redundancies = optionChoices.Where(x => optionChoices.Count(y => x == y) > 1).Select(x => (x, optionChoices.Count(y => x == y), optionChoices.Select((item, index) => (item, index)).Where(z => z.item == x).Select(z => z.index).ToList())).ToList();
+                throw new Exception("redundancies found");
+            }
+
+            options.AddRange(eachGameIndependently);
         }
 
         public List<(string OptionSetName, List<GroupingVariableInfo> Variables)> VariableInfoPerOption
@@ -178,6 +229,8 @@ namespace ACESimBase.GameSolvingSupport.Settings
 
             return result;
         }
+
+
 
     }
 }

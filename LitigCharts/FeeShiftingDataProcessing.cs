@@ -649,10 +649,10 @@ namespace LitigCharts
                 Directory.CreateDirectory(outputFolderPath);
 
             var sets = launcher.GetSetsOfGameOptions(false, false);
-            var map = launcher.GetGameOptionsNameMap(); // name to find (avoids redundancies)
+            var map = launcher.NameMap; // name to find (avoids redundancies)
             var setNames = launcher.NamesOfVariationSets;
             string masterReportName = launcher.MasterReportNameForDistributedProcessing;
-            List<(List<LitigGameOptions> theSet, string setName)> setsWithNames = sets.Zip(setNames, (s, sn) => (s, sn)).ToList();
+            List<(List<GameOptions> theSet, string setName)> setsWithNames = sets.Zip(setNames, (s, sn) => (s, sn)).ToList();
 
             foreach (bool useRiskAversionForNonRiskReports in new bool[] { false, true })
             {

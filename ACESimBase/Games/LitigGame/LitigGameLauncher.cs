@@ -16,7 +16,58 @@ namespace ACESim
 {
     public class LitigGameLauncher : PermutationalLauncher
     {
-        public override Dictionary<string, string> NameMap => GetGameOptionsNameMap();
+
+
+        public override List<(string, string)> DefaultVariableValues
+        {
+            get
+            {
+                return new List<(string, string)>()
+                {
+                    ("Costs Multiplier", "1"),
+                    ("Fee Shifting Multiplier", "0"),
+                    ("Risk Aversion", "Risk Neutral"),
+                    ("Fee Shifting Rule", "English"),
+                    ("Relative Costs", "1"),
+                    ("Noise Multiplier P", "1"),
+                    ("Noise Multiplier D", "1"),
+                    ("Damages Multiplier", "1"),
+                    // DISABLED ("Allow Abandon and Defaults", "true"),
+                    // DISABLED ("Probability Truly Liable", "0.5"),
+                    // DISABLED ("Noise to Produce Case Strength", "0.35"),
+                    // DISABLED ("Issue", "Liability"),
+                    ("Proportion of Costs at Beginning", "0.5"),
+                };
+            }
+        }
+
+        public override List<string> NamesOfVariationSets => new List<string>()
+        {
+            "Costs Multipliers",
+            "Fee Shifting Multiples",
+            "Risk Aversion",
+            "Noise Multipliers", // includes P & D
+            "Relative Costs",
+            "Damages Multiplier",
+            "Fee Shifting Mode",
+            // DISABLED "Allowing Abandon and Defaults",
+            // DISABLED "Probability Truly Liable",
+            // DISABLED "Noise to Produce Case Strength",
+            // DISABLED "Liability vs Damages",
+            "Proportion of Costs at Beginning",
+        };
+        public override List<(string criticalValueName, string[] criticalValueValues)> CriticalVariableValues
+        {
+            get
+            {
+                return new List<(string, string[])>()
+                {
+                    ("Costs Multiplier", CriticalCostsMultipliers.Select(x => x.ToString()).ToArray()),
+                    ("Fee Shifting Multiplier", CriticalFeeShiftingMultipliers.Select(x => x.ToString()).ToArray()),
+                    ("Risk Aversion", new[] { "Risk Neutral", "Moderately Risk Averse" }),
+                };
+            }
+        }
         public override List<ArticleVariationInfoSets> VariationInfoSets
             => GetEndogenousDisputesArticleVariationInfoList(false);
         public override string ReportPrefix => MasterReportNameForDistributedProcessing;
@@ -149,61 +200,18 @@ namespace ACESim
 
         #region Game sets generation
 
-        public void GetGameOptions(List<GameOptions> options)
+        public override List<GameOptions> FlattenAndOrderGameSets(List<List<GameOptions>> gamesSets)
         {
-            bool includeBaselineValueForNoncritical = false; // By setting this to false, we avoid repeating the baseline value for noncritical transformations, which would produce redundant options sets.
-            GetGameOptions(options, includeBaselineValueForNoncritical);
-        }
-
-        /// <summary>
-        /// Return the name that a set of fee-shifting article options was run under -- taking into account that we avoid repeating redundant options sets.
-        /// </summary>
-        /// <returns></returns>
-        public Dictionary<string, string> GetGameOptionsNameMap()
-        {
-            List<GameOptions> withRedundancies = new List<GameOptions>();
-            GetGameOptions(withRedundancies, true);
-            List<GameOptions> withoutRedundancies = new List<GameOptions>();
-            GetGameOptions(withoutRedundancies, false);
-            Dictionary<string, string> result = new Dictionary<string, string>();
-            foreach (var gameOptions in withRedundancies)
-            {
-                string runAsName = gameOptions.Name;
-                while (!withoutRedundancies.Any(x => x.Name == runAsName))
-                {
-                    var lastIndex = runAsName.LastIndexOf(' ');
-                    runAsName = runAsName.Substring(0, lastIndex);
-                }
-                result[gameOptions.Name] = runAsName;
-            }
-            return result;
-        }
-
-        public void GetGameOptions(List<GameOptions> options, bool allowRedundancies)
-        {
-            var gamesSets = GetSetsOfGameOptions(false, allowRedundancies); // each is a set with noncritical
             var eachGameIndependently = gamesSets.SelectMany(x => x)
-                .OrderBy(x => x.LoserPaysOnlyLargeMarginOfVictory) // place here anything that will change the game tree size
+                .OrderBy(x => ((LitigGameOptions)x).LoserPaysOnlyLargeMarginOfVictory) // place here anything that will change the game tree size
                 .ToList();
-
-            List<string> optionChoices = eachGameIndependently.Select(x => ToCompleteString(x.VariableSettings)).ToList();
-            static string ToCompleteString<TKey, TValue>(IDictionary<TKey, TValue> dictionary)
-            {
-                return "{" + string.Join(",", dictionary.Select(kv => kv.Key + "=" + kv.Value).ToArray()) + "}";
-            }
-            if (!allowRedundancies && optionChoices.Distinct().Count() != optionChoices.Count())
-            {
-                var redundancies = optionChoices.Where(x => optionChoices.Count(y => x == y) > 1).Select(x => (x, optionChoices.Count(y => x == y), optionChoices.Select((item, index) => (item, index)).Where(z => z.item == x).Select(z => z.index).ToList())).ToList();
-                throw new Exception("redundancies found");
-            }
-
-            options.AddRange(eachGameIndependently);
+            return eachGameIndependently.Select(x => (GameOptions) x).ToList();
         }
 
-        public List<List<LitigGameOptions>> GetSetsOfGameOptions(bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical)
+        public override List<List<GameOptions>> GetSetsOfGameOptions(bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical)
         {
             List<List<LitigGameOptions>> result = new List<List<LitigGameOptions>>();
-            const int numCritical = 3; // critical transformations are all interacted with one another and then with each of the other transformations
+            const int numCritical = 3; // critical transformations are all interacted with one another and then with each of the other transformations  
             var criticalCostsMultiplierTransformations = CriticalCostsMultiplierTransformations(true);
             var noncriticalCostsMultiplierTransformations = AdditionalCostsMultiplierTransformations(includeBaselineValueForNoncritical);
             var criticalFeeShiftingMultipleTransformations = CriticalFeeShiftingMultiplierTransformations(true);
@@ -211,47 +219,47 @@ namespace ACESim
             var criticalRiskAversionTransformations = CriticalRiskAversionTransformations(true);
             var noncriticalRiskAversionTransformations = AdditionalRiskAversionTransformations(includeBaselineValueForNoncritical);
             List<List<Func<LitigGameOptions, LitigGameOptions>>> allTransformations = new List<List<Func<LitigGameOptions, LitigGameOptions>>>()
-            {
-                // Can always choose any of these:
-                criticalCostsMultiplierTransformations,
-                criticalFeeShiftingMultipleTransformations,
-                criticalRiskAversionTransformations,
-                // And then can vary ONE of these (avoiding inconsistencies with above):
-                // IMPORTANT: When changing these, change NamesOfFeeShiftingArticleSets to match each of these
-                noncriticalCostsMultiplierTransformations, // i.e., not only the core costs multipliers and other core variables, but also the critical costs multipliers
-                noncriticalFeeShiftingMultipleTransformations,
-                noncriticalRiskAversionTransformations,
-                NoiseTransformations(includeBaselineValueForNoncritical),
-                PRelativeCostsTransformations(includeBaselineValueForNoncritical),
-                DamagesMultiplierTransformations(includeBaselineValueForNoncritical),
-                FeeShiftingModeTransformations(includeBaselineValueForNoncritical),
-                // DISABLED AllowAbandonAndDefaultsTransformations(includeBaselineValueForNoncritical),
-                // DISABLED ProbabilityTrulyLiableTransformations(includeBaselineValueForNoncritical),
-                // DISABLED NoiseToProduceCaseStrengthTransformations(includeBaselineValueForNoncritical),
-                // DISABLED LiabilityVsDamagesTransformations(includeBaselineValueForNoncritical),
-                ProportionOfCostsAtBeginningTransformations(includeBaselineValueForNoncritical),
-            };
+           {  
+               // Can always choose any of these:  
+               criticalCostsMultiplierTransformations,
+               criticalFeeShiftingMultipleTransformations,
+               criticalRiskAversionTransformations,  
+               // And then can vary ONE of these (avoiding inconsistencies with above):  
+               // IMPORTANT: When changing these, change NamesOfFeeShiftingArticleSets to match each of these  
+               noncriticalCostsMultiplierTransformations, // i.e., not only the core costs multipliers and other core variables, but also the critical costs multipliers  
+               noncriticalFeeShiftingMultipleTransformations,
+               noncriticalRiskAversionTransformations,
+               NoiseTransformations(includeBaselineValueForNoncritical),
+               PRelativeCostsTransformations(includeBaselineValueForNoncritical),
+               DamagesMultiplierTransformations(includeBaselineValueForNoncritical),
+               FeeShiftingModeTransformations(includeBaselineValueForNoncritical),  
+               // DISABLED AllowAbandonAndDefaultsTransformations(includeBaselineValueForNoncritical),  
+               // DISABLED ProbabilityTrulyLiableTransformations(includeBaselineValueForNoncritical),  
+               // DISABLED NoiseToProduceCaseStrengthTransformations(includeBaselineValueForNoncritical),  
+               // DISABLED LiabilityVsDamagesTransformations(includeBaselineValueForNoncritical),  
+               ProportionOfCostsAtBeginningTransformations(includeBaselineValueForNoncritical),
+           };
             List<List<Func<LitigGameOptions, LitigGameOptions>>> criticalTransformations = allTransformations.Take(numCritical).ToList();
             List<List<Func<LitigGameOptions, LitigGameOptions>>> noncriticalTransformations = allTransformations.Skip(IncludeNonCriticalTransformations ? numCritical : allTransformations.Count()).ToList();
-            List<LitigGameOptions> gameOptions = new List<LitigGameOptions>(); 
+            List<LitigGameOptions> gameOptions = new List<LitigGameOptions>();
             if (!useAllPermutationsOfTransformations)
             {
                 var noncriticalTransformationPlusNoTransformation = new List<List<Func<LitigGameOptions, LitigGameOptions>>>();
                 noncriticalTransformationPlusNoTransformation.AddRange(noncriticalTransformations.Where(x => x.Count() != 0));
                 noncriticalTransformationPlusNoTransformation.Insert(0, null);
-                // We still want the non-critical transformations, just not permuted with the others.
+                // We still want the non-critical transformations, just not permuted with the others.  
                 for (int noncriticalIndex = 0; noncriticalIndex < noncriticalTransformationPlusNoTransformation.Count; noncriticalIndex++)
                 {
                     List<Func<LitigGameOptions, LitigGameOptions>> noncriticalTransformation = noncriticalTransformationPlusNoTransformation[noncriticalIndex];
                     if (includeBaselineValueForNoncritical && noncriticalTransformation != null && noncriticalTransformation.Count() <= 1)
-                        continue; // if there is only 1 entry, that will be the baseline, and thus there is no transformation here, so there is nothing to add. But we keep the null case, because that is the case for just keeping the baseline critical transformations.
+                        continue; // if there is only 1 entry, that will be the baseline, and thus there is no transformation here, so there is nothing to add. But we keep the null case, because that is the case for just keeping the baseline critical transformations.  
                     List<List<Func<LitigGameOptions, LitigGameOptions>>> transformLists = criticalTransformations.ToList();
                     bool replaced = false;
                     foreach ((List<Func<LitigGameOptions, LitigGameOptions>> noncritical, List<Func<LitigGameOptions, LitigGameOptions>> critical) in new (List<Func<LitigGameOptions, LitigGameOptions>> noncritical, List<Func<LitigGameOptions, LitigGameOptions>> critical)[] { (noncriticalCostsMultiplierTransformations, criticalCostsMultiplierTransformations), (noncriticalFeeShiftingMultipleTransformations, criticalFeeShiftingMultipleTransformations), (noncriticalRiskAversionTransformations, criticalRiskAversionTransformations) })
                     {
                         if (noncriticalTransformation == noncritical)
                         {
-                            // Keep the order the same for naming purposes
+                            // Keep the order the same for naming purposes  
                             int indexOfCritical = transformLists.IndexOf(critical);
                             transformLists[indexOfCritical] = noncriticalTransformation;
                             replaced = true;
@@ -268,66 +276,15 @@ namespace ACESim
                                 optionSet.VariableSettings[defaultPair.Item1] = defaultPair.Item2;
                     }
 
-                    //var optionSetNames = noncriticalOptions.Select(x => x.Name).OrderBy(x => x).ToList();
+                    //var optionSetNames = noncriticalOptions.Select(x => x.Name).OrderBy(x => x).ToList();  
                     result.Add(noncriticalOptions);
                 }
             }
-            return result;
+            return result.Select(innerList => innerList.Cast<GameOptions>().ToList()).ToList();
         }
 
         // DEBUG -- remove DISABLED throughout this file? Or at least those that we should definitely eliminate.
 
-        public override List<(string criticalValueName, string[] criticalValueValues)> CriticalVariableValues
-        {
-            get
-            {
-                return new List<(string, string[])>()
-                {
-                    ("Costs Multiplier", CriticalCostsMultipliers.Select(x => x.ToString()).ToArray()),
-                    ("Fee Shifting Multiplier", CriticalFeeShiftingMultipliers.Select(x => x.ToString()).ToArray()),
-                    ("Risk Aversion", new[] { "Risk Neutral", "Moderately Risk Averse" }),
-                };
-            }
-        }
-
-        public override List<(string, string)> DefaultVariableValues
-        {
-            get
-            {
-                return new List<(string, string)>()
-                {
-                    ("Costs Multiplier", "1"),
-                    ("Fee Shifting Multiplier", "0"),
-                    ("Risk Aversion", "Risk Neutral"),
-                    ("Fee Shifting Rule", "English"),
-                    ("Relative Costs", "1"),
-                    ("Noise Multiplier P", "1"),
-                    ("Noise Multiplier D", "1"),
-                    ("Damages Multiplier", "1"),
-                    // DISABLED ("Allow Abandon and Defaults", "true"),
-                    // DISABLED ("Probability Truly Liable", "0.5"),
-                    // DISABLED ("Noise to Produce Case Strength", "0.35"),
-                    // DISABLED ("Issue", "Liability"),
-                    ("Proportion of Costs at Beginning", "0.5"),
-                };
-            }
-        }
-
-        public override List<string> NamesOfVariationSets => new List<string>()
-        {
-            "Costs Multipliers",
-            "Fee Shifting Multiples",
-            "Risk Aversion",
-            "Noise Multipliers", // includes P & D
-            "Relative Costs",
-            "Damages Multiplier",
-            "Fee Shifting Mode",
-            // DISABLED "Allowing Abandon and Defaults",
-            // DISABLED "Probability Truly Liable",
-            // DISABLED "Noise to Produce Case Strength",
-            // DISABLED "Liability vs Damages",
-            "Proportion of Costs at Beginning",
-        };
 
         public List<ArticleVariationInfoSets> GetEndogenousDisputesArticleVariationInfoList(bool useRiskAversionForNonRiskReports)
         {

@@ -16,14 +16,6 @@ namespace ACESim
 {
     public class LitigGameCorrelatedSignalsArticleLauncher : PermutationalLauncher
     {
-        public override Dictionary<string, string> NameMap => GetFeeShiftingArticleNameMap();
-        public override List<ArticleVariationInfoSets> VariationInfoSets
-            => GetArticleVariationInfoList(false);
-        public override string ReportPrefix => MasterReportNameForDistributedProcessing;
-
-        public override string MasterReportNameForDistributedProcessing => "FS036";
-
-        // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
 
         private bool HigherRiskAversion = false;
         private bool PRiskAverse = false;
@@ -32,6 +24,53 @@ namespace ACESim
         public bool IncludeRunningSideBetVariations = false;
         public bool LimitToAmerican = true;
         public bool UseSmallerTree = false; // DEBUG
+        public override List<(string, string)> DefaultVariableValues
+        {
+            get
+            {
+                return new List<(string, string)>()
+                {
+                    ("Costs Multiplier", "1"),
+                    ("Fee Shifting Multiplier", "0"),
+                    ("Risk Aversion", "Risk Neutral"),
+                    ("Fee Shifting Rule", "English"),
+                    ("Relative Costs", "1"),
+                    ("Noise Multiplier P", "1"),
+                    ("Noise Multiplier D", "1"),
+                    ("Allow Abandon and Defaults", "true"),
+                    ("Probability Truly Liable", "0.5"),
+                    ("Noise to Produce Case Strength", "0.35"),
+                    ("Issue", "Liability"),
+                    ("Proportion of Costs at Beginning", "0.5"),
+                };
+            }
+        }
+
+        public override List<string> NamesOfVariationSets => new List<string>()
+        {
+           // "Additional Costs Multipliers",
+           // "Additional Fee Shifting Multipliers",
+           // "Additional Risk Options",
+            "Costs Multipliers",
+            "Fee Shifting Multiples",
+            "Risk Aversion",
+            "Noise Multipliers", // includes P & D
+            "Relative Costs",
+            "Fee Shifting Mode",
+            "Allowing Abandon and Defaults",
+            "Probability Truly Liable",
+            "Noise to Produce Case Strength",
+            "Liability vs Damages",
+            "Proportion of Costs at Beginning",
+        };
+
+        public override List<ArticleVariationInfoSets> VariationInfoSets
+            => GetArticleVariationInfoList(false);
+        public override string ReportPrefix => MasterReportNameForDistributedProcessing;
+
+        public override string MasterReportNameForDistributedProcessing => "FS036";
+
+        // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
 
         // Fee shifting article
         public bool IncludeNonCriticalTransformations = true;
@@ -45,8 +84,6 @@ namespace ACESim
         public double[] ProbabilitiesTrulyLiable = new double[] { 0.5, 0.1, 0.9 };
         public double[] StdevsNoiseToProduceLiabilityStrength = new double[] { 0.35, 0.175, 0.70 };
         public double[] ProportionOfCostsAtBeginning = new double[] { 0.5, 0.75, 0.25, 1.0, 0.0 };
-
-
 
         public override List<(string criticalValueName, string[] criticalValueValues)> CriticalVariableValues
         {
@@ -150,7 +187,7 @@ namespace ACESim
         public void AddFeeShiftingArticleGames(List<GameOptions> options)
         {
             bool includeBaselineValueForNoncritical = false; // By setting this to false, we avoid repeating the baseline value for noncritical transformations, which would produce redundant options sets.
-            GetFeeShiftingArticleGames(options, includeBaselineValueForNoncritical);
+            GetGameOptions(options, includeBaselineValueForNoncritical);
             if (UseSmallerTree)
             {
                 foreach (var option in options)
@@ -173,49 +210,6 @@ namespace ACESim
             }
         }
 
-        /// <summary>
-        /// Return the name that a set of fee-shifting article options was run under -- taking into account that we avoid repeating redundant options sets.
-        /// </summary>
-        /// <returns></returns>
-        public Dictionary<string, string> GetFeeShiftingArticleNameMap()
-        {
-            List<GameOptions> withRedundancies = new List<GameOptions>();
-            GetFeeShiftingArticleGames(withRedundancies, true);
-            List<GameOptions> withoutRedundancies = new List<GameOptions>();
-            GetFeeShiftingArticleGames(withoutRedundancies, false);
-            Dictionary<string, string> result = new Dictionary<string, string>();
-            foreach (var gameOptions in withRedundancies)
-            {
-                string runAsName = gameOptions.Name;
-                while (!withoutRedundancies.Any(x => x.Name == runAsName))
-                {
-                    var lastIndex = runAsName.LastIndexOf(' ');
-                    runAsName = runAsName.Substring(0, lastIndex);
-                }
-                result[gameOptions.Name] = runAsName;
-            }
-            return result;
-        }
-
-        public void GetFeeShiftingArticleGames(List<GameOptions> options, bool allowRedundancies)
-        {
-            var gamesSets = GetFeeShiftingArticleGamesSets(false, allowRedundancies); // each is a set with noncritical
-            var eachGameIndependently = gamesSets.SelectMany(x => x).ToList();
-
-            List<string> optionChoices = eachGameIndependently.Select(x => ToCompleteString(x.VariableSettings)).ToList();
-            static string ToCompleteString<TKey, TValue>(IDictionary<TKey, TValue> dictionary)
-            {
-                return "{" + string.Join(",", dictionary.Select(kv => kv.Key + "=" + kv.Value).ToArray()) + "}";
-            }
-            if (!allowRedundancies && optionChoices.Distinct().Count() != optionChoices.Count())
-            {
-                var redundancies = optionChoices.Where(x => optionChoices.Count(y => x == y) > 1).Select(x => (x, optionChoices.Count(y => x == y), optionChoices.Select((item, index) => (item, index)).Where(z => z.item == x).Select(z => z.index).ToList())).ToList();
-                throw new Exception("redundancies found");
-            }
-
-            options.AddRange(eachGameIndependently);
-        }
-
         public List<List<LitigGameOptions>> GetFeeShiftingArticleBaselineGamesSets(bool smallerTree)
         {
             List<List<LitigGameOptions>> result = new List<List<LitigGameOptions>>();
@@ -228,7 +222,7 @@ namespace ACESim
             return result;
         }
 
-        public List<List<LitigGameOptions>> GetFeeShiftingArticleGamesSets(bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical)
+        public override List<List<GameOptions>> GetSetsOfGameOptions(bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical)
         {
             List<List<LitigGameOptions>> result = new List<List<LitigGameOptions>>();
             const int numCritical = 3; // critical transformations are all interacted with one another and then with each of the other transformations
@@ -299,48 +293,8 @@ namespace ACESim
                     result.Add(noncriticalOptions);
                 }
             }
-            return result;
+            return result.Select(innerList => innerList.Cast<GameOptions>().ToList()).ToList();
         }
-
-        public override List<(string, string)> DefaultVariableValues
-        {
-            get
-            {
-                return new List<(string, string)>()
-                {
-                    ("Costs Multiplier", "1"),
-                    ("Fee Shifting Multiplier", "0"),
-                    ("Risk Aversion", "Risk Neutral"),
-                    ("Fee Shifting Rule", "English"),
-                    ("Relative Costs", "1"),
-                    ("Noise Multiplier P", "1"),
-                    ("Noise Multiplier D", "1"),
-                    ("Allow Abandon and Defaults", "true"),
-                    ("Probability Truly Liable", "0.5"),
-                    ("Noise to Produce Case Strength", "0.35"),
-                    ("Issue", "Liability"),
-                    ("Proportion of Costs at Beginning", "0.5"),
-                };
-            }
-        }
-
-        public override List<string> NamesOfVariationSets => new List<string>()
-        {
-           // "Additional Costs Multipliers",
-           // "Additional Fee Shifting Multipliers",
-           // "Additional Risk Options",
-            "Costs Multipliers",
-            "Fee Shifting Multiples",
-            "Risk Aversion",
-            "Noise Multipliers", // includes P & D
-            "Relative Costs",
-            "Fee Shifting Mode",
-            "Allowing Abandon and Defaults",
-            "Probability Truly Liable",
-            "Noise to Produce Case Strength",
-            "Liability vs Damages",
-            "Proportion of Costs at Beginning",
-        };
 
         public List<ArticleVariationInfoSets> GetArticleVariationInfoList(bool useRiskAversionForNonRiskReports)
         {
