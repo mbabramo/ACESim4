@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace ACESimBase.GameSolvingSupport.DeepCFR
+namespace ACESimBase.GameSolvingSupport.DeepCFRSupport
 {
     public readonly struct DeepCFRPlaybackHelper
     {

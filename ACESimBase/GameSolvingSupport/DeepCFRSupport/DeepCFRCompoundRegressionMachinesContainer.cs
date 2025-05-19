@@ -6,7 +6,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
-namespace ACESimBase.GameSolvingSupport.DeepCFR
+namespace ACESimBase.GameSolvingSupport.DeepCFRSupport
 {
     /// <summary>
     /// Stores baseline and additive models, each of which specifies regressions for all decisions in the game. 

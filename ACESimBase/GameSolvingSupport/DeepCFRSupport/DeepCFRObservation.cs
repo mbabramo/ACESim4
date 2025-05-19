@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text;
 
-namespace ACESimBase.GameSolvingSupport.DeepCFR
+namespace ACESimBase.GameSolvingSupport.DeepCFRSupport
 {
     public class DeepCFRObservation
     {

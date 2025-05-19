@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace ACESimBase.GameSolvingSupport.DeepCFR
+namespace ACESimBase.GameSolvingSupport.DeepCFRSupport
 {
     public struct DeepCFRObservationOfDecision
     {

@@ -11,7 +11,7 @@ using System.Text;
 using System.Threading.Tasks;
 using static alglib;
 
-namespace ACESimBase.GameSolvingSupport.DeepCFR
+namespace ACESimBase.GameSolvingSupport.DeepCFRSupport
 {
     public class DeepCFRModel
     {

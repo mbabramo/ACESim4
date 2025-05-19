@@ -1,5 +1,5 @@
 ﻿using ACESim;
-using ACESimBase.GameSolvingSupport.DeepCFR;
+using ACESimBase.GameSolvingSupport.DeepCFRSupport;
 using ACESimBase.GameSolvingSupport.GameTree;
 using ACESimBase.Util.ArrayProcessing.ChunkExecutors;
 using ACESimBase.Util.Mathematics;

@@ -1,5 +1,5 @@
 ﻿using ACESimBase.GameSolvingSupport;
-using ACESimBase.GameSolvingSupport.DeepCFR;
+using ACESimBase.GameSolvingSupport.DeepCFRSupport;
 using ACESimBase.GameSolvingSupport.GameTree;
 using ACESimBase.GameSolvingSupport.Settings;
 using ACESimBase.Util.Collections;
