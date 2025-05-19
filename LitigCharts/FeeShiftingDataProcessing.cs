@@ -22,7 +22,7 @@ namespace LitigCharts
 {
     public class FeeShiftingDataProcessing
     {
-        static string filePrefix(IFeeShiftingLauncher launcher) => launcher.ReportPrefix + "-";
+        static string filePrefix(PermutationalLauncher launcher) => launcher.ReportPrefix + "-";
         const string correlatedEquilibriumFileSuffix = "-Corr";
         const string averageEquilibriumFileSuffix = "-Avg";
         const string firstEquilibriumFileSuffix = "-Eq1";
@@ -84,7 +84,7 @@ namespace LitigCharts
         }
 
 
-        public static void BuildMainFeeShiftingReport(IFeeShiftingLauncher launcher)
+        public static void BuildMainFeeShiftingReport(PermutationalLauncher launcher)
         {
             List<string> rowsToGet = new List<string> { "All", "Not Litigated", "Litigated", "Settles", "Tried", "P Loses", "P Wins", "Truly Liable", "Truly Not Liable" };
             List<string> replacementRowNames = new List<string> { "All", "Not Litigated", "Litigated", "Settles", "Tried", "P Loses", "P Wins", "Truly Liable", "Truly Not Liable" };
@@ -118,7 +118,7 @@ namespace LitigCharts
             }
         }
 
-        internal static List<(string path, string combinedPath, string optionSetName, string fileSuffix)> GetLatexProcessPlans(IFeeShiftingLauncher launcher, IEnumerable<string> fileSuffixes)
+        internal static List<(string path, string combinedPath, string optionSetName, string fileSuffix)> GetLatexProcessPlans(PermutationalLauncher launcher, IEnumerable<string> fileSuffixes)
         {
             // combine lists from GetLatexProcessPaths for each fileSuffix
             List<(string path, string combinedPath, string optionSetName, string fileSuffix)> result = new();
@@ -133,7 +133,7 @@ namespace LitigCharts
             return result;
         }
 
-        internal static List<(string path, string combinedPath, string optionSetName, string fileSuffix)> GetLatexProcessPlans(IFeeShiftingLauncher launcher, string fileSuffix)
+        internal static List<(string path, string combinedPath, string optionSetName, string fileSuffix)> GetLatexProcessPlans(PermutationalLauncher launcher, string fileSuffix)
         {
             List<(string path, string combinedPath, string optionSetName, string fileSuffix)> result = new();
 
@@ -267,7 +267,7 @@ namespace LitigCharts
             ProcessesList.Add(theProcess);
         }
 
-        private static void BuildReport(IFeeShiftingLauncher launcher, List<string> rowsToGet, List<string> replacementRowNames, List<string> columnsToGet, List<string> replacementColumnNames, string endOfFileName)
+        private static void BuildReport(PermutationalLauncher launcher, List<string> rowsToGet, List<string> replacementRowNames, List<string> columnsToGet, List<string> replacementColumnNames, string endOfFileName)
         {
             bool onlyAllFilter = false;
             if (onlyAllFilter)
@@ -326,7 +326,7 @@ namespace LitigCharts
             TextFileManage.CreateTextFile(outputFileFullPath, cumResults);
         }
 
-        public static void BuildOffersReport(IFeeShiftingLauncher launcher)
+        public static void BuildOffersReport(PermutationalLauncher launcher)
         {
             var gameDefinition = new LitigGameDefinition();
             gameDefinition.Setup(launcher.AllGameOptions.First());
@@ -399,7 +399,7 @@ namespace LitigCharts
             }
         }
 
-        internal static void ProduceLatexDiagramsFromTexFiles(IFeeShiftingLauncher launcher)
+        internal static void ProduceLatexDiagramsFromTexFiles(PermutationalLauncher launcher)
         {
             bool workExists = true;
             int numAttempts = 0; // sometimes the Latex processes fail, so we try again if any of our files to create are missing
@@ -415,7 +415,7 @@ namespace LitigCharts
                 ProduceLatexDiagrams(processesToLaunch);
             }
         }
-        public static void OrganizeIntoFolders(IFeeShiftingLauncher launcher, bool doDeletion)
+        public static void OrganizeIntoFolders(PermutationalLauncher launcher, bool doDeletion)
         {
             string reportFolder = Launcher.ReportFolder();
             string individualResultsRoot = Path.Combine(reportFolder, "Individual Simulation Results");
@@ -464,8 +464,8 @@ namespace LitigCharts
             string masterReportName = launcher.ReportPrefix;
             var allOptions = launcher.AllGameOptions;
 
-            List<(string OptionSetName, List<Launcher.GroupingVariableInfo> Variables)> groupingData = launcher.GetVariableInfoPerOption().ToList();
-            Dictionary<string, List<string>> grouped = Launcher.GroupOptionSetsByClassification(groupingData);
+            List<(string OptionSetName, List<PermutationalLauncher.GroupingVariableInfo> Variables)> groupingData = launcher.GetVariableInfoPerOption().ToList();
+            Dictionary<string, List<string>> grouped = PermutationalLauncher.GroupOptionSetsByClassification(groupingData);
 
             var optionNameToOption = allOptions.ToDictionary(opt => opt.Name);
 

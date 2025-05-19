@@ -14,13 +14,13 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
-    public class LitigGameLauncher : Launcher, IFeeShiftingLauncher
+    public class LitigGameLauncher : PermutationalLauncher
     {
-        public List<GameOptions> AllGameOptions => GetOptionsSets();
-        public Dictionary<string, string> NameMap => GetGameOptionsNameMap();
-        public List<ArticleVariationInfoSets> VariationInfoSets
+        public override List<GameOptions> AllGameOptions => GetOptionsSets();
+        public override Dictionary<string, string> NameMap => GetGameOptionsNameMap();
+        public override List<ArticleVariationInfoSets> VariationInfoSets
             => GetEndogenousDisputesArticleVariationInfoList(false);
-        public string ReportPrefix => MasterReportNameForDistributedProcessing;
+        public override string ReportPrefix => MasterReportNameForDistributedProcessing;
         public override string MasterReportNameForDistributedProcessing => MasterReportNamePrefix + "001";
 
         public enum UnderlyingGame
@@ -78,13 +78,13 @@ namespace ACESim
             return LitigGameOptionsGenerator.GetLitigGameOptions();
         }
 
-        public IEnumerable<(string OptionSetName, List<GroupingVariableInfo> Variables)> GetVariableInfoPerOption()
+        public override IEnumerable<(string OptionSetName, List<GroupingVariableInfo> Variables)> GetVariableInfoPerOption()
         {
             var defaultValues = DefaultVariableValues.ToDictionary(x => x.Item1, x => x.Item2.ToString());
             var criticalVars = new HashSet<string> { "Costs Multiplier", "Fee Shifting Multiplier", "Risk Aversion" };
 
             foreach (var opt in AllGameOptions)
-                yield return (opt.Name, Launcher.BuildGroupingVariableInfo(opt, defaultValues, criticalVars));
+                yield return (opt.Name, BuildGroupingVariableInfo(opt, defaultValues, criticalVars));
         }
 
         public override List<GameOptions> GetOptionsSets()
@@ -286,7 +286,8 @@ namespace ACESim
         }
 
         // DEBUG -- remove DISABLED throughout this file? Or at least those that we should definitely eliminate.
-        public List<(string criticalValueName, string[] criticalValueValues)> CriticalVariableValues
+
+        public override List<(string criticalValueName, string[] criticalValueValues)> CriticalVariableValues
         {
             get
             {
@@ -299,7 +300,7 @@ namespace ACESim
             }
         }
 
-        public List<(string, string)> DefaultVariableValues
+        public override List<(string, string)> DefaultVariableValues
         {
             get
             {
@@ -322,7 +323,7 @@ namespace ACESim
             }
         }
 
-        public List<string> NamesOfVariationSets => new List<string>()
+        public override List<string> NamesOfVariationSets => new List<string>()
         {
             "Costs Multipliers",
             "Fee Shifting Multiples",

@@ -14,13 +14,13 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
-    public class LitigGameCorrelatedSignalsArticleLauncher : Launcher, IFeeShiftingLauncher
+    public class LitigGameCorrelatedSignalsArticleLauncher : PermutationalLauncher
     {
-        public List<GameOptions> AllGameOptions => GetOptionsSets();
-        public Dictionary<string, string> NameMap => GetFeeShiftingArticleNameMap();
-        public List<ArticleVariationInfoSets> VariationInfoSets
+        public override List<GameOptions> AllGameOptions => GetOptionsSets();
+        public override Dictionary<string, string> NameMap => GetFeeShiftingArticleNameMap();
+        public override List<ArticleVariationInfoSets> VariationInfoSets
             => GetArticleVariationInfoList(false);
-        public string ReportPrefix => MasterReportNameForDistributedProcessing;
+        public override string ReportPrefix => MasterReportNameForDistributedProcessing;
 
         public override string MasterReportNameForDistributedProcessing => "FS036";
 
@@ -49,7 +49,7 @@ namespace ACESim
 
 
 
-        public List<(string criticalValueName, string[] criticalValueValues)> CriticalVariableValues
+        public override List<(string criticalValueName, string[] criticalValueValues)> CriticalVariableValues
         {
             get
             {
@@ -106,13 +106,13 @@ namespace ACESim
         OptionSetChoice OptionSetChosen = OptionSetChoice.FeeShiftingArticle;  // <<-- Choose option set here
 
 
-        public IEnumerable<(string OptionSetName, List<GroupingVariableInfo> Variables)> GetVariableInfoPerOption()
+        public override IEnumerable<(string OptionSetName, List<GroupingVariableInfo> Variables)> GetVariableInfoPerOption()
         {
             var defaultValues = DefaultVariableValues.ToDictionary(x => x.Item1, x => x.Item2.ToString());
             var criticalVars = new HashSet<string> { "Costs Multiplier", "Fee Shifting Multiplier", "Risk Aversion" };
 
             foreach (var opt in AllGameOptions)
-                yield return (opt.Name, Launcher.BuildGroupingVariableInfo(opt, defaultValues, criticalVars));
+                yield return (opt.Name, BuildGroupingVariableInfo(opt, defaultValues, criticalVars));
         }
 
         public override GameOptions GetDefaultSingleGameOptions()
@@ -310,7 +310,7 @@ namespace ACESim
             return result;
         }
 
-        public List<(string, string)> DefaultVariableValues
+        public override List<(string, string)> DefaultVariableValues
         {
             get
             {
@@ -332,7 +332,7 @@ namespace ACESim
             }
         }
 
-        public List<string> NamesOfVariationSets => new List<string>()
+        public override List<string> NamesOfVariationSets => new List<string>()
         {
            // "Additional Costs Multipliers",
            // "Additional Fee Shifting Multipliers",
