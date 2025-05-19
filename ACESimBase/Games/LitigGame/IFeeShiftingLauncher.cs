@@ -33,6 +33,10 @@ namespace ACESimBase
         // For each named variation set, a string representation of the default value of the variation.
         List<(string, string)> DefaultVariableValues { get; }
 
+        // For each critical variable name, a list of tuples containing the critical variable name and its values.
+        // Noncritical variables should not be included.
+        List<(string criticalValueName, string[] criticalValueValues)> CriticalVariableValues { get; }
+
         // Stable report prefix used for output files (e.g., "FS036" or "APP001").
         string ReportPrefix { get; }
 

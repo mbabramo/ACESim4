@@ -285,6 +285,18 @@ namespace ACESim
         }
 
         // DEBUG -- remove DISABLED throughout this file? Or at least those that we should definitely eliminate.
+        public List<(string criticalValueName, string[] criticalValueValues)> CriticalVariableValues
+        {
+            get
+            {
+                return new List<(string, string[])>()
+                {
+                    ("Costs Multiplier", CriticalCostsMultipliers.Select(x => x.ToString()).ToArray()),
+                    ("Fee Shifting Multiplier", CriticalFeeShiftingMultipliers.Select(x => x.ToString()).ToArray()),
+                    ("Risk Aversion", new[] { "Risk Neutral", "Moderately Risk Averse" }),
+                };
+            }
+        }
 
         public List<(string, string)> DefaultVariableValues
         {

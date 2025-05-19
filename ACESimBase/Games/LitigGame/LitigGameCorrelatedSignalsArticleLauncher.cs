@@ -46,6 +46,21 @@ namespace ACESim
         public double[] StdevsNoiseToProduceLiabilityStrength = new double[] { 0.35, 0.175, 0.70 };
         public double[] ProportionOfCostsAtBeginning = new double[] { 0.5, 0.75, 0.25, 1.0, 0.0 };
 
+
+
+        public List<(string criticalValueName, string[] criticalValueValues)> CriticalVariableValues
+        {
+            get
+            {
+                return new List<(string, string[])>()
+                {
+                    ("Costs Multiplier", CriticalCostsMultipliers.Select(x => x.ToString()).ToArray()),
+                    ("Fee Shifting Multiplier", CriticalFeeShiftingMultipliers.Select(x => x.ToString()).ToArray()),
+                    ("Risk Aversion", new[] { "Risk Neutral", "Moderately Risk Averse" }),
+                };
+            }
+        }
+
         public enum FeeShiftingRule
         {
             English_LiabilityIssue,
