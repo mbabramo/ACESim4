@@ -30,7 +30,7 @@ namespace LitigCharts
         public static string[] equilibriumTypeWords_One = new string[] { firstOrOnlyEquilibriumTypeWord };
         public static string[] equilibriumTypeWords_AllIndividual = Enumerable.Range(1, 100).Select(x => $"Eq{x}").ToArray();
 
-        public static bool firstEqOnly => true; // if true, then only the first equilibrium is used. If false, then all equilibria are used (e.g., -Corr, etc.).
+        public static bool firstEqOnly => false; // if true, then only the first equilibrium is used. If false, then all equilibria are used (e.g., -Corr, etc.).
         public static bool allIndividual = false; // create a diagram for each individual equilibrium (e.g., 1 to 100).
         public static string[] eqToRun => allIndividual ? equilibriumTypeWords_AllIndividual : (firstEqOnly ? equilibriumTypeWords_One : equilibriumTypeWords_Major);
         public static string[] equilibriumTypeSuffixes => allIndividual ? equilibriumTypeSuffixes_AllIndividual : (firstEqOnly ? equilibriumTypeSuffixes_One : equilibriumTypeSuffixes_Major);
