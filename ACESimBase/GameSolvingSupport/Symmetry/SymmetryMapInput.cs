@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ACESimBase.GameSolvingSupport
+namespace ACESimBase.GameSolvingSupport.Symmetry
 {
 
     /// <summary>

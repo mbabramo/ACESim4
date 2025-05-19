@@ -1,6 +1,7 @@
 ﻿using ACESim;
-using ACESimBase.GameSolvingSupport;
+using ACESimBase.GameSolvingSupport.PostIterationUpdater;
 using ACESimBase.GameSolvingSupport.Settings;
+using ACESimBase.GameSolvingSupport.Symmetry;
 using ACESimBase.Util.Collections;
 using ACESimBase.Util.Debugging;
 using ACESimBase.Util.Mathematics;

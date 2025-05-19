@@ -2,8 +2,10 @@ namespace ACESim
 {
     public enum GameApproximationAlgorithm
     {
+        RegretMatching, // primary for GeneralizeVanilla
+        DeepCFR,
+        SequenceForm,
         MultiplicativeWeights,
-        RegretMatching,
         PureStrategyFinder,
         FictitiousPlay,
         BestResponseDynamics,
@@ -14,7 +16,5 @@ namespace ACESim
         ModifiedGibsonProbing,
         AverageStrategySampling,
         PlaybackOnly,
-        DeepCFR,
-        SequenceForm
     }
 }

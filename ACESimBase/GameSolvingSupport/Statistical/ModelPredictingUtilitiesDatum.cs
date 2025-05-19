@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace ACESimBase.GameSolvingSupport
+namespace ACESimBase.GameSolvingSupport.Statistical
 {
 
 
@@ -30,7 +30,7 @@ namespace ACESimBase.GameSolvingSupport
             for (int p = 0; p < NumPlayers; p++)
                 for (int pc = 0; pc < NumPrincipalComponentsPerPlayer; pc++)
                 {
-                    X[index++] = (float)PrincipalComponentsWeightForEachPlayer[p][pc];
+                    X[index++] = PrincipalComponentsWeightForEachPlayer[p][pc];
                 }
             float Y = UtilitiesForEachPlayer == null ? 0 : UtilitiesForEachPlayer[playerIndex];
             return (X, Y, 1.0F);

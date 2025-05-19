@@ -1,4 +1,4 @@
-﻿namespace ACESimBase.GameSolvingSupport
+﻿namespace ACESimBase.GameSolvingSupport.Symmetry
 {
     /// <summary>
     ///  If a game is symmetric, then the strategy developer will look at this value for a decision to determine whether the decision output is symmetric (that is, whether player 0 will make the same decision as player 1 in the corresponding information set or the reverse decision)

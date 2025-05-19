@@ -1,6 +1,6 @@
 using ACESim.Util;
 using ACESim.Util.DiscreteProbabilities;
-using ACESimBase.GameSolvingSupport;
+using ACESimBase.GameSolvingSupport.Symmetry;
 using ACESimBase.Util.ArrayManipulation;
 using ACESimBase.Util.DiscreteProbabilities;
 using Microsoft.Extensions.Options;

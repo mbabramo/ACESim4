@@ -1,5 +1,6 @@
 ﻿using ACESim;
 using ACESimBase.GameSolvingSupport.Settings;
+using ACESimBase.GameSolvingSupport.Symmetry;
 using ACESimBase.Util.Debugging;
 using ACESimBase.Util.Parallelization;
 using ACESimBase.Util.Statistical;

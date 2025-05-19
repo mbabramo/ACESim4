@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace ACESimBase.GameSolvingSupport
+namespace ACESimBase.GameSolvingSupport.PostIterationUpdater
 {
     [Serializable]
     public class PostIterationUpdater_RegretMatching : PostIterationUpdaterBase

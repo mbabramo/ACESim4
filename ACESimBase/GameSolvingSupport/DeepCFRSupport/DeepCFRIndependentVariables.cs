@@ -1,5 +1,6 @@
 ﻿using ACESim;
 using ACESimBase.GameSolvingSupport.GameTree;
+using ACESimBase.GameSolvingSupport.Symmetry;
 using System;
 using System.Collections.Generic;
 using System.Linq;
