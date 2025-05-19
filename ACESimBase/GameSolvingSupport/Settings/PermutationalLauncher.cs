@@ -71,33 +71,6 @@ namespace ACESimBase.GameSolvingSupport.Settings
 
         #endregion
 
-        /// <summary>
-        /// Return the name that a set of options was run under -- taking into account that we avoid repeating redundant options sets.
-        /// </summary>
-        /// <returns></returns>
-        public Dictionary<string, string> NameMap
-        {
-            get
-            {
-                List<GameOptions> withRedundancies = new List<GameOptions>();
-                GetGameOptions(withRedundancies, true);
-                List<GameOptions> withoutRedundancies = new List<GameOptions>();
-                GetGameOptions(withoutRedundancies, false);
-                Dictionary<string, string> result = new Dictionary<string, string>();
-                foreach (var gameOptions in withRedundancies)
-                {
-                    string runAsName = gameOptions.Name;
-                    while (!withoutRedundancies.Any(x => x.Name == runAsName))
-                    {
-                        var lastIndex = runAsName.LastIndexOf(' ');
-                        runAsName = runAsName.Substring(0, lastIndex);
-                    }
-                    result[gameOptions.Name] = runAsName;
-                }
-                return result;
-            }
-        }
-
         public virtual List<GameOptions> FlattenAndOrderGameSets(List<List<GameOptions>> gamesSets)
         {
             return gamesSets.SelectMany(x => x).ToList();
@@ -142,6 +115,33 @@ namespace ACESimBase.GameSolvingSupport.Settings
                     list.Add((opt.Name, BuildGroupingVariableInfo(opt, defaultValues, criticalVars)));
 
                 return list;
+            }
+        }
+
+        /// <summary>
+        /// Return the name that a set of options was run under -- taking into account that we avoid repeating redundant options sets.
+        /// </summary>
+        /// <returns></returns>
+        public Dictionary<string, string> NameMap
+        {
+            get
+            {
+                List<GameOptions> withRedundancies = new List<GameOptions>();
+                GetGameOptions(withRedundancies, true);
+                List<GameOptions> withoutRedundancies = new List<GameOptions>();
+                GetGameOptions(withoutRedundancies, false);
+                Dictionary<string, string> result = new Dictionary<string, string>();
+                foreach (var gameOptions in withRedundancies)
+                {
+                    string runAsName = gameOptions.Name;
+                    while (!withoutRedundancies.Any(x => x.Name == runAsName))
+                    {
+                        var lastIndex = runAsName.LastIndexOf(' ');
+                        runAsName = runAsName.Substring(0, lastIndex);
+                    }
+                    result[gameOptions.Name] = runAsName;
+                }
+                return result;
             }
         }
 
