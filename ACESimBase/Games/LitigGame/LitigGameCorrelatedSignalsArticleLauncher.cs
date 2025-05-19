@@ -16,7 +16,6 @@ namespace ACESim
 {
     public class LitigGameCorrelatedSignalsArticleLauncher : PermutationalLauncher
     {
-        public override List<GameOptions> AllGameOptions => GetOptionsSets();
         public override Dictionary<string, string> NameMap => GetFeeShiftingArticleNameMap();
         public override List<ArticleVariationInfoSets> VariationInfoSets
             => GetArticleVariationInfoList(false);
@@ -106,14 +105,7 @@ namespace ACESim
         OptionSetChoice OptionSetChosen = OptionSetChoice.FeeShiftingArticle;  // <<-- Choose option set here
 
 
-        public override IEnumerable<(string OptionSetName, List<GroupingVariableInfo> Variables)> GetVariableInfoPerOption()
-        {
-            var defaultValues = DefaultVariableValues.ToDictionary(x => x.Item1, x => x.Item2.ToString());
-            var criticalVars = new HashSet<string> { "Costs Multiplier", "Fee Shifting Multiplier", "Risk Aversion" };
-
-            foreach (var opt in AllGameOptions)
-                yield return (opt.Name, BuildGroupingVariableInfo(opt, defaultValues, criticalVars));
-        }
+        
 
         public override GameOptions GetDefaultSingleGameOptions()
         {

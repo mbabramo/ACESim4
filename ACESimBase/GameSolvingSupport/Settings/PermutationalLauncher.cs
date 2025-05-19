@@ -10,13 +10,6 @@ namespace ACESimBase.GameSolvingSupport.Settings
 {
     public abstract class PermutationalLauncher : Launcher
     {
-        // All scenario GameOptions for this launcher (excluding duplicate baseline scenarios).
-        public abstract List<GameOptions> AllGameOptions { get; }
-
-        // Categorizes each option set based on the grouping variables.
-        public abstract IEnumerable<(string OptionSetName, List<GroupingVariableInfo> Variables)> GetVariableInfoPerOption();
-
-
         // Mapping from each full scenario name to its baseline scenario name.
         public abstract Dictionary<string, string> NameMap { get; }
 
@@ -86,6 +79,21 @@ namespace ACESimBase.GameSolvingSupport.Settings
             return result;
         }
 
+        public List<(string OptionSetName, List<GroupingVariableInfo> Variables)> VariableInfoPerOption
+        {
+            get
+            {
+                var list = new List<(string OptionSetName, List<GroupingVariableInfo> Variables)>();
+                var defaultValues = DefaultVariableValues.ToDictionary(x => x.Item1, x => x.Item2.ToString());
+                var criticalVars = new HashSet<string>(CriticalVariableValues.Select(x => x.criticalValueName));
+
+                foreach (var opt in GetOptionsSets())
+                    list.Add((opt.Name, BuildGroupingVariableInfo(opt, defaultValues, criticalVars)));
+
+                return list;
+            }
+        }
+
         public static List<GroupingVariableInfo> BuildGroupingVariableInfo(
             GameOptions option,
             Dictionary<string, string> defaultValues,
@@ -137,9 +145,10 @@ namespace ACESimBase.GameSolvingSupport.Settings
             return "Baseline";
         }
 
-        public static Dictionary<string, List<string>> GroupOptionSetsByClassification(
-            IEnumerable<(string OptionSetName, List<GroupingVariableInfo> Variables)> optionSets)
+        public Dictionary<string, List<string>> GroupOptionSetsByClassification()
         {
+
+            List<(string OptionSetName, List<PermutationalLauncher.GroupingVariableInfo> Variables)> optionSets = VariableInfoPerOption;
             var result = new Dictionary<string, List<string>>();
 
             foreach (var (name, vars) in optionSets)

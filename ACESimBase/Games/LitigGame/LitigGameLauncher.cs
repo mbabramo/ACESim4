@@ -16,7 +16,6 @@ namespace ACESim
 {
     public class LitigGameLauncher : PermutationalLauncher
     {
-        public override List<GameOptions> AllGameOptions => GetOptionsSets();
         public override Dictionary<string, string> NameMap => GetGameOptionsNameMap();
         public override List<ArticleVariationInfoSets> VariationInfoSets
             => GetEndogenousDisputesArticleVariationInfoList(false);
@@ -76,15 +75,6 @@ namespace ACESim
         public override GameOptions GetDefaultSingleGameOptions()
         {
             return LitigGameOptionsGenerator.GetLitigGameOptions();
-        }
-
-        public override IEnumerable<(string OptionSetName, List<GroupingVariableInfo> Variables)> GetVariableInfoPerOption()
-        {
-            var defaultValues = DefaultVariableValues.ToDictionary(x => x.Item1, x => x.Item2.ToString());
-            var criticalVars = new HashSet<string> { "Costs Multiplier", "Fee Shifting Multiplier", "Risk Aversion" };
-
-            foreach (var opt in AllGameOptions)
-                yield return (opt.Name, BuildGroupingVariableInfo(opt, defaultValues, criticalVars));
         }
 
         public override List<GameOptions> GetOptionsSets()

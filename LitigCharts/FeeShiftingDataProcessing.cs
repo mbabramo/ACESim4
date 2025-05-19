@@ -138,7 +138,7 @@ namespace LitigCharts
             List<(string path, string combinedPath, string optionSetName, string fileSuffix)> result = new();
 
             var gameDefinition = new LitigGameDefinition();
-            List<GameOptions> litigGameOptionsSets = launcher.AllGameOptions;
+            List<GameOptions> litigGameOptionsSets = launcher.GetOptionsSets();
             string path = Launcher.ReportFolder();
 
             var map = launcher.NameMap; // name to find (avoids redundancies)
@@ -276,7 +276,7 @@ namespace LitigCharts
                 replacementRowNames = replacementRowNames.Take(1).ToList();
             }
 
-            var gameOptionsSets = launcher.AllGameOptions;
+            var gameOptionsSets = launcher.GetOptionsSets();
             var map = launcher.NameMap; // name to find (avoids redundancies in naming)
             string path = Launcher.ReportFolder();
             string outputFileFullPath = Path.Combine(path, filePrefix(launcher) + $"-{endOfFileName}.csv");
@@ -329,7 +329,7 @@ namespace LitigCharts
         public static void BuildOffersReport(PermutationalLauncher launcher)
         {
             var gameDefinition = new LitigGameDefinition();
-            gameDefinition.Setup(launcher.AllGameOptions.First());
+            gameDefinition.Setup(launcher.GetOptionsSets().First());
             var reportDefinitions = gameDefinition.GetSimpleReportDefinitions();
 
             var report = reportDefinitions.Skip(1).First();
@@ -462,10 +462,9 @@ namespace LitigCharts
 
             var map = launcher.NameMap;
             string masterReportName = launcher.ReportPrefix;
-            var allOptions = launcher.AllGameOptions;
+            var allOptions = launcher.GetOptionsSets();
 
-            List<(string OptionSetName, List<PermutationalLauncher.GroupingVariableInfo> Variables)> groupingData = launcher.GetVariableInfoPerOption().ToList();
-            Dictionary<string, List<string>> grouped = PermutationalLauncher.GroupOptionSetsByClassification(groupingData);
+            Dictionary<string, List<string>> grouped = launcher.GroupOptionSetsByClassification();
 
             var optionNameToOption = allOptions.ToDictionary(opt => opt.Name);
 
