@@ -17,6 +17,7 @@ using System.Reflection.Emit;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Tensorflow;
 using static LitigCharts.DataProcessingUtils;
 
 namespace LitigCharts
@@ -168,15 +169,28 @@ namespace LitigCharts
                 ("EFG Files", new[] { ".efg" }),
                 ("Equilibria Files", new[] { "-equ.csv" }),
                 ("Logs", new[] { "-log.txt" }),
-                ("Latex underlying data", new[] { "-offers.tex", "-fileans.tex", "-stagecostlight.tex", "-stagecostdark.tex" }),
-                ("Latex files", new[] { "-offers.tex", "-fileans.tex", "-stagecostlight.tex", "-stagecostdark.tex" }),
-                ("File-Answer Diagrams", new[] { "-fileans.pdf" }),
-                ("Offer Heatmaps", new[] { "-offers.pdf" }),
-                ("Stage Costs Diagrams (Normal)", new[] { "-stagecostlight.pdf" }),
-                ("Stage Costs Diagrams (Dark Mode)", new[] { "-stagecostdark.pdf" }),
-                ("Stage Costs Diagrams (Underlying Data)", new[] { "-stagecostlight.csv", "-stagecostdark.csv" }),
+                ("Latex underlying data", expandToIncludeAdditionalEquilibria(new[] { "-offers.tex", "-fileans.tex", "-stagecostlight.tex", "-stagecostdark.tex" })),
+                ("Latex files", expandToIncludeAdditionalEquilibria(new[] { "-offers.tex", "-fileans.tex", "-stagecostlight.tex", "-stagecostdark.tex" })),
+                ("File-Answer Diagrams", expandToIncludeAdditionalEquilibria( new[] { "-fileans.pdf" })),
+                ("Offer Heatmaps", expandToIncludeAdditionalEquilibria( new[] { "-offers.pdf" })),
+                ("Stage Costs Diagrams (Normal)", expandToIncludeAdditionalEquilibria( new[] { "-stagecostlight.pdf" })),
+                ("Stage Costs Diagrams (Dark Mode)", expandToIncludeAdditionalEquilibria( new[] { "-stagecostdark.pdf" })),
+                ("Stage Costs Diagrams (Underlying Data)", expandToIncludeAdditionalEquilibria( new[] { "-stagecostlight.csv", "-stagecostdark.csv" })),
                 ("Cross Tabs", new[] { ".csv" }),
             };
+
+            string[] expandToIncludeAdditionalEquilibria(string[] original)
+            {
+                if (firstEqOnly)
+                {
+                    return original;
+                }
+                var l = original.ToList();
+                foreach (var item in original)
+                    foreach (int i in Enumerable.Range(1, 100))
+                        original.add(item.Replace(".", $"-Eq{i}."));
+                return original.ToArray();
+            }
 
             if (!firstEqOnly)
             {

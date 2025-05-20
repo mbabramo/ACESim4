@@ -70,7 +70,6 @@ namespace ACESimBase.GameSolvingAlgorithms
         [SupportedOSPlatform("windows")]
         public override async Task<ReportCollection> RunAlgorithm(string optionSetName)
         {
-
             ReportCollection reportCollection = new ReportCollection();
 
             string filename = null;

@@ -145,7 +145,12 @@ namespace LitigCharts
                 {
                     GetFileInfo(map, filePrefix(launcher), ".tex", firstEquilibriumFileSuffix, ref fileSuffix, path, gameOptionsSet, out filenameCore, out combinedPath, out bool exists);
                     if (!File.Exists(combinedPath))
-                        throw new Exception("File not found");
+                    {
+                        if (File.Exists(combinedPath.Replace("-Eq1", "")))
+                            combinedPath = combinedPath.Replace("-Eq1", "");
+                        else
+                            throw new Exception("File not found: " + combinedPath);
+                    }
                     result.Add((path, combinedPath, gameOptionsSet.Name, fileSuffix));
                 }
             }
