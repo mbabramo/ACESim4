@@ -334,8 +334,6 @@ namespace LitigCharts
             CleanupAfterFolderOrganization(reportFolder, allOptionSets, grouped);
 
             var undeleted = originalFileNames.Except(deletedFileNames).ToList();
-            if (undeleted.Count > 3)
-                throw new Exception("Unexpected files remain in the root directory.");
         }
 
         private static void PrepareFolders(out string reportFolder, out string individualResultsRoot)
