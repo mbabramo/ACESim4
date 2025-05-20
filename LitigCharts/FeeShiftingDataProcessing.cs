@@ -46,7 +46,7 @@ namespace LitigCharts
 
             var gameOptionsSets = launcher.GetOptionsSets();
             var map = launcher.NameMap; // name to find (avoids redundancies in naming)
-            string path = Launcher.ReportFolder();
+            string path = launcher.GetReportFolder();
             string outputFileFullPath = Path.Combine(path, filePrefix(launcher) + $"-{endOfFileName}.csv");
             string cumResults = "";
 
@@ -301,8 +301,8 @@ namespace LitigCharts
             string pathAndFilename = Path.Combine(reportFolder, filename);
             string outputFolderName = "Aggregated Data";
             string outputFolderPath = Path.Combine(reportFolder, outputFolderName);
-            if (!Directory.GetDirectories(reportFolder).Any(x => x == outputFolderName))
-                Directory.CreateDirectory(outputFolderPath);
+            if (!VirtualizableFileSystem.Directory.GetDirectories(reportFolder).Any(x => x == outputFolderName))
+                VirtualizableFileSystem.Directory.CreateDirectory(outputFolderPath);
 
             var sets = launcher.GetSetsOfGameOptions(false, false);
             var map = launcher.NameMap; // name to find (avoids redundancies)
@@ -478,8 +478,8 @@ namespace LitigCharts
         private static void CreateAggregatedLineGraphFromData(LitigGameLauncherBase launcher, string outputFolderPath, AggregatedGraphInfo aggregatedGraphInfo, string equilibriumType, LitigGameEndogenousDisputesLauncher.ArticleVariationInfoSets variation, List<LitigGameEndogenousDisputesLauncher.ArticleVariationInfo> requirementsForEachVariation, List<List<TikzLineGraphData>> lineGraphData, double? limitToCostsMultiplier)
         {
             string subfolderName = Path.Combine(outputFolderPath, variation.nameOfSet);
-            if (!Directory.GetDirectories(outputFolderPath).Any(x => x == subfolderName))
-                Directory.CreateDirectory(subfolderName);
+            if (!VirtualizableFileSystem.Directory.GetDirectories(outputFolderPath).Any(x => x == subfolderName))
+                VirtualizableFileSystem.Directory.CreateDirectory(subfolderName);
             string costsLevel = "";
             if (limitToCostsMultiplier != null)
                 costsLevel = $" Costs {limitToCostsMultiplier}";
@@ -553,7 +553,7 @@ namespace LitigCharts
             TextFileManage.CreateTextFile(outputFilename, result);
             TabbedText.WriteLine($"Launching {outputFilename}");
             string expectedOutput = outputFilename.Replace(".tex", ".pdf");
-            if (!avoidProcessingIfPDFExists || !File.Exists(expectedOutput))
+            if (!avoidProcessingIfPDFExists || !DataProcessingBase.VirtualizableFileSystem.File.Exists(expectedOutput))
                 ExecuteLatexProcess(subfolderName, outputFilename);
         }
 

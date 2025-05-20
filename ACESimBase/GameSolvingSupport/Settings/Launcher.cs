@@ -254,6 +254,8 @@ namespace ACESimBase.GameSolvingSupport.Settings
             return folderFullName;
         }
 
+        public string GetReportFolder() => ReportFolder();
+
         public async Task ParticipateInDistributedProcessing(string masterReportName, CancellationToken cancellationToken, Action<string> logAction = null)
         {
             InitializeTaskCoordinatorIfNecessary(masterReportName);

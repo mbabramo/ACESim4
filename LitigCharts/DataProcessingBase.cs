@@ -1,5 +1,6 @@
 ﻿using ACESimBase.GameSolvingSupport.Settings;
 using ACESimBase.Util.Debugging;
+using ACESimBase.Util.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -13,8 +14,9 @@ namespace LitigCharts
 {
     public class DataProcessingBase
     {
-        public static string filePrefix(PermutationalLauncher launcher) => launcher.ReportPrefix + "-";
+        public static VirtualizableFileSystem VirtualizableFileSystem { get; set; }
 
+        public static string filePrefix(PermutationalLauncher launcher) => launcher.ReportPrefix + "-";
 
         public const string correlatedEquilibriumFileSuffix = "-Corr";
         public const string averageEquilibriumFileSuffix = "-Avg";
@@ -41,7 +43,6 @@ namespace LitigCharts
         public static bool avoidProcessingIfPDFExists = true;
 
         #region Process Management
-
 
         static void CleanupCompletedProcesses(bool killStaleProcesses)
         {
@@ -85,7 +86,7 @@ namespace LitigCharts
         internal static void ExecuteLatexProcessesForExisting(Func<string, bool> includeResultFunc = null)
         {
             string path = Launcher.ReportFolder();
-            string[] results = Directory.GetFiles(path);
+            string[] results = VirtualizableFileSystem.Directory.GetFiles(path);
             foreach (var result in results)
             {
                 if (result.EndsWith(".tex") && (includeResultFunc == null || includeResultFunc(result)))
@@ -95,13 +96,13 @@ namespace LitigCharts
                 }
             }
             WaitForProcessesToFinish();
-            results = Directory.GetFiles(path);
+            results = VirtualizableFileSystem.Directory.GetFiles(path);
             string[] toDelete = new string[] { ".aux", ".log", ".synctex.gz" };
             foreach (var result in results)
             {
                 if (toDelete.Any(d => result.EndsWith(d)))
                 {
-                    File.Delete(result);
+                    VirtualizableFileSystem.File.Delete(result);
                 }
             }
         }
@@ -138,15 +139,15 @@ namespace LitigCharts
                 {
                     string fileSuffixCopy = fileSuffix;
                     GetFileInfo(map, filePrefix(launcher), ".pdf", firstEquilibriumFileSuffix, ref fileSuffixCopy, path, gameOptionsSet, out filenameCore, out combinedPath, out bool exists);
-                    if (File.Exists(combinedPath))
+                    if (VirtualizableFileSystem.File.Exists(combinedPath))
                         processingNeeded = false;
                 }
                 if (processingNeeded)
                 {
                     GetFileInfo(map, filePrefix(launcher), ".tex", firstEquilibriumFileSuffix, ref fileSuffix, path, gameOptionsSet, out filenameCore, out combinedPath, out bool exists);
-                    if (!File.Exists(combinedPath))
+                    if (!VirtualizableFileSystem.File.Exists(combinedPath))
                     {
-                        if (File.Exists(combinedPath.Replace("-Eq1", "")))
+                        if (VirtualizableFileSystem.File.Exists(combinedPath.Replace("-Eq1", "")))
                             combinedPath = combinedPath.Replace("-Eq1", "");
                         else
                             throw new Exception("File not found: " + combinedPath);
@@ -172,7 +173,17 @@ namespace LitigCharts
                 string fileSuffix = processPlan.fileSuffix;
                 TabbedText.WriteLine($"Launching {numLaunched + 1} of {numToDo}");
                 TabbedText.WriteLine($"{optionSetName}{fileSuffix}"); // separate line for easy sorting afterwards
-                ExecuteLatexProcess(path, combinedPath);
+                if (VirtualizableFileSystem.IsReal)
+                    ExecuteLatexProcess(path, combinedPath);
+                else
+                {
+                    // Take combinedPath, make sure that it ends with .tex, then remove the end.
+                    string combinedPathExcludingTex = combinedPath.Replace(".tex", "");
+                    foreach (string ext in new[] { ".aux", ".pdf", ".log", ".synctex.gz" } )
+                    {
+                        VirtualizableFileSystem.File.Add(combinedPathExcludingTex + ext);
+                    }
+                }
                 numLaunched++;
             }
 
@@ -187,8 +198,8 @@ namespace LitigCharts
                     foreach (string suffix in new string[] { $"{processPlan.fileSuffix}.aux", $"{processPlan.fileSuffix}.log", ".synctex.gz" })
                     {
                         string fileToDelete = Path.Combine(processPlan.path, processPlan.optionSetName + suffix);
-                        if (File.Exists(fileToDelete))
-                            File.Delete(fileToDelete);
+                        if (VirtualizableFileSystem.File.Exists(fileToDelete))
+                            VirtualizableFileSystem.File.Delete(fileToDelete);
                     }
                     failures = 0;
                 }
@@ -275,15 +286,15 @@ namespace LitigCharts
             Dictionary<string, List<string>> grouped = launcher.GroupOptionSetsByClassification();
             var optionNameToOptionSet = allOptionSets.ToDictionary(opt => opt.Name);
 
-            var fileNames = Directory.EnumerateFiles(reportFolder).Select(Path.GetFileName).ToHashSet();
+            var fileNames = VirtualizableFileSystem.Directory.EnumerateFiles(reportFolder).Select(Path.GetFileName).ToHashSet();
 
             foreach (var (groupName, optionSetNames) in grouped)
             {
                 string simulationFolder = Path.Combine(individualResultsRoot, groupName);
-                Directory.CreateDirectory(simulationFolder);
+                VirtualizableFileSystem.Directory.CreateDirectory(simulationFolder);
 
                 foreach (var (folderName, _) in placementRules)
-                    Directory.CreateDirectory(Path.Combine(simulationFolder, folderName));
+                    VirtualizableFileSystem.Directory.CreateDirectory(Path.Combine(simulationFolder, folderName));
 
                 var deletedSources = new HashSet<string>();
 
@@ -307,11 +318,11 @@ namespace LitigCharts
                             string sourcePath = Path.Combine(reportFolder, sourceFileName);
                             string targetFileName = optionSetName.Replace("FSA ", "").Replace("  ", " ") + ext;
                             string destPath = Path.Combine(targetDir, targetFileName);
-                            File.Copy(sourcePath, destPath, true);
+                            VirtualizableFileSystem.File.Copy(sourcePath, destPath, true);
 
                             if (doDeletion && deletedSources.Add(sourcePath))
                             {
-                                File.Delete(sourcePath);
+                                VirtualizableFileSystem.File.Delete(sourcePath);
                                 TabbedText.WriteLine($"Deleting {sourcePath}");
                             }
                         }
@@ -326,7 +337,7 @@ namespace LitigCharts
         {
             reportFolder = Launcher.ReportFolder();
             individualResultsRoot = Path.Combine(reportFolder, "Individual Simulation Results");
-            Directory.CreateDirectory(individualResultsRoot);
+            VirtualizableFileSystem.Directory.CreateDirectory(individualResultsRoot);
             DeleteAuxiliaryFiles(reportFolder);
         }
 
@@ -334,13 +345,13 @@ namespace LitigCharts
         {
             // Move process logs
             string processLogsFolder = Path.Combine(reportFolder, "Process Logs");
-            Directory.CreateDirectory(processLogsFolder);
+            VirtualizableFileSystem.Directory.CreateDirectory(processLogsFolder);
 
-            foreach (var logFile in Directory.GetFiles(reportFolder).Where(f => Path.GetFileName(f).Contains("log-p")))
+            foreach (var logFile in VirtualizableFileSystem.Directory.GetFiles(reportFolder).Where(f => Path.GetFileName(f).Contains("log-p")))
             {
                 string dest = Path.Combine(processLogsFolder, Path.GetFileName(logFile));
-                if (File.Exists(dest)) File.Delete(logFile);
-                else File.Move(logFile, dest);
+                if (VirtualizableFileSystem.File.Exists(dest)) VirtualizableFileSystem.File.Delete(logFile);
+                else VirtualizableFileSystem.File.Move(logFile, dest);
             }
 
             // Report unassigned, if any
@@ -360,7 +371,7 @@ namespace LitigCharts
 
         public static string[] DeleteAuxiliaryFiles(string reportFolder)
         {
-            string[] filesInFolder = Directory.GetFiles(reportFolder);
+            string[] filesInFolder = VirtualizableFileSystem.Directory.GetFiles(reportFolder);
             string[] fileExtensionsTriggeringDeletion = new string[] { ".aux", ".log", ".gz" };
             foreach (string file in filesInFolder)
             {
@@ -369,7 +380,7 @@ namespace LitigCharts
                     {
                         try
                         {
-                            File.Delete(file);
+                            VirtualizableFileSystem.File.Delete(file);
                         }
                         catch
                         {
@@ -380,25 +391,6 @@ namespace LitigCharts
 
             return filesInFolder;
         }
-
-        #endregion
-
-        #region Fake files
-
-        // For testing purposes, we avoid the file system and just keep track of which files exist and are generated.
-
-        public static bool FakeFilesEnabled = false;
-        public static HashSet<string> FakeFilesInDirectory;
-
-        public void InitializeFakeFiles(string reportFolder)
-        {
-            if (!FakeFilesEnabled)
-                return;
-            // Use the real files for initialization -- add filenames only of the real files to the HashSet.
-            
-        }
-
-        public bool FileExists
 
         #endregion
     }
