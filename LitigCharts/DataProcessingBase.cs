@@ -275,6 +275,8 @@ namespace LitigCharts
             Dictionary<string, List<string>> grouped = launcher.GroupOptionSetsByClassification();
             var optionNameToOptionSet = allOptionSets.ToDictionary(opt => opt.Name);
 
+            var fileNames = Directory.EnumerateFiles(reportFolder).Select(Path.GetFileName).ToHashSet();
+
             foreach (var (groupName, optionSetNames) in grouped)
             {
                 string simulationFolder = Path.Combine(individualResultsRoot, groupName);
@@ -297,9 +299,12 @@ namespace LitigCharts
 
                         foreach (var ext in extensions)
                         {
-                            string sourcePath = Path.Combine(reportFolder, $"{masterReportName}-{mappedName}{ext}");
-                            if (!File.Exists(sourcePath)) continue;
+                            string sourceFileName = $"{masterReportName}-{mappedName}{ext}";
 
+                            if (!fileNames.Contains(sourceFileName)) 
+                                continue;
+
+                            string sourcePath = Path.Combine(reportFolder, sourceFileName);
                             string targetFileName = optionSetName.Replace("FSA ", "").Replace("  ", " ") + ext;
                             string destPath = Path.Combine(targetDir, targetFileName);
                             File.Copy(sourcePath, destPath, true);
@@ -375,6 +380,25 @@ namespace LitigCharts
 
             return filesInFolder;
         }
+
+        #endregion
+
+        #region Fake files
+
+        // For testing purposes, we avoid the file system and just keep track of which files exist and are generated.
+
+        public static bool FakeFilesEnabled = false;
+        public static HashSet<string> FakeFilesInDirectory;
+
+        public void InitializeFakeFiles(string reportFolder)
+        {
+            if (!FakeFilesEnabled)
+                return;
+            // Use the real files for initialization -- add filenames only of the real files to the HashSet.
+            
+        }
+
+        public bool FileExists
 
         #endregion
     }

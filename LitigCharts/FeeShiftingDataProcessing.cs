@@ -188,8 +188,8 @@ namespace LitigCharts
                 var l = original.ToList();
                 foreach (var item in original)
                     foreach (int i in Enumerable.Range(1, 100))
-                        original.add(item.Replace(".", $"-Eq{i}."));
-                return original.ToArray();
+                        l.Add(item.Replace(".", $"-Eq{i}."));
+                return l.ToArray();
             }
 
             if (!firstEqOnly)
