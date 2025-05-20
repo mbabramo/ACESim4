@@ -146,16 +146,18 @@ namespace LitigCharts
         {
             bool workExists = true;
             int numAttempts = 0; // sometimes the Latex processes fail, so we try again if any of our files to create are missing
-            while (workExists && numAttempts < 5)
+            const int maxAttempts = 10;
+            while (workExists && numAttempts < maxAttempts)
             {
                 List<(string path, string combinedPath, string optionSetName, string fileSuffix)> processesToLaunch = new List<(string path, string combinedPath, string optionSetName, string fileSuffix)>();
-                workExists = processesToLaunch.Any() || !avoidProcessingIfPDFExists; // if we're avoiding processing if the PDF exists, then we'll indicate that there's no more work, because that's our only way of telling
+                workExists = processesToLaunch.Any(); 
                 foreach (string fileSuffix in equilibriumTypeSuffixes)
                 {
-                    List<(string path, string combinedPath, string optionSetName, string fileSuffix)> someToDo = FeeShiftingDataProcessing.GetLatexProcessPlans(launcher, new string[] { "-stagecostlight" + fileSuffix, "-stagecostdark" + fileSuffix, "-offers" + fileSuffix, "-fileans" + fileSuffix });
+                    List<(string path, string combinedPath, string optionSetName, string fileSuffix)> someToDo = FeeShiftingDataProcessing.GetLatexProcessPlans(launcher, new string[] { "-stagecostlight" + fileSuffix, "-stagecostdark" + fileSuffix, "-offers" + fileSuffix, "-fileans" + fileSuffix }, avoidProcessingIfPDFExists || numAttempts > 1);
                     processesToLaunch.AddRange(someToDo);
                 }
                 ProduceLatexDiagrams(processesToLaunch);
+                numAttempts++;
             }
         }
 
@@ -163,21 +165,34 @@ namespace LitigCharts
 
         public static List<(string folderName, string[] extensions)> GetFilePlacementRules()
         {
+            HashSet<string> alreadyProcessed = new();
+
             var placementRules = new List<(string folderName, string[] extensions)>
             {
-                ("First Equilibrium", GetFileTypeExtensionsForEquilibriumType("Eq1")),
+                // ("First Equilibrium", GetFileTypeExtensionsForEquilibriumType("Eq1")),
                 ("EFG Files", new[] { ".efg" }),
                 ("Equilibria Files", new[] { "-equ.csv" }),
                 ("Logs", new[] { "-log.txt" }),
-                ("Latex underlying data", expandToIncludeAdditionalEquilibria(new[] { "-offers.tex", "-fileans.tex", "-stagecostlight.tex", "-stagecostdark.tex" })),
+                ("Latex underlying data", expandToIncludeAdditionalEquilibria(new[] { "-offers.csv", "-fileans.csv", "-stagecostlight.csv", "-stagecostdark.csv" })),
                 ("Latex files", expandToIncludeAdditionalEquilibria(new[] { "-offers.tex", "-fileans.tex", "-stagecostlight.tex", "-stagecostdark.tex" })),
                 ("File-Answer Diagrams", expandToIncludeAdditionalEquilibria( new[] { "-fileans.pdf" })),
                 ("Offer Heatmaps", expandToIncludeAdditionalEquilibria( new[] { "-offers.pdf" })),
                 ("Stage Costs Diagrams (Normal)", expandToIncludeAdditionalEquilibria( new[] { "-stagecostlight.pdf" })),
                 ("Stage Costs Diagrams (Dark Mode)", expandToIncludeAdditionalEquilibria( new[] { "-stagecostdark.pdf" })),
-                ("Stage Costs Diagrams (Underlying Data)", expandToIncludeAdditionalEquilibria( new[] { "-stagecostlight.csv", "-stagecostdark.csv" })),
-                ("Cross Tabs", new[] { ".csv" }),
+                ("Cross Tabs", expandToIncludeAdditionalEquilibria(new[] { ".csv" })),
             };
+
+            string[] notAlreadyProcessed(string[] original)
+            {
+                List<string> result = new();
+                foreach (string o in original)
+                    if (!alreadyProcessed.Contains(o))
+                    {
+                        result.Add(o);
+                        alreadyProcessed.Add(o);
+                    }
+                return result.ToArray();
+            }
 
             string[] expandToIncludeAdditionalEquilibria(string[] original)
             {
@@ -187,34 +202,34 @@ namespace LitigCharts
                 }
                 var l = original.ToList();
                 foreach (var item in original)
-                    foreach (int i in Enumerable.Range(1, 100))
+                    foreach (int i in Enumerable.Range(1, 100)) 
                         l.Add(item.Replace(".", $"-Eq{i}."));
-                return l.ToArray();
+                return notAlreadyProcessed(l.ToArray());
             }
+
+            string[] expandToIncludeSpecificDiagrams(string eqType) => notAlreadyProcessed(new[]
+            {
+                firstEqOnly ? ".csv" : $"-{eqType}.csv",
+                $"-offers-{eqType}.pdf", $"-offers-{eqType}.tex",
+                $"-fileans-{eqType}.pdf", $"-fileans-{eqType}.tex",
+                $"-stagecostlight-{eqType}.pdf", $"-stagecostlight-{eqType}.tex", $"-stagecostlight-{eqType}.csv",
+                $"-stagecostdark-{eqType}.pdf", $"-stagecostdark-{eqType}.tex", $"-stagecostdark-{eqType}.csv",
+            });
 
             if (!firstEqOnly)
             {
                 placementRules.InsertRange(0, new List<(string, string[])>
                 {
-                    ("Correlated Equilibrium", GetFileTypeExtensionsForEquilibriumType("Corr")),
-                    ("Average Equilibrium", GetFileTypeExtensionsForEquilibriumType("Avg")),
+                    ("Correlated Equilibrium", expandToIncludeSpecificDiagrams("Corr")),
+                    ("Average Equilibrium", expandToIncludeSpecificDiagrams("Avg")),
                 });
 
                 for (int i = 2; i <= 100; i++)
-                    placementRules.Add(("Additional Equilibria", GetFileTypeExtensionsForEquilibriumType($"Eq{i}")));
+                    placementRules.Add(("Additional Equilibria", expandToIncludeSpecificDiagrams($"Eq{i}")));
             }
 
             return placementRules;
         }
-
-        private static string[] GetFileTypeExtensionsForEquilibriumType(string eqType) => new[]
-        {
-            firstEqOnly ? ".csv" : $"-{eqType}.csv",
-            $"-offers-{eqType}.pdf", $"-offers-{eqType}.tex",
-            $"-fileans-{eqType}.pdf", $"-fileans-{eqType}.tex",
-            $"-stagecostlight-{eqType}.pdf", $"-stagecostlight-{eqType}.tex", $"-stagecostlight-{eqType}.csv",
-            $"-stagecostdark-{eqType}.pdf", $"-stagecostdark-{eqType}.tex", $"-stagecostdark-{eqType}.csv",
-        };
 
         public static void ExampleLatexDiagramsAggregatingReports(TikzAxisSet.GraphType graphType = TikzAxisSet.GraphType.Line)
         {

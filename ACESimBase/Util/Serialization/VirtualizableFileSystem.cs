@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ACESimBase.Util.Debugging;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -58,7 +59,10 @@ namespace ACESimBase.Util.Serialization
                 }
 
                 if (!_fs._files.Contains(src))
+                {
+                    bool realFileExists = System.IO.File.Exists(src);
                     throw new FileNotFoundException(source);
+                }
 
                 if (!overwrite && _fs._files.Contains(dst))
                     throw new IOException("Destination exists.");
@@ -164,6 +168,8 @@ namespace ACESimBase.Util.Serialization
 
             foreach (var f in System.IO.Directory.GetFiles(_root, "*", SearchOption.AllDirectories))
                 _files.Add(Path.GetFullPath(f));
+
+            TabbedText.WriteLine($"Initialized virtualizable file system with {_files.Count} files");
         }
 
         private string Abs(string path) =>

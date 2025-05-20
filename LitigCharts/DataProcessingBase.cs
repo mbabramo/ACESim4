@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using static LitigCharts.DataProcessingUtils;
@@ -40,7 +41,7 @@ namespace LitigCharts
         public static List<Process> ProcessesList = new List<Process>();
         public static bool UseParallel = true;
         public static int maxProcesses = UseParallel ? Environment.ProcessorCount : 1;
-        public static bool avoidProcessingIfPDFExists = true;
+        public static bool avoidProcessingIfPDFExists = true; // should usually be true because when it's false, we only have one shot at getting everything launched properly
 
         #region Process Management
 
@@ -108,13 +109,13 @@ namespace LitigCharts
         }
 
 
-        internal static List<(string path, string combinedPath, string optionSetName, string fileSuffix)> GetLatexProcessPlans(PermutationalLauncher launcher, IEnumerable<string> fileSuffixes)
+        internal static List<(string path, string combinedPath, string optionSetName, string fileSuffix)> GetLatexProcessPlans(PermutationalLauncher launcher, IEnumerable<string> fileSuffixes, bool skipIfPDFAlreadyExists)
         {
             // combine lists from GetLatexProcessPaths for each fileSuffix
             List<(string path, string combinedPath, string optionSetName, string fileSuffix)> result = new();
             foreach (var fileSuffix in fileSuffixes)
             {
-                var processPlans = GetLatexProcessPlans(launcher, fileSuffix);
+                var processPlans = GetLatexProcessPlans(launcher, fileSuffix, skipIfPDFAlreadyExists);
                 foreach (var processPlan in processPlans)
                 {
                     result.Add(processPlan);
@@ -123,7 +124,7 @@ namespace LitigCharts
             return result;
         }
 
-        internal static List<(string path, string combinedPath, string optionSetName, string fileSuffix)> GetLatexProcessPlans(PermutationalLauncher launcher, string fileSuffix)
+        internal static List<(string path, string combinedPath, string optionSetName, string fileSuffix)> GetLatexProcessPlans(PermutationalLauncher launcher, string fileSuffix, bool skipIfPDFAlreadyExists)
         {
             List<(string path, string combinedPath, string optionSetName, string fileSuffix)> result = new();
             List<GameOptions> optionSets = launcher.GetOptionsSets();
@@ -135,7 +136,7 @@ namespace LitigCharts
             {
                 string filenameCore, combinedPath;
                 bool processingNeeded = true;
-                if (avoidProcessingIfPDFExists)
+                if (skipIfPDFAlreadyExists)
                 {
                     string fileSuffixCopy = fileSuffix;
                     GetFileInfo(map, filePrefix(launcher), ".pdf", firstEquilibriumFileSuffix, ref fileSuffixCopy, path, gameOptionsSet, out filenameCore, out combinedPath, out bool exists);
@@ -183,6 +184,7 @@ namespace LitigCharts
                     {
                         VirtualizableFileSystem.File.Add(combinedPathExcludingTex + ext);
                     }
+                    TabbedText.WriteLine("Virtually processed " + combinedPath);
                 }
                 numLaunched++;
             }
@@ -272,8 +274,6 @@ namespace LitigCharts
 
         #region File organization
 
-
-
         public static void OrganizeIntoFolders(PermutationalLauncher launcher, bool doDeletion, List<(string folderName, string[] extensions)> placementRules)
         {
             string reportFolder, individualResultsRoot;
@@ -286,7 +286,8 @@ namespace LitigCharts
             Dictionary<string, List<string>> grouped = launcher.GroupOptionSetsByClassification();
             var optionNameToOptionSet = allOptionSets.ToDictionary(opt => opt.Name);
 
-            var fileNames = VirtualizableFileSystem.Directory.EnumerateFiles(reportFolder).Select(Path.GetFileName).ToHashSet();
+            var originalFileNames = VirtualizableFileSystem.Directory.EnumerateFiles(reportFolder).Select(Path.GetFileName).ToHashSet();
+            var deletedFileNames = new HashSet<string>();
 
             foreach (var (groupName, optionSetNames) in grouped)
             {
@@ -295,8 +296,6 @@ namespace LitigCharts
 
                 foreach (var (folderName, _) in placementRules)
                     VirtualizableFileSystem.Directory.CreateDirectory(Path.Combine(simulationFolder, folderName));
-
-                var deletedSources = new HashSet<string>();
 
                 foreach (var optionSetName in optionSetNames)
                 {
@@ -312,7 +311,7 @@ namespace LitigCharts
                         {
                             string sourceFileName = $"{masterReportName}-{mappedName}{ext}";
 
-                            if (!fileNames.Contains(sourceFileName)) 
+                            if (!originalFileNames.Contains(sourceFileName)) 
                                 continue;
 
                             string sourcePath = Path.Combine(reportFolder, sourceFileName);
@@ -320,17 +319,23 @@ namespace LitigCharts
                             string destPath = Path.Combine(targetDir, targetFileName);
                             VirtualizableFileSystem.File.Copy(sourcePath, destPath, true);
 
-                            if (doDeletion && deletedSources.Add(sourcePath))
+                            if (doDeletion && deletedFileNames.Add(sourceFileName))
                             {
                                 VirtualizableFileSystem.File.Delete(sourcePath);
-                                TabbedText.WriteLine($"Deleting {sourcePath}");
+                                //TabbedText.WriteLine($"Deleting {sourcePath}");
                             }
                         }
                     }
                 }
+
+
             }
 
             CleanupAfterFolderOrganization(reportFolder, allOptionSets, grouped);
+
+            var undeleted = originalFileNames.Except(deletedFileNames).ToList();
+            if (undeleted.Count > 3)
+                throw new Exception("Unexpected files remain in the root directory.");
         }
 
         private static void PrepareFolders(out string reportFolder, out string individualResultsRoot)
@@ -352,20 +357,6 @@ namespace LitigCharts
                 string dest = Path.Combine(processLogsFolder, Path.GetFileName(logFile));
                 if (VirtualizableFileSystem.File.Exists(dest)) VirtualizableFileSystem.File.Delete(logFile);
                 else VirtualizableFileSystem.File.Move(logFile, dest);
-            }
-
-            // Report unassigned, if any
-            var assignedNames = grouped.SelectMany(g => g.Value).ToHashSet();
-            var unassigned = allOptionSets.Where(o => !assignedNames.Contains(o.Name)).ToList();
-            if (unassigned.Count > 0)
-            {
-                TabbedText.WriteLine($"WARNING: {unassigned.Count} simulations were unassigned.");
-                foreach (var opt in unassigned.Take(10))
-                {
-                    TabbedText.WriteLine($"Unassigned: {opt.Name}");
-                    foreach (var kvp in opt.VariableSettings)
-                        TabbedText.WriteLine($"  {kvp.Key} = {kvp.Value}");
-                }
             }
         }
 

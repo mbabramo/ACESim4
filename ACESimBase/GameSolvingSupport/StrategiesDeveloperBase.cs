@@ -351,8 +351,6 @@ namespace ACESim
                 return null;
             }
             ReportCollection reportCollection = new ReportCollection();
-            if (!optionSetName.Contains(".125 Fee Shifting Multiplier 0 Risk Neutral"))
-                return reportCollection; // DEBUG
             {
                 await Initialize();
                 bool constructCorrelatedEquilibrium = GameDefinition.NumScenarioPermutations > 1 && EvolutionSettings.ConstructCorrelatedEquilibrium;
