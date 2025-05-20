@@ -300,7 +300,7 @@ namespace ACESim
             var reportResult = await ConsiderGeneratingReports(EvolutionSettings.ReportEveryNIterations ?? 0,
                 () =>
                     $"{GameDefinition.OptionSetName}{(EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria > 1 ? $"-Eq{eqNum + 1}" : "")}",
-                manualReportsSupplementalString: numEquilibria > 1 ? $"-eq{eqNum + 1}" : "");
+                manualReportsSupplementalString: numEquilibria > 1 ? $"-Eq{eqNum + 1}" : "");
             reportCollection.Add(reportResult, false, true);
             TabbedText.WriteLine($"Elapsed milliseconds report for eq {eqNum + 1} of {numEquilibria}: {s.ElapsedMilliseconds}");
         }

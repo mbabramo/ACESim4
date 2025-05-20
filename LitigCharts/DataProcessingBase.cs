@@ -295,7 +295,7 @@ namespace LitigCharts
                             string sourcePath = Path.Combine(reportFolder, $"{masterReportName}-{mappedName}{ext}");
                             if (!File.Exists(sourcePath)) continue;
 
-                            string targetFileName = optionSetName.Replace("FSA ", "").Replace("-Eq1", "-eq1").Replace("  ", " ") + ext;
+                            string targetFileName = optionSetName.Replace("FSA ", "").Replace("  ", " ") + ext;
                             string destPath = Path.Combine(targetDir, targetFileName);
                             File.Copy(sourcePath, destPath, true);
 
