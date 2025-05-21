@@ -29,7 +29,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
 
         #region Settings
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.SequenceForm;
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching;
 
         public int? AlwaysDoTaskID = null;  // set this to a task to replay a particular task (either over and over again, using ACESimDistributed, or just once, using ACESimConsole).
         public int[] LimitToTaskIDs = null; // new int[] { 12625, 12635, }; // set this to non-null to repeat specific IDs (e.g., from failures) from a distributed action set.
@@ -67,8 +67,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
 
         public static Launcher GetLauncher()
         {
-            return new LitigGameCorrelatedSignalsArticleLauncher(); // DEBUg
-            //return new LitigGameLauncher();
+            return new LitigGameEndogenousDisputesLauncher(); 
         }
 
         #endregion
