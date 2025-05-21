@@ -22,10 +22,10 @@ namespace LitigCharts
 
             bool useVirtualizedFileSystemForIndividualDiagrams = false; // this is for testing purposes -- it doesn't generate any diagrams
             bool buildMainFeeShiftingReport = true; // this looks at all of the csv files containing the report outputs (e.g., Report Name.csv where there is only one equilibrium, or "-eq1", "-eq2", "-Avg", etc.), and then aggregates all of the information on the report outputs for each simulation into a CSV file, including both All cases and separate rows for various subsets of cases. Set this to false only if it has already been done. 
-            bool printIndividualLatexDiagrams = false; // DEBUG // this is the time consuming one -- it applies to the heat map and offers diagrams for each individual equilibrium
+            bool printIndividualLatexDiagrams = true; // this is the time consuming one -- it applies to the heat map and offers diagrams for each individual equilibrium
             bool doDeletion = printIndividualLatexDiagrams; // don't delete if we haven't done the diagrams yet
-            bool organizeIntoFolders = false; // DEBUG
-            bool printAggregatedDiagrams = false; // DEBUG
+            bool organizeIntoFolders = true;
+            bool printAggregatedDiagrams = true;
 
             if (OneTimeDiagrams())
                 return; // if we did the one-time diagrams, we won't do any of the rest of the processing
