@@ -31,6 +31,7 @@ namespace ACESim
                     ("Noise Multiplier P", "1"),
                     ("Noise Multiplier D", "1"),
                     ("Damages Multiplier", "1"),
+                    ("Issue", "Liability"),
                     ("Proportion of Costs at Beginning", "0.5"),
                 };
             }

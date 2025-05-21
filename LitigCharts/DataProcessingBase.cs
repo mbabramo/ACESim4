@@ -23,20 +23,20 @@ namespace LitigCharts
         public const string averageEquilibriumFileSuffix = "-Avg";
         public const string firstEquilibriumFileSuffix = "-Eq1";
         public const string onlyEquilibriumFileSuffix = "";
-        public static string firstOrOnlyEquilibriumFileSuffix => firstEqOnly ? onlyEquilibriumFileSuffix : firstEquilibriumFileSuffix;
-        public static string firstOrOnlyEquilibriumTypeWord => firstEqOnly ? "Only Eq" : "First Eq";
+        public static string firstOrOnlyEquilibriumFileSuffix => singleEquilibriumOnly ? onlyEquilibriumFileSuffix : firstEquilibriumFileSuffix;
+        public static string firstOrOnlyEquilibriumTypeWord => singleEquilibriumOnly ? "Only Eq" : "First Eq";
 
-        public static string[] equilibriumTypeSuffixes_Major = new string[] { correlatedEquilibriumFileSuffix, averageEquilibriumFileSuffix, firstEquilibriumFileSuffix };
-        public static string[] equilibriumTypeSuffixes_One = new string[] { firstOrOnlyEquilibriumFileSuffix };
-        public static string[] equilibriumTypeSuffixes_AllIndividual = Enumerable.Range(1, 100).Select(x => $"-Eq{x}").ToArray();
+        public static string[] equilibriumTypeSuffixes_Major => new string[] { correlatedEquilibriumFileSuffix, averageEquilibriumFileSuffix, firstEquilibriumFileSuffix };
+        public static string[] equilibriumTypeSuffixes_One => new string[] { firstOrOnlyEquilibriumFileSuffix };
+        public static string[] equilibriumTypeSuffixes_AllIndividual => Enumerable.Range(1, 100).Select(x => $"-Eq{x}").ToArray();
         public static string[] equilibriumTypeWords_Major = new string[] { "Correlated", "Average", "First Eq" };
-        public static string[] equilibriumTypeWords_One = new string[] { firstOrOnlyEquilibriumTypeWord };
+        public static string[] equilibriumTypeWords_One => new string[] { firstOrOnlyEquilibriumTypeWord };
         public static string[] equilibriumTypeWords_AllIndividual = Enumerable.Range(1, 100).Select(x => $"Eq{x}").ToArray();
 
-        public static bool firstEqOnly => false; // if true, then only the first equilibrium is used. If false, then all equilibria are used (e.g., -Corr, etc.).
+        public static bool singleEquilibriumOnly = false; // if true, then only the first equilibrium is used. If false, then all equilibria are used (e.g., -Corr, -Avg, -Eq1, -Eq2, etc.).
         public static bool allIndividual = false; // create a diagram for each individual equilibrium (e.g., 1 to 100).
-        public static string[] eqToRun => allIndividual ? equilibriumTypeWords_AllIndividual : (firstEqOnly ? equilibriumTypeWords_One : equilibriumTypeWords_Major);
-        public static string[] equilibriumTypeSuffixes => allIndividual ? equilibriumTypeSuffixes_AllIndividual : (firstEqOnly ? equilibriumTypeSuffixes_One : equilibriumTypeSuffixes_Major);
+        public static string[] eqToRun => allIndividual ? equilibriumTypeWords_AllIndividual : (singleEquilibriumOnly ? equilibriumTypeWords_One : equilibriumTypeWords_Major);
+        public static string[] equilibriumTypeSuffixes => allIndividual ? equilibriumTypeSuffixes_AllIndividual : (singleEquilibriumOnly ? equilibriumTypeSuffixes_One : equilibriumTypeSuffixes_Major);
 
         public static List<Process> ProcessesList = new List<Process>();
         public static bool UseParallel = true;

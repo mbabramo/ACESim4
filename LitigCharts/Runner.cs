@@ -3,36 +3,39 @@ using ACESimBase;
 using ACESimBase.Games.LitigGame;
 using ACESimBase.GameSolvingSupport.Settings;
 using ACESimBase.Util.Serialization;
+using System;
 
 namespace LitigCharts
 {
     public static class Runner
     {
 
-        public static void AdditiveEvidenceArticle()
+        public enum DataBeingAnalyzed
         {
-            AdditiveEvidenceDataProcessing.GenerateCSV();
-
-            AdditiveEvidenceDataProcessing.GenerateDiagramsFromCSV();
-
-            FeeShiftingDataProcessing.ExecuteLatexProcessesForExisting(); // executes for existing .tex files rather than generating the .tex files
-
-            AdditiveEvidenceDataProcessing.OrganizeIntoFolders();
+            CorrelatedSignalsArticle,
+            EndogenousDisputesArticle
         }
 
-        public static void ProcessForFeeShiftingArticle(bool correlatedSignalsArticle)
+        public static void ProcessLitigationGameData(DataBeingAnalyzed data)
         {
+            DataProcessingBase.singleEquilibriumOnly = data == DataBeingAnalyzed.EndogenousDisputesArticle;
+
             bool useVirtualizedFileSystemForIndividualDiagrams = false; // this is for testing purposes -- it doesn't generate any diagrams
             bool buildMainFeeShiftingReport = true; // this looks at all of the csv files containing the report outputs (e.g., Report Name.csv where there is only one equilibrium, or "-eq1", "-eq2", "-Avg", etc.), and then aggregates all of the information on the report outputs for each simulation into a CSV file, including both All cases and separate rows for various subsets of cases. Set this to false only if it has already been done. 
-            bool printIndividualLatexDiagrams = true; // this is the time consuming one -- it applies to the heat map and offers diagrams for each individual equilibrium
+            bool printIndividualLatexDiagrams = false; // DEBUG // this is the time consuming one -- it applies to the heat map and offers diagrams for each individual equilibrium
             bool doDeletion = printIndividualLatexDiagrams; // don't delete if we haven't done the diagrams yet
-            bool organizeIntoFolders = true;
-            bool printAggregatedDiagrams = true;
+            bool organizeIntoFolders = false; // DEBUG
+            bool printAggregatedDiagrams = false; // DEBUG
 
             if (OneTimeDiagrams())
                 return; // if we did the one-time diagrams, we won't do any of the rest of the processing
 
-            LitigGameLauncherBase launcher = correlatedSignalsArticle ? new LitigGameCorrelatedSignalsArticleLauncher() : new LitigGameEndogenousDisputesLauncher();
+            LitigGameLauncherBase launcher = data switch
+            {
+                DataBeingAnalyzed.CorrelatedSignalsArticle => new LitigGameCorrelatedSignalsArticleLauncher(),
+                DataBeingAnalyzed.EndogenousDisputesArticle => new LitigGameEndogenousDisputesLauncher(),
+                _ => throw new NotImplementedException()
+            };
 
             DataProcessingBase.VirtualizableFileSystem = new ACESimBase.Util.Serialization.VirtualizableFileSystem(launcher.GetReportFolder(), !useVirtualizedFileSystemForIndividualDiagrams);
 
@@ -73,6 +76,20 @@ namespace LitigCharts
             }
 
             return false;
+        }
+
+
+
+        // This is legacy code for an older article.
+        public static void AdditiveEvidenceArticle()
+        {
+            AdditiveEvidenceDataProcessing.GenerateCSV();
+
+            AdditiveEvidenceDataProcessing.GenerateDiagramsFromCSV();
+
+            FeeShiftingDataProcessing.ExecuteLatexProcessesForExisting(); // executes for existing .tex files rather than generating the .tex files
+
+            AdditiveEvidenceDataProcessing.OrganizeIntoFolders();
         }
     }
 }

@@ -20,7 +20,7 @@ namespace LitigCharts
 
             // Runner.AdditiveEvidenceArticle();
 
-            Runner.ProcessForFeeShiftingArticle(true);
+            Runner.ProcessLitigationGameData(Runner.DataBeingAnalyzed.EndogenousDisputesArticle);
         }
     }
 }

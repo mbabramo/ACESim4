@@ -52,7 +52,8 @@ namespace LitigCharts
 
             var distinctOptionSets = gameOptionsSets.DistinctBy(x => map[x.Name]).ToList();
 
-            // look up particular settings here if desired (not usually needed)
+            // look up particular settings here if desired (not usually needed, so findSpecificSettings should be false)
+            // Note that the settings are determined by specific launcher classes, including values in DefaultVariableValues (if something is omitted then the output file may be out of alignment)
             bool findSpecificSettings = false;
             List<(string, string)> settingsToFind = launcher.DefaultVariableValues;
             var matches = distinctOptionSets.Where(x => !findSpecificSettings || settingsToFind.All(y => x.VariableSettings[y.Item1].ToString() == y.Item2.ToString())).ToList();
@@ -66,7 +67,7 @@ namespace LitigCharts
             var numFullNames = gameOptionsSets.Select(x => x.Name).Distinct().Count();
             var variableSettingsList = gameOptionsSets.Select(x => x.VariableSettings).ToList();
             var formattedTableOfOptionsSets = variableSettingsList.ToFormattedTable();
-            TabbedText.WriteLine($"Processing {numDistinctNames} option sets (from a list of {gameOptionsSets.Count} containing redundancies) "); // redundancies may exist because the options set list repeats the baseline value -- but here we want only the distinct ones (this will be filtered by GetCSVLines)
+            TabbedText.WriteLine($"Processing {numDistinctNames} option sets (from a list of {gameOptionsSets.Count} potentially containing redundancies) "); // redundancies may exist because the options set list repeats the baseline value -- but here we want only the distinct ones (this will be filtered by GetCSVLines)
             TabbedText.WriteLine("All options sets (including redundancies)");
             TabbedText.WriteLine(formattedTableOfOptionsSets);
 
@@ -74,7 +75,7 @@ namespace LitigCharts
             {
                 string altFileSuffix = firstEquilibriumFileSuffix;
                 TabbedText.WriteLine($"Processing equilibrium type {fileSuffix}");
-                bool includeHeader = firstEqOnly || fileSuffix == correlatedEquilibriumFileSuffix;
+                bool includeHeader = singleEquilibriumOnly || fileSuffix == correlatedEquilibriumFileSuffix;
                 List<List<string>> outputLines = GetCSVLines(distinctOptionSets.Select(x => (GameOptions)x).ToList(), map, rowsToGet, replacementRowNames, filePrefix(launcher), fileSuffix, altFileSuffix, path, includeHeader, columnsToGet, replacementColumnNames);
                 if (includeHeader)
                     outputLines[0].Insert(0, "Equilibrium Type");
@@ -196,7 +197,7 @@ namespace LitigCharts
 
             string[] expandToIncludeAdditionalEquilibria(string[] original)
             {
-                if (firstEqOnly)
+                if (singleEquilibriumOnly)
                 {
                     return original;
                 }
@@ -209,14 +210,14 @@ namespace LitigCharts
 
             string[] expandToIncludeSpecificDiagrams(string eqType) => notAlreadyProcessed(new[]
             {
-                firstEqOnly ? ".csv" : $"-{eqType}.csv",
+                singleEquilibriumOnly ? ".csv" : $"-{eqType}.csv",
                 $"-offers-{eqType}.pdf", $"-offers-{eqType}.tex",
                 $"-fileans-{eqType}.pdf", $"-fileans-{eqType}.tex",
                 $"-stagecostlight-{eqType}.pdf", $"-stagecostlight-{eqType}.tex", $"-stagecostlight-{eqType}.csv",
                 $"-stagecostdark-{eqType}.pdf", $"-stagecostdark-{eqType}.tex", $"-stagecostdark-{eqType}.csv",
             });
 
-            if (!firstEqOnly)
+            if (!singleEquilibriumOnly)
             {
                 placementRules.InsertRange(0, new List<(string, string[])>
                 {
