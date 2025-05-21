@@ -129,6 +129,13 @@ namespace ACESim
             return socialWelfare;
         }
 
+        public (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts)
+        {
+            double opportunity = (acts.PrimaryAction - 1) * IncrementalPrecautionCost;
+            double harm = acts.PostPrimaryChanceAction == 1 ? CostOfInjury : 0.0;
+            return (opportunity, harm);
+        }
+
         public bool PotentialDisputeArises(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             return disputeGeneratorActions.PostPrimaryChanceAction == 1; // only a dispute if an injury occurs

@@ -133,6 +133,27 @@ namespace ACESim
             }
         }
 
+        public (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef,
+                               LitigGameDisputeGeneratorActions acts)
+        {
+            var status = ConvertPrePrimaryChance(acts.PrePrimaryChanceAction);
+            bool fired = acts.PrimaryAction == 1;
+            double opportunity = 0.0;
+            double harm = 0.0;
+            if (fired)
+            {
+                harm += CostToEmployeeOfBeingFired;
+                if (!status.badEmployee)
+                    harm = SocialCostOfFiringGoodEmployee;
+            }
+            else
+            {
+                if (status.badEmployee)
+                    opportunity = CostOfLeavingBadEmployee;
+            }
+            return (opportunity, harm);
+        }
+
         public bool PotentialDisputeArises(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             return disputeGeneratorActions.PrimaryAction == 1; // only a dispute if employee is fired

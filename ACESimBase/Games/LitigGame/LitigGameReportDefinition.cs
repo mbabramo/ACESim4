@@ -141,6 +141,8 @@ namespace ACESim
                 new SimpleReportColumnVariable("False-^2", (GameProgress gp) => MyGP(gp).FalseNegativeShortfall * MyGP(gp).FalseNegativeShortfall),
                 new SimpleReportColumnVariable("PDSWelfareLoss", (GameProgress gp) => -MyGP(gp).PreDisputeSharedWelfare),
                 new SimpleReportColumnVariable("SWelfareLoss", (GameProgress gp) => -MyGP(gp).PreDisputeSharedWelfare + MyGP(gp).TotalExpensesIncurred),
+                new SimpleReportColumnVariable("OpportunityCost", (GameProgress gp) => -MyGP(gp).OpportunityCost + MyGP(gp).TotalExpensesIncurred),
+                new SimpleReportColumnVariable("HarmCost", (GameProgress gp) => -MyGP(gp).HarmCost + MyGP(gp).TotalExpensesIncurred),
                 new SimpleReportColumnVariable("Chips", (GameProgress gp) => MyGP(gp).NumChips),
                 new SimpleReportColumnFilter("Settles", (GameProgress gp) => MyGP(gp).SettlementValue != null, SimpleReportColumnFilterOptions.ProportionOfRow),
                 new SimpleReportColumnVariable("ValIfSettled", (GameProgress gp) => MyGP(gp).SettlementValue),

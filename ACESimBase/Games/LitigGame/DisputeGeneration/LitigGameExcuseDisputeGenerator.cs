@@ -239,6 +239,21 @@ namespace ACESim
             }
         }
 
+        public (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef,
+                                LitigGameDisputeGeneratorActions acts)
+        {
+            double costLevel = _costLevels[acts.PrePrimaryChanceAction - 1];
+
+            // Performing (primaryAction == 2) is the “precaution” that costs the promisor.
+            double precaution = acts.PrimaryAction == 2 ? costLevel : 0.0;
+
+            // Breach (primaryAction == 1) inflicts lost benefit on the promisee.
+            double injury = acts.PrimaryAction == 1 ? BenefitToPromisee : 0.0;
+
+            return (precaution, injury);
+        }
+
+
         public bool PostPrimaryDoesNotAffectStrategy() => false;
 
         // ── defaults / unused inversion interface parts ───────────────────────────

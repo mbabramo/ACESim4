@@ -110,6 +110,8 @@ namespace ACESim
         public double FalseNegativeShortfall { get => PostGameInfo.FalseNegativeShortfall; set { PostGameInfo.FalseNegativeShortfall = value; } }
         public double TotalExpensesIncurred { get => PostGameInfo.TotalExpensesIncurred; set { PostGameInfo.TotalExpensesIncurred = value; } }
         public double PreDisputeSharedWelfare { get => PostGameInfo.PreDisputeSharedWelfare; set { PostGameInfo.PreDisputeSharedWelfare = value; } }
+        public double OpportunityCost { get => PostGameInfo.OpportunityCost; set { PostGameInfo.OpportunityCost = value; } }
+        public double HarmCost { get => PostGameInfo.HarmCost; set { PostGameInfo.HarmCost = value; } }
 
 
         public override string ToString()
@@ -583,6 +585,7 @@ namespace ACESim
                 FalsePositiveExpenditures = falsePositiveExpendituresIfNotTrulyLiable;
             }
             PreDisputeSharedWelfare = o.LitigGameDisputeGenerator.GetLitigationIndependentSocialWelfare(LitigGameDefinition, DisputeGeneratorActions);
+            (OpportunityCost, HarmCost) = o.LitigGameDisputeGenerator.GetOpportunityAndHarmCosts(LitigGameDefinition, DisputeGeneratorActions);
         }
 
         public override void RecalculateGameOutcome()

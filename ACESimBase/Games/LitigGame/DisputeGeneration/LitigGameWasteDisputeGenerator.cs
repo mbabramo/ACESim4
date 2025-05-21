@@ -243,6 +243,21 @@ namespace ACESim
             return w.Sum();
         }
 
+        public (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef,
+                                LitigGameDisputeGeneratorActions acts)
+        {
+            double R = _returnLevels[acts.PrePrimaryChanceAction - 1];
+
+            // Rejecting the proposal (primaryAction == 2) sacrifices R → precaution.
+            double precaution = acts.PrimaryAction == 2 ? R : 0.0;
+
+            // Approving (primaryAction == 1) imposes the external cost C on the plaintiff.
+            double injury = acts.PrimaryAction == 1 ? FixedCostC : 0.0;
+
+            return (precaution, injury);
+        }
+
+
         public bool PostPrimaryDoesNotAffectStrategy() => false;
 
         // ── defaults / unused inversion interface parts ───────────────────────────

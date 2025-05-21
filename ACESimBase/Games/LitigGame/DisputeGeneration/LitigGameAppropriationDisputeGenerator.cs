@@ -108,6 +108,21 @@ namespace ACESim
                 return 0;
             return -CostToPlaintiffOfAppropriation * SocialWelfareMultiplier + (CountBenefitToDefendantInSocialWelfare ? BenefitToDefendantOfAppropriation * SocialWelfareMultiplier : 0);
         }
+        public (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts)
+        {
+            // Not appropriating (primaryAction == 2) means giving up the benefit.
+            double precaution = acts.PrimaryAction == 2
+                ? BenefitToDefendantOfAppropriation
+                : 0.0;
+
+            // Appropriation (primaryAction == 1) harms the plaintiff.
+            double injury = acts.PrimaryAction == 1
+                ? CostToPlaintiffOfAppropriation
+                : 0.0;
+
+            return (precaution, injury);
+        }
+
 
         public double[] GetLiabilityStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {

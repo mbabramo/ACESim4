@@ -73,6 +73,11 @@ namespace ACESim
             return NoWealthEffects;
         }
 
+        public (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts)
+        {
+            return (0.0, 0.0);  // inapplicable
+        }
+
         public double[] GetLiabilityStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             throw new NotImplementedException(); // we use even chance probabilities

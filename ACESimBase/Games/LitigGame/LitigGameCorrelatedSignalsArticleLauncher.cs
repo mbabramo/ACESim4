@@ -18,9 +18,6 @@ namespace ACESim
     public class LitigGameCorrelatedSignalsArticleLauncher : LitigGameLauncherBase
     {
 
-        private bool HigherRiskAversion = false;
-        private bool PRiskAverse = false;
-        public bool DRiskAverse = false;
         public bool TestDisputeGeneratorVariations = false;
         public bool IncludeRunningSideBetVariations = false;
         public bool LimitToAmerican = true;

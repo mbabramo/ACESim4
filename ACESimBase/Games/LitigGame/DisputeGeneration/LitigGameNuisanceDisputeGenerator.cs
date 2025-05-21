@@ -102,6 +102,22 @@ namespace ACESim
             return BenefitOfActionToDefendant_Level(disputeGeneratorActions.PrePrimaryChanceAction) - CostOfActionOnPlaintiff;
         }
 
+        public (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts)
+        {
+            // If the defendant *declines* to take the benefit (primaryAction == 2),
+            // the foregone benefit is treated as a precaution / opportunity cost.
+            double precaution = acts.PrimaryAction == 2
+                ? BenefitOfActionToDefendant_Level(acts.PrePrimaryChanceAction)
+                : 0.0;
+
+            // If the defendant *takes* the benefit (primaryAction == 1),
+            // the plaintiff suffers the nuisance harm.
+            double injury = acts.PrimaryAction == 1 ? CostOfActionOnPlaintiff : 0.0;
+
+            return (precaution, injury);
+        }
+
+
         public double[] GetLiabilityStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             return ProbabilityLiabilityStrength[disputeGeneratorActions.PrePrimaryChanceAction - 1];

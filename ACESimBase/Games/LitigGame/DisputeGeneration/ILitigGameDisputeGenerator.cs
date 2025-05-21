@@ -22,6 +22,10 @@ namespace ACESim
         double[] GetLiabilityStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions);
         double GetLitigationIndependentSocialWelfare(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions);
         double[] GetLitigationIndependentWealthEffects(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions);
+        (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(
+            LitigGameDefinition litigGameDefinition,
+            LitigGameDisputeGeneratorActions disputeGeneratorActions);
+
 
         public bool SupportsSymmetry() => false;
 

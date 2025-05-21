@@ -21,6 +21,9 @@ namespace ACESimBase.Games.LitigGame
         public double TotalExpensesIncurred;
         public double PreDisputeSharedWelfare;
 
+        public double OpportunityCost;
+        public double HarmCost;
+
         public bool IsTrulyLiable;
     }
 }

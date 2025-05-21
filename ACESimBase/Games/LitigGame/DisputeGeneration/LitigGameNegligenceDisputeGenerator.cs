@@ -311,6 +311,24 @@ namespace ACESim
             return w.Sum();
         }
 
+        public (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts)
+        {
+            // Precaution outlay only if the defendant actually took care (primaryAction == 2)
+            double precaution = 0.0;
+            if (acts.PrimaryAction == 2)
+            {
+                precaution = CostVariesMode
+                    ? _costLevels?[acts.PrePrimaryChanceAction - 1] ?? FixedPrecautionCost
+                    : FixedPrecautionCost;
+            }
+
+            // Injury cost only when an injury event was realised (postPrimaryChanceAction == 1)
+            double injury = acts.PostPrimaryChanceAction == 1 ? CostOfInjury : 0.0;
+
+            return (precaution, injury);
+        }
+
+
         public bool PostPrimaryDoesNotAffectStrategy() => false;
 
         // ── defaults / unused inversion interface parts ───────────────────────────
