@@ -10,317 +10,226 @@ using System.Text;
 
 namespace ACESimBase.Games.LitigGame.ManualReports
 {
-    /// <summary>
-    /// Produces the mosaic stacked-bar diagram of litigation cost components:
-    ///   Opportunity, Harm, Filing, Answering, Bargaining, Trying.
-    /// Each slice width = probability; heights are rescaled so the tallest stack = 4.0.
-    /// </summary>
     public static class CostBreakdownReport
     {
-        // ---------------- constants / styling -----------------------------------------------
+        const double MaxStackUnits = 4.0;                    // top of the y-axis
 
-        private const double MaxStackHeight = 4.0;
-
-        // hatch patterns (publication mode)
-        private static readonly string[] RegularFill =
+        static readonly string[] RegFill =
         {
-            "pattern=north east lines, pattern color=blue",          // Opportunity
-            "pattern=north west lines, pattern color=red",           // Harm
-            "pattern=dots,            pattern color=green!60!black", // Filing
-            "pattern=vertical lines,  pattern color=green!80!black", // Answering
-            "pattern=crosshatch,      pattern color=orange!80!black",// Bargaining
-            "pattern=grid,            pattern color=purple!70!black" // Trying
+            "pattern=north east lines, pattern color=green",
+            "pattern=north west lines, pattern color=yellow",
+            "pattern=dots,            pattern color=blue!60!black",
+            "pattern=vertical lines,  pattern color=blue!80!black",
+            "pattern=crosshatch,      pattern color=blue!80!black",
+            "pattern=grid,            pattern color=red!70!black"
         };
-
-        // solid colours (presentation mode)
-        private static readonly string[] PresentationFill =
+        static readonly string[] PresFill =
         {
-            "fill=blue!85", "fill=red!85",    "fill=yellow!75!black",
-            "fill=green!70","fill=orange!85", "fill=purple!75"
+            "fill=green!85","fill=yellow!85","fill=blue!75!black",
+            "fill=blue!70","fill=blue!85","fill=red!75"
         };
+        static readonly string[] Labels =
+            { "Opportunity","Harm","File","Answer","Bargaining","Trial" };
 
-        private static readonly string[] ComponentLabels =
-            { "Opportunity", "Harm", "Filing", "Answering", "Bargaining", "Trying" };
-
-        // ---------------- public entry points -----------------------------------------------
-
-        /// <summary>Pipeline entry — signature matches StageCostReport.</summary>
         public static List<string> GenerateReport(
-            List<(GameProgress theProgress, double weight)> gameProgresses)
-            => GenerateReport(gameProgresses.Select(g =>
-                    ((LitigGameProgress)g.theProgress, g.weight)));
+            List<(GameProgress theProgress, double weight)> gp) =>
+            GenerateReport(gp.Select(g =>
+                ((LitigGameProgress)g.theProgress, g.weight)));
 
-        /// <summary>Lower-level overload for typed progress/weight pairs.</summary>
         public static List<string> GenerateReport(
-            IEnumerable<(LitigGameProgress progress, double weight)> raw,
-            bool presentationMode = false)
+            IEnumerable<(LitigGameProgress p, double w)> raw,
+            bool presentation = false)
         {
-            double totW = raw.Sum(r => r.weight);
-            if (totW <= 0)
-                throw new ArgumentException("Total weight must be > 0.");
+            double totW = raw.Sum(r => r.w);
+            if (totW <= 0) throw new ArgumentException("weights");
 
-            var initial = raw
-                .Select(r => BuildSlice(r.progress, r.weight / totW))
-                .ToList();
+            var slices = raw.Select(r => BuildSlice(r.p, r.w / totW)).ToList();
+            slices = Merge(slices);
+            slices = slices.OrderByDescending(s => s.Opportunity)
+                           .ThenBy(s => s.Harm)
+                           .ThenBy(s => s.Total).ToList();     // new ordering
+            slices = Scale(slices).ToList();
 
-            var merged = MergeDuplicates(initial);
-            var ordered = merged.OrderBy(s => s.TotalCost).ToList();
-            var scaled = ScaleToFour(ordered);
-
-            // Determine title (Costs and Fee Shift multipliers, plus risk aversion info)
-            var options = (LitigGameOptions)raw.First().progress.GameDefinition.GameOptions;
-            string title = $"Costs: {options.CostsMultiplier}x; Fee Shift: {options.LoserPaysMultiple}x";
-            bool pRiskNeutral = options.PUtilityCalculator is RiskNeutralUtilityCalculator;
-            bool dRiskNeutral = options.DUtilityCalculator is RiskNeutralUtilityCalculator;
-            string supplementalTitle = (pRiskNeutral, dRiskNeutral) switch
-            {
-                (true, true) => "",
-                (true, false) => "; D Risk Averse",
-                (false, true) => "; P Risk Averse",
-                (false, false) => "; Both Risk Averse"
-            };
-            title += supplementalTitle;
-
-            // Return: CSV + TikZ (print) + CSV (dup) + TikZ (presentation) — mimics StageCostReport.
+            var opt = (LitigGameOptions)raw.First().p.GameDefinition.GameOptions;
+            string ttl = $"Costs: {opt.CostsMultiplier}x; Fee Shift: {opt.LoserPaysMultiple}x";
             return new()
             {
-                BuildCsv(scaled),
-                BuildTikz(scaled, false, title),
-                BuildCsv(scaled),
-                BuildTikz(scaled, true, title)
+                Csv(slices),
+                Tikz(slices,false,null),              // print mode - no title
+                Csv(slices),
+                Tikz(slices,true,ttl)                 // presentation with title
             };
         }
 
-        // ---------------- slice representation ----------------------------------------------
-
-        private sealed record Slice(
-            double Width,
-            double Opportunity,
-            double Harm,
-            double Filing,
-            double Answering,
-            double Bargaining,
-            double Trying)
+        #region slice helpers
+        sealed record Slice(
+            double Width, double Opportunity, double Harm, double Filing,
+            double Answer, double Bargain, double Try)
         {
-            public double TotalCost =>
-                Opportunity + Harm + Filing + Answering + Bargaining + Trying;
-
-            public bool Matches(Slice o, double tol = 1e-7) =>
-                Math.Abs(Opportunity - o.Opportunity) < tol &&
-                Math.Abs(Harm - o.Harm) < tol &&
-                Math.Abs(Filing - o.Filing) < tol &&
-                Math.Abs(Answering - o.Answering) < tol &&
-                Math.Abs(Bargaining - o.Bargaining) < tol &&
-                Math.Abs(Trying - o.Trying) < tol;
-
-            public Slice AddWidth(double extra) => this with { Width = Width + extra };
+            public double Total =>
+                Opportunity + Harm + Filing + Answer + Bargain + Try;
         }
 
-        // ---------------- build a slice from progress ---------------------------------------
-
-        private static Slice BuildSlice(LitigGameProgress p, double width)
+        static Slice BuildSlice(LitigGameProgress p, double w)
         {
-            var opt = (LitigGameOptions)p.GameDefinition.GameOptions;
-            double m = opt.CostsMultiplier;                     // litigation-cost multiplier
+            var o = (LitigGameOptions)p.GameDefinition.GameOptions;
+            double m = o.CostsMultiplier;
 
-            // Non-litigation parts (un-multiplied)
-            double opportunity = p.OpportunityCost;
-            double harm = p.HarmCost;
+            double opp = p.OpportunityCost, harm = p.HarmCost;
+            double file = p.PFiles ? (o.PFilingCost -
+                (!p.DAnswers ? o.PFilingCost_PortionSavedIfDDoesntAnswer : 0)) * m : 0;
+            double ans = p.DAnswers ? o.DAnswerCost * m : 0;
+            double bar = 2 * o.PerPartyCostsLeadingUpToBargainingRound *
+                       p.BargainingRoundsComplete * m;
+            double tri = p.TrialOccurs ? (o.PTrialCosts + o.DTrialCosts) * m : 0;
 
-            // Filing
-            double filing = p.PFiles
-                ? (opt.PFilingCost -
-                   (!p.DAnswers ? opt.PFilingCost_PortionSavedIfDDoesntAnswer : 0.0)) * m
-                : 0.0;
-
-            // Answering
-            double answering = p.DAnswers ? opt.DAnswerCost * m : 0.0;
-
-            // Bargaining – both parties pay per round
-            int rounds = p.BargainingRoundsComplete;
-            double bargaining = 2 * opt.PerPartyCostsLeadingUpToBargainingRound
-                               * rounds * m;
-
-            // Trying
-            double trying = p.TrialOccurs
-                ? (opt.PTrialCosts + opt.DTrialCosts) * m
-                : 0.0;
-
-            return new Slice(width,
-                             opportunity,
-                             harm,
-                             filing,
-                             answering,
-                             bargaining,
-                             trying);
+            return new(w, opp, harm, file, ans, bar, tri);
         }
 
-        // ---------------- helpers: merge, scale ---------------------------------------------
-
-        private static List<Slice> MergeDuplicates(IEnumerable<Slice> slices)
+        static List<Slice> Merge(IEnumerable<Slice> src)
         {
             var acc = new List<Slice>();
-            foreach (var s in slices)
+            foreach (var s in src)
             {
-                var hit = acc.FirstOrDefault(a => a.Matches(s));
-                if (hit is null)
-                    acc.Add(s);
-                else
-                    acc[acc.IndexOf(hit)] = hit.AddWidth(s.Width);
+                var hit = acc.FirstOrDefault(a =>
+                    Math.Abs(a.Opportunity - s.Opportunity) < 1e-7 &&
+                    Math.Abs(a.Harm - s.Harm) < 1e-7 &&
+                    Math.Abs(a.Filing - s.Filing) < 1e-7 &&
+                    Math.Abs(a.Answer - s.Answer) < 1e-7 &&
+                    Math.Abs(a.Bargain - s.Bargain) < 1e-7 &&
+                    Math.Abs(a.Try - s.Try) < 1e-7);
+                if (hit is null) acc.Add(s);
+                else acc[acc.IndexOf(hit)] =
+                        hit with { Width = hit.Width + s.Width };
             }
             return acc;
         }
 
-        private static List<Slice> ScaleToFour(IEnumerable<Slice> slices)
+        static IEnumerable<Slice> Scale(IEnumerable<Slice> src)
         {
-            double peak = slices.Max(s => s.TotalCost);
-            if (peak <= 0) return slices.ToList();
-
-            double k = MaxStackHeight / peak;
-
-            return slices.Select(s => s with
+            double peak = src.Max(s => s.Total);
+            double k = peak > MaxStackUnits ? MaxStackUnits / peak : 1;
+            return src.Select(s => s with
             {
                 Opportunity = s.Opportunity * k,
                 Harm = s.Harm * k,
                 Filing = s.Filing * k,
-                Answering = s.Answering * k,
-                Bargaining = s.Bargaining * k,
-                Trying = s.Trying * k
-            }).ToList();
+                Answer = s.Answer * k,
+                Bargain = s.Bargain * k,
+                Try = s.Try * k
+            });
         }
+        #endregion
 
-        // ---------------- CSV ----------------------------------------------------------------
-
-        private static string BuildCsv(IEnumerable<Slice> slices)
+        #region csv
+        static string Csv(IEnumerable<Slice> ss)
         {
-            var sb = new StringBuilder(
-                "Width,Opportunity,Harm,Filing,Answering,Bargaining,Trying,TotalCost\n");
-
-            foreach (var s in slices)
+            var sb = new StringBuilder("Width,Opportunity,Harm,Filing," +
+                "Answering,Bargaining,Trying,Total\n");
+            foreach (var s in ss)
                 sb.AppendLine(string.Join(",",
                     s.Width.ToString("F6", CultureInfo.InvariantCulture),
                     s.Opportunity.ToString("G6", CultureInfo.InvariantCulture),
                     s.Harm.ToString("G6", CultureInfo.InvariantCulture),
                     s.Filing.ToString("G6", CultureInfo.InvariantCulture),
-                    s.Answering.ToString("G6", CultureInfo.InvariantCulture),
-                    s.Bargaining.ToString("G6", CultureInfo.InvariantCulture),
-                    s.Trying.ToString("G6", CultureInfo.InvariantCulture),
-                    s.TotalCost.ToString("G6", CultureInfo.InvariantCulture)));
-
+                    s.Answer.ToString("G6", CultureInfo.InvariantCulture),
+                    s.Bargain.ToString("G6", CultureInfo.InvariantCulture),
+                    s.Try.ToString("G6", CultureInfo.InvariantCulture),
+                    s.Total.ToString("G6", CultureInfo.InvariantCulture)));
             return sb.ToString();
         }
+        #endregion
 
-        // ---------------- TikZ builder -------------------------------------------------------
-
-        private static string BuildTikz(IReadOnlyList<Slice> slices, bool presentation, string title)
+        #region tikz
+        static string Tikz(IList<Slice> s, bool pres, string title)
         {
-            // Aspect ratios: 20×16 cm (print) or 26.6666×15 cm (presentation)
-            double W = presentation ? 26.6666 : 20.0;
-            double H = presentation ? 15.0 : 16.0;
-            double pad = 1.5;
-
+            double W = pres ? 26.6666 : 15, H = pres ? 15 : 16;
             var outer = new TikzRectangle(0, 0, W, H);
-            var panel = outer.ReducedByPadding(pad, pad + 1.0, pad, pad + 2.0);
+            var panel = outer.ReducedByPadding(1.5, 2.5, 1.5, 1.5); // extra bottom space
 
-            var yAxis = new TikzLine(
-                new TikzPoint(panel.left, panel.bottom),
-                new TikzPoint(panel.left, panel.top));
+            string pen = pres ? "white" : "black";
+            string[] fills = pres ? PresFill : RegFill;
+            double scaleY = panel.height / MaxStackUnits;
 
-            var xAxis = new TikzLine(
-                new TikzPoint(panel.left, panel.bottom),
-                new TikzPoint(panel.right, panel.bottom));
+            var sb = new StringBuilder();
+            if (pres) sb.AppendLine(outer.DrawCommand("fill=black"));
 
-            string[] fills = presentation ? PresentationFill : RegularFill;
-            var code = new StringBuilder();
-
-            string penColor = presentation ? "white" : "black";
-            if (presentation)
-                code.AppendLine(outer.DrawCommand("fill=black"));
-
-            // Title at top (centered)
-            var titleArea = new TikzRectangle(outer.left, panel.top, outer.right, outer.top);
-            code.AppendLine(titleArea.DrawCommand($"draw=none, text={penColor}", $"\\huge {title}"));
-
-            // Y-axis (0% to 100% with 10% intervals)
-            var ticksY = Enumerable.Range(0, 11)
-                                   .Select(i => (i * 0.1, (i * 10).ToString() + "\\%"))
-                                   .ToList();
-            code.AppendLine(yAxis.DrawAxis(
-                $"{penColor}, very thin, dotted",
-                ticksY,
-                $"font=\\small, text={penColor}",
-                "east",
-                "Cost",
-                "center",
-                TikzHorizontalAlignment.Center,
-                $"font=\\small, rotate=90, text={penColor}",
-                -0.55, 0));
-
-            // X-axis (include 0% origin)
-            var ticksX = new List<(double, string)> { (0.0, "0\\%"), (1.0, "100\\%") };
-            code.AppendLine(xAxis.DrawAxis(
-                $"{penColor}, very thin",
-                ticksX,
-                $"font=\\small, text={penColor}",
-                "north",
-                "Proportion of Cases",
-                "south",
-                TikzHorizontalAlignment.Center,
-                $"font=\\small, text={penColor}",
-                0, -0.35));
-
-            // Bars (stacked slices covering full width)
-            var sliceList = slices.ToList();
-            double totalWidth = sliceList.Sum(s => s.Width);
-            if (Math.Abs(totalWidth - 1.0) > 1e-9)
+            if (pres && !string.IsNullOrEmpty(title))
             {
-                int lastIndex = sliceList.Count - 1;
-                sliceList[lastIndex] = sliceList[lastIndex] with
-                {
-                    Width = sliceList[lastIndex].Width + (1.0 - totalWidth)
-                };
+                var tArea = new TikzRectangle(
+                    outer.left, panel.top, outer.right, outer.top);
+                sb.AppendLine(tArea.DrawCommand($"draw=none,text={pen}",
+                    $"\\huge {title}"));
             }
-            double xLeft = panel.left;
-            foreach (var s in sliceList)
+
+            // axes
+            var yAxis = new TikzLine(new TikzPoint(panel.left, panel.bottom),
+                                   new TikzPoint(panel.left, panel.top));
+            var xAxis = new TikzLine(new TikzPoint(panel.left, panel.bottom),
+                                   new TikzPoint(panel.right, panel.bottom));
+
+            // y-ticks 0-4
+            var yTicks = Enumerable.Range(0, 5)
+                                 .Select(i => ((double)i / 4, i.ToString()))
+                                 .ToList();
+            sb.AppendLine(yAxis.DrawAxis(
+                $"{pen},very thin",
+                yTicks, $"font=\\small,text={pen}", "east",
+                "Cost", "center", TikzHorizontalAlignment.Center,
+                $"font=\\small,rotate=90,text={pen}", -0.65, 0));
+
+            // x-axis (only 0 and 100)
+            var xTicks = new List<(double, string)> { (0, "0\\%"), (1, "100\\%") };
+            sb.AppendLine(xAxis.DrawAxis(
+                $"{pen},very thin",
+                xTicks, $"font=\\small,text={pen}", "north",
+                "Proportion of Cases", "south", TikzHorizontalAlignment.Center,
+                $"font=\\small,text={pen}", 0, -0.6)); // lowered
+
+            // bars
+            double totalW = s.Sum(a => a.Width);
+            if (Math.Abs(totalW - 1) > 1e-9)
+                s[^1] = s[^1] with { Width = s[^1].Width + (1 - totalW) };
+
+            double x = panel.left;
+            foreach (var sl in s)
             {
-                double sliceW = s.Width * panel.width;
-                double yBase = panel.bottom;
-                double[] seg = {
-                    s.Opportunity, s.Harm, s.Filing,
-                    s.Answering,   s.Bargaining, s.Trying
-                };
+                double sw = sl.Width * panel.width;
+                double y = panel.bottom;
+                double[] seg ={sl.Opportunity,sl.Harm,sl.Filing,
+                              sl.Answer,sl.Bargain,sl.Try};
                 for (int i = 0; i < seg.Length; i++)
                 {
                     if (seg[i] <= 1e-12) continue;
                     var r = new TikzRectangle(
-                        xLeft, yBase,
-                        xLeft + sliceW, yBase + seg[i]);
-                    code.AppendLine(r.DrawCommand(
-                        $"{fills[i]}, draw=black, very thin"));
-                    yBase += seg[i];
+                        x, y, x + sw, y + seg[i] * scaleY);
+                    sb.AppendLine(r.DrawCommand($"{fills[i]},draw={pen},very thin"));
+                    y += seg[i] * scaleY;
                 }
-                xLeft += sliceW;
+                x += sw;
             }
 
-            // Legend (scaled 0.5, centered below plot)
-            code.AppendLine(
-                $@"\draw ({panel.left + panel.width / 2},{panel.bottom}) node[draw=none] (legendbase) {{}};");
-            code.AppendLine(@"\begin{scope}[align=center]");
-            code.AppendLine($@"\matrix[scale=0.5, draw={penColor}, below=0.5cm of legendbase, nodes={{draw}}, column sep=0.1cm]{{");
+
+            // legend
+            sb.AppendLine(
+                $@"\draw ({panel.left + panel.width / 2},{panel.bottom}) node (B) {{}};");
+            sb.AppendLine(@"\begin{scope}[align=center]");
+            sb.AppendLine($@"\matrix[scale=0.5,draw={pen},below=0.5cm of B,"
+                         + @"nodes={draw},column sep=0.1cm]{");
             for (int i = 0; i < fills.Length; i++)
             {
-                code.Append(
-                    $@"\node[rectangle, draw, minimum width=0.5cm, minimum height=0.5cm, {fills[i]}]{{}}; & " +
-                    $@"\node[draw=none, font=\small, text={penColor}]{{{ComponentLabels[i]}}};");
-                code.AppendLine(i == fills.Length - 1 ? @" \\" : " &");
+                sb.Append(@$"\node[rectangle,draw,minimum width=0.5cm,"
+                           + $"minimum height=0.5cm,{fills[i]}]{{}}; & "
+                           + $@"\node[draw=none,font=\small,text={pen}]{{{Labels[i]}}};");
+                sb.AppendLine(i == fills.Length - 1 ? @" \\" : " &");
             }
-            code.AppendLine("};\\end{scope}");
+            sb.AppendLine("};\\end{scope}");
 
-            string header = presentation ? "\\usepackage[sfdefault]{ClearSans}" : null;
+            string header = pres ? "\\usepackage[sfdefault]{ClearSans}" : null;
             return TikzHelper.GetStandaloneDocument(
-                code.ToString(),
-                additionalHeaderInfo: header,
+                sb.ToString(), additionalHeaderInfo: header,
                 additionalTikzLibraries: new() { "patterns", "positioning" });
         }
+        #endregion
     }
 }
