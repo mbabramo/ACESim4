@@ -18,15 +18,15 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         {
             "pattern=north east lines, pattern color=green",
             "pattern=north west lines, pattern color=yellow",
-            "pattern=dots,            pattern color=blue!60!black",
-            "pattern=vertical lines,  pattern color=blue!80!black",
-            "pattern=crosshatch,      pattern color=blue!80!black",
+            "pattern=dots,            pattern color=blue!30",
+            "pattern=vertical lines,  pattern color=blue!60",
+            "pattern=crosshatch,      pattern color=blue!90",
             "pattern=grid,            pattern color=red!70!black"
         };
         static readonly string[] PresFill =
         {
-            "fill=green!85","fill=yellow!85","fill=blue!75!black",
-            "fill=blue!70","fill=blue!85","fill=red!75"
+            "fill=green!85","fill=yellow!85","fill=blue!30",
+            "fill=blue!60","fill=blue!90","fill=red!75"
         };
         static readonly string[] Labels =
             { "Opportunity","Harm","File","Answer","Bargaining","Trial" };
@@ -64,10 +64,10 @@ namespace ACESimBase.Games.LitigGame.ManualReports
         #region slice helpers
         sealed record Slice(
             double Width, double Opportunity, double Harm, double Filing,
-            double Answer, double Bargain, double Try)
+            double Answer, double Bargaining, double Trial)
         {
             public double Total =>
-                Opportunity + Harm + Filing + Answer + Bargain + Try;
+                Opportunity + Harm + Filing + Answer + Bargaining + Trial;
         }
 
         static Slice BuildSlice(LitigGameProgress p, double w)
@@ -96,8 +96,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                     Math.Abs(a.Harm - s.Harm) < 1e-7 &&
                     Math.Abs(a.Filing - s.Filing) < 1e-7 &&
                     Math.Abs(a.Answer - s.Answer) < 1e-7 &&
-                    Math.Abs(a.Bargain - s.Bargain) < 1e-7 &&
-                    Math.Abs(a.Try - s.Try) < 1e-7);
+                    Math.Abs(a.Bargaining - s.Bargaining) < 1e-7 &&
+                    Math.Abs(a.Trial - s.Trial) < 1e-7);
                 if (hit is null) acc.Add(s);
                 else acc[acc.IndexOf(hit)] =
                         hit with { Width = hit.Width + s.Width };
@@ -115,8 +115,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 Harm = s.Harm * k,
                 Filing = s.Filing * k,
                 Answer = s.Answer * k,
-                Bargain = s.Bargain * k,
-                Try = s.Try * k
+                Bargaining = s.Bargaining * k,
+                Trial = s.Trial * k
             });
         }
         #endregion
@@ -133,8 +133,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                     s.Harm.ToString("G6", CultureInfo.InvariantCulture),
                     s.Filing.ToString("G6", CultureInfo.InvariantCulture),
                     s.Answer.ToString("G6", CultureInfo.InvariantCulture),
-                    s.Bargain.ToString("G6", CultureInfo.InvariantCulture),
-                    s.Try.ToString("G6", CultureInfo.InvariantCulture),
+                    s.Bargaining.ToString("G6", CultureInfo.InvariantCulture),
+                    s.Trial.ToString("G6", CultureInfo.InvariantCulture),
                     s.Total.ToString("G6", CultureInfo.InvariantCulture)));
             return sb.ToString();
         }
@@ -151,6 +151,21 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             string[] fills = pres ? PresFill : RegFill;
             double scaleY = panel.height / MaxStackUnits;
 
+            // determine which categories actually have non-zero totals
+            double[] catTotals = new double[Labels.Length];
+            foreach (var sl in s)
+            {
+                catTotals[0] += sl.Opportunity;
+                catTotals[1] += sl.Harm;
+                catTotals[2] += sl.Filing;
+                catTotals[3] += sl.Answer;
+                catTotals[4] += sl.Bargaining;
+                catTotals[5] += sl.Trial;
+            }
+            var activeCats = Enumerable.Range(0, Labels.Length)
+                                       .Where(i => catTotals[i] > 1e-12)
+                                       .ToList();
+
             var sb = new StringBuilder();
             if (pres) sb.AppendLine(outer.DrawCommand("fill=black"));
 
@@ -164,14 +179,14 @@ namespace ACESimBase.Games.LitigGame.ManualReports
 
             // axes
             var yAxis = new TikzLine(new TikzPoint(panel.left, panel.bottom),
-                                   new TikzPoint(panel.left, panel.top));
+                                     new TikzPoint(panel.left, panel.top));
             var xAxis = new TikzLine(new TikzPoint(panel.left, panel.bottom),
-                                   new TikzPoint(panel.right, panel.bottom));
+                                     new TikzPoint(panel.right, panel.bottom));
 
-            // y-ticks 0-4
+            // y-ticks 0–4
             var yTicks = Enumerable.Range(0, 5)
-                                 .Select(i => ((double)i / 4, i.ToString()))
-                                 .ToList();
+                                   .Select(i => ((double)i / 4, i.ToString()))
+                                   .ToList();
             sb.AppendLine(yAxis.DrawAxis(
                 $"{pen},very thin",
                 yTicks, $"font=\\small,text={pen}", "east",
@@ -196,8 +211,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             {
                 double sw = sl.Width * panel.width;
                 double y = panel.bottom;
-                double[] seg ={sl.Opportunity,sl.Harm,sl.Filing,
-                              sl.Answer,sl.Bargain,sl.Try};
+                double[] seg = { sl.Opportunity, sl.Harm, sl.Filing,
+                         sl.Answer,     sl.Bargaining, sl.Trial };
                 for (int i = 0; i < seg.Length; i++)
                 {
                     if (seg[i] <= 1e-12) continue;
@@ -209,19 +224,19 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 x += sw;
             }
 
-
-            // legend
+            // legend (only categories with data)
             sb.AppendLine(
                 $@"\draw ({panel.left + panel.width / 2},{panel.bottom}) node (B) {{}};");
             sb.AppendLine(@"\begin{scope}[align=center]");
             sb.AppendLine($@"\matrix[scale=0.5,draw={pen},below=0.5cm of B,"
                          + @"nodes={draw},column sep=0.1cm]{");
-            for (int i = 0; i < fills.Length; i++)
+            for (int idx = 0; idx < activeCats.Count; idx++)
             {
+                int i = activeCats[idx];
                 sb.Append(@$"\node[rectangle,draw,minimum width=0.5cm,"
                            + $"minimum height=0.5cm,{fills[i]}]{{}}; & "
                            + $@"\node[draw=none,font=\small,text={pen}]{{{Labels[i]}}};");
-                sb.AppendLine(i == fills.Length - 1 ? @" \\" : " &");
+                sb.AppendLine(idx == activeCats.Count - 1 ? @" \\" : " &");
             }
             sb.AppendLine("};\\end{scope}");
 
@@ -230,6 +245,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 sb.ToString(), additionalHeaderInfo: header,
                 additionalTikzLibraries: new() { "patterns", "positioning" });
         }
+
         #endregion
     }
 }
