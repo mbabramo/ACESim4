@@ -174,12 +174,14 @@ namespace LitigCharts
                 ("EFG Files", new[] { ".efg" }),
                 ("Equilibria Files", new[] { "-equ.csv" }),
                 ("Logs", new[] { "-log.txt" }),
-                ("Latex underlying data", expandToIncludeAdditionalEquilibria(new[] { "-offers.csv", "-fileans.csv", "-stagecostlight.csv", "-stagecostdark.csv" })),
-                ("Latex files", expandToIncludeAdditionalEquilibria(new[] { "-offers.tex", "-fileans.tex", "-stagecostlight.tex", "-stagecostdark.tex" })),
+                ("Latex underlying data", expandToIncludeAdditionalEquilibria(new[] { "-offers.csv", "-fileans.csv", "-stagecostlight.csv", "-stagecostdark.csv", "-costbreakdownlight.csv", "-costbreakdowndark.csv" })),
+                ("Latex files", expandToIncludeAdditionalEquilibria(new[] { "-offers.tex", "-fileans.tex", "-stagecostlight.tex", "-stagecostdark.tex", "-costbreakdownlight.tex", "-costbreakdowndark.tex" })),
                 ("File-Answer Diagrams", expandToIncludeAdditionalEquilibria( new[] { "-fileans.pdf" })),
                 ("Offer Heatmaps", expandToIncludeAdditionalEquilibria( new[] { "-offers.pdf" })),
                 ("Stage Costs Diagrams (Normal)", expandToIncludeAdditionalEquilibria( new[] { "-stagecostlight.pdf" })),
                 ("Stage Costs Diagrams (Dark Mode)", expandToIncludeAdditionalEquilibria( new[] { "-stagecostdark.pdf" })),
+                ("Cost Breakdown Diagrams (Normal)", expandToIncludeAdditionalEquilibria( new[] { "-costbreakdownlight.pdf" })),
+                ("Cost Breakdown Diagrams (Dark Mode)", expandToIncludeAdditionalEquilibria( new[] { "-costbreakdowndark.pdf" })),
                 ("Cross Tabs", expandToIncludeAdditionalEquilibria(new[] { ".csv" })),
             };
 
