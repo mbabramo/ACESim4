@@ -1177,7 +1177,12 @@ namespace ACESim
 
         public override IEnumerable<(string filename, string reportcontent)> ProduceManualReports(List<(GameProgress theProgress, double weight)> gameProgresses, string supplementalString)
         {
-            var contents = StageCostReport.GenerateReport(gameProgresses);
+            var contents = CostBreakdownReport.GenerateReport(gameProgresses);
+            yield return (OptionSetName + $"-costbreakdownlight{supplementalString}.csv", contents[0]);
+            yield return (OptionSetName + $"-costbreakdownlight{supplementalString}.tex", contents[1]);
+            yield return (OptionSetName + $"-costbreakdowndark{supplementalString}.csv", contents[2]);
+            yield return (OptionSetName + $"-costbreakdowndark{supplementalString}.tex", contents[3]);
+            contents = StageCostReport.GenerateReport(gameProgresses);
             yield return (OptionSetName + $"-stagecostlight{supplementalString}.csv", contents[0]);
             yield return (OptionSetName + $"-stagecostlight{supplementalString}.tex", contents[1]);
             yield return (OptionSetName + $"-stagecostdark{supplementalString}.csv", contents[2]);

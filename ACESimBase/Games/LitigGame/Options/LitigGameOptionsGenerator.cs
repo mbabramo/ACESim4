@@ -21,7 +21,7 @@ namespace ACESim
         }
 
         // This choice has an effect only when in ACESimConsole mode (playing a single game).
-        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.FeeShiftingBaseLargeTree;
+        static LitigGameOptionSetChoices LitigGameChoice => LitigGameOptionSetChoices.AppropriationGame;
 
         public static LitigGameOptions GetLitigGameOptions() => LitigGameChoice switch
         {
