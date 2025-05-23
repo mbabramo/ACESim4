@@ -189,7 +189,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             {
                 equilibria = new List<(double[] equilibrium, int frequency)>() { (GameDefinition.GetSequenceFormInitialization<T>(true).Select(x => x.AsDouble).ToArray(), 1) };
             }
-            else if (EvolutionSettings.UsePreloadedEquilibriaIfAvailable && EquilibriaFileAlreadyExists())
+            else if (EvolutionSettings.UseExistingEquilibriaIfAvailable && EquilibriaFileAlreadyExists())
             {
                 equilibria = LoadEquilibriaFile().Select(x => (x, 1)).ToList();
                 equilibria = NarrowDownToUniqueEquilibria(equilibria);

@@ -1028,7 +1028,7 @@ namespace ACESim
             }
             await base.Initialize();
             InitializeInformationSets();
-            if (EvolutionSettings.UnrollAlgorithm && (!EvolutionSettings.UsePreloadedEquilibriaIfAvailable || !EquilibriaFileAlreadyExists()))
+            if (EvolutionSettings.UnrollAlgorithm && (!EvolutionSettings.UseExistingEquilibriaIfAvailable || !EquilibriaFileAlreadyExists()))
             {
                 Unroll_CreateUnrolledCommandList();
             }
@@ -1037,7 +1037,7 @@ namespace ACESim
         public override async Task<ReportCollection> RunAlgorithm(string optionSetName)
         {
             ReportCollection reportCollection = new ReportCollection();
-            if (EvolutionSettings.UsePreloadedEquilibriaIfAvailable && EquilibriaFileAlreadyExists())
+            if (EvolutionSettings.UseExistingEquilibriaIfAvailable && EquilibriaFileAlreadyExists())
             {
                 TabbedText.WriteLine($"Using preloaded equilibria file {optionSetName}");
                 SaveWeightedGameProgressesAfterEachReport = true;

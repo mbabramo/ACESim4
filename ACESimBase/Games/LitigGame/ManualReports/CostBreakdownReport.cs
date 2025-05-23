@@ -1,6 +1,7 @@
 ﻿using ACESim;
 using ACESimBase.Games.LitigGame;
 using ACESimBase.Util.Tikz;
+using ACESimBase.Util.Mathematics;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -55,7 +56,8 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             bool presentationMode = false)
         {
             double totW = raw.Sum(r => r.weight);
-            if (totW <= 0) throw new ArgumentException("Total weight must be > 0.");
+            if (totW <= 0)
+                throw new ArgumentException("Total weight must be > 0.");
 
             var initial = raw
                 .Select(r => BuildSlice(r.progress, r.weight / totW))
@@ -65,13 +67,27 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             var ordered = merged.OrderBy(s => s.TotalCost).ToList();
             var scaled = ScaleToFour(ordered);
 
+            // Determine title (Costs and Fee Shift multipliers, plus risk aversion info)
+            var options = (LitigGameOptions)raw.First().progress.GameDefinition.GameOptions;
+            string title = $"Costs: {options.CostsMultiplier}x; Fee Shift: {options.LoserPaysMultiple}x";
+            bool pRiskNeutral = options.PUtilityCalculator is RiskNeutralUtilityCalculator;
+            bool dRiskNeutral = options.DUtilityCalculator is RiskNeutralUtilityCalculator;
+            string supplementalTitle = (pRiskNeutral, dRiskNeutral) switch
+            {
+                (true, true) => "",
+                (true, false) => "; D Risk Averse",
+                (false, true) => "; P Risk Averse",
+                (false, false) => "; Both Risk Averse"
+            };
+            title += supplementalTitle;
+
             // Return: CSV + TikZ (print) + CSV (dup) + TikZ (presentation) — mimics StageCostReport.
             return new()
             {
                 BuildCsv(scaled),
-                BuildTikz(scaled, false),
+                BuildTikz(scaled, false, title),
                 BuildCsv(scaled),
-                BuildTikz(scaled, true)
+                BuildTikz(scaled, true, title)
             };
         }
 
@@ -123,7 +139,7 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             // Bargaining – both parties pay per round
             int rounds = p.BargainingRoundsComplete;
             double bargaining = 2 * opt.PerPartyCostsLeadingUpToBargainingRound
-                              * rounds * m;
+                               * rounds * m;
 
             // Trying
             double trying = p.TrialOccurs
@@ -147,7 +163,10 @@ namespace ACESimBase.Games.LitigGame.ManualReports
             foreach (var s in slices)
             {
                 var hit = acc.FirstOrDefault(a => a.Matches(s));
-                if (hit is null) acc.Add(s); else acc[acc.IndexOf(hit)] = hit.AddWidth(s.Width);
+                if (hit is null)
+                    acc.Add(s);
+                else
+                    acc[acc.IndexOf(hit)] = hit.AddWidth(s.Width);
             }
             return acc;
         }
@@ -193,9 +212,9 @@ namespace ACESimBase.Games.LitigGame.ManualReports
 
         // ---------------- TikZ builder -------------------------------------------------------
 
-        private static string BuildTikz(IReadOnlyList<Slice> slices, bool presentation)
+        private static string BuildTikz(IReadOnlyList<Slice> slices, bool presentation, string title)
         {
-            // Aspect ratios: 20×16 (print) or 26.666×15 (presentation)
+            // Aspect ratios: 20×16 cm (print) or 26.6666×15 cm (presentation)
             double W = presentation ? 26.6666 : 20.0;
             double H = presentation ? 15.0 : 16.0;
             double pad = 1.5;
@@ -212,54 +231,70 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 new TikzPoint(panel.right, panel.bottom));
 
             string[] fills = presentation ? PresentationFill : RegularFill;
-
             var code = new StringBuilder();
-            if (presentation) code.AppendLine(outer.DrawCommand("fill=black"));
 
-            // Y-axis
+            string penColor = presentation ? "white" : "black";
+            if (presentation)
+                code.AppendLine(outer.DrawCommand("fill=black"));
+
+            // Title at top (centered)
+            var titleArea = new TikzRectangle(outer.left, panel.top, outer.right, outer.top);
+            code.AppendLine(titleArea.DrawCommand($"draw=none, text={penColor}", $"\\huge {title}"));
+
+            // Y-axis (0% to 100% with 10% intervals)
+            var ticksY = Enumerable.Range(0, 11)
+                                   .Select(i => (i * 0.1, (i * 10).ToString() + "\\%"))
+                                   .ToList();
             code.AppendLine(yAxis.DrawAxis(
-                "black, very thin",
-                new() { (1.0, MaxStackHeight.ToString("0")) },
-                "font=\\small",
+                $"{penColor}, very thin, dotted",
+                ticksY,
+                $"font=\\small, text={penColor}",
                 "east",
                 "Cost",
                 "center",
                 TikzHorizontalAlignment.Center,
-                "font=\\small, rotate=90",
+                $"font=\\small, rotate=90, text={penColor}",
                 -0.55, 0));
 
-            // X-axis
+            // X-axis (include 0% origin)
+            var ticksX = new List<(double, string)> { (0.0, "0\\%"), (1.0, "100\\%") };
             code.AppendLine(xAxis.DrawAxis(
-                "black, very thin",
-                new() { (1.0, "100\\%") },
-                "font=\\small",
+                $"{penColor}, very thin",
+                ticksX,
+                $"font=\\small, text={penColor}",
                 "north",
                 "Proportion of Cases",
                 "south",
                 TikzHorizontalAlignment.Center,
-                "font=\\small",
+                $"font=\\small, text={penColor}",
                 0, -0.35));
 
-            // Bars
+            // Bars (stacked slices covering full width)
+            var sliceList = slices.ToList();
+            double totalWidth = sliceList.Sum(s => s.Width);
+            if (Math.Abs(totalWidth - 1.0) > 1e-9)
+            {
+                int lastIndex = sliceList.Count - 1;
+                sliceList[lastIndex] = sliceList[lastIndex] with
+                {
+                    Width = sliceList[lastIndex].Width + (1.0 - totalWidth)
+                };
+            }
             double xLeft = panel.left;
-            foreach (var s in slices)
+            foreach (var s in sliceList)
             {
                 double sliceW = s.Width * panel.width;
                 double yBase = panel.bottom;
-
                 double[] seg = {
                     s.Opportunity, s.Harm, s.Filing,
                     s.Answering,   s.Bargaining, s.Trying
                 };
-
-                for (int i = 0; i < 6; i++)
+                for (int i = 0; i < seg.Length; i++)
                 {
                     if (seg[i] <= 1e-12) continue;
-
                     var r = new TikzRectangle(
                         xLeft, yBase,
                         xLeft + sliceW, yBase + seg[i]);
-
                     code.AppendLine(r.DrawCommand(
                         $"{fills[i]}, draw=black, very thin"));
                     yBase += seg[i];
@@ -267,20 +302,18 @@ namespace ACESimBase.Games.LitigGame.ManualReports
                 xLeft += sliceW;
             }
 
-            // Legend
+            // Legend (scaled 0.5, centered below plot)
             code.AppendLine(
-                $@"\draw ({panel.left + panel.width / 2},{outer.bottom}) node (legend) {{}};");
-            code.AppendLine(@"\begin{scope}[below=0.6cm of legend]");
-            code.AppendLine(@"\matrix[draw, column sep=0.15cm]{");
-
-            for (int i = 0; i < 6; i++)
+                $@"\draw ({panel.left + panel.width / 2},{panel.bottom}) node[draw=none] (legendbase) {{}};");
+            code.AppendLine(@"\begin{scope}[align=center]");
+            code.AppendLine($@"\matrix[scale=0.5, draw={penColor}, below=0.5cm of legendbase, nodes={{draw}}, column sep=0.1cm]{{");
+            for (int i = 0; i < fills.Length; i++)
             {
                 code.Append(
-                    $@"\node[minimum width=0.5cm, minimum height=0.5cm, {fills[i]}]{{}}; & " +
-                    $@"\node[draw=none]{{\small {ComponentLabels[i]}}};");
-                code.AppendLine(i == 5 ? @" \\" : " &");
+                    $@"\node[rectangle, draw, minimum width=0.5cm, minimum height=0.5cm, {fills[i]}]{{}}; & " +
+                    $@"\node[draw=none, font=\small, text={penColor}]{{{ComponentLabels[i]}}};");
+                code.AppendLine(i == fills.Length - 1 ? @" \\" : " &");
             }
-
             code.AppendLine("};\\end{scope}");
 
             string header = presentation ? "\\usepackage[sfdefault]{ClearSans}" : null;

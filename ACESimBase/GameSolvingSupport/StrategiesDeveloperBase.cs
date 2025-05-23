@@ -169,7 +169,7 @@ namespace ACESim
         {
             bool includeAverageEquilibriumReport = multipleEquilibriaPossible;
             bool includeCorrelatedEquilibriumReport = multipleEquilibriaPossible;
-            if (includeCorrelatedEquilibriumReport || EvolutionSettings.UsePreloadedEquilibriaIfAvailable || EvolutionSettings.GenerateManualReports)
+            if (includeCorrelatedEquilibriumReport || EvolutionSettings.UseExistingEquilibriaIfAvailable || EvolutionSettings.GenerateManualReports)
                 SaveWeightedGameProgressesAfterEachReport = true;
             bool includeReportForFirstEquilibrium = true;
             bool includeReportForEachEquilibrium = true;

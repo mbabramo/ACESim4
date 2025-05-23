@@ -50,10 +50,10 @@ namespace ACESim
             options.DamagesMax = 1.0;
             options.DamagesMultiplier = 1.0;
 
-            options.PTrialCosts = options.DTrialCosts = 0.15;
-            options.PFilingCost = options.DAnswerCost = 0.15;
+            options.PTrialCosts = options.DTrialCosts = 0.10;
+            options.PFilingCost = options.DAnswerCost = 0.10;
             options.PFilingCost_PortionSavedIfDDoesntAnswer = 0;
-            options.PerPartyCostsLeadingUpToBargainingRound = 0;
+            options.PerPartyCostsLeadingUpToBargainingRound = 0.10;
             options.RoundSpecificBargainingCosts = null;
             options.CostsMultiplier = 1.0;
 
