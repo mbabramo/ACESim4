@@ -139,13 +139,13 @@ namespace LitigCharts
                 if (skipIfPDFAlreadyExists)
                 {
                     string fileSuffixCopy = fileSuffix;
-                    GetFileInfo(map, filePrefix(launcher), ".pdf", firstEquilibriumFileSuffix, ref fileSuffixCopy, path, gameOptionsSet, out filenameCore, out combinedPath, out bool exists);
+                    GetFileInfo(map, filePrefix(launcher), ".pdf", ref fileSuffixCopy, path, gameOptionsSet, out filenameCore, out combinedPath, out bool exists);
                     if (VirtualizableFileSystem.File.Exists(combinedPath))
                         processingNeeded = false;
                 }
                 if (processingNeeded)
                 {
-                    GetFileInfo(map, filePrefix(launcher), ".tex", firstEquilibriumFileSuffix, ref fileSuffix, path, gameOptionsSet, out filenameCore, out combinedPath, out bool exists);
+                    GetFileInfo(map, filePrefix(launcher), ".tex", ref fileSuffix, path, gameOptionsSet, out filenameCore, out combinedPath, out bool exists);
                     if (!VirtualizableFileSystem.File.Exists(combinedPath))
                     {
                         if (VirtualizableFileSystem.File.Exists(combinedPath.Replace("-Eq1", "")))

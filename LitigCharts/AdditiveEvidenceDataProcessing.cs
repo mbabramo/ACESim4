@@ -45,7 +45,7 @@ namespace LitigCharts
             var distinctOptionSets = gameOptionsSets.DistinctBy(x => map[x.Name]).ToList();
 
             bool includeHeader = true;
-            List<List<string>> outputLines = GetCSVLines(distinctOptionSets, map, rowsToGet, replacementRowNames, PrefixForEachFileWithHyphen, ".csv", "", path, includeHeader, columnsToGet, replacementColumnNames);
+            List<List<string>> outputLines = GetCSVLines(distinctOptionSets, map, rowsToGet, replacementRowNames, PrefixForEachFileWithHyphen, ".csv", path, includeHeader, columnsToGet, replacementColumnNames);
             
             AddAveragesAcrossQualityLevels(outputLines);
             string aggregatedReportContents = MakeString(outputLines);

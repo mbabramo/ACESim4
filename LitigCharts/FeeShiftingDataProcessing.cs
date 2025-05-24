@@ -73,10 +73,9 @@ namespace LitigCharts
 
             foreach (string fileSuffix in equilibriumTypeSuffixes)
             {
-                string altFileSuffix = firstEquilibriumFileSuffix;
                 TabbedText.WriteLine($"Processing equilibrium type {fileSuffix}");
                 bool includeHeader = singleEquilibriumOnly || fileSuffix == correlatedEquilibriumFileSuffix;
-                List<List<string>> outputLines = GetCSVLines(distinctOptionSets.Select(x => (GameOptions)x).ToList(), map, rowsToGet, replacementRowNames, filePrefix(launcher), fileSuffix, altFileSuffix, path, includeHeader, columnsToGet, replacementColumnNames);
+                List<List<string>> outputLines = GetCSVLines(distinctOptionSets.Select(x => (GameOptions)x).ToList(), map, rowsToGet, replacementRowNames, filePrefix(launcher), fileSuffix, path, includeHeader, columnsToGet, replacementColumnNames);
                 if (includeHeader)
                     outputLines[0].Insert(0, "Equilibrium Type");
                 string equilibriumType = fileSuffix switch

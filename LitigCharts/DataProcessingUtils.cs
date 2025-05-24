@@ -13,7 +13,7 @@ namespace LitigCharts
 {
     public static class DataProcessingUtils
     {
-        public static List<List<string>> GetCSVLines(List<GameOptions> gameOptionsSets, Dictionary<string, string> map, List<string> rowsToGet, List<string> replacementRowNames, string filePrefix, string fileSuffix, string altFileSuffix, string path, bool includeHeader, List<string> columnsToGet, List<string> replacementColumnNames)
+        public static List<List<string>> GetCSVLines(List<GameOptions> gameOptionsSets, Dictionary<string, string> map, List<string> rowsToGet, List<string> replacementRowNames, string filePrefix, string fileSuffix, string path, bool includeHeader, List<string> columnsToGet, List<string> replacementColumnNames)
         {
 
             // Set the following on opening the first file
@@ -25,7 +25,7 @@ namespace LitigCharts
                 bool keepGoingOnException = false;
                 try
                 {
-                    GetCSVLinesForGameOptionsSet(map, rowsToGet, replacementRowNames, filePrefix, ref fileSuffix, altFileSuffix, path, includeHeader, columnsToGet, replacementColumnNames, ref outputLines, gameOptionsSet);
+                    GetCSVLinesForGameOptionsSet(map, rowsToGet, replacementRowNames, filePrefix, ref fileSuffix, path, includeHeader, columnsToGet, replacementColumnNames, ref outputLines, gameOptionsSet);
                 }
                 catch
                 {
@@ -36,7 +36,7 @@ namespace LitigCharts
             return outputLines;
         }
 
-        private static void GetCSVLinesForGameOptionsSet(Dictionary<string, string> map, List<string> rowsToGet, List<string> replacementRowNames, string filePrefix, ref string fileSuffix, string altFileSuffix, string path, bool includeHeader, List<string> columnsToGet, List<string> replacementColumnNames, ref List<List<string>> outputLines, GameOptions gameOptionsSet)
+        private static void GetCSVLinesForGameOptionsSet(Dictionary<string, string> map, List<string> rowsToGet, List<string> replacementRowNames, string filePrefix, ref string fileSuffix, string path, bool includeHeader, List<string> columnsToGet, List<string> replacementColumnNames, ref List<List<string>> outputLines, GameOptions gameOptionsSet)
         {
             if (outputLines == null)
             {
@@ -55,7 +55,7 @@ namespace LitigCharts
             double?[,] resultsAllRows = null;
             string filenameCore, combinedPath;
             bool exists;
-            GetFileInfo(map, filePrefix, ".csv", altFileSuffix, ref fileSuffix, path, gameOptionsSet, out filenameCore, out combinedPath, out exists);
+            GetFileInfo(map, filePrefix, ".csv", ref fileSuffix, path, gameOptionsSet, out filenameCore, out combinedPath, out exists);
             if (!exists)
                 return;
             (string columnName, string expectedText)[][] rowsToFind = new (string columnName, string expectedText)[rowsToGet.Count()][];
@@ -79,7 +79,7 @@ namespace LitigCharts
             }
         }
 
-        public static void GetFileInfo(Dictionary<string, string> map, string filePrefix, string fileExtensionIncludingPeriod, string altFileSuffix, ref string fileSuffix, string path, GameOptions gameOptionsSet, out string filenameCore, out string combinedPath, out bool exists)
+        public static void GetFileInfo(Dictionary<string, string> map, string filePrefix, string fileExtensionIncludingPeriod, ref string fileSuffix, string path, GameOptions gameOptionsSet, out string filenameCore, out string combinedPath, out bool exists)
         {
             exists = true;
             filenameCore = map[gameOptionsSet.Name];
