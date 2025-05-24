@@ -227,7 +227,7 @@ namespace ACESim
                 s.Stop();
                 var result = await ConsiderGeneratingReports(iterationGrouper + reportingGroupSize,
                     () =>
-                        $"{GameDefinition.OptionSetName} Iteration {iterationGrouper + reportingGroupSize} Milliseconds per iteration {((s.ElapsedMilliseconds / ((double) reportingGroupSize)))}");
+                        $"{GameDefinition.OptionSetName} Iteration {iterationGrouper + reportingGroupSize} Milliseconds per iteration {((s.ElapsedMilliseconds / ((double)reportingGroupSize)))}");
                 reportCollection.Add(result);
             }
             return reportCollection;

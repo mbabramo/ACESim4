@@ -302,7 +302,7 @@ namespace ACESim
             var reportResult = await ConsiderGeneratingReports(EvolutionSettings.ReportEveryNIterations ?? 0,
                 () =>
                     $"{GameDefinition.OptionSetName}{(EvolutionSettings.SequenceFormNumPriorsToUseToGenerateEquilibria > 1 ? $"-Eq{eqNum + 1}" : "")}",
-                manualReportsSupplementalString: numEquilibria > 1 ? $"-Eq{eqNum + 1}" : "");
+                reportSuffix: numEquilibria > 1 ? $"-Eq{eqNum + 1}" : "");
             reportCollection.Add(reportResult, false, true);
             TabbedText.WriteLine($"Elapsed milliseconds report for eq {eqNum + 1} of {numEquilibria}: {s.ElapsedMilliseconds}");
         }
@@ -312,7 +312,7 @@ namespace ACESim
             Stopwatch s = new Stopwatch();
             s.Start();
             var reportResult = GenerateReportFromSavedWeightedGameProgresses(false);
-            reportResult.AddName($"{GameDefinition.OptionSetName}{("-Corr")}");
+            reportResult.AddReportSuffix($"-Corr");
             PrintReportsToScreenIfNotSuppressed(reportResult);
             reportCollection.Add(reportResult, false, true);
             GenerateManualReports($"-Corr");
@@ -327,7 +327,7 @@ namespace ACESim
             s.Start();
             EvolutionSettings.ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.AverageStrategy };
             var reportResult = await ConsiderGeneratingReports(EvolutionSettings.ReportEveryNIterations ?? 0,
-                () => $"{GameDefinition.OptionSetName}-Avg", suppressPrintTree: true, manualReportsSupplementalString: "-Avg");
+                () => $"{GameDefinition.OptionSetName}-Avg", reportSuffix: "-Avg", suppressPrintTree: true);
             reportCollection.Add(reportResult, false, true);
             TabbedText.WriteLine($"Elapsed milliseconds generating average equilibrium report: {s.ElapsedMilliseconds}");
         }
@@ -520,7 +520,7 @@ namespace ACESim
             else
                 ReduceToCorrelatedEquilibrium_DeterminingIncompatibilitiesNow();
             ReportCollection reportCollection = new ReportCollection();
-            await GenerateMainReports(() => "correq", reportCollection, new List<ActionStrategies>() { ActionStrategies.CorrelatedEquilibrium });
+            await GenerateMainReports(() => "correq", "-Corr", reportCollection, new List<ActionStrategies>() { ActionStrategies.CorrelatedEquilibrium });
             return reportCollection;
         }
 
@@ -1355,8 +1355,9 @@ namespace ACESim
         private async Task GenerateReportsAfterPCA(ReportCollection reportCollection, string scenarioName, string scenarioEquilibriumName, string masterReportName)
         {
             GameDefinition.ScenarioEquilibriumName = scenarioEquilibriumName;
-            Func<string> prefaceFn = () => (scenarioEquilibriumName == null) ? $"{masterReportName}-{scenarioName}" : $"{masterReportName}-{scenarioName}-{scenarioEquilibriumName}";
-            await GenerateBestResponseAndMainReports(prefaceFn, reportCollection, EvolutionSettings.PCA_BestResponseAfterPCA, EvolutionSettings.PCA_ReportsAfterPCA);
+            string reportSuffix = scenarioEquilibriumName == null ? $"-{scenarioName}" : $"-{scenarioName}-{scenarioEquilibriumName}";
+            Func<string> prefaceFn = () => $"{masterReportName}{reportSuffix}";
+            await GenerateBestResponseAndMainReports(prefaceFn, reportSuffix, reportCollection, EvolutionSettings.PCA_BestResponseAfterPCA, EvolutionSettings.PCA_ReportsAfterPCA);
             AzureBlob.WriteTextToFileOrAzure("results", Launcher.ReportFolder(), prefaceFn() + ".csv", true, reportCollection.csvReports.First(), EvolutionSettings.SaveToAzureBlob);
             GameDefinition.ScenarioEquilibriumName = null;
             TabbedText.WriteLine($"Results from model used to generate report:"); // can be useful as a check to make sure report corresponds approximately to model
@@ -2403,7 +2404,7 @@ namespace ACESim
 
         #region Game play and reporting
 
-        public virtual async Task<ReportCollection> ConsiderGeneratingReports(int iteration, Func<string> prefaceFn, bool suppressPrintTree = false, string manualReportsSupplementalString = "")
+        public virtual async Task<ReportCollection> ConsiderGeneratingReports(int iteration, Func<string> prefaceFn, string reportSuffix = "", bool suppressPrintTree = false)
         {
             ReportCollection reportCollection = new ReportCollection();
             bool doBestResponse = 
@@ -2421,25 +2422,25 @@ namespace ACESim
                 (iteration % EvolutionSettings.ReportEveryNIterations == 0 || Status.BestResponseTargetMet(EvolutionSettings.BestResponseTarget));
             if (doReports || doBestResponse)
             {
-                await GenerateApplicableReports(iteration, prefaceFn, suppressPrintTree, reportCollection, doBestResponse, doReports, manualReportsSupplementalString);
+                await GenerateApplicableReports(iteration, prefaceFn, reportSuffix, suppressPrintTree, reportCollection, doBestResponse, doReports);
             }
 
             return reportCollection;
         }
 
-        private async Task GenerateApplicableReports(int iteration, Func<string> prefaceFn, bool suppressPrintTree, ReportCollection reportCollection, bool doBestResponse, bool doReports, string manualReportsSupplementalString)
+        private async Task GenerateApplicableReports(int iteration, Func<string> prefaceFn, string reportSuffix, bool suppressPrintTree, ReportCollection reportCollection, bool doBestResponse, bool doReports)
         {
             TabbedText.HideConsoleProgressString();
             if (EvolutionSettings.CreateInformationSetCharts && OperatingSystem.IsWindows())
                 InformationSetCharts.CreateInformationSetChart(InformationSets, @"H:\My Drive\Articles, books in progress\Machine learning model of litigation\bluffing results\images\image" + iteration.ToString("D8") + ".png");
-            await GenerateBestResponseAndMainReports(prefaceFn, reportCollection, doBestResponse, doReports);
+            await GenerateBestResponseAndMainReports(prefaceFn, reportSuffix, reportCollection, doBestResponse, doReports);
             if (doBestResponse)
             {
                 RememberBestResponseExploitabilityValues(iteration);
                 BestResponseComparison();
             }
             if (doReports)
-                GenerateManualReports(manualReportsSupplementalString);
+                GenerateManualReports(reportSuffix);
             if (iteration % EvolutionSettings.CorrelatedEquilibriumCalculationsEveryNIterations == 0 && EvolutionSettings.CorrelatedEquilibriumCalculationsEveryNIterations != EvolutionSettings.EffectivelyNever)
                 DoCorrelatedEquilibriumCalculations(iteration);
             if (EvolutionSettings.PrintGameTree && !suppressPrintTree)
@@ -2456,7 +2457,7 @@ namespace ACESim
             TabbedText.ShowConsoleProgressString();
         }
 
-        private async Task GenerateBestResponseAndMainReports(Func<string> prefaceFn, ReportCollection reportCollection, bool doBestResponse, bool doReports)
+        private async Task GenerateBestResponseAndMainReports(Func<string> prefaceFn, string reportSuffix, ReportCollection reportCollection, bool doBestResponse, bool doReports)
         {
             TabbedText.WriteLine("");
             TabbedText.WriteLine(prefaceFn());
@@ -2466,11 +2467,9 @@ namespace ACESim
             }
             if (doReports)
             {
-                Eak.Add("Report");
                 var actionStrategiesToUse = EvolutionSettings.ActionStrategiesToUseInReporting;
-                await GenerateMainReports(prefaceFn, reportCollection, actionStrategiesToUse);
+                await GenerateMainReports(prefaceFn, reportSuffix, reportCollection, actionStrategiesToUse);
                 RecallBestOverTime();
-                Eak.Remove("Report");
             }
         }
 
@@ -2497,7 +2496,7 @@ namespace ACESim
             }
         }
 
-        private async Task GenerateMainReports(Func<string> prefaceFn, ReportCollection reportCollection, List<ActionStrategies> actionStrategiesToUse)
+        private async Task GenerateMainReports(Func<string> prefaceFn, string reportSuffix, ReportCollection reportCollection, List<ActionStrategies> actionStrategiesToUse)
         {
             ActionStrategies previous = ActionStrategy;
             if (EvolutionSettings.RoundOffLowProbabilitiesBeforeReporting)
@@ -2516,10 +2515,9 @@ namespace ACESim
                     {
                         var result = await GenerateReportsByPlaying(useRandomPaths);
                         reportCollection.Add(result, false, true);
-                        string reportName = prefaceFn();
                         if (actionStrategiesToUse.Count() > 1)
-                            reportName += "-" + actionStrategy.ToString();
-                        reportCollection.AddName(reportName);
+                            reportSuffix += "-" + actionStrategy.ToString();
+                        reportCollection.AddReportSuffix(reportSuffix);
                     }
                 }
             ActionStrategy = previous;

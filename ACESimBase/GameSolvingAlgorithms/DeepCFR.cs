@@ -781,7 +781,7 @@ namespace ACESim
 
         #region Reporting
 
-        public override async Task<ReportCollection> ConsiderGeneratingReports(int iteration, Func<string> prefaceFn, bool suppressPrintTree = false, string manualReportsSupplementalString = "")
+        public override async Task<ReportCollection> ConsiderGeneratingReports(int iteration, Func<string> prefaceFn, string reportSuffix = "", bool suppressPrintTree = false)
         {
             ReportCollection reportCollection = null;
             bool doReports = EvolutionSettings.ReportEveryNIterations != null && (iteration % EvolutionSettings.ReportEveryNIterations == 0 || Status.BestResponseTargetMet(EvolutionSettings.BestResponseTarget));

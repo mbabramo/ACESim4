@@ -14,7 +14,7 @@ namespace ACESim
         public List<string> csvReports;
         public bool MultipleCSV => csvReports.Count() > 1;
         public List<string> IDColumnNames = new List<string>() { "OptionSet", "Filter", "Repetition", "Simulation" };
-        public List<string> ReportNames = new List<string>();
+        public List<string> ReportSuffixes = new List<string>();
 
         public ReportCollection()
         {
@@ -34,9 +34,9 @@ namespace ACESim
             csvReports = csvs;
         }
 
-        public void AddName(string name)
+        public void AddReportSuffix(string name)
         {
-            ReportNames.Add(name);
+            ReportSuffixes.Add(name);
         }
 
         public void Add(string standard, string csv, bool integrateCSVReportsIfPossible = true, bool ifNotIntegratingAlwaysMakeSeparateReport = false)
@@ -64,8 +64,8 @@ namespace ACESim
             {
                 foreach (string csv in other.csvReports)
                     AddCSVIntoExistingMatchOrAsSeparateReport(csv, ifNotIntegratingAlwaysMakeSeparateReport);
-                foreach (string reportName in other.ReportNames)
-                    AddName(reportName);
+                foreach (string reportSuffix in other.ReportSuffixes)
+                    AddReportSuffix(reportSuffix);
             }
         }
 

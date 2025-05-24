@@ -604,9 +604,9 @@ namespace ACESimBase.GameSolvingSupport.Settings
                 {
                     for (int c = 0; c < result.csvReports.Count; c++)
                     {
-                        if (c == 0 && result.ReportNames != null && result.ReportNames.Count() > c && result.ReportNames[c].Contains(optionSetName))
+                        if (c == 0 && result.ReportSuffixes != null && result.ReportSuffixes.Count() > c && result.ReportSuffixes[c].Contains(optionSetName))
                             masterReportNamePlusOptionSet = masterReportName ?? "results"; // remove the redundancy
-                        if (result.ReportNames.Count() > c && result.ReportNames[c] is not null and string reportName2)
+                        if (result.ReportSuffixes.Count() > c && result.ReportSuffixes[c] is not null and string reportName2)
                             masterReportNamePlusOptionSet += "-" + reportName2;
 
                         AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), masterReportNamePlusOptionSet + ".csv", true, result.csvReports[c], SaveToAzureBlob); // we write to a blob in case this times out and also to allow individual report to be taken out
