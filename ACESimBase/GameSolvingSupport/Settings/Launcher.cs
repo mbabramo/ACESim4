@@ -246,6 +246,21 @@ namespace ACESimBase.GameSolvingSupport.Settings
             return new ReportCollection("", result);
         }
 
+        public static string ReportFilename(string masterReportName, string optionSetName, string suffix)
+        {
+            string suffixWithSpaceIfNeeded = ManipulateSuffix(suffix);
+            string optionSetNameWithSpace = optionSetName is null or "" ? "" : " " + optionSetName;
+            return masterReportName + optionSetNameWithSpace + suffixWithSpaceIfNeeded;
+        }
+
+        public static string ReportFullPath(string masterReportName, string optionSetName, string suffix)
+        {
+            DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
+            var folderFullName = folder.FullName;
+            string filename = Path.Combine(folderFullName, ReportFilename(masterReportName, optionSetName, suffix));
+            return filename;
+        }
+
         public static string ReportFolder()
         {
             DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
@@ -253,14 +268,13 @@ namespace ACESimBase.GameSolvingSupport.Settings
             return folderFullName;
         }
 
-        public string GetReportFolder() => ReportFolder(); // access instance through static method
+        // access instance through static method
 
-        public string GetReportFilename(string optionSetName, string suffix)
-        {
-            string suffixWithSpaceIfNeeded = ManipulateSuffix(suffix);
-            string optionSetNameWithSpace = optionSetName is null or "" ? "" : " " + optionSetName;
-            return MasterReportNameForDistributedProcessing + optionSetNameWithSpace + suffixWithSpaceIfNeeded;
-        }
+        public string GetReportFullPath(string optionSetName, string suffix) => ReportFullPath(MasterReportNameForDistributedProcessing, optionSetName, suffix);
+
+        public string GetReportFilename(string optionSetName, string suffix) => ReportFilename(MasterReportNameForDistributedProcessing, optionSetName, suffix);
+
+        public string GetReportFolder() => ReportFolder(); 
 
         public static string ManipulateSuffix(string suffix)
         {
@@ -269,14 +283,6 @@ namespace ACESimBase.GameSolvingSupport.Settings
             if (suffix.StartsWith("."))
                 return suffix;
             return " " + suffix;
-        }
-
-        public string GetReportFullPath(string optionSetName, string suffix)
-        {
-            DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
-            var folderFullName = folder.FullName;
-            string filename = Path.Combine(folderFullName, GetReportFilename(optionSetName, suffix));
-            return filename;
         }
 
         public async Task ParticipateInDistributedProcessing(string masterReportName, CancellationToken cancellationToken, Action<string> logAction = null)

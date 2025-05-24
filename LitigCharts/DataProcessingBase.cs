@@ -17,7 +17,7 @@ namespace LitigCharts
     {
         public static VirtualizableFileSystem VirtualizableFileSystem { get; set; }
 
-        public static string filePrefix(PermutationalLauncher launcher) => launcher.ReportPrefix + "-";
+        public static string filePrefix(PermutationalLauncher launcher) => launcher.ReportPrefix;
 
         public const string correlatedEquilibriumFileSuffix = "-Corr";
         public const string averageEquilibriumFileSuffix = "-Avg";
