@@ -206,7 +206,7 @@ namespace ACESim
                     }
                     if (noncriticalTransformation != null && !replaced)
                         transformLists.Add(noncriticalTransformation);
-                    List<LitigGameOptions> noncriticalOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.AppropriationGame().WithName(MasterReportNamePrefix), transformLists);
+                    List<LitigGameOptions> noncriticalOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.AppropriationGame(), transformLists);
                     List<(string, string)> defaultNonCriticalValues = DefaultVariableValues;
                     foreach (var optionSet in noncriticalOptions)
                     {
