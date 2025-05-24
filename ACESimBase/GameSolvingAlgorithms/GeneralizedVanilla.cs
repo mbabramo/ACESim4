@@ -1047,9 +1047,6 @@ namespace ACESim
             }
             else
             {
-                if (EvolutionSettings.CreateEFGFile)
-                    CreateGambitEFGFile();
-
                 if (EvolutionSettings.UnrollAlgorithm)
                     reportCollection = await Unroll_SolveGeneralizedVanillaCFR();
                 else
@@ -1058,6 +1055,8 @@ namespace ACESim
                 double[] equilibrium = GetInformationSetValues();
                 string equFile = CreateEquilibriaFile(new List<double[]> { equilibrium });
             }
+            if (EvolutionSettings.CreateEFGFile)
+                CreateGambitEFGFile();
 
             return reportCollection;
         }

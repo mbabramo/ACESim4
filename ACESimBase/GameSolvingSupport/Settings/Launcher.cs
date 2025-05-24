@@ -257,9 +257,18 @@ namespace ACESimBase.GameSolvingSupport.Settings
 
         public string GetReportFilename(string optionSetName, string suffix)
         {
-            if (optionSetName is null or "")
-                return MasterReportNameForDistributedProcessing + " " + suffix;
-            return MasterReportNameForDistributedProcessing + " " + optionSetName + " " + suffix;
+            string suffixWithSpaceIfNeeded = ManipulateSuffix(suffix);
+            string optionSetNameWithSpace = optionSetName is null or "" ? "" : " " + optionSetName;
+            return MasterReportNameForDistributedProcessing + optionSetNameWithSpace + suffixWithSpaceIfNeeded;
+        }
+
+        public static string ManipulateSuffix(string suffix)
+        {
+            if (suffix is null or "" or "-")
+                return "";
+            if (suffix.StartsWith("."))
+                return suffix;
+            return " " + suffix;
         }
 
         public string GetReportFullPath(string optionSetName, string suffix)
@@ -589,7 +598,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
 
         private async Task<ReportCollection> GetSingleRepetitionReportAndSave(string masterReportName, GameOptions options, string optionSetName, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer, int? restrictToScenarioIndex, Action<string> logAction = null)
         {
-            string masterReportNamePlusOptionSet = $"{masterReportName} {optionSetName}";
+            string suffix = $"";
             if (logAction == null)
                 logAction = s => Debug.WriteLine(s);
             if (developer == null)
@@ -605,11 +614,11 @@ namespace ACESimBase.GameSolvingSupport.Settings
                     for (int c = 0; c < result.csvReports.Count; c++)
                     {
                         if (c == 0 && result.ReportSuffixes != null && result.ReportSuffixes.Count() > c && result.ReportSuffixes[c].Contains(optionSetName))
-                            masterReportNamePlusOptionSet = masterReportName ?? "results"; // remove the redundancy
-                        if (result.ReportSuffixes.Count() > c && result.ReportSuffixes[c] is not null and string reportName2)
-                            masterReportNamePlusOptionSet += "-" + reportName2;
+                            suffix = ""; // remove the redundancy
+                        if (result.ReportSuffixes.Count() > c && result.ReportSuffixes[c] is not null and string suffix2 && suffix2 is not null && suffix2 is not "")
+                            suffix += "-" + suffix2;
 
-                        AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), masterReportNamePlusOptionSet + ".csv", true, result.csvReports[c], SaveToAzureBlob); // we write to a blob in case this times out and also to allow individual report to be taken out
+                        AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), GetReportFilename(optionSetName, suffix + ".csv"), true, result.csvReports[c], SaveToAzureBlob); // we write to a blob in case this times out and also to allow individual report to be taken out
                     }
                 }
                 logAction("Report written to blob");

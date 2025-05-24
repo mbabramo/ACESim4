@@ -100,7 +100,9 @@ namespace ACESim
 
         public string MasterReportName;
 
-        private string GetFilename(string suffix) => MasterReportName + " " + GameDefinition.OptionSetName + " " + suffix;
+        private string GetFilename(string suffix) => MasterReportName 
+            + " " + GameDefinition.OptionSetName 
+            + Launcher.ManipulateSuffix(suffix);
 
         private string GetReportFullPath(string suffix)
         {
