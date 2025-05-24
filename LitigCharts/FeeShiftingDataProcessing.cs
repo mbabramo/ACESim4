@@ -46,7 +46,7 @@ namespace LitigCharts
 
             var gameOptionsSets = launcher.GetOptionsSets();
             var map = launcher.NameMap; // name to find (avoids redundancies in naming)
-            string path = launcher.GetReportFolder();
+            string path = launcher.ReportFolder();
             string outputFileFullPath = Path.Combine(path, filePrefix(launcher) + $"-{endOfFileName}.csv");
             string cumResults = "";
 

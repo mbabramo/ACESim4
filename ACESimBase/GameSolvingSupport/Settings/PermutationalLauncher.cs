@@ -52,6 +52,8 @@ namespace ACESimBase.GameSolvingSupport.Settings
             T g = options;
             transform(g);
             g.Name = g.Name + suffix;
+            while (g.Name.StartsWith(" "))
+                g.Name = g.Name.Substring(1);
             return g;
         }
 
@@ -80,13 +82,13 @@ namespace ACESimBase.GameSolvingSupport.Settings
 
         public abstract List<List<GameOptions>> GetSetsOfGameOptions(bool useAllPermutationsOfTransformations, bool includeBaselineValueForNoncritical);
 
-        public void GetGameOptions(List<GameOptions> options)
+        public void AddToOptionsSets(List<GameOptions> options)
         {
             bool includeBaselineValueForNoncritical = false; // By setting this to false, we avoid repeating the baseline value for noncritical transformations, which would produce redundant options sets.
-            GetGameOptions(options, includeBaselineValueForNoncritical);
+            AddToOptionsSets(options, includeBaselineValueForNoncritical);
         }
 
-        public void GetGameOptions(List<GameOptions> options, bool allowRedundancies)
+        public void AddToOptionsSets(List<GameOptions> options, bool allowRedundancies)
         {
             var gamesSets = GetSetsOfGameOptions(false, allowRedundancies); // each is a set with noncritical
             List<GameOptions> eachGameIndependently = FlattenAndOrderGameSets(gamesSets);
@@ -129,9 +131,9 @@ namespace ACESimBase.GameSolvingSupport.Settings
             get
             {
                 List<GameOptions> withRedundancies = new List<GameOptions>();
-                GetGameOptions(withRedundancies, true);
+                AddToOptionsSets(withRedundancies, true);
                 List<GameOptions> withoutRedundancies = new List<GameOptions>();
-                GetGameOptions(withoutRedundancies, false);
+                AddToOptionsSets(withoutRedundancies, false);
                 Dictionary<string, string> result = new Dictionary<string, string>();
                 foreach (var gameOptions in withRedundancies)
                 {

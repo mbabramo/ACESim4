@@ -253,7 +253,17 @@ namespace ACESimBase.GameSolvingSupport.Settings
             return folderFullName;
         }
 
-        public string GetReportFolder() => ReportFolder();
+        public string GetReportFolder() => ReportFolder(); // access instance through static method
+
+        public string GetReportFilename(string optionSetName, string suffix) => MasterReportNameForDistributedProcessing + " " + optionSetName + " " + suffix;
+
+        public string GetReportFullPath(string optionSetName, string suffix)
+        {
+            DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
+            var folderFullName = folder.FullName;
+            string filename = Path.Combine(folderFullName, GetReportFilename(optionSetName, suffix));
+            return filename;
+        }
 
         public async Task ParticipateInDistributedProcessing(string masterReportName, CancellationToken cancellationToken, Action<string> logAction = null)
         {
@@ -366,7 +376,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
             }
             else
                 throw new NotImplementedException();
-            AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), $"{masterReportName}-{(optionSetName != null ? optionSetName + taskToDo.RestrictToScenarioIndex?.ToString() : taskToDo.TaskType)}-log.txt", true, TabbedText.AccumulatedText.ToString(), SaveToAzureBlob);
+            AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), $"{masterReportName} {(optionSetName != null ? optionSetName + taskToDo.RestrictToScenarioIndex?.ToString() : taskToDo.TaskType)}-log.txt", true, TabbedText.AccumulatedText.ToString(), SaveToAzureBlob);
             TabbedText.ResetAccumulated();
         }
 
@@ -574,7 +584,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
 
         private async Task<ReportCollection> GetSingleRepetitionReportAndSave(string masterReportName, GameOptions options, string optionSetName, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer, int? restrictToScenarioIndex, Action<string> logAction = null)
         {
-            string masterReportNamePlusOptionSet = $"{masterReportName}-{optionSetName}";
+            string masterReportNamePlusOptionSet = $"{masterReportName} {optionSetName}";
             if (logAction == null)
                 logAction = s => Debug.WriteLine(s);
             if (developer == null)
@@ -590,12 +600,11 @@ namespace ACESimBase.GameSolvingSupport.Settings
                     for (int c = 0; c < result.csvReports.Count; c++)
                     {
                         if (c == 0 && result.ReportNames != null && result.ReportNames.Count() > c && result.ReportNames[c].Contains(optionSetName))
-                            masterReportNamePlusOptionSet = masterReportName; // remove the redundancy
-                        string reportName = masterReportNamePlusOptionSet ?? "results";
+                            masterReportNamePlusOptionSet = masterReportName ?? "results"; // remove the redundancy
                         if (result.ReportNames.Count() > c && result.ReportNames[c] is not null and string reportName2)
-                            reportName += "-" + reportName2;
+                            masterReportNamePlusOptionSet += "-" + reportName2;
 
-                        AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), reportName + ".csv", true, result.csvReports[c], SaveToAzureBlob); // we write to a blob in case this times out and also to allow individual report to be taken out
+                        AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), masterReportNamePlusOptionSet + ".csv", true, result.csvReports[c], SaveToAzureBlob); // we write to a blob in case this times out and also to allow individual report to be taken out
                     }
                 }
                 logAction("Report written to blob");

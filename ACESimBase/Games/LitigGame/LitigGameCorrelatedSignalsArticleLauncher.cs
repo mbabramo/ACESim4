@@ -155,7 +155,7 @@ namespace ACESim
         public void AddFeeShiftingArticleGames(List<GameOptions> options)
         {
             bool includeBaselineValueForNoncritical = false; // By setting this to false, we avoid repeating the baseline value for noncritical transformations, which would produce redundant options sets.
-            GetGameOptions(options, includeBaselineValueForNoncritical);
+            AddToOptionsSets(options, includeBaselineValueForNoncritical);
             if (UseSmallerTree)
             {
                 foreach (var option in options)

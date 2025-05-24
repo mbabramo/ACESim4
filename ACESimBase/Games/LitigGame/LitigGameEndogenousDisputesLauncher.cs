@@ -106,10 +106,10 @@ namespace ACESim
             switch (OptionSetChosen)
             {
                 case OptionSetChoice.JustOneOption:
-                    AddToOptionsListWithName(optionSets, "singleoptionset", LitigGameOptionsGenerator.BaseBeforeApplyingEndogenousGenerator());
+                    AddToOptionsSetsWithName(optionSets, "singleoptionset", LitigGameOptionsGenerator.BaseBeforeApplyingEndogenousGenerator());
                     break;
                 case OptionSetChoice.EndogenousDisputesArticle:
-                    GetGameOptions(optionSets);
+                    AddToOptionsSets(optionSets);
                     break;
 
             }
@@ -134,7 +134,7 @@ namespace ACESim
             return optionSets;
         }
 
-        void AddToOptionsListWithName(List<GameOptions> list, string name, GameOptions options)
+        void AddToOptionsSetsWithName(List<GameOptions> list, string name, GameOptions options)
         {
             options.Name = name;
             list.Add(options);
@@ -180,7 +180,6 @@ namespace ACESim
            };
             List<List<Func<LitigGameOptions, LitigGameOptions>>> criticalTransformations = allTransformations.Take(numCritical).ToList();
             List<List<Func<LitigGameOptions, LitigGameOptions>>> noncriticalTransformations = allTransformations.Skip(IncludeNonCriticalTransformations ? numCritical : allTransformations.Count()).ToList();
-            List<LitigGameOptions> gameOptions = new List<LitigGameOptions>();
             if (!useAllPermutationsOfTransformations)
             {
                 var noncriticalTransformationPlusNoTransformation = new List<List<Func<LitigGameOptions, LitigGameOptions>>>();
@@ -206,7 +205,7 @@ namespace ACESim
                     }
                     if (noncriticalTransformation != null && !replaced)
                         transformLists.Add(noncriticalTransformation);
-                    List<LitigGameOptions> noncriticalOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.AppropriationGame(), transformLists);
+                    List<LitigGameOptions> noncriticalOptions = ApplyPermutationsOfTransformations(() => (LitigGameOptions)LitigGameOptionsGenerator.GetLitigGameOptions(), transformLists);
                     List<(string, string)> defaultNonCriticalValues = DefaultVariableValues;
                     foreach (var optionSet in noncriticalOptions)
                     {

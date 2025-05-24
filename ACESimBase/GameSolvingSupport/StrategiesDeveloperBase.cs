@@ -96,10 +96,19 @@ namespace ACESim
         public bool SaveWeightedGameProgressesAfterEachReport = false;
         public List<(GameProgress theProgress, double weight)> SavedWeightedGameProgresses = new List<(GameProgress theProgress, double weight)>();
 
-
         public Rational[][] UtilitiesAsRationals;
 
         public string MasterReportName;
+
+        private string GetFilename(string suffix) => MasterReportName + " " + GameDefinition.OptionSetName + " " + suffix;
+
+        private string GetReportFullPath(string suffix)
+        {
+            DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
+            var folderFullName = folder.FullName;
+            string filename = Path.Combine(folderFullName, GetFilename(suffix));
+            return filename;
+        }
 
         public StrategiesDeveloperBase(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition)
         {
@@ -120,7 +129,7 @@ namespace ACESim
 
         public bool EquilibriaFileAlreadyExists()
         {
-            return File.Exists(GetEquilibriaFileName());
+            return File.Exists(GetEquilibriaFullPath());
         }
 
         public string CreateEquilibriaFile(List<double[]> equilibria)
@@ -130,29 +139,22 @@ namespace ACESim
             {
                 s.AppendLine(String.Join(",", equilibrium));
             }
-            string filename = GetEquilibriaFileName();
-            TextFileManage.CreateTextFile(filename, s.ToString()); // TODO: Switch to azure/local
-            return filename;
-        }
-
-        private string GetEquilibriaFileName()
-        {
-            DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
-            var folderFullName = folder.FullName;
-            string filename = Path.Combine(folderFullName, GameDefinition.OptionSetName + "-equ.csv");
-            return filename;
+            string fullPath = GetEquilibriaFullPath();
+            TextFileManage.CreateTextFile(fullPath, s.ToString()); // TODO: Switch to azure/local
+            return fullPath;
         }
 
         public List<double[]> LoadEquilibriaFile()
         {
-            DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
-            var folderFullName = folder.FullName;
-            string filename = Path.Combine(folderFullName, GameDefinition.OptionSetName + "-equ.csv");
-            string[] lines = TextFileManage.GetLinesOfFile(filename);
+            string fullPath = GetEquilibriaFullPath();
+            string[] lines = TextFileManage.GetLinesOfFile(fullPath);
             //List<Rational[]> numbersAsRationals = lines.Select(x => x.Split(",").Select(x => EFGFileReader.RationalStringToRational(x)).ToArray()).ToList();
             List<double[]> numbers = lines.Select(x => x.Split(",").Select(x => EFGFileReader.RationalStringToDouble(x)).ToArray()).ToList(); // there may be doubles or rationals in the string
             return numbers;
         }
+
+        private string GetEquilibriaFullPath() => GetReportFullPath("-equ.csv");
+
 
         [SupportedOSPlatform("windows")]
         public async Task ProcessIdentifiedEquilibria(ReportCollection reportCollection, List<double[]> equilibria, bool multipleEquilibriaPossible)
@@ -2259,9 +2261,7 @@ namespace ACESim
             EFGFileWriter efgCreator = new EFGFileWriter(GameDefinition.OptionSetName, GameDefinition.NonChancePlayerNames, EvolutionSettings.DistributeChanceDecisions);
             TreeWalk_Tree(efgCreator);
             string efgResult = efgCreator.FileText.ToString();
-            DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
-            var folderFullName = folder.FullName;
-            string filename = Path.Combine(folderFullName, MasterReportName + "-" + GameDefinition.OptionSetName + ".efg");
+            string filename = GetReportFullPath(".efg");
             TextFileManage.CreateTextFile(filename, efgResult);
             return filename;
         }
@@ -3259,7 +3259,7 @@ namespace ACESim
             var results = GameDefinition.ProduceManualReports(SavedWeightedGameProgresses, supplementalString);
             foreach (var result in results)
             {
-                AzureBlob.WriteTextToFileOrAzure("results", Launcher.ReportFolder(), MasterReportName + "-" + result.filename, true, result.reportcontent, EvolutionSettings.SaveToAzureBlob);
+                AzureBlob.WriteTextToFileOrAzure("results", Launcher.ReportFolder(), MasterReportName + " " + result.filename, true, result.reportcontent, EvolutionSettings.SaveToAzureBlob);
             }
         }
 
