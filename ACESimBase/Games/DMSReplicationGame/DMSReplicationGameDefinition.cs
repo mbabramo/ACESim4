@@ -87,7 +87,7 @@ namespace ACESimBase.Games.DMSReplicationGame
             return true;
         }
 
-        public override IEnumerable<(string filename, string reportcontent)> ProduceManualReports(List<(GameProgress theProgress, double weight)> gameProgresses, string supplementalString)
+        public override IEnumerable<(string suffix, string reportcontent)> ProduceManualReports(List<(GameProgress theProgress, double weight)> gameProgresses, string supplementalString)
         {
             var series = new List<(string name, List<double> values)>();
             StringBuilder csvBuilder = new StringBuilder();
@@ -136,7 +136,7 @@ namespace ACESimBase.Games.DMSReplicationGame
             var p_correct_deltas = Enumerable.Range(1, p_corrects.Count - 1).Select(x => Math.Abs(p_corrects[x] - p_corrects[x - 1])).ToList();
             var d_correct_deltas = Enumerable.Range(1, d_corrects.Count - 1).Select(x => Math.Abs(d_corrects[x] - d_corrects[x - 1])).ToList();
 
-            yield return (OptionSetName + $" dms{supplementalString}.txt", csvBuilder.ToString());
+            yield return ($" dms{supplementalString}.txt", csvBuilder.ToString());
 
             var lineGraphData = dataSeriesForRepeatedGraph.Select(majorRow => majorRow.Select(majorColumn => new TikzLineGraphData(majorColumn.Select(x => x.values).ToList(), majorColumn.Select(x => x.weight).Select(x => $"black, opacity={x}, line width=1mm, solid").ToList(), majorColumn.Select(x => "").ToList())).ToList()).ToList();
 
@@ -156,7 +156,7 @@ namespace ACESimBase.Games.DMSReplicationGame
             string latexDoc = r.GetStandaloneDocument();
 
             if (p_correct_deltas.Max() < 0.01 && d_correct_deltas.Max() < 0.01) // for now, only include where there is no discontinuity
-                yield return (OptionSetName + $" dms{supplementalString}.tex", latexDoc);
+                yield return ($" dms{supplementalString}.tex", latexDoc);
         }
 
         public override string ToString()

@@ -1175,22 +1175,22 @@ namespace ACESim
 
         #region Manual reports
 
-        public override IEnumerable<(string filename, string reportcontent)> ProduceManualReports(List<(GameProgress theProgress, double weight)> gameProgresses, string supplementalString)
+        public override IEnumerable<(string suffix, string reportcontent)> ProduceManualReports(List<(GameProgress theProgress, double weight)> gameProgresses, string supplementalString)
         {
             var contents = CostBreakdownReport.GenerateReport(gameProgresses);
-            yield return (OptionSetName + $"-costbreakdownlight{supplementalString}.csv", contents[0]);
-            yield return (OptionSetName + $"-costbreakdownlight{supplementalString}.tex", contents[1]);
-            yield return (OptionSetName + $"-costbreakdowndark{supplementalString}.csv", contents[2]);
-            yield return (OptionSetName + $"-costbreakdowndark{supplementalString}.tex", contents[3]);
+            yield return ($"-costbreakdownlight{supplementalString}.csv", contents[0]);
+            yield return ($"-costbreakdownlight{supplementalString}.tex", contents[1]);
+            yield return ($"-costbreakdowndark{supplementalString}.csv", contents[2]);
+            yield return ($"-costbreakdowndark{supplementalString}.tex", contents[3]);
             contents = StageCostReport.GenerateReport(gameProgresses);
-            yield return (OptionSetName + $"-stagecostlight{supplementalString}.csv", contents[0]);
-            yield return (OptionSetName + $"-stagecostlight{supplementalString}.tex", contents[1]);
-            yield return (OptionSetName + $"-stagecostdark{supplementalString}.csv", contents[2]);
-            yield return (OptionSetName + $"-stagecostdark{supplementalString}.tex", contents[3]);
+            yield return ($"-stagecostlight{supplementalString}.csv", contents[0]);
+            yield return ($"-stagecostlight{supplementalString}.tex", contents[1]);
+            yield return ($"-stagecostdark{supplementalString}.csv", contents[2]);
+            yield return ($"-stagecostdark{supplementalString}.tex", contents[3]);
             contents = SignalOfferReport.GenerateReport(this, gameProgresses, SignalOfferReport.TypeOfReport.Offers);
-            yield return (OptionSetName + $"-offers{supplementalString}.tex", contents[0]);
+            yield return ($"-offers{supplementalString}.tex", contents[0]);
             contents = SignalOfferReport.GenerateReport(this, gameProgresses, SignalOfferReport.TypeOfReport.FileAndAnswer);
-            yield return (OptionSetName + $"-fileans{supplementalString}.tex", contents[0]);
+            yield return ($"-fileans{supplementalString}.tex", contents[0]);
         }
 
 

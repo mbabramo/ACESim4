@@ -345,7 +345,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
 
         #region Diagrams
 
-        public override IEnumerable<(string filename, string reportcontent)> ProduceManualReports(List<(GameProgress theProgress, double weight)> gameProgresses, string supplementalString)
+        public override IEnumerable<(string suffix, string reportcontent)> ProduceManualReports(List<(GameProgress theProgress, double weight)> gameProgresses, string supplementalString)
         {
             double includeMultiplesOf = 0.1;
             double remainder = Math.Abs(Options.FeeShiftingThreshold % includeMultiplesOf);
@@ -356,7 +356,7 @@ namespace ACESimBase.Games.AdditiveEvidenceGame
             Stopwatch w = new Stopwatch();
             w.Start();
             var contents = SignalOfferReport.GenerateReport(this, gameProgresses, SignalOfferReport.TypeOfReport.Offers);
-            yield return (OptionSetName + $"-offers{supplementalString}.tex", contents[0]);
+            yield return ($"-offers{supplementalString}.tex", contents[0]);
             w.Stop();
             TabbedText.WriteLine($"Produced manual reports; time {w.ElapsedMilliseconds} ms");
         }

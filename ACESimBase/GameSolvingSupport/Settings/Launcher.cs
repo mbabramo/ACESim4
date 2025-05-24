@@ -255,7 +255,12 @@ namespace ACESimBase.GameSolvingSupport.Settings
 
         public string GetReportFolder() => ReportFolder(); // access instance through static method
 
-        public string GetReportFilename(string optionSetName, string suffix) => MasterReportNameForDistributedProcessing + " " + optionSetName + " " + suffix;
+        public string GetReportFilename(string optionSetName, string suffix)
+        {
+            if (optionSetName is null or "")
+                return MasterReportNameForDistributedProcessing + " " + suffix;
+            return MasterReportNameForDistributedProcessing + " " + optionSetName + " " + suffix;
+        }
 
         public string GetReportFullPath(string optionSetName, string suffix)
         {
@@ -281,7 +286,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
                 Stopwatch s = new Stopwatch();
                 s.Start();
                 // We are serializing the TaskCoordinator to synchronize information. Thus, we need to update the task coordinator to report that this job is complete. 
-                AzureBlob.TransformSharedBlobOrFileByteArray(ReportFolder(), "results", masterReportName + " Coordinator", byteArray =>
+                AzureBlob.TransformSharedBlobOrFileByteArray(ReportFolder(), "results", GetReportFilename(null, "Coordinator"), byteArray =>
                 {
                     if (byteArray == null)
                         throw new Exception("Corrupted or nonexistent task coordinator status blob");
@@ -376,7 +381,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
             }
             else
                 throw new NotImplementedException();
-            AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), $"{masterReportName} {(optionSetName != null ? optionSetName + taskToDo.RestrictToScenarioIndex?.ToString() : taskToDo.TaskType)}-log.txt", true, TabbedText.AccumulatedText.ToString(), SaveToAzureBlob);
+            AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), GetReportFilename((optionSetName != null ? optionSetName + taskToDo.RestrictToScenarioIndex?.ToString() : taskToDo.TaskType), "-log.txt"), true, TabbedText.AccumulatedText.ToString(), SaveToAzureBlob);
             TabbedText.ResetAccumulated();
         }
 
@@ -404,7 +409,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
         {
             TaskCoordinator uninitialized = GetUninitializedTaskList();
             TaskList = uninitialized;
-            var result = AzureBlob.TransformSharedBlobOrFileByteArray(ReportFolder(), "results", masterReportName + " Coordinator", byteArray =>
+            var result = AzureBlob.TransformSharedBlobOrFileByteArray(ReportFolder(), "results", GetReportFilename(null, "Coordinator"), byteArray =>
             {
                 if (byteArray == null || byteArray.Length == 0)
                 { // create a new byteArray
@@ -484,7 +489,7 @@ namespace ACESimBase.GameSolvingSupport.Settings
             // it is possible that we have multiple csvReports -- meaning that different simulations produced
             // different first lines. that's OK, we need to output all of them.
             string combinedResults = reportCollection.csvReports.FirstOrDefault();
-            AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), $"{masterReportName} AllCombined.csv", true, combinedResults, SaveToAzureBlob);
+            AzureBlob.WriteTextToFileOrAzure("results", ReportFolder(), GetReportFilename(null, "AllCombined.csv"), true, combinedResults, SaveToAzureBlob);
             return combinedResults;
         }
 

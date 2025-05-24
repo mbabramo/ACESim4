@@ -3259,7 +3259,7 @@ namespace ACESim
             var results = GameDefinition.ProduceManualReports(SavedWeightedGameProgresses, supplementalString);
             foreach (var result in results)
             {
-                AzureBlob.WriteTextToFileOrAzure("results", Launcher.ReportFolder(), MasterReportName + " " + result.filename, true, result.reportcontent, EvolutionSettings.SaveToAzureBlob);
+                AzureBlob.WriteTextToFileOrAzure("results", Launcher.ReportFolder(), GetFilename(result.suffix), true, result.reportcontent, EvolutionSettings.SaveToAzureBlob);
             }
         }
 
