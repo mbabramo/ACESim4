@@ -154,7 +154,7 @@ namespace LitigCharts
                 workExists = processesToLaunch.Any(); 
                 foreach (string fileSuffix in equilibriumTypeSuffixes)
                 {
-                    List<(string path, string combinedPath, string optionSetName, string fileSuffix)> someToDo = FeeShiftingDataProcessing.GetLatexProcessPlans(launcher, new string[] { "-stagecostlight" + fileSuffix, "-stagecostdark" + fileSuffix, "-offers" + fileSuffix, "-fileans" + fileSuffix }, avoidProcessingIfPDFExists || numAttempts > 1);
+                    List<(string path, string combinedPath, string optionSetName, string fileSuffix)> someToDo = FeeShiftingDataProcessing.GetLatexProcessPlans(launcher, new string[] { "-stagecostlight" + fileSuffix, "-stagecostdark" + fileSuffix, "-costbreakdownlight" + fileSuffix, "-costbreakdowndark" + fileSuffix, "-offers" + fileSuffix, "-fileans" + fileSuffix }, avoidProcessingIfPDFExists || numAttempts > 1);
                     processesToLaunch.AddRange(someToDo);
                 }
                 ProduceLatexDiagrams(processesToLaunch);
