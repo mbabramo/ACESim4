@@ -309,13 +309,13 @@ namespace LitigCharts
 
                         foreach (var ext in extensions)
                         {
-                            string sourceFileName = $"{masterReportName}-{mappedName}{ext}";
+                            string sourceFileName = Launcher.ReportFilename(masterReportName, mappedName, ext);
 
                             if (!originalFileNames.Contains(sourceFileName)) 
                                 continue;
 
-                            string sourcePath = Path.Combine(reportFolder, sourceFileName);
-                            string targetFileName = optionSetName.Replace("FSA ", "").Replace("  ", " ") + ext;
+                            string sourcePath = Launcher.ReportFullPath(masterReportName, mappedName, ext);
+                            string targetFileName = sourceFileName;
                             string destPath = Path.Combine(targetDir, targetFileName);
                             VirtualizableFileSystem.File.Copy(sourcePath, destPath, true);
 

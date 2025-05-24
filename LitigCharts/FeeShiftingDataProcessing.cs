@@ -35,7 +35,7 @@ namespace LitigCharts
             BuildReport(launcher, rowsToGet, replacementRowNames, columnsToGet, replacementColumnNames, "output");
         }
 
-        private static void BuildReport(LitigGameLauncherBase launcher, List<string> rowsToGet, List<string> replacementRowNames, List<string> columnsToGet, List<string> replacementColumnNames, string endOfFileName)
+        private static void BuildReport(LitigGameLauncherBase launcher, List<string> rowsToGet, List<string> replacementRowNames, List<string> columnsToGet, List<string> replacementColumnNames, string filenameCore)
         {
             bool onlyAllFilter = false;
             if (onlyAllFilter)
@@ -47,7 +47,7 @@ namespace LitigCharts
             var gameOptionsSets = launcher.GetOptionsSets();
             var map = launcher.NameMap; // name to find (avoids redundancies in naming)
             string path = launcher.GetReportFolder();
-            string outputFileFullPath = Path.Combine(path, filePrefix(launcher) + $"-{endOfFileName}.csv");
+            string outputFileFullPath = launcher.GetReportFullPath(filenameCore, ".csv"); 
             string cumResults = "";
 
             var distinctOptionSets = gameOptionsSets.DistinctBy(x => map[x.Name]).ToList();
@@ -315,8 +315,7 @@ namespace LitigCharts
         public static void ProduceLatexDiagramsAggregatingReports(LitigGameLauncherBase launcher)
         {
             string reportFolder = Launcher.ReportFolder();
-            string filename = launcher.MasterReportNameForDistributedProcessing + "--output.csv";
-            string pathAndFilename = Path.Combine(reportFolder, filename);
+            string pathAndFilename = launcher.GetReportFullPath(null, "output.csv");
             string outputFolderName = "Aggregated Data";
             string outputFolderPath = Path.Combine(reportFolder, outputFolderName);
             if (!VirtualizableFileSystem.Directory.GetDirectories(reportFolder).Any(x => x == outputFolderName))

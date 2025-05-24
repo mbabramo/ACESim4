@@ -87,31 +87,6 @@ namespace LitigCharts
             if (!File.Exists(combinedPath))
             {
                 exists = false;
-                // DEBUG
-                //if (combinedPath.Contains("-Eq")) 
-                //{
-                //    exists = false;
-                //    return;
-                //}
-                //if (File.Exists(combinedPath.Replace(".tex","-equ.tex")))
-                //{
-                //    filename = filename.Replace(".tex", "-equ.tex");
-                //    combinedPath = combinedPath.Replace(".tex", "-equ.tex");
-                //    exists = true;
-                //    return;
-                //}
-
-                //fileSuffix = altFileSuffix;
-                //filename = filePrefix + filenameCore + fileSuffix + fileExtensionIncludingPeriod;
-                //combinedPath = Path.Combine(path, filename);
-                //if (!File.Exists(combinedPath))
-                //{
-                //    fileSuffix = "";
-                //    filename = filePrefix + filenameCore + fileSuffix + fileExtensionIncludingPeriod;
-                //    combinedPath = Path.Combine(path, filename);
-                //    if (!File.Exists(combinedPath))
-                //        exists = false;
-                //}
             }
         }
 
