@@ -15,11 +15,12 @@ namespace ACESimTest
     {
         CourtDecisionModel courtDeterministic;
         CourtDecisionModel courtNoisy;
+        PrecautionImpactModel impact;
 
         [TestInitialize]
         public void Init()
         {
-            var impact = new PrecautionImpactModel(
+            impact = new PrecautionImpactModel(
                 hiddenCount: 2,
                 precautionLevels: 2,
                 pAccidentNoActivity: 0.01,
@@ -66,6 +67,46 @@ namespace ACESimTest
 
             courtNoisy.IsLiable(signal, 0).Should().Be(r0 >= 1.0);
             courtNoisy.IsLiable(signal, 1).Should().BeFalse(); // max precaution never liable
+        }
+
+        // ------------------------------------------------------------------
+        // Additional tests
+        // ------------------------------------------------------------------
+
+        [TestMethod]
+        public void ExpectedBenefitMatchesRatioTimesCost()
+        {
+            for (int s = 0; s < 2; s++)
+            {
+                for (int k = 0; k < 2; k++)
+                {
+                    double benefit = courtDeterministic.GetExpectedBenefit(s, k);
+                    double ratio = courtDeterministic.GetBenefitCostRatio(s, k);
+                    benefit.Should().BeApproximately(ratio * 0.04, 1e-6);
+                }
+            }
+        }
+
+        [TestMethod]
+        public void InvalidSignalOrPrecautionThrows()
+        {
+            Action bad1 = () => courtDeterministic.GetBenefitCostRatio(99, 0);
+            Action bad2 = () => courtDeterministic.GetExpectedBenefit(0, 99);
+            Action bad3 = () => courtDeterministic.IsLiable(-1, 1);
+
+            bad1.Should().Throw<ArgumentOutOfRangeException>();
+            bad2.Should().Throw<ArgumentOutOfRangeException>();
+            bad3.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [TestMethod]
+        public void ThresholdMattersForLiability()
+        {
+            var sig = new PrecautionSignalModel(2, 2, 2, 2, 1e-4, 1e-4, 1e-4);
+            var stricter = new CourtDecisionModel(impact, sig, 0.04, 1.0, 3.0); // threshold = 3.0
+
+            // ratio for (signal=0, precaution=0) = 1.25
+            stricter.IsLiable(0, 0).Should().BeFalse(); // not high enough to meet threshold
         }
     }
 }

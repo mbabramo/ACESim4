@@ -127,5 +127,67 @@ namespace ACESimTest
             for (int pSig = 0; pSig < SignalLevels; pSig++)
                 table[pSig].Should().BeApproximately(joint[pSig], 1e-6);
         }
+
+        // ---------------------------------------------------------------
+        // 5) Deterministic case: σ ≈ 0 → signal = hidden
+        // ---------------------------------------------------------------
+        [TestMethod]
+        public void DeterministicSignalsMatchHidden()
+        {
+            var deterministic = new ThreePartyDiscreteSignals(
+                hiddenCount: 2,
+                signalCounts: new[] { 2, 2, 2 },
+                sigmas: new[] { 1e-5, 1e-5, 1e-5 },
+                sourceIncludesExtremes: true);
+
+            var r = new Random(123);
+            for (int h = 0; h < 2; h++)
+            {
+                var (p, d, c) = deterministic.GenerateSignalsFromHidden(h, r);
+                p.Should().Be(h);
+                d.Should().Be(h);
+                c.Should().Be(h);
+            }
+        }
+
+        // ---------------------------------------------------------------
+        // 6) Same-party conditional throws
+        // ---------------------------------------------------------------
+        [TestMethod]
+        public void SamePartyConditionalThrows()
+        {
+            Action act = () => model.GetSignalDistributionGivenSignal(1, 1, 0);
+            act.Should().Throw<ArgumentException>();
+        }
+
+        // ---------------------------------------------------------------
+        // 7) Out-of-bounds signal index throws
+        // ---------------------------------------------------------------
+        [TestMethod]
+        public void InvalidSignalIndexThrows()
+        {
+            Action bad = () => model.GetHiddenDistributionGivenSignal(0, 99);
+            bad.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        // ---------------------------------------------------------------
+        // 8) Hidden = 1 Monte Carlo behaves correctly
+        // ---------------------------------------------------------------
+        [TestMethod]
+        public void HiddenOneMonteCarloSampling()
+        {
+            var rng = new Random(77);
+            const int Samples = 100_000;
+            int[] counts = new int[SignalLevels];
+
+            for (int i = 0; i < Samples; i++)
+                counts[model.GenerateSignalsFromHidden(1, rng).Item3]++;
+
+            double[] empirical = counts.Select(c => (double)c / Samples).ToArray();
+            double[] theoretical = model.GetSignalDistributionGivenHidden(2, 1);
+
+            for (int s = 0; s < SignalLevels; s++)
+                empirical[s].Should().BeApproximately(theoretical[s], 0.01);
+        }
     }
 }
