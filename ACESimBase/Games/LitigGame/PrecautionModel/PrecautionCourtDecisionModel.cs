@@ -8,7 +8,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
     /// Requires a PrecautionImpactModel (true accident dynamics) and a PrecautionSignalModel (court's information).
     /// All indices are zero‑based.
     /// </summary>
-    public sealed class CourtDecisionModel
+    public sealed class PrecautionCourtDecisionModel
     {
         // References
         readonly PrecautionImpactModel impact;
@@ -31,7 +31,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         /// <summary>
         /// Build a court‑decision model.
         /// </summary>
-        public CourtDecisionModel(
+        public PrecautionCourtDecisionModel(
             PrecautionImpactModel impactModel,
             PrecautionSignalModel signalModel,
             double precautionCost,

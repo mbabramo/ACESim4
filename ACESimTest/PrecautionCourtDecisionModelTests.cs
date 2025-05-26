@@ -11,10 +11,10 @@ namespace ACESimTest
     /// Hidden 0 ⇒ factor 0.8 ; Hidden 1 ⇒ factor 0.6.
     /// </summary>
     [TestClass]
-    public sealed class CourtDecisionModelTests
+    public sealed class PrecautionCourtDecisionModelTests
     {
-        CourtDecisionModel courtDeterministic;
-        CourtDecisionModel courtNoisy;
+        PrecautionCourtDecisionModel courtDeterministic;
+        PrecautionCourtDecisionModel courtNoisy;
         PrecautionImpactModel impact;
 
         [TestInitialize]
@@ -33,11 +33,11 @@ namespace ACESimTest
 
             // deterministic signals (σ ~ 0)
             var detSignals = new PrecautionSignalModel(2, 2, 2, 2, 1e-4, 1e-4, 1e-4);
-            courtDeterministic = new CourtDecisionModel(impact, detSignals, 0.04, 1.0, 1.0);
+            courtDeterministic = new PrecautionCourtDecisionModel(impact, detSignals, 0.04, 1.0, 1.0);
 
             // noisy signals (σ = 0.2)
             var noisySignals = new PrecautionSignalModel(2, 2, 2, 2, 0.2, 0.2, 0.2);
-            courtNoisy = new CourtDecisionModel(impact, noisySignals, 0.04, 1.0, 1.0);
+            courtNoisy = new PrecautionCourtDecisionModel(impact, noisySignals, 0.04, 1.0, 1.0);
         }
 
         [TestMethod]
@@ -103,7 +103,7 @@ namespace ACESimTest
         public void ThresholdMattersForLiability()
         {
             var sig = new PrecautionSignalModel(2, 2, 2, 2, 1e-4, 1e-4, 1e-4);
-            var stricter = new CourtDecisionModel(impact, sig, 0.04, 1.0, 3.0); // threshold = 3.0
+            var stricter = new PrecautionCourtDecisionModel(impact, sig, 0.04, 1.0, 3.0); // threshold = 3.0
 
             // ratio for (signal=0, precaution=0) = 1.25
             stricter.IsLiable(0, 0).Should().BeFalse(); // not high enough to meet threshold
