@@ -110,6 +110,24 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             ValidateIndices(courtSignal, precautionLevel);
             return liable[courtSignal][precautionLevel];
         }
+        public double GetLiabilityProbability(double[] courtSignalDistribution, int precautionLevel)
+        {
+            if (courtSignalDistribution == null || courtSignalDistribution.Length != numCourtSignals)
+                throw new ArgumentException(nameof(courtSignalDistribution));
+            ValidateIndices(0, precautionLevel); // ensure precautionLevel is in range
+
+            double liabilityProb = 0.0;
+            for (int s = 0; s < numCourtSignals; s++)
+            {
+                if (IsLiable(s, precautionLevel))
+                {
+                    liabilityProb += courtSignalDistribution[s];
+                }
+                // (If not liable for signal s, contribute 0)
+            }
+            return liabilityProb;
+        }
+
 
         // ---------------- Helpers ---------------------------
 
