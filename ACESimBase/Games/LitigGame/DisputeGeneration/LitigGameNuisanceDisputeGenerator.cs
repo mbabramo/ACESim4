@@ -16,10 +16,10 @@ namespace ACESim
     {
         public override string GetGeneratorName() => "Nuisance";
 
-        public string OptionsString => $"NumBenefitLevels {NumUtilityLevels} MinBenefitOfActionToDefendant {MinBenefitOfActionToDefendant} MaxBenefitOfActionToDefendant {MaxBenefitOfActionToDefendant} CostOfActionOnPlaintiff {CostOfActionOnPlaintiff} StdevNoiseToProduceLiabilityStrength {StdevNoiseToProduceLiabilityStrength}";
-        public (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("Benefit to D", "BenefitD");
-        public (string name, string abbreviation) PrimaryNameAndAbbreviation => ("Take Benefit", "TakeBenefit");
-        public (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("PostPrimaryChanceActions", "Post Primary");
+        public override string OptionsString => $"NumBenefitLevels {NumUtilityLevels} MinBenefitOfActionToDefendant {MinBenefitOfActionToDefendant} MaxBenefitOfActionToDefendant {MaxBenefitOfActionToDefendant} CostOfActionOnPlaintiff {CostOfActionOnPlaintiff} StdevNoiseToProduceLiabilityStrength {StdevNoiseToProduceLiabilityStrength}";
+        public override (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("Benefit to D", "BenefitD");
+        public override (string name, string abbreviation) PrimaryNameAndAbbreviation => ("Take Benefit", "TakeBenefit");
+        public override (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("PostPrimaryChanceActions", "Post Primary");
         public override string GetActionString(byte action, byte decisionByteCode)
         {
             return action.ToString();
@@ -50,8 +50,7 @@ namespace ACESim
             return MinBenefitOfActionToDefendant + (MaxBenefitOfActionToDefendant - MinBenefitOfActionToDefendant) * BenefitOfActionToDefendant_Proportion(benefitLevel);
         }
 
-        public LitigGameDefinition LitigGameDefinition { get; set; }
-        public void Setup(LitigGameDefinition myGameDefinition)
+        public override void Setup(LitigGameDefinition myGameDefinition)
         {
             LitigGameDefinition = myGameDefinition;
             // We need to determine the probability of different liability strengths 
@@ -66,7 +65,7 @@ namespace ACESim
             }
         }
 
-        public void GetActionsSetup(LitigGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate)
+        public override void GetActionsSetup(LitigGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate)
         {
             prePrimaryChanceActions = NumUtilityLevels;
             primaryActions = 2;
@@ -102,7 +101,7 @@ namespace ACESim
             return BenefitOfActionToDefendant_Level(disputeGeneratorActions.PrePrimaryChanceAction) - CostOfActionOnPlaintiff;
         }
 
-        public (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts)
+        public override (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts)
         {
             // If the defendant *declines* to take the benefit (primaryAction == 2),
             // the foregone benefit is treated as a precaution / opportunity cost.
@@ -157,4 +156,7 @@ namespace ACESim
         public override bool PostPrimaryDoesNotAffectStrategy() => false;
     }
 }
+
+
+
 

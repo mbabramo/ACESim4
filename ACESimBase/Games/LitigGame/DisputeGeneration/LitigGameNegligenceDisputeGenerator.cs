@@ -40,21 +40,21 @@ namespace ACESim
         // ── ILitigGameDisputeGenerator implementation ────────────────────────────
         public override string GetGeneratorName() => "Negligence";
 
-        public string OptionsString =>
+        public override string OptionsString =>
             $"Mode={(CostVariesMode ? "CostVaries" : "RiskVaries")} " +
             $"AltCause={AlternativeCauseProb} " +
             (CostVariesMode
                 ? $"Levels={NumCostLevels} MinCost={MinCost} MaxCost={MaxCost} FixedRisk={FixedRiskNoPrecaution}"
                 : $"Levels={NumRiskLevels} MinRisk={MinRisk} MaxRisk={MaxRisk} FixedCost={FixedPrecautionCost}");
 
-        public (string name, string abbreviation) PrePrimaryNameAndAbbreviation =>
+        public override (string name, string abbreviation) PrePrimaryNameAndAbbreviation =>
             (CostVariesMode ? "Precaution Cost Level" : "Base Risk Level",
              CostVariesMode ? "CostLvl" : "RiskLvl");
 
-        public (string name, string abbreviation) PrimaryNameAndAbbreviation =>
+        public override (string name, string abbreviation) PrimaryNameAndAbbreviation =>
             ("Precaution Decision", "Prec");
 
-        public (string name, string abbreviation) PostPrimaryNameAndAbbreviation =>
+        public override (string name, string abbreviation) PostPrimaryNameAndAbbreviation =>
             ("Injury Outcome", "Injury");
 
         public override string GetActionString(byte action, byte decisionByteCode) =>
@@ -72,9 +72,8 @@ namespace ACESim
                 _ => action.ToString()
             };
 
-        public LitigGameDefinition LitigGameDefinition { get; set; }
 
-        public void Setup(LitigGameDefinition gameDef)
+        public override void Setup(LitigGameDefinition gameDef)
         {
             LitigGameDefinition = gameDef;
             gameDef.Options.DamagesMin = gameDef.Options.DamagesMax = CostOfInjury;
@@ -182,7 +181,7 @@ namespace ACESim
             return probs;
         }
 
-        public void GetActionsSetup(
+        public override void GetActionsSetup(
             LitigGameDefinition gameDef,
             out byte prePrimaryChanceActions,
             out byte primaryActions,
@@ -311,7 +310,7 @@ namespace ACESim
             return w.Sum();
         }
 
-        public (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts)
+        public override (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts)
         {
             // Precaution outlay only if the defendant actually took care (primaryAction == 2)
             double precaution = 0.0;
@@ -340,8 +339,11 @@ namespace ACESim
         public override double[] InvertedCalculations_GetCDamagesSignalProbabilities(byte pDamagesSignal, byte dDamagesSignal) => throw new NotImplementedException();
         public override double[] InvertedCalculations_GetLiabilityStrengthProbabilities(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal) => throw new NotImplementedException();
         public override double[] InvertedCalculations_GetDamagesStrengthProbabilities(byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal) => throw new NotImplementedException();
-        public (bool trulyLiable, byte liabilityStrength, byte damagesStrength) InvertedCalculations_WorkBackwardsFromSignals(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, int randomSeed) => throw new NotImplementedException();
-        public System.Collections.Generic.List<(GameProgress progress, double weight)> InvertedCalculations_GenerateAllConsistentGameProgresses(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, LitigGameProgress gameProgress) => throw new NotImplementedException();
+        public override (bool trulyLiable, byte liabilityStrength, byte damagesStrength) InvertedCalculations_WorkBackwardsFromSignals(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, int randomSeed) => throw new NotImplementedException();
+        public override System.Collections.Generic.List<(GameProgress progress, double weight)> InvertedCalculations_GenerateAllConsistentGameProgresses(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, LitigGameProgress gameProgress) => throw new NotImplementedException();
     }
 }
+
+
+
 

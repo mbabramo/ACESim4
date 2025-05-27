@@ -29,8 +29,7 @@ namespace ACESim
         private double[] ProbabilityOfTrulyLiableValues, ProbabilitiesLiabilityStrength_TrulyNotLiable, ProbabilitiesLiabilityStrength_TrulyLiable;
         private double[] ProbabilityOfDamagesStrengthValues;
 
-        public LitigGameDefinition LitigGameDefinition { get; set; }
-        public void Setup(LitigGameDefinition litigGameDefinition)
+        public override void Setup(LitigGameDefinition litigGameDefinition)
         {
             LitigGameDefinition = litigGameDefinition;
             ProbabilityOfTrulyLiableValues = new double[] { 1.0 - ExogenousProbabilityTrulyLiable, ExogenousProbabilityTrulyLiable };
@@ -50,10 +49,10 @@ namespace ACESim
 
             SetupInverted(litigGameDefinition);
         }
-        public string OptionsString => $"ExogenousProbabilityTrulyLiable {ExogenousProbabilityTrulyLiable} StdevNoiseToProduceLiabilityStrength {StdevNoiseToProduceLiabilityStrength}";
-        public (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("PrePrimaryChanceActions", "Pre Primary");
-        public (string name, string abbreviation) PrimaryNameAndAbbreviation => ("PrimaryChanceActions", "Primary");
-        public (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("Truly Liable", "TruLiab");
+        public override string OptionsString => $"ExogenousProbabilityTrulyLiable {ExogenousProbabilityTrulyLiable} StdevNoiseToProduceLiabilityStrength {StdevNoiseToProduceLiabilityStrength}";
+        public override (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("PrePrimaryChanceActions", "Pre Primary");
+        public override (string name, string abbreviation) PrimaryNameAndAbbreviation => ("PrimaryChanceActions", "Primary");
+        public override (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("Truly Liable", "TruLiab");
         public override string GetActionString(byte action, byte decisionByteCode)
         {
             if (decisionByteCode == (byte)LitigGameDecisions.PostPrimaryActionChance)
@@ -61,7 +60,7 @@ namespace ACESim
             return action.ToString();
         }
 
-        public void GetActionsSetup(LitigGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate)
+        public override void GetActionsSetup(LitigGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate)
         {
             prePrimaryChanceActions = 0;
             primaryActions = 0;
@@ -87,7 +86,7 @@ namespace ACESim
             return NoWealthEffects; 
         }
 
-        public (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts)
+        public override (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts)
         {
             return (0.0, 0.0);  // inapplicable
         }
@@ -230,7 +229,7 @@ namespace ACESim
 
         // Additional implementations. This dispute generator calculates 
         public double[] InvertedCalculations_GetLiabilityTrueValueProbabilities(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte liabilityStrength) => cLiabilitySignal is byte cLiabilitySignalNotNull ? LiabilityCalculators[trueLiabilityCalculatorIndex](new List<int>() { pLiabilitySignal - 1, dLiabilitySignal - 1, cLiabilitySignalNotNull - 1, liabilityStrength - 1 }) : LiabilityCalculators[trueLiabilityWithoutTrialCalculatorIndex](new List<int>() { pLiabilitySignal - 1, dLiabilitySignal - 1, liabilityStrength - 1 });
-        public (bool trulyLiable, byte liabilityStrength, byte damagesStrength) InvertedCalculations_WorkBackwardsFromSignals(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, int randomSeed)
+        public override (bool trulyLiable, byte liabilityStrength, byte damagesStrength) InvertedCalculations_WorkBackwardsFromSignals(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, int randomSeed)
         {
             Random r = new Random(randomSeed);
             double[] liabilityStrengthProbabilities = InvertedCalculations_GetLiabilityStrengthProbabilities(pLiabilitySignal, dLiabilitySignal, cLiabilitySignal);
@@ -243,7 +242,7 @@ namespace ACESim
             return (trulyLiable, liabilityStrength, damagesStrength);
         }
 
-        public List<(GameProgress progress, double weight)> InvertedCalculations_GenerateAllConsistentGameProgresses(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, LitigGameProgress gameProgress)
+        public override List<(GameProgress progress, double weight)> InvertedCalculations_GenerateAllConsistentGameProgresses(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, LitigGameProgress gameProgress)
         {
             List<(GameProgress progress, double weight)> withLiabilityStrength = new List<(GameProgress progress, double weight)>();
             double[] liabilityStrengthProbabilities = InvertedCalculations_GetLiabilityStrengthProbabilities(pLiabilitySignal, dLiabilitySignal, cLiabilitySignal);
@@ -287,4 +286,7 @@ namespace ACESim
 
     }
 }
+
+
+
 

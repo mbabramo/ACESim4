@@ -16,124 +16,124 @@ namespace ACESim
 
         #region ILitigGameDisputeGenerator – generic parts
 
-        public override void Setup(LitigGameDefinition litigGameDefinition)
+        public virtual void Setup(LitigGameDefinition litigGameDefinition)
             => LitigGameDefinition = litigGameDefinition;
 
-        public override List<Decision> GenerateDisputeDecisions(
-            LitigGameDefinition gameDefinition)
+        public virtual List<Decision> GenerateDisputeDecisions(LitigGameDefinition gameDefinition)
         {
-            var decisions = new List<Decision>();
+            var opt = gameDefinition.Options;
+            GetActionsSetup(gameDefinition,
+                out byte prePrimaryActions,
+                out byte primaryActions,
+                out byte postPrimaryActions,
+                out byte[] preInform,
+                out byte[] priInform,
+                out byte[] postInform,
+                out bool preUneven,
+                out bool postUneven,
+                out bool strengthUneven,
+                out bool primaryTerminates,
+                out bool postTerminates);
 
-            // Classic three-slot sequence --------------------------------------------------
-            GetActionsSetup(
-                gameDefinition,
-                out var prePrimaryActions,
-                out var primaryActions,
-                out var postPrimaryActions,
-                out var prePrimaryInform,
-                out var primaryInform,
-                out var postPrimaryInform,
-                out var preUneven,
-                out var postUneven,
-                out var qualUneven,
-                out var primaryTerminates,
-                out var postTerminates);
+            List<Decision> decisions = new List<Decision>();
 
             if (prePrimaryActions > 0)
-            {
-                var (n, a) = PrePrimaryNameAndAbbreviation;
-                decisions.Add(new Decision(
-                    n, a, true,
-                    (byte)LitigGamePlayers.PrePrimaryChance,
-                    prePrimaryInform,
-                    prePrimaryActions,
-                    (byte)LitigGameDecisions.PrePrimaryActionChance)
+                decisions.Add(new Decision(PrePrimaryNameAndAbbreviation.name, PrePrimaryNameAndAbbreviation.abbreviation, true,
+                    (byte)LitigGamePlayers.PrePrimaryChance, preInform, prePrimaryActions,
+                    (byte)LitigGameDecisions.PrePrimaryActionChance, unevenChanceActions: preUneven)
                 {
-                    UnevenChanceActions = preUneven,
+                    StoreActionInGameCacheItem = gameDefinition.GameHistoryCacheIndex_PrePrimaryChance,
                     IsReversible = true,
-                    DistributedChanceDecision = true
+                    Unroll_Parallelize = GetPrePrimaryUnrollSettings().unrollParallelize,
+                    Unroll_Parallelize_Identical = GetPrePrimaryUnrollSettings().unrollIdentical,
+                    DistributedChanceDecision = true,
+                    SymmetryMap = (GetPrePrimaryUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision)
                 });
-            }
 
             if (primaryActions > 0)
-            {
-                var (n, a) = PrimaryNameAndAbbreviation;
-                decisions.Add(new Decision(
-                    n, a, false,
-                    (byte)LitigGamePlayers.Defendant,
-                    primaryInform,
-                    primaryActions,
+                decisions.Add(new Decision(PrimaryNameAndAbbreviation.name, PrimaryNameAndAbbreviation.abbreviation, false,
+                    (byte)LitigGamePlayers.Defendant, priInform, primaryActions,
                     (byte)LitigGameDecisions.PrimaryAction)
                 {
+                    StoreActionInGameCacheItem = gameDefinition.GameHistoryCacheIndex_PrimaryAction,
+                    IsReversible = true,
                     CanTerminateGame = primaryTerminates,
-                    IsReversible = true
+                    Unroll_Parallelize = GetPrimaryUnrollSettings().unrollParallelize,
+                    Unroll_Parallelize_Identical = GetPrimaryUnrollSettings().unrollIdentical,
+                    DistributedChanceDecision = true,
+                    SymmetryMap = (GetPrimaryUnrollSettings().symmetryMapInput, SymmetryMapOutput.CantBeSymmetric)
                 });
-            }
 
             if (postPrimaryActions > 0)
-            {
-                var (n, a) = PostPrimaryNameAndAbbreviation;
-                decisions.Add(new Decision(
-                    n, a, true,
-                    (byte)LitigGamePlayers.PostPrimaryChance,
-                    postPrimaryInform,
-                    postPrimaryActions,
-                    (byte)LitigGameDecisions.PostPrimaryActionChance)
+                decisions.Add(new Decision(PostPrimaryNameAndAbbreviation.name, PostPrimaryNameAndAbbreviation.abbreviation, true,
+                    (byte)LitigGamePlayers.PostPrimaryChance, postInform, postPrimaryActions,
+                    (byte)LitigGameDecisions.PostPrimaryActionChance, unevenChanceActions: postUneven)
                 {
-                    UnevenChanceActions = postUneven,
-                    CanTerminateGame = postTerminates,
+                    StoreActionInGameCacheItem = gameDefinition.GameHistoryCacheIndex_PostPrimaryChance,
                     IsReversible = true,
-                    DistributedChanceDecision = true
+                    CanTerminateGame = postTerminates,
+                    Unroll_Parallelize = GetPostPrimaryUnrollSettings().unrollParallelize,
+                    Unroll_Parallelize_Identical = GetPostPrimaryUnrollSettings().unrollIdentical,
+                    DistributedChanceDecision = true,
+                    SymmetryMap = (GetPostPrimaryUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision)
                 });
-            }
 
-            // Liability and damages strength ----------------------------------------------
-            var opt = gameDefinition.Options;
+            var liabPlayers = new List<byte>
+    {
+        (byte)LitigGamePlayers.PLiabilitySignalChance,
+        (byte)LitigGamePlayers.DLiabilitySignalChance,
+        (byte)LitigGamePlayers.CourtLiabilityChance,
+        (byte)LitigGamePlayers.Resolution
+    };
+            if (opt.PLiabilityNoiseStdev == 0) liabPlayers.Add((byte)LitigGamePlayers.Plaintiff);
+            if (opt.DLiabilityNoiseStdev == 0) liabPlayers.Add((byte)LitigGamePlayers.Defendant);
 
-            decisions.Add(new Decision(
-                opt.NumDamagesStrengthPoints > 1 ? "Liability Strength" : "Case Strength",
-                "LiabStr",
-                true,
-                (byte)LitigGamePlayers.LiabilityStrengthChance,
-                new byte[] {
-                    (byte)LitigGamePlayers.PLiabilitySignalChance,
-                    (byte)LitigGamePlayers.DLiabilitySignalChance,
-                    (byte)LitigGamePlayers.CourtLiabilityChance,
-                    (byte)LitigGamePlayers.Resolution },
-                opt.NumLiabilityStrengthPoints,
-                (byte)LitigGameDecisions.LiabilityStrength)
+            decisions.Add(new Decision(opt.NumDamagesStrengthPoints > 1 ? "Liability Strength" : "Case Strength", "LiabStr", true,
+                (byte)LitigGamePlayers.LiabilityStrengthChance, liabPlayers.ToArray(), opt.NumLiabilityStrengthPoints,
+                (byte)LitigGameDecisions.LiabilityStrength, unevenChanceActions: strengthUneven)
             {
-                UnevenChanceActions = qualUneven,
+                StoreActionInGameCacheItem = gameDefinition.GameHistoryCacheIndex_LiabilityStrength,
                 IsReversible = true,
-                DistributedChanceDecision = true
+                Unroll_Parallelize = GetLiabilityStrengthUnrollSettings().unrollParallelize,
+                Unroll_Parallelize_Identical = GetLiabilityStrengthUnrollSettings().unrollIdentical,
+                DistributedChanceDecision = true,
+                SymmetryMap = (GetLiabilityStrengthUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision)
             });
 
             if (opt.NumDamagesStrengthPoints > 1)
             {
-                decisions.Add(new Decision(
-                    "Damages Strength",
-                    "DamStr",
-                    true,
-                    (byte)LitigGamePlayers.DamagesStrengthChance,
-                    new byte[] {
-                        (byte)LitigGamePlayers.PDamagesSignalChance,
-                        (byte)LitigGamePlayers.DDamagesSignalChance,
-                        (byte)LitigGamePlayers.CourtDamagesChance,
-                        (byte)LitigGamePlayers.Resolution },
-                    opt.NumDamagesStrengthPoints,
-                    (byte)LitigGameDecisions.DamagesStrength)
+                var dmgPlayers = new List<byte>
+        {
+            (byte)LitigGamePlayers.PDamagesSignalChance,
+            (byte)LitigGamePlayers.DDamagesSignalChance,
+            (byte)LitigGamePlayers.CourtDamagesChance,
+            (byte)LitigGamePlayers.Resolution
+        };
+                if (opt.PDamagesNoiseStdev == 0) dmgPlayers.Add((byte)LitigGamePlayers.Plaintiff);
+                if (opt.DDamagesNoiseStdev == 0) dmgPlayers.Add((byte)LitigGamePlayers.Defendant);
+
+                decisions.Add(new Decision("Damages Strength", "DamStr", true,
+                    (byte)LitigGamePlayers.DamagesStrengthChance, dmgPlayers.ToArray(), opt.NumDamagesStrengthPoints,
+                    (byte)LitigGameDecisions.DamagesStrength, unevenChanceActions: strengthUneven)
                 {
-                    UnevenChanceActions = qualUneven,
+                    StoreActionInGameCacheItem = gameDefinition.GameHistoryCacheIndex_DamagesStrength,
                     IsReversible = true,
-                    DistributedChanceDecision = true
+                    Unroll_Parallelize = GetDamagesStrengthUnrollSettings().unrollParallelize,
+                    Unroll_Parallelize_Identical = GetDamagesStrengthUnrollSettings().unrollIdentical,
+                    DistributedChanceDecision = true,
+                    SymmetryMap = (GetDamagesStrengthUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision)
                 });
             }
 
-            // Private signals --------------------------------------------------------------
+            gameDefinition.CreateLiabilitySignalsTables();
+            if (opt.NumDamagesStrengthPoints > 1)
+                gameDefinition.CreateDamagesSignalsTables();
+
             AddSignalDecisions(gameDefinition, decisions);
 
             return decisions;
         }
+
 
         void AddSignalDecisions(
             LitigGameDefinition gameDefinition,
@@ -225,7 +225,7 @@ namespace ACESim
             }
         }
 
-        public override bool SupportsSymmetry() => false;
+        public virtual bool SupportsSymmetry() => false;
 
         #endregion
 
@@ -290,16 +290,26 @@ namespace ACESim
             InvertedCalculations_GenerateAllConsistentGameProgresses(byte pL, byte dL, byte? cL, byte pD, byte dD, byte? cD, LitigGameProgress baseProgress) => throw new NotImplementedException();
 
         // Chance-ordering helper defaults
-        public virtual (bool, bool, SymmetryMapInput) GetPrePrimaryUnrollSettings()
-            => (false, false, SymmetryMapInput.SameInfo);
-        public virtual (bool, bool, SymmetryMapInput) GetPrimaryUnrollSettings()
-            => (false, false, SymmetryMapInput.SameInfo);
-        public virtual (bool, bool, SymmetryMapInput) GetPostPrimaryUnrollSettings()
-            => (false, false, SymmetryMapInput.SameInfo);
-        public virtual (bool, bool, SymmetryMapInput) GetLiabilityStrengthUnrollSettings()
-            => (false, false, SymmetryMapInput.SameInfo);
-        public virtual (bool, bool, SymmetryMapInput) GetDamagesStrengthUnrollSettings()
-            => (false, false, SymmetryMapInput.SameInfo);
+        public virtual (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput)
+            GetPrePrimaryUnrollSettings()
+                => (false, false, SymmetryMapInput.SameInfo);
+
+        public virtual (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput)
+            GetPrimaryUnrollSettings()
+                => (false, false, SymmetryMapInput.SameInfo);
+
+        public virtual (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput)
+            GetPostPrimaryUnrollSettings()
+                => (false, false, SymmetryMapInput.SameInfo);
+
+        public virtual (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput)
+            GetLiabilityStrengthUnrollSettings()
+                => (false, false, SymmetryMapInput.SameInfo);
+
+        public virtual (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput)
+            GetDamagesStrengthUnrollSettings()
+                => (false, false, SymmetryMapInput.SameInfo);
+
 
         public abstract double[] GetPrePrimaryChanceProbabilities(LitigGameDefinition g);
         public abstract double[] GetPostPrimaryChanceProbabilities(LitigGameDefinition g, LitigGameDisputeGeneratorActions a);

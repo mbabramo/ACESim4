@@ -175,11 +175,12 @@ namespace ACESim
 
         private List<Decision> GetDecisionsList()
         {
-            var decisions = new List<Decision>();
-            AddDisputeGeneratorDecisions(decisions);
-            AddLiabilitySignalsDecisions(decisions);
-            AddDamagesSignalsDecisions(decisions);
+            var decisions = Options.LitigGameDisputeGenerator
+                                   .GenerateDisputeDecisions(this)
+                                   .ToList();
+
             AddFileAndAnswerDecisions(decisions);
+
             for (int b = 0; b < Options.NumPotentialBargainingRounds; b++)
             {
                 AddPreBargainingRoundDummyDecision(b, decisions);
@@ -194,10 +195,12 @@ namespace ACESim
                 }
                 AddPostBargainingRoundDummyDecision(b, decisions);
             }
+
             AddPreTrialDecisions(decisions);
             AddCourtDecisions(decisions);
             return decisions;
         }
+
 
         private void AddDisputeGeneratorDecisions(List<Decision> decisions)
         {

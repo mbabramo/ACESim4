@@ -11,10 +11,10 @@ namespace ACESim
     {
         public override string GetGeneratorName() => "Discrimination";
 
-        public string OptionsString => $"ProbabilityGoodEmployee {ProbabilityGoodEmployee} ProbabilityGoodEmployer {ProbabilityGoodEmployer} ProbabilityLowTasteDiscrimination {ProbabilityLowTasteDiscrimination} ProbabilityMediumTasteDiscrimination {ProbabilityMediumTasteDiscrimination} ProbabilityHighTasteDiscrimination {ProbabilityHighTasteDiscrimination} CostToEmployeeOfBeingFired {CostToEmployeeOfBeingFired} SocialCostOfFiringGoodEmployee {SocialCostOfFiringGoodEmployee} CostOfLeavingBadEmployee {CostOfLeavingBadEmployee} PrivateBenefitToBadEmployerFromFiring_LowTaste {PrivateBenefitToBadEmployerFromFiring_LowTaste} PrivateBenefitToBadEmployerFromFiring_MediumTaste {PrivateBenefitToBadEmployerFromFiring_MediumTaste} PrivateBenefitToBadEmployerFromFiring_HighTaste {PrivateBenefitToBadEmployerFromFiring_HighTaste}";
-        public (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("Good or Bad Employer and Employee", "PeopleQuality");
-        public (string name, string abbreviation) PrimaryNameAndAbbreviation => ("Fire", "Primary");
-        public (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("PostPrimaryChanceActions", "Post Primary");
+        public override string OptionsString => $"ProbabilityGoodEmployee {ProbabilityGoodEmployee} ProbabilityGoodEmployer {ProbabilityGoodEmployer} ProbabilityLowTasteDiscrimination {ProbabilityLowTasteDiscrimination} ProbabilityMediumTasteDiscrimination {ProbabilityMediumTasteDiscrimination} ProbabilityHighTasteDiscrimination {ProbabilityHighTasteDiscrimination} CostToEmployeeOfBeingFired {CostToEmployeeOfBeingFired} SocialCostOfFiringGoodEmployee {SocialCostOfFiringGoodEmployee} CostOfLeavingBadEmployee {CostOfLeavingBadEmployee} PrivateBenefitToBadEmployerFromFiring_LowTaste {PrivateBenefitToBadEmployerFromFiring_LowTaste} PrivateBenefitToBadEmployerFromFiring_MediumTaste {PrivateBenefitToBadEmployerFromFiring_MediumTaste} PrivateBenefitToBadEmployerFromFiring_HighTaste {PrivateBenefitToBadEmployerFromFiring_HighTaste}";
+        public override (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("Good or Bad Employer and Employee", "PeopleQuality");
+        public override (string name, string abbreviation) PrimaryNameAndAbbreviation => ("Fire", "Primary");
+        public override (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("PostPrimaryChanceActions", "Post Primary");
         public override string GetActionString(byte action, byte decisionByteCode)
         {
             return action.ToString();
@@ -43,8 +43,7 @@ namespace ACESim
 
         private double[] ProbabilityLiabilityStrength_StrongPlaintiffCase, ProbabilityLiabilityStrength_MediumPlaintiffCase, ProbabilityLiabilityStrength_PoorPlaintiffCase;
 
-        public LitigGameDefinition LitigGameDefinition { get; set; }
-        public void Setup(LitigGameDefinition myGameDefinition)
+        public override void Setup(LitigGameDefinition myGameDefinition)
         {
             LitigGameDefinition = myGameDefinition;
             myGameDefinition.Options.NumLiabilityStrengthPoints = 9; // always
@@ -79,7 +78,7 @@ namespace ACESim
             }
         }
 
-        public void GetActionsSetup(LitigGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate)
+        public override void GetActionsSetup(LitigGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate)
         {
             prePrimaryChanceActions = 8;
             primaryActions = 2;
@@ -133,7 +132,7 @@ namespace ACESim
             }
         }
 
-        public (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef,
+        public override (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef,
                                LitigGameDisputeGeneratorActions acts)
         {
             var status = ConvertPrePrimaryChance(acts.PrePrimaryChanceAction);
@@ -200,4 +199,7 @@ namespace ACESim
         public override bool PostPrimaryDoesNotAffectStrategy() => false;
     }
 }
+
+
+
 

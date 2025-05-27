@@ -16,10 +16,10 @@ namespace ACESim
 
         public override string GetGeneratorName() => "EqualQual";
 
-        public string OptionsString => $"ProbabilityTrulyLiable_LiabilityStrength75 {ProbabilityTrulyLiable_LiabilityStrength75} ProbabilityTrulyLiable_LiabilityStrength90 {ProbabilityTrulyLiable_LiabilityStrength90} NumPointsToDetermineTrulyLiable {NumPointsToDetermineTrulyLiable}";
-        public (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("PrePrimaryChanceActions", "Pre Primary");
-        public (string name, string abbreviation) PrimaryNameAndAbbreviation => ("PrimaryChanceActions", "Primary");
-        public (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("PostPrimaryChanceActions", "Post Primary");
+        public override string OptionsString => $"ProbabilityTrulyLiable_LiabilityStrength75 {ProbabilityTrulyLiable_LiabilityStrength75} ProbabilityTrulyLiable_LiabilityStrength90 {ProbabilityTrulyLiable_LiabilityStrength90} NumPointsToDetermineTrulyLiable {NumPointsToDetermineTrulyLiable}";
+        public override (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("PrePrimaryChanceActions", "Pre Primary");
+        public override (string name, string abbreviation) PrimaryNameAndAbbreviation => ("PrimaryChanceActions", "Primary");
+        public override (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("PostPrimaryChanceActions", "Post Primary");
         public override string GetActionString(byte action, byte decisionByteCode)
         {
             return action.ToString();
@@ -40,14 +40,13 @@ namespace ACESim
         /// </summary>
         private double Curvature;
 
-        public LitigGameDefinition LitigGameDefinition { get; set; }
-        public void Setup(LitigGameDefinition myGameDefinition)
+        public override void Setup(LitigGameDefinition myGameDefinition)
         {
             LitigGameDefinition = myGameDefinition;
             Curvature = MonotonicCurve.CalculateCurvatureForThreePoints(0.5, 0.5, 0.75, ProbabilityTrulyLiable_LiabilityStrength75, 0.9, ProbabilityTrulyLiable_LiabilityStrength90);
         }
 
-        public void GetActionsSetup(LitigGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate)
+        public override void GetActionsSetup(LitigGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate)
         {
             prePrimaryChanceActions = 0;
             primaryActions = 0;
@@ -73,7 +72,7 @@ namespace ACESim
             return NoWealthEffects;
         }
 
-        public (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts)
+        public override (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts)
         {
             return (0.0, 0.0);  // inapplicable
         }
@@ -129,4 +128,7 @@ namespace ACESim
         public override bool PostPrimaryDoesNotAffectStrategy() => false;
     }
 }
+
+
+
 

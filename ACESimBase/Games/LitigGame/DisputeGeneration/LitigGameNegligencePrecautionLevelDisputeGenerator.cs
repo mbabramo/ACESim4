@@ -12,10 +12,10 @@ namespace ACESim
     public class LitigGameNegligencePrecautionLevelDisputeGenerator : LitigGameStandardDisputeGeneratorBase
     {
         public override string GetGeneratorName() => "NegligencePrecaution";
-        public string OptionsString => $"NumMarginalBenefitSchedules {NumMarginalBenefitSchedules} NumPrecautionLevels {NumPrecautionLevels} CostOfInjury {CostOfInjury} ProbabilityOfInjuryNoPrecaution {ProbabilityOfInjuryNoPrecaution} IncrementalPrecautionCost {IncrementalPrecautionCost} RiskReductionFromFirstPrecautionTaken {RiskReductionFromFirstPrecautionTaken}";
-        public (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("Precaution Benefit Curve", "PrecautionBenefit");
-        public (string name, string abbreviation) PrimaryNameAndAbbreviation => ("Precaution Level", "Precaution");
-        public (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("Injury", "Injury");
+        public override string OptionsString => $"NumMarginalBenefitSchedules {NumMarginalBenefitSchedules} NumPrecautionLevels {NumPrecautionLevels} CostOfInjury {CostOfInjury} ProbabilityOfInjuryNoPrecaution {ProbabilityOfInjuryNoPrecaution} IncrementalPrecautionCost {IncrementalPrecautionCost} RiskReductionFromFirstPrecautionTaken {RiskReductionFromFirstPrecautionTaken}";
+        public override (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("Precaution Benefit Curve", "PrecautionBenefit");
+        public override (string name, string abbreviation) PrimaryNameAndAbbreviation => ("Precaution Level", "Precaution");
+        public override (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("Injury", "Injury");
         public override string GetActionString(byte action, byte decisionByteCode)
         {
             return action.ToString();
@@ -40,8 +40,7 @@ namespace ACESim
         public double GetRiskOfInjury(byte marginalBenefitSchedule, byte precautionLevelChosen) => ProbabilityOfInjuryNoPrecaution - CumulativeRiskReduction[marginalBenefitSchedule - 1][precautionLevelChosen - 1];
         private double[][][] LiabilityStrength;
 
-        public LitigGameDefinition LitigGameDefinition { get; set; }
-        public void Setup(LitigGameDefinition myGameDefinition)
+        public override void Setup(LitigGameDefinition myGameDefinition)
         {
             LitigGameDefinition = myGameDefinition;
             myGameDefinition.Options.DamagesMax = myGameDefinition.Options.DamagesMin = CostOfInjury;
@@ -92,7 +91,7 @@ namespace ACESim
             }
         }
 
-        public void GetActionsSetup(LitigGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate)
+        public override void GetActionsSetup(LitigGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate)
         {
             prePrimaryChanceActions = NumMarginalBenefitSchedules;
             primaryActions = NumPrecautionLevels;
@@ -129,7 +128,7 @@ namespace ACESim
             return socialWelfare;
         }
 
-        public (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts)
+        public override (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts)
         {
             double opportunity = (acts.PrimaryAction - 1) * IncrementalPrecautionCost;
             double harm = acts.PostPrimaryChanceAction == 1 ? CostOfInjury : 0.0;
@@ -190,4 +189,7 @@ namespace ACESim
         public override bool PostPrimaryDoesNotAffectStrategy() => false;
     }
 }
+
+
+
 

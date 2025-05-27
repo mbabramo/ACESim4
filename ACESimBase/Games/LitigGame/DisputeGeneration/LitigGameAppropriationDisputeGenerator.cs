@@ -31,16 +31,15 @@ namespace ACESim
         private double[][] ProbabilityLiabilityStrengthForDetectabilityLevel_TrulyLiable;
         private double[] ProbabilityLiabilityStrength_TrulyNotLiable;
 
-        public string OptionsString => $"NumDetectabilityLevels {NumDetectabilityLevels} BenefitToDefendant {BenefitToDefendantOfAppropriation} CostToPlaintiff {CostToPlaintiffOfAppropriation} SocialWelfareMultiplier {SocialWelfareMultiplier} CountBenefitToDefendantInSocialWelfare {CountBenefitToDefendantInSocialWelfare}";
+        public override string OptionsString => $"NumDetectabilityLevels {NumDetectabilityLevels} BenefitToDefendant {BenefitToDefendantOfAppropriation} CostToPlaintiff {CostToPlaintiffOfAppropriation} SocialWelfareMultiplier {SocialWelfareMultiplier} CountBenefitToDefendantInSocialWelfare {CountBenefitToDefendantInSocialWelfare}";
 
-        public (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("PrePrimaryChanceActions", "Detect");
-        public (string name, string abbreviation) PrimaryNameAndAbbreviation => ("PrimaryActions", "Approp");
-        public (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("PostPrimaryChanceActions", "Post Primary");
+        public override (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("PrePrimaryChanceActions", "Detect");
+        public override (string name, string abbreviation) PrimaryNameAndAbbreviation => ("PrimaryActions", "Approp");
+        public override (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("PostPrimaryChanceActions", "Post Primary");
 
         public override string GetActionString(byte action, byte decisionByteCode) => action.ToString();
 
-        public LitigGameDefinition LitigGameDefinition { get; set; }
-        public void Setup(LitigGameDefinition myGameDefinition)
+        public override void Setup(LitigGameDefinition myGameDefinition)
         {
             LitigGameDefinition = myGameDefinition;
             int numLiabilityStrengthPoints = myGameDefinition.Options.NumLiabilityStrengthPoints;
@@ -79,7 +78,7 @@ namespace ACESim
 
         }
 
-        public void GetActionsSetup(LitigGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate)
+        public override void GetActionsSetup(LitigGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate)
         {
             prePrimaryChanceActions = NumDetectabilityLevels;
             primaryActions = 2;
@@ -108,7 +107,7 @@ namespace ACESim
                 return 0;
             return -CostToPlaintiffOfAppropriation * SocialWelfareMultiplier + (CountBenefitToDefendantInSocialWelfare ? BenefitToDefendantOfAppropriation * SocialWelfareMultiplier : 0);
         }
-        public (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts)
+        public override (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts)
         {
             // Not appropriating (primaryAction == 2) means giving up the benefit.
             double precaution = acts.PrimaryAction == 2
@@ -144,4 +143,7 @@ namespace ACESim
         public override bool PostPrimaryDoesNotAffectStrategy() => false;
     }
 }
+
+
+
 

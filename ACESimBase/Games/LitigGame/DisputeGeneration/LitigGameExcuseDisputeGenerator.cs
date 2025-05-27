@@ -26,18 +26,18 @@ namespace ACESim
         // ── ILitigGameDisputeGenerator implementation ────────────────────────────
         public override string GetGeneratorName() => "Excuse";
 
-        public string OptionsString =>
+        public override string OptionsString =>
             $"Levels={NumCostLevels} Ratio={GeometricRatio} MinCost={MinimumCost} " +
             $"Benefit={BenefitToPromisee} ImpractMult={ImpracticabilityMultiple} " +
             $"Decay={LiabilityStrengthDecay} ProbDist={(UseGeometricProbabilities ? "Geometric" : "Uniform")}";
 
-        public (string name, string abbreviation) PrePrimaryNameAndAbbreviation =>
+        public override (string name, string abbreviation) PrePrimaryNameAndAbbreviation =>
             ("Cost Level", "CostLvl");
 
-        public (string name, string abbreviation) PrimaryNameAndAbbreviation =>
+        public override (string name, string abbreviation) PrimaryNameAndAbbreviation =>
             ("Performance Decision", "Perform");
 
-        public (string name, string abbreviation) PostPrimaryNameAndAbbreviation =>
+        public override (string name, string abbreviation) PostPrimaryNameAndAbbreviation =>
             ("Outcome", "Outcome");
 
         public override string GetActionString(byte action, byte decisionByteCode) =>
@@ -48,9 +48,8 @@ namespace ACESim
                 _ => action.ToString()
             };
 
-        public LitigGameDefinition LitigGameDefinition { get; set; }
 
-        public void Setup(LitigGameDefinition gameDef)
+        public override void Setup(LitigGameDefinition gameDef)
         {
             LitigGameDefinition = gameDef;
             gameDef.Options.DamagesMin = gameDef.Options.DamagesMax = BenefitToPromisee;
@@ -120,7 +119,7 @@ namespace ACESim
             return probs;
         }
 
-        public void GetActionsSetup(
+        public override void GetActionsSetup(
             LitigGameDefinition gameDef,
             out byte prePrimaryChanceActions,
             out byte primaryActions,
@@ -239,7 +238,7 @@ namespace ACESim
             }
         }
 
-        public (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef,
+        public override (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef,
                                 LitigGameDisputeGeneratorActions acts)
         {
             double costLevel = _costLevels[acts.PrePrimaryChanceAction - 1];
@@ -269,14 +268,17 @@ namespace ACESim
             throw new NotImplementedException();
         public override double[] InvertedCalculations_GetCDamagesSignalProbabilities(byte pDamagesSignal, byte dDamagesSignal) =>
             throw new NotImplementedException();
-        public (bool trulyLiable, byte liabilityStrength, byte damagesStrength) InvertedCalculations_WorkBackwardsFromSignals(
+        public override (bool trulyLiable, byte liabilityStrength, byte damagesStrength) InvertedCalculations_WorkBackwardsFromSignals(
             byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal,
             byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, int randomSeed) =>
             throw new NotImplementedException();
-        public List<(GameProgress progress, double weight)> InvertedCalculations_GenerateAllConsistentGameProgresses(
+        public override List<(GameProgress progress, double weight)> InvertedCalculations_GenerateAllConsistentGameProgresses(
             byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal,
             byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, LitigGameProgress gameProgress) =>
             throw new NotImplementedException();
     }
 }
+
+
+
 
