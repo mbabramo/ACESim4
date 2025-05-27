@@ -40,12 +40,12 @@ namespace ACESim
                     break;
                 case (byte)LitigGameDecisions.PrimaryAction:
                     LitigGameProgress.DisputeGeneratorActions.PrimaryAction = action;
-                    if (LitigGameDefinition.CheckCompleteAfterPrimaryAction && LitigGameDefinition.Options.LitigGameDisputeGenerator.MarkComplete(LitigGameDefinition, LitigGameProgress.DisputeGeneratorActions.PrePrimaryChanceAction, LitigGameProgress.DisputeGeneratorActions.PrimaryAction))
+                    if (LitigGameDefinition.CheckCompleteAfterPrimaryAction && LitigGameDefinition.Options.LitigGameStandardDisputeGenerator.MarkComplete(LitigGameDefinition, LitigGameProgress.DisputeGeneratorActions.PrePrimaryChanceAction, LitigGameProgress.DisputeGeneratorActions.PrimaryAction))
                         LitigGameProgress.GameComplete = true;
                     break;
                 case (byte)LitigGameDecisions.PostPrimaryActionChance:
                     LitigGameProgress.DisputeGeneratorActions.PostPrimaryChanceAction = action;
-                    if (LitigGameDefinition.CheckCompleteAfterPostPrimaryAction && LitigGameDefinition.Options.LitigGameDisputeGenerator.MarkComplete(LitigGameDefinition, LitigGameProgress.DisputeGeneratorActions.PrePrimaryChanceAction, LitigGameProgress.DisputeGeneratorActions.PrimaryAction, LitigGameProgress.DisputeGeneratorActions.PostPrimaryChanceAction))
+                    if (LitigGameDefinition.CheckCompleteAfterPostPrimaryAction && LitigGameDefinition.Options.LitigGameStandardDisputeGenerator.MarkComplete(LitigGameDefinition, LitigGameProgress.DisputeGeneratorActions.PrePrimaryChanceAction, LitigGameProgress.DisputeGeneratorActions.PrimaryAction, LitigGameProgress.DisputeGeneratorActions.PostPrimaryChanceAction))
                         LitigGameProgress.GameComplete = true;
                     break;
                 case (byte)LitigGameDecisions.LiabilityStrength:

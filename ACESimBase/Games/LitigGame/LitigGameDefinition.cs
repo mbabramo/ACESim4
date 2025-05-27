@@ -200,91 +200,6 @@ namespace ACESim
             AddCourtDecisions(decisions);
             return decisions;
         }
-
-
-        private void AddDisputeGeneratorDecisions(List<Decision> decisions)
-        {
-            // Litigation Quality. This is not known by a player unless the player has perfect information. 
-            // The LiabilitySignalChance player relies on this information in calculating the probabilities of different signals
-            List<byte> playersKnowingLiabilityStrength = new List<byte>()
-            {
-                (byte) LitigGamePlayers.PLiabilitySignalChance,
-                (byte) LitigGamePlayers.DLiabilitySignalChance,
-                (byte) LitigGamePlayers.CourtLiabilityChance,
-                (byte) LitigGamePlayers.Resolution
-            };
-            if (Options.PLiabilityNoiseStdev == 0)
-                playersKnowingLiabilityStrength.Add((byte)LitigGamePlayers.Plaintiff);
-            if (Options.DLiabilityNoiseStdev == 0)
-                playersKnowingLiabilityStrength.Add((byte)LitigGamePlayers.Defendant);
-            List<byte> playersKnowingDamagesStrength = new List<byte>()
-            {
-                (byte) LitigGamePlayers.PDamagesSignalChance,
-                (byte) LitigGamePlayers.DDamagesSignalChance,
-                (byte) LitigGamePlayers.CourtDamagesChance,
-                (byte) LitigGamePlayers.Resolution
-            };
-            if (Options.PDamagesNoiseStdev == 0)
-                playersKnowingDamagesStrength.Add((byte)LitigGamePlayers.Plaintiff);
-            if (Options.DDamagesNoiseStdev == 0)
-                playersKnowingDamagesStrength.Add((byte)LitigGamePlayers.Defendant);
-            ILitigGameDisputeGenerator disputeGenerator = Options.LitigGameDisputeGenerator;
-            disputeGenerator.GetActionsSetup(this, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate);
-            CheckCompleteAfterPrimaryAction = primaryActionCanTerminate;
-            CheckCompleteAfterPostPrimaryAction = postPrimaryChanceCanTerminate;
-            if (!Options.CollapseChanceDecisions)
-            {
-                if (prePrimaryChanceActions > 0)
-                {
-                    decisions.Add(new Decision(disputeGenerator.PrePrimaryNameAndAbbreviation.name, disputeGenerator.PrePrimaryNameAndAbbreviation.abbreviation, true, (byte)LitigGamePlayers.PrePrimaryChance, prePrimaryPlayersToInform, prePrimaryChanceActions, (byte)LitigGameDecisions.PrePrimaryActionChance) { StoreActionInGameCacheItem = GameHistoryCacheIndex_PrePrimaryChance, IsReversible = true, UnevenChanceActions = prePrimaryUnevenChance, Unroll_Parallelize = disputeGenerator.GetPrePrimaryUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetPrePrimaryUnrollSettings().unrollIdentical, DistributedChanceDecision = true, SymmetryMap = (disputeGenerator.GetPrePrimaryUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision) });
-                }
-                if (primaryActions > 0)
-                {
-                    decisions.Add(new Decision(disputeGenerator.PrimaryNameAndAbbreviation.name, disputeGenerator.PrimaryNameAndAbbreviation.abbreviation, true, (byte)LitigGamePlayers.Defendant, primaryPlayersToInform, primaryActions, (byte)LitigGameDecisions.PrimaryAction) { StoreActionInGameCacheItem = GameHistoryCacheIndex_PrimaryAction, IsReversible = true, CanTerminateGame = primaryActionCanTerminate, Unroll_Parallelize = disputeGenerator.GetPrimaryUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetPrimaryUnrollSettings().unrollIdentical, DistributedChanceDecision = true, SymmetryMap = (disputeGenerator.GetPrimaryUnrollSettings().symmetryMapInput, SymmetryMapOutput.CantBeSymmetric) });
-                }
-                if (postPrimaryChanceActions > 0)
-                {
-                    decisions.Add(new Decision(disputeGenerator.PostPrimaryNameAndAbbreviation.name, disputeGenerator.PostPrimaryNameAndAbbreviation.abbreviation, true, (byte)LitigGamePlayers.PostPrimaryChance, postPrimaryPlayersToInform, postPrimaryChanceActions, (byte)LitigGameDecisions.PostPrimaryActionChance) { StoreActionInGameCacheItem = GameHistoryCacheIndex_PostPrimaryChance, IsReversible = true, UnevenChanceActions = postPrimaryUnevenChance, CanTerminateGame = postPrimaryChanceCanTerminate, Unroll_Parallelize = disputeGenerator.GetPostPrimaryUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetPostPrimaryUnrollSettings().unrollIdentical, DistributedChanceDecision = true, SymmetryMap = (disputeGenerator.GetPostPrimaryUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision) });
-                }
-                decisions.Add(new Decision(Options.NumDamagesStrengthPoints > 1 ? "Liability Strength" : "Case Strength", "LiabStr", true, (byte)LitigGamePlayers.LiabilityStrengthChance,
-                        playersKnowingLiabilityStrength.ToArray(), Options.NumLiabilityStrengthPoints, (byte)LitigGameDecisions.LiabilityStrength)
-                { StoreActionInGameCacheItem = GameHistoryCacheIndex_LiabilityStrength, IsReversible = true, UnevenChanceActions = litigationQualityUnevenChance, Unroll_Parallelize = disputeGenerator.GetLiabilityStrengthUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetLiabilityStrengthUnrollSettings().unrollIdentical, DistributedChanceDecision = true, SymmetryMap = (disputeGenerator.GetLiabilityStrengthUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision) });
-                if (Options.NumDamagesStrengthPoints > 1)
-                    decisions.Add(new Decision("Damages Strength", "DamStr", true, (byte)LitigGamePlayers.DamagesStrengthChance,
-                        playersKnowingDamagesStrength.ToArray(), Options.NumDamagesStrengthPoints, (byte)LitigGameDecisions.DamagesStrength)
-                    { StoreActionInGameCacheItem = GameHistoryCacheIndex_DamagesStrength, IsReversible = true, UnevenChanceActions = litigationQualityUnevenChance, Unroll_Parallelize = disputeGenerator.GetDamagesStrengthUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetDamagesStrengthUnrollSettings().unrollIdentical, DistributedChanceDecision = true, SymmetryMap = (disputeGenerator.GetDamagesStrengthUnrollSettings().symmetryMapInput, SymmetryMapOutput.ChanceDecision) });
-            }
-        }
-
-        private void AddLiabilitySignalsDecisions(List<Decision> decisions)
-        {
-            // Plaintiff and defendant signals. If a player has perfect information, then no signal is needed.
-            if (Options.PLiabilityNoiseStdev != 0)
-                decisions.Add(new Decision("P Liability Signal", "PLS", true, (byte)LitigGamePlayers.PLiabilitySignalChance,
-                    Options.CollapseChanceDecisions ? new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte) LitigGamePlayers.DLiabilitySignalChance, (byte) LitigGamePlayers.CourtLiabilityChance, (byte) LitigGamePlayers.Resolution /* must be included if we're collapsing end of game */ } : new byte[] {(byte) LitigGamePlayers.Plaintiff},
-                    Options.NumLiabilitySignals, (byte)LitigGameDecisions.PLiabilitySignal, unevenChanceActions: true)
-                {
-                    IsReversible = true,
-                    Unroll_Parallelize = true,
-                    Unroll_Parallelize_Identical = true,
-                    DistributorChanceInputDecision = true,
-                    DistributableDistributorChanceInput = true,
-                    SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
-                });
-            if (Options.DLiabilityNoiseStdev != 0)
-                decisions.Add(new Decision("D Liability Signal", "DLS", true, (byte)LitigGamePlayers.DLiabilitySignalChance,
-                    Options.CollapseChanceDecisions ? new byte[] { (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.CourtLiabilityChance, (byte)LitigGamePlayers.Resolution } : new byte[] { (byte)LitigGamePlayers.Defendant },
-                    Options.NumLiabilitySignals, (byte)LitigGameDecisions.DLiabilitySignal, unevenChanceActions: true)
-                {
-                    IsReversible = true,
-                    Unroll_Parallelize = true,
-                    Unroll_Parallelize_Identical = true,
-                    DistributorChanceInputDecision = true,
-                    DistributableDistributorChanceInput = true,
-                    SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
-                });
-            CreateLiabilitySignalsTables();
-        }
         
         private double[][] PLiabilitySignalsTable, DLiabilitySignalsTable, CLiabilitySignalsTable, PDamagesSignalsTable, DDamagesSignalsTable, CDamagesSignalsTable;
         public void CreateLiabilitySignalsTables()
@@ -798,7 +713,7 @@ namespace ACESim
             if (decisionByteCode == (byte)LitigGameDecisions.PrePrimaryActionChance)
             {
                 var myGameProgress = ((LitigGameProgress)gameProgress);
-                var probabilities = Options.LitigGameDisputeGenerator.GetPrePrimaryChanceProbabilities(this);
+                var probabilities = Options.LitigGameStandardDisputeGenerator.GetPrePrimaryChanceProbabilities(this);
                 if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
                     throw new Exception();
                 return probabilities;
@@ -806,7 +721,7 @@ namespace ACESim
             else if (decisionByteCode == (byte)LitigGameDecisions.PostPrimaryActionChance)
             {
                 var myGameProgress = ((LitigGameProgress)gameProgress);
-                var probabilities = Options.LitigGameDisputeGenerator.GetPostPrimaryChanceProbabilities(this, myGameProgress.DisputeGeneratorActions);
+                var probabilities = Options.LitigGameStandardDisputeGenerator.GetPostPrimaryChanceProbabilities(this, myGameProgress.DisputeGeneratorActions);
                 if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
                     throw new Exception();
                 return probabilities;
@@ -986,9 +901,9 @@ namespace ACESim
                         return true; // NOTE: If we want to support this over multiple bargaining rounds (currently excluded by code in LitigGame.CheckCollapseFinalGameDecisions), then we'll need to do more checks to make sure that this is the right time. Also, if we allow for non-predetermined decisions, we'll have to complicate this as well.
                     break;
                 case (byte)LitigGameDecisions.PrimaryAction:
-                    return Options.LitigGameDisputeGenerator.MarkComplete(this, gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PrePrimaryChance), gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PrimaryAction));
+                    return Options.LitigGameStandardDisputeGenerator.MarkComplete(this, gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PrePrimaryChance), gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PrimaryAction));
                 case (byte)LitigGameDecisions.PostPrimaryActionChance:
-                    return Options.LitigGameDisputeGenerator.MarkComplete(this, gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PrePrimaryChance), gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PrimaryAction), gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PostPrimaryChance));
+                    return Options.LitigGameStandardDisputeGenerator.MarkComplete(this, gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PrePrimaryChance), gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PrimaryAction), gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PostPrimaryChance));
                 case (byte)LitigGameDecisions.PFile:
                     if (actionChosen == 2)
                         return true; // plaintiff hasn't filed

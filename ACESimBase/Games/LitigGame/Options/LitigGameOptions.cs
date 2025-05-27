@@ -18,6 +18,9 @@ namespace ACESim
             get;
             set;
         }
+
+        public ILitigGameStandardDisputeGenerator LitigGameStandardDisputeGenerator => ((ILitigGameStandardDisputeGenerator)LitigGameDisputeGenerator);
+
         /// <summary>
         /// This can generate some additional decisions before trial. If null, none are generated.
         /// </summary>
