@@ -128,6 +128,87 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             return liabilityProb;
         }
 
+        public double[] GetCourtSignalDistributionGivenSignalsAndLiability(
+            int plaintiffSignal, int defendantSignal, int precautionLevel)
+        {
+            double[] baseDist = signal.GetCourtSignalDistributionGivenPlaintiffAndDefendantSignals(
+                                    plaintiffSignal, defendantSignal);
+            double[] filtered = new double[baseDist.Length];
+            double total = 0.0;
+
+            for (int s = 0; s < baseDist.Length; s++)
+            {
+                if (IsLiable(s, precautionLevel))
+                {
+                    filtered[s] = baseDist[s];
+                    total += baseDist[s];
+                }
+            }
+            if (total == 0.0) return filtered;           // all zeros ⇒ liability impossible
+            for (int s = 0; s < filtered.Length; s++)    // renormalize
+                filtered[s] /= total;
+            return filtered;
+        }
+
+        public double[] GetCourtSignalDistributionGivenSignalsAndNoLiability(
+            int plaintiffSignal, int defendantSignal, int precautionLevel)
+        {
+            double[] baseDist = signal.GetCourtSignalDistributionGivenPlaintiffAndDefendantSignals(
+                                    plaintiffSignal, defendantSignal);
+            double[] filtered = new double[baseDist.Length];
+            double total = 0.0;
+
+            for (int s = 0; s < baseDist.Length; s++)
+            {
+                if (!IsLiable(s, precautionLevel))
+                {
+                    filtered[s] = baseDist[s];
+                    total += baseDist[s];
+                }
+            }
+            if (total == 0.0) return filtered;           // all zeros ⇒ no-liability impossible
+            for (int s = 0; s < filtered.Length; s++)    // renormalize
+                filtered[s] /= total;
+            return filtered;
+        }
+
+        public double[] GetHiddenPosteriorFromSignalsAndCourtDistribution(
+            int plaintiffSignal, int defendantSignal, double[] courtSignalDistribution)
+        {
+            if (courtSignalDistribution == null || courtSignalDistribution.Length == 0)
+                throw new ArgumentException(nameof(courtSignalDistribution));
+
+            int H = signal.HiddenStatesCount;
+            double[] postP = signal.GetHiddenPosteriorFromPlaintiffSignal(plaintiffSignal);
+            double[] postD = signal.GetHiddenPosteriorFromDefendantSignal(defendantSignal);
+            double[] unnorm = new double[H];
+
+            // combine plaintiff & defendant evidence (uniform prior assumed)
+            for (int h = 0; h < H; h++)
+                unnorm[h] = postP[h] * postD[h];
+
+            // incorporate court-signal distribution as soft evidence
+            for (int h = 0; h < H; h++)
+            {
+                if (unnorm[h] == 0.0) continue;
+                double[] courtGivenH = signal.GetCourtSignalDistributionGivenHidden(h);
+                double likelihood = 0.0;
+                for (int s = 0; s < courtGivenH.Length; s++)
+                    likelihood += courtGivenH[s] * courtSignalDistribution[s];
+                unnorm[h] *= likelihood;
+            }
+
+            double total = 0.0;
+            for (int h = 0; h < H; h++) total += unnorm[h];
+            if (total == 0.0) return new double[H];      // inconsistent evidence ⇒ all zeros
+
+            double[] posterior = new double[H];
+            for (int h = 0; h < H; h++) posterior[h] = unnorm[h] / total;
+            return posterior;
+        }
+
+
+
 
         // ---------------- Helpers ---------------------------
 

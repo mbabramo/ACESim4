@@ -15,6 +15,8 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         public const int CourtIndex = 2;
 
         readonly ThreePartyDiscreteSignals model;
+        public int HiddenStatesCount =>
+    model.GetHiddenDistributionGivenSignal(PlaintiffIndex, 0).Length;
 
         /// <summary>
         /// Constructs a new signal model.
@@ -85,5 +87,24 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 targetPartyIndex: CourtIndex,
                 givenPartyIndex1: PlaintiffIndex, givenSignalValue1: plaintiffSignal,
                 givenPartyIndex2: DefendantIndex, givenSignalValue2: defendantSignal);
+        /// <summary>
+        /// P(courtSignal = s | hidden = h) for every s, given a hidden state h.
+        /// Length equals the number of court-signal levels.
+        /// </summary>
+        public double[] GetCourtSignalDistributionGivenHidden(int hiddenIndex) =>
+            model.GetSignalDistributionGivenHidden(CourtIndex, hiddenIndex);
+
+        /// <summary>
+        /// P(plaintiffSignal | hidden). Utility for Bayesian updates.
+        /// </summary>
+        public double GetPlaintiffSignalProbability(int hiddenIndex, int plaintiffSignal) =>
+            model.GetSignalDistributionGivenHidden(PlaintiffIndex, hiddenIndex)[plaintiffSignal];
+
+        /// <summary>
+        /// P(defendantSignal | hidden). Utility for Bayesian updates.
+        /// </summary>
+        public double GetDefendantSignalProbability(int hiddenIndex, int defendantSignal) =>
+            model.GetSignalDistributionGivenHidden(DefendantIndex, hiddenIndex)[defendantSignal];
+
     }
 }
