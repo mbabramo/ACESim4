@@ -79,5 +79,11 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
 
         public double[] GetCourtSignalDistributionGivenDefendantSignal(int defendantSignal) =>
             model.GetSignalDistributionGivenSignal(CourtIndex, DefendantIndex, defendantSignal);
+
+        public double[] GetCourtSignalDistributionGivenPlaintiffAndDefendantSignals(
+            int plaintiffSignal, int defendantSignal) => model.GetSignalDistributionGivenTwoSignals(
+                targetPartyIndex: CourtIndex,
+                givenPartyIndex1: PlaintiffIndex, givenSignalValue1: plaintiffSignal,
+                givenPartyIndex2: DefendantIndex, givenSignalValue2: defendantSignal);
     }
 }

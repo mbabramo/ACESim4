@@ -94,6 +94,58 @@ namespace ACESimBase.Util.DiscreteProbabilities
             return probSignalGivenSignal[targetPartyIndex][givenPartyIndex][givenSignalValue];
         }
 
+        public double[] GetSignalDistributionGivenTwoSignals(
+            int targetPartyIndex,
+            int givenPartyIndex1, int givenSignalValue1,
+            int givenPartyIndex2, int givenSignalValue2)
+        {
+            ValidateParty(targetPartyIndex);
+            ValidateParty(givenPartyIndex1);
+            ValidateParty(givenPartyIndex2);
+
+            if (targetPartyIndex == givenPartyIndex1 || targetPartyIndex == givenPartyIndex2)
+                throw new ArgumentException("Target party must differ from the given parties.");
+            if (givenPartyIndex1 == givenPartyIndex2)
+                throw new ArgumentException("Given parties must be distinct.");
+
+            if ((uint)givenSignalValue1 >= signalCounts[givenPartyIndex1])
+                throw new ArgumentOutOfRangeException(nameof(givenSignalValue1));
+            if ((uint)givenSignalValue2 >= signalCounts[givenPartyIndex2])
+                throw new ArgumentOutOfRangeException(nameof(givenSignalValue2));
+
+            // --- Hidden posterior proportional to the product of the two likelihood terms ---
+            int H = hiddenCount;
+            double[] posteriorH = new double[H];
+            double denom = 0.0;
+            for (int h = 0; h < H; h++)
+            {
+                double val =
+                    probSignalGivenHidden[givenPartyIndex1][h][givenSignalValue1] *
+                    probSignalGivenHidden[givenPartyIndex2][h][givenSignalValue2];
+                posteriorH[h] = val;
+                denom += val;
+            }
+            if (denom == 0.0)
+                throw new InvalidOperationException("Joint posterior has zero total probability.");
+
+            for (int h = 0; h < H; h++)
+                posteriorH[h] /= denom;
+
+            // --- Mix over hidden to obtain the desired conditional distribution ---
+            int S_target = signalCounts[targetPartyIndex];
+            double[] distribution = new double[S_target];
+            for (int s = 0; s < S_target; s++)
+            {
+                double prob = 0.0;
+                for (int h = 0; h < H; h++)
+                    prob += probSignalGivenHidden[targetPartyIndex][h][s] * posteriorH[h];
+                distribution[s] = prob;
+            }
+
+            return distribution;
+        }
+
+
         #endregion
 
         #region Precomputation

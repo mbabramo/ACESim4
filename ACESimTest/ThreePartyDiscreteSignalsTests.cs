@@ -189,5 +189,64 @@ namespace ACESimTest
             for (int s = 0; s < SignalLevels; s++)
                 empirical[s].Should().BeApproximately(theoretical[s], 0.01);
         }
+
+        // ---------------------------------------------------------------------
+        // Conditional distribution given *two* other parties’ signals
+        // ---------------------------------------------------------------------
+
+        [DataTestMethod]
+        [DataRow(0, 0)]
+        [DataRow(1, 1)]
+        [DataRow(2, 0)]
+        public void TargetGivenOtherTwoConsistent(int signal1, int signal2)
+        {
+            int targetParty = 2;
+            int givenParty1 = 0;
+            int givenParty2 = 1;
+
+            // Manual Bayesian computation of P(targetSig | sig1, sig2)
+            double prior = 1.0 / HiddenCount;
+            double[] manual = new double[SignalLevels];
+            double denom = 0.0;
+
+            for (int tSig = 0; tSig < SignalLevels; tSig++)
+            {
+                double sum = 0.0;
+                for (int h = 0; h < HiddenCount; h++)
+                {
+                    double p1 = model.GetSignalDistributionGivenHidden(givenParty1, h)[signal1];
+                    double p2 = model.GetSignalDistributionGivenHidden(givenParty2, h)[signal2];
+                    double pT = model.GetSignalDistributionGivenHidden(targetParty, h)[tSig];
+                    sum += p1 * p2 * pT * prior;
+                }
+                manual[tSig] = sum;
+                denom += sum;
+            }
+            for (int tSig = 0; tSig < SignalLevels; tSig++) manual[tSig] /= denom;
+
+            double[] table = model.GetSignalDistributionGivenTwoSignals(
+                targetPartyIndex: targetParty,
+                givenPartyIndex1: givenParty1, givenSignalValue1: signal1,
+                givenPartyIndex2: givenParty2, givenSignalValue2: signal2);
+
+            for (int tSig = 0; tSig < SignalLevels; tSig++)
+                table[tSig].Should().BeApproximately(manual[tSig], 1e-6);
+        }
+
+        // ---------------------------------------------------------------------
+        // Guard-clause: duplicate “given” parties must throw
+        // ---------------------------------------------------------------------
+
+        [TestMethod]
+        public void DuplicateGivenPartiesThrows()
+        {
+            Action act = () => model.GetSignalDistributionGivenTwoSignals(
+                targetPartyIndex: 2,
+                givenPartyIndex1: 0, givenSignalValue1: 1,
+                givenPartyIndex2: 0, givenSignalValue2: 2);
+
+            act.Should().Throw<ArgumentException>();
+        }
+
     }
 }
