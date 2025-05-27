@@ -134,96 +134,116 @@ namespace ACESim
             return decisions;
         }
 
-
-        void AddSignalDecisions(
-            LitigGameDefinition gameDefinition,
-            List<Decision> decisions)
+        private void AddSignalDecisions(LitigGameDefinition gameDef, List<Decision> decisions)
         {
-            var opt = gameDefinition.Options;
+            var o = gameDef.Options;
 
-            if (opt.PLiabilityNoiseStdev != 0)
+            // ─── Liability signals ──────────────────────────────────────────────────────
+            if (o.PLiabilityNoiseStdev != 0)
             {
+                byte[] informed =
+                    o.CollapseChanceDecisions
+                        ? new byte[] {
+                      (byte)LitigGamePlayers.Plaintiff,
+                      (byte)LitigGamePlayers.DLiabilitySignalChance,
+                      (byte)LitigGamePlayers.CourtLiabilityChance,
+                      (byte)LitigGamePlayers.Resolution }
+                        : new byte[] { (byte)LitigGamePlayers.Plaintiff };
+
                 decisions.Add(new Decision(
-                    "P Liability Signal", "PLS",
-                    true,
-                    (byte)LitigGamePlayers.PLiabilitySignalChance,
-                    new byte[] {
-                        (byte)LitigGamePlayers.Plaintiff,
+                        "P Liability Signal", "PLS", true,
+                        (byte)LitigGamePlayers.PLiabilitySignalChance,
+                        informed, o.NumLiabilitySignals,
+                        (byte)LitigGameDecisions.PLiabilitySignal, unevenChanceActions: true)
+                {
+                    IsReversible = true,
+                    Unroll_Parallelize = true,
+                    Unroll_Parallelize_Identical = true,
+                    DistributorChanceInputDecision = true,
+                    DistributableDistributorChanceInput = true,
+                    SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
+                });
+            }
+
+            if (o.DLiabilityNoiseStdev != 0)
+            {
+                byte[] informed =
+                    o.CollapseChanceDecisions
+                        ? new byte[] {
+                      (byte)LitigGamePlayers.Defendant,
+                      (byte)LitigGamePlayers.CourtLiabilityChance,
+                      (byte)LitigGamePlayers.Resolution }
+                        : new byte[] { (byte)LitigGamePlayers.Defendant };
+
+                decisions.Add(new Decision(
+                        "D Liability Signal", "DLS", true,
                         (byte)LitigGamePlayers.DLiabilitySignalChance,
-                        (byte)LitigGamePlayers.CourtLiabilityChance,
-                        (byte)LitigGamePlayers.Resolution },
-                    opt.NumLiabilitySignals,
-                    (byte)LitigGameDecisions.PLiabilitySignal,
-                    unevenChanceActions: true)
+                        informed, o.NumLiabilitySignals,
+                        (byte)LitigGameDecisions.DLiabilitySignal, unevenChanceActions: true)
                 {
                     IsReversible = true,
+                    Unroll_Parallelize = true,
+                    Unroll_Parallelize_Identical = true,
                     DistributorChanceInputDecision = true,
-                    DistributableDistributorChanceInput = true
+                    DistributableDistributorChanceInput = true,
+                    SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
                 });
             }
 
-            if (opt.DLiabilityNoiseStdev != 0)
+            // ─── Damages signals ───────────────────────────────────────────────────────
+            if (o.NumDamagesStrengthPoints > 1)
             {
-                decisions.Add(new Decision(
-                    "D Liability Signal", "DLS",
-                    true,
-                    (byte)LitigGamePlayers.DLiabilitySignalChance,
-                    new byte[] {
-                        (byte)LitigGamePlayers.Defendant,
-                        (byte)LitigGamePlayers.CourtLiabilityChance,
-                        (byte)LitigGamePlayers.Resolution },
-                    opt.NumLiabilitySignals,
-                    (byte)LitigGameDecisions.DLiabilitySignal,
-                    unevenChanceActions: true)
+                if (o.PDamagesNoiseStdev != 0)
                 {
-                    IsReversible = true,
-                    DistributorChanceInputDecision = true,
-                    DistributableDistributorChanceInput = true
-                });
-            }
+                    byte[] informed =
+                        o.CollapseChanceDecisions
+                            ? new byte[] {
+                          (byte)LitigGamePlayers.Plaintiff,
+                          (byte)LitigGamePlayers.DDamagesSignalChance,
+                          (byte)LitigGamePlayers.CourtDamagesChance }
+                            : new byte[] { (byte)LitigGamePlayers.Plaintiff };
 
-            if (opt.NumDamagesStrengthPoints <= 1)
-                return;
+                    decisions.Add(new Decision(
+                            "P Damages Signal", "PDS", true,
+                            (byte)LitigGamePlayers.PDamagesSignalChance,
+                            informed, o.NumDamagesSignals,
+                            (byte)LitigGameDecisions.PDamagesSignal, unevenChanceActions: true)
+                    {
+                        IsReversible = true,
+                        Unroll_Parallelize = true,
+                        Unroll_Parallelize_Identical = true,
+                        DistributorChanceInputDecision = true,
+                        DistributableDistributorChanceInput = true,
+                        SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
+                    });
+                }
 
-            if (opt.PDamagesNoiseStdev != 0)
-            {
-                decisions.Add(new Decision(
-                    "P Damages Signal", "PDS",
-                    true,
-                    (byte)LitigGamePlayers.PDamagesSignalChance,
-                    new byte[] {
-                        (byte)LitigGamePlayers.Plaintiff,
-                        (byte)LitigGamePlayers.DDamagesSignalChance,
-                        (byte)LitigGamePlayers.CourtDamagesChance },
-                    opt.NumDamagesSignals,
-                    (byte)LitigGameDecisions.PDamagesSignal,
-                    unevenChanceActions: true)
+                if (o.DDamagesNoiseStdev != 0)
                 {
-                    IsReversible = true,
-                    DistributorChanceInputDecision = true,
-                    DistributableDistributorChanceInput = true
-                });
-            }
+                    byte[] informed =
+                        o.CollapseChanceDecisions
+                            ? new byte[] {
+                          (byte)LitigGamePlayers.Defendant,
+                          (byte)LitigGamePlayers.CourtDamagesChance }
+                            : new byte[] { (byte)LitigGamePlayers.Defendant };
 
-            if (opt.DDamagesNoiseStdev != 0)
-            {
-                decisions.Add(new Decision(
-                    "D Damages Signal", "DDS",
-                    true,
-                    (byte)LitigGamePlayers.DDamagesSignalChance,
-                    new byte[] {
-                        (byte)LitigGamePlayers.Defendant,
-                        (byte)LitigGamePlayers.CourtDamagesChance },
-                    opt.NumDamagesSignals,
-                    (byte)LitigGameDecisions.DDamagesSignal,
-                    unevenChanceActions: true)
-                {
-                    IsReversible = true,
-                    DistributorChanceInputDecision = true,
-                    DistributableDistributorChanceInput = true
-                });
+                    decisions.Add(new Decision(
+                            "D Damages Signal", "DDS", true,
+                            (byte)LitigGamePlayers.DDamagesSignalChance,
+                            informed, o.NumDamagesSignals,
+                            (byte)LitigGameDecisions.DDamagesSignal, unevenChanceActions: true)
+                    {
+                        IsReversible = true,
+                        Unroll_Parallelize = true,
+                        Unroll_Parallelize_Identical = true,
+                        DistributorChanceInputDecision = true,
+                        DistributableDistributorChanceInput = true,
+                        SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
+                    });
+                }
             }
         }
+
 
         public virtual bool SupportsSymmetry() => false;
 
