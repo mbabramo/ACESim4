@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace ACESim
 {
     [Serializable]
-    public class LitigGameNuisanceDisputeGenerator : ILitigGameDisputeGenerator
+    public class LitigGameNuisanceDisputeGenerator : LitigGameStandardDisputeGeneratorBase
     {
         public string GetGeneratorName() => "Nuisance";
 

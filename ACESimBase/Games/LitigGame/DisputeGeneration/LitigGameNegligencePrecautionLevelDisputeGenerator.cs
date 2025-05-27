@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace ACESim
 {
     [Serializable]
-    public class LitigGameNegligencePrecautionLevelDisputeGenerator : ILitigGameDisputeGenerator
+    public class LitigGameNegligencePrecautionLevelDisputeGenerator : LitigGameStandardDisputeGeneratorBase
     {
         public string GetGeneratorName() => "NegligencePrecaution";
         public string OptionsString => $"NumMarginalBenefitSchedules {NumMarginalBenefitSchedules} NumPrecautionLevels {NumPrecautionLevels} CostOfInjury {CostOfInjury} ProbabilityOfInjuryNoPrecaution {ProbabilityOfInjuryNoPrecaution} IncrementalPrecautionCost {IncrementalPrecautionCost} RiskReductionFromFirstPrecautionTaken {RiskReductionFromFirstPrecautionTaken}";

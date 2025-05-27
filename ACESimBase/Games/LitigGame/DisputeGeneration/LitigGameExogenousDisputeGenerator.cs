@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 namespace ACESim
 {
     [Serializable]
-    public class LitigGameExogenousDisputeGenerator : ILitigGameDisputeGenerator
+    public class LitigGameExogenousDisputeGenerator : LitigGameStandardDisputeGeneratorBase
     {
         public string GetGeneratorName() => "Exog";
         /// <summary>

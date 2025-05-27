@@ -6,7 +6,7 @@ using System.Linq;
 namespace ACESim
 {
     [Serializable]
-    public class LitigGameExcuseDisputeGenerator : ILitigGameDisputeGenerator
+    public class LitigGameExcuseDisputeGenerator : LitigGameStandardDisputeGeneratorBase
     {
         // ── Public configurable parameters ────────────────────────────────────────
         public int NumCostLevels = 5;

@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace ACESim
 {
     [Serializable]
-    public class LitigGameEqualQualityProbabilitiesDisputeGenerator : ILitigGameDisputeGenerator
+    public class LitigGameEqualQualityProbabilitiesDisputeGenerator : LitigGameStandardDisputeGeneratorBase
     {
 
         public string GetGeneratorName() => "EqualQual";

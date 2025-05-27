@@ -11,7 +11,7 @@ using static alglib;
 namespace ACESim
 {
     [Serializable]
-    public class LitigGameAppropriationDisputeGenerator : ILitigGameDisputeGenerator
+    public class LitigGameAppropriationDisputeGenerator : LitigGameStandardDisputeGeneratorBase
     {
         public string GetGeneratorName() => "Appropriation";
 
