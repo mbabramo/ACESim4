@@ -22,7 +22,7 @@ namespace ACESim
         private bool[][] _shouldBeLiable;                // [p][a] true liability (for a=0 approve, a=1 reject)
 
         // ── ILitigGameDisputeGenerator implementation ────────────────────────────
-        public string GetGeneratorName() => "Waste";
+        public override string GetGeneratorName() => "Waste";
 
         public string OptionsString =>
             $"Levels={NumReturnLevels} Ratio={GeometricRatio} C={FixedCostC} " +
@@ -38,7 +38,7 @@ namespace ACESim
         public (string name, string abbreviation) PostPrimaryNameAndAbbreviation =>
             ("Outcome", "Outcome");
 
-        public string GetActionString(byte action, byte decisionByteCode) =>
+        public override string GetActionString(byte action, byte decisionByteCode) =>
             decisionByteCode switch
             {
                 (byte)LitigGameDecisions.PrePrimaryActionChance => $"RetLvl{action}",
@@ -148,25 +148,25 @@ namespace ACESim
             postPrimaryChanceCanTerminate = false;
         }
 
-        public bool PotentialDisputeArises(
+        public override bool PotentialDisputeArises(
             LitigGameDefinition gameDef,
             LitigGameDisputeGeneratorActions acts) =>
             acts.PrimaryAction == 1;  // dispute if Approved (something to litigate)
 
-        public bool MarkComplete(
+        public override bool MarkComplete(
             LitigGameDefinition gameDef,
             byte prePrimaryAction,
             byte primaryAction) =>
             primaryAction == 2;  // if Rejected, no dispute arises (complete)
 
-        public bool MarkComplete(
+        public override bool MarkComplete(
             LitigGameDefinition gameDef,
             byte prePrimaryAction,
             byte primaryAction,
             byte postPrimaryAction) =>
             throw new NotSupportedException();
 
-        public bool IsTrulyLiable(
+        public override bool IsTrulyLiable(
             LitigGameDefinition gameDef,
             LitigGameDisputeGeneratorActions acts,
             GameProgress progress)
@@ -176,7 +176,7 @@ namespace ACESim
             return _shouldBeLiable[pIdx][aIdx];
         }
 
-        public double[] GetPrePrimaryChanceProbabilities(LitigGameDefinition gameDef)
+        public override double[] GetPrePrimaryChanceProbabilities(LitigGameDefinition gameDef)
         {
             if (!UseGeometricProbabilities)
             {
@@ -198,12 +198,12 @@ namespace ACESim
             return weights;
         }
 
-        public double[] GetPostPrimaryChanceProbabilities(
+        public override double[] GetPostPrimaryChanceProbabilities(
             LitigGameDefinition gameDef,
             LitigGameDisputeGeneratorActions acts) =>
             throw new NotImplementedException();  // no post-primary chance stage
 
-        public double[] GetLiabilityStrengthProbabilities(
+        public override double[] GetLiabilityStrengthProbabilities(
             LitigGameDefinition gameDef,
             LitigGameDisputeGeneratorActions acts)
         {
@@ -212,12 +212,12 @@ namespace ACESim
             return _liabilityStrengthProbabilities[pIdx][aIdx];
         }
 
-        public double[] GetDamagesStrengthProbabilities(
+        public override double[] GetDamagesStrengthProbabilities(
             LitigGameDefinition gameDef,
             LitigGameDisputeGeneratorActions acts) =>
             new[] { 1.0 };
 
-        public double[] GetLitigationIndependentWealthEffects(
+        public override double[] GetLitigationIndependentWealthEffects(
             LitigGameDefinition gameDef,
             LitigGameDisputeGeneratorActions acts)
         {
@@ -235,7 +235,7 @@ namespace ACESim
             }
         }
 
-        public double GetLitigationIndependentSocialWelfare(
+        public override double GetLitigationIndependentSocialWelfare(
             LitigGameDefinition gameDef,
             LitigGameDisputeGeneratorActions acts)
         {
@@ -258,20 +258,20 @@ namespace ACESim
         }
 
 
-        public bool PostPrimaryDoesNotAffectStrategy() => false;
+        public override bool PostPrimaryDoesNotAffectStrategy() => false;
 
         // ── defaults / unused inversion interface parts ───────────────────────────
-        public double[] InvertedCalculations_GetPLiabilitySignalProbabilities() =>
+        public override double[] InvertedCalculations_GetPLiabilitySignalProbabilities() =>
             throw new NotImplementedException();
-        public double[] InvertedCalculations_GetDLiabilitySignalProbabilities(byte pLiabilitySignal) =>
+        public override double[] InvertedCalculations_GetDLiabilitySignalProbabilities(byte pLiabilitySignal) =>
             throw new NotImplementedException();
-        public double[] InvertedCalculations_GetCLiabilitySignalProbabilities(byte pLiabilitySignal, byte dLiabilitySignal) =>
+        public override double[] InvertedCalculations_GetCLiabilitySignalProbabilities(byte pLiabilitySignal, byte dLiabilitySignal) =>
             throw new NotImplementedException();
-        public double[] InvertedCalculations_GetPDamagesSignalProbabilities() =>
+        public override double[] InvertedCalculations_GetPDamagesSignalProbabilities() =>
             throw new NotImplementedException();
-        public double[] InvertedCalculations_GetDDamagesSignalProbabilities(byte pDamagesSignal) =>
+        public override double[] InvertedCalculations_GetDDamagesSignalProbabilities(byte pDamagesSignal) =>
             throw new NotImplementedException();
-        public double[] InvertedCalculations_GetCDamagesSignalProbabilities(byte pDamagesSignal, byte dDamagesSignal) =>
+        public override double[] InvertedCalculations_GetCDamagesSignalProbabilities(byte pDamagesSignal, byte dDamagesSignal) =>
             throw new NotImplementedException();
         public (bool trulyLiable, byte liabilityStrength, byte damagesStrength) InvertedCalculations_WorkBackwardsFromSignals(
             byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal,
@@ -283,3 +283,4 @@ namespace ACESim
             throw new NotImplementedException();
     }
 }
+

@@ -1,4 +1,4 @@
-using ACESim.Util;
+﻿using ACESim.Util;
 using ACESim.Util.DiscreteProbabilities;
 using ACESimBase.Util;
 using ACESimBase.Util.DiscreteProbabilities;
@@ -14,18 +14,18 @@ namespace ACESim
     [Serializable]
     public class LitigGameNuisanceDisputeGenerator : LitigGameStandardDisputeGeneratorBase
     {
-        public string GetGeneratorName() => "Nuisance";
+        public override string GetGeneratorName() => "Nuisance";
 
         public string OptionsString => $"NumBenefitLevels {NumUtilityLevels} MinBenefitOfActionToDefendant {MinBenefitOfActionToDefendant} MaxBenefitOfActionToDefendant {MaxBenefitOfActionToDefendant} CostOfActionOnPlaintiff {CostOfActionOnPlaintiff} StdevNoiseToProduceLiabilityStrength {StdevNoiseToProduceLiabilityStrength}";
         public (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("Benefit to D", "BenefitD");
         public (string name, string abbreviation) PrimaryNameAndAbbreviation => ("Take Benefit", "TakeBenefit");
         public (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("PostPrimaryChanceActions", "Post Primary");
-        public string GetActionString(byte action, byte decisionByteCode)
+        public override string GetActionString(byte action, byte decisionByteCode)
         {
             return action.ToString();
         }
 
-        // Explanation: Potential defendant has a binary choice to take a certain action that will produce some benefit for itself and a standard cost for the potential plaintiff. The postulated rule, modeled on Restatement (Second) � 826 is that the defendant may take the action, without paying compensation, if the benefit is at least as great as the cost. In this case, the court is applying Rule 3 in the Calabresi-Melamed framework; if the defendant loses, the court is applying Rule 2, where the defendant must pay damages. Of course, this abstracts away from the continuing nature of some nuisances.
+        // Explanation: Potential defendant has a binary choice to take a certain action that will produce some benefit for itself and a standard cost for the potential plaintiff. The postulated rule, modeled on Restatement (Second) § 826 is that the defendant may take the action, without paying compensation, if the benefit is at least as great as the cost. In this case, the court is applying Rule 3 in the Calabresi-Melamed framework; if the defendant loses, the court is applying Rule 2, where the defendant must pay damages. Of course, this abstracts away from the continuing nature of some nuisances.
         // The litigation quality should on average be in the middle of the range when benefit is equal to cost and more favorable to the plaintiff when there is a lower benefit. However, the actual litigation quality may vary somewhat from this level, as a noise term will be added. We assume for simplicity that at the time it makes its decision on an offer, the defendant has no separate estimate of litigation quality other than the benefit that it knows that it will receive.
         // Pre-primary decision: Benefit to defendant.
         // Primary decision: Take the benefit? (1 = yes, 2 = no)
@@ -82,7 +82,7 @@ namespace ACESim
         }
 
         readonly double[] WealthEffects_NoBenefitTaken = new double[] { 0, 0 };
-        public double[] GetLitigationIndependentWealthEffects(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
+        public override double[] GetLitigationIndependentWealthEffects(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             if (disputeGeneratorActions.PrimaryAction == 2)
             {
@@ -95,7 +95,7 @@ namespace ACESim
             }
         }
 
-        public double GetLitigationIndependentSocialWelfare(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
+        public override double GetLitigationIndependentSocialWelfare(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             if (disputeGeneratorActions.PrimaryAction == 2)
                 return 0;
@@ -118,42 +118,43 @@ namespace ACESim
         }
 
 
-        public double[] GetLiabilityStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
+        public override double[] GetLiabilityStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             return ProbabilityLiabilityStrength[disputeGeneratorActions.PrePrimaryChanceAction - 1];
         }
 
-        public double[] GetDamagesStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions) => new double[] { 1.0 };
+        public override double[] GetDamagesStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions) => new double[] { 1.0 };
 
-        public bool IsTrulyLiable(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
+        public override bool IsTrulyLiable(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
         {
             return GetLitigationIndependentSocialWelfare(myGameDefinition, disputeGeneratorActions) < 0;
         }
 
-        public bool PotentialDisputeArises(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
+        public override bool PotentialDisputeArises(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             return disputeGeneratorActions.PrimaryAction == 1; // defendant has taken benefit, so there is something to sue over
         }
 
-        public bool MarkComplete(LitigGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction)
+        public override bool MarkComplete(LitigGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction)
         {
             return primaryAction == 2;
         }
 
-        public bool MarkComplete(LitigGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction, byte postPrimaryAction)
+        public override bool MarkComplete(LitigGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction, byte postPrimaryAction)
         {
             throw new NotImplementedException();
         }
 
-        public double[] GetPrePrimaryChanceProbabilities(LitigGameDefinition myGameDefinition)
+        public override double[] GetPrePrimaryChanceProbabilities(LitigGameDefinition myGameDefinition)
         {
             throw new NotImplementedException(); // even probabiltiies
         }
 
-        public double[] GetPostPrimaryChanceProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
+        public override double[] GetPostPrimaryChanceProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             throw new NotImplementedException(); // no post primary chance function
         }
-        public bool PostPrimaryDoesNotAffectStrategy() => false;
+        public override bool PostPrimaryDoesNotAffectStrategy() => false;
     }
 }
+

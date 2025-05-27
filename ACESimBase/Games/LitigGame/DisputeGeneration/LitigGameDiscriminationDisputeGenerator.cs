@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,13 +9,13 @@ namespace ACESim
     [Serializable]
     public class LitigGameDiscriminationDisputeGenerator : LitigGameStandardDisputeGeneratorBase
     {
-        public string GetGeneratorName() => "Discrimination";
+        public override string GetGeneratorName() => "Discrimination";
 
         public string OptionsString => $"ProbabilityGoodEmployee {ProbabilityGoodEmployee} ProbabilityGoodEmployer {ProbabilityGoodEmployer} ProbabilityLowTasteDiscrimination {ProbabilityLowTasteDiscrimination} ProbabilityMediumTasteDiscrimination {ProbabilityMediumTasteDiscrimination} ProbabilityHighTasteDiscrimination {ProbabilityHighTasteDiscrimination} CostToEmployeeOfBeingFired {CostToEmployeeOfBeingFired} SocialCostOfFiringGoodEmployee {SocialCostOfFiringGoodEmployee} CostOfLeavingBadEmployee {CostOfLeavingBadEmployee} PrivateBenefitToBadEmployerFromFiring_LowTaste {PrivateBenefitToBadEmployerFromFiring_LowTaste} PrivateBenefitToBadEmployerFromFiring_MediumTaste {PrivateBenefitToBadEmployerFromFiring_MediumTaste} PrivateBenefitToBadEmployerFromFiring_HighTaste {PrivateBenefitToBadEmployerFromFiring_HighTaste}";
         public (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("Good or Bad Employer and Employee", "PeopleQuality");
         public (string name, string abbreviation) PrimaryNameAndAbbreviation => ("Fire", "Primary");
         public (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("PostPrimaryChanceActions", "Post Primary");
-        public string GetActionString(byte action, byte decisionByteCode)
+        public override string GetActionString(byte action, byte decisionByteCode)
         {
             return action.ToString();
         }
@@ -95,7 +95,7 @@ namespace ACESim
         }
 
         readonly double[] WealthEffects_NoAppropriation = new double[] { 0, 0 };
-        public double[] GetLitigationIndependentWealthEffects(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
+        public override double[] GetLitigationIndependentWealthEffects(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             var peopleStatus = ConvertPrePrimaryChance(disputeGeneratorActions.PrePrimaryChanceAction);
             if (disputeGeneratorActions.PrimaryAction == 1) 
@@ -114,7 +114,7 @@ namespace ACESim
             }
         }
 
-        public double GetLitigationIndependentSocialWelfare(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
+        public override double GetLitigationIndependentSocialWelfare(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             var peopleStatus = ConvertPrePrimaryChance(disputeGeneratorActions.PrePrimaryChanceAction);
             if (disputeGeneratorActions.PrimaryAction == 1)
@@ -154,12 +154,12 @@ namespace ACESim
             return (opportunity, harm);
         }
 
-        public bool PotentialDisputeArises(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
+        public override bool PotentialDisputeArises(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             return disputeGeneratorActions.PrimaryAction == 1; // only a dispute if employee is fired
         }
 
-        public double[] GetLiabilityStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
+        public override double[] GetLiabilityStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             var peopleStatus = ConvertPrePrimaryChance(disputeGeneratorActions.PrePrimaryChanceAction);
             if (peopleStatus.badEmployee == false && peopleStatus.employerTasteForDiscrimination > 0)
@@ -170,33 +170,34 @@ namespace ACESim
                 return ProbabilityLiabilityStrength_MediumPlaintiffCase;
         }
 
-        public double[] GetDamagesStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions) => new double[] { 1.0 };
+        public override double[] GetDamagesStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions) => new double[] { 1.0 };
 
-        public bool IsTrulyLiable(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
+        public override bool IsTrulyLiable(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
         {
             var peopleStatus = ConvertPrePrimaryChance(disputeGeneratorActions.PrePrimaryChanceAction);
             return disputeGeneratorActions.PrimaryAction == 1 /* fired */ && peopleStatus.badEmployee == false;
         }
 
-        public bool MarkComplete(LitigGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction)
+        public override bool MarkComplete(LitigGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction)
         {
             return primaryAction == 2;
         }
 
-        public bool MarkComplete(LitigGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction, byte postPrimaryAction)
+        public override bool MarkComplete(LitigGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction, byte postPrimaryAction)
         {
             throw new NotImplementedException();
         }
 
-        public double[] GetPrePrimaryChanceProbabilities(LitigGameDefinition myGameDefinition)
+        public override double[] GetPrePrimaryChanceProbabilities(LitigGameDefinition myGameDefinition)
         {
             return new double[] { ProbabilityGoodEmployee * ProbabilityGoodEmployer, ProbabilityGoodEmployee * ProbabilityLowTasteDiscrimination, ProbabilityGoodEmployee * ProbabilityMediumTasteDiscrimination, ProbabilityGoodEmployee * ProbabilityHighTasteDiscrimination, ProbabilityBadEmployee * ProbabilityGoodEmployer, ProbabilityBadEmployee * ProbabilityLowTasteDiscrimination, ProbabilityBadEmployee * ProbabilityMediumTasteDiscrimination, ProbabilityBadEmployee * ProbabilityHighTasteDiscrimination };
         }
 
-        public double[] GetPostPrimaryChanceProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
+        public override double[] GetPostPrimaryChanceProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             throw new NotImplementedException(); // no post primary chance function
         }
-        public bool PostPrimaryDoesNotAffectStrategy() => false;
+        public override bool PostPrimaryDoesNotAffectStrategy() => false;
     }
 }
+

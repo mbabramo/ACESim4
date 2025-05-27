@@ -16,10 +16,10 @@ namespace ACESim
 
         #region ILitigGameDisputeGenerator – generic parts
 
-        public virtual void Setup(LitigGameDefinition litigGameDefinition)
+        public override void Setup(LitigGameDefinition litigGameDefinition)
             => LitigGameDefinition = litigGameDefinition;
 
-        public virtual List<Decision> GenerateDisputeDecisions(
+        public override List<Decision> GenerateDisputeDecisions(
             LitigGameDefinition gameDefinition)
         {
             var decisions = new List<Decision>();
@@ -225,7 +225,7 @@ namespace ACESim
             }
         }
 
-        public virtual bool SupportsSymmetry() => false;
+        public override bool SupportsSymmetry() => false;
 
         #endregion
 
@@ -245,13 +245,20 @@ namespace ACESim
             out bool primaryActionCanTerminate,
             out bool postPrimaryChanceCanTerminate);
 
-        public abstract (string name, string abbreviation) PrePrimaryNameAndAbbreviation { get; }
-        public abstract (string name, string abbreviation) PrimaryNameAndAbbreviation { get; }
-        public abstract (string name, string abbreviation) PostPrimaryNameAndAbbreviation { get; }
+        public virtual (string name, string abbreviation) PrePrimaryNameAndAbbreviation
+            => ("PrePrimary", "Pre");   // default text – subclasses usually override
+        public virtual (string name, string abbreviation) PrimaryNameAndAbbreviation
+            => ("Primary", "Prim");
+        public virtual (string name, string abbreviation) PostPrimaryNameAndAbbreviation
+            => ("PostPrimary", "Post");
 
         // ---------- model-specific calculations remain abstract ----------
         public abstract bool PotentialDisputeArises(LitigGameDefinition g, LitigGameDisputeGeneratorActions a);
-        public abstract bool MarkComplete(LitigGameDefinition g, GameProgress p, Decision d, byte action);
+        public virtual bool MarkComplete(
+            LitigGameDefinition g,
+            GameProgress prog,
+            Decision decisionJustTaken,
+            byte actionChosen) => false;
         public abstract bool MarkComplete(LitigGameDefinition g, byte pre, byte primary);
         public abstract bool MarkComplete(LitigGameDefinition g, byte pre, byte primary, byte post);
         public abstract bool IsTrulyLiable(LitigGameDefinition g, LitigGameDisputeGeneratorActions a, GameProgress p);
@@ -259,25 +266,28 @@ namespace ACESim
         public abstract double[] GetDamagesStrengthProbabilities(LitigGameDefinition g, LitigGameDisputeGeneratorActions a);
         public abstract double GetLitigationIndependentSocialWelfare(LitigGameDefinition g, LitigGameDisputeGeneratorActions a);
         public abstract double[] GetLitigationIndependentWealthEffects(LitigGameDefinition g, LitigGameDisputeGeneratorActions a);
-        public abstract (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition g, LitigGameDisputeGeneratorActions a);
+        public virtual (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(
+            LitigGameDefinition g,
+            LitigGameDisputeGeneratorActions acts)
+        => (0.0, 0.0);
 
         public abstract string GetGeneratorName();
-        public abstract string OptionsString { get; }
+        public virtual string OptionsString => string.Empty;
         public abstract string GetActionString(byte action, byte decisionByteCode);
 
         // Inverted-calculation methods – leave abstract for those generators that use them
-        public abstract double[] InvertedCalculations_GetPLiabilitySignalProbabilities();
-        public abstract double[] InvertedCalculations_GetDLiabilitySignalProbabilities(byte pSignal);
-        public abstract double[] InvertedCalculations_GetCLiabilitySignalProbabilities(byte pSignal, byte dSignal);
-        public abstract double[] InvertedCalculations_GetPDamagesSignalProbabilities();
-        public abstract double[] InvertedCalculations_GetDDamagesSignalProbabilities(byte pSignal);
-        public abstract double[] InvertedCalculations_GetCDamagesSignalProbabilities(byte pSignal, byte dSignal);
-        public abstract double[] InvertedCalculations_GetLiabilityStrengthProbabilities(byte pL, byte dL, byte? cL);
-        public abstract double[] InvertedCalculations_GetDamagesStrengthProbabilities(byte pD, byte dD, byte? cD);
-        public abstract (bool trulyLiable, byte liabilityStrength, byte damagesStrength)
-            InvertedCalculations_WorkBackwardsFromSignals(byte pL, byte dL, byte? cL, byte pD, byte dD, byte? cD, int seed);
-        public abstract List<(GameProgress progress, double weight)>
-            InvertedCalculations_GenerateAllConsistentGameProgresses(byte pL, byte dL, byte? cL, byte pD, byte dD, byte? cD, LitigGameProgress baseProgress);
+        public virtual double[] InvertedCalculations_GetPLiabilitySignalProbabilities() => throw new NotImplementedException();
+        public virtual double[] InvertedCalculations_GetDLiabilitySignalProbabilities(byte pSignal) => throw new NotImplementedException();
+        public virtual double[] InvertedCalculations_GetCLiabilitySignalProbabilities(byte pSignal, byte dSignal) => throw new NotImplementedException();
+        public virtual double[] InvertedCalculations_GetPDamagesSignalProbabilities() => throw new NotImplementedException();
+        public virtual double[] InvertedCalculations_GetDDamagesSignalProbabilities(byte pSignal) => throw new NotImplementedException();
+        public virtual double[] InvertedCalculations_GetCDamagesSignalProbabilities(byte pSignal, byte dSignal) => throw new NotImplementedException();
+        public virtual double[] InvertedCalculations_GetLiabilityStrengthProbabilities(byte pL, byte dL, byte? cL) => throw new NotImplementedException();
+        public virtual double[] InvertedCalculations_GetDamagesStrengthProbabilities(byte pD, byte dD, byte? cD) => throw new NotImplementedException();
+        public virtual (bool trulyLiable, byte liabilityStrength, byte damagesStrength)
+            InvertedCalculations_WorkBackwardsFromSignals(byte pL, byte dL, byte? cL, byte pD, byte dD, byte? cD, int seed) => throw new NotImplementedException();
+        public virtual List<(GameProgress progress, double weight)>
+            InvertedCalculations_GenerateAllConsistentGameProgresses(byte pL, byte dL, byte? cL, byte pD, byte dD, byte? cD, LitigGameProgress baseProgress) => throw new NotImplementedException();
 
         // Chance-ordering helper defaults
         public virtual (bool, bool, SymmetryMapInput) GetPrePrimaryUnrollSettings()
@@ -298,3 +308,4 @@ namespace ACESim
         #endregion
     }
 }
+

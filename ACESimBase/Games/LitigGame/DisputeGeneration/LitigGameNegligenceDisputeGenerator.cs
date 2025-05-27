@@ -38,7 +38,7 @@ namespace ACESim
         private bool[][] _shouldBeLiable;             // [p][a] for convenience (a = 0 only)
 
         // ── ILitigGameDisputeGenerator implementation ────────────────────────────
-        public string GetGeneratorName() => "Negligence";
+        public override string GetGeneratorName() => "Negligence";
 
         public string OptionsString =>
             $"Mode={(CostVariesMode ? "CostVaries" : "RiskVaries")} " +
@@ -57,7 +57,7 @@ namespace ACESim
         public (string name, string abbreviation) PostPrimaryNameAndAbbreviation =>
             ("Injury Outcome", "Injury");
 
-        public string GetActionString(byte action, byte decisionByteCode) =>
+        public override string GetActionString(byte action, byte decisionByteCode) =>
             decisionByteCode switch
             {
                 (byte)LitigGameDecisions.PrePrimaryActionChance => CostVariesMode
@@ -220,25 +220,25 @@ namespace ACESim
             postPrimaryChanceCanTerminate = true;  // no injury ends dispute
         }
 
-        public bool PotentialDisputeArises(
+        public override bool PotentialDisputeArises(
             LitigGameDefinition gameDef,
             LitigGameDisputeGeneratorActions acts) =>
             acts.PostPrimaryChanceAction == 1; // injury occurred
 
-        public bool MarkComplete(
+        public override bool MarkComplete(
             LitigGameDefinition gameDef,
             byte prePrimaryAction,
             byte primaryAction,
             byte postPrimaryAction) =>
             postPrimaryAction == 2; // no injury
 
-        public bool MarkComplete(
+        public override bool MarkComplete(
             LitigGameDefinition gameDef,
             byte prePrimaryAction,
             byte primaryAction) =>
             throw new NotSupportedException();
 
-        public bool IsTrulyLiable(
+        public override bool IsTrulyLiable(
             LitigGameDefinition gameDef,
             LitigGameDisputeGeneratorActions acts,
             GameProgress progress)
@@ -249,11 +249,11 @@ namespace ACESim
             return harmOccurred && _shouldBeLiable[pIdx][aIdx];
         }
 
-        public double[] GetPrePrimaryChanceProbabilities(
+        public override double[] GetPrePrimaryChanceProbabilities(
             LitigGameDefinition gameDef) =>
             Enumerable.Repeat(1.0 / _prePrimaryCount, _prePrimaryCount).ToArray();
 
-        public double[] GetPostPrimaryChanceProbabilities(
+        public override double[] GetPostPrimaryChanceProbabilities(
             LitigGameDefinition gameDef,
             LitigGameDisputeGeneratorActions acts)
         {
@@ -270,7 +270,7 @@ namespace ACESim
             return new[] { pHarm, 1.0 - pHarm };
         }
 
-        public double[] GetLiabilityStrengthProbabilities(
+        public override double[] GetLiabilityStrengthProbabilities(
             LitigGameDefinition gameDef,
             LitigGameDisputeGeneratorActions acts)
         {
@@ -279,12 +279,12 @@ namespace ACESim
             return _liabilityStrengthProbabilities[pIdx][aIdx];
         }
 
-        public double[] GetDamagesStrengthProbabilities(
+        public override double[] GetDamagesStrengthProbabilities(
             LitigGameDefinition gameDef,
             LitigGameDisputeGeneratorActions acts) =>
             new[] { 1.0 };
 
-        public double[] GetLitigationIndependentWealthEffects(
+        public override double[] GetLitigationIndependentWealthEffects(
             LitigGameDefinition gameDef,
             LitigGameDisputeGeneratorActions acts)
         {
@@ -303,7 +303,7 @@ namespace ACESim
             return new[] { plaintiffLoss, defendantLoss };
         }
 
-        public double GetLitigationIndependentSocialWelfare(
+        public override double GetLitigationIndependentSocialWelfare(
             LitigGameDefinition gameDef,
             LitigGameDisputeGeneratorActions acts)
         {
@@ -329,18 +329,19 @@ namespace ACESim
         }
 
 
-        public bool PostPrimaryDoesNotAffectStrategy() => false;
+        public override bool PostPrimaryDoesNotAffectStrategy() => false;
 
         // ── defaults / unused inversion interface parts ───────────────────────────
-        public double[] InvertedCalculations_GetPLiabilitySignalProbabilities() => throw new NotImplementedException();
-        public double[] InvertedCalculations_GetDLiabilitySignalProbabilities(byte pLiabilitySignal) => throw new NotImplementedException();
-        public double[] InvertedCalculations_GetCLiabilitySignalProbabilities(byte pLiabilitySignal, byte dLiabilitySignal) => throw new NotImplementedException();
-        public double[] InvertedCalculations_GetPDamagesSignalProbabilities() => throw new NotImplementedException();
-        public double[] InvertedCalculations_GetDDamagesSignalProbabilities(byte pDamagesSignal) => throw new NotImplementedException();
-        public double[] InvertedCalculations_GetCDamagesSignalProbabilities(byte pDamagesSignal, byte dDamagesSignal) => throw new NotImplementedException();
-        public double[] InvertedCalculations_GetLiabilityStrengthProbabilities(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal) => throw new NotImplementedException();
-        public double[] InvertedCalculations_GetDamagesStrengthProbabilities(byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal) => throw new NotImplementedException();
+        public override double[] InvertedCalculations_GetPLiabilitySignalProbabilities() => throw new NotImplementedException();
+        public override double[] InvertedCalculations_GetDLiabilitySignalProbabilities(byte pLiabilitySignal) => throw new NotImplementedException();
+        public override double[] InvertedCalculations_GetCLiabilitySignalProbabilities(byte pLiabilitySignal, byte dLiabilitySignal) => throw new NotImplementedException();
+        public override double[] InvertedCalculations_GetPDamagesSignalProbabilities() => throw new NotImplementedException();
+        public override double[] InvertedCalculations_GetDDamagesSignalProbabilities(byte pDamagesSignal) => throw new NotImplementedException();
+        public override double[] InvertedCalculations_GetCDamagesSignalProbabilities(byte pDamagesSignal, byte dDamagesSignal) => throw new NotImplementedException();
+        public override double[] InvertedCalculations_GetLiabilityStrengthProbabilities(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal) => throw new NotImplementedException();
+        public override double[] InvertedCalculations_GetDamagesStrengthProbabilities(byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal) => throw new NotImplementedException();
         public (bool trulyLiable, byte liabilityStrength, byte damagesStrength) InvertedCalculations_WorkBackwardsFromSignals(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, int randomSeed) => throw new NotImplementedException();
         public System.Collections.Generic.List<(GameProgress progress, double weight)> InvertedCalculations_GenerateAllConsistentGameProgresses(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, LitigGameProgress gameProgress) => throw new NotImplementedException();
     }
 }
+

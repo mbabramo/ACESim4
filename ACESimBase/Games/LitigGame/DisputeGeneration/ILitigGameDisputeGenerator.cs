@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace ACESim
 {
@@ -92,3 +92,4 @@ namespace ACESim
                 LitigGameProgress baseProgress);
     }
 }
+

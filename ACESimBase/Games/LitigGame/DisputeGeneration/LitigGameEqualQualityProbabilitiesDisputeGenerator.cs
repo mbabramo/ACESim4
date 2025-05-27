@@ -1,4 +1,4 @@
-using ACESim.Util;
+﻿using ACESim.Util;
 using ACESimBase.Util.Mathematics;
 using ACESimBase.Util.Statistical;
 using System;
@@ -14,13 +14,13 @@ namespace ACESim
     public class LitigGameEqualQualityProbabilitiesDisputeGenerator : LitigGameStandardDisputeGeneratorBase
     {
 
-        public string GetGeneratorName() => "EqualQual";
+        public override string GetGeneratorName() => "EqualQual";
 
         public string OptionsString => $"ProbabilityTrulyLiable_LiabilityStrength75 {ProbabilityTrulyLiable_LiabilityStrength75} ProbabilityTrulyLiable_LiabilityStrength90 {ProbabilityTrulyLiable_LiabilityStrength90} NumPointsToDetermineTrulyLiable {NumPointsToDetermineTrulyLiable}";
         public (string name, string abbreviation) PrePrimaryNameAndAbbreviation => ("PrePrimaryChanceActions", "Pre Primary");
         public (string name, string abbreviation) PrimaryNameAndAbbreviation => ("PrimaryChanceActions", "Primary");
         public (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("PostPrimaryChanceActions", "Post Primary");
-        public string GetActionString(byte action, byte decisionByteCode)
+        public override string GetActionString(byte action, byte decisionByteCode)
         {
             return action.ToString();
         }
@@ -62,13 +62,13 @@ namespace ACESim
             postPrimaryChanceCanTerminate = false;
         }
 
-        public double GetLitigationIndependentSocialWelfare(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
+        public override double GetLitigationIndependentSocialWelfare(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             return 0;
         }
 
         double[] NoWealthEffects = new double[] { 0, 0 };
-        public double[] GetLitigationIndependentWealthEffects(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
+        public override double[] GetLitigationIndependentWealthEffects(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             return NoWealthEffects;
         }
@@ -78,14 +78,14 @@ namespace ACESim
             return (0.0, 0.0);  // inapplicable
         }
 
-        public double[] GetLiabilityStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
+        public override double[] GetLiabilityStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             throw new NotImplementedException(); // we use even chance probabilities
         }
 
-        public double[] GetDamagesStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions) => new double[] { 1.0 };
+        public override double[] GetDamagesStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions) => new double[] { 1.0 };
 
-        public bool IsTrulyLiable(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
+        public override bool IsTrulyLiable(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
         {
             LitigGameProgress myGameProgress = (LitigGameProgress) gameProgress;
             double liabilityStrengthUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(myGameProgress.LiabilityStrengthDiscrete - 1 /* make it zero-based */, myGameDefinition.Options.NumLiabilityStrengthPoints, false); 
@@ -99,33 +99,34 @@ namespace ACESim
             // nothing to modify
         }
 
-        public bool PotentialDisputeArises(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
+        public override bool PotentialDisputeArises(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             return true;
         }
 
-        public bool MarkComplete(LitigGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction)
+        public override bool MarkComplete(LitigGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction)
         {
             throw new NotImplementedException();
         }
 
-        public bool MarkComplete(LitigGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction, byte postPrimaryAction)
+        public override bool MarkComplete(LitigGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction, byte postPrimaryAction)
         {
             throw new NotImplementedException();
         }
 
-        public double[] GetPrePrimaryChanceProbabilities(LitigGameDefinition myGameDefinition)
+        public override double[] GetPrePrimaryChanceProbabilities(LitigGameDefinition myGameDefinition)
         {
             throw new NotImplementedException(); // no pre primary chance function
         }
 
-        public double[] GetPostPrimaryChanceProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
+        public override double[] GetPostPrimaryChanceProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             throw new NotImplementedException(); // we use even chance probabilities
         }
 
-        public bool SupportsSymmetry() => false; // we might be able to change this by changing the curvature so that we have symmetry around probability of 0.5
+        public override bool SupportsSymmetry() => false; // we might be able to change this by changing the curvature so that we have symmetry around probability of 0.5
 
-        public bool PostPrimaryDoesNotAffectStrategy() => false;
+        public override bool PostPrimaryDoesNotAffectStrategy() => false;
     }
 }
+

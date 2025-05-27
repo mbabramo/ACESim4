@@ -13,7 +13,7 @@ namespace ACESim
     [Serializable]
     public class LitigGameAppropriationDisputeGenerator : LitigGameStandardDisputeGeneratorBase
     {
-        public string GetGeneratorName() => "Appropriation";
+        public override string GetGeneratorName() => "Appropriation";
 
         // Defendant must make a decision whether to appropriate something of value, at some benefit to self and some cost to the potential plaintiff.
         // (1) Defendant appropriates: Higher detectability implies a steeper geometric distribution that places most probability on the strongest plaintiff signal; lower detectability yields a flatter, more‑random distribution.
@@ -37,7 +37,7 @@ namespace ACESim
         public (string name, string abbreviation) PrimaryNameAndAbbreviation => ("PrimaryActions", "Approp");
         public (string name, string abbreviation) PostPrimaryNameAndAbbreviation => ("PostPrimaryChanceActions", "Post Primary");
 
-        public string GetActionString(byte action, byte decisionByteCode) => action.ToString();
+        public override string GetActionString(byte action, byte decisionByteCode) => action.ToString();
 
         public LitigGameDefinition LitigGameDefinition { get; set; }
         public void Setup(LitigGameDefinition myGameDefinition)
@@ -95,14 +95,14 @@ namespace ACESim
         }
 
         readonly double[] WealthEffects_NoAppropriation = new double[] { 0, 0 };
-        public double[] GetLitigationIndependentWealthEffects(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
+        public override double[] GetLitigationIndependentWealthEffects(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             if (disputeGeneratorActions.PrimaryAction == 2)
                 return WealthEffects_NoAppropriation;
             return new double[] { -CostToPlaintiffOfAppropriation, BenefitToDefendantOfAppropriation };
         }
 
-        public double GetLitigationIndependentSocialWelfare(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
+        public override double GetLitigationIndependentSocialWelfare(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             if (disputeGeneratorActions.PrimaryAction == 2)
                 return 0;
@@ -124,23 +124,24 @@ namespace ACESim
         }
 
 
-        public double[] GetLiabilityStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
+        public override double[] GetLiabilityStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions)
         {
             if (disputeGeneratorActions.PrimaryAction == 2)
                 return ProbabilityLiabilityStrength_TrulyNotLiable;
             return ProbabilityLiabilityStrengthForDetectabilityLevel_TrulyLiable[disputeGeneratorActions.PrePrimaryChanceAction - 1];
         }
 
-        public double[] GetDamagesStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions) => new double[] { 1.0 };
+        public override double[] GetDamagesStrengthProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions) => new double[] { 1.0 };
 
-        public bool IsTrulyLiable(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress) => disputeGeneratorActions.PrimaryAction == 1;
+        public override bool IsTrulyLiable(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress) => disputeGeneratorActions.PrimaryAction == 1;
 
-        public bool PotentialDisputeArises(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions) => true;
+        public override bool PotentialDisputeArises(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions) => true;
 
-        public bool MarkComplete(LitigGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction) => throw new NotImplementedException();
-        public bool MarkComplete(LitigGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction, byte postPrimaryAction) => throw new NotImplementedException();
-        public double[] GetPrePrimaryChanceProbabilities(LitigGameDefinition myGameDefinition) => throw new NotImplementedException(); // even probabilities are selected, so we don't need to specify
-        public double[] GetPostPrimaryChanceProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions) => throw new NotImplementedException();
-        public bool PostPrimaryDoesNotAffectStrategy() => false;
+        public override bool MarkComplete(LitigGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction) => throw new NotImplementedException();
+        public override bool MarkComplete(LitigGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction, byte postPrimaryAction) => throw new NotImplementedException();
+        public override double[] GetPrePrimaryChanceProbabilities(LitigGameDefinition myGameDefinition) => throw new NotImplementedException(); // even probabilities are selected, so we don't need to specify
+        public override double[] GetPostPrimaryChanceProbabilities(LitigGameDefinition myGameDefinition, LitigGameDisputeGeneratorActions disputeGeneratorActions) => throw new NotImplementedException();
+        public override bool PostPrimaryDoesNotAffectStrategy() => false;
     }
 }
+
