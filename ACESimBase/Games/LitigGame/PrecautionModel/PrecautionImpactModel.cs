@@ -161,6 +161,80 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             return sumTotal > 0 ? sumWrongful / sumTotal : 0.0;
         }
 
+        /// <summary>
+        /// P(accident | defendantSignal, plaintiffSignal, precautionLevel).
+        /// Requires a configured PrecautionSignalModel (same hidden count & ordering).
+        /// </summary>
+        public double GetAccidentProbabilityGivenSignals(
+            int defendantSignal,
+            int plaintiffSignal,
+            int precautionLevel,
+            PrecautionSignalModel signalModel)
+        {
+            ValidatePrecautionLevel(precautionLevel, allowHypothetical: false);
+            if (signalModel == null) throw new ArgumentNullException(nameof(signalModel));
+
+            double numer = 0.0, denom = 0.0;
+            double uniformPrior = 1.0 / HiddenCount;
+
+            for (int h = 0; h < HiddenCount; h++)
+            {
+                double pDefSig = signalModel.GetDefendantSignalProbability(h, defendantSignal);
+                double pPlSig = signalModel.GetPlaintiffSignalProbability(h, plaintiffSignal);
+                double joint = uniformPrior * pDefSig * pPlSig;          // P(h,i,j)
+
+                double pCaused = accidentFuncOverride != null
+                    ? accidentFuncOverride(h, precautionLevel)
+                    : PAccidentNoPrecaution * Math.Pow(precautionPowerFactors[h], precautionLevel);
+
+                pCaused = Math.Max(0.0, Math.Min(1.0, pCaused));
+                double pAccident = pCaused + (1.0 - pCaused) * PAccidentWrongfulAttribution;
+
+                numer += joint * pAccident;
+                denom += joint;
+            }
+            return denom == 0.0 ? 0.0 : numer / denom;
+        }
+
+        /// <summary>
+        /// P(wrongful attribution | defendantSignal, plaintiffSignal, precautionLevel).
+        /// Returns the probability that an accident is wrongfully attributed
+        /// (conditioned on an accident having occurred, not on the accident node outcome).
+        /// </summary>
+        public double GetWrongfulAttributionProbabilityGivenSignals(
+            int defendantSignal,
+            int plaintiffSignal,
+            int precautionLevel,
+            PrecautionSignalModel signalModel)
+        {
+            ValidatePrecautionLevel(precautionLevel, allowHypothetical: false);
+            if (signalModel == null) throw new ArgumentNullException(nameof(signalModel));
+
+            double numer = 0.0, denom = 0.0;
+            double uniformPrior = 1.0 / HiddenCount;
+
+            for (int h = 0; h < HiddenCount; h++)
+            {
+                double pDefSig = signalModel.GetDefendantSignalProbability(h, defendantSignal);
+                double pPlSig = signalModel.GetPlaintiffSignalProbability(h, plaintiffSignal);
+                double joint = uniformPrior * pDefSig * pPlSig;
+
+                double pCaused = accidentFuncOverride != null
+                    ? accidentFuncOverride(h, precautionLevel)
+                    : PAccidentNoPrecaution * Math.Pow(precautionPowerFactors[h], precautionLevel);
+
+                pCaused = Math.Max(0.0, Math.Min(1.0, pCaused));
+
+                double pWrongful = (1.0 - pCaused) * PAccidentWrongfulAttribution;
+                double pAccident = pCaused + pWrongful;           // same as in BuildAccidentProb
+
+                numer += joint * pWrongful;
+                denom += joint * pAccident;                       // condition on accident happening
+            }
+            return denom == 0.0 ? 0.0 : numer / denom;
+        }
+
+
         // ---------------------- Internal construction -----------------------------
 
         double[][] BuildAccidentProb()

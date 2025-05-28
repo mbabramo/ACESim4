@@ -131,6 +131,87 @@ namespace ACESimTest
         }
 
         [TestMethod]
+        public void AccidentProbabilityGivenSignalsMatchesBayesMix()
+        {
+            var signalModel = new PrecautionSignalModel(
+                hiddenCount: 2,
+                numPlaintiffSignals: 2,
+                numDefendantSignals: 2,
+                numCourtSignals: 2,
+                sigmaPlaintiff: 0.0,
+                sigmaDefendant: 0.0,
+                sigmaCourt: 0.0);
+
+            const int dSig = 0;
+            const int pSig = 0;
+            const int k = 1;
+
+            double numer = 0.0, denom = 0.0;
+            double prior = 0.5;                         // uniform prior
+
+            for (int h = 0; h < 2; h++)
+            {
+                double like =
+                    prior *
+                    signalModel.GetDefendantSignalProbability(h, dSig) *
+                    signalModel.GetPlaintiffSignalProbability(h, pSig);
+
+                numer += like * impact.GetAccidentProbability(h, k);
+                denom += like;
+            }
+
+            double expected = numer / denom;
+            double actual = impact.GetAccidentProbabilityGivenSignals(dSig, pSig, k, signalModel);
+
+            actual.Should().BeApproximately(expected, 1e-9);
+        }
+
+        [TestMethod]
+        public void WrongfulAttributionProbabilityMatchesBayesMix()
+        {
+            var signalModel = new PrecautionSignalModel(
+                hiddenCount: 2,
+                numPlaintiffSignals: 2,
+                numDefendantSignals: 2,
+                numCourtSignals: 2,
+                sigmaPlaintiff: 0.0,
+                sigmaDefendant: 0.0,
+                sigmaCourt: 0.0);
+
+            const int dSig = 1;
+            const int pSig = 1;
+            const int k = 0;
+
+            double numer = 0.0, denom = 0.0;
+            double prior = 0.5;
+
+            for (int h = 0; h < 2; h++)
+            {
+                double like =
+                    prior *
+                    signalModel.GetDefendantSignalProbability(h, dSig) *
+                    signalModel.GetPlaintiffSignalProbability(h, pSig);
+
+                double pAcc = impact.GetAccidentProbability(h, k);
+                double pCaus = impact.GetRiskReduction(h, k) < 1e-12
+                               ? 0.0
+                               : pAcc - impact.PAccidentWrongfulAttribution *
+                                        (1.0 - impact.GetRiskReduction(h, k));
+
+                double pWrongful = pAcc - pCaus;   // portion due to wrongful attribution
+
+                numer += like * pWrongful;
+                denom += like * pAcc;              // condition on accident happened
+            }
+
+            double expected = numer / denom;
+            double actual = impact.GetWrongfulAttributionProbabilityGivenSignals(dSig, pSig, k, signalModel);
+
+            actual.Should().BeApproximately(expected, 1e-9);
+        }
+
+
+        [TestMethod]
         public void InvalidConfigurationThrows()
         {
             Action act = () => new PrecautionImpactModel(
