@@ -305,8 +305,8 @@ namespace ACESim
         public virtual double[] InvertedCalculations_GetCDamagesSignalProbabilities(byte pSignal, byte dSignal) => throw new NotSupportedException();
         public virtual double[] InvertedCalculations_GetLiabilityStrengthProbabilities(byte pL, byte dL, byte? cL) => throw new NotSupportedException();
         public virtual double[] InvertedCalculations_GetDamagesStrengthProbabilities(byte pD, byte dD, byte? cD) => throw new NotSupportedException();
-        public virtual (bool trulyLiable, byte liabilityStrength, byte damagesStrength)
-            InvertedCalculations_WorkBackwardsFromSignals(byte pL, byte dL, byte? cL, byte pD, byte dD, byte? cD, int seed) => throw new NotSupportedException();
+        public virtual void
+            InvertedCalculations_WorkBackwardsFromSignals(LitigGameProgress gameProgress, byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, int randomSeed) => throw new NotSupportedException();
         public virtual List<(GameProgress progress, double weight)>
             InvertedCalculations_GenerateAllConsistentGameProgresses(byte pL, byte dL, byte? cL, byte pD, byte dD, byte? cD, LitigGameProgress baseProgress) => throw new NotSupportedException();
 

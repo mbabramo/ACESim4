@@ -509,7 +509,7 @@ namespace ACESim
                 NumChips = outcome.NumChips;
 
                 if (options.CollapseChanceDecisions)
-                    (IsTrulyLiable, LiabilityStrengthDiscrete, DamagesStrengthDiscrete) = options.LitigGameDisputeGenerator.InvertedCalculations_WorkBackwardsFromSignals(options.NumLiabilitySignals == 1 ? (byte) 1 : PLiabilitySignalDiscrete, options.NumLiabilitySignals == 1 ? (byte) 1 : DLiabilitySignalDiscrete, options.NumLiabilitySignals == 1 ? 1 : CLiabilitySignalDiscrete, options.NumDamagesSignals == 1 ? (byte) 1 : PDamagesSignalDiscrete, options.NumDamagesSignals == 1 ? (byte) 1 : DDamagesSignalDiscrete, options.NumDamagesSignals == 1 ? 1 : CDamagesSignalDiscrete, IterationID.IterationNumIntUnchecked);
+                    options.LitigGameDisputeGenerator.InvertedCalculations_WorkBackwardsFromSignals(this, options.NumLiabilitySignals == 1 ? (byte) 1 : PLiabilitySignalDiscrete, options.NumLiabilitySignals == 1 ? (byte) 1 : DLiabilitySignalDiscrete, options.NumLiabilitySignals == 1 ? 1 : CLiabilitySignalDiscrete, options.NumDamagesSignals == 1 ? (byte) 1 : PDamagesSignalDiscrete, options.NumDamagesSignals == 1 ? (byte) 1 : DDamagesSignalDiscrete, options.NumDamagesSignals == 1 ? 1 : CDamagesSignalDiscrete, IterationID.IterationNumIntUnchecked);
             }
             else
             {

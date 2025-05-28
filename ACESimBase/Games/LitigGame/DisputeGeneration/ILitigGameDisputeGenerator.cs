@@ -75,8 +75,9 @@ namespace ACESim
             byte dDamagesSignal,
             byte? cDamagesSignal);
 
-        (bool trulyLiable, byte liabilityStrength, byte damagesStrength)
+        void
             InvertedCalculations_WorkBackwardsFromSignals(
+                LitigGameProgress gameProgress,
                 byte pLiabilitySignal,
                 byte dLiabilitySignal,
                 byte? cLiabilitySignal,

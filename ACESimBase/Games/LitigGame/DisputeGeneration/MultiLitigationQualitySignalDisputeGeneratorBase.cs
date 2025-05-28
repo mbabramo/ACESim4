@@ -67,7 +67,7 @@ namespace ACESim
         public abstract double[] GetLiabilityLevelProbabilities();
         public abstract double[] GetFirstSignalProbabilities();
         public abstract double[] GetSecondSignalProbabilities(byte firstSignalOutcome);
-        public virtual double[] GetCourtSignalProbabilities(byte pSignal, byte dSignal) => throw new NotImplementedException();
+        public virtual double[] GetCourtSignalProbabilities(byte pSignal, byte dSignal) => throw new NotSupportedException();
         public virtual bool ProvidesInvertedCalculations => false;
 
         /* inversion plumbing hook */
@@ -151,17 +151,17 @@ namespace ACESim
         public abstract string GetActionString(byte action, byte decisionByteCode);
 
         /* inverted‑calculation stubs — concrete generators override if used */
-        public virtual double[] InvertedCalculations_GetPLiabilitySignalProbabilities(byte? dLiabilitySignal) => throw new NotImplementedException();
-        public virtual double[] InvertedCalculations_GetDLiabilitySignalProbabilities(byte? pLiabilitySignal) => throw new NotImplementedException();
-        public virtual double[] InvertedCalculations_GetCLiabilitySignalProbabilities(byte pSig, byte dSig) => throw new NotImplementedException();
-        public virtual double[] InvertedCalculations_GetPDamagesSignalProbabilities(byte? dDamagesSignal) => throw new NotImplementedException();
-        public virtual double[] InvertedCalculations_GetDDamagesSignalProbabilities(byte? pDamagesSignal) => throw new NotImplementedException();
-        public virtual double[] InvertedCalculations_GetCDamagesSignalProbabilities(byte pSig, byte dSig) => throw new NotImplementedException();
-        public virtual double[] InvertedCalculations_GetLiabilityStrengthProbabilities(byte pL, byte dL, byte? cL) => throw new NotImplementedException();
-        public virtual double[] InvertedCalculations_GetDamagesStrengthProbabilities(byte pD, byte dD, byte? cD) => throw new NotImplementedException();
-        public virtual (bool trulyLiable, byte liabilityStrength, byte damagesStrength)
-            InvertedCalculations_WorkBackwardsFromSignals(byte pL, byte dL, byte? cL, byte pD, byte dD, byte? cD, int seed) => throw new NotImplementedException();
+        public virtual double[] InvertedCalculations_GetPLiabilitySignalProbabilities(byte? dLiabilitySignal) => throw new NotSupportedException();
+        public virtual double[] InvertedCalculations_GetDLiabilitySignalProbabilities(byte? pLiabilitySignal) => throw new NotSupportedException();
+        public virtual double[] InvertedCalculations_GetCLiabilitySignalProbabilities(byte pSig, byte dSig) => throw new NotSupportedException();
+        public virtual double[] InvertedCalculations_GetPDamagesSignalProbabilities(byte? dDamagesSignal) => throw new NotSupportedException();
+        public virtual double[] InvertedCalculations_GetDDamagesSignalProbabilities(byte? pDamagesSignal) => throw new NotSupportedException();
+        public virtual double[] InvertedCalculations_GetCDamagesSignalProbabilities(byte pSig, byte dSig) => throw new NotSupportedException();
+        public virtual double[] InvertedCalculations_GetLiabilityStrengthProbabilities(byte pL, byte dL, byte? cL) => throw new NotSupportedException();
+        public virtual double[] InvertedCalculations_GetDamagesStrengthProbabilities(byte pD, byte dD, byte? cD) => throw new NotSupportedException();
+        public virtual void
+            InvertedCalculations_WorkBackwardsFromSignals(LitigGameProgress gameProgress, byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, int randomSeed) => throw new NotSupportedException();
         public virtual List<(GameProgress progress, double weight)>
-            InvertedCalculations_GenerateAllConsistentGameProgresses(byte pL, byte dL, byte? cL, byte pD, byte dD, byte? cD, LitigGameProgress baseProgress) => throw new NotImplementedException();
+            InvertedCalculations_GenerateAllConsistentGameProgresses(byte pL, byte dL, byte? cL, byte pD, byte dD, byte? cD, LitigGameProgress baseProgress) => throw new NotSupportedException();
     }
 }
