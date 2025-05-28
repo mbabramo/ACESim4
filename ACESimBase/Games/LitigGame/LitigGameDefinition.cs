@@ -201,6 +201,8 @@ namespace ACESim
             return decisions;
         }
         
+        // DEBUG -- move all this to a class of its own
+
         private double[][] PLiabilitySignalsTable, DLiabilitySignalsTable, CLiabilitySignalsTable, PDamagesSignalsTable, DDamagesSignalsTable, CDamagesSignalsTable;
         public void CreateLiabilitySignalsTables()
         {
@@ -221,39 +223,6 @@ namespace ACESim
                 DiscreteValueSignalParameters cParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumLiabilityStrengthPoints, NumSignals = Options.NumCourtLiabilitySignals, StdevOfNormalDistribution = Options.CourtLiabilityNoiseStdev, SourcePointsIncludeExtremes = false };
                 CLiabilitySignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, cParams);
             }
-        }
-
-        private void AddDamagesSignalsDecisions(List<Decision> decisions)
-        {
-            if (Options.NumDamagesStrengthPoints <= 1)
-                return;
-
-            // Plaintiff and defendant signals. If a player has perfect information, then no signal is needed.
-            if (Options.PDamagesNoiseStdev != 0)
-                decisions.Add(new Decision("P Damages Signal", "PDS", true, (byte)LitigGamePlayers.PDamagesSignalChance,
-                    Options.CollapseChanceDecisions ? new byte[] { (byte)LitigGamePlayers.Plaintiff, (byte)LitigGamePlayers.DDamagesSignalChance, (byte)LitigGamePlayers.CourtDamagesChance} : new byte[] { (byte)LitigGamePlayers.Plaintiff },
-                    Options.NumDamagesSignals, (byte)LitigGameDecisions.PDamagesSignal, unevenChanceActions: true)
-                {
-                    IsReversible = true,
-                    Unroll_Parallelize = true,
-                    Unroll_Parallelize_Identical = true,
-                    DistributorChanceInputDecision = true,
-                    DistributableDistributorChanceInput = true,
-                    SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
-                });
-            if (Options.DDamagesNoiseStdev != 0)
-                decisions.Add(new Decision("D Damages Signal", "DDS", true, (byte)LitigGamePlayers.DDamagesSignalChance,
-                    Options.CollapseChanceDecisions ? new byte[] { (byte)LitigGamePlayers.Defendant, (byte)LitigGamePlayers.CourtDamagesChance } : new byte[] { (byte)LitigGamePlayers.Defendant },
-                    Options.NumDamagesSignals, (byte)LitigGameDecisions.DDamagesSignal, unevenChanceActions: true)
-                {
-                    IsReversible = true,
-                    Unroll_Parallelize = true,
-                    Unroll_Parallelize_Identical = true,
-                    DistributorChanceInputDecision = true,
-                    DistributableDistributorChanceInput = true,
-                    SymmetryMap = (SymmetryMapInput.ReverseInfo, SymmetryMapOutput.ChanceDecision)
-                });
-            CreateDamagesSignalsTables();
         }
 
         public void CreateDamagesSignalsTables()

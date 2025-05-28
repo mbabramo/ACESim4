@@ -16,6 +16,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
         public int TotalLevelsForRisk { get; }           // = PrecautionLevels + 1 (includes hypothetical next level)
         public double PAccidentNoActivity { get; }
         public double PAccidentNoPrecaution { get; }
+        public double PAccidentWrongfulAttribution { get; }
         public double PrecautionCost { get; }
         public double HarmCost { get; }
         public double LiabilityThreshold { get; }
@@ -53,6 +54,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             double precautionPowerFactorLeastEffective = 0.9,
             double precautionPowerFactorMostEffective = 0.5,
             double liabilityThreshold = 1.0,
+            double pAccidentWrongfulAttribution = 0.0,
             Func<int, int, double> accidentProbabilityOverride = null)
         {
             if (hiddenCount <= 0) throw new ArgumentException(nameof(hiddenCount));
@@ -62,6 +64,8 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             if (precautionCost <= 0) throw new ArgumentException(nameof(precautionCost));
             if (harmCost <= 0) throw new ArgumentException(nameof(harmCost));
             if (liabilityThreshold <= 0) throw new ArgumentException(nameof(liabilityThreshold));
+            if (pAccidentWrongfulAttribution < 0 || pAccidentWrongfulAttribution > 1)
+                throw new ArgumentException(nameof(pAccidentWrongfulAttribution));
 
             HiddenCount = hiddenCount;
             PrecautionLevels = precautionLevels;
@@ -71,6 +75,7 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             PrecautionCost = precautionCost;
             HarmCost = harmCost;
             LiabilityThreshold = liabilityThreshold;
+            PAccidentWrongfulAttribution = pAccidentWrongfulAttribution;
 
             // Set up precaution‑power factors (effectiveness multipliers per hidden state)
             if (precautionPowerFactors != null)
@@ -131,6 +136,31 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
             return trueLiabilityProb[precautionLevel];
         }
 
+        public double GetWrongfulAttributionProbabilityMarginal(int precautionLevel)
+        {
+            ValidatePrecautionLevel(precautionLevel, allowHypothetical: false);
+
+            double uniformPrior = 1.0 / HiddenCount;
+            double sumWrongful = 0.0, sumTotal = 0.0;
+
+            for (int h = 0; h < HiddenCount; h++)
+            {
+                double pCaused = accidentFuncOverride != null
+                    ? accidentFuncOverride(h, precautionLevel)
+                    : PAccidentNoPrecaution * Math.Pow(precautionPowerFactors[h], precautionLevel);
+
+                pCaused = Math.Max(0, Math.Min(1, pCaused));
+
+                double pWrongful = (1.0 - pCaused) * PAccidentWrongfulAttribution;
+                double pTotal = accidentProb[h][precautionLevel];
+
+                sumWrongful += uniformPrior * pWrongful;
+                sumTotal += uniformPrior * pTotal;
+            }
+
+            return sumTotal > 0 ? sumWrongful / sumTotal : 0.0;
+        }
+
         // ---------------------- Internal construction -----------------------------
 
         double[][] BuildAccidentProb()
@@ -141,36 +171,46 @@ namespace ACESimBase.Games.LitigGame.PrecautionModel
                 arr[h] = new double[TotalLevelsForRisk];
                 for (int k = 0; k < TotalLevelsForRisk; k++)
                 {
-                    double p;
-                    if (accidentFuncOverride != null)
-                    {
-                        p = accidentFuncOverride(h, k);
-                    }
-                    else
-                    {
-                        double factor = precautionPowerFactors[h];
-                        p = PAccidentNoPrecaution * Math.Pow(factor, k);
-                    }
-                    // Clamp to minimum baseline risk (activity never safer than non‑activity)
-                    p = Math.Max(p, PAccidentNoActivity);
-                    // Clamp to [0,1]
-                    p = Math.Max(0, Math.Min(1, p));
-                    arr[h][k] = p;
+                    // Baseline probability the defendant’s conduct actually causes an accident
+                    double pCaused = accidentFuncOverride != null
+                        ? accidentFuncOverride(h, k)
+                        : PAccidentNoPrecaution * Math.Pow(precautionPowerFactors[h], k);
+
+                    pCaused = Math.Max(0, Math.Min(1, pCaused));          // clamp
+
+                    // Wrongful attribution: applies only when no accident was caused
+                    double pWrongful = (1.0 - pCaused) * PAccidentWrongfulAttribution;
+
+                    arr[h][k] = Math.Max(0, Math.Min(1, pCaused + pWrongful));
                 }
             }
             return arr;
         }
 
+
         double[][] BuildRiskReduction()
         {
             var arr = new double[HiddenCount][];
+
             for (int h = 0; h < HiddenCount; h++)
             {
-                arr[h] = new double[PrecautionLevels]; // risk reduction defined only for chosen levels (0..P-1)
+                arr[h] = new double[PrecautionLevels];
+
                 for (int k = 0; k < PrecautionLevels; k++)
                 {
-                    double delta = accidentProb[h][k] - accidentProb[h][k + 1];
-                    if (delta < 0) delta = 0; // precaution shouldn't increase risk
+                    // Accident probability *caused* by the defendant at level k
+                    double pCaused_k = accidentFuncOverride != null
+                        ? accidentFuncOverride(h, k)
+                        : PAccidentNoPrecaution * Math.Pow(precautionPowerFactors[h], k);
+
+                    // …and at the next higher precaution level
+                    double pCaused_k1 = accidentFuncOverride != null
+                        ? accidentFuncOverride(h, k + 1)
+                        : PAccidentNoPrecaution * Math.Pow(precautionPowerFactors[h], k + 1);
+
+                    double delta = pCaused_k - pCaused_k1;
+                    if (delta < 0) delta = 0;        // shouldn’t happen, but keep safeguard
+
                     arr[h][k] = delta;
                 }
             }

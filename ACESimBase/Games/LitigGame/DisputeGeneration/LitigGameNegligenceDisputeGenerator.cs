@@ -330,17 +330,6 @@ namespace ACESim
 
         public override bool PostPrimaryDoesNotAffectStrategy() => false;
 
-        // ── defaults / unused inversion interface parts ───────────────────────────
-        public override double[] InvertedCalculations_GetPLiabilitySignalProbabilities() => throw new NotImplementedException();
-        public override double[] InvertedCalculations_GetDLiabilitySignalProbabilities(byte pLiabilitySignal) => throw new NotImplementedException();
-        public override double[] InvertedCalculations_GetCLiabilitySignalProbabilities(byte pLiabilitySignal, byte dLiabilitySignal) => throw new NotImplementedException();
-        public override double[] InvertedCalculations_GetPDamagesSignalProbabilities() => throw new NotImplementedException();
-        public override double[] InvertedCalculations_GetDDamagesSignalProbabilities(byte pDamagesSignal) => throw new NotImplementedException();
-        public override double[] InvertedCalculations_GetCDamagesSignalProbabilities(byte pDamagesSignal, byte dDamagesSignal) => throw new NotImplementedException();
-        public override double[] InvertedCalculations_GetLiabilityStrengthProbabilities(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal) => throw new NotImplementedException();
-        public override double[] InvertedCalculations_GetDamagesStrengthProbabilities(byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal) => throw new NotImplementedException();
-        public override (bool trulyLiable, byte liabilityStrength, byte damagesStrength) InvertedCalculations_WorkBackwardsFromSignals(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, int randomSeed) => throw new NotImplementedException();
-        public override System.Collections.Generic.List<(GameProgress progress, double weight)> InvertedCalculations_GenerateAllConsistentGameProgresses(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal, LitigGameProgress gameProgress) => throw new NotImplementedException();
     }
 }
 

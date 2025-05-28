@@ -22,6 +22,7 @@ namespace ACESim
         public virtual List<Decision> GenerateDisputeDecisions(LitigGameDefinition gameDefinition)
         {
             var opt = gameDefinition.Options;
+
             GetActionsSetup(gameDefinition,
                 out byte prePrimaryActions,
                 out byte primaryActions,
@@ -79,12 +80,12 @@ namespace ACESim
                 });
 
             var liabPlayers = new List<byte>
-    {
-        (byte)LitigGamePlayers.PLiabilitySignalChance,
-        (byte)LitigGamePlayers.DLiabilitySignalChance,
-        (byte)LitigGamePlayers.CourtLiabilityChance,
-        (byte)LitigGamePlayers.Resolution
-    };
+            {
+                (byte)LitigGamePlayers.PLiabilitySignalChance,
+                (byte)LitigGamePlayers.DLiabilitySignalChance,
+                (byte)LitigGamePlayers.CourtLiabilityChance,
+                (byte)LitigGamePlayers.Resolution
+            };
             if (opt.PLiabilityNoiseStdev == 0) liabPlayers.Add((byte)LitigGamePlayers.Plaintiff);
             if (opt.DLiabilityNoiseStdev == 0) liabPlayers.Add((byte)LitigGamePlayers.Defendant);
 
@@ -103,12 +104,12 @@ namespace ACESim
             if (opt.NumDamagesStrengthPoints > 1)
             {
                 var dmgPlayers = new List<byte>
-        {
-            (byte)LitigGamePlayers.PDamagesSignalChance,
-            (byte)LitigGamePlayers.DDamagesSignalChance,
-            (byte)LitigGamePlayers.CourtDamagesChance,
-            (byte)LitigGamePlayers.Resolution
-        };
+                {
+                    (byte)LitigGamePlayers.PDamagesSignalChance,
+                    (byte)LitigGamePlayers.DDamagesSignalChance,
+                    (byte)LitigGamePlayers.CourtDamagesChance,
+                    (byte)LitigGamePlayers.Resolution
+                };
                 if (opt.PDamagesNoiseStdev == 0) dmgPlayers.Add((byte)LitigGamePlayers.Plaintiff);
                 if (opt.DDamagesNoiseStdev == 0) dmgPlayers.Add((byte)LitigGamePlayers.Defendant);
 
@@ -295,19 +296,19 @@ namespace ACESim
         public virtual string OptionsString => string.Empty;
         public abstract string GetActionString(byte action, byte decisionByteCode);
 
-        // Inverted-calculation methods – leave abstract for those generators that use them
-        public virtual double[] InvertedCalculations_GetPLiabilitySignalProbabilities() => throw new NotImplementedException();
-        public virtual double[] InvertedCalculations_GetDLiabilitySignalProbabilities(byte pSignal) => throw new NotImplementedException();
-        public virtual double[] InvertedCalculations_GetCLiabilitySignalProbabilities(byte pSignal, byte dSignal) => throw new NotImplementedException();
-        public virtual double[] InvertedCalculations_GetPDamagesSignalProbabilities() => throw new NotImplementedException();
-        public virtual double[] InvertedCalculations_GetDDamagesSignalProbabilities(byte pSignal) => throw new NotImplementedException();
-        public virtual double[] InvertedCalculations_GetCDamagesSignalProbabilities(byte pSignal, byte dSignal) => throw new NotImplementedException();
-        public virtual double[] InvertedCalculations_GetLiabilityStrengthProbabilities(byte pL, byte dL, byte? cL) => throw new NotImplementedException();
-        public virtual double[] InvertedCalculations_GetDamagesStrengthProbabilities(byte pD, byte dD, byte? cD) => throw new NotImplementedException();
+        // Inverted-calculation methods – must be overridden by those generators that use them
+        public virtual double[] InvertedCalculations_GetPLiabilitySignalProbabilities() => throw new NotSupportedException();
+        public virtual double[] InvertedCalculations_GetDLiabilitySignalProbabilities(byte pSignal) => throw new NotSupportedException();
+        public virtual double[] InvertedCalculations_GetCLiabilitySignalProbabilities(byte pSignal, byte dSignal) => throw new NotSupportedException();
+        public virtual double[] InvertedCalculations_GetPDamagesSignalProbabilities() => throw new NotSupportedException();
+        public virtual double[] InvertedCalculations_GetDDamagesSignalProbabilities(byte pSignal) => throw new NotSupportedException();
+        public virtual double[] InvertedCalculations_GetCDamagesSignalProbabilities(byte pSignal, byte dSignal) => throw new NotSupportedException();
+        public virtual double[] InvertedCalculations_GetLiabilityStrengthProbabilities(byte pL, byte dL, byte? cL) => throw new NotSupportedException();
+        public virtual double[] InvertedCalculations_GetDamagesStrengthProbabilities(byte pD, byte dD, byte? cD) => throw new NotSupportedException();
         public virtual (bool trulyLiable, byte liabilityStrength, byte damagesStrength)
-            InvertedCalculations_WorkBackwardsFromSignals(byte pL, byte dL, byte? cL, byte pD, byte dD, byte? cD, int seed) => throw new NotImplementedException();
+            InvertedCalculations_WorkBackwardsFromSignals(byte pL, byte dL, byte? cL, byte pD, byte dD, byte? cD, int seed) => throw new NotSupportedException();
         public virtual List<(GameProgress progress, double weight)>
-            InvertedCalculations_GenerateAllConsistentGameProgresses(byte pL, byte dL, byte? cL, byte pD, byte dD, byte? cD, LitigGameProgress baseProgress) => throw new NotImplementedException();
+            InvertedCalculations_GenerateAllConsistentGameProgresses(byte pL, byte dL, byte? cL, byte pD, byte dD, byte? cD, LitigGameProgress baseProgress) => throw new NotSupportedException();
 
         // Chance-ordering helper defaults
         public virtual (bool unrollParallelize, bool unrollIdentical, SymmetryMapInput symmetryMapInput)

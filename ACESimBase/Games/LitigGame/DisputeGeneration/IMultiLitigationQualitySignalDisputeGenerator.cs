@@ -44,12 +44,5 @@ public interface IMultiLitigationQualitySignalDisputeGenerator : ILitigGameDispu
 
         /// <summary>Optional public / court signal conditional on both private signals.</summary>
         double[] GetCourtSignalProbabilities(byte pSignal, byte dSignal);
-
-        /* ─────── Inversion support (mirrors Exogenous generator) ─────── */
-        bool ProvidesInvertedCalculations { get; }
-
-        /// <remarks>Subclasses that set <see cref="ProvidesInvertedCalculations"/> to true
-        /// should override <see cref="MultiLitigationQualitySignalDisputeGeneratorBase.SetupInvertedCalculators"/>
-        /// and the nine ILitigGameDisputeGenerator inversion methods.</remarks>
     }
 }

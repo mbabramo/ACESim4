@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace ACESim
 {
@@ -53,6 +54,9 @@ namespace ACESim
 
         string GetActionString(byte action, byte decisionByteCode);
 
+
+        /* ─────── Inversion support (mirrors Exogenous generator) ─────── */
+
         double[] InvertedCalculations_GetPLiabilitySignalProbabilities();
         double[] InvertedCalculations_GetDLiabilitySignalProbabilities(byte pLiabilitySignal);
         double[] InvertedCalculations_GetCLiabilitySignalProbabilities(byte pLiabilitySignal, byte dLiabilitySignal);
@@ -89,7 +93,7 @@ namespace ACESim
                 byte pDamagesSignal,
                 byte dDamagesSignal,
                 byte? cDamagesSignal,
-                LitigGameProgress baseProgress);
+                LitigGameProgress baseProgress) => throw new NotSupportedException();
     }
 }
 
