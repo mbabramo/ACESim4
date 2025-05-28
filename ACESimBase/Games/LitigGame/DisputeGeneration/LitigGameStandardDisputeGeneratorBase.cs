@@ -282,6 +282,28 @@ namespace ACESim
             byte actionChosen) => false;
         public abstract bool MarkComplete(LitigGameDefinition g, byte pre, byte primary);
         public abstract bool MarkComplete(LitigGameDefinition g, byte pre, byte primary, byte post);
+        public bool HandleUpdatingGameProgress(LitigGameProgress gameProgress, byte currentDecisionByteCode, byte action)
+        {
+            switch (currentDecisionByteCode)
+            {
+                case (byte)LitigGameDecisions.PrePrimaryActionChance:
+                    gameProgress.DisputeGeneratorActions.PrePrimaryChanceAction = action;
+                    break;
+                case (byte)LitigGameDecisions.PrimaryAction:
+                    gameProgress.DisputeGeneratorActions.PrimaryAction = action;
+                    if (LitigGameDefinition.CheckCompleteAfterPrimaryAction && LitigGameDefinition.Options.LitigGameStandardDisputeGenerator.MarkComplete(LitigGameDefinition, gameProgress.DisputeGeneratorActions.PrePrimaryChanceAction, gameProgress.DisputeGeneratorActions.PrimaryAction))
+                        gameProgress.GameComplete = true;
+                    break;
+                case (byte)LitigGameDecisions.PostPrimaryActionChance:
+                    gameProgress.DisputeGeneratorActions.PostPrimaryChanceAction = action;
+                    if (LitigGameDefinition.CheckCompleteAfterPostPrimaryAction && LitigGameDefinition.Options.LitigGameStandardDisputeGenerator.MarkComplete(LitigGameDefinition, gameProgress.DisputeGeneratorActions.PrePrimaryChanceAction, gameProgress.DisputeGeneratorActions.PrimaryAction, gameProgress.DisputeGeneratorActions.PostPrimaryChanceAction))
+                        gameProgress.GameComplete = true;
+                    break;
+                default:
+                    return false;
+            }
+            return true;
+        }
         public abstract bool IsTrulyLiable(LitigGameDefinition g, LitigGameDisputeGeneratorActions a, GameProgress p);
         public abstract double[] GetLiabilityStrengthProbabilities(LitigGameDefinition g, LitigGameDisputeGeneratorActions a);
         public abstract double[] GetDamagesStrengthProbabilities(LitigGameDefinition g, LitigGameDisputeGeneratorActions a);

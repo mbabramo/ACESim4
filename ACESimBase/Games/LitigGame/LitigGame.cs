@@ -33,21 +33,12 @@ namespace ACESim
 
         public override void UpdateGameProgressFollowingAction(byte currentDecisionByteCode, byte action)
         {
+            if (LitigGameDefinition.Options.LitigGameDisputeGenerator.HandleUpdatingGameProgress(LitigGameProgress, currentDecisionByteCode, action))
+            {
+                return;
+            }
             switch (currentDecisionByteCode)
             {
-                case (byte)LitigGameDecisions.PrePrimaryActionChance:
-                    LitigGameProgress.DisputeGeneratorActions.PrePrimaryChanceAction = action;
-                    break;
-                case (byte)LitigGameDecisions.PrimaryAction:
-                    LitigGameProgress.DisputeGeneratorActions.PrimaryAction = action;
-                    if (LitigGameDefinition.CheckCompleteAfterPrimaryAction && LitigGameDefinition.Options.LitigGameStandardDisputeGenerator.MarkComplete(LitigGameDefinition, LitigGameProgress.DisputeGeneratorActions.PrePrimaryChanceAction, LitigGameProgress.DisputeGeneratorActions.PrimaryAction))
-                        LitigGameProgress.GameComplete = true;
-                    break;
-                case (byte)LitigGameDecisions.PostPrimaryActionChance:
-                    LitigGameProgress.DisputeGeneratorActions.PostPrimaryChanceAction = action;
-                    if (LitigGameDefinition.CheckCompleteAfterPostPrimaryAction && LitigGameDefinition.Options.LitigGameStandardDisputeGenerator.MarkComplete(LitigGameDefinition, LitigGameProgress.DisputeGeneratorActions.PrePrimaryChanceAction, LitigGameProgress.DisputeGeneratorActions.PrimaryAction, LitigGameProgress.DisputeGeneratorActions.PostPrimaryChanceAction))
-                        LitigGameProgress.GameComplete = true;
-                    break;
                 case (byte)LitigGameDecisions.LiabilityStrength:
                     LitigGameProgress.LiabilityStrengthDiscrete = action;
                 break;

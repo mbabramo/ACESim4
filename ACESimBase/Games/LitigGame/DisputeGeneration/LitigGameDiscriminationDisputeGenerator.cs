@@ -132,8 +132,7 @@ namespace ACESim
             }
         }
 
-        public override (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef,
-                               LitigGameDisputeGeneratorActions acts)
+        public override (double opportunityCost, double harmCost) GetOpportunityAndHarmCosts(LitigGameDefinition gameDef, LitigGameDisputeGeneratorActions acts)
         {
             var status = ConvertPrePrimaryChance(acts.PrePrimaryChanceAction);
             bool fired = acts.PrimaryAction == 1;

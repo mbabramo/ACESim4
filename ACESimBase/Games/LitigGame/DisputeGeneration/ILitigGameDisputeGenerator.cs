@@ -21,6 +21,8 @@ namespace ACESim
             Decision decisionJustTaken,
             byte actionChosen);
 
+        bool HandleUpdatingGameProgress(LitigGameProgress gameProgress, byte currentDecisionByteCode, byte action);
+
         bool IsTrulyLiable(
             LitigGameDefinition gameDefinition,
             LitigGameDisputeGeneratorActions disputeGeneratorActions,
@@ -94,7 +96,7 @@ namespace ACESim
                 byte pDamagesSignal,
                 byte dDamagesSignal,
                 byte? cDamagesSignal,
-                LitigGameProgress baseProgress) => throw new NotSupportedException();
+                LitigGameProgress baseProgress);
     }
 }
 
