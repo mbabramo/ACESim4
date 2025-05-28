@@ -57,12 +57,12 @@ namespace ACESim
 
         /* ─────── Inversion support (mirrors Exogenous generator) ─────── */
 
-        double[] InvertedCalculations_GetPLiabilitySignalProbabilities();
-        double[] InvertedCalculations_GetDLiabilitySignalProbabilities(byte pLiabilitySignal);
+        double[] InvertedCalculations_GetPLiabilitySignalProbabilities(byte? dLiabilitySignal);
+        double[] InvertedCalculations_GetDLiabilitySignalProbabilities(byte? pLiabilitySignal);
         double[] InvertedCalculations_GetCLiabilitySignalProbabilities(byte pLiabilitySignal, byte dLiabilitySignal);
 
-        double[] InvertedCalculations_GetPDamagesSignalProbabilities();
-        double[] InvertedCalculations_GetDDamagesSignalProbabilities(byte pDamagesSignal);
+        double[] InvertedCalculations_GetPDamagesSignalProbabilities(byte? dDamagesSignal);
+        double[] InvertedCalculations_GetDDamagesSignalProbabilities(byte? pDamagesSignal);
         double[] InvertedCalculations_GetCDamagesSignalProbabilities(byte pDamagesSignal, byte dDamagesSignal);
 
         double[] InvertedCalculations_GetLiabilityStrengthProbabilities(

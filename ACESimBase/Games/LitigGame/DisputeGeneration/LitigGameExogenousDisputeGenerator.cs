@@ -217,12 +217,12 @@ namespace ACESim
         }
 
         // Interface implementations
-        public override double[] InvertedCalculations_GetPLiabilitySignalProbabilities() => pLiabilitySignalProbabilitiesUnconditional;
-        public override double[] InvertedCalculations_GetDLiabilitySignalProbabilities(byte pLiabilitySignal) => LiabilityCalculators[dLiabilitySignalCalculatorIndex](new List<int>() { pLiabilitySignal - 1});
+        public override double[] InvertedCalculations_GetPLiabilitySignalProbabilities(byte? dLiabilitySignal) => pLiabilitySignalProbabilitiesUnconditional;
+        public override double[] InvertedCalculations_GetDLiabilitySignalProbabilities(byte? pLiabilitySignal) => LiabilityCalculators[dLiabilitySignalCalculatorIndex](new List<int>() { ((byte)pLiabilitySignal) - 1});
         public override double[] InvertedCalculations_GetCLiabilitySignalProbabilities(byte pLiabilitySignal, byte dLiabilitySignal) => LiabilityCalculators[cLiabilitySignalCalculatorIndex](new List<int>() { pLiabilitySignal - 1, dLiabilitySignal - 1 });
 
-        public override double[] InvertedCalculations_GetPDamagesSignalProbabilities() => pDamagesSignalProbabilitiesUnconditional;
-        public override double[] InvertedCalculations_GetDDamagesSignalProbabilities(byte pDamagesSignal) => DamagesCalculators[dDamagesSignalCalculatorIndex](new List<int>() { pDamagesSignal - 1 });
+        public override double[] InvertedCalculations_GetPDamagesSignalProbabilities(byte? dDamagesSignal) => pDamagesSignalProbabilitiesUnconditional;
+        public override double[] InvertedCalculations_GetDDamagesSignalProbabilities(byte? pDamagesSignal) => DamagesCalculators[dDamagesSignalCalculatorIndex](new List<int>() { ((byte)pDamagesSignal) - 1 });
         public override double[] InvertedCalculations_GetCDamagesSignalProbabilities(byte pDamagesSignal, byte dDamagesSignal) => DamagesCalculators[cDamagesSignalCalculatorIndex](new List<int>() { pDamagesSignal - 1, dDamagesSignal - 1}); 
         public override double[] InvertedCalculations_GetLiabilityStrengthProbabilities(byte pLiabilitySignal, byte dLiabilitySignal, byte? cLiabilitySignal) => cLiabilitySignal is byte cLiabilitySignalNotNull ? LiabilityCalculators[liabilityStrengthCalculatorIndex](new List<int>() { pLiabilitySignal - 1, dLiabilitySignal - 1, cLiabilitySignalNotNull - 1 }) : LiabilityCalculators[liabilityStrengthWithoutTrialCalculatorIndex](new List<int>() { pLiabilitySignal - 1, dLiabilitySignal - 1 });
         public override double[] InvertedCalculations_GetDamagesStrengthProbabilities(byte pDamagesSignal, byte dDamagesSignal, byte? cDamagesSignal) => cDamagesSignal is byte cDamagesSignalNotNull ? DamagesCalculators[damagesStrengthCalculatorIndex](new List<int>() { pDamagesSignal - 1, dDamagesSignal - 1, cDamagesSignalNotNull - 1 }) : DamagesCalculators[damagesStrengthWithoutTrialCalculatorIndex](new List<int>() { pDamagesSignal - 1, dDamagesSignal - 1 });

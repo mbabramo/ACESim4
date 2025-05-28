@@ -151,11 +151,11 @@ namespace ACESim
         public abstract string GetActionString(byte action, byte decisionByteCode);
 
         /* inverted‑calculation stubs — concrete generators override if used */
-        public virtual double[] InvertedCalculations_GetPLiabilitySignalProbabilities() => throw new NotImplementedException();
-        public virtual double[] InvertedCalculations_GetDLiabilitySignalProbabilities(byte pSig) => throw new NotImplementedException();
+        public virtual double[] InvertedCalculations_GetPLiabilitySignalProbabilities(byte? dLiabilitySignal) => throw new NotImplementedException();
+        public virtual double[] InvertedCalculations_GetDLiabilitySignalProbabilities(byte? pLiabilitySignal) => throw new NotImplementedException();
         public virtual double[] InvertedCalculations_GetCLiabilitySignalProbabilities(byte pSig, byte dSig) => throw new NotImplementedException();
-        public virtual double[] InvertedCalculations_GetPDamagesSignalProbabilities() => throw new NotImplementedException();
-        public virtual double[] InvertedCalculations_GetDDamagesSignalProbabilities(byte pSig) => throw new NotImplementedException();
+        public virtual double[] InvertedCalculations_GetPDamagesSignalProbabilities(byte? dDamagesSignal) => throw new NotImplementedException();
+        public virtual double[] InvertedCalculations_GetDDamagesSignalProbabilities(byte? pDamagesSignal) => throw new NotImplementedException();
         public virtual double[] InvertedCalculations_GetCDamagesSignalProbabilities(byte pSig, byte dSig) => throw new NotImplementedException();
         public virtual double[] InvertedCalculations_GetLiabilityStrengthProbabilities(byte pL, byte dL, byte? cL) => throw new NotImplementedException();
         public virtual double[] InvertedCalculations_GetDamagesStrengthProbabilities(byte pD, byte dD, byte? cD) => throw new NotImplementedException();

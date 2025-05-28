@@ -712,7 +712,7 @@ namespace ACESim
                 var myGameProgress = ((LitigGameProgress)gameProgress);
                 double[] probabilities;
                 if (Options.CollapseChanceDecisions)
-                    probabilities = Options.LitigGameDisputeGenerator.InvertedCalculations_GetPLiabilitySignalProbabilities();
+                    probabilities = Options.LitigGameDisputeGenerator.InvertedCalculations_GetPLiabilitySignalProbabilities(myGameProgress.DLiabilitySignalDiscrete);
                 else
                     probabilities = GetPLiabilitySignalProbabilities(myGameProgress.LiabilityStrengthDiscrete);
                 if (Math.Abs(probabilities.Sum() - 1) > 1E-8)
@@ -748,7 +748,7 @@ namespace ACESim
                 var myGameProgress = ((LitigGameProgress)gameProgress);
                 double[] probabilities;
                 if (Options.CollapseChanceDecisions)
-                    probabilities = Options.LitigGameDisputeGenerator.InvertedCalculations_GetPDamagesSignalProbabilities();
+                    probabilities = Options.LitigGameDisputeGenerator.InvertedCalculations_GetPDamagesSignalProbabilities(myGameProgress.DDamagesSignalDiscrete);
                 else
                     probabilities = GetPDamagesSignalProbabilities(myGameProgress.DamagesStrengthDiscrete);
                 if (Math.Abs(probabilities.Sum() - 1) > 1E-8)

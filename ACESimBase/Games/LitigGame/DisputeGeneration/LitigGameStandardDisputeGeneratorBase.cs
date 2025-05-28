@@ -297,11 +297,11 @@ namespace ACESim
         public abstract string GetActionString(byte action, byte decisionByteCode);
 
         // Inverted-calculation methods – must be overridden by those generators that use them
-        public virtual double[] InvertedCalculations_GetPLiabilitySignalProbabilities() => throw new NotSupportedException();
-        public virtual double[] InvertedCalculations_GetDLiabilitySignalProbabilities(byte pSignal) => throw new NotSupportedException();
+        public virtual double[] InvertedCalculations_GetPLiabilitySignalProbabilities(byte? dLiabilitySignal) => throw new NotSupportedException();
+        public virtual double[] InvertedCalculations_GetDLiabilitySignalProbabilities(byte? pLiabilitySignal) => throw new NotSupportedException();
         public virtual double[] InvertedCalculations_GetCLiabilitySignalProbabilities(byte pSignal, byte dSignal) => throw new NotSupportedException();
-        public virtual double[] InvertedCalculations_GetPDamagesSignalProbabilities() => throw new NotSupportedException();
-        public virtual double[] InvertedCalculations_GetDDamagesSignalProbabilities(byte pSignal) => throw new NotSupportedException();
+        public virtual double[] InvertedCalculations_GetPDamagesSignalProbabilities(byte? dDamagesSignal) => throw new NotSupportedException();
+        public virtual double[] InvertedCalculations_GetDDamagesSignalProbabilities(byte? pDamagesSignal) => throw new NotSupportedException();
         public virtual double[] InvertedCalculations_GetCDamagesSignalProbabilities(byte pSignal, byte dSignal) => throw new NotSupportedException();
         public virtual double[] InvertedCalculations_GetLiabilityStrengthProbabilities(byte pL, byte dL, byte? cL) => throw new NotSupportedException();
         public virtual double[] InvertedCalculations_GetDamagesStrengthProbabilities(byte pD, byte dD, byte? cD) => throw new NotSupportedException();
